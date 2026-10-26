@@ -24,7 +24,7 @@ Abre `index.html` en el navegador (doble clic, o mejor servido con GitHub Pages 
    - ➕ **Expandir**: añade un pueblo nuevo en la frontera del mundo y lo conecta.
 3. **Niveles**: el pueblo inicial ⭐ es nivel 1; cuanto más lejos (por camino), más nivel tienen pueblos y zonas. Las zonas están **sobre los caminos entre pueblos**: son el trayecto y el lugar de caza.
 4. **Diseñar un pueblo**: selecciona un pueblo → **🏗 Abrir en el Creador de Pueblos 3D**. Ajusta lo que quieras y pulsa **💾 Guardar y volver**: el diseño (semilla y parámetros) queda guardado en ese pueblo del mundo.
-   Los caminos del mundo llegan al pueblo por sus puertas: el pueblo se gira para que sus calles principales apunten a los caminos, y cada camino sale hasta el borde del terreno con un cartel hacia su destino. Abierto sin mundo, puedes probar salidas escribiendo ángulos en «Salidas hacia el mundo».
+   Los caminos del mundo llegan al pueblo por huecos en la muralla: el pueblo se gira para que sus calles apunten a los caminos, y cada camino sale de la plaza en línea recta hasta el borde del terreno, con un cartel hacia su destino. Abierto sin mundo, puedes probar salidas escribiendo ángulos en «Salidas hacia el mundo».
 5. **Guardado**: cada cambio se guarda automáticamente en la sesión actual (almacenamiento del navegador). En **📁 Sesiones** puedes tener varios mundos, duplicarlos, borrarlos y **exportar / importar `.mundo.json`** para copias de seguridad o para pasarlos a otro dispositivo.
 
 Atajos de teclado: `1–6` herramientas, `Supr` borrar selección, `Ctrl+Z` / `Ctrl+Y` deshacer / rehacer, `Esc` cancelar.
