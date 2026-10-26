@@ -71,12 +71,11 @@ medidas de memoria y de tiempo reales en un ordenador y en un móvil.
 ## Fases con las decisiones aplicadas
 
 **G1. Terreno pintado.** Texturas de hierba, tierra, roca, arena y nieve mezcladas según altura, pendiente y
-bioma. Terreno por trozos de 300 m con detalle según la distancia (el mismo tamaño que el suelo de cada pueblo,
-para que las costuras coincidan). Sombras del sol en medio y alto.
+bioma. Terreno por trozos de 320 m con detalle según la distancia. Sombras del sol en medio y alto.
 
 Estado: **hecho, con dos pendientes.**
 - Hecho: texturas de ambientCG (CC0, ver `docs/ASSETS.md`), mezcla por altura, pendiente y bioma en el shader,
-  trozos de 15 × 15 celdas de 20 m (300 m) con faldón, anillo lejano con paso según la calidad, agujeros bajo los
+  trozos de 16 × 16 celdas de 20 m (320 m), anillo lejano con paso según la calidad, agujeros bajo los
   pueblos cargados y alturas tomadas del mismo triángulo que se dibuja (`meshHeight`), así que el personaje no se
   hunde. Calidades bajo / medio / alto (radio 1000 / 1400 / 1800 m; sombras no / 1024 / 2048; píxeles 1 / 1,5 / 2).
   Pruebas en `test/terreno.test.js`.

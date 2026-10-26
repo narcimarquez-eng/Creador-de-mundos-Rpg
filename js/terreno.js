@@ -63,7 +63,8 @@
 
   // Malla de una rejilla de nodos. grid: { x0, z0, step, n, N, pos, col, splat, snow, nrm }.
   // gi0, gj0: nodo inicial; cellsI, cellsJ: celdas; stride: nodos por celda (1 = detalle completo).
-  // skipCell(cx, cz): true para no dibujar la celda (hueco de un pueblo o zona cubierta por otra malla).
+  // skipCell(gi, gj, s): true para no dibujar la celda que empieza en el nodo (gi, gj) y mide s nodos
+  // (hueco de un pueblo o zona cubierta por otra malla).
   // skirt: añade faldones que bajan por el borde para tapar grietas entre trozos.
   function buildGridGeometry(THREE, grid, o) {
     const { gi0, gj0, cellsI, cellsJ, stride, skipCell, skirt } = o;
@@ -85,27 +86,35 @@
       vid[j * NI + i] = addVertex(gi, gj, 0);
     }
     const I = [];
+    const drawn = new Uint8Array(cellsI * cellsJ);
     for (let j = 0; j < cellsJ; j++) for (let i = 0; i < cellsI; i++) {
       const gi = gi0 + i * stride, gj = gj0 + j * stride;
-      if (skipCell && skipCell(gi + stride / 2, gj + stride / 2)) continue;
+      if (skipCell && skipCell(gi, gj, stride)) continue;
+      drawn[j * cellsI + i] = 1;
       const a = j * NI + i, b = a + 1, c = a + NI, d = c + 1;
       I.push(vid[a], vid[c], vid[b], vid[b], vid[c], vid[d]);
     }
+    // Faldones solo en el borde de todo el mundo. Entre trozos vecinos no se añaden: sus caras
+    // verticales se veían como líneas oscuras sobre el terreno. Los trozos comparten sus nodos.
     if (skirt) {
       const DROP = 30;
-      const edge = (pairs) => {
-        for (let q = 0; q < pairs.length - 1; q++) {
-          const [ai, aj] = pairs[q], [bi, bj] = pairs[q + 1];
-          const ta = vid[aj * NI + ai], tb = vid[bj * NI + bi];
-          const gia = Math.min(n, gi0 + ai * stride), gja = Math.min(n, gj0 + aj * stride);
-          const gib = Math.min(n, gi0 + bi * stride), gjb = Math.min(n, gj0 + bj * stride);
-          const ba = addVertex(gia, gja, -DROP), bb = addVertex(gib, gjb, -DROP);
-          I.push(ta, tb, bb, ta, bb, ba);
-        }
+      const atLeft = gi0 === 0, atBottom = gj0 === 0;
+      const atRight = gi0 + cellsI * stride >= n, atTop = gj0 + cellsJ * stride >= n;
+      // Faldón entre los nodos (ai, aj) y (bi, bj) de la rejilla local
+      const wall = (ai, aj, bi, bj) => {
+        const ta = vid[aj * NI + ai], tb = vid[bj * NI + bi];
+        const gia = Math.min(n, gi0 + ai * stride), gja = Math.min(n, gj0 + aj * stride);
+        const gib = Math.min(n, gi0 + bi * stride), gjb = Math.min(n, gj0 + bj * stride);
+        const ba = addVertex(gia, gja, -DROP), bb = addVertex(gib, gjb, -DROP);
+        I.push(ta, tb, bb, ta, bb, ba);
       };
-      const row = (j) => { const r = []; for (let i = 0; i < NI; i++) r.push([i, j]); return r; };
-      const col = (i) => { const r = []; for (let j = 0; j < NJ; j++) r.push([i, j]); return r; };
-      edge(row(0)); edge(row(cellsJ)); edge(col(0)); edge(col(cellsI));
+      for (let j = 0; j < cellsJ; j++) for (let i = 0; i < cellsI; i++) {
+        if (!drawn[j * cellsI + i]) continue;
+        if (j === 0 && atBottom) wall(i, j, i + 1, j);
+        if (j === cellsJ - 1 && atTop) wall(i, j + 1, i + 1, j + 1);
+        if (i === 0 && atLeft) wall(i, j, i, j + 1);
+        if (i === cellsI - 1 && atRight) wall(i + 1, j, i + 1, j + 1);
+      }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));

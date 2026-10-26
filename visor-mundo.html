@@ -264,14 +264,14 @@
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
   let terrainMat = null, farMesh = null, lastChunks = 0;
   const nearChunks = new Map();          // trozos de 300 m con detalle completo, por "cx,cz"
-  const CHUNK = 15;                      // celdas de 20 m por trozo (300 m)
+  const CHUNK = 16;                      // celdas de 20 m por trozo (320 m); múltiplo de los pasos de la malla lejana
   const TEX_NAMES = { tGrass: 'hierba', tDirt: 'tierra', tRock: 'roca', tSand: 'arena', tSnow: 'nieve' };
   const terrainU = {
     tGrass: { value: null }, tDirt: { value: null }, tRock: { value: null }, tSand: { value: null }, tSnow: { value: null },
     uTile: { value: 1 / 60 }, uTexOn: { value: 0 }
   };
   // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
-  const QUALITY = { bajo: { radius: 1000, shadows: 0, pixel: 1, far: 5 }, medio: { radius: 1400, shadows: 1024, pixel: 1.5, far: 3 }, alto: { radius: 1800, shadows: 2048, pixel: 2, far: 3 } };
+  const QUALITY = { bajo: { radius: 1000, shadows: 0, pixel: 1, far: 4 }, medio: { radius: 1400, shadows: 1024, pixel: 1.5, far: 2 }, alto: { radius: 1800, shadows: 2048, pixel: 2, far: 2 } };
   let quality = 'alto';
   let monsters = [];
   let timeOfDay = 'day';
@@ -292,17 +292,19 @@
   let lastT = performance.now();
 
   // Altura del mundo. Dentro del terreno de cada pueblo usa el suelo exacto del Creador de Pueblos,
-  // y fuera se funde con el terreno del mundo.
+  // y fuera se funde con el terreno del mundo. En el borde del pueblo la altura es la del suelo
+  // (w = 1), así no hay escalón entre el pueblo y el mundo; la mezcla se reparte hacia fuera.
   // Altura analítica del terreno (sin malla). La malla se construye a partir de ella.
+  const BLEND_OUT = 140;
   function Hgen(x, z) {
     const e = terrain.elevation(x, z);
     let h = (e - SEA) * HEIGHT_SCALE;
     for (let i = 0; i < towns.length; i++) {
       const o = towns[i];
       const dx = x - o.t.x, dz = z - o.t.y;
-      if (Math.hypot(dx, dz) > o.tileHalf * 1.5 + 80) continue;
+      if (Math.hypot(dx, dz) > (o.tileHalf + BLEND_OUT) * Math.SQRT2) continue;
       const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
-      const w = 1 - smooth(o.tileHalf - 25, o.tileHalf + 60, Math.max(Math.abs(lx), Math.abs(lz)));
+      const w = 1 - smooth(o.tileHalf, o.tileHalf + BLEND_OUT, Math.max(Math.abs(lx), Math.abs(lz)));
       if (w > 0) {
         const g = o.h0 + o.ground.getTerrainHeight(lx, lz);
         h = h + (g - h) * w;
@@ -395,6 +397,24 @@
       const a = pts[i], b = pts[i + 1];
       const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
       for (let k = 0; k < n; k++) out.push({ x: a.x + (b.x - a.x) * k / n, z: a.y + (b.y - a.y) * k / n });
+    }
+    const last = pts[pts.length - 1];
+    out.push({ x: last.x, z: last.y });
+    return out;
+  }
+
+  // Igual que subdivide, pero la línea pasa por los puntos con una curva suave (Catmull-Rom),
+  // así el camino no hace quiebros en cada punto de control y sigue tocando sus extremos
+  function curvePath(pts, step) {
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const n = Math.max(1, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / step));
+      for (let k = 0; k < n; k++) {
+        const t = k / n, t2 = t * t, t3 = t2 * t;
+        const f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+        out.push({ x: f(p0.x, p1.x, p2.x, p3.x), z: f(p0.y, p1.y, p2.y, p3.y) });
+      }
     }
     const last = pts[pts.length - 1];
     out.push({ x: last.x, z: last.y });
@@ -581,15 +601,23 @@
       const splat = new Float32Array(N * N * 4), snowA = new Float32Array(N * N), nrm = new Float32Array(N * N * 3);
       const cfg = o.cfg;
       const gc = W.BIOMES[o.t.biome] ? W.BIOMES[o.t.biome].color : [127, 174, 90];
-      const base = TerrainLib.splatFor(o.t.biome, 0, 0);
       for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
         const lx = -half + i * step, lz = -half + j * step;
         const wx = o.t.x + lx * o.cr - lz * o.sr, wz = o.t.y + lx * o.sr + lz * o.cr;
         const k = (j * N + i) * 3, kk = j * N + i;
         const y = o.h0 + o.ground.getTerrainHeight(lx, lz);
         pos[k] = wx; pos[k + 1] = y; pos[k + 2] = wz;
-        let c = [gc[0] / 255, gc[1] / 255, gc[2] / 255];
-        let sp = base.splat.slice(), sn = base.snow;
+      }
+      // Color y texturas con las mismas reglas que la malla del mundo (pendiente, altura y tinte),
+      // así no hay un cambio brusco entre el suelo del pueblo y el terreno de alrededor
+      const heightAt = (i, j) => pos[(j * N + i) * 3 + 1];
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        const lx = -half + i * step, lz = -half + j * step;
+        const kk = j * N + i, k = kk * 3;
+        const nv = TerrainLib.nodeNormal(heightAt, i, j, SEG, step);
+        const w = TerrainLib.splatFor(o.t.biome, 1 - nv[1], heightAt(i, j));
+        let c = [1 - 0.55 * (1 - gc[0] / 255), 1 - 0.55 * (1 - gc[1] / 255), 1 - 0.55 * (1 - gc[2] / 255)];
+        let sp = w.splat, sn = w.snow;
         if (Math.hypot(lx, lz) < 16.5) { c = [0.8, 0.84, 0.88]; sp = [0, 1, 0, 0]; sn = 0; }          // plaza: tierra
         else if (cfg.hasRiver && Math.abs(lx - o.ground.getRiverX(lz)) < o.ground.riverWidth * 0.72) { c = [0.6, 0.52, 0.4]; sp = [0, 0, 0, 1]; sn = 0; } // arena del río
         col[k] = c[0]; col[k + 1] = c[1]; col[k + 2] = c[2];
@@ -629,7 +657,8 @@
     [...nearChunks.keys()].forEach(k => {
       const [cx, cz] = k.split(',').map(Number);
       const x = g.x0 + (cx * CHUNK + CHUNK / 2) * g.step, z = g.z0 + (cz * CHUNK + CHUNK / 2) * g.step;
-      if (Math.hypot(x - o.t.x, z - o.t.y) < o.tileHalf * 1.5) { const m = nearChunks.get(k); scene.remove(m); m.geometry.dispose(); nearChunks.delete(k); }
+      // el trozo puede tocar el pueblo aunque su centro esté lejos: se cuenta media diagonal del trozo
+      if (Math.hypot(x - o.t.x, z - o.t.y) < o.tileHalf * 1.5 + CHUNK * g.step * 0.71) { const m = nearChunks.get(k); scene.remove(m); m.geometry.dispose(); nearChunks.delete(k); }
     });
     lastChunks = 0;
   }
@@ -698,6 +727,12 @@
     });
   }
   function nodeWorld(gx, gz) { return [terrainGrid.x0 + gx * terrainGrid.step, terrainGrid.z0 + gz * terrainGrid.step]; }
+  // Una celda solo se deja a su pueblo si cae entera dentro de su terreno; si asoma, se dibuja
+  // (su parte de fuera no la cubre el suelo del pueblo)
+  function townCoversCell(gx, gz, s) {
+    return townTileAt(...nodeWorld(gx, gz)) && townTileAt(...nodeWorld(gx + s, gz)) &&
+      townTileAt(...nodeWorld(gx, gz + s)) && townTileAt(...nodeWorld(gx + s, gz + s));
+  }
 
   function buildNear(cx, cz) {
     const g = terrainGrid;
@@ -705,7 +740,7 @@
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
     const geom = TerrainLib.buildGridGeometry(THREE, g, {
       gi0, gj0, cellsI, cellsJ, stride: 1, skirt: true,
-      skipCell: (gx, gz) => { const [x, z] = nodeWorld(gx, gz); return townTileAt(x, z); }
+      skipCell: (gx, gz, s) => townCoversCell(gx, gz, s)
     });
     const m = new THREE.Mesh(geom, terrainMat);
     m.receiveShadow = true;
@@ -719,10 +754,9 @@
     const st = QUALITY[quality].far;
     const cells = Math.ceil(g.n / st);
     const geom = TerrainLib.buildGridGeometry(THREE, g, {
-      gi0: 0, gj0: 0, cellsI: cells, cellsJ: cells, stride: st,
-      skipCell: (gx, gz) => {
-        const [x, z] = nodeWorld(gx, gz);
-        if (townTileAt(x, z)) return true;
+      gi0: 0, gj0: 0, cellsI: cells, cellsJ: cells, stride: st, skirt: true,
+      skipCell: (gx, gz, s) => {
+        if (townCoversCell(gx, gz, s)) return true;
         return nearChunks.has(Math.floor(gx / CHUNK) + ',' + Math.floor(gz / CHUNK));
       }
     });
@@ -910,7 +944,7 @@
       const oa = towns.find(o => o.t === a), ob = towns.find(o => o.t === b);
       const pts = trimRoad(r, a, b, Math.min(oa ? oa.tileHalf : 149, ob ? ob.tileHalf : 149));
       if (pts.length < 2) return;
-      mb.ribbon(subdivide(pts, 8), roadWidth(r.kind), roadColor(r.kind), 0.35);
+      mb.ribbon(curvePath(pts, 8), roadWidth(r.kind), roadColor(r.kind), 0.35);
     });
     roadMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
     scene.add(roadMesh);
