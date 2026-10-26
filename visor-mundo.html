@@ -51,7 +51,26 @@
     #banner b { color: #fde68a; font-size: 15px; }
     #banner small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
     #minimap { position: absolute; right: 24px; bottom: 150px; width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.85); z-index: 16; box-shadow: 0 8px 20px rgba(0,0,0,.5); }
-    #btn-hunt { position: absolute; right: 150px; bottom: 36px; width: 60px; height: 60px; border-radius: 50%; font-size: 13px; font-weight: 700; background: #450a0a; border-color: #ef4444; color: #fecaca; z-index: 26; line-height: 1.1; }
+    #hud { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 24; width: min(440px, calc(100vw - 280px)); display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .hud-bars { width: 100%; display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+    .hud-bars .row { display: flex; align-items: center; gap: 8px; }
+    .lv { font-weight: 700; color: var(--gold); font-size: 12px; min-width: 40px; }
+    .bar { position: relative; flex: 1; height: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; overflow: hidden; }
+    .bar i { display: block; height: 100%; width: 100%; transition: width .2s; }
+    .bar b { position: absolute; inset: 0; font-size: 10px; text-align: center; line-height: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
+    .bar.hp i { background: linear-gradient(90deg, #dc2626, #f87171); }
+    .bar.mp i { background: linear-gradient(90deg, #1d4ed8, #60a5fa); }
+    .bar.xp { height: 6px; }
+    .bar.xp i { background: linear-gradient(90deg, #a16207, #fbbf24); }
+    .skills { display: flex; gap: 6px; }
+    .skills button { width: 58px; height: 52px; padding: 0; font-size: 18px; position: relative; background: var(--panel); }
+    .skills button small { display: block; font-size: 9px; color: var(--muted); }
+    .skills button .cd { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; background: rgba(2,6,23,.6); border-radius: 7px; }
+    .skills button .cd:empty { display: none; }
+    .skills button:disabled { opacity: .5; }
+    #deadmsg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(69,10,10,.45); z-index: 45; font-size: 22px; font-weight: 700; color: #fecaca; pointer-events: none; }
+    #deadmsg.show { display: flex; }
+    #deadmsg small { font-size: 14px; color: #fca5a5; margin-top: 6px; font-weight: 600; }
     #hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(11,17,30,.8); border-radius: 8px; padding: 5px 10px; font-size: 11px; color: var(--muted); pointer-events: none; white-space: nowrap; }
 
     .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: none; z-index: 5; text-align: center; white-space: nowrap; font-size: 12px; font-weight: 700; color: #fde68a; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
@@ -74,8 +93,9 @@
       #info { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 50vh; }
       #joystick-zone { bottom: 14px; right: 10px; width: 96px; height: 96px; }
       #minimap { right: 10px; bottom: 120px; width: 110px; height: 110px; }
-      #btn-hunt { right: 124px; bottom: 26px; width: 54px; height: 54px; }
       #banner { max-width: calc(100vw - 20px); }
+      #hud { left: 8px; bottom: 10px; transform: none; width: 220px; align-items: flex-start; }
+      .skills button { width: 50px; height: 46px; }
       #joystick-knob { width: 38px; height: 38px; }
       #top button span.long { display: none; }
       #hint { display: none; }
@@ -112,11 +132,24 @@
 
   <div id="banner"></div>
   <canvas id="minimap" width="300" height="300"></canvas>
-  <button id="btn-hunt" title="Cazar al monstruo más cercano (Espacio)">⚔<br>Cazar</button>
+  <div id="hud">
+    <div class="hud-bars">
+      <div class="row"><span class="lv" id="hud-lv">Nv 1</span><div class="bar hp"><i id="hud-hp"></i><b id="hud-hp-t"></b></div></div>
+      <div class="bar mp"><i id="hud-mp"></i></div>
+      <div class="bar xp"><i id="hud-xp"></i></div>
+    </div>
+    <div class="skills">
+      <button id="sk-attack" title="Combo de ataque (Espacio)">⚔<small>Espacio</small><span class="cd"></span></button>
+      <button id="sk-spin" title="Patada giratoria (Q)">🌀<small>Q</small><span class="cd"></span></button>
+      <button id="sk-nova" title="Explosión nova (E)">💥<small>E</small><span class="cd"></span></button>
+      <button id="sk-jump" title="Salto acrobático (X)">🦘<small>X</small></button>
+    </div>
+  </div>
+  <div id="deadmsg"><div>💀 Has caído</div><small id="deadsub"></small></div>
 
   <div id="joystick-zone" title="Joystick: mover al personaje"><div id="joystick-knob"></div></div>
 
-  <div id="hint"><b>WASD</b> / joystick mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir · <b>M</b> mapa · <b>T</b> hora · <b>Espacio</b> cazar</div>
+  <div id="hint"><b>WASD</b> / joystick mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir · <b>M</b> mapa · <b>T</b> hora · <b>Espacio</b> / <b>Q</b> / <b>E</b> combate · <b>X</b> salto</div>
 
   <div id="load">
     <div class="box">
@@ -137,6 +170,7 @@
   <script src="js/world-core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="js/village-core.js"></script>
+  <script src="js/combat.js"></script>
   <script src="js/character.js"></script>
   <script>
   "use strict";
@@ -174,6 +208,7 @@
   let timeOfDay = 'day';
   let curTown = null, curZone = null;
   let lastMinimap = 0;
+  let hero = CombatLib.newHero();
   const zoneLabels = [], townLabels = [];
   let follow = false, selected = null;
   let lastT = performance.now();
@@ -350,7 +385,7 @@
 
   function clearWorldObjects() {
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
-    monsters.forEach(m => scene.remove(m.group));
+    monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
     [terrainMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
@@ -370,6 +405,8 @@
     terrain = W.getTerrain(world.seed);
     selected = null;
     hideInfo();
+    hero = CombatLib.newHero();
+    $('deadmsg').classList.remove('show');
 
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
     towns = world.towns.map(makeTownEntry);
@@ -913,20 +950,26 @@
   }
 
   // ===========================================================================
-  // Monstruos de las zonas de caza: aparecen cerca, se cazan y reaparecen
+  // Combate: héroe, monstruos, habilidades y muerte (reglas en js/combat.js)
   // ===========================================================================
+  const SKILL_ANIM = { attack: 'attack', spin: 'spin', nova: 'nova' };
+  const SKILL_KEY = { attack: 'Espacio', spin: 'Q', nova: 'E' };
+  let lastNowSec = 0, lastHud = 0;
+  let deadTimerShown = false;
+
   function monsterColor(level) {
     const maxL = Math.max(10, W.stats(world).maxLevel);
     return new THREE.Color().setHSL((130 - 130 * Math.min(1, (level - 1) / maxL)) / 360, 0.7, 0.5);
   }
 
   function buildMonsters() {
-    monsters.forEach(m => scene.remove(m.group));
+    monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     const geoBody = new THREE.ConeGeometry(0.7, 1.7, 7);
     geoBody.translate(0, 0.85, 0);
     const geoBoss = new THREE.ConeGeometry(1.8, 4.2, 8);
     geoBoss.translate(0, 2.1, 0);
+    const barGeo = new THREE.PlaneGeometry(2.6, 0.28);
     world.zones.forEach(z => {
       z.monsters.forEach((info, mi) => {
         const count = info.boss ? 1 : ({ baja: 1, media: 2, alta: 3 })[info.density] || 1;
@@ -934,44 +977,167 @@
           const rng = new W.PRNG((W.hashString(z.id + '|' + mi + '|' + k) ^ world.seed) >>> 0);
           const a = rng.range(0, Math.PI * 2);
           const r = info.boss ? 0 : z.radius * rng.range(0.2, 0.75);
-          const group = new THREE.Group();
-          const mat = new THREE.MeshLambertMaterial({ color: info.boss ? '#dc2626' : monsterColor(info.level) });
-          group.add(new THREE.Mesh(info.boss ? geoBoss : geoBody, mat));
-          group.visible = false;
-          scene.add(group);
-          monsters.push({ zone: z, info, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, group, dead: 0, phase: rng.range(0, 6) });
+          const m = CombatLib.newMonster({ level: info.level, boss: info.boss, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, leash: z.radius + 25 });
+          m.name = info.name; m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
+          m.group = new THREE.Group();
+          m.mat = new THREE.MeshLambertMaterial({ color: info.boss ? '#dc2626' : monsterColor(info.level), emissive: '#000000' });
+          m.group.add(new THREE.Mesh(info.boss ? geoBoss : geoBody, m.mat));
+          m.group.visible = false;
+          scene.add(m.group);
+          // Barra de vida: fondo oscuro y relleno que se acorta con el daño
+          m.bar = new THREE.Group();
+          const bg = new THREE.Mesh(barGeo, new THREE.MeshBasicMaterial({ color: '#111827', depthTest: false }));
+          m.fg = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.2), new THREE.MeshBasicMaterial({ color: '#22c55e', depthTest: false }));
+          m.fg.position.z = 0.01;
+          m.bar.add(bg, m.fg);
+          m.barHeight = info.boss ? 5.6 : 2.9;
+          m.bar.visible = false;
+          scene.add(m.bar);
+          monsters.push(m);
         }
       });
     });
   }
 
-  function updateMonsters(now) {
+  function respawnMonster(m) {
+    m.alive = true; m.hp = m.maxHp; m.x = m.spawnX; m.z = m.spawnZ; m.state = 'idle'; m.attackTimer = 0;
+  }
+
+  function killMonster(m) {
+    m.alive = false; m.hp = 0;
+    m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
+    m.group.visible = false; m.bar.visible = false;
+    const levels = CombatLib.gainXp(hero, m.xp);
+    if (m.boss) {
+      character.playOneShot('victory', lastNowSec);
+      announce('👑 ¡Jefe derrotado!', m.name + ' · +' + m.xp + ' XP');
+    } else {
+      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · +' + m.xp + ' XP · reaparece en ' + Math.round(m.respawnAt / 1000 - performance.now() / 1000) + ' s');
+    }
+    if (levels) setTimeout(() => announce('⭐ Nivel ' + hero.level, 'Vida y maná completos'), 2300);
+  }
+
+  function damageMonster(m, dmg) {
+    m.hp = Math.max(0, m.hp - dmg);
+    m.flashUntil = performance.now() + 120;
+    if (m.state !== 'chase') m.state = 'chase';
+    if (m.hp <= 0) killMonster(m);
+  }
+
+  function monsterHitsHero(m) {
+    const dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level);
+    if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
+  }
+
+  function onHeroDeath(now) {
+    CombatLib.die(hero, now);
+    character.lockUntil = Infinity;
+    $('deadmsg').classList.add('show');
+    deadTimerShown = true;
+  }
+
+  function respawnHero() {
     const p = character.root.position;
+    let best = null, bd = Infinity;
+    towns.forEach(o => { const d = Math.hypot(p.x - o.t.x, p.z - o.t.y); if (d < bd) { bd = d; best = o; } });
+    CombatLib.respawn(hero);
+    character.lockUntil = 0;
+    $('deadmsg').classList.remove('show');
+    deadTimerShown = false;
+    if (best) {
+      const pt = townPoint(best, 0, 0);
+      character.teleport(pt.x, pt.z);
+      announce('✨ Has reaparecido', 'En ' + best.t.name);
+    }
+  }
+
+  function updateCombat(dt, now) {
+    CombatLib.tickHero(hero, dt);
+    const p = character.root.position;
+    const yawX = Math.sin(character.root.rotation.y), yawZ = Math.cos(character.root.rotation.y);
+
+    if (hero.dead) {
+      if (now >= hero.deadUntil) respawnHero();
+      else $('deadsub').textContent = 'Reapareces en ' + Math.ceil((hero.deadUntil - now) / 1000) + ' s';
+    }
+
     monsters.forEach(m => {
-      if (m.dead && now > m.dead) m.dead = 0;
+      if (!m.alive) {
+        if (performance.now() >= m.respawnAt) respawnMonster(m);
+        else { m.group.visible = false; m.bar.visible = false; return; }
+      }
       const d = Math.hypot(m.x - p.x, m.z - p.z);
-      m.group.visible = !m.dead && d < 420;
-      if (m.group.visible) {
-        m.group.position.set(m.x, H(m.x, m.z) + Math.sin(now / 600 + m.phase) * 0.15, m.z);
-        m.group.rotation.y = now / 1200 + m.phase;
+      // Los monstruos no entran en los pueblos: si llegan a uno, vuelven a su zona
+      const inTown = towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
+      if (inTown) m.state = 'return';
+      if (d < 120 && !inTown) {
+        const r = CombatLib.monsterTick(m, hero, p.x, p.z, dt);
+        if (r.attack && !hero.dead) monsterHitsHero(m);
+      }
+      const near = d < 420;
+      m.group.visible = near;
+      if (near) {
+        const bob = m.state === 'chase' ? 0 : Math.sin(now / 600 + m.phase) * 0.15;
+        m.group.position.set(m.x, H(m.x, m.z) + bob, m.z);
+        if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
+        m.mat.emissive.setHex(now < m.flashUntil ? 0x7f1d1d : 0x000000);
+      }
+      const showBar = near && (m.hp < m.maxHp || d < 12);
+      m.bar.visible = showBar;
+      if (showBar) {
+        m.bar.position.set(m.x, H(m.x, m.z) + m.barHeight, m.z);
+        m.bar.quaternion.copy(camera.quaternion);
+        const f = Math.max(0.001, m.hp / m.maxHp);
+        m.fg.scale.x = f;
+        m.fg.position.x = -(1 - f) * 1.3;
+        m.fg.material.color.set(f > 0.5 ? '#22c55e' : f > 0.25 ? '#f59e0b' : '#ef4444');
       }
     });
   }
 
-  function huntNearest() {
+  // Habilidades: daño a los monstruos del alcance y animación del personaje
+  function useSkill(name) {
+    if (hero.dead) return;
+    if (!CombatLib.canUse(hero, name)) {
+      if (hero.cd[name] > 0) toast(name === 'attack' ? 'Combo listo en un momento' : 'Recargando…');
+      else if (hero.mp < CombatLib.SKILLS[name].mp) toast('Sin maná');
+      return;
+    }
+    CombatLib.useSkill(hero, name);
+    character.playOneShot(SKILL_ANIM[name], lastNowSec);
     const p = character.root.position;
-    let best = null, bd = 4.5;
-    monsters.forEach(m => {
-      if (m.dead) return;
-      const d = Math.hypot(m.x - p.x, m.z - p.z);
-      if (d < bd) { bd = d; best = m; }
+    const fx = Math.sin(character.root.rotation.y), fz = Math.cos(character.root.rotation.y);
+    let hits = 0;
+    monsters.slice().forEach(m => {
+      if (!m.alive || !CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z)) return;
+      hits++;
+      damageMonster(m, CombatLib.heroDamage(hero, name, m.level));
     });
-    if (!best) { toast('No hay monstruos cerca: acércate a uno'); return; }
-    const now = performance.now();
-    best.dead = now + Math.max(5, best.zone.respawnSec || 60) * 1000;
-    best.group.visible = false;
-    announce('⚔ Derrotado: ' + best.info.name, 'Nivel ' + best.info.level + ' · reaparece en ' + Math.round((best.dead - now) / 1000) + ' s');
+    if (name !== 'attack' && hits === 0) toast('Sin objetivos en el alcance');
   }
+
+  function jump() {
+    if (hero.dead) return;
+    character.playOneShot('jump', lastNowSec);
+  }
+
+  function updateHud(now) {
+    if (now - lastHud < 100) return;
+    lastHud = now;
+    const pct = (v, max) => Math.max(0, Math.min(100, (v / max) * 100)) + '%';
+    $('hud-hp').style.width = pct(hero.hp, hero.maxHp);
+    $('hud-mp').style.width = pct(hero.mp, hero.maxMp);
+    $('hud-xp').style.width = pct(hero.xp, CombatLib.xpToNext(hero.level));
+    $('hud-hp-t').textContent = Math.ceil(hero.hp) + ' / ' + hero.maxHp;
+    $('hud-lv').textContent = 'Nv ' + hero.level;
+    ['attack', 'spin', 'nova'].forEach(k => {
+      const btn = $('sk-' + k), cd = hero.cd[k];
+      btn.disabled = hero.dead || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
+      btn.querySelector('.cd').textContent = cd > 0 ? Math.ceil(cd) : '';
+    });
+  }
+
+
 
   // ===========================================================================
   // Anuncios de pueblo y zona, y minimapa
@@ -1036,8 +1202,8 @@
       g.fillRect(X(o.t.x) - 4, Y(o.t.y) - 4, 8, 8);
     });
     monsters.forEach(m => {
-      if (m.dead) return;
-      g.fillStyle = m.info.boss ? '#ef4444' : '#f97316';
+      if (!m.alive) return;
+      g.fillStyle = m.boss ? '#ef4444' : '#f97316';
       g.beginPath(); g.arc(X(m.x), Y(m.z), 2.5, 0, Math.PI * 2); g.fill();
     });
     g.restore();
@@ -1128,7 +1294,10 @@
     if (k === 'f') setFollow(!follow);
     if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
     if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
-    if (k === ' ') { e.preventDefault(); huntNearest(); }
+    if (k === ' ') { e.preventDefault(); useSkill('attack'); }
+    if (k === 'q') useSkill('spin');
+    if (k === 'e') useSkill('nova');
+    if (k === 'x') jump();
     if (k === 'escape') showSelection(null);
   });
 
@@ -1164,7 +1333,10 @@
   $('btn-side').onclick = () => $('side').classList.toggle('collapsed');
   $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
   $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
-  $('btn-hunt').onclick = huntNearest;
+  $('sk-attack').onclick = () => useSkill('attack');
+  $('sk-spin').onclick = () => useSkill('spin');
+  $('sk-nova').onclick = () => useSkill('nova');
+  $('sk-jump').onclick = jump;
   $('btn-follow').onclick = () => setFollow(!follow);
   $('btn-view-plaza').onclick = viewPlaza;
   $('btn-view-detail').onclick = viewDetail;
@@ -1187,7 +1359,9 @@
     towns.forEach(o => { if (o.village) o.village.update(now / 1000); });
     animateTowns(dt);
     updateAtmosphere(dt);
-    updateMonsters(now);
+    lastNowSec = now / 1000;
+    updateCombat(dt, now);
+    updateHud(now);
     checkRegions();
     drawMinimap(now);
 

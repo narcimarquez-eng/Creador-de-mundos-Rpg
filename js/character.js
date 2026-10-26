@@ -21,6 +21,31 @@
   const WALK_SPEED = 6.5;
   const RUN_SPEED = 12.0;
 
+  // Palabras clave para reconocer las animaciones del GLB (en inglés o español, sin distinguir mayúsculas)
+  const CLIP_KEYWORDS = {
+    idle: ['idle', 'stand', 'wait', 'guardia', 'reposo'],
+    walk: ['walk', 'andar', 'caminar', 'marcha', 'move'],
+    run: ['run', 'sprint', 'correr', 'carrera', 'fast'],
+    attack: ['combo', 'ataque', 'attack', 'slash'],
+    spin: ['patada', 'spin', 'kick', 'giratoria'],
+    nova: ['nova', 'explos', 'blast'],
+    jump: ['salto', 'acrobat', 'jump'],
+    victory: ['victoria', 'victory', 'postura de victoria', 'win']
+  };
+  // Duración de cada acción de un solo uso (segundos) y tiempo en que bloquea el movimiento
+  const ONE_SHOT = {
+    attack: { lock: 0.5 },
+    spin: { lock: 0.7 },
+    nova: { lock: 1.0 },
+    jump: { lock: 0.0 },
+    victory: { lock: 0.0 }
+  };
+
+  // Índice de la primera animación cuyo nombre contiene alguna palabra clave; -1 si no hay
+  function findClipIndex(names, keywords) {
+    return names.findIndex(n => keywords.some(k => n.toLowerCase().includes(k)));
+  }
+
   function getColliders(world, x, z) {
     return typeof world.getColliders === 'function' ? world.getColliders(x, z) : (world.colliders || []);
   }
@@ -76,6 +101,10 @@
       this.keys = { forward: false, backward: false, left: false, right: false, shift: false };
       this.joyVec = { x: 0, y: 0 };
       this.cameraMode = 'free';
+      this.oneShots = {};
+      this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
+      this.lockUntil = 0;        // mientras dure, el personaje no se mueve
+      this.fallbackAct = null;   // { kind, start, duration } para el avatar de respaldo
 
       this.initInput();
       if (opts.joystick && opts.joystick.zone && opts.joystick.knob) {
@@ -227,13 +256,25 @@
           const clips = gltf.animations || [];
           if (clips.length > 0) {
             this.mixer = new THREE.AnimationMixer(this.model);
-            const findClip = (keywords, fallbackIdx) => {
-              const found = clips.find(c => keywords.some(k => c.name.toLowerCase().includes(k)));
-              return found || clips[Math.min(fallbackIdx, clips.length - 1)];
+            const names = clips.map(c => c.name);
+            const pick = (kind, fallbackIdx) => {
+              const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
+              return clips[i >= 0 ? i : fallbackIdx];
             };
-            this.actions.idle = this.mixer.clipAction(findClip(['idle', 'stand', 'wait', 'reposo'], 0));
-            this.actions.walk = this.mixer.clipAction(findClip(['walk', 'andar', 'caminar', 'move'], Math.min(1, clips.length - 1)));
-            this.actions.run = this.mixer.clipAction(findClip(['run', 'sprint', 'correr', 'fast'], Math.min(2, clips.length - 1)));
+            this.actions.idle = this.mixer.clipAction(pick('idle', 0));
+            this.actions.walk = this.mixer.clipAction(pick('walk', Math.min(1, clips.length - 1)));
+            this.actions.run = this.mixer.clipAction(pick('run', Math.min(2, clips.length - 1)));
+            // Acciones de un solo uso: si el GLB no las trae, se usa la animación de respaldo
+            this.oneShots = {};
+            ['attack', 'spin', 'nova', 'jump', 'victory'].forEach(kind => {
+              const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
+              if (i >= 0) {
+                const action = this.mixer.clipAction(clips[i]);
+                action.setLoop(THREE.LoopOnce, 1);
+                action.clampWhenFinished = true;
+                this.oneShots[kind] = { action, duration: clips[i].duration };
+              }
+            });
 
             this.currentAction = this.actions.idle;
             this.currentAction.play();
@@ -248,6 +289,21 @@
           this.setStatus('Avatar integrado activo. Usa "Archivo .GLB" para elegir tu personaje.glb.', '#fb923c');
         }
       );
+    }
+
+    // Gestos de respaldo para el avatar sin animaciones
+    applyFallbackAct(elapsedTime) {
+      const f = this.fallbackAct, L = this.fallbackLimbs;
+      const t = Math.min(1, (elapsedTime - f.start) / f.duration);
+      const swing = Math.sin(t * Math.PI);
+      L.leftLeg.rotation.x = 0; L.rightLeg.rotation.x = 0;
+      L.leftArm.rotation.x = 0; L.rightArm.rotation.x = 0;
+      this.model.rotation.y = 0; this.model.position.y = 0;
+      if (f.kind === 'attack') L.rightArm.rotation.x = -2.2 * swing;
+      if (f.kind === 'spin') this.model.rotation.y = t * Math.PI * 2;
+      if (f.kind === 'nova') { const s = 1 + 0.25 * swing; this.model.scale.set(s, s, s); } else if (this.model.scale.x !== 1) this.model.scale.set(1, 1, 1);
+      if (f.kind === 'jump') this.model.position.y = 1.2 * swing;
+      if (f.kind === 'victory') { L.leftArm.rotation.x = -2.6; L.rightArm.rotation.x = -2.6; }
     }
 
     switchAnimation(nextState) {
@@ -331,7 +387,32 @@
       return true;
     }
 
+    // Reproduce una acción de un solo uso (ataque, patada, nova, salto, victoria).
+    // Si el GLB no la trae, el avatar de respaldo hace un gesto sencillo.
+    playOneShot(kind, elapsedTime) {
+      const info = ONE_SHOT[kind];
+      if (!info) return 0;
+      const shot = this.oneShots[kind];
+      const duration = shot ? shot.duration : (kind === 'victory' ? 3 : 0.6);
+      if (info.lock > 0) this.lockUntil = elapsedTime + info.lock;
+      this.oneShotUntil = elapsedTime + duration;
+      if (shot && this.mixer) {
+        shot.action.reset().fadeIn(0.1).play();
+        if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.1);
+        this.currentAction = shot.action;
+        this.activeState = 'oneshot';
+      } else {
+        this.fallbackAct = { kind, start: elapsedTime, duration };
+      }
+      return duration;
+    }
+
     update(dt, elapsedTime) {
+      // Al terminar una acción de un solo uso se vuelve a idle, andar o correr
+      if (this.activeState === 'oneshot' && elapsedTime >= this.oneShotUntil) this.activeState = 'none';
+      if (this.fallbackAct && elapsedTime - this.fallbackAct.start >= this.fallbackAct.duration) this.fallbackAct = null;
+      const locked = elapsedTime < this.lockUntil;
+
       const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
       const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
 
@@ -339,7 +420,7 @@
       const moveZ = kbZ !== 0 ? kbZ : this.joyVec.y;
       const mag = Math.hypot(moveX, moveZ);
 
-      if (mag > 0.08) {
+      if (mag > 0.08 && !locked) {
         const isRunning = this.keys.shift || mag > 0.85;
         this.switchAnimation(isRunning ? 'run' : 'walk');
         const speed = (isRunning ? this.runSpeed : this.walkSpeed) * Math.min(1.0, mag);
@@ -378,7 +459,7 @@
           this.camera.position.z += deltaZ;
         }
       } else {
-        this.switchAnimation('idle');
+        if (!this.fallbackAct || this.fallbackAct.kind !== 'spin') this.switchAnimation('idle');
         this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
       }
 
@@ -389,6 +470,10 @@
       if (this.mixer) {
         this.mixer.update(dt);
       } else if (this.isFallbackAvatar && this.fallbackLimbs.leftLeg) {
+        if (this.fallbackAct) {
+          this.applyFallbackAct(elapsedTime);
+          return;
+        }
         const freq = this.activeState === 'run' ? 14 : (this.activeState === 'walk' ? 8 : 0);
         const amp = this.activeState === 'run' ? 0.65 : (this.activeState === 'walk' ? 0.4 : 0);
         const angle = freq > 0 ? Math.sin(elapsedTime * freq) * amp : 0;
@@ -438,5 +523,7 @@
     }
   }
 
-  global.CharacterLib = { CharacterController, clampCameraToWorld, WALK_SPEED, RUN_SPEED };
-})(window);
+  const api = { CharacterController, clampCameraToWorld, findClipIndex, CLIP_KEYWORDS, ONE_SHOT, WALK_SPEED, RUN_SPEED };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else global.CharacterLib = api;
+})(typeof window !== 'undefined' ? window : globalThis);

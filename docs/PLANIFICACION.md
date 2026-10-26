@@ -61,6 +61,12 @@ Hecho: el personaje no entra en el agua (se desliza por la orilla) y los puentes
    (A*) que prefiera los caminos del mundo.
 4. **Viajes entre pueblos**: al seguir un camino se cruzan zonas de caza y se pueden producir encuentros.
 
+## Combate (primera versión, ver docs/COMBATE.md)
+
+Hecho: ataque, patada giratoria, nova y salto con las animaciones del GLB; vida, maná, XP y niveles; monstruos con
+vida y barra que persiguen y atacan; muerte y reaparición en el pueblo; jefes con postura de victoria. Pendiente:
+curación, recompensas, nadar y decidir el respawn definitivo.
+
 ## Fase 4 — Partida
 
 1. **Archivo de partida separado del mundo**: el `.mundo.json` describe el mundo y el `.partida.json` guarda

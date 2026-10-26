@@ -7,7 +7,8 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `index.html` | **Creador de Mundos**: mapa del mundo con pueblos, caminos, zonas de caza y lugares de interés. |
 | `creador-de-pueblos.html` | **Creador de Pueblos 3D**: genera un pueblo completo a partir de una semilla y parámetros. |
 | `visor-mundo.html` | **Visor 3D del mundo**: recorre el mundo entero con el personaje (WASD / joystick), pueblos, caminos, zonas de caza y bosques. Se abre con el botón «🗺 3D» del editor o cargando un `.mundo.json`. |
-| `js/character.js` | Personaje, joystick y cámara compartidos por el Creador de Pueblos y el visor. |
+| `js/character.js` | Personaje, joystick, cámara y animaciones (incluidas las de un solo uso) compartidas por el Creador de Pueblos y el visor. |
+| `js/combat.js` | Reglas del combate (daño, XP, muerte, IA de los monstruos). Pruebas en `test/combat.test.js`. |
 | `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). |
 | `js/world-core.js` | Núcleo del mundo sin interfaz (terreno, biomas, generación, niveles, guardado). Pensado para reutilizarlo en el juego. |
 | `docs/FORMATO-MUNDO.md` | Descripción del archivo `.mundo.json` que se guarda/exporta. |
@@ -45,7 +46,7 @@ Desde el editor, **🗺 3D** (o **🗺 Ver en 3D** en la pestaña Mundo) abre el
 - **Modo juego:** al entrar en un pueblo la cámara pasa a tercera persona. 🗺 Mapa (**M**) vuelve a ver el mundo.
 - **Hora:** ☀ / 🌇 / 🌙 (**T**) cambia entre día, atardecer y noche, con transición suave.
 - **Anuncios:** al entrar en un pueblo o una zona aparece su nombre, nivel y tipo. El minimapa (abajo a la derecha) muestra caminos, zonas, pueblos y monstruos.
-- **Caza:** ⚔ Cazar (**Espacio**) derrota al monstruo más cercano (a menos de 4,5 m). Reaparece tras el tiempo de la zona. Por ahora es solo un marcador: no hay combate ni recompensas.
+- **Combate:** Espacio (combo de ataque), **Q** (patada giratoria), **E** (explosión nova) y **X** (salto acrobático). Las reglas, los controles y los números están en `docs/COMBATE.md`. Vida, maná y XP aparecen abajo. Si caes, reapareces en el pueblo más cercano.
 
 Los pueblos se cargan completos, igual que en el Creador de Pueblos, cuando te acercas (a unos 650 m), y se vuelven a simplificar al alejarte. Hay como máximo 6 pueblos completos a la vez. Los muros y casas bloquean al personaje, y el agua también: si el paso lleva al mar, el personaje se desliza por la orilla. Los puentes pequeños de las salidas se pueden cruzar. El visor todavía no recorre los caminos automáticamente.
 
