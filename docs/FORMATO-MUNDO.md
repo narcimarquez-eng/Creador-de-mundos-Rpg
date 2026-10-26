@@ -51,8 +51,12 @@ El Creador de Pueblos genera cada pueblo en coordenadas **locales** con 4 calles
   - `gate`: puerta por la que sale (`E`/`S`/`W`/`N`), o `null` si es una salida extra.
   - `to` / `toId` / `roadId`: pueblo destino y camino del mundo.
 
-El mundo las recalcula solo al crear, mover o borrar caminos y pueblos. El Creador de Pueblos dibuja cada salida
-desde su puerta hasta el borde del terreno, con un cartel con el destino.
+El mundo las recalcula solo al crear, mover o borrar caminos y pueblos.
+
+En el Creador de Pueblos cada salida es una calle recta desde la plaza central hasta el borde del terreno. La
+muralla tiene un hueco en el mismo ángulo (`angle`), así que el camino entra por esa puerta. Si la calle cruza el
+río fuera del puente principal, se añade un puente pequeño. Cada salida lleva un cartel con su destino. El campo
+`gate` ya no determina la geometría; se conserva por compatibilidad.
 
 Para colocar el pueblo en el mundo (r = `rotation` en radianes), un punto local `(lx, lz)` pasa a:
 ```

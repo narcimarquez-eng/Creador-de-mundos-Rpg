@@ -909,10 +909,13 @@
       metalness: 0.12,
       bumpScale: 0.085
     });
+    // Doble cara: las mallas de calle se generan con el orden de vértices invertido
+    // y, sin esto, solo se verían desde abajo.
     const matRoad = new THREE.MeshStandardMaterial({
       roughness: 0.85,
       metalness: 0.08,
-      bumpScale: 0.06
+      bumpScale: 0.06,
+      side: THREE.DoubleSide
     });
     const matCurb = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.85 });
     const matWater = new THREE.MeshStandardMaterial({ color: '#0284c7', roughness: 0.12, metalness: 0.65, transparent: true, opacity: 0.86 });
@@ -1502,84 +1505,76 @@
       }
 
       // --- SALIDAS HACIA LOS CAMINOS DEL MUNDO ---
-      // cfg.exits = [{ angle (grados, atan2(z, x) local), gate ('E'|'S'|'W'|'N'|null), to (nombre destino) }]
-      // Cada salida es un camino que parte de una de las 4 calles principales (o de su puerta)
-      // y llega al borde del terreno en el ángulo exacto por el que sigue el camino del mundo.
-      gatePoint(gate, r) {
-        const cfg = this.cfg;
-        if (gate === 'E') return { x: r, z: cfg.hasRiver ? 0 : Math.sin(r * 0.04) * (cfg.curve * 0.35) };
-        if (gate === 'W') return { x: -r, z: Math.sin(-r * 0.04) * (cfg.curve * 0.35) };
-        if (gate === 'S') return { x: this.getMainRoadX(r), z: r };
-        return { x: this.getMainRoadX(-r), z: -r };
-      }
-
+      // cfg.exits = [{ angle (grados, atan2(z, x) en coordenadas locales del pueblo), gate, to }]
+      // Cada salida es una calle recta que sale de la plaza central, atraviesa la muralla por
+      // un hueco a su mismo ángulo y continúa hasta el borde del terreno. Así el camino del
+      // mundo entra en el pueblo por el hueco que le corresponde.
       buildExitPaths(cfg, townRadius, worldSize) {
         const exits = Array.isArray(cfg.exits) ? cfg.exits : [];
-        if (!exits.length) return [];
-        const GATE_ANG = { E: 0, S: Math.PI * 0.5, W: Math.PI, N: Math.PI * 1.5 };
         const half = worldSize / 2 - 1.5;
-        const roadExtent = townRadius + 28;
-        const rOut = townRadius + 13;
+        const PLAZA_R = 16.0;
         const step = 3.5;
-
-        const segment = (pts, a, b) => {
-          const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / step));
-          for (let i = 1; i <= n; i++) pts.push({ x: a.x + (b.x - a.x) * i / n, z: a.z + (b.z - a.z) * i / n });
-        };
-        const pathLength = pts => {
-          let L = 0;
-          for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z);
-          return L;
-        };
-        const cost = pts => {
-          let c = pathLength(pts);
-          for (let i = 0; i < pts.length; i++) {
-            if (Math.hypot(pts[i].x, pts[i].z) < townRadius + 6) c += 1000; // atraviesa el pueblo
-            if (cfg.hasRiver && i > 0) {
-              const s0 = Math.sign(pts[i - 1].x - this.getRiverX(pts[i - 1].z));
-              const s1 = Math.sign(pts[i].x - this.getRiverX(pts[i].z));
-              if (s0 !== s1) c += 1000; // cruzaría el río sin puente
-            }
-          }
-          return c;
-        };
-
         return exits.map(ex => {
           const a = ((Number(ex.angle) || 0) % 360 + 360) % 360 * Math.PI / 180;
           const ca = Math.cos(a), sa = Math.sin(a);
           const t = half / Math.max(Math.abs(ca), Math.abs(sa));
+          const start = { x: ca * PLAZA_R, z: sa * PLAZA_R };
           const end = { x: ca * t, z: sa * t };
-          const gates = ex.gate && GATE_ANG[ex.gate] !== undefined ? [ex.gate] : ['E', 'S', 'W', 'N'];
-          let best = null;
-          gates.forEach(g => {
-            const candidates = [];
-            // a) Recto desde el final de la calle principal
-            const s1 = this.gatePoint(g, roadExtent);
-            const straight = [s1];
-            segment(straight, s1, end);
-            candidates.push(straight);
-            // b) y c) Rodeando la muralla por fuera (en ambos sentidos) y luego hacia fuera
-            const ga = GATE_ANG[g];
-            let d = a - ga;
-            while (d > Math.PI) d -= Math.PI * 2;
-            while (d < -Math.PI) d += Math.PI * 2;
-            [d, d > 0 ? d - Math.PI * 2 : d + Math.PI * 2].forEach(delta => {
-              const pts = [this.gatePoint(g, rOut)];
-              const n = Math.max(1, Math.ceil(Math.abs(delta) * rOut / step));
-              for (let i = 1; i <= n; i++) {
-                const ang = ga + delta * i / n;
-                pts.push({ x: Math.cos(ang) * rOut, z: Math.sin(ang) * rOut });
-              }
-              segment(pts, pts[pts.length - 1], end);
-              candidates.push(pts);
-            });
-            candidates.forEach(pts => {
-              const c = cost(pts);
-              if (!best || c < best.cost) best = { cost: c, points: pts, gate: g };
-            });
-          });
-          return { exit: ex, gate: best.gate, points: best.points, end };
+          const n = Math.max(1, Math.ceil(Math.hypot(end.x - start.x, end.z - start.z) / step));
+          const points = [];
+          for (let i = 0; i <= n; i++) {
+            points.push({ x: start.x + (end.x - start.x) * i / n, z: start.z + (end.z - start.z) * i / n });
+          }
+          return { exit: ex, angle: a, gate: ex.gate || null, points, end };
         });
+      }
+
+      // Parte cada salida en tramos de calle y añade puentes donde cruza el río.
+      // El cruce por el puente principal ya tiene tablero, así que solo se corta el camino.
+      buildExitRoadPieces(cfg, paths, roadsGroup, matAtlas) {
+        if (!paths.length) return [];
+        const pieces = [];
+        if (!cfg.hasRiver) {
+          paths.forEach(p => pieces.push(p.points));
+          return pieces;
+        }
+        const band = this.riverWidth * 0.65;
+        const inBand = q => Math.abs(q.x - this.getRiverX(q.z)) < band;
+        const onMainBridge = q => Math.abs(q.z) < cfg.roadWidth * 0.55 + 1.5;
+
+        paths.forEach(path => {
+          const pts = path.points;
+          // Marcar cruces del río
+          const inside = pts.map(inBand);
+          let cur = [];
+          for (let i = 0; i < pts.length; i++) {
+            if (!inside[i]) { cur.push(pts[i]); continue; }
+            if (cur.length > 1) pieces.push(cur);
+            cur = [];
+            // Inicio de un cruce: buscar su final
+            if (i > 0 && !inside[i - 1]) {
+              let j = i;
+              while (j + 1 < pts.length && inside[j + 1]) j++;
+              const a = pts[i - 1], b = pts[j + 1];
+              if (!b) break;           // el cruce llega al final del terreno: no se puede cerrar
+              const mid = pts[Math.floor((i + j) / 2)];
+              if (!onMainBridge(mid)) {
+                // Puente pequeño de piedra alineado con la calle
+                const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
+                const deckG = new THREE.BoxGeometry(L + 2.0, 1.1, cfg.roadWidth + 1.2);
+                mapUVBand(deckG, 0.25, 0.50);
+                const deckM = new THREE.Mesh(deckG, matAtlas);
+                const yBank = Math.max(this.getTerrainHeight(a.x, a.z), this.getTerrainHeight(b.x, b.z));
+                deckM.position.set((a.x + b.x) / 2, yBank + 0.9, (a.z + b.z) / 2);
+                deckM.rotation.y = Math.atan2(-dz, dx);
+                deckM.castShadow = deckM.receiveShadow = true;
+                roadsGroup.add(deckM);
+              }
+            }
+          }
+          if (cur.length > 1) pieces.push(cur);
+        });
+        return pieces;
       }
 
       addExitSigns(group, paths) {
@@ -1620,6 +1615,10 @@
           group.add(sprite);
           this.colliders.push({ type: 'circle', x: sx, z: sz, r: 0.4 });
         });
+      }
+
+      onExitCorridor(x, z, r) {
+        return (this.exitPaths || []).length > 0 && this.distToExitPaths(x, z) < r;
       }
 
       distToExitPaths(x, z) {
@@ -1818,8 +1817,9 @@
         // 3b. SALIDAS HACIA LOS CAMINOS DEL MUNDO (cfg.exits)
         this.townRadius = townRadius;
         this.exitPaths = this.buildExitPaths(cfg, townRadius, WORLD_SIZE);
-        this.exitPaths.forEach(ex => {
-          roadsGroup.add(this.buildConformingRoadMesh(ex.points, cfg.roadWidth * 0.85, 0.17));
+        const exitPieces = this.buildExitRoadPieces(cfg, this.exitPaths, roadsGroup, matAtlas);
+        exitPieces.forEach(pts => {
+          roadsGroup.add(this.buildConformingRoadMesh(pts, cfg.roadWidth * 0.85, 0.17));
         });
         if (this.exitPaths.length) this.addExitSigns(roadsGroup, this.exitPaths);
 
@@ -1876,7 +1876,16 @@
             const nearEastWestGate = Math.abs(mz) < (cfg.roadWidth * 0.85) && Math.abs(Math.abs(mx) - townRadius) < 12;
             const inRiver = cfg.hasRiver && Math.abs(mx - this.getRiverX(mz)) < RIVER_WIDTH * 0.85;
 
-            if (nearNorthSouthGate || nearEastWestGate || inRiver) continue;
+            // Hueco en la muralla donde sale una calle de salida (mismo ángulo)
+            const segHalfArc = (Math.PI * 2 / wallSegs) * 0.5 * townRadius;
+            const midAng = (a1 + a2) * 0.5;
+            const atExit = this.exitPaths.some(p => {
+              let d = Math.abs(midAng - p.angle) % (Math.PI * 2);
+              if (d > Math.PI) d = Math.PI * 2 - d;
+              return d * townRadius < segHalfArc + 1.5;
+            });
+
+            if (nearNorthSouthGate || nearEastWestGate || inRiver || atExit) continue;
 
             const wy = this.getTerrainHeight(mx, mz);
             const segLen = (2 * Math.PI * townRadius) / wallSegs + 0.6;
@@ -1932,6 +1941,7 @@
         for (let i = 0; i < Math.min(cfg.specialCount, specialSpots.length); i++) {
           const sp = specialSpots[i];
           if (cfg.hasRiver && Math.abs(sp.x - this.getRiverX(sp.z)) < RIVER_WIDTH * 1.1) continue;
+          if (this.onExitCorridor(sp.x, sp.z, 9)) continue;
           const bType = specialTypes[i % specialTypes.length];
           this.buildSpecialBuilding(bType, sp.x, sp.z, sp.rot, specialsGroup);
           builtSpecials++;
@@ -1992,6 +2002,7 @@
               return hx > c.minX - 5 && hx < c.maxX + 5 && hz > c.minZ - 5 && hz < c.maxZ + 5;
             });
             if (hitsSpecial) return;
+            if (this.onExitCorridor(hx, hz, cfg.roadWidth * 0.5 + 5)) return;
 
             if (rng.next() * 100 <= cfg.houseDensity) {
               const floors = rng.int(1, cfg.maxFloors);
@@ -2123,6 +2134,9 @@
           const clearR = cfg.roadWidth * 0.45 + 2.0;
           const onExit = (x, z) => this.distToExitPaths(x, z) < clearR;
           for (let i = trees.length - 1; i >= 0; i--) if (onExit(trees[i].x, trees[i].z)) trees.splice(i, 1);
+          for (let i = fences.length - 1; i >= 0; i--) if (onExit(fences[i].x, fences[i].z)) fences.splice(i, 1);
+          for (let i = hedges.length - 1; i >= 0; i--) if (onExit(hedges[i].x, hedges[i].z)) hedges.splice(i, 1);
+          for (let i = barrels.length - 1; i >= 0; i--) if (onExit(barrels[i].x, barrels[i].z)) barrels.splice(i, 1);
           for (let i = rocks.length - 1; i >= 0; i--) if (onExit(rocks[i].x, rocks[i].z)) rocks.splice(i, 1);
           this.colliders = this.colliders.filter(c => !(c.type === 'circle' && c.r <= 0.7 && onExit(c.x, c.z)));
         }
