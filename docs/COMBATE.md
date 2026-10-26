@@ -56,18 +56,29 @@ pierde casi siempre. Así las zonas de nivel alto piden subir antes de entrar. L
 vencer con un héroe de su nivel, pero cuesta mucha vida: falta una forma de curarse (poción, pueblo) para
 que los jefes sean una prueba y no un castigo.
 
-## Pendiente (decisiones para ti)
+## Economía (decidido)
 
-1. **Curación:** ¿pociones, descanso en el pueblo o solo la regeneración actual?
-2. **Recompensas:** objetos, dinero o solo XP. Hoy solo hay XP.
-3. **Respawn:** ¿en el pueblo más cercano (como ahora), en el pueblo inicial, o en el último pueblo visitado?
-4. **Nadar:** hoy el agua bloquea al personaje. Para nadar hace falta una animación de natación (no está en la
-   lista), una velocidad menor y una regla para cuando se pierde el aire. Se puede añadir después.
-5. **Combate en pueblos:** hoy los monstruos no entran en los pueblos. ¿Quieres zonas PvP con jugadores?
+- **Oro:** cada monstruo da `2 + 1,5 × nivel` oro. Los jefes dan ×6.
+- **Pociones:** de vida y de maná. Un monstruo normal suelta una de vida con un 25 % y una de maná con un 10 %.
+  Un jefe suelta siempre 2 de vida y 1 de maná. Cada pila llega como máximo a 20.
+- **Uso:** poción de vida cura el 35 % de la vida máxima; poción de maná recupera el 35 % del maná máximo.
+  Teclas **1** y **2**, o los botones 🧪 y 💧.
+- **Tienda (B o 🛒, solo en los pueblos):** cada poción cuesta 15 oro.
+- **Descanso (R o 💤, solo en los pueblos):** recupera vida y maná completos en 4 s. No se puede empezar si
+  te han golpeado hace menos de 6 s. Se corta si te mueves, te golpean o sales del pueblo.
+- **Muerte:** se pierde el 5 % del XP, pero se conservan el oro y las pociones.
+- **Reaparición:** en el pueblo más cercano (decidido).
+
+## Pendiente
+
+1. **Nadar:** hoy el agua bloquea al personaje. Para nadar hace falta una animación de natación (no está en la
+   lista), una velocidad menor y una regla para cuando se pierde el aire.
+2. **PvP:** hoy los monstruos no entran en los pueblos y no hay jugadores. ¿Quieres zonas PvP con otros jugadores?
 
 ## Dónde está cada cosa
 
 - `js/combat.js`: reglas (daño, XP, muerte, IA del monstruo, área de las habilidades).
 - `js/character.js`: animaciones de un solo uso y reconocimiento de nombres del GLB.
 - `visor-mundo.html`: héroe, monstruos, barras de vida, HUD y reaparición.
-- `test/combat.test.js`: pruebas de las reglas. Se ejecuta con `node test/combat.test.js`.
+- `js/items.js`: oro, pociones, botín, tienda y descanso.
+- `test/combat.test.js` y `test/items.test.js`: pruebas de las reglas. Se ejecutan con `node test/combat.test.js` y `node test/items.test.js`.

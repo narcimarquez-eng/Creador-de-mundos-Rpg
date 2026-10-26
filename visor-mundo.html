@@ -68,6 +68,19 @@
     .skills button .cd { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; background: rgba(2,6,23,.6); border-radius: 7px; }
     .skills button .cd:empty { display: none; }
     .skills button:disabled { opacity: .5; }
+    .inv { font-size: 12px; color: var(--muted); display: flex; gap: 10px; justify-content: flex-end; }
+    .inv b { color: #fde68a; }
+    .util { display: flex; gap: 6px; }
+    .util button { width: 58px; height: 46px; padding: 0; font-size: 17px; position: relative; background: var(--panel); }
+    .util button small { display: block; font-size: 9px; color: var(--muted); }
+    .util button:disabled { opacity: .45; }
+    #shop { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 42; padding: 16px; }
+    #shop.show { display: flex; }
+    #shop .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 320px; max-width: 100%; }
+    #shop h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
+    #shop .item { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
+    #shop .item span { flex: 1; }
+    #shop .item small { color: var(--muted); display: block; }
     #deadmsg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(69,10,10,.45); z-index: 45; font-size: 22px; font-weight: 700; color: #fecaca; pointer-events: none; }
     #deadmsg.show { display: flex; }
     #deadmsg small { font-size: 14px; color: #fca5a5; margin-top: 6px; font-weight: 600; }
@@ -96,6 +109,7 @@
       #banner { max-width: calc(100vw - 20px); }
       #hud { left: 8px; bottom: 10px; transform: none; width: 220px; align-items: flex-start; }
       .skills button { width: 50px; height: 46px; }
+      .util button { width: 50px; height: 42px; }
       #joystick-knob { width: 38px; height: 38px; }
       #top button span.long { display: none; }
       #hint { display: none; }
@@ -137,6 +151,7 @@
       <div class="row"><span class="lv" id="hud-lv">Nv 1</span><div class="bar hp"><i id="hud-hp"></i><b id="hud-hp-t"></b></div></div>
       <div class="bar mp"><i id="hud-mp"></i></div>
       <div class="bar xp"><i id="hud-xp"></i></div>
+      <div class="inv"><span>🪙 <b id="inv-gold">0</b></span><span>🧪 <b id="inv-vida">0</b></span><span>💧 <b id="inv-mana">0</b></span></div>
     </div>
     <div class="skills">
       <button id="sk-attack" title="Combo de ataque (Espacio)">⚔<small>Espacio</small><span class="cd"></span></button>
@@ -144,12 +159,24 @@
       <button id="sk-nova" title="Explosión nova (E)">💥<small>E</small><span class="cd"></span></button>
       <button id="sk-jump" title="Salto acrobático (X)">🦘<small>X</small></button>
     </div>
+    <div class="util">
+      <button id="sk-vida" title="Poción de vida (1)">🧪<small>1</small></button>
+      <button id="sk-mana" title="Poción de maná (2)">💧<small>2</small></button>
+      <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
+      <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
+    </div>
   </div>
+  <div id="shop"><div class="box">
+    <h2>🛒 Tienda · <span id="shop-gold">0</span> 🪙</h2>
+    <div class="item"><span>🧪 Poción de vida<small>Cura el 35 % de la vida</small></span><button id="buy-vida">15 🪙</button></div>
+    <div class="item"><span>💧 Poción de maná<small>Recupera el 35 % del maná</small></span><button id="buy-mana">15 🪙</button></div>
+    <div class="btns"><button id="shop-close">Cerrar</button></div>
+  </div></div>
   <div id="deadmsg"><div>💀 Has caído</div><small id="deadsub"></small></div>
 
   <div id="joystick-zone" title="Joystick: mover al personaje"><div id="joystick-knob"></div></div>
 
-  <div id="hint"><b>WASD</b> / joystick mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir · <b>M</b> mapa · <b>T</b> hora · <b>Espacio</b> / <b>Q</b> / <b>E</b> combate · <b>X</b> salto</div>
+  <div id="hint"><b>WASD</b> / joystick mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir · <b>M</b> mapa · <b>T</b> hora · <b>Espacio</b> / <b>Q</b> / <b>E</b> combate · <b>1</b> <b>2</b> pociones · <b>R</b> descansar · <b>B</b> tienda</div>
 
   <div id="load">
     <div class="box">
@@ -171,6 +198,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="js/village-core.js"></script>
   <script src="js/combat.js"></script>
+  <script src="js/items.js"></script>
   <script src="js/character.js"></script>
   <script>
   "use strict";
@@ -209,6 +237,8 @@
   let curTown = null, curZone = null;
   let lastMinimap = 0;
   let hero = CombatLib.newHero();
+  let inv = ItemsLib.newInventory();
+  let restPos = null, restPrevSinceHit = 0;
   const zoneLabels = [], townLabels = [];
   let follow = false, selected = null;
   let lastT = performance.now();
@@ -406,7 +436,10 @@
     selected = null;
     hideInfo();
     hero = CombatLib.newHero();
+    inv = ItemsLib.newInventory();
+    hero.resting = false;
     $('deadmsg').classList.remove('show');
+    $('shop').classList.remove('show');
 
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
     towns = world.towns.map(makeTownEntry);
@@ -1008,11 +1041,12 @@
     m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
     m.group.visible = false; m.bar.visible = false;
     const levels = CombatLib.gainXp(hero, m.xp);
+    const loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
     if (m.boss) {
       character.playOneShot('victory', lastNowSec);
-      announce('👑 ¡Jefe derrotado!', m.name + ' · +' + m.xp + ' XP');
+      announce('👑 ¡Jefe derrotado!', m.name + ' · +' + m.xp + ' XP · ' + loot);
     } else {
-      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · +' + m.xp + ' XP · reaparece en ' + Math.round(m.respawnAt / 1000 - performance.now() / 1000) + ' s');
+      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · +' + m.xp + ' XP · ' + loot);
     }
     if (levels) setTimeout(() => announce('⭐ Nivel ' + hero.level, 'Vida y maná completos'), 2300);
   }
@@ -1051,8 +1085,65 @@
     }
   }
 
+  function startRest() {
+    if (!curTown) { toast('Descansa en un pueblo'); return; }
+    if (hero.dead) return;
+    if (hero.sinceHit < 6) { toast('No puedes descansar tan cerca del combate'); return; }
+    if (hero.hp >= hero.maxHp && hero.mp >= hero.maxMp) { toast('Ya estás descansado'); return; }
+    hero.resting = true;
+    restPos = { x: character.root.position.x, z: character.root.position.z };
+    restPrevSinceHit = hero.sinceHit;
+    toast('Descansando en la posada…');
+  }
+
+  function stopRest(reason) {
+    if (!hero.resting) return;
+    hero.resting = false;
+    if (reason) toast(reason);
+  }
+
+  // El descanso se corta si te mueves, te golpean o sales del pueblo
+  function updateRest(dt) {
+    if (!hero.resting) return;
+    const p = character.root.position;
+    if (hero.dead || !curTown) return stopRest('');
+    if (Math.hypot(p.x - restPos.x, p.z - restPos.z) > 0.3) return stopRest('Descanso interrumpido');
+    if (hero.sinceHit < restPrevSinceHit) return stopRest('Te han golpeado: descanso interrumpido');
+    restPrevSinceHit = hero.sinceHit;
+    if (ItemsLib.restTick(hero, dt, 4)) stopRest('Vida y maná completos');
+  }
+
+  function drink(kind) {
+    if (hero.dead) return;
+    if (ItemsLib.usePotion(hero, inv, kind)) toast(ItemsLib.ITEMS[kind].name + ' usada');
+    else if (!inv[kind]) toast('No tienes ' + ItemsLib.ITEMS[kind].name.toLowerCase());
+    else toast('No hace falta ahora');
+  }
+
+  function openShop() {
+    if (!curTown) { toast('La tienda está en los pueblos'); return; }
+    $('shop').classList.add('show');
+    renderShop();
+  }
+  function closeShop() { $('shop').classList.remove('show'); }
+  function renderShop() {
+    $('shop-gold').textContent = inv.gold;
+    ['vida', 'mana'].forEach(k => {
+      const btn = $('buy-' + k);
+      btn.disabled = inv.gold < ItemsLib.ITEMS[k].price || inv[k] >= ItemsLib.STACK_MAX;
+      btn.textContent = ItemsLib.ITEMS[k].price + ' 🪙 (tienes ' + inv[k] + ')';
+    });
+  }
+  function buyItem(kind) {
+    if (!curTown) { toast('La tienda está en los pueblos'); return; }
+    if (ItemsLib.buy(inv, kind)) toast('Comprada: ' + ItemsLib.ITEMS[kind].name);
+    else toast(inv.gold < ItemsLib.ITEMS[kind].price ? 'No tienes suficiente oro' : 'Pila llena');
+    renderShop();
+  }
+
   function updateCombat(dt, now) {
     CombatLib.tickHero(hero, dt);
+    updateRest(dt);
     const p = character.root.position;
     const yawX = Math.sin(character.root.rotation.y), yawZ = Math.cos(character.root.rotation.y);
 
@@ -1135,6 +1226,15 @@
       btn.disabled = hero.dead || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
       btn.querySelector('.cd').textContent = cd > 0 ? Math.ceil(cd) : '';
     });
+    $('inv-gold').textContent = inv.gold;
+    $('inv-vida').textContent = inv.vida;
+    $('inv-mana').textContent = inv.mana;
+    $('sk-vida').disabled = hero.dead || !inv.vida || hero.hp >= hero.maxHp;
+    $('sk-mana').disabled = hero.dead || !inv.mana || hero.mp >= hero.maxMp;
+    $('sk-rest').disabled = hero.dead || !curTown || (hero.resting ? false : (hero.hp >= hero.maxHp && hero.mp >= hero.maxMp));
+    $('sk-rest').querySelector('small').textContent = hero.resting ? 'parar' : 'R';
+    $('sk-shop').disabled = hero.dead || !curTown;
+    if ($('shop').classList.contains('show')) renderShop();
   }
 
 
@@ -1156,6 +1256,7 @@
     const town = towns.find(o => Math.max(Math.abs(p.x - o.t.x), Math.abs(p.z - o.t.y)) < o.R) || null;
     if (town !== curTown) {
       curTown = town;
+      if (!town) closeShop();
       if (town) {
         const size = (town.cfg && town.cfg.size) || 3;
         announce('🏘 ' + town.t.name, 'Nivel ' + town.t.level + ' · ' + (SIZE_NAMES[size] || '') + (town.t.isStart ? ' · pueblo inicial' : ''));
@@ -1298,7 +1399,11 @@
     if (k === 'q') useSkill('spin');
     if (k === 'e') useSkill('nova');
     if (k === 'x') jump();
-    if (k === 'escape') showSelection(null);
+    if (k === '1') drink('vida');
+    if (k === '2') drink('mana');
+    if (k === 'r') (hero.resting ? stopRest('Descanso cancelado') : startRest());
+    if (k === 'b') (($('shop').classList.contains('show')) ? closeShop() : openShop());
+    if (k === 'escape') { showSelection(null); closeShop(); }
   });
 
   let downAt = null;
@@ -1337,6 +1442,13 @@
   $('sk-spin').onclick = () => useSkill('spin');
   $('sk-nova').onclick = () => useSkill('nova');
   $('sk-jump').onclick = jump;
+  $('sk-vida').onclick = () => drink('vida');
+  $('sk-mana').onclick = () => drink('mana');
+  $('sk-rest').onclick = () => (hero.resting ? stopRest('Descanso cancelado') : startRest());
+  $('sk-shop').onclick = openShop;
+  $('shop-close').onclick = closeShop;
+  $('buy-vida').onclick = () => buyItem('vida');
+  $('buy-mana').onclick = () => buyItem('mana');
   $('btn-follow').onclick = () => setFollow(!follow);
   $('btn-view-plaza').onclick = viewPlaza;
   $('btn-view-detail').onclick = viewDetail;
