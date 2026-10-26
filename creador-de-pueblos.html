@@ -243,6 +243,36 @@
       transform: translate(0px, 0px);
     }
 
+    /* Paleta de edición del pueblo (mover, borrar, añadir casas y calles) */
+    #edit-bar {
+      position: absolute;
+      left: 50%;
+      bottom: 52px;
+      transform: translateX(-50%);
+      z-index: 28;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      max-width: calc(100vw - 24px);
+      background: rgba(11, 17, 30, 0.94);
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 12px;
+      padding: 8px 10px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    }
+    #edit-bar.show { display: flex; }
+    #edit-info { font-size: 11.5px; color: #fde68a; text-align: center; line-height: 1.4; max-width: 520px; }
+    #edit-tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+    #edit-tools button {
+      background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px;
+      padding: 7px 10px; font-size: 12px; cursor: pointer;
+    }
+    #edit-tools button:hover { background: #334155; }
+    #edit-tools button.on { background: #92400e; border-color: #fbbf24; color: #fff7ed; }
+    #edit-tools button:disabled { opacity: 0.4; cursor: default; }
+    #edit-tools .sep { width: 1px; background: #334155; margin: 0 2px; }
+
     #controls-hint {
       position: absolute;
       bottom: 14px;
@@ -405,12 +435,26 @@
       </select>
     </div>
 
+    <h2>4. Editar el Pueblo</h2>
+    <div class="btn-group">
+      <button id="btn-edit-mode" class="gold">✏️ Activar edición</button>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5">
+      Mueve o borra casas y calles internas, o añade casas. Las calles de salida hacia el mundo no se tocan.
+      Las ediciones se guardan con el pueblo al pulsar «Guardar y volver».
+    </div>
+
     <div class="stats">
       <div>Viviendas: <b id="st-houses">0</b></div>
       <div>Especiales: <b id="st-specials">0</b></div>
       <div>Árboles/Rocas: <b id="st-trees">0</b></div>
       <div>Colisionadores: <b id="st-cols">0</b></div>
     </div>
+  </div>
+
+  <div id="edit-bar">
+    <div id="edit-info">Activa la edición para mover, borrar o añadir casas y calles.</div>
+    <div id="edit-tools"></div>
   </div>
 
   <div id="joystick-zone" title="Joystick táctil para mover al personaje">
@@ -425,6 +469,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
+  <script src="js/pueblo-edits.js"></script>
   <script src="js/village-core.js"></script>
   <script src="js/character.js"></script>
   <script>
@@ -564,13 +609,18 @@
         hasFences: document.getElementById('chk-fences').checked,
         time: document.getElementById('inp-time').value,
         rotation: currentRotation,
-        exits: currentExits.map(e => Object.assign({}, e))
+        exits: currentExits.map(e => Object.assign({}, e)),
+        edits: { base: edits.base, ops: edits.ops.map(o => Object.assign({}, o)) }
       };
     }
 
     // Salidas actuales (vienen del Creador de Mundos o se escriben a mano para probar)
     let currentExits = [];
     let currentRotation = 0;
+
+    // Ediciones del pueblo (js/pueblo-edits.js): operaciones y las que se han deshecho
+    let edits = { base: null, ops: [] };
+    let redoOps = [];
     const GATE_NAMES = { E: 'puerta E', S: 'puerta S', W: 'puerta O', N: 'puerta N' };
 
     function parseExitsInput(text) {
@@ -612,6 +662,10 @@
       setChk('chk-fences', cfg.hasFences);
       currentExits = Array.isArray(cfg.exits) ? cfg.exits.map(e => Object.assign({}, e)) : [];
       currentRotation = cfg.rotation || 0;
+      edits = cfg.edits && Array.isArray(cfg.edits.ops)
+        ? { base: cfg.edits.base || null, ops: cfg.edits.ops.map(o => Object.assign({}, o)) }
+        : { base: null, ops: [] };
+      redoOps = [];
       document.getElementById('inp-exits').value = currentExits.map(e => e.angle).join(', ');
       updateExitsLabel();
     }
@@ -681,6 +735,7 @@
         }
         world.generate(cfg);
         updateExitsLabel();
+        if (editMode) updateEditInfo();
 
         player.root.position.y = world.getWalkableHeight(player.root.position.x, player.root.position.z);
       } catch (err) {
@@ -759,6 +814,262 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- 12. EDICIÓN DEL PUEBLO: paleta de herramientas ---
+    // Para añadir una herramienta nueva: una entrada en EDIT_TOOLS y su caso en onToolDown / onToolUp.
+    const EDIT_TOOLS = [
+      { id: 'select', icon: '👆', label: 'Ver', key: '1', hint: 'Toca una casa o una calle para ver qué es.' },
+      { id: 'move', icon: '✥', label: 'Mover', key: '2', hint: 'Arrastra una casa o una calle a otro sitio.' },
+      { id: 'delete', icon: '🗑', label: 'Borrar', key: '3', hint: 'Toca una casa o una calle para quitarla.' },
+      { id: 'add', icon: '＋', label: 'Casa', key: '4', hint: 'Toca el suelo para poner una casa nueva, si cabe.' }
+    ];
+    let editMode = false;
+    let editTool = 'select';
+    let drag = null;
+    let lastPreview = 0;
+    const pickRay = new THREE.Raycaster();
+    const editBar = document.getElementById('edit-bar');
+    const editInfo = document.getElementById('edit-info');
+    const editToolsEl = document.getElementById('edit-tools');
+
+    function currentBase() { return PuebloEdits.baseKey(readCfgFromUI()); }
+    // Operaciones que se aplican ahora (vacías si son de otra base)
+    function opsNow() { return edits.base === currentBase() ? edits.ops : []; }
+
+    // Si cambió la base del pueblo, las ediciones anteriores no se aplican: al editar se empieza de nuevo
+    function ensureEditBase() {
+      const b = currentBase();
+      if (edits.base !== b) {
+        if (edits.ops.length) say('Ediciones anteriores descartadas: cambió la base del pueblo (semilla, tamaño...).');
+        edits = { base: b, ops: [] };
+        redoOps = [];
+      }
+    }
+
+    function say(msg) { editInfo.textContent = msg; }
+
+    function updateEditInfo() {
+      const n = opsNow().length;
+      const tool = EDIT_TOOLS.find(t => t.id === editTool);
+      const other = edits.ops.length && edits.base !== currentBase();
+      say(other
+        ? 'Hay ediciones guardadas de otra base (semilla o tamaño distintos): no se aplican aquí.'
+        : (tool ? tool.hint : '') + '  Ediciones: ' + n + '.');
+      editToolsEl.querySelectorAll('button[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === editTool));
+      const undoBtn = document.getElementById('btn-edit-undo');
+      const redoBtn = document.getElementById('btn-edit-redo');
+      if (undoBtn) undoBtn.disabled = !opsNow().length;
+      if (redoBtn) redoBtn.disabled = !redoOps.length;
+    }
+
+    // Regenera el pueblo con las ediciones (o con ops de vista previa mientras se arrastra)
+    function regenerateEdited(ops) {
+      try {
+        const cfg = readCfgFromUI();
+        cfg.edits = { base: currentBase(), ops: ops || opsNow() };
+        world.generate(cfg);
+        updateExitsLabel();
+        player.root.position.y = world.getWalkableHeight(player.root.position.x, player.root.position.z);
+      } catch (err) {
+        console.error('Error al aplicar la edición:', err);
+      }
+    }
+
+    function commitOp(op) {
+      ensureEditBase();
+      edits.ops.push(op);
+      redoOps = [];
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function undoEdit() {
+      if (!opsNow().length) return;
+      redoOps.push(edits.ops.pop());
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function redoEdit() {
+      if (!redoOps.length) return;
+      ensureEditBase();
+      edits.ops.push(redoOps.pop());
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function resetEdits() {
+      if (!opsNow().length) return;
+      if (!confirm('¿Quitar todas las ediciones de este pueblo?')) return;
+      edits.ops = [];
+      redoOps = [];
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function setEditTool(id) {
+      editTool = id;
+      updateEditInfo();
+    }
+
+    // Construye los botones de la paleta a partir de EDIT_TOOLS
+    EDIT_TOOLS.forEach(t => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.tool = t.id;
+      b.title = t.hint + ' (tecla ' + t.key + ')';
+      b.textContent = t.icon + ' ' + t.label;
+      b.addEventListener('click', () => setEditTool(t.id));
+      editToolsEl.appendChild(b);
+    });
+    [['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits]]
+      .forEach(([id, label, fn], i) => {
+        if (i === 0) { const sep = document.createElement('span'); sep.className = 'sep'; editToolsEl.appendChild(sep); }
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.id = id;
+        b.textContent = label;
+        b.addEventListener('click', fn);
+        editToolsEl.appendChild(b);
+      });
+
+    function setEditMode(on) {
+      editMode = on;
+      editBar.classList.toggle('show', on);
+      document.getElementById('btn-edit-mode').textContent = on ? '✅ Terminar edición' : '✏️ Activar edición';
+      if (!on) { cancelDrag(); }
+      updateEditInfo();
+    }
+    document.getElementById('btn-edit-mode').addEventListener('click', () => setEditMode(!editMode));
+
+    // Punto del suelo bajo el puntero (x, z en metros, igual que el pueblo)
+    function groundPoint(e) {
+      if (!world.terrainMesh) return null;
+      const r = renderer.domElement.getBoundingClientRect();
+      pickRay.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+      const hit = pickRay.intersectObject(world.terrainMesh, false)[0];
+      return hit ? { x: hit.point.x, z: hit.point.z } : null;
+    }
+
+    // Casa o calle bajo el punto. Las casas tienen prioridad sobre las calles.
+    function itemAt(p) {
+      const h = PuebloEdits.pickHouse(world.editables.houses, p.x, p.z, 4.5);
+      if (h) return { kind: 'casa', id: h.id, x: h.x, z: h.z };
+      const s = PuebloEdits.pickStreet(world.editables.streets, p.x, p.z, 1.0);
+      if (s) return { kind: 'calle', id: s.id, street: s };
+      return null;
+    }
+
+    function describe(item) {
+      return item.kind === 'casa'
+        ? PuebloEdits.houseLabel(item.id) + ' (' + item.x.toFixed(0) + ', ' + item.z.toFixed(0) + ')'
+        : PuebloEdits.streetLabel(item.id);
+    }
+
+    function cancelDrag() {
+      if (!drag) return;
+      drag = null;
+      controls.enabled = true;
+      regenerateEdited();
+    }
+
+    // Operación que deja el elemento arrastrado en la posición del puntero
+    function dragOp(d, p) {
+      if (d.kind === 'casa') {
+        return { op: 'mover-casa', id: d.id, x: p.x + d.offX, z: p.z + d.offZ };
+      }
+      return { op: 'mover-calle', id: d.id, dx: d.baseDx + (p.x - d.start.x), dz: d.baseDz + (p.z - d.start.z) };
+    }
+
+    // Escucha en fase de captura sobre el body: así puede frenar el giro de la cámara antes de que llegue al lienzo
+    function onCanvasDown(e) {
+      if (!editMode || e.button > 0 || e.target !== canvasEl) return;
+      const p = groundPoint(e);
+      if (!p) return;
+      const item = itemAt(p);
+
+      if (editTool === 'select') {
+        if (item) { say('Seleccionado: ' + describe(item) + '. Ediciones: ' + opsNow().length + '.'); e.stopPropagation(); }
+        return;
+      }
+      if (editTool === 'delete') {
+        if (!item) return;
+        commitOp(item.kind === 'casa' ? { op: 'quitar-casa', id: item.id } : { op: 'quitar-calle', id: item.id });
+        say('Quitado: ' + describe(item) + '.');
+        e.stopPropagation();
+        return;
+      }
+      if (editTool === 'add') {
+        e.stopPropagation();
+        ensureEditBase();
+        if (!world.placementOk(p.x, p.z)) { say('No cabe una casa aquí: demasiado cerca de otra casa, de un edificio o de la muralla.'); return; }
+        commitOp({ op: 'añadir-casa', id: PuebloEdits.nextAddedId(edits.ops), x: p.x, z: p.z });
+        return;
+      }
+      if (editTool === 'move' && item) {
+        e.stopPropagation();
+        ensureEditBase();
+        const cur = PuebloEdits.indexOps(edits.ops).movedStreets.get(item.id) || { dx: 0, dz: 0 };
+        drag = {
+          kind: item.kind, id: item.id, start: p,
+          offX: item.kind === 'casa' ? item.x - p.x : 0,
+          offZ: item.kind === 'casa' ? item.z - p.z : 0,
+          baseDx: cur.dx, baseDz: cur.dz,
+          op: null, moved: false
+        };
+        controls.enabled = false;
+        say('Moviendo ' + describe(item) + '…');
+      }
+    }
+
+    function onCanvasMove(e) {
+      if (!drag) return;
+      const p = groundPoint(e);
+      if (!p) return;
+      drag.moved = true;
+      const now = performance.now();
+      if (now - lastPreview > 120) {
+        lastPreview = now;
+        regenerateEdited(edits.ops.concat([dragOp(drag, p)]));
+      }
+    }
+
+    function onCanvasUp(e) {
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      controls.enabled = true;
+      const p = groundPoint(e);
+      if (!p || !d.moved) { regenerateEdited(); return; }
+      // Se regenera con la posición final antes de comprobar que la casa cabe
+      const op = dragOp(d, p);
+      regenerateEdited(edits.ops.concat([op]));
+      if (d.kind === 'casa' && !world.placementOk(op.x, op.z, d.id)) {
+        say('No cabe la casa ahí: vuelve a su sitio.');
+        regenerateEdited();
+        return;
+      }
+      commitOp(op);
+      say('Movido. Ediciones: ' + opsNow().length + '.');
+    }
+
+    const canvasEl = renderer.domElement;
+    document.body.addEventListener('pointerdown', onCanvasDown, true);
+    window.addEventListener('pointermove', onCanvasMove);
+    window.addEventListener('pointerup', onCanvasUp);
+    window.addEventListener('pointercancel', () => cancelDrag());
+
+    window.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'Escape') { cancelDrag(); return; }
+      if (!editMode) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redoEdit(); else undoEdit(); return; }
+      if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redoEdit(); return; }
+      const t = EDIT_TOOLS.find(x => x.key === e.key);
+      if (t) setEditTool(t.id);
     });
 
     rebuildFromUI();

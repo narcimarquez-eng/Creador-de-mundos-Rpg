@@ -38,7 +38,7 @@ Unidades en **metros**; `x, y` del mapa = `x, z` en 3D.
 | `level` | Nivel recomendado. |
 | `isStart` | `true` si es el pueblo inicial. |
 | `services` | Lista de servicios (`posada`, `tienda`, `herrero`, `gremio`…). |
-| `cfg` | **Configuración exacta del Creador de Pueblos** (`style`, `terrainType`, `relief`, `seed`, `size`, `houseDensity`, `specialCount`, `maxFloors`, `roadWidth`, `curve`, `treeDensity`, `hasWalls`, `hasRiver`, `hasMagic`, `hasProps`, `hasLamps`, `hasFences`, `time`). Con ella el juego regenera el pueblo 3D idéntico. |
+| `cfg` | **Configuración exacta del Creador de Pueblos** (`style`, `terrainType`, `relief`, `seed`, `size`, `houseDensity`, `specialCount`, `maxFloors`, `roadWidth`, `curve`, `treeDensity`, `hasWalls`, `hasRiver`, `hasMagic`, `hasProps`, `hasLamps`, `hasFences`, `time`). Con ella el juego regenera el pueblo 3D idéntico. `edits` (ediciones a mano, ver abajo). |
 | `notes` | Texto libre (historia, NPCs…). |
 
 ### Salidas del pueblo (`cfg.rotation` y `cfg.exits`)
@@ -65,6 +65,26 @@ y = town.y + lx·sin r + lz·cos r
 ```
 El terreno del pueblo es un cuadrado de lado `max(240, (42 + 14·size + 65)·2)` m centrado en el pueblo.
 `RPGWorld.exitWorldPoint(town, exit)` da el punto del mundo donde la salida enlaza con su camino.
+
+### Ediciones del pueblo (`cfg.edits`)
+Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribución generada:
+```jsonc
+"edits": {
+  "base": "style=l2_fantasy;terrainType=valley;...;hasFences=true",  // distribución a la que pertenecen
+  "ops": [
+    { "op": "quitar-casa", "id": "-28:-32" },
+    { "op": "mover-casa", "id": "28:13", "x": 40, "z": 50 },
+    { "op": "añadir-casa", "id": "n1", "x": 60, "z": -70 },
+    { "op": "quitar-calle", "id": "especial-2" },
+    { "op": "mover-calle", "id": "anillo:28", "dx": 3, "dz": -2 }
+  ]
+}
+```
+- `id` de una casa: `"<z>:<desplazamiento en x>"` de su hueco en la cuadrícula del pueblo. Las casas añadidas usan `n1`, `n2`… y no dependen de la cuadrícula.
+- `id` de una calle: `principal`, `este-oeste-izq`, `este-oeste-der`, `anillo:<z>`, `especial-<n>` (acceso a un edificio especial) o `acceso-<id de casa>` (camino de la puerta de una casa).
+- `mover-casa` da la posición final en metros (coordenadas del pueblo). `mover-calle` da el desplazamiento total desde su posición generada.
+- Las ediciones solo se aplican si `base` coincide con la configuración actual (semilla, tamaño, estilo, relieve, etc.). El giro y las salidas no cuentan. Si la base cambia, las ediciones se conservan pero no se aplican.
+- Las calles de salida hacia el mundo no se pueden editar.
 
 ## Camino
 | Campo | Descripción |

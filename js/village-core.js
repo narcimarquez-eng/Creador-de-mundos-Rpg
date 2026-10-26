@@ -15,6 +15,20 @@
       pick(arr) { return arr[this.int(0, arr.length - 1)]; }
     }
 
+    // Ediciones manuales (js/pueblo-edits.js): índice de las operaciones guardadas en cfg.edits
+    function indexEdits(cfg) {
+      const EDITS = typeof PuebloEdits !== 'undefined' ? PuebloEdits : null;
+      if (!EDITS) return { removedHouses: new Set(), movedHouses: new Map(), addedHouses: [], removedStreets: new Set(), movedStreets: new Map() };
+      return EDITS.indexOps(EDITS.activeOps(cfg));
+    }
+
+    // Hash de texto estable (para dar a cada casa añadida su propio azar)
+    function hashStr(s) {
+      let h = 2166136261;
+      for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+      return h >>> 0;
+    }
+
     // --- 2. CATÁLOGO DE ESTILOS ARQUITECTÓNICOS (LINEAGE 2) ---
     const ARCHITECTURAL_STYLES = {
       l2_fantasy: {
@@ -1205,6 +1219,21 @@
         });
       }
 
+      // ¿Cabe una casa con su centro en (x, z)? Usa las mismas reglas que la generación.
+      // ignoreId: la casa que se está moviendo no cuenta contra sí misma.
+      placementOk(x, z, ignoreId) {
+        const cfg = this.cfg;
+        const r = Math.hypot(x, z);
+        if (r > this.townRadius - 9 || r < 23) return false;
+        if (cfg.hasRiver && Math.abs(x - this.getRiverX(z)) < this.riverWidth * 1.05) return false;
+        if (this.onExitCorridor(x, z, cfg.roadWidth * 0.5 + 5)) return false;
+        return !this.colliders.some(c => {
+          if (c.wall || (c.house && c.id === ignoreId)) return false;
+          if (c.type === 'circle') return Math.hypot(x - c.x, z - c.z) < c.r + 6.5;
+          return x > c.minX - 5 && x < c.maxX + 5 && z > c.minZ - 5 && z < c.maxZ + 5;
+        });
+      }
+
       onExitCorridor(x, z, r) {
         return (this.exitPaths || []).length > 0 && this.distToExitPaths(x, z) < r;
       }
@@ -1228,6 +1257,9 @@
         this.scene.add(this.plazaLight);
         this.scene.add(this.forgeLight);
         this.cfg = cfg;
+        const edit = indexEdits(cfg);
+        this.editables = { houses: [], streets: [] };
+        this.terrainMesh = null;
         const rng = new PRNG(cfg.seed);
         const styleObj = ARCHITECTURAL_STYLES[cfg.style] || ARCHITECTURAL_STYLES.l2_fantasy;
 
@@ -1276,6 +1308,7 @@
         terrainMesh.receiveShadow = true;
         this.scene.add(terrainMesh);
         this.objects.push(terrainMesh);
+        this.terrainMesh = terrainMesh;
 
         }
 
@@ -1353,18 +1386,29 @@
         const roadsGroup = new THREE.Group();
         const roadExtent = townRadius + 28;
 
+        // Calle interna: se puede borrar o desplazar con las ediciones. Las salidas hacia el mundo no pasan por aquí.
+        const addStreet = (id, pts, width, yOffset) => {
+          if (edit.removedStreets.has(id)) return null;
+          const off = edit.movedStreets.get(id);
+          const final = off ? pts.map(p => ({ x: p.x + off.dx, z: p.z + off.dz })) : pts;
+          this.editables.streets.push({ id: id, pts: final, width: width });
+          const mesh = this.buildConformingRoadMesh(final, width, yOffset);
+          roadsGroup.add(mesh);
+          return mesh;
+        };
+
         const mainRoadPts = [];
         for (let z = -roadExtent; z <= roadExtent; z += 3.5) {
           mainRoadPts.push({ x: this.getMainRoadX(z), z: z });
         }
-        roadsGroup.add(this.buildConformingRoadMesh(mainRoadPts, cfg.roadWidth, 0.16));
+        addStreet('principal', mainRoadPts, cfg.roadWidth, 0.16);
 
         const eastWestPtsLeft = [];
         const bridgeStopX = cfg.hasRiver ? (this.getRiverX(0) - RIVER_WIDTH * 0.65) : roadExtent;
         for (let x = -roadExtent; x <= bridgeStopX; x += 3.5) {
           eastWestPtsLeft.push({ x: x, z: Math.sin(x * 0.04) * (cfg.curve * 0.35) * Math.min(1, Math.abs(x) / 20) });
         }
-        roadsGroup.add(this.buildConformingRoadMesh(eastWestPtsLeft, cfg.roadWidth * 0.9, 0.15));
+        addStreet('este-oeste-izq', eastWestPtsLeft, cfg.roadWidth * 0.9, 0.15);
 
         if (cfg.hasRiver) {
           const eastWestPtsRight = [];
@@ -1373,7 +1417,7 @@
             eastWestPtsRight.push({ x: x, z: 0 });
           }
           if (eastWestPtsRight.length > 1) {
-            roadsGroup.add(this.buildConformingRoadMesh(eastWestPtsRight, cfg.roadWidth * 0.9, 0.15));
+            addStreet('este-oeste-der', eastWestPtsRight, cfg.roadWidth * 0.9, 0.15);
           }
         }
 
@@ -1388,7 +1432,7 @@
             secPts.push({ x: x, z: curveZ });
           }
           if (secPts.length > 1) {
-            roadsGroup.add(this.buildConformingRoadMesh(secPts, cfg.roadWidth * 0.72, 0.14));
+            addStreet('anillo:' + rz, secPts, cfg.roadWidth * 0.72, 0.14);
           }
         });
 
@@ -1534,7 +1578,7 @@
             { x: (sp.x + roadTargetX) * 0.5, z: sp.z * 0.7 },
             { x: roadTargetX, z: sp.z * 0.5 }
           ];
-          roadsGroup.add(this.buildConformingRoadMesh(spurPts, 3.4, 0.14));
+          addStreet('especial-' + i, spurPts, 3.4, 0.14);
         }
         this.scene.add(specialsGroup);
         this.objects.push(specialsGroup);
@@ -1591,10 +1635,17 @@
               const floors = rng.int(1, cfg.maxFloors);
               const lookTowardRoad = xOff < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
               const hRot = lookTowardRoad + rng.range(-0.08, 0.08);
-              const hy = this.getTerrainHeight(hx, hz);
+              // Ediciones: la casa puede estar borrada o movida. El azar se consume igual en ambos casos,
+              // así el resto del pueblo no cambia.
+              const slot = lz + ':' + xOff;
+              const removed = edit.removedHouses.has(slot);
+              const moved = edit.movedHouses.get(slot);
+              const px = moved ? moved.x : hx, pz = moved ? moved.z : hz;
+              const hy = this.getTerrainHeight(px, pz);
 
-              houses.push({
-                x: hx, y: hy, z: hz,
+              const house = {
+                id: slot,
+                x: px, y: hy, z: pz,
                 rot: hRot,
                 wScale: rng.range(0.92, 1.15),
                 dScale: rng.range(0.92, 1.15),
@@ -1602,34 +1653,38 @@
                 tint: rng.pick(styleObj.wallTints),
                 chimney: rng.next() > 0.35,
                 balcony: floors >= 2 && rng.next() > 0.3
-              });
-
-              if (houses.length === 1) {
-                this.sampleHousePos.set(hx, hy, hz);
-              }
-
-              this.colliders.push({
-                type: 'box',
-                minX: hx - 3.6, maxX: hx + 3.6,
-                minZ: hz - 3.9, maxZ: hz + 3.9
-              });
+              };
 
               const doorDirX = Math.sin(hRot);
               const doorDirZ = Math.cos(hRot);
-              const pathPts = [
-                { x: hx + doorDirX * 3.5, z: hz + doorDirZ * 3.5 },
-                { x: hx + doorDirX * 7.2, z: hz + doorDirZ * 7.2 }
-              ];
-              roadsGroup.add(this.buildConformingRoadMesh(pathPts, 2.2, 0.13));
+              if (!removed) {
+                houses.push(house);
 
-              if (cfg.hasProps && rng.next() > 0.45) {
-                barrels.push({ x: hx + doorDirX * 3.8 + 1.5, y: this.getTerrainHeight(hx + doorDirX * 3.8 + 1.5, hz), z: hz });
+                if (houses.length === 1) {
+                  this.sampleHousePos.set(px, hy, pz);
+                }
+
+                this.colliders.push({
+                  type: 'box', house: true, id: slot,
+                  minX: px - 3.6, maxX: px + 3.6,
+                  minZ: pz - 3.9, maxZ: pz + 3.9
+                });
+
+                const pathPts = [
+                  { x: px + doorDirX * 3.5, z: pz + doorDirZ * 3.5 },
+                  { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
+                ];
+                addStreet('acceso-' + slot, pathPts, 2.2, 0.13);
               }
 
-              if (cfg.hasFences) {
+              if (cfg.hasProps && rng.next() > 0.45 && !removed) {
+                barrels.push({ x: px + doorDirX * 3.8 + 1.5, y: this.getTerrainHeight(px + doorDirX * 3.8 + 1.5, pz), z: pz });
+              }
+
+              if (cfg.hasFences && !removed) {
                 fences.push(
-                  { x: hx, y: hy, z: hz - 5.2, rot: hRot },
-                  { x: hx, y: hy, z: hz + 5.2, rot: hRot }
+                  { x: px, y: hy, z: pz - 5.2, rot: hRot },
+                  { x: px, y: hy, z: pz + 5.2, rot: hRot }
                 );
               }
             } else if (rng.next() * 100 <= cfg.treeDensity) {
@@ -1652,6 +1707,49 @@
 
         this.scene.add(roadsGroup);
         this.objects.push(roadsGroup);
+
+        // 7b. CASAS AÑADIDAS A MANO: solo si cabe según las mismas reglas que las del pueblo
+        edit.addedHouses.forEach(ad => {
+          if (edit.removedHouses.has(ad.id)) return;
+          const mv = edit.movedHouses.get(ad.id);
+          const px = mv ? mv.x : ad.x, pz = mv ? mv.z : ad.z;
+          if (!this.placementOk(px, pz, ad.id)) return;
+
+          const ar = new PRNG((cfg.seed ^ hashStr(ad.id)) >>> 0);
+          const floors = ar.int(1, cfg.maxFloors);
+          const hRot = (px < this.getMainRoadX(pz) ? Math.PI * 0.5 : -Math.PI * 0.5) + ar.range(-0.08, 0.08);
+          const hy = this.getTerrainHeight(px, pz);
+          houses.push({
+            id: ad.id,
+            x: px, y: hy, z: pz,
+            rot: hRot,
+            wScale: ar.range(0.92, 1.15),
+            dScale: ar.range(0.92, 1.15),
+            floors: floors,
+            tint: ar.pick(styleObj.wallTints),
+            chimney: ar.next() > 0.35,
+            balcony: floors >= 2 && ar.next() > 0.3
+          });
+          this.colliders.push({
+            type: 'box', house: true, id: ad.id,
+            minX: px - 3.6, maxX: px + 3.6,
+            minZ: pz - 3.9, maxZ: pz + 3.9
+          });
+
+          const doorDirX = Math.sin(hRot);
+          const doorDirZ = Math.cos(hRot);
+          addStreet('acceso-' + ad.id, [
+            { x: px + doorDirX * 3.5, z: pz + doorDirZ * 3.5 },
+            { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
+          ], 2.2, 0.13);
+          if (cfg.hasFences) {
+            fences.push(
+              { x: px, y: hy, z: pz - 5.2, rot: hRot },
+              { x: px, y: hy, z: pz + 5.2, rot: hRot }
+            );
+          }
+        });
+        this.editables.houses = houses.map(h => ({ id: h.id, x: h.x, z: h.z }));
 
         if (cfg.hasLamps) {
           for (let lz = -(townRadius - 6); lz <= (townRadius - 6); lz += 14) {

@@ -6,6 +6,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 |---|---|
 | `index.html` | **Creador de Mundos**: mapa del mundo con pueblos, caminos, zonas de caza y lugares de interés. |
 | `creador-de-pueblos.html` | **Creador de Pueblos 3D**: genera un pueblo completo a partir de una semilla y parámetros. |
+| `js/pueblo-edits.js` | Ediciones a mano de un pueblo (mover o borrar casas y calles internas, añadir casas). Pruebas en `test/pueblo-edits.test.js`. |
 | `visor-mundo.html` | **Visor 3D del mundo**: recorre el mundo entero con el personaje (WASD / joystick), pueblos, caminos, zonas de caza y bosques. Se abre con el botón «🗺 3D» del editor o cargando un `.mundo.json`. |
 | `js/character.js` | Personaje, joystick, cámara y animaciones (incluidas las de un solo uso) compartidas por el Creador de Pueblos y el visor. |
 | `js/items.js` | Oro, pociones, botín, tienda y descanso. Pruebas en `test/items.test.js`. |
@@ -30,7 +31,7 @@ Abre `index.html` en el navegador (doble clic, o mejor servido con GitHub Pages 
    - 🗑 **Borrar**: toca lo que quieras eliminar (↶ deshace).
    - ➕ **Expandir**: añade un pueblo nuevo en la frontera del mundo y lo conecta.
 3. **Niveles**: el pueblo inicial ⭐ es nivel 1; cuanto más lejos (por camino), más nivel tienen pueblos y zonas. Las zonas están **sobre los caminos entre pueblos**: son el trayecto y el lugar de caza.
-4. **Diseñar un pueblo**: selecciona un pueblo → **🏗 Abrir en el Creador de Pueblos 3D**. Ajusta lo que quieras y pulsa **💾 Guardar y volver**: el diseño (semilla y parámetros) queda guardado en ese pueblo del mundo.
+4. **Diseñar un pueblo**: selecciona un pueblo → **🏗 Abrir en el Creador de Pueblos 3D**. Ajusta lo que quieras y pulsa **💾 Guardar y volver**: el diseño (semilla y parámetros) queda guardado en ese pueblo del mundo. En el Creador de Pueblos, **✏️ Activar edición** muestra una paleta (Ver, Mover, Borrar, Casa; Ctrl+Z deshace): puedes mover o quitar casas y calles internas, y poner casas nuevas si caben. Las calles de salida hacia el mundo no se tocan.
    Los caminos del mundo llegan al pueblo por huecos en la muralla: el pueblo se gira para que sus calles apunten a los caminos, y cada camino sale de la plaza en línea recta hasta el borde del terreno, con un cartel hacia su destino. Abierto sin mundo, puedes probar salidas escribiendo ángulos en «Salidas hacia el mundo».
 5. **Guardado**: cada cambio se guarda automáticamente en la sesión actual (almacenamiento del navegador). En **📁 Sesiones** puedes tener varios mundos, duplicarlos, borrarlos y **exportar / importar `.mundo.json`** para copias de seguridad o para pasarlos a otro dispositivo.
 
