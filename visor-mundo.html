@@ -126,6 +126,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="js/world-core.js"></script>
+  <script src="js/village-core.js"></script>
   <script>
   "use strict";
   const W = window.RPGWorld;
@@ -149,8 +150,10 @@
   // Estado
   // ===========================================================================
   let world = null, terrain = null;
-  let towns = [];           // pueblos con geometría auxiliar
-  let flatList = [];        // pueblos que aplanan el terreno
+  let towns = [];           // entradas de pueblo: datos, modelo simple y, si está cargado, el pueblo completo
+  const kitCache = {};      // un kit (texturas y materiales) por estilo
+  let groundKit = null;
+  const LOAD_R = 650, UNLOAD_R = 900, MAX_LOADED = 6;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, playerGroup, selectRing = null;
@@ -159,23 +162,52 @@
   const keys = {};
   let follow = false, selected = null;
   let lastT = performance.now();
-  let townTileHalf = 149;
 
-  // Altura del mundo (incluye el aplanado de los pueblos)
-  function flat(h, x, z) {
-    for (let i = 0; i < flatList.length; i++) {
-      const f = flatList[i];
-      const d = Math.hypot(x - f.x, z - f.z);
-      if (d < f.outer) {
-        const k = smooth(f.inner, f.outer, d);
-        h = f.base + (h - f.base) * k;
+  // Altura del mundo. Dentro del terreno de cada pueblo usa el suelo exacto del Creador de Pueblos,
+  // y fuera se funde con el terreno del mundo.
+  function H(x, z) {
+    const e = terrain.elevation(x, z);
+    let h = (e - SEA) * HEIGHT_SCALE;
+    for (let i = 0; i < towns.length; i++) {
+      const o = towns[i];
+      const dx = x - o.t.x, dz = z - o.t.y;
+      if (Math.hypot(dx, dz) > o.tileHalf * 1.5 + 80) continue;
+      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+      const w = 1 - smooth(o.tileHalf - 25, o.tileHalf + 60, Math.max(Math.abs(lx), Math.abs(lz)));
+      if (w > 0) {
+        const g = o.h0 + o.ground.getTerrainHeight(lx, lz);
+        h = h + (g - h) * w;
       }
     }
     return h;
   }
-  function H(x, z) {
-    const e = terrain.elevation(x, z);
-    return flat((e - SEA) * HEIGHT_SCALE, x, z);
+
+  function kitFor(style) {
+    const key = VillageLib.ARCHITECTURAL_STYLES[style] ? style : 'l2_fantasy';
+    if (!kitCache[key]) {
+      kitCache[key] = VillageLib.createKit(key);
+      kitCache[key].applyAtmosphere('day');
+    }
+    return kitCache[key];
+  }
+
+  // Datos de cada pueblo: geometría de su terreno, marco local y su versión simple
+  function makeTownEntry(t) {
+    const cfg = t.cfg || {};
+    const size = cfg.size || 3;
+    const R = 42 + 14 * size;
+    const rot = (cfg.rotation || 0) * DEG;
+    if (!groundKit) groundKit = VillageLib.createKit(null);
+    const ground = groundKit.createVillage(null, { skipGround: true });
+    ground.cfg = cfg;
+    return {
+      t, cfg, R, size,
+      tileHalf: Math.max(240, (R + 65) * 2) / 2,
+      rot, cr: Math.cos(rot), sr: Math.sin(rot),
+      h0: (terrain.elevation(t.x, t.y) - SEA) * HEIGHT_SCALE,
+      ground,
+      proxy: null, village: null, group: null, kit: null
+    };
   }
 
   // ===========================================================================
@@ -240,14 +272,15 @@
     return out;
   }
 
-  // Parte del camino del mundo que queda fuera del pueblo (el resto lo cubre el pueblo)
-  function trimRoad(road, a, b, R) {
+  // Parte del camino del mundo que queda fuera del terreno del pueblo (el resto lo cubre el pueblo)
+  function trimRoad(road, a, b, half) {
     const pts = road.points;
     if (!pts || pts.length < 2) return [];
+    const cheb = (p, c) => Math.max(Math.abs(p.x - c.x), Math.abs(p.y - c.y));
     let i0 = 0;
-    while (i0 < pts.length - 1 && Math.hypot(pts[i0].x - a.x, pts[i0].y - a.y) < R) i0++;
+    while (i0 < pts.length - 1 && cheb(pts[i0], a) < half) i0++;
     let i1 = pts.length - 1;
-    while (i1 > 0 && Math.hypot(pts[i1].x - b.x, pts[i1].y - b.y) < R) i1--;
+    while (i1 > 0 && cheb(pts[i1], b) < half) i1--;
     if (i1 <= i0) return pts.slice();
     return pts.slice(Math.max(0, i0 - 1), Math.min(pts.length, i1 + 2));
   }
@@ -302,7 +335,8 @@
   }
 
   function clearWorldObjects() {
-    [terrainMesh, townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
+    towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
+    [terrainMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
@@ -320,17 +354,8 @@
     selected = null;
     hideInfo();
 
-    // Pueblos: geometría auxiliar y aplanado
-    towns = world.towns.map(t => {
-      const size = (t.cfg && t.cfg.size) || 3;
-      return { t, R: 42 + 14 * size, size, tileHalf: Math.max(240, (42 + 14 * size + 65) * 2) / 2 };
-    });
-    flatList = [];
-    towns.forEach(o => {
-      const base = (terrain.elevation(o.t.x, o.t.y) - SEA) * HEIGHT_SCALE;
-      flatList.push({ x: o.t.x, z: o.t.y, base, inner: o.R + 25, outer: o.R + 130 });
-    });
-    townTileHalf = towns.length ? Math.max(...towns.map(o => o.tileHalf)) : 149;
+    towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
+    towns = world.towns.map(makeTownEntry);
 
     // Límites del mapa
     const xs = [], zs = [];
@@ -379,7 +404,7 @@
       for (let i = 0; i < N; i++) {
         const x = x0 + i * step, z = z0 + j * step;
         const e = terrain.elevation(x, z);
-        const h = flat((e - SEA) * HEIGHT_SCALE, x, z);
+        const h = H(x, z);
         const b = terrain.biomeAt(x, z, e);
         const c = W.BIOMES[b].color;
         const k = (j * N + i) * 3;
@@ -415,9 +440,9 @@
 
   // Pueblos simplificados: muralla con huecos en las salidas, plaza, casas, torres y edificios especiales
   function buildTowns() {
-    const mb = new MB();
     const SPECIALS = [[-19, -14], [19, -14], [-19, 14], [19, 14], [-24, -34], [22, 34], [-34, 8], [-34, -8], [0, -42], [0, 42]];
     towns.forEach(o => {
+      const mb = new MB();
       const t = o.t, cfg = t.cfg || {}, size = o.size, R = o.R;
       const rot = (cfg.rotation || 0) * DEG, cr = Math.cos(rot), sr = Math.sin(rot);
       const rw = cfg.roadWidth || 7;
@@ -428,7 +453,7 @@
       const dirW = (dx, dz) => [dx * cr - dz * sr, dx * sr + dz * cr];
       const at = (lx, lz) => { const p = L2W(lx, lz); return [p.x, H(p.x, p.z), p.z]; };
       const exits = (cfg.exits || []).map(e => ({ a: ((Number(e.angle) || 0) * DEG), name: e.to }));
-      const H0 = H(t.x, t.y);
+      const H0 = o.h0 + o.ground.getTerrainHeight(0, 0);
 
       // Plaza
       const ring = [];
@@ -457,7 +482,7 @@
       // Salidas hacia los caminos (calles rectas hasta el borde del terreno)
       exits.forEach(e => {
         const ca = Math.cos(e.a), sa = Math.sin(e.a);
-        const tEnd = o.tileHalf + 12;
+        const tEnd = (o.tileHalf - 1.5) / Math.max(Math.abs(ca), Math.abs(sa));
         const pts = subdivide([{ x: ca * 16, y: sa * 16 }, { x: ca * tEnd, y: sa * tEnd }], 8).map(q => L2W(q.x, q.z));
         mb.ribbon(pts, rw * 0.85, rgb('#d6b27a'), 0.45);
       });
@@ -512,9 +537,10 @@
 
       // Torre central de referencia
       mb.box(cp[0], H0 + 6, cp[2], 1, 0, 3, 12, 3, wallStone, roof);
+
+      o.proxy = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      scene.add(o.proxy);
     });
-    townMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-    scene.add(townMesh);
   }
 
   function roadWidth(kind) { return kind === 'calzada' ? 8 : kind === 'sendero' ? 3 : 6; }
@@ -525,8 +551,8 @@
     world.roads.forEach(r => {
       const a = W.findTown(world, r.from), b = W.findTown(world, r.to);
       if (!a || !b) return;
-      const tile = Math.max(240, (42 + 14 * ((a.cfg && a.cfg.size) || 3) + 65) * 2) / 2;
-      const pts = trimRoad(r, a, b, tile);
+      const oa = towns.find(o => o.t === a), ob = towns.find(o => o.t === b);
+      const pts = trimRoad(r, a, b, Math.min(oa ? oa.tileHalf : 149, ob ? ob.tileHalf : 149));
       if (pts.length < 2) return;
       mb.ribbon(subdivide(pts, 8), roadWidth(r.kind), roadColor(r.kind), 0.35);
     });
@@ -639,7 +665,8 @@
 
   function updateStats() {
     const st = W.stats(world);
-    $('stats').innerHTML = `🏘 Pueblos <b>${st.towns}</b> · 🛤 Caminos <b>${st.roads}</b><br>⚔ Zonas <b>${st.zones}</b> · ✦ Lugares <b>${st.pois}</b><br>📏 ${st.roadKm} km · 📈 Nivel máx <b>${st.maxLevel}</b>`;
+    const full = towns.filter(o => o.village).length;
+    $('stats').innerHTML = `🏘 Pueblos <b>${st.towns}</b> (${full} completos) · 🛤 Caminos <b>${st.roads}</b><br>⚔ Zonas <b>${st.zones}</b> · ✦ Lugares <b>${st.pois}</b><br>📏 ${st.roadKm} km · 📈 Nivel máx <b>${st.maxLevel}</b>`;
   }
 
   function hideInfo() { $('info').classList.remove('show'); $('info').innerHTML = ''; if (selectRing) { scene.remove(selectRing); selectRing = null; } }
@@ -708,6 +735,85 @@
     el.classList.add('show');
     clearTimeout(toast.t);
     toast.t = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  // ===========================================================================
+  // Pueblos completos: se cargan al acercarse y se descargan al alejarse
+  // ===========================================================================
+  function loadTown(o) {
+    const kit = kitFor(o.cfg.style);
+    const group = new THREE.Group();
+    group.position.set(o.t.x, o.h0, o.t.y);
+    group.rotation.y = -o.rot;
+    scene.add(group);
+    const village = kit.createVillage(group, { skipGround: true });
+    village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
+    o.village = village; o.group = group; o.kit = kit;
+    if (o.proxy) o.proxy.visible = false;
+  }
+
+  function unloadTown(o) {
+    if (!o.village) return;
+    o.village.destroy();
+    scene.remove(o.group);
+    o.village = null; o.group = null; o.kit = null;
+    if (o.proxy) o.proxy.visible = true;
+  }
+
+  let lastStream = 0;
+  function streamTowns(now) {
+    if (now - lastStream < 200 || !towns.length) return;
+    lastStream = now;
+    const centers = [player, controls.target];
+    const dist = o => Math.min(...centers.map(c => Math.hypot(c.x - o.t.x, c.z - o.t.y)));
+    let changed = false;
+    towns.forEach(o => { if (o.village && dist(o) > UNLOAD_R) { unloadTown(o); changed = true; } });
+    const loaded = towns.filter(o => o.village);
+    const next = towns.filter(o => !o.village && dist(o) < LOAD_R).sort((a, b) => dist(a) - dist(b))[0];
+    if (next && loaded.length < MAX_LOADED) { loadTown(next); changed = true; }
+    if (loaded.length + (next ? 1 : 0) > MAX_LOADED) {
+      const far = towns.filter(o => o.village).sort((a, b) => dist(b) - dist(a))[0];
+      if (far) { unloadTown(far); changed = true; }
+    }
+    if (changed) updateStats();
+  }
+
+  // Muros, casas y árboles del pueblo empujan al personaje hacia fuera
+  function resolveColliders(v, lx, lz) {
+    const PR = 0.6;
+    for (let it = 0; it < 2; it++) {
+      for (const c of v.colliders) {
+        if (c.type === 'circle') {
+          const dx = lx - c.x, dz = lz - c.z, d = Math.hypot(dx, dz), m = c.r + PR;
+          if (d < m && d > 1e-6) { lx = c.x + dx / d * m; lz = c.z + dz / d * m; }
+        } else if (lx > c.minX - PR && lx < c.maxX + PR && lz > c.minZ - PR && lz < c.maxZ + PR) {
+          const left = lx - (c.minX - PR), right = (c.maxX + PR) - lx;
+          const down = lz - (c.minZ - PR), up = (c.maxZ + PR) - lz;
+          const m = Math.min(left, right, down, up);
+          if (m === left) lx = c.minX - PR;
+          else if (m === right) lx = c.maxX + PR;
+          else if (m === down) lz = c.minZ - PR;
+          else lz = c.maxZ + PR;
+        }
+      }
+    }
+    return [lx, lz];
+  }
+
+  // Si el personaje está dentro de un pueblo cargado, lo sitúa con sus colisiones y suelo; devuelve su altura
+  function applyTownCollisions() {
+    let y = null;
+    for (const o of towns) {
+      if (!o.village) continue;
+      const dx = player.x - o.t.x, dz = player.z - o.t.y;
+      if (Math.hypot(dx, dz) > o.tileHalf * 1.5) continue;
+      const lx0 = dx * o.cr + dz * o.sr, lz0 = -dx * o.sr + dz * o.cr;
+      const [lx, lz] = resolveColliders(o.village, lx0, lz0);
+      player.x = o.t.x + lx * o.cr - lz * o.sr;
+      player.z = o.t.y + lx * o.sr + lz * o.cr;
+      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) y = o.h0 + o.village.getWalkableHeight(lx, lz);
+    }
+    return y;
   }
 
   // ===========================================================================
@@ -835,7 +941,10 @@
     }
     player.x = Math.min(bounds.maxX, Math.max(bounds.minX, player.x));
     player.z = Math.min(bounds.maxZ, Math.max(bounds.minZ, player.z));
-    const py = H(player.x, player.z);
+    streamTowns(now);
+    const townY = applyTownCollisions();
+    const py = townY !== null ? townY : H(player.x, player.z);
+    towns.forEach(o => { if (o.village) o.village.update(now / 1000); });
     playerGroup.position.set(player.x, py, player.z);
     playerGroup.rotation.y = player.yaw;
 

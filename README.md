@@ -7,6 +7,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `index.html` | **Creador de Mundos**: mapa del mundo con pueblos, caminos, zonas de caza y lugares de interés. |
 | `creador-de-pueblos.html` | **Creador de Pueblos 3D**: genera un pueblo completo a partir de una semilla y parámetros. |
 | `visor-mundo.html` | **Visor 3D del mundo**: recorre el mundo entero con el personaje (WASD / joystick), pueblos, caminos, zonas de caza y bosques. Se abre con el botón «🗺 3D» del editor o cargando un `.mundo.json`. |
+| `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). |
 | `js/world-core.js` | Núcleo del mundo sin interfaz (terreno, biomas, generación, niveles, guardado). Pensado para reutilizarlo en el juego. |
 | `docs/FORMATO-MUNDO.md` | Descripción del archivo `.mundo.json` que se guarda/exporta. |
 
@@ -39,7 +40,7 @@ Desde el editor, **🗺 3D** (o **🗺 Ver en 3D** en la pestaña Mundo) abre el
 - **Lugares:** toca un pueblo, zona o punto del terreno para ver su información. «Ir aquí» lleva al personaje.
 - La lista de la izquierda salta a cada pueblo.
 
-Los pueblos del visor son una versión simplificada (muralla con huecos, plaza, casas, calles de salida). El detalle completo está en el Creador de Pueblos. El visor todavía no tiene colisiones con muros ni recorre los caminos automáticamente.
+Los pueblos se cargan completos, igual que en el Creador de Pueblos, cuando te acercas (a unos 650 m), y se vuelven a simplificar al alejarte. Hay como máximo 6 pueblos completos a la vez. Los muros y casas bloquean al personaje. El visor todavía no recorre los caminos automáticamente.
 
 ## Hacia el juego completo
 
