@@ -150,6 +150,7 @@
       <label><input type="checkbox" id="chk-labels" checked> Nombres</label>
       <label><input type="checkbox" id="chk-trees" checked> Bosques</label>
       <label><input type="checkbox" id="chk-water" checked> Agua</label>
+      <label>Calidad <select id="sel-quality"><option value="bajo">Bajo</option><option value="medio">Medio</option><option value="alto">Alto</option></select></label>
     </div>
   </aside>
 
@@ -226,6 +227,7 @@
   <script src="js/combat.js"></script>
   <script src="js/items.js"></script>
   <script src="js/partida.js"></script>
+  <script src="js/terreno.js"></script>
   <script src="js/character.js"></script>
   <script>
   "use strict";
@@ -259,7 +261,18 @@
   let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
-  let terrainGrid = null;   // malla del mundo: { x0, z0, step, n, N, pos }
+  let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
+  let terrainMat = null, farMesh = null, lastChunks = 0;
+  const nearChunks = new Map();          // trozos de 300 m con detalle completo, por "cx,cz"
+  const CHUNK = 15;                      // celdas de 20 m por trozo (300 m)
+  const TEX_NAMES = { tGrass: 'hierba', tDirt: 'tierra', tRock: 'roca', tSand: 'arena', tSnow: 'nieve' };
+  const terrainU = {
+    tGrass: { value: null }, tDirt: { value: null }, tRock: { value: null }, tSand: { value: null }, tSnow: { value: null },
+    uTile: { value: 1 / 60 }, uTexOn: { value: 0 }
+  };
+  // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
+  const QUALITY = { bajo: { radius: 1000, shadows: 0, pixel: 1, far: 5 }, medio: { radius: 1400, shadows: 1024, pixel: 1.5, far: 3 }, alto: { radius: 1800, shadows: 2048, pixel: 2, far: 3 } };
+  let quality = 'alto';
   let monsters = [];
   let timeOfDay = 'day';
   let curTown = null, curZone = null;
@@ -424,6 +437,8 @@
     sunLight = new THREE.DirectionalLight('#fffbeb', 1.1);
     sunLight.position.set(900, 1400, 700);
     scene.add(sunLight);
+    scene.add(sunLight.target);
+    loadTerrainTextures();
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -450,12 +465,13 @@
   }
 
   function clearWorldObjects() {
-    towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } if (o.patch) { scene.remove(o.patch); o.patch.geometry.dispose(); } });
+    towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
+    clearTerrainRender();
     terrainGrid = null;
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
-    [terrainMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
+    [roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
@@ -497,7 +513,6 @@
     bounds.size = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
 
     buildTerrain();
-    buildPatches();
     buildWater();
     buildTowns();
     buildRoads();
@@ -535,6 +550,7 @@
   // Dentro de un pueblo: su suelo exacto. Fuera: interpolación dentro de la celda de la malla.
   function meshHeight(x, z) {
     for (const o of towns) {
+      if (!o.patch) continue;
       const dx = x - o.t.x, dz = z - o.t.y;
       if (Math.hypot(dx, dz) > o.tileHalf * 1.5) continue;
       const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
@@ -556,22 +572,28 @@
   function H(x, z) { return meshHeight(x, z); }
 
   // Malla fina del suelo de cada pueblo: la misma que genera el Creador de Pueblos
-  function buildPatches() {
-    const SEG = 120;
-    towns.forEach(o => {
+  // Malla fina del suelo de un pueblo (solo mientras está cargado)
+  function createPatch(o) {
+    const SEG = 80;
+    {
       const half = o.tileHalf, step = (2 * half) / SEG, N = SEG + 1;
       const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
+      const splat = new Float32Array(N * N * 4), snowA = new Float32Array(N * N), nrm = new Float32Array(N * N * 3);
       const cfg = o.cfg;
       const gc = W.BIOMES[o.t.biome] ? W.BIOMES[o.t.biome].color : [127, 174, 90];
+      const base = TerrainLib.splatFor(o.t.biome, 0, 0);
       for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
         const lx = -half + i * step, lz = -half + j * step;
         const wx = o.t.x + lx * o.cr - lz * o.sr, wz = o.t.y + lx * o.sr + lz * o.cr;
-        const k = (j * N + i) * 3;
-        pos[k] = wx; pos[k + 1] = o.h0 + o.ground.getTerrainHeight(lx, lz); pos[k + 2] = wz;
+        const k = (j * N + i) * 3, kk = j * N + i;
+        const y = o.h0 + o.ground.getTerrainHeight(lx, lz);
+        pos[k] = wx; pos[k + 1] = y; pos[k + 2] = wz;
         let c = [gc[0] / 255, gc[1] / 255, gc[2] / 255];
-        if (Math.hypot(lx, lz) < 16.5) c = [0.8, 0.84, 0.88];                       // plaza
-        else if (cfg.hasRiver && Math.abs(lx - o.ground.getRiverX(lz)) < o.ground.riverWidth * 0.72) c = [0.6, 0.52, 0.4]; // arena del río
+        let sp = base.splat.slice(), sn = base.snow;
+        if (Math.hypot(lx, lz) < 16.5) { c = [0.8, 0.84, 0.88]; sp = [0, 1, 0, 0]; sn = 0; }          // plaza: tierra
+        else if (cfg.hasRiver && Math.abs(lx - o.ground.getRiverX(lz)) < o.ground.riverWidth * 0.72) { c = [0.6, 0.52, 0.4]; sp = [0, 0, 0, 1]; sn = 0; } // arena del río
         col[k] = c[0]; col[k + 1] = c[1]; col[k + 2] = c[2];
+        splat.set(sp, kk * 4); snowA[kk] = sn;
       }
       const idx = new Uint32Array(SEG * SEG * 6);
       let p = 0;
@@ -583,13 +605,36 @@
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      g.setAttribute('aSplat', new THREE.BufferAttribute(splat, 4));
+      g.setAttribute('aSnow', new THREE.BufferAttribute(snowA, 1));
       g.setIndex(new THREE.BufferAttribute(idx, 1));
       g.computeVertexNormals();
-      o.patch = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
+      o.patch = new THREE.Mesh(g, terrainMat);
+      o.patch.receiveShadow = true;
       scene.add(o.patch);
-    });
+    }
+    patchChanged(o);
   }
 
+  function destroyPatch(o) {
+    if (!o.patch) return;
+    scene.remove(o.patch); o.patch.geometry.dispose(); o.patch = null;
+    patchChanged(o);
+  }
+
+  // Al cambiar el suelo de un pueblo, los trozos y la malla lejana que lo cubren se rehacen
+  function patchChanged(o) {
+    const g = terrainGrid;
+    if (!g) return;
+    [...nearChunks.keys()].forEach(k => {
+      const [cx, cz] = k.split(',').map(Number);
+      const x = g.x0 + (cx * CHUNK + CHUNK / 2) * g.step, z = g.z0 + (cz * CHUNK + CHUNK / 2) * g.step;
+      if (Math.hypot(x - o.t.x, z - o.t.y) < o.tileHalf * 1.5) { const m = nearChunks.get(k); scene.remove(m); m.geometry.dispose(); nearChunks.delete(k); }
+    });
+    lastChunks = 0;
+  }
+
+  // Malla del mundo: datos de la rejilla (alturas, colores, pesos de textura y normales)
   function buildTerrain() {
     const ext = bounds.size;
     const n = Math.max(100, Math.min(420, Math.round(ext / 20)));
@@ -597,34 +642,146 @@
     const step = ext / n;
     const x0 = bounds.cx - ext / 2, z0 = bounds.cz - ext / 2;
     const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
+    const splat = new Float32Array(N * N * 4), snowA = new Float32Array(N * N), nrm = new Float32Array(N * N * 3);
+    const biomes = new Array(N * N);
     for (let j = 0; j < N; j++) {
       for (let i = 0; i < N; i++) {
         const x = x0 + i * step, z = z0 + j * step;
         const e = terrain.elevation(x, z);
-        const h = Hgen(x, z);
+        const k = (j * N + i);
         const b = terrain.biomeAt(x, z, e);
+        biomes[k] = b;
         const c = W.BIOMES[b].color;
-        const k = (j * N + i) * 3;
-        pos[k] = x; pos[k + 1] = h; pos[k + 2] = z;
-        col[k] = c[0] / 255; col[k + 1] = c[1] / 255; col[k + 2] = c[2] / 255;
+        // Tinte del bioma suave sobre las texturas
+        col[k * 3] = 1 - 0.55 * (1 - c[0] / 255); col[k * 3 + 1] = 1 - 0.55 * (1 - c[1] / 255); col[k * 3 + 2] = 1 - 0.55 * (1 - c[2] / 255);
+        pos[k * 3] = x; pos[k * 3 + 1] = Hgen(x, z); pos[k * 3 + 2] = z;
       }
     }
-    const idx = new Uint32Array(n * n * 6);
-    let p = 0;
-    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-      if (townContains(x0 + (i + 0.5) * step, z0 + (j + 0.5) * step)) continue;   // hueco: lo cubre el suelo del pueblo
-      const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
-      idx[p++] = a; idx[p++] = c; idx[p++] = b;
-      idx[p++] = b; idx[p++] = c; idx[p++] = d;
+    const heightAt = (i, j) => pos[(j * N + i) * 3 + 1];
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const k = j * N + i;
+      const nv = TerrainLib.nodeNormal(heightAt, i, j, n, step);
+      nrm[k * 3] = nv[0]; nrm[k * 3 + 1] = nv[1]; nrm[k * 3 + 2] = nv[2];
+      const w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
+      splat.set(w.splat, k * 4);
+      snowA[k] = w.snow;
     }
-    terrainGrid = { x0, z0, step, n, N, pos };
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    g.setIndex(new THREE.BufferAttribute(idx.subarray(0, p), 1));
-    g.computeVertexNormals();
-    terrainMesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
-    scene.add(terrainMesh);
+    terrainGrid = { x0, z0, step, n, N, pos, col, splat, snow: snowA, nrm };
+    if (!terrainMat) terrainMat = TerrainLib.createTerrainMaterial(THREE, terrainU);
+  }
+
+  // Texturas de hierba, tierra, roca, arena y nieve (assets/terreno, CC0 de ambientCG)
+  function loadTerrainTextures() {
+    const white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    white.needsUpdate = true;
+    Object.keys(TEX_NAMES).forEach(k => { terrainU[k].value = white; });
+    const loader = new THREE.TextureLoader();
+    let loaded = 0;
+    Object.keys(TEX_NAMES).forEach(k => {
+      loader.load('assets/terreno/' + TEX_NAMES[k] + '.jpg', tex => {
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.anisotropy = 4;
+        terrainU[k].value = tex;
+        loaded += 1;
+        if (loaded === 5) terrainU.uTexOn.value = 1;
+      }, undefined, () => { /* sin textura (p. ej. abriendo el archivo sin servidor): color plano */ });
+    });
+  }
+
+  // Trozos con detalle completo (cerca del personaje) y malla gruesa del resto del mundo
+  function townTileAt(x, z) {
+    return towns.some(o => {
+      if (!o.patch) return false;
+      const dx = x - o.t.x, dz = z - o.t.y;
+      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+      return Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf;
+    });
+  }
+  function nodeWorld(gx, gz) { return [terrainGrid.x0 + gx * terrainGrid.step, terrainGrid.z0 + gz * terrainGrid.step]; }
+
+  function buildNear(cx, cz) {
+    const g = terrainGrid;
+    const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
+    const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
+    const geom = TerrainLib.buildGridGeometry(THREE, g, {
+      gi0, gj0, cellsI, cellsJ, stride: 1, skirt: true,
+      skipCell: (gx, gz) => { const [x, z] = nodeWorld(gx, gz); return townTileAt(x, z); }
+    });
+    const m = new THREE.Mesh(geom, terrainMat);
+    m.receiveShadow = true;
+    scene.add(m);
+    return m;
+  }
+
+  function buildFar() {
+    const g = terrainGrid;
+    if (farMesh) { scene.remove(farMesh); farMesh.geometry.dispose(); farMesh = null; }
+    const st = QUALITY[quality].far;
+    const cells = Math.ceil(g.n / st);
+    const geom = TerrainLib.buildGridGeometry(THREE, g, {
+      gi0: 0, gj0: 0, cellsI: cells, cellsJ: cells, stride: st,
+      skipCell: (gx, gz) => {
+        const [x, z] = nodeWorld(gx, gz);
+        if (townTileAt(x, z)) return true;
+        return nearChunks.has(Math.floor(gx / CHUNK) + ',' + Math.floor(gz / CHUNK));
+      }
+    });
+    farMesh = new THREE.Mesh(geom, terrainMat);
+    farMesh.receiveShadow = true;
+    scene.add(farMesh);
+  }
+
+  // Decide qué trozos tienen detalle completo: los que están cerca del personaje o de la cámara
+  function updateTerrainChunks(now, force) {
+    if (!terrainGrid) return;
+    if (!force && now - lastChunks < 250) return;
+    lastChunks = now;
+    const g = terrainGrid, R = QUALITY[quality].radius;
+    const p = character.root.position, t = controls.target;
+    const nC = Math.ceil(g.n / CHUNK);
+    const want = new Map();
+    for (let cz = 0; cz < nC; cz++) for (let cx = 0; cx < nC; cx++) {
+      const x = g.x0 + (cx * CHUNK + CHUNK / 2) * g.step, z = g.z0 + (cz * CHUNK + CHUNK / 2) * g.step;
+      if (Math.hypot(x - p.x, z - p.z) < R || Math.hypot(x - t.x, z - t.z) < R) want.set(cx + ',' + cz, [cx, cz]);
+    }
+    let changed = !!force;
+    [...nearChunks.keys()].forEach(k => {
+      if (!want.has(k)) { const m = nearChunks.get(k); scene.remove(m); m.geometry.dispose(); nearChunks.delete(k); changed = true; }
+    });
+    want.forEach(([cx, cz], k) => {
+      if (!nearChunks.has(k)) { nearChunks.set(k, buildNear(cx, cz)); changed = true; }
+    });
+    if (changed || !farMesh) buildFar();
+  }
+
+  function clearTerrainRender() {
+    nearChunks.forEach(m => { scene.remove(m); m.geometry.dispose(); });
+    nearChunks.clear();
+    if (farMesh) { scene.remove(farMesh); farMesh.geometry.dispose(); farMesh = null; }
+  }
+
+  // Calidad: sombras del sol, píxeles por pantalla y radio de detalle
+  function applyQuality(q, save) {
+    if (!QUALITY[q]) q = 'alto';
+    quality = q;
+    const Q = QUALITY[q];
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pixel));
+    renderer.shadowMap.enabled = Q.shadows > 0;
+    sunLight.castShadow = Q.shadows > 0;
+    if (Q.shadows > 0) {
+      sunLight.shadow.mapSize.set(Q.shadows, Q.shadows);
+      const sc = sunLight.shadow.camera;
+      sc.left = -600; sc.right = 600; sc.top = 600; sc.bottom = -600; sc.near = 10; sc.far = 2400;
+      sc.updateProjectionMatrix();
+      if (sunLight.shadow.map) { sunLight.shadow.map.dispose(); sunLight.shadow.map = null; }
+    }
+    scene.traverse(o => {
+      if (o.isMesh && o !== waterMesh) { o.castShadow = Q.shadows > 0; o.receiveShadow = Q.shadows > 0; if (o.material) o.material.needsUpdate = true; }
+    });
+    if (terrainMat) terrainMat.needsUpdate = true;
+    $('sel-quality').value = q;
+    if (save) store.setItem('rpgMundo.calidad', q);
+    updateTerrainChunks(performance.now(), true);
   }
 
   function buildWater() {
@@ -948,6 +1105,7 @@
     const village = kit.createVillage(group, { skipGround: true });
     village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
     o.village = village; o.group = group; o.kit = kit;
+    createPatch(o);
     o.worldCols = toWorldColliders(o);
     o.rise = 0;
     group.scale.y = 0.02;
@@ -971,6 +1129,7 @@
     if (!o.village) return;
     o.village.destroy();
     scene.remove(o.group);
+    destroyPatch(o);
     o.village = null; o.group = null; o.kit = null; o.worldCols = null; o.rise = 1;
     if (o.proxy) { o.proxy.visible = true; o.proxy.material.opacity = 1; }
   }
@@ -1695,7 +1854,8 @@
     const rect = renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(mouse, camera);
-    const hit = raycaster.intersectObject(terrainMesh, false)[0];
+    const objs = [...nearChunks.values(), farMesh, ...towns.filter(o => o.patch).map(o => o.patch)].filter(Boolean);
+    const hit = raycaster.intersectObjects(objs, false)[0];
     if (!hit) return;
     showSelection(pick({ x: hit.point.x, z: hit.point.z }));
   }
@@ -1750,6 +1910,7 @@
   $('chk-zones').onchange = e => { zoneMesh.visible = e.target.checked; zoneLines.forEach(l => l.visible = e.target.checked); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); };
   $('chk-labels').onchange = e => { townLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked || !$('chk-zones').checked)); };
   $('chk-trees').onchange = e => { if (treeMesh) treeMesh.visible = e.target.checked; };
+  $('sel-quality').onchange = e => applyQuality(e.target.value, true);
   $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
 
   // ===========================================================================
@@ -1766,6 +1927,13 @@
     towns.forEach(o => { if (o.village) o.village.update(now / 1000); });
     animateTowns(dt);
     updateAtmosphere(dt);
+    updateTerrainChunks(now, false);
+    if (quality !== 'bajo') {
+      const p = character.root.position, dir = atmoNow.sunPos.clone().normalize();
+      sunLight.position.copy(p).addScaledVector(dir, 900);
+      sunLight.target.position.copy(p);
+      sunLight.target.updateMatrixWorld();
+    }
     lastNowSec = now / 1000;
     updateCombat(dt, now);
     updateHud(now);
@@ -1829,6 +1997,11 @@
 
   (function boot() {
     if (window.innerWidth <= 760) $('side').classList.add('collapsed');
+    let saved = null;
+    try { saved = localStorage.getItem('rpgMundo.calidad'); } catch (e) { /* nada */ }
+    const movil = matchMedia('(pointer: coarse)').matches || window.innerWidth < 800;
+    ensureScene();
+    applyQuality(saved || (movil ? 'bajo' : 'alto'), false);
     const params = new URLSearchParams(location.search);
     let id = params.get('s');
     if (!id) { try { id = localStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }

@@ -74,6 +74,17 @@ medidas de memoria y de tiempo reales en un ordenador y en un móvil.
 bioma. Terreno por trozos de 300 m con detalle según la distancia (el mismo tamaño que el suelo de cada pueblo,
 para que las costuras coincidan). Sombras del sol en medio y alto.
 
+Estado: **hecho, con dos pendientes.**
+- Hecho: texturas de ambientCG (CC0, ver `docs/ASSETS.md`), mezcla por altura, pendiente y bioma en el shader,
+  trozos de 15 × 15 celdas de 20 m (300 m) con faldón, anillo lejano con paso según la calidad, agujeros bajo los
+  pueblos cargados y alturas tomadas del mismo triángulo que se dibuja (`meshHeight`), así que el personaje no se
+  hunde. Calidades bajo / medio / alto (radio 1000 / 1400 / 1800 m; sombras no / 1024 / 2048; píxeles 1 / 1,5 / 2).
+  Pruebas en `test/terreno.test.js`.
+- Pendiente: las texturas son de 1K (la decisión pide 2K en ordenador, ver `docs/ASSETS.md`); la costura entre
+  trozos y el anillo lejano se revisan a ojo en la siguiente pasada.
+- Medido en móvil (modo bajo): unos 32 trozos cercanos y sin sombras. La carga de triángulos en móvil viene sobre
+  todo de la geometría instanciada de los pueblos completos (faroles, toldos, muros). Eso va en G7.
+
 **G2. Agua y cielo pintados.** Agua con ondas suaves, espuma en la orilla y color según la profundidad. Cielo
 con degradado cálido, sol y nubes. La niebla cambia con la hora del día.
 
