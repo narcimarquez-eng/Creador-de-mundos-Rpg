@@ -7,7 +7,11 @@ pueblos completos según la distancia. Todo está en la rama `ccr-883c6e56-fjnw1
 Objetivo a medio plazo: que el visor se parezca a un juego (navegación, personaje, ambiente, zonas que se
 sienten), manteniendo la navegación del Creador de Pueblos como base.
 
-## Fase 1 — Navegación como en el Creador de Pueblos (siguiente paso)
+## Fase 1 — Navegación como en el Creador de Pueblos (**hecha**)
+
+Estado: completada. El controlador del personaje está en `js/character.js` y lo usan los dos. El visor tiene
+joystick analógico, velocidades 6,5 / 12 m/s, cámaras General / Plaza / Fachada / Seguir, colisión de cámara y el
+personaje GLB (o el avatar de respaldo).
 
 Hoy el visor y el creador no se controlan igual. Diferencias concretas:
 

@@ -7,6 +7,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `index.html` | **Creador de Mundos**: mapa del mundo con pueblos, caminos, zonas de caza y lugares de interés. |
 | `creador-de-pueblos.html` | **Creador de Pueblos 3D**: genera un pueblo completo a partir de una semilla y parámetros. |
 | `visor-mundo.html` | **Visor 3D del mundo**: recorre el mundo entero con el personaje (WASD / joystick), pueblos, caminos, zonas de caza y bosques. Se abre con el botón «🗺 3D» del editor o cargando un `.mundo.json`. |
+| `js/character.js` | Personaje, joystick y cámara compartidos por el Creador de Pueblos y el visor. |
 | `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). |
 | `js/world-core.js` | Núcleo del mundo sin interfaz (terreno, biomas, generación, niveles, guardado). Pensado para reutilizarlo en el juego. |
 | `docs/FORMATO-MUNDO.md` | Descripción del archivo `.mundo.json` que se guarda/exporta. |
@@ -35,7 +36,8 @@ Atajos de teclado: `1–6` herramientas, `Supr` borrar selección, `Ctrl+Z` / `C
 
 Desde el editor, **🗺 3D** (o **🗺 Ver en 3D** en la pestaña Mundo) abre el mundo en `visor-mundo.html`:
 
-- **Mover:** WASD o flechas (Shift corre). En móvil, la botonera de la derecha. **F** activa la cámara que sigue al personaje.
+- **Mover:** WASD o flechas (Shift corre; andar 6,5 m/s, correr 12 m/s, igual que en el Creador de Pueblos). En móvil, el joystick de la derecha. **F** activa la cámara que sigue al personaje.
+- **Cámaras:** 🌍 General (ver el mundo), ⛲ Plaza y 🏠 Fachada (del pueblo más cercano, con el mismo encuadre que el creador), 🧍 Seguir.
 - **Ver:** arrastrar para girar, rueda o pellizco para acercar. **G** o 🌍 General vuelve a ver todo el mundo.
 - **Lugares:** toca un pueblo, zona o punto del terreno para ver su información. «Ir aquí» lleva al personaje.
 - La lista de la izquierda salta a cada pueblo.

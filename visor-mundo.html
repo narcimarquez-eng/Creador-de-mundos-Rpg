@@ -44,12 +44,8 @@
     #info .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
     #info .close { float: right; padding: 2px 8px; }
 
-    #pad { position: absolute; right: 12px; bottom: 12px; z-index: 16; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 4px; }
-    #pad button { padding: 0; font-size: 18px; background: var(--panel); }
-    #pad .u { grid-column: 2; grid-row: 1; }
-    #pad .l { grid-column: 1; grid-row: 2; }
-    #pad .d { grid-column: 2; grid-row: 2; }
-    #pad .r { grid-column: 3; grid-row: 2; }
+    #joystick-zone { position: absolute; bottom: 24px; right: 24px; width: 110px; height: 110px; border-radius: 50%; background: rgba(15, 23, 42, 0.55); border: 2px solid rgba(56, 189, 248, 0.5); z-index: 25; touch-action: none; display: flex; align-items: center; justify-content: center; }
+    #joystick-knob { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle, #38bdf8, #0284c7); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6); pointer-events: none; transform: translate(0px, 0px); }
     #hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(11,17,30,.8); border-radius: 8px; padding: 5px 10px; font-size: 11px; color: var(--muted); pointer-events: none; white-space: nowrap; }
 
     .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: none; z-index: 5; text-align: center; white-space: nowrap; font-size: 12px; font-weight: 700; color: #fde68a; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
@@ -70,7 +66,9 @@
     @media (max-width: 760px) {
       #side { width: auto; right: 8px; bottom: auto; top: 54px; max-height: 40vh; }
       #info { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 50vh; }
-      #pad { bottom: 14px; right: 10px; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(2, 40px); }
+      #joystick-zone { bottom: 14px; right: 10px; width: 96px; height: 96px; }
+      #joystick-knob { width: 38px; height: 38px; }
+      #top button span.long { display: none; }
       #hint { display: none; }
       #top a.btn span.long { display: none; }
     }
@@ -81,7 +79,9 @@
     <a class="btn" href="index.html" title="Volver al editor">← <span class="long">Editor</span></a>
     <div id="title">Visor 3D</div>
     <button id="btn-side" title="Lista de pueblos">☰</button>
-    <button id="btn-overview" title="Ver todo el mundo">🌍<span class="long"> General</span></button>
+    <button id="btn-overview" title="Vista general del mundo (G)">🌍<span class="long"> General</span></button>
+    <button id="btn-view-plaza" title="Plaza del pueblo más cercano">⛲<span class="long"> Plaza</span></button>
+    <button id="btn-view-detail" title="Fachada del pueblo más cercano">🏠<span class="long"> Fachada</span></button>
     <button id="btn-follow" title="Seguir al personaje (F)">🧍<span class="long"> Seguir</span></button>
   </div>
 
@@ -100,14 +100,9 @@
 
   <div id="info"></div>
 
-  <div id="pad">
-    <button class="u" data-k="w">▲</button>
-    <button class="l" data-k="a">◀</button>
-    <button class="d" data-k="s">▼</button>
-    <button class="r" data-k="d">▶</button>
-  </div>
+  <div id="joystick-zone" title="Joystick: mover al personaje"><div id="joystick-knob"></div></div>
 
-  <div id="hint"><b>WASD</b> mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir</div>
+  <div id="hint"><b>WASD</b> / joystick mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir · <b>G</b> vista general</div>
 
   <div id="load">
     <div class="box">
@@ -126,7 +121,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="js/world-core.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="js/village-core.js"></script>
+  <script src="js/character.js"></script>
   <script>
   "use strict";
   const W = window.RPGWorld;
@@ -156,10 +153,9 @@
   const LOAD_R = 650, UNLOAD_R = 900, MAX_LOADED = 6;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
-  let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, playerGroup, selectRing = null;
+  let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
+  let character = null;
   const zoneLabels = [], townLabels = [];
-  const player = { x: 0, z: 0, yaw: 0 };
-  const keys = {};
   let follow = false, selected = null;
   let lastT = performance.now();
 
@@ -311,18 +307,16 @@
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.12;
-    controls.minDistance = 25;
+    controls.minDistance = 2;
     controls.maxDistance = 9000;
-    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
 
     raycaster = new THREE.Raycaster();
-    playerGroup = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 2.2, 10), new THREE.MeshLambertMaterial({ color: '#f59e0b' }));
-    body.position.y = 1.1;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), new THREE.MeshLambertMaterial({ color: '#fcd34d' }));
-    head.position.y = 2.6;
-    playerGroup.add(body, head);
-    scene.add(playerGroup);
+    character = new CharacterLib.CharacterController({
+      scene, camera, controls, world: visorWorld,
+      joystick: { zone: $('joystick-zone'), knob: $('joystick-knob') },
+      glbUrl: './personaje.glb'
+    });
 
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
@@ -382,7 +376,7 @@
 
     const start = W.findTown(world, world.startTownId) || world.towns[0];
     if (start) {
-      player.x = start.x + 6; player.z = start.y + 6;
+      character.teleport(start.x + 6, start.y + 6);
       controls.target.set(start.x, H(start.x, start.y) + 10, start.y);
       camera.position.set(start.x - 120, H(start.x, start.y) + 260, start.y + 260);
     } else {
@@ -718,7 +712,7 @@
     info.querySelector('[data-close]').onclick = () => showSelection(null);
     info.querySelectorAll('[data-tp]').forEach(btn => btn.onclick = () => {
       const [x, z] = btn.dataset.tp.split(',').map(Number);
-      player.x = x; player.z = z;
+      character.teleport(x, z);
       toast('Personaje en ' + Math.round(x) + ', ' + Math.round(z));
     });
 
@@ -749,6 +743,7 @@
     const village = kit.createVillage(group, { skipGround: true });
     village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
     o.village = village; o.group = group; o.kit = kit;
+    o.worldCols = toWorldColliders(o);
     if (o.proxy) o.proxy.visible = false;
   }
 
@@ -756,7 +751,7 @@
     if (!o.village) return;
     o.village.destroy();
     scene.remove(o.group);
-    o.village = null; o.group = null; o.kit = null;
+    o.village = null; o.group = null; o.kit = null; o.worldCols = null;
     if (o.proxy) o.proxy.visible = true;
   }
 
@@ -764,7 +759,7 @@
   function streamTowns(now) {
     if (now - lastStream < 200 || !towns.length) return;
     lastStream = now;
-    const centers = [player, controls.target];
+    const centers = [character.root.position, controls.target];
     const dist = o => Math.min(...centers.map(c => Math.hypot(c.x - o.t.x, c.z - o.t.y)));
     let changed = false;
     towns.forEach(o => { if (o.village && dist(o) > UNLOAD_R) { unloadTown(o); changed = true; } });
@@ -778,57 +773,64 @@
     if (changed) updateStats();
   }
 
-  // Muros, casas y árboles del pueblo empujan al personaje hacia fuera
-  function resolveColliders(v, lx, lz) {
-    const PR = 0.6;
-    for (let it = 0; it < 2; it++) {
-      for (const c of v.colliders) {
-        if (c.type === 'circle') {
-          const dx = lx - c.x, dz = lz - c.z, d = Math.hypot(dx, dz), m = c.r + PR;
-          if (d < m && d > 1e-6) { lx = c.x + dx / d * m; lz = c.z + dz / d * m; }
-        } else if (lx > c.minX - PR && lx < c.maxX + PR && lz > c.minZ - PR && lz < c.maxZ + PR) {
-          const left = lx - (c.minX - PR), right = (c.maxX + PR) - lx;
-          const down = lz - (c.minZ - PR), up = (c.maxZ + PR) - lz;
-          const m = Math.min(left, right, down, up);
-          if (m === left) lx = c.minX - PR;
-          else if (m === right) lx = c.maxX + PR;
-          else if (m === down) lz = c.minZ - PR;
-          else lz = c.maxZ + PR;
-        }
+  // Colisionadores de un pueblo completo, pasados a coordenadas del mundo
+  function toWorldColliders(o) {
+    const out = [];
+    const W2 = (lx, lz) => ({ x: o.t.x + lx * o.cr - lz * o.sr, z: o.t.y + lx * o.sr + lz * o.cr });
+    for (const c of o.village.colliders) {
+      if (c.type === 'circle') {
+        const p = W2(c.x, c.z);
+        out.push({ type: 'circle', x: p.x, z: p.z, r: c.r });
+      } else {
+        const p = W2((c.minX + c.maxX) / 2, (c.minZ + c.maxZ) / 2);
+        out.push({ type: 'obb', cx: p.x, cz: p.z, ux: o.cr, uz: o.sr, hu: (c.maxX - c.minX) / 2, hv: (c.maxZ - c.minZ) / 2 });
       }
     }
-    return [lx, lz];
+    return out;
   }
 
-  // Si el personaje está dentro de un pueblo cargado, lo sitúa con sus colisiones y suelo; devuelve su altura
-  function applyTownCollisions() {
-    let y = null;
-    for (const o of towns) {
-      if (!o.village) continue;
-      const dx = player.x - o.t.x, dz = player.z - o.t.y;
-      if (Math.hypot(dx, dz) > o.tileHalf * 1.5) continue;
-      const lx0 = dx * o.cr + dz * o.sr, lz0 = -dx * o.sr + dz * o.cr;
-      const [lx, lz] = resolveColliders(o.village, lx0, lz0);
-      player.x = o.t.x + lx * o.cr - lz * o.sr;
-      player.z = o.t.y + lx * o.sr + lz * o.cr;
-      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) y = o.h0 + o.village.getWalkableHeight(lx, lz);
-    }
-    return y;
-  }
+  // El mundo tal como lo ve el personaje: suelo y colisiones de los pueblos completos y del terreno
+  const visorWorld = {
+    villageAt(x, z) {
+      for (const o of towns) {
+        if (!o.village) continue;
+        const dx = x - o.t.x, dz = z - o.t.y;
+        if (Math.hypot(dx, dz) > o.tileHalf * 1.5) continue;
+        const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+        if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) return { o, lx, lz };
+      }
+      return null;
+    },
+    getWalkableHeight(x, z) {
+      const v = this.villageAt(x, z);
+      if (v) return v.o.h0 + v.o.village.getWalkableHeight(v.lx, v.lz);
+      return H(x, z);
+    },
+    getColliders(x, z) {
+      const out = [];
+      for (const o of towns) {
+        if (!o.worldCols) continue;
+        if (Math.hypot(x - o.t.x, z - o.t.y) > o.tileHalf * 1.5) continue;
+        for (const c of o.worldCols) out.push(c);
+      }
+      return out;
+    },
+    isWaterHazard() { return false; }
+  };
 
   // ===========================================================================
   // Cámara
   // ===========================================================================
   function overview() {
-    follow = false; $('btn-follow').classList.remove('gold');
+    setFollow(false);
     const d = bounds.size * 0.75;
     controls.target.set(bounds.cx, 0, bounds.cz);
     camera.position.set(bounds.cx, d * 0.6, bounds.cz + d * 0.8);
   }
 
   function focusPoint(x, z, dist, sel) {
+    setFollow(false);
     const h = H(x, z);
-    const from = controls.target.clone();
     const to = new THREE.Vector3(x, h + 8, z);
     const offset = camera.position.clone().sub(controls.target).normalize().multiplyScalar(dist);
     controls.target.copy(to);
@@ -838,43 +840,62 @@
 
   function setFollow(on) {
     follow = on;
+    character.cameraMode = on ? 'follow' : 'free';
     $('btn-follow').classList.toggle('gold', on);
+    if (on) {
+      const p = character.root.position;
+      camera.position.set(p.x, p.y + 6, p.z + 12);
+      controls.target.set(p.x, p.y + 1.4, p.z);
+    }
+  }
+
+  // Pueblo completo más cercano al personaje (se carga si hace falta)
+  function nearestTown() {
+    const p = character.root.position;
+    let best = null, bd = Infinity;
+    towns.forEach(o => {
+      const d = Math.hypot(p.x - o.t.x, p.z - o.t.y);
+      if (d < bd) { bd = d; best = o; }
+    });
+    if (best && !best.village) loadTown(best);
+    return best;
+  }
+
+  function townPoint(o, lx, lz) {
+    return { x: o.t.x + lx * o.cr - lz * o.sr, z: o.t.y + lx * o.sr + lz * o.cr };
+  }
+
+  // Mismos encuadres que el Creador de Pueblos: plaza y detalle de una fachada
+  function viewPlaza() {
+    const o = nearestTown();
+    if (!o || !o.village) return;
+    setFollow(false);
+    const cam = townPoint(o, 0, 28), tgt = townPoint(o, 0, 0);
+    camera.position.set(cam.x, o.h0 + 16, cam.z);
+    controls.target.set(tgt.x, o.h0 + 3, tgt.z);
+    toast('Plaza de ' + o.t.name);
+  }
+
+  function viewDetail() {
+    const o = nearestTown();
+    if (!o || !o.village) return;
+    setFollow(false);
+    const hp = o.village.sampleHousePos;
+    const cam = townPoint(o, hp.x + 8.5, hp.z + 6.5), tgt = townPoint(o, hp.x, hp.z);
+    camera.position.set(cam.x, o.h0 + hp.y + 3.5, cam.z);
+    controls.target.set(tgt.x, o.h0 + hp.y + 2.8, tgt.z);
+    toast('Fachada en ' + o.t.name);
   }
 
   // ===========================================================================
   // Entrada: teclado, pad táctil, clics
   // ===========================================================================
-  document.querySelectorAll('#pad button').forEach(b => {
-    const k = b.dataset.k;
-    const on = e => { e.preventDefault(); keys[k] = true; };
-    const off = () => { keys[k] = false; };
-    b.addEventListener('pointerdown', on);
-    b.addEventListener('pointerup', off);
-    b.addEventListener('pointerleave', off);
-    b.addEventListener('pointercancel', off);
-  });
-
   window.addEventListener('keydown', e => {
     if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
     const k = e.key.toLowerCase();
-    if (['w', 'a', 's', 'd'].includes(k)) keys[k] = true;
-    if (k === 'arrowup') keys.w = true;
-    if (k === 'arrowdown') keys.s = true;
-    if (k === 'arrowleft') keys.a = true;
-    if (k === 'arrowright') keys.d = true;
-    if (k === 'shift') keys.shift = true;
     if (k === 'f') setFollow(!follow);
     if (k === 'g') overview();
     if (k === 'escape') showSelection(null);
-  });
-  window.addEventListener('keyup', e => {
-    const k = e.key.toLowerCase();
-    if (['w', 'a', 's', 'd'].includes(k)) keys[k] = false;
-    if (k === 'arrowup') keys.w = false;
-    if (k === 'arrowdown') keys.s = false;
-    if (k === 'arrowleft') keys.a = false;
-    if (k === 'arrowright') keys.d = false;
-    if (k === 'shift') keys.shift = false;
   });
 
   let downAt = null;
@@ -909,6 +930,8 @@
   $('btn-side').onclick = () => $('side').classList.toggle('collapsed');
   $('btn-overview').onclick = overview;
   $('btn-follow').onclick = () => setFollow(!follow);
+  $('btn-view-plaza').onclick = viewPlaza;
+  $('btn-view-detail').onclick = viewDetail;
   $('chk-zones').onchange = e => { zoneMesh.visible = e.target.checked; zoneLines.forEach(l => l.visible = e.target.checked); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); };
   $('chk-labels').onchange = e => { townLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked || !$('chk-zones').checked)); };
   $('chk-trees').onchange = e => { if (treeMesh) treeMesh.visible = e.target.checked; };
@@ -923,41 +946,15 @@
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
 
-    // Movimiento relativo a la cámara
-    let fx = controls.target.x - camera.position.x, fz = controls.target.z - camera.position.z;
-    const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
-    const rx = -fz, rz = fx;
-    let mx = 0, mz = 0;
-    if (keys.w) { mx += fx; mz += fz; }
-    if (keys.s) { mx -= fx; mz -= fz; }
-    if (keys.d) { mx += rx; mz += rz; }
-    if (keys.a) { mx -= rx; mz -= rz; }
-    const ml = Math.hypot(mx, mz);
-    if (ml > 0) {
-      const sp = (keys.shift ? 34 : 14) * dt;
-      player.x += mx / ml * sp;
-      player.z += mz / ml * sp;
-      player.yaw = Math.atan2(mx, mz);
-    }
-    player.x = Math.min(bounds.maxX, Math.max(bounds.minX, player.x));
-    player.z = Math.min(bounds.maxZ, Math.max(bounds.minZ, player.z));
     streamTowns(now);
-    const townY = applyTownCollisions();
-    const py = townY !== null ? townY : H(player.x, player.z);
+    character.update(dt, now / 1000);
     towns.forEach(o => { if (o.village) o.village.update(now / 1000); });
-    playerGroup.position.set(player.x, py, player.z);
-    playerGroup.rotation.y = player.yaw;
 
-    if (follow) {
-      const tgt = new THREE.Vector3(player.x, py + 2, player.z);
-      const delta = tgt.clone().sub(controls.target);
-      controls.target.copy(tgt);
-      camera.position.add(delta);
-    }
-
+    controls.maxDistance = character.cameraMode === 'follow' ? 280 : 9000;
     controls.update();
+    CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld);
     renderer.render(scene, camera);
-    updateLabels(py);
+    updateLabels(character.root.position.y);
   }
 
   function updateLabels(py) {
@@ -974,7 +971,7 @@
     townLabels.forEach(item => place(item, () => showTowns));
     const showZones = $('chk-labels').checked && $('chk-zones').checked;
     zoneLabels.forEach(item => {
-      place(item, () => showZones && Math.hypot(item.x - player.x, item.z - player.z) < 900);
+      place(item, () => showZones && Math.hypot(item.x - character.root.position.x, item.z - character.root.position.z) < 900);
     });
   }
 
