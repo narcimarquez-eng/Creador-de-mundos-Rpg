@@ -32,7 +32,13 @@ Tareas:
 5. **Personaje GLB** con animaciones idle / andar / correr, cargado desde la misma ruta que el creador.
 6. **Colisión de cámara**: que la cámara no atraviese muros ni terreno cuando sigue al personaje.
 
-## Fase 2 — Aspecto de juego
+## Fase 2 — Aspecto de juego (**hecha**)
+
+Hecho: modo juego al entrar en un pueblo, día / atardecer / noche con transición, anuncios de pueblo y zona,
+minimapa, monstruos visibles con caza y reaparición (sin combate todavía) y aparición gradual de los pueblos
+completos. Limitaciones: el pueblo completo crece desde el suelo en vez de desvanecerse, porque sus materiales
+se comparten; el minimapa no gira.
+
 
 1. **Modo juego y modo mapa**: al entrar en un pueblo, cámara en tercera persona por defecto; el mapa queda
    como vista secundaria (tecla M o botón).

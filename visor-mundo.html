@@ -46,6 +46,12 @@
 
     #joystick-zone { position: absolute; bottom: 24px; right: 24px; width: 110px; height: 110px; border-radius: 50%; background: rgba(15, 23, 42, 0.55); border: 2px solid rgba(56, 189, 248, 0.5); z-index: 25; touch-action: none; display: flex; align-items: center; justify-content: center; }
     #joystick-knob { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle, #38bdf8, #0284c7); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6); pointer-events: none; transform: translate(0px, 0px); }
+    #banner { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); z-index: 30; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .4s; max-width: calc(100vw - 300px); }
+    #banner.show { opacity: 1; }
+    #banner b { color: #fde68a; font-size: 15px; }
+    #banner small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    #minimap { position: absolute; right: 24px; bottom: 150px; width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.85); z-index: 16; box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+    #btn-hunt { position: absolute; right: 150px; bottom: 36px; width: 60px; height: 60px; border-radius: 50%; font-size: 13px; font-weight: 700; background: #450a0a; border-color: #ef4444; color: #fecaca; z-index: 26; line-height: 1.1; }
     #hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(11,17,30,.8); border-radius: 8px; padding: 5px 10px; font-size: 11px; color: var(--muted); pointer-events: none; white-space: nowrap; }
 
     .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: none; z-index: 5; text-align: center; white-space: nowrap; font-size: 12px; font-weight: 700; color: #fde68a; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
@@ -67,6 +73,9 @@
       #side { width: auto; right: 8px; bottom: auto; top: 54px; max-height: 40vh; }
       #info { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 50vh; }
       #joystick-zone { bottom: 14px; right: 10px; width: 96px; height: 96px; }
+      #minimap { right: 10px; bottom: 120px; width: 110px; height: 110px; }
+      #btn-hunt { right: 124px; bottom: 26px; width: 54px; height: 54px; }
+      #banner { max-width: calc(100vw - 20px); }
       #joystick-knob { width: 38px; height: 38px; }
       #top button span.long { display: none; }
       #hint { display: none; }
@@ -79,10 +88,11 @@
     <a class="btn" href="index.html" title="Volver al editor">← <span class="long">Editor</span></a>
     <div id="title">Visor 3D</div>
     <button id="btn-side" title="Lista de pueblos">☰</button>
-    <button id="btn-overview" title="Vista general del mundo (G)">🌍<span class="long"> General</span></button>
+    <button id="btn-overview" title="Vista del mapa (M)">🗺<span class="long"> Mapa</span></button>
     <button id="btn-view-plaza" title="Plaza del pueblo más cercano">⛲<span class="long"> Plaza</span></button>
     <button id="btn-view-detail" title="Fachada del pueblo más cercano">🏠<span class="long"> Fachada</span></button>
     <button id="btn-follow" title="Seguir al personaje (F)">🧍<span class="long"> Seguir</span></button>
+    <button id="btn-time" title="Hora del día (T)">☀</button>
   </div>
 
   <aside id="side">
@@ -100,9 +110,13 @@
 
   <div id="info"></div>
 
+  <div id="banner"></div>
+  <canvas id="minimap" width="300" height="300"></canvas>
+  <button id="btn-hunt" title="Cazar al monstruo más cercano (Espacio)">⚔<br>Cazar</button>
+
   <div id="joystick-zone" title="Joystick: mover al personaje"><div id="joystick-knob"></div></div>
 
-  <div id="hint"><b>WASD</b> / joystick mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir · <b>G</b> vista general</div>
+  <div id="hint"><b>WASD</b> / joystick mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir · <b>M</b> mapa · <b>T</b> hora · <b>Espacio</b> cazar</div>
 
   <div id="load">
     <div class="box">
@@ -155,6 +169,11 @@
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
+  let hemiLight = null, sunLight = null;
+  let monsters = [];
+  let timeOfDay = 'day';
+  let curTown = null, curZone = null;
+  let lastMinimap = 0;
   const zoneLabels = [], townLabels = [];
   let follow = false, selected = null;
   let lastT = performance.now();
@@ -182,7 +201,7 @@
     const key = VillageLib.ARCHITECTURAL_STYLES[style] ? style : 'l2_fantasy';
     if (!kitCache[key]) {
       kitCache[key] = VillageLib.createKit(key);
-      kitCache[key].applyAtmosphere('day');
+      kitCache[key].setLevels(ATMO_C[timeOfDay]);
     }
     return kitCache[key];
   }
@@ -299,10 +318,11 @@
     scene.fog = new THREE.FogExp2('#9bd9f5', 0.00011);
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 40000);
 
-    scene.add(new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.8));
-    const sun = new THREE.DirectionalLight('#fffbeb', 1.1);
-    sun.position.set(900, 1400, 700);
-    scene.add(sun);
+    hemiLight = new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.8);
+    scene.add(hemiLight);
+    sunLight = new THREE.DirectionalLight('#fffbeb', 1.1);
+    sunLight.position.set(900, 1400, 700);
+    scene.add(sunLight);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -330,6 +350,9 @@
 
   function clearWorldObjects() {
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
+    monsters.forEach(m => scene.remove(m.group));
+    monsters = [];
+    curTown = null; curZone = null;
     [terrainMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
@@ -370,6 +393,7 @@
     buildTowns();
     buildRoads();
     buildZones();
+    buildMonsters();
     buildTrees();
     buildLabels();
     buildUI();
@@ -377,6 +401,7 @@
     const start = W.findTown(world, world.startTownId) || world.towns[0];
     if (start) {
       character.teleport(start.x + 6, start.y + 6);
+      setFollow(true);
       controls.target.set(start.x, H(start.x, start.y) + 10, start.y);
       camera.position.set(start.x - 120, H(start.x, start.y) + 260, start.y + 260);
     } else {
@@ -532,7 +557,7 @@
       // Torre central de referencia
       mb.box(cp[0], H0 + 6, cp[2], 1, 0, 3, 12, 3, wallStone, roof);
 
-      o.proxy = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      o.proxy = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, transparent: true }));
       scene.add(o.proxy);
     });
   }
@@ -744,15 +769,30 @@
     village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
     o.village = village; o.group = group; o.kit = kit;
     o.worldCols = toWorldColliders(o);
-    if (o.proxy) o.proxy.visible = false;
+    o.rise = 0;
+    group.scale.y = 0.02;
+  }
+
+  // Los pueblos completos crecen desde el suelo y el modelo simple se desvanece
+  function animateTowns(dt) {
+    towns.forEach(o => {
+      if (!o.village || o.rise >= 1) return;
+      o.rise = Math.min(1, o.rise + dt / 0.9);
+      const e = 1 - Math.pow(1 - o.rise, 3);
+      o.group.scale.y = Math.max(0.02, e);
+      if (o.proxy) {
+        o.proxy.material.opacity = 1 - o.rise;
+        if (o.rise >= 1) o.proxy.visible = false;
+      }
+    });
   }
 
   function unloadTown(o) {
     if (!o.village) return;
     o.village.destroy();
     scene.remove(o.group);
-    o.village = null; o.group = null; o.kit = null; o.worldCols = null;
-    if (o.proxy) o.proxy.visible = true;
+    o.village = null; o.group = null; o.kit = null; o.worldCols = null; o.rise = 1;
+    if (o.proxy) { o.proxy.visible = true; o.proxy.material.opacity = 1; }
   }
 
   let lastStream = 0;
@@ -821,6 +861,194 @@
       return [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]].some(([dx, dz]) => this.getWalkableHeight(x + dx, z + dz) < 0.2);
     }
   };
+
+  // ===========================================================================
+  // Ambiente: día, atardecer y noche (valores del Creador de Pueblos, con transición)
+  // ===========================================================================
+  const ATMO = {
+    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.00011, hemi: '#ffffff', ground: '#3a5a40', hemiI: 0.8,  sun: '#fffbeb', sunI: 1.1,  sunPos: [900, 1400, 700],  glow: 0.5, window: 0.15, pool: 0,    plaza: 1.2, forge: 2.0 },
+    golden: { bg: '#1e1b4b', fog: '#1e1b4b', fogD: 0.00018, hemi: '#fb923c', ground: '#0f172a', hemiI: 0.48, sun: '#f97316', sunI: 1.15, sunPos: [1100, 380, 500],  glow: 3.2, window: 1.4,  pool: 0.85, plaza: 2.5, forge: 3.0 },
+    night:  { bg: '#030712', fog: '#030712', fogD: 0.00022, hemi: '#38bdf8', ground: '#020617', hemiI: 0.2,  sun: '#60a5fa', sunI: 0.28, sunPos: [-600, 850, -500], glow: 5.0, window: 2.5,  pool: 1.0,  plaza: 3.8, forge: 4.0 }
+  };
+  const ATMO_ICON = { day: '☀', golden: '🌇', night: '🌙' };
+  const ATMO_C = {};
+  Object.keys(ATMO).forEach(k => {
+    const a = ATMO[k];
+    ATMO_C[k] = Object.assign({}, a, {
+      bgC: new THREE.Color(a.bg), fogC: new THREE.Color(a.fog), hemiC: new THREE.Color(a.hemi),
+      groundC: new THREE.Color(a.ground), sunC: new THREE.Color(a.sun), sunV: new THREE.Vector3(...a.sunPos)
+    });
+  });
+  const atmoNow = {
+    bg: new THREE.Color(ATMO.day.bg), fog: new THREE.Color(ATMO.day.fog), fogD: ATMO.day.fogD,
+    hemi: new THREE.Color(ATMO.day.hemi), ground: new THREE.Color(ATMO.day.ground), hemiI: ATMO.day.hemiI,
+    sun: new THREE.Color(ATMO.day.sun), sunI: ATMO.day.sunI, sunPos: new THREE.Vector3(...ATMO.day.sunPos),
+    glow: ATMO.day.glow, window: ATMO.day.window, pool: ATMO.day.pool, plaza: ATMO.day.plaza, forge: ATMO.day.forge
+  };
+
+  function nextTimeOfDay(name) { return name === 'day' ? 'golden' : name === 'golden' ? 'night' : 'day'; }
+
+  function setTimeOfDay(name) {
+    timeOfDay = name;
+    $('btn-time').textContent = ATMO_ICON[name];
+    $('btn-time').title = 'Hora: ' + ({ day: 'día', golden: 'atardecer', night: 'noche' })[name] + ' (T)';
+  }
+
+  function updateAtmosphere(dt) {
+    const T = ATMO_C[timeOfDay];
+    const k = 1 - Math.exp(-dt * 2.2);
+    atmoNow.bg.lerp(T.bgC, k); atmoNow.fog.lerp(T.fogC, k);
+    atmoNow.hemi.lerp(T.hemiC, k); atmoNow.ground.lerp(T.groundC, k); atmoNow.sun.lerp(T.sunC, k);
+    atmoNow.sunPos.lerp(T.sunV, k);
+    atmoNow.fogD += (T.fogD - atmoNow.fogD) * k;
+    atmoNow.hemiI += (T.hemiI - atmoNow.hemiI) * k;
+    atmoNow.sunI += (T.sunI - atmoNow.sunI) * k;
+    ['glow', 'window', 'pool', 'plaza', 'forge'].forEach(key => { atmoNow[key] += (T[key] - atmoNow[key]) * k; });
+
+    if (scene.background) scene.background.copy(atmoNow.bg);
+    if (scene.fog) { scene.fog.color.copy(atmoNow.fog); scene.fog.density = atmoNow.fogD; }
+    if (hemiLight) { hemiLight.color.copy(atmoNow.hemi); hemiLight.groundColor.copy(atmoNow.ground); hemiLight.intensity = atmoNow.hemiI; }
+    if (sunLight) { sunLight.color.copy(atmoNow.sun); sunLight.intensity = atmoNow.sunI; sunLight.position.copy(atmoNow.sunPos); }
+    Object.values(kitCache).forEach(kit => kit.setLevels(atmoNow));
+  }
+
+  // ===========================================================================
+  // Monstruos de las zonas de caza: aparecen cerca, se cazan y reaparecen
+  // ===========================================================================
+  function monsterColor(level) {
+    const maxL = Math.max(10, W.stats(world).maxLevel);
+    return new THREE.Color().setHSL((130 - 130 * Math.min(1, (level - 1) / maxL)) / 360, 0.7, 0.5);
+  }
+
+  function buildMonsters() {
+    monsters.forEach(m => scene.remove(m.group));
+    monsters = [];
+    const geoBody = new THREE.ConeGeometry(0.7, 1.7, 7);
+    geoBody.translate(0, 0.85, 0);
+    const geoBoss = new THREE.ConeGeometry(1.8, 4.2, 8);
+    geoBoss.translate(0, 2.1, 0);
+    world.zones.forEach(z => {
+      z.monsters.forEach((info, mi) => {
+        const count = info.boss ? 1 : ({ baja: 1, media: 2, alta: 3 })[info.density] || 1;
+        for (let k = 0; k < count; k++) {
+          const rng = new W.PRNG((W.hashString(z.id + '|' + mi + '|' + k) ^ world.seed) >>> 0);
+          const a = rng.range(0, Math.PI * 2);
+          const r = info.boss ? 0 : z.radius * rng.range(0.2, 0.75);
+          const group = new THREE.Group();
+          const mat = new THREE.MeshLambertMaterial({ color: info.boss ? '#dc2626' : monsterColor(info.level) });
+          group.add(new THREE.Mesh(info.boss ? geoBoss : geoBody, mat));
+          group.visible = false;
+          scene.add(group);
+          monsters.push({ zone: z, info, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, group, dead: 0, phase: rng.range(0, 6) });
+        }
+      });
+    });
+  }
+
+  function updateMonsters(now) {
+    const p = character.root.position;
+    monsters.forEach(m => {
+      if (m.dead && now > m.dead) m.dead = 0;
+      const d = Math.hypot(m.x - p.x, m.z - p.z);
+      m.group.visible = !m.dead && d < 420;
+      if (m.group.visible) {
+        m.group.position.set(m.x, H(m.x, m.z) + Math.sin(now / 600 + m.phase) * 0.15, m.z);
+        m.group.rotation.y = now / 1200 + m.phase;
+      }
+    });
+  }
+
+  function huntNearest() {
+    const p = character.root.position;
+    let best = null, bd = 4.5;
+    monsters.forEach(m => {
+      if (m.dead) return;
+      const d = Math.hypot(m.x - p.x, m.z - p.z);
+      if (d < bd) { bd = d; best = m; }
+    });
+    if (!best) { toast('No hay monstruos cerca: acércate a uno'); return; }
+    const now = performance.now();
+    best.dead = now + Math.max(5, best.zone.respawnSec || 60) * 1000;
+    best.group.visible = false;
+    announce('⚔ Derrotado: ' + best.info.name, 'Nivel ' + best.info.level + ' · reaparece en ' + Math.round((best.dead - now) / 1000) + ' s');
+  }
+
+  // ===========================================================================
+  // Anuncios de pueblo y zona, y minimapa
+  // ===========================================================================
+  let bannerTimer = null;
+  function announce(title, sub) {
+    const el = $('banner');
+    el.innerHTML = '<b>' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '');
+    el.classList.add('show');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => el.classList.remove('show'), 3800);
+  }
+
+  function checkRegions() {
+    const p = character.root.position;
+    const town = towns.find(o => Math.max(Math.abs(p.x - o.t.x), Math.abs(p.z - o.t.y)) < o.R) || null;
+    if (town !== curTown) {
+      curTown = town;
+      if (town) {
+        const size = (town.cfg && town.cfg.size) || 3;
+        announce('🏘 ' + town.t.name, 'Nivel ' + town.t.level + ' · ' + (SIZE_NAMES[size] || '') + (town.t.isStart ? ' · pueblo inicial' : ''));
+        if (!follow) setFollow(true);
+      }
+    }
+    let zone = null, zr = Infinity;
+    world.zones.forEach(z => { if (W.pointInZone(z, { x: p.x, y: p.z }) && z.radius < zr) { zr = z.radius; zone = z; } });
+    if (zone !== curZone) {
+      curZone = zone;
+      if (zone) {
+        const type = (W.ZONE_TYPES[zone.type] || {}).name || zone.type;
+        announce('⚔ ' + zone.name, 'Nivel ' + zone.levelMin + '–' + zone.levelMax + ' · ' + type);
+      }
+    }
+  }
+
+  function drawMinimap(now) {
+    if (now - lastMinimap < 120) return;
+    lastMinimap = now;
+    const cv = $('minimap'), g = cv.getContext('2d');
+    const S = cv.width, R = 290;               // metros desde el centro hasta el borde
+    const p = character.root.position;
+    const sc = (S / 2) / R;
+    const X = x => S / 2 + (x - p.x) * sc, Y = z => S / 2 + (z - p.z) * sc;
+    g.clearRect(0, 0, S, S);
+    g.save();
+    g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); g.clip();
+    g.fillStyle = '#1e3a5f'; g.fillRect(0, 0, S, S);
+    world.zones.forEach(z => {
+      g.beginPath(); g.arc(X(z.x), Y(z.y), z.radius * sc, 0, Math.PI * 2);
+      g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.25)' : 'rgba(250,204,21,.22)';
+      g.fill();
+    });
+    g.lineWidth = Math.max(2, 6 * sc); g.strokeStyle = '#8b6b43';
+    world.roads.forEach(r => {
+      if (!r.points.length) return;
+      g.beginPath();
+      r.points.forEach((q, i) => { if (i) g.lineTo(X(q.x), Y(q.y)); else g.moveTo(X(q.x), Y(q.y)); });
+      g.stroke();
+    });
+    towns.forEach(o => {
+      g.fillStyle = o.t.isStart ? '#fbbf24' : '#e2e8f0';
+      g.fillRect(X(o.t.x) - 4, Y(o.t.y) - 4, 8, 8);
+    });
+    monsters.forEach(m => {
+      if (m.dead) return;
+      g.fillStyle = m.info.boss ? '#ef4444' : '#f97316';
+      g.beginPath(); g.arc(X(m.x), Y(m.z), 2.5, 0, Math.PI * 2); g.fill();
+    });
+    g.restore();
+    const yaw = character.root.rotation.y;
+    g.save(); g.translate(S / 2, S / 2); g.rotate(yaw);
+    g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(0, 4); g.lineTo(-7, 8); g.closePath();
+    g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.fill(); g.stroke();
+    g.restore();
+    g.fillStyle = '#e2e8f0'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center';
+    g.fillText('N', S / 2, 26);
+  }
 
   // ===========================================================================
   // Cámara
@@ -898,7 +1126,9 @@
     if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
     const k = e.key.toLowerCase();
     if (k === 'f') setFollow(!follow);
-    if (k === 'g') overview();
+    if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
+    if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
+    if (k === ' ') { e.preventDefault(); huntNearest(); }
     if (k === 'escape') showSelection(null);
   });
 
@@ -932,7 +1162,9 @@
   }
 
   $('btn-side').onclick = () => $('side').classList.toggle('collapsed');
-  $('btn-overview').onclick = overview;
+  $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
+  $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
+  $('btn-hunt').onclick = huntNearest;
   $('btn-follow').onclick = () => setFollow(!follow);
   $('btn-view-plaza').onclick = viewPlaza;
   $('btn-view-detail').onclick = viewDetail;
@@ -953,6 +1185,11 @@
     streamTowns(now);
     character.update(dt, now / 1000);
     towns.forEach(o => { if (o.village) o.village.update(now / 1000); });
+    animateTowns(dt);
+    updateAtmosphere(dt);
+    updateMonsters(now);
+    checkRegions();
+    drawMinimap(now);
 
     controls.maxDistance = character.cameraMode === 'follow' ? 280 : 9000;
     controls.update();

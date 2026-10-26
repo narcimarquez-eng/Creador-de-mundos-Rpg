@@ -1951,7 +1951,10 @@
       styleObj,
       createVillage(scene, opts) { return new LineageVillageWorld(scene, opts || {}); },
       applyAtmosphere(preset) {
-        const a = ATMOSPHERES[preset] || ATMOSPHERES.day;
+        this.setLevels(ATMOSPHERES[preset] || ATMOSPHERES.day);
+      },
+      // Niveles de luz de las farolas y el brillo de cristales y ventanas (admite valores intermedios)
+      setLevels(a) {
         matGlassGlow.emissiveIntensity = a.glow;
         matWindowGlass.emissiveIntensity = a.window;
         matLightPool.opacity = a.pool;

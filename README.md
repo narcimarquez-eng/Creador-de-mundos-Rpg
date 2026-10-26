@@ -42,6 +42,11 @@ Desde el editor, **🗺 3D** (o **🗺 Ver en 3D** en la pestaña Mundo) abre el
 - **Lugares:** toca un pueblo, zona o punto del terreno para ver su información. «Ir aquí» lleva al personaje.
 - La lista de la izquierda salta a cada pueblo.
 
+- **Modo juego:** al entrar en un pueblo la cámara pasa a tercera persona. 🗺 Mapa (**M**) vuelve a ver el mundo.
+- **Hora:** ☀ / 🌇 / 🌙 (**T**) cambia entre día, atardecer y noche, con transición suave.
+- **Anuncios:** al entrar en un pueblo o una zona aparece su nombre, nivel y tipo. El minimapa (abajo a la derecha) muestra caminos, zonas, pueblos y monstruos.
+- **Caza:** ⚔ Cazar (**Espacio**) derrota al monstruo más cercano (a menos de 4,5 m). Reaparece tras el tiempo de la zona. Por ahora es solo un marcador: no hay combate ni recompensas.
+
 Los pueblos se cargan completos, igual que en el Creador de Pueblos, cuando te acercas (a unos 650 m), y se vuelven a simplificar al alejarte. Hay como máximo 6 pueblos completos a la vez. Los muros y casas bloquean al personaje, y el agua también: si el paso lleva al mar, el personaje se desliza por la orilla. Los puentes pequeños de las salidas se pueden cruzar. El visor todavía no recorre los caminos automáticamente.
 
 ## Hacia el juego completo
