@@ -266,9 +266,15 @@
       let rx = nextX, rz = nextZ;
       const r = this.radius;
 
-      if (this.world.isWaterHazard && this.world.isWaterHazard(rx, rz, r)) {
-        rx = this.root.position.x;
-        rz = this.root.position.z;
+      // Agua: si el paso lleva al agua, se desliza por el borde (primero en X, luego en Z)
+      if (this.world.isWaterHazard) {
+        const water = (x, z) => this.world.isWaterHazard(x, z, r);
+        const ox = this.root.position.x, oz = this.root.position.z;
+        if (water(rx, rz)) {
+          if (!water(rx, oz)) rz = oz;
+          else if (!water(ox, rz)) rx = ox;
+          else { rx = ox; rz = oz; }
+        }
       }
 
       const cols = getColliders(this.world, rx, rz);
@@ -309,7 +315,9 @@
     }
 
     // Coloca al personaje en (x, z) y, si la cámara sigue al personaje, la desplaza con él
+    // Devuelve false si el punto no es caminable (agua)
     teleport(x, z) {
+      if (this.world.isWaterHazard && this.world.isWaterHazard(x, z, this.radius)) return false;
       const dx = x - this.root.position.x, dz = z - this.root.position.z;
       this.root.position.x = x;
       this.root.position.z = z;
@@ -320,6 +328,7 @@
         this.controls.target.z += dz;
       }
       this.root.position.y = this.world.getWalkableHeight(x, z);
+      return true;
     }
 
     update(dt, elapsedTime) {

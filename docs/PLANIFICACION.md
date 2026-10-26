@@ -43,7 +43,9 @@ Tareas:
 6. **Monstruos visibles** en las zonas de caza (formas simples con color por nivel) y reaparición con
    `respawnSec`.
 
-## Fase 3 — Mundo jugable
+## Fase 3 — Mundo jugable (puntos 1 y 2 **hechos**)
+
+Hecho: el personaje no entra en el agua (se desliza por la orilla) y los puentes de las salidas son caminables con rampa.
 
 1. **Límites del terreno**: hoy el personaje puede caminar bajo el mar (no hay comprobación con el nivel del
    agua). Hay que bloquear el agua, o usar la altura del agua como suelo mínimo.

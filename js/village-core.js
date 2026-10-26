@@ -776,6 +776,7 @@
         this.bridgeBounds = null;
         this.sampleHousePos = new THREE.Vector3(-13, 2, 13);
         this.exitPaths = [];
+        this.extraBridges = [];
         this.opts = opts || {};
         this.plazaLight = new THREE.PointLight('#38bdf8', kitState.levels.plaza, 55, 1.5);
         this.forgeLight = new THREE.PointLight('#f97316', kitState.levels.forge, 35, 1.5);
@@ -799,6 +800,7 @@
       }
 
       clear() {
+        this.extraBridges = [];
         if (this.scene) {
           this.scene.remove(this.plazaLight);
           this.scene.remove(this.forgeLight);
@@ -868,10 +870,29 @@
             return b.baseY + arch + 0.25;
           }
         }
+        for (const br of this.extraBridges) {
+          const dx = x - br.cx, dz = z - br.cz;
+          const u = dx * br.ux + dz * br.uz;
+          const v = -dx * br.uz + dz * br.ux;
+          if (Math.abs(v) > br.hv) continue;
+          const au = Math.abs(u);
+          if (au <= br.hu) return br.top + 0.18;
+          if (au <= br.hu + 3.0) {
+            const ground = this.getTerrainHeight(x, z) + 0.18;
+            const t = (au - br.hu) / 3.0;
+            return (br.top + 0.18) + (ground - (br.top + 0.18)) * t;
+          }
+        }
         return this.getTerrainHeight(x, z) + 0.18;
       }
 
       isWaterHazard(x, z, radius) {
+        for (const br of this.extraBridges) {
+          const dx = x - br.cx, dz = z - br.cz;
+          const u = dx * br.ux + dz * br.uz;
+          const v = -dx * br.uz + dz * br.ux;
+          if (Math.abs(u) <= br.hu && Math.abs(v) <= br.hv - radius) return false;
+        }
         if (!this.cfg || !this.cfg.hasRiver) return false;
         if (this.bridgeBounds) {
           const b = this.bridgeBounds;
@@ -1129,6 +1150,13 @@
                 deckM.rotation.y = Math.atan2(-dz, dx);
                 deckM.castShadow = deckM.receiveShadow = true;
                 roadsGroup.add(deckM);
+                // Zona caminable: tablero a 1,45 m sobre el suelo del banco, rampa de 3 m a cada lado
+                this.extraBridges.push({
+                  cx: (a.x + b.x) / 2, cz: (a.z + b.z) / 2,
+                  ux: dx / L, uz: dz / L,
+                  hu: (L + 2.0) / 2, hv: (cfg.roadWidth + 1.2) / 2,
+                  top: yBank + 1.45
+                });
               }
             }
           }

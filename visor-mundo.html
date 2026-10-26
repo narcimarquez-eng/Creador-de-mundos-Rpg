@@ -712,8 +712,8 @@
     info.querySelector('[data-close]').onclick = () => showSelection(null);
     info.querySelectorAll('[data-tp]').forEach(btn => btn.onclick = () => {
       const [x, z] = btn.dataset.tp.split(',').map(Number);
-      character.teleport(x, z);
-      toast('Personaje en ' + Math.round(x) + ', ' + Math.round(z));
+      if (character.teleport(x, z)) toast('Personaje en ' + Math.round(x) + ', ' + Math.round(z));
+      else toast('Ese punto está en el agua');
     });
 
     // Anillo de selección
@@ -815,7 +815,11 @@
       }
       return out;
     },
-    isWaterHazard() { return false; }
+    // Agua: el suelo queda por debajo del nivel del mar (en cualquier punto del personaje)
+    isWaterHazard(x, z, r) {
+      const d = r || 0.5;
+      return [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]].some(([dx, dz]) => this.getWalkableHeight(x + dx, z + dz) < 0.2);
+    }
   };
 
   // ===========================================================================
