@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Creador de Mundos RPG</title>
+  <style>
+    :root {
+      --bg: #0b111e;
+      --panel: rgba(11, 17, 30, 0.95);
+      --line: rgba(255, 255, 255, 0.14);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --gold: #fbbf24;
+      --danger: #ef4444;
+      --ok: #22c55e;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      overflow: hidden;
+      user-select: none;
+    }
+    button, select, input, textarea { font: inherit; color: inherit; }
+    button {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 7px;
+      padding: 7px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:hover { border-color: var(--accent); }
+    button:disabled { opacity: 0.4; cursor: default; }
+    button.primary { background: #0c4a6e; border-color: var(--accent); color: #e0f2fe; }
+    button.gold { background: #78350f; border-color: var(--gold); color: #fef3c7; }
+    button.danger { background: #450a0a; border-color: var(--danger); color: #fecaca; }
+    input[type=text], input[type=number], select, textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 8px;
+      user-select: text;
+    }
+    textarea { min-height: 56px; resize: vertical; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    label { display: block; color: var(--muted); font-size: 11px; margin: 8px 0 3px; }
+
+    /* --- Barra superior --- */
+    #topbar {
+      position: absolute; top: 0; left: 0; right: 0; height: 46px;
+      display: flex; align-items: center; gap: 6px; padding: 0 8px;
+      background: var(--panel); border-bottom: 1px solid var(--line); z-index: 20;
+    }
+    #world-title { font-weight: 700; color: var(--gold); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #save-state { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    #save-state.ok { color: var(--ok); }
+    #save-state.err { color: var(--danger); }
+
+    /* --- Herramientas --- */
+    #toolbar {
+      position: absolute; top: 54px; left: 8px; z-index: 15;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .tool {
+      width: 46px; height: 46px; padding: 0; font-size: 19px; line-height: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: var(--panel); box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    }
+    .tool small { font-size: 8px; color: var(--muted); margin-top: 3px; }
+    .tool.active { border-color: var(--gold); background: #422006; }
+    .tool.active small { color: var(--gold); }
+    #tool-options {
+      position: absolute; top: 54px; left: 62px; z-index: 15;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 6px 8px; display: none; max-width: calc(100vw - 80px);
+    }
+    #tool-options.show { display: block; }
+    #tool-options .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    #tool-options label { margin: 0; display: flex; align-items: center; gap: 4px; color: var(--text); font-size: 12px; }
+    #tool-options select { width: auto; }
+
+    /* --- Mapa --- */
+    #map { position: absolute; top: 46px; left: 0; right: 0; bottom: 0; touch-action: none; display: block; width: 100%; height: calc(100% - 46px); cursor: grab; }
+    #statusbar {
+      position: absolute; left: 62px; bottom: 8px; z-index: 10;
+      background: rgba(11,17,30,.8); border-radius: 6px; padding: 4px 8px;
+      font-size: 11px; color: var(--muted); pointer-events: none;
+      display: flex; gap: 10px; align-items: center;
+    }
+    #scalebar { display: inline-block; height: 6px; border: 2px solid #e2e8f0; border-top: 0; }
+
+    /* --- Panel lateral / hoja inferior --- */
+    #panel {
+      position: absolute; top: 54px; right: 8px; bottom: 8px; width: 330px; z-index: 18;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      display: flex; flex-direction: column; box-shadow: 0 20px 45px rgba(0,0,0,.6);
+      transition: transform .25s ease;
+    }
+    #panel.collapsed { transform: translateX(calc(100% + 20px)); }
+    #panel-tabs { display: flex; border-bottom: 1px solid var(--line); }
+    #panel-tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px 4px; color: var(--muted); font-weight: 600; }
+    #panel-tabs button.active { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+    #panel-body { overflow-y: auto; padding: 10px 12px 16px; flex: 1; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+    #panel h3 { margin: 14px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--accent); }
+    #panel h3:first-child { margin-top: 2px; }
+    .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .btns button { flex: 1 1 auto; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 8px; }
+    .stats b { color: var(--gold); }
+    .chip { display: inline-block; padding: 2px 7px; border-radius: 10px; background: #1e293b; border: 1px solid #334155; font-size: 11px; margin: 2px 3px 2px 0; cursor: pointer; }
+    .chip:hover { border-color: var(--accent); }
+    .muted { color: var(--muted); font-size: 11px; }
+    .kind-badge { display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: .6px; padding: 2px 6px; border-radius: 4px; background: #0c4a6e; color: #bae6fd; margin-bottom: 6px; }
+    table.mon { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.mon td { padding: 2px 2px; }
+    table.mon input { padding: 4px 5px; }
+    table.mon td.lv { width: 54px; }
+    table.mon td.x { width: 28px; }
+    table.mon button { padding: 3px 7px; }
+    .check { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 12px; margin: 6px 0; }
+    .empty { color: var(--muted); text-align: center; padding: 26px 8px; line-height: 1.6; }
+
+    /* --- Modales --- */
+    .modal-bg { position: fixed; inset: 0; background: rgba(2,6,23,.7); z-index: 40; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-bg.show { display: flex; }
+    .modal { background: #0f172a; border: 1px solid #334155; border-radius: 12px; width: 440px; max-width: 100%; max-height: calc(100vh - 32px); overflow-y: auto; padding: 16px; box-shadow: 0 30px 60px rgba(0,0,0,.6); }
+    .modal h2 { margin: 0 0 8px; font-size: 16px; color: var(--gold); }
+    .session { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
+    .session.current { border-color: var(--gold); }
+    .session .info { flex: 1; min-width: 0; }
+    .session .info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(30px);
+      background: #0f172a; border: 1px solid var(--accent); color: #e0f2fe; border-radius: 8px;
+      padding: 9px 14px; z-index: 50; opacity: 0; transition: all .25s ease; pointer-events: none;
+      max-width: calc(100vw - 32px); text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 760px) {
+      .hide-mobile { display: none; }
+      #panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 46vh; border-radius: 14px 14px 0 0; }
+      #panel.collapsed { transform: translateY(calc(100% + 10px)); }
+      #statusbar { bottom: auto; top: 54px; left: auto; right: 8px; }
+      #panel:not(.collapsed) ~ #statusbar { display: none; }
+      .tool { width: 42px; height: 42px; font-size: 17px; }
+      #tool-options { left: 58px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <button id="btn-sessions" title="Sesiones guardadas">📁<span class="hide-mobile"> Sesiones</span></button>
+    <div id="world-title">Creador de Mundos</div>
+    <span id="save-state">—</span>
+    <button id="btn-undo" title="Deshacer (Ctrl+Z)">↶</button>
+    <button id="btn-redo" title="Rehacer (Ctrl+Y)">↷</button>
+    <button id="btn-fit" title="Ver todo el mundo">⤢</button>
+    <button id="btn-panel" title="Mostrar / ocultar panel">☰</button>
+  </div>
+
+  <div id="toolbar">
+    <button class="tool active" data-tool="select" title="Seleccionar y mover">✋<small>Mover</small></button>
+    <button class="tool" data-tool="town" title="Añadir pueblo donde toques">🏘<small>Pueblo</small></button>
+    <button class="tool" data-tool="zone" title="Añadir zona de caza">⚔<small>Zona</small></button>
+    <button class="tool" data-tool="road" title="Unir dos pueblos con un camino">🛤<small>Camino</small></button>
+    <button class="tool" data-tool="poi" title="Añadir punto de interés">✦<small>Lugar</small></button>
+    <button class="tool" data-tool="delete" title="Eliminar lo que toques">🗑<small>Borrar</small></button>
+    <button class="tool" id="btn-expand" title="Expandir el mundo: nuevo pueblo en la frontera">➕<small>Expandir</small></button>
+  </div>
+  <div id="tool-options"></div>
+
+  <canvas id="map"></canvas>
+
+  <aside id="panel">
+    <div id="panel-tabs">
+      <button data-tab="world" class="active">🌍 Mundo</button>
+      <button data-tab="sel">🔎 Selección</button>
+    </div>
+    <div id="panel-body"></div>
+  </aside>
+
+  <div id="statusbar">
+    <span id="sb-scale"><span id="scalebar"></span> <span id="sb-scale-lbl"></span></span>
+    <span id="sb-info"></span>
+  </div>
+
+  <!-- Sesiones -->
+  <div class="modal-bg" id="modal-sessions">
+    <div class="modal">
+      <h2>📁 Sesiones guardadas</h2>
+      <p class="muted">Cada cambio se guarda solo en la sesión actual de este navegador. Exporta a archivo para tener copia o pasarlo a otro dispositivo.</p>
+      <div id="session-list"></div>
+      <div class="btns">
+        <button class="gold" id="btn-new-world">✨ Nuevo mundo…</button>
+        <button id="btn-save-as">Duplicar sesión</button>
+      </div>
+      <div class="btns">
+        <button id="btn-export">⬇ Exportar .json</button>
+        <button id="btn-import">⬆ Importar .json</button>
+        <input type="file" id="file-import" accept=".json,application/json" hidden>
+      </div>
+      <div class="btns"><button id="btn-close-sessions">Cerrar</button></div>
+    </div>
+  </div>
+
+  <!-- Nuevo mundo -->
+  <div class="modal-bg" id="modal-new">
+    <div class="modal">
+      <h2>✨ Generar nuevo mundo</h2>
+      <label>Nombre del mundo</label>
+      <input type="text" id="nw-name" value="Reino de Aden">
+      <label>Semilla del mundo (terreno y biomas)</label>
+      <div style="display:flex;gap:6px"><input type="number" id="nw-seed" min="1" max="999999"><button id="nw-dice">🎲</button></div>
+      <label>Pueblos iniciales: <b id="nw-towns-l"></b></label>
+      <input type="range" id="nw-towns" min="2" max="30" value="6">
+      <label>Distancia entre pueblos: <b id="nw-spacing-l"></b></label>
+      <input type="range" id="nw-spacing" min="600" max="3000" step="100" value="1200">
+      <label>Caminos extra (rutas alternativas): <b id="nw-links-l"></b></label>
+      <input type="range" id="nw-links" min="0" max="100" value="35">
+      <label>Zonas de caza por camino</label>
+      <select id="nw-zones"><option value="0">Ninguna</option><option value="1">1 por camino</option><option value="2" selected>1–2 según la longitud</option></select>
+      <label>Probabilidad de mazmorras / lugares en cada zona: <b id="nw-poi-l"></b></label>
+      <input type="range" id="nw-poi" min="0" max="100" value="45">
+      <label>Progresión de nivel: 1 nivel cada <b id="nw-mpl-l"></b> de camino</label>
+      <input type="range" id="nw-mpl" min="60" max="600" step="10" value="180">
+      <div class="btns">
+        <button id="nw-cancel">Cancelar</button>
+        <button class="gold" id="nw-go">Generar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="js/world-core.js"></script>
+  <script>
+  "use strict";
+  const W = window.RPGWorld;
+
+  // ===========================================================================
+  // Estado
+  // ===========================================================================
+  const STORE = {
+    index: 'rpgMundo.sesiones',
+    data: id => 'rpgMundo.sesion.' + id,
+    current: 'rpgMundo.actual',
+    townReturn: 'rpgMundo.retornoPueblo',
+    prefs: 'rpgMundo.prefs'
+  };
+
+  const ROOF_COLORS = {
+    l2_fantasy: '#1d4ed8', european: '#9a3412', frontier: '#a16207', elven: '#0d9488',
+    dwarven: '#475569', fortified: '#1e293b', trade: '#b91c1c'
+  };
+  const STYLE_NAMES = {
+    l2_fantasy: 'Fantasía Lineage 2', european: 'Medieval Europeo', frontier: 'Frontera rural',
+    elven: 'Élfico sagrado', dwarven: 'Enano de piedra', fortified: 'Bastión fortificado', trade: 'Ciudad comercial'
+  };
+  const TERRAIN_NAMES = { valley: 'Valle fluvial', hills: 'Colinas', plains: 'Llanura', highlands: 'Meseta' };
+  const SIZE_NAMES = { 2: 'Aldea', 3: 'Mediano', 4: 'Grande', 5: 'Ciudadela' };
+
+  let world = null;
+  let sessionId = null;
+  let selectedId = null;
+  let tool = 'select';
+  let roadStart = null;
+  let poiType = 'mazmorra';
+  let zoneType = 'caza';
+  let autoConnect = true;
+  let autoZones = true;
+  let activeTab = 'world';
+  const layers = { terrain: true, zones: true, labels: true, grid: false };
+  const view = { cx: 0, cy: 0, scale: 0.12 };
+  let undoStack = [], redoStack = [];
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function toast(msg, ms) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => el.classList.remove('show'), ms || 2200);
+  }
+
+  // ===========================================================================
+  // Sesiones (localStorage)
+  // ===========================================================================
+  function lsGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function lsSet(key, val) { localStorage.setItem(key, val); }
+  function lsDel(key) { try { localStorage.removeItem(key); } catch (e) { /* nada */ } }
+
+  function sessionIndex() {
+    try { return JSON.parse(lsGet(STORE.index) || '[]'); } catch (e) { return []; }
+  }
+  function writeIndex(list) { lsSet(STORE.index, JSON.stringify(list)); }
+
+  function saveSession() {
+    if (!world || !sessionId) return;
+    try {
+      const text = W.serialize(world);
+      lsSet(STORE.data(sessionId), text);
+      const list = sessionIndex().filter(s => s.id !== sessionId);
+      list.unshift({ id: sessionId, name: world.name, updated: world.updated, towns: world.towns.length, zones: world.zones.length });
+      writeIndex(list);
+      lsSet(STORE.current, sessionId);
+      setSaveState('Guardado ✓', 'ok');
+    } catch (e) {
+      console.error(e);
+      setSaveState('Sin guardar ⚠', 'err');
+      toast('No se pudo guardar en el navegador. Exporta el mundo a archivo.', 4000);
+    }
+  }
+
+  function setSaveState(text, cls) {
+    const el = $('save-state');
+    el.textContent = text;
+    el.className = cls || '';
+  }
+
+  function newSessionId() { return 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
+
+  function openWorld(w, id, opts) {
+    world = w;
+    sessionId = id || newSessionId();
+    selectedId = null;
+    roadStart = null;
+    undoStack = [JSON.stringify(world)];
+    redoStack = [];
+    saveSession();
+    refreshAll();
+    if (!opts || opts.fit !== false) fitView();
+  }
+
+  function loadSession(id) {
+    const text = lsGet(STORE.data(id));
+    if (!text) { toast('Sesión no encontrada.'); return false; }
+    try {
+      openWorld(W.deserialize(text), id);
+      return true;
+    } catch (e) {
+      toast('Error al cargar: ' + e.message, 4000);
+      return false;
+    }
+  }
+
+  function deleteSession(id) {
+    lsDel(STORE.data(id));
+    writeIndex(sessionIndex().filter(s => s.id !== id));
+    if (id === sessionId) {
+      const other = sessionIndex()[0];
+      if (!other || !loadSession(other.id)) openWorld(W.generateWorld({ name: 'Nuevo mundo' }));
+    }
+    renderSessions();
+  }
+
+  // ===========================================================================
+  // Historial (deshacer / rehacer) — cada cambio confirmado guarda una foto
+  // ===========================================================================
+  function commit(msg) {
+    const snap = JSON.stringify(world);
+    if (undoStack[undoStack.length - 1] === snap) return;
+    undoStack.push(snap);
+    if (undoStack.length > 80) undoStack.shift();
+    redoStack = [];
+    saveSession();
+    refreshAll();
+    if (msg) toast(msg);
+  }
+
+  function restore(snap) {
+    world = W.validate(JSON.parse(snap));
+    if (selectedId && !W.findAny(world, selectedId)) selectedId = null;
+    saveSession();
+    refreshAll();
+  }
+  function undo() {
+    if (undoStack.length < 2) return;
+    redoStack.push(undoStack.pop());
+    restore(undoStack[undoStack.length - 1]);
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    const s = redoStack.pop();
+    undoStack.push(s);
+    restore(s);
+  }
+
+  function refreshAll() {
+    $('world-title').textContent = '🌍 ' + world.name;
+    $('btn-undo').disabled = undoStack.length < 2;
+    $('btn-redo').disabled = !redoStack.length;
+    renderPanel();
+    requestDraw();
+  }
+
+  // ===========================================================================
+  // Cámara del mapa
+  // ===========================================================================
+  const canvas = $('map');
+  const ctx = canvas.getContext('2d');
+  let cssW = 0, cssH = 0, dpr = 1;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cssW = canvas.clientWidth; cssH = canvas.clientHeight;
+    canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+    requestDraw();
+  }
+
+  const toScreen = (x, y) => ({ x: (x - view.cx) * view.scale + cssW / 2, y: (y - view.cy) * view.scale + cssH / 2 });
+  const toWorld = (sx, sy) => ({ x: (sx - cssW / 2) / view.scale + view.cx, y: (sy - cssH / 2) / view.scale + view.cy });
+
+  function zoomAt(sx, sy, factor) {
+    const before = toWorld(sx, sy);
+    view.scale = Math.min(4, Math.max(0.004, view.scale * factor));
+    const after = toWorld(sx, sy);
+    view.cx += before.x - after.x;
+    view.cy += before.y - after.y;
+    requestDraw();
+  }
+
+  function fitView() {
+    const pts = [];
+    world.towns.forEach(t => { pts.push({ x: t.x - t.radius, y: t.y - t.radius }, { x: t.x + t.radius, y: t.y + t.radius }); });
+    world.zones.forEach(z => { pts.push({ x: z.x - z.radius, y: z.y - z.radius }, { x: z.x + z.radius, y: z.y + z.radius }); });
+    if (!pts.length) { view.cx = 0; view.cy = 0; view.scale = 0.12; requestDraw(); return; }
+    const minX = Math.min(...pts.map(p => p.x)), maxX = Math.max(...pts.map(p => p.x));
+    const minY = Math.min(...pts.map(p => p.y)), maxY = Math.max(...pts.map(p => p.y));
+    const panelOpen = !$('panel').classList.contains('collapsed');
+    const mobile = window.innerWidth <= 760;
+    const availW = cssW - 80 - (panelOpen && !mobile ? 340 : 0);
+    const availH = cssH - 40 - (panelOpen && mobile ? cssH * 0.46 : 0);
+    view.scale = Math.min(1.2, Math.max(0.004, Math.min(availW / (maxX - minX + 200), availH / (maxY - minY + 200))));
+    view.cx = (minX + maxX) / 2 + (panelOpen && !mobile ? 170 / view.scale : 0) - 30 / view.scale;
+    view.cy = (minY + maxY) / 2 + (panelOpen && mobile ? cssH * 0.23 / view.scale : 0);
+    requestDraw();
+  }
+
+  function centerOn(x, y) { view.cx = x; view.cy = y; requestDraw(); }
+
+  // ===========================================================================
+  // Terreno: trozos (chunks) cacheados por nivel de detalle
+  // ===========================================================================
+  const CHUNK = 64;
+  const chunkCache = new Map();
+  let chunkSeed = null;
+
+  function renderChunk(lod, cx, cy) {
+    const terrain = W.getTerrain(world.seed);
+    const mpp = Math.pow(2, lod);
+    const x0 = cx * CHUNK * mpp, y0 = cy * CHUNK * mpp;
+    const N = CHUNK + 1;
+    const elev = new Float32Array(N * N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) elev[j * N + i] = terrain.elevation(x0 + i * mpp, y0 + j * mpp);
+    const c = document.createElement('canvas');
+    c.width = CHUNK; c.height = CHUNK;
+    const cctx = c.getContext('2d');
+    const img = cctx.createImageData(CHUNK, CHUNK);
+    const d = img.data;
+    const SEA = W.SEA_LEVEL;
+    const slopeK = 1100 / Math.sqrt(mpp + 4);
+    for (let j = 0; j < CHUNK; j++) {
+      for (let i = 0; i < CHUNK; i++) {
+        const e = elev[j * N + i];
+        const x = x0 + i * mpp, y = y0 + j * mpp;
+        const b = terrain.biomeAt(x, y, e);
+        let r, g, bl;
+        if (W.BIOMES[b].water) {
+          const k = Math.min(1, (SEA - e) / 0.12);
+          r = 74 - 50 * k; g = 135 - 85 * k; bl = 175 - 85 * k;
+        } else {
+          const col = W.BIOMES[b].color;
+          const slope = ((e - elev[j * N + i + 1]) + (e - elev[(j + 1) * N + i])) / mpp;
+          const shade = Math.max(0.62, Math.min(1.35, 1 + slope * slopeK)) * (0.92 + (e - SEA) * 0.35);
+          r = col[0] * shade; g = col[1] * shade; bl = col[2] * shade;
+        }
+        const o = (j * CHUNK + i) * 4;
+        d[o] = r; d[o + 1] = g; d[o + 2] = bl; d[o + 3] = 255;
+      }
+    }
+    cctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  function drawTerrain() {
+    if (chunkSeed !== world.seed) { chunkCache.clear(); chunkSeed = world.seed; }
+    const lod = Math.max(-1, Math.ceil(Math.log2(1.6 / view.scale)));
+    const mpp = Math.pow(2, lod);
+    const cw = CHUNK * mpp;
+    const tl = toWorld(0, 0), br = toWorld(cssW, cssH);
+    const cx0 = Math.floor(tl.x / cw), cx1 = Math.floor(br.x / cw);
+    const cy0 = Math.floor(tl.y / cw), cy1 = Math.floor(br.y / cw);
+    const midX = (cx0 + cx1) / 2, midY = (cy0 + cy1) / 2;
+    const list = [];
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) list.push([cx, cy]);
+    list.sort((a, b) => Math.hypot(a[0] - midX, a[1] - midY) - Math.hypot(b[0] - midX, b[1] - midY));
+    let budget = 10, missing = false;
+    const sizePx = cw * view.scale;
+    ctx.imageSmoothingEnabled = true;
+    for (const [cx, cy] of list) {
+      const key = lod + '|' + cx + '|' + cy;
+      let c = chunkCache.get(key);
+      if (!c && budget > 0) { c = renderChunk(lod, cx, cy); chunkCache.set(key, c); budget--; }
+      const s = toScreen(cx * cw, cy * cw);
+      if (c) {
+        ctx.drawImage(c, s.x, s.y, sizePx + 0.6, sizePx + 0.6);
+      } else {
+        missing = true;
+        const pc = chunkCache.get((lod + 1) + '|' + Math.floor(cx / 2) + '|' + Math.floor(cy / 2));
+        if (pc) {
+          const sx = (cx - 2 * Math.floor(cx / 2)) * CHUNK / 2, sy = (cy - 2 * Math.floor(cy / 2)) * CHUNK / 2;
+          ctx.drawImage(pc, sx, sy, CHUNK / 2, CHUNK / 2, s.x, s.y, sizePx + 0.6, sizePx + 0.6);
+        } else {
+          ctx.fillStyle = '#4b6b45';
+          ctx.fillRect(s.x, s.y, sizePx + 0.6, sizePx + 0.6);
+        }
+      }
+    }
+    if (chunkCache.size > 700) {
+      const keys = [...chunkCache.keys()].slice(0, 200);
+      keys.forEach(k => chunkCache.delete(k));
+    }
+    if (missing) requestDraw();
+  }
+
+  // ===========================================================================
+  // Dibujo del mapa
+  // ===========================================================================
+  let drawQueued = false;
+  function requestDraw() {
+    if (drawQueued) return;
+    drawQueued = true;
+    requestAnimationFrame(() => { drawQueued = false; draw(); });
+  }
+
+  function niceScale() {
+    const target = 110 / view.scale;
+    const steps = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
+    const m = steps.find(s => s >= target * 0.5) || 50000;
+    $('scalebar').style.width = Math.round(m * view.scale) + 'px';
+    $('sb-scale-lbl').textContent = m >= 1000 ? (m / 1000) + ' km' : m + ' m';
+  }
+
+  function levelHue(level) {
+    const maxL = Math.max(10, W.stats(world).maxLevel);
+    return Math.round(130 - 130 * Math.min(1, (level - 1) / maxL));
+  }
+
+  function zoneColors(z) {
+    const hue = levelHue((z.levelMin + z.levelMax) / 2);
+    const stroke = { elite: '#c084fc', jefe: '#f87171', pvp: '#fb923c', segura: '#67e8f9' }[z.type] || `hsl(${hue},80%,62%)`;
+    const fill = z.type === 'segura' ? 'rgba(103,232,249,0.14)' : `hsla(${hue},75%,50%,0.2)`;
+    return { stroke, fill };
+  }
+
+  function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#1e3a5f';
+    ctx.fillRect(0, 0, cssW, cssH);
+    if (!world) return;
+    if (layers.terrain) drawTerrain();
+    else { ctx.fillStyle = '#1c2a3a'; ctx.fillRect(0, 0, cssW, cssH); }
+    if (layers.grid) drawGrid();
+    if (layers.zones) drawZones();
+    drawRoads();
+    drawPois();
+    drawTowns();
+    if (layers.labels) drawLabels();
+    niceScale();
+  }
+
+  function drawGrid() {
+    const step = view.scale > 0.15 ? 500 : view.scale > 0.03 ? 1000 : 5000;
+    const tl = toWorld(0, 0), br = toWorld(cssW, cssH);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = Math.floor(tl.x / step) * step; x <= br.x; x += step) { const s = toScreen(x, 0); ctx.moveTo(s.x, 0); ctx.lineTo(s.x, cssH); }
+    for (let y = Math.floor(tl.y / step) * step; y <= br.y; y += step) { const s = toScreen(0, y); ctx.moveTo(0, s.y); ctx.lineTo(cssW, s.y); }
+    ctx.stroke();
+  }
+
+  function zonePath(z) {
+    const pts = W.zoneOutline(z, 44);
+    ctx.beginPath();
+    pts.forEach((p, i) => { const s = toScreen(p.x, p.y); if (i) ctx.lineTo(s.x, s.y); else ctx.moveTo(s.x, s.y); });
+    ctx.closePath();
+  }
+
+  function drawZones() {
+    world.zones.forEach(z => {
+      const { stroke, fill } = zoneColors(z);
+      zonePath(z);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.setLineDash(z.type === 'caza' ? [8, 6] : []);
+      ctx.lineWidth = z.id === selectedId ? 3.5 : 2;
+      ctx.strokeStyle = z.id === selectedId ? '#fde047' : stroke;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+
+  function drawRoads() {
+    const w = Math.max(2.5, 7 * view.scale);
+    world.roads.forEach(r => {
+      if (r.points.length < 2) return;
+      ctx.beginPath();
+      r.points.forEach((p, i) => { const s = toScreen(p.x, p.y); if (i) ctx.lineTo(s.x, s.y); else ctx.moveTo(s.x, s.y); });
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const sel = r.id === selectedId;
+      ctx.strokeStyle = sel ? '#fde047' : 'rgba(41,24,10,0.85)';
+      ctx.lineWidth = w + (sel ? 5 : 2.5);
+      ctx.stroke();
+      ctx.strokeStyle = r.kind === 'calzada' ? '#cbd5e1' : r.kind === 'sendero' ? '#a8865a' : '#d6b27a';
+      ctx.lineWidth = w;
+      if (r.kind === 'sendero') ctx.setLineDash([w * 2, w * 1.5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+    if (tool === 'road' && roadStart && pointer.last) {
+      const a = W.findTown(world, roadStart);
+      if (a) {
+        const s = toScreen(a.x, a.y);
+        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(pointer.last.x, pointer.last.y);
+        ctx.strokeStyle = '#fde047'; ctx.lineWidth = 3; ctx.setLineDash([10, 8]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+  }
+
+  function townScreenRadius(t) { return Math.max(11, t.radius * view.scale); }
+
+  function drawTowns() {
+    world.towns.forEach(t => {
+      const s = toScreen(t.x, t.y);
+      const r = townScreenRadius(t);
+      const sel = t.id === selectedId || t.id === roadStart;
+      ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(15,23,42,0.55)'; ctx.fill();
+      ctx.lineWidth = t.cfg.hasWalls ? 4 : 2;
+      ctx.strokeStyle = sel ? '#fde047' : t.cfg.hasWalls ? '#cbd5e1' : '#a8a29e';
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(s.x, s.y, r * 0.62, 0, Math.PI * 2);
+      ctx.fillStyle = ROOF_COLORS[t.cfg.style] || '#1d4ed8'; ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = Math.round(Math.max(11, r * 0.75)) + 'px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(t.cfg.size >= 4 ? '🏰' : '🏠', s.x, s.y + 1);
+      if (t.isStart) {
+        ctx.font = '14px sans-serif';
+        ctx.fillText('⭐', s.x + r * 0.8, s.y - r * 0.8);
+      }
+    });
+  }
+
+  function drawPois() {
+    world.pois.forEach(p => {
+      const s = toScreen(p.x, p.y);
+      const def = W.POI_TYPES[p.type];
+      ctx.beginPath(); ctx.arc(s.x, s.y, 11, 0, Math.PI * 2);
+      ctx.fillStyle = p.type === 'jefe' ? '#7f1d1d' : p.type === 'santuario' || p.type === 'portal' ? '#155e75' : '#292524';
+      ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = p.id === selectedId ? '#fde047' : '#e7e5e4'; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(def ? def.icon : '?', s.x, s.y + 1);
+    });
+  }
+
+  // Dibuja una etiqueta si no choca con otra ya dibujada (evita textos solapados)
+  let labelRects = [];
+  function label(text, x, y, color, size, sub, force) {
+    ctx.font = '600 ' + size + 'px sans-serif';
+    const w = Math.max(ctx.measureText(text).width, sub ? sub.length * 6 : 0) + 6;
+    const h = size + (sub ? 13 : 2);
+    const r = { x: x - w / 2, y: y - size / 2 - 1, w, h };
+    if (!force && labelRects.some(o => r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y)) return false;
+    labelRects.push(r);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(2,6,23,0.85)';
+    ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y);
+    if (sub) {
+      ctx.font = '11px sans-serif';
+      ctx.strokeText(sub, x, y + size * 0.95); ctx.fillStyle = '#e2e8f0'; ctx.fillText(sub, x, y + size * 0.95);
+    }
+    return true;
+  }
+
+  function drawLabels() {
+    labelRects = [];
+    const sel = selectedId;
+    // Prioridad: seleccionado > pueblos > zonas > lugares
+    world.towns.forEach(t => {
+      const s = toScreen(t.x, t.y);
+      label(t.name, s.x, s.y + townScreenRadius(t) + 10, '#fde68a', 13, 'Nv ' + t.level, t.id === sel);
+    });
+    if (layers.zones && view.scale > 0.025) {
+      world.zones.forEach(z => {
+        const s = toScreen(z.x, z.y);
+        label(z.name, s.x, s.y - 6, zoneColors(z).stroke, 12, 'Nv ' + z.levelMin + '–' + z.levelMax, z.id === sel);
+      });
+    }
+    if (view.scale > 0.06) {
+      world.pois.forEach(p => { const s = toScreen(p.x, p.y); label(p.name, s.x, s.y + 20, '#f5f5f4', 11, null, p.id === sel); });
+    }
+  }
+
+  // ===========================================================================
+  // Selección (hit test)
+  // ===========================================================================
+  function hitTest(sx, sy) {
+    const p = toWorld(sx, sy);
+    for (let i = world.pois.length - 1; i >= 0; i--) {
+      const q = toScreen(world.pois[i].x, world.pois[i].y);
+      if (Math.hypot(q.x - sx, q.y - sy) <= 14) return { kind: 'poi', id: world.pois[i].id };
+    }
+    for (let i = world.towns.length - 1; i >= 0; i--) {
+      const t = world.towns[i], q = toScreen(t.x, t.y);
+      if (Math.hypot(q.x - sx, q.y - sy) <= townScreenRadius(t) + 4) return { kind: 'town', id: t.id };
+    }
+    const tol = 10 / view.scale;
+    for (let i = world.roads.length - 1; i >= 0; i--) {
+      if (W.distToPolyline(p, world.roads[i].points) <= tol) return { kind: 'road', id: world.roads[i].id };
+    }
+    if (layers.zones) {
+      let best = null;
+      world.zones.forEach(z => { if (W.pointInZone(z, p) && (!best || z.radius < best.radius)) best = z; });
+      if (best) return { kind: 'zone', id: best.id };
+    }
+    return null;
+  }
+
+  function select(id) {
+    selectedId = id;
+    if (id) activeTab = 'sel';
+    renderPanel();
+    requestDraw();
+    if (id && window.innerWidth <= 760) {
+      $('panel').classList.remove('collapsed');
+      // Si el elemento queda bajo el panel inferior, desplazamos el mapa hacia arriba
+      const ent = W.findAny(world, id);
+      if (ent && ent.x !== undefined) {
+        const s = toScreen(ent.x, ent.y);
+        if (s.y > cssH * 0.45) centerOn(ent.x, ent.y + (cssH * 0.5 - cssH * 0.26) / view.scale);
+      }
+    }
+  }
+
+  // ===========================================================================
+  // Gestos (ratón + táctil con pinza)
+  // ===========================================================================
+  const pointers = new Map();
+  const pointer = { last: null, gesture: null, pinch: null };
+
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pointer.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+      if (pointer.gesture && pointer.gesture.dragId && pointer.gesture.moved) commit();
+      pointer.gesture = null;
+      return;
+    }
+    if (pointers.size > 2) return;
+    const hit = hitTest(e.offsetX, e.offsetY);
+    const g = { sx: e.offsetX, sy: e.offsetY, lx: e.offsetX, ly: e.offsetY, moved: false, hit, dragId: null };
+    if (tool === 'select' && hit && hit.kind !== 'road' && hit.id === selectedId) {
+      const ent = W.findAny(world, hit.id);
+      const wp = toWorld(e.offsetX, e.offsetY);
+      g.dragId = hit.id; g.offX = ent.x - wp.x; g.offY = ent.y - wp.y;
+    } else if (tool === 'select' && hit && hit.kind !== 'road' && e.pointerType === 'mouse') {
+      // Con ratón se puede arrastrar directamente; en táctil primero se selecciona
+      select(hit.id);
+      const ent = W.findAny(world, hit.id);
+      const wp = toWorld(e.offsetX, e.offsetY);
+      g.dragId = hit.id; g.offX = ent.x - wp.x; g.offY = ent.y - wp.y;
+    }
+    pointer.gesture = g;
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    pointer.last = { x: e.offsetX, y: e.offsetY };
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+    if (pointer.pinch && pointers.size >= 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      view.cx -= (mx - pointer.pinch.mx) / view.scale;
+      view.cy -= (my - pointer.pinch.my) / view.scale;
+      zoomAt(mx, my, d / (pointer.pinch.d || d));
+      pointer.pinch = { d, mx, my };
+      return;
+    }
+    const g = pointer.gesture;
+    if (g && pointers.size === 1) {
+      if (!g.moved && Math.hypot(e.offsetX - g.sx, e.offsetY - g.sy) > 6) g.moved = true;
+      if (g.moved) {
+        if (g.dragId) {
+          const wp = toWorld(e.offsetX, e.offsetY);
+          W.moveEntity(world, g.dragId, wp.x + g.offX, wp.y + g.offY);
+        } else {
+          view.cx -= (e.offsetX - g.lx) / view.scale;
+          view.cy -= (e.offsetY - g.ly) / view.scale;
+        }
+        g.lx = e.offsetX; g.ly = e.offsetY;
+        requestDraw();
+      }
+    } else if (e.pointerType === 'mouse') {
+      updateStatus(e.offsetX, e.offsetY);
+      if (tool === 'road' && roadStart) requestDraw();
+    }
+  });
+
+  function endPointer(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pointer.pinch = null;
+    const g = pointer.gesture;
+    if (!g || pointers.size) return;
+    pointer.gesture = null;
+    if (g.moved && g.dragId) { commit(); return; }
+    if (!g.moved && e.type === 'pointerup') onTap(g.sx, g.sy, g.hit);
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { pointer.last = null; } });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015));
+  }, { passive: false });
+
+  function updateStatus(sx, sy) {
+    const p = toWorld(sx, sy);
+    const terrain = W.getTerrain(world.seed);
+    const b = terrain.biomeAt(p.x, p.y);
+    const h = Math.round(terrain.heightAt(p.x, p.y));
+    $('sb-info').textContent = `${Math.round(p.x)}, ${Math.round(p.y)} · ${W.BIOMES[b].name} · ${h} m`;
+  }
+
+  // ===========================================================================
+  // Acciones de las herramientas
+  // ===========================================================================
+  function onTap(sx, sy, hit) {
+    const p = toWorld(sx, sy);
+    if (pointer.last === null) updateStatus(sx, sy);
+    switch (tool) {
+      case 'select':
+        select(hit ? hit.id : null);
+        break;
+      case 'town': {
+        if (W.getTerrain(world.seed).isWater(p.x, p.y)) { toast('No se puede fundar un pueblo en el agua.'); return; }
+        const t = W.addTown(world, p, { connect: autoConnect, populate: autoZones });
+        selectedId = t.id; activeTab = 'sel';
+        commit('Pueblo «' + t.name + '» fundado');
+        break;
+      }
+      case 'zone': {
+        const z = W.createZone(world, p.x, p.y, { type: zoneType });
+        const road = world.roads.find(r => W.distToPolyline(z, r.points) < z.radius * 0.6);
+        if (road) z.roadId = road.id;
+        W.autoLevelZone(world, z);
+        selectedId = z.id; activeTab = 'sel';
+        commit('Zona «' + z.name + '» creada');
+        break;
+      }
+      case 'poi': {
+        const q = W.createPoi(world, p.x, p.y, poiType);
+        selectedId = q.id; activeTab = 'sel';
+        commit(W.POI_TYPES[q.type].name + ' «' + q.name + '» creado');
+        break;
+      }
+      case 'road': {
+        if (!hit || hit.kind !== 'town') { roadStart = null; renderToolOptions(); requestDraw(); toast('Toca un pueblo para empezar el camino.'); return; }
+        if (!roadStart) { roadStart = hit.id; renderToolOptions(); requestDraw(); return; }
+        if (roadStart === hit.id) { roadStart = null; renderToolOptions(); requestDraw(); return; }
+        const exists = world.roads.find(r => (r.from === roadStart && r.to === hit.id) || (r.to === roadStart && r.from === hit.id));
+        if (exists) { toast('Esos pueblos ya están conectados.'); roadStart = null; renderToolOptions(); requestDraw(); return; }
+        const road = W.createRoad(world, roadStart, hit.id);
+        if (autoZones) W.populateRoad(world, road);
+        W.recomputeLevelsSoft(world, W.findTown(world, hit.id), [road]);
+        roadStart = null;
+        selectedId = road.id; activeTab = 'sel';
+        renderToolOptions();
+        commit('Camino creado (' + road.length + ' m)');
+        break;
+      }
+      case 'delete':
+        if (hit) deleteEntity(hit.id);
+        break;
+    }
+  }
+
+  function deleteEntity(id) {
+    const ent = W.findAny(world, id);
+    if (!ent) return;
+    const kind = W.kindOf(world, id);
+    if (kind === 'town') {
+      const roadIds = world.roads.filter(r => r.from === id || r.to === id).map(r => r.id);
+      const zones = world.zones.filter(z => z.anchored && roadIds.includes(z.roadId));
+      const parts = [];
+      if (roadIds.length) parts.push(roadIds.length + ' camino(s)');
+      if (zones.length) parts.push(zones.length + ' zona(s) de esos caminos');
+      if (!confirm('¿Eliminar el pueblo «' + ent.name + '»' + (parts.length ? ' junto con ' + parts.join(' y ') : '') + '?')) return;
+      // Las zonas que seguían a sus caminos ya no conectan nada: se eliminan con sus lugares
+      zones.forEach(z => {
+        world.pois.filter(p => p.zoneId === z.id).forEach(p => W.removeEntity(world, p.id));
+        W.removeEntity(world, z.id);
+      });
+    }
+    W.removeEntity(world, id);
+    if (selectedId === id) selectedId = null;
+    const names = { town: 'Pueblo', road: 'Camino', zone: 'Zona', poi: 'Lugar' };
+    commit(names[kind] + ' eliminado · ↶ para deshacer');
+  }
+
+  function expandWorld(n) {
+    let last = null;
+    for (let i = 0; i < (n || 1); i++) {
+      const t = W.addTown(world, null, { connect: true, populate: autoZones });
+      if (t) last = t;
+    }
+    if (!last) { toast('No se encontró sitio libre en tierra firme. Prueba con más distancia.'); return; }
+    selectedId = last.id; activeTab = 'sel';
+    commit(n > 1 ? n + ' pueblos añadidos' : 'Nuevo pueblo: «' + last.name + '»');
+    centerOn(last.x, last.y);
+  }
+
+  // ===========================================================================
+  // Barra de herramientas
+  // ===========================================================================
+  function setTool(t) {
+    tool = t;
+    roadStart = null;
+    document.querySelectorAll('.tool[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+    canvas.style.cursor = t === 'select' ? 'grab' : t === 'delete' ? 'not-allowed' : 'crosshair';
+    renderToolOptions();
+    requestDraw();
+  }
+
+  function renderToolOptions() {
+    const box = $('tool-options');
+    let html = '';
+    if (tool === 'town') {
+      html = `<div class="row"><b>Toca el mapa para fundar un pueblo.</b></div>
+        <div class="row"><label><input type="checkbox" id="to-conn" ${autoConnect ? 'checked' : ''}> Conectar con caminos</label>
+        <label><input type="checkbox" id="to-zones" ${autoZones ? 'checked' : ''}> Crear zonas de caza</label></div>`;
+    } else if (tool === 'zone') {
+      html = `<div class="row"><b>Toca el mapa para crear una zona.</b> <select id="to-ztype">${Object.entries(W.ZONE_TYPES).map(([k, v]) => `<option value="${k}" ${k === zoneType ? 'selected' : ''}>${v.name}</option>`).join('')}</select></div>`;
+    } else if (tool === 'poi') {
+      html = `<div class="row"><b>Tipo:</b> <select id="to-ptype">${Object.entries(W.POI_TYPES).map(([k, v]) => `<option value="${k}" ${k === poiType ? 'selected' : ''}>${v.icon} ${v.name}</option>`).join('')}</select></div>`;
+    } else if (tool === 'road') {
+      const a = roadStart && W.findTown(world, roadStart);
+      html = `<div class="row"><b>${a ? 'Ahora toca el pueblo destino (desde «' + esc(a.name) + '»)' : 'Toca el primer pueblo'}</b></div>
+        <div class="row"><label><input type="checkbox" id="to-zones" ${autoZones ? 'checked' : ''}> Crear zonas de caza en el camino</label></div>`;
+    } else if (tool === 'delete') {
+      html = `<div class="row"><b>Toca lo que quieras eliminar.</b> <span class="muted">(↶ deshace)</span></div>`;
+    }
+    box.innerHTML = html;
+    box.classList.toggle('show', !!html);
+    const c = $('to-conn'); if (c) c.onchange = () => { autoConnect = c.checked; savePrefs(); };
+    const z = $('to-zones'); if (z) z.onchange = () => { autoZones = z.checked; savePrefs(); };
+    const zt = $('to-ztype'); if (zt) zt.onchange = () => { zoneType = zt.value; };
+    const pt = $('to-ptype'); if (pt) pt.onchange = () => { poiType = pt.value; };
+  }
+
+  document.querySelectorAll('.tool[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+  $('btn-expand').addEventListener('click', () => expandWorld(1));
+
+  // ===========================================================================
+  // Panel: pestaña Mundo
+  // ===========================================================================
+  function renderPanel() {
+    document.querySelectorAll('#panel-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
+    $('panel-body').innerHTML = activeTab === 'world' ? worldPanelHTML() : selectionPanelHTML();
+    bindPanel();
+  }
+
+  function worldPanelHTML() {
+    const st = W.stats(world);
+    const S = world.settings;
+    return `
+      <h3>Mundo</h3>
+      <label>Nombre</label>
+      <input type="text" data-w="name" value="${esc(world.name)}">
+      <div class="muted" style="margin-top:6px">Semilla del terreno: <b>${world.seed}</b></div>
+      <h3>Resumen</h3>
+      <div class="stats">
+        <div>🏘 Pueblos: <b>${st.towns}</b></div>
+        <div>🛤 Caminos: <b>${st.roads}</b></div>
+        <div>⚔ Zonas: <b>${st.zones}</b></div>
+        <div>✦ Lugares: <b>${st.pois}</b></div>
+        <div>📏 ${st.roadKm} km</div>
+        <div>📈 Nivel máx: <b>${st.maxLevel}</b></div>
+      </div>
+      <h3>Hacer crecer el mundo</h3>
+      <div class="btns">
+        <button class="gold" data-act="expand1">➕ Añadir pueblo</button>
+        <button data-act="expand5">➕ Añadir 5</button>
+      </div>
+      <p class="muted">Los pueblos nuevos aparecen en la frontera, se unen con caminos a los cercanos y entre ellos se crean zonas de caza. Cuanto más lejos del pueblo inicial ⭐, más nivel.</p>
+      <label>Distancia entre pueblos: <b>${S.spacing} m</b></label>
+      <input type="range" data-s="spacing" min="600" max="3000" step="100" value="${S.spacing}">
+      <label>Caminos extra: <b>${Math.round(S.extraLinks * 100)}%</b></label>
+      <input type="range" data-s="extraLinks" data-pct="1" min="0" max="100" value="${Math.round(S.extraLinks * 100)}">
+      <label>Zonas por camino</label>
+      <select data-s="zonesPerRoad"><option value="0" ${S.zonesPerRoad == 0 ? 'selected' : ''}>Ninguna</option><option value="1" ${S.zonesPerRoad == 1 ? 'selected' : ''}>1</option><option value="2" ${S.zonesPerRoad == 2 ? 'selected' : ''}>1–2 según longitud</option></select>
+      <label>Lugares por zona: <b>${Math.round(S.poiChance * 100)}%</b></label>
+      <input type="range" data-s="poiChance" data-pct="1" min="0" max="100" value="${Math.round(S.poiChance * 100)}">
+      <label>1 nivel cada <b>${S.metersPerLevel} m</b> de camino</label>
+      <input type="range" data-s="metersPerLevel" min="60" max="600" step="10" value="${S.metersPerLevel}">
+      <div class="btns"><button data-act="levels">📈 Recalcular todos los niveles</button></div>
+      <h3>Capas del mapa</h3>
+      <label class="check"><input type="checkbox" data-layer="terrain" ${layers.terrain ? 'checked' : ''}> Terreno y biomas</label>
+      <label class="check"><input type="checkbox" data-layer="zones" ${layers.zones ? 'checked' : ''}> Zonas de caza</label>
+      <label class="check"><input type="checkbox" data-layer="labels" ${layers.labels ? 'checked' : ''}> Nombres</label>
+      <label class="check"><input type="checkbox" data-layer="grid" ${layers.grid ? 'checked' : ''}> Cuadrícula</label>
+      <h3>Partida</h3>
+      <div class="btns">
+        <button data-act="sessions">📁 Sesiones</button>
+        <button data-act="export">⬇ Exportar</button>
+        <button class="gold" data-act="new">✨ Nuevo mundo</button>
+      </div>
+      <h3>Leyenda</h3>
+      <div class="muted" style="line-height:1.7">
+        Color de zona: <span style="color:hsl(130,80%,62%)">■ nivel bajo</span> → <span style="color:hsl(0,80%,62%)">■ nivel alto</span><br>
+        Borde: <span style="color:#c084fc">■ élite</span> · <span style="color:#f87171">■ jefe</span> · <span style="color:#fb923c">■ PvP</span> · <span style="color:#67e8f9">■ segura</span><br>
+        ${Object.values(W.POI_TYPES).map(p => p.icon + ' ' + p.name).join(' · ')}<br>
+        Ratón: rueda = zoom, arrastrar = mover. Móvil: pellizcar = zoom. Para mover un elemento en móvil, tócalo primero y luego arrástralo.
+      </div>`;
+  }
+
+  // ===========================================================================
+  // Panel: pestaña Selección
+  // ===========================================================================
+  function selectionPanelHTML() {
+    const ent = selectedId && W.findAny(world, selectedId);
+    if (!ent) {
+      return `<div class="empty">Nada seleccionado.<br>Usa ✋ y toca un pueblo, camino, zona o lugar del mapa para editarlo.</div>`;
+    }
+    const kind = W.kindOf(world, selectedId);
+    if (kind === 'town') return townHTML(ent);
+    if (kind === 'road') return roadHTML(ent);
+    if (kind === 'zone') return zoneHTML(ent);
+    return poiHTML(ent);
+  }
+
+  const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${k}" ${String(k) === String(cur) ? 'selected' : ''}>${esc(typeof v === 'string' ? v : v.name)}</option>`).join('');
+
+  function townHTML(t) {
+    const roads = world.roads.filter(r => r.from === t.id || r.to === t.id);
+    const nearZones = world.zones.filter(z => roads.some(r => r.id === z.roadId));
+    return `
+      <span class="kind-badge">🏘 Pueblo ${t.isStart ? '· ⭐ inicial' : ''}</span>
+      <label>Nombre</label><input type="text" data-f="name" value="${esc(t.name)}">
+      <div class="grid2">
+        <div><label>Nivel recomendado</label><input type="number" min="1" max="99" data-f="level" data-num="1" value="${t.level}"></div>
+        <div><label>Tamaño</label><select data-c="size">${opt(SIZE_NAMES, t.cfg.size)}</select></div>
+      </div>
+      <div class="muted" style="margin-top:6px">Bioma: ${W.BIOMES[t.biome] ? W.BIOMES[t.biome].name : t.biome} · (${t.x}, ${t.y})</div>
+      <h3>Diseño del pueblo (Creador de Pueblos)</h3>
+      <label>Estilo arquitectónico</label><select data-c="style">${opt(STYLE_NAMES, t.cfg.style)}</select>
+      <label>Terreno</label><select data-c="terrainType">${opt(TERRAIN_NAMES, t.cfg.terrainType)}</select>
+      <label>Semilla del pueblo</label>
+      <div style="display:flex;gap:6px"><input type="number" min="1" max="99999" data-c="seed" value="${t.cfg.seed}"><button data-act="town-dice">🎲</button></div>
+      <label class="check"><input type="checkbox" data-cb="hasWalls" ${t.cfg.hasWalls ? 'checked' : ''}> Murallas y torres</label>
+      <label class="check"><input type="checkbox" data-cb="hasRiver" ${t.cfg.hasRiver ? 'checked' : ''}> Río y puente</label>
+      <div class="btns"><button class="primary" data-act="open-town">🏗 Abrir en el Creador de Pueblos 3D</button></div>
+      <h3>Servicios</h3>
+      <input type="text" data-f="services" data-list="1" value="${esc((t.services || []).join(', '))}">
+      <div class="muted">Separados por comas (posada, tienda, herrero, gremio…)</div>
+      <h3>Conexiones</h3>
+      <div>${roads.length ? roads.map(r => { const o = W.findTown(world, r.from === t.id ? r.to : r.from); return `<span class="chip" data-goto="${r.id}">🛤 ${esc(o ? o.name : '?')} · ${r.length} m</span>`; }).join('') : '<span class="muted">Sin caminos</span>'}</div>
+      <div>${nearZones.map(z => `<span class="chip" data-goto="${z.id}">⚔ ${esc(z.name)} (${z.levelMin}–${z.levelMax})</span>`).join('')}</div>
+      <label>Notas / historia</label><textarea data-f="notes">${esc(t.notes)}</textarea>
+      <div class="btns">
+        ${t.isStart ? '' : '<button data-act="set-start">⭐ Hacer pueblo inicial</button>'}
+        <button data-act="connect">🛤 Conectar al más cercano</button>
+        <button data-act="center">🎯 Centrar</button>
+        <button class="danger" data-act="delete">🗑 Eliminar</button>
+      </div>`;
+  }
+
+  function roadHTML(r) {
+    const a = W.findTown(world, r.from), b = W.findTown(world, r.to);
+    const zones = world.zones.filter(z => z.roadId === r.id);
+    return `
+      <span class="kind-badge">🛤 Camino</span>
+      <div style="font-size:14px;margin:4px 0"><b>${esc(a ? a.name : '?')}</b> ⇄ <b>${esc(b ? b.name : '?')}</b></div>
+      <div class="muted">Longitud: ${r.length} m · aprox. ${Math.max(1, Math.round(r.length / 1.4 / 60))} min a pie</div>
+      <label>Tipo</label>
+      <select data-f="kind">${opt({ camino: 'Camino de tierra', calzada: 'Calzada de piedra', sendero: 'Sendero estrecho' }, r.kind)}</select>
+      <label>Curvatura</label>
+      <input type="range" min="-45" max="45" data-f="bend" data-scale="0.01" value="${Math.round(r.bend * 100)}">
+      <h3>Zonas en este camino</h3>
+      <div>${zones.length ? zones.map(z => `<span class="chip" data-goto="${z.id}">⚔ ${esc(z.name)} (${z.levelMin}–${z.levelMax})</span>`).join('') : '<span class="muted">Ninguna</span>'}</div>
+      <div class="btns">
+        <button data-act="populate">⚔ Generar zonas aquí</button>
+        <button data-act="goto-a">→ ${esc(a ? a.name : '')}</button>
+        <button data-act="goto-b">→ ${esc(b ? b.name : '')}</button>
+        <button class="danger" data-act="delete">🗑 Eliminar</button>
+      </div>`;
+  }
+
+  function zoneHTML(z) {
+    const road = z.roadId && W.findRoad(world, z.roadId);
+    const pois = world.pois.filter(p => p.zoneId === z.id);
+    const biomes = {};
+    Object.entries(W.BIOMES).forEach(([k, v]) => { if (!v.water) biomes[k] = v.name; });
+    return `
+      <span class="kind-badge">⚔ Zona</span>
+      <label>Nombre</label><input type="text" data-f="name" value="${esc(z.name)}">
+      <div class="grid2">
+        <div><label>Tipo</label><select data-f="type">${opt(W.ZONE_TYPES, z.type)}</select></div>
+        <div><label>Bioma</label><select data-f="biome">${opt(biomes, z.biome)}</select></div>
+        <div><label>Nivel mín.</label><input type="number" min="1" max="99" data-f="levelMin" data-num="1" value="${z.levelMin}"></div>
+        <div><label>Nivel máx.</label><input type="number" min="1" max="99" data-f="levelMax" data-num="1" value="${z.levelMax}"></div>
+      </div>
+      <label>Tamaño (radio): <b>${z.radius} m</b></label>
+      <input type="range" min="60" max="900" step="10" data-f="radius" value="${z.radius}">
+      <label>Reaparición de monstruos (s)</label><input type="number" min="5" max="3600" data-f="respawnSec" data-num="1" value="${z.respawnSec}">
+      <div class="muted" style="margin-top:6px">${road ? 'En el camino ' + esc((W.findTown(world, road.from) || {}).name) + ' ⇄ ' + esc((W.findTown(world, road.to) || {}).name) + (z.anchored ? ' (sigue al camino)' : '') : 'Zona libre (no ligada a un camino)'}</div>
+      <h3>Monstruos</h3>
+      <table class="mon">
+        ${z.monsters.map((m, i) => `<tr>
+          <td><input type="text" data-m="${i}" data-mf="name" value="${esc(m.name)}" ${m.boss ? 'style="color:#fca5a5"' : ''}></td>
+          <td class="lv"><input type="number" min="1" max="120" data-m="${i}" data-mf="level" value="${m.level}"></td>
+          <td class="x"><button data-mdel="${i}">✕</button></td></tr>`).join('')}
+      </table>
+      <div class="btns">
+        <button data-act="mon-add">+ Monstruo</button>
+        <button data-act="mon-roll">🎲 Regenerar</button>
+        <button data-act="zone-level">📈 Nivel automático</button>
+      </div>
+      ${pois.length ? `<h3>Lugares dentro</h3><div>${pois.map(p => `<span class="chip" data-goto="${p.id}">${W.POI_TYPES[p.type].icon} ${esc(p.name)}</span>`).join('')}</div>` : ''}
+      <label>Notas</label><textarea data-f="notes">${esc(z.notes)}</textarea>
+      <div class="btns">
+        ${road && !z.anchored ? '<button data-act="anchor">📌 Volver a ligar al camino</button>' : ''}
+        <button data-act="center">🎯 Centrar</button>
+        <button class="danger" data-act="delete">🗑 Eliminar</button>
+      </div>`;
+  }
+
+  function poiHTML(p) {
+    const zone = p.zoneId && W.findZone(world, p.zoneId);
+    return `
+      <span class="kind-badge">✦ Lugar de interés</span>
+      <label>Nombre</label><input type="text" data-f="name" value="${esc(p.name)}">
+      <div class="grid2">
+        <div><label>Tipo</label><select data-f="type">${opt(W.POI_TYPES, p.type)}</select></div>
+        <div><label>Nivel</label><input type="number" min="1" max="120" data-f="level" data-num="1" value="${p.level}"></div>
+      </div>
+      <div class="muted" style="margin-top:6px">${zone ? 'Dentro de la zona «' + esc(zone.name) + '» (se mueve con ella)' : 'Fuera de cualquier zona'}</div>
+      <label>Notas</label><textarea data-f="notes">${esc(p.notes)}</textarea>
+      <div class="btns">
+        ${zone ? `<button data-goto="${zone.id}">⚔ Ver zona</button>` : ''}
+        <button data-act="center">🎯 Centrar</button>
+        <button class="danger" data-act="delete">🗑 Eliminar</button>
+      </div>`;
+  }
+
+  // ===========================================================================
+  // Panel: eventos
+  // ===========================================================================
+  function bindPanel() {
+    const body = $('panel-body');
+    const ent = selectedId && W.findAny(world, selectedId);
+    const kind = ent && W.kindOf(world, selectedId);
+
+    // Ajustes del mundo
+    body.querySelectorAll('[data-w]').forEach(el => el.addEventListener('change', () => {
+      world[el.dataset.w] = el.value.trim() || world[el.dataset.w];
+      commit();
+    }));
+    body.querySelectorAll('[data-s]').forEach(el => el.addEventListener('change', () => {
+      let v = parseFloat(el.value);
+      if (el.dataset.pct) v = v / 100;
+      world.settings[el.dataset.s] = v;
+      commit();
+    }));
+    body.querySelectorAll('[data-layer]').forEach(el => el.addEventListener('change', () => {
+      layers[el.dataset.layer] = el.checked;
+      savePrefs();
+      requestDraw();
+    }));
+
+    // Campos de la entidad seleccionada
+    body.querySelectorAll('[data-f]').forEach(el => {
+      const live = el.type === 'range';
+      const apply = final => {
+        const f = el.dataset.f;
+        let v = el.value;
+        if (el.dataset.num) v = Math.max(1, parseInt(v, 10) || 1);
+        if (el.dataset.scale) v = parseFloat(v) * parseFloat(el.dataset.scale);
+        else if (el.type === 'range') v = parseFloat(v);
+        if (el.dataset.list) v = v.split(',').map(s => s.trim()).filter(Boolean);
+        if (f === 'name') v = String(v).trim() || ent.name;
+        ent[f] = v;
+        if (kind === 'road' && f === 'bend') W.refreshRoad(world, ent);
+        if (kind === 'zone' && (f === 'levelMin' || f === 'levelMax')) {
+          if (ent.levelMax < ent.levelMin) ent.levelMax = ent.levelMin;
+        }
+        if (kind === 'zone' && f === 'type') W.autoLevelZone(world, ent);
+        if (kind === 'zone' && f === 'biome') W.rerollZoneMonsters(world, ent);
+        if (final) commit(); else requestDraw();
+      };
+      if (live) el.addEventListener('input', () => apply(false));
+      el.addEventListener('change', () => apply(true));
+    });
+
+    // Configuración del pueblo (compatible con el Creador de Pueblos)
+    body.querySelectorAll('[data-c]').forEach(el => el.addEventListener('change', () => {
+      const k = el.dataset.c;
+      let v = el.value;
+      if (k === 'size' || k === 'seed') v = Math.max(1, Math.min(k === 'seed' ? 99999 : 5, parseInt(v, 10) || 1));
+      ent.cfg[k] = v;
+      if (k === 'size') { ent.radius = W.townRadius(v); ent.cfg.specialCount = Math.min(10, Math.max(2, v * 2)); }
+      commit();
+    }));
+    body.querySelectorAll('[data-cb]').forEach(el => el.addEventListener('change', () => {
+      ent.cfg[el.dataset.cb] = el.checked;
+      commit();
+    }));
+
+    // Monstruos
+    body.querySelectorAll('[data-m]').forEach(el => el.addEventListener('change', () => {
+      const m = ent.monsters[+el.dataset.m];
+      m[el.dataset.mf] = el.dataset.mf === 'level' ? Math.max(1, parseInt(el.value, 10) || 1) : el.value;
+      commit();
+    }));
+    body.querySelectorAll('[data-mdel]').forEach(el => el.addEventListener('click', () => {
+      ent.monsters.splice(+el.dataset.mdel, 1);
+      commit();
+    }));
+
+    body.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', () => {
+      const t = W.findAny(world, el.dataset.goto);
+      if (!t) return;
+      select(t.id);
+      if (t.x !== undefined) centerOn(t.x, t.y);
+    }));
+
+    body.querySelectorAll('[data-act]').forEach(el => el.addEventListener('click', () => panelAction(el.dataset.act, ent)));
+  }
+
+  function panelAction(act, ent) {
+    switch (act) {
+      case 'expand1': expandWorld(1); break;
+      case 'expand5': expandWorld(5); break;
+      case 'levels':
+        if (confirm('Esto recalcula los niveles de TODOS los pueblos y zonas y regenera los monstruos. ¿Continuar?')) {
+          W.recomputeLevels(world); commit('Niveles recalculados');
+        }
+        break;
+      case 'sessions': openSessions(); break;
+      case 'export': exportWorld(); break;
+      case 'new': openNewWorld(); break;
+      case 'delete': deleteEntity(ent.id); break;
+      case 'center': centerOn(ent.x, ent.y); break;
+      case 'set-start': W.setStartTown(world, ent.id); commit('«' + ent.name + '» es ahora el pueblo inicial. Pulsa «Recalcular niveles» en Mundo si quieres actualizar niveles.'); break;
+      case 'connect': {
+        const made = W.autoConnect(world, ent, 1);
+        if (autoZones) made.forEach(r => W.populateRoad(world, r));
+        W.recomputeLevelsSoft(world, ent, made);
+        commit(made.length ? 'Camino creado' : 'No hay pueblos para conectar');
+        break;
+      }
+      case 'town-dice': ent.cfg.seed = Math.floor(Math.random() * 99999) + 1; commit(); break;
+      case 'open-town': openTownEditor(ent); break;
+      case 'populate': {
+        const made = W.populateRoad(world, ent, 2);
+        made.forEach(z => W.autoLevelZone(world, z));
+        commit(made.length ? made.length + ' zona(s) creada(s)' : 'Camino demasiado corto para zonas (< 500 m)');
+        break;
+      }
+      case 'goto-a': case 'goto-b': {
+        const t = W.findTown(world, act === 'goto-a' ? ent.from : ent.to);
+        if (t) { select(t.id); centerOn(t.x, t.y); }
+        break;
+      }
+      case 'mon-add':
+        ent.monsters.push({ name: 'Nuevo monstruo', level: ent.levelMax, density: 'media', boss: false });
+        commit();
+        break;
+      case 'mon-roll': W.rerollZoneMonsters(world, ent); commit(); break;
+      case 'zone-level': W.autoLevelZone(world, ent); commit('Nivel ajustado: ' + ent.levelMin + '–' + ent.levelMax); break;
+      case 'anchor': {
+        const road = W.findRoad(world, ent.roadId);
+        if (road) {
+          let best = 0, bd = Infinity;
+          for (let i = 0; i <= 40; i++) { const p = W.pointOnPolyline(road.points, i / 40); const d = Math.hypot(p.x - ent.x, p.y - ent.y); if (d < bd) { bd = d; best = i / 40; } }
+          ent.roadT = best; ent.anchored = true; W.refreshRoad(world, road);
+          commit('Zona ligada al camino');
+        }
+        break;
+      }
+    }
+  }
+
+  document.querySelectorAll('#panel-tabs button').forEach(b => b.addEventListener('click', () => { activeTab = b.dataset.tab; renderPanel(); }));
+
+  // ===========================================================================
+  // Integración con el Creador de Pueblos 3D
+  // ===========================================================================
+  function openTownEditor(t) {
+    saveSession();
+    const payload = { sessionId, townId: t.id, name: t.name, cfg: t.cfg };
+    location.href = 'creador-de-pueblos.html#mundo=' + encodeURIComponent(JSON.stringify(payload));
+  }
+
+  function consumeTownReturn() {
+    const raw = lsGet(STORE.townReturn);
+    if (!raw) return;
+    lsDel(STORE.townReturn);
+    try {
+      const data = JSON.parse(raw);
+      if (data.sessionId !== sessionId) return;
+      const t = W.findTown(world, data.townId);
+      if (!t || !data.cfg) return;
+      t.cfg = Object.assign({}, t.cfg, data.cfg);
+      t.radius = W.townRadius(t.cfg.size);
+      selectedId = t.id; activeTab = 'sel';
+      commit('Diseño de «' + t.name + '» actualizado');
+      centerOn(t.x, t.y);
+    } catch (e) { console.error(e); }
+  }
+
+  // ===========================================================================
+  // Modales: sesiones, exportar / importar, nuevo mundo
+  // ===========================================================================
+  function openSessions() { renderSessions(); $('modal-sessions').classList.add('show'); }
+  function closeModals() { document.querySelectorAll('.modal-bg').forEach(m => m.classList.remove('show')); }
+
+  function renderSessions() {
+    const list = sessionIndex();
+    $('session-list').innerHTML = list.length ? list.map(s => `
+      <div class="session ${s.id === sessionId ? 'current' : ''}">
+        <div class="info"><b>${esc(s.name)}</b><span class="muted">${new Date(s.updated).toLocaleString()} · ${s.towns || 0} pueblos · ${s.zones || 0} zonas</span></div>
+        ${s.id === sessionId ? '<span class="muted">actual</span>' : `<button data-load="${s.id}">Abrir</button>`}
+        <button class="danger" data-del="${s.id}">🗑</button>
+      </div>`).join('') : '<div class="empty">No hay sesiones guardadas.</div>';
+    $('session-list').querySelectorAll('[data-load]').forEach(b => b.onclick = () => { if (loadSession(b.dataset.load)) { closeModals(); toast('Sesión cargada'); } });
+    $('session-list').querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+      const s = list.find(x => x.id === b.dataset.del);
+      if (confirm('¿Eliminar definitivamente la sesión «' + (s ? s.name : '') + '»?')) deleteSession(b.dataset.del);
+    });
+  }
+
+  function exportWorld() {
+    const blob = new Blob([JSON.stringify(world, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = world.name.replace(/[^\w\-áéíóúñÁÉÍÓÚÑ ]+/g, '').trim().replace(/\s+/g, '_') + '.mundo.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast('Mundo exportado');
+  }
+
+  $('btn-sessions').onclick = openSessions;
+  $('btn-close-sessions').onclick = closeModals;
+  $('btn-export').onclick = exportWorld;
+  $('btn-import').onclick = () => $('file-import').click();
+  $('file-import').onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const w = W.deserialize(reader.result);
+        openWorld(w, newSessionId());
+        closeModals();
+        toast('Mundo «' + w.name + '» importado como nueva sesión');
+      } catch (err) { toast('No se pudo importar: ' + err.message, 4000); }
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  };
+  $('btn-save-as').onclick = () => {
+    const name = prompt('Nombre de la copia:', world.name + ' (copia)');
+    if (!name) return;
+    const copy = JSON.parse(JSON.stringify(world));
+    copy.name = name;
+    openWorld(W.validate(copy), newSessionId(), { fit: false });
+    renderSessions();
+    toast('Sesión duplicada');
+  };
+
+  function openNewWorld() {
+    closeModals();
+    $('nw-seed').value = Math.floor(Math.random() * 999999) + 1;
+    updateNewWorldLabels();
+    $('modal-new').classList.add('show');
+  }
+  function updateNewWorldLabels() {
+    $('nw-towns-l').textContent = $('nw-towns').value;
+    $('nw-spacing-l').textContent = $('nw-spacing').value + ' m';
+    $('nw-links-l').textContent = $('nw-links').value + '%';
+    $('nw-poi-l').textContent = $('nw-poi').value + '%';
+    $('nw-mpl-l').textContent = $('nw-mpl').value + ' m';
+  }
+  ['nw-towns', 'nw-spacing', 'nw-links', 'nw-poi', 'nw-mpl'].forEach(id => $(id).addEventListener('input', updateNewWorldLabels));
+  $('btn-new-world').onclick = openNewWorld;
+  $('nw-dice').onclick = () => { $('nw-seed').value = Math.floor(Math.random() * 999999) + 1; };
+  $('nw-cancel').onclick = closeModals;
+  $('nw-go').onclick = () => {
+    const w = W.generateWorld({
+      name: $('nw-name').value.trim() || 'Nuevo mundo',
+      seed: parseInt($('nw-seed').value, 10) || undefined,
+      settings: {
+        townCount: parseInt($('nw-towns').value, 10),
+        spacing: parseInt($('nw-spacing').value, 10),
+        extraLinks: parseInt($('nw-links').value, 10) / 100,
+        zonesPerRoad: parseInt($('nw-zones').value, 10),
+        poiChance: parseInt($('nw-poi').value, 10) / 100,
+        metersPerLevel: parseInt($('nw-mpl').value, 10)
+      }
+    });
+    activeTab = 'world';
+    openWorld(w, newSessionId());
+    closeModals();
+    toast('Mundo «' + w.name + '» generado con ' + w.towns.length + ' pueblos');
+  };
+  document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModals(); }));
+
+  // ===========================================================================
+  // Preferencias, atajos y arranque
+  // ===========================================================================
+  function savePrefs() {
+    try { lsSet(STORE.prefs, JSON.stringify({ layers, autoConnect, autoZones })); } catch (e) { /* nada */ }
+  }
+  function loadPrefs() {
+    try {
+      const p = JSON.parse(lsGet(STORE.prefs) || 'null');
+      if (!p) return;
+      Object.assign(layers, p.layers || {});
+      if (typeof p.autoConnect === 'boolean') autoConnect = p.autoConnect;
+      if (typeof p.autoZones === 'boolean') autoZones = p.autoZones;
+    } catch (e) { /* nada */ }
+  }
+
+  $('btn-undo').onclick = undo;
+  $('btn-redo').onclick = redo;
+  $('btn-fit').onclick = fitView;
+  $('btn-panel').onclick = () => $('panel').classList.toggle('collapsed');
+
+  window.addEventListener('keydown', e => {
+    const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !typing) { e.preventDefault(); redo(); return; }
+    if (typing) return;
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) { deleteEntity(selectedId); return; }
+    if (e.key === 'Escape') { roadStart = null; closeModals(); setTool('select'); return; }
+    const keys = { '1': 'select', '2': 'town', '3': 'zone', '4': 'road', '5': 'poi', '6': 'delete' };
+    if (keys[e.key]) setTool(keys[e.key]);
+  });
+  window.addEventListener('resize', resize);
+
+  (function boot() {
+    loadPrefs();
+    if (window.innerWidth <= 760) $('panel').classList.add('collapsed');
+    resize();
+    const cur = lsGet(STORE.current);
+    if (!(cur && lsGet(STORE.data(cur)) && loadSession(cur))) {
+      openWorld(W.generateWorld({ name: 'Reino de Aden' }));
+      toast('Se ha generado un mundo inicial. ✨ Nuevo mundo para crear otro.', 3500);
+    }
+    consumeTownReturn();
+    setTool('select');
+  })();
+  </script>
+</body>
+</html>

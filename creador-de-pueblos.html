@@ -172,6 +172,29 @@
     }
     .stats b { color: #38bdf8; }
 
+    #world-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 12px;
+      z-index: 30;
+      display: none;
+      gap: 6px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(251, 191, 36, 0.6);
+      border-radius: 8px;
+      padding: 6px 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      max-width: calc(100vw - 160px);
+    }
+    #world-bar.show { display: flex; }
+    #world-bar span { color: #fde68a; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #world-bar button {
+      background: #78350f; border: 1px solid #fbbf24; color: #fef3c7; border-radius: 6px;
+      padding: 6px 9px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    #world-bar button.plain { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+
     #cam-bar {
       position: absolute;
       top: 12px;
@@ -244,6 +267,12 @@
 <body>
 
   <button id="btn-toggle-ui">☰ Controles</button>
+
+  <div id="world-bar">
+    <span id="world-town-name">🌍</span>
+    <button id="btn-world-save" title="Guardar este diseño en el pueblo del mundo">💾 Guardar y volver</button>
+    <button id="btn-world-cancel" class="plain" title="Volver al mundo sin guardar">✕</button>
+  </div>
 
   <div id="cam-bar">
     <button class="cam-pill" id="btn-view-overview">Vista General</button>
@@ -2521,31 +2550,85 @@
     }
     animate();
 
+    function readCfgFromUI() {
+      return {
+        style: document.getElementById('inp-style').value,
+        terrainType: document.getElementById('inp-terrain-type').value,
+        relief: parseInt(document.getElementById('inp-relief').value, 10),
+        seed: parseInt(document.getElementById('inp-seed').value, 10),
+        size: parseInt(document.getElementById('inp-size').value, 10),
+        houseDensity: parseInt(document.getElementById('inp-houses').value, 10),
+        specialCount: parseInt(document.getElementById('inp-special').value, 10),
+        maxFloors: parseInt(document.getElementById('inp-floors').value, 10),
+        roadWidth: parseFloat(document.getElementById('inp-road-w').value),
+        curve: parseFloat(document.getElementById('inp-curve').value),
+        treeDensity: parseInt(document.getElementById('inp-trees').value, 10),
+        hasWalls: document.getElementById('chk-walls').checked,
+        hasRiver: document.getElementById('chk-river').checked,
+        hasMagic: document.getElementById('chk-magic').checked,
+        hasProps: document.getElementById('chk-props').checked,
+        hasLamps: document.getElementById('chk-lamps').checked,
+        hasFences: document.getElementById('chk-fences').checked,
+        time: document.getElementById('inp-time').value
+      };
+    }
+
+    // --- 10. INTEGRACIÓN CON EL CREADOR DE MUNDOS (index.html) ---
+    function applyCfgToUI(cfg) {
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+      const setChk = (id, v) => { const el = document.getElementById(id); if (el && typeof v === 'boolean') el.checked = v; };
+      setVal('inp-style', cfg.style);
+      setVal('inp-terrain-type', cfg.terrainType);
+      setVal('inp-relief', cfg.relief);
+      setVal('inp-seed', cfg.seed);
+      setVal('inp-size', cfg.size);
+      setVal('inp-houses', cfg.houseDensity);
+      setVal('inp-special', cfg.specialCount);
+      setVal('inp-floors', cfg.maxFloors);
+      setVal('inp-road-w', cfg.roadWidth);
+      setVal('inp-curve', cfg.curve);
+      setVal('inp-trees', cfg.treeDensity);
+      setVal('inp-time', cfg.time);
+      setChk('chk-walls', cfg.hasWalls);
+      setChk('chk-river', cfg.hasRiver);
+      setChk('chk-magic', cfg.hasMagic);
+      setChk('chk-props', cfg.hasProps);
+      setChk('chk-lamps', cfg.hasLamps);
+      setChk('chk-fences', cfg.hasFences);
+    }
+
+    const worldLink = (function () {
+      const m = location.hash.match(/mundo=([^&]+)/);
+      if (!m) return null;
+      try { return JSON.parse(decodeURIComponent(m[1])); } catch (e) { console.warn('Enlace de mundo no válido', e); return null; }
+    })();
+
+    if (worldLink && worldLink.cfg) {
+      applyCfgToUI(worldLink.cfg);
+      document.getElementById('world-bar').classList.add('show');
+      document.getElementById('world-town-name').textContent = '🌍 ' + (worldLink.name || 'Pueblo');
+      document.title = (worldLink.name || 'Pueblo') + ' · Creador de Pueblos';
+    }
+
+    document.getElementById('btn-world-save').addEventListener('click', () => {
+      if (!worldLink) return;
+      try {
+        localStorage.setItem('rpgMundo.retornoPueblo', JSON.stringify({
+          sessionId: worldLink.sessionId, townId: worldLink.townId, cfg: readCfgFromUI()
+        }));
+      } catch (e) {
+        alert('No se pudo guardar en el navegador: ' + e.message);
+        return;
+      }
+      location.href = 'index.html';
+    });
+    document.getElementById('btn-world-cancel').addEventListener('click', () => { location.href = 'index.html'; });
+
     function rebuildFromUI() {
       try {
-        const sizeVal = parseInt(document.getElementById('inp-size').value, 10);
         const sizeLabels = { 2: '2 (Aldea)', 3: '3 (Mediano)', 4: '4 (Grande)', 5: '5 (Ciudadela)' };
 
-        const cfg = {
-          style: document.getElementById('inp-style').value,
-          terrainType: document.getElementById('inp-terrain-type').value,
-          relief: parseInt(document.getElementById('inp-relief').value, 10),
-          seed: parseInt(document.getElementById('inp-seed').value, 10),
-          size: sizeVal,
-          houseDensity: parseInt(document.getElementById('inp-houses').value, 10),
-          specialCount: parseInt(document.getElementById('inp-special').value, 10),
-          maxFloors: parseInt(document.getElementById('inp-floors').value, 10),
-          roadWidth: parseFloat(document.getElementById('inp-road-w').value),
-          curve: parseFloat(document.getElementById('inp-curve').value),
-          treeDensity: parseInt(document.getElementById('inp-trees').value, 10),
-          hasWalls: document.getElementById('chk-walls').checked,
-          hasRiver: document.getElementById('chk-river').checked,
-          hasMagic: document.getElementById('chk-magic').checked,
-          hasProps: document.getElementById('chk-props').checked,
-          hasLamps: document.getElementById('chk-lamps').checked,
-          hasFences: document.getElementById('chk-fences').checked,
-          time: document.getElementById('inp-time').value
-        };
+        const cfg = readCfgFromUI();
 
         document.getElementById('lbl-relief').textContent = cfg.relief + '%';
         document.getElementById('lbl-seed').textContent = cfg.seed;
