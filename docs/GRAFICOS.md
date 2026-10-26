@@ -56,3 +56,42 @@ medidas de memoria y de tiempo reales en un ordenador y en un móvil.
    con IA. En esta sesión hay herramientas de generación de modelos 3D y de sprites, pero necesitan
    autorización de tu cuenta para usarse.
 3. **Dispositivo principal:** ¿sobre todo ordenador, o también móvil? Cambia cuánto detalle se puede permitir.
+
+## Decisiones tomadas
+
+1. **Estilo:** pintado, cercano a Lineage 2. Texturas con detalle, paleta cálida y sombras suaves.
+2. **Assets:** packs gratuitos con licencia libre (CC0 o equivalente). Se anota la fuente y la licencia de cada
+   pack en `docs/ASSETS.md` (pendiente de crear al empezar G1).
+3. **Dispositivos:** ordenador y móvil. Consecuencias:
+   - Presupuesto por dispositivo: máximo de triángulos por fotograma, memoria de texturas y número de luces.
+   - Texturas de 1024 px en móvil y 2048 px en ordenador (mismo contenido, distinta resolución).
+   - Niveles de calidad (bajo, medio, alto) elegidos automáticamente al arrancar y ajustables a mano.
+   - Sombras solo en medio y alto; en bajo, sombras falsas bajo cada personaje.
+
+## Fases con las decisiones aplicadas
+
+**G1. Terreno pintado.** Texturas de hierba, tierra, roca, arena y nieve mezcladas según altura, pendiente y
+bioma. Terreno por trozos de 300 m con detalle según la distancia (el mismo tamaño que el suelo de cada pueblo,
+para que las costuras coincidan). Sombras del sol en medio y alto.
+
+**G2. Agua y cielo pintados.** Agua con ondas suaves, espuma en la orilla y color según la profundidad. Cielo
+con degradado cálido, sol y nubes. La niebla cambia con la hora del día.
+
+**G3. Vegetación pintada.** Árboles y rocas de packs gratuitos, con variedad de forma y color, y hierba en
+pequeñas cantidades. El viento se aplica en el shader, sin animar cada hoja.
+
+**G4. Personajes y monstruos.** Tu GLB del personaje y modelos de monstruos de packs gratuitos con animaciones
+básicas. Sombra bajo cada personaje también en bajo.
+
+**G5. Efectos de combate.** Impactos, estela de la patada, anillo de la nova y números de daño.
+
+**G6. Interfaz pintada.** Iconos y marcos a juego; tipografía legible en pantallas pequeñas.
+
+**G7. Calidad y móvil.** Medir en un móvil real: fotogramas por segundo, memoria y temperatura. Ajustar los
+presets antes de añadir más detalle.
+
+## Primer paso propuesto
+
+G1 en tres partes: (a) elegir y descargar el pack de terreno, con su licencia; (b) pintar el terreno por
+bioma con texturas; (c) partir el terreno en trozos con dos niveles de detalle. Antes de añadir nada más se
+mide el rendimiento en un móvil real, porque el resultado depende de eso.
