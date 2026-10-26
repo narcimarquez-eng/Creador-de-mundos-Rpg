@@ -259,6 +259,7 @@
   let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
+  let terrainGrid = null;   // malla del mundo: { x0, z0, step, n, N, pos }
   let monsters = [];
   let timeOfDay = 'day';
   let curTown = null, curZone = null;
@@ -279,7 +280,8 @@
 
   // Altura del mundo. Dentro del terreno de cada pueblo usa el suelo exacto del Creador de Pueblos,
   // y fuera se funde con el terreno del mundo.
-  function H(x, z) {
+  // Altura analítica del terreno (sin malla). La malla se construye a partir de ella.
+  function Hgen(x, z) {
     const e = terrain.elevation(x, z);
     let h = (e - SEA) * HEIGHT_SCALE;
     for (let i = 0; i < towns.length; i++) {
@@ -448,7 +450,8 @@
   }
 
   function clearWorldObjects() {
-    towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
+    towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } if (o.patch) { scene.remove(o.patch); o.patch.geometry.dispose(); } });
+    terrainGrid = null;
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
@@ -494,6 +497,7 @@
     bounds.size = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
 
     buildTerrain();
+    buildPatches();
     buildWater();
     buildTowns();
     buildRoads();
@@ -517,6 +521,75 @@
     updateStats();
   }
 
+  // ¿Está (x, z) dentro del cuadrado del suelo de algún pueblo?
+  function townContains(x, z) {
+    return towns.some(o => {
+      const dx = x - o.t.x, dz = z - o.t.y;
+      if (Math.hypot(dx, dz) > o.tileHalf * 1.5) return false;
+      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+      return Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf;
+    });
+  }
+
+  // Altura de la superficie que se ve y sobre la que anda el personaje.
+  // Dentro de un pueblo: su suelo exacto. Fuera: interpolación dentro de la celda de la malla.
+  function meshHeight(x, z) {
+    for (const o of towns) {
+      const dx = x - o.t.x, dz = z - o.t.y;
+      if (Math.hypot(dx, dz) > o.tileHalf * 1.5) continue;
+      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) return o.h0 + o.ground.getTerrainHeight(lx, lz);
+    }
+    if (!terrainGrid) return Hgen(x, z);
+    const g = terrainGrid;
+    const fx = (x - g.x0) / g.step, fz = (z - g.z0) / g.step;
+    const i = Math.max(0, Math.min(g.n - 1, Math.floor(fx)));
+    const j = Math.max(0, Math.min(g.n - 1, Math.floor(fz)));
+    const u = Math.max(0, Math.min(1, fx - i)), v = Math.max(0, Math.min(1, fz - j));
+    const Y = (ii, jj) => g.pos[(jj * g.N + ii) * 3 + 1];
+    const ya = Y(i, j), yb = Y(i + 1, j), yc = Y(i, j + 1), yd = Y(i + 1, j + 1);
+    // Mismo reparto de triángulos que la malla: [a, c, b] y [b, c, d]
+    if (u + v <= 1) return ya + (yb - ya) * u + (yc - ya) * v;
+    return yd + (yb - yd) * (1 - v) + (yc - yd) * (1 - u);
+  }
+
+  function H(x, z) { return meshHeight(x, z); }
+
+  // Malla fina del suelo de cada pueblo: la misma que genera el Creador de Pueblos
+  function buildPatches() {
+    const SEG = 120;
+    towns.forEach(o => {
+      const half = o.tileHalf, step = (2 * half) / SEG, N = SEG + 1;
+      const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
+      const cfg = o.cfg;
+      const gc = W.BIOMES[o.t.biome] ? W.BIOMES[o.t.biome].color : [127, 174, 90];
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        const lx = -half + i * step, lz = -half + j * step;
+        const wx = o.t.x + lx * o.cr - lz * o.sr, wz = o.t.y + lx * o.sr + lz * o.cr;
+        const k = (j * N + i) * 3;
+        pos[k] = wx; pos[k + 1] = o.h0 + o.ground.getTerrainHeight(lx, lz); pos[k + 2] = wz;
+        let c = [gc[0] / 255, gc[1] / 255, gc[2] / 255];
+        if (Math.hypot(lx, lz) < 16.5) c = [0.8, 0.84, 0.88];                       // plaza
+        else if (cfg.hasRiver && Math.abs(lx - o.ground.getRiverX(lz)) < o.ground.riverWidth * 0.72) c = [0.6, 0.52, 0.4]; // arena del río
+        col[k] = c[0]; col[k + 1] = c[1]; col[k + 2] = c[2];
+      }
+      const idx = new Uint32Array(SEG * SEG * 6);
+      let p = 0;
+      for (let j = 0; j < SEG; j++) for (let i = 0; i < SEG; i++) {
+        const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
+        idx[p++] = a; idx[p++] = c; idx[p++] = b;
+        idx[p++] = b; idx[p++] = c; idx[p++] = d;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      g.setIndex(new THREE.BufferAttribute(idx, 1));
+      g.computeVertexNormals();
+      o.patch = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
+      scene.add(o.patch);
+    });
+  }
+
   function buildTerrain() {
     const ext = bounds.size;
     const n = Math.max(100, Math.min(420, Math.round(ext / 20)));
@@ -528,7 +601,7 @@
       for (let i = 0; i < N; i++) {
         const x = x0 + i * step, z = z0 + j * step;
         const e = terrain.elevation(x, z);
-        const h = H(x, z);
+        const h = Hgen(x, z);
         const b = terrain.biomeAt(x, z, e);
         const c = W.BIOMES[b].color;
         const k = (j * N + i) * 3;
@@ -539,14 +612,16 @@
     const idx = new Uint32Array(n * n * 6);
     let p = 0;
     for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      if (townContains(x0 + (i + 0.5) * step, z0 + (j + 0.5) * step)) continue;   // hueco: lo cubre el suelo del pueblo
       const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
       idx[p++] = a; idx[p++] = c; idx[p++] = b;
       idx[p++] = b; idx[p++] = c; idx[p++] = d;
     }
+    terrainGrid = { x0, z0, step, n, N, pos };
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.setIndex(new THREE.BufferAttribute(idx.subarray(0, p), 1));
     g.computeVertexNormals();
     terrainMesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
     scene.add(terrainMesh);
