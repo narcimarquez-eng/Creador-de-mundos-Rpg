@@ -41,6 +41,27 @@ Unidades en **metros**; `x, y` del mapa = `x, z` en 3D.
 | `cfg` | **Configuración exacta del Creador de Pueblos** (`style`, `terrainType`, `relief`, `seed`, `size`, `houseDensity`, `specialCount`, `maxFloors`, `roadWidth`, `curve`, `treeDensity`, `hasWalls`, `hasRiver`, `hasMagic`, `hasProps`, `hasLamps`, `hasFences`, `time`). Con ella el juego regenera el pueblo 3D idéntico. |
 | `notes` | Texto libre (historia, NPCs…). |
 
+### Salidas del pueblo (`cfg.rotation` y `cfg.exits`)
+El Creador de Pueblos genera cada pueblo en coordenadas **locales** con 4 calles principales que salen por las puertas
+`E` (0°), `S` (90°), `W` (180°) y `N` (270°). Ángulos en grados con `atan2(z, x)`.
+
+- `cfg.rotation`: giro del pueblo en el mundo, elegido para que sus puertas apunten a los caminos.
+- `cfg.exits`: `[{ angle, gate, to, toId, roadId }]`, una por camino del mundo:
+  - `angle`: dirección local por la que sale el camino, medida en el borde del terreno del pueblo.
+  - `gate`: puerta por la que sale (`E`/`S`/`W`/`N`), o `null` si es una salida extra.
+  - `to` / `toId` / `roadId`: pueblo destino y camino del mundo.
+
+El mundo las recalcula solo al crear, mover o borrar caminos y pueblos. El Creador de Pueblos dibuja cada salida
+desde su puerta hasta el borde del terreno, con un cartel con el destino.
+
+Para colocar el pueblo en el mundo (r = `rotation` en radianes), un punto local `(lx, lz)` pasa a:
+```
+x = town.x + lx·cos r − lz·sin r
+y = town.y + lx·sin r + lz·cos r
+```
+El terreno del pueblo es un cuadrado de lado `max(240, (42 + 14·size + 65)·2)` m centrado en el pueblo.
+`RPGWorld.exitWorldPoint(town, exit)` da el punto del mundo donde la salida enlaza con su camino.
+
 ## Camino
 | Campo | Descripción |
 |---|---|

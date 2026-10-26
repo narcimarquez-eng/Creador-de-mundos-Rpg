@@ -302,7 +302,9 @@
       hasProps: true,
       hasLamps: true,
       hasFences: true,
-      time: 'day'
+      time: 'day',
+      rotation: 0,   // giro del pueblo en el mundo (grados), lo calcula computeTownExits
+      exits: []      // salidas hacia los caminos del mundo (ver computeTownExits)
     };
   }
 
@@ -408,6 +410,93 @@
   }
 
   // ---------------------------------------------------------------------------
+  // 6b. Salidas de los pueblos: por dónde salen los caminos del mundo
+  // ---------------------------------------------------------------------------
+  // El Creador de Pueblos genera cada pueblo en coordenadas locales con 4 calles
+  // principales que salen por las puertas E (0°), S (90°), W (180°) y N (270°).
+  // Aquí elegimos un giro (cfg.rotation) para que esas puertas apunten lo mejor
+  // posible a los caminos del mundo; los caminos que no encajan en ninguna puerta
+  // se convierten en salidas extra (gate: null).
+  // Ángulos en grados, medidos con atan2(dy, dx) (= atan2(dz, dx) en 3D).
+  // Un punto local (lx, lz) del pueblo pasa al mundo así (r = rotation):
+  //   x = town.x + lx·cos r − lz·sin r ;  y = town.y + lx·sin r + lz·cos r
+  const GATES = [
+    { gate: 'E', angle: 0 }, { gate: 'S', angle: 90 },
+    { gate: 'W', angle: 180 }, { gate: 'N', angle: 270 }
+  ];
+  const GATE_MAX_DIFF = 35;
+  const normDeg = a => ((a % 360) + 360) % 360;
+  const angDiff = (a, b) => { const d = Math.abs(normDeg(a) - normDeg(b)); return Math.min(d, 360 - d); };
+  const toDeg = r => r * 180 / Math.PI;
+
+  // Mitad del lado del terreno 3D que genera el Creador de Pueblos (m)
+  function townTileHalf(size) { return Math.max(240, (42 + size * 14 + 65) * 2) / 2; }
+
+  // Dirección (grados) con la que un camino sale del pueblo, medida en el borde del terreno 3D
+  function roadAngleAt(world, town, road) {
+    let pts = road.points;
+    if (!pts || pts.length < 2) return null;
+    if (road.to === town.id) pts = pts.slice().reverse();
+    const R = townTileHalf((town.cfg && town.cfg.size) || 3);
+    let p = pts[pts.length - 1];
+    for (let i = 1; i < pts.length; i++) {
+      if (dist(pts[i], town) >= R) { p = pts[i]; break; }
+    }
+    return normDeg(toDeg(Math.atan2(p.y - town.y, p.x - town.x)));
+  }
+
+  function computeTownExits(world, town) {
+    if (!town || !town.cfg) return;
+    const links = world.roads
+      .filter(r => r.from === town.id || r.to === town.id)
+      .map(r => {
+        const other = findTown(world, r.from === town.id ? r.to : r.from);
+        return { roadId: r.id, toId: other ? other.id : null, to: other ? other.name : '?', world: roadAngleAt(world, town, r) };
+      })
+      .filter(l => l.world !== null);
+    const cur = normDeg(town.cfg.rotation || 0);
+    if (!links.length) { town.cfg.rotation = Math.round(cur); town.cfg.exits = []; return; }
+
+    let best = null;
+    for (let r = 0; r < 360; r++) {
+      const pairs = [];
+      links.forEach((l, i) => GATES.forEach(g => pairs.push({ i, g: g.gate, d: angDiff(l.world - r, g.angle) })));
+      pairs.sort((a, b) => a.d - b.d);
+      const usedL = new Set(), usedG = new Set(), assign = {};
+      let cost = 0;
+      for (const p of pairs) {
+        if (usedL.has(p.i) || usedG.has(p.g) || p.d > GATE_MAX_DIFF) continue;
+        usedL.add(p.i); usedG.add(p.g); assign[p.i] = p.g; cost += p.d;
+      }
+      cost += (links.length - usedL.size) * 60 + angDiff(r, cur) * 0.01;
+      if (!best || cost < best.cost) best = { cost, r, assign };
+    }
+    town.cfg.rotation = best.r;
+    town.cfg.exits = links.map((l, i) => ({
+      angle: normDeg(Math.round(normDeg(l.world - best.r) * 10) / 10),
+      gate: best.assign[i] || null,
+      to: l.to,
+      toId: l.toId,
+      roadId: l.roadId
+    })).sort((a, b) => a.angle - b.angle);
+  }
+
+  function updateTownExits(world, ids) {
+    ids.forEach(id => computeTownExits(world, findTown(world, id)));
+  }
+
+  function updateAllExits(world) {
+    world.towns.forEach(t => computeTownExits(world, t));
+  }
+
+  // Punto de salida en el mundo (borde del terreno del pueblo) para una salida dada
+  function exitWorldPoint(town, exit) {
+    const R = townTileHalf(town.cfg.size);
+    const a = (exit.angle + (town.cfg.rotation || 0)) * Math.PI / 180;
+    return { x: town.x + Math.cos(a) * R, y: town.y + Math.sin(a) * R };
+  }
+
+  // ---------------------------------------------------------------------------
   // 7. Creación de entidades
   // ---------------------------------------------------------------------------
   function rngFor(world) {
@@ -459,6 +548,7 @@
     commit();
     buildRoadPoints(world, road);
     world.roads.push(road);
+    updateTownExits(world, [fromId, toId]);
     return road;
   }
 
@@ -564,6 +654,7 @@
 
   function refreshRoad(world, road) {
     buildRoadPoints(world, road);
+    updateTownExits(world, [road.from, road.to]);
     world.zones.forEach(z => {
       if (z.anchored && z.roadId === road.id && z.roadT !== null) {
         const p = pointOnPolyline(road.points, z.roadT);
@@ -601,7 +692,9 @@
         world.towns.forEach(t => { t.isStart = t.id === world.startTownId; });
       }
     } else if (kind === 'road') {
+      const road = findRoad(world, id);
       world.roads = world.roads.filter(r => r.id !== id);
+      updateTownExits(world, [road.from, road.to]);
       world.zones.forEach(z => { if (z.roadId === id) { z.roadId = null; z.anchored = false; z.roadT = null; } });
     } else if (kind === 'zone') {
       world.zones = world.zones.filter(z => z.id !== id);
@@ -874,6 +967,7 @@
     obj.nextId = obj.nextId || 1;
     obj.towns.forEach(t => { t.radius = townRadius((t.cfg && t.cfg.size) || 3); });
     obj.roads.forEach(r => { if (!r.points || !r.points.length) buildRoadPoints(obj, r); });
+    updateAllExits(obj);
     return obj;
   }
 
@@ -899,6 +993,7 @@
     emptyWorld, generateWorld, addTown, autoConnect, populateRoad,
     createTown, createRoad, createZone, createPoi,
     moveEntity, removeEntity, refreshRoad, setStartTown,
+    computeTownExits, updateAllExits, exitWorldPoint, townTileHalf,
     recomputeLevels, recomputeLevelsSoft, autoLevelZone, autoLevelTown, rerollZoneMonsters, townRadius, defaultTownCfg,
     findTown, findRoad, findZone, findPoi, findAny, kindOf,
     zoneOutline, zoneRadiusAt, pointInZone, distToPolyline, pointOnPolyline,

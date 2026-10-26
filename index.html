@@ -369,6 +369,7 @@
   // Historial (deshacer / rehacer) — cada cambio confirmado guarda una foto
   // ===========================================================================
   function commit(msg) {
+    W.updateAllExits(world); // salidas de los pueblos siempre al día (caminos, nombres, tamaños)
     const snap = JSON.stringify(world);
     if (undoStack[undoStack.length - 1] === snap) return;
     undoStack.push(snap);
@@ -1081,7 +1082,13 @@
       <input type="text" data-f="services" data-list="1" value="${esc((t.services || []).join(', '))}">
       <div class="muted">Separados por comas (posada, tienda, herrero, gremio…)</div>
       <h3>Conexiones</h3>
-      <div>${roads.length ? roads.map(r => { const o = W.findTown(world, r.from === t.id ? r.to : r.from); return `<span class="chip" data-goto="${r.id}">🛤 ${esc(o ? o.name : '?')} · ${r.length} m</span>`; }).join('') : '<span class="muted">Sin caminos</span>'}</div>
+      <div>${roads.length ? roads.map(r => {
+        const o = W.findTown(world, r.from === t.id ? r.to : r.from);
+        const ex = (t.cfg.exits || []).find(e => e.roadId === r.id);
+        const gate = ex ? (ex.gate ? 'puerta ' + ({ E: 'E', S: 'S', W: 'O', N: 'N' })[ex.gate] : 'salida extra') : '';
+        return `<span class="chip" data-goto="${r.id}">🛤 ${esc(o ? o.name : '?')} · ${r.length} m${gate ? ' · ' + gate : ''}</span>`;
+      }).join('') : '<span class="muted">Sin caminos</span>'}</div>
+      ${roads.length ? `<div class="muted" style="margin-top:4px">El pueblo está girado ${t.cfg.rotation || 0}° para que sus puertas miren a los caminos. En el Creador de Pueblos cada camino sale por su puerta hasta el borde, con un cartel al destino.</div>` : ''}
       <div>${nearZones.map(z => `<span class="chip" data-goto="${z.id}">⚔ ${esc(z.name)} (${z.levelMin}–${z.levelMax})</span>`).join('')}</div>
       <label>Notas / historia</label><textarea data-f="notes">${esc(t.notes)}</textarea>
       <div class="btns">
