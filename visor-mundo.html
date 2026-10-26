@@ -81,6 +81,16 @@
     #shop .item { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
     #shop .item span { flex: 1; }
     #shop .item small { color: var(--muted); display: block; }
+    #partidas { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
+    #partidas.show { display: flex; }
+    #partidas .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 380px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+    #partidas h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
+    #partidas .slot { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
+    #partidas .slot.active { border-color: var(--gold); }
+    #partidas .slot .info { flex: 1; min-width: 0; }
+    #partidas .slot .info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #partidas .muted { color: var(--muted); font-size: 12px; }
+    #partidas .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     #deadmsg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(69,10,10,.45); z-index: 45; font-size: 22px; font-weight: 700; color: #fecaca; pointer-events: none; }
     #deadmsg.show { display: flex; }
     #deadmsg small { font-size: 14px; color: #fca5a5; margin-top: 6px; font-weight: 600; }
@@ -123,7 +133,8 @@
     <div id="title">Visor 3D</div>
     <button id="btn-side" title="Lista de pueblos">☰</button>
     <button id="btn-overview" title="Vista del mapa (M)">🗺<span class="long"> Mapa</span></button>
-    <button id="btn-view-plaza" title="Plaza del pueblo más cercano">⛲<span class="long"> Plaza</span></button>
+    <button id="btn-save" title="Partidas y guardado">💾</button>
+  <button id="btn-view-plaza" title="Plaza del pueblo más cercano">⛲<span class="long"> Plaza</span></button>
     <button id="btn-view-detail" title="Fachada del pueblo más cercano">🏠<span class="long"> Fachada</span></button>
     <button id="btn-follow" title="Seguir al personaje (F)">🧍<span class="long"> Seguir</span></button>
     <button id="btn-time" title="Hora del día (T)">☀</button>
@@ -166,6 +177,21 @@
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
     </div>
   </div>
+  <div id="partidas"><div class="box">
+    <h2>💾 Partidas de este mundo</h2>
+    <div id="plist"></div>
+    <div class="btns">
+      <button id="p-save">💾 Guardar ahora</button>
+      <button id="p-new">➕ Nueva partida</button>
+    </div>
+    <div class="btns">
+      <button id="p-export">⬇ Exportar</button>
+      <button id="p-import">⬆ Importar</button>
+      <input type="file" id="p-file" accept=".json,application/json" hidden>
+    </div>
+    <div class="btns"><button id="p-close">Cerrar</button></div>
+    <div class="muted" style="margin-top:8px">Se guarda sola cada 20 segundos y al cerrar la página. Hasta 5 partidas por mundo. Las partidas son independientes del mundo.</div>
+  </div></div>
   <div id="shop"><div class="box">
     <h2>🛒 Tienda · <span id="shop-gold">0</span> 🪙</h2>
     <div class="item"><span>🧪 Poción de vida<small>Cura el 35 % de la vida</small></span><button id="buy-vida">15 🪙</button></div>
@@ -199,6 +225,7 @@
   <script src="js/village-core.js"></script>
   <script src="js/combat.js"></script>
   <script src="js/items.js"></script>
+  <script src="js/partida.js"></script>
   <script src="js/character.js"></script>
   <script>
   "use strict";
@@ -239,6 +266,13 @@
   let hero = CombatLib.newHero();
   let inv = ItemsLib.newInventory();
   let restPos = null, restPrevSinceHit = 0;
+  let worldId = null;
+  const visited = new Set();
+  const store = {
+    getItem: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { toast('No se puede guardar en este navegador'); } },
+    removeItem: k => { try { localStorage.removeItem(k); } catch (e) { /* nada */ } }
+  };
   const zoneLabels = [], townLabels = [];
   let follow = false, selected = null;
   let lastT = performance.now();
@@ -437,6 +471,7 @@
     hideInfo();
     hero = CombatLib.newHero();
     inv = ItemsLib.newInventory();
+    visited.clear();
     hero.resting = false;
     $('deadmsg').classList.remove('show');
     $('shop').classList.remove('show');
@@ -744,7 +779,7 @@
     const list = world.towns.slice().sort((a, b) => a.level - b.level);
     $('towns').innerHTML = list.map(t => `
       <button class="trow ${t.isStart ? 'start' : ''}" data-town="${t.id}">
-        <span class="nm">${t.isStart ? '⭐ ' : ''}${esc(t.name)}</span><small>Nv ${t.level}</small>
+        <span class="nm">${t.isStart ? '⭐ ' : ''}${visited.has(t.id) ? '✓ ' : ''}${esc(t.name)}</span><small>Nv ${t.level}</small>
       </button>`).join('') || '<div class="muted" style="padding:8px">Sin pueblos</div>';
     $('towns').querySelectorAll('[data-town]').forEach(b => b.onclick = () => {
       const t = W.findTown(world, b.dataset.town);
@@ -755,7 +790,7 @@
   function updateStats() {
     const st = W.stats(world);
     const full = towns.filter(o => o.village).length;
-    $('stats').innerHTML = `🏘 Pueblos <b>${st.towns}</b> (${full} completos) · 🛤 Caminos <b>${st.roads}</b><br>⚔ Zonas <b>${st.zones}</b> · ✦ Lugares <b>${st.pois}</b><br>📏 ${st.roadKm} km · 📈 Nivel máx <b>${st.maxLevel}</b>`;
+    $('stats').innerHTML = `🏘 Pueblos <b>${st.towns}</b> (${full} completos, ${visited.size} visitados) · 🛤 Caminos <b>${st.roads}</b><br>⚔ Zonas <b>${st.zones}</b> · ✦ Lugares <b>${st.pois}</b><br>📏 ${st.roadKm} km · 📈 Nivel máx <b>${st.maxLevel}</b>`;
   }
 
   function hideInfo() { $('info').classList.remove('show'); $('info').innerHTML = ''; if (selectRing) { scene.remove(selectRing); selectRing = null; } }
@@ -1260,6 +1295,12 @@
       if (town) {
         const size = (town.cfg && town.cfg.size) || 3;
         announce('🏘 ' + town.t.name, 'Nivel ' + town.t.level + ' · ' + (SIZE_NAMES[size] || '') + (town.t.isStart ? ' · pueblo inicial' : ''));
+        if (!visited.has(town.t.id)) {
+          visited.add(town.t.id);
+          buildUI();
+          updateStats();
+          saveActive(true);
+        }
         if (!follow) setFollow(true);
       }
     }
@@ -1315,6 +1356,169 @@
     g.restore();
     g.fillStyle = '#e2e8f0'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center';
     g.fillText('N', S / 2, 26);
+  }
+
+  // ===========================================================================
+  // Partidas: guardado separado del mundo (js/partida.js)
+  // ===========================================================================
+  function nearestTownName() {
+    if (curTown) return curTown.t.name;
+    const p = character.root.position;
+    let best = null, bd = Infinity;
+    towns.forEach(o => { const d = Math.hypot(p.x - o.t.x, p.z - o.t.y); if (d < bd) { bd = d; best = o; } });
+    return best ? 'cerca de ' + best.t.name : '';
+  }
+
+  function snapshot(name, id) {
+    return PartidaLib.makePartida({
+      id, name,
+      worldName: world.name, worldSeed: world.seed,
+      where: nearestTownName(),
+      player: character.root.position, yaw: character.root.rotation.y,
+      hero, inv, visited: [...visited], timeOfDay
+    });
+  }
+
+  function applyPartida(p) {
+    const r = PartidaLib.restoreFields(p);
+    hero = CombatLib.newHero();
+    hero.level = r.level;
+    hero.xp = r.xp;
+    const m = CombatLib.heroMax(r.level);
+    hero.maxHp = m.maxHp; hero.maxMp = m.maxMp;
+    hero.hp = Math.min(m.maxHp, Math.max(1, r.hp));
+    hero.mp = Math.min(m.maxMp, Math.max(0, r.mp));
+    inv = { gold: r.gold, vida: r.vida, mana: r.mana };
+    visited.clear();
+    r.visited.forEach(id => visited.add(id));
+    setTimeOfDay(r.timeOfDay);
+    if (!character.teleport(r.x, r.z)) {
+      const start = towns.find(o => o.t.isStart) || towns[0];
+      if (start) character.teleport(start.t.x + 6, start.t.y + 6);
+    }
+    character.root.rotation.y = r.yaw;
+    setFollow(true);
+    curTown = null; curZone = null;
+    $('deadmsg').classList.remove('show');
+    buildUI();
+    updateStats();
+  }
+
+  function activePartida() {
+    const id = PartidaLib.getActiveId(store, worldId);
+    return PartidaLib.readList(store, worldId).find(p => p.id === id) || null;
+  }
+
+  // Guarda la partida activa (si no hay, crea la primera). silent: sin aviso.
+  function saveActive(silent) {
+    if (!world || !worldId) return false;
+    let list = PartidaLib.readList(store, worldId);
+    let id = PartidaLib.getActiveId(store, worldId);
+    if (!list.some(p => p.id === id)) {
+      id = PartidaLib.newId();
+      PartidaLib.setActiveId(store, worldId, id);
+    }
+    const name = (list.find(p => p.id === id) || {}).name || ('Partida ' + (list.length + 1));
+    try {
+      list = PartidaLib.upsert(list, snapshot(name, id));
+      PartidaLib.writeList(store, worldId, list);
+      if (!silent) toast('Partida guardada');
+      return true;
+    } catch (e) {
+      toast(e.message, 4000);
+      return false;
+    }
+  }
+
+  function newPartida() {
+    let list = PartidaLib.readList(store, worldId);
+    if (list.length >= PartidaLib.MAX_PER_WORLD) { toast('Ya hay 5 partidas. Borra una para crear otra.', 3500); return; }
+    const id = PartidaLib.newId();
+    const name = 'Partida ' + (list.length + 1);
+    hero = CombatLib.newHero();
+    inv = ItemsLib.newInventory();
+    visited.clear();
+    const start = towns.find(o => o.t.isStart) || towns[0];
+    if (start) character.teleport(start.t.x + 6, start.t.y + 6);
+    curTown = null; curZone = null;
+    PartidaLib.setActiveId(store, worldId, id);
+    list = PartidaLib.upsert(list, snapshot(name, id));
+    PartidaLib.writeList(store, worldId, list);
+    setFollow(true);
+    buildUI(); updateStats();
+    toast('Nueva partida: ' + name);
+    renderPartidas();
+  }
+
+  function loadPartida(id) {
+    const p = PartidaLib.readList(store, worldId).find(x => x.id === id);
+    if (!p) return;
+    PartidaLib.setActiveId(store, worldId, id);
+    applyPartida(p);
+    toast('Cargada: ' + p.name);
+    renderPartidas();
+  }
+
+  function deletePartida(id) {
+    const list = PartidaLib.readList(store, worldId);
+    const p = list.find(x => x.id === id);
+    if (!p || !confirm('¿Borrar la partida «' + p.name + '»?')) return;
+    PartidaLib.writeList(store, worldId, PartidaLib.remove(list, id));
+    if (PartidaLib.getActiveId(store, worldId) === id) {
+      PartidaLib.setActiveId(store, worldId, null);
+      saveActive(true);   // la partida actual sigue en una nueva ranura
+    }
+    renderPartidas();
+  }
+
+  function renderPartidas() {
+    const list = PartidaLib.readList(store, worldId);
+    const activeId = PartidaLib.getActiveId(store, worldId);
+    $('plist').innerHTML = list.length ? list.map(p => `
+      <div class="slot ${p.id === activeId ? 'active' : ''}">
+        <div class="info"><b>${p.id === activeId ? '▶ ' : ''}${esc(p.name)}</b>
+          <span class="muted">Nv ${p.hero.level} · ${esc(p.where || '')} · ${new Date(p.savedAt).toLocaleString()}</span></div>
+        <button data-load="${p.id}" ${p.id === activeId ? 'disabled' : ''}>Cargar</button>
+        <button class="danger" data-del="${p.id}">🗑</button>
+      </div>`).join('') : '<div class="muted">Aún no hay partidas guardadas.</div>';
+    $('plist').querySelectorAll('[data-load]').forEach(b => b.onclick = () => loadPartida(b.dataset.load));
+    $('plist').querySelectorAll('[data-del]').forEach(b => b.onclick = () => deletePartida(b.dataset.del));
+  }
+
+  function openPartidas() { saveActive(true); renderPartidas(); $('partidas').classList.add('show'); }
+  function closePartidas() { $('partidas').classList.remove('show'); }
+
+  function exportPartida() {
+    const p = activePartida() || snapshot('Partida', PartidaLib.newId());
+    const blob = new Blob([JSON.stringify(p, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (p.name || 'partida').replace(/[^\w\-áéíóúñÁÉÍÓÚÑ ]+/g, '').trim().replace(/\s+/g, '_') + '.partida.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  function importPartida(text) {
+    let p;
+    try { p = PartidaLib.parsePartida(text); } catch (e) { toast('No se pudo importar: ' + e.message, 4000); return; }
+    if (p.worldSeed !== world.seed) { toast('Esta partida es de otro mundo', 3500); return; }
+    let list = PartidaLib.readList(store, worldId);
+    p.id = PartidaLib.newId();
+    try { list = PartidaLib.upsert(list, p); } catch (e) { toast(e.message, 4000); return; }
+    PartidaLib.writeList(store, worldId, list);
+    loadPartida(p.id);
+  }
+
+  // Al abrir un mundo: se usa su partida activa, o se crea la primera
+  function bootPartida() {
+    let list = PartidaLib.readList(store, worldId);
+    let active = activePartida();
+    if (!active && list.length) {
+      active = list[0];
+      PartidaLib.setActiveId(store, worldId, active.id);
+    }
+    if (active) applyPartida(active);
+    else saveActive(true);
   }
 
   // ===========================================================================
@@ -1403,7 +1607,7 @@
     if (k === '2') drink('mana');
     if (k === 'r') (hero.resting ? stopRest('Descanso cancelado') : startRest());
     if (k === 'b') (($('shop').classList.contains('show')) ? closeShop() : openShop());
-    if (k === 'escape') { showSelection(null); closeShop(); }
+    if (k === 'escape') { showSelection(null); closeShop(); closePartidas(); }
   });
 
   let downAt = null;
@@ -1436,6 +1640,22 @@
   }
 
   $('btn-side').onclick = () => $('side').classList.toggle('collapsed');
+  $('btn-save').onclick = openPartidas;
+  $('p-save').onclick = () => saveActive(false);
+  $('p-new').onclick = newPartida;
+  $('p-close').onclick = closePartidas;
+  $('p-export').onclick = exportPartida;
+  $('p-import').onclick = () => $('p-file').click();
+  $('p-file').onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => importPartida(reader.result);
+    reader.readAsText(f);
+    e.target.value = '';
+  };
+  window.addEventListener('pagehide', () => saveActive(true));
+  setInterval(() => saveActive(true), 20000);
   $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
   $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
   $('sk-attack').onclick = () => useSkill('attack');
@@ -1539,7 +1759,9 @@
     if (!id) { try { id = localStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }
     const text = id ? readSession(id) : null;
     if (text) {
+      worldId = id;
       loadText(text, false);
+      bootPartida();
     } else {
       ensureScene();
       $('load').classList.add('show');

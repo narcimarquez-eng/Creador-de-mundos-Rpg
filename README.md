@@ -12,6 +12,8 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `js/combat.js` | Reglas del combate (daño, XP, muerte, IA de los monstruos). Pruebas en `test/combat.test.js`. |
 | `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). |
 | `js/world-core.js` | Núcleo del mundo sin interfaz (terreno, biomas, generación, niveles, guardado). Pensado para reutilizarlo en el juego. |
+| `js/partida.js` | Guardado de partidas (varias por mundo, exportar e importar). Pruebas en `test/partida.test.js`. |
+| `docs/FORMATO-PARTIDA.md` | Descripción del archivo `.partida.json`. |
 | `docs/FORMATO-MUNDO.md` | Descripción del archivo `.mundo.json` que se guarda/exporta. |
 
 ## Cómo usarlo
@@ -48,6 +50,7 @@ Desde el editor, **🗺 3D** (o **🗺 Ver en 3D** en la pestaña Mundo) abre el
 - **Hora:** ☀ / 🌇 / 🌙 (**T**) cambia entre día, atardecer y noche, con transición suave.
 - **Anuncios:** al entrar en un pueblo o una zona aparece su nombre, nivel y tipo. El minimapa (abajo a la derecha) muestra caminos, zonas, pueblos y monstruos.
 - **Combate:** Espacio (combo de ataque), **Q** (patada giratoria), **E** (explosión nova) y **X** (salto acrobático). Las reglas, los controles y los números están en `docs/COMBATE.md`. Vida, maná, XP y tu oro aparecen abajo. Los monstruos sueltan oro y pociones. En los pueblos puedes **descansar** (R) para recuperarte y comprar pociones en la **tienda** (B). Las pociones se usan con **1** y **2**. Si caes, reapareces en el pueblo más cercano.
+- **Partidas:** 💾 en la barra superior. La partida se guarda sola cada 20 s, al entrar en un pueblo y al cerrar la página. Puedes tener hasta 5 partidas por mundo, cargar, borrar, exportar e importar. Los pueblos que visitas aparecen con ✓.
 
 Los pueblos se cargan completos, igual que en el Creador de Pueblos, cuando te acercas (a unos 650 m), y se vuelven a simplificar al alejarte. Hay como máximo 6 pueblos completos a la vez. Los muros y casas bloquean al personaje, y el agua también: si el paso lleva al mar, el personaje se desliza por la orilla. Los puentes pequeños de las salidas se pueden cruzar. El visor todavía no recorre los caminos automáticamente.
 

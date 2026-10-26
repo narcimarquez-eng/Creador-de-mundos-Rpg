@@ -358,6 +358,8 @@
 
   function deleteSession(id) {
     lsDel(STORE.data(id));
+    lsDel('rpgMundo.partidas.' + id);          // las partidas de este mundo también se borran
+    lsDel('rpgMundo.partidaActiva.' + id);
     writeIndex(sessionIndex().filter(s => s.id !== id));
     if (id === sessionId) {
       const other = sessionIndex()[0];

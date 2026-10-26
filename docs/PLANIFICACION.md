@@ -67,7 +67,11 @@ Hecho: ataque, patada giratoria, nova y salto con las animaciones del GLB; vida,
 vida y barra que persiguen y atacan; muerte y reaparición en el pueblo; jefes con postura de victoria. Pendiente:
 curación, recompensas, nadar y decidir el respawn definitivo.
 
-## Fase 4 — Partida
+## Fase 4 — Partida (**hecha**)
+
+Hecho: partidas separadas del mundo (hasta 5 por mundo), con posición, nivel, XP, vida, maná, oro, pociones, pueblos
+visitados y hora. Autoguardado, exportar e importar (`docs/FORMATO-PARTIDA.md`). Pendiente: guardar la partida
+en el archivo del mundo del editor, no solo en el navegador.
 
 1. **Archivo de partida separado del mundo**: el `.mundo.json` describe el mundo y el `.partida.json` guarda
    al personaje (posición, nivel, pueblo visitado). Así un mismo mundo puede tener varias partidas.
