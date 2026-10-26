@@ -165,6 +165,7 @@
     <button id="btn-undo" title="Deshacer (Ctrl+Z)">↶</button>
     <button id="btn-redo" title="Rehacer (Ctrl+Y)">↷</button>
     <button id="btn-fit" title="Ver todo el mundo">⤢</button>
+    <a id="btn-view3d" class="hide-mobile" href="#" title="Ver el mundo en 3D" style="color:inherit;text-decoration:none;padding:7px 10px;border:1px solid #334155;border-radius:7px;background:#1e293b">🗺 3D</a>
     <button id="btn-panel" title="Mostrar / ocultar panel">☰</button>
   </div>
 
@@ -1031,6 +1032,7 @@
       <div class="btns">
         <button data-act="sessions">📁 Sesiones</button>
         <button data-act="export">⬇ Exportar</button>
+        <button class="primary" data-act="view3d">🗺 Ver en 3D</button>
         <button class="gold" data-act="new">✨ Nuevo mundo</button>
       </div>
       <h3>Leyenda</h3>
@@ -1272,6 +1274,7 @@
         break;
       case 'sessions': openSessions(); break;
       case 'export': exportWorld(); break;
+      case 'view3d': saveSession(); location.href = 'visor-mundo.html?s=' + encodeURIComponent(sessionId); break;
       case 'new': openNewWorld(); break;
       case 'delete': deleteEntity(ent.id); break;
       case 'center': centerOn(ent.x, ent.y); break;
@@ -1459,6 +1462,7 @@
   $('btn-undo').onclick = undo;
   $('btn-redo').onclick = redo;
   $('btn-fit').onclick = fitView;
+  $('btn-view3d').onclick = e => { e.preventDefault(); saveSession(); location.href = 'visor-mundo.html?s=' + encodeURIComponent(sessionId); };
   $('btn-panel').onclick = () => $('panel').classList.toggle('collapsed');
 
   window.addEventListener('keydown', e => {

@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Visor 3D del Mundo</title>
+  <style>
+    :root { --panel: rgba(11, 17, 30, 0.93); --line: rgba(255,255,255,.14); --accent: #38bdf8; --gold: #fbbf24; --muted: #94a3b8; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #7dd3fc; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; font-size: 13px; user-select: none; touch-action: none; }
+    canvas { display: block; }
+    button, select, input { font: inherit; color: inherit; }
+    button { background: #1e293b; border: 1px solid #334155; border-radius: 7px; padding: 7px 10px; cursor: pointer; white-space: nowrap; }
+    button:hover { border-color: var(--accent); }
+    button.gold { background: #78350f; border-color: var(--gold); color: #fef3c7; }
+    a.btn { background: #1e293b; border: 1px solid #334155; border-radius: 7px; padding: 7px 10px; color: #e2e8f0; text-decoration: none; white-space: nowrap; }
+    a.btn:hover { border-color: var(--accent); }
+
+    #top { position: absolute; top: 0; left: 0; right: 0; height: 46px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: var(--panel); border-bottom: 1px solid var(--line); z-index: 20; }
+    #title { flex: 1; min-width: 0; font-weight: 700; color: var(--gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #side { position: absolute; top: 54px; left: 8px; bottom: 8px; width: 250px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; z-index: 15; display: flex; flex-direction: column; overflow: hidden; }
+    #side.collapsed { display: none; }
+    #side h3 { margin: 0; padding: 10px 12px 6px; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .7px; }
+    #side .stats { padding: 0 12px 8px; color: var(--muted); font-size: 12px; line-height: 1.6; border-bottom: 1px solid var(--line); }
+    #side .stats b { color: var(--gold); }
+    #towns { overflow-y: auto; flex: 1; padding: 6px; scrollbar-width: thin; }
+    .trow { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 8px; }
+    .trow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .trow small { color: var(--muted); }
+    .trow.start { border-color: var(--gold); }
+    .layers { padding: 8px 12px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }
+    .layers label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+    #info { position: absolute; top: 54px; right: 8px; width: 300px; max-height: calc(100% - 70px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; z-index: 18; display: none; box-shadow: 0 20px 45px rgba(0,0,0,.6); }
+    #info.show { display: block; }
+    #info .kind { display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: .6px; padding: 2px 6px; border-radius: 4px; background: #0c4a6e; color: #bae6fd; margin-bottom: 6px; }
+    #info h2 { margin: 2px 0 6px; font-size: 16px; color: #fde68a; }
+    #info .muted { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    #info table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+    #info td { padding: 3px 2px; border-bottom: 1px solid #1e293b; }
+    #info td.lv { text-align: right; color: var(--gold); width: 60px; }
+    #info .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    #info .close { float: right; padding: 2px 8px; }
+
+    #pad { position: absolute; right: 12px; bottom: 12px; z-index: 16; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 4px; }
+    #pad button { padding: 0; font-size: 18px; background: var(--panel); }
+    #pad .u { grid-column: 2; grid-row: 1; }
+    #pad .l { grid-column: 1; grid-row: 2; }
+    #pad .d { grid-column: 2; grid-row: 2; }
+    #pad .r { grid-column: 3; grid-row: 2; }
+    #hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(11,17,30,.8); border-radius: 8px; padding: 5px 10px; font-size: 11px; color: var(--muted); pointer-events: none; white-space: nowrap; }
+
+    .lbl { position: absolute; transform: translate(-50%, -100%); pointer-events: none; z-index: 5; text-align: center; white-space: nowrap; font-size: 12px; font-weight: 700; color: #fde68a; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
+    .lbl small { display: block; font-size: 11px; color: #e2e8f0; font-weight: 600; }
+    .lbl.zone { color: #e2e8f0; font-size: 11px; }
+    .lbl.zone small { font-size: 10px; color: #cbd5e1; }
+    .lbl.hide { display: none; }
+
+    #load { position: absolute; inset: 0; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
+    #load.show { display: flex; }
+    #load .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; max-width: 420px; line-height: 1.6; }
+    #load h2 { margin: 0 0 8px; color: var(--gold); font-size: 17px; }
+    #load .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+    #toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #0f172a; border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none; }
+    #toast.show { opacity: 1; }
+
+    @media (max-width: 760px) {
+      #side { width: auto; right: 8px; bottom: auto; top: 54px; max-height: 40vh; }
+      #info { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 50vh; }
+      #pad { bottom: 14px; right: 10px; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(2, 40px); }
+      #hint { display: none; }
+      #top a.btn span.long { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="top">
+    <a class="btn" href="index.html" title="Volver al editor">← <span class="long">Editor</span></a>
+    <div id="title">Visor 3D</div>
+    <button id="btn-side" title="Lista de pueblos">☰</button>
+    <button id="btn-overview" title="Ver todo el mundo">🌍<span class="long"> General</span></button>
+    <button id="btn-follow" title="Seguir al personaje (F)">🧍<span class="long"> Seguir</span></button>
+  </div>
+
+  <aside id="side">
+    <h3>Mundo</h3>
+    <div class="stats" id="stats"></div>
+    <h3>Pueblos</h3>
+    <div id="towns"></div>
+    <div class="layers">
+      <label><input type="checkbox" id="chk-zones" checked> Zonas</label>
+      <label><input type="checkbox" id="chk-labels" checked> Nombres</label>
+      <label><input type="checkbox" id="chk-trees" checked> Bosques</label>
+      <label><input type="checkbox" id="chk-water" checked> Agua</label>
+    </div>
+  </aside>
+
+  <div id="info"></div>
+
+  <div id="pad">
+    <button class="u" data-k="w">▲</button>
+    <button class="l" data-k="a">◀</button>
+    <button class="d" data-k="s">▼</button>
+    <button class="r" data-k="d">▶</button>
+  </div>
+
+  <div id="hint"><b>WASD</b> mover · <b>Shift</b> correr · <b>Ratón/táctil</b> girar y zoom · <b>clic</b> ver lugar · <b>F</b> seguir</div>
+
+  <div id="load">
+    <div class="box">
+      <h2>No hay ningún mundo abierto</h2>
+      <div id="load-msg">Abre el editor para crear un mundo, o carga un archivo <b>.mundo.json</b> que hayas exportado.</div>
+      <div class="btns">
+        <a class="btn" href="index.html">← Ir al editor</a>
+        <button class="gold" id="btn-load-file">⬆ Cargar .mundo.json</button>
+        <input type="file" id="file-world" accept=".json,application/json" hidden>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="js/world-core.js"></script>
+  <script>
+  "use strict";
+  const W = window.RPGWorld;
+  const SEA = W.SEA_LEVEL;
+  const HEIGHT_SCALE = 420;          // misma escala que getTerrain().heightAt
+  const DEG = Math.PI / 180;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // Colores de los pueblos según el estilo del Creador de Pueblos
+  const ROOF = { l2_fantasy: '#1d4ed8', european: '#9a3412', frontier: '#a16207', elven: '#0d9488', dwarven: '#475569', fortified: '#1e293b', trade: '#b91c1c' };
+  const WALL = { l2_fantasy: '#e2e8f0', european: '#fde68a', frontier: '#e7e5e4', elven: '#f0fdfa', dwarven: '#cbd5e1', fortified: '#cbd5e1', trade: '#fef3c7' };
+  const SIZE_NAMES = { 2: 'Aldea', 3: 'Mediano', 4: 'Grande', 5: 'Ciudadela' };
+  const TREE_BIOME = { bosque: 0.6, taiga: 0.5, pantano: 0.3, pradera: 0.1, montana: 0.08, tundra: 0.04, nieve: 0.02, desierto: 0, costa: 0, oceano: 0, agua: 0 };
+  const TREE_COLORS = [0x2d6a4f, 0x40916c, 0x1b4332, 0x52b788, 0x3a5a40];
+
+  function rgb(hex) { const c = new THREE.Color(hex); return [c.r, c.g, c.b]; }
+  function smooth(a, b, x) { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+
+  // ===========================================================================
+  // Estado
+  // ===========================================================================
+  let world = null, terrain = null;
+  let towns = [];           // pueblos con geometría auxiliar
+  let flatList = [];        // pueblos que aplanan el terreno
+  let bounds = null;
+  let scene, camera, renderer, controls, raycaster, terrainMesh;
+  let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, playerGroup, selectRing = null;
+  const zoneLabels = [], townLabels = [];
+  const player = { x: 0, z: 0, yaw: 0 };
+  const keys = {};
+  let follow = false, selected = null;
+  let lastT = performance.now();
+  let townTileHalf = 149;
+
+  // Altura del mundo (incluye el aplanado de los pueblos)
+  function flat(h, x, z) {
+    for (let i = 0; i < flatList.length; i++) {
+      const f = flatList[i];
+      const d = Math.hypot(x - f.x, z - f.z);
+      if (d < f.outer) {
+        const k = smooth(f.inner, f.outer, d);
+        h = f.base + (h - f.base) * k;
+      }
+    }
+    return h;
+  }
+  function H(x, z) {
+    const e = terrain.elevation(x, z);
+    return flat((e - SEA) * HEIGHT_SCALE, x, z);
+  }
+
+  // ===========================================================================
+  // Constructor de mallas con colores por vértice
+  // ===========================================================================
+  function MB() { this.p = []; this.c = []; }
+  MB.prototype.tri = function (a, b, c, col) {
+    [a, b, c].forEach(v => { this.p.push(v[0], v[1], v[2]); this.c.push(col[0], col[1], col[2]); });
+  };
+  MB.prototype.quad = function (a, b, c, d, col) { this.tri(a, b, c, col); this.tri(a, c, d, col); };
+  MB.prototype.fan = function (center, ring, col) {
+    for (let i = 0; i < ring.length; i++) this.tri(center, ring[i], ring[(i + 1) % ring.length], col);
+  };
+  // Caja orientada: (ax, az) es la dirección mundial del eje local X
+  MB.prototype.box = function (cx, cy, cz, ax, az, sx, sy, sz, col, topCol) {
+    const ux = ax * sx / 2, uz = az * sx / 2;
+    const vx = -az * sz / 2, vz = ax * sz / 2;
+    const hy = sy / 2;
+    const C = [];
+    for (let k = 0; k < 8; k++) {
+      const i = (k & 1) ? 1 : -1, j = (k & 2) ? 1 : -1, l = (k & 4) ? 1 : -1;
+      C.push([cx + i * ux + l * vx, cy + j * hy, cz + i * uz + l * vz]);
+    }
+    const faces = [[0, 2, 6, 4], [1, 5, 7, 3], [0, 1, 5, 4], [2, 3, 7, 6], [0, 1, 3, 2], [4, 5, 7, 6]];
+    faces.forEach((f, idx) => {
+      const cc = (idx === 3 && topCol) ? topCol : col;
+      this.quad(C[f[0]], C[f[1]], C[f[2]], C[f[3]], cc);
+    });
+  };
+  // Cinta de calle que sigue el terreno
+  MB.prototype.ribbon = function (pts, w, col, offset) {
+    const L = [], R = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      let tx = b.x - a.x, tz = b.z - a.z;
+      const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
+      const nx = -tz * w / 2, nz = tx * w / 2;
+      const p = pts[i];
+      L.push([p.x + nx, H(p.x + nx, p.z + nz) + offset, p.z + nz]);
+      R.push([p.x - nx, H(p.x - nx, p.z - nz) + offset, p.z - nz]);
+    }
+    for (let i = 0; i < pts.length - 1; i++) this.quad(L[i], R[i], R[i + 1], L[i + 1], col);
+  };
+  MB.prototype.geom = function () {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));
+    g.computeVertexNormals();
+    return g;
+  };
+
+  // Subdivide una polilínea en pasos de `step` metros
+  function subdivide(pts, step) {
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
+      for (let k = 0; k < n; k++) out.push({ x: a.x + (b.x - a.x) * k / n, z: a.y + (b.y - a.y) * k / n });
+    }
+    const last = pts[pts.length - 1];
+    out.push({ x: last.x, z: last.y });
+    return out;
+  }
+
+  // Parte del camino del mundo que queda fuera del pueblo (el resto lo cubre el pueblo)
+  function trimRoad(road, a, b, R) {
+    const pts = road.points;
+    if (!pts || pts.length < 2) return [];
+    let i0 = 0;
+    while (i0 < pts.length - 1 && Math.hypot(pts[i0].x - a.x, pts[i0].y - a.y) < R) i0++;
+    let i1 = pts.length - 1;
+    while (i1 > 0 && Math.hypot(pts[i1].x - b.x, pts[i1].y - b.y) < R) i1--;
+    if (i1 <= i0) return pts.slice();
+    return pts.slice(Math.max(0, i0 - 1), Math.min(pts.length, i1 + 2));
+  }
+
+  // ===========================================================================
+  // Construcción de la escena
+  // ===========================================================================
+  function ensureScene() {
+    if (scene) return;
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#7dd3fc');
+    scene.fog = new THREE.FogExp2('#9bd9f5', 0.00011);
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 40000);
+
+    scene.add(new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.8));
+    const sun = new THREE.DirectionalLight('#fffbeb', 1.1);
+    sun.position.set(900, 1400, 700);
+    scene.add(sun);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.12;
+    controls.minDistance = 25;
+    controls.maxDistance = 9000;
+    controls.maxPolarAngle = Math.PI * 0.49;
+
+    raycaster = new THREE.Raycaster();
+    playerGroup = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 2.2, 10), new THREE.MeshLambertMaterial({ color: '#f59e0b' }));
+    body.position.y = 1.1;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 10), new THREE.MeshLambertMaterial({ color: '#fcd34d' }));
+    head.position.y = 2.6;
+    playerGroup.add(body, head);
+    scene.add(playerGroup);
+
+    renderer.domElement.addEventListener('pointerdown', onDown);
+    renderer.domElement.addEventListener('pointerup', onUp);
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    requestAnimationFrame(loop);
+  }
+
+  function clearWorldObjects() {
+    [terrainMesh, townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
+      if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
+    });
+    zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
+    zoneLines.length = 0;
+    zoneLabels.concat(townLabels).forEach(l => l.el.remove());
+    zoneLabels.length = 0; townLabels.length = 0;
+    selectRing = null;
+  }
+
+  function buildWorld(w) {
+    ensureScene();
+    clearWorldObjects();
+    world = w;
+    terrain = W.getTerrain(world.seed);
+    selected = null;
+    hideInfo();
+
+    // Pueblos: geometría auxiliar y aplanado
+    towns = world.towns.map(t => {
+      const size = (t.cfg && t.cfg.size) || 3;
+      return { t, R: 42 + 14 * size, size, tileHalf: Math.max(240, (42 + 14 * size + 65) * 2) / 2 };
+    });
+    flatList = [];
+    towns.forEach(o => {
+      const base = (terrain.elevation(o.t.x, o.t.y) - SEA) * HEIGHT_SCALE;
+      flatList.push({ x: o.t.x, z: o.t.y, base, inner: o.R + 25, outer: o.R + 130 });
+    });
+    townTileHalf = towns.length ? Math.max(...towns.map(o => o.tileHalf)) : 149;
+
+    // Límites del mapa
+    const xs = [], zs = [];
+    world.towns.forEach(t => { xs.push(t.x - 500, t.x + 500); zs.push(t.y - 500, t.y + 500); });
+    world.zones.forEach(z => { xs.push(z.x - z.radius, z.x + z.radius); zs.push(z.y - z.radius, z.y + z.radius); });
+    world.roads.forEach(r => r.points.forEach(p => { xs.push(p.x); zs.push(p.y); }));
+    if (!xs.length) { xs.push(-600, 600); zs.push(-600, 600); }
+    bounds = {
+      minX: Math.min(...xs) - 600, maxX: Math.max(...xs) + 600,
+      minZ: Math.min(...zs) - 600, maxZ: Math.max(...zs) + 600
+    };
+    bounds.cx = (bounds.minX + bounds.maxX) / 2;
+    bounds.cz = (bounds.minZ + bounds.maxZ) / 2;
+    bounds.size = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
+
+    buildTerrain();
+    buildWater();
+    buildTowns();
+    buildRoads();
+    buildZones();
+    buildTrees();
+    buildLabels();
+    buildUI();
+
+    const start = W.findTown(world, world.startTownId) || world.towns[0];
+    if (start) {
+      player.x = start.x + 6; player.z = start.y + 6;
+      controls.target.set(start.x, H(start.x, start.y) + 10, start.y);
+      camera.position.set(start.x - 120, H(start.x, start.y) + 260, start.y + 260);
+    } else {
+      overview();
+    }
+    $('title').textContent = '🌍 ' + world.name;
+    $('load').classList.remove('show');
+    updateStats();
+  }
+
+  function buildTerrain() {
+    const ext = bounds.size;
+    const n = Math.max(100, Math.min(420, Math.round(ext / 20)));
+    const N = n + 1;
+    const step = ext / n;
+    const x0 = bounds.cx - ext / 2, z0 = bounds.cz - ext / 2;
+    const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const x = x0 + i * step, z = z0 + j * step;
+        const e = terrain.elevation(x, z);
+        const h = flat((e - SEA) * HEIGHT_SCALE, x, z);
+        const b = terrain.biomeAt(x, z, e);
+        const c = W.BIOMES[b].color;
+        const k = (j * N + i) * 3;
+        pos[k] = x; pos[k + 1] = h; pos[k + 2] = z;
+        col[k] = c[0] / 255; col[k + 1] = c[1] / 255; col[k + 2] = c[2] / 255;
+      }
+    }
+    const idx = new Uint32Array(n * n * 6);
+    let p = 0;
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
+      idx[p++] = a; idx[p++] = c; idx[p++] = b;
+      idx[p++] = b; idx[p++] = c; idx[p++] = d;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.computeVertexNormals();
+    terrainMesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true }));
+    scene.add(terrainMesh);
+  }
+
+  function buildWater() {
+    const ext = bounds.size * 1.4;
+    const g = new THREE.PlaneGeometry(ext, ext);
+    g.rotateX(-Math.PI / 2);
+    waterMesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: '#1e6fa8', transparent: true, opacity: 0.82 }));
+    waterMesh.position.set(bounds.cx, 0, bounds.cz);
+    waterMesh.visible = $('chk-water').checked;
+    scene.add(waterMesh);
+  }
+
+  // Pueblos simplificados: muralla con huecos en las salidas, plaza, casas, torres y edificios especiales
+  function buildTowns() {
+    const mb = new MB();
+    const SPECIALS = [[-19, -14], [19, -14], [-19, 14], [19, 14], [-24, -34], [22, 34], [-34, 8], [-34, -8], [0, -42], [0, 42]];
+    towns.forEach(o => {
+      const t = o.t, cfg = t.cfg || {}, size = o.size, R = o.R;
+      const rot = (cfg.rotation || 0) * DEG, cr = Math.cos(rot), sr = Math.sin(rot);
+      const rw = cfg.roadWidth || 7;
+      const style = cfg.style || 'l2_fantasy';
+      const roof = rgb(ROOF[style] || '#1d4ed8'), wallC = rgb(WALL[style] || '#e2e8f0');
+      const stone = rgb('#cbd5e1'), wallStone = rgb('#c9c4b5');
+      const L2W = (lx, lz) => ({ x: t.x + lx * cr - lz * sr, z: t.y + lx * sr + lz * cr });
+      const dirW = (dx, dz) => [dx * cr - dz * sr, dx * sr + dz * cr];
+      const at = (lx, lz) => { const p = L2W(lx, lz); return [p.x, H(p.x, p.z), p.z]; };
+      const exits = (cfg.exits || []).map(e => ({ a: ((Number(e.angle) || 0) * DEG), name: e.to }));
+      const H0 = H(t.x, t.y);
+
+      // Plaza
+      const ring = [];
+      for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; const p = L2W(Math.cos(a) * 15.5, Math.sin(a) * 15.5); ring.push([p.x, H(p.x, p.z) + 0.3, p.z]); }
+      const cp = [t.x, H0 + 0.35, t.y];
+      mb.fan(cp, ring, stone);
+
+      // Muralla (con huecos en salidas y en los 4 ejes)
+      const segs = 36, segHalf = (Math.PI * 2 / segs) * 0.5 * R;
+      for (let i = 0; i < segs; i++) {
+        const a1 = i / segs * Math.PI * 2, a2 = (i + 1) / segs * Math.PI * 2, mid = (a1 + a2) / 2;
+        const mx = Math.cos(mid) * R, mz = Math.sin(mid) * R;
+        const nearAxis = (Math.abs(mx) < rw * 0.85 && Math.abs(Math.abs(mz) - R) < 12) || (Math.abs(mz) < rw * 0.85 && Math.abs(Math.abs(mx) - R) < 12);
+        const atExit = exits.some(e => { let d = Math.abs(mid - e.a) % (Math.PI * 2); if (d > Math.PI) d = Math.PI * 2 - d; return d * R < segHalf + 1.5; });
+        if (nearAxis || atExit) continue;
+        const c = L2W(mx, mz);
+        const [tx, tz] = dirW(-Math.sin(mid), Math.cos(mid));
+        const base = H(c.x, c.z);
+        mb.box(c.x, base + 3.2, c.z, tx, tz, 2 * Math.PI * R / segs + 0.6, 7.5, 2.4, wallStone);
+        if (i % 3 === 0) {
+          mb.box(c.x, base + 5.2, c.z, 1, 0, 5.4, 11.5, 5.4, wallStone);
+          mb.box(c.x, base + 12.4, c.z, 1, 0, 6.6, 1.6, 6.6, roof);
+        }
+      }
+
+      // Salidas hacia los caminos (calles rectas hasta el borde del terreno)
+      exits.forEach(e => {
+        const ca = Math.cos(e.a), sa = Math.sin(e.a);
+        const tEnd = o.tileHalf + 12;
+        const pts = subdivide([{ x: ca * 16, y: sa * 16 }, { x: ca * tEnd, y: sa * tEnd }], 8).map(q => L2W(q.x, q.z));
+        mb.ribbon(pts, rw * 0.85, rgb('#d6b27a'), 0.45);
+      });
+
+      // Ejes principales (cruz de la plaza)
+      [[1, 0], [0, 1], [-1, 0], [0, -1]].forEach(([ax, az]) => {
+        const far = R + 20;
+        const pts = subdivide([{ x: ax * 16, y: az * 16 }, { x: ax * far, y: az * far }], 8).map(q => L2W(q.x, q.z));
+        mb.ribbon(pts, rw, rgb('#d6b27a'), 0.45);
+      });
+
+      // Casas: misma rejilla que el Creador de Pueblos
+      const rng = new W.PRNG((cfg.seed || 1) * 7 + 11);
+      const ringZ = [-28, 28].concat(size >= 4 ? [-52, 52] : []);
+      const mainX = z => Math.sin(z * 0.035) * (cfg.curve || 0) * Math.min(1, Math.abs(z) / 22);
+      const xOffs = [-32, -13, 13, 32].concat(size >= 4 ? [-48, 48] : []);
+      const maxFloors = cfg.maxFloors || 3, density = (cfg.houseDensity != null ? cfg.houseDensity : 85);
+      for (let lz = -(R - 12); lz <= R - 12; lz += 13) {
+        if (Math.abs(lz) < 8 || ringZ.some(rz => Math.abs(lz - rz) < 6.5)) continue;
+        xOffs.forEach(xOff => {
+          const hx = mainX(lz) + xOff + rng.range(-0.8, 0.8);
+          const hz = lz + rng.range(-0.8, 0.8);
+          const d = Math.hypot(hx, hz);
+          if (d > R - 9 || d < 23) return;
+          const nearExit = exits.some(e => {
+            const ax = Math.cos(e.a), az = Math.sin(e.a);
+            const along = Math.max(0, Math.min(R + 60, hx * ax + hz * az));
+            return Math.hypot(hx - ax * along, hz - az * along) < rw * 0.5 + 5;
+          });
+          if (nearExit) return;
+          if (rng.next() * 100 > density) return;
+          const floors = rng.int(1, maxFloors);
+          const hgt = 2.8 * floors + 1.6;
+          const p = L2W(hx, hz);
+          const hb = H(p.x, p.z);
+          const [dx, dz] = dirW(1, 0);
+          mb.box(p.x, hb + hgt / 2, p.z, dx, dz, 6.2, hgt, 7.4, wallC);
+          mb.box(p.x, hb + hgt + 0.6, p.z, dx, dz, 7.2, 1.2, 8.4, roof);
+        });
+      }
+
+      // Edificios especiales
+      const nSpec = Math.min(cfg.specialCount || 4, SPECIALS.length);
+      for (let i = 0; i < nSpec; i++) {
+        const [sx, sz] = SPECIALS[i];
+        const near = exits.some(e => { const ax = Math.cos(e.a), az = Math.sin(e.a); const al = Math.max(0, sx * ax + sz * az); return Math.hypot(sx - ax * al, sz - az * al) < 9; });
+        if (near) continue;
+        const p = L2W(sx, sz), hb = H(p.x, p.z);
+        const [dx, dz] = dirW(1, 0);
+        mb.box(p.x, hb + 5, p.z, dx, dz, 11, 10, 9, stone, roof);
+      }
+
+      // Torre central de referencia
+      mb.box(cp[0], H0 + 6, cp[2], 1, 0, 3, 12, 3, wallStone, roof);
+    });
+    townMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    scene.add(townMesh);
+  }
+
+  function roadWidth(kind) { return kind === 'calzada' ? 8 : kind === 'sendero' ? 3 : 6; }
+  function roadColor(kind) { return rgb(kind === 'calzada' ? '#cbd5e1' : kind === 'sendero' ? '#8b6b43' : '#b08d57'); }
+
+  function buildRoads() {
+    const mb = new MB();
+    world.roads.forEach(r => {
+      const a = W.findTown(world, r.from), b = W.findTown(world, r.to);
+      if (!a || !b) return;
+      const tile = Math.max(240, (42 + 14 * ((a.cfg && a.cfg.size) || 3) + 65) * 2) / 2;
+      const pts = trimRoad(r, a, b, tile);
+      if (pts.length < 2) return;
+      mb.ribbon(subdivide(pts, 8), roadWidth(r.kind), roadColor(r.kind), 0.35);
+    });
+    roadMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    scene.add(roadMesh);
+  }
+
+  function zoneColor(z) {
+    const maxL = Math.max(10, W.stats(world).maxLevel);
+    const hue = (130 - 130 * Math.min(1, ((z.levelMin + z.levelMax) / 2 - 1) / maxL)) / 360;
+    const c = new THREE.Color().setHSL(hue, 0.75, 0.5);
+    if (z.type === 'elite') c.set('#c084fc');
+    if (z.type === 'jefe') c.set('#f87171');
+    if (z.type === 'pvp') c.set('#fb923c');
+    if (z.type === 'segura') c.set('#67e8f9');
+    return c;
+  }
+
+  function buildZones() {
+    const mb = new MB();
+    world.zones.forEach(z => {
+      const pts = W.zoneOutline(z, 48).map(p => [p.x, H(p.x, p.y) + 1.2, p.y]);
+      const cc = H(z.x, z.y) + 1.2;
+      const c = zoneColor(z);
+      mb.fan([z.x, cc, z.y], pts, [c.r, c.g, c.b]);
+      const lineGeom = new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(p[0], p[1] + 1, p[2])).concat([new THREE.Vector3(pts[0][0], pts[0][1] + 1, pts[0][2])]));
+      const line = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: c }));
+      line.userData.zoneId = z.id;
+      scene.add(line);
+      zoneLines.push(line);
+    });
+    zoneMesh = new THREE.Mesh(mb.geom(), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide }));
+    scene.add(zoneMesh);
+  }
+  const zoneLines = [];
+
+  // Bosques: árboles dispersos según el bioma, sin tapar pueblos ni caminos
+  function buildTrees() {
+    const rng = new W.PRNG((world.seed ^ 0x5151) >>> 0);
+    const cand = [];
+    const tries = Math.min(9000, Math.round(bounds.size * bounds.size / 9000));
+    for (let k = 0; k < tries; k++) {
+      const x = bounds.minX + rng.next() * (bounds.maxX - bounds.minX);
+      const z = bounds.minZ + rng.next() * (bounds.maxZ - bounds.minZ);
+      const e = terrain.elevation(x, z);
+      if (e < SEA + 0.02) continue;
+      const b = terrain.biomeAt(x, z, e);
+      if (!rng.chance(TREE_BIOME[b] || 0)) continue;
+      if (towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.R + 150)) continue;
+      cand.push({ x, z, b });
+      if (cand.length >= 3500) break;
+    }
+    // Quitar los que caen sobre caminos
+    const roadPts = world.roads.map(r => r.points);
+    const keep = cand.filter(c => !roadPts.some(pts => W.distToPolyline({ x: c.x, y: c.z }, pts) < 7));
+    if (!keep.length) return;
+    const geo = new THREE.ConeGeometry(1, 1, 6);
+    geo.translate(0, 0.5, 0);
+    treeMesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: '#ffffff' }), keep.length);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
+    keep.forEach((c, i) => {
+      const h = 9 + rng.next() * 9;
+      const rad = h * 0.34;
+      p.set(c.x, H(c.x, c.z), c.z);
+      s.set(rad, h, rad);
+      q.setFromEuler(new THREE.Euler(0, rng.next() * 6.28, 0));
+      m.compose(p, q, s);
+      treeMesh.setMatrixAt(i, m);
+      col.setHex(c.b === 'pantano' ? 0x4f6b4a : c.b === 'taiga' ? 0x3b5b48 : TREE_COLORS[Math.floor(rng.next() * TREE_COLORS.length)]);
+      treeMesh.setColorAt(i, col);
+    });
+    treeMesh.instanceMatrix.needsUpdate = true;
+    if (treeMesh.instanceColor) treeMesh.instanceColor.needsUpdate = true;
+    treeMesh.visible = $('chk-trees').checked;
+    scene.add(treeMesh);
+  }
+
+  function buildLabels() {
+    const host = document.body;
+    world.towns.forEach(t => {
+      const el = document.createElement('div');
+      el.className = 'lbl';
+      el.innerHTML = esc(t.name) + '<small>Nv ' + t.level + '</small>';
+      host.appendChild(el);
+      townLabels.push({ el, x: t.x, z: t.y, y: H(t.x, t.y) + 40, t });
+    });
+    world.zones.forEach(z => {
+      const el = document.createElement('div');
+      el.className = 'lbl zone';
+      el.innerHTML = esc(z.name) + '<small>Nv ' + z.levelMin + '–' + z.levelMax + '</small>';
+      host.appendChild(el);
+      zoneLabels.push({ el, x: z.x, z: z.y, y: H(z.x, z.y) + 10, zone: z });
+    });
+  }
+
+  // ===========================================================================
+  // Panel de información y lista de pueblos
+  // ===========================================================================
+  function buildUI() {
+    const list = world.towns.slice().sort((a, b) => a.level - b.level);
+    $('towns').innerHTML = list.map(t => `
+      <button class="trow ${t.isStart ? 'start' : ''}" data-town="${t.id}">
+        <span class="nm">${t.isStart ? '⭐ ' : ''}${esc(t.name)}</span><small>Nv ${t.level}</small>
+      </button>`).join('') || '<div class="muted" style="padding:8px">Sin pueblos</div>';
+    $('towns').querySelectorAll('[data-town]').forEach(b => b.onclick = () => {
+      const t = W.findTown(world, b.dataset.town);
+      if (t) focusPoint(t.x, t.y, 220, { kind: 'town', ref: t });
+    });
+  }
+
+  function updateStats() {
+    const st = W.stats(world);
+    $('stats').innerHTML = `🏘 Pueblos <b>${st.towns}</b> · 🛤 Caminos <b>${st.roads}</b><br>⚔ Zonas <b>${st.zones}</b> · ✦ Lugares <b>${st.pois}</b><br>📏 ${st.roadKm} km · 📈 Nivel máx <b>${st.maxLevel}</b>`;
+  }
+
+  function hideInfo() { $('info').classList.remove('show'); $('info').innerHTML = ''; if (selectRing) { scene.remove(selectRing); selectRing = null; } }
+
+  function showSelection(sel) {
+    selected = sel;
+    if (selectRing) { scene.remove(selectRing); selectRing = null; }
+    const info = $('info');
+    if (!sel) { hideInfo(); return; }
+    let html = '';
+    let cx = 0, cz = 0, r = 60;
+    if (sel.kind === 'town') {
+      const t = sel.ref, o = towns.find(x => x.t === t);
+      cx = t.x; cz = t.y; r = (o ? o.R : 60) + 10;
+      const exits = (t.cfg.exits || []);
+      html = `
+        <button class="close" data-close>✕</button>
+        <span class="kind">🏘 Pueblo ${t.isStart ? '· ⭐ inicial' : ''}</span>
+        <h2>${esc(t.name)}</h2>
+        <div class="muted">Nivel recomendado <b style="color:#fbbf24">${t.level}</b> · ${esc(SIZE_NAMES[(t.cfg && t.cfg.size) || 3] || '')} · bioma ${esc((W.BIOMES[t.biome] || {}).name || t.biome)}</div>
+        <div class="muted" style="margin-top:6px">Servicios: ${esc((t.services || []).join(', '))}</div>
+        <div class="muted" style="margin-top:6px">Caminos: ${exits.length ? exits.map(e => esc(e.to)).join(', ') : 'ninguno'}</div>
+        ${t.notes ? `<div class="muted" style="margin-top:6px">${esc(t.notes)}</div>` : ''}
+        <div class="btns"><button class="gold" data-tp="${t.x},${t.y}">🧍 Ir aquí</button><a class="btn" href="index.html">✏ Editar en el editor</a></div>`;
+    } else if (sel.kind === 'zone') {
+      const z = sel.ref;
+      cx = z.x; cz = z.y; r = z.radius + 10;
+      html = `
+        <button class="close" data-close>✕</button>
+        <span class="kind">⚔ ${esc((W.ZONE_TYPES[z.type] || {}).name || z.type)}</span>
+        <h2>${esc(z.name)}</h2>
+        <div class="muted">Nivel <b style="color:#fbbf24">${z.levelMin}–${z.levelMax}</b> · bioma ${esc((W.BIOMES[z.biome] || {}).name || z.biome) } · radio ${z.radius} m</div>
+        <table>${z.monsters.map(m => `<tr><td>${m.boss ? '☠ ' : ''}${esc(m.name)}</td><td class="lv">Nv ${m.level}</td></tr>`).join('')}</table>
+        <div class="btns"><button class="gold" data-tp="${z.x},${z.y}">🧍 Ir aquí</button></div>`;
+    } else {
+      const p = sel.at;
+      const terr = W.getTerrain(world.seed);
+      const b = terr.biomeAt(p.x, p.z);
+      cx = p.x; cz = p.z; r = 50;
+      html = `
+        <button class="close" data-close>✕</button>
+        <span class="kind">Terreno</span>
+        <h2>${esc((W.BIOMES[b] || {}).name || b)}</h2>
+        <div class="muted">Posición ${Math.round(p.x)}, ${Math.round(p.z)} · altura ${Math.round(H(p.x, p.z))} m</div>
+        <div class="btns"><button class="gold" data-tp="${Math.round(p.x)},${Math.round(p.z)}">🧍 Ir aquí</button></div>`;
+    }
+    info.innerHTML = html;
+    info.classList.add('show');
+    info.querySelector('[data-close]').onclick = () => showSelection(null);
+    info.querySelectorAll('[data-tp]').forEach(btn => btn.onclick = () => {
+      const [x, z] = btn.dataset.tp.split(',').map(Number);
+      player.x = x; player.z = z;
+      toast('Personaje en ' + Math.round(x) + ', ' + Math.round(z));
+    });
+
+    // Anillo de selección
+    const pts = [];
+    for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI * 2; pts.push(new THREE.Vector3(cx + Math.cos(a) * r, H(cx + Math.cos(a) * r, cz + Math.sin(a) * r) + 3, cz + Math.sin(a) * r)); }
+    selectRing = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#fde047' }));
+    scene.add(selectRing);
+  }
+
+  function toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  // ===========================================================================
+  // Cámara
+  // ===========================================================================
+  function overview() {
+    follow = false; $('btn-follow').classList.remove('gold');
+    const d = bounds.size * 0.75;
+    controls.target.set(bounds.cx, 0, bounds.cz);
+    camera.position.set(bounds.cx, d * 0.6, bounds.cz + d * 0.8);
+  }
+
+  function focusPoint(x, z, dist, sel) {
+    const h = H(x, z);
+    const from = controls.target.clone();
+    const to = new THREE.Vector3(x, h + 8, z);
+    const offset = camera.position.clone().sub(controls.target).normalize().multiplyScalar(dist);
+    controls.target.copy(to);
+    camera.position.copy(to).add(offset.setY(Math.max(offset.y, dist * 0.45)));
+    if (sel) showSelection(sel);
+  }
+
+  function setFollow(on) {
+    follow = on;
+    $('btn-follow').classList.toggle('gold', on);
+  }
+
+  // ===========================================================================
+  // Entrada: teclado, pad táctil, clics
+  // ===========================================================================
+  document.querySelectorAll('#pad button').forEach(b => {
+    const k = b.dataset.k;
+    const on = e => { e.preventDefault(); keys[k] = true; };
+    const off = () => { keys[k] = false; };
+    b.addEventListener('pointerdown', on);
+    b.addEventListener('pointerup', off);
+    b.addEventListener('pointerleave', off);
+    b.addEventListener('pointercancel', off);
+  });
+
+  window.addEventListener('keydown', e => {
+    if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    const k = e.key.toLowerCase();
+    if (['w', 'a', 's', 'd'].includes(k)) keys[k] = true;
+    if (k === 'arrowup') keys.w = true;
+    if (k === 'arrowdown') keys.s = true;
+    if (k === 'arrowleft') keys.a = true;
+    if (k === 'arrowright') keys.d = true;
+    if (k === 'shift') keys.shift = true;
+    if (k === 'f') setFollow(!follow);
+    if (k === 'g') overview();
+    if (k === 'escape') showSelection(null);
+  });
+  window.addEventListener('keyup', e => {
+    const k = e.key.toLowerCase();
+    if (['w', 'a', 's', 'd'].includes(k)) keys[k] = false;
+    if (k === 'arrowup') keys.w = false;
+    if (k === 'arrowdown') keys.s = false;
+    if (k === 'arrowleft') keys.a = false;
+    if (k === 'arrowright') keys.d = false;
+    if (k === 'shift') keys.shift = false;
+  });
+
+  let downAt = null;
+  function onDown(e) { downAt = { x: e.clientX, y: e.clientY }; }
+  function onUp(e) {
+    if (!downAt || !world) return;
+    const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+    downAt = null;
+    if (moved > 6) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(mouse, camera);
+    const hit = raycaster.intersectObject(terrainMesh, false)[0];
+    if (!hit) return;
+    showSelection(pick({ x: hit.point.x, z: hit.point.z }));
+  }
+
+  function pick(p) {
+    let best = null, bd = Infinity;
+    towns.forEach(o => {
+      const d = Math.hypot(p.x - o.t.x, p.z - o.t.y);
+      if (d < o.R + 25 && d < bd) { bd = d; best = { kind: 'town', ref: o.t }; }
+    });
+    if (best) return best;
+    let zb = null, zr = Infinity;
+    world.zones.forEach(z => {
+      if (W.pointInZone(z, { x: p.x, y: p.z }) && z.radius < zr) { zr = z.radius; zb = { kind: 'zone', ref: z }; }
+    });
+    return zb || { kind: 'terrain', at: p };
+  }
+
+  $('btn-side').onclick = () => $('side').classList.toggle('collapsed');
+  $('btn-overview').onclick = overview;
+  $('btn-follow').onclick = () => setFollow(!follow);
+  $('chk-zones').onchange = e => { zoneMesh.visible = e.target.checked; zoneLines.forEach(l => l.visible = e.target.checked); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); };
+  $('chk-labels').onchange = e => { townLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked || !$('chk-zones').checked)); };
+  $('chk-trees').onchange = e => { if (treeMesh) treeMesh.visible = e.target.checked; };
+  $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
+
+  // ===========================================================================
+  // Bucle de render
+  // ===========================================================================
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (!world) return;
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+
+    // Movimiento relativo a la cámara
+    let fx = controls.target.x - camera.position.x, fz = controls.target.z - camera.position.z;
+    const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
+    const rx = -fz, rz = fx;
+    let mx = 0, mz = 0;
+    if (keys.w) { mx += fx; mz += fz; }
+    if (keys.s) { mx -= fx; mz -= fz; }
+    if (keys.d) { mx += rx; mz += rz; }
+    if (keys.a) { mx -= rx; mz -= rz; }
+    const ml = Math.hypot(mx, mz);
+    if (ml > 0) {
+      const sp = (keys.shift ? 34 : 14) * dt;
+      player.x += mx / ml * sp;
+      player.z += mz / ml * sp;
+      player.yaw = Math.atan2(mx, mz);
+    }
+    player.x = Math.min(bounds.maxX, Math.max(bounds.minX, player.x));
+    player.z = Math.min(bounds.maxZ, Math.max(bounds.minZ, player.z));
+    const py = H(player.x, player.z);
+    playerGroup.position.set(player.x, py, player.z);
+    playerGroup.rotation.y = player.yaw;
+
+    if (follow) {
+      const tgt = new THREE.Vector3(player.x, py + 2, player.z);
+      const delta = tgt.clone().sub(controls.target);
+      controls.target.copy(tgt);
+      camera.position.add(delta);
+    }
+
+    controls.update();
+    renderer.render(scene, camera);
+    updateLabels(py);
+  }
+
+  function updateLabels(py) {
+    const w = window.innerWidth, h = window.innerHeight;
+    const v = new THREE.Vector3();
+    const place = (item, visibleFn) => {
+      v.set(item.x, item.y, item.z).project(camera);
+      if (v.z > 1 || !visibleFn()) { item.el.style.display = 'none'; return; }
+      item.el.style.display = '';
+      item.el.style.left = ((v.x + 1) / 2 * w) + 'px';
+      item.el.style.top = ((-v.y + 1) / 2 * h) + 'px';
+    };
+    const showTowns = $('chk-labels').checked;
+    townLabels.forEach(item => place(item, () => showTowns));
+    const showZones = $('chk-labels').checked && $('chk-zones').checked;
+    zoneLabels.forEach(item => {
+      place(item, () => showZones && Math.hypot(item.x - player.x, item.z - player.z) < 900);
+    });
+  }
+
+  // ===========================================================================
+  // Carga de datos
+  // ===========================================================================
+  function readSession(id) {
+    try { return localStorage.getItem('rpgMundo.sesion.' + id); } catch (e) { return null; }
+  }
+  function loadText(text, label) {
+    try {
+      const w = W.deserialize(text);
+      buildWorld(w);
+      if (label) toast('Mundo «' + w.name + '» cargado');
+      return true;
+    } catch (e) {
+      console.error(e);
+      $('load-msg').innerHTML = '<span style="color:#fca5a5">No se pudo abrir el mundo: ' + esc(e.message) + '</span>';
+      $('load').classList.add('show');
+      return false;
+    }
+  }
+
+  $('btn-load-file').onclick = () => $('file-world').click();
+  $('file-world').onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => loadText(reader.result, true);
+    reader.readAsText(f);
+    e.target.value = '';
+  };
+
+  (function boot() {
+    if (window.innerWidth <= 760) $('side').classList.add('collapsed');
+    const params = new URLSearchParams(location.search);
+    let id = params.get('s');
+    if (!id) { try { id = localStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }
+    const text = id ? readSession(id) : null;
+    if (text) {
+      loadText(text, false);
+    } else {
+      ensureScene();
+      $('load').classList.add('show');
+    }
+  })();
+  </script>
+</body>
+</html>
