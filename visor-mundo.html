@@ -50,6 +50,10 @@
     #banner.show { opacity: 1; }
     #banner b { color: #fde68a; font-size: 15px; }
     #banner small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    #zona-marca { display: none; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 12px; white-space: nowrap; max-width: 100%; }
+    #zona-marca.show { display: flex; }
+    #zona-marca i { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--zona, #fde68a); box-shadow: 0 0 6px var(--zona, #fde68a); }
+    #zona-marca span { overflow: hidden; text-overflow: ellipsis; }
     #minimap { position: absolute; right: 24px; bottom: 150px; width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.85); z-index: 16; box-shadow: 0 8px 20px rgba(0,0,0,.5); }
     #hud { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 24; width: min(440px, calc(100vw - 280px)); display: flex; flex-direction: column; gap: 6px; align-items: center; }
     .hud-bars { width: 100%; display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
@@ -163,6 +167,7 @@
   <div id="banner"></div>
   <canvas id="minimap" width="300" height="300"></canvas>
   <div id="hud">
+    <div id="zona-marca"></div>
     <div class="hud-bars">
       <div class="row"><span class="lv" id="hud-lv">Nv 1</span><div class="bar hp"><i id="hud-hp"></i><b id="hud-hp-t"></b></div></div>
       <div class="bar mp"><i id="hud-mp"></i></div>
@@ -1641,9 +1646,9 @@
   // Anuncios de pueblo y zona, y minimapa
   // ===========================================================================
   let bannerTimer = null;
-  function announce(title, sub) {
+  function announce(title, sub, color) {
     const el = $('banner');
-    el.innerHTML = '<b>' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '');
+    el.innerHTML = '<b' + (color ? ' style="color:' + color + '"' : '') + '>' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '');
     el.classList.add('show');
     clearTimeout(bannerTimer);
     bannerTimer = setTimeout(() => el.classList.remove('show'), 3800);
@@ -1671,9 +1676,18 @@
     world.zones.forEach(z => { if (W.pointInZone(z, { x: p.x, y: p.z }) && z.radius < zr) { zr = z.radius; zone = z; } });
     if (zone !== curZone) {
       curZone = zone;
+      const marca = $('zona-marca');
       if (zone) {
         const type = (W.ZONE_TYPES[zone.type] || {}).name || zone.type;
-        announce('⚔ ' + zone.name, 'Nivel ' + zone.levelMin + '–' + zone.levelMax + ' · ' + type);
+        const color = '#' + zoneColor(zone).getHexString();
+        announce('⚔ ' + zone.name, 'Nivel ' + zone.levelMin + '–' + zone.levelMax + ' · ' + type, color);
+        // Marcador fijo mientras estás dentro: solo zonas con monstruos, del mismo color que la zona en el mapa
+        const conMonstruos = zone.monsters && zone.monsters.length;
+        marca.style.setProperty('--zona', color);
+        marca.innerHTML = conMonstruos ? '<i></i><span>⚔ ' + esc(zone.name) + ' · Nv ' + zone.levelMin + '–' + zone.levelMax + '</span>' : '';
+        marca.classList.toggle('show', !!conMonstruos);
+      } else {
+        marca.classList.remove('show');
       }
     }
   }
