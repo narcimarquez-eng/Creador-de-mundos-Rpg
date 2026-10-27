@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="js/enemigos.js"></script>
   <script src="js/enemigos-optimizar.js"></script>
+  <script src="js/enemigos-combate.js"></script>
 </head>
 <body>
 <div id="info">cargando…</div>
@@ -49,18 +50,22 @@
     scene.add(rig.rootGroup);
     const vis = EnemyOpt.medirVisibles(rig);
     resumen.push({ id, tiempoMs: +tiempo.toFixed(1), mallas: vis.mallas, tris: vis.tris });
+    rig.fx = EnemyFx.crear(rig, cfg);
     window.__rigs = (window.__rigs || []).concat([rig]);
   });
   const total = performance.now() - t0;
   window.__resumen = resumen;
   window.__total = total;
-  let t = 0;
+  let t = 0, ultimoDisparo = -10;
+  const accionPrueba = new URLSearchParams(location.search).get('accion');
+  window.__disparar = accion => (window.__rigs || []).forEach(rig => EnemyFx.disparar(rig.fx, accion, t));
   function animar() {
     requestAnimationFrame(animar);
     t += 0.016;
+    if (accionPrueba && t - ultimoDisparo > 2) { ultimoDisparo = t; window.__disparar(accionPrueba); }
     (window.__rigs || []).forEach((rig, i) => {
       const estado = ['idle', 'walk', 'attack', 'hit', 'death'][i % 5];
-      EnemyLib.updateEnemyAnimation(rig, estado, t, 0.016, 1, 0);
+      EnemyFx.actualizar(rig.fx, estado, t, 0.016, t);
     });
     controls.update();
     renderer.render(scene, camera);

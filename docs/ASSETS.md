@@ -73,6 +73,11 @@ Coste medido en Three r128 (40 arquetipos, mallas visibles). Sin optimizar: 73 m
 Con `js/enemigos-optimizar.js`: 35 mallas (−52 %). Con calidad baja además: 1.871 triángulos (−49 %). El visor quita
 las hitboxes de depuración (líneas verdes y rojas), que antes se veían encima de cada enemigo.
 
+Efectos de combate (`js/enemigos-combate.js`), encima de la animación base: golpe con el brazo y el torso; magia
+con los dos brazos alzados, el núcleo brillando y un proyectil; reacción al golpe con destello rojo y empujón; y la
+muerte, que dura un segundo antes de desaparecer. El enemigo mágico se elige por raza (`magical`) o arma (`arcane_staff`,
+`dragon_breath_maw`); el resto usa golpe.
+
 ## Pendiente de añadir
 
 | Fase | Qué | Fuente prevista |

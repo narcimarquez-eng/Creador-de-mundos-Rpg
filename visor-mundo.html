@@ -234,6 +234,7 @@
   <script src="js/character.js"></script>
   <script src="js/enemigos.js"></script>
   <script src="js/enemigos-optimizar.js"></script>
+  <script src="js/enemigos-combate.js"></script>
   <script>
   "use strict";
   const W = window.RPGWorld;
@@ -1330,6 +1331,7 @@
     const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
     m.rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
     EnemyOpt.optimizarRig(m.rig);
+    m.fx = EnemyFx.crear(m.rig, m.enemigo);
     m.group.add(m.rig.rootGroup);
     m.barHeight = new THREE.Box3().setFromObject(m.rig.rootGroup).max.y + 0.9;
   }
@@ -1374,7 +1376,8 @@
   function killMonster(m) {
     m.alive = false; m.hp = 0;
     m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
-    m.group.visible = false; m.bar.visible = false;
+    m.muriendo = performance.now() + 1000;
+    m.bar.visible = false;
     const levels = CombatLib.gainXp(hero, m.xp);
     const loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
     if (m.boss) {
@@ -1389,11 +1392,13 @@
   function damageMonster(m, dmg) {
     m.hp = Math.max(0, m.hp - dmg);
     m.flashUntil = performance.now() + 120;
+    if (m.fx) EnemyFx.disparar(m.fx, 'hit', performance.now() / 1000);
     if (m.state !== 'chase') m.state = 'chase';
     if (m.hp <= 0) killMonster(m);
   }
 
   function monsterHitsHero(m) {
+    if (m.fx) EnemyFx.disparar(m.fx, EnemyFx.tipoAtaque(m.enemigo), performance.now() / 1000);
     const dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level);
     if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
   }
@@ -1489,6 +1494,12 @@
 
     monsters.forEach(m => {
       if (!m.alive) {
+        // Muerte: el modelo cae un segundo antes de desaparecer
+        if (m.fx && performance.now() < m.muriendo) {
+          m.group.visible = true;
+          EnemyFx.actualizar(m.fx, 'death', now / 1000, dt, now / 1000);
+          return;
+        }
         if (performance.now() >= m.respawnAt) respawnMonster(m);
         else { m.group.visible = false; m.bar.visible = false; return; }
       }
@@ -1507,7 +1518,7 @@
         m.group.position.set(m.x, H(m.x, m.z), m.z);
         if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
         const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
-        EnemyLib.updateEnemyAnimation(m.rig, estado, now / 1000, dt, 1, 0);
+        EnemyFx.actualizar(m.fx, estado, now / 1000, dt, now / 1000);
       }
       const showBar = near && (m.hp < m.maxHp || d < 12);
       m.bar.visible = showBar;
