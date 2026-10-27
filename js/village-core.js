@@ -18,8 +18,15 @@
     // Ediciones manuales (js/pueblo-edits.js): índice de las operaciones guardadas en cfg.edits
     function indexEdits(cfg) {
       const EDITS = typeof PuebloEdits !== 'undefined' ? PuebloEdits : null;
-      if (!EDITS) return { removedHouses: new Set(), movedHouses: new Map(), addedHouses: [], removedStreets: new Set(), movedStreets: new Map() };
+      if (!EDITS) return noEdits();
       return EDITS.indexOps(EDITS.activeOps(cfg));
+    }
+    function noEdits() {
+      return {
+        removedHouses: new Set(), movedHouses: new Map(), addedHouses: [],
+        removedStreets: new Set(), movedStreets: new Map(), addedStreets: new Map(),
+        removedWalls: new Set(), gates: new Set(), addedLamps: [], removedLamps: new Set()
+      };
     }
 
     // Hash de texto estable (para dar a cada casa añadida su propio azar)
@@ -1125,57 +1132,62 @@
       }
 
       // Parte cada salida en tramos de calle y añade puentes donde cruza el río.
-      // El cruce por el puente principal ya tiene tablero, así que solo se corta el camino.
       buildExitRoadPieces(cfg, paths, roadsGroup, matAtlas) {
         if (!paths.length) return [];
         const pieces = [];
+        paths.forEach(path => {
+          this.splitAtRiver(cfg, path.points, cfg.roadWidth, roadsGroup, matAtlas).forEach(pc => pieces.push(pc));
+        });
+        return pieces;
+      }
+
+      // Corta un camino donde cruza el río y pone un puente pequeño en cada cruce.
+      // El cruce por el puente principal ya tiene tablero, así que solo se corta el camino.
+      splitAtRiver(cfg, pts, width, roadsGroup, matAtlas) {
+        const pieces = [];
         if (!cfg.hasRiver) {
-          paths.forEach(p => pieces.push(p.points));
+          pieces.push(pts);
           return pieces;
         }
         const band = this.riverWidth * 0.65;
         const inBand = q => Math.abs(q.x - this.getRiverX(q.z)) < band;
         const onMainBridge = q => Math.abs(q.z) < cfg.roadWidth * 0.55 + 1.5;
 
-        paths.forEach(path => {
-          const pts = path.points;
-          // Marcar cruces del río
-          const inside = pts.map(inBand);
-          let cur = [];
-          for (let i = 0; i < pts.length; i++) {
-            if (!inside[i]) { cur.push(pts[i]); continue; }
-            if (cur.length > 1) pieces.push(cur);
-            cur = [];
-            // Inicio de un cruce: buscar su final
-            if (i > 0 && !inside[i - 1]) {
-              let j = i;
-              while (j + 1 < pts.length && inside[j + 1]) j++;
-              const a = pts[i - 1], b = pts[j + 1];
-              if (!b) break;           // el cruce llega al final del terreno: no se puede cerrar
-              const mid = pts[Math.floor((i + j) / 2)];
-              if (!onMainBridge(mid)) {
-                // Puente pequeño de piedra alineado con la calle
-                const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
-                const deckG = new THREE.BoxGeometry(L + 2.0, 1.1, cfg.roadWidth + 1.2);
-                mapUVBand(deckG, 0.25, 0.50);
-                const deckM = new THREE.Mesh(deckG, matAtlas);
-                const yBank = Math.max(this.getTerrainHeight(a.x, a.z), this.getTerrainHeight(b.x, b.z));
-                deckM.position.set((a.x + b.x) / 2, yBank + 0.9, (a.z + b.z) / 2);
-                deckM.rotation.y = Math.atan2(-dz, dx);
-                deckM.castShadow = deckM.receiveShadow = true;
-                roadsGroup.add(deckM);
-                // Zona caminable: tablero a 1,45 m sobre el suelo del banco, rampa de 3 m a cada lado
-                this.extraBridges.push({
-                  cx: (a.x + b.x) / 2, cz: (a.z + b.z) / 2,
-                  ux: dx / L, uz: dz / L,
-                  hu: (L + 2.0) / 2, hv: (cfg.roadWidth + 1.2) / 2,
-                  top: yBank + 1.45
-                });
-              }
+        const inside = pts.map(inBand);
+        let cur = [];
+        for (let i = 0; i < pts.length; i++) {
+          if (!inside[i]) { cur.push(pts[i]); continue; }
+          if (cur.length > 1) pieces.push(cur);
+          cur = [];
+          // Inicio de un cruce: buscar su final
+          if (i > 0 && !inside[i - 1]) {
+            let j = i;
+            while (j + 1 < pts.length && inside[j + 1]) j++;
+            const a = pts[i - 1], b = pts[j + 1];
+            if (!b) break;           // el cruce llega al final del terreno: no se puede cerrar
+            const mid = pts[Math.floor((i + j) / 2)];
+            if (!onMainBridge(mid)) {
+              // Puente pequeño de piedra alineado con la calle
+              const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
+              const deckG = new THREE.BoxGeometry(L + 2.0, 1.1, width + 1.2);
+              mapUVBand(deckG, 0.25, 0.50);
+              const deckM = new THREE.Mesh(deckG, matAtlas);
+              const yBank = Math.max(this.getTerrainHeight(a.x, a.z), this.getTerrainHeight(b.x, b.z));
+              deckM.position.set((a.x + b.x) / 2, yBank + 0.9, (a.z + b.z) / 2);
+              deckM.rotation.y = Math.atan2(-dz, dx);
+              deckM.castShadow = deckM.receiveShadow = true;
+              roadsGroup.add(deckM);
+              // Zona caminable: tablero a 1,45 m sobre el suelo del banco, rampa de 3 m a cada lado
+              this.extraBridges.push({
+                cx: (a.x + b.x) / 2, cz: (a.z + b.z) / 2,
+                ux: dx / L, uz: dz / L,
+                hu: (L + 2.0) / 2, hv: (width + 1.2) / 2,
+                top: yBank + 1.45
+              });
             }
           }
-          if (cur.length > 1) pieces.push(cur);
-        });
+        }
+        if (cur.length > 1) pieces.push(cur);
         return pieces;
       }
 
@@ -1258,7 +1270,7 @@
         this.scene.add(this.forgeLight);
         this.cfg = cfg;
         const edit = indexEdits(cfg);
-        this.editables = { houses: [], streets: [] };
+        this.editables = { houses: [], streets: [], walls: [], lamps: [] };
         this.terrainMesh = null;
         const rng = new PRNG(cfg.seed);
         const styleObj = ARCHITECTURAL_STYLES[cfg.style] || ARCHITECTURAL_STYLES.l2_fantasy;
@@ -1387,14 +1399,17 @@
         const roadExtent = townRadius + 28;
 
         // Calle interna: se puede borrar o desplazar con las ediciones. Las salidas hacia el mundo no pasan por aquí.
+        const pushRoad = (id, pts, width, yOffset, extra) => {
+          this.editables.streets.push(Object.assign({ id: id, pts: pts, width: width }, extra || {}));
+          const mesh = this.buildConformingRoadMesh(pts, width, yOffset);
+          roadsGroup.add(mesh);
+          return mesh;
+        };
         const addStreet = (id, pts, width, yOffset) => {
           if (edit.removedStreets.has(id)) return null;
           const off = edit.movedStreets.get(id);
           const final = off ? pts.map(p => ({ x: p.x + off.dx, z: p.z + off.dz })) : pts;
-          this.editables.streets.push({ id: id, pts: final, width: width });
-          const mesh = this.buildConformingRoadMesh(final, width, yOffset);
-          roadsGroup.add(mesh);
-          return mesh;
+          return pushRoad(id, final, width, yOffset);
         };
 
         const mainRoadPts = [];
@@ -1508,14 +1523,42 @@
             });
 
             if (nearNorthSouthGate || nearEastWestGate || inRiver || atExit) continue;
+            // Tramo quitado a mano: no se dibuja ni su torre ni sus colisionadores
+            if (edit.removedWalls.has(i)) continue;
 
             const wy = this.getTerrainHeight(mx, mz);
             const segLen = (2 * Math.PI * townRadius) / wallSegs + 0.6;
+            const wallRot = -((a1 + a2) * 0.5) + Math.PI / 2;
+            this.editables.walls.push({ id: i, x: mx, z: mz });
+
+            // Puerta con arco: dos pilares a 3,2 m del centro y un dintel encima; el paso queda libre
+            if (edit.gates.has(i)) {
+              const tx = Math.sin((a1 + a2) * 0.5), tz = -Math.cos((a1 + a2) * 0.5);
+              [-1, 1].forEach(sd => {
+                const pG = new THREE.BoxGeometry(1.6, 8.5, 2.6);
+                mapUVBand(pG, 0.25, 0.50);
+                const pM = new THREE.Mesh(pG, matAtlas);
+                pM.position.set(mx + tx * 3.2 * sd, wy + 4.25, mz + tz * 3.2 * sd);
+                pM.rotation.y = wallRot;
+                pM.castShadow = pM.receiveShadow = true;
+                wallGroup.add(pM);
+                this.colliders.push({ type: 'circle', x: mx + tx * 3.2 * sd, z: mz + tz * 3.2 * sd, r: 1.3 });
+              });
+              const lG = new THREE.BoxGeometry(8.0, 1.6, 2.6);
+              mapUVBand(lG, 0.25, 0.50);
+              const lM = new THREE.Mesh(lG, matAtlas);
+              lM.position.set(mx, wy + 7.6, mz);
+              lM.rotation.y = wallRot;
+              lM.castShadow = true;
+              wallGroup.add(lM);
+              continue;
+            }
+
             const wG = new THREE.BoxGeometry(segLen, 7.5, 2.4);
             mapUVBand(wG, 0.25, 0.50);
             const wM = new THREE.Mesh(wG, matAtlas);
             wM.position.set(mx, wy + 3.2, mz);
-            wM.rotation.y = -((a1 + a2) * 0.5) + Math.PI / 2;
+            wM.rotation.y = wallRot;
             wM.castShadow = wM.receiveShadow = true;
             wallGroup.add(wM);
 
@@ -1751,6 +1794,19 @@
         });
         this.editables.houses = houses.map(h => ({ id: h.id, x: h.x, z: h.z }));
 
+        // 7c. CALLES DIBUJADAS A MANO: la forma sale de sus puntos de control (curva suave).
+        // Donde cruzan el río se corta el camino y se pone un puente, como en las salidas.
+        edit.addedStreets.forEach((us, id) => {
+          if (edit.removedStreets.has(id) || us.pts.length < 2) return;
+          const off = edit.movedStreets.get(id);
+          const ctrl = us.pts.map(p => (off ? { x: p.x + off.dx, z: p.z + off.dz } : { x: p.x, z: p.z }));
+          const width = PuebloEdits.widthFor(us.kind, cfg.roadWidth);
+          const pts = PuebloEdits.curvePts(ctrl, 3.5);
+          this.splitAtRiver(cfg, pts, width, roadsGroup, matAtlas).forEach(pc => {
+            if (pc.length > 1) pushRoad(id, pc, width, 0.15, { user: true, kind: us.kind, ctrl: ctrl });
+          });
+        });
+
         if (cfg.hasLamps) {
           for (let lz = -(townRadius - 6); lz <= (townRadius - 6); lz += 14) {
             const rx = this.getMainRoadX(lz);
@@ -1934,12 +1990,19 @@
         const lanternG = new THREE.CylinderGeometry(0.22, 0.14, 0.45, 6); lanternG.translate(0, 3.75, 0.8);
         const poolG = new THREE.PlaneGeometry(7.5, 7.5); poolG.rotateX(-Math.PI / 2);
 
-        const iLampPost = makeInstanced(postG, matIron, lampsList.length);
-        const iLampArm = makeInstanced(armG, matIron, lampsList.length);
-        const iLantern = makeInstanced(lanternG, matGlassGlow, lampsList.length);
-        const iLightPool = makeInstanced(poolG, matLightPool, lampsList.length);
+        // Farolas: las de fábrica se numeran por orden (f0, f1…). Las quitadas no se dibujan; las nuevas se suman.
+        lampsList.forEach((l, idx) => { l.id = 'f' + idx; });
+        const lampsAll = lampsList
+          .filter(l => !edit.removedLamps.has(l.id))
+          .concat(edit.addedLamps.map(l => ({ id: l.id, x: l.x, y: this.getTerrainHeight(l.x, l.z), z: l.z, rot: 0 })));
+        this.editables.lamps = lampsAll.map(l => ({ id: l.id, x: l.x, z: l.z }));
 
-        lampsList.forEach((l, idx) => {
+        const iLampPost = makeInstanced(postG, matIron, lampsAll.length);
+        const iLampArm = makeInstanced(armG, matIron, lampsAll.length);
+        const iLantern = makeInstanced(lanternG, matGlassGlow, lampsAll.length);
+        const iLightPool = makeInstanced(poolG, matLightPool, lampsAll.length);
+
+        lampsAll.forEach((l, idx) => {
           dPos.set(l.x, l.y, l.z);
           dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), l.rot);
           dScale.set(1, 1, 1);

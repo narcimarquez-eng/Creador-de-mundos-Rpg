@@ -92,4 +92,87 @@ t('etiquetas de calles y casas', () => {
   assert.strictEqual(E.houseLabel('-28:13'), 'Casa');
 });
 
+t('una calle dibujada guarda sus puntos y su tipo', () => {
+  const idx = E.indexOps([{ op: 'añadir-calle', id: 'u1', kind: 'sendero', pts: [{ x: 0, z: 0 }, { x: 10, z: 0 }] }]);
+  assert.deepStrictEqual(idx.addedStreets.get('u1'), { kind: 'sendero', pts: [{ x: 0, z: 0 }, { x: 10, z: 0 }] });
+});
+
+t('los puntos de una calle se mueven, se añaden y se quitan en orden', () => {
+  const idx = E.indexOps([
+    { op: 'añadir-calle', id: 'u1', kind: 'calle', pts: [{ x: 0, z: 0 }, { x: 10, z: 0 }, { x: 20, z: 0 }] },
+    { op: 'mover-nodo-calle', id: 'u1', i: 1, x: 12, z: 5 },
+    { op: 'añadir-nodo-calle', id: 'u1', i: 2, x: 15, z: 9 },
+    { op: 'quitar-nodo-calle', id: 'u1', i: 0 }
+  ]);
+  assert.deepStrictEqual(idx.addedStreets.get('u1').pts, [{ x: 12, z: 5 }, { x: 15, z: 9 }, { x: 20, z: 0 }]);
+});
+
+t('no se quita un punto si la calle quedaría con menos de dos', () => {
+  const idx = E.indexOps([
+    { op: 'añadir-calle', id: 'u1', pts: [{ x: 0, z: 0 }, { x: 10, z: 0 }] },
+    { op: 'quitar-nodo-calle', id: 'u1', i: 0 }
+  ]);
+  assert.strictEqual(idx.addedStreets.get('u1').pts.length, 2);
+});
+
+t('cambiar el tipo de una calle dibujada', () => {
+  const idx = E.indexOps([
+    { op: 'añadir-calle', id: 'u1', kind: 'calle', pts: [{ x: 0, z: 0 }, { x: 10, z: 0 }] },
+    { op: 'cambiar-tipo-calle', id: 'u1', kind: 'calzada' }
+  ]);
+  assert.strictEqual(idx.addedStreets.get('u1').kind, 'calzada');
+});
+
+t('muros: tramos quitados y puertas', () => {
+  const idx = E.indexOps([{ op: 'quitar-muro', id: 5 }, { op: 'puerta-muro', id: 10 }]);
+  assert.ok(idx.removedWalls.has(5));
+  assert.ok(idx.gates.has(10));
+  assert.ok(!idx.removedWalls.has(10));
+});
+
+t('farolas: nuevas y quitadas', () => {
+  const idx = E.indexOps([{ op: 'añadir-farola', id: 'g1', x: 3, z: 4 }, { op: 'quitar-farola', id: 'f2' }]);
+  assert.deepStrictEqual(idx.addedLamps, [{ id: 'g1', x: 3, z: 4 }]);
+  assert.ok(idx.removedLamps.has('f2'));
+});
+
+t('ids nuevos por tipo con su prefijo', () => {
+  assert.strictEqual(E.nextId([], 'añadir-calle', 'u'), 'u1');
+  assert.strictEqual(E.nextId([{ op: 'añadir-calle', id: 'u3' }], 'añadir-calle', 'u'), 'u4');
+  assert.strictEqual(E.nextId([{ op: 'añadir-farola', id: 'g1' }], 'añadir-calle', 'u'), 'u1');
+  assert.strictEqual(E.nextId([{ op: 'añadir-farola', id: 'g2' }], 'añadir-farola', 'g'), 'g3');
+});
+
+t('curva suave: pasa por los puntos de control y respeta los extremos', () => {
+  const ctrl = [{ x: 0, z: 0 }, { x: 10, z: 10 }, { x: 20, z: 0 }];
+  const c = E.curvePts(ctrl, 2);
+  assert.deepStrictEqual(c[0], { x: 0, z: 0 });
+  assert.deepStrictEqual(c[c.length - 1], { x: 20, z: 0 });
+  const pasa = c.some(p => Math.hypot(p.x - 10, p.z - 10) < 1e-6);
+  assert.ok(pasa, 'la curva pasa por el punto central');
+  assert.ok(c.length > ctrl.length, 'muestrea más puntos que los de control');
+});
+
+t('punto más cercano de una polilínea: segmento, proyección y distancia', () => {
+  const near = E.nearestOnPolyline([{ x: 0, z: 0 }, { x: 10, z: 0 }, { x: 10, z: 10 }], 12, 4);
+  assert.strictEqual(near.seg, 1);
+  assert.ok(Math.abs(near.x - 10) < 1e-9 && Math.abs(near.z - 4) < 1e-9);
+  assert.ok(Math.abs(near.d - 2) < 1e-9);
+});
+
+t('elegir punto de calle dentro de la distancia', () => {
+  assert.strictEqual(E.pickNode([{ x: 0, z: 0 }, { x: 10, z: 0 }], 9.5, 0.5), 1);
+  assert.strictEqual(E.pickNode([{ x: 0, z: 0 }, { x: 10, z: 0 }], 5, 5), -1);
+});
+
+t('anchura según el tipo de calle', () => {
+  assert.strictEqual(E.widthFor('calle', 7), 7);
+  assert.strictEqual(E.widthFor('calzada', 7), 8.5);
+  assert.strictEqual(E.widthFor('sendero', 7), 3.4);
+});
+
+t('etiqueta de calle dibujada', () => {
+  assert.strictEqual(E.streetLabel('u2'), 'Calle dibujada');
+});
+
 console.log('\n' + n + ' pruebas correctas');

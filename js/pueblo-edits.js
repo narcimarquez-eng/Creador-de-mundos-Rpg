@@ -17,8 +17,25 @@
     'mover-casa': 'Mover casa',
     'añadir-casa': 'Añadir casa',
     'quitar-calle': 'Quitar calle',
-    'mover-calle': 'Mover calle'
+    'mover-calle': 'Mover calle',
+    'añadir-calle': 'Dibujar calle',
+    'mover-nodo-calle': 'Mover punto de calle',
+    'añadir-nodo-calle': 'Añadir punto a calle',
+    'quitar-nodo-calle': 'Quitar punto de calle',
+    'cambiar-tipo-calle': 'Cambiar tipo de calle',
+    'quitar-muro': 'Quitar tramo de muralla',
+    'puerta-muro': 'Puerta en la muralla',
+    'añadir-farola': 'Poner farola',
+    'quitar-farola': 'Quitar farola'
   };
+
+  // Tipos de calle que se pueden dibujar y su anchura (m). «calle» usa la anchura del pueblo.
+  const STREET_KINDS = { calle: 'Calle', calzada: 'Calzada', sendero: 'Sendero' };
+  function widthFor(kind, roadWidth) {
+    if (kind === 'calzada') return 8.5;
+    if (kind === 'sendero') return 3.4;
+    return roadWidth;
+  }
 
   function baseKey(cfg) {
     return BASE_FIELDS.map(k => k + '=' + cfg[k]).join(';');
@@ -42,7 +59,12 @@
       movedHouses: new Map(),
       addedHouses: [],
       removedStreets: new Set(),
-      movedStreets: new Map()
+      movedStreets: new Map(),
+      addedStreets: new Map(),   // id -> { kind, pts: puntos de control }
+      removedWalls: new Set(),
+      gates: new Set(),
+      addedLamps: [],
+      removedLamps: new Set()
     };
     (ops || []).forEach(op => {
       if (op.op === 'quitar-casa') idx.removedHouses.add(op.id);
@@ -50,27 +72,99 @@
       else if (op.op === 'añadir-casa') idx.addedHouses.push({ id: op.id, x: op.x, z: op.z });
       else if (op.op === 'quitar-calle') idx.removedStreets.add(op.id);
       else if (op.op === 'mover-calle') idx.movedStreets.set(op.id, { dx: op.dx, dz: op.dz });
+      else if (op.op === 'añadir-calle') idx.addedStreets.set(op.id, { kind: op.kind || 'calle', pts: op.pts.map(p => ({ x: p.x, z: p.z })) });
+      else if (op.op === 'cambiar-tipo-calle') { const s = idx.addedStreets.get(op.id); if (s) s.kind = op.kind; }
+      else if (op.op === 'mover-nodo-calle') {
+        const s = idx.addedStreets.get(op.id);
+        if (s && op.i >= 0 && op.i < s.pts.length) s.pts[op.i] = { x: op.x, z: op.z };
+      }
+      else if (op.op === 'añadir-nodo-calle') {
+        const s = idx.addedStreets.get(op.id);
+        if (s && op.i >= 0 && op.i <= s.pts.length) s.pts.splice(op.i, 0, { x: op.x, z: op.z });
+      }
+      else if (op.op === 'quitar-nodo-calle') {
+        const s = idx.addedStreets.get(op.id);
+        if (s && s.pts.length > 2 && op.i >= 0 && op.i < s.pts.length) s.pts.splice(op.i, 1);
+      }
+      else if (op.op === 'quitar-muro') idx.removedWalls.add(op.id);
+      else if (op.op === 'puerta-muro') idx.gates.add(op.id);
+      else if (op.op === 'añadir-farola') idx.addedLamps.push({ id: op.id, x: op.x, z: op.z });
+      else if (op.op === 'quitar-farola') idx.removedLamps.add(op.id);
     });
     return idx;
   }
 
-  // Id nuevo para una casa añadida: «n1», «n2»… sin repetir los de las operaciones existentes
-  function nextAddedId(ops) {
+  // Id nuevo para una operación de un tipo: prefijo + número mayor de los existentes («n1», «u2», «g3»…)
+  function nextId(ops, opName, prefix) {
     let max = 0;
     (ops || []).forEach(op => {
-      if (op.op === 'añadir-casa') max = Math.max(max, parseInt(op.id.slice(1), 10) || 0);
+      if (op.op === opName && op.id.charAt(0) === prefix) max = Math.max(max, parseInt(op.id.slice(1), 10) || 0);
     });
-    return 'n' + (max + 1);
+    return prefix + (max + 1);
+  }
+
+  // Id nuevo para una casa añadida: «n1», «n2»… sin repetir los de las operaciones existentes
+  function nextAddedId(ops) {
+    return nextId(ops, 'añadir-casa', 'n');
+  }
+
+  // Puntos de control suavizados (Catmull-Rom) muestreados cada «step» metros. La curva pasa por los puntos.
+  function curvePts(ctrl, step) {
+    const out = [];
+    for (let i = 0; i < ctrl.length - 1; i++) {
+      const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)];
+      const n = Math.max(1, Math.ceil(Math.hypot(p2.x - p1.x, p2.z - p1.z) / step));
+      for (let k = 0; k < n; k++) {
+        const t = k / n, t2 = t * t, t3 = t2 * t;
+        const f = (a, b, c, d) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+        out.push({ x: f(p0.x, p1.x, p2.x, p3.x), z: f(p0.z, p1.z, p2.z, p3.z) });
+      }
+    }
+    const last = ctrl[ctrl.length - 1];
+    out.push({ x: last.x, z: last.z });
+    return out;
+  }
+
+  // Punto de una polilínea más cercano a (x, z): índice del segmento, posición y distancia
+  function nearestOnPolyline(pts, x, z) {
+    let best = null;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const vx = b.x - a.x, vz = b.z - a.z;
+      const len2 = vx * vx + vz * vz;
+      let t = len2 ? ((x - a.x) * vx + (z - a.z) * vz) / len2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      const px = a.x + vx * t, pz = a.z + vz * t;
+      const d = Math.hypot(x - px, z - pz);
+      if (!best || d < best.d) best = { seg: i, x: px, z: pz, d: d };
+    }
+    return best;
+  }
+
+  // Índice del punto de control más cercano a (x, z), dentro de maxDist; -1 si no hay ninguno
+  function pickNode(ctrl, x, z, maxDist) {
+    const m = maxDist === undefined ? 2.5 : maxDist;
+    let best = -1, bestD = m;
+    ctrl.forEach((p, i) => {
+      const d = Math.hypot(p.x - x, p.z - z);
+      if (d <= bestD) { bestD = d; best = i; }
+    });
+    return best;
+  }
+
+  // Elemento más cercano al punto (x, z) dentro de maxDist metros (posición en o.x, o.z)
+  function pickNearest(list, x, z, maxDist) {
+    let best = null, bestD = maxDist;
+    list.forEach(o => {
+      const d = Math.hypot(o.x - x, o.z - z);
+      if (d <= bestD) { bestD = d; best = o; }
+    });
+    return best;
   }
 
   // Casa más cercana al punto (x, z), dentro de maxDist metros
   function pickHouse(houses, x, z, maxDist) {
-    let best = null, bestD = maxDist === undefined ? 4.5 : maxDist;
-    houses.forEach(h => {
-      const d = Math.hypot(h.x - x, h.z - z);
-      if (d <= bestD) { bestD = d; best = h; }
-    });
-    return best;
+    return pickNearest(houses, x, z, maxDist === undefined ? 4.5 : maxDist);
   }
 
   function distToSegment(px, pz, ax, az, bx, bz) {
@@ -104,6 +198,7 @@
   }
 
   function streetLabel(id) {
+    if (id.charAt(0) === 'u' && /^u\d+$/.test(id)) return 'Calle dibujada';
     if (id === 'principal') return 'Calle principal';
     if (id === 'este-oeste-izq') return 'Calle este-oeste (oeste)';
     if (id === 'este-oeste-der') return 'Calle este-oeste (este)';
@@ -118,7 +213,8 @@
   }
 
   const api = {
-    BASE_FIELDS, OP_NAMES, baseKey, emptyEdits, activeOps, indexOps, nextAddedId,
+    BASE_FIELDS, OP_NAMES, STREET_KINDS, baseKey, emptyEdits, activeOps, indexOps, nextId, nextAddedId,
+    widthFor, curvePts, nearestOnPolyline, pickNode, pickNearest,
     pickHouse, pickStreet, distToSegment, offsetPts, streetLabel, houseLabel
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

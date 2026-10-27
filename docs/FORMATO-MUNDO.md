@@ -76,13 +76,25 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
     { "op": "mover-casa", "id": "28:13", "x": 40, "z": 50 },
     { "op": "añadir-casa", "id": "n1", "x": 60, "z": -70 },
     { "op": "quitar-calle", "id": "especial-2" },
-    { "op": "mover-calle", "id": "anillo:28", "dx": 3, "dz": -2 }
+    { "op": "mover-calle", "id": "anillo:28", "dx": 3, "dz": -2 },
+    { "op": "añadir-calle", "id": "u1", "kind": "calle", "pts": [{ "x": -80, "z": 60 }, { "x": 80, "z": 60 }] },
+    { "op": "mover-nodo-calle", "id": "u1", "i": 1, "x": 0, "z": 70 },
+    { "op": "añadir-nodo-calle", "id": "u1", "i": 1, "x": 0, "z": 40 },
+    { "op": "quitar-nodo-calle", "id": "u1", "i": 0 },
+    { "op": "cambiar-tipo-calle", "id": "u1", "kind": "calzada" },
+    { "op": "quitar-muro", "id": 5 },
+    { "op": "puerta-muro", "id": 10 },
+    { "op": "añadir-farola", "id": "g1", "x": 30, "z": -30 },
+    { "op": "quitar-farola", "id": "f2" }
   ]
 }
 ```
 - `id` de una casa: `"<z>:<desplazamiento en x>"` de su hueco en la cuadrícula del pueblo. Las casas añadidas usan `n1`, `n2`… y no dependen de la cuadrícula.
-- `id` de una calle: `principal`, `este-oeste-izq`, `este-oeste-der`, `anillo:<z>`, `especial-<n>` (acceso a un edificio especial) o `acceso-<id de casa>` (camino de la puerta de una casa).
-- `mover-casa` da la posición final en metros (coordenadas del pueblo). `mover-calle` da el desplazamiento total desde su posición generada.
+- `id` de una calle: `principal`, `este-oeste-izq`, `este-oeste-der`, `anillo:<z>`, `especial-<n>` (acceso a un edificio especial), `acceso-<id de casa>` (camino de la puerta de una casa) o `u<n>` (calle dibujada).
+- `mover-casa` da la posición final en metros (coordenadas del pueblo). `mover-calle` da el desplazamiento total desde su posición generada; también se aplica a las calles dibujadas.
+- Calle dibujada (`u<n>`): `pts` son puntos de control. La calle pasa por ellos con una curva suave, muestreada cada 3,5 m. `kind` es `calle`, `calzada` (8,5 m) o `sendero` (3,4 m); `calle` usa la anchura del pueblo. Donde cruza el río se corta el camino y se pone un puente automático.
+- `id` de un muro: número del tramo, de 0 a 35. `quitar-muro` quita el tramo con su torre; `puerta-muro` lo cambia por dos pilares con un dintel encima, dejando paso libre.
+- `id` de una farola: `f<n>` para las de fábrica (n = orden en la generación) y `g<n>` para las nuevas.
 - Las ediciones solo se aplican si `base` coincide con la configuración actual (semilla, tamaño, estilo, relieve, etc.). El giro y las salidas no cuentan. Si la base cambia, las ediciones se conservan pero no se aplican.
 - Las calles de salida hacia el mundo no se pueden editar.
 

@@ -272,6 +272,7 @@
     #edit-tools button.on { background: #92400e; border-color: #fbbf24; color: #fff7ed; }
     #edit-tools button:disabled { opacity: 0.4; cursor: default; }
     #edit-tools .sep { width: 1px; background: #334155; margin: 0 2px; }
+    #edit-kind { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 7px 8px; font-size: 12px; }
 
     #controls-hint {
       position: absolute;
@@ -823,21 +824,40 @@
     });
 
     // --- 12. EDICIÓN DEL PUEBLO: paleta de herramientas ---
-    // Para añadir una herramienta nueva: una entrada en EDIT_TOOLS y su caso en onToolDown / onToolUp.
+    // Para añadir una herramienta nueva: una entrada en EDIT_TOOLS y su caso en performTap (o onCanvasDown si arrastra).
     const EDIT_TOOLS = [
-      { id: 'select', icon: '👆', label: 'Ver', key: '1', hint: 'Toca una casa o una calle para ver qué es.' },
-      { id: 'move', icon: '✥', label: 'Mover', key: '2', hint: 'Arrastra una casa o una calle a otro sitio.' },
-      { id: 'delete', icon: '🗑', label: 'Borrar', key: '3', hint: 'Toca una casa o una calle para quitarla.' },
-      { id: 'add', icon: '＋', label: 'Casa', key: '4', hint: 'Toca el suelo para poner una casa nueva, si cabe.' }
+      { id: 'select', icon: '👆', label: 'Ver', key: '1', hint: 'Toca una casa, farola, muro o calle para ver qué es.' },
+      { id: 'move', icon: '✥', label: 'Mover', key: '2', hint: 'Arrastra una casa o una calle; arrastra un punto de una calle dibujada.' },
+      { id: 'delete', icon: '🗑', label: 'Borrar', key: '3', hint: 'Toca una casa, farola, tramo de muro, punto o calle para quitarla.' },
+      { id: 'add', icon: '＋', label: 'Casa', key: '4', hint: 'Toca el suelo para poner una casa nueva, si cabe.' },
+      { id: 'draw', icon: '✏️', label: 'Calle', key: '5', hint: 'Toca puntos en el suelo para trazar una calle. «Terminar calle» la cierra.' },
+      { id: 'node', icon: '◉', label: 'Punto', key: '6', hint: 'Toca una calle dibujada para añadirle un punto; luego arrástralo con Mover.' },
+      { id: 'lamp', icon: '🕯', label: 'Farola', key: '7', hint: 'Toca el suelo para poner una farola.' },
+      { id: 'wall', icon: '🧱', label: 'Muro', key: '8', hint: 'Toca un tramo de muralla para quitarlo.' },
+      { id: 'gate', icon: '🚪', label: 'Puerta', key: '9', hint: 'Toca un tramo de muralla para abrirlo como puerta con arco.' }
     ];
+    const TAP_MOVE_PX = 8;          // movimiento máximo para considerar un toque (no un giro)
     let editMode = false;
     let editTool = 'select';
     let drag = null;
+    let pendingTap = null;
     let lastPreview = 0;
+    let draft = null;               // puntos de la calle que se está trazando
+    let draftLine = null;
+    let selectedStreetId = null;
     const pickRay = new THREE.Raycaster();
     const editBar = document.getElementById('edit-bar');
     const editInfo = document.getElementById('edit-info');
     const editToolsEl = document.getElementById('edit-tools');
+    const editKind = document.createElement('select');
+    editKind.id = 'edit-kind';
+    editKind.title = 'Tipo de calle que se dibuja (o de la calle seleccionada)';
+    Object.keys(PuebloEdits.STREET_KINDS).forEach(k => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = PuebloEdits.STREET_KINDS[k];
+      editKind.appendChild(o);
+    });
+    editKind.style.display = 'none';
 
     function currentBase() { return PuebloEdits.baseKey(readCfgFromUI()); }
     // Operaciones que se aplican ahora (vacías si son de otra base)
@@ -859,16 +879,17 @@
       const n = opsNow().length;
       const tool = EDIT_TOOLS.find(t => t.id === editTool);
       const other = edits.ops.length && edits.base !== currentBase();
-      say(other
+      if (!draft) say(other
         ? 'Hay ediciones guardadas de otra base (semilla o tamaño distintos): no se aplican aquí.'
         : (tool ? tool.hint : '') + '  Ediciones: ' + n + '.');
       editToolsEl.querySelectorAll('button[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === editTool));
-      const undoBtn = document.getElementById('btn-edit-undo');
-      const redoBtn = document.getElementById('btn-edit-redo');
-      const discardBtn = document.getElementById('btn-edit-discard');
-      if (undoBtn) undoBtn.disabled = !opsNow().length;
-      if (redoBtn) redoBtn.disabled = !redoOps.length;
-      if (discardBtn) discardBtn.style.display = other ? '' : 'none';
+      const q = id => document.getElementById(id);
+      if (q('btn-edit-undo')) q('btn-edit-undo').disabled = !opsNow().length;
+      if (q('btn-edit-redo')) q('btn-edit-redo').disabled = !redoOps.length;
+      if (q('btn-edit-discard')) q('btn-edit-discard').style.display = other ? '' : 'none';
+      if (q('btn-edit-finish')) q('btn-edit-finish').style.display = draft && draft.length >= 2 ? '' : 'none';
+      if (q('btn-edit-cancel')) q('btn-edit-cancel').style.display = draft ? '' : 'none';
+      editKind.style.display = editTool === 'draw' ? '' : 'none';
     }
 
     // Regenera el pueblo con las ediciones (o con ops de vista previa mientras se arrastra)
@@ -927,6 +948,7 @@
     }
 
     function setEditTool(id) {
+      if (draft && id !== 'draw') { clearDraft(); say('Calle cancelada al cambiar de herramienta.'); }
       editTool = id;
       updateEditInfo();
     }
@@ -941,17 +963,26 @@
       b.addEventListener('click', () => setEditTool(t.id));
       editToolsEl.appendChild(b);
     });
-    [['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits], ['btn-edit-discard', 'Descartar ediciones de otra base', discardStaleEdits], ['btn-edit-exit', '✕ Salir', () => setEditMode(false)]]
+    editToolsEl.appendChild(editKind);
+    [['btn-edit-finish', '✔ Terminar calle', () => finishDraft()],
+     ['btn-edit-cancel', '✕ Cancelar calle', () => { clearDraft(); say('Calle cancelada.'); updateEditInfo(); }],
+     ['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits],
+     ['btn-edit-discard', 'Descartar ediciones de otra base', discardStaleEdits], ['btn-edit-exit', '✕ Salir', () => setEditMode(false)]]
       .forEach(([id, label, fn], i) => {
-        if (i === 0) { const sep = document.createElement('span'); sep.className = 'sep'; editToolsEl.appendChild(sep); }
+        if (i === 2) { const sep = document.createElement('span'); sep.className = 'sep'; editToolsEl.appendChild(sep); }
         const b = document.createElement('button');
         b.type = 'button';
         b.id = id;
-        if (id === 'btn-edit-discard') b.style.display = 'none';
+        if (id === 'btn-edit-discard' || id === 'btn-edit-finish' || id === 'btn-edit-cancel') b.style.display = 'none';
         b.textContent = label;
         b.addEventListener('click', fn);
         editToolsEl.appendChild(b);
       });
+    editKind.addEventListener('change', () => {
+      // Con una calle dibujada seleccionada, cambiar el tipo lo cambia en esa calle
+      const s = selectedStreetId && world.editables.streets.find(x => x.id === selectedStreetId && x.user);
+      if (s && s.kind !== editKind.value) commitOp({ op: 'cambiar-tipo-calle', id: selectedStreetId, kind: editKind.value });
+    });
 
     function setEditMode(on) {
       editMode = on;
@@ -959,7 +990,7 @@
       // En móvil el panel tapa la paleta: al editar se pliega
       if (on && window.innerWidth < 768) document.getElementById('ui-panel').classList.add('collapsed');
       document.getElementById('btn-edit-mode').textContent = on ? '✅ Terminar edición' : '✏️ Activar edición';
-      if (!on) { cancelDrag(); }
+      if (!on) { cancelDrag(); clearDraft(); }
       updateEditInfo();
     }
     document.getElementById('btn-edit-mode').addEventListener('click', () => setEditMode(!editMode));
@@ -973,19 +1004,37 @@
       return hit ? { x: hit.point.x, z: hit.point.z } : null;
     }
 
-    // Casa o calle bajo el punto. Las casas tienen prioridad sobre las calles.
+    // Desplazamiento que tiene ahora una calle (solo lo usan las calles de fábrica y las dibujadas)
+    function offsetOf(id) {
+      return PuebloEdits.indexOps(opsNow()).movedStreets.get(id) || { dx: 0, dz: 0 };
+    }
+
+    function wallAt(p) { return PuebloEdits.pickNearest(world.editables.walls, p.x, p.z, 10); }
+
+    // Lo que hay bajo el punto. Prioridad: casa, farola, muro, punto de calle dibujada, calle.
     function itemAt(p) {
       const h = PuebloEdits.pickHouse(world.editables.houses, p.x, p.z, 4.5);
       if (h) return { kind: 'casa', id: h.id, x: h.x, z: h.z };
-      const s = PuebloEdits.pickStreet(world.editables.streets, p.x, p.z, 1.0);
-      if (s) return { kind: 'calle', id: s.id, street: s };
+      const f = PuebloEdits.pickNearest(world.editables.lamps, p.x, p.z, 2.5);
+      if (f) return { kind: 'farola', id: f.id, x: f.x, z: f.z };
+      const w = wallAt(p);
+      if (w) return { kind: 'muro', id: w.id, x: w.x, z: w.z };
+      for (const s of world.editables.streets) {
+        if (!s.user) continue;
+        const i = PuebloEdits.pickNode(s.ctrl, p.x, p.z, 2.5);
+        if (i >= 0) return { kind: 'nodo', id: s.id, i: i, count: s.ctrl.length, x: s.ctrl[i].x, z: s.ctrl[i].z, street: s };
+      }
+      const st = PuebloEdits.pickStreet(world.editables.streets, p.x, p.z, 1.0);
+      if (st) return { kind: 'calle', id: st.id, user: !!st.user, street: st };
       return null;
     }
 
     function describe(item) {
-      return item.kind === 'casa'
-        ? PuebloEdits.houseLabel(item.id) + ' (' + item.x.toFixed(0) + ', ' + item.z.toFixed(0) + ')'
-        : PuebloEdits.streetLabel(item.id);
+      if (item.kind === 'casa') return PuebloEdits.houseLabel(item.id) + ' (' + item.x.toFixed(0) + ', ' + item.z.toFixed(0) + ')';
+      if (item.kind === 'farola') return 'Farola';
+      if (item.kind === 'muro') return 'Tramo de muralla ' + (item.id + 1);
+      if (item.kind === 'nodo') return 'Punto ' + (item.i + 1) + ' de ' + PuebloEdits.streetLabel(item.id);
+      return PuebloEdits.streetLabel(item.id);
     }
 
     function cancelDrag() {
@@ -995,56 +1044,136 @@
       regenerateEdited();
     }
 
-    // Operación que deja el elemento arrastrado en la posición del puntero
+    // Operación que deja el elemento arrastrado en la posición del puntero (coordenadas del pueblo)
     function dragOp(d, p) {
-      if (d.kind === 'casa') {
-        return { op: 'mover-casa', id: d.id, x: p.x + d.offX, z: p.z + d.offZ };
-      }
+      if (d.kind === 'casa') return { op: 'mover-casa', id: d.id, x: p.x + d.offX, z: p.z + d.offZ };
+      if (d.kind === 'nodo') return { op: 'mover-nodo-calle', id: d.id, i: d.i, x: p.x - d.offDx, z: p.z - d.offDz };
       return { op: 'mover-calle', id: d.id, dx: d.baseDx + (p.x - d.start.x), dz: d.baseDz + (p.z - d.start.z) };
     }
 
-    // Escucha en fase de captura sobre el body: así puede frenar el giro de la cámara antes de que llegue al lienzo
-    function onCanvasDown(e) {
-      if (!editMode || e.button > 0 || e.target !== canvasEl) return;
-      const p = groundPoint(e);
-      if (!p) return;
-      const item = itemAt(p);
+    // --- Calles dibujadas ---
+    function updateDraftLine() {
+      if (draftLine) { scene.remove(draftLine); draftLine.geometry.dispose(); draftLine = null; }
+      if (!draft || draft.length < 2) return;
+      const pts = draft.map(q => new THREE.Vector3(q.x, world.getTerrainHeight(q.x, q.z) + 1.2, q.z));
+      draftLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#fbbf24' }));
+      scene.add(draftLine);
+    }
 
-      if (editTool === 'select') {
-        if (item) { say('Seleccionado: ' + describe(item) + '. Ediciones: ' + opsNow().length + '.'); e.stopPropagation(); }
-        return;
-      }
-      if (editTool === 'delete') {
+    function clearDraft() { draft = null; updateDraftLine(); }
+
+    function addDraftPoint(p) {
+      if (!draft) draft = [];
+      const last = draft[draft.length - 1];
+      if (last && Math.hypot(last.x - p.x, last.z - p.z) < 1.5) return;   // evita puntos casi iguales
+      draft.push({ x: p.x, z: p.z });
+      updateDraftLine();
+      say('Calle: ' + draft.length + ' puntos. «Terminar calle» la cierra; Esc la cancela.');
+      updateEditInfo();
+    }
+
+    function finishDraft() {
+      if (!draft || draft.length < 2) return;
+      ensureEditBase();
+      const id = PuebloEdits.nextId(edits.ops, 'añadir-calle', 'u');
+      const pts = draft;
+      clearDraft();
+      commitOp({ op: 'añadir-calle', id: id, kind: editKind.value, pts: pts });
+      say('Calle dibujada. Ediciones: ' + opsNow().length + '.');
+    }
+
+    // Añade un punto a la calle dibujada más cercana al toque (si está a menos de 3 m)
+    function insertNode(p) {
+      let best = null;
+      world.editables.streets.forEach(s => {
+        if (!s.user) return;
+        const near = PuebloEdits.nearestOnPolyline(s.ctrl, p.x, p.z);
+        if (near && near.d <= 3 && (!best || near.d < best.near.d)) best = { s: s, near: near };
+      });
+      if (!best) { say('Toca una calle dibujada para añadirle un punto.'); return; }
+      ensureEditBase();
+      const off = offsetOf(best.s.id);
+      commitOp({ op: 'añadir-nodo-calle', id: best.s.id, i: best.near.seg + 1, x: best.near.x - off.dx, z: best.near.z - off.dz });
+      selectedStreetId = best.s.id;
+      say('Punto añadido. Arrástralo con Mover.');
+    }
+
+    // Acción de un toque (cuando no ha habido giro)
+    function performTap(t) {
+      const p = t.p, item = t.item;
+      if (t.tool === 'select') {
         if (!item) return;
-        commitOp(item.kind === 'casa' ? { op: 'quitar-casa', id: item.id } : { op: 'quitar-calle', id: item.id });
-        say('Quitado: ' + describe(item) + '.');
-        e.stopPropagation();
+        selectedStreetId = (item.kind === 'calle' && item.user) || item.kind === 'nodo' ? item.id : null;
+        if (selectedStreetId && item.street) editKind.value = item.street.kind || 'calle';
+        say('Seleccionado: ' + describe(item) + '. Ediciones: ' + opsNow().length + '.');
         return;
       }
-      if (editTool === 'add') {
-        e.stopPropagation();
+      if (t.tool === 'delete') {
+        if (!item) return;
+        let op;
+        if (item.kind === 'casa') op = { op: 'quitar-casa', id: item.id };
+        else if (item.kind === 'farola') op = { op: 'quitar-farola', id: item.id };
+        else if (item.kind === 'muro') op = { op: 'quitar-muro', id: item.id };
+        else if (item.kind === 'nodo') {
+          if (item.count <= 2) { say('Una calle dibujada necesita al menos dos puntos: tócala en medio para quitarla entera.'); return; }
+          op = { op: 'quitar-nodo-calle', id: item.id, i: item.i };
+        } else op = { op: 'quitar-calle', id: item.id };
+        commitOp(op);
+        say('Quitado: ' + describe(item) + '.');
+        return;
+      }
+      if (t.tool === 'add') {
         ensureEditBase();
         if (!world.placementOk(p.x, p.z)) { say('No cabe una casa aquí: demasiado cerca de otra casa, de un edificio o de la muralla.'); return; }
         commitOp({ op: 'añadir-casa', id: PuebloEdits.nextAddedId(edits.ops), x: p.x, z: p.z });
         return;
       }
-      if (editTool === 'move' && item) {
-        e.stopPropagation();
+      if (t.tool === 'draw') { addDraftPoint(p); return; }
+      if (t.tool === 'node') { insertNode(p); return; }
+      if (t.tool === 'lamp') {
         ensureEditBase();
-        const cur = PuebloEdits.indexOps(edits.ops).movedStreets.get(item.id) || { dx: 0, dz: 0 };
-        drag = {
-          kind: item.kind, id: item.id, start: p,
-          offX: item.kind === 'casa' ? item.x - p.x : 0,
-          offZ: item.kind === 'casa' ? item.z - p.z : 0,
-          baseDx: cur.dx, baseDz: cur.dz,
-          op: null, moved: false
-        };
-        controls.enabled = false;
-        say('Moviendo ' + describe(item) + '…');
+        commitOp({ op: 'añadir-farola', id: PuebloEdits.nextId(edits.ops, 'añadir-farola', 'g'), x: p.x, z: p.z });
+        say('Farola puesta. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'wall' || t.tool === 'gate') {
+        const w = wallAt(p);
+        if (!w) { say('Toca un tramo de muralla.'); return; }
+        ensureEditBase();
+        commitOp({ op: t.tool === 'wall' ? 'quitar-muro' : 'puerta-muro', id: w.id });
+        say((t.tool === 'wall' ? 'Tramo quitado: ' : 'Puerta en el tramo ') + (w.id + 1) + '. Ediciones: ' + opsNow().length + '.');
       }
     }
 
+    // Mantener pulsado y arrastrar: casas, calles y puntos. El resto actúa al tocar.
+    function onCanvasDown(e) {
+      if (!editMode || e.button > 0 || e.target !== canvasEl) return;
+      const p = groundPoint(e);
+      if (!p) return;
+      const item = itemAt(p);
+      if (editTool === 'move' && item && item.kind !== 'farola' && item.kind !== 'muro') {
+        e.stopPropagation();
+        ensureEditBase();
+        if (item.kind === 'nodo') {
+          const off = offsetOf(item.id);
+          drag = { kind: 'nodo', id: item.id, i: item.i, start: p, offDx: off.dx, offDz: off.dz, op: null, moved: false };
+          selectedStreetId = item.id;
+        } else if (item.kind === 'casa') {
+          drag = { kind: 'casa', id: item.id, start: p, offX: item.x - p.x, offZ: item.z - p.z, op: null, moved: false };
+        } else {
+          const cur = offsetOf(item.id);
+          drag = { kind: 'calle', id: item.id, start: p, baseDx: cur.dx, baseDz: cur.dz, op: null, moved: false };
+        }
+        controls.enabled = false;
+        say('Moviendo ' + describe(item) + '…');
+        return;
+      }
+      // Lo demás es un toque: se decide al soltar, así la cámara sigue girando si se arrastra
+      pendingTap = { tool: editTool, p: p, item: item, x: e.clientX, y: e.clientY };
+    }
+
     function onCanvasMove(e) {
+      if (pendingTap && Math.hypot(e.clientX - pendingTap.x, e.clientY - pendingTap.y) > TAP_MOVE_PX) pendingTap = null;
       if (!drag) return;
       const p = groundPoint(e);
       if (!p) return;
@@ -1057,6 +1186,11 @@
     }
 
     function onCanvasUp(e) {
+      if (pendingTap) {
+        const t = pendingTap;
+        pendingTap = null;
+        if (!drag && e.button <= 0 && Math.hypot(e.clientX - t.x, e.clientY - t.y) <= TAP_MOVE_PX) performTap(t);
+      }
       if (!drag) return;
       const d = drag;
       drag = null;
@@ -1076,16 +1210,22 @@
     }
 
     const canvasEl = renderer.domElement;
+    // Fase de captura sobre el body: así puede frenar el giro de la cámara antes de que llegue al lienzo
     document.body.addEventListener('pointerdown', onCanvasDown, true);
     window.addEventListener('pointermove', onCanvasMove);
     window.addEventListener('pointerup', onCanvasUp);
-    window.addEventListener('pointercancel', () => cancelDrag());
+    window.addEventListener('pointercancel', () => { pendingTap = null; cancelDrag(); });
 
     window.addEventListener('keydown', (e) => {
       const tag = (e.target && e.target.tagName) || '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === 'Escape') { cancelDrag(); return; }
+      if (e.key === 'Escape') {
+        if (draft) { clearDraft(); say('Calle cancelada.'); updateEditInfo(); return; }
+        cancelDrag();
+        return;
+      }
       if (!editMode) return;
+      if (e.key === 'Enter' && draft) { e.preventDefault(); finishDraft(); return; }
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redoEdit(); else undoEdit(); return; }
       if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redoEdit(); return; }
