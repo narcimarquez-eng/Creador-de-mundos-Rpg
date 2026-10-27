@@ -837,7 +837,9 @@
       { id: 'wall', icon: '🧱', label: 'Muro', key: '8', hint: 'Toca un tramo de muralla para quitarlo.' },
       { id: 'gate', icon: '🚪', label: 'Puerta', key: '9', hint: 'Toca un tramo de muralla para abrirlo como puerta con arco.' },
       { id: 'tree', icon: '🌳', label: 'Árbol', key: '0', hint: 'Toca el suelo para poner un árbol de la especie elegida, si cabe.' },
-      { id: 'fence', icon: '🪵', label: 'Valla', key: 'v', hint: 'Toca un punto y luego otro para trazar una valla.' }
+      { id: 'fence', icon: '🪵', label: 'Valla', key: 'v', hint: 'Toca un punto y luego otro para trazar una valla.' },
+      { id: 'rock', icon: '🪨', label: 'Roca', key: '-', hint: 'Toca el suelo para poner una roca, si cabe.' },
+      { id: 'hedge', icon: '🌿', label: 'Seto', key: 'h', hint: 'Toca el suelo para poner un seto, si cabe.' }
     ];
     const TAP_MOVE_PX = 8;          // movimiento máximo para considerar un toque (no un giro)
     let editMode = false;
@@ -1036,6 +1038,10 @@
       if (tr) return { kind: 'arbol', id: tr.id, x: tr.x, z: tr.z };
       const fe = PuebloEdits.pickNearest(world.editables.fences, p.x, p.z, 2.5);
       if (fe) return { kind: 'valla', id: fe.id, x: fe.x, z: fe.z };
+      const ro = PuebloEdits.pickNearest(world.editables.rocks, p.x, p.z, 2.5);
+      if (ro) return { kind: 'roca', id: ro.id, x: ro.x, z: ro.z };
+      const se = PuebloEdits.pickNearest(world.editables.hedges, p.x, p.z, 2.5);
+      if (se) return { kind: 'seto', id: se.id, x: se.x, z: se.z };
       const w = wallAt(p);
       if (w) return { kind: 'muro', id: w.id, x: w.x, z: w.z };
       for (const s of world.editables.streets) {
@@ -1053,6 +1059,8 @@
       if (item.kind === 'farola') return 'Farola';
       if (item.kind === 'arbol') return 'Árbol';
       if (item.kind === 'valla') return 'Tramo de valla';
+      if (item.kind === 'roca') return 'Roca';
+      if (item.kind === 'seto') return 'Seto';
       if (item.kind === 'muro') return 'Tramo de muralla ' + (item.id + 1);
       if (item.kind === 'nodo') return 'Punto ' + (item.i + 1) + ' de ' + PuebloEdits.streetLabel(item.id);
       return PuebloEdits.streetLabel(item.id);
@@ -1137,6 +1145,8 @@
         else if (item.kind === 'muro') op = { op: 'quitar-muro', id: item.id };
         else if (item.kind === 'arbol') op = { op: 'quitar-arbol', id: item.id };
         else if (item.kind === 'valla') op = { op: 'quitar-valla', id: item.id };
+        else if (item.kind === 'roca') op = { op: 'quitar-roca', id: item.id };
+        else if (item.kind === 'seto') op = { op: 'quitar-seto', id: item.id };
         else if (item.kind === 'nodo') {
           if (item.count <= 2) { say('Una calle dibujada necesita al menos dos puntos: tócala en medio para quitarla entera.'); return; }
           op = { op: 'quitar-nodo-calle', id: item.id, i: item.i };
@@ -1152,6 +1162,20 @@
         return;
       }
       if (t.tool === 'draw') { addDraftPoint(p); return; }
+      if (t.tool === 'rock') {
+        ensureEditBase();
+        if (!world.treeOk(p.x, p.z)) { say('No cabe una roca aquí: demasiado cerca de algo o en una calle.'); return; }
+        commitOp({ op: 'añadir-roca', id: PuebloEdits.nextId(edits.ops, 'añadir-roca', 'p'), x: p.x, z: p.z, escala: 1 });
+        say('Roca puesta. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'hedge') {
+        ensureEditBase();
+        if (!world.treeOk(p.x, p.z)) { say('No cabe un seto aquí: demasiado cerca de algo o en una calle.'); return; }
+        commitOp({ op: 'añadir-seto', id: PuebloEdits.nextId(edits.ops, 'añadir-seto', 's'), x: p.x, z: p.z, rot: 0 });
+        say('Seto puesto. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
       if (t.tool === 'tree') {
         ensureEditBase();
         if (!world.treeOk(p.x, p.z)) { say('No cabe un árbol aquí: demasiado cerca de algo o en una calle.'); return; }

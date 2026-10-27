@@ -30,7 +30,11 @@
     'quitar-arbol': 'Quitar árbol',
     'añadir-arbol': 'Poner árbol',
     'quitar-valla': 'Quitar tramo de valla',
-    'añadir-valla': 'Poner valla'
+    'añadir-valla': 'Poner valla',
+    'quitar-roca': 'Quitar roca',
+    'añadir-roca': 'Poner roca',
+    'quitar-seto': 'Quitar seto',
+    'añadir-seto': 'Poner seto'
   };
 
   // Especies de árbol que se pueden poner a mano (modelos de js/arboles.js)
@@ -75,7 +79,11 @@
       removedTrees: new Set(),
       addedTrees: [],
       removedFences: new Set(),
-      addedFences: []
+      addedFences: [],
+      removedRocks: new Set(),
+      addedRocks: [],
+      removedHedges: new Set(),
+      addedHedges: []
     };
     (ops || []).forEach(op => {
       if (op.op === 'quitar-casa') idx.removedHouses.add(op.id);
@@ -105,6 +113,10 @@
       else if (op.op === 'añadir-arbol') idx.addedTrees.push({ id: op.id, x: op.x, z: op.z, especie: op.especie || 'roble' });
       else if (op.op === 'quitar-valla') idx.removedFences.add(op.id);
       else if (op.op === 'añadir-valla') idx.addedFences.push({ id: op.id, x1: op.x1, z1: op.z1, x2: op.x2, z2: op.z2 });
+      else if (op.op === 'quitar-roca') idx.removedRocks.add(op.id);
+      else if (op.op === 'añadir-roca') idx.addedRocks.push({ id: op.id, x: op.x, z: op.z, escala: op.escala || 1 });
+      else if (op.op === 'quitar-seto') idx.removedHedges.add(op.id);
+      else if (op.op === 'añadir-seto') idx.addedHedges.push({ id: op.id, x: op.x, z: op.z, rot: op.rot || 0 });
     });
     return idx;
   }

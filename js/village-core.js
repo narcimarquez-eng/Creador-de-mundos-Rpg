@@ -26,7 +26,8 @@
         removedHouses: new Set(), movedHouses: new Map(), addedHouses: [],
         removedStreets: new Set(), movedStreets: new Map(), addedStreets: new Map(),
         removedWalls: new Set(), gates: new Set(), addedLamps: [], removedLamps: new Set(),
-        removedTrees: new Set(), addedTrees: [], removedFences: new Set(), addedFences: []
+        removedTrees: new Set(), addedTrees: [], removedFences: new Set(), addedFences: [],
+        removedRocks: new Set(), addedRocks: [], removedHedges: new Set(), addedHedges: []
       };
     }
 
@@ -37,27 +38,72 @@
       return h >>> 0;
     }
 
-    // Árboles de modelo (js/arboles.js): geometría y textura por especie, compartidas entre generaciones
+    // Árboles realistas (js/arboles.js, horneados con ez-tree): geometría y materiales por especie y nivel,
+    // compartidos entre generaciones. Un nivel «cerca» (más hojas) junto al pueblo y «lejos» en el bosque.
     const TREE_SCALE = { roble: 0.8, alamo: 0.8, pino: 0.8, arbusto: 1.0 };
-    const treeAssets = {};
-    function treeAsset(especie) {
-      if (treeAssets[especie]) return treeAssets[especie];
-      const d = typeof TreeLib !== 'undefined' ? TreeLib.datos(especie) : null;
-      if (!d) return null;
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(d.pos, 3));
-      geo.setAttribute('normal', new THREE.BufferAttribute(d.nrm, 3));
-      geo.setAttribute('uv', new THREE.BufferAttribute(d.uv, 2));
-      geo.setIndex(new THREE.BufferAttribute(d.idx, 1));
-      const img = new Image();
-      const tex = new THREE.Texture(img);
-      tex.magFilter = THREE.NearestFilter;
-      img.onload = () => { tex.needsUpdate = true; };
-      img.src = d.png;
-      // La paleta de la textura es verde azulado: se tiñe hacia un verde natural (el tronco queda ocre)
-      const mat = new THREE.MeshLambertMaterial({ map: tex, color: new THREE.Color(0.55, 0.92, 0.42), side: THREE.DoubleSide });
-      return (treeAssets[especie] = { geo: geo, mat: mat });
+    const treeGeo = {};
+    const treeMat = {};
+    function texturaDe(nombre) {
+      const url = typeof TreeLib !== 'undefined' ? TreeLib.textura(nombre) : null;
+      if (!url) return null;
+      if (!treeMat['tex:' + nombre]) {
+        const img = new Image();
+        const tex = new THREE.Texture(img);
+        tex.magFilter = THREE.NearestFilter;
+        img.onload = () => { tex.needsUpdate = true; };
+        img.src = url;
+        treeMat['tex:' + nombre] = tex;
+      }
+      return treeMat['tex:' + nombre];
     }
+    // { ramas: { geo, mat }, hojas: { geo, mat } } para una especie y un nivel; null si no existe
+    function treeAsset(especie, nivel) {
+      const key = especie + ':' + nivel;
+      if (treeGeo[key]) return treeGeo[key];
+      const d = typeof TreeLib !== 'undefined' ? TreeLib.datos(especie, nivel) : null;
+      if (!d) return null;
+      const geoDe = (p) => {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(p.pos, 3));
+        g.setAttribute('normal', new THREE.BufferAttribute(p.nrm, 3));
+        g.setAttribute('uv', new THREE.BufferAttribute(p.uv, 2));
+        g.setIndex(new THREE.BufferAttribute(p.idx, 1));
+        return g;
+      };
+      const matKey = (parte) => especie + ':' + parte;
+      if (!treeMat[matKey('ramas')]) {
+        treeMat[matKey('ramas')] = new THREE.MeshLambertMaterial({ map: texturaDe(TreeLib.corteza(especie)), side: THREE.DoubleSide });
+      }
+      if (!treeMat[matKey('hojas')]) {
+        // Hojas recortadas por su canal alfa; el tinte de la especie se aplica al material
+        treeMat[matKey('hojas')] = new THREE.MeshLambertMaterial({ map: texturaDe(TreeLib.hoja(especie)), color: new THREE.Color(TreeLib.tinta(especie)), alphaTest: 0.5, side: THREE.DoubleSide });
+      }
+      return (treeGeo[key] = {
+        ramas: { geo: geoDe(d.ramas), mat: treeMat[matKey('ramas')] },
+        hojas: { geo: geoDe(d.hojas), mat: treeMat[matKey('hojas')] }
+      });
+    }
+    // Nivel de detalle según la distancia al pueblo: lo cercano lleva más hojas
+    function nivelArbol(t, townRadius) {
+      return Math.hypot(t.x, t.z) < townRadius + 25 ? 'cerca' : 'lejos';
+    }
+
+    // Roca: icosaedro con relieve irregular y aplastado, para que parezca piedra (una sola geometría compartida)
+    let rockGeoCache = null;
+    function rockGeometry() {
+      if (rockGeoCache) return rockGeoCache;
+      const g = new THREE.IcosahedronGeometry(1, 1);
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+        const n = 0.82 + 0.18 * Math.sin(x * 3.1 + z * 1.7) * Math.cos(y * 2.3 + x * 0.9) + 0.06 * Math.sin(y * 7.3 + z * 5.1);
+        p.setXYZ(i, x * n, y * n * 0.75, z * n);
+      }
+      g.translate(0, 0.15, 0);
+      g.computeVertexNormals();
+      return (rockGeoCache = g);
+    }
+
     // Especie de un árbol de fábrica: pino para las coníferas; el resto, según su posición (siempre la misma)
     function especieFor(isPine, x, z) {
       if (isPine) return 'pino';
@@ -1791,7 +1837,8 @@
 
             if (cfg.hasFences && rng.next() * 100 <= cfg.treeDensity * 0.7) {
               const hedgeX = hx + (xOff < 0 ? 4.5 : -4.5);
-              hedges.push({ x: hedgeX, y: this.getTerrainHeight(hedgeX, hz + 4.2), z: hz + 4.2, rot: 0 });
+              const hid = 'h' + lz + ':' + xOff;
+              if (!edit.removedHedges.has(hid)) hedges.push({ id: hid, x: hedgeX, y: this.getTerrainHeight(hedgeX, hz + 4.2), z: hz + 4.2, rot: 0 });
             }
           });
         });
@@ -1889,11 +1936,10 @@
 
           if (i % 3 === 0) {
             const rx = tx + rng.range(-4, 4), rz = tz + rng.range(-4, 4);
-            rocks.push({
-              x: rx, y: this.getTerrainHeight(rx, rz), z: rz,
-              scale: rng.range(0.7, 1.8),
-              color: rng.pick([0x64748b, 0x475569, 0x94a3b8])
-            });
+            const rScale = rng.range(0.7, 1.8);
+            const rColor = rng.pick([0x64748b, 0x475569, 0x94a3b8]);
+            const rid = 'r' + i;
+            if (!edit.removedRocks.has(rid)) rocks.push({ id: rid, x: rx, y: this.getTerrainHeight(rx, rz), z: rz, scale: rScale, color: rColor });
           }
         }
 
@@ -2086,20 +2132,35 @@
             fences.push({ id: id, x: px, y: this.getTerrainHeight(px, pz), z: pz, rot: rot, len: len });
           }
         });
+        edit.addedRocks.forEach(ar => {
+          if (edit.removedRocks.has(ar.id)) return;
+          rocks.push({ id: ar.id, x: ar.x, y: this.getTerrainHeight(ar.x, ar.z), z: ar.z, scale: ar.escala || 1, color: 0x64748b });
+        });
+        edit.addedHedges.forEach(ah => {
+          if (edit.removedHedges.has(ah.id)) return;
+          hedges.push({ id: ah.id, x: ah.x, y: this.getTerrainHeight(ah.x, ah.z), z: ah.z, rot: ah.rot || 0 });
+        });
+        this.editables.rocks = rocks.map(r => ({ id: r.id, x: r.x, z: r.z }));
+        this.editables.hedges = hedges.map(h => ({ id: h.id, x: h.x, z: h.z }));
         this.editables.trees = trees.map(t => ({ id: t.id, x: t.x, z: t.z }));
         this.editables.fences = fences.map(f => ({ id: f.id, x: f.x, z: f.z }));
 
         const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95); hedgeG.translate(0, 0.48, 0);
         const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
-        const rockG = new THREE.DodecahedronGeometry(0.9, 0);
+        const rockG = rockGeometry();
 
-        // Árboles: una malla instanciada por especie (modelos de js/arboles.js)
-        const especiesUsadas = {};
-        trees.forEach(t => { especiesUsadas[t.especie] = (especiesUsadas[t.especie] || 0) + 1; });
+        // Árboles: una malla instanciada de ramas y otra de hojas por especie y nivel
+        const usados = {};
+        trees.forEach(t => { const k = t.especie + ':' + nivelArbol(t, townRadius); usados[k] = (usados[k] || 0) + 1; });
         const treeMeshes = {};
-        Object.keys(especiesUsadas).forEach(esp => {
-          const asset = treeAsset(esp);
-          if (asset) treeMeshes[esp] = { mesh: makeInstanced(asset.geo, asset.mat, especiesUsadas[esp]), n: 0 };
+        Object.keys(usados).forEach(k => {
+          const [esp, niv] = k.split(':');
+          const asset = treeAsset(esp, niv);
+          if (!asset) return;
+          treeMeshes[k] = {
+            ramas: { mesh: makeInstanced(asset.ramas.geo, asset.ramas.mat, usados[k]), n: 0 },
+            hojas: { mesh: makeInstanced(asset.hojas.geo, asset.hojas.mat, usados[k]), n: 0 }
+          };
         });
         const iHedge = makeInstanced(hedgeG, matFoliage, hedges.length);
         const iFence = makeInstanced(fenceG, matAtlas, fences.length);
@@ -2107,7 +2168,7 @@
 
         const cVeg = new THREE.Color();
         trees.forEach((t, idx) => {
-          const tm = treeMeshes[t.especie];
+          const tm = treeMeshes[t.especie + ':' + nivelArbol(t, townRadius)];
           if (!tm) return;
           const sc = t.scale * (TREE_SCALE[t.especie] || 1);
           dPos.set(t.x, t.y - 0.15, t.z);
@@ -2115,9 +2176,10 @@
           dScale.set(sc, sc, sc);
           dMat.compose(dPos, dQuat, dScale);
           cVeg.setHex(t.color);
-          tm.mesh.setMatrixAt(tm.n, dMat);
-          tm.mesh.setColorAt(tm.n, cVeg);
-          tm.n++;
+          tm.ramas.mesh.setMatrixAt(tm.ramas.n, dMat);
+          tm.hojas.mesh.setMatrixAt(tm.hojas.n, dMat);
+          tm.hojas.mesh.setColorAt(tm.hojas.n, cVeg);
+          tm.ramas.n++; tm.hojas.n++;
         });
 
         dScale.set(1, 1, 1);
@@ -2153,7 +2215,7 @@
           iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
           iLampPost, iLampArm, iLantern, iLightPool,
-          ...Object.keys(treeMeshes).map(k => treeMeshes[k].mesh), iHedge, iFence, iRock
+          ...Object.keys(treeMeshes).reduce((acc, k) => acc.concat([treeMeshes[k].ramas.mesh, treeMeshes[k].hojas.mesh]), []), iHedge, iFence, iRock
         ];
 
         allInstanced.forEach(m => {

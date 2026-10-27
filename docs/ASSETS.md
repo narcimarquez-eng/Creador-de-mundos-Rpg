@@ -29,38 +29,42 @@ Notas:
 
 ## Árboles (pueblos)
 
-Fuente: **Kenney — Nature Kit 2.1** (https://kenney.nl/assets/nature-kit), licencia **CC0 1.0**. Los cuatro modelos
-llegaron en el repositorio `narcimarquez-eng/CochesHuelva` (carpeta `modelos/arboles/`, con su `catalogo.json`).
-La licencia completa está en `assets/arboles/LICENCIA-kenney-nature-kit.txt`.
+Fuente: **ez-tree** (MIT, Daniel Greenheck), usado en el proyecto New-Rol
+(https://github.com/narcimarquez-eng/New-Rol). Los árboles se generan con sus presets y se hornean en
+`js/arboles.js` con `tools/hornear-arboles.mjs`. Texturas de corteza y hojas CC0 (Poly Haven y TextureCan, vía New-Rol),
+reducidas con `tools/reducir-texturas-arboles.py`. Licencias en `assets/arboles/LICENCIA.md`.
 
-| Especie | Modelo | Altura | Triángulos | Uso |
+| Especie | Preset de ez-tree | Altura | Textura de corteza | Hojas |
 |---|---|---|---|---|
-| `roble` | roble.glb | 9 m | 196 | Árboles de copa redonda, junto a casas y en el bosque. |
-| `alamo` | alamo.glb | 11 m | 72 | Árboles de copa estrecha. |
-| `pino` | pino.glb | 10,5 m | 230 | Coníferas del bosque. |
-| `arbusto` | arbusto.glb | 1,6 m | 104 | Arbustos bajos. |
+| `roble` | Oak Medium | 9,5 m | roble | roble |
+| `alamo` | Aspen Medium | 10,5 m | abedul | álamo |
+| `pino` | Pine Medium | 11 m | pino | pino |
+| `arbusto` | Bush 1 | 2 m | roble | roble |
 
-- Los modelos se incrustan en `js/arboles.js` con `node tools/generar-arboles.js <carpeta> js/arboles.js`
-  (no se editan a mano). La textura es una paleta de 16 × 16 px del propio modelo.
-- Se tiñen hacia un verde natural (color del material 0,55 / 0,92 / 0,42) para que el follaje no salga azulado.
-  La textura original no se modifica.
+- Dos niveles de detalle: «cerca» (junto al pueblo, con más hojas) y «lejos» (el bosque, con menos ramas y hojas).
+  El nivel depende de la distancia al pueblo (25 m más allá de su borde).
+- Coste medido (ramas + hojas): el nivel cercano tiene entre 3.700 (álamo) y 10.700 (roble) triángulos por árbol,
+  y el lejano entre 1.400 (arbusto) y 4.500 (pino). Sigue siendo alto para móviles con muchos árboles;
+  se ajustará en G7 (calidad y rendimiento).
+- El follaje se tiñe hacia un verde natural (color del material 0,55 / 0,92 / 0,42).
 
 ## Vallas
 
-No hay un modelo de valla con licencia verificada: la búsqueda en Kenney (Fantasy Town Kit) no confirmó que
-incluya vallas ni archivos GLB. Por eso las vallas son **procedurales** (un tablero de 4,5 m por tramo),
-creadas en el propio código, sin fuente externa.
+No hay un modelo de valla con licencia verificada, así que las vallas son **procedurales** (un tablero de 4,5 m por tramo).
 
 ## Calzadas
 
-No se ha añadido textura nueva de calzada. Las búsquedas no encontraron un adoquín con licencia CC0 y 1K JPG
-verificada en ambientCG (la página de búsqueda no lista ese asset). Las calzadas usan el atlas que ya tiene el
-pueblo; los tipos calle, calzada y sendero se distinguen por anchura.
+No se ha añadido textura nueva de calzada: no se encontró un adoquín CC0 verificado en ambientCG. Las calzadas usan el
+atlas del pueblo; los tipos calle, calzada y sendero se distinguen por su anchura.
+
+## Rocas y setos
+
+Las rocas son icosaedros con relieve irregular generados por código, sin textura externa. Los setos son cajas procedurales.
 
 ## Pendiente de añadir
 
 | Fase | Qué | Fuente prevista |
 |---|---|---|
-| G3 | Rocas y hierba (los árboles ya están) | Packs gratuitos con licencia libre (por confirmar). |
+| G3 | Hierba y arbustos de hoja | Packs gratuitos con licencia libre (por confirmar). |
 | G4 | Monstruos y personaje | GLB propio del personaje; modelos de monstruos por confirmar. |
 | G2 | Agua y cielo | Sin archivos: se hará con shaders. |

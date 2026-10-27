@@ -89,7 +89,11 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
     { "op": "quitar-arbol", "id": "b3" },
     { "op": "añadir-arbol", "id": "a1", "x": 58, "z": 15, "especie": "pino" },
     { "op": "quitar-valla", "id": "-28:-32a" },
-    { "op": "añadir-valla", "id": "c1", "x1": -60, "z1": -70, "x2": -40, "z2": -70 }
+    { "op": "añadir-valla", "id": "c1", "x1": -60, "z1": -70, "x2": -40, "z2": -70 },
+    { "op": "quitar-roca", "id": "r0" },
+    { "op": "añadir-roca", "id": "p1", "x": 12, "z": -40, "escala": 1.2 },
+    { "op": "quitar-seto", "id": "h-72:-13" },
+    { "op": "añadir-seto", "id": "s1", "x": 20, "z": 35, "rot": 0.5 }
   ]
 }
 ```
@@ -105,6 +109,10 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
   generación), o `a<n>` si se puso a mano. `especie` es `roble`, `alamo`, `pino` o `arbusto`.
 - `id` de una valla: `<hueco de casa>a` o `…b` para las de una casa (ver arriba), y `c<n>.<k>` para los tramos de una
   valla puesta a mano (`c<n>`, dividida en tramos de unos 4,5 m). `añadir-valla` da los dos extremos en metros.
+- `id` de una roca: `r<n>` para las de fábrica (n = orden en la generación) y `p<n>` para las puestas a mano.
+  `escala` es opcional (1 por defecto).
+- `id` de un seto: `h<…>` para los de fábrica (junto a una casa, como `h-72:-13`) y `s<n>` para los puestos a mano.
+  `rot` es el giro en radianes (0 por defecto). `añadir-seto` da la posición del centro en metros.
 
 ## Camino
 | Campo | Descripción |

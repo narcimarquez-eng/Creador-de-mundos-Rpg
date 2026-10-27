@@ -1,0 +1,9 @@
+{
+  "name": "herramientas-mundo-rpg",
+  "private": true,
+  "type": "module",
+  "description": "Herramientas que generan los datos incrustados del visor (árboles de ez-tree, MIT).",
+  "dependencies": {
+    "three": "0.128.0"
+  }
+}
