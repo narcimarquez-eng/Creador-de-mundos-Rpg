@@ -69,8 +69,9 @@ Fuente: el editor «Enemigo-rpg» de la misma cuenta (https://github.com/narcima
 juego conviene confirmar el uso del código con su autor. Los modelos no son archivos: se construyen en el navegador,
 y las animaciones se calculan cada fotograma.
 
-Coste medido en Three r128 (40 arquetipos): de media 3.700 triángulos y 74 mallas por enemigo. Cada enemigo visible
-suma sus mallas, así que conviene reducirlo antes de móvil.
+Coste medido en Three r128 (40 arquetipos, mallas visibles). Sin optimizar: 73 mallas y 3.685 triángulos de media.
+Con `js/enemigos-optimizar.js`: 35 mallas (−52 %). Con calidad baja además: 1.871 triángulos (−49 %). El visor quita
+las hitboxes de depuración (líneas verdes y rojas), que antes se veían encima de cada enemigo.
 
 ## Pendiente de añadir
 

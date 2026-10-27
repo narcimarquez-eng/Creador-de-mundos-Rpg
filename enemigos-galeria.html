@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="js/enemigos.js"></script>
+  <script src="js/enemigos-optimizar.js"></script>
 </head>
 <body>
 <div id="info">cargando…</div>
@@ -33,16 +34,21 @@
   const t0 = performance.now();
   const resumen = [];
   ids.forEach((id, i) => {
-    const cfg = EnemyLib.ARCHETYPE_PRESETS[id];
+    const base = EnemyLib.ARCHETYPE_PRESETS[id];
+    const densidad = new URLSearchParams(location.search).get('densidad');
+    const cfg = densidad ? Object.assign({}, base, { morphology: Object.assign({}, base.morphology, { meshDensity: densidad }) }) : base;
     const ta = performance.now();
-    const rig = EnemyLib.buildProceduralEnemy(cfg, texturas, false, false);
+    let rig = EnemyLib.buildProceduralEnemy(cfg, texturas, false, false);
     const tiempo = performance.now() - ta;
+    const antesOpt = EnemyOpt.medirVisibles(rig);
+    if (new URLSearchParams(location.search).get('opt') === '1') EnemyOpt.optimizarRig(rig);
+    const despuesOpt = EnemyOpt.medirVisibles(rig);
+    window.__opt = (window.__opt || []).concat([{ antes: antesOpt, despues: despuesOpt }]);
     const col = i % 8, fila = Math.floor(i / 8);
     rig.rootGroup.position.set(-70 + col * 20, 0, -40 + fila * 26);
     scene.add(rig.rootGroup);
-    let tris = 0, mallas = 0;
-    rig.rootGroup.traverse(o => { if (o.isMesh) { mallas++; const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3 * (o.isInstancedMesh ? o.count : 1); } });
-    resumen.push({ id, tiempoMs: +tiempo.toFixed(1), mallas, tris: Math.round(tris) });
+    const vis = EnemyOpt.medirVisibles(rig);
+    resumen.push({ id, tiempoMs: +tiempo.toFixed(1), mallas: vis.mallas, tris: vis.tris });
     window.__rigs = (window.__rigs || []).concat([rig]);
   });
   const total = performance.now() - t0;

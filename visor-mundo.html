@@ -233,6 +233,7 @@
   <script src="js/terreno.js"></script>
   <script src="js/character.js"></script>
   <script src="js/enemigos.js"></script>
+  <script src="js/enemigos-optimizar.js"></script>
   <script>
   "use strict";
   const W = window.RPGWorld;
@@ -1324,7 +1325,11 @@
   function construirModeloEnemigo(m) {
     if (m.rig) return;
     if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(renderer.capabilities.getMaxAnisotropy());
-    m.rig = EnemyLib.buildProceduralEnemy(m.enemigo, enemyTextures, false, false);
+    // Calidad baja: menos segmentos y menos fragmentos; se aplica al construir el modelo
+    const densidad = quality === 'bajo' ? 'low' : 'medium';
+    const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
+    m.rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
+    EnemyOpt.optimizarRig(m.rig);
     m.group.add(m.rig.rootGroup);
     m.barHeight = new THREE.Box3().setFromObject(m.rig.rootGroup).max.y + 0.9;
   }
