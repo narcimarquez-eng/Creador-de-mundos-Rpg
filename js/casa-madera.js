@@ -93,6 +93,7 @@
       tejas: new THREE.MeshLambertMaterial({ map: T.tejas, side: THREE.DoubleSide }),
       cristal: new THREE.MeshStandardMaterial({ color: 0xffd08a, emissive: 0xffa040, emissiveIntensity: 0.9, roughness: 0.2 }),
       hierro: new THREE.MeshLambertMaterial({ color: 0x2b2b2b, side: THREE.DoubleSide }),
+      carbon: new THREE.MeshLambertMaterial({ map: T.madera, color: 0x4a3d36, side: THREE.DoubleSide }),
     };
     return matCache;
   }
@@ -302,11 +303,88 @@
     return o.resultado();
   }
 
+
+  // Ruinas: derrumbada (tejado caído al lado), muros (solo quedan las paredes), quemada (negra, sin tejado)
+  // y hundida (tejado combado). Usan las mismas piezas que las cabañas, rotas.
+  const TIPOS_RUINA = ['derrumbada', 'muros', 'quemada', 'hundida'];
+  function partesRuina(THREE, opts = {}) {
+    const tipo = TIPOS_RUINA.includes(opts.tipo) ? opts.tipo : 'derrumbada';
+    const r = rnd(opts.semilla ?? 5);
+    const ancho = opts.ancho ?? 7, fondo = opts.fondo ?? 5.5;
+    const hundir = Math.max(0, opts.hundir ?? 0);
+    const base = 0.4;
+    const alto = tipo === 'muros' ? 1.2 + r() * 0.8 : 0.6 + r() * 1.6;   // altura de las paredes que quedan
+    const quemada = tipo === 'quemada';
+    const o = obra(THREE);
+    const I = new THREE.Matrix4();
+    const alzar = (g, dx, dy, dz, rz, ry) => {
+      g.applyMatrix4(new THREE.Matrix4().makeRotationZ(rz).premultiply(new THREE.Matrix4().makeRotationY(ry)).setPosition(dx, dy, dz));
+      return g;
+    };
+
+    // Zócalo de piedra, medio hundido
+    o.add('piedra', new THREE.BoxGeometry(ancho + 0.3, base + hundir, fondo + 0.3), 1.6, I.clone().setPosition(0, (base - hundir) / 2, 0));
+
+    // Paredes rotas: fachadas con tablones que faltan, y un lateral con hueco
+    fachada(THREE, o, r, ancho, fondo / 2, base, alto);
+    fachada(THREE, o, r, ancho, -fondo / 2, base, alto);
+    const frac = 0.4 + r() * 0.6;
+    o.add('madera', caja(THREE, 0.22, alto * (0.7 + r() * 0.3), fondo * frac, ancho / 2, base + alto * 0.35, -fondo / 2 + fondo * frac / 2), 2.5);
+    if (r() < 0.5) o.add('madera', caja(THREE, 0.22, alto * 0.5, fondo * 0.3, -ancho / 2, base + alto * 0.25, fondo * 0.3), 2.5);
+
+    // Chimenea caída o en pie: un tocón de piedra
+    o.add('piedra', caja(THREE, 0.8, 0.6 + r() * 1.2, 0.8, ancho * 0.3, base + 0.6, -fondo * 0.25), 1.6);
+
+    // Tejado según el tipo
+    if (tipo === 'derrumbada') {
+      // Una vertiente tirada en el suelo al lado de la casa
+      const lona = new THREE.BoxGeometry(3.6, 0.12, fondo + 0.8);
+      o.add('tejas', alzar(lona, -ancho / 2 - 1.8, base + 0.12, 0, 0.45, 0), 1.2);
+      // La otra, rota, apoyada en el muro
+      const media = new THREE.BoxGeometry(ancho / 2 + 0.6, 0.12, fondo + 0.4);
+      o.add('tejas', alzar(media, ancho / 4, base + alto + 0.2, 0, -0.5, 0), 1.2);
+    } else if (tipo === 'hundida') {
+      // Tejado combado: las dos vertientes bajan hacia el centro
+      const hc = alto + 0.6;
+      [-1, 1].forEach(sx => {
+        const g = new THREE.BufferGeometry();
+        const x0 = sx * (ancho / 2 + 0.5), z0 = -fondo / 2 - 0.4, z1 = fondo / 2 + 0.4;
+        const v = [[x0, base + alto, z0], [0, hc, z0], [0, hc, z1], [x0, base + alto, z0], [0, hc, z1], [x0, base + alto, z1]];
+        g.setAttribute('position', new THREE.Float32BufferAttribute(v.flat(), 3));
+        o.add('tejas', g, 1.2);
+      });
+      o.add('oscura', caja(THREE, 0.2, 0.2, fondo, 0, hc, 0), 2.5);
+    } else if (tipo === 'quemada') {
+      // Solo quedan vigas carbonizadas, inclinadas
+      [-1, 1].forEach(sx => {
+        o.add('carbon', alzar(new THREE.BoxGeometry(0.2, 0.2, fondo + 0.6), sx * ancho * 0.3, base + alto + 0.3, 0, sx * 0.3, 0), 2.5);
+      });
+    }
+
+    // Cascotes alrededor
+    const n = 4 + Math.floor(r() * 5);
+    for (let k = 0; k < n; k++) {
+      const tam = 0.2 + r() * 0.5;
+      o.add('piedra', new THREE.BoxGeometry(tam, tam * 0.6, tam), 1.6, I.clone().setPosition((r() - 0.5) * (ancho + 3), base + tam * 0.3, (r() - 0.5) * (fondo + 3)));
+    }
+    if (tipo !== 'muros' && r() < 0.6) {
+      o.add('madera', caja(THREE, 1.4, 0.2, 0.25, (r() - 0.5) * ancho, base + 0.12, fondo * 0.6), 2.5);
+    }
+
+    const res = o.resultado();
+    if (quemada && res.madera) {
+      // Madera quemada: los tablones pasan al material carbonizado
+      res.carbon = res.carbon ? fundir(THREE, [res.carbon, res.madera]) : res.madera;
+      delete res.madera;
+    }
+    return res;
+  }
+
   // Variante de una casa a partir de un número (p. ej. un hash de su posición, entre 0 y 1)
   function variante(n) {
     const i = Math.floor(((n % 1) + 1) % 1 * VARIANTES.length);
     return VARIANTES[Math.min(VARIANTES.length - 1, i)];
   }
 
-  root.CasaMaderaLib = { partes, materiales, fundir, variante, VARIANTES };
+  root.CasaMaderaLib = { partes, partesRuina, materiales, fundir, variante, VARIANTES, TIPOS_RUINA };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -116,6 +116,43 @@
       grupo.add(cm);
     }
 
+    // ---------------------------------------------------------------- Cabañas de madera en ruinas
+    // Cuatro tipos (derrumbada, muros, quemada y hundida) repartidos al azar; requiere js/casa-madera.js
+    const C = root.CasaMaderaLib;
+    if (C) {
+      const celda = 520, cabanas = [];
+      for (let x = L.minX; x < L.maxX; x += celda) for (let z = L.minZ; z < L.maxZ; z += celda) {
+        if (!rng.chance(0.4)) continue;
+        const cx = x + rng.next() * celda, cz = z + rng.next() * celda;
+        if (o.agua(cx, cz) || !o.libre(cx, cz) || pendiente(cx, cz) > 0.35) continue;
+        cabanas.push({
+          x: cx, z: cz, ry: rng.next() * 6.28,
+          tipo: C.TIPOS_RUINA[Math.floor(rng.next() * C.TIPOS_RUINA.length)],
+          ancho: 5 + rng.next() * 3, fondo: 4.5 + rng.next() * 2.5, semilla: Math.floor(rng.next() * 1e6) + 1
+        });
+      }
+      const piezas = {};
+      cabanas.forEach(c => {
+        const hc = o.altura(c.x, c.z), cs = Math.cos(c.ry), sn = Math.sin(c.ry);
+        // El zócalo baja hasta la esquina más baja, así que no queda en el aire en una ladera
+        let yEsq = hc;
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+          const lx = sx * c.ancho / 2, lz = sz * c.fondo / 2;
+          yEsq = Math.min(yEsq, o.altura(c.x + lx * cs + lz * sn, c.z - lx * sn + lz * cs));
+        });
+        const partes = C.partesRuina(THREE, { tipo: c.tipo, ancho: c.ancho, fondo: c.fondo, semilla: c.semilla, hundir: Math.max(0, hc - yEsq + 0.2) });
+        const M = new THREE.Matrix4().compose(new THREE.Vector3(c.x, hc, c.z),
+          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), c.ry), new THREE.Vector3(1, 1, 1));
+        Object.keys(partes).forEach(k => { (piezas[k] = piezas[k] || []).push(partes[k].clone().applyMatrix4(M)); });
+      });
+      const mats = C.materiales(THREE);
+      Object.keys(piezas).forEach(k => {
+        const malla = new THREE.Mesh(C.fundir(THREE, piezas[k]), mats[k]);
+        malla.castShadow = true; malla.receiveShadow = true;
+        grupo.add(malla);
+      });
+    }
+
     // ---------------------------------------------------------------- Vallas
     // Líneas paralelas a los caminos, a unos metros de ellos. Tres tipos: de madera, de piedra y rotas.
     const tramo = 4;

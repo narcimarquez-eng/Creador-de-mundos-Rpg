@@ -29,7 +29,7 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#9bd9f5');
     const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 500);
-    camera.position.set(0, 10, 58);
+    camera.position.set(0, 12, 60);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 2, 0);
     controls.update();
@@ -61,9 +61,29 @@
         tris += piezas[k].attributes.position.count / 3;
       });
       grupo.position.x = (i - (variantes.length - 1) / 2) * 13;
+      grupo.visible = !location.search.includes('ruinas');
       scene.add(grupo);
       window.__casas[v] = { triangulos: Math.round(tris), llamadas: Object.keys(piezas).length };
     });
+    // Segunda fila: las cuatro ruinas
+    window.__ruinas = {};
+    CasaMaderaLib.TIPOS_RUINA.forEach((t, i) => {
+      const piezas = CasaMaderaLib.partesRuina(THREE, { tipo: t, semilla: 90 + i * 11 });
+      const grupo = new THREE.Group();
+      Object.keys(piezas).forEach(k => {
+        const malla = new THREE.Mesh(piezas[k], mats[k]);
+        malla.castShadow = true; malla.receiveShadow = true;
+        grupo.add(malla);
+      });
+      grupo.position.set((i - (CasaMaderaLib.TIPOS_RUINA.length - 1) / 2) * 13, 0, -16);
+      scene.add(grupo);
+      window.__ruinas[t] = Object.keys(piezas);
+    });
+    if (location.search.includes('ruinas')) {
+      camera.position.set(0, 7, 20);
+      controls.target.set(0, 1.5, -16);
+      controls.update();
+    }
     window.__listo = true;
 
     addEventListener('resize', () => {
