@@ -1094,7 +1094,8 @@
 
           if (i < segs) {
             const a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, d = (i + 1) * 2 + 1;
-            indices.push(a, b, c, b, d, c);
+            // Orden antihorario visto desde arriba: la cara de arriba es la que se ve y tiene la normal correcta
+            indices.push(a, c, b, b, c, d);
           }
 
           const bajo = (x, z, y) => Math.min(y, this.getTerrainHeight(x, z)) - 0.9;
