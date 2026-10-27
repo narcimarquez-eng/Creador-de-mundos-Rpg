@@ -963,7 +963,10 @@
         const plazaFlatten = Math.min(1.0, Math.max(0.0, (rDist - 16.0) / 18.0));
 
         let h = 0;
-        if (this.cfg.terrainType === 'plains') {
+        // Con terrainBase (el visor) el suelo es el del mundo, con la plaza central plana
+        if (this.terrainBase) {
+          h = plazaFlatten * this.terrainBase(x, z);
+        } else if (this.cfg.terrainType === 'plains') {
           h = (Math.sin(x * 0.025) * Math.cos(z * 0.025)) * reliefScale * 0.35 * plazaFlatten;
         } else if (this.cfg.terrainType === 'hills') {
           h = (Math.sin(x * 0.032) * Math.cos(z * 0.028) + Math.sin((x + z) * 0.018) * 0.7) * reliefScale * plazaFlatten;
@@ -1031,7 +1034,17 @@
         return Math.abs(x - rx) < (this.riverWidth * 0.5 + radius);
       }
 
-      buildConformingRoadMesh(points, width, yOffset = 0.16) {
+      buildConformingRoadMesh(puntos, width, yOffset = 0.16) {
+        // Subdivide cada tramo en pasos de 1 m: sobre una ladera la calle sigue el terreno y no lo corta
+        const points = [];
+        for (let i = 0; i < puntos.length; i++) {
+          if (i > 0) {
+            const a = puntos[i - 1], b = puntos[i];
+            const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z)));
+            for (let k = 1; k < n; k++) points.push({ x: a.x + (b.x - a.x) * k / n, z: a.z + (b.z - a.z) * k / n });
+          }
+          points.push(puntos[i]);
+        }
         const segs = points.length - 1;
         const positions = new Float32Array((segs + 1) * 2 * 3);
         const uvs = new Float32Array((segs + 1) * 2 * 2);
@@ -1417,7 +1430,10 @@
             const fid = id + ':' + q;
             if (edit.removedFences.has(fid)) return;
             const x = (t.a.x + t.b.x) / 2, z = (t.a.z + t.b.z) / 2;
-            fences.push({ id: fid, x, y: this.getTerrainHeight(x, z), z, rot: Math.atan2(-(t.b.z - t.a.z), t.b.x - t.a.x), len: Math.hypot(t.b.x - t.a.x, t.b.z - t.a.z) });
+            // La valla baja hasta el punto más bajo bajo sus extremos y la parte alta queda a 1 m del centro
+            const yTop = this.getTerrainHeight(x, z) + 1.0;
+            const yBase = Math.min(this.getTerrainHeight(t.a.x, t.a.z), this.getTerrainHeight(t.b.x, t.b.z), yTop - 1.0) - 0.1;
+            fences.push({ id: fid, x, y: yBase, z, rot: Math.atan2(-(t.b.z - t.a.z), t.b.x - t.a.x), len: Math.hypot(t.b.x - t.a.x, t.b.z - t.a.z), alto: yTop - yBase });
           });
         };
         // Muestrea fn(t) entre t0 y t1 cada 2 m
@@ -1849,10 +1865,18 @@
               continue;
             }
 
-            const wG = new THREE.BoxGeometry(segLen, 7.5, 2.4);
+            // El tramo baja hasta el punto más bajo del terreno bajo sus dos extremos (en una ladera no queda en el aire)
+            const dirX = Math.sin((a1 + a2) * 0.5), dirZ = -Math.cos((a1 + a2) * 0.5);
+            const yExt = Math.min(
+              this.getTerrainHeight(mx + dirX * segLen / 2, mz + dirZ * segLen / 2),
+              this.getTerrainHeight(mx - dirX * segLen / 2, mz - dirZ * segLen / 2),
+              wy
+            );
+            const wTop = wy + 6.95, wBase = yExt - 0.6;
+            const wG = new THREE.BoxGeometry(segLen, wTop - wBase, 2.4);
             mapUVBand(wG, 0.25, 0.50);
             const wM = new THREE.Mesh(wG, matAtlas);
-            wM.position.set(mx, wy + 3.2, mz);
+            wM.position.set(mx, (wTop + wBase) / 2, mz);
             wM.rotation.y = wallRot;
             wM.castShadow = wM.receiveShadow = true;
             wallGroup.add(wM);
@@ -2230,7 +2254,15 @@
             mesh.setColorAt(idx, col);
           };
 
-          place(iPlinth, pIdx++, 0, -0.6, 0, qId, cWhite);
+          // El zócalo baja hasta la esquina más baja del terreno (en una ladera no queda en el aire)
+          const cosR = Math.cos(h.rot), sinR = Math.sin(h.rot);
+          let yEsq = h.y;
+          [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+            const lx = sx * HW * h.wScale, lz = sz * HD * h.dScale;
+            yEsq = Math.min(yEsq, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
+          });
+          const zBase = Math.min(-1.8, yEsq - h.y - 0.3), zTop = 0.6;
+          place(iPlinth, pIdx++, 0, (zBase + zTop) / 2, 0, qId, cWhite, h.wScale, (zTop - zBase) / PH, h.dScale);
 
           const baseFloorY = 0.6;
           for (let f = 0; f < h.floors; f++) {
@@ -2396,7 +2428,7 @@
         fences.forEach((f, idx) => {
           dPos.set(f.x, f.y, f.z);
           dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), f.rot);
-          dScale.set(f.len ? f.len / 4.5 : 1, 1, 1);
+          dScale.set(f.len ? f.len / 4.5 : 1, f.alto || 1, 1);
           dMat.compose(dPos, dQuat, dScale);
           iFence.setMatrixAt(idx, dMat);
         });

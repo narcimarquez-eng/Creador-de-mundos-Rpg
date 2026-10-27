@@ -315,6 +315,14 @@
     return h;
   }
 
+  // Suelo de un pueblo: la altura real del mundo en cada punto, relativa a la base del pueblo (h0)
+  function sueloDePueblo(o) {
+    return (lx, lz) => {
+      const wx = o.t.x + lx * o.cr - lz * o.sr, wz = o.t.y + lx * o.sr + lz * o.cr;
+      return (terrain.elevation(wx, wz) - SEA) * HEIGHT_SCALE - o.h0;
+    };
+  }
+
   function kitFor(style) {
     const key = VillageLib.ARCHITECTURAL_STYLES[style] ? style : 'l2_fantasy';
     if (!kitCache[key]) {
@@ -333,7 +341,7 @@
     if (!groundKit) groundKit = VillageLib.createKit(null);
     const ground = groundKit.createVillage(null, { skipGround: true });
     ground.cfg = cfg;
-    return {
+    const o = {
       t, cfg, R, size,
       tileHalf: Math.max(240, (R + 65) * 2) / 2,
       rot, cr: Math.cos(rot), sr: Math.sin(rot),
@@ -341,6 +349,8 @@
       ground,
       proxy: null, village: null, group: null, kit: null
     };
+    ground.terrainBase = sueloDePueblo(o);
+    return o;
   }
 
   // ===========================================================================
@@ -1139,6 +1149,7 @@
     group.rotation.y = -o.rot;
     scene.add(group);
     const village = kit.createVillage(group, { skipGround: true });
+    village.terrainBase = o.ground.terrainBase;
     village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
     o.village = village; o.group = group; o.kit = kit;
     createPatch(o);
