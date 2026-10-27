@@ -291,6 +291,12 @@
     @media (max-width: 768px) {
       #controls-hint { display: none; }
       #ui-panel { width: 300px; }
+      /* En móvil la paleta va a lo ancho, bajo los botones de cámara: no tapa el joystick ni el centro */
+      #edit-bar { top: 112px; bottom: auto; left: 12px; right: 12px; transform: none; max-width: none; padding: 6px; }
+      #edit-tools { flex-wrap: wrap; justify-content: center; width: 100%; }
+      #edit-tools button { padding: 8px 9px; min-height: 44px; }
+      #edit-tools .sep { display: none; }
+      #edit-info { max-width: none; font-size: 11px; }
     }
   </style>
 </head>
@@ -935,7 +941,7 @@
       b.addEventListener('click', () => setEditTool(t.id));
       editToolsEl.appendChild(b);
     });
-    [['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits], ['btn-edit-discard', 'Descartar ediciones de otra base', discardStaleEdits]]
+    [['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits], ['btn-edit-discard', 'Descartar ediciones de otra base', discardStaleEdits], ['btn-edit-exit', '✕ Salir', () => setEditMode(false)]]
       .forEach(([id, label, fn], i) => {
         if (i === 0) { const sep = document.createElement('span'); sep.className = 'sep'; editToolsEl.appendChild(sep); }
         const b = document.createElement('button');
@@ -950,6 +956,8 @@
     function setEditMode(on) {
       editMode = on;
       editBar.classList.toggle('show', on);
+      // En móvil el panel tapa la paleta: al editar se pliega
+      if (on && window.innerWidth < 768) document.getElementById('ui-panel').classList.add('collapsed');
       document.getElementById('btn-edit-mode').textContent = on ? '✅ Terminar edición' : '✏️ Activar edición';
       if (!on) { cancelDrag(); }
       updateEditInfo();
