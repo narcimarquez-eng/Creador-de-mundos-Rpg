@@ -7,7 +7,7 @@
   // Densidad de rocas por bioma (probabilidad por intento); las pendientes añaden más
   const ROCA_BIOMA = { montana: 0.7, nieve: 0.5, tundra: 0.45, desierto: 0.4, taiga: 0.25, bosque: 0.2, pradera: 0.18, costa: 0.3, pantano: 0.06 };
   // Matorrales pequeños (probabilidad por intento)
-  const MATORRAL_BIOMA = { pradera: 0.3, bosque: 0.22, taiga: 0.12, costa: 0.1, tundra: 0.08, desierto: 0.05 };
+  const MATORRAL_BIOMA = { pradera: 0.75, bosque: 0.55, taiga: 0.35, costa: 0.3, tundra: 0.15, desierto: 0.08 };
   const MATORRAL_COLOR = [0x4d7a3a, 0x5b8a44, 0x3f6b33, 0x6f8c4a, 0x8a8a4a];
   const ROCA_COLOR = [0x8a8580, 0x9a948c, 0x7b766f, 0xa39d93, 0x6f6a64];
 
@@ -69,12 +69,12 @@
     // Arbustos realistas de New-Rol (ez-tree, Bush 1); si no están, el de Kenney o un poliedro de respaldo
     const opciones = [];
     const arbolArbusto = o.props ? o.props.arbolPartes('arbusto', 'lejos') : null;
-    if (arbolArbusto) opciones.push({ partes: arbolArbusto, base: 0, alto: 0.8, tinta: false });
+    if (arbolArbusto) opciones.push({ partes: arbolArbusto, base: 0, alto: 1.3, tinta: false });
     else if (o.arbusto) opciones.push({ partes: [{ geo: o.arbusto.geometry, mat: o.arbusto.material }], base: 0, alto: 1, tinta: true });
     if (!opciones.length) opciones.push({ partes: [{ geo: new THREE.IcosahedronGeometry(1, 0), mat: material({ flatShading: true }) }], base: 0.2, alto: 0.7, tinta: true });
     const matorrales = [];
-    const cantMatorrales = Math.min(5000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 900));
-    for (let k = 0; k < cantMatorrales * 2 && matorrales.length < cantMatorrales; k++) {
+    const cantMatorrales = Math.min(6000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 450));
+    for (let k = 0; k < cantMatorrales * 3 && matorrales.length < cantMatorrales; k++) {
       const x = L.minX + rng.next() * (L.maxX - L.minX), z = L.minZ + rng.next() * (L.maxZ - L.minZ);
       if (o.agua(x, z) || !o.libre(x, z)) continue;
       const b = o.bioma(x, z);
@@ -84,12 +84,21 @@
     opciones.forEach((op, j) => {
       const lista = matorrales.filter(m => m.o === j);
       if (!lista.length) return;
+      // Una malla instanciada por celda de 400 m: el motor descarta las celdas que no se ven
+      const celdas = new Map();
+      lista.forEach(m => {
+        const k = Math.floor(m.x / 400) + ',' + Math.floor(m.z / 400);
+        if (!celdas.has(k)) celdas.set(k, []);
+        celdas.get(k).push(m);
+      });
       op.partes.forEach(parte => {
-        const malla = new THREE.InstancedMesh(parte.geo, parte.mat, lista.length);
-        lista.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, m.tam * op.alto, m.tam, m.ry, op.tinta ? m.color : undefined));
-        malla.instanceMatrix.needsUpdate = true;
-        if (malla.instanceColor) malla.instanceColor.needsUpdate = true;
-        grupo.add(malla);
+        celdas.forEach(gl => {
+          const malla = new THREE.InstancedMesh(parte.geo, parte.mat, gl.length);
+          gl.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, m.tam * op.alto, m.tam, m.ry, op.tinta ? m.color : undefined));
+          malla.instanceMatrix.needsUpdate = true;
+          if (malla.instanceColor) malla.instanceColor.needsUpdate = true;
+          grupo.add(malla);
+        });
       });
     });
 
