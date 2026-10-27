@@ -276,6 +276,7 @@
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let aguaPuebloMat = null;
   let decorGroup = null;     // rocas, ruinas y vallas entre pueblos
+  let lastDecor = 0;         // última vez que se actualizó el detalle de los arbustos
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
@@ -2392,6 +2393,10 @@
 
     streamTowns(now);
     AGUA_U.uTime.value = now / 1000;
+    if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
+      lastDecor = now;
+      decorGroup.userData.actualizar(camera.position.x, camera.position.z);
+    }
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });

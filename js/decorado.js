@@ -10,6 +10,8 @@
   const MATORRAL_BIOMA = { pradera: 0.75, bosque: 0.55, taiga: 0.35, costa: 0.3, tundra: 0.15, desierto: 0.08 };
   const MATORRAL_COLOR = [0x4d7a3a, 0x5b8a44, 0x3f6b33, 0x6f8c4a, 0x8a8a4a];
   const ROCA_COLOR = [0x8a8580, 0x9a948c, 0x7b766f, 0xa39d93, 0x6f6a64];
+  // Desde esta distancia (m) a una celda de matorrales se dibuja su silueta en vez de las hojas
+  const LOD_ARBUSTOS_M = 260;
 
   function generar(THREE, o) {
     const rng = o.rng, L = o.limites;
@@ -81,6 +83,8 @@
       if (!rng.chance((MATORRAL_BIOMA[b] || 0) * (1 - Math.min(0.8, pendiente(x, z) * 2)))) continue;
       matorrales.push({ x, z, o: Math.floor(rng.next() * opciones.length), color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)], tam: 0.8 + rng.next() * 1.4, ry: rng.next() * 6.28 });
     }
+    // Cada celda tiene su malla cercana (ez-tree) y una silueta lejana; el visor alterna entre ellas
+    const lodCeldas = [];
     opciones.forEach((op, j) => {
       const lista = matorrales.filter(m => m.o === j);
       if (!lista.length) return;
@@ -91,14 +95,34 @@
         if (!celdas.has(k)) celdas.set(k, []);
         celdas.get(k).push(m);
       });
-      op.partes.forEach(parte => {
-        celdas.forEach(gl => {
+      // Silueta lejana: la caja de las partes del arbusto hecha elipsoide (80 triángulos, no 1.400)
+      const caja = new THREE.Box3();
+      op.partes.forEach(parte => { parte.geo.computeBoundingBox(); caja.union(parte.geo.boundingBox); });
+      const mx = (caja.max.x - caja.min.x) / 2, my = (caja.max.y - caja.min.y) / 2, mz = (caja.max.z - caja.min.z) / 2;
+      const silueta = new THREE.IcosahedronGeometry(1, 1);
+      silueta.scale(mx, my, mz);
+      silueta.translate((caja.max.x + caja.min.x) / 2, caja.min.y + my, (caja.max.z + caja.min.z) / 2);
+      const siluetaMat = material({ flatShading: true });
+      celdas.forEach(gl => {
+        const cercanas = [];
+        op.partes.forEach(parte => {
           const malla = new THREE.InstancedMesh(parte.geo, parte.mat, gl.length);
           gl.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, m.tam * op.alto, m.tam, m.ry, op.tinta ? m.color : undefined));
           malla.instanceMatrix.needsUpdate = true;
           if (malla.instanceColor) malla.instanceColor.needsUpdate = true;
           grupo.add(malla);
+          cercanas.push(malla);
         });
+        const lejana = new THREE.InstancedMesh(silueta, siluetaMat, gl.length);
+        gl.forEach((m, i) => ponerInstancia(lejana, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, m.tam * op.alto, m.tam, m.ry, m.color));
+        lejana.instanceMatrix.needsUpdate = true;
+        lejana.instanceColor.needsUpdate = true;
+        lejana.visible = false;
+        grupo.add(lejana);
+        // Límites reales de los arbustos de la celda, para medir la distancia a la cámara
+        const r = { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity, cercanas, lejana };
+        gl.forEach(m => { r.x0 = Math.min(r.x0, m.x); r.x1 = Math.max(r.x1, m.x); r.z0 = Math.min(r.z0, m.z); r.z1 = Math.max(r.z1, m.z); });
+        lodCeldas.push(r);
       });
     });
 
@@ -247,6 +271,15 @@
       mm.instanceMatrix.needsUpdate = true; mm.instanceColor.needsUpdate = true;
       grupo.add(mm);
     }
+    // Llamado desde el visor con la posición de la cámara: cambia cada celda entre detalle y silueta
+    grupo.userData.actualizar = (x, z) => {
+      lodCeldas.forEach(c => {
+        const dx = Math.max(c.x0 - x, 0, x - c.x1), dz = Math.max(c.z0 - z, 0, z - c.z1);
+        const cerca = Math.hypot(dx, dz) < LOD_ARBUSTOS_M;
+        c.cercanas.forEach(malla => { malla.visible = cerca; });
+        c.lejana.visible = !cerca;
+      });
+    };
     return grupo;
   }
 
