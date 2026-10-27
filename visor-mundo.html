@@ -942,17 +942,23 @@
   // ===========================================================================
   // Agua: superficie animada con rizos y brillo; en los ríos, espuma en las orillas
   // ===========================================================================
-  const AGUA_U = { uTime: { value: 0 } };
+  const AGUA_U = { uTime: { value: 0 }, uCielo: { value: new THREE.Color('#bfe6f7') } };
   const AGUA_FRAG = `
     vec2 p = vMundo;
     float o1 = sin(p.x * 0.35 + uTime * 0.9) + sin(p.y * 0.42 - uTime * 0.7);
     float o2 = sin((p.x + p.y) * 0.9 + uTime * 1.6) + sin((p.x - p.y) * 0.7 - uTime * 1.2);
     float rizo = clamp(0.5 + 0.2 * o1 + 0.1 * o2, 0.0, 1.0);
     vec3 agua = mix(uAguaHonda, uAguaClara, rizo);
-    agua += vec3(smoothstep(1.3, 1.9, o1 + 0.5 * o2) * 0.18);
+    // Ondas finas (de cerca) y un brillo suave: sin manchas grandes
+    float fino = sin(p.x * 1.7 + uTime * 1.1) * sin(p.y * 1.5 - uTime * 0.9);
+    agua += vec3(0.04 * fino + smoothstep(1.4, 1.9, o1 + 0.5 * o2) * 0.08);
     #ifdef USE_COLOR
       if (uOrillas > 0.5) agua = mix(agua, vec3(0.92, 0.97, 1.0), smoothstep(0.45, 1.0, vColor.r));
     #endif
+    // Reflejo del cielo según el ángulo de la vista: de cerca es agua oscura, de lejos refleja el horizonte
+    vec3 vista = normalize(cameraPosition - vMundo3);
+    float fresnel = 0.03 + 0.97 * pow(1.0 - clamp(vista.y, 0.0, 1.0), 4.0);
+    agua = mix(agua, uCielo, clamp(fresnel * 0.85, 0.0, 0.9));
     diffuseColor.rgb = agua;`;
   function aguaMaterial(orillas, opacidad) {
     const m = new THREE.MeshLambertMaterial({ vertexColors: orillas, transparent: true, opacity: opacidad, side: THREE.DoubleSide });
@@ -961,11 +967,12 @@
       shader.uniforms.uOrillas = { value: orillas ? 1 : 0 };
       shader.uniforms.uAguaHonda = { value: new THREE.Color('#0b4a6e') };
       shader.uniforms.uAguaClara = { value: new THREE.Color('#2b8fbd') };
+      shader.uniforms.uCielo = AGUA_U.uCielo;
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMundo = (modelMatrix * vec4(transformed, 1.0)).xz;');
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMundo = (modelMatrix * vec4(transformed, 1.0)).xz;\n  vMundo3 = (modelMatrix * vec4(transformed, 1.0)).xyz;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nuniform float uTime;\nuniform float uOrillas;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;')
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform float uTime;\nuniform float uOrillas;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;\nuniform vec3 uCielo;')
         .replace('#include <color_fragment>', '#include <color_fragment>' + AGUA_FRAG);
     };
     return m;
@@ -1621,6 +1628,7 @@
     ['glow', 'window', 'pool', 'plaza', 'forge'].forEach(key => { atmoNow[key] += (T[key] - atmoNow[key]) * k; });
 
     if (scene.background) scene.background.copy(atmoNow.bg);
+    AGUA_U.uCielo.value.copy(atmoNow.fog);
     if (cielo) { cielo.material.uniforms.uHorizonte.value.copy(atmoNow.fog); cielo.material.uniforms.uCenit.value.copy(atmoNow.bg).multiplyScalar(0.6); }
     if (scene.fog) { scene.fog.color.copy(atmoNow.fog); scene.fog.density = atmoNow.fogD; }
     if (hemiLight) { hemiLight.color.copy(atmoNow.hemi); hemiLight.groundColor.copy(atmoNow.ground); hemiLight.intensity = atmoNow.hemiI; }
