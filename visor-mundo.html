@@ -146,6 +146,8 @@
     <div class="stats" id="stats"></div>
     <h3>Pueblos</h3>
     <div id="towns"></div>
+    <h3>Zonas de monstruos</h3>
+    <div id="zonas"></div>
     <div class="layers">
       <label><input type="checkbox" id="chk-zones" checked> Zonas</label>
       <label><input type="checkbox" id="chk-labels" checked> Nombres</label>
@@ -1080,6 +1082,16 @@
     $('towns').querySelectorAll('[data-town]').forEach(b => b.onclick = () => {
       const t = W.findTown(world, b.dataset.town);
       if (t) focusPoint(t.x, t.y, 220, { kind: 'town', ref: t });
+    });
+    // Zonas con monstruos: un toque lleva la cámara a la zona
+    const zonas = world.zones.filter(z => z.monsters && z.monsters.length).sort((a, b) => a.levelMin - b.levelMin);
+    $('zonas').innerHTML = zonas.map(z => `
+      <button class="trow" data-zona="${z.id}">
+        <span class="nm">⚔ ${esc(z.name)}</span><small>Nv ${z.levelMin}–${z.levelMax}</small>
+      </button>`).join('') || '<div class="muted" style="padding:8px">Sin zonas de monstruos</div>';
+    $('zonas').querySelectorAll('[data-zona]').forEach(b => b.onclick = () => {
+      const z = world.zones.find(x => x.id === b.dataset.zona);
+      if (z) focusPoint(z.x, z.y, Math.max(90, z.radius * 2.2), { kind: 'zone', ref: z });
     });
   }
 
