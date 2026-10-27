@@ -359,17 +359,22 @@
     });
     return mejor;
   }
+  // Suelo del pueblo en (lx, lz); donde el mundo está bajo el mar se mantiene el mar, como en el mapa
+  function sueloPueblo(o, lx, lz, hMundo) {
+    return hMundo < 0 ? hMundo : o.h0 + o.ground.getTerrainHeight(lx, lz);
+  }
   function Hgen(x, z) {
     const e = terrain.elevation(x, z);
-    let h = (e - SEA) * HEIGHT_SCALE;
+    const hMundo = (e - SEA) * HEIGHT_SCALE;
+    let h = hMundo;
     for (let i = 0; i < towns.length; i++) {
       const o = towns[i];
       const dx = x - o.t.x, dz = z - o.t.y;
       if (Math.hypot(dx, dz) > (o.tileHalf + BLEND_OUT) * Math.SQRT2) continue;
       const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
       const w = 1 - smooth(o.tileHalf, o.tileHalf + BLEND_OUT, Math.max(Math.abs(lx), Math.abs(lz)));
-      if (w > 0) {
-        const g = o.h0 + o.ground.getTerrainHeight(lx, lz);
+      if (w > 0 && hMundo >= 0) {   // bajo el mar el mundo no cambia: el pueblo no levanta el mar
+        const g = sueloPueblo(o, lx, lz, hMundo);
         h = h + (g - h) * w;
       }
     }
@@ -661,7 +666,7 @@
       const dx = x - o.t.x, dz = z - o.t.y;
       if (Math.hypot(dx, dz) > o.tileHalf * 1.5) continue;
       const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
-      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) return o.h0 + o.ground.getTerrainHeight(lx, lz);
+      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) return sueloPueblo(o, lx, lz, (terrain.elevation(x, z) - SEA) * HEIGHT_SCALE);
     }
     if (!terrainGrid) return Hgen(x, z);
     const g = terrainGrid;

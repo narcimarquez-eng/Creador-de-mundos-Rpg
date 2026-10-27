@@ -669,7 +669,7 @@
 
   // Ríos de los pueblos: del borde del pueblo hasta el mar (o hasta el lago en el que se para)
   function drawRios() {
-    const w = Math.max(2, 9 * view.scale);
+    const w = Math.max(2, 26 * view.scale);  // ancho real del cauce (mismo que en el visor)
     world.towns.forEach(t => {
       const rio = t.cfg && t.cfg.rio;
       if (!rio || rio.pts.length < 2) return;

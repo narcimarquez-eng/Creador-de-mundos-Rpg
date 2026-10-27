@@ -978,7 +978,7 @@
       const cfg = t.cfg;
       if (!cfg) return;
       if (!cfg.hasRiver) { delete cfg.rio; return; }
-      const clave = [world.seed, t.x, t.y, cfg.rotation || 0, cfg.size, cfg.curve || 0].join('|');
+      const clave = ['v2', world.seed, t.x, t.y, cfg.rotation || 0, cfg.size, cfg.curve || 0].join('|');
       if (cfg.rio && cfg.rio.clave === clave) return;
       const rot = (cfg.rotation || 0) * Math.PI / 180, cr = Math.cos(rot), sr = Math.sin(rot);
       const mundo = (lx, lz) => ({ x: t.x + lx * cr - lz * sr, y: t.y + lx * sr + lz * cr });
@@ -1013,6 +1013,8 @@
       for (let lz = -lado * (half + RIO_TRAMO_ENTRADA); (lz - lado * half) * lado < 0; lz += lado * RIO_PASO) {
         local.push({ x: riverX(cfg, lz), z: lz, l: RIO_NIVEL });
       }
+      // La bajada se suaviza (sin tocar la salida ni el mar) para que el curso no haga quiebros
+      const inicioBajada = local.length;
       let nivel = RIO_NIVEL;
       ruta.pts.forEach((p, i) => {
         const lx = (p.x - t.x) * cr + (p.y - t.y) * sr, lz = -(p.x - t.x) * sr + (p.y - t.y) * cr;
@@ -1020,6 +1022,13 @@
         nivel = Math.max(-h0, Math.min(nivel, alturaRel(p) + RIO_NIVEL));
         local.push({ x: lx, z: lz, l: nivel });
       });
+      for (let pasada = 0; pasada < 2; pasada++) {
+        for (let i = inicioBajada + 1; i < local.length - 1; i++) {
+          const a = local[i - 1], b = local[i], c = local[i + 1];
+          b.x = (a.x + 2 * b.x + c.x) / 4;
+          b.z = (a.z + 2 * b.z + c.z) / 4;
+        }
+      }
       cfg.rio = {
         clave, mar: ruta.mar,
         pts: local.map(p => ({ x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10, l: Math.round(p.l * 100) / 100 }))
