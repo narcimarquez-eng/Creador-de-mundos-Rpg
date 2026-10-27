@@ -31,11 +31,19 @@
     };
   }
 
-  // Empieza un efecto. ahora: segundos, con el mismo reloj que actualizar()
-  function disparar(fx, accion, ahora) {
+  // Momento (segundos desde el inicio del gesto) en que el ataque llega al héroe: el proyectil al llegar,
+  // y en el golpe, cuando el brazo está en lo alto
+  function momentoImpacto(accion) {
+    return DURACION[accion] * (accion === 'magia' ? 0.9 : 0.5);
+  }
+
+  // Empieza un efecto. ahora: segundos, con el mismo reloj que actualizar().
+  // distancia: metros hasta el héroe (el proyectil llega hasta allí)
+  function disparar(fx, accion, ahora, distancia) {
     if (!fx) return;
     fx.accion = accion;
     fx.inicio = ahora;
+    fx.distancia = distancia || 7;
   }
 
   function sumar(fx, g, x, y, z) {
@@ -80,7 +88,7 @@
       rig.rootGroup.worldToLocal(fx.origen);
       const avance = (q - 0.35) / 0.55;
       fx.bola.visible = true;
-      fx.bola.position.set(fx.origen.x, fx.origen.y, fx.origen.z + avance * 7);
+      fx.bola.position.set(fx.origen.x, fx.origen.y, fx.origen.z + avance * Math.max(1, fx.distancia - 1));
       fx.bola.scale.setScalar(1 + 0.3 * Math.sin(q * 20));
     } else {
       fx.bola.visible = false;
@@ -105,5 +113,5 @@
     }
   }
 
-  root.EnemyFx = { crear, disparar, actualizar, tipoAtaque };
+  root.EnemyFx = { crear, disparar, actualizar, tipoAtaque, momentoImpacto };
 })(typeof window !== 'undefined' ? window : globalThis);

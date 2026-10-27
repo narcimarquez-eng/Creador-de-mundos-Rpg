@@ -1397,8 +1397,16 @@
     if (m.hp <= 0) killMonster(m);
   }
 
+  // El enemigo ataca: el gesto empieza ya y el daño llega cuando el golpe o el proyectil alcanzan al héroe
   function monsterHitsHero(m) {
-    if (m.fx) EnemyFx.disparar(m.fx, EnemyFx.tipoAtaque(m.enemigo), performance.now() / 1000);
+    if (!m.fx) { aplicarDanoEnemigo(m); return; }
+    const tipo = EnemyFx.tipoAtaque(m.enemigo);
+    const d = Math.hypot(m.x - character.root.position.x, m.z - character.root.position.z);
+    EnemyFx.disparar(m.fx, tipo, performance.now() / 1000, d);
+    m.impactoEn = performance.now() + EnemyFx.momentoImpacto(tipo) * 1000;
+  }
+
+  function aplicarDanoEnemigo(m) {
     const dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level);
     if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
   }
@@ -1504,6 +1512,11 @@
         else { m.group.visible = false; m.bar.visible = false; return; }
       }
       const d = Math.hypot(m.x - p.x, m.z - p.z);
+      // Daño de un ataque que ya ha llegado al héroe (golpe o proyectil)
+      if (m.impactoEn && now >= 0 && performance.now() >= m.impactoEn) {
+        m.impactoEn = 0;
+        if (!hero.dead) aplicarDanoEnemigo(m);
+      }
       // Los monstruos no entran en los pueblos: si llegan a uno, vuelven a su zona
       const inTown = towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
       if (inTown) m.state = 'return';

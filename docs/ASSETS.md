@@ -75,7 +75,7 @@ las hitboxes de depuración (líneas verdes y rojas), que antes se veían encima
 
 Efectos de combate (`js/enemigos-combate.js`), encima de la animación base: golpe con el brazo y el torso; magia
 con los dos brazos alzados, el núcleo brillando y un proyectil; reacción al golpe con destello rojo y empujón; y la
-muerte, que dura un segundo antes de desaparecer. El enemigo mágico se elige por raza (`magical`) o arma (`arcane_staff`,
+muerte, que dura un segundo antes de desaparecer. El daño del enemigo llega cuando el golpe o el proyectil alcanzan al héroe (proyectil: al final de su recorrido, hasta la posición del héroe), no al empezar el gesto. El enemigo mágico se elige por raza (`magical`) o arma (`arcane_staff`,
 `dragon_breath_maw`); el resto usa golpe.
 
 ## Pendiente de añadir
