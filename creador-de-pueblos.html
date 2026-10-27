@@ -334,6 +334,14 @@
     </div>
 
     <div class="control-row">
+      <label>Trazado de Calles y Casas</label>
+      <select id="inp-trazado">
+        <option value="manzanas" selected>Manzanas con parcelas</option>
+        <option value="clasico">Clásico (aleatorio)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
       <label>Tipo de Terreno</label>
       <select id="inp-terrain-type">
         <option value="valley" selected>Valle Fluvial con Colinas</option>
@@ -600,6 +608,7 @@
       return {
         style: document.getElementById('inp-style').value,
         terrainType: document.getElementById('inp-terrain-type').value,
+        trazado: document.getElementById('inp-trazado').value,
         relief: parseInt(document.getElementById('inp-relief').value, 10),
         seed: parseInt(document.getElementById('inp-seed').value, 10),
         size: parseInt(document.getElementById('inp-size').value, 10),
@@ -660,6 +669,7 @@
       setVal('inp-floors', cfg.maxFloors);
       setVal('inp-road-w', cfg.roadWidth);
       setVal('inp-curve', cfg.curve);
+      setVal('inp-trazado', cfg.trazado || 'clasico');
       setVal('inp-trees', cfg.treeDensity);
       setVal('inp-time', cfg.time);
       setChk('chk-walls', cfg.hasWalls);

@@ -294,6 +294,7 @@
       specialCount: clamp(size * 2 + rng.int(-1, 1), 2, 10),
       maxFloors: rng.int(2, 3),
       roadWidth: 7.0,
+      trazado: 'manzanas',
       curve: Math.round(rng.range(2, 9) * 2) / 2,
       treeDensity: b === 'desierto' ? 25 : b === 'bosque' ? 95 : rng.int(55, 85),
       hasWalls: ['dwarven', 'fortified', 'european', 'l2_fantasy', 'trade'].includes(style) && size >= 3,

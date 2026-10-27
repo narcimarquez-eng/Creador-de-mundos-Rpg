@@ -12,7 +12,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `js/character.js` | Personaje, joystick, cámara y animaciones (incluidas las de un solo uso) compartidas por el Creador de Pueblos y el visor. |
 | `js/items.js` | Oro, pociones, botín, tienda y descanso. Pruebas en `test/items.test.js`. |
 | `js/combat.js` | Reglas del combate (daño, XP, muerte, IA de los monstruos). Pruebas en `test/combat.test.js`. |
-| `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). |
+| `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). Trazado por manzanas con parcelas (por defecto) o clásico. |
 | `js/world-core.js` | Núcleo del mundo sin interfaz (terreno, biomas, generación, niveles, guardado). Pensado para reutilizarlo en el juego. |
 | `js/partida.js` | Guardado de partidas (varias por mundo, exportar e importar). Pruebas en `test/partida.test.js`. |
 | `docs/FORMATO-PARTIDA.md` | Descripción del archivo `.partida.json`. |

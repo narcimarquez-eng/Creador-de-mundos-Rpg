@@ -201,4 +201,12 @@ t('especies que se pueden poner a mano', () => {
   assert.deepStrictEqual(Object.keys(E.TREE_SPECIES).sort(), ['alamo', 'arbusto', 'pino', 'roble']);
 });
 
+t('el trazado clásico no cambia la base (las ediciones guardadas siguen valiendo)', () => {
+  assert.strictEqual(E.baseKey(Object.assign({}, cfg, { trazado: 'clasico' })), E.baseKey(cfg));
+});
+
+t('el trazado por manzanas sí es otra base', () => {
+  assert.notStrictEqual(E.baseKey(Object.assign({}, cfg, { trazado: 'manzanas' })), E.baseKey(cfg));
+});
+
 console.log('\n' + n + ' pruebas correctas');

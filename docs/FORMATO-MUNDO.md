@@ -105,6 +105,12 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
 - `id` de una farola: `f<n>` para las de fábrica (n = orden en la generación) y `g<n>` para las nuevas.
 - Las ediciones solo se aplican si `base` coincide con la configuración actual (semilla, tamaño, estilo, relieve, etc.). El giro y las salidas no cuentan. Si la base cambia, las ediciones se conservan pero no se aplican.
 - Las calles de salida hacia el mundo no se pueden editar.
+- `trazado` del pueblo: `manzanas` (por defecto en los mundos nuevos) o `clasico` (el trazado anterior, que es el que
+  tienen los pueblos guardados sin este campo). Con `manzanas` los ids cambian: las calles son `calle-n<k>` (línea
+  norte–sur) y `calle-e<k>` (este–oeste), y cada casa es `<i>.<j><lado><k>`, donde `lado` es `n`, `s`, `e` u `o`
+  (la fachada da a la calle). Las vallas son `<casa>f1:<q>` y `<casa>f2:<q>` (frente, con la puerta en medio),
+  `<casa>r:<q>`, `<casa>l:<q>` (solo el primer solar de cada fila) y `<casa>b:<q>` (fondo). Un solar sin casa tiene un
+  árbol `v<casa>` en el jardín. `mover-casa` mueve solo la casa, no su solar.
 - `id` de un árbol: `v<z>:<desplazamiento>` si está junto a una casa, `b<n>` si está en el bosque (n = orden en la
   generación), o `a<n>` si se puso a mano. `especie` es `roble`, `alamo`, `pino` o `arbusto`.
 - `id` de una valla: `<hueco de casa>a` o `…b` para las de una casa (ver arriba), y `c<n>.<k>` para los tramos de una

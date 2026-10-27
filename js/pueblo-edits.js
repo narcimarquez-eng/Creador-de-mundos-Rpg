@@ -48,8 +48,10 @@
     return roadWidth;
   }
 
+  // El trazado se añade solo si no es el clásico: así las ediciones de los pueblos ya guardados siguen valiendo
   function baseKey(cfg) {
-    return BASE_FIELDS.map(k => k + '=' + cfg[k]).join(';');
+    const trazado = cfg.trazado && cfg.trazado !== 'clasico' ? ';trazado=' + cfg.trazado : '';
+    return BASE_FIELDS.map(k => k + '=' + cfg[k]).join(';') + trazado;
   }
 
   function emptyEdits(cfg) {

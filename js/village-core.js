@@ -942,6 +942,7 @@
 
       getMainRoadX(z) {
         if (!this.cfg) return 0;
+        if (this.cfg.trazado === 'manzanas') return 0;
         const plazaDamp = Math.min(1.0, Math.abs(z) / 22.0);
         return Math.sin(z * 0.035) * this.cfg.curve * plazaDamp;
       }
@@ -1352,6 +1353,109 @@
         });
       }
 
+      // Manzanas con parcelas. Cada casa tiene su solar con verja, una entrada hacia la calle y la puerta mirando
+      // a la calle. Un solar sin casa queda como jardín con un árbol. Los solares que no caben (río, muralla
+      // interior, edificios especiales) se saltan enteros.
+      parcelarManzanas(cfg, townRadius, ctx) {
+        const { rng, edit, styleObj, houses, trees, fences, addStreet, especieFor } = ctx;
+        const R = townRadius - 12;
+        const m = Math.max(1, Math.round(R / 42));
+        const p = R / m;
+        const H = cfg.roadWidth * 0.5 + 1.0;   // del centro de la calle al borde de la manzana
+        const FRENTE = 12.5, FONDO = 15, PUERTA = 2.6, TRAMO = 4.5;
+        const CASA_FONDO = 5.5;                // distancia desde el frente del solar al centro de la casa
+        const toXZ = (lado, c, o) => lado.along === 'x'
+          ? { x: c, z: lado.front + lado.nz * o }
+          : { x: lado.front + lado.nx * o, z: c };
+        // Valla entre dos puntos, partida en tramos de hasta TRAMO
+        const vallar = (id, a, b) => {
+          const L = Math.hypot(b.x - a.x, b.z - a.z);
+          const k = Math.max(1, Math.ceil(L / TRAMO));
+          const rot = Math.atan2(-(b.z - a.z), b.x - a.x);
+          for (let q = 0; q < k; q++) {
+            const t = (q + 0.5) / k;
+            const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t;
+            const fid = id + ':' + q;
+            if (edit.removedFences.has(fid)) continue;
+            fences.push({ id: fid, x, y: this.getTerrainHeight(x, z), z, rot, len: L / k });
+          }
+        };
+
+        for (let i = 0; i < 2 * m; i++) {
+          for (let j = 0; j < 2 * m; j++) {
+            const x0 = -R + i * p + H, x1 = -R + (i + 1) * p - H;
+            const z0 = -R + j * p + H, z1 = -R + (j + 1) * p - H;
+            const lados = [
+              { id: 'n', nx: 0, nz: 1, front: z1, along: 'x', ca: x0, cb: x1 },
+              { id: 's', nx: 0, nz: -1, front: z0, along: 'x', ca: x0, cb: x1 },
+              { id: 'e', nx: 1, nz: 0, front: x1, along: 'z', ca: z0 + FONDO, cb: z1 - FONDO },
+              { id: 'w', nx: -1, nz: 0, front: x0, along: 'z', ca: z0 + FONDO, cb: z1 - FONDO }
+            ];
+            lados.forEach(lado => {
+              const L = lado.cb - lado.ca;
+              const n = Math.floor(L / FRENTE);
+              for (let k = 0; k < n; k++) {
+                const w = L / n;
+                const c0 = lado.ca + k * w, c1 = c0 + w, cm = (c0 + c1) / 2;
+                const key = i + '.' + j + lado.id + k;
+                const at = (c, o) => toXZ(lado, c, o);
+
+                // Todos los azares se consumen igual, esté o no el solar ocupado
+                const tiene = rng.next() * 100 <= cfg.houseDensity;
+                const floors = rng.int(1, cfg.maxFloors);
+                const tint = rng.pick(styleObj.wallTints);
+                const chimney = rng.next() > 0.35;
+                const balcony = floors >= 2 && rng.next() > 0.3;
+                const wScale = rng.range(0.92, 1.15);
+                const dScale = rng.range(0.92, 1.15);
+                const conArbol = rng.next() * 100 <= cfg.treeDensity;
+                const tScale = rng.range(0.9, 1.45);
+                const tPine = rng.next() > 0.45;
+                const tColor = rng.pick(styleObj.treeColors);
+
+                const casa = at(cm, -CASA_FONDO);
+                if (!this.placementOk(casa.x, casa.z, null)) continue;
+
+                // Verja: el frente lleva un hueco de entrada en el centro; los lados se comparten con el vecino
+                const A = at(c0, 0), B = at(c1, 0), C = at(c1, -FONDO), D = at(c0, -FONDO);
+                if (cfg.hasFences) {
+                  const e1 = at(cm - PUERTA / 2, 0), e2 = at(cm + PUERTA / 2, 0);
+                  vallar(key + 'f1', A, e1);
+                  vallar(key + 'f2', e2, B);
+                  vallar(key + 'r', B, C);
+                  if (k === 0) vallar(key + 'l', D, A);
+                  vallar(key + 'b', C, D);
+                }
+
+                const removed = edit.removedHouses.has(key);
+                const moved = edit.movedHouses.get(key);
+                if (tiene && !removed) {
+                  const px = moved ? moved.x : casa.x, pz = moved ? moved.z : casa.z;
+                  const hy = this.getTerrainHeight(px, pz);
+                  const hRot = Math.atan2(lado.nx, lado.nz);
+                  houses.push({
+                    id: key, x: px, y: hy, z: pz, rot: hRot,
+                    wScale, dScale, floors, tint, chimney, balcony
+                  });
+                  if (houses.length === 1) this.sampleHousePos.set(px, hy, pz);
+                  // Caja de colisión alineada con la fachada: 3,6 m a lo largo del frente y 3,9 m hacia fuera
+                  const ex = lado.along === 'x' ? 3.6 : 3.9, ez = lado.along === 'x' ? 3.9 : 3.6;
+                  this.colliders.push({ type: 'box', house: true, id: key, minX: px - ex, maxX: px + ex, minZ: pz - ez, maxZ: pz + ez });
+                  const frente = at(cm, -CASA_FONDO + 3.9);
+                  addStreet('acceso-' + key, [frente, at(cm, H)], 2.2, 0.13);
+                } else if (!tiene && conArbol) {
+                  const t = at(cm, -FONDO + 3.5);
+                  if (!edit.removedTrees.has('v' + key)) {
+                    trees.push({ id: 'v' + key, x: t.x, y: this.getTerrainHeight(t.x, t.z), z: t.z, scale: tScale, isPine: tPine, color: tColor, especie: especieFor(tPine, t.x, t.z) });
+                    this.colliders.push({ type: 'circle', x: t.x, z: t.z, r: 0.65 });
+                  }
+                }
+              }
+            });
+          }
+        }
+      }
+
       // ¿Cabe una casa con su centro en (x, z)? Usa las mismas reglas que la generación.
       // ignoreId: la casa que se está moviendo no cuenta contra sí misma.
       placementOk(x, z, ignoreId) {
@@ -1400,6 +1504,7 @@
         this.plazaLight.color.setHex(styleObj.magicHex);
 
         const townRadius = 42 + cfg.size * 14;
+        const manzanas = cfg.trazado === 'manzanas';
         const WORLD_SIZE = Math.max(240, (townRadius + 65) * 2);
         const RIVER_WIDTH = this.riverWidth;
 
@@ -1533,44 +1638,73 @@
           return pushRoad(id, final, width, yOffset);
         };
 
-        const mainRoadPts = [];
-        for (let z = -roadExtent; z <= roadExtent; z += 3.5) {
-          mainRoadPts.push({ x: this.getMainRoadX(z), z: z });
-        }
-        addStreet('principal', mainRoadPts, cfg.roadWidth, 0.16);
-
-        const eastWestPtsLeft = [];
-        const bridgeStopX = cfg.hasRiver ? (this.getRiverX(0) - RIVER_WIDTH * 0.65) : roadExtent;
-        for (let x = -roadExtent; x <= bridgeStopX; x += 3.5) {
-          eastWestPtsLeft.push({ x: x, z: Math.sin(x * 0.04) * (cfg.curve * 0.35) * Math.min(1, Math.abs(x) / 20) });
-        }
-        addStreet('este-oeste-izq', eastWestPtsLeft, cfg.roadWidth * 0.9, 0.15);
-
-        if (cfg.hasRiver) {
-          const eastWestPtsRight = [];
-          const bridgeResumeX = this.getRiverX(0) + RIVER_WIDTH * 0.65;
-          for (let x = bridgeResumeX; x <= roadExtent; x += 3.5) {
-            eastWestPtsRight.push({ x: x, z: 0 });
-          }
-          if (eastWestPtsRight.length > 1) {
-            addStreet('este-oeste-der', eastWestPtsRight, cfg.roadWidth * 0.9, 0.15);
-          }
-        }
-
         const ringZOffsets = [-28, 28];
         if (cfg.size >= 4) ringZOffsets.push(-52, 52);
 
-        ringZOffsets.forEach(rz => {
-          const secPts = [];
-          const maxSecX = cfg.hasRiver ? Math.min(townRadius - 8, this.getRiverX(rz) - RIVER_WIDTH * 0.85) : (townRadius - 8);
-          for (let x = -(townRadius - 8); x <= maxSecX; x += 4.0) {
-            const curveZ = rz + Math.cos(x * 0.06) * (cfg.curve * 0.3);
-            secPts.push({ x: x, z: curveZ });
+        if (manzanas) {
+          // Cuadrícula de calles. Cada línea va de una punta a otra del anillo exterior, así que ninguna queda sin salida
+          const R = townRadius - 12;
+          const m = Math.max(1, Math.round(R / 42));
+          const p = R / m;
+          const anchoCalle = cfg.roadWidth * 0.9;
+          const addCorte = (id, pts, width) => {
+            if (edit.removedStreets.has(id)) return;
+            const off = edit.movedStreets.get(id);
+            const final = off ? pts.map(q => ({ x: q.x + off.dx, z: q.z + off.dz })) : pts;
+            this.splitAtRiver(cfg, final, width, roadsGroup, matAtlas).forEach(pc => {
+              if (pc.length > 1) pushRoad(id, pc, width, 0.15);
+            });
+          };
+          const n = Math.ceil(2 * R / 3.5);
+          for (let k = -m; k <= m; k++) {
+            const c = k * p;
+            const norte = [], este = [];
+            for (let i = 0; i <= n; i++) {
+              const t = -R + 2 * R * i / n;
+              norte.push({ x: c, z: t });
+              este.push({ x: t, z: c });
+            }
+            addCorte('calle-n' + k, norte, anchoCalle);
+            addCorte('calle-e' + k, este, anchoCalle);
           }
-          if (secPts.length > 1) {
-            addStreet('anillo:' + rz, secPts, cfg.roadWidth * 0.72, 0.14);
+        } else {
+          const mainRoadPts = [];
+          for (let z = -roadExtent; z <= roadExtent; z += 3.5) {
+            mainRoadPts.push({ x: this.getMainRoadX(z), z: z });
           }
-        });
+          addStreet('principal', mainRoadPts, cfg.roadWidth, 0.16);
+
+          const eastWestPtsLeft = [];
+          const bridgeStopX = cfg.hasRiver ? (this.getRiverX(0) - RIVER_WIDTH * 0.65) : roadExtent;
+          for (let x = -roadExtent; x <= bridgeStopX; x += 3.5) {
+            eastWestPtsLeft.push({ x: x, z: Math.sin(x * 0.04) * (cfg.curve * 0.35) * Math.min(1, Math.abs(x) / 20) });
+          }
+          addStreet('este-oeste-izq', eastWestPtsLeft, cfg.roadWidth * 0.9, 0.15);
+
+          if (cfg.hasRiver) {
+            const eastWestPtsRight = [];
+            const bridgeResumeX = this.getRiverX(0) + RIVER_WIDTH * 0.65;
+            for (let x = bridgeResumeX; x <= roadExtent; x += 3.5) {
+              eastWestPtsRight.push({ x: x, z: 0 });
+            }
+            if (eastWestPtsRight.length > 1) {
+              addStreet('este-oeste-der', eastWestPtsRight, cfg.roadWidth * 0.9, 0.15);
+            }
+          }
+
+          ringZOffsets.forEach(rz => {
+            const secPts = [];
+            const maxSecX = cfg.hasRiver ? Math.min(townRadius - 8, this.getRiverX(rz) - RIVER_WIDTH * 0.85) : (townRadius - 8);
+            for (let x = -(townRadius - 8); x <= maxSecX; x += 4.0) {
+              const curveZ = rz + Math.cos(x * 0.06) * (cfg.curve * 0.3);
+              secPts.push({ x: x, z: curveZ });
+            }
+            if (secPts.length > 1) {
+              addStreet('anillo:' + rz, secPts, cfg.roadWidth * 0.72, 0.14);
+            }
+          });
+
+        }
 
         // 3b. SALIDAS HACIA LOS CAMINOS DEL MUNDO (cfg.exits)
         this.townRadius = townRadius;
@@ -1767,108 +1901,112 @@
           }
         }
 
-        const zLines = [];
-        for (let z = -(townRadius - 12); z <= (townRadius - 12); z += 13.0) {
-          if (Math.abs(z) < 8) continue;
-          if (ringZOffsets.some(rz => Math.abs(z - rz) < 6.5)) continue;
-          zLines.push(z);
-        }
+        if (manzanas) {
+          this.parcelarManzanas(cfg, townRadius, { rng, edit, styleObj, houses, trees, fences, addStreet, especieFor });
+        } else {
+          const zLines = [];
+          for (let z = -(townRadius - 12); z <= (townRadius - 12); z += 13.0) {
+            if (Math.abs(z) < 8) continue;
+            if (ringZOffsets.some(rz => Math.abs(z - rz) < 6.5)) continue;
+            zLines.push(z);
+          }
 
-        zLines.forEach(lz => {
-          const roadCenterX = this.getMainRoadX(lz);
-          const xOffsets = [-32, -13, 13, 32];
-          if (cfg.size >= 4) xOffsets.push(-48, 48);
+          zLines.forEach(lz => {
+            const roadCenterX = this.getMainRoadX(lz);
+            const xOffsets = [-32, -13, 13, 32];
+            if (cfg.size >= 4) xOffsets.push(-48, 48);
 
-          xOffsets.forEach(xOff => {
-            const hx = roadCenterX + xOff + rng.range(-0.8, 0.8);
-            const hz = lz + rng.range(-0.8, 0.8);
+            xOffsets.forEach(xOff => {
+              const hx = roadCenterX + xOff + rng.range(-0.8, 0.8);
+              const hz = lz + rng.range(-0.8, 0.8);
 
-            if (Math.hypot(hx, hz) > townRadius - 9) return;
-            if (Math.hypot(hx, hz) < 23) return;
-            if (cfg.hasRiver && Math.abs(hx - this.getRiverX(hz)) < RIVER_WIDTH * 1.05) return;
+              if (Math.hypot(hx, hz) > townRadius - 9) return;
+              if (Math.hypot(hx, hz) < 23) return;
+              if (cfg.hasRiver && Math.abs(hx - this.getRiverX(hz)) < RIVER_WIDTH * 1.05) return;
 
-            const hitsSpecial = this.colliders.some(c => {
-              if (c.wall) return false;
-              if (c.type === 'circle') return Math.hypot(hx - c.x, hz - c.z) < c.r + 6.5;
-              return hx > c.minX - 5 && hx < c.maxX + 5 && hz > c.minZ - 5 && hz < c.maxZ + 5;
-            });
-            if (hitsSpecial) return;
-            if (this.onExitCorridor(hx, hz, cfg.roadWidth * 0.5 + 5)) return;
+              const hitsSpecial = this.colliders.some(c => {
+                if (c.wall) return false;
+                if (c.type === 'circle') return Math.hypot(hx - c.x, hz - c.z) < c.r + 6.5;
+                return hx > c.minX - 5 && hx < c.maxX + 5 && hz > c.minZ - 5 && hz < c.maxZ + 5;
+              });
+              if (hitsSpecial) return;
+              if (this.onExitCorridor(hx, hz, cfg.roadWidth * 0.5 + 5)) return;
 
-            if (rng.next() * 100 <= cfg.houseDensity) {
-              const floors = rng.int(1, cfg.maxFloors);
-              const lookTowardRoad = xOff < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
-              const hRot = lookTowardRoad + rng.range(-0.08, 0.08);
-              // Ediciones: la casa puede estar borrada o movida. El azar se consume igual en ambos casos,
-              // así el resto del pueblo no cambia.
-              const slot = lz + ':' + xOff;
-              const removed = edit.removedHouses.has(slot);
-              const moved = edit.movedHouses.get(slot);
-              const px = moved ? moved.x : hx, pz = moved ? moved.z : hz;
-              const hy = this.getTerrainHeight(px, pz);
+              if (rng.next() * 100 <= cfg.houseDensity) {
+                const floors = rng.int(1, cfg.maxFloors);
+                const lookTowardRoad = xOff < 0 ? Math.PI * 0.5 : -Math.PI * 0.5;
+                const hRot = lookTowardRoad + rng.range(-0.08, 0.08);
+                // Ediciones: la casa puede estar borrada o movida. El azar se consume igual en ambos casos,
+                // así el resto del pueblo no cambia.
+                const slot = lz + ':' + xOff;
+                const removed = edit.removedHouses.has(slot);
+                const moved = edit.movedHouses.get(slot);
+                const px = moved ? moved.x : hx, pz = moved ? moved.z : hz;
+                const hy = this.getTerrainHeight(px, pz);
 
-              const house = {
-                id: slot,
-                x: px, y: hy, z: pz,
-                rot: hRot,
-                wScale: rng.range(0.92, 1.15),
-                dScale: rng.range(0.92, 1.15),
-                floors: floors,
-                tint: rng.pick(styleObj.wallTints),
-                chimney: rng.next() > 0.35,
-                balcony: floors >= 2 && rng.next() > 0.3
-              };
+                const house = {
+                  id: slot,
+                  x: px, y: hy, z: pz,
+                  rot: hRot,
+                  wScale: rng.range(0.92, 1.15),
+                  dScale: rng.range(0.92, 1.15),
+                  floors: floors,
+                  tint: rng.pick(styleObj.wallTints),
+                  chimney: rng.next() > 0.35,
+                  balcony: floors >= 2 && rng.next() > 0.3
+                };
 
-              const doorDirX = Math.sin(hRot);
-              const doorDirZ = Math.cos(hRot);
-              if (!removed) {
-                houses.push(house);
+                const doorDirX = Math.sin(hRot);
+                const doorDirZ = Math.cos(hRot);
+                if (!removed) {
+                  houses.push(house);
 
-                if (houses.length === 1) {
-                  this.sampleHousePos.set(px, hy, pz);
+                  if (houses.length === 1) {
+                    this.sampleHousePos.set(px, hy, pz);
+                  }
+
+                  this.colliders.push({
+                    type: 'box', house: true, id: slot,
+                    minX: px - 3.6, maxX: px + 3.6,
+                    minZ: pz - 3.9, maxZ: pz + 3.9
+                  });
+
+                  const pathPts = [
+                    { x: px + doorDirX * 3.5, z: pz + doorDirZ * 3.5 },
+                    { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
+                  ];
+                  addStreet('acceso-' + slot, pathPts, 2.2, 0.13);
                 }
 
-                this.colliders.push({
-                  type: 'box', house: true, id: slot,
-                  minX: px - 3.6, maxX: px + 3.6,
-                  minZ: pz - 3.9, maxZ: pz + 3.9
-                });
+                if (cfg.hasProps && rng.next() > 0.45 && !removed) {
+                  barrels.push({ x: px + doorDirX * 3.8 + 1.5, y: this.getTerrainHeight(px + doorDirX * 3.8 + 1.5, pz), z: pz });
+                }
 
-                const pathPts = [
-                  { x: px + doorDirX * 3.5, z: pz + doorDirZ * 3.5 },
-                  { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
-                ];
-                addStreet('acceso-' + slot, pathPts, 2.2, 0.13);
+                if (cfg.hasFences && !removed) {
+                  [['a', -5.2], ['b', 5.2]].forEach(([k, off]) => {
+                    if (!edit.removedFences.has(slot + k)) fences.push({ id: slot + k, x: px, y: hy, z: pz + off, rot: hRot });
+                  });
+                }
+              } else if (rng.next() * 100 <= cfg.treeDensity) {
+                // El azar se consume igual aunque el árbol esté quitado, para no mover el resto del pueblo
+                const tScale = rng.range(0.9, 1.45);
+                const tPine = rng.next() > 0.45;
+                const tColor = rng.pick(styleObj.treeColors);
+                const tid = 'v' + lz + ':' + xOff;
+                if (!edit.removedTrees.has(tid)) {
+                  trees.push({ id: tid, x: hx, y: this.getTerrainHeight(hx, hz), z: hz, scale: tScale, isPine: tPine, color: tColor, especie: especieFor(tPine, hx, hz) });
+                  this.colliders.push({ type: 'circle', x: hx, z: hz, r: 0.65 });
+                }
               }
 
-              if (cfg.hasProps && rng.next() > 0.45 && !removed) {
-                barrels.push({ x: px + doorDirX * 3.8 + 1.5, y: this.getTerrainHeight(px + doorDirX * 3.8 + 1.5, pz), z: pz });
+              if (cfg.hasFences && rng.next() * 100 <= cfg.treeDensity * 0.7) {
+                const hedgeX = hx + (xOff < 0 ? 4.5 : -4.5);
+                const hid = 'h' + lz + ':' + xOff;
+                if (!edit.removedHedges.has(hid)) hedges.push({ id: hid, x: hedgeX, y: this.getTerrainHeight(hedgeX, hz + 4.2), z: hz + 4.2, rot: 0 });
               }
-
-              if (cfg.hasFences && !removed) {
-                [['a', -5.2], ['b', 5.2]].forEach(([k, off]) => {
-                  if (!edit.removedFences.has(slot + k)) fences.push({ id: slot + k, x: px, y: hy, z: pz + off, rot: hRot });
-                });
-              }
-            } else if (rng.next() * 100 <= cfg.treeDensity) {
-              // El azar se consume igual aunque el árbol esté quitado, para no mover el resto del pueblo
-              const tScale = rng.range(0.9, 1.45);
-              const tPine = rng.next() > 0.45;
-              const tColor = rng.pick(styleObj.treeColors);
-              const tid = 'v' + lz + ':' + xOff;
-              if (!edit.removedTrees.has(tid)) {
-                trees.push({ id: tid, x: hx, y: this.getTerrainHeight(hx, hz), z: hz, scale: tScale, isPine: tPine, color: tColor, especie: especieFor(tPine, hx, hz) });
-                this.colliders.push({ type: 'circle', x: hx, z: hz, r: 0.65 });
-              }
-            }
-
-            if (cfg.hasFences && rng.next() * 100 <= cfg.treeDensity * 0.7) {
-              const hedgeX = hx + (xOff < 0 ? 4.5 : -4.5);
-              const hid = 'h' + lz + ':' + xOff;
-              if (!edit.removedHedges.has(hid)) hedges.push({ id: hid, x: hedgeX, y: this.getTerrainHeight(hedgeX, hz + 4.2), z: hz + 4.2, rot: 0 });
-            }
+            });
           });
-        });
+        }
 
         this.scene.add(roadsGroup);
         this.objects.push(roadsGroup);
