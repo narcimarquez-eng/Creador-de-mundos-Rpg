@@ -17,7 +17,9 @@ const ESPECIES = {
   roble:   { preset: 'Oak Medium',   alto: 9.5,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xd8e8b0, seed: 4242 },
   alamo:   { preset: 'Aspen Medium', alto: 10.5, corteza: 'corteza_abedul.jpg', hoja: 'hoja_alamo.png', tinta: 0xe2ecc0, seed: 5151 },
   pino:    { preset: 'Pine Medium',  alto: 11,   corteza: 'corteza_pino.jpg',  hoja: 'hoja_pino.png',   tinta: 0xbfd8a8, seed: 3131 },
-  arbusto: { preset: 'Bush 1',       alto: 2.0,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xc8e0a0, seed: 7373 }
+  arbusto: { preset: 'Bush 1',       alto: 2.0,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xc8e0a0, seed: 7373 },
+  // Seto de New-Rol (Bush 3, «hedge»): lindes de campo
+  seto:    { preset: 'Bush 3',       alto: 3.6,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xa8c888, seed: 8282 }
 };
 // Detalle por nivel: fracción de hojas, secciones y segmentos radiales de las ramas (menos = menos triángulos)
 const NIVELES = {

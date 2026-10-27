@@ -55,7 +55,7 @@
       formas.forEach((geo, j) => {
         const lista = rocas.filter(r => formas.length === 1 || r.v === j);
         if (!lista.length) return;
-        const malla = new THREE.InstancedMesh(geo, material({ flatShading: !o.props }), lista.length);
+        const malla = new THREE.InstancedMesh(geo, o.props ? new THREE.MeshStandardMaterial({ roughness: 0.92 }) : material({ flatShading: true }), lista.length);
         lista.forEach((r, i) => {
           ponerInstancia(malla, i, r.x, o.altura(r.x, r.z) - 0.15 * r.tam, r.z, r.tam, r.tam * (0.55 + 0.3 * rng.next()), r.tam * (0.8 + 0.3 * rng.next()), r.ry, r.color);
         });
@@ -66,12 +66,12 @@
     }
 
     // ---------------------------------------------------------------- Matorrales
-    // Arbustos: el de Kenney (CC0) y el de New-Rol, mezclados; si no hay ninguno, un poliedro de código
-    const arbusto = o.arbusto;
+    // Arbustos realistas de New-Rol (ez-tree, Bush 1); si no están, el de Kenney o un poliedro de respaldo
     const opciones = [];
-    if (arbusto) opciones.push({ geo: arbusto.geometry, mat: arbusto.material, base: 0, alto: 1 });
-    if (o.props) opciones.push({ geo: o.props.arbustoGeo(), mat: material({ vertexColors: true }), base: 0, alto: 1 });
-    if (!opciones.length) opciones.push({ geo: new THREE.IcosahedronGeometry(1, 0), mat: material({ flatShading: true }), base: 0.2, alto: 0.7 });
+    const arbolArbusto = o.props ? o.props.arbolPartes('arbusto', 'lejos') : null;
+    if (arbolArbusto) opciones.push({ partes: arbolArbusto, base: 0, alto: 0.8, tinta: false });
+    else if (o.arbusto) opciones.push({ partes: [{ geo: o.arbusto.geometry, mat: o.arbusto.material }], base: 0, alto: 1, tinta: true });
+    if (!opciones.length) opciones.push({ partes: [{ geo: new THREE.IcosahedronGeometry(1, 0), mat: material({ flatShading: true }) }], base: 0.2, alto: 0.7, tinta: true });
     const matorrales = [];
     const cantMatorrales = Math.min(5000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 900));
     for (let k = 0; k < cantMatorrales * 2 && matorrales.length < cantMatorrales; k++) {
@@ -84,11 +84,13 @@
     opciones.forEach((op, j) => {
       const lista = matorrales.filter(m => m.o === j);
       if (!lista.length) return;
-      const malla = new THREE.InstancedMesh(op.geo, op.mat, lista.length);
-      lista.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, op.alto === 1 ? m.tam : m.tam * 0.7, m.tam, m.ry, m.color));
-      malla.instanceMatrix.needsUpdate = true;
-      malla.instanceColor.needsUpdate = true;
-      grupo.add(malla);
+      op.partes.forEach(parte => {
+        const malla = new THREE.InstancedMesh(parte.geo, parte.mat, lista.length);
+        lista.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, m.tam * op.alto, m.tam, m.ry, op.tinta ? m.color : undefined));
+        malla.instanceMatrix.needsUpdate = true;
+        if (malla.instanceColor) malla.instanceColor.needsUpdate = true;
+        grupo.add(malla);
+      });
     });
 
     // ---------------------------------------------------------------- Casas en ruinas
@@ -194,7 +196,7 @@
               postes.push({ x: px0, z: pz0, y: o.altura(px0, pz0), ry });
               travesanos.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
             } else if (tipo < 0.7) {                          // muro bajo de piedra, o seto si hay New-Rol
-              if (o.props && rng.chance(0.5)) setos.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
+              if (o.props && o.props.arbolPartes('seto', 'lejos') && rng.chance(0.5)) setos.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
               else muretes.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
             } else {                                          // valla rota: madera con muchos huecos
               if (!rng.chance(0.4)) continue;
@@ -221,10 +223,13 @@
       grupo.add(tm);
     }
     if (setos.length) {
-      const malla = new THREE.InstancedMesh(o.props.setoGeo(), material({ vertexColors: true }), setos.length);
-      setos.forEach((c, j) => ponerInstancia(malla, j, c.x, c.y, c.z, 1, 1, 1, c.ry, undefined));
-      malla.instanceMatrix.needsUpdate = true;
-      grupo.add(malla);
+      // Setos de New-Rol (ez-tree, Bush 3) sobre las lindes de los campos
+      o.props.arbolPartes('seto', 'lejos').forEach(parte => {
+        const malla = new THREE.InstancedMesh(parte.geo, parte.mat, setos.length);
+        setos.forEach((c, j) => ponerInstancia(malla, j, c.x, c.y, c.z, 1, 1, 1, c.ry, undefined));
+        malla.instanceMatrix.needsUpdate = true;
+        grupo.add(malla);
+      });
     }
     if (muretes.length) {
       const mGeo = new THREE.BoxGeometry(tramo, 0.9, 0.5); mGeo.translate(0, 0.45, 0);

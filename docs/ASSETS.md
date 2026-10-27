@@ -66,13 +66,19 @@ Fuente: **Kenney Nature Kit** (kenney.nl), licencia **CC0 1.0**. El modelo viene
 textura, y su licencia en `assets/vegetacion/LICENCIA-kenney-nature-kit.txt`. El visor lo escala a 1,6 m de alto y
 lo coloca en `js/decorado.js` como matorral (instanciado). Si no carga, se usan matorrales de código.
 
-## Props de New-Rol (rocas, arbustos, setos y vallas)
+## Props realistas de New-Rol (rocas, arbustos y setos)
 
-Fuente: `js/props-newrol.js`, portado de `src/world/Props.js` y `src/gfx/ModelKit.js` del repositorio `New-Rol`
-(de la misma cuenta). Son geometrías generadas por código, sin archivos de terceros: `rocaGeo` (cantos de tres
-formas, con ruido `fbm`), `arbustoGeo`, `setoGeo` (bloques de 4 m para lindes) y `vallaGeo`. Se usan en
-`js/decorado.js` junto a los arbustos de Kenney. El repositorio New-Rol no declara licencia de su código propio;
-como es de la misma cuenta, se usa tal cual, pero conviene confirmarlo antes de publicar el juego.
+Fuente: `js/props-newrol.js`, portado del modo realista de `New-Rol` (de la misma cuenta). Son geometrías generadas
+por código, sin archivos de terceros:
+- `rocaGeo`: canto suelto del modo realista (`boulderGeoReal` de New-Rol), con ruido fbm.
+- `arbolPartes('arbusto')` y `arbolPartes('seto')`: arbustos y setos de ez-tree (Bush 1 y Bush 3 de New-Rol),
+  horneados en `js/arboles.js` con `tools/hornear-arboles.mjs`, con corteza y hojas recortadas.
+
+Se usan en `js/decorado.js`: las rocas con material PBR, los matorrales con el arbusto de ez-tree y los setos en las
+lindes de los campos. El repositorio New-Rol no declara licencia de su código propio; como es de la misma cuenta, se
+usa tal cual, pero conviene confirmarlo antes de publicar el juego.
+
+Los modelos del arbusto de Kenney (CC0, `assets/vegetacion/arbusto.glb`) quedan como respaldo si no se carga TreeLib.
 
 ## Rocas y setos
 
