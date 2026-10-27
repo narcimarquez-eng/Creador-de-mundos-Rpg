@@ -369,6 +369,15 @@
     </div>
 
     <div class="control-row">
+      <label>Tipo de casas</label>
+      <select id="inp-casas">
+        <option value="original" selected>Casas de piedra y tejado (actuales)</option>
+        <option value="madera">Cabañas de madera</option>
+        <option value="mixta">Mixto (algunas cabañas de madera)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
       <label>Semilla (Seed): <span id="lbl-seed">77420</span></label>
       <input type="range" id="inp-seed" min="1" max="99999" value="77420">
     </div>
@@ -492,6 +501,7 @@
   </div>
 
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <script src="js/casa-madera.js"></script>
   <script type="module" src="js/three-puente.js"></script>
   <script type="module" src="js/arboles.js"></script>
   <script type="module" src="js/pueblo-edits.js"></script>
@@ -618,6 +628,7 @@
         style: document.getElementById('inp-style').value,
         terrainType: document.getElementById('inp-terrain-type').value,
         trazado: document.getElementById('inp-trazado').value,
+        casas: document.getElementById('inp-casas').value,
         relief: parseInt(document.getElementById('inp-relief').value, 10),
         seed: parseInt(document.getElementById('inp-seed').value, 10),
         size: parseInt(document.getElementById('inp-size').value, 10),
@@ -679,6 +690,7 @@
       setVal('inp-road-w', cfg.roadWidth);
       setVal('inp-curve', cfg.curve);
       setVal('inp-trazado', cfg.trazado || 'clasico');
+      setVal('inp-casas', cfg.casas || 'original');
       setVal('inp-trees', cfg.treeDensity);
       setVal('inp-time', cfg.time);
       setChk('chk-walls', cfg.hasWalls);
@@ -786,6 +798,8 @@
         console.error("Error durante la generación del pueblo:", err);
       }
     }
+
+    document.getElementById('inp-casas').addEventListener('change', rebuildFromUI);
 
     document.getElementById('inp-style').addEventListener('change', (e) => {
       const st = ARCHITECTURAL_STYLES[e.target.value];

@@ -8,6 +8,7 @@
     html, body { margin: 0; height: 100%; background: #9bd9f5; overflow: hidden; font: 13px system-ui; }
     #info { position: absolute; left: 10px; top: 10px; color: #0f172a; background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 8px; }
   </style>
+  <script src="js/casa-madera.js"></script>
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
 </head>
 <body>
@@ -15,7 +16,6 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { crearCasaMadera } from './js/casa-madera.js';
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -29,7 +29,7 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#9bd9f5');
     const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 500);
-    camera.position.set(13, 7, 13);
+    camera.position.set(0, 10, 58);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, 2, 0);
     controls.update();
@@ -42,15 +42,29 @@
     Object.assign(sol.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 80 });
     scene.add(sol);
 
-    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshLambertMaterial({ color: '#6b8f4e' }));
+    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(120, 60), new THREE.MeshLambertMaterial({ color: '#6b8f4e' }));
     suelo.rotation.x = -Math.PI / 2;
     suelo.receiveShadow = true;
     scene.add(suelo);
 
-    const casa = crearCasaMadera(THREE, { ancho: 6, fondo: 5, muro: 2.6, subida: 2.2, semilla: 3 });
-    casa.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-    scene.add(casa);
-    window.__casa = casa.userData;
+    const mats = CasaMaderaLib.materiales(THREE);
+    const variantes = CasaMaderaLib.VARIANTES;
+    window.__casas = {};
+    variantes.forEach((v, i) => {
+      const piezas = CasaMaderaLib.partes(THREE, { variante: v, semilla: 40 + i * 7 });
+      const grupo = new THREE.Group();
+      let tris = 0;
+      Object.keys(piezas).forEach(k => {
+        const malla = new THREE.Mesh(piezas[k], mats[k]);
+        malla.castShadow = true; malla.receiveShadow = true;
+        grupo.add(malla);
+        tris += piezas[k].attributes.position.count / 3;
+      });
+      grupo.position.x = (i - (variantes.length - 1) / 2) * 13;
+      scene.add(grupo);
+      window.__casas[v] = { triangulos: Math.round(tris), llamadas: Object.keys(piezas).length };
+    });
+    window.__listo = true;
 
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();

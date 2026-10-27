@@ -42,6 +42,7 @@ Unidades en **metros**; `x, y` del mapa = `x, z` en 3D.
 | `services` | Lista de servicios (`posada`, `tienda`, `herrero`, `gremio`…). |
 | `cfg` | **Configuración exacta del Creador de Pueblos** (`style`, `terrainType`, `relief`, `seed`, `size`, `houseDensity`, `specialCount`, `maxFloors`, `roadWidth`, `curve`, `treeDensity`, `hasWalls`, `hasRiver`, `hasMagic`, `hasProps`, `hasLamps`, `hasFences`, `time`). Con ella el juego regenera el pueblo 3D idéntico. `edits` (ediciones a mano, ver abajo). |
 | `notes` | Texto libre (historia, NPCs…). |
+| `cfg.casas` | Tipo de casas del pueblo: `original` (por defecto: casas de piedra y tejado), `madera` (todas cabañas de madera) o `mixta` (unas 4 de cada 10 cabañas, elegidas por posición). No cambia la distribución del pueblo, así que las ediciones a mano siguen válidas. |
 | `cfg.rio` | Solo si `cfg.hasRiver`. Curso del río: `pts` = `[{ x, z, l }]` en coordenadas locales del pueblo, en el orden en que fluye el agua; `l` es el nivel del agua sobre la base del pueblo (baja hasta el mar). `mar` indica si llega al mar o se para en un lago. Lo calcula `RPGWorld.calcularRios` (`js/world-core.js`) y se recalcula solo si cambian la semilla, la posición, el giro, el tamaño o la curva del pueblo. |
 
 ### Salidas del pueblo (`cfg.rotation` y `cfg.exits`)

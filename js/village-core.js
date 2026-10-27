@@ -991,6 +991,41 @@
         return h;
       }
 
+      // Casas de madera: cada una con su variante y su zócalo hundido en la ladera; las piezas de todas se
+      // fusionan por material, así que un pueblo gasta pocas llamadas de dibujo. Requiere js/casa-madera.js.
+      construirCasasMadera(maderas, HW, HD) {
+        const C = window.CasaMaderaLib;
+        if (!C || !maderas.length) return;
+        const piezas = {};
+        maderas.forEach(h => {
+          const cosR = Math.cos(h.rot), sinR = Math.sin(h.rot);
+          let yEsq = h.y;
+          [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+            const lx = sx * HW * h.wScale, lz = sz * HD * h.dScale;
+            yEsq = Math.min(yEsq, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
+          });
+          const hash = hash01(h.x, h.z);
+          const parts = C.partes(THREE, {
+            variante: C.variante(hash01(h.z, h.x)),
+            ancho: HW * 1.2 * h.wScale, fondo: HD * 1.2 * h.dScale,
+            hundir: Math.max(0, h.y - yEsq + 0.2),
+            semilla: Math.floor(hash * 1e6) + 1
+          });
+          const M = new THREE.Matrix4().compose(new THREE.Vector3(h.x, h.y, h.z),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot), new THREE.Vector3(1, 1, 1));
+          Object.keys(parts).forEach(k => {
+            (piezas[k] = piezas[k] || []).push(parts[k].clone().applyMatrix4(M));
+          });
+        });
+        const mats = C.materiales(THREE);
+        Object.keys(piezas).forEach(k => {
+          const malla = new THREE.Mesh(C.fundir(THREE, piezas[k]), mats[k]);
+          malla.castShadow = true; malla.receiveShadow = true;
+          this.scene.add(malla);
+          this.objects.push(malla);
+        });
+      }
+
       getWalkableHeight(x, z) {
         if (this.cfg && this.cfg.hasRiver && this.bridgeBounds) {
           const b = this.bridgeBounds;
@@ -2269,21 +2304,28 @@
         const chimG = createDetailedChimneyGeometry();
         const balcG = new THREE.BoxGeometry(2.6, 0.95, 0.95);
 
+        // Casas de madera (cabañas procedurales): según el pueblo, todas o mezcladas con las casas de siempre.
+        // Las de madera se componen aparte; el resto sigue en las mallas instanciadas de siempre.
+        const modoCasas = cfg.casas || 'original';
+        houses.forEach(h => { h.madera = modoCasas === 'madera' || (modoCasas === 'mixta' && hash01(h.x, h.z) < 0.4); });
+        const casas = houses.filter(h => !h.madera);
+        const maderas = houses.filter(h => h.madera);
+
         let totFloors = 0, totWins = 0, totChims = 0, totBalcs = 0;
-        houses.forEach(h => {
+        casas.forEach(h => {
           totFloors += h.floors;
           totWins += h.floors * 4;
           if (h.chimney) totChims++;
           if (h.balcony) totBalcs++;
         });
 
-        const iPlinth = makeInstanced(plinthG, matAtlas, houses.length);
+        const iPlinth = makeInstanced(plinthG, matAtlas, casas.length);
         const iWall = makeInstanced(wallG, matAtlas, totFloors);
-        const iRoof = makeInstanced(roofG, matAtlas, houses.length);
-        const iGable = makeInstanced(gableG, matAtlas, houses.length * 2);
+        const iRoof = makeInstanced(roofG, matAtlas, casas.length);
+        const iGable = makeInstanced(gableG, matAtlas, casas.length * 2);
         const iWinGlass = makeInstanced(winGlassG, matWindowGlass, totWins);
         const iWinFrame = makeInstanced(winFrameG, matAtlas, totWins);
-        const iDoor = makeInstanced(doorG, matAtlas, houses.length);
+        const iDoor = makeInstanced(doorG, matAtlas, casas.length);
         const iChim = makeInstanced(chimG, matAtlas, totChims);
         const iBalc = makeInstanced(balcG, matIron, totBalcs);
 
@@ -2291,7 +2333,7 @@
         const cWhite = new THREE.Color(0xffffff), cTint = new THREE.Color();
         let pIdx = 0, wIdx = 0, rIdx = 0, gIdx = 0, winIdx = 0, dIdx = 0, cIdx = 0, bIdx = 0;
 
-        houses.forEach(h => {
+        casas.forEach(h => {
           cTint.setHex(h.tint);
           const hQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot);
           const hBase = new THREE.Vector3(h.x, h.y, h.z);
@@ -2346,6 +2388,8 @@
           place(iRoof, rIdx++, 0, topY, 0, qId, cWhite);
           if (h.chimney) place(iChim, cIdx++, 1.6, topY + 1.15, 1.3, qId, cWhite, 1, 1, 1);
         });
+
+        this.construirCasasMadera(maderas, HW, HD);
 
         const stallRoofG = new THREE.ConeGeometry(2.2, 1.2, 4); stallRoofG.rotateY(Math.PI / 4);
         const barrelG = new THREE.CylinderGeometry(0.38, 0.42, 0.95, 8); mapUVBand(barrelG, 0.0, 0.25); barrelG.translate(0, 0.48, 0);
@@ -2552,6 +2596,12 @@
         [matAtlas.map, matAtlas.bumpMap, matRoad.map, matRoad.bumpMap, glowTex, leadedGlassTex].forEach(t => { if (t) t.dispose(); });
       }
     };
+  }
+
+  // Valor pseudoaleatorio estable (0..1) para una posición: decide la variante y el tipo de cada casa
+  function hash01(x, z) {
+    const v = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
+    return v - Math.floor(v);
   }
 
   window.VillageLib = { PRNG, ARCHITECTURAL_STYLES, ATMOSPHERES, createKit };
