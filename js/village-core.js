@@ -942,7 +942,10 @@
 
       getMainRoadX(z) {
         if (!this.cfg) return 0;
-        if (this.cfg.trazado === 'manzanas') return 0;
+        if (this.cfg.trazado === 'manzanas') {
+          const g = this.manzanaGeo;
+          return g ? g.A * Math.sin(Math.PI * z / g.p) : 0;
+        }
         const plazaDamp = Math.min(1.0, Math.abs(z) / 22.0);
         return Math.sin(z * 0.035) * this.cfg.curve * plazaDamp;
       }
@@ -1055,8 +1058,8 @@
           const rx = p.x - nx * (width * 0.5);
           const rz = p.z - nz * (width * 0.5);
 
-          const ly = Math.max(-0.2, this.getTerrainHeight(lx, lz)) + yOffset;
-          const ry = Math.max(-0.2, this.getTerrainHeight(rx, rz)) + yOffset;
+          const ly = this.getTerrainHeight(lx, lz) + yOffset;
+          const ry = this.getTerrainHeight(rx, rz) + yOffset;
 
           const vIdx = i * 2;
           positions[vIdx * 3] = lx;
@@ -1353,43 +1356,85 @@
         });
       }
 
-      // Manzanas con parcelas. Cada casa tiene su solar con verja, una entrada hacia la calle y la puerta mirando
-      // a la calle. Un solar sin casa queda como jardín con un árbol. Los solares que no caben (río, muralla
-      // interior, edificios especiales) se saltan enteros.
-      parcelarManzanas(cfg, townRadius, ctx) {
-        const { rng, edit, styleObj, houses, trees, fences, addStreet, especieFor } = ctx;
-        const R = townRadius - 12;
+      // Malla de manzanas. La cuadrícula es recta en (u, v) y se lleva al mundo con W, que la ondula con una
+      // senoide de periodo 2 pasos. La onda se anula en los cruces y en el perímetro, así que el anillo sigue cerrado.
+      geometriaManzanas(cfg, townRadius) {
+        const R = townRadius - 22;
         const m = Math.max(1, Math.round(R / 42));
         const p = R / m;
-        const H = cfg.roadWidth * 0.5 + 1.0;   // del centro de la calle al borde de la manzana
+        const A = Math.min(cfg.curve * 0.7, p * 0.2);
+        const k = Math.PI / p;
+        const W = (u, v) => ({ x: u + A * Math.sin(k * v), z: v + A * Math.sin(k * u) });
+        // Normal unitaria hacia fuera de la calle: eje 'u' (calle a lo largo de v) o eje 'v' (calle a lo largo de u)
+        const normal = (u, v, eje, sgn) => {
+          const e = 0.25, a = W(u, v);
+          const tg = eje === 'u' ? W(u, v + e) : W(u + e, v);
+          const cr = eje === 'u' ? W(u + e, v) : W(u, v + e);
+          const tx = tg.x - a.x, tz = tg.z - a.z;
+          let nx = -tz, nz = tx;
+          if (nx * (cr.x - a.x) + nz * (cr.z - a.z) < 0) { nx = -nx; nz = -nz; }
+          const len = Math.hypot(nx, nz) || 1;
+          return { x: sgn * nx / len, z: sgn * nz / len };
+        };
+        // Punto a 'd' pasos hacia dentro de una manzana, sobre el lado 'lado' en el parámetro c
+        const punto = (lado, c, d) => {
+          const u = lado.eje === 'u' ? lado.f : c, v = lado.eje === 'u' ? c : lado.f;
+          const base = W(u, v), n = normal(u, v, lado.eje, lado.sgn);
+          return { x: base.x - n.x * d, z: base.z - n.z * d };
+        };
+        return { R, m, p, A, W, normal, punto };
+      }
+
+      // Manzanas con parcelas. Cada casa tiene su solar con verja, una entrada hacia la calle y la puerta mirando
+      // a la calle. Solo los solares con casa llevan verja y solo algunas casas la llevan. Un solar sin casa queda
+      // como jardín con un árbol. Los solares que no caben (río, muralla interior, edificios especiales) se saltan.
+      parcelarManzanas(cfg, townRadius, ctx) {
+        const { rng, edit, styleObj, houses, trees, fences, addStreet, especieFor } = ctx;
+        const g = this.manzanaGeo;
+        const H = cfg.roadWidth * 0.5 + 1.0;   // del centro de la calle al borde de la manzana (en u y v)
         const FRENTE = 12.5, FONDO = 15, PUERTA = 2.6, TRAMO = 4.5;
         const CASA_FONDO = 5.5;                // distancia desde el frente del solar al centro de la casa
-        const toXZ = (lado, c, o) => lado.along === 'x'
-          ? { x: c, z: lado.front + lado.nz * o }
-          : { x: lado.front + lado.nx * o, z: c };
-        // Valla entre dos puntos, partida en tramos de hasta TRAMO
-        const vallar = (id, a, b) => {
-          const L = Math.hypot(b.x - a.x, b.z - a.z);
-          const k = Math.max(1, Math.ceil(L / TRAMO));
-          const rot = Math.atan2(-(b.z - a.z), b.x - a.x);
-          for (let q = 0; q < k; q++) {
-            const t = (q + 0.5) / k;
-            const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t;
+        const FRACCION_VALLADAS = 0.6;         // parte de las casas con verja
+
+        // Trozos de hasta TRAMO a lo largo de una polilínea
+        const tramosDe = pts => {
+          const acc = [0];
+          for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+          const L = acc[acc.length - 1];
+          const n = Math.max(1, Math.ceil(L / TRAMO));
+          const en = s => {
+            let i = 1;
+            while (i < acc.length - 1 && acc[i] < s) i++;
+            const t = (s - acc[i - 1]) / ((acc[i] - acc[i - 1]) || 1);
+            return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * t, z: pts[i - 1].z + (pts[i].z - pts[i - 1].z) * t };
+          };
+          const out = [];
+          for (let q = 0; q < n; q++) out.push({ a: en(q * L / n), b: en((q + 1) * L / n) });
+          return out;
+        };
+        const vallar = (id, pts) => {
+          tramosDe(pts).forEach((t, q) => {
             const fid = id + ':' + q;
-            if (edit.removedFences.has(fid)) continue;
-            fences.push({ id: fid, x, y: this.getTerrainHeight(x, z), z, rot, len: L / k });
-          }
+            if (edit.removedFences.has(fid)) return;
+            const x = (t.a.x + t.b.x) / 2, z = (t.a.z + t.b.z) / 2;
+            fences.push({ id: fid, x, y: this.getTerrainHeight(x, z), z, rot: Math.atan2(-(t.b.z - t.a.z), t.b.x - t.a.x), len: Math.hypot(t.b.x - t.a.x, t.b.z - t.a.z) });
+          });
+        };
+        // Muestrea fn(t) entre t0 y t1 cada 2 m
+        const muestra = (fn, t0, t1) => {
+          const n = Math.max(2, Math.ceil(Math.abs(t1 - t0) / 2));
+          return Array.from({ length: n + 1 }, (_, i) => fn(t0 + (t1 - t0) * i / n));
         };
 
-        for (let i = 0; i < 2 * m; i++) {
-          for (let j = 0; j < 2 * m; j++) {
-            const x0 = -R + i * p + H, x1 = -R + (i + 1) * p - H;
-            const z0 = -R + j * p + H, z1 = -R + (j + 1) * p - H;
+        for (let i = 0; i < 2 * g.m; i++) {
+          for (let j = 0; j < 2 * g.m; j++) {
+            const u0 = -g.R + i * g.p, u1 = u0 + g.p;
+            const v0 = -g.R + j * g.p, v1 = v0 + g.p;
             const lados = [
-              { id: 'n', nx: 0, nz: 1, front: z1, along: 'x', ca: x0, cb: x1 },
-              { id: 's', nx: 0, nz: -1, front: z0, along: 'x', ca: x0, cb: x1 },
-              { id: 'e', nx: 1, nz: 0, front: x1, along: 'z', ca: z0 + FONDO, cb: z1 - FONDO },
-              { id: 'w', nx: -1, nz: 0, front: x0, along: 'z', ca: z0 + FONDO, cb: z1 - FONDO }
+              { id: 'n', eje: 'u', f: u1 - H, sgn: 1, ca: v0 + H, cb: v1 - H },
+              { id: 's', eje: 'u', f: u0 + H, sgn: -1, ca: v0 + H, cb: v1 - H },
+              { id: 'e', eje: 'v', f: v1 - H, sgn: 1, ca: u0 + H + FONDO, cb: u1 - H - FONDO },
+              { id: 'w', eje: 'v', f: v0 + H, sgn: -1, ca: u0 + H + FONDO, cb: u1 - H - FONDO }
             ];
             lados.forEach(lado => {
               const L = lado.cb - lado.ca;
@@ -1398,7 +1443,7 @@
                 const w = L / n;
                 const c0 = lado.ca + k * w, c1 = c0 + w, cm = (c0 + c1) / 2;
                 const key = i + '.' + j + lado.id + k;
-                const at = (c, o) => toXZ(lado, c, o);
+                const P = (c, d) => g.punto(lado, c, d);
 
                 // Todos los azares se consumen igual, esté o no el solar ocupado
                 const tiene = rng.next() * 100 <= cfg.houseDensity;
@@ -1408,43 +1453,40 @@
                 const balcony = floors >= 2 && rng.next() > 0.3;
                 const wScale = rng.range(0.92, 1.15);
                 const dScale = rng.range(0.92, 1.15);
+                const conVALLA = rng.next() < FRACCION_VALLADAS;
                 const conArbol = rng.next() * 100 <= cfg.treeDensity;
                 const tScale = rng.range(0.9, 1.45);
                 const tPine = rng.next() > 0.45;
                 const tColor = rng.pick(styleObj.treeColors);
 
-                const casa = at(cm, -CASA_FONDO);
+                const casa = P(cm, CASA_FONDO);
                 if (!this.placementOk(casa.x, casa.z, null)) continue;
-
-                // Verja: el frente lleva un hueco de entrada en el centro; los lados se comparten con el vecino
-                const A = at(c0, 0), B = at(c1, 0), C = at(c1, -FONDO), D = at(c0, -FONDO);
-                if (cfg.hasFences) {
-                  const e1 = at(cm - PUERTA / 2, 0), e2 = at(cm + PUERTA / 2, 0);
-                  vallar(key + 'f1', A, e1);
-                  vallar(key + 'f2', e2, B);
-                  vallar(key + 'r', B, C);
-                  if (k === 0) vallar(key + 'l', D, A);
-                  vallar(key + 'b', C, D);
-                }
-
                 const removed = edit.removedHouses.has(key);
                 const moved = edit.movedHouses.get(key);
-                if (tiene && !removed) {
+                const tieneCasa = tiene && !removed;
+
+                if (tieneCasa && cfg.hasFences && conVALLA) {
+                  vallar(key + 'f1', muestra(c => P(c, 0), c0, cm - PUERTA / 2));
+                  vallar(key + 'f2', muestra(c => P(c, 0), cm + PUERTA / 2, c1));
+                  vallar(key + 'r', muestra(d => P(c1, d), 0, FONDO));
+                  if (k === 0) vallar(key + 'l', muestra(d => P(c0, d), 0, FONDO));
+                  vallar(key + 'b', muestra(c => P(c, FONDO), c1, c0));
+                }
+
+                if (tieneCasa) {
                   const px = moved ? moved.x : casa.x, pz = moved ? moved.z : casa.z;
                   const hy = this.getTerrainHeight(px, pz);
-                  const hRot = Math.atan2(lado.nx, lado.nz);
+                  const n = g.normal(lado.eje === 'u' ? lado.f : cm, lado.eje === 'u' ? cm : lado.f, lado.eje, lado.sgn);
                   houses.push({
-                    id: key, x: px, y: hy, z: pz, rot: hRot,
+                    id: key, x: px, y: hy, z: pz, rot: Math.atan2(n.x, n.z),
                     wScale, dScale, floors, tint, chimney, balcony
                   });
                   if (houses.length === 1) this.sampleHousePos.set(px, hy, pz);
-                  // Caja de colisión alineada con la fachada: 3,6 m a lo largo del frente y 3,9 m hacia fuera
-                  const ex = lado.along === 'x' ? 3.6 : 3.9, ez = lado.along === 'x' ? 3.9 : 3.6;
-                  this.colliders.push({ type: 'box', house: true, id: key, minX: px - ex, maxX: px + ex, minZ: pz - ez, maxZ: pz + ez });
-                  const frente = at(cm, -CASA_FONDO + 3.9);
-                  addStreet('acceso-' + key, [frente, at(cm, H)], 2.2, 0.13);
+                  this.colliders.push({ type: 'circle', house: true, id: key, x: px, z: pz, r: 4.5 });
+                  const frente = P(cm, CASA_FONDO - 3.9);
+                  addStreet('acceso-' + key, [frente, P(cm, -H)], 2.2, 0.13);
                 } else if (!tiene && conArbol) {
-                  const t = at(cm, -FONDO + 3.5);
+                  const t = P(cm, FONDO - 3.5);
                   if (!edit.removedTrees.has('v' + key)) {
                     trees.push({ id: 'v' + key, x: t.x, y: this.getTerrainHeight(t.x, t.z), z: t.z, scale: tScale, isPine: tPine, color: tColor, especie: especieFor(tPine, t.x, t.z) });
                     this.colliders.push({ type: 'circle', x: t.x, z: t.z, r: 0.65 });
@@ -1642,10 +1684,8 @@
         if (cfg.size >= 4) ringZOffsets.push(-52, 52);
 
         if (manzanas) {
-          // Cuadrícula de calles. Cada línea va de una punta a otra del anillo exterior, así que ninguna queda sin salida
-          const R = townRadius - 12;
-          const m = Math.max(1, Math.round(R / 42));
-          const p = R / m;
+          // Cuadrícula de calles en coordenadas (u, v) llevada al mundo con una onda suave (ver geometriaManzanas)
+          const g = this.manzanaGeo = this.geometriaManzanas(cfg, townRadius);
           const anchoCalle = cfg.roadWidth * 0.9;
           const addCorte = (id, pts, width) => {
             if (edit.removedStreets.has(id)) return;
@@ -1655,14 +1695,14 @@
               if (pc.length > 1) pushRoad(id, pc, width, 0.15);
             });
           };
-          const n = Math.ceil(2 * R / 3.5);
-          for (let k = -m; k <= m; k++) {
-            const c = k * p;
+          const n = Math.ceil(2 * g.R / 3.5);
+          for (let k = -g.m; k <= g.m; k++) {
+            const c = k * g.p;
             const norte = [], este = [];
             for (let i = 0; i <= n; i++) {
-              const t = -R + 2 * R * i / n;
-              norte.push({ x: c, z: t });
-              este.push({ x: t, z: c });
+              const t = -g.R + 2 * g.R * i / n;
+              norte.push(g.W(c, t));
+              este.push(g.W(t, c));
             }
             addCorte('calle-n' + k, norte, anchoCalle);
             addCorte('calle-e' + k, este, anchoCalle);

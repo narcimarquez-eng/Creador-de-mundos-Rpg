@@ -107,9 +107,11 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
 - Las calles de salida hacia el mundo no se pueden editar.
 - `trazado` del pueblo: `manzanas` (por defecto en los mundos nuevos) o `clasico` (el trazado anterior, que es el que
   tienen los pueblos guardados sin este campo). Con `manzanas` los ids cambian: las calles son `calle-n<k>` (línea
-  norte–sur) y `calle-e<k>` (este–oeste), y cada casa es `<i>.<j><lado><k>`, donde `lado` es `n`, `s`, `e` u `o`
+  norte–sur) y `calle-e<k>` (este–oeste), y cada casa es `<i>.<j><lado><k>`, donde `lado` es `n`, `s`, `e` u `w`
   (la fachada da a la calle). Las vallas son `<casa>f1:<q>` y `<casa>f2:<q>` (frente, con la puerta en medio),
-  `<casa>r:<q>`, `<casa>l:<q>` (solo el primer solar de cada fila) y `<casa>b:<q>` (fondo). Un solar sin casa tiene un
+  `<casa>r:<q>`, `<casa>l:<q>` (solo el primer solar de cada fila) y `<casa>b:<q>` (fondo). Solo tienen verja
+  las casas que la llevan (unas 6 de cada 10) y nunca los solares sin casa. Las calles y las vallas siguen una
+  onda suave cuya amplitud depende de la sinuosidad del pueblo. Un solar sin casa tiene un
   árbol `v<casa>` en el jardín. `mover-casa` mueve solo la casa, no su solar.
 - `id` de un árbol: `v<z>:<desplazamiento>` si está junto a una casa, `b<n>` si está en el bosque (n = orden en la
   generación), o `a<n>` si se puso a mano. `especie` es `roble`, `alamo`, `pino` o `arbusto`.
