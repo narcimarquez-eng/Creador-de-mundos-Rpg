@@ -271,7 +271,7 @@
   const LOAD_R = 650, UNLOAD_R = 900, MAX_LOADED = 6;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
-  let townMesh, roadMesh, calzadaMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
+  let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
@@ -304,11 +304,22 @@
   let follow = false, selected = null;
   let lastT = performance.now();
 
-  // Altura del mundo. Dentro del terreno de cada pueblo usa el suelo exacto del Creador de Pueblos,
-  // y fuera se funde con el terreno del mundo. En el borde del pueblo la altura es la del suelo
-  // (w = 1), así no hay escalón entre el pueblo y el mundo; la mezcla se reparte hacia fuera.
+  // Altura del mundo. Dentro del terreno de cada pueblo es el relieve que define su configuración
+  // (el mismo que en el Creador de Pueblos), y fuera se funde con el terreno del mundo: en el borde
+  // del pueblo la altura es la suya (w = 1), así no hay escalón; la mezcla se reparte hacia fuera.
   // Altura analítica del terreno (sin malla). La malla se construye a partir de ella.
   const BLEND_OUT = 140;
+  const RIO_ALCANCE = 480;  // hasta dónde sigue el río fuera del pueblo (m)
+  // Mitad del cauce plano y de la orilla fuera del pueblo (m). Se ajustan a la rejilla del terreno
+  // (buildTerrain): el cauce tiene que caber entre dos nodos, si no el fondo no aparece en la malla.
+  let RIO_CAUCE = 7, RIO_BANCO = 12;
+  const RIO_LECHO = -2.6;   // fondo del cauce, sobre la base del pueblo (igual que el Creador de Pueblos)
+  const RIO_AGUA = -0.65;   // nivel del agua, sobre la base del pueblo (igual que el Creador de Pueblos)
+  // Distancia (m) de un punto (coordenadas locales del pueblo) al cauce de su río, o null si no hay río
+  function distRio(o, lx, lz) {
+    if (!o.cfg.hasRiver || Math.abs(lz) > RIO_ALCANCE) return null;
+    return Math.abs(lx - o.ground.getRiverX(lz));
+  }
   function Hgen(x, z) {
     const e = terrain.elevation(x, z);
     let h = (e - SEA) * HEIGHT_SCALE;
@@ -323,15 +334,20 @@
         h = h + (g - h) * w;
       }
     }
+    // Río fuera del pueblo: el cauce baja el relieve hasta su fondo (dentro del pueblo ya lo hace su terreno)
+    for (let i = 0; i < towns.length; i++) {
+      const o = towns[i];
+      if (!o.cfg.hasRiver) continue;
+      const dx = x - o.t.x, dz = z - o.t.y;
+      if (Math.hypot(dx, dz) > RIO_ALCANCE * 1.5) continue;
+      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) continue;
+      const d = distRio(o, lx, lz);
+      if (d === null || d >= RIO_BANCO) continue;
+      const lecho = o.h0 + RIO_LECHO;
+      h = Math.min(h, lecho + (h - lecho) * smooth(RIO_CAUCE, RIO_BANCO, d));
+    }
     return h;
-  }
-
-  // Suelo de un pueblo: la altura real del mundo en cada punto, relativa a la base del pueblo (h0)
-  function sueloDePueblo(o) {
-    return (lx, lz) => {
-      const wx = o.t.x + lx * o.cr - lz * o.sr, wz = o.t.y + lx * o.sr + lz * o.cr;
-      return (terrain.elevation(wx, wz) - SEA) * HEIGHT_SCALE - o.h0;
-    };
   }
 
   function kitFor(style) {
@@ -360,7 +376,6 @@
       ground,
       proxy: null, village: null, group: null, kit: null
     };
-    ground.terrainBase = sueloDePueblo(o);
     return o;
   }
 
@@ -392,7 +407,8 @@
     });
   };
   // Cinta de calle que sigue el terreno
-  MB.prototype.ribbon = function (pts, w, col, offset) {
+  MB.prototype.ribbon = function (pts, w, col, offset, alt) {
+    const altura = alt || H;
     const L = [], R = [];
     for (let i = 0; i < pts.length; i++) {
       const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
@@ -400,8 +416,8 @@
       const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
       const nx = -tz * w / 2, nz = tx * w / 2;
       const p = pts[i];
-      L.push([p.x + nx, H(p.x + nx, p.z + nz) + offset, p.z + nz]);
-      R.push([p.x - nx, H(p.x - nx, p.z - nz) + offset, p.z - nz]);
+      L.push([p.x + nx, altura(p.x + nx, p.z + nz) + offset, p.z + nz]);
+      R.push([p.x - nx, altura(p.x - nx, p.z - nz) + offset, p.z - nz]);
     }
     for (let i = 0; i < pts.length - 1; i++) this.quad(L[i], R[i], R[i + 1], L[i + 1], col);
   };
@@ -528,7 +544,7 @@
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
-    [roadMesh, calzadaMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
+    [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
@@ -573,6 +589,7 @@
     buildWater();
     buildTowns();
     buildRoads();
+    buildRios();
     buildZones();
     buildMonsters();
     buildTrees();
@@ -706,6 +723,8 @@
     const n = Math.max(100, Math.min(420, Math.round(ext / 20)));
     const N = n + 1;
     const step = ext / n;
+    RIO_CAUCE = Math.max(7, step * 0.6);
+    RIO_BANCO = RIO_CAUCE + 6;
     const x0 = bounds.cx - ext / 2, z0 = bounds.cz - ext / 2;
     const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
     const splat = new Float32Array(N * N * 4), snowA = new Float32Array(N * N), nrm = new Float32Array(N * N * 3);
@@ -984,10 +1003,10 @@
   }
 
   // Calzada romana: losas irregulares con juntas (sombreado en el material) y bordillos a los dos lados
-  function pintarCalzada(mb, linea) {
+  function pintarCalzada(mb, linea, alt) {
     const w = roadWidth('calzada');
-    mb.ribbon(linea, w, rgb('#cbd5e1'), 0.35);
-    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#a8a29e'), 0.5));
+    mb.ribbon(linea, w, rgb('#cbd5e1'), 0.35, alt);
+    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#a8a29e'), 0.5, alt));
   }
 
   // Sombrea las losas con celdas Voronoi sobre el color de vértice: no necesita texturas
@@ -1028,6 +1047,32 @@
     return m;
   }
 
+  // Puntos con los que el camino de un pueblo se une a su calle de salida (la misma del Creador):
+  // el borde del terreno y un tramo recto hacia fuera, para que salga por la puerta en línea recta
+  function salidaDePueblo(o, road) {
+    const ex = (o.cfg.exits || []).find(e => e.roadId === road.id);
+    if (!ex) return [];
+    const a = (Number(ex.angle) || 0) * DEG;
+    const ca = Math.cos(a), sa = Math.sin(a);
+    const toMundo = (lx, lz) => ({ x: o.t.x + lx * o.cr - lz * o.sr, y: o.t.y + lx * o.sr + lz * o.cr });
+    const t = (o.tileHalf - 1.5) / Math.max(Math.abs(ca), Math.abs(sa));
+    return [toMundo(ca * t, sa * t), toMundo(ca * (t + 12), sa * (t + 12))];
+  }
+
+  // Altura de un camino: sobre el cauce de un río se tiende como puente, un poco por encima del agua
+  function alturaCamino(x, z) {
+    let h = H(x, z);
+    for (let i = 0; i < towns.length; i++) {
+      const o = towns[i];
+      const dx = x - o.t.x, dz = z - o.t.y;
+      if (Math.hypot(dx, dz) > RIO_ALCANCE * 1.5) continue;
+      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+      const d = distRio(o, lx, lz);
+      if (d !== null && d < RIO_BANCO) h = Math.max(h, o.h0 + RIO_AGUA + 0.6);
+    }
+    return h;
+  }
+
   function buildRoads() {
     const mb = new MB(), mbCalzada = new MB();
     world.roads.forEach(r => {
@@ -1036,13 +1081,47 @@
       const oa = towns.find(o => o.t === a), ob = towns.find(o => o.t === b);
       const pts = trimRoad(r, a, b, Math.min(oa ? oa.tileHalf : 149, ob ? ob.tileHalf : 149));
       if (pts.length < 2) return;
-      if (r.kind === 'calzada') pintarCalzada(mbCalzada, curvePath(pts, 8));
-      else mb.ribbon(curvePath(pts, 8), roadWidth(r.kind), roadColor(r.kind), 0.35);
+      // El camino empieza y acaba en la calle de salida de cada pueblo, para que empalme con ella:
+      // se quitan los puntos que quedarían dentro de ese tramo recto, y así sale por la puerta en línea recta
+      const ini = oa ? salidaDePueblo(oa, r) : [], fin = ob ? salidaDePueblo(ob, r).reverse() : [];
+      const alCentro = (p, o) => Math.hypot(p.x - o.t.x, p.y - o.t.y);
+      let medio = pts;
+      if (ini.length) medio = medio.filter(p => alCentro(p, oa) > alCentro(ini[1], oa));
+      if (fin.length) medio = medio.filter(p => alCentro(p, ob) > alCentro(fin[0], ob));
+      const linea = curvePath([...ini, ...medio, ...fin], 8);
+      if (r.kind === 'calzada') pintarCalzada(mbCalzada, linea, alturaCamino);
+      else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.35, alturaCamino);
     });
     roadMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
     scene.add(roadMesh);
     calzadaMesh = new THREE.Mesh(mbCalzada.geom(), calzadaMaterial());
     scene.add(calzadaMesh);
+  }
+
+  // Agua de los ríos fuera de los pueblos. Dentro del pueblo el agua la pone su propio terreno.
+  function buildRios() {
+    const mb = new MB(), col = rgb('#0284c7');
+    towns.forEach(o => {
+      if (!o.cfg.hasRiver) return;
+      const nivel = o.h0 + RIO_AGUA, mitad = RIO_CAUCE + 1;
+      [-1, 1].forEach(lado => {
+        const pts = [];
+        for (let k = 0; k <= RIO_ALCANCE / 6; k++) {
+          const lz = lado * (o.tileHalf + k * 6);
+          const lx = o.ground.getRiverX(lz);
+          pts.push({ x: o.t.x + lx * o.cr - lz * o.sr, y: o.t.y + lx * o.sr + lz * o.cr });
+        }
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], b = pts[i + 1];
+          let tx = b.x - a.x, tz = b.y - a.y;
+          const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
+          mb.quad([a.x - tz * mitad, nivel, a.y + tx * mitad], [a.x + tz * mitad, nivel, a.y - tx * mitad],
+            [b.x + tz * mitad, nivel, b.y - tx * mitad], [b.x - tz * mitad, nivel, b.y + tx * mitad], col);
+        }
+      });
+    });
+    riosMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.86, side: THREE.DoubleSide }));
+    scene.add(riosMesh);
   }
 
   function zoneColor(z) {
@@ -1242,7 +1321,6 @@
     group.rotation.y = -o.rot;
     scene.add(group);
     const village = kit.createVillage(group, { skipGround: true });
-    village.terrainBase = o.ground.terrainBase;
     village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
     o.village = village; o.group = group; o.kit = kit;
     createPatch(o);
