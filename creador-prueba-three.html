@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>[Prueba Three r186] Generador Procedural de Pueblos 3D HD - Estilo Lineage 2</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #7dd3fc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+      user-select: none;
+      touch-action: none;
+    }
+
+    #btn-toggle-ui {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 30;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      color: #38bdf8;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #ui-panel {
+      position: absolute;
+      top: 52px;
+      left: 12px;
+      width: 340px;
+      max-width: calc(100vw - 24px);
+      max-height: calc(100vh - 66px);
+      overflow-y: auto;
+      background: rgba(11, 17, 30, 0.94);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8);
+      z-index: 25;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      scrollbar-width: thin;
+      scrollbar-color: #334155 transparent;
+    }
+    #ui-panel.collapsed {
+      transform: translateX(-380px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #ui-panel h2 {
+      margin: 10px 0 8px 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+      padding-bottom: 4px;
+    }
+    #ui-panel h2:first-child { margin-top: 0; }
+
+    .control-row { margin-bottom: 8px; }
+    .control-row label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+    .control-row label span {
+      color: #facc15;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    input[type="range"], select, input[type="text"] {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 5px;
+      color: #f8fafc;
+      accent-color: #38bdf8;
+      padding: 5px 7px;
+      font-size: 12px;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin: 8px 0;
+      padding: 7px;
+      background: rgba(30, 41, 59, 0.65);
+      border-radius: 6px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #e2e8f0;
+      cursor: pointer;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    button, .file-btn {
+      flex: 1;
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+      display: inline-block;
+    }
+    button:hover, .file-btn:hover { background: #0369a1; }
+    button.alt { background: #475569; }
+    button.alt:hover { background: #64748b; }
+    button.gold { background: #b45309; }
+    button.gold:hover { background: #92400e; }
+    .file-btn { background: #059669; }
+    .file-btn:hover { background: #047857; }
+    input[type="file"] { display: none; }
+
+    .glb-box {
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 7px;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+    #glb-status {
+      font-size: 10.5px;
+      color: #fef08a;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+
+    .stats {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+      color: #94a3b8;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+    }
+    .stats b { color: #38bdf8; }
+
+    #world-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 12px;
+      z-index: 30;
+      display: none;
+      gap: 6px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(251, 191, 36, 0.6);
+      border-radius: 8px;
+      padding: 6px 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      max-width: calc(100vw - 160px);
+    }
+    #world-bar.show { display: flex; }
+    #world-bar span { color: #fde68a; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #world-bar button {
+      background: #78350f; border: 1px solid #fbbf24; color: #fef3c7; border-radius: 6px;
+      padding: 6px 9px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    #world-bar button.plain { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+
+    #cam-bar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 6px;
+      z-index: 25;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: 60vw;
+    }
+    .cam-pill {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #e2e8f0;
+      padding: 7px 11px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cam-pill:hover { border-color: #38bdf8; color: #38bdf8; }
+
+    #joystick-zone {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.55);
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      z-index: 25;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #joystick-knob {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #38bdf8, #0284c7);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+      transform: translate(0px, 0px);
+    }
+
+    /* Paleta de edición del pueblo (mover, borrar, añadir casas y calles) */
+    #edit-bar {
+      position: absolute;
+      left: 50%;
+      bottom: 52px;
+      transform: translateX(-50%);
+      z-index: 28;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      max-width: calc(100vw - 24px);
+      background: rgba(11, 17, 30, 0.94);
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 12px;
+      padding: 8px 10px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    }
+    #edit-bar.show { display: flex; }
+    #edit-info { font-size: 11.5px; color: #fde68a; text-align: center; line-height: 1.4; max-width: 520px; }
+    #edit-tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+    #edit-tools button {
+      background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px;
+      padding: 7px 10px; font-size: 12px; cursor: pointer;
+    }
+    #edit-tools button:hover { background: #334155; }
+    #edit-tools button.on { background: #92400e; border-color: #fbbf24; color: #fff7ed; }
+    #edit-tools button:disabled { opacity: 0.4; cursor: default; }
+    #edit-tools .sep { width: 1px; background: #334155; margin: 0 2px; }
+    #edit-kind { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 7px 8px; font-size: 12px; }
+
+    #controls-hint {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 11px;
+      color: #cbd5e1;
+      pointer-events: none;
+      z-index: 20;
+      white-space: nowrap;
+    }
+    @media (max-width: 768px) {
+      #controls-hint { display: none; }
+      #ui-panel { width: 300px; }
+      /* En móvil la paleta va a lo ancho, bajo los botones de cámara: no tapa el joystick ni el centro */
+      #edit-bar { top: 112px; bottom: auto; left: 12px; right: 12px; transform: none; max-width: none; padding: 6px; }
+      #edit-tools { flex-wrap: wrap; justify-content: center; width: 100%; }
+      #edit-tools button { padding: 8px 9px; min-height: 44px; }
+      #edit-tools .sep { display: none; }
+      #edit-info { max-width: none; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+  <button id="btn-toggle-ui">☰ Controles</button>
+
+  <div id="world-bar">
+    <span id="world-town-name">🌍</span>
+    <button id="btn-world-save" title="Guardar este diseño en el pueblo del mundo">💾 Guardar y volver</button>
+    <button id="btn-world-cancel" class="plain" title="Volver al mundo sin guardar">✕</button>
+  </div>
+
+  <div id="cam-bar">
+    <button class="cam-pill" id="btn-view-overview">Vista General</button>
+    <button class="cam-pill" id="btn-view-plaza">Plaza Central</button>
+    <button class="cam-pill" id="btn-view-detail">Ver Detalle Fachada</button>
+    <button class="cam-pill" id="btn-view-player">Seguir Personaje</button>
+  </div>
+
+  <div id="ui-panel">
+    <h2>1. Estilo & Terreno (Lineage 2 HD)</h2>
+    <div class="control-row">
+      <label>Estilo Arquitectónico</label>
+      <select id="inp-style">
+        <option value="l2_fantasy" selected>Fantasía Lineage 2 (Talking Island / Dion)</option>
+        <option value="european">Pueblo Medieval Europeo (Gludio)</option>
+        <option value="frontier">Asentamiento Rural de Frontera (Floran)</option>
+        <option value="elven">Pueblo Élfico Sagrado (Elven Village)</option>
+        <option value="dwarven">Aldea Enana de Piedra (Dwarven Village)</option>
+        <option value="fortified">Bastión Fortificado (Oren / Aden)</option>
+        <option value="trade">Ciudad Comercial Fantástica (Giran)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <label>Tipo de Terreno</label>
+      <select id="inp-terrain-type">
+        <option value="valley" selected>Valle Fluvial con Colinas</option>
+        <option value="hills">Colinas y Laderas Suaves</option>
+        <option value="plains">Llanura Abierta</option>
+        <option value="highlands">Meseta Elevada Escarpada</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <label>Intensidad del Relieve: <span id="lbl-relief">45%</span></label>
+      <input type="range" id="inp-relief" min="0" max="100" value="45">
+    </div>
+
+    <h2>2. Urbanismo, Calles y Edificios</h2>
+
+    <div class="control-row">
+      <label>Trazado de Calles y Casas</label>
+      <select id="inp-trazado">
+        <option value="manzanas" selected>Manzanas con parcelas</option>
+        <option value="clasico">Clásico (aleatorio)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <label>Semilla (Seed): <span id="lbl-seed">77420</span></label>
+      <input type="range" id="inp-seed" min="1" max="99999" value="77420">
+    </div>
+
+    <div class="control-row">
+      <label>Tamaño del Pueblo: <span id="lbl-size">3 (Mediano)</span></label>
+      <input type="range" id="inp-size" min="2" max="5" value="3">
+    </div>
+
+    <div class="control-row">
+      <label>Densidad de Viviendas: <span id="lbl-houses">85%</span></label>
+      <input type="range" id="inp-houses" min="30" max="100" value="85">
+    </div>
+
+    <div class="control-row">
+      <label>Edificios Especiales (Gremios/Tiendas): <span id="lbl-special">6</span></label>
+      <input type="range" id="inp-special" min="2" max="10" value="6">
+    </div>
+
+    <div class="control-row">
+      <label>Plantas Máximas: <span id="lbl-floors">3</span></label>
+      <input type="range" id="inp-floors" min="1" max="3" value="3">
+    </div>
+
+    <div class="control-row">
+      <label>Anchura de Calles: <span id="lbl-road-w">7.0m</span></label>
+      <input type="range" id="inp-road-w" min="5" max="10" step="0.5" value="7.0">
+    </div>
+
+    <div class="control-row">
+      <label>Sinuosidad de Calles y Río: <span id="lbl-curve">6.0</span></label>
+      <input type="range" id="inp-curve" min="0" max="14" step="0.5" value="6.0">
+    </div>
+
+    <div class="control-row">
+      <label>Densidad de Vegetación y Rocas: <span id="lbl-trees">80%</span></label>
+      <input type="range" id="inp-trees" min="10" max="100" value="80">
+    </div>
+
+    <div class="checkbox-grid">
+      <label class="checkbox-item"><input type="checkbox" id="chk-walls" checked> Murallas y Torres</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-river" checked> Río y Puente</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-magic" checked> Cristales Mágicos</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-props" checked> Puestos y Carros</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-lamps" checked> Farolas / Antorchas</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-fences" checked> Vallas y Jardines</label>
+    </div>
+
+    <div class="control-row">
+      <label>Salidas hacia el mundo (caminos)</label>
+      <input type="text" id="inp-exits" placeholder="Ángulos en grados, ej: 30, 135, 250" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:6px 8px;font-size:12px">
+      <div id="lbl-exits" style="font-size:11px;color:#fbbf24;margin-top:5px;line-height:1.5">ninguna</div>
+    </div>
+
+    <div class="control-row">
+      <label>Iluminación y Atmósfera</label>
+      <select id="inp-time">
+        <option value="day" selected>Día Soleado Radiante</option>
+        <option value="golden">Atardecer Épico (Dorado)</option>
+        <option value="night">Noche Mágica (Farolas y Cristales)</option>
+      </select>
+    </div>
+
+    <div class="btn-group">
+      <button id="btn-generate">Repetir Semilla</button>
+      <button id="btn-random" class="gold">Nuevo Pueblo Aleatorio</button>
+    </div>
+
+    <h2>3. Personaje (.GLB) & Cámara</h2>
+    <div class="glb-box">
+      <div class="control-row">
+        <label>Archivo en directorio:</label>
+        <input type="text" id="inp-glb-path" value="./personaje.glb">
+      </div>
+      <div class="btn-group">
+        <button id="btn-load-path">Cargar Ruta</button>
+        <label class="file-btn">
+          Archivo .GLB
+          <input type="file" id="inp-glb-file" accept=".glb,.gltf">
+        </label>
+      </div>
+      <div id="glb-status">Buscando ./personaje.glb...</div>
+    </div>
+
+    <div class="control-row">
+      <label>Modo de Cámara</label>
+      <select id="inp-cam-mode">
+        <option value="free" selected>Cámara Orbital Libre (Inspección 3D)</option>
+        <option value="follow">3ª Persona (Seguir al Personaje)</option>
+      </select>
+    </div>
+
+    <h2>4. Editar el Pueblo</h2>
+    <div class="btn-group">
+      <button id="btn-edit-mode" class="gold">✏️ Activar edición</button>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5">
+      Mueve o borra casas y calles internas, o añade casas. Las calles de salida hacia el mundo no se tocan.
+      Las ediciones se guardan con el pueblo al pulsar «Guardar y volver».
+    </div>
+
+    <div class="stats">
+      <div>Viviendas: <b id="st-houses">0</b></div>
+      <div>Especiales: <b id="st-specials">0</b></div>
+      <div>Árboles/Rocas: <b id="st-trees">0</b></div>
+      <div>Colisionadores: <b id="st-cols">0</b></div>
+    </div>
+  </div>
+
+  <div id="edit-bar">
+    <div id="edit-info">Activa la edición para mover, borrar o añadir casas y calles.</div>
+    <div id="edit-tools"></div>
+  </div>
+
+  <div id="joystick-zone" title="Joystick táctil para mover al personaje">
+    <div id="joystick-knob"></div>
+  </div>
+
+  <div id="controls-hint">
+    <b>WASD / Flechas / Joystick:</b> Mover Personaje &nbsp;|&nbsp; <b>Shift:</b> Correr &nbsp;|&nbsp; <b>Ratón / Táctil:</b> Rotar, Zoom y Desplazar
+  </div>
+
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <script type="module" src="js/three-puente.js"></script>
+  <script type="module" src="js/arboles.js"></script>
+  <script type="module" src="js/pueblo-edits.js"></script>
+  <script type="module" src="js/village-core.js"></script>
+  <script type="module" src="js/character.js"></script>
+  <script type="module">
+    "use strict";
+
+    if (window.innerWidth < 768) {
+      document.getElementById('ui-panel').classList.add('collapsed');
+    }
+
+    // --- MOTOR DE PUEBLOS (js/village-core.js) ---
+    const ARCHITECTURAL_STYLES = VillageLib.ARCHITECTURAL_STYLES;
+    const PRNG = VillageLib.PRNG;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#7dd3fc');
+    scene.fog = new THREE.FogExp2('#7dd3fc', 0.0032);
+
+    const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.4, 650);
+    camera.position.set(0, 75, 125);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.minDistance = 2.0;
+    controls.maxDistance = 280;
+    controls.target.set(0, 4, 0);
+
+    const hemiLight = new THREE.HemisphereLight('#e0f2fe', '#3a5a40', 0.75);
+    scene.add(hemiLight);
+
+    const sunLight = new THREE.DirectionalLight('#fffbeb', 1.45);
+    sunLight.position.set(90, 120, 75);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 10;
+    sunLight.shadow.camera.far = 340;
+    const dShadow = 115;
+    sunLight.shadow.camera.left = -dShadow;
+    sunLight.shadow.camera.right = dShadow;
+    sunLight.shadow.camera.top = dShadow;
+    sunLight.shadow.camera.bottom = -dShadow;
+    sunLight.shadow.bias = -0.0003;
+    scene.add(sunLight);
+
+    // Materiales Base con Relieve (Bump Mapping)
+    // --- 7. CONTROLADOR DE PERSONAJE (.GLB) + JOYSTICK ANDROID ---
+    const CharacterController = CharacterLib.CharacterController;
+    const clampCameraToWorld = CharacterLib.clampCameraToWorld;
+
+    // --- 8. ATMÓSFERA E ILUMINACIÓN ---
+    function applyAtmosphere(preset) {
+      currentPreset = preset;
+      Object.values(kits).forEach(k => k.applyAtmosphere(preset));
+      if (preset === 'day') {
+        scene.background = new THREE.Color('#7dd3fc');
+        scene.fog = new THREE.FogExp2('#7dd3fc', 0.0032);
+        hemiLight.color.set('#ffffff'); hemiLight.groundColor.set('#3a5a40'); hemiLight.intensity = 0.75;
+        sunLight.color.set('#fffbeb'); sunLight.intensity = 1.45; sunLight.position.set(90, 125, 75);
+      } else if (preset === 'golden') {
+        scene.background = new THREE.Color('#1e1b4b');
+        scene.fog = new THREE.FogExp2('#1e1b4b', 0.0045);
+        hemiLight.color.set('#fb923c'); hemiLight.groundColor.set('#0f172a'); hemiLight.intensity = 0.48;
+        sunLight.color.set('#f97316'); sunLight.intensity = 1.15; sunLight.position.set(110, 38, 50);
+      } else if (preset === 'night') {
+        scene.background = new THREE.Color('#030712');
+        scene.fog = new THREE.FogExp2('#030712', 0.0055);
+        hemiLight.color.set('#38bdf8'); hemiLight.groundColor.set('#020617'); hemiLight.intensity = 0.2;
+        sunLight.color.set('#60a5fa'); sunLight.intensity = 0.28; sunLight.position.set(-60, 85, -50);
+      }
+    }
+
+    // --- 9. VINCULACIÓN DE CONTROLES Y BUCLE DE RENDERIZADO ---
+    const kits = {};
+    let currentPreset = 'day';
+    function kitFor(styleKey) {
+      const key = ARCHITECTURAL_STYLES[styleKey] ? styleKey : 'l2_fantasy';
+      if (!kits[key]) {
+        kits[key] = VillageLib.createKit(key);
+        kits[key].applyAtmosphere(currentPreset);
+      }
+      return kits[key];
+    }
+    let villageKit = kitFor('l2_fantasy');
+    let world = villageKit.createVillage(scene);
+    const player = new CharacterController({
+      scene, camera, controls, world,
+      joystick: { zone: document.getElementById('joystick-zone'), knob: document.getElementById('joystick-knob') },
+      status: document.getElementById('glb-status'),
+      glbUrl: './personaje.glb'
+    });
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.1);
+      const elapsed = clock.getElapsedTime();
+
+      world.update(elapsed);
+
+      player.update(dt, elapsed);
+      controls.update();
+      clampCameraToWorld(camera, controls.target, world);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    function readCfgFromUI() {
+      return {
+        style: document.getElementById('inp-style').value,
+        terrainType: document.getElementById('inp-terrain-type').value,
+        trazado: document.getElementById('inp-trazado').value,
+        relief: parseInt(document.getElementById('inp-relief').value, 10),
+        seed: parseInt(document.getElementById('inp-seed').value, 10),
+        size: parseInt(document.getElementById('inp-size').value, 10),
+        houseDensity: parseInt(document.getElementById('inp-houses').value, 10),
+        specialCount: parseInt(document.getElementById('inp-special').value, 10),
+        maxFloors: parseInt(document.getElementById('inp-floors').value, 10),
+        roadWidth: parseFloat(document.getElementById('inp-road-w').value),
+        curve: parseFloat(document.getElementById('inp-curve').value),
+        treeDensity: parseInt(document.getElementById('inp-trees').value, 10),
+        hasWalls: document.getElementById('chk-walls').checked,
+        hasRiver: document.getElementById('chk-river').checked,
+        hasMagic: document.getElementById('chk-magic').checked,
+        hasProps: document.getElementById('chk-props').checked,
+        hasLamps: document.getElementById('chk-lamps').checked,
+        hasFences: document.getElementById('chk-fences').checked,
+        time: document.getElementById('inp-time').value,
+        rotation: currentRotation,
+        exits: currentExits.map(e => Object.assign({}, e)),
+        edits: { base: edits.base, ops: edits.ops.map(o => Object.assign({}, o)) }
+      };
+    }
+
+    // Salidas actuales (vienen del Creador de Mundos o se escriben a mano para probar)
+    let currentExits = [];
+    let currentRotation = 0;
+
+    // Ediciones del pueblo (js/pueblo-edits.js): operaciones y las que se han deshecho
+    let edits = { base: null, ops: [] };
+    let redoOps = [];
+    const GATE_NAMES = { E: 'puerta E', S: 'puerta S', W: 'puerta O', N: 'puerta N' };
+
+    function parseExitsInput(text) {
+      return text.split(/[,;\s]+/).map(v => parseFloat(v)).filter(v => isFinite(v))
+        .slice(0, 8).map(v => ({ angle: Math.round((((v % 360) + 360) % 360) * 10) / 10, gate: null, to: 'Salida ' + Math.round(v) + '°' }));
+    }
+
+    function updateExitsLabel() {
+      const lbl = document.getElementById('lbl-exits');
+      if (!currentExits.length) { lbl.textContent = 'ninguna'; return; }
+      const paths = (typeof world !== 'undefined' && world.exitPaths) || [];
+      lbl.textContent = currentExits.map((e, i) => {
+        const g = e.gate || (paths[i] && paths[i].gate);
+        return '➜ ' + e.to + (g ? ' (' + GATE_NAMES[g] + (e.gate ? '' : ', salida extra') + ')' : '');
+      }).join(' · ');
+    }
+
+    // --- 10. INTEGRACIÓN CON EL CREADOR DE MUNDOS (index.html) ---
+    function applyCfgToUI(cfg) {
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+      const setChk = (id, v) => { const el = document.getElementById(id); if (el && typeof v === 'boolean') el.checked = v; };
+      setVal('inp-style', cfg.style);
+      setVal('inp-terrain-type', cfg.terrainType);
+      setVal('inp-relief', cfg.relief);
+      setVal('inp-seed', cfg.seed);
+      setVal('inp-size', cfg.size);
+      setVal('inp-houses', cfg.houseDensity);
+      setVal('inp-special', cfg.specialCount);
+      setVal('inp-floors', cfg.maxFloors);
+      setVal('inp-road-w', cfg.roadWidth);
+      setVal('inp-curve', cfg.curve);
+      setVal('inp-trazado', cfg.trazado || 'clasico');
+      setVal('inp-trees', cfg.treeDensity);
+      setVal('inp-time', cfg.time);
+      setChk('chk-walls', cfg.hasWalls);
+      setChk('chk-river', cfg.hasRiver);
+      setChk('chk-magic', cfg.hasMagic);
+      setChk('chk-props', cfg.hasProps);
+      setChk('chk-lamps', cfg.hasLamps);
+      setChk('chk-fences', cfg.hasFences);
+      currentExits = Array.isArray(cfg.exits) ? cfg.exits.map(e => Object.assign({}, e)) : [];
+      currentRotation = cfg.rotation || 0;
+      edits = cfg.edits && Array.isArray(cfg.edits.ops)
+        ? { base: cfg.edits.base || null, ops: cfg.edits.ops.map(o => Object.assign({}, o)) }
+        : { base: null, ops: [] };
+      redoOps = [];
+      document.getElementById('inp-exits').value = currentExits.map(e => e.angle).join(', ');
+      updateExitsLabel();
+    }
+
+    const worldLink = (function () {
+      const m = location.hash.match(/mundo=([^&]+)/);
+      if (!m) return null;
+      try { return JSON.parse(decodeURIComponent(m[1])); } catch (e) { console.warn('Enlace de mundo no válido', e); return null; }
+    })();
+
+    if (worldLink && worldLink.cfg) {
+      applyCfgToUI(worldLink.cfg);
+      document.getElementById('world-bar').classList.add('show');
+      document.getElementById('world-town-name').textContent = '🌍 ' + (worldLink.name || 'Pueblo');
+      document.title = (worldLink.name || 'Pueblo') + ' · Creador de Pueblos';
+      // Las salidas las deciden los caminos del mundo
+      const exIn = document.getElementById('inp-exits');
+      exIn.disabled = true;
+      exIn.title = 'Las salidas vienen de los caminos del Creador de Mundos';
+      exIn.style.opacity = '0.6';
+    }
+
+    document.getElementById('inp-exits').addEventListener('change', e => {
+      currentExits = parseExitsInput(e.target.value);
+      e.target.value = currentExits.map(x => x.angle).join(', ');
+      updateExitsLabel();
+      rebuildFromUI();
+    });
+
+    document.getElementById('btn-world-save').addEventListener('click', () => {
+      if (!worldLink) return;
+      try {
+        localStorage.setItem('rpgMundo.retornoPueblo', JSON.stringify({
+          sessionId: worldLink.sessionId, townId: worldLink.townId, cfg: readCfgFromUI()
+        }));
+      } catch (e) {
+        alert('No se pudo guardar en el navegador: ' + e.message);
+        return;
+      }
+      location.href = 'index.html';
+    });
+    document.getElementById('btn-world-cancel').addEventListener('click', () => { location.href = 'index.html'; });
+
+    function rebuildFromUI() {
+      try {
+        const sizeLabels = { 2: '2 (Aldea)', 3: '3 (Mediano)', 4: '4 (Grande)', 5: '5 (Ciudadela)' };
+
+        const cfg = readCfgFromUI();
+
+        document.getElementById('lbl-relief').textContent = cfg.relief + '%';
+        document.getElementById('lbl-seed').textContent = cfg.seed;
+        document.getElementById('lbl-size').textContent = sizeLabels[cfg.size] || cfg.size;
+        document.getElementById('lbl-houses').textContent = cfg.houseDensity + '%';
+        document.getElementById('lbl-special').textContent = cfg.specialCount;
+        document.getElementById('lbl-floors').textContent = cfg.maxFloors;
+        document.getElementById('lbl-road-w').textContent = cfg.roadWidth.toFixed(1) + 'm';
+        document.getElementById('lbl-curve').textContent = cfg.curve.toFixed(1);
+        document.getElementById('lbl-trees').textContent = cfg.treeDensity + '%';
+
+        applyAtmosphere(cfg.time);
+        const kit = kitFor(cfg.style);
+        if (kit !== villageKit) {
+          world.destroy();
+          villageKit = kit;
+          world = kit.createVillage(scene);
+          player.world = world;
+        }
+        world.generate(cfg);
+        updateExitsLabel();
+        if (editMode) updateEditInfo();
+
+        player.root.position.y = world.getWalkableHeight(player.root.position.x, player.root.position.z);
+      } catch (err) {
+        console.error("Error durante la generación del pueblo:", err);
+      }
+    }
+
+    document.getElementById('inp-style').addEventListener('change', (e) => {
+      const st = ARCHITECTURAL_STYLES[e.target.value];
+      if (st) document.getElementById('chk-walls').checked = st.defaultWalls;
+      rebuildFromUI();
+    });
+
+    document.querySelectorAll('#ui-panel input[type="range"], #ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time').forEach(el => {
+      el.addEventListener('input', rebuildFromUI);
+    });
+
+    document.getElementById('btn-toggle-ui').addEventListener('click', () => {
+      document.getElementById('ui-panel').classList.toggle('collapsed');
+    });
+
+    document.getElementById('btn-view-overview').addEventListener('click', () => {
+      player.cameraMode = 'free';
+      document.getElementById('inp-cam-mode').value = 'free';
+      camera.position.set(0, 85, 135);
+      controls.target.set(0, 4, 0);
+    });
+
+    document.getElementById('btn-view-plaza').addEventListener('click', () => {
+      player.cameraMode = 'free';
+      document.getElementById('inp-cam-mode').value = 'free';
+      const py = world.getTerrainHeight(0, 0);
+      camera.position.set(0, py + 16, 28);
+      controls.target.set(0, py + 3, 0);
+    });
+
+    // Nuevo botón para acercar la cámara a una fachada y apreciar las puertas, ventanas y sillares HD
+    document.getElementById('btn-view-detail').addEventListener('click', () => {
+      player.cameraMode = 'free';
+      document.getElementById('inp-cam-mode').value = 'free';
+      const hp = world.sampleHousePos;
+      camera.position.set(hp.x + 8.5, hp.y + 3.5, hp.z + 6.5);
+      controls.target.set(hp.x, hp.y + 2.8, hp.z);
+    });
+
+    document.getElementById('btn-view-player').addEventListener('click', () => {
+      player.cameraMode = 'follow';
+      document.getElementById('inp-cam-mode').value = 'follow';
+      camera.position.set(player.root.position.x, player.root.position.y + 6, player.root.position.z + 12);
+    });
+
+    document.getElementById('inp-cam-mode').addEventListener('change', (e) => {
+      player.cameraMode = e.target.value;
+      if (player.cameraMode === 'follow') {
+        camera.position.set(player.root.position.x, player.root.position.y + 6, player.root.position.z + 12);
+      }
+    });
+
+    document.getElementById('btn-load-path').addEventListener('click', () => {
+      const path = document.getElementById('inp-glb-path').value.trim();
+      if (path) player.loadGLB(path, path);
+    });
+
+    document.getElementById('inp-glb-file').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) player.loadGLB(URL.createObjectURL(file), file.name);
+    });
+
+    document.getElementById('btn-generate').addEventListener('click', rebuildFromUI);
+    document.getElementById('btn-random').addEventListener('click', () => {
+      document.getElementById('inp-seed').value = Math.floor(Math.random() * 99999) + 1;
+      rebuildFromUI();
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- 12. EDICIÓN DEL PUEBLO: paleta de herramientas ---
+    // Para añadir una herramienta nueva: una entrada en EDIT_TOOLS y su caso en performTap (o onCanvasDown si arrastra).
+    const EDIT_TOOLS = [
+      { id: 'select', icon: '👆', label: 'Ver', key: '1', hint: 'Toca una casa, farola, muro o calle para ver qué es.' },
+      { id: 'move', icon: '✥', label: 'Mover', key: '2', hint: 'Arrastra una casa o una calle; arrastra un punto de una calle dibujada.' },
+      { id: 'delete', icon: '🗑', label: 'Borrar', key: '3', hint: 'Toca una casa, farola, tramo de muro, punto o calle para quitarla.' },
+      { id: 'add', icon: '＋', label: 'Casa', key: '4', hint: 'Toca el suelo para poner una casa nueva, si cabe.' },
+      { id: 'draw', icon: '✏️', label: 'Calle', key: '5', hint: 'Toca puntos en el suelo para trazar una calle. «Terminar calle» la cierra.' },
+      { id: 'node', icon: '◉', label: 'Punto', key: '6', hint: 'Toca una calle dibujada para añadirle un punto; luego arrástralo con Mover.' },
+      { id: 'lamp', icon: '🕯', label: 'Farola', key: '7', hint: 'Toca el suelo para poner una farola.' },
+      { id: 'wall', icon: '🧱', label: 'Muro', key: '8', hint: 'Toca un tramo de muralla para quitarlo.' },
+      { id: 'gate', icon: '🚪', label: 'Puerta', key: '9', hint: 'Toca un tramo de muralla para abrirlo como puerta con arco.' },
+      { id: 'tree', icon: '🌳', label: 'Árbol', key: '0', hint: 'Toca el suelo para poner un árbol de la especie elegida, si cabe.' },
+      { id: 'fence', icon: '🪵', label: 'Valla', key: 'v', hint: 'Toca un punto y luego otro para trazar una valla.' },
+      { id: 'rock', icon: '🪨', label: 'Roca', key: '-', hint: 'Toca el suelo para poner una roca, si cabe.' },
+      { id: 'hedge', icon: '🌿', label: 'Seto', key: 'h', hint: 'Toca el suelo para poner un seto, si cabe.' }
+    ];
+    const TAP_MOVE_PX = 8;          // movimiento máximo para considerar un toque (no un giro)
+    let editMode = false;
+    let editTool = 'select';
+    let drag = null;
+    let pendingTap = null;
+    let lastPreview = 0;
+    let draft = null;               // puntos de la calle que se está trazando
+    let draftLine = null;
+    let selectedStreetId = null;
+    const pickRay = new THREE.Raycaster();
+    const editBar = document.getElementById('edit-bar');
+    const editInfo = document.getElementById('edit-info');
+    const editToolsEl = document.getElementById('edit-tools');
+    const editKind = document.createElement('select');
+    editKind.id = 'edit-kind';
+    editKind.title = 'Tipo de calle que se dibuja (o de la calle seleccionada)';
+    Object.keys(PuebloEdits.STREET_KINDS).forEach(k => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = PuebloEdits.STREET_KINDS[k];
+      editKind.appendChild(o);
+    });
+    editKind.style.display = 'none';
+    const editSpecies = document.createElement('select');
+    editSpecies.id = 'edit-species';
+    editSpecies.title = 'Especie del árbol que se pone';
+    Object.keys(PuebloEdits.TREE_SPECIES).forEach(k => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = PuebloEdits.TREE_SPECIES[k];
+      editSpecies.appendChild(o);
+    });
+    editSpecies.style.display = 'none';
+
+    function currentBase() { return PuebloEdits.baseKey(readCfgFromUI()); }
+    // Operaciones que se aplican ahora (vacías si son de otra base)
+    function opsNow() { return edits.base === currentBase() ? edits.ops : []; }
+
+    // Si cambió la base del pueblo, las ediciones anteriores no se aplican: al editar se empieza de nuevo
+    function ensureEditBase() {
+      const b = currentBase();
+      if (edits.base !== b) {
+        if (edits.ops.length) say('Ediciones anteriores descartadas: cambió la base del pueblo (semilla, tamaño...).');
+        edits = { base: b, ops: [] };
+        redoOps = [];
+      }
+    }
+
+    function say(msg) { editInfo.textContent = msg; }
+
+    function updateEditInfo() {
+      const n = opsNow().length;
+      const tool = EDIT_TOOLS.find(t => t.id === editTool);
+      const other = edits.ops.length && edits.base !== currentBase();
+      if (!draft) say(other
+        ? 'Hay ediciones guardadas de otra base (semilla o tamaño distintos): no se aplican aquí.'
+        : (tool ? tool.hint : '') + '  Ediciones: ' + n + '.');
+      editToolsEl.querySelectorAll('button[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === editTool));
+      const q = id => document.getElementById(id);
+      if (q('btn-edit-undo')) q('btn-edit-undo').disabled = !opsNow().length;
+      if (q('btn-edit-redo')) q('btn-edit-redo').disabled = !redoOps.length;
+      if (q('btn-edit-discard')) q('btn-edit-discard').style.display = other ? '' : 'none';
+      if (q('btn-edit-finish')) q('btn-edit-finish').style.display = draft && draft.length >= 2 ? '' : 'none';
+      if (q('btn-edit-cancel')) q('btn-edit-cancel').style.display = draft ? '' : 'none';
+      editKind.style.display = editTool === 'draw' ? '' : 'none';
+      editSpecies.style.display = editTool === 'tree' ? '' : 'none';
+    }
+
+    // Regenera el pueblo con las ediciones (o con ops de vista previa mientras se arrastra)
+    function regenerateEdited(ops) {
+      try {
+        const cfg = readCfgFromUI();
+        cfg.edits = { base: currentBase(), ops: ops || opsNow() };
+        world.generate(cfg);
+        updateExitsLabel();
+        player.root.position.y = world.getWalkableHeight(player.root.position.x, player.root.position.z);
+      } catch (err) {
+        console.error('Error al aplicar la edición:', err);
+      }
+    }
+
+    function commitOp(op) {
+      ensureEditBase();
+      edits.ops.push(op);
+      redoOps = [];
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function undoEdit() {
+      if (!opsNow().length) return;
+      redoOps.push(edits.ops.pop());
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function redoEdit() {
+      if (!redoOps.length) return;
+      ensureEditBase();
+      edits.ops.push(redoOps.pop());
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    // Descarta las ediciones de otra base (las que no se aplican ahora)
+    function discardStaleEdits() {
+      if (!edits.ops.length || edits.base === currentBase()) return;
+      if (!confirm('¿Descartar las ediciones guardadas para otra base? Se perderán.')) return;
+      edits = { base: null, ops: [] };
+      redoOps = [];
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function resetEdits() {
+      if (!opsNow().length) return;
+      if (!confirm('¿Quitar todas las ediciones de este pueblo?')) return;
+      edits.ops = [];
+      redoOps = [];
+      regenerateEdited();
+      updateEditInfo();
+    }
+
+    function setEditTool(id) {
+      if (draft && id !== editTool) { clearDraft(); say('Trazo cancelado al cambiar de herramienta.'); }
+      editTool = id;
+      updateEditInfo();
+    }
+
+    // Construye los botones de la paleta a partir de EDIT_TOOLS
+    EDIT_TOOLS.forEach(t => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.tool = t.id;
+      b.title = t.hint + ' (tecla ' + t.key + ')';
+      b.textContent = t.icon + ' ' + t.label;
+      b.addEventListener('click', () => setEditTool(t.id));
+      editToolsEl.appendChild(b);
+    });
+    editToolsEl.appendChild(editKind);
+    editToolsEl.appendChild(editSpecies);
+    [['btn-edit-finish', '✔ Terminar calle', () => finishDraft()],
+     ['btn-edit-cancel', '✕ Cancelar calle', () => { clearDraft(); say('Calle cancelada.'); updateEditInfo(); }],
+     ['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits],
+     ['btn-edit-discard', 'Descartar ediciones de otra base', discardStaleEdits], ['btn-edit-exit', '✕ Salir', () => setEditMode(false)]]
+      .forEach(([id, label, fn], i) => {
+        if (i === 2) { const sep = document.createElement('span'); sep.className = 'sep'; editToolsEl.appendChild(sep); }
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.id = id;
+        if (id === 'btn-edit-discard' || id === 'btn-edit-finish' || id === 'btn-edit-cancel') b.style.display = 'none';
+        b.textContent = label;
+        b.addEventListener('click', fn);
+        editToolsEl.appendChild(b);
+      });
+    editKind.addEventListener('change', () => {
+      // Con una calle dibujada seleccionada, cambiar el tipo lo cambia en esa calle
+      const s = selectedStreetId && world.editables.streets.find(x => x.id === selectedStreetId && x.user);
+      if (s && s.kind !== editKind.value) commitOp({ op: 'cambiar-tipo-calle', id: selectedStreetId, kind: editKind.value });
+    });
+
+    function setEditMode(on) {
+      editMode = on;
+      editBar.classList.toggle('show', on);
+      // En móvil el panel tapa la paleta: al editar se pliega
+      if (on && window.innerWidth < 768) document.getElementById('ui-panel').classList.add('collapsed');
+      document.getElementById('btn-edit-mode').textContent = on ? '✅ Terminar edición' : '✏️ Activar edición';
+      if (!on) { cancelDrag(); clearDraft(); }
+      updateEditInfo();
+    }
+    document.getElementById('btn-edit-mode').addEventListener('click', () => setEditMode(!editMode));
+
+    // Punto del suelo bajo el puntero (x, z en metros, igual que el pueblo)
+    function groundPoint(e) {
+      if (!world.terrainMesh) return null;
+      const r = renderer.domElement.getBoundingClientRect();
+      pickRay.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+      const hit = pickRay.intersectObject(world.terrainMesh, false)[0];
+      return hit ? { x: hit.point.x, z: hit.point.z } : null;
+    }
+
+    // Desplazamiento que tiene ahora una calle (solo lo usan las calles de fábrica y las dibujadas)
+    function offsetOf(id) {
+      return PuebloEdits.indexOps(opsNow()).movedStreets.get(id) || { dx: 0, dz: 0 };
+    }
+
+    function wallAt(p) { return PuebloEdits.pickNearest(world.editables.walls, p.x, p.z, 6); }
+
+    // Lo que hay bajo el punto. Prioridad: casa, farola, árbol, valla, muro, punto de calle dibujada, calle.
+    // Los objetos pequeños van antes que los muros, para no quitar un tramo de muralla por error.
+    function itemAt(p) {
+      const h = PuebloEdits.pickHouse(world.editables.houses, p.x, p.z, 4.5);
+      if (h) return { kind: 'casa', id: h.id, x: h.x, z: h.z };
+      const f = PuebloEdits.pickNearest(world.editables.lamps, p.x, p.z, 2.5);
+      if (f) return { kind: 'farola', id: f.id, x: f.x, z: f.z };
+      const tr = PuebloEdits.pickNearest(world.editables.trees, p.x, p.z, 2.5);
+      if (tr) return { kind: 'arbol', id: tr.id, x: tr.x, z: tr.z };
+      const fe = PuebloEdits.pickNearest(world.editables.fences, p.x, p.z, 2.5);
+      if (fe) return { kind: 'valla', id: fe.id, x: fe.x, z: fe.z };
+      const ro = PuebloEdits.pickNearest(world.editables.rocks, p.x, p.z, 2.5);
+      if (ro) return { kind: 'roca', id: ro.id, x: ro.x, z: ro.z };
+      const se = PuebloEdits.pickNearest(world.editables.hedges, p.x, p.z, 2.5);
+      if (se) return { kind: 'seto', id: se.id, x: se.x, z: se.z };
+      const w = wallAt(p);
+      if (w) return { kind: 'muro', id: w.id, x: w.x, z: w.z };
+      for (const s of world.editables.streets) {
+        if (!s.user) continue;
+        const i = PuebloEdits.pickNode(s.ctrl, p.x, p.z, 2.5);
+        if (i >= 0) return { kind: 'nodo', id: s.id, i: i, count: s.ctrl.length, x: s.ctrl[i].x, z: s.ctrl[i].z, street: s };
+      }
+      const st = PuebloEdits.pickStreet(world.editables.streets, p.x, p.z, 1.0);
+      if (st) return { kind: 'calle', id: st.id, user: !!st.user, street: st };
+      return null;
+    }
+
+    function describe(item) {
+      if (item.kind === 'casa') return PuebloEdits.houseLabel(item.id) + ' (' + item.x.toFixed(0) + ', ' + item.z.toFixed(0) + ')';
+      if (item.kind === 'farola') return 'Farola';
+      if (item.kind === 'arbol') return 'Árbol';
+      if (item.kind === 'valla') return 'Tramo de valla';
+      if (item.kind === 'roca') return 'Roca';
+      if (item.kind === 'seto') return 'Seto';
+      if (item.kind === 'muro') return 'Tramo de muralla ' + (item.id + 1);
+      if (item.kind === 'nodo') return 'Punto ' + (item.i + 1) + ' de ' + PuebloEdits.streetLabel(item.id);
+      return PuebloEdits.streetLabel(item.id);
+    }
+
+    function cancelDrag() {
+      if (!drag) return;
+      drag = null;
+      controls.enabled = true;
+      regenerateEdited();
+    }
+
+    // Operación que deja el elemento arrastrado en la posición del puntero (coordenadas del pueblo)
+    function dragOp(d, p) {
+      if (d.kind === 'casa') return { op: 'mover-casa', id: d.id, x: p.x + d.offX, z: p.z + d.offZ };
+      if (d.kind === 'nodo') return { op: 'mover-nodo-calle', id: d.id, i: d.i, x: p.x - d.offDx, z: p.z - d.offDz };
+      return { op: 'mover-calle', id: d.id, dx: d.baseDx + (p.x - d.start.x), dz: d.baseDz + (p.z - d.start.z) };
+    }
+
+    // --- Calles dibujadas ---
+    function updateDraftLine() {
+      if (draftLine) { scene.remove(draftLine); draftLine.geometry.dispose(); draftLine = null; }
+      if (!draft || draft.length < 2) return;
+      const pts = draft.map(q => new THREE.Vector3(q.x, world.getTerrainHeight(q.x, q.z) + 1.2, q.z));
+      draftLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#fbbf24' }));
+      scene.add(draftLine);
+    }
+
+    function clearDraft() { draft = null; updateDraftLine(); }
+
+    function addDraftPoint(p) {
+      if (!draft) draft = [];
+      const last = draft[draft.length - 1];
+      if (last && Math.hypot(last.x - p.x, last.z - p.z) < 1.5) return;   // evita puntos casi iguales
+      draft.push({ x: p.x, z: p.z });
+      updateDraftLine();
+      say('Calle: ' + draft.length + ' puntos. «Terminar calle» la cierra; Esc la cancela.');
+      updateEditInfo();
+    }
+
+    function finishDraft() {
+      if (!draft || draft.length < 2) return;
+      ensureEditBase();
+      const id = PuebloEdits.nextId(edits.ops, 'añadir-calle', 'u');
+      const pts = draft;
+      clearDraft();
+      commitOp({ op: 'añadir-calle', id: id, kind: editKind.value, pts: pts });
+      say('Calle dibujada. Ediciones: ' + opsNow().length + '.');
+    }
+
+    // Añade un punto a la calle dibujada más cercana al toque (si está a menos de 3 m)
+    function insertNode(p) {
+      let best = null;
+      world.editables.streets.forEach(s => {
+        if (!s.user) return;
+        const near = PuebloEdits.nearestOnPolyline(s.ctrl, p.x, p.z);
+        if (near && near.d <= 3 && (!best || near.d < best.near.d)) best = { s: s, near: near };
+      });
+      if (!best) { say('Toca una calle dibujada para añadirle un punto.'); return; }
+      ensureEditBase();
+      const off = offsetOf(best.s.id);
+      commitOp({ op: 'añadir-nodo-calle', id: best.s.id, i: best.near.seg + 1, x: best.near.x - off.dx, z: best.near.z - off.dz });
+      selectedStreetId = best.s.id;
+      say('Punto añadido. Arrástralo con Mover.');
+    }
+
+    // Acción de un toque (cuando no ha habido giro)
+    function performTap(t) {
+      const p = t.p, item = t.item;
+      if (t.tool === 'select') {
+        if (!item) return;
+        selectedStreetId = (item.kind === 'calle' && item.user) || item.kind === 'nodo' ? item.id : null;
+        if (selectedStreetId && item.street) editKind.value = item.street.kind || 'calle';
+        say('Seleccionado: ' + describe(item) + '. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'delete') {
+        if (!item) return;
+        let op;
+        if (item.kind === 'casa') op = { op: 'quitar-casa', id: item.id };
+        else if (item.kind === 'farola') op = { op: 'quitar-farola', id: item.id };
+        else if (item.kind === 'muro') op = { op: 'quitar-muro', id: item.id };
+        else if (item.kind === 'arbol') op = { op: 'quitar-arbol', id: item.id };
+        else if (item.kind === 'valla') op = { op: 'quitar-valla', id: item.id };
+        else if (item.kind === 'roca') op = { op: 'quitar-roca', id: item.id };
+        else if (item.kind === 'seto') op = { op: 'quitar-seto', id: item.id };
+        else if (item.kind === 'nodo') {
+          if (item.count <= 2) { say('Una calle dibujada necesita al menos dos puntos: tócala en medio para quitarla entera.'); return; }
+          op = { op: 'quitar-nodo-calle', id: item.id, i: item.i };
+        } else op = { op: 'quitar-calle', id: item.id };
+        commitOp(op);
+        say('Quitado: ' + describe(item) + '.');
+        return;
+      }
+      if (t.tool === 'add') {
+        ensureEditBase();
+        if (!world.placementOk(p.x, p.z)) { say('No cabe una casa aquí: demasiado cerca de otra casa, de un edificio o de la muralla.'); return; }
+        commitOp({ op: 'añadir-casa', id: PuebloEdits.nextAddedId(edits.ops), x: p.x, z: p.z });
+        return;
+      }
+      if (t.tool === 'draw') { addDraftPoint(p); return; }
+      if (t.tool === 'rock') {
+        ensureEditBase();
+        if (!world.treeOk(p.x, p.z)) { say('No cabe una roca aquí: demasiado cerca de algo o en una calle.'); return; }
+        commitOp({ op: 'añadir-roca', id: PuebloEdits.nextId(edits.ops, 'añadir-roca', 'p'), x: p.x, z: p.z, escala: 1 });
+        say('Roca puesta. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'hedge') {
+        ensureEditBase();
+        if (!world.treeOk(p.x, p.z)) { say('No cabe un seto aquí: demasiado cerca de algo o en una calle.'); return; }
+        commitOp({ op: 'añadir-seto', id: PuebloEdits.nextId(edits.ops, 'añadir-seto', 's'), x: p.x, z: p.z, rot: 0 });
+        say('Seto puesto. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'tree') {
+        ensureEditBase();
+        if (!world.treeOk(p.x, p.z)) { say('No cabe un árbol aquí: demasiado cerca de algo o en una calle.'); return; }
+        commitOp({ op: 'añadir-arbol', id: PuebloEdits.nextId(edits.ops, 'añadir-arbol', 'a'), x: p.x, z: p.z, especie: editSpecies.value });
+        say('Árbol puesto. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'fence') {
+        // Primer toque: inicio de la valla. Segundo toque: fin (a más de 1 m del inicio)
+        if (!draft || draft.length === 0) {
+          draft = [{ x: p.x, z: p.z }];
+          say('Valla: toca el otro extremo. Esc la cancela.');
+          updateEditInfo();
+          return;
+        }
+        const a = draft[0];
+        clearDraft();
+        if (Math.hypot(p.x - a.x, p.z - a.z) < 1) { say('La valla es demasiado corta.'); updateEditInfo(); return; }
+        ensureEditBase();
+        commitOp({ op: 'añadir-valla', id: PuebloEdits.nextId(edits.ops, 'añadir-valla', 'c'), x1: a.x, z1: a.z, x2: p.x, z2: p.z });
+        say('Valla puesta. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'node') { insertNode(p); return; }
+      if (t.tool === 'lamp') {
+        ensureEditBase();
+        commitOp({ op: 'añadir-farola', id: PuebloEdits.nextId(edits.ops, 'añadir-farola', 'g'), x: p.x, z: p.z });
+        say('Farola puesta. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'wall' || t.tool === 'gate') {
+        const w = wallAt(p);
+        if (!w) { say('Toca un tramo de muralla.'); return; }
+        ensureEditBase();
+        commitOp({ op: t.tool === 'wall' ? 'quitar-muro' : 'puerta-muro', id: w.id });
+        say((t.tool === 'wall' ? 'Tramo quitado: ' : 'Puerta en el tramo ') + (w.id + 1) + '. Ediciones: ' + opsNow().length + '.');
+      }
+    }
+
+    // Mantener pulsado y arrastrar: casas, calles y puntos. El resto actúa al tocar.
+    function onCanvasDown(e) {
+      if (!editMode || e.button > 0 || e.target !== canvasEl) return;
+      const p = groundPoint(e);
+      if (!p) return;
+      const item = itemAt(p);
+      if (editTool === 'move' && item && (item.kind === 'casa' || item.kind === 'calle' || item.kind === 'nodo')) {
+        e.stopPropagation();
+        ensureEditBase();
+        if (item.kind === 'nodo') {
+          const off = offsetOf(item.id);
+          drag = { kind: 'nodo', id: item.id, i: item.i, start: p, offDx: off.dx, offDz: off.dz, op: null, moved: false };
+          selectedStreetId = item.id;
+        } else if (item.kind === 'casa') {
+          drag = { kind: 'casa', id: item.id, start: p, offX: item.x - p.x, offZ: item.z - p.z, op: null, moved: false };
+        } else {
+          const cur = offsetOf(item.id);
+          drag = { kind: 'calle', id: item.id, start: p, baseDx: cur.dx, baseDz: cur.dz, op: null, moved: false };
+        }
+        controls.enabled = false;
+        say('Moviendo ' + describe(item) + '…');
+        return;
+      }
+      // Lo demás es un toque: se decide al soltar, así la cámara sigue girando si se arrastra
+      pendingTap = { tool: editTool, p: p, item: item, x: e.clientX, y: e.clientY };
+    }
+
+    function onCanvasMove(e) {
+      if (pendingTap && Math.hypot(e.clientX - pendingTap.x, e.clientY - pendingTap.y) > TAP_MOVE_PX) pendingTap = null;
+      if (!drag) return;
+      const p = groundPoint(e);
+      if (!p) return;
+      drag.moved = true;
+      const now = performance.now();
+      if (now - lastPreview > 120) {
+        lastPreview = now;
+        regenerateEdited(edits.ops.concat([dragOp(drag, p)]));
+      }
+    }
+
+    function onCanvasUp(e) {
+      if (pendingTap) {
+        const t = pendingTap;
+        pendingTap = null;
+        if (!drag && e.button <= 0 && Math.hypot(e.clientX - t.x, e.clientY - t.y) <= TAP_MOVE_PX) performTap(t);
+      }
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      controls.enabled = true;
+      const p = groundPoint(e);
+      if (!p || !d.moved) { regenerateEdited(); return; }
+      // Se regenera con la posición final antes de comprobar que la casa cabe
+      const op = dragOp(d, p);
+      regenerateEdited(edits.ops.concat([op]));
+      if (d.kind === 'casa' && !world.placementOk(op.x, op.z, d.id)) {
+        say('No cabe la casa ahí: vuelve a su sitio.');
+        regenerateEdited();
+        return;
+      }
+      commitOp(op);
+      say('Movido. Ediciones: ' + opsNow().length + '.');
+    }
+
+    const canvasEl = renderer.domElement;
+    // Fase de captura sobre el body: así puede frenar el giro de la cámara antes de que llegue al lienzo
+    document.body.addEventListener('pointerdown', onCanvasDown, true);
+    window.addEventListener('pointermove', onCanvasMove);
+    window.addEventListener('pointerup', onCanvasUp);
+    window.addEventListener('pointercancel', () => { pendingTap = null; cancelDrag(); });
+
+    window.addEventListener('keydown', (e) => {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'Escape') {
+        if (draft) { clearDraft(); say('Calle cancelada.'); updateEditInfo(); return; }
+        cancelDrag();
+        return;
+      }
+      if (!editMode) return;
+      if (e.key === 'Enter' && draft) { e.preventDefault(); finishDraft(); return; }
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redoEdit(); else undoEdit(); return; }
+      if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); redoEdit(); return; }
+      const t = EDIT_TOOLS.find(x => x.key === e.key);
+      if (t) setEditTool(t.id);
+    });
+
+    rebuildFromUI();
+    window.__creador = { renderer, camera, controls, scene, world: () => world, readCfgFromUI, rebuildFromUI };
+  </script>
+</body>
+</html>

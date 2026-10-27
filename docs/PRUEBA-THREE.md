@@ -39,3 +39,15 @@ Ninguno de los dos ajustes iguala los valores de r128. La causa no está aislada
 
 - Las cifras de la sección anterior no son comparables con `docs/RENDIMIENTO.md`: allí el mundo usaba el trazado
   clásico, y el mundo de prueba usa ahora el trazado por manzanas.
+
+## Creador de pueblos con r186 (`creador-prueba-three.html`)
+
+- **Funciona:** mismas estadísticas que r128 (16 casas, 365 colisiones, 187 árboles). Triángulos 1.793.448 frente a
+  1.793.720 y 389 llamadas en ambas. Sin errores de página salvo el 404 de `personaje.glb`, que ya existía.
+- **Aspecto:** distinto. Con r128 el terreno sale pálido, casi de nieve, y el río celeste. Con r186 el verde es más
+  oscuro y saturado, y el agua azul profunda. La luminosidad media baja de 0,74 a 0,41; la saturación se mantiene
+  (0,42 frente a 0,42).
+- **Cambio de código:** `renderer.outputEncoding = THREE.sRGBEncoding` pasa a
+  `renderer.outputColorSpace = THREE.SRGBColorSpace`. En r186 la salida sRGB ya es la opción por defecto.
+- **Pendiente:** decidir qué aspecto es el bueno. Los estilos y la paleta de terreno se afinaron mirando r128, así que
+  habría que retocarlos para acercarse a esa versión, o aceptar el nuevo aspecto y ajustar desde ahí.
