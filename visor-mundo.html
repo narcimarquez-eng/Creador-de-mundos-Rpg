@@ -550,6 +550,7 @@
     cielo.renderOrder = -1;
     cielo.frustumCulled = false;
     scene.add(cielo);
+    cargarArbusto();
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 40000);
 
     hemiLight = new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.8);
@@ -1344,10 +1345,29 @@
   }
 
   // Rocas, casas en ruinas y vallas: la semilla del mundo decide dónde van; no entran en pueblos ni en caminos
+  // Arbusto de Kenney (CC0, assets/vegetacion): se escala a 1,6 m y se apoya en el suelo; luego se reconstruye la decoración
+  let arbustoGLB = null;
+  async function cargarArbusto() {
+    try {
+      const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+      const gltf = await new GLTFLoader().loadAsync('assets/vegetacion/arbusto.glb');
+      let geo = null, mat = null;
+      gltf.scene.traverse(o => { if (o.isMesh && !geo) { geo = o.geometry.clone(); mat = o.material; } });
+      if (!geo) return;
+      geo.computeBoundingBox();
+      const bb = geo.boundingBox, alto = bb.max.y - bb.min.y || 1, k = 1.6 / alto;
+      geo.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2);
+      geo.scale(k, k, k);
+      arbustoGLB = { geometry: geo, material: mat };
+      if (world) buildDecorado();
+    } catch (e) { /* sin el arbusto: se usan matorrales de código */ }
+  }
+
   function buildDecorado() {
+    if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     const rng = new W.PRNG((world.seed ^ 0x7e7e) >>> 0);
     decorGroup = DecoradoLib.generar(THREE, {
-      rng, limites: bounds,
+      rng, limites: bounds, arbusto: arbustoGLB,
       altura: (x, z) => H(x, z),
       bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
       agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02,

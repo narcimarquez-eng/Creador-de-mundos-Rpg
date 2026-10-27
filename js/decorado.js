@@ -1,4 +1,4 @@
-// Decoración del campo entre pueblos: rocas, casas en ruinas y vallas de varios tipos.
+// Decoración del campo entre pueblos: rocas, arbustos, casas en ruinas y vallas de varios tipos.
 // Todo son mallas instanciadas (pocas llamadas de dibujo), colocadas con el generador de la semilla del
 // mundo. Se usa desde el visor; no depende de la interfaz. Requiere THREE como global.
 (function (root) {
@@ -9,26 +9,6 @@
   // Matorrales pequeños (probabilidad por intento)
   const MATORRAL_BIOMA = { pradera: 0.3, bosque: 0.22, taiga: 0.12, costa: 0.1, tundra: 0.08, desierto: 0.05 };
   const MATORRAL_COLOR = [0x4d7a3a, 0x5b8a44, 0x3f6b33, 0x6f8c4a, 0x8a8a4a];
-  // Hierba en mechones (probabilidad por intento, en el bioma)
-  const HIERBA_BIOMA = { pradera: 0.9, bosque: 0.55, pantano: 0.5, costa: 0.35, taiga: 0.3, tundra: 0.2, desierto: 0.05 };
-  let hojaTex = null;
-  // Textura de una hoja de hierba: silueta estrecha con punta, transparente fuera
-  function texturaHoja(THREE) {
-    if (hojaTex) return hojaTex;
-    const c = document.createElement('canvas');
-    c.width = 32; c.height = 64;
-    const g = c.getContext('2d');
-    g.clearRect(0, 0, 32, 64);
-    const grad = g.createLinearGradient(0, 64, 0, 0);
-    grad.addColorStop(0, '#3d6b2a'); grad.addColorStop(1, '#a7c25a');
-    g.fillStyle = grad;
-    g.beginPath();
-    g.moveTo(10, 64); g.quadraticCurveTo(4, 30, 16, 0); g.quadraticCurveTo(28, 30, 22, 64); g.closePath();
-    g.fill();
-    hojaTex = new THREE.CanvasTexture(c);
-    hojaTex.colorSpace = THREE.SRGBColorSpace;
-    return hojaTex;
-  }
   const ROCA_COLOR = [0x8a8580, 0x9a948c, 0x7b766f, 0xa39d93, 0x6f6a64];
 
   function generar(THREE, o) {
@@ -80,7 +60,9 @@
     }
 
     // ---------------------------------------------------------------- Matorrales
-    const matGeo = new THREE.IcosahedronGeometry(1, 0);
+    // Arbusto de Kenney (CC0) si el visor lo ha cargado; si no, un poliedro de código
+    const arbusto = o.arbusto;
+    const matGeo = arbusto ? arbusto.geometry : new THREE.IcosahedronGeometry(1, 0);
     const matorrales = [];
     const cantMatorrales = Math.min(5000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 900));
     for (let k = 0; k < cantMatorrales * 2 && matorrales.length < cantMatorrales; k++) {
@@ -91,8 +73,8 @@
       matorrales.push({ x, z, color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)], tam: 0.8 + rng.next() * 1.4, ry: rng.next() * 6.28 });
     }
     if (matorrales.length) {
-      const malla = new THREE.InstancedMesh(matGeo, material({ flatShading: true }), matorrales.length);
-      matorrales.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + 0.2 * m.tam, m.z, m.tam, m.tam * 0.7, m.tam, m.ry, m.color));
+      const malla = new THREE.InstancedMesh(matGeo, arbusto ? arbusto.material : material({ flatShading: true }), matorrales.length);
+      matorrales.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + (arbusto ? 0 : 0.2 * m.tam), m.z, m.tam, arbusto ? m.tam : m.tam * 0.7, m.tam, m.ry, m.color));
       malla.instanceMatrix.needsUpdate = true;
       malla.instanceColor.needsUpdate = true;
       grupo.add(malla);
@@ -171,33 +153,6 @@
         malla.castShadow = true; malla.receiveShadow = true;
         grupo.add(malla);
       });
-    }
-
-    // ---------------------------------------------------------------- Hierba en mechones
-    // Dos planos cruzados por mechón; el color y la altura varían al azar
-    const cantHierba = Math.min(14000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 110));
-    const mechones = [];
-    for (let k = 0; k < cantHierba * 2 && mechones.length < cantHierba; k++) {
-      const x = L.minX + rng.next() * (L.maxX - L.minX), z = L.minZ + rng.next() * (L.maxZ - L.minZ);
-      if (o.agua(x, z) || !o.libre(x, z)) continue;
-      const b = o.bioma(x, z);
-      if (!rng.chance((HIERBA_BIOMA[b] || 0) * (1 - Math.min(0.85, pendiente(x, z) * 2)))) continue;
-      mechones.push({ x, z, alto: 1.0 + rng.next() * 0.8, ry: rng.next() * 6.28, tono: 0.75 + rng.next() * 0.5 });
-    }
-    if (mechones.length) {
-      const hojaGeo = new THREE.PlaneGeometry(1.0, 1.0);
-      hojaGeo.translate(0, 0.45, 0);
-      const malla = new THREE.InstancedMesh(hojaGeo, new THREE.MeshLambertMaterial({ map: texturaHoja(THREE), side: THREE.DoubleSide, alphaTest: 0.5 }), mechones.length * 2);
-      mechones.forEach((m, i) => {
-        const col = new THREE.Color().setScalar(m.tono);
-        ponerInstancia(malla, i * 2, m.x, o.altura(m.x, m.z), m.z, 1, m.alto, 1, m.ry, undefined);
-        ponerInstancia(malla, i * 2 + 1, m.x, o.altura(m.x, m.z), m.z, 1, m.alto * 0.9, 1, m.ry + Math.PI / 2, undefined);
-        malla.setColorAt(i * 2, col);
-        malla.setColorAt(i * 2 + 1, col);
-      });
-      malla.instanceMatrix.needsUpdate = true;
-      malla.instanceColor.needsUpdate = true;
-      grupo.add(malla);
     }
 
     // ---------------------------------------------------------------- Vallas

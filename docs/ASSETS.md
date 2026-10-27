@@ -59,6 +59,13 @@ Las calzadas del mundo (`kind: calzada`) son procedurales: losas irregulares som
 calzadas romanas no se usan como textura porque su licencia no está verificada. Las calles de los pueblos siguen con el
 atlas del pueblo; los tipos calle, calzada y sendero se distinguen por su anchura.
 
+## Arbustos (matorrales del campo)
+
+Fuente: **Kenney Nature Kit** (kenney.nl), licencia **CC0 1.0**. El modelo viene del repositorio de la misma cuenta
+`CochesHuelva` (`modelos/arboles/arbusto.glb`). Está en `assets/vegetacion/arbusto.glb`, con 104 triángulos y una
+textura, y su licencia en `assets/vegetacion/LICENCIA-kenney-nature-kit.txt`. El visor lo escala a 1,6 m de alto y
+lo coloca en `js/decorado.js` como matorral (instanciado). Si no carga, se usan matorrales de código.
+
 ## Rocas y setos
 
 Las rocas son icosaedros con relieve irregular generados por código, sin textura externa. Los setos son cajas procedurales.
