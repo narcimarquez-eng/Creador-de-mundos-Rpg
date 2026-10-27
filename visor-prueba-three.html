@@ -1345,6 +1345,8 @@
     const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
     m.rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
     EnemyOpt.optimizarRig(m.rig);
+    // Enemigos un 50 % más grandes: el modelo del editor se ve pequeño en el mapa
+    m.rig.rootGroup.scale.setScalar(1.5);
     m.fx = EnemyFx.crear(m.rig, m.enemigo);
     m.group.add(m.rig.rootGroup);
     m.barHeight = new THREE.Box3().setFromObject(m.rig.rootGroup).max.y + 0.9;
