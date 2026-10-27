@@ -54,7 +54,9 @@ No hay un modelo de valla con licencia verificada, así que las vallas son **pro
 
 ## Calzadas
 
-No se ha añadido textura nueva de calzada: no se encontró un adoquín CC0 verificado en ambientCG. Las calzadas usan el
+Las calzadas del mundo (`kind: calzada`) son procedurales: losas irregulares sombreadas en el material del visor
+(celdas Voronoi en el shader, sin imagen), con juntas oscuras y bordillos a los dos lados. Las fotos de referencia de
+calzadas romanas no se usan como textura porque su licencia no está verificada. Las calles de los pueblos siguen con el
 atlas del pueblo; los tipos calle, calzada y sendero se distinguen por su anchura.
 
 ## Rocas y setos

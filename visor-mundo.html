@@ -271,7 +271,7 @@
   const LOAD_R = 650, UNLOAD_R = 900, MAX_LOADED = 6;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
-  let townMesh, roadMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
+  let townMesh, roadMesh, calzadaMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
@@ -528,7 +528,7 @@
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
-    [roadMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
+    [roadMesh, calzadaMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
@@ -971,20 +971,78 @@
   }
 
   function roadWidth(kind) { return kind === 'calzada' ? 8 : kind === 'sendero' ? 3 : 6; }
-  function roadColor(kind) { return rgb(kind === 'calzada' ? '#cbd5e1' : kind === 'sendero' ? '#8b6b43' : '#b08d57'); }
+  function roadColor(kind) { return rgb(kind === 'sendero' ? '#8b6b43' : '#b08d57'); }
+
+  // Desplaza una polilínea `d` metros hacia un lado (mismo sentido que el ancho de `MB.ribbon`)
+  function desplazar(pts, d) {
+    return pts.map((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      let tx = b.x - a.x, tz = b.z - a.z;
+      const len = Math.hypot(tx, tz) || 1;
+      return { x: p.x - tz / len * d, z: p.z + tx / len * d };
+    });
+  }
+
+  // Calzada romana: losas irregulares con juntas (sombreado en el material) y bordillos a los dos lados
+  function pintarCalzada(mb, linea) {
+    const w = roadWidth('calzada');
+    mb.ribbon(linea, w, rgb('#cbd5e1'), 0.35);
+    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#a8a29e'), 0.5));
+  }
+
+  // Sombrea las losas con celdas Voronoi sobre el color de vértice: no necesita texturas
+  const LOSAS_GLSL = `
+    vec2 hash2(vec2 p) {
+      p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+      return fract(sin(p) * 43758.5453);
+    }`;
+  const LOSAS_FRAG = `
+    vec2 celda = vPosXZ * 0.9;
+    vec2 base = floor(celda), fr = fract(celda);
+    float f1 = 8.0, f2 = 8.0; vec2 id = vec2(0.0);
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        vec2 g = vec2(float(i), float(j));
+        vec2 r = g + hash2(base + g) - fr;
+        float d = dot(r, r);
+        if (d < f1) { f2 = f1; f1 = d; id = base + g; }
+        else if (d < f2) { f2 = d; }
+      }
+    }
+    float junta = smoothstep(0.05, 0.12, sqrt(f2) - sqrt(f1));
+    vec2 azar = hash2(id + 3.7);
+    float tono = 0.7 + 0.55 * azar.x;
+    vec3 losa = diffuseColor.rgb * tono * vec3(1.0 + 0.06 * azar.y, 1.0, 1.0 - 0.06 * azar.y);
+    vec3 tierra = vec3(0.30, 0.29, 0.18) * (0.6 + 0.8 * hash2(vPosXZ * 4.0).x);
+    diffuseColor.rgb = mix(tierra, losa, junta);`;
+  function calzadaMaterial() {
+    const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    m.onBeforeCompile = shader => {
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vPosXZ;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPosXZ = position.xz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vPosXZ;' + LOSAS_GLSL)
+        .replace('#include <color_fragment>', '#include <color_fragment>' + LOSAS_FRAG);
+    };
+    return m;
+  }
 
   function buildRoads() {
-    const mb = new MB();
+    const mb = new MB(), mbCalzada = new MB();
     world.roads.forEach(r => {
       const a = W.findTown(world, r.from), b = W.findTown(world, r.to);
       if (!a || !b) return;
       const oa = towns.find(o => o.t === a), ob = towns.find(o => o.t === b);
       const pts = trimRoad(r, a, b, Math.min(oa ? oa.tileHalf : 149, ob ? ob.tileHalf : 149));
       if (pts.length < 2) return;
-      mb.ribbon(curvePath(pts, 8), roadWidth(r.kind), roadColor(r.kind), 0.35);
+      if (r.kind === 'calzada') pintarCalzada(mbCalzada, curvePath(pts, 8));
+      else mb.ribbon(curvePath(pts, 8), roadWidth(r.kind), roadColor(r.kind), 0.35);
     });
     roadMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
     scene.add(roadMesh);
+    calzadaMesh = new THREE.Mesh(mbCalzada.geom(), calzadaMaterial());
+    scene.add(calzadaMesh);
   }
 
   function zoneColor(z) {
