@@ -686,7 +686,7 @@
   // Malla fina del suelo de cada pueblo: la misma que genera el Creador de Pueblos
   // Malla fina del suelo de un pueblo (solo mientras está cargado)
   function createPatch(o) {
-    const SEG = 80;
+    const SEG = 120;  // misma resolución que el suelo del Creador de Pueblos (cauce y orillas)
     {
       const half = o.tileHalf, step = (2 * half) / SEG, N = SEG + 1;
       const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
