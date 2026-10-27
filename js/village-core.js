@@ -885,7 +885,7 @@
         this.waterMesh = null;
         this.cfg = null;
         this.riverWidth = 14.0;
-        this.bridgeBounds = null;
+        this.bridgeBounds = null; this.bridgeTopAt = null;
         this.sampleHousePos = new THREE.Vector3(-13, 2, 13);
         this.exitPaths = [];
         this.extraBridges = [];
@@ -936,7 +936,7 @@
         this.colliders = [];
         this.animatedCrystals = [];
         this.waterMesh = null;
-        this.bridgeBounds = null;
+        this.bridgeBounds = null; this.bridgeTopAt = null;
         this.exitPaths = [];
       }
 
@@ -994,10 +994,8 @@
       getWalkableHeight(x, z) {
         if (this.cfg && this.cfg.hasRiver && this.bridgeBounds) {
           const b = this.bridgeBounds;
-          if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) {
-            const normX = (x - b.centerX) / b.halfSpan;
-            const arch = Math.max(0.0, (1.0 - normX * normX) * 2.2);
-            return b.baseY + arch + 0.25;
+          if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ && this.bridgeTopAt) {
+            return this.bridgeTopAt((x - b.minX) / (b.maxX - b.minX)) + 0.18;
           }
         }
         for (const br of this.extraBridges) {
@@ -1006,11 +1004,13 @@
           const v = -dx * br.uz + dz * br.ux;
           if (Math.abs(v) > br.hv) continue;
           const au = Math.abs(u);
-          if (au <= br.hu) return br.top + 0.18;
+          const s01 = Math.min(1, Math.max(0, (u + br.hu) / (2 * br.hu)));
+          if (au <= br.hu) return br.topAt(s01) + 0.18;
           if (au <= br.hu + 3.0) {
+            const borde = br.topAt(u > 0 ? 1 : 0) + 0.18;
             const ground = this.getTerrainHeight(x, z) + 0.18;
             const t = (au - br.hu) / 3.0;
-            return (br.top + 0.18) + (ground - (br.top + 0.18)) * t;
+            return borde + (ground - borde) * t;
           }
         }
         return this.getTerrainHeight(x, z) + 0.18;
@@ -1034,8 +1034,9 @@
         return Math.abs(x - rx) < (this.riverWidth * 0.5 + radius);
       }
 
+      // Calzada con grosor: la superficie usa la piedra de los puentes y los bordes bajan por debajo del terreno,
+      // así no queda como una lámina sobre el suelo. Sigue el terreno (subdividido cada 1 m) con su altura real.
       buildConformingRoadMesh(puntos, width, yOffset = 0.16) {
-        // Subdivide cada tramo en pasos de 1 m: sobre una ladera la calle sigue el terreno y no lo corta
         const points = [];
         for (let i = 0; i < puntos.length; i++) {
           if (i > 0) {
@@ -1049,6 +1050,7 @@
         const positions = new Float32Array((segs + 1) * 2 * 3);
         const uvs = new Float32Array((segs + 1) * 2 * 2);
         const indices = [];
+        const bordes = [];
 
         let accLen = 0;
         for (let i = 0; i <= segs; i++) {
@@ -1083,15 +1085,23 @@
           positions[(vIdx + 1) * 3 + 1] = ry;
           positions[(vIdx + 1) * 3 + 2] = rz;
 
+          // Piedra de sillería como en los puentes: 0..1 a lo ancho y un bloque cada 5 m a lo largo
+          const v = 0.25 + 0.25 * ((accLen * 0.2) % 1);
           uvs[vIdx * 2] = 0;
-          uvs[vIdx * 2 + 1] = accLen * 0.18;
+          uvs[vIdx * 2 + 1] = v;
           uvs[(vIdx + 1) * 2] = 1;
-          uvs[(vIdx + 1) * 2 + 1] = accLen * 0.18;
+          uvs[(vIdx + 1) * 2 + 1] = v;
 
           if (i < segs) {
             const a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, d = (i + 1) * 2 + 1;
             indices.push(a, b, c, b, d, c);
           }
+
+          const bajo = (x, z, y) => Math.min(y, this.getTerrainHeight(x, z)) - 0.9;
+          bordes.push({
+            l: [lx, ly, lz], r: [rx, ry, rz],
+            lb: [lx, bajo(lx, lz, ly), lz], rb: [rx, bajo(rx, rz, ry), rz], v
+          });
         }
 
         const geom = new THREE.BufferGeometry();
@@ -1100,9 +1110,33 @@
         geom.setIndex(indices);
         geom.computeVertexNormals();
 
-        const mesh = new THREE.Mesh(geom, matRoad);
-        mesh.receiveShadow = true;
-        return mesh;
+        const grupo = new THREE.Group();
+        const superficie = new THREE.Mesh(geom, matAtlas);
+        superficie.receiveShadow = true;
+        grupo.add(superficie);
+
+        // Paredes de los dos bordes: caras en los dos sentidos para que se vean desde cualquier lado
+        const wPos = [], wUv = [], wIdx = [];
+        const cara = (p, q, pb, qb, vp, vq) => {
+          const base = wPos.length / 3;
+          wPos.push(...p, ...q, ...qb, ...pb);
+          wUv.push(0, vp, 1, vq, 1, vq, 0, vp);
+          wIdx.push(base, base + 1, base + 2, base, base + 2, base + 3, base, base + 2, base + 1, base, base + 3, base + 2);
+        };
+        for (let i = 0; i < segs; i++) {
+          const A = bordes[i], B = bordes[i + 1];
+          cara(A.l, B.l, A.lb, B.lb, A.v, B.v);
+          cara(A.r, B.r, A.rb, B.rb, A.v, B.v);
+        }
+        const wGeom = new THREE.BufferGeometry();
+        wGeom.setAttribute('position', new THREE.Float32BufferAttribute(wPos, 3));
+        wGeom.setAttribute('uv', new THREE.Float32BufferAttribute(wUv, 2));
+        wGeom.setIndex(wIdx);
+        wGeom.computeVertexNormals();
+        const paredes = new THREE.Mesh(wGeom, matAtlas);
+        paredes.receiveShadow = true;
+        grupo.add(paredes);
+        return grupo;
       }
 
       buildSpecialBuilding(type, x, z, rotY, group) {
@@ -1260,6 +1294,38 @@
         return pieces;
       }
 
+      // Tablero de piedra entre A y B. Se parte en tramos que siguen la pendiente y, con arco, forman una joroba
+      // suave: los extremos quedan a la altura de las orillas. Devuelve la altura de la superficie en s (0 a 1).
+      construirTablero(grupo, A, B, o) {
+        const dx = B.x - A.x, dz = B.z - A.z, L = Math.hypot(dx, dz) || 1;
+        const ux = dx / L, uz = dz / L;
+        const Zv = new THREE.Vector3(-uz, 0, ux);           // horizontal, a lo ancho del tablero
+        const ox = (o.lateral || 0) * Zv.x, oz = (o.lateral || 0) * Zv.z;
+        const topAt = s => o.hA + (o.hB - o.hA) * s + o.arco * Math.sin(Math.PI * s) + (o.arriba || 0);
+        for (let k = 0; k < o.tramos; k++) {
+          const s0 = k / o.tramos, s1 = (k + 1) / o.tramos;
+          const p0 = { x: A.x + dx * s0 + ox, z: A.z + dz * s0 + oz, y: topAt(s0) };
+          const p1 = { x: A.x + dx * s1 + ox, z: A.z + dz * s1 + oz, y: topAt(s1) };
+          const X = new THREE.Vector3(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
+          const len = X.length();
+          X.normalize();
+          const Y = new THREE.Vector3().crossVectors(Zv, X).normalize();
+          const geo = new THREE.BoxGeometry(len + 0.05, o.grosor, o.ancho);
+          mapUVBand(geo, 0.25, 0.50);
+          const m = new THREE.Mesh(geo, o.mat);
+          m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Zv));
+          // La cara de arriba del bloque queda en la mitad del tramo
+          m.position.set(
+            (p0.x + p1.x) / 2 - Y.x * o.grosor / 2,
+            (p0.y + p1.y) / 2 - Y.y * o.grosor / 2,
+            (p0.z + p1.z) / 2 - Y.z * o.grosor / 2
+          );
+          m.castShadow = m.receiveShadow = true;
+          grupo.add(m);
+        }
+        return topAt;
+      }
+
       // Corta un camino donde cruza el río y pone un puente pequeño en cada cruce.
       // El cruce por el puente principal ya tiene tablero, así que solo se corta el camino.
       splitAtRiver(cfg, pts, width, roadsGroup, matAtlas) {
@@ -1288,20 +1354,16 @@
             if (!onMainBridge(mid)) {
               // Puente pequeño de piedra alineado con la calle
               const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
-              const deckG = new THREE.BoxGeometry(L + 2.0, 1.1, width + 1.2);
-              mapUVBand(deckG, 0.25, 0.50);
-              const deckM = new THREE.Mesh(deckG, matAtlas);
-              const yBank = Math.max(this.getTerrainHeight(a.x, a.z), this.getTerrainHeight(b.x, b.z));
-              deckM.position.set((a.x + b.x) / 2, yBank + 0.9, (a.z + b.z) / 2);
-              deckM.rotation.y = Math.atan2(-dz, dx);
-              deckM.castShadow = deckM.receiveShadow = true;
-              roadsGroup.add(deckM);
-              // Zona caminable: tablero a 1,45 m sobre el suelo del banco, rampa de 3 m a cada lado
+              // Tablero de piedra sobre el río, 1,45 m por encima de la orilla más alta (con su joroba)
+              const topAt = this.construirTablero(roadsGroup, a, b, {
+                ancho: width + 1.2, hA: this.getTerrainHeight(a.x, a.z) + 1.45, hB: this.getTerrainHeight(b.x, b.z) + 1.45,
+                arco: 0.35, grosor: 1.1, tramos: 4, mat: matAtlas
+              });
               this.extraBridges.push({
                 cx: (a.x + b.x) / 2, cz: (a.z + b.z) / 2,
                 ux: dx / L, uz: dz / L,
-                hu: (L + 2.0) / 2, hv: (width + 1.2) / 2,
-                top: yBank + 1.45
+                hu: L / 2, hv: (width + 1.2) / 2,
+                topAt
               });
             }
           }
@@ -1638,42 +1700,32 @@
           };
 
           const bridgeGroup = new THREE.Group();
-          const deckG = new THREE.BoxGeometry(bSpan, 1.1, cfg.roadWidth + 1.2);
-          mapUVBand(deckG, 0.25, 0.50);
-          const deckM = new THREE.Mesh(deckG, matAtlas);
-          deckM.position.set(bx, by + 1.65, 0);
-          deckM.castShadow = deckM.receiveShadow = true;
-          bridgeGroup.add(deckM);
-
-          [-1, 1].forEach(side => {
-            const rampG = new THREE.BoxGeometry(4.8, 0.7, cfg.roadWidth + 1.2);
-            mapUVBand(rampG, 0.25, 0.50);
-            const rampM = new THREE.Mesh(rampG, matAtlas);
-            rampM.position.set(bx + side * (bSpan * 0.5 + 1.8), by + 0.75, 0);
-            rampM.rotation.z = -side * 0.24;
-            rampM.castShadow = rampM.receiveShadow = true;
-            bridgeGroup.add(rampM);
+          // Tablero que une las dos orillas por la calle principal: sigue la altura del terreno en cada extremo
+          const halfS = bSpan * 0.5 + 3.5;
+          const pA = { x: bx - halfS, z: 0 }, pB = { x: bx + halfS, z: 0 };
+          const hA = this.getTerrainHeight(pA.x, pA.z) + 0.16, hB = this.getTerrainHeight(pB.x, pB.z) + 0.16;
+          const topAt = this.construirTablero(bridgeGroup, pA, pB, {
+            ancho: cfg.roadWidth + 1.2, hA, hB, arco: 1.2, grosor: 1.1, tramos: 12, mat: matAtlas
           });
-
+          // Barandillas: mismo tablero, desplazadas a cada lado y levantadas sobre la superficie
           [-cfg.roadWidth * 0.55, cfg.roadWidth * 0.55].forEach(pz => {
-            const wallG = new THREE.BoxGeometry(bSpan + 4, 1.2, 0.65);
-            mapUVBand(wallG, 0.25, 0.50);
-            const wallM = new THREE.Mesh(wallG, matAtlas);
-            wallM.position.set(bx, by + 2.45, pz);
-            wallM.castShadow = true;
-            bridgeGroup.add(wallM);
+            this.construirTablero(bridgeGroup, pA, pB, {
+              ancho: 0.65, hA, hB, arco: 1.2, grosor: 1.2, tramos: 12, mat: matAtlas, lateral: pz, arriba: 1.15
+            });
             this.colliders.push({ type: 'box', minX: this.bridgeBounds.minX, maxX: this.bridgeBounds.maxX, minZ: pz - 0.45, maxZ: pz + 0.45 });
           });
+          this.bridgeTopAt = topAt;
 
           this.scene.add(bridgeGroup);
           this.objects.push(bridgeGroup);
 
           if (cfg.hasLamps) {
+            const alturaFarola = x => topAt((x - pA.x) / (pB.x - pA.x)) + 2.6;
             lampsList.push(
-              { x: bx - bSpan * 0.45, y: by + 2.6, z: -cfg.roadWidth * 0.55, rot: 0 },
-              { x: bx + bSpan * 0.45, y: by + 2.6, z: -cfg.roadWidth * 0.55, rot: 0 },
-              { x: bx - bSpan * 0.45, y: by + 2.6, z:  cfg.roadWidth * 0.55, rot: Math.PI },
-              { x: bx + bSpan * 0.45, y: by + 2.6, z:  cfg.roadWidth * 0.55, rot: Math.PI }
+              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0 },
+              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0 },
+              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI },
+              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI }
             );
           }
         }
