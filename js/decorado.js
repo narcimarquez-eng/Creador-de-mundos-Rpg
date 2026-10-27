@@ -1,0 +1,185 @@
+// Decoración del campo entre pueblos: rocas, casas en ruinas y vallas de varios tipos.
+// Todo son mallas instanciadas (pocas llamadas de dibujo), colocadas con el generador de la semilla del
+// mundo. Se usa desde el visor; no depende de la interfaz. Requiere THREE como global.
+(function (root) {
+  'use strict';
+
+  // Densidad de rocas por bioma (probabilidad por intento); las pendientes añaden más
+  const ROCA_BIOMA = { montana: 0.7, nieve: 0.5, tundra: 0.45, desierto: 0.4, taiga: 0.25, bosque: 0.2, pradera: 0.18, costa: 0.3, pantano: 0.06 };
+  // Matorrales pequeños (probabilidad por intento)
+  const MATORRAL_BIOMA = { pradera: 0.3, bosque: 0.22, taiga: 0.12, costa: 0.1, tundra: 0.08, desierto: 0.05 };
+  const MATORRAL_COLOR = [0x4d7a3a, 0x5b8a44, 0x3f6b33, 0x6f8c4a, 0x8a8a4a];
+  const ROCA_COLOR = [0x8a8580, 0x9a948c, 0x7b766f, 0xa39d93, 0x6f6a64];
+
+  function generar(THREE, o) {
+    const rng = o.rng, L = o.limites;
+    const grupo = new THREE.Group();
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
+    const euler = new THREE.Euler();
+    const ponerInstancia = (mesh, i, x, y, z, sx, sy, sz, ry, color) => {
+      p.set(x, y, z); s.set(sx, sy, sz); q.setFromEuler(euler.set(0, ry, 0));
+      m4.compose(p, q, s); mesh.setMatrixAt(i, m4);
+      if (color !== undefined) { col.setHex(color); mesh.setColorAt(i, col); }
+    };
+    const material = (extra) => new THREE.MeshLambertMaterial(Object.assign({ color: '#ffffff' }, extra));
+    const pendiente = (x, z) => {
+      const e = 4;
+      return Math.hypot(o.altura(x + e, z) - o.altura(x - e, z), o.altura(x, z + e) - o.altura(x, z - e)) / (2 * e);
+    };
+
+    // ---------------------------------------------------------------- Rocas
+    // Icosaedro con relieve irregular (fijo para todas las rocas) y escala por instancia
+    const rocaGeo = new THREE.IcosahedronGeometry(1, 1);
+    const pos = rocaGeo.attributes.position;
+    const jitter = new Map();
+    for (let i = 0; i < pos.count; i++) {
+      const key = pos.getX(i).toFixed(3) + ',' + pos.getY(i).toFixed(3) + ',' + pos.getZ(i).toFixed(3);
+      if (!jitter.has(key)) jitter.set(key, 0.78 + 0.44 * rng.next());
+      const f = jitter.get(key);
+      pos.setXYZ(i, pos.getX(i) * f, pos.getY(i) * f, pos.getZ(i) * f);
+    }
+    rocaGeo.computeVertexNormals();
+    const cantRocas = Math.min(6000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 1200));
+    const rocas = [];
+    for (let k = 0; k < cantRocas * 2 && rocas.length < cantRocas; k++) {
+      const x = L.minX + rng.next() * (L.maxX - L.minX), z = L.minZ + rng.next() * (L.maxZ - L.minZ);
+      if (o.agua(x, z) || !o.libre(x, z)) continue;
+      const b = o.bioma(x, z);
+      const prob = (ROCA_BIOMA[b] || 0) + Math.min(0.6, pendiente(x, z) * 1.2);
+      if (!rng.chance(Math.min(0.9, prob))) continue;
+      rocas.push({ x, z, color: ROCA_COLOR[Math.floor(rng.next() * ROCA_COLOR.length)], tam: 0.5 + Math.pow(rng.next(), 2) * 2.6, ry: rng.next() * 6.28 });
+    }
+    if (rocas.length) {
+      const malla = new THREE.InstancedMesh(rocaGeo, material({ flatShading: true }), rocas.length);
+      rocas.forEach((r, i) => {
+        ponerInstancia(malla, i, r.x, o.altura(r.x, r.z) - 0.15 * r.tam, r.z, r.tam, r.tam * (0.55 + 0.3 * rng.next()), r.tam * (0.8 + 0.3 * rng.next()), r.ry, r.color);
+      });
+      malla.instanceMatrix.needsUpdate = true;
+      malla.instanceColor.needsUpdate = true;
+      grupo.add(malla);
+    }
+
+    // ---------------------------------------------------------------- Matorrales
+    const matGeo = new THREE.IcosahedronGeometry(1, 0);
+    const matorrales = [];
+    const cantMatorrales = Math.min(5000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 900));
+    for (let k = 0; k < cantMatorrales * 2 && matorrales.length < cantMatorrales; k++) {
+      const x = L.minX + rng.next() * (L.maxX - L.minX), z = L.minZ + rng.next() * (L.maxZ - L.minZ);
+      if (o.agua(x, z) || !o.libre(x, z)) continue;
+      const b = o.bioma(x, z);
+      if (!rng.chance((MATORRAL_BIOMA[b] || 0) * (1 - Math.min(0.8, pendiente(x, z) * 2)))) continue;
+      matorrales.push({ x, z, color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)], tam: 0.8 + rng.next() * 1.4, ry: rng.next() * 6.28 });
+    }
+    if (matorrales.length) {
+      const malla = new THREE.InstancedMesh(matGeo, material({ flatShading: true }), matorrales.length);
+      matorrales.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + 0.2 * m.tam, m.z, m.tam, m.tam * 0.7, m.tam, m.ry, m.color));
+      malla.instanceMatrix.needsUpdate = true;
+      malla.instanceColor.needsUpdate = true;
+      grupo.add(malla);
+    }
+
+    // ---------------------------------------------------------------- Casas en ruinas
+    // Restos de muros de piedra de altura irregular, con cascotes alrededor
+    const muroGeo = new THREE.BoxGeometry(1, 1, 1);
+    muroGeo.translate(0, 0.5, 0);
+    const ruinas = [];
+    const celdaR = 320;
+    for (let x = L.minX; x < L.maxX; x += celdaR) for (let z = L.minZ; z < L.maxZ; z += celdaR) {
+      if (!rng.chance(0.35)) continue;
+      const cx = x + rng.next() * celdaR, cz = z + rng.next() * celdaR;
+      if (o.agua(cx, cz) || !o.libre(cx, cz) || !o.libre(cx + 12, cz) || !o.libre(cx, cz + 12) || pendiente(cx, cz) > 0.5) continue;
+      const muros = [];
+      const n = 2 + Math.floor(rng.next() * 3);
+      for (let i = 0; i < n; i++) {
+        const dx = (rng.next() - 0.5) * 16, dz = (rng.next() - 0.5) * 16;
+        muros.push({ x: cx + dx, z: cz + dz, ancho: 3 + rng.next() * 5, alto: 0.7 + rng.next() * 2.8, grueso: 0.5 + rng.next() * 0.4, ry: rng.next() * 6.28 });
+      }
+      ruinas.push({ cx, cz, muros });
+    }
+    if (ruinas.length) {
+      const total = ruinas.reduce((a, r) => a + r.muros.length, 0);
+      const malla = new THREE.InstancedMesh(muroGeo, material(), total);
+      let i = 0;
+      ruinas.forEach(r => r.muros.forEach(w => {
+        ponerInstancia(malla, i++, w.x, o.altura(w.x, w.z), w.z, w.ancho, w.alto, w.grueso, w.ry, 0x9c9488 + (Math.floor(rng.next() * 3) * 0x080808));
+      }));
+      malla.instanceMatrix.needsUpdate = true;
+      malla.instanceColor.needsUpdate = true;
+      grupo.add(malla);
+      // Cascotes: rocas pequeñas junto a los muros
+      const cascotes = [];
+      ruinas.forEach(r => { for (let k = 0; k < 6; k++) cascotes.push({ x: r.cx + (rng.next() - 0.5) * 22, z: r.cz + (rng.next() - 0.5) * 22, tam: 0.3 + rng.next() * 0.7, ry: rng.next() * 6.28 }); });
+      const cm = new THREE.InstancedMesh(rocaGeo, material({ flatShading: true }), cascotes.length);
+      cascotes.forEach((c, j) => ponerInstancia(cm, j, c.x, o.altura(c.x, c.z) - 0.1, c.z, c.tam, c.tam * 0.6, c.tam, c.ry, 0x8d8680));
+      cm.instanceMatrix.needsUpdate = true;
+      cm.instanceColor.needsUpdate = true;
+      grupo.add(cm);
+    }
+
+    // ---------------------------------------------------------------- Vallas
+    // Líneas paralelas a los caminos, a unos metros de ellos. Tres tipos: de madera, de piedra y rotas.
+    const tramo = 4;
+    const postes = [], travesanos = [], muretes = [];
+    o.caminos.forEach(pts => {
+      if (!pts || pts.length < 2) return;
+      let acum = 0;
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        for (acum += len; acum > 110; acum -= 110) {
+          if (!rng.chance(0.8)) continue;
+          const t = 1 - (acum - 110) / len;
+          const px = a.x + (b.x - a.x) * t, pz = a.y + (b.y - a.y) * t;
+          const tx = (b.x - a.x) / len, tz = (b.y - a.y) / len;
+          const lado = rng.chance(0.5) ? 1 : -1, d = 12 + rng.next() * 6;
+          const ox = px - tz * lado * d, oz = pz + tx * lado * d;
+          const largo = 40 + rng.next() * 50, tipo = rng.next();
+          const ry = Math.atan2(-tz, tx);   // gira el eje X de la malla hacia la dirección del camino
+          for (let s = 0; s < largo; s += tramo) {
+            const cx = ox + tx * (s + tramo / 2), cz = oz + tz * (s + tramo / 2);
+            if (!o.libre(cx, cz) || o.agua(cx, cz)) continue;
+            const px0 = ox + tx * s, pz0 = oz + tz * s;
+            if (tipo < 0.35) {                                // madera: postes y dos travesaños, con algún hueco
+              if (rng.chance(0.08)) continue;
+              postes.push({ x: px0, z: pz0, y: o.altura(px0, pz0), ry });
+              travesanos.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
+            } else if (tipo < 0.7) {                          // muro bajo de piedra
+              muretes.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
+            } else {                                          // valla rota: madera con muchos huecos
+              if (!rng.chance(0.4)) continue;
+              postes.push({ x: px0, z: pz0, y: o.altura(px0, pz0), ry });
+              travesanos.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
+            }
+          }
+        }
+      }
+    });
+    if (postes.length) {
+      const pGeo = new THREE.BoxGeometry(0.16, 1.5, 0.16); pGeo.translate(0, 0.75, 0);
+      const pm = new THREE.InstancedMesh(pGeo, material(), postes.length);
+      postes.forEach((c, j) => ponerInstancia(pm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0x6b4a2b));
+      pm.instanceMatrix.needsUpdate = true; pm.instanceColor.needsUpdate = true;
+      grupo.add(pm);
+      const tGeo = new THREE.BoxGeometry(tramo, 0.09, 0.09);
+      const tm = new THREE.InstancedMesh(tGeo, material(), travesanos.length * 2);
+      travesanos.forEach((c, j) => {
+        ponerInstancia(tm, j * 2, c.x, c.y + 0.55, c.z, 1, 1, 1, c.ry, 0x7a5a36);
+        ponerInstancia(tm, j * 2 + 1, c.x, c.y + 1.1, c.z, 1, 1, 1, c.ry, 0x7a5a36);
+      });
+      tm.instanceMatrix.needsUpdate = true; tm.instanceColor.needsUpdate = true;
+      grupo.add(tm);
+    }
+    if (muretes.length) {
+      const mGeo = new THREE.BoxGeometry(tramo, 0.9, 0.5); mGeo.translate(0, 0.45, 0);
+      const mm = new THREE.InstancedMesh(mGeo, material(), muretes.length);
+      muretes.forEach((c, j) => ponerInstancia(mm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0xa29a8c));
+      mm.instanceMatrix.needsUpdate = true; mm.instanceColor.needsUpdate = true;
+      grupo.add(mm);
+    }
+    return grupo;
+  }
+
+  const api = { generar };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.DecoradoLib = api;
+})(typeof window !== 'undefined' ? window : globalThis);

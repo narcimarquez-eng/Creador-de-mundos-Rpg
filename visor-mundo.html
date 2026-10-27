@@ -238,6 +238,7 @@
   <script type="module" src="js/items.js"></script>
   <script type="module" src="js/partida.js"></script>
   <script type="module" src="js/terreno.js"></script>
+  <script type="module" src="js/decorado.js"></script>
   <script type="module" src="js/character.js"></script>
   <script type="module" src="js/enemigos.js"></script>
   <script type="module" src="js/enemigos-optimizar.js"></script>
@@ -272,6 +273,7 @@
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let aguaPuebloMat = null;
+  let decorGroup = null;     // rocas, ruinas y vallas entre pueblos
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
@@ -581,6 +583,7 @@
   }
 
   function clearWorldObjects() {
+    if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
     clearTerrainRender();
     terrainGrid = null;
@@ -637,6 +640,7 @@
     buildZones();
     buildMonsters();
     buildTrees();
+    buildDecorado();
     buildLabels();
     buildUI();
 
@@ -1314,6 +1318,21 @@
     if (treeMesh.instanceColor) treeMesh.instanceColor.needsUpdate = true;
     treeMesh.visible = $('chk-trees').checked;
     scene.add(treeMesh);
+  }
+
+  // Rocas, casas en ruinas y vallas: la semilla del mundo decide dónde van; no entran en pueblos ni en caminos
+  function buildDecorado() {
+    const rng = new W.PRNG((world.seed ^ 0x7e7e) >>> 0);
+    decorGroup = DecoradoLib.generar(THREE, {
+      rng, limites: bounds,
+      altura: (x, z) => H(x, z),
+      bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
+      agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02,
+      libre: (x, z) => !towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.R + 60) &&
+        !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < 9),
+      caminos: world.roads.map(r => r.points)
+    });
+    scene.add(decorGroup);
   }
 
   function buildLabels() {
