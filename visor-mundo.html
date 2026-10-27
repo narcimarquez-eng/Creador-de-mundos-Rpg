@@ -221,22 +221,21 @@
 
   <div id="toast"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="js/world-core.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="js/arboles.js"></script>
-  <script src="js/pueblo-edits.js"></script>
-  <script src="js/village-core.js"></script>
-  <script src="js/combat.js"></script>
-  <script src="js/items.js"></script>
-  <script src="js/partida.js"></script>
-  <script src="js/terreno.js"></script>
-  <script src="js/character.js"></script>
-  <script src="js/enemigos.js"></script>
-  <script src="js/enemigos-optimizar.js"></script>
-  <script src="js/enemigos-combate.js"></script>
-  <script>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <script type="module" src="js/three-puente.js"></script>
+  <script type="module" src="js/world-core.js"></script>
+  <script type="module" src="js/arboles.js"></script>
+  <script type="module" src="js/pueblo-edits.js"></script>
+  <script type="module" src="js/village-core.js"></script>
+  <script type="module" src="js/combat.js"></script>
+  <script type="module" src="js/items.js"></script>
+  <script type="module" src="js/partida.js"></script>
+  <script type="module" src="js/terreno.js"></script>
+  <script type="module" src="js/character.js"></script>
+  <script type="module" src="js/enemigos.js"></script>
+  <script type="module" src="js/enemigos-optimizar.js"></script>
+  <script type="module" src="js/enemigos-combate.js"></script>
+  <script type="module">
   "use strict";
   const W = window.RPGWorld;
   const SEA = W.SEA_LEVEL;
@@ -1354,6 +1353,8 @@
   }
 
   function buildMonsters() {
+    enemyMode = (world.settings && world.settings.enemyMode) || enemyMode;
+    $('sel-enemigos').value = enemyMode;
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     const barGeo = new THREE.PlaneGeometry(2.6, 0.28);
@@ -1367,7 +1368,8 @@
           const m = CombatLib.newMonster({ level: info.level, boss: info.boss, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, leash: z.radius + 25 });
           m.name = info.name; m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
           m.group = new THREE.Group();
-          m.enemigo = elegirEnemigo(info, rng);
+          // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
+          m.enemigo = (info.enemigo && EnemyLib.ARCHETYPE_PRESETS[info.enemigo]) || elegirEnemigo(info, rng);
           m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
           m.group.visible = false;
           scene.add(m.group);
@@ -2124,6 +2126,7 @@
       $('load').classList.add('show');
     }
   })();
+    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

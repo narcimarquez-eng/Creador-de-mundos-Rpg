@@ -42,4 +42,15 @@ await build({
   },
   logLevel: 'warning',
 });
-console.log('escrito js/enemigos.js');
+await build({
+  entryPoints: [path.join(here, 'enemigos-src', 'catalogo.ts')],
+  bundle: true,
+  format: 'iife',
+  globalName: 'EnemyCatalogModule',
+  target: 'es2018',
+  outfile: path.join(here, '..', 'js', 'enemigos-catalogo.js'),
+  banner: { js: '// Generado por tools/hornear-enemigos.mjs desde el editor «Enemigo-rpg». No editar a mano.\n' },
+  footer: { js: "if (typeof window !== 'undefined') window.ENEMY_CATALOG = EnemyCatalogModule.ENEMY_CATALOG;" },
+  logLevel: 'warning',
+});
+console.log('escrito js/enemigos.js y js/enemigos-catalogo.js');

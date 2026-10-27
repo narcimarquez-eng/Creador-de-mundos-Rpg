@@ -122,6 +122,8 @@
     table.mon { width: 100%; border-collapse: collapse; font-size: 12px; }
     table.mon td { padding: 2px 2px; }
     table.mon input { padding: 4px 5px; }
+    table.mon select { padding: 3px 2px; font-size: 11px; max-width: 100%; }
+    table.mon select[data-mf="density"] { width: 74px; }
     table.mon td.lv { width: 54px; }
     table.mon td.x { width: 28px; }
     table.mon button { padding: 3px 7px; }
@@ -244,8 +246,16 @@
   <div id="toast"></div>
 
   <script src="js/world-core.js"></script>
+  <script src="js/enemigos-catalogo.js"></script>
   <script>
   "use strict";
+  // Enemigos del catálogo (js/enemigos-catalogo.js) agrupados por raza; `actual` es la clave elegida
+  function enemyOptions(actual) {
+    const grupos = {};
+    (window.ENEMY_CATALOG || []).forEach(e => { (grupos[e.raceLabel] = grupos[e.raceLabel] || []).push(e); });
+    return Object.keys(grupos).map(raza => `<optgroup label="${esc(raza)}">${grupos[raza].map(e =>
+      `<option value="${e.key}" ${actual === e.key ? 'selected' : ''}>${esc(e.name)} · nv ${e.level}${e.boss ? ' · jefe' : ''}</option>`).join('')}</optgroup>`).join('');
+  }
   const W = window.RPGWorld;
 
   // ===========================================================================
@@ -1018,6 +1028,8 @@
       <input type="range" data-s="spacing" min="600" max="3000" step="100" value="${S.spacing}">
       <label>Caminos extra: <b>${Math.round(S.extraLinks * 100)}%</b></label>
       <input type="range" data-s="extraLinks" data-pct="1" min="0" max="100" value="${Math.round(S.extraLinks * 100)}">
+      <label>Enemigos de los monstruos (sin elegir)</label>
+      <select data-s="enemyMode"><option value="niveles" ${S.enemyMode !== 'aleatorio' ? 'selected' : ''}>Por nivel</option><option value="aleatorio" ${S.enemyMode === 'aleatorio' ? 'selected' : ''}>Aleatorios</option></select>
       <label>Zonas por camino</label>
       <select data-s="zonesPerRoad"><option value="0" ${S.zonesPerRoad == 0 ? 'selected' : ''}>Ninguna</option><option value="1" ${S.zonesPerRoad == 1 ? 'selected' : ''}>1</option><option value="2" ${S.zonesPerRoad == 2 ? 'selected' : ''}>1–2 según longitud</option></select>
       <label>Lugares por zona: <b>${Math.round(S.poiChance * 100)}%</b></label>
@@ -1147,6 +1159,8 @@
         ${z.monsters.map((m, i) => `<tr>
           <td><input type="text" data-m="${i}" data-mf="name" value="${esc(m.name)}" ${m.boss ? 'style="color:#fca5a5"' : ''}></td>
           <td class="lv"><input type="number" min="1" max="120" data-m="${i}" data-mf="level" value="${m.level}"></td>
+          <td><select data-m="${i}" data-mf="density">${['baja', 'media', 'alta', 'única'].map(d => `<option ${m.density === d ? 'selected' : ''}>${d}</option>`).join('')}</select></td>
+          <td><select data-m="${i}" data-mf="enemigo"><option value="">Automático</option>${enemyOptions(m.enemigo)}</select></td>
           <td class="x"><button data-mdel="${i}">✕</button></td></tr>`).join('')}
       </table>
       <div class="btns">
@@ -1195,7 +1209,7 @@
       commit();
     }));
     body.querySelectorAll('[data-s]').forEach(el => el.addEventListener('change', () => {
-      let v = parseFloat(el.value);
+      let v = el.dataset.s === 'enemyMode' ? el.value : parseFloat(el.value);
       if (el.dataset.pct) v = v / 100;
       world.settings[el.dataset.s] = v;
       commit();
@@ -1247,7 +1261,7 @@
     // Monstruos
     body.querySelectorAll('[data-m]').forEach(el => el.addEventListener('change', () => {
       const m = ent.monsters[+el.dataset.m];
-      m[el.dataset.mf] = el.dataset.mf === 'level' ? Math.max(1, parseInt(el.value, 10) || 1) : el.value;
+      m[el.dataset.mf] = el.dataset.mf === 'level' ? Math.max(1, parseInt(el.value, 10) || 1) : (el.dataset.mf === 'enemigo' ? (el.value || null) : el.value);
       commit();
     }));
     body.querySelectorAll('[data-mdel]').forEach(el => el.addEventListener('click', () => {
@@ -1302,7 +1316,7 @@
         break;
       }
       case 'mon-add':
-        ent.monsters.push({ name: 'Nuevo monstruo', level: ent.levelMax, density: 'media', boss: false });
+        ent.monsters.push({ name: 'Nuevo monstruo', level: ent.levelMax, density: 'media', boss: false, enemigo: null });
         commit();
         break;
       case 'mon-roll': W.rerollZoneMonsters(world, ent); commit(); break;

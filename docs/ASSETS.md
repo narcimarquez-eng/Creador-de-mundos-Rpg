@@ -78,6 +78,11 @@ con los dos brazos alzados, el núcleo brillando y un proyectil; reacción al go
 muerte, que dura un segundo antes de desaparecer. El daño del enemigo llega cuando el golpe o el proyectil alcanzan al héroe (proyectil: al final de su recorrido, hasta la posición del héroe), no al empezar el gesto. El enemigo mágico se elige por raza (`magical`) o arma (`arcane_staff`,
 `dragon_breath_maw`); el resto usa golpe.
 
+## Motor 3D
+
+Three.js r186.1 (ES modules, con `importmap` desde jsDelivr). Los scripts del juego esperan `THREE` como global:
+`js/three-puente.js` lo deja preparado. Las herramientas de horneado (`tools/`) usan la misma versión.
+
 ## Pendiente de añadir
 
 | Fase | Qué | Fuente prevista |

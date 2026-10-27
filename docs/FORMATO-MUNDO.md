@@ -19,7 +19,8 @@ Unidades en **metros**; `x, y` del mapa = `x, z` en 3D.
     "extraLinks": 0.35,         // probabilidad de caminos extra (0–1)
     "zonesPerRoad": 2,          // 0, 1 o 2
     "poiChance": 0.45,          // probabilidad de lugar de interés por zona (0–1)
-    "metersPerLevel": 180       // metros de camino por nivel recomendado
+    "metersPerLevel": 180,      // metros de camino por nivel recomendado
+    "enemyMode": "niveles"      // enemigo de los monstruos sin elegir: "niveles" o "aleatorio"
   },
   "startTownId": "t_1",         // pueblo inicial (nivel 1)
   "towns": [ /* Pueblo */ ],
@@ -140,7 +141,7 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
 | `biome` | Bioma (decide los monstruos). |
 | `levelMin`, `levelMax` | Rango de nivel. |
 | `roadId`, `roadT`, `anchored` | Camino en el que está, posición (0–1) y si sigue al camino al moverlo. |
-| `monsters` | `[{ name, level, density, boss }]`. |
+| `monsters` | `[{ name, level, density, boss, enemigo }]`. `density`: `baja` (1 monstruo), `media` (2), `alta` (3) o `única` (jefe). `enemigo`: clave de un arquetipo del editor (`elder_dragon`, …) o `null` para elegirlo según `settings.enemyMode`. |
 | `respawnSec` | Segundos de reaparición. |
 | `notes` | Texto libre. |
 
