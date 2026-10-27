@@ -859,8 +859,10 @@
       editToolsEl.querySelectorAll('button[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === editTool));
       const undoBtn = document.getElementById('btn-edit-undo');
       const redoBtn = document.getElementById('btn-edit-redo');
+      const discardBtn = document.getElementById('btn-edit-discard');
       if (undoBtn) undoBtn.disabled = !opsNow().length;
       if (redoBtn) redoBtn.disabled = !redoOps.length;
+      if (discardBtn) discardBtn.style.display = other ? '' : 'none';
     }
 
     // Regenera el pueblo con las ediciones (o con ops de vista previa mientras se arrastra)
@@ -899,6 +901,16 @@
       updateEditInfo();
     }
 
+    // Descarta las ediciones de otra base (las que no se aplican ahora)
+    function discardStaleEdits() {
+      if (!edits.ops.length || edits.base === currentBase()) return;
+      if (!confirm('¿Descartar las ediciones guardadas para otra base? Se perderán.')) return;
+      edits = { base: null, ops: [] };
+      redoOps = [];
+      regenerateEdited();
+      updateEditInfo();
+    }
+
     function resetEdits() {
       if (!opsNow().length) return;
       if (!confirm('¿Quitar todas las ediciones de este pueblo?')) return;
@@ -923,12 +935,13 @@
       b.addEventListener('click', () => setEditTool(t.id));
       editToolsEl.appendChild(b);
     });
-    [['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits]]
+    [['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits], ['btn-edit-discard', 'Descartar ediciones de otra base', discardStaleEdits]]
       .forEach(([id, label, fn], i) => {
         if (i === 0) { const sep = document.createElement('span'); sep.className = 'sep'; editToolsEl.appendChild(sep); }
         const b = document.createElement('button');
         b.type = 'button';
         b.id = id;
+        if (id === 'btn-edit-discard') b.style.display = 'none';
         b.textContent = label;
         b.addEventListener('click', fn);
         editToolsEl.appendChild(b);
