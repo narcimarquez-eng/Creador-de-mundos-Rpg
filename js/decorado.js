@@ -47,22 +47,31 @@
       const b = o.bioma(x, z);
       const prob = (ROCA_BIOMA[b] || 0) + Math.min(0.6, pendiente(x, z) * 1.2);
       if (!rng.chance(Math.min(0.9, prob))) continue;
-      rocas.push({ x, z, color: ROCA_COLOR[Math.floor(rng.next() * ROCA_COLOR.length)], tam: 0.5 + Math.pow(rng.next(), 2) * 2.6, ry: rng.next() * 6.28 });
+      rocas.push({ x, z, v: Math.floor(rng.next() * 3), color: ROCA_COLOR[Math.floor(rng.next() * ROCA_COLOR.length)], tam: 0.5 + Math.pow(rng.next(), 2) * 2.6, ry: rng.next() * 6.28 });
     }
     if (rocas.length) {
-      const malla = new THREE.InstancedMesh(rocaGeo, material({ flatShading: true }), rocas.length);
-      rocas.forEach((r, i) => {
-        ponerInstancia(malla, i, r.x, o.altura(r.x, r.z) - 0.15 * r.tam, r.z, r.tam, r.tam * (0.55 + 0.3 * rng.next()), r.tam * (0.8 + 0.3 * rng.next()), r.ry, r.color);
+      // Con New-Rol: tres formas de canto (cantos rodados de su generador); si no, el icosaedro de arriba
+      const formas = o.props ? [1, 2, 3].map(s => o.props.rocaGeo(s, 3)) : [rocaGeo];
+      formas.forEach((geo, j) => {
+        const lista = rocas.filter(r => formas.length === 1 || r.v === j);
+        if (!lista.length) return;
+        const malla = new THREE.InstancedMesh(geo, material({ flatShading: !o.props }), lista.length);
+        lista.forEach((r, i) => {
+          ponerInstancia(malla, i, r.x, o.altura(r.x, r.z) - 0.15 * r.tam, r.z, r.tam, r.tam * (0.55 + 0.3 * rng.next()), r.tam * (0.8 + 0.3 * rng.next()), r.ry, r.color);
+        });
+        malla.instanceMatrix.needsUpdate = true;
+        malla.instanceColor.needsUpdate = true;
+        grupo.add(malla);
       });
-      malla.instanceMatrix.needsUpdate = true;
-      malla.instanceColor.needsUpdate = true;
-      grupo.add(malla);
     }
 
     // ---------------------------------------------------------------- Matorrales
-    // Arbusto de Kenney (CC0) si el visor lo ha cargado; si no, un poliedro de código
+    // Arbustos: el de Kenney (CC0) y el de New-Rol, mezclados; si no hay ninguno, un poliedro de código
     const arbusto = o.arbusto;
-    const matGeo = arbusto ? arbusto.geometry : new THREE.IcosahedronGeometry(1, 0);
+    const opciones = [];
+    if (arbusto) opciones.push({ geo: arbusto.geometry, mat: arbusto.material, base: 0, alto: 1 });
+    if (o.props) opciones.push({ geo: o.props.arbustoGeo(), mat: material({ vertexColors: true }), base: 0, alto: 1 });
+    if (!opciones.length) opciones.push({ geo: new THREE.IcosahedronGeometry(1, 0), mat: material({ flatShading: true }), base: 0.2, alto: 0.7 });
     const matorrales = [];
     const cantMatorrales = Math.min(5000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 900));
     for (let k = 0; k < cantMatorrales * 2 && matorrales.length < cantMatorrales; k++) {
@@ -70,15 +79,17 @@
       if (o.agua(x, z) || !o.libre(x, z)) continue;
       const b = o.bioma(x, z);
       if (!rng.chance((MATORRAL_BIOMA[b] || 0) * (1 - Math.min(0.8, pendiente(x, z) * 2)))) continue;
-      matorrales.push({ x, z, color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)], tam: 0.8 + rng.next() * 1.4, ry: rng.next() * 6.28 });
+      matorrales.push({ x, z, o: Math.floor(rng.next() * opciones.length), color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)], tam: 0.8 + rng.next() * 1.4, ry: rng.next() * 6.28 });
     }
-    if (matorrales.length) {
-      const malla = new THREE.InstancedMesh(matGeo, arbusto ? arbusto.material : material({ flatShading: true }), matorrales.length);
-      matorrales.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + (arbusto ? 0 : 0.2 * m.tam), m.z, m.tam, arbusto ? m.tam : m.tam * 0.7, m.tam, m.ry, m.color));
+    opciones.forEach((op, j) => {
+      const lista = matorrales.filter(m => m.o === j);
+      if (!lista.length) return;
+      const malla = new THREE.InstancedMesh(op.geo, op.mat, lista.length);
+      lista.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, op.alto === 1 ? m.tam : m.tam * 0.7, m.tam, m.ry, m.color));
       malla.instanceMatrix.needsUpdate = true;
       malla.instanceColor.needsUpdate = true;
       grupo.add(malla);
-    }
+    });
 
     // ---------------------------------------------------------------- Casas en ruinas
     // Restos de muros de piedra de altura irregular, con cascotes alrededor
@@ -158,7 +169,7 @@
     // ---------------------------------------------------------------- Vallas
     // Líneas paralelas a los caminos, a unos metros de ellos. Tres tipos: de madera, de piedra y rotas.
     const tramo = 4;
-    const postes = [], travesanos = [], muretes = [];
+    const postes = [], travesanos = [], muretes = [], setos = [];
     o.caminos.forEach(pts => {
       if (!pts || pts.length < 2) return;
       let acum = 0;
@@ -182,8 +193,9 @@
               if (rng.chance(0.08)) continue;
               postes.push({ x: px0, z: pz0, y: o.altura(px0, pz0), ry });
               travesanos.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
-            } else if (tipo < 0.7) {                          // muro bajo de piedra
-              muretes.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
+            } else if (tipo < 0.7) {                          // muro bajo de piedra, o seto si hay New-Rol
+              if (o.props && rng.chance(0.5)) setos.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
+              else muretes.push({ x: cx, z: cz, y: o.altura(cx, cz), ry });
             } else {                                          // valla rota: madera con muchos huecos
               if (!rng.chance(0.4)) continue;
               postes.push({ x: px0, z: pz0, y: o.altura(px0, pz0), ry });
@@ -207,6 +219,12 @@
       });
       tm.instanceMatrix.needsUpdate = true; tm.instanceColor.needsUpdate = true;
       grupo.add(tm);
+    }
+    if (setos.length) {
+      const malla = new THREE.InstancedMesh(o.props.setoGeo(), material({ vertexColors: true }), setos.length);
+      setos.forEach((c, j) => ponerInstancia(malla, j, c.x, c.y, c.z, 1, 1, 1, c.ry, undefined));
+      malla.instanceMatrix.needsUpdate = true;
+      grupo.add(malla);
     }
     if (muretes.length) {
       const mGeo = new THREE.BoxGeometry(tramo, 0.9, 0.5); mGeo.translate(0, 0.45, 0);

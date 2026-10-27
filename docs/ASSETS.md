@@ -66,6 +66,14 @@ Fuente: **Kenney Nature Kit** (kenney.nl), licencia **CC0 1.0**. El modelo viene
 textura, y su licencia en `assets/vegetacion/LICENCIA-kenney-nature-kit.txt`. El visor lo escala a 1,6 m de alto y
 lo coloca en `js/decorado.js` como matorral (instanciado). Si no carga, se usan matorrales de código.
 
+## Props de New-Rol (rocas, arbustos, setos y vallas)
+
+Fuente: `js/props-newrol.js`, portado de `src/world/Props.js` y `src/gfx/ModelKit.js` del repositorio `New-Rol`
+(de la misma cuenta). Son geometrías generadas por código, sin archivos de terceros: `rocaGeo` (cantos de tres
+formas, con ruido `fbm`), `arbustoGeo`, `setoGeo` (bloques de 4 m para lindes) y `vallaGeo`. Se usan en
+`js/decorado.js` junto a los arbustos de Kenney. El repositorio New-Rol no declara licencia de su código propio;
+como es de la misma cuenta, se usa tal cual, pero conviene confirmarlo antes de publicar el juego.
+
 ## Rocas y setos
 
 Las rocas son icosaedros con relieve irregular generados por código, sin textura externa. Los setos son cajas procedurales.

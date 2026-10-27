@@ -245,6 +245,7 @@
   <script type="module" src="js/enemigos-optimizar.js"></script>
   <script type="module" src="js/enemigos-combate.js"></script>
   <script type="module">
+  import * as NR from "./js/props-newrol.js";
   "use strict";
   const W = window.RPGWorld;
   const SEA = W.SEA_LEVEL;
@@ -1367,7 +1368,7 @@
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     const rng = new W.PRNG((world.seed ^ 0x7e7e) >>> 0);
     decorGroup = DecoradoLib.generar(THREE, {
-      rng, limites: bounds, arbusto: arbustoGLB,
+      rng, limites: bounds, arbusto: arbustoGLB, props: NR,
       altura: (x, z) => H(x, z),
       bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
       agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02,
