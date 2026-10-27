@@ -151,6 +151,7 @@
       <label><input type="checkbox" id="chk-trees" checked> Bosques</label>
       <label><input type="checkbox" id="chk-water" checked> Agua</label>
       <label>Calidad <select id="sel-quality"><option value="bajo">Bajo</option><option value="medio">Medio</option><option value="alto">Alto</option></select></label>
+      <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
     </div>
   </aside>
 
@@ -231,6 +232,7 @@
   <script src="js/partida.js"></script>
   <script src="js/terreno.js"></script>
   <script src="js/character.js"></script>
+  <script src="js/enemigos.js"></script>
   <script>
   "use strict";
   const W = window.RPGWorld;
@@ -1306,18 +1308,30 @@
   let lastNowSec = 0, lastHud = 0;
   let deadTimerShown = false;
 
-  function monsterColor(level) {
-    const maxL = Math.max(10, W.stats(world).maxLevel);
-    return new THREE.Color().setHSL((130 - 130 * Math.min(1, (level - 1) / maxL)) / 360, 0.7, 0.5);
+
+  // Enemigos del editor «Enemigo-rpg» (js/enemigos.js). Modo «por niveles»: el arquetipo de nivel más cercano
+  // (entre los 3 más cercanos, al azar); modo «aleatorios»: cualquiera del mismo tipo (normal o jefe).
+  let enemyMode = 'niveles';
+  let enemyTextures = null;
+  const ENEMY_PRESETS = Object.values(EnemyLib.ARCHETYPE_PRESETS);
+  const esJefeEnemigo = c => c.stats.tier === 'Mini-Boss' || c.stats.tier === 'Raid Boss';
+  function elegirEnemigo(info, rng) {
+    const pool = ENEMY_PRESETS.filter(c => esJefeEnemigo(c) === !!info.boss);
+    if (enemyMode === 'aleatorio') return pool[Math.min(pool.length - 1, Math.floor(rng.range(0, pool.length)))];
+    const cercanos = pool.slice().sort((a, b) => Math.abs(a.stats.level - info.level) - Math.abs(b.stats.level - info.level)).slice(0, 3);
+    return cercanos[Math.min(cercanos.length - 1, Math.floor(rng.range(0, cercanos.length)))];
+  }
+  function construirModeloEnemigo(m) {
+    if (m.rig) return;
+    if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(renderer.capabilities.getMaxAnisotropy());
+    m.rig = EnemyLib.buildProceduralEnemy(m.enemigo, enemyTextures, false, false);
+    m.group.add(m.rig.rootGroup);
+    m.barHeight = new THREE.Box3().setFromObject(m.rig.rootGroup).max.y + 0.9;
   }
 
   function buildMonsters() {
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
-    const geoBody = new THREE.ConeGeometry(0.7, 1.7, 7);
-    geoBody.translate(0, 0.85, 0);
-    const geoBoss = new THREE.ConeGeometry(1.8, 4.2, 8);
-    geoBoss.translate(0, 2.1, 0);
     const barGeo = new THREE.PlaneGeometry(2.6, 0.28);
     world.zones.forEach(z => {
       z.monsters.forEach((info, mi) => {
@@ -1329,8 +1343,8 @@
           const m = CombatLib.newMonster({ level: info.level, boss: info.boss, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, leash: z.radius + 25 });
           m.name = info.name; m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
           m.group = new THREE.Group();
-          m.mat = new THREE.MeshLambertMaterial({ color: info.boss ? '#dc2626' : monsterColor(info.level), emissive: '#000000' });
-          m.group.add(new THREE.Mesh(info.boss ? geoBoss : geoBody, m.mat));
+          m.enemigo = elegirEnemigo(info, rng);
+          m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
           m.group.visible = false;
           scene.add(m.group);
           // Barra de vida: fondo oscuro y relleno que se acorta con el daño
@@ -1339,7 +1353,7 @@
           m.fg = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.2), new THREE.MeshBasicMaterial({ color: '#22c55e', depthTest: false }));
           m.fg.position.z = 0.01;
           m.bar.add(bg, m.fg);
-          m.barHeight = info.boss ? 5.6 : 2.9;
+          m.barHeight = info.boss ? 5.6 : 2.9;   // se ajusta al tamaño real del modelo al construirlo
           m.bar.visible = false;
           scene.add(m.bar);
           monsters.push(m);
@@ -1484,10 +1498,11 @@
       const near = d < 420;
       m.group.visible = near;
       if (near) {
-        const bob = m.state === 'chase' ? 0 : Math.sin(now / 600 + m.phase) * 0.15;
-        m.group.position.set(m.x, H(m.x, m.z) + bob, m.z);
+        construirModeloEnemigo(m);
+        m.group.position.set(m.x, H(m.x, m.z), m.z);
         if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
-        m.mat.emissive.setHex(now < m.flashUntil ? 0x7f1d1d : 0x000000);
+        const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
+        EnemyLib.updateEnemyAnimation(m.rig, estado, now / 1000, dt, 1, 0);
       }
       const showBar = near && (m.hp < m.maxHp || d < 12);
       m.bar.visible = showBar;
@@ -1958,6 +1973,7 @@
   $('chk-labels').onchange = e => { townLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked || !$('chk-zones').checked)); };
   $('chk-trees').onchange = e => { if (treeMesh) treeMesh.visible = e.target.checked; };
   $('sel-quality').onchange = e => applyQuality(e.target.value, true);
+  $('sel-enemigos').onchange = e => { enemyMode = e.target.value; buildMonsters(); };
   $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
 
   // ===========================================================================

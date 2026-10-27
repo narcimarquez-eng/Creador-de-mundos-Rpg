@@ -61,6 +61,17 @@ atlas del pueblo; los tipos calle, calzada y sendero se distinguen por su anchur
 
 Las rocas son icosaedros con relieve irregular generados por código, sin textura externa. Los setos son cajas procedurales.
 
+## Enemigos (generación procedural)
+
+Fuente: el editor «Enemigo-rpg» de la misma cuenta (https://github.com/narcimarquez-eng/enemigo-rpg). Se copian
+`enemyBuilder.ts`, `proceduralTextures.ts` y `types/enemy.ts` a `tools/enemigos-src/` y se compilan a
+`js/enemigos.js` con `node tools/hornear-enemigos.mjs`. El repositorio no declara licencia; antes de publicar el
+juego conviene confirmar el uso del código con su autor. Los modelos no son archivos: se construyen en el navegador,
+y las animaciones se calculan cada fotograma.
+
+Coste medido en Three r128 (40 arquetipos): de media 3.700 triángulos y 74 mallas por enemigo. Cada enemigo visible
+suma sus mallas, así que conviene reducirlo antes de móvil.
+
 ## Pendiente de añadir
 
 | Fase | Qué | Fuente prevista |
