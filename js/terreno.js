@@ -50,12 +50,16 @@
           'uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tRock; uniform sampler2D tSand; uniform sampler2D tSnow;',
           'uniform float uTile; uniform float uTexOn;',
           'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld;',
-          'vec3 terrainTex(sampler2D t) { vec2 a = vTWorld.xz * uTile; vec2 b = vTWorld.xz * uTile * 0.31; return mix(texture2D(t, a).rgb, texture2D(t, b).rgb, 0.4); }'
+          'vec3 terrainTex(sampler2D t) { vec2 a = vTWorld.xz * uTile; vec2 b = vTWorld.xz * uTile * 0.31; return mix(texture2D(t, a).rgb, texture2D(t, b).rgb, 0.4); }',
+          // Ruido de valor: rompe la repetición de las texturas con manchas de tono a gran escala
+          'float ruidoValor(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }'
         ].join('\n'))
         .replace('#include <color_fragment>', [
           '#include <color_fragment>',
           'vec3 tex = terrainTex(tGrass) * vSplat.x + terrainTex(tDirt) * vSplat.y + terrainTex(tRock) * vSplat.z + terrainTex(tSand) * vSplat.w + terrainTex(tSnow) * vSnow;',
-          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn);'
+          'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
+          'vec3 tinte = mix(vec3(1.0, 0.97, 0.9), vec3(0.93, 1.02, 0.88), ruidoValor(vTWorld.xz * 0.006 + 17.0));',
+          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * tinte;'
         ].join('\n'));
     };
     return m;
