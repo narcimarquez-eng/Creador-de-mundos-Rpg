@@ -271,6 +271,7 @@
   const LOAD_R = 650, UNLOAD_R = 900, MAX_LOADED = 6;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
+  let aguaPuebloMat = null;
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
@@ -424,6 +425,11 @@
     [a, b, c].forEach(v => { this.p.push(v[0], v[1], v[2]); this.c.push(col[0], col[1], col[2]); });
   };
   MB.prototype.quad = function (a, b, c, d, col) { this.tri(a, b, c, col); this.tri(a, c, d, col); };
+  // Igual que tri/quad, pero con un color por vértice (la espuma de las orillas va en el rojo)
+  MB.prototype.triC = function (a, b, c, ca, cb, cc) {
+    [[a, ca], [b, cb], [c, cc]].forEach(([v, col]) => { this.p.push(v[0], v[1], v[2]); this.c.push(col[0], col[1], col[2]); });
+  };
+  MB.prototype.quadC = function (a, b, c, d, ca, cb, cc, cd) { this.triC(a, b, c, ca, cb, cc); this.triC(a, c, d, ca, cc, cd); };
   MB.prototype.fan = function (center, ring, col) {
     for (let i = 0; i < ring.length; i++) this.tri(center, ring[i], ring[(i + 1) % ring.length], col);
   };
@@ -829,6 +835,7 @@
   }
 
   function buildNear(cx, cz) {
+    if (trozoConRio(cx, cz)) return buildFineNear(cx, cz);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
@@ -912,11 +919,99 @@
     updateTerrainChunks(performance.now(), true);
   }
 
+  // ===========================================================================
+  // Agua: superficie animada con rizos y brillo; en los ríos, espuma en las orillas
+  // ===========================================================================
+  const AGUA_U = { uTime: { value: 0 } };
+  const AGUA_FRAG = `
+    vec2 p = vMundo;
+    float o1 = sin(p.x * 0.35 + uTime * 0.9) + sin(p.y * 0.42 - uTime * 0.7);
+    float o2 = sin((p.x + p.y) * 0.9 + uTime * 1.6) + sin((p.x - p.y) * 0.7 - uTime * 1.2);
+    float rizo = clamp(0.5 + 0.2 * o1 + 0.1 * o2, 0.0, 1.0);
+    vec3 agua = mix(uAguaHonda, uAguaClara, rizo);
+    agua += vec3(smoothstep(1.2, 1.9, o1 + 0.5 * o2) * 0.35);
+    #ifdef USE_COLOR
+      if (uOrillas > 0.5) agua = mix(agua, vec3(0.92, 0.97, 1.0), smoothstep(0.45, 1.0, vColor.r));
+    #endif
+    diffuseColor.rgb = agua;`;
+  function aguaMaterial(orillas, opacidad) {
+    const m = new THREE.MeshLambertMaterial({ vertexColors: orillas, transparent: true, opacity: opacidad, side: THREE.DoubleSide });
+    m.onBeforeCompile = shader => {
+      shader.uniforms.uTime = AGUA_U.uTime;
+      shader.uniforms.uOrillas = { value: orillas ? 1 : 0 };
+      shader.uniforms.uAguaHonda = { value: new THREE.Color('#0b4a6e') };
+      shader.uniforms.uAguaClara = { value: new THREE.Color('#2b8fbd') };
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMundo = (modelMatrix * vec4(transformed, 1.0)).xz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nuniform float uTime;\nuniform float uOrillas;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;')
+        .replace('#include <color_fragment>', '#include <color_fragment>' + AGUA_FRAG);
+    };
+    return m;
+  }
+
+  // ===========================================================================
+  // Terreno fino junto a los ríos: los trozos cercanos que tienen un río usan celdas FINO veces
+  // más pequeñas que la rejilla, para que el cauce y sus orillas no salgan a escalones
+  // ===========================================================================
+  const FINO = 4;
+  function trozoConRio(cx, cz) {
+    const g = terrainGrid;
+    const xa = g.x0 + cx * CHUNK * g.step - 40, xb = xa + CHUNK * g.step + 80;
+    const za = g.z0 + cz * CHUNK * g.step - 40, zb = za + CHUNK * g.step + 80;
+    return rios.some(r => r.segs.some(s =>
+      Math.max(s.ax, s.bx) >= xa && Math.min(s.ax, s.bx) <= xb && Math.max(s.az, s.bz) >= za && Math.min(s.az, s.bz) <= zb));
+  }
+  function buildFineNear(cx, cz) {
+    const g = terrainGrid;
+    const cellsI = Math.min(CHUNK, g.n - cx * CHUNK), cellsJ = Math.min(CHUNK, g.n - cz * CHUNK);
+    const fs = g.step / FINO;
+    const nI = cellsI * FINO, nJ = cellsJ * FINO, NI = nI + 1, NJ = nJ + 1, M = NI + 2;
+    const xo = g.x0 + cx * CHUNK * g.step, zo = g.z0 + cz * CHUNK * g.step;
+    // Alturas con un anillo extra, para las normales de los bordes
+    const alt = new Float32Array(M * (NJ + 2));
+    for (let j = -1; j <= NJ; j++) for (let i = -1; i <= NI; i++) alt[(j + 1) * M + i + 1] = Hgen(xo + i * fs, zo + j * fs);
+    const hAt = (i, j) => alt[(j + 1) * M + i + 1];
+    const pos = new Float32Array(NI * NJ * 3), col = new Float32Array(NI * NJ * 3), nrm = new Float32Array(NI * NJ * 3);
+    const splat = new Float32Array(NI * NJ * 4), snowA = new Float32Array(NI * NJ);
+    for (let j = 0; j < NJ; j++) for (let i = 0; i < NI; i++) {
+      const k = j * NI + i, x = xo + i * fs, z = zo + j * fs, h = hAt(i, j);
+      const dx = (hAt(i + 1, j) - hAt(i - 1, j)) / (2 * fs), dz = (hAt(i, j + 1) - hAt(i, j - 1)) / (2 * fs);
+      const l = Math.hypot(-dx, 1, -dz), nv = [-dx / l, 1 / l, -dz / l];
+      const b = terrain.biomeAt(x, z, terrain.elevation(x, z));
+      const c = W.BIOMES[b].color;
+      pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z;
+      col[k * 3] = 1 - 0.55 * (1 - c[0] / 255); col[k * 3 + 1] = 1 - 0.55 * (1 - c[1] / 255); col[k * 3 + 2] = 1 - 0.55 * (1 - c[2] / 255);
+      nrm.set(nv, k * 3);
+      const w = TerrainLib.splatFor(b, 1 - nv[1], h);
+      splat.set(w.splat, k * 4); snowA[k] = w.snow;
+    }
+    const idx = [];
+    for (let j = 0; j < nJ; j++) for (let i = 0; i < nI; i++) {
+      const x0 = xo + i * fs, z0 = zo + j * fs;
+      if ([[0, 0], [fs, 0], [0, fs], [fs, fs]].every(([dx, dz]) => townTileAt(x0 + dx, z0 + dz))) continue;
+      const a = j * NI + i, b = a + 1, c = a + NI, d = c + 1;
+      idx.push(a, c, b, b, c, d);
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geom.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+    geom.setAttribute('aSplat', new THREE.BufferAttribute(splat, 4));
+    geom.setAttribute('aSnow', new THREE.BufferAttribute(snowA, 1));
+    geom.setIndex(idx);
+    const m = new THREE.Mesh(geom, terrainMat);
+    m.receiveShadow = true;
+    scene.add(m);
+    return m;
+  }
+
   function buildWater() {
     const ext = bounds.size * 1.4;
     const g = new THREE.PlaneGeometry(ext, ext);
     g.rotateX(-Math.PI / 2);
-    waterMesh = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: '#1e6fa8', transparent: true, opacity: 0.82 }));
+    waterMesh = new THREE.Mesh(g, aguaMaterial(false, 0.82));
     waterMesh.position.set(bounds.cx, 0, bounds.cz);
     waterMesh.visible = $('chk-water').checked;
     scene.add(waterMesh);
@@ -1133,7 +1228,8 @@
   // Agua de los ríos fuera de los pueblos, a la altura de su curso (baja hasta el mar).
   // Dentro del pueblo el agua la pone su propio terreno.
   function buildRios() {
-    const mb = new MB(), col = rgb('#0284c7'), mitad = RIO_CAUCE + 1;
+    const mb = new MB(), mitad = RIO_CAUCE + 1;
+    const E = [1, 0, 0], C = [0, 0, 0];   // rojo = espuma (orilla); 0 = agua abierta
     rios.forEach(r => r.segs.forEach(s => {
       const dx = (s.ax + s.bx) / 2 - r.o.t.x, dz = (s.az + s.bz) / 2 - r.o.t.y;
       const lx = dx * r.o.cr + dz * r.o.sr, lz = -dx * r.o.sr + dz * r.o.cr;
@@ -1141,9 +1237,12 @@
       let tx = s.bx - s.ax, tz = s.bz - s.az;
       const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
       const nx = -tz * mitad, nz = tx * mitad;
-      mb.quad([s.ax + nx, s.ya, s.az + nz], [s.ax - nx, s.ya, s.az - nz], [s.bx - nx, s.yb, s.bz - nz], [s.bx + nx, s.yb, s.bz + nz], col);
+      const a1 = [s.ax + nx, s.ya, s.az + nz], a0 = [s.ax, s.ya, s.az], a2 = [s.ax - nx, s.ya, s.az - nz];
+      const b1 = [s.bx + nx, s.yb, s.bz + nz], b0 = [s.bx, s.yb, s.bz], b2 = [s.bx - nx, s.yb, s.bz - nz];
+      mb.quadC(a1, a0, b0, b1, E, C, C, E);
+      mb.quadC(a0, a2, b2, b0, C, E, E, C);
     }));
-    riosMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.86, side: THREE.DoubleSide }));
+    riosMesh = new THREE.Mesh(mb.geom(), aguaMaterial(true, 0.9));
     scene.add(riosMesh);
   }
 
@@ -1345,6 +1444,7 @@
     scene.add(group);
     const village = kit.createVillage(group, { skipGround: true });
     village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
+    if (village.waterMesh) { aguaPuebloMat = aguaPuebloMat || aguaMaterial(false, 0.86); village.waterMesh.material = aguaPuebloMat; }
     o.village = village; o.group = group; o.kit = kit;
     createPatch(o);
     o.worldCols = toWorldColliders(o);
@@ -2226,6 +2326,7 @@
     lastT = now;
 
     streamTowns(now);
+    AGUA_U.uTime.value = now / 1000;
     character.update(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
     animateTowns(dt);
