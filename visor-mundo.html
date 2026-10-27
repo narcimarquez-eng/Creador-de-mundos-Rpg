@@ -138,6 +138,7 @@
     <button id="btn-view-detail" title="Fachada del pueblo más cercano">🏠<span class="long"> Fachada</span></button>
     <button id="btn-follow" title="Seguir al personaje (F)">🧍<span class="long"> Seguir</span></button>
     <button id="btn-time" title="Hora del día (T)">☀</button>
+    <button id="btn-full" title="Pantalla completa">⛶<span class="long"> Completa</span></button>
   </div>
 
   <aside id="side">
@@ -492,6 +493,20 @@
 
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
+    // Pantalla completa: la API del navegador (en Android también oculta su barra). El cambio de tamaño
+    // lo recoge el manejador de resize, así que el mapa se redibuja solo.
+    function actualizarBotonPantalla() {
+      $('btn-full').classList.toggle('gold', !!document.fullscreenElement);
+      $('btn-full').title = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
+    }
+    function alternarPantallaCompleta() {
+      const hecho = document.fullscreenElement
+        ? document.exitFullscreen()
+        : document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      Promise.resolve(hecho).catch(() => {}).then(actualizarBotonPantalla);
+    }
+    $('btn-full').onclick = alternarPantallaCompleta;
+    document.addEventListener('fullscreenchange', actualizarBotonPantalla);
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
