@@ -1960,7 +1960,7 @@
 
     streamTowns(now);
     character.update(dt, now / 1000);
-    towns.forEach(o => { if (o.village) o.village.update(now / 1000); });
+    towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
     animateTowns(dt);
     updateAtmosphere(dt);
     updateTerrainChunks(now, false);

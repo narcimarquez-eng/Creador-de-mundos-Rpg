@@ -83,9 +83,25 @@
         hojas: { geo: geoDe(d.hojas), mat: treeMat[matKey('hojas')] }
       });
     }
-    // Nivel de detalle según la distancia al pueblo: lo cercano lleva más hojas
-    function nivelArbol(t, townRadius) {
-      return Math.hypot(t.x, t.z) < townRadius + 25 ? 'cerca' : 'lejos';
+    // Detalle de los árboles por distancia a la cámara: dentro de TREE_LOD_M se ven con el nivel «cerca»
+    const TREE_LOD_M = 70;
+    const treeLodInv = new THREE.Matrix4(), treeLodCam = new THREE.Vector3();
+    // Reparte los árboles de un grupo entre «cerca» y «lejos». Sin cámara (cz null) todos van en «cerca»
+    function repartirArboles(grupo, cx, cz) {
+      const R2 = TREE_LOD_M * TREE_LOD_M;
+      let nc = 0, nl = 0;
+      grupo.arboles.forEach(a => {
+        const cerca = cz === null || (a.x - cx) * (a.x - cx) + (a.z - cz) * (a.z - cz) < R2;
+        const parte = cerca ? grupo.cerca : grupo.lejos;
+        const k = cerca ? nc++ : nl++;
+        parte.ramas.setMatrixAt(k, a.m);
+        parte.hojas.setMatrixAt(k, a.m);
+        parte.hojas.setColorAt(k, a.color);
+      });
+      [[grupo.cerca, nc], [grupo.lejos, nl]].forEach(([parte, n]) => {
+        [parte.ramas, parte.hojas].forEach(m => { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; });
+        parte.hojas.instanceColor.needsUpdate = true;
+      });
     }
 
     // Roca: icosaedro con relieve irregular y aplastado, para que parezca piedra (una sola geometría compartida)
@@ -877,6 +893,17 @@
         this.plazaLight = new THREE.PointLight('#38bdf8', kitState.levels.plaza, 55, 1.5);
         this.forgeLight = new THREE.PointLight('#f97316', kitState.levels.forge, 35, 1.5);
         kitState.instances.add(this);
+      }
+
+      // Reparte los árboles entre «cerca» y «lejos» según la distancia a la cámara (solo si el visor lo pide).
+      // Se recalcula al moverse la cámara más de 1 m.
+      updateTreeLod(camera) {
+        if (!this.treeLod) return;
+        treeLodInv.copy(this.scene.matrixWorld).invert();
+        treeLodCam.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(treeLodInv);
+        if (this.treeLodPos && this.treeLodPos.distanceToSquared(treeLodCam) < 1) return;
+        this.treeLodPos = (this.treeLodPos || new THREE.Vector3()).copy(treeLodCam);
+        this.treeLod.forEach(g => repartirArboles(g, treeLodCam.x, treeLodCam.z));
       }
 
       update(elapsed) {
@@ -2149,39 +2176,35 @@
         const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
         const rockG = rockGeometry();
 
-        // Árboles: una malla instanciada de ramas y otra de hojas por especie y nivel
-        const usados = {};
-        trees.forEach(t => { const k = t.especie + ':' + nivelArbol(t, townRadius); usados[k] = (usados[k] || 0) + 1; });
-        const treeMeshes = {};
-        Object.keys(usados).forEach(k => {
-          const [esp, niv] = k.split(':');
-          const asset = treeAsset(esp, niv);
-          if (!asset) return;
-          treeMeshes[k] = {
-            ramas: { mesh: makeInstanced(asset.ramas.geo, asset.ramas.mat, usados[k]), n: 0 },
-            hojas: { mesh: makeInstanced(asset.hojas.geo, asset.hojas.mat, usados[k]), n: 0 }
-          };
+        // Por especie, una malla de ramas y otra de hojas para el nivel «cerca» y otras dos para «lejos».
+        // updateTreeLod reparte los árboles entre ambos según la distancia a la cámara.
+        const porEspecie = {};
+        trees.forEach((t, idx) => { (porEspecie[t.especie] = porEspecie[t.especie] || []).push({ t, idx }); });
+        this.treeLod = [];
+        Object.keys(porEspecie).forEach(esp => {
+          const assetCerca = treeAsset(esp, 'cerca'), assetLejos = treeAsset(esp, 'lejos');
+          if (!assetCerca || !assetLejos) return;
+          const n = porEspecie[esp].length;
+          const parte = asset => ({
+            ramas: makeInstanced(asset.ramas.geo, asset.ramas.mat, n),
+            hojas: makeInstanced(asset.hojas.geo, asset.hojas.mat, n)
+          });
+          const grupo = { cerca: parte(assetCerca), lejos: parte(assetLejos), arboles: [] };
+          porEspecie[esp].forEach(({ t, idx }) => {
+            const sc = t.scale * (TREE_SCALE[t.especie] || 1);
+            dPos.set(t.x, t.y - 0.15, t.z);
+            dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), idx * 1.7);
+            dScale.set(sc, sc, sc);
+            grupo.arboles.push({ x: t.x, z: t.z, m: new THREE.Matrix4().compose(dPos, dQuat, dScale), color: new THREE.Color(t.color) });
+          });
+          repartirArboles(grupo, 0, null);
+          this.treeLod.push(grupo);
         });
         const iHedge = makeInstanced(hedgeG, matFoliage, hedges.length);
         const iFence = makeInstanced(fenceG, matAtlas, fences.length);
         const iRock = makeInstanced(rockG, matRock, rocks.length);
 
         const cVeg = new THREE.Color();
-        trees.forEach((t, idx) => {
-          const tm = treeMeshes[t.especie + ':' + nivelArbol(t, townRadius)];
-          if (!tm) return;
-          const sc = t.scale * (TREE_SCALE[t.especie] || 1);
-          dPos.set(t.x, t.y - 0.15, t.z);
-          dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), idx * 1.7);
-          dScale.set(sc, sc, sc);
-          dMat.compose(dPos, dQuat, dScale);
-          cVeg.setHex(t.color);
-          tm.ramas.mesh.setMatrixAt(tm.ramas.n, dMat);
-          tm.hojas.mesh.setMatrixAt(tm.hojas.n, dMat);
-          tm.hojas.mesh.setColorAt(tm.hojas.n, cVeg);
-          tm.ramas.n++; tm.hojas.n++;
-        });
-
         dScale.set(1, 1, 1);
         hedges.forEach((h, idx) => {
           dPos.set(h.x, h.y, h.z);
@@ -2215,7 +2238,7 @@
           iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
           iLampPost, iLampArm, iLantern, iLightPool,
-          ...Object.keys(treeMeshes).reduce((acc, k) => acc.concat([treeMeshes[k].ramas.mesh, treeMeshes[k].hojas.mesh]), []), iHedge, iFence, iRock
+          ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas]), []), iHedge, iFence, iRock
         ];
 
         allInstanced.forEach(m => {

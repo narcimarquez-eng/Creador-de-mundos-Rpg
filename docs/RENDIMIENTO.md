@@ -56,12 +56,30 @@ No funciona: la cámara de juego ve casi todo el pueblo (33 de 34 sectores visib
 una llamada de dibujo. Los sectores se agrupan también por especie y nivel, así que hay muy pocos árboles por sector.
 Se revirtió.
 
+## Detalle por distancia a la cámara (aplicado)
+
+Cada especie tiene una malla de ramas y otra de hojas para el nivel «cerca» y otras dos para «lejos». Cada
+árbol va al nivel «cerca» si está a menos de 70 m de la cámara (en planta) y al «lejos» si no. La cámara se mide
+al moverse más de 1 m, y el reparto solo cambia los conteos de las mallas, así que el número de llamadas de dibujo
+no sube. Antes el nivel se elegía por pueblo.
+
+| Vista | Antes (triángulos, llamadas) | Después |
+|---|---|---|
+| Juego, calidad alta | 680.000, 236 | 491.000, 232 |
+| Juego, calidad baja | 616.000, 221 | 427.000, 217 |
+| Vista general, calidad alta | 1.231.000, 431 | 870.000, 419 |
+| Pueblo visto a 45 m, calidad alta | 679.000, 171 | 495.000, 167 |
+| Pueblo visto a 110 m, calidad alta | 680.000, 204 | 559.000, 204 |
+
+- Comprobado: cada árbol se dibuja una sola vez (cerca + lejos = total de árboles).
+- En la captura a 45 m el aspecto es casi igual; los árboles del horizonte se ven con menos hojas, como se pretendía.
+- El creador de pueblos no llama a `updateTreeLod`, así que sus árboles siguen en «cerca»: no cambia nada.
+- **Pendiente:** no se ha comprobado si al cruzar los 70 m se nota un salto de follaje. Hay que verlo con GPU real.
+
 ## Próximos pasos propuestos
 
-1. **Detalle por distancia a la cámara, no por pueblo.** El nivel «lejos» de un roble tiene 1.656 triángulos frente a
-   10.704 del «cerca». Cambiar de nivel según la distancia a la cámara debería reducir el coste de juego sin cambiar
-   el aspecto cerca del jugador. Hay que decidir cómo se hace el cambio (dos mallas por sector o por árbol).
-2. **Bajar el detalle cercano del roble y el pino** (hojas y segmentos). Objetivo: unos 4.000 triángulos por árbol cercano.
+1. **Bajar el detalle cercano del roble y el pino** (hojas y segmentos). Objetivo: unos 4.000 triángulos por árbol cercano.
+2. **Transición gradual** entre «cerca» y «lejos», si el salto a 70 m se nota.
 3. **Medir en un móvil con GPU** antes de fijar los objetivos de FPS y de triángulos.
 
 Medición: scripts en la carpeta de trabajo de la sesión (`perf_visor.js`, `perf_break2.js`, `perf_notrees.js`,
