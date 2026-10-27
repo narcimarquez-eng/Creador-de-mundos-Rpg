@@ -476,6 +476,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
+  <script src="js/arboles.js"></script>
   <script src="js/pueblo-edits.js"></script>
   <script src="js/village-core.js"></script>
   <script src="js/character.js"></script>
@@ -834,7 +835,9 @@
       { id: 'node', icon: '◉', label: 'Punto', key: '6', hint: 'Toca una calle dibujada para añadirle un punto; luego arrástralo con Mover.' },
       { id: 'lamp', icon: '🕯', label: 'Farola', key: '7', hint: 'Toca el suelo para poner una farola.' },
       { id: 'wall', icon: '🧱', label: 'Muro', key: '8', hint: 'Toca un tramo de muralla para quitarlo.' },
-      { id: 'gate', icon: '🚪', label: 'Puerta', key: '9', hint: 'Toca un tramo de muralla para abrirlo como puerta con arco.' }
+      { id: 'gate', icon: '🚪', label: 'Puerta', key: '9', hint: 'Toca un tramo de muralla para abrirlo como puerta con arco.' },
+      { id: 'tree', icon: '🌳', label: 'Árbol', key: '0', hint: 'Toca el suelo para poner un árbol de la especie elegida, si cabe.' },
+      { id: 'fence', icon: '🪵', label: 'Valla', key: 'v', hint: 'Toca un punto y luego otro para trazar una valla.' }
     ];
     const TAP_MOVE_PX = 8;          // movimiento máximo para considerar un toque (no un giro)
     let editMode = false;
@@ -858,6 +861,15 @@
       editKind.appendChild(o);
     });
     editKind.style.display = 'none';
+    const editSpecies = document.createElement('select');
+    editSpecies.id = 'edit-species';
+    editSpecies.title = 'Especie del árbol que se pone';
+    Object.keys(PuebloEdits.TREE_SPECIES).forEach(k => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = PuebloEdits.TREE_SPECIES[k];
+      editSpecies.appendChild(o);
+    });
+    editSpecies.style.display = 'none';
 
     function currentBase() { return PuebloEdits.baseKey(readCfgFromUI()); }
     // Operaciones que se aplican ahora (vacías si son de otra base)
@@ -890,6 +902,7 @@
       if (q('btn-edit-finish')) q('btn-edit-finish').style.display = draft && draft.length >= 2 ? '' : 'none';
       if (q('btn-edit-cancel')) q('btn-edit-cancel').style.display = draft ? '' : 'none';
       editKind.style.display = editTool === 'draw' ? '' : 'none';
+      editSpecies.style.display = editTool === 'tree' ? '' : 'none';
     }
 
     // Regenera el pueblo con las ediciones (o con ops de vista previa mientras se arrastra)
@@ -948,7 +961,7 @@
     }
 
     function setEditTool(id) {
-      if (draft && id !== 'draw') { clearDraft(); say('Calle cancelada al cambiar de herramienta.'); }
+      if (draft && id !== editTool) { clearDraft(); say('Trazo cancelado al cambiar de herramienta.'); }
       editTool = id;
       updateEditInfo();
     }
@@ -964,6 +977,7 @@
       editToolsEl.appendChild(b);
     });
     editToolsEl.appendChild(editKind);
+    editToolsEl.appendChild(editSpecies);
     [['btn-edit-finish', '✔ Terminar calle', () => finishDraft()],
      ['btn-edit-cancel', '✕ Cancelar calle', () => { clearDraft(); say('Calle cancelada.'); updateEditInfo(); }],
      ['btn-edit-undo', '↶ Deshacer', undoEdit], ['btn-edit-redo', '↷ Rehacer', redoEdit], ['btn-edit-reset', 'Quitar todo', resetEdits],
@@ -1009,14 +1023,19 @@
       return PuebloEdits.indexOps(opsNow()).movedStreets.get(id) || { dx: 0, dz: 0 };
     }
 
-    function wallAt(p) { return PuebloEdits.pickNearest(world.editables.walls, p.x, p.z, 10); }
+    function wallAt(p) { return PuebloEdits.pickNearest(world.editables.walls, p.x, p.z, 6); }
 
-    // Lo que hay bajo el punto. Prioridad: casa, farola, muro, punto de calle dibujada, calle.
+    // Lo que hay bajo el punto. Prioridad: casa, farola, árbol, valla, muro, punto de calle dibujada, calle.
+    // Los objetos pequeños van antes que los muros, para no quitar un tramo de muralla por error.
     function itemAt(p) {
       const h = PuebloEdits.pickHouse(world.editables.houses, p.x, p.z, 4.5);
       if (h) return { kind: 'casa', id: h.id, x: h.x, z: h.z };
       const f = PuebloEdits.pickNearest(world.editables.lamps, p.x, p.z, 2.5);
       if (f) return { kind: 'farola', id: f.id, x: f.x, z: f.z };
+      const tr = PuebloEdits.pickNearest(world.editables.trees, p.x, p.z, 2.5);
+      if (tr) return { kind: 'arbol', id: tr.id, x: tr.x, z: tr.z };
+      const fe = PuebloEdits.pickNearest(world.editables.fences, p.x, p.z, 2.5);
+      if (fe) return { kind: 'valla', id: fe.id, x: fe.x, z: fe.z };
       const w = wallAt(p);
       if (w) return { kind: 'muro', id: w.id, x: w.x, z: w.z };
       for (const s of world.editables.streets) {
@@ -1032,6 +1051,8 @@
     function describe(item) {
       if (item.kind === 'casa') return PuebloEdits.houseLabel(item.id) + ' (' + item.x.toFixed(0) + ', ' + item.z.toFixed(0) + ')';
       if (item.kind === 'farola') return 'Farola';
+      if (item.kind === 'arbol') return 'Árbol';
+      if (item.kind === 'valla') return 'Tramo de valla';
       if (item.kind === 'muro') return 'Tramo de muralla ' + (item.id + 1);
       if (item.kind === 'nodo') return 'Punto ' + (item.i + 1) + ' de ' + PuebloEdits.streetLabel(item.id);
       return PuebloEdits.streetLabel(item.id);
@@ -1114,6 +1135,8 @@
         if (item.kind === 'casa') op = { op: 'quitar-casa', id: item.id };
         else if (item.kind === 'farola') op = { op: 'quitar-farola', id: item.id };
         else if (item.kind === 'muro') op = { op: 'quitar-muro', id: item.id };
+        else if (item.kind === 'arbol') op = { op: 'quitar-arbol', id: item.id };
+        else if (item.kind === 'valla') op = { op: 'quitar-valla', id: item.id };
         else if (item.kind === 'nodo') {
           if (item.count <= 2) { say('Una calle dibujada necesita al menos dos puntos: tócala en medio para quitarla entera.'); return; }
           op = { op: 'quitar-nodo-calle', id: item.id, i: item.i };
@@ -1129,6 +1152,29 @@
         return;
       }
       if (t.tool === 'draw') { addDraftPoint(p); return; }
+      if (t.tool === 'tree') {
+        ensureEditBase();
+        if (!world.treeOk(p.x, p.z)) { say('No cabe un árbol aquí: demasiado cerca de algo o en una calle.'); return; }
+        commitOp({ op: 'añadir-arbol', id: PuebloEdits.nextId(edits.ops, 'añadir-arbol', 'a'), x: p.x, z: p.z, especie: editSpecies.value });
+        say('Árbol puesto. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
+      if (t.tool === 'fence') {
+        // Primer toque: inicio de la valla. Segundo toque: fin (a más de 1 m del inicio)
+        if (!draft || draft.length === 0) {
+          draft = [{ x: p.x, z: p.z }];
+          say('Valla: toca el otro extremo. Esc la cancela.');
+          updateEditInfo();
+          return;
+        }
+        const a = draft[0];
+        clearDraft();
+        if (Math.hypot(p.x - a.x, p.z - a.z) < 1) { say('La valla es demasiado corta.'); updateEditInfo(); return; }
+        ensureEditBase();
+        commitOp({ op: 'añadir-valla', id: PuebloEdits.nextId(edits.ops, 'añadir-valla', 'c'), x1: a.x, z1: a.z, x2: p.x, z2: p.z });
+        say('Valla puesta. Ediciones: ' + opsNow().length + '.');
+        return;
+      }
       if (t.tool === 'node') { insertNode(p); return; }
       if (t.tool === 'lamp') {
         ensureEditBase();
@@ -1151,7 +1197,7 @@
       const p = groundPoint(e);
       if (!p) return;
       const item = itemAt(p);
-      if (editTool === 'move' && item && item.kind !== 'farola' && item.kind !== 'muro') {
+      if (editTool === 'move' && item && (item.kind === 'casa' || item.kind === 'calle' || item.kind === 'nodo')) {
         e.stopPropagation();
         ensureEditBase();
         if (item.kind === 'nodo') {

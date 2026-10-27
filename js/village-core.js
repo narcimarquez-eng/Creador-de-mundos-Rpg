@@ -25,7 +25,8 @@
       return {
         removedHouses: new Set(), movedHouses: new Map(), addedHouses: [],
         removedStreets: new Set(), movedStreets: new Map(), addedStreets: new Map(),
-        removedWalls: new Set(), gates: new Set(), addedLamps: [], removedLamps: new Set()
+        removedWalls: new Set(), gates: new Set(), addedLamps: [], removedLamps: new Set(),
+        removedTrees: new Set(), addedTrees: [], removedFences: new Set(), addedFences: []
       };
     }
 
@@ -34,6 +35,34 @@
       let h = 2166136261;
       for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
       return h >>> 0;
+    }
+
+    // Árboles de modelo (js/arboles.js): geometría y textura por especie, compartidas entre generaciones
+    const TREE_SCALE = { roble: 0.8, alamo: 0.8, pino: 0.8, arbusto: 1.0 };
+    const treeAssets = {};
+    function treeAsset(especie) {
+      if (treeAssets[especie]) return treeAssets[especie];
+      const d = typeof TreeLib !== 'undefined' ? TreeLib.datos(especie) : null;
+      if (!d) return null;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(d.pos, 3));
+      geo.setAttribute('normal', new THREE.BufferAttribute(d.nrm, 3));
+      geo.setAttribute('uv', new THREE.BufferAttribute(d.uv, 2));
+      geo.setIndex(new THREE.BufferAttribute(d.idx, 1));
+      const img = new Image();
+      const tex = new THREE.Texture(img);
+      tex.magFilter = THREE.NearestFilter;
+      img.onload = () => { tex.needsUpdate = true; };
+      img.src = d.png;
+      // La paleta de la textura es verde azulado: se tiñe hacia un verde natural (el tronco queda ocre)
+      const mat = new THREE.MeshLambertMaterial({ map: tex, color: new THREE.Color(0.55, 0.92, 0.42), side: THREE.DoubleSide });
+      return (treeAssets[especie] = { geo: geo, mat: mat });
+    }
+    // Especie de un árbol de fábrica: pino para las coníferas; el resto, según su posición (siempre la misma)
+    function especieFor(isPine, x, z) {
+      if (isPine) return 'pino';
+      const h = Math.abs(Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1;
+      return h < 0.5 ? 'roble' : (h < 0.85 ? 'alamo' : 'arbusto');
     }
 
     // --- 2. CATÁLOGO DE ESTILOS ARQUITECTÓNICOS (LINEAGE 2) ---
@@ -1231,6 +1260,25 @@
         });
       }
 
+      // ¿Cabe un árbol puesto a mano en (x, z)? Lejos de casas, edificios, muros y calles.
+      treeOk(x, z) {
+        const blocked = this.colliders.some(c => {
+          if (c.type === 'circle') return Math.hypot(x - c.x, z - c.z) < c.r + 1.2;
+          return x > c.minX - 1.2 && x < c.maxX + 1.2 && z > c.minZ - 1.2 && z < c.maxZ + 1.2;
+        });
+        if (blocked) return false;
+        return !(this.editables.streets || []).some(st => {
+          const half = st.width * 0.5 + 1.0;
+          for (let i = 0; i < st.pts.length - 1; i++) {
+            const a = st.pts[i], b = st.pts[i + 1];
+            const vx = b.x - a.x, vz = b.z - a.z, len2 = vx * vx + vz * vz;
+            const t = len2 ? Math.max(0, Math.min(1, ((x - a.x) * vx + (z - a.z) * vz) / len2)) : 0;
+            if (Math.hypot(x - (a.x + vx * t), z - (a.z + vz * t)) < half) return true;
+          }
+          return false;
+        });
+      }
+
       // ¿Cabe una casa con su centro en (x, z)? Usa las mismas reglas que la generación.
       // ignoreId: la casa que se está moviendo no cuenta contra sí misma.
       placementOk(x, z, ignoreId) {
@@ -1725,20 +1773,20 @@
               }
 
               if (cfg.hasFences && !removed) {
-                fences.push(
-                  { x: px, y: hy, z: pz - 5.2, rot: hRot },
-                  { x: px, y: hy, z: pz + 5.2, rot: hRot }
-                );
+                [['a', -5.2], ['b', 5.2]].forEach(([k, off]) => {
+                  if (!edit.removedFences.has(slot + k)) fences.push({ id: slot + k, x: px, y: hy, z: pz + off, rot: hRot });
+                });
               }
             } else if (rng.next() * 100 <= cfg.treeDensity) {
-              const ty = this.getTerrainHeight(hx, hz);
-              trees.push({
-                x: hx, y: ty, z: hz,
-                scale: rng.range(0.9, 1.45),
-                isPine: rng.next() > 0.45,
-                color: rng.pick(styleObj.treeColors)
-              });
-              this.colliders.push({ type: 'circle', x: hx, z: hz, r: 0.65 });
+              // El azar se consume igual aunque el árbol esté quitado, para no mover el resto del pueblo
+              const tScale = rng.range(0.9, 1.45);
+              const tPine = rng.next() > 0.45;
+              const tColor = rng.pick(styleObj.treeColors);
+              const tid = 'v' + lz + ':' + xOff;
+              if (!edit.removedTrees.has(tid)) {
+                trees.push({ id: tid, x: hx, y: this.getTerrainHeight(hx, hz), z: hz, scale: tScale, isPine: tPine, color: tColor, especie: especieFor(tPine, hx, hz) });
+                this.colliders.push({ type: 'circle', x: hx, z: hz, r: 0.65 });
+              }
             }
 
             if (cfg.hasFences && rng.next() * 100 <= cfg.treeDensity * 0.7) {
@@ -1786,10 +1834,9 @@
             { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
           ], 2.2, 0.13);
           if (cfg.hasFences) {
-            fences.push(
-              { x: px, y: hy, z: pz - 5.2, rot: hRot },
-              { x: px, y: hy, z: pz + 5.2, rot: hRot }
-            );
+            [['a', -5.2], ['b', 5.2]].forEach(([k, off]) => {
+              if (!edit.removedFences.has(ad.id + k)) fences.push({ id: ad.id + k, x: px, y: hy, z: pz + off, rot: hRot });
+            });
           }
         });
         this.editables.houses = houses.map(h => ({ id: h.id, x: h.x, z: h.z }));
@@ -1830,14 +1877,15 @@
           if (Math.abs(tz) < cfg.roadWidth) continue;
           if (cfg.hasRiver && Math.abs(tx - this.getRiverX(tz)) < RIVER_WIDTH * 0.9) continue;
 
-          const ty = this.getTerrainHeight(tx, tz);
-          trees.push({
-            x: tx, y: ty, z: tz,
-            scale: rng.range(1.0, 1.8),
-            isPine: rng.next() > 0.35,
-            color: rng.pick(styleObj.treeColors)
-          });
-          this.colliders.push({ type: 'circle', x: tx, z: tz, r: 0.7 });
+          // El azar se consume igual aunque el árbol esté quitado
+          const fScale = rng.range(1.0, 1.8);
+          const fPine = rng.next() > 0.35;
+          const fColor = rng.pick(styleObj.treeColors);
+          const fid = 'b' + i;
+          if (!edit.removedTrees.has(fid)) {
+            trees.push({ id: fid, x: tx, y: this.getTerrainHeight(tx, tz), z: tz, scale: fScale, isPine: fPine, color: fColor, especie: especieFor(fPine, tx, tz) });
+            this.colliders.push({ type: 'circle', x: tx, z: tz, r: 0.7 });
+          }
 
           if (i % 3 === 0) {
             const rx = tx + rng.range(-4, 4), rz = tz + rng.range(-4, 4);
@@ -2017,32 +2065,59 @@
           iLightPool.setMatrixAt(idx, dMat);
         });
 
-        const trunkG = new THREE.CylinderGeometry(0.22, 0.4, 2.9, 7); trunkG.translate(0, 1.45, 0);
-        const oakCrownG = new THREE.DodecahedronGeometry(2.0, 1); oakCrownG.translate(0, 3.9, 0);
-        const pineCrownG = new THREE.ConeGeometry(2.2, 5.0, 7); pineCrownG.translate(0, 4.1, 0);
+        // Árboles y vallas puestos a mano (las salidas no los despejan)
+        edit.addedTrees.forEach(at => {
+          if (edit.removedTrees.has(at.id)) return;
+          const isPine = at.especie === 'pino';
+          trees.push({ id: at.id, x: at.x, y: this.getTerrainHeight(at.x, at.z), z: at.z, scale: 1.2, isPine: isPine, color: styleObj.treeColors[0], especie: isPine ? 'pino' : (at.especie || 'roble') });
+          this.colliders.push({ type: 'circle', x: at.x, z: at.z, r: 0.7 });
+        });
+        // Una valla puesta a mano se parte en tramos de unos 4,5 m entre sus dos puntos
+        edit.addedFences.forEach(af => {
+          const dx = af.x2 - af.x1, dz = af.z2 - af.z1, L = Math.hypot(dx, dz);
+          if (L < 1) return;
+          const n = Math.max(1, Math.round(L / 4.5)), len = L / n;
+          const rot = Math.atan2(-dz, dx);
+          for (let k = 0; k < n; k++) {
+            const t = (k + 0.5) / n;
+            const px = af.x1 + dx * t, pz = af.z1 + dz * t;
+            const id = af.id + '.' + k;
+            if (edit.removedFences.has(id)) continue;
+            fences.push({ id: id, x: px, y: this.getTerrainHeight(px, pz), z: pz, rot: rot, len: len });
+          }
+        });
+        this.editables.trees = trees.map(t => ({ id: t.id, x: t.x, z: t.z }));
+        this.editables.fences = fences.map(f => ({ id: f.id, x: f.x, z: f.z }));
+
         const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95); hedgeG.translate(0, 0.48, 0);
         const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
         const rockG = new THREE.DodecahedronGeometry(0.9, 0);
 
-        const iTrunk = makeInstanced(trunkG, matTrunk, trees.length);
-        const iOak = makeInstanced(oakCrownG, matFoliage, trees.length);
-        const iPine = makeInstanced(pineCrownG, matFoliage, trees.length);
+        // Árboles: una malla instanciada por especie (modelos de js/arboles.js)
+        const especiesUsadas = {};
+        trees.forEach(t => { especiesUsadas[t.especie] = (especiesUsadas[t.especie] || 0) + 1; });
+        const treeMeshes = {};
+        Object.keys(especiesUsadas).forEach(esp => {
+          const asset = treeAsset(esp);
+          if (asset) treeMeshes[esp] = { mesh: makeInstanced(asset.geo, asset.mat, especiesUsadas[esp]), n: 0 };
+        });
         const iHedge = makeInstanced(hedgeG, matFoliage, hedges.length);
         const iFence = makeInstanced(fenceG, matAtlas, fences.length);
         const iRock = makeInstanced(rockG, matRock, rocks.length);
 
-        let oakIdx = 0, pineIdx = 0;
         const cVeg = new THREE.Color();
-
         trees.forEach((t, idx) => {
+          const tm = treeMeshes[t.especie];
+          if (!tm) return;
+          const sc = t.scale * (TREE_SCALE[t.especie] || 1);
           dPos.set(t.x, t.y - 0.15, t.z);
           dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), idx * 1.7);
-          dScale.set(t.scale, t.scale, t.scale);
+          dScale.set(sc, sc, sc);
           dMat.compose(dPos, dQuat, dScale);
-          iTrunk.setMatrixAt(idx, dMat);
           cVeg.setHex(t.color);
-          if (t.isPine) { iPine.setMatrixAt(pineIdx, dMat); iPine.setColorAt(pineIdx, cVeg); pineIdx++; }
-          else { iOak.setMatrixAt(oakIdx, dMat); iOak.setColorAt(oakIdx, cVeg); oakIdx++; }
+          tm.mesh.setMatrixAt(tm.n, dMat);
+          tm.mesh.setColorAt(tm.n, cVeg);
+          tm.n++;
         });
 
         dScale.set(1, 1, 1);
@@ -2058,9 +2133,11 @@
         fences.forEach((f, idx) => {
           dPos.set(f.x, f.y, f.z);
           dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), f.rot);
+          dScale.set(f.len ? f.len / 4.5 : 1, 1, 1);
           dMat.compose(dPos, dQuat, dScale);
           iFence.setMatrixAt(idx, dMat);
         });
+        dScale.set(1, 1, 1);
 
         rocks.forEach((r, idx) => {
           dPos.set(r.x, r.y, r.z);
@@ -2076,7 +2153,7 @@
           iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
           iLampPost, iLampArm, iLantern, iLightPool,
-          iTrunk, iOak, iPine, iHedge, iFence, iRock
+          ...Object.keys(treeMeshes).map(k => treeMeshes[k].mesh), iHedge, iFence, iRock
         ];
 
         allInstanced.forEach(m => {

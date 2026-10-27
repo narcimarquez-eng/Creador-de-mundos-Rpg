@@ -27,10 +27,40 @@ Notas:
 - Los nombres de los archivos del repositorio están en español para que coincidan con el resto del proyecto. La
   lista de rutas la usa `loadTerrainTextures` en `visor-mundo.html`.
 
+## Árboles (pueblos)
+
+Fuente: **Kenney — Nature Kit 2.1** (https://kenney.nl/assets/nature-kit), licencia **CC0 1.0**. Los cuatro modelos
+llegaron en el repositorio `narcimarquez-eng/CochesHuelva` (carpeta `modelos/arboles/`, con su `catalogo.json`).
+La licencia completa está en `assets/arboles/LICENCIA-kenney-nature-kit.txt`.
+
+| Especie | Modelo | Altura | Triángulos | Uso |
+|---|---|---|---|---|
+| `roble` | roble.glb | 9 m | 196 | Árboles de copa redonda, junto a casas y en el bosque. |
+| `alamo` | alamo.glb | 11 m | 72 | Árboles de copa estrecha. |
+| `pino` | pino.glb | 10,5 m | 230 | Coníferas del bosque. |
+| `arbusto` | arbusto.glb | 1,6 m | 104 | Arbustos bajos. |
+
+- Los modelos se incrustan en `js/arboles.js` con `node tools/generar-arboles.js <carpeta> js/arboles.js`
+  (no se editan a mano). La textura es una paleta de 16 × 16 px del propio modelo.
+- Se tiñen hacia un verde natural (color del material 0,55 / 0,92 / 0,42) para que el follaje no salga azulado.
+  La textura original no se modifica.
+
+## Vallas
+
+No hay un modelo de valla con licencia verificada: la búsqueda en Kenney (Fantasy Town Kit) no confirmó que
+incluya vallas ni archivos GLB. Por eso las vallas son **procedurales** (un tablero de 4,5 m por tramo),
+creadas en el propio código, sin fuente externa.
+
+## Calzadas
+
+No se ha añadido textura nueva de calzada. Las búsquedas no encontraron un adoquín con licencia CC0 y 1K JPG
+verificada en ambientCG (la página de búsqueda no lista ese asset). Las calzadas usan el atlas que ya tiene el
+pueblo; los tipos calle, calzada y sendero se distinguen por anchura.
+
 ## Pendiente de añadir
 
 | Fase | Qué | Fuente prevista |
 |---|---|---|
-| G3 | Árboles, rocas y hierba | Packs gratuitos con licencia libre (por confirmar). |
+| G3 | Rocas y hierba (los árboles ya están) | Packs gratuitos con licencia libre (por confirmar). |
 | G4 | Monstruos y personaje | GLB propio del personaje; modelos de monstruos por confirmar. |
 | G2 | Agua y cielo | Sin archivos: se hará con shaders. |

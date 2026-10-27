@@ -85,7 +85,11 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
     { "op": "quitar-muro", "id": 5 },
     { "op": "puerta-muro", "id": 10 },
     { "op": "añadir-farola", "id": "g1", "x": 30, "z": -30 },
-    { "op": "quitar-farola", "id": "f2" }
+    { "op": "quitar-farola", "id": "f2" },
+    { "op": "quitar-arbol", "id": "b3" },
+    { "op": "añadir-arbol", "id": "a1", "x": 58, "z": 15, "especie": "pino" },
+    { "op": "quitar-valla", "id": "-28:-32a" },
+    { "op": "añadir-valla", "id": "c1", "x1": -60, "z1": -70, "x2": -40, "z2": -70 }
   ]
 }
 ```
@@ -97,6 +101,10 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
 - `id` de una farola: `f<n>` para las de fábrica (n = orden en la generación) y `g<n>` para las nuevas.
 - Las ediciones solo se aplican si `base` coincide con la configuración actual (semilla, tamaño, estilo, relieve, etc.). El giro y las salidas no cuentan. Si la base cambia, las ediciones se conservan pero no se aplican.
 - Las calles de salida hacia el mundo no se pueden editar.
+- `id` de un árbol: `v<z>:<desplazamiento>` si está junto a una casa, `b<n>` si está en el bosque (n = orden en la
+  generación), o `a<n>` si se puso a mano. `especie` es `roble`, `alamo`, `pino` o `arbusto`.
+- `id` de una valla: `<hueco de casa>a` o `…b` para las de una casa (ver arriba), y `c<n>.<k>` para los tramos de una
+  valla puesta a mano (`c<n>`, dividida en tramos de unos 4,5 m). `añadir-valla` da los dos extremos en metros.
 
 ## Camino
 | Campo | Descripción |

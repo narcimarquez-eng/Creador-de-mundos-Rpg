@@ -175,4 +175,30 @@ t('etiqueta de calle dibujada', () => {
   assert.strictEqual(E.streetLabel('u2'), 'Calle dibujada');
 });
 
+t('árboles: quitados y puestos a mano', () => {
+  const idx = E.indexOps([{ op: 'quitar-arbol', id: 'b3' }, { op: 'añadir-arbol', id: 'a1', x: 4, z: 5, especie: 'pino' }]);
+  assert.ok(idx.removedTrees.has('b3'));
+  assert.deepStrictEqual(idx.addedTrees, [{ id: 'a1', x: 4, z: 5, especie: 'pino' }]);
+});
+
+t('árbol sin especie usa el roble', () => {
+  const idx = E.indexOps([{ op: 'añadir-arbol', id: 'a1', x: 0, z: 0 }]);
+  assert.strictEqual(idx.addedTrees[0].especie, 'roble');
+});
+
+t('vallas: tramos quitados y valla nueva con sus dos puntos', () => {
+  const idx = E.indexOps([{ op: 'quitar-valla', id: 'c1.2' }, { op: 'añadir-valla', id: 'c1', x1: 0, z1: 0, x2: 10, z2: 0 }]);
+  assert.ok(idx.removedFences.has('c1.2'));
+  assert.deepStrictEqual(idx.addedFences, [{ id: 'c1', x1: 0, z1: 0, x2: 10, z2: 0 }]);
+});
+
+t('ids de árboles y vallas nuevos con su prefijo', () => {
+  assert.strictEqual(E.nextId([], 'añadir-arbol', 'a'), 'a1');
+  assert.strictEqual(E.nextId([{ op: 'añadir-valla', id: 'c4' }], 'añadir-valla', 'c'), 'c5');
+});
+
+t('especies que se pueden poner a mano', () => {
+  assert.deepStrictEqual(Object.keys(E.TREE_SPECIES).sort(), ['alamo', 'arbusto', 'pino', 'roble']);
+});
+
 console.log('\n' + n + ' pruebas correctas');

@@ -26,8 +26,15 @@
     'quitar-muro': 'Quitar tramo de muralla',
     'puerta-muro': 'Puerta en la muralla',
     'añadir-farola': 'Poner farola',
-    'quitar-farola': 'Quitar farola'
+    'quitar-farola': 'Quitar farola',
+    'quitar-arbol': 'Quitar árbol',
+    'añadir-arbol': 'Poner árbol',
+    'quitar-valla': 'Quitar tramo de valla',
+    'añadir-valla': 'Poner valla'
   };
+
+  // Especies de árbol que se pueden poner a mano (modelos de js/arboles.js)
+  const TREE_SPECIES = { roble: 'Roble', alamo: 'Álamo', pino: 'Pino', arbusto: 'Arbusto' };
 
   // Tipos de calle que se pueden dibujar y su anchura (m). «calle» usa la anchura del pueblo.
   const STREET_KINDS = { calle: 'Calle', calzada: 'Calzada', sendero: 'Sendero' };
@@ -64,7 +71,11 @@
       removedWalls: new Set(),
       gates: new Set(),
       addedLamps: [],
-      removedLamps: new Set()
+      removedLamps: new Set(),
+      removedTrees: new Set(),
+      addedTrees: [],
+      removedFences: new Set(),
+      addedFences: []
     };
     (ops || []).forEach(op => {
       if (op.op === 'quitar-casa') idx.removedHouses.add(op.id);
@@ -90,6 +101,10 @@
       else if (op.op === 'puerta-muro') idx.gates.add(op.id);
       else if (op.op === 'añadir-farola') idx.addedLamps.push({ id: op.id, x: op.x, z: op.z });
       else if (op.op === 'quitar-farola') idx.removedLamps.add(op.id);
+      else if (op.op === 'quitar-arbol') idx.removedTrees.add(op.id);
+      else if (op.op === 'añadir-arbol') idx.addedTrees.push({ id: op.id, x: op.x, z: op.z, especie: op.especie || 'roble' });
+      else if (op.op === 'quitar-valla') idx.removedFences.add(op.id);
+      else if (op.op === 'añadir-valla') idx.addedFences.push({ id: op.id, x1: op.x1, z1: op.z1, x2: op.x2, z2: op.z2 });
     });
     return idx;
   }
@@ -214,7 +229,7 @@
 
   const api = {
     BASE_FIELDS, OP_NAMES, STREET_KINDS, baseKey, emptyEdits, activeOps, indexOps, nextId, nextAddedId,
-    widthFor, curvePts, nearestOnPolyline, pickNode, pickNearest,
+    widthFor, curvePts, nearestOnPolyline, pickNode, pickNearest, TREE_SPECIES,
     pickHouse, pickStreet, distToSegment, offsetPts, streetLabel, houseLabel
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
