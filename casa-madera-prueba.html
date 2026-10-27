@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prueba de casa de madera</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #9bd9f5; overflow: hidden; font: 13px system-ui; }
+    #info { position: absolute; left: 10px; top: 10px; color: #0f172a; background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 8px; }
+  </style>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="info">Casa de madera (procedural)</div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { crearCasaMadera } from './js/casa-madera.js';
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.toneMapping = THREE.NeutralToneMapping;
+    renderer.toneMappingExposure = 1.12;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#9bd9f5');
+    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 500);
+    camera.position.set(13, 7, 13);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 2, 0);
+    controls.update();
+
+    scene.add(new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.9));
+    const sol = new THREE.DirectionalLight('#fffbeb', 1.2);
+    sol.position.set(14, 22, 10);
+    sol.castShadow = true;
+    sol.shadow.mapSize.set(2048, 2048);
+    Object.assign(sol.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 80 });
+    scene.add(sol);
+
+    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshLambertMaterial({ color: '#6b8f4e' }));
+    suelo.rotation.x = -Math.PI / 2;
+    suelo.receiveShadow = true;
+    scene.add(suelo);
+
+    const casa = crearCasaMadera(THREE, { ancho: 6, fondo: 5, muro: 2.6, subida: 2.2, semilla: 3 });
+    casa.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    scene.add(casa);
+    window.__casa = casa.userData;
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+    renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+  </script>
+</body>
+</html>
