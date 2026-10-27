@@ -40,14 +40,29 @@ Medidos con `tools/hornear-arboles.mjs` (ramas + hojas):
    árboles de un pueblo fuera de la vista cuestan igual.
 3. **La calidad no baja el coste de los árboles.** El nivel «bajo» solo reduce el terreno lejano.
 
+## Prueba: sectores de árboles con descarte por pantalla (descartada)
+
+Se probó dividir los árboles de cada pueblo en sectores (48 m y 120 m), cada uno con su propia esfera, y ocultar los
+que quedan fuera del campo de visión de la cámara. Three.js r128 no descarta instancias sueltas: usa la esfera de la
+geometría de una sola instancia. Por eso hizo falta un descarte propio.
+
+| Prueba | Triángulos (juego) | Llamadas (juego) |
+|---|---|---|
+| Base (sin sectores) | 680.000 | 236 |
+| Sectores de 48 m | 678.000 | 320 |
+| Sectores de 120 m | 678.000 | 288 |
+
+No funciona: la cámara de juego ve casi todo el pueblo (33 de 34 sectores visibles con 120 m), y cada sector añade
+una llamada de dibujo. Los sectores se agrupan también por especie y nivel, así que hay muy pocos árboles por sector.
+Se revirtió.
+
 ## Próximos pasos propuestos
 
-1. **Dividir los árboles de cada pueblo en sectores** (p. ej. 4 o 9 mallas por pueblo). Así el descarte por pantalla
-   quita los que no se ven. Es el cambio que más reduce el coste de juego, sin cambiar el aspecto.
-2. **Bajar el detalle cercano del roble y el pino** (sobre todo hojas y segmentos). Objetivo: unos 4.000 triángulos
-   por árbol cercano.
-3. **Elegir el nivel por distancia al jugador**, no por pueblo, cuando haga falta.
-4. **Medir en un móvil con GPU** antes de fijar los objetivos de FPS y de triángulos.
+1. **Detalle por distancia a la cámara, no por pueblo.** El nivel «lejos» de un roble tiene 1.656 triángulos frente a
+   10.704 del «cerca». Cambiar de nivel según la distancia a la cámara debería reducir el coste de juego sin cambiar
+   el aspecto cerca del jugador. Hay que decidir cómo se hace el cambio (dos mallas por sector o por árbol).
+2. **Bajar el detalle cercano del roble y el pino** (hojas y segmentos). Objetivo: unos 4.000 triángulos por árbol cercano.
+3. **Medir en un móvil con GPU** antes de fijar los objetivos de FPS y de triángulos.
 
 Medición: scripts en la carpeta de trabajo de la sesión (`perf_visor.js`, `perf_break2.js`, `perf_notrees.js`,
 `perf_juego.js`); no forman parte del repositorio.
