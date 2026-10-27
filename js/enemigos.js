@@ -3808,6 +3808,10 @@ var EnemyLib = (() => {
       }
     };
   }
+  function alturaBasePelvis(pelvis) {
+    if (pelvis.userData.alturaBase === void 0) pelvis.userData.alturaBase = pelvis.position.y;
+    return pelvis.userData.alturaBase;
+  }
   function updateEnemyAnimation(rig, animState, elapsed, delta, speedMultiplier, explodedAmount) {
     const t = elapsed * speedMultiplier;
     const {
@@ -3893,7 +3897,7 @@ var EnemyLib = (() => {
       breathConeMesh.visible = false;
       const stride = Math.sin(t * 5.6);
       const bounce = Math.abs(Math.cos(t * 5.6)) * 0.06;
-      pelvisGroup.position.y += bounce;
+      pelvisGroup.position.y = alturaBasePelvis(pelvisGroup) + bounce;
       headGroup.rotation.y = THREE.MathUtils.damp(headGroup.rotation.y, stride * 0.1, dampLambda, delta);
       jawGroup.rotation.x = THREE.MathUtils.damp(jawGroup.rotation.x, 0.15, dampLambda, delta);
       leftLegGroup.rotation.x = THREE.MathUtils.damp(leftLegGroup.rotation.x, stride * 0.55, dampLambda, delta);
@@ -3937,6 +3941,9 @@ var EnemyLib = (() => {
       headGroup.rotation.x = THREE.MathUtils.damp(headGroup.rotation.x, 0.45, 5, delta);
       rightArmGroup.rotation.x = THREE.MathUtils.damp(rightArmGroup.rotation.x, -1.15, 5, delta);
       leftArmGroup.rotation.x = THREE.MathUtils.damp(leftArmGroup.rotation.x, -1.05, 5, delta);
+    }
+    if (animState !== "walk" && !isFloating) {
+      pelvisGroup.position.y = THREE.MathUtils.damp(pelvisGroup.position.y, alturaBasePelvis(pelvisGroup), dampLambda, delta);
     }
   }
 
@@ -4223,3 +4230,4 @@ var EnemyLib = (() => {
   }
   return __toCommonJS(entrada_exports);
 })();
+if (typeof window !== 'undefined') window.EnemyLib = EnemyLib;
