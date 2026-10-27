@@ -253,8 +253,35 @@
   function enemyOptions(actual) {
     const grupos = {};
     (window.ENEMY_CATALOG || []).forEach(e => { (grupos[e.raceLabel] = grupos[e.raceLabel] || []).push(e); });
-    return Object.keys(grupos).map(raza => `<optgroup label="${esc(raza)}">${grupos[raza].map(e =>
+    let html = Object.keys(grupos).map(raza => `<optgroup label="${esc(raza)}">${grupos[raza].map(e =>
       `<option value="${e.key}" ${actual === e.key ? 'selected' : ''}>${esc(e.name)} · nv ${e.level}${e.boss ? ' · jefe' : ''}</option>`).join('')}</optgroup>`).join('');
+    // Enemigos propios del mundo (diseñados en el editor de enemigos)
+    const propios = Object.keys((world && world.enemigos) || {});
+    if (propios.length) {
+      html += `<optgroup label="Propios del mundo">${propios.map(k => {
+        const e = world.enemigos[k];
+        return `<option value="${esc(k)}" ${actual === k ? 'selected' : ''}>${esc(e.name)} · nv ${e.level}${e.boss ? ' · jefe' : ''}</option>`;
+      }).join('')}</optgroup>`;
+    }
+    return html;
+  }
+  // Enemigos diseñados en el creador (localStorage) pasan al propio mundo, que es lo que se guarda en el archivo
+  function importarEnemigosNuevos() {
+    if (!world) return;
+    let lista = [];
+    try { lista = JSON.parse(localStorage.getItem('rpgMundo.enemigosNuevos') || '[]'); } catch (e) { lista = []; }
+    if (!lista.length) return;
+    world.enemigos = world.enemigos || {};
+    lista.forEach(cfg => {
+      const clave = 'propio_' + String(cfg.id).replace(/[^a-zA-Z0-9_]/g, '_');
+      world.enemigos[clave] = {
+        name: cfg.name, level: cfg.stats.level, tier: cfg.stats.tier,
+        boss: cfg.stats.tier === 'Mini-Boss' || cfg.stats.tier === 'Raid Boss', config: cfg
+      };
+    });
+    try { localStorage.removeItem('rpgMundo.enemigosNuevos'); } catch (e) { /* nada */ }
+    saveSession();
+    toast('Enemigos añadidos al mundo: ' + lista.map(c => c.name).join(', '), 3500);
   }
   const W = window.RPGWorld;
 
@@ -412,6 +439,7 @@
   }
 
   function refreshAll() {
+    importarEnemigosNuevos();
     $('world-title').textContent = '🌍 ' + world.name;
     $('btn-undo').disabled = undoStack.length < 2;
     $('btn-redo').disabled = !redoStack.length;

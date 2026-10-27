@@ -1337,6 +1337,13 @@
     const cercanos = pool.slice().sort((a, b) => Math.abs(a.stats.level - info.level) - Math.abs(b.stats.level - info.level)).slice(0, 3);
     return cercanos[Math.min(cercanos.length - 1, Math.floor(rng.range(0, cercanos.length)))];
   }
+  // Enemigo por clave: arquetipo del editor o enemigo propio guardado en el mundo
+  function enemigoPorClave(clave) {
+    if (!clave) return null;
+    if (EnemyLib.ARCHETYPE_PRESETS[clave]) return EnemyLib.ARCHETYPE_PRESETS[clave];
+    const propio = world.enemigos && world.enemigos[clave];
+    return propio ? propio.config : null;
+  }
   function construirModeloEnemigo(m) {
     if (m.rig) return;
     if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(renderer.capabilities.getMaxAnisotropy());
@@ -1369,7 +1376,7 @@
           m.name = info.name; m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
           m.group = new THREE.Group();
           // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
-          m.enemigo = (info.enemigo && EnemyLib.ARCHETYPE_PRESETS[info.enemigo]) || elegirEnemigo(info, rng);
+          m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
           m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
           m.group.visible = false;
           scene.add(m.group);

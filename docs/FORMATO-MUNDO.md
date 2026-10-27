@@ -22,6 +22,7 @@ Unidades en **metros**; `x, y` del mapa = `x, z` en 3D.
     "metersPerLevel": 180,      // metros de camino por nivel recomendado
     "enemyMode": "niveles"      // enemigo de los monstruos sin elegir: "niveles" o "aleatorio"
   },
+  "enemigos": {},               // enemigos propios diseñados en el editor (clave "propio_<id>"); ver abajo
   "startTownId": "t_1",         // pueblo inicial (nivel 1)
   "towns": [ /* Pueblo */ ],
   "roads": [ /* Camino */ ],
@@ -122,6 +123,11 @@ Opcional. Son cambios hechos a mano en el Creador de Pueblos sobre la distribuci
   `escala` es opcional (1 por defecto).
 - `id` de un seto: `h<…>` para los de fábrica (junto a una casa, como `h-72:-13`) y `s<n>` para los puestos a mano.
   `rot` es el giro en radianes (0 por defecto). `añadir-seto` da la posición del centro en metros.
+
+## Enemigos propios
+Opcional. Enemigos diseñados en el editor «Enemigo-rpg» (botón «🐉 Enemigos» del Creador de Pueblos). Cada uno guarda
+`{ name, level, tier, boss, config }`, donde `config` es la configuración completa del editor. Se referencian desde
+`zones[].monsters[].enemigo` con su clave `propio_<id>`.
 
 ## Camino
 | Campo | Descripción |

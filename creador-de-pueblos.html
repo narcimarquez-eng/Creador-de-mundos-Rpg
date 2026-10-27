@@ -304,11 +304,21 @@
 <body>
 
   <button id="btn-toggle-ui">☰ Controles</button>
+  <button id="btn-enemigos" title="Diseñar enemigos (editor de enemigos)" style="position:fixed;top:12px;right:12px;z-index:40">🐉 Enemigos</button>
 
   <div id="world-bar">
     <span id="world-town-name">🌍</span>
     <button id="btn-world-save" title="Guardar este diseño en el pueblo del mundo">💾 Guardar y volver</button>
     <button id="btn-world-cancel" class="plain" title="Volver al mundo sin guardar">✕</button>
+  </div>
+
+  <style>#enemigos-overlay[hidden] { display: none !important; }</style>
+  <div id="enemigos-overlay" hidden style="position:fixed;inset:0;z-index:60;background:#0b1220;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;color:#e2e8f0;font:600 14px system-ui">
+      <span>🐉 Editor de enemigos</span>
+      <button id="btn-enemigos-cerrar" class="plain">Cerrar</button>
+    </div>
+    <iframe id="enemigos-frame" title="Editor de enemigos" style="flex:1;border:0;width:100%"></iframe>
   </div>
 
   <div id="cam-bar">
@@ -710,6 +720,23 @@
       e.target.value = currentExits.map(x => x.angle).join(', ');
       updateExitsLabel();
       rebuildFromUI();
+    });
+
+    // Editor de enemigos (carpeta enemigos-editor): al enviar un enemigo se guarda como pendiente para el mundo
+    const overlayEnemigos = document.getElementById('enemigos-overlay');
+    document.getElementById('btn-enemigos').addEventListener('click', () => {
+      const frame = document.getElementById('enemigos-frame');
+      if (!frame.getAttribute('src')) frame.setAttribute('src', 'enemigos-editor/index.html');
+      overlayEnemigos.hidden = false;
+    });
+    document.getElementById('btn-enemigos-cerrar').addEventListener('click', () => { overlayEnemigos.hidden = true; });
+    window.addEventListener('message', e => {
+      if (e.origin !== location.origin || !e.data || e.data.tipo !== 'enemigo-disenado' || !e.data.config) return;
+      let pendientes = [];
+      try { pendientes = JSON.parse(localStorage.getItem('rpgMundo.enemigosNuevos') || '[]'); } catch (err) { pendientes = []; }
+      pendientes = pendientes.filter(c => c.id !== e.data.config.id).concat([e.data.config]);
+      try { localStorage.setItem('rpgMundo.enemigosNuevos', JSON.stringify(pendientes)); } catch (err) { alert('No se pudo guardar el enemigo: ' + err.message); return; }
+      alert('Enemigo «' + e.data.config.name + '» guardado. Vuelve al editor de mundos para usarlo en una zona.');
     });
 
     document.getElementById('btn-world-save').addEventListener('click', () => {

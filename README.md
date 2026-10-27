@@ -13,6 +13,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `js/items.js` | Oro, pociones, botín, tienda y descanso. Pruebas en `test/items.test.js`. |
 | `js/combat.js` | Reglas del combate (daño, XP, muerte, IA de los monstruos). Pruebas en `test/combat.test.js`. |
 | `js/enemigos.js` | Generación de enemigos del editor «Enemigo-rpg» (compilada con `tools/hornear-enemigos.mjs`). El visor la usa para los monstruos: modo por niveles o aleatorio. |
+| `enemigos-editor/` | Editor de enemigos «Enemigo-rpg» ya compilado (sin servidor). Se abre desde el botón «🐉 Enemigos» del Creador de Pueblos; al enviar un enemigo se guarda como pendiente y el Creador de Mundos lo añade a «Propios del mundo». Se construye con `tools/construir-editor-enemigos.sh`. |
 | `js/enemigos-optimizar.js` | Une las mallas estáticas de cada enemigo y quita sus hitboxes de depuración, para dibujar menos. |
 | `js/enemigos-combate.js` | Efectos de combate de los enemigos: golpe, magia con proyectil, reacción al golpe. Se superponen a la animación base. |
 | `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). Trazado por manzanas con parcelas (por defecto) o clásico. |
