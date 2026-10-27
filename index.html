@@ -357,6 +357,7 @@
   function saveSession() {
     if (!world || !sessionId) return;
     try {
+      W.calcularRios(world);
       const text = W.serialize(world);
       lsSet(STORE.data(sessionId), text);
       const list = sessionIndex().filter(s => s.id !== sessionId);
@@ -627,6 +628,7 @@
     if (layers.grid) drawGrid();
     if (layers.zones) drawZones();
     drawRoads();
+    drawRios();
     drawPois();
     drawTowns();
     if (layers.labels) drawLabels();
@@ -662,6 +664,24 @@
       ctx.strokeStyle = z.id === selectedId ? '#fde047' : stroke;
       ctx.stroke();
       ctx.setLineDash([]);
+    });
+  }
+
+  // Ríos de los pueblos: del borde del pueblo hasta el mar (o hasta el lago en el que se para)
+  function drawRios() {
+    const w = Math.max(2, 9 * view.scale);
+    world.towns.forEach(t => {
+      const rio = t.cfg && t.cfg.rio;
+      if (!rio || rio.pts.length < 2) return;
+      const cr = Math.cos((t.cfg.rotation || 0) * Math.PI / 180), sr = Math.sin((t.cfg.rotation || 0) * Math.PI / 180);
+      ctx.beginPath();
+      rio.pts.forEach((p, i) => {
+        const s = toScreen(t.x + p.x * cr - p.z * sr, t.y + p.x * sr + p.z * cr);
+        if (i) ctx.lineTo(s.x, s.y); else ctx.moveTo(s.x, s.y);
+      });
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(2,6,23,0.7)'; ctx.lineWidth = w + 2.5; ctx.stroke();
+      ctx.strokeStyle = rio.mar ? '#38bdf8' : '#7dd3fc'; ctx.lineWidth = w; ctx.stroke();
     });
   }
 

@@ -957,6 +957,76 @@
     return JSON.stringify(world);
   }
 
+  // ---------------------------------------------------------------------------
+  // Ríos de los pueblos. Cada río cruza el pueblo de norte a sur, como en el Creador de Pueblos, y desde
+  // el borde por el que sale baja por la pendiente hasta el mar. Se guarda en cfg.rio: puntos en
+  // coordenadas locales del pueblo, en el orden en que fluye el agua, cada uno con su nivel de agua
+  // (`l`, relativo a la base del pueblo). `mar` dice si el curso llega al mar o se queda en un lago.
+  // ---------------------------------------------------------------------------
+  const RIO_PASO = 40, RIO_MAX_PASOS = 260, RIO_NIVEL = -0.65, RIO_ALTO = 420;
+  const RIO_TRAMO_ENTRADA = 300;  // cuánto sigue el río hacia arriba, fuera del pueblo (m)
+
+  // Misma fórmula que getRiverX del Creador de Pueblos
+  function riverX(cfg, lz) {
+    const baseOffset = 34 + ((cfg.size || 3) - 2) * 8;
+    return baseOffset + Math.sin(lz * 0.04) * (cfg.curve || 0);
+  }
+
+  function calcularRios(world) {
+    const T = getTerrain(world.seed);
+    world.towns.forEach(t => {
+      const cfg = t.cfg;
+      if (!cfg) return;
+      if (!cfg.hasRiver) { delete cfg.rio; return; }
+      const clave = [world.seed, t.x, t.y, cfg.rotation || 0, cfg.size, cfg.curve || 0].join('|');
+      if (cfg.rio && cfg.rio.clave === clave) return;
+      const rot = (cfg.rotation || 0) * Math.PI / 180, cr = Math.cos(rot), sr = Math.sin(rot);
+      const mundo = (lx, lz) => ({ x: t.x + lx * cr - lz * sr, y: t.y + lx * sr + lz * cr });
+      const h0 = (T.elevation(t.x, t.y) - SEA_LEVEL) * RIO_ALTO;
+      const alturaRel = p => (T.elevation(p.x, p.y) - SEA_LEVEL) * RIO_ALTO - h0;
+      // Baja por la pendiente hasta el mar; si no hay bajada (lago), se para
+      const bajar = inicio => {
+        const pts = [inicio];
+        let p = inicio, e = T.elevation(p.x, p.y);
+        for (let k = 0; k < RIO_MAX_PASOS && e >= SEA_LEVEL; k++) {
+          let mejor = null, em = e;
+          [RIO_PASO, RIO_PASO * 3].some(dist => {
+            for (let a = 0; a < 16; a++) {
+              const ang = a * Math.PI / 8;
+              const q = { x: p.x + Math.cos(ang) * dist, y: p.y + Math.sin(ang) * dist };
+              const eq = T.elevation(q.x, q.y);
+              if (eq < em) { em = eq; mejor = q; }
+            }
+            return mejor !== null;
+          });
+          if (!mejor) break;
+          p = mejor; e = em; pts.push(p);
+        }
+        return { pts, mar: e < SEA_LEVEL };
+      };
+      const half = townTileHalf(cfg.size || 3);
+      const rutas = [1, -1].map(lado => ({ lado, ruta: bajar(mundo(riverX(cfg, lado * half), lado * half)) }));
+      rutas.sort((a, b) => (b.ruta.mar - a.ruta.mar) || (a.ruta.pts.length - b.ruta.pts.length));
+      const { lado, ruta } = rutas[0];
+      // Tramo local: entra por el borde contrario, cruza el pueblo y sigue la bajada
+      const local = [];
+      for (let lz = -lado * (half + RIO_TRAMO_ENTRADA); (lz - lado * half) * lado < 0; lz += lado * RIO_PASO) {
+        local.push({ x: riverX(cfg, lz), z: lz, l: RIO_NIVEL });
+      }
+      let nivel = RIO_NIVEL;
+      ruta.pts.forEach((p, i) => {
+        const lx = (p.x - t.x) * cr + (p.y - t.y) * sr, lz = -(p.x - t.x) * sr + (p.y - t.y) * cr;
+        if (i === 0) { local.push({ x: lx, z: lz, l: RIO_NIVEL }); return; }
+        nivel = Math.max(-h0, Math.min(nivel, alturaRel(p) + RIO_NIVEL));
+        local.push({ x: lx, z: lz, l: nivel });
+      });
+      cfg.rio = {
+        clave, mar: ruta.mar,
+        pts: local.map(p => ({ x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10, l: Math.round(p.l * 100) / 100 }))
+      };
+    });
+  }
+
   function validate(obj) {
     if (!obj || typeof obj !== 'object') throw new Error('El archivo no contiene un mundo válido.');
     if (obj.format !== FORMAT) throw new Error('Formato desconocido (se esperaba "' + FORMAT + '").');
@@ -991,7 +1061,7 @@
 
   const api = {
     FORMAT, VERSION, SEA_LEVEL, BIOMES, MONSTERS, POI_TYPES, ZONE_TYPES, DEFAULT_SETTINGS,
-    PRNG, hashString, makeNoise2D, fbm, getTerrain,
+    PRNG, hashString, makeNoise2D, fbm, getTerrain, calcularRios,
     emptyWorld, generateWorld, addTown, autoConnect, populateRoad,
     createTown, createRoad, createZone, createPoi,
     moveEntity, removeEntity, refreshRoad, setStartTown,

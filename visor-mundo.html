@@ -309,16 +309,55 @@
   // del pueblo la altura es la suya (w = 1), así no hay escalón; la mezcla se reparte hacia fuera.
   // Altura analítica del terreno (sin malla). La malla se construye a partir de ella.
   const BLEND_OUT = 140;
-  const RIO_ALCANCE = 480;  // hasta dónde sigue el río fuera del pueblo (m)
   // Mitad del cauce plano y de la orilla fuera del pueblo (m). Se ajustan a la rejilla del terreno
   // (buildTerrain): el cauce tiene que caber entre dos nodos, si no el fondo no aparece en la malla.
   let RIO_CAUCE = 7, RIO_BANCO = 12;
-  const RIO_LECHO = -2.6;   // fondo del cauce, sobre la base del pueblo (igual que el Creador de Pueblos)
-  const RIO_AGUA = -0.65;   // nivel del agua, sobre la base del pueblo (igual que el Creador de Pueblos)
-  // Distancia (m) de un punto (coordenadas locales del pueblo) al cauce de su río, o null si no hay río
-  function distRio(o, lx, lz) {
-    if (!o.cfg.hasRiver || Math.abs(lz) > RIO_ALCANCE) return null;
-    return Math.abs(lx - o.ground.getRiverX(lz));
+  const RIO_FONDO = 1.95;   // el fondo del cauce queda este metro por debajo del agua
+  // Ríos fuera de los pueblos: el curso viene de cfg.rio (js/world-core.js), con sus tramos guardados en
+  // una rejilla para buscar rápido el más cercano a cada punto
+  const RIO_CELDA = 120;
+  let rios = [];
+  function prepararRios() {
+    rios = [];
+    W.calcularRios(world);
+    towns.forEach(o => {
+      const pts = o.cfg.rio && o.cfg.rio.pts;
+      if (!pts || pts.length < 2) return;
+      const mundo = p => ({ x: o.t.x + p.x * o.cr - p.z * o.sr, z: o.t.y + p.x * o.sr + p.z * o.cr, y: o.h0 + p.l });
+      const celdas = new Map(), segs = [];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = mundo(pts[i]), b = mundo(pts[i + 1]);
+        const s = { ax: a.x, az: a.z, ya: a.y, bx: b.x, bz: b.z, yb: b.y };
+        segs.push(s);
+        const x0 = Math.floor((Math.min(a.x, b.x) - 40) / RIO_CELDA), x1 = Math.floor((Math.max(a.x, b.x) + 40) / RIO_CELDA);
+        const z0 = Math.floor((Math.min(a.z, b.z) - 40) / RIO_CELDA), z1 = Math.floor((Math.max(a.z, b.z) + 40) / RIO_CELDA);
+        for (let cx = x0; cx <= x1; cx++) for (let cz = z0; cz <= z1; cz++) {
+          const k = cx + ',' + cz;
+          if (!celdas.has(k)) celdas.set(k, []);
+          celdas.get(k).push(s);
+        }
+      }
+      rios.push({ o, segs, celdas });
+    });
+  }
+  // Tramo de río más cercano a (x, z), fuera de su pueblo: distancia y altura del agua allí
+  function rioCercano(x, z) {
+    const k = Math.floor(x / RIO_CELDA) + ',' + Math.floor(z / RIO_CELDA);
+    let mejor = null;
+    rios.forEach(r => {
+      const lista = r.celdas.get(k);
+      if (!lista) return;
+      const dx = x - r.o.t.x, dz = z - r.o.t.y;
+      const lx = dx * r.o.cr + dz * r.o.sr, lz = -dx * r.o.sr + dz * r.o.cr;
+      if (Math.max(Math.abs(lx), Math.abs(lz)) < r.o.tileHalf) return;   // dentro de su pueblo ya está su cauce
+      lista.forEach(s => {
+        const ex = s.bx - s.ax, ez = s.bz - s.az;
+        const t = Math.max(0, Math.min(1, ((x - s.ax) * ex + (z - s.az) * ez) / (ex * ex + ez * ez || 1)));
+        const d = Math.hypot(s.ax + ex * t - x, s.az + ez * t - z);
+        if (!mejor || d < mejor.d) mejor = { d, nivel: s.ya + (s.yb - s.ya) * t };
+      });
+    });
+    return mejor;
   }
   function Hgen(x, z) {
     const e = terrain.elevation(x, z);
@@ -334,18 +373,11 @@
         h = h + (g - h) * w;
       }
     }
-    // Río fuera del pueblo: el cauce baja el relieve hasta su fondo (dentro del pueblo ya lo hace su terreno)
-    for (let i = 0; i < towns.length; i++) {
-      const o = towns[i];
-      if (!o.cfg.hasRiver) continue;
-      const dx = x - o.t.x, dz = z - o.t.y;
-      if (Math.hypot(dx, dz) > RIO_ALCANCE * 1.5) continue;
-      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
-      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) continue;
-      const d = distRio(o, lx, lz);
-      if (d === null || d >= RIO_BANCO) continue;
-      const lecho = o.h0 + RIO_LECHO;
-      h = Math.min(h, lecho + (h - lecho) * smooth(RIO_CAUCE, RIO_BANCO, d));
+    // Río fuera del pueblo: el cauce baja el relieve hasta su fondo, siguiendo el curso hasta el mar
+    const r = rioCercano(x, z);
+    if (r && r.d < RIO_BANCO) {
+      const lecho = r.nivel - RIO_FONDO;
+      h = Math.min(h, lecho + (h - lecho) * smooth(RIO_CAUCE, RIO_BANCO, r.d));
     }
     return h;
   }
@@ -570,6 +602,7 @@
 
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
     towns = world.towns.map(makeTownEntry);
+    prepararRios();
 
     // Límites del mapa
     const xs = [], zs = [];
@@ -1062,14 +1095,8 @@
   // Altura de un camino: sobre el cauce de un río se tiende como puente, un poco por encima del agua
   function alturaCamino(x, z) {
     let h = H(x, z);
-    for (let i = 0; i < towns.length; i++) {
-      const o = towns[i];
-      const dx = x - o.t.x, dz = z - o.t.y;
-      if (Math.hypot(dx, dz) > RIO_ALCANCE * 1.5) continue;
-      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
-      const d = distRio(o, lx, lz);
-      if (d !== null && d < RIO_BANCO) h = Math.max(h, o.h0 + RIO_AGUA + 0.6);
-    }
+    const r = rioCercano(x, z);
+    if (r && r.d < RIO_BANCO) h = Math.max(h, r.nivel + 0.6);
     return h;
   }
 
@@ -1098,28 +1125,19 @@
     scene.add(calzadaMesh);
   }
 
-  // Agua de los ríos fuera de los pueblos. Dentro del pueblo el agua la pone su propio terreno.
+  // Agua de los ríos fuera de los pueblos, a la altura de su curso (baja hasta el mar).
+  // Dentro del pueblo el agua la pone su propio terreno.
   function buildRios() {
-    const mb = new MB(), col = rgb('#0284c7');
-    towns.forEach(o => {
-      if (!o.cfg.hasRiver) return;
-      const nivel = o.h0 + RIO_AGUA, mitad = RIO_CAUCE + 1;
-      [-1, 1].forEach(lado => {
-        const pts = [];
-        for (let k = 0; k <= RIO_ALCANCE / 6; k++) {
-          const lz = lado * (o.tileHalf + k * 6);
-          const lx = o.ground.getRiverX(lz);
-          pts.push({ x: o.t.x + lx * o.cr - lz * o.sr, y: o.t.y + lx * o.sr + lz * o.cr });
-        }
-        for (let i = 0; i < pts.length - 1; i++) {
-          const a = pts[i], b = pts[i + 1];
-          let tx = b.x - a.x, tz = b.y - a.y;
-          const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
-          mb.quad([a.x - tz * mitad, nivel, a.y + tx * mitad], [a.x + tz * mitad, nivel, a.y - tx * mitad],
-            [b.x + tz * mitad, nivel, b.y - tx * mitad], [b.x - tz * mitad, nivel, b.y + tx * mitad], col);
-        }
-      });
-    });
+    const mb = new MB(), col = rgb('#0284c7'), mitad = RIO_CAUCE + 1;
+    rios.forEach(r => r.segs.forEach(s => {
+      const dx = (s.ax + s.bx) / 2 - r.o.t.x, dz = (s.az + s.bz) / 2 - r.o.t.y;
+      const lx = dx * r.o.cr + dz * r.o.sr, lz = -dx * r.o.sr + dz * r.o.cr;
+      if (Math.max(Math.abs(lx), Math.abs(lz)) < r.o.tileHalf) return;
+      let tx = s.bx - s.ax, tz = s.bz - s.az;
+      const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
+      const nx = -tz * mitad, nz = tx * mitad;
+      mb.quad([s.ax + nx, s.ya, s.az + nz], [s.ax - nx, s.ya, s.az - nz], [s.bx - nx, s.yb, s.bz - nz], [s.bx + nx, s.yb, s.bz + nz], col);
+    }));
     riosMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.86, side: THREE.DoubleSide }));
     scene.add(riosMesh);
   }
