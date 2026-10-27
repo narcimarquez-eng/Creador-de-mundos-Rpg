@@ -51,3 +51,14 @@ Ninguno de los dos ajustes iguala los valores de r128. La causa no está aislada
   `renderer.outputColorSpace = THREE.SRGBColorSpace`. En r186 la salida sRGB ya es la opción por defecto.
 - **Pendiente:** decidir qué aspecto es el bueno. Los estilos y la paleta de terreno se afinaron mirando r128, así que
   habría que retocarlos para acercarse a esa versión, o aceptar el nuevo aspecto y ajustar desde ahí.
+
+## Enemigos en la versión de prueba (r186)
+
+`visor-prueba-three.html` tiene los mismos enemigos que el visor r128 de la rama principal: modo por niveles o aleatorio,
+modelo del editor «Enemigo-rpg», optimización de mallas, efectos de golpe, magia y reacción al daño.
+
+- **Comparación justa** (un render completo, con enemigos construidos y el personaje en la misma posición):
+  r128: 1.808.838 triángulos y 534 llamadas. r186: 1.802.676 triángulos y 537 llamadas.
+- **Carga:** `js/enemigos.js` se compila con un `footer` que publica `EnemyLib` como global, porque en el visor
+  de r186 los scripts son módulos ES.
+- **Pendiente:** comparar el aspecto con luminosidad y saturación, como con el pueblo y el creador.
