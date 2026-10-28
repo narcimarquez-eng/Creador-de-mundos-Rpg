@@ -350,6 +350,8 @@
   // (buildTerrain): el cauce tiene que caber entre dos nodos, si no el fondo no aparece en la malla.
   let RIO_CAUCE = 7, RIO_BANCO = 12;
   const RIO_FONDO = 1.95;   // el fondo del cauce queda este metro por debajo del agua
+  const RIO_RAMPA = 100;    // el cauce se excava poco a poco desde el final de la mezcla con el pueblo
+  const RIO_BOCA = 70;      // el río se desvanece en los últimos metros de su recorrido (mar o lago)
   // Ríos fuera de los pueblos: el curso viene de cfg.rio (js/world-core.js), con sus tramos guardados en
   // una rejilla para buscar rápido el más cercano a cada punto
   const RIO_CELDA = 120;
@@ -376,6 +378,15 @@
           celdas.get(k).push(s);
         }
       }
+      // Anchura y desvanecido: el río se ensancha poco a poco (x1 al salir, x1.5 al final) y se
+      // desvanece en su boca; cada extremo de segmento guarda su anchura y su opacidad
+      let total = 0;
+      segs.forEach(s => { s.l0 = total; total += Math.hypot(s.bx - s.ax, s.bz - s.az); s.l1 = total; });
+      total = total || 1;
+      segs.forEach(s => {
+        s.wa = 1 + 0.5 * s.l0 / total; s.wb = 1 + 0.5 * s.l1 / total;
+        s.fa = smooth(0, RIO_BOCA, total - s.l0); s.fb = smooth(0, RIO_BOCA, total - s.l1);
+      });
       rios.push({ o, segs, celdas });
     });
   }
@@ -393,7 +404,11 @@
         const ex = s.bx - s.ax, ez = s.bz - s.az;
         const t = Math.max(0, Math.min(1, ((x - s.ax) * ex + (z - s.az) * ez) / (ex * ex + ez * ez || 1)));
         const d = Math.hypot(s.ax + ex * t - x, s.az + ez * t - z);
-        if (!mejor || d < mejor.d) mejor = { d, nivel: s.ya + (s.yb - s.ya) * t };
+        if (!mejor || d < mejor.d) mejor = {
+          d, nivel: s.ya + (s.yb - s.ya) * t, w: s.wa + (s.wb - s.wa) * t,
+          // distancia al final de la mezcla con el pueblo (negativa dentro de ella)
+          dt: Math.max(Math.abs(lx), Math.abs(lz)) - (r.o.tileHalf + BLEND_OUT)
+        };
       });
     });
     return mejor;
@@ -419,9 +434,12 @@
     }
     // Río fuera del pueblo: el cauce baja el relieve hasta su fondo, siguiendo el curso hasta el mar
     const r = rioCercano(x, z);
-    if (r && r.d < RIO_BANCO) {
+    if (r && r.dt > -BLEND_OUT && r.d < RIO_BANCO * r.w) {
+      // Dentro de la mezcla con el pueblo no se excava; más allá, el cauce entra poco a poco
+      const k = smooth(0, RIO_RAMPA, r.dt);
       const lecho = r.nivel - RIO_FONDO;
-      h = Math.min(h, lecho + (h - lecho) * smooth(RIO_CAUCE, RIO_BANCO, r.d));
+      const cauce = Math.min(h, lecho + (h - lecho) * smooth(RIO_CAUCE * r.w, RIO_BANCO * r.w, r.d));
+      h = h + (cauce - h) * k;
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
     return LagosLib.aplicar(lagosMundo, x, z, h);
@@ -1020,7 +1038,10 @@
     vec3 vista = normalize(cameraPosition - vMundo3);
     float fresnel = 0.03 + 0.97 * pow(1.0 - clamp(vista.y, 0.0, 1.0), 4.0);
     agua = mix(agua, uCielo, clamp(fresnel * 0.85, 0.0, 0.9));
-    diffuseColor.rgb = agua;`;
+    diffuseColor.rgb = agua;
+    #ifdef USE_COLOR
+      if (uOrillas > 0.5) diffuseColor.a *= vColor.g;   // ríos: se desvanecen hacia su boca
+    #endif`;
   // rio = true: el agua de los ríos, con el tono de los lagos de praderas y las normales de New-Rol
   function aguaMaterial(orillas, opacidad, rio = false) {
     const m = new THREE.MeshLambertMaterial({ vertexColors: orillas, transparent: true, opacity: opacidad, side: THREE.DoubleSide });
@@ -1319,19 +1340,20 @@
   // Agua de los ríos fuera de los pueblos, a la altura de su curso (baja hasta el mar).
   // Dentro del pueblo el agua la pone su propio terreno.
   function buildRios() {
-    const mb = new MB(), mitad = RIO_CAUCE + 1;
-    const E = [1, 0, 0], C = [0, 0, 0];   // rojo = espuma (orilla); 0 = agua abierta
+    const mb = new MB();
+    // Color por vértice: rojo = espuma (orilla, 0 = agua abierta); verde = opacidad (se desvanece en la boca)
     rios.forEach(r => r.segs.forEach(s => {
       const dx = (s.ax + s.bx) / 2 - r.o.t.x, dz = (s.az + s.bz) / 2 - r.o.t.y;
       const lx = dx * r.o.cr + dz * r.o.sr, lz = -dx * r.o.sr + dz * r.o.cr;
       if (Math.max(Math.abs(lx), Math.abs(lz)) < r.o.tileHalf) return;
       let tx = s.bx - s.ax, tz = s.bz - s.az;
       const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
-      const nx = -tz * mitad, nz = tx * mitad;
+      const mitad = (RIO_CAUCE + 1) * (s.wa + s.wb) / 2, nx = -tz * mitad, nz = tx * mitad;
+      const Ea = [1, s.fa, 0], Ca = [0, s.fa, 0], Eb = [1, s.fb, 0], Cb = [0, s.fb, 0];
       const a1 = [s.ax + nx, s.ya, s.az + nz], a0 = [s.ax, s.ya, s.az], a2 = [s.ax - nx, s.ya, s.az - nz];
       const b1 = [s.bx + nx, s.yb, s.bz + nz], b0 = [s.bx, s.yb, s.bz], b2 = [s.bx - nx, s.yb, s.bz - nz];
-      mb.quadC(a1, a0, b0, b1, E, C, C, E);
-      mb.quadC(a0, a2, b2, b0, C, E, E, C);
+      mb.quadC(a1, a0, b0, b1, Ea, Ca, Cb, Eb);
+      mb.quadC(a0, a2, b2, b0, Ca, Ea, Eb, Cb);
     }));
     riosMesh = new THREE.Mesh(mb.geom(), aguaMaterial(true, 0.9, true));
     scene.add(riosMesh);
