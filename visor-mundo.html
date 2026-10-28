@@ -1341,43 +1341,39 @@
     });
   }
 
-  // Detalle del suelo a menos de DETALLE_M de la cámara: pequeñas elevaciones y parches de hierba más alta
-  // o de tierra. Es una malla de celdas centrada en la cámara que se rehace cada DETALLE_MOVER metros; las
-  // celdas sobre caminos, pueblos, agua o lagos se omiten, y el radio se desvanece hacia fuera.
+  // Suelo cercano a menos de DETALLE_M de la cámara: las mismas texturas reales de hierba y tierra del terreno,
+  // a más detalle (5 m por repetición) y mezcladas por zonas. Es una malla de celdas centrada en la cámara que
+  // se rehace cada DETALLE_MOVER metros; las celdas sobre caminos, pueblos, agua o lagos se omiten, y el radio
+  // se desvanece hacia fuera.
   const DETALLE_M = 80, DETALLE_CELDA = 3, DETALLE_MOVER = 6;
   let detalleMalla = null, detalleCamPos = null;
   const detalleU = { uCam: { value: new THREE.Vector2() }, uRadio: { value: DETALLE_M } };
-  const detalleMat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.92, depthWrite: false });
+  const DETALLE_GLSL = `
+    float hashDet(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float ruidoDet(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hashDet(i), hashDet(i + vec2(1.0, 0.0)), f.x), mix(hashDet(i + vec2(0.0, 1.0)), hashDet(i + vec2(1.0, 1.0)), f.x), f.y);
+    }`;
+  const detalleMat = new THREE.MeshLambertMaterial({ transparent: true, depthWrite: false });
   detalleMat.onBeforeCompile = shader => {
     shader.uniforms.uCam = detalleU.uCam;
     shader.uniforms.uRadio = detalleU.uRadio;
+    shader.uniforms.tGrass = terrainU.tGrass;
+    shader.uniforms.tDirt = terrainU.tDirt;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec2 vDetXZ;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vDetXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vDetXZ;\nuniform vec2 uCam;\nuniform float uRadio;')
-      .replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.a *= 1.0 - smoothstep(uRadio * 0.7, uRadio, distance(vDetXZ, uCam));');
+      .replace('#include <common>', '#include <common>\nvarying vec2 vDetXZ;\nuniform vec2 uCam;\nuniform float uRadio;\nuniform sampler2D tGrass;\nuniform sampler2D tDirt;\n' + DETALLE_GLSL)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        // Hierba y tierra reales, mezcladas por zonas irregulares; se desvanecen hacia el borde del radio
+        float zona = smoothstep(0.42, 0.68, ruidoDet(vDetXZ * 0.04));
+        vec3 hierba = texture2D(tGrass, vDetXZ * 0.2).rgb;
+        vec3 tierra = texture2D(tDirt, vDetXZ * 0.16).rgb;
+        diffuseColor.rgb = mix(hierba, tierra, zona * 0.7) * 1.35;
+        diffuseColor.a *= 1.0 - smoothstep(uRadio * 0.7, uRadio, distance(vDetXZ, uCam));`);
   };
-  // Ruido de valor sencillo, con semilla fija
-  function hashD(x, z) { const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453; return n - Math.floor(n); }
-  function ruidoD(x, z) {
-    const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
-    const u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
-    const a = hashD(xi, zi), b = hashD(xi + 1, zi), c = hashD(xi, zi + 1), d = hashD(xi + 1, zi + 1);
-    const ab = a + (b - a) * u, cd = c + (d - c) * u;
-    return ab + (cd - ab) * v;
-  }
-  // Elevación de la hierba: solo hacia arriba (hasta 25 cm) en parches irregulares
-  const alturaDetalle = (x, z) => Math.max(0, ruidoD(x / 9, z / 9) - 0.5) * 0.6;
-  // Color: hierba, con parches más claros o de tierra donde el ruido lo marca
-  function colorDetalle(x, z) {
-    const n = ruidoD(x / 6 + 3, z / 6 + 7), suelo = ruidoD(x / 11 - 5, z / 11 + 2);
-    const hierba = [0.36, 0.5, 0.25], claro = [0.6, 0.76, 0.4], tierra = [0.5, 0.41, 0.26];
-    const k = Math.max(0, Math.min(1, (n - 0.35) / 0.4));
-    const c = hierba.map((v, i) => v + (claro[i] - v) * k);
-    const t = Math.max(0, Math.min(1, (suelo - 0.68) / 0.12)) * 0.6;
-    return c.map((v, i) => v + (tierra[i] - v) * t);
-  }
   // Un camino, un pueblo, el agua o un lago no llevan hierba encima
   function sueloLibreDetalle(x, z, h) {
     if (h < SEA + 0.3) return false;
@@ -1389,12 +1385,10 @@
     const N = Math.ceil(2 * (DETALLE_M + DETALLE_CELDA) / DETALLE_CELDA) + 1;
     const x0 = Math.floor((cx - DETALLE_M - DETALLE_CELDA) / DETALLE_CELDA) * DETALLE_CELDA;
     const z0 = Math.floor((cz - DETALLE_M - DETALLE_CELDA) / DETALLE_CELDA) * DETALLE_CELDA;
-    const pos = [], col = [], idx = [], libre = [];
+    const pos = [], idx = [];
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      const x = x0 + i * DETALLE_CELDA, z = z0 + j * DETALLE_CELDA, h = meshHeight(x, z);
-      const c = colorDetalle(x, z);
-      pos.push(x, h + alturaDetalle(x, z) + 0.04, z);
-      col.push(c[0], c[1], c[2]);
+      const x = x0 + i * DETALLE_CELDA, z = z0 + j * DETALLE_CELDA;
+      pos.push(x, meshHeight(x, z) + 0.04, z);
     }
     // Una celda entra si su centro está en el radio y el suelo es libre
     for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
@@ -1407,7 +1401,6 @@
     if (!idx.length) return;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     geo.setIndex(idx);
     geo.computeVertexNormals();
     detalleMalla = new THREE.Mesh(geo, detalleMat);
