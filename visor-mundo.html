@@ -2275,7 +2275,9 @@
     r.visited.forEach(id => visited.add(id));
     setTimeOfDay(r.timeOfDay);
     personajeActual = r.personaje;
-    if (personajeActual) generarArmaduras(personajeActual).catch(() => {});
+    if (personajeActual) {
+      generarArmaduras(personajeActual).then(() => mostrarCuerpo(personajeActual)).catch(() => {});
+    }
     if (!character.teleport(r.x, r.z)) {
       const start = towns.find(o => o.t.isStart) || towns[0];
       if (start) character.teleport(start.t.x + 6, start.t.y + 6);
@@ -2475,6 +2477,7 @@
       const pj = prepararPersonaje($('crear-nombre').value.trim() || 'Aventurero', $('crear-clase').value, fit);
       $('crear-estado').textContent = 'Generando armaduras…';
       await generarArmaduras(pj);
+      await mostrarCuerpo(pj);
       $('crear').classList.remove('show');
       alCrear(pj);
     } catch (err) { $('crear-estado').textContent = err.message; }
@@ -2482,6 +2485,12 @@
   }
   $('crear-ok').onclick = confirmarCrear;
   $('crear-cancel').onclick = () => $('crear').classList.remove('show');
+
+  // Muestra al personaje con su armadura: el estudio exporta el cuerpo completo con el equipo
+  async function mostrarCuerpo(pj) {
+    const url = await pedirAlEstudio('cuerpo', { tipo: 'exportar-personaje', id: 'cuerpo', equipo: pj.equipo });
+    character.loadGLB(url, pj.nombre);
+  }
 
   // Partida nueva con el personaje elegido
   function crearPartida(pj) {
@@ -2791,7 +2800,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

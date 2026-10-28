@@ -19473,6 +19473,13 @@ function resetCharacter() {
         syncFitSlidersUI();
         updateWardrobePieces();
       }
+      if (d.tipo === 'exportar-personaje') {
+        // Cuerpo completo con el equipo dado (armadura incluida) y sus animaciones
+        Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = d.equipo[k] || 0; });
+        updateWardrobePieces();
+        exportIdPendiente = d.id;
+        exportLightweightGLB(false);
+      }
       if (d.tipo === 'exportar-pieza') {
         Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = 0; });
         STATE.equipment[d.ranura] = d.idx;
