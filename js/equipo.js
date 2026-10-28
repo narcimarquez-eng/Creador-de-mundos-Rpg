@@ -1,128 +1,89 @@
 /*
- * equipo.js — Clases y armaduras por niveles (sin gráficos). Ver docs/EQUIPO.md.
+ * equipo.js — Piezas de armadura, equipo del personaje y su progreso (sin gráficos). Ver docs/EQUIPO.md.
  * Expone window.EquipoLib (o module.exports en Node para las pruebas).
  *
- * Al crear el personaje se generan todas las armaduras de su clase a lo largo del juego.
- * Empieza con la primera (la cota) y las demás se equipan al alcanzar el nivel mínimo.
+ * El catálogo (piezas/catalogo.json) vive en el repositorio armaduras-glb y lista cada pieza con su
+ * nivel mínimo y su .glb. El personaje sale con las piezas iniciales del catálogo. El resto se consigue
+ * con los monstruos (sueltan piezas de su nivel) o fabricándolas en el herrero con oro.
  */
 (function (root) {
   "use strict";
 
-  // Líneas de armadura por clase. Cada tramo (tier) exige un nivel mínimo de héroe.
-  const CLASES = {
-    guerrero: {
-      name: 'Guerrero',
-      lineas: {
-        ligera: {
-          name: 'Ligera',
-          tiers: [
-            { nombre: 'Cota de malla', nivel: 1, defensa: 4 },
-            { nombre: 'Cota de malla reforzada', nivel: 4, defensa: 7 },
-            { nombre: 'Cota de malla templada', nivel: 8, defensa: 10 },
-            { nombre: 'Cota de malla de adamante', nivel: 12, defensa: 14 }
-          ]
-        },
-        pesada: {
-          name: 'Pesada',
-          tiers: [
-            { nombre: 'Coraza de placas', nivel: 5, defensa: 9 },
-            { nombre: 'Armadura de placas', nivel: 9, defensa: 13 },
-            { nombre: 'Armadura de placas templada', nivel: 13, defensa: 17 },
-            { nombre: 'Armadura de placas de adamante', nivel: 17, defensa: 22 }
-          ]
-        }
-      }
-    },
-    mago: {
-      name: 'Mago',
-      lineas: {
-        tunica: {
-          name: 'Túnica',
-          tiers: [
-            { nombre: 'Túnica de aprendiz', nivel: 1, defensa: 2 },
-            { nombre: 'Túnica de runas', nivel: 4, defensa: 4 },
-            { nombre: 'Túnica arcana', nivel: 8, defensa: 6 },
-            { nombre: 'Túnica de archimago', nivel: 12, defensa: 9 }
-          ]
-        }
-      }
-    }
-  };
+  const RANURAS = ['underlayer', 'helmet', 'shoulders', 'torso', 'gloves', 'belt', 'tassets', 'cuisses', 'knees', 'boots', 'weapon'];
+  const DROP_NORMAL = 0.04;     // probabilidad de que un monstruo normal suelte una pieza de su nivel
+  const RANGO_DROP = 5;         // niveles por debajo del monstruo que puede soltar
+  const FORJA_ORO = 12;         // oro por nivel de la pieza al fabricarla en el herrero
 
-  // La armadura con la que sale el personaje: el primer tramo de la primera línea
-  function lineaInicial(clase) {
-    const c = CLASES[clase];
-    if (!c) throw new Error('Clase desconocida: ' + clase);
-    return Object.keys(c.lineas)[0];
-  }
-
-  // Todas las armaduras de una clase, ordenadas por nivel mínimo. Cada una tiene un id estable.
-  function generarArmaduras(clase) {
-    const c = CLASES[clase];
-    if (!c) throw new Error('Clase desconocida: ' + clase);
+  // Lista plana de piezas de una clase, ordenadas por nivel. Cada una lleva su ranura y su id estable.
+  function piezasDeClase(catalogo, clase) {
+    const ranuras = catalogo.clases[clase];
+    if (!ranuras) throw new Error('Clase sin piezas o desconocida: ' + clase);
     const lista = [];
-    Object.keys(c.lineas).forEach(linea => {
-      c.lineas[linea].tiers.forEach((t, i) => {
-        lista.push({
-          id: clase + '.' + linea + '.' + (i + 1),
-          clase, linea,
-          lineaNombre: c.lineas[linea].name,
-          tier: i + 1,
-          nombre: t.nombre,
-          nivelMin: t.nivel,
-          defensa: t.defensa
-        });
-      });
+    ranuras.forEach(r => {
+      (catalogo.ranuras[r] || []).forEach(p => lista.push(Object.assign({ ranura: r, id: r + '.' + p.idx }, p)));
     });
-    return lista.sort((a, b) => a.nivelMin - b.nivelMin || a.id.localeCompare(b.id));
+    return lista.sort((a, b) => a.nivel - b.nivel || a.id.localeCompare(b.id));
   }
 
-  // Personaje nuevo: clase, todas sus armaduras y la cota inicial equipada
-  function crearPersonaje(clase) {
-    const armaduras = generarArmaduras(clase);
-    const inicial = armaduras.find(a => a.linea === lineaInicial(clase) && a.tier === 1);
-    return { clase, armaduras, equipada: inicial.id };
+  // Personaje nuevo: clase, nombre, equipo inicial (idx por ranura) y piezas que posee
+  function crearPersonaje(catalogo, clase, nombre) {
+    const todas = piezasDeClase(catalogo, clase);
+    const equipo = {};
+    RANURAS.forEach(r => { equipo[r] = 0; });            // 0 = «Sin …» en cada ranura
+    const posee = [];
+    Object.keys(catalogo.inicial).forEach(r => {
+      const idx = catalogo.inicial[r];
+      if (todas.some(p => p.ranura === r && p.idx === idx)) {
+        equipo[r] = idx;
+        posee.push(r + '.' + idx);
+      }
+    });
+    return { clase, nombre: nombre || 'Aventurero', equipo, posee };
   }
 
-  function puedeEquipar(armadura, nivel) {
-    return nivel >= armadura.nivelMin;
+  function poseePieza(personaje, pieza) {
+    return personaje.posee.includes(pieza.id);
   }
 
-  // Armaduras que el héroe ya puede equipar con ese nivel
-  function disponibles(personaje, nivel) {
-    return personaje.armaduras.filter(a => puedeEquipar(a, nivel));
+  function puedeEquipar(pieza, nivelHeroe) {
+    return nivelHeroe >= pieza.nivel;
   }
 
-  // Equipa una armadura por id. Lanza un error si no existe o si el nivel no basta.
-  function equipar(personaje, id, nivel) {
-    const armadura = personaje.armaduras.find(a => a.id === id);
-    if (!armadura) throw new Error('Armadura no disponible para esta clase: ' + id);
-    if (!puedeEquipar(armadura, nivel)) {
-      throw new Error(armadura.nombre + ' requiere nivel ' + armadura.nivelMin);
-    }
-    personaje.equipada = id;
-    return armadura;
+  // Equipa una pieza que ya posee y cuyo nivel cumple. Lanza un error si no.
+  function equipar(personaje, catalogo, id, nivelHeroe) {
+    const pieza = piezasDeClase(catalogo, personaje.clase).find(p => p.id === id);
+    if (!pieza) throw new Error('Pieza no disponible para esta clase: ' + id);
+    if (!poseePieza(personaje, pieza)) throw new Error('Aún no tienes ' + pieza.nombre);
+    if (!puedeEquipar(pieza, nivelHeroe)) throw new Error(pieza.nombre + ' requiere nivel ' + pieza.nivel);
+    personaje.equipo[pieza.ranura] = pieza.idx;
+    return pieza;
   }
 
-  // Mejor armadura que el héroe puede llevar ahora (la de más defensa entre las disponibles)
-  function mejorDisponible(personaje, nivel) {
-    return disponibles(personaje, nivel).reduce((mejor, a) => (!mejor || a.defensa > mejor.defensa ? a : mejor), null);
+  // Monstruo derrotado: suelta una pieza de su nivel que el personaje aún no tiene (o nada).
+  // rnd: función que devuelve un número en [0, 1)
+  function piezaDeMonstruo(personaje, catalogo, nivelMonstruo, jefe, rnd) {
+    if (!jefe && rnd() >= DROP_NORMAL) return null;
+    const candidatas = piezasDeClase(catalogo, personaje.clase).filter(p =>
+      !poseePieza(personaje, p) && p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
+    if (!candidatas.length) return null;
+    const elegida = candidatas[Math.floor(rnd() * candidatas.length)];
+    personaje.posee.push(elegida.id);
+    return elegida;
   }
 
-  // Asigna el modelo GLB de un tramo: { nombre, url }. Con null quita el modelo.
-  function asignarModelo(personaje, id, modelo) {
-    const armadura = personaje.armaduras.find(a => a.id === id);
-    if (!armadura) throw new Error('Armadura no disponible para esta clase: ' + id);
-    armadura.modelo = modelo || null;
-    return armadura;
+  // Herrero: fabrica una pieza no poseída de nivel ≤ nivel del héroe. Devuelve el oro que cuesta, o lanza.
+  function fabricar(personaje, catalogo, id, nivelHeroe, oro) {
+    const pieza = piezasDeClase(catalogo, personaje.clase).find(p => p.id === id);
+    if (!pieza) throw new Error('Pieza no disponible para esta clase: ' + id);
+    if (poseePieza(personaje, pieza)) throw new Error('Ya tienes ' + pieza.nombre);
+    if (!puedeEquipar(pieza, nivelHeroe)) throw new Error(pieza.nombre + ' requiere nivel ' + pieza.nivel);
+    const coste = FORJA_ORO * pieza.nivel;
+    if (oro < coste) throw new Error('Faltan ' + (coste - oro) + ' de oro');
+    personaje.posee.push(pieza.id);
+    return coste;
   }
 
-  // Armaduras de la clase que todavía no tienen modelo GLB
-  function sinModelo(personaje) {
-    return personaje.armaduras.filter(a => !a.modelo);
-  }
-
-  const api = { CLASES, lineaInicial, generarArmaduras, crearPersonaje, puedeEquipar, disponibles, equipar, mejorDisponible, asignarModelo, sinModelo };
+  const api = { RANURAS, DROP_NORMAL, FORJA_ORO, piezasDeClase, crearPersonaje, poseePieza, puedeEquipar, equipar, piezaDeMonstruo, fabricar };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.EquipoLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,74 +1,80 @@
-// Pruebas de clases y armaduras por niveles. Ejecutar: node test/equipo.test.js
+// Pruebas de piezas, equipo, drops y forja. Ejecutar: node test/equipo.test.js
 const assert = require('assert');
 const E = require('../js/equipo.js');
 
 let n = 0;
 function t(name, fn) { fn(); n++; console.log('ok -', name); }
 
-t('guerrero: genera ligera y pesada, todos los tramos por nivel', () => {
-  const lista = E.generarArmaduras('guerrero');
-  assert.strictEqual(lista.length, 8);
-  assert.ok(lista.some(a => a.linea === 'ligera'));
-  assert.ok(lista.some(a => a.linea === 'pesada'));
-  for (let i = 1; i < lista.length; i++) assert.ok(lista[i - 1].nivelMin <= lista[i].nivelMin);
+// Catálogo de prueba con la misma forma que piezas/catalogo.json (armaduras-glb)
+const CATALOGO = {
+  maxNivel: 10,
+  inicial: { underlayer: 2, torso: 1 },
+  ranuras: {
+    underlayer: [{ idx: 1, nombre: 'Gambesón', nivel: 2, archivo: null }, { idx: 2, nombre: 'Cota', nivel: 1, archivo: null }],
+    torso: [{ idx: 1, nombre: 'Coraza', nivel: 1, archivo: 'piezas/torso/1.glb' }, { idx: 2, nombre: 'Peto', nivel: 6, archivo: 'piezas/torso/2.glb' }],
+    helmet: [{ idx: 1, nombre: 'Corona', nivel: 4, archivo: 'piezas/helmet/1.glb' }]
+  },
+  clases: { guerrero: ['underlayer', 'torso', 'helmet'], mago: [] }
+};
+const sec = (...v) => { let i = 0; return () => v[i++ % v.length]; };
+
+t('piezas de la clase ordenadas por nivel, con id estable', () => {
+  const lista = E.piezasDeClase(CATALOGO, 'guerrero');
+  assert.deepStrictEqual(lista.map(p => p.id), ['torso.1', 'underlayer.2', 'underlayer.1', 'helmet.1', 'torso.2']);
 });
 
-t('mago: solo túnicas, sin armaduras de guerrero', () => {
-  const lista = E.generarArmaduras('mago');
-  assert.ok(lista.length > 0);
-  assert.ok(lista.every(a => a.clase === 'mago' && a.linea === 'tunica'));
+t('clase sin piezas o desconocida: error', () => {
+  assert.deepStrictEqual(E.piezasDeClase(CATALOGO, 'mago'), []);
+  assert.throws(() => E.piezasDeClase(CATALOGO, 'paladin'), /Clase sin piezas o desconocida/);
 });
 
-t('personaje nuevo sale con la cota (primer tramo de la línea ligera)', () => {
-  const p = E.crearPersonaje('guerrero');
-  const equipada = p.armaduras.find(a => a.id === p.equipada);
-  assert.strictEqual(equipada.nombre, 'Cota de malla');
-  assert.strictEqual(equipada.nivelMin, 1);
+t('personaje nuevo sale con las piezas iniciales del catálogo', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero', 'Ana');
+  assert.strictEqual(p.nombre, 'Ana');
+  assert.strictEqual(p.equipo.underlayer, 2);
+  assert.strictEqual(p.equipo.torso, 1);
+  assert.strictEqual(p.equipo.helmet, 0);
+  assert.deepStrictEqual(p.posee.sort(), ['torso.1', 'underlayer.2']);
 });
 
-t('no se puede equipar una armadura por encima del nivel del héroe', () => {
-  const p = E.crearPersonaje('guerrero');
-  assert.throws(() => E.equipar(p, 'guerrero.pesada.1', 4), /requiere nivel 5/);
-  assert.notStrictEqual(p.equipada, 'guerrero.pesada.1');
+t('equipar: hace falta poseer la pieza y tener el nivel', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  assert.throws(() => E.equipar(p, CATALOGO, 'helmet.1', 10), /Aún no tienes Corona/);
+  p.posee.push('helmet.1');
+  assert.throws(() => E.equipar(p, CATALOGO, 'helmet.1', 3), /requiere nivel 4/);
+  E.equipar(p, CATALOGO, 'helmet.1', 4);
+  assert.strictEqual(p.equipo.helmet, 1);
 });
 
-t('al subir de nivel se desbloquean y se equipan las armaduras', () => {
-  const p = E.crearPersonaje('guerrero');
-  const antes = E.disponibles(p, 4).length;
-  const despues = E.disponibles(p, 5).length;
-  assert.ok(despues > antes);
-  const armadura = E.equipar(p, 'guerrero.pesada.1', 5);
-  assert.strictEqual(armadura.nombre, 'Coraza de placas');
-  assert.strictEqual(p.equipada, 'guerrero.pesada.1');
+t('monstruo normal: sin suerte no suelta nada', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  assert.strictEqual(E.piezaDeMonstruo(p, CATALOGO, 6, false, () => 0.99), null);
 });
 
-t('equipar un id de otra clase falla', () => {
-  const p = E.crearPersonaje('mago');
-  assert.throws(() => E.equipar(p, 'guerrero.ligera.1', 99), /no disponible/);
+t('monstruo normal con suerte: suelta una pieza de su nivel que aún no tiene', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  const pieza = E.piezaDeMonstruo(p, CATALOGO, 6, false, sec(0.0, 0.0));
+  assert.ok(pieza);
+  assert.ok(pieza.nivel <= 6 && pieza.nivel >= 1);
+  assert.ok(p.posee.includes(pieza.id));
 });
 
-t('mejor armadura disponible: la de más defensa que cumple el nivel', () => {
-  const p = E.crearPersonaje('guerrero');
-  assert.strictEqual(E.mejorDisponible(p, 1).nombre, 'Cota de malla');
-  assert.strictEqual(E.mejorDisponible(p, 9).nombre, 'Armadura de placas');
-  assert.strictEqual(E.mejorDisponible(p, 99).nombre, 'Armadura de placas de adamante');
+t('drop: no repite piezas que ya posee y no suelta de niveles muy altos', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  const a = E.piezaDeMonstruo(p, CATALOGO, 4, true, sec(0.0, 0.0));
+  const b = E.piezaDeMonstruo(p, CATALOGO, 4, true, sec(0.0, 0.0));
+  assert.notStrictEqual(a.id, b.id);
+  assert.strictEqual(E.piezaDeMonstruo(p, CATALOGO, 1, true, sec(0.0)), null);
 });
 
-t('clase desconocida se rechaza', () => {
-  assert.throws(() => E.crearPersonaje('paladin'), /Clase desconocida/);
+t('herrero: fabrica una pieza no poseída pagando oro', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  assert.throws(() => E.fabricar(p, CATALOGO, 'torso.1', 10, 1000), /Ya tienes/);
+  assert.throws(() => E.fabricar(p, CATALOGO, 'helmet.1', 3, 1000), /requiere nivel 4/);
+  assert.throws(() => E.fabricar(p, CATALOGO, 'helmet.1', 10, 10), /Faltan/);
+  const coste = E.fabricar(p, CATALOGO, 'helmet.1', 10, 1000);
+  assert.strictEqual(coste, E.FORJA_ORO * 4);
+  assert.ok(p.posee.includes('helmet.1'));
 });
 
-t('asignar modelo GLB a un tramo y quitarlo', () => {
-  const p = E.crearPersonaje('guerrero');
-  assert.strictEqual(E.sinModelo(p).length, 8);
-  E.asignarModelo(p, 'guerrero.ligera.1', { nombre: 'cota.glb', url: 'blob:x' });
-  assert.strictEqual(p.armaduras[0].id, 'guerrero.ligera.1');
-  assert.strictEqual(p.armaduras.find(a => a.id === 'guerrero.ligera.1').modelo.nombre, 'cota.glb');
-  assert.strictEqual(E.sinModelo(p).length, 7);
-  E.asignarModelo(p, 'guerrero.ligera.1', null);
-  assert.strictEqual(E.sinModelo(p).length, 8);
-  assert.throws(() => E.asignarModelo(p, 'mago.tunica.1', null), /no disponible/);
-});
-
-console.log(`
-${n} pruebas de equipo superadas.`);
+console.log(`\n${n} pruebas de equipo superadas.`);

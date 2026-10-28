@@ -254,18 +254,17 @@
     </div>
   </div>
 
-  <!-- Personaje y armaduras -->
+  <!-- Personaje y armaduras (catálogo en armaduras-glb) -->
   <div class="modal-bg" id="modal-personaje">
-    <div class="modal">
-      <h2>🧙 Crear personaje</h2>
-      <label>Nombre</label>
-      <input type="text" id="pj-nombre" value="Aventurero">
-      <label>Clase</label>
-      <select id="pj-clase"><option value="guerrero">Guerrero</option><option value="mago">Mago</option></select>
+    <div class="modal" style="width:560px">
+      <h2>🧙 Personaje</h2>
+      <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div><label>Nombre</label><input type="text" id="pj-nombre" value="Aventurero" style="width:100%"></div>
+        <div><label>Clase</label><select id="pj-clase" style="width:100%"><option value="guerrero">Guerrero</option><option value="mago">Mago</option></select></div>
+      </div>
       <div class="btns"><button class="gold" id="pj-crear">⚔ Crear personaje</button></div>
-      <p class="muted">Sale con la cota de malla. Las demás armaduras se equipan al subir de nivel. Para cada una, exporta su .glb desde el estudio <a href="https://github.com/narcimarquez-eng/armaduras-glb/tree/main/public/assets/aistudio" target="_blank" rel="noopener" style="color:var(--accent)">armaduras-glb</a> (abre el HTML en el navegador, equipa la pieza y pulsa «Armadura Ligera») y súbelo aquí.</p>
+      <p class="muted">Catálogo de armaduras: <a href="https://github.com/narcimarquez-eng/armaduras-glb" target="_blank" rel="noopener" style="color:var(--accent)">armaduras-glb</a>. Cada pieza tiene su modelo .glb y su nivel. Sales con la cota; las demás las consigues con los monstruos o fabricándolas en el herrero.</p>
       <div id="pj-lista"></div>
-      <p class="muted">Los .glb se guardan solo en esta pestaña: si recargas la página, vuelve a subirlos.</p>
       <div class="btns"><button id="pj-cerrar">Cerrar</button></div>
     </div>
   </div>
@@ -1574,43 +1573,67 @@
     refreshAll();
   });
 
-  // Personaje: clase y armaduras por niveles (js/equipo.js). Los .glb se suben desde el estudio armaduras-glb
+  // Personaje: piezas y equipo (js/equipo.js). El catálogo y los .glb están en armaduras-glb
+  const CATALOGO_URL = 'https://raw.githubusercontent.com/narcimarquez-eng/armaduras-glb/main/piezas/catalogo.json';
+  const RAW_GLB = 'https://raw.githubusercontent.com/narcimarquez-eng/armaduras-glb/main/';
+  let catalogo = null;
   let personaje = null;
+  let nivelHeroe = 1;
+  const ZONA = { underlayer: 'Capa interior', helmet: 'Casco', shoulders: 'Hombreras', torso: 'Torso', gloves: 'Guanteletes', belt: 'Cinturón', tassets: 'Escarcelas', cuisses: 'Musleras', knees: 'Rodilleras', boots: 'Botas', weapon: 'Arma y escudo' };
+
   function renderPersonaje() {
-    if (!personaje) { $('pj-lista').innerHTML = '<p class="muted">Elige clase y crea el personaje para ver todas sus armaduras.</p>'; return; }
-    const sin = EquipoLib.sinModelo(personaje).length;
-    $('pj-lista').innerHTML = `<h3 style="margin:12px 0 4px;font-size:13px">${esc(personaje.nombre)} · ${esc(EquipoLib.CLASES[personaje.clase].name)} · ${personaje.armaduras.length} armaduras (${sin} sin modelo)</h3>` +
-      personaje.armaduras.map(a => `
-        <div class="row" style="border-top:1px solid #1e293b;padding:6px 0">
-          <div><b>${esc(a.nombre)}</b> <span class="muted">· ${esc(a.lineaNombre)} · nivel ${a.nivelMin} · defensa ${a.defensa}${a.id === personaje.equipada ? ' · ✅ equipada' : ''}</span></div>
-          ${a.modelo
-            ? `<div class="muted">🧱 ${esc(a.modelo.nombre)} <button data-quitar="${a.id}">✕</button></div>`
-            : `<input type="file" accept=".glb,model/gltf-binary" data-armadura="${a.id}"> <span class="muted">sin modelo</span>`}
-        </div>`).join('');
+    if (!personaje || !catalogo) { $('pj-lista').innerHTML = '<p class="muted">Elige clase y crea el personaje para ver sus piezas.</p>'; return; }
+    const piezas = EquipoLib.piezasDeClase(catalogo, personaje.clase);
+    const cabecera = `<div class="row" style="margin-top:10px"><b>${esc(personaje.nombre)}</b> · ${esc(personaje.clase)} · nivel de héroe <input type="number" id="pj-nivel" min="1" max="${catalogo.maxNivel}" value="${nivelHeroe}" style="width:64px"></div>`;
+    if (!piezas.length) return ($('pj-lista').innerHTML = cabecera + '<p class="muted">Esta clase aún no tiene piezas: sus túnicas no están creadas en el estudio.</p>');
+    const porRanura = {};
+    piezas.forEach(p => { (porRanura[p.ranura] = porRanura[p.ranura] || []).push(p); });
+    $('pj-lista').innerHTML = cabecera + Object.keys(porRanura).map(r => `
+      <h3 style="margin:10px 0 2px;font-size:12px;color:var(--gold)">${esc(ZONA[r] || r)}</h3>` +
+      porRanura[r].map(p => {
+        const posee = EquipoLib.poseePieza(personaje, p);
+        const equipada = personaje.equipo[p.ranura] === p.idx;
+        const ok = nivelHeroe >= p.nivel;
+        let accion = '';
+        if (equipada) accion = '<span class="muted">✅ equipada</span>';
+        else if (posee && ok) accion = `<button data-equipar="${p.id}">Equipar</button>`;
+        else if (!posee && ok) accion = '<span class="muted">🛠 en el herrero o drop</span>';
+        else accion = `<span class="muted">🔒 nivel ${p.nivel}</span>`;
+        const modelo = p.archivo ? ` <a class="muted" href="${RAW_GLB + p.archivo}" target="_blank" rel="noopener">.glb</a>` : ' <span class="muted">sin modelo</span>';
+        return `<div class="row" style="display:flex;justify-content:space-between;gap:6px;border-top:1px solid #1e293b;padding:4px 0">
+          <span>${esc(p.nombre)} <span class="muted">· nivel ${p.nivel}</span>${modelo}</span>${accion}</div>`;
+      }).join('')).join('');
   }
-  function openPersonaje() { closeModals(); renderPersonaje(); $('modal-personaje').classList.add('show'); }
+
+  async function cargarCatalogo() {
+    if (catalogo) return catalogo;
+    const res = await fetch(CATALOGO_URL);
+    if (!res.ok) throw new Error('No se pudo cargar el catálogo (' + res.status + ')');
+    catalogo = await res.json();
+    return catalogo;
+  }
+
+  function openPersonaje() {
+    closeModals();
+    $('modal-personaje').classList.add('show');
+    cargarCatalogo().then(renderPersonaje).catch(e => { $('pj-lista').innerHTML = `<p class="muted">${esc(e.message)}</p>`; });
+  }
   $('btn-personaje').onclick = openPersonaje;
   $('pj-cerrar').onclick = closeModals;
-  $('pj-crear').onclick = () => {
-    const clase = $('pj-clase').value;
-    personaje = EquipoLib.crearPersonaje(clase);
-    personaje.nombre = $('pj-nombre').value.trim() || 'Aventurero';
-    renderPersonaje();
-    toast(`Personaje creado: ${EquipoLib.CLASES[clase].name} con ${personaje.armaduras.length} armaduras`, 2600);
+  $('pj-crear').onclick = async () => {
+    try {
+      await cargarCatalogo();
+      personaje = EquipoLib.crearPersonaje(catalogo, $('pj-clase').value, $('pj-nombre').value.trim());
+      renderPersonaje();
+    } catch (e) { toast(e.message, 3000); }
   };
   $('pj-lista').addEventListener('change', e => {
-    const input = e.target.closest('input[data-armadura]');
-    if (!input || !input.files[0]) return;
-    const file = input.files[0];
-    EquipoLib.asignarModelo(personaje, input.dataset.armadura, { nombre: file.name, url: URL.createObjectURL(file) });
-    renderPersonaje();
+    if (e.target.id === 'pj-nivel') { nivelHeroe = Math.max(1, Math.min(catalogo.maxNivel, parseInt(e.target.value, 10) || 1)); renderPersonaje(); }
   });
   $('pj-lista').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-quitar]');
-    if (!btn) return;
-    const armadura = personaje.armaduras.find(a => a.id === btn.dataset.quitar);
-    if (armadura && armadura.modelo) URL.revokeObjectURL(armadura.modelo.url);
-    EquipoLib.asignarModelo(personaje, btn.dataset.quitar, null);
+    const eq = e.target.closest('button[data-equipar]');
+    if (!eq) return;
+    try { EquipoLib.equipar(personaje, catalogo, eq.dataset.equipar, nivelHeroe); } catch (err) { toast(err.message, 2600); }
     renderPersonaje();
   });
 
