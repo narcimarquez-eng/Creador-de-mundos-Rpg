@@ -768,6 +768,18 @@
     }
     if (!terrainGrid) return Hgen(x, z);
     const g = terrainGrid;
+    const T = CHUNK * g.step;
+    const trozo = nearChunks.get(Math.floor((x - g.x0) / T) + ',' + Math.floor((z - g.z0) / T));
+    if (trozo && trozo.userData.alturas) {
+      // La misma malla y división de triángulos que buildFineNear
+      const f = trozo.userData.alturas, fx = (x - f.xo) / f.fs, fz = (z - f.zo) / f.fs;
+      const i = Math.max(0, Math.min(f.nI - 1, Math.floor(fx))), j = Math.max(0, Math.min(f.nJ - 1, Math.floor(fz)));
+      const u = Math.max(0, Math.min(1, fx - i)), v = Math.max(0, Math.min(1, fz - j));
+      const Y = (ii, jj) => f.alt[(jj + 1) * f.M + ii + 1];
+      const ya = Y(i, j), yb = Y(i + 1, j), yc = Y(i, j + 1), yd = Y(i + 1, j + 1);
+      if (u + v <= 1) return ya + (yb - ya) * u + (yc - ya) * v;
+      return yd + (yb - yd) * (1 - v) + (yc - yd) * (1 - u);
+    }
     const fx = (x - g.x0) / g.step, fz = (z - g.z0) / g.step;
     const i = Math.max(0, Math.min(g.n - 1, Math.floor(fx)));
     const j = Math.max(0, Math.min(g.n - 1, Math.floor(fz)));
@@ -927,7 +939,11 @@
   }
 
   function buildNear(cx, cz) {
-    if (trozoConRio(cx, cz)) return buildFineNear(cx, cz);
+    const g0 = terrainGrid;
+    const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
+    const p = character.root.position, t = controls.target;
+    const relieve = Math.hypot(xc - p.x, zc - p.z) < RELIEVE_M || Math.hypot(xc - t.x, zc - t.z) < RELIEVE_M;
+    if (relieve || trozoConRio(cx, cz)) return buildFineNear(cx, cz, relieve);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
@@ -1080,7 +1096,7 @@
     return lagosMundo.some(L => L.x + L.R * 1.4 >= xa && L.x - L.R * 1.4 <= xb && L.z + L.R * 1.4 >= za && L.z - L.R * 1.4 <= zb) || rios.some(r => r.segs.some(s =>
       Math.max(s.ax, s.bx) >= xa && Math.min(s.ax, s.bx) <= xb && Math.max(s.az, s.bz) >= za && Math.min(s.az, s.bz) <= zb));
   }
-  function buildFineNear(cx, cz) {
+  function buildFineNear(cx, cz, relieve = false) {
     const g = terrainGrid;
     const cellsI = Math.min(CHUNK, g.n - cx * CHUNK), cellsJ = Math.min(CHUNK, g.n - cz * CHUNK);
     const fs = g.step / FINO;
@@ -1088,7 +1104,11 @@
     const xo = g.x0 + cx * CHUNK * g.step, zo = g.z0 + cz * CHUNK * g.step;
     // Alturas con un anillo extra, para las normales de los bordes
     const alt = new Float32Array(M * (NJ + 2));
-    for (let j = -1; j <= NJ; j++) for (let i = -1; i <= NI; i++) alt[(j + 1) * M + i + 1] = Hgen(xo + i * fs, zo + j * fs);
+    const T = CHUNK * g.step;
+    for (let j = -1; j <= NJ; j++) for (let i = -1; i <= NI; i++) {
+      const x = xo + i * fs, z = zo + j * fs;
+      alt[(j + 1) * M + i + 1] = Hgen(x, z) + (relieve ? relieveAt(x, z, xo, zo, T) : 0);
+    }
     const hAt = (i, j) => alt[(j + 1) * M + i + 1];
     const pos = new Float32Array(NI * NJ * 3), col = new Float32Array(NI * NJ * 3), nrm = new Float32Array(NI * NJ * 3);
     const splat = new Float32Array(NI * NJ * 4), snowA = new Float32Array(NI * NJ);
@@ -1120,6 +1140,8 @@
     geom.setIndex(idx);
     const m = new THREE.Mesh(geom, terrainMat);
     m.receiveShadow = true;
+    // Alturas de la malla fina: meshHeight las lee para que el personaje pise el relieve real
+    m.userData.alturas = { xo, zo, fs, nI, nJ, M, alt };
     scene.add(m);
     return m;
   }
@@ -1341,6 +1363,23 @@
     });
   }
 
+  // Relieve real del suelo en los trozos cercanos. La ventana se anula en los bordes del trozo, así que
+  // los trozos vecinos (con o sin relieve) encajan sin saltos.
+  const RELIEVE_M = 260, RELIEVE_AMP = 0.45;
+  function ruidoRelieve(x, z) {
+    const h = (a, b) => { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); };
+    const xi = Math.floor(x), zi = Math.floor(z), xf = x - xi, zf = z - zi;
+    const u = xf * xf * (3 - 2 * xf), v = zf * zf * (3 - 2 * zf);
+    const a = h(xi, zi), b = h(xi + 1, zi), c = h(xi, zi + 1), d = h(xi + 1, zi + 1);
+    const ab = a + (b - a) * u, cd = c + (d - c) * u;
+    return ab + (cd - ab) * v;
+  }
+  function relieveAt(x, z, xo, zo, T) {
+    const fx = Math.min(1, Math.max(0, (x - xo) / T)), fz = Math.min(1, Math.max(0, (z - zo) / T));
+    const w = Math.sin(Math.PI * fx) * Math.sin(Math.PI * fz);
+    return RELIEVE_AMP * (0.7 * (ruidoRelieve(x / 14, z / 14) - 0.5) + 0.3 * (ruidoRelieve(x / 6 + 7, z / 6 - 4) - 0.5)) * 2 * w;
+  }
+
   // Suelo cercano a menos de DETALLE_M de la cámara: las mismas texturas reales de hierba y tierra del terreno,
   // a más detalle (5 m por repetición) y mezcladas por zonas. Es una malla de celdas centrada en la cámara que
   // se rehace cada DETALLE_MOVER metros; las celdas sobre caminos, pueblos, agua o lagos se omiten, y el radio
@@ -1500,6 +1539,27 @@
     return c;
   }
 
+  // Relleno de las zonas: al estar dentro de una zona de monstruos, se quita (queda el contorno)
+  const zonaU = { uZona: { value: new THREE.Vector3() } };
+  const zonaMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide });
+  zonaMat.onBeforeCompile = shader => {
+    shader.uniforms.uZona = zonaU.uZona;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vZonaXZ;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vZonaXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vZonaXZ;\nuniform vec3 uZona;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        if (uZona.z > 0.0) {
+          float dz = distance(vZonaXZ, uZona.xy) / uZona.z;
+          diffuseColor.a *= mix(1.0, 0.08, 1.0 - smoothstep(0.9, 1.0, dz));
+        }`);
+  };
+  function actualizarZonaTela() {
+    const en = curZone && curZone.monsters && curZone.monsters.length;
+    zonaU.uZona.value.set(en ? curZone.x : 0, en ? curZone.y : 0, en ? curZone.radius : 0);
+  }
+
   function buildZones() {
     const mb = new MB();
     world.zones.forEach(z => {
@@ -1513,7 +1573,7 @@
       scene.add(line);
       zoneLines.push(line);
     });
-    zoneMesh = new THREE.Mesh(mb.geom(), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide }));
+    zoneMesh = new THREE.Mesh(mb.geom(), zonaMat);
     scene.add(zoneMesh);
   }
   const zoneLines = [];
@@ -2584,6 +2644,7 @@
     }
     actualizarPiedras();
     actualizarDetalle();
+    actualizarZonaTela();
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
@@ -2677,7 +2738,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get detalle() { return detalleMalla; }, character, get hero() { return hero; } };
+    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get detalle() { return detalleMalla; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
