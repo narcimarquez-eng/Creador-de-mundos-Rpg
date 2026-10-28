@@ -2601,13 +2601,13 @@
         modelo.position.y = -new THREE.Box3().setFromObject(modelo).min.y;
         const raiz = new THREE.Group();
         raiz.add(modelo);
-        raiz.position.set(x, H(x, z), z);
+        raiz.position.set(x, visorWorld.getWalkableHeight(x, z), z);
         raiz.lookAt(inicio.t.x, raiz.position.y, inicio.t.y);   // miran al centro de la plaza
         scene.add(raiz);
         const mixer = new THREE.AnimationMixer(modelo);
         const idle = (gltf.animations || []).find(c => c.name === 'idle');
         if (idle) mixer.clipAction(idle).play();
-        gurus.push({ info: g, raiz, mixer, dicho: -Infinity });
+        gurus.push({ info: g, raiz, mixer, x, z, dicho: -Infinity });
       }, undefined, () => { /* sin modelo: el gurú no aparece */ });
     });
   }
@@ -2617,6 +2617,8 @@
     if (!gurus.length) return;
     gurus.forEach(g => {
       g.mixer.update(dt);
+      // Misma altura que el personaje: el pueblo puede cargarse y cambiar el suelo
+      g.raiz.position.y = visorWorld.getWalkableHeight(g.x, g.z);
       const d = Math.hypot(character.root.position.x - g.raiz.position.x, character.root.position.z - g.raiz.position.z);
       if (d < DISTANCIA_HABLAR && sec - g.dicho > 25) {
         g.dicho = sec;
