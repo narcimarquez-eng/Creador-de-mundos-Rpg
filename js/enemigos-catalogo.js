@@ -19,13 +19,13 @@ var EnemyCatalogModule = (() => {
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // enemigos-src/catalogo.ts
+  // tools/enemigos-src/catalogo.ts
   var catalogo_exports = {};
   __export(catalogo_exports, {
     ENEMY_CATALOG: () => ENEMY_CATALOG
   });
 
-  // enemigos-src/types/enemy.ts
+  // tools/enemigos-src/types/enemy.ts
   var RACE_CATEGORY_LABELS = {
     starter_animals: "Animales Nv.1-12 Lineage (10)",
     beasts: "Bestias \xC9lite (6)",
@@ -519,7 +519,7 @@ var EnemyCatalogModule = (() => {
       archetype: "astral_centaur",
       helm: "valkyrie_crest",
       weapon: "radiant_halberd",
-      offhand: "runic_buckler",
+      offhand: "none",
       dorsal: "tattered_mantle",
       morphology: {
         heightScale: 1.26,
@@ -570,7 +570,7 @@ var EnemyCatalogModule = (() => {
       archetype: "gorgon_medusa",
       helm: "crowned_skull",
       weapon: "arcane_staff",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "beholder_eye_tentacles",
       morphology: {
         heightScale: 1.22,
@@ -834,7 +834,7 @@ var EnemyCatalogModule = (() => {
       archetype: "chitin_stalker",
       helm: "arachnid_mandibles",
       weapon: "venom_scythe_claws",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "scorpion_stinger_tail",
       morphology: {
         heightScale: 1.05,
@@ -1098,7 +1098,7 @@ var EnemyCatalogModule = (() => {
       archetype: "arcane_beholder",
       helm: "beholder_cyclops_eye",
       weapon: "dragon_breath_maw",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "beholder_eye_tentacles",
       morphology: {
         heightScale: 1.15,
@@ -1148,7 +1148,7 @@ var EnemyCatalogModule = (() => {
       archetype: "obsidian_golem",
       helm: "monolith_visor",
       weapon: "obsidian_warhammer",
-      offhand: "runic_buckler",
+      offhand: "none",
       dorsal: "crystal_pylons",
       morphology: {
         heightScale: 1.32,
@@ -1198,7 +1198,7 @@ var EnemyCatalogModule = (() => {
       archetype: "arch_lich",
       helm: "crowned_skull",
       weapon: "arcane_staff",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.18,
@@ -1248,7 +1248,7 @@ var EnemyCatalogModule = (() => {
       archetype: "void_djinn",
       helm: "valkyrie_crest",
       weapon: "twin_reaver_axes",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.26,
@@ -1301,7 +1301,7 @@ var EnemyCatalogModule = (() => {
       archetype: "balrog_archdemon",
       helm: "tauren_bull_horns",
       weapon: "runic_greatsword",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "dragon_membrane_wings",
       morphology: {
         heightScale: 1.42,
@@ -1355,7 +1355,7 @@ var EnemyCatalogModule = (() => {
       archetype: "treant_ancient",
       helm: "crowned_skull",
       weapon: "obsidian_warhammer",
-      offhand: "tower_shield",
+      offhand: "none",
       dorsal: "crystal_pylons",
       morphology: {
         heightScale: 1.38,
@@ -1410,7 +1410,7 @@ var EnemyCatalogModule = (() => {
       archetype: "abyssal_knight",
       helm: "horned_greathelm",
       weapon: "runic_greatsword",
-      offhand: "tower_shield",
+      offhand: "none",
       dorsal: "tattered_mantle",
       morphology: {
         heightScale: 1.12,
@@ -1460,7 +1460,7 @@ var EnemyCatalogModule = (() => {
       archetype: "solar_valkyrie",
       helm: "valkyrie_crest",
       weapon: "radiant_halberd",
-      offhand: "runic_buckler",
+      offhand: "none",
       dorsal: "seraph_wings",
       morphology: {
         heightScale: 1.2,
@@ -1510,7 +1510,7 @@ var EnemyCatalogModule = (() => {
       archetype: "drake_berserker",
       helm: "drake_fang_helm",
       weapon: "twin_reaver_axes",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "bio_chitin_spines",
       morphology: {
         heightScale: 1.22,
@@ -1560,7 +1560,7 @@ var EnemyCatalogModule = (() => {
       archetype: "samurai_oni",
       helm: "horned_greathelm",
       weapon: "runic_greatsword",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.2,
@@ -1613,7 +1613,7 @@ var EnemyCatalogModule = (() => {
       archetype: "vampire_lord",
       helm: "crowned_skull",
       weapon: "runic_greatsword",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "dragon_membrane_wings",
       morphology: {
         heightScale: 1.22,
@@ -1666,7 +1666,7 @@ var EnemyCatalogModule = (() => {
       archetype: "anubis_jackal_guard",
       helm: "lupine_maw",
       weapon: "radiant_halberd",
-      offhand: "tower_shield",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.3,
@@ -2275,7 +2275,7 @@ var EnemyCatalogModule = (() => {
     }
   };
 
-  // enemigos-src/catalogo.ts
+  // tools/enemigos-src/catalogo.ts
   var ENEMY_CATALOG = Object.entries(ARCHETYPE_PRESETS).map(([key, c]) => ({
     key,
     id: c.id,

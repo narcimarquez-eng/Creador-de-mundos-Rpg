@@ -4,6 +4,7 @@ import {
   EnemyConfig,
   PartInspectionInfo,
   getEffectiveMeshDensity,
+  escudoValido,
   getEffectiveTexturePattern,
 } from '../types/enemy';
 import { ProceduralTextureSet } from './proceduralTextures';
@@ -68,6 +69,29 @@ export interface BuiltEnemyRig {
   };
   dispose: () => void;
 }
+
+// Armas nuevas: la cabeza se monta en la punta del astil. «una» admite escudo; «dos» no (ver escudoValido).
+type CabezaNueva = 'hoja' | 'curva' | 'hacha' | 'esfera' | 'martillo' | 'porra' | 'latigo' | 'cadena' | 'punta' | 'garras';
+interface ArmaNueva { asta: number; cabeza: CabezaNueva; largo: number; ancho: number; doble?: boolean }
+const ARMAS_NUEVAS: Partial<Record<string, ArmaNueva>> = {
+  espada_corta: { asta: 0.9, cabeza: 'hoja', largo: 0.62, ancho: 0.1 },
+  espada_ancha: { asta: 0.95, cabeza: 'hoja', largo: 0.9, ancho: 0.16 },
+  cimitarra: { asta: 0.9, cabeza: 'curva', largo: 0.8, ancho: 0.13 },
+  daga: { asta: 0.5, cabeza: 'hoja', largo: 0.35, ancho: 0.07 },
+  estoque: { asta: 0.95, cabeza: 'hoja', largo: 1.0, ancho: 0.05 },
+  hacha_de_mano: { asta: 0.6, cabeza: 'hacha', largo: 0.34, ancho: 0.3 },
+  hacha_de_guerra: { asta: 1.0, cabeza: 'hacha', largo: 0.48, ancho: 0.42 },
+  maza: { asta: 0.8, cabeza: 'esfera', largo: 0.24, ancho: 0.24 },
+  martillo_ligero: { asta: 0.8, cabeza: 'martillo', largo: 0.36, ancho: 0.22 },
+  hoz: { asta: 0.6, cabeza: 'curva', largo: 0.46, ancho: 0.1 },
+  latigo_espinas: { asta: 0.5, cabeza: 'latigo', largo: 1.6, ancho: 0.05 },
+  porra: { asta: 0.7, cabeza: 'porra', largo: 0.3, ancho: 0.16 },
+  mangual: { asta: 0.9, cabeza: 'cadena', largo: 0.5, ancho: 0.2 },
+  garra_quitina: { asta: 0.5, cabeza: 'garras', largo: 0.4, ancho: 0.24 },
+  lanza: { asta: 2.1, cabeza: 'punta', largo: 0.42, ancho: 0.12 },
+  maza_pesada: { asta: 1.5, cabeza: 'martillo', largo: 0.5, ancho: 0.4 },
+  hacha_de_dos_manos: { asta: 1.6, cabeza: 'hacha', largo: 0.5, ancho: 0.5, doble: true },
+};
 
 function tagExplodablePart(
   obj: THREE.Object3D,
@@ -1290,6 +1314,85 @@ export function buildProceduralEnemy(
   const { armGroup: leftArmGroup, handSocket: socketShieldL } = buildArm(true);
   const { armGroup: rightArmGroup, handSocket: socketWeaponR } = buildArm(false);
 
+  // Cabezas de las armas nuevas, con los mismos materiales de la criatura
+  const montarCabezaNueva = (e: ArmaNueva, eje: THREE.Object3D, astil: number) => {
+    const base = astil * 0.5;
+    const L = e.largo, A = e.ancho;
+    const pieza = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => {
+      const malla = new THREE.Mesh(trackGeo(geo), mat);
+      malla.position.set(x, y, z);
+      eje.add(malla);
+      return malla;
+    };
+    const extruida = (sh: THREE.Shape) =>
+      new THREE.ExtrudeGeometry(sh, { depth: 0.022, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 1 });
+    switch (e.cabeza) {
+      case 'hoja':
+      case 'curva': {
+        const sh = new THREE.Shape();
+        sh.moveTo(-A / 2, 0);
+        if (e.cabeza === 'curva') {
+          sh.quadraticCurveTo(-A * 0.2, L * 0.6, 0, L);
+          sh.quadraticCurveTo(A * 0.9, L * 0.45, A / 2, 0);
+        } else {
+          sh.lineTo(-A / 2, L * 0.88);
+          sh.lineTo(0, L);
+          sh.lineTo(A / 2, L * 0.88);
+          sh.lineTo(A / 2, 0);
+        }
+        sh.closePath();
+        pieza(extruida(sh), bladeAlloyMat, 0, base, 0);
+        break;
+      }
+      case 'hacha': {
+        const sh = new THREE.Shape();
+        sh.moveTo(0, 0);
+        sh.quadraticCurveTo(A, L * 0.1, A, L * 0.6);
+        sh.quadraticCurveTo(A * 0.5, L * 0.66, 0, L * 0.92);
+        sh.closePath();
+        const geo = extruida(sh);
+        pieza(geo, bladeAlloyMat, 0.02, base, -0.012);
+        if (e.doble) pieza(geo, bladeAlloyMat, -0.02, base, -0.012).scale.x = -1;
+        break;
+      }
+      case 'esfera':
+        pieza(new THREE.SphereGeometry(A / 2, 10, 8), primaryArmorMat, 0, base + A * 0.3, 0);
+        break;
+      case 'martillo':
+        pieza(new THREE.BoxGeometry(A, L, A * 0.7), primaryArmorMat, 0, base + L / 2, 0);
+        break;
+      case 'porra': {
+        pieza(new THREE.CylinderGeometry(A * 0.35, A * 0.5, L, 8), primaryArmorMat, 0, base + L / 2, 0);
+        for (let k = 0; k < 4; k++) {
+          const a = (k * Math.PI) / 2;
+          pieza(new THREE.ConeGeometry(0.03, 0.08, 4), bladeAlloyMat, Math.cos(a) * A * 0.45, base + L * 0.5, Math.sin(a) * A * 0.45);
+        }
+        break;
+      }
+      case 'latigo': {
+        pieza(new THREE.CylinderGeometry(0.018, 0.012, L, 5), underbodyMat, 0, base + L / 2, 0);
+        for (let k = 1; k <= 6; k++) {
+          pieza(new THREE.ConeGeometry(0.02, 0.07, 4), bladeAlloyMat, 0, base + (L * k) / 7, 0.02);
+        }
+        break;
+      }
+      case 'cadena': {
+        pieza(new THREE.TorusGeometry(0.03, 0.01, 4, 8), secondaryTrimMat, 0, base + 0.05, 0);
+        pieza(new THREE.CylinderGeometry(0.01, 0.01, L * 0.5, 4), underbodyMat, 0, base + L * 0.25, 0);
+        pieza(new THREE.SphereGeometry(A / 2, 10, 8), primaryArmorMat, 0, base + L * 0.5, 0);
+        break;
+      }
+      case 'punta':
+        pieza(new THREE.ConeGeometry(A / 2, L, 6), bladeAlloyMat, 0, base + L / 2, 0);
+        break;
+      case 'garras':
+        for (let k = -1; k <= 1; k++) {
+          pieza(new THREE.ConeGeometry(A * 0.12, L, 5), bladeAlloyMat, k * A * 0.3, base + L / 2, 0).rotation.z = -k * 0.25;
+        }
+        break;
+    }
+  };
+
   // 8. WEAPON / CLAWS ON socket_weapon_r
   const weaponGroup = new THREE.Group();
   weaponGroup.name = `Weapon_${config.weapon}`;
@@ -1308,8 +1411,10 @@ export function buildProceduralEnemy(
       socketShieldL.add(talonL);
     }
   } else {
-    const shaftLen =
-      config.weapon === 'arcane_staff' || config.weapon === 'radiant_halberd' ? 1.85 : 1.15;
+    const nueva = ARMAS_NUEVAS[config.weapon];
+    const shaftLen = nueva
+      ? nueva.asta
+      : config.weapon === 'arcane_staff' || config.weapon === 'radiant_halberd' ? 1.85 : 1.15;
     const shaftGeo = trackGeo(new THREE.CylinderGeometry(0.032, 0.038, shaftLen, seg(8, 5)));
     const shaftMesh = new THREE.Mesh(shaftGeo, underbodyMat);
     shaftMesh.position.set(0, 0.25, 0.25);
@@ -1364,6 +1469,8 @@ export function buildProceduralEnemy(
       const orbMesh = new THREE.Mesh(orbGeo, crystalCoreMat);
       orbMesh.position.set(0, shaftLen * 0.5 + 0.2, 0);
       shaftMesh.add(orbMesh);
+    } else if (nueva) {
+      montarCabezaNueva(nueva, shaftMesh, shaftLen);
     } else {
       const axeShape = new THREE.Shape();
       axeShape.moveTo(0, -0.16);
@@ -1402,12 +1509,14 @@ export function buildProceduralEnemy(
   explodableParts.push(weaponGroup);
 
   // 9. OFF-HAND SHIELD / ORB ON socket_shield_l
+  // Escudo u orbe: solo con armas de una mano; con armas de dos manos o naturales la mano queda libre
+  const escudo = escudoValido(config.weapon, config.offhand);
   const offhandGroup = new THREE.Group();
-  offhandGroup.name = `Offhand_${config.offhand}`;
+  offhandGroup.name = `Offhand_${escudo}`;
   socketShieldL.add(offhandGroup);
 
-  if (config.offhand === 'tower_shield' || config.offhand === 'runic_buckler') {
-    const isTower = config.offhand === 'tower_shield';
+  if (escudo === 'tower_shield' || escudo === 'runic_buckler') {
+    const isTower = escudo === 'tower_shield';
     const shW = isTower ? 0.42 : 0.32;
     const shH = isTower ? 0.88 : 0.42;
     const shieldShape = new THREE.Shape();
@@ -1431,14 +1540,14 @@ export function buildProceduralEnemy(
     shieldMesh.position.set(0.16, 0, 0.12);
     shieldMesh.rotation.y = 0.45;
     offhandGroup.add(shieldMesh);
-  } else if (config.offhand === 'phylactery_orb') {
+  } else if (escudo === 'phylactery_orb') {
     const censerGeo = trackGeo(
       new THREE.IcosahedronGeometry(0.16, density === 'low' ? 0 : 1)
     );
     const censerMesh = new THREE.Mesh(censerGeo, crystalCoreMat);
     censerMesh.position.set(0.1, 0.08, 0.24);
     offhandGroup.add(censerMesh);
-  } else if (config.offhand === 'dual_blade') {
+  } else if (escudo === 'dual_blade') {
     const daggerGeo = trackGeo(new THREE.ConeGeometry(0.08, 0.85, seg(6, 4)));
     const daggerMesh = new THREE.Mesh(daggerGeo, bladeAlloyMat);
     daggerMesh.position.set(0, 0.1, 0.42);

@@ -63,14 +63,99 @@ export type ArchetypeId =
   | 'bloodclaw_raptor_hawk';
 
 export type WeaponType =
+  // Naturales (la propia criatura): sin escudo
   | 'dragon_breath_maw'
   | 'feral_claws_fangs'
+  // Una mano: pueden llevar escudo u orbe
+  | 'espada_corta'
+  | 'espada_ancha'
+  | 'cimitarra'
+  | 'daga'
+  | 'estoque'
+  | 'hacha_de_mano'
+  | 'hacha_de_guerra'
+  | 'maza'
+  | 'martillo_ligero'
+  | 'hoz'
+  | 'latigo_espinas'
+  | 'porra'
+  | 'mangual'
+  | 'garra_quitina'
+  // Dos manos: sin escudo
   | 'runic_greatsword'
   | 'obsidian_warhammer'
   | 'arcane_staff'
   | 'twin_reaver_axes'
   | 'radiant_halberd'
-  | 'venom_scythe_claws';
+  | 'venom_scythe_claws'
+  | 'lanza'
+  | 'maza_pesada'
+  | 'hacha_de_dos_manos';
+
+// Cómo se sujeta cada arma: 'una' (admite escudo), 'dos' o 'natural' (sin escudo)
+export type WeaponHand = 'una' | 'dos' | 'natural';
+
+export const WEAPON_HAND: Record<WeaponType, WeaponHand> = {
+  dragon_breath_maw: 'natural',
+  feral_claws_fangs: 'natural',
+  espada_corta: 'una',
+  espada_ancha: 'una',
+  cimitarra: 'una',
+  daga: 'una',
+  estoque: 'una',
+  hacha_de_mano: 'una',
+  hacha_de_guerra: 'una',
+  maza: 'una',
+  martillo_ligero: 'una',
+  hoz: 'una',
+  latigo_espinas: 'una',
+  porra: 'una',
+  mangual: 'una',
+  garra_quitina: 'una',
+  runic_greatsword: 'dos',
+  obsidian_warhammer: 'dos',
+  arcane_staff: 'dos',
+  twin_reaver_axes: 'dos',
+  radiant_halberd: 'dos',
+  venom_scythe_claws: 'dos',
+  lanza: 'dos',
+  maza_pesada: 'dos',
+  hacha_de_dos_manos: 'dos',
+};
+
+// Nombre de cada arma, independiente de su forma
+export const WEAPON_LABEL: Record<WeaponType, string> = {
+  dragon_breath_maw: 'Aliento Elemental y Fauces',
+  feral_claws_fangs: 'Zarpas y Colmillos Salvajes',
+  espada_corta: 'Espada corta',
+  espada_ancha: 'Espada ancha',
+  cimitarra: 'Cimitarra',
+  daga: 'Daga',
+  estoque: 'Estoque',
+  hacha_de_mano: 'Hacha de mano',
+  hacha_de_guerra: 'Hacha de guerra',
+  maza: 'Maza de hierro',
+  martillo_ligero: 'Martillo ligero',
+  hoz: 'Hoz de cosecha',
+  latigo_espinas: 'Látigo de espinas',
+  porra: 'Porra de cuero',
+  mangual: 'Mangual',
+  garra_quitina: 'Garra de quitina',
+  runic_greatsword: 'Mandoble rúnico',
+  obsidian_warhammer: 'Martillo de asedio',
+  arcane_staff: 'Bastón arcano',
+  twin_reaver_axes: 'Labrys / hacha doble',
+  radiant_halberd: 'Alabarda celestial',
+  venom_scythe_claws: 'Guadaña de quitina',
+  lanza: 'Lanza',
+  maza_pesada: 'Maza pesada a dos manos',
+  hacha_de_dos_manos: 'Hacha de dos manos',
+};
+
+// El escudo solo se lleva con armas de una mano; con las demás la mano queda libre
+export function escudoValido(weapon: WeaponType, offhand: OffhandType): OffhandType {
+  return WEAPON_HAND[weapon] === 'una' ? offhand : 'none';
+}
 
 export type OffhandType =
   | 'none'
@@ -780,7 +865,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'astral_centaur',
     helm: 'valkyrie_crest',
     weapon: 'radiant_halberd',
-    offhand: 'runic_buckler',
+    offhand: 'none',
     dorsal: 'tattered_mantle',
     morphology: {
       heightScale: 1.26,
@@ -831,7 +916,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'gorgon_medusa',
     helm: 'crowned_skull',
     weapon: 'arcane_staff',
-    offhand: 'dual_blade',
+    offhand: 'none',
     dorsal: 'beholder_eye_tentacles',
     morphology: {
       heightScale: 1.22,
@@ -1096,7 +1181,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'chitin_stalker',
     helm: 'arachnid_mandibles',
     weapon: 'venom_scythe_claws',
-    offhand: 'dual_blade',
+    offhand: 'none',
     dorsal: 'scorpion_stinger_tail',
     morphology: {
       heightScale: 1.05,
@@ -1361,7 +1446,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'arcane_beholder',
     helm: 'beholder_cyclops_eye',
     weapon: 'dragon_breath_maw',
-    offhand: 'phylactery_orb',
+    offhand: 'none',
     dorsal: 'beholder_eye_tentacles',
     morphology: {
       heightScale: 1.15,
@@ -1411,7 +1496,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'obsidian_golem',
     helm: 'monolith_visor',
     weapon: 'obsidian_warhammer',
-    offhand: 'runic_buckler',
+    offhand: 'none',
     dorsal: 'crystal_pylons',
     morphology: {
       heightScale: 1.32,
@@ -1461,7 +1546,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'arch_lich',
     helm: 'crowned_skull',
     weapon: 'arcane_staff',
-    offhand: 'phylactery_orb',
+    offhand: 'none',
     dorsal: 'runic_halo_ring',
     morphology: {
       heightScale: 1.18,
@@ -1511,7 +1596,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'void_djinn',
     helm: 'valkyrie_crest',
     weapon: 'twin_reaver_axes',
-    offhand: 'phylactery_orb',
+    offhand: 'none',
     dorsal: 'runic_halo_ring',
     morphology: {
       heightScale: 1.26,
@@ -1564,7 +1649,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'balrog_archdemon',
     helm: 'tauren_bull_horns',
     weapon: 'runic_greatsword',
-    offhand: 'dual_blade',
+    offhand: 'none',
     dorsal: 'dragon_membrane_wings',
     morphology: {
       heightScale: 1.42,
@@ -1618,7 +1703,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'treant_ancient',
     helm: 'crowned_skull',
     weapon: 'obsidian_warhammer',
-    offhand: 'tower_shield',
+    offhand: 'none',
     dorsal: 'crystal_pylons',
     morphology: {
       heightScale: 1.38,
@@ -1674,7 +1759,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'abyssal_knight',
     helm: 'horned_greathelm',
     weapon: 'runic_greatsword',
-    offhand: 'tower_shield',
+    offhand: 'none',
     dorsal: 'tattered_mantle',
     morphology: {
       heightScale: 1.12,
@@ -1724,7 +1809,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'solar_valkyrie',
     helm: 'valkyrie_crest',
     weapon: 'radiant_halberd',
-    offhand: 'runic_buckler',
+    offhand: 'none',
     dorsal: 'seraph_wings',
     morphology: {
       heightScale: 1.2,
@@ -1774,7 +1859,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'drake_berserker',
     helm: 'drake_fang_helm',
     weapon: 'twin_reaver_axes',
-    offhand: 'dual_blade',
+    offhand: 'none',
     dorsal: 'bio_chitin_spines',
     morphology: {
       heightScale: 1.22,
@@ -1824,7 +1909,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'samurai_oni',
     helm: 'horned_greathelm',
     weapon: 'runic_greatsword',
-    offhand: 'dual_blade',
+    offhand: 'none',
     dorsal: 'runic_halo_ring',
     morphology: {
       heightScale: 1.2,
@@ -1877,7 +1962,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'vampire_lord',
     helm: 'crowned_skull',
     weapon: 'runic_greatsword',
-    offhand: 'phylactery_orb',
+    offhand: 'none',
     dorsal: 'dragon_membrane_wings',
     morphology: {
       heightScale: 1.22,
@@ -1930,7 +2015,7 @@ export const ARCHETYPE_PRESETS: Record<ArchetypeId, EnemyConfig> = {
     archetype: 'anubis_jackal_guard',
     helm: 'lupine_maw',
     weapon: 'radiant_halberd',
-    offhand: 'tower_shield',
+    offhand: 'none',
     dorsal: 'runic_halo_ring',
     morphology: {
       heightScale: 1.3,

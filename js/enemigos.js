@@ -23,7 +23,7 @@ var EnemyLib = (() => {
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // enemigos-src/entrada.ts
+  // tools/enemigos-src/entrada.ts
   var entrada_exports = {};
   __export(entrada_exports, {
     ARCHETYPE_PRESETS: () => ARCHETYPE_PRESETS,
@@ -38,7 +38,37 @@ var EnemyLib = (() => {
     updateEnemyMaterialsInPlace: () => updateEnemyMaterialsInPlace
   });
 
-  // enemigos-src/types/enemy.ts
+  // tools/enemigos-src/types/enemy.ts
+  var WEAPON_HAND = {
+    dragon_breath_maw: "natural",
+    feral_claws_fangs: "natural",
+    espada_corta: "una",
+    espada_ancha: "una",
+    cimitarra: "una",
+    daga: "una",
+    estoque: "una",
+    hacha_de_mano: "una",
+    hacha_de_guerra: "una",
+    maza: "una",
+    martillo_ligero: "una",
+    hoz: "una",
+    latigo_espinas: "una",
+    porra: "una",
+    mangual: "una",
+    garra_quitina: "una",
+    runic_greatsword: "dos",
+    obsidian_warhammer: "dos",
+    arcane_staff: "dos",
+    twin_reaver_axes: "dos",
+    radiant_halberd: "dos",
+    venom_scythe_claws: "dos",
+    lanza: "dos",
+    maza_pesada: "dos",
+    hacha_de_dos_manos: "dos"
+  };
+  function escudoValido(weapon, offhand) {
+    return WEAPON_HAND[weapon] === "una" ? offhand : "none";
+  }
   function getEffectiveMeshDensity(config) {
     var _a;
     return (_a = config.morphology.meshDensity) != null ? _a : "medium";
@@ -551,7 +581,7 @@ var EnemyLib = (() => {
       archetype: "astral_centaur",
       helm: "valkyrie_crest",
       weapon: "radiant_halberd",
-      offhand: "runic_buckler",
+      offhand: "none",
       dorsal: "tattered_mantle",
       morphology: {
         heightScale: 1.26,
@@ -602,7 +632,7 @@ var EnemyLib = (() => {
       archetype: "gorgon_medusa",
       helm: "crowned_skull",
       weapon: "arcane_staff",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "beholder_eye_tentacles",
       morphology: {
         heightScale: 1.22,
@@ -866,7 +896,7 @@ var EnemyLib = (() => {
       archetype: "chitin_stalker",
       helm: "arachnid_mandibles",
       weapon: "venom_scythe_claws",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "scorpion_stinger_tail",
       morphology: {
         heightScale: 1.05,
@@ -1130,7 +1160,7 @@ var EnemyLib = (() => {
       archetype: "arcane_beholder",
       helm: "beholder_cyclops_eye",
       weapon: "dragon_breath_maw",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "beholder_eye_tentacles",
       morphology: {
         heightScale: 1.15,
@@ -1180,7 +1210,7 @@ var EnemyLib = (() => {
       archetype: "obsidian_golem",
       helm: "monolith_visor",
       weapon: "obsidian_warhammer",
-      offhand: "runic_buckler",
+      offhand: "none",
       dorsal: "crystal_pylons",
       morphology: {
         heightScale: 1.32,
@@ -1230,7 +1260,7 @@ var EnemyLib = (() => {
       archetype: "arch_lich",
       helm: "crowned_skull",
       weapon: "arcane_staff",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.18,
@@ -1280,7 +1310,7 @@ var EnemyLib = (() => {
       archetype: "void_djinn",
       helm: "valkyrie_crest",
       weapon: "twin_reaver_axes",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.26,
@@ -1333,7 +1363,7 @@ var EnemyLib = (() => {
       archetype: "balrog_archdemon",
       helm: "tauren_bull_horns",
       weapon: "runic_greatsword",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "dragon_membrane_wings",
       morphology: {
         heightScale: 1.42,
@@ -1387,7 +1417,7 @@ var EnemyLib = (() => {
       archetype: "treant_ancient",
       helm: "crowned_skull",
       weapon: "obsidian_warhammer",
-      offhand: "tower_shield",
+      offhand: "none",
       dorsal: "crystal_pylons",
       morphology: {
         heightScale: 1.38,
@@ -1442,7 +1472,7 @@ var EnemyLib = (() => {
       archetype: "abyssal_knight",
       helm: "horned_greathelm",
       weapon: "runic_greatsword",
-      offhand: "tower_shield",
+      offhand: "none",
       dorsal: "tattered_mantle",
       morphology: {
         heightScale: 1.12,
@@ -1492,7 +1522,7 @@ var EnemyLib = (() => {
       archetype: "solar_valkyrie",
       helm: "valkyrie_crest",
       weapon: "radiant_halberd",
-      offhand: "runic_buckler",
+      offhand: "none",
       dorsal: "seraph_wings",
       morphology: {
         heightScale: 1.2,
@@ -1542,7 +1572,7 @@ var EnemyLib = (() => {
       archetype: "drake_berserker",
       helm: "drake_fang_helm",
       weapon: "twin_reaver_axes",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "bio_chitin_spines",
       morphology: {
         heightScale: 1.22,
@@ -1592,7 +1622,7 @@ var EnemyLib = (() => {
       archetype: "samurai_oni",
       helm: "horned_greathelm",
       weapon: "runic_greatsword",
-      offhand: "dual_blade",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.2,
@@ -1645,7 +1675,7 @@ var EnemyLib = (() => {
       archetype: "vampire_lord",
       helm: "crowned_skull",
       weapon: "runic_greatsword",
-      offhand: "phylactery_orb",
+      offhand: "none",
       dorsal: "dragon_membrane_wings",
       morphology: {
         heightScale: 1.22,
@@ -1698,7 +1728,7 @@ var EnemyLib = (() => {
       archetype: "anubis_jackal_guard",
       helm: "lupine_maw",
       weapon: "radiant_halberd",
-      offhand: "tower_shield",
+      offhand: "none",
       dorsal: "runic_halo_ring",
       morphology: {
         heightScale: 1.3,
@@ -2313,11 +2343,30 @@ var EnemyLib = (() => {
     return Math.round((ehp * 0.08 + edps * 1.4) * tierMult / 10);
   }
 
-  // enemigos-src/three/enemyBuilder.ts
+  // tools/enemigos-src/three/enemyBuilder.ts
   var THREE = globalThis.THREE;
   var _targetPos = new THREE.Vector3();
   var _dummyObj = new THREE.Object3D();
   var _shardColor = new THREE.Color();
+  var ARMAS_NUEVAS = {
+    espada_corta: { asta: 0.9, cabeza: "hoja", largo: 0.62, ancho: 0.1 },
+    espada_ancha: { asta: 0.95, cabeza: "hoja", largo: 0.9, ancho: 0.16 },
+    cimitarra: { asta: 0.9, cabeza: "curva", largo: 0.8, ancho: 0.13 },
+    daga: { asta: 0.5, cabeza: "hoja", largo: 0.35, ancho: 0.07 },
+    estoque: { asta: 0.95, cabeza: "hoja", largo: 1, ancho: 0.05 },
+    hacha_de_mano: { asta: 0.6, cabeza: "hacha", largo: 0.34, ancho: 0.3 },
+    hacha_de_guerra: { asta: 1, cabeza: "hacha", largo: 0.48, ancho: 0.42 },
+    maza: { asta: 0.8, cabeza: "esfera", largo: 0.24, ancho: 0.24 },
+    martillo_ligero: { asta: 0.8, cabeza: "martillo", largo: 0.36, ancho: 0.22 },
+    hoz: { asta: 0.6, cabeza: "curva", largo: 0.46, ancho: 0.1 },
+    latigo_espinas: { asta: 0.5, cabeza: "latigo", largo: 1.6, ancho: 0.05 },
+    porra: { asta: 0.7, cabeza: "porra", largo: 0.3, ancho: 0.16 },
+    mangual: { asta: 0.9, cabeza: "cadena", largo: 0.5, ancho: 0.2 },
+    garra_quitina: { asta: 0.5, cabeza: "garras", largo: 0.4, ancho: 0.24 },
+    lanza: { asta: 2.1, cabeza: "punta", largo: 0.42, ancho: 0.12 },
+    maza_pesada: { asta: 1.5, cabeza: "martillo", largo: 0.5, ancho: 0.4 },
+    hacha_de_dos_manos: { asta: 1.6, cabeza: "hacha", largo: 0.5, ancho: 0.5, doble: true }
+  };
   function tagExplodablePart(obj, explodeDir, partInfo) {
     obj.userData.basePos = obj.position.clone();
     obj.userData.explodeVec = explodeDir.clone();
@@ -3313,6 +3362,82 @@ var EnemyLib = (() => {
     };
     const { armGroup: leftArmGroup, handSocket: socketShieldL } = buildArm(true);
     const { armGroup: rightArmGroup, handSocket: socketWeaponR } = buildArm(false);
+    const montarCabezaNueva = (e, eje, astil) => {
+      const base = astil * 0.5;
+      const L = e.largo, A = e.ancho;
+      const pieza = (geo, mat, x, y, z) => {
+        const malla = new THREE.Mesh(trackGeo(geo), mat);
+        malla.position.set(x, y, z);
+        eje.add(malla);
+        return malla;
+      };
+      const extruida = (sh) => new THREE.ExtrudeGeometry(sh, { depth: 0.022, bevelEnabled: true, bevelThickness: 8e-3, bevelSize: 8e-3, bevelSegments: 1 });
+      switch (e.cabeza) {
+        case "hoja":
+        case "curva": {
+          const sh = new THREE.Shape();
+          sh.moveTo(-A / 2, 0);
+          if (e.cabeza === "curva") {
+            sh.quadraticCurveTo(-A * 0.2, L * 0.6, 0, L);
+            sh.quadraticCurveTo(A * 0.9, L * 0.45, A / 2, 0);
+          } else {
+            sh.lineTo(-A / 2, L * 0.88);
+            sh.lineTo(0, L);
+            sh.lineTo(A / 2, L * 0.88);
+            sh.lineTo(A / 2, 0);
+          }
+          sh.closePath();
+          pieza(extruida(sh), bladeAlloyMat, 0, base, 0);
+          break;
+        }
+        case "hacha": {
+          const sh = new THREE.Shape();
+          sh.moveTo(0, 0);
+          sh.quadraticCurveTo(A, L * 0.1, A, L * 0.6);
+          sh.quadraticCurveTo(A * 0.5, L * 0.66, 0, L * 0.92);
+          sh.closePath();
+          const geo = extruida(sh);
+          pieza(geo, bladeAlloyMat, 0.02, base, -0.012);
+          if (e.doble) pieza(geo, bladeAlloyMat, -0.02, base, -0.012).scale.x = -1;
+          break;
+        }
+        case "esfera":
+          pieza(new THREE.SphereGeometry(A / 2, 10, 8), primaryArmorMat, 0, base + A * 0.3, 0);
+          break;
+        case "martillo":
+          pieza(new THREE.BoxGeometry(A, L, A * 0.7), primaryArmorMat, 0, base + L / 2, 0);
+          break;
+        case "porra": {
+          pieza(new THREE.CylinderGeometry(A * 0.35, A * 0.5, L, 8), primaryArmorMat, 0, base + L / 2, 0);
+          for (let k = 0; k < 4; k++) {
+            const a = k * Math.PI / 2;
+            pieza(new THREE.ConeGeometry(0.03, 0.08, 4), bladeAlloyMat, Math.cos(a) * A * 0.45, base + L * 0.5, Math.sin(a) * A * 0.45);
+          }
+          break;
+        }
+        case "latigo": {
+          pieza(new THREE.CylinderGeometry(0.018, 0.012, L, 5), underbodyMat, 0, base + L / 2, 0);
+          for (let k = 1; k <= 6; k++) {
+            pieza(new THREE.ConeGeometry(0.02, 0.07, 4), bladeAlloyMat, 0, base + L * k / 7, 0.02);
+          }
+          break;
+        }
+        case "cadena": {
+          pieza(new THREE.TorusGeometry(0.03, 0.01, 4, 8), secondaryTrimMat, 0, base + 0.05, 0);
+          pieza(new THREE.CylinderGeometry(0.01, 0.01, L * 0.5, 4), underbodyMat, 0, base + L * 0.25, 0);
+          pieza(new THREE.SphereGeometry(A / 2, 10, 8), primaryArmorMat, 0, base + L * 0.5, 0);
+          break;
+        }
+        case "punta":
+          pieza(new THREE.ConeGeometry(A / 2, L, 6), bladeAlloyMat, 0, base + L / 2, 0);
+          break;
+        case "garras":
+          for (let k = -1; k <= 1; k++) {
+            pieza(new THREE.ConeGeometry(A * 0.12, L, 5), bladeAlloyMat, k * A * 0.3, base + L / 2, 0).rotation.z = -k * 0.25;
+          }
+          break;
+      }
+    };
     const weaponGroup = new THREE.Group();
     weaponGroup.name = `Weapon_${config.weapon}`;
     weaponGroup.scale.setScalar(m.weaponScale);
@@ -3328,7 +3453,8 @@ var EnemyLib = (() => {
         socketShieldL.add(talonL);
       }
     } else {
-      const shaftLen = config.weapon === "arcane_staff" || config.weapon === "radiant_halberd" ? 1.85 : 1.15;
+      const nueva = ARMAS_NUEVAS[config.weapon];
+      const shaftLen = nueva ? nueva.asta : config.weapon === "arcane_staff" || config.weapon === "radiant_halberd" ? 1.85 : 1.15;
       const shaftGeo = trackGeo(new THREE.CylinderGeometry(0.032, 0.038, shaftLen, seg(8, 5)));
       const shaftMesh = new THREE.Mesh(shaftGeo, underbodyMat);
       shaftMesh.position.set(0, 0.25, 0.25);
@@ -3377,6 +3503,8 @@ var EnemyLib = (() => {
         const orbMesh = new THREE.Mesh(orbGeo, crystalCoreMat);
         orbMesh.position.set(0, shaftLen * 0.5 + 0.2, 0);
         shaftMesh.add(orbMesh);
+      } else if (nueva) {
+        montarCabezaNueva(nueva, shaftMesh, shaftLen);
       } else {
         const axeShape = new THREE.Shape();
         axeShape.moveTo(0, -0.16);
@@ -3410,11 +3538,12 @@ var EnemyLib = (() => {
       socketName: "socket_weapon_r"
     });
     explodableParts.push(weaponGroup);
+    const escudo = escudoValido(config.weapon, config.offhand);
     const offhandGroup = new THREE.Group();
-    offhandGroup.name = `Offhand_${config.offhand}`;
+    offhandGroup.name = `Offhand_${escudo}`;
     socketShieldL.add(offhandGroup);
-    if (config.offhand === "tower_shield" || config.offhand === "runic_buckler") {
-      const isTower = config.offhand === "tower_shield";
+    if (escudo === "tower_shield" || escudo === "runic_buckler") {
+      const isTower = escudo === "tower_shield";
       const shW = isTower ? 0.42 : 0.32;
       const shH = isTower ? 0.88 : 0.42;
       const shieldShape = new THREE.Shape();
@@ -3437,14 +3566,14 @@ var EnemyLib = (() => {
       shieldMesh.position.set(0.16, 0, 0.12);
       shieldMesh.rotation.y = 0.45;
       offhandGroup.add(shieldMesh);
-    } else if (config.offhand === "phylactery_orb") {
+    } else if (escudo === "phylactery_orb") {
       const censerGeo = trackGeo(
         new THREE.IcosahedronGeometry(0.16, density === "low" ? 0 : 1)
       );
       const censerMesh = new THREE.Mesh(censerGeo, crystalCoreMat);
       censerMesh.position.set(0.1, 0.08, 0.24);
       offhandGroup.add(censerMesh);
-    } else if (config.offhand === "dual_blade") {
+    } else if (escudo === "dual_blade") {
       const daggerGeo = trackGeo(new THREE.ConeGeometry(0.08, 0.85, seg(6, 4)));
       const daggerMesh = new THREE.Mesh(daggerGeo, bladeAlloyMat);
       daggerMesh.position.set(0, 0.1, 0.42);
@@ -3947,7 +4076,7 @@ var EnemyLib = (() => {
     }
   }
 
-  // enemigos-src/three/proceduralTextures.ts
+  // tools/enemigos-src/three/proceduralTextures.ts
   var THREE2 = globalThis.THREE;
   function configureTileableTexture(canvas, maxAnisotropy, isColor, repeatX = 3, repeatY = 3) {
     const tex = new THREE2.CanvasTexture(canvas);
@@ -4230,4 +4359,3 @@ var EnemyLib = (() => {
   }
   return __toCommonJS(entrada_exports);
 })();
-if (typeof window !== 'undefined') window.EnemyLib = EnemyLib;
