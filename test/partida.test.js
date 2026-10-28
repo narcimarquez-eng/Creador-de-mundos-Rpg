@@ -84,4 +84,15 @@ t('restaurar: devuelve los campos de juego, con copia de los pueblos visitados',
   assert.strictEqual(p.visited.length, 2);
 });
 
+t('el personaje se guarda con la partida y vuelve al restaurarla', () => {
+  const pj = { nombre: 'Ana', clase: 'guerrero', fit: { torsoScale: 1.1, bad: 'x' }, equipo: { helmet: 1, torso: 0 }, posee: ['helmet.1', 7] };
+  const p = P.makePartida(Object.assign({}, base, { personaje: pj }));
+  assert.strictEqual(p.personaje.nombre, 'Ana');
+  assert.strictEqual(p.personaje.fit.torsoScale, 1.1);
+  assert.ok(!('bad' in p.personaje.fit));
+  assert.deepStrictEqual(p.personaje.posee, ['helmet.1']);
+  assert.strictEqual(P.restoreFields(P.parsePartida(JSON.stringify(p))).personaje.equipo.helmet, 1);
+  assert.strictEqual(P.makePartida(base).personaje, null);
+});
+
 console.log(`\n${n} pruebas correctas`);

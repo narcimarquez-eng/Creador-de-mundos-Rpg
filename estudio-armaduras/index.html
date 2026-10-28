@@ -19465,6 +19465,9 @@ function resetCharacter() {
     window.addEventListener('message', (e) => {
       const d = e.data;
       if (!d || d.origen !== 'juego-armaduras') return;
+      if (d.tipo === 'pedir-proporciones') {
+        window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'proporciones', fit: STATE.fit }, '*');
+      }
       if (d.tipo === 'proporciones') {
         Object.assign(STATE.fit, d.fit || {});
         syncFitSlidersUI();
@@ -19479,6 +19482,13 @@ function resetCharacter() {
       }
     });
 
+    if (window.parent !== window) {
+      const esperarManiqui = setInterval(() => {
+        if (!mannequinRoot) return;
+        clearInterval(esperarManiqui);
+        window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'listo' }, '*');
+      }, 200);
+    }
     window.__studio = {
       STATE, ITEMS_DB, WEAPON_LOADOUT, bonesMap, armorSockets,
       get mannequinRoot() { return mannequinRoot; },

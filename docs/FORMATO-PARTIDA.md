@@ -34,3 +34,18 @@ varias partidas (hasta 5 por mundo en el navegador).
 ## Validación
 `PartidaLib.validate` rechaza archivos que no sean `rpg-partida`, versiones futuras, o con posición, héroe o
 inventario no válidos. Las partidas que no pasan la validación se descartan al leerlas.
+
+## Personaje (opcional, versión 1)
+Las partidas creadas con el menú de personaje guardan `personaje`:
+
+```jsonc
+"personaje": {
+  "nombre": "Ana",
+  "clase": "guerrero",
+  "fit": { "torsoScale": 1.1, "limbScale": 0.95 },   // proporciones del estudio (estudio-armaduras/)
+  "equipo": { "underlayer": 2, "torso": 1 },          // idx de la pieza puesta en cada ranura
+  "posee": ["underlayer.2", "torso.1"]                // piezas que tiene (id = ranura.idx)
+}
+```
+
+Las piezas `.glb` no se guardan: se generan otra vez con el estudio al cargar la partida.

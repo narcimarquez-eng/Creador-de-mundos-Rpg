@@ -96,6 +96,14 @@
     #partidas .slot .info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #partidas .muted { color: var(--muted); font-size: 12px; }
     #partidas .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    #crear { position: absolute; inset: 0; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; z-index: 44; padding: 12px; }
+    #crear.show { display: flex; }
+    #crear .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: 560px; max-width: 100%; max-height: 96vh; overflow-y: auto; }
+    #crear h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
+    #crear label { display: block; color: var(--muted); font-size: 12px; margin: 6px 0; }
+    #crear input, #crear select { width: 100%; margin-top: 3px; }
+    #crear .muted { color: var(--muted); font-size: 12px; }
+    #crear .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     #deadmsg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(69,10,10,.45); z-index: 45; font-size: 22px; font-weight: 700; color: #fecaca; pointer-events: none; }
     #deadmsg.show { display: flex; }
     #deadmsg small { font-size: 14px; color: #fca5a5; margin-top: 6px; font-weight: 600; }
@@ -219,6 +227,15 @@
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
     </div>
   </div>
+  <div id="crear"><div class="box">
+    <h2>🧙 Crear personaje</h2>
+    <label>Nombre <input type="text" id="crear-nombre" value="Aventurero"></label>
+    <label>Clase <select id="crear-clase"><option value="guerrero">Guerrero</option><option value="mago" disabled>Mago (túnicas pendientes)</option></select></label>
+    <div class="muted">Ajusta el cuerpo en el estudio: las armaduras iniciales se generan con esas proporciones.</div>
+    <iframe id="crear-frame" title="Estudio de armaduras" style="width:100%;height:360px;border:0;border-radius:8px;margin-top:6px;background:#070a13"></iframe>
+    <div id="crear-estado" class="muted" style="margin-top:6px"></div>
+    <div class="btns"><button id="crear-ok" class="gold">✅ Crear personaje</button><button id="crear-cancel">Cancelar</button></div>
+  </div></div>
   <div id="partidas"><div class="box">
     <h2>💾 Partidas de este mundo</h2>
     <div id="plist"></div>
@@ -2239,7 +2256,8 @@
       worldName: world.name, worldSeed: world.seed,
       where: nearestTownName(),
       player: character.root.position, yaw: character.root.rotation.y,
-      hero, inv, visited: [...visited], timeOfDay
+      hero, inv, visited: [...visited], timeOfDay,
+      personaje: personajeActual
     });
   }
 
@@ -2256,6 +2274,8 @@
     visited.clear();
     r.visited.forEach(id => visited.add(id));
     setTimeOfDay(r.timeOfDay);
+    personajeActual = r.personaje;
+    if (personajeActual) generarArmaduras(personajeActual).catch(() => {});
     if (!character.teleport(r.x, r.z)) {
       const start = towns.find(o => o.t.isStart) || towns[0];
       if (start) character.teleport(start.t.x + 6, start.t.y + 6);
@@ -2277,12 +2297,9 @@
   function saveActive(silent) {
     if (!world || !worldId) return false;
     let list = PartidaLib.readList(store, worldId);
-    let id = PartidaLib.getActiveId(store, worldId);
-    if (!list.some(p => p.id === id)) {
-      id = PartidaLib.newId();
-      PartidaLib.setActiveId(store, worldId, id);
-    }
-    const name = (list.find(p => p.id === id) || {}).name || ('Partida ' + (list.length + 1));
+    const id = PartidaLib.getActiveId(store, worldId);
+    if (!list.some(p => p.id === id)) return false;   // sin partida activa: la crea el personaje (crearPartida)
+    const name = list.find(p => p.id === id).name;
     try {
       list = PartidaLib.upsert(list, snapshot(name, id));
       PartidaLib.writeList(store, worldId, list);
@@ -2295,23 +2312,8 @@
   }
 
   function newPartida() {
-    let list = PartidaLib.readList(store, worldId);
-    if (list.length >= PartidaLib.MAX_PER_WORLD) { toast('Ya hay 5 partidas. Borra una para crear otra.', 3500); return; }
-    const id = PartidaLib.newId();
-    const name = 'Partida ' + (list.length + 1);
-    hero = CombatLib.newHero();
-    inv = ItemsLib.newInventory();
-    visited.clear();
-    const start = towns.find(o => o.t.isStart) || towns[0];
-    if (start) character.teleport(start.t.x + 6, start.t.y + 6);
-    curTown = null; curZone = null;
-    PartidaLib.setActiveId(store, worldId, id);
-    list = PartidaLib.upsert(list, snapshot(name, id));
-    PartidaLib.writeList(store, worldId, list);
-    setFollow(true);
-    buildUI(); updateStats();
-    toast('Nueva partida: ' + name);
-    renderPartidas();
+    if (PartidaLib.readList(store, worldId).length >= PartidaLib.MAX_PER_WORLD) { toast('Ya hay 5 partidas. Borra una para crear otra.', 3500); return; }
+    openCrearPersonaje(crearPartida);
   }
 
   function loadPartida(id) {
@@ -2373,6 +2375,136 @@
     loadPartida(p.id);
   }
 
+  // ===========================================================================
+  // Personaje: el estudio de armaduras (embebido) ajusta las proporciones y genera las piezas
+  // ===========================================================================
+  const ESTUDIO_URL = 'estudio-armaduras/index.html';
+  let catalogoPiezas = null;
+  let personajeActual = null;   // personaje de la partida activa (ver js/partida.js)
+  let alCrear = null;
+  let estudioListo = null;      // promesa: el maniquí del estudio está listo
+  const piezasGlb = {};         // id de pieza → URL del GLB generado en esta sesión
+  const esperando = {};         // respuestas pendientes del estudio, por clave
+
+  function frameEstudio() {
+    const f = $('crear-frame');
+    if (!f.getAttribute('src')) {
+      f.setAttribute('src', ESTUDIO_URL);
+      estudioListo = new Promise(res => { esperando.listo = res; });
+    }
+    return f;
+  }
+
+  function enviarAlEstudio(datos) {
+    frameEstudio().contentWindow.postMessage(Object.assign({ origen: 'juego-armaduras' }, datos), '*');
+  }
+
+  // Envía un mensaje al estudio y espera su respuesta (con límite de tiempo)
+  function pedirAlEstudio(clave, datos) {
+    return new Promise((res, rej) => {
+      const t = setTimeout(() => { delete esperando[clave]; rej(new Error('El estudio no respondió a tiempo')); }, 60000);
+      esperando[clave] = v => { clearTimeout(t); res(v); };
+      enviarAlEstudio(datos);
+    });
+  }
+
+  window.addEventListener('message', e => {
+    const d = e.data;
+    if (!d || d.origen !== 'armadura-estudio') return;
+    if (d.tipo === 'listo' && esperando.listo) { esperando.listo(); delete esperando.listo; }
+    if (d.tipo === 'proporciones' && esperando.proporciones) { esperando.proporciones(d.fit); delete esperando.proporciones; }
+    if (d.tipo === 'glb' && esperando[d.id]) {
+      piezasGlb[d.id] = URL.createObjectURL(new Blob([d.buffer], { type: 'model/gltf-binary' }));
+      esperando[d.id](piezasGlb[d.id]);
+      delete esperando[d.id];
+    }
+  });
+
+  async function cargarCatalogoPiezas() {
+    if (!catalogoPiezas) {
+      const r = await fetch('estudio-armaduras/catalogo.json');
+      if (!r.ok) throw new Error('No se pudo leer el catálogo de piezas');
+      catalogoPiezas = await r.json();
+    }
+    return catalogoPiezas;
+  }
+
+  // Genera las piezas del personaje con sus proporciones: una a una, porque el estudio exporta de una en una
+  async function generarArmaduras(pj) {
+    frameEstudio();
+    await cargarCatalogoPiezas();
+    await estudioListo;
+    enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit });
+    for (const id of pj.posee) {
+      const [ranura, idx] = id.split('.');
+      const pieza = (catalogoPiezas.ranuras[ranura] || []).find(p => p.idx === Number(idx));
+      if (!pieza || !pieza.archivo || piezasGlb[id]) continue;   // sin modelo, o ya generada
+      await pedirAlEstudio(id, { tipo: 'exportar-pieza', id, ranura, idx: Number(idx) });
+    }
+  }
+
+  // Personaje nuevo: equipo inicial del catálogo y las proporciones que tenga el estudio ahora
+  function prepararPersonaje(nombre, clase, fit) {
+    const equipo = {};
+    const posee = [];
+    Object.keys(catalogoPiezas.inicial).forEach(r => {
+      equipo[r] = catalogoPiezas.inicial[r];
+      posee.push(r + '.' + catalogoPiezas.inicial[r]);
+    });
+    return { nombre, clase, fit, equipo, posee };
+  }
+
+  async function openCrearPersonaje(alCrearFn) {
+    alCrear = alCrearFn;
+    $('crear-estado').textContent = 'Cargando el estudio…';
+    $('crear').classList.add('show');
+    try {
+      await cargarCatalogoPiezas();
+      frameEstudio();
+      await estudioListo;
+      $('crear-estado').textContent = 'Ajusta el cuerpo y pulsa «Crear personaje».';
+    } catch (err) { $('crear-estado').textContent = err.message; }
+  }
+
+  async function confirmarCrear() {
+    const ok = $('crear-ok');
+    ok.disabled = true;
+    try {
+      $('crear-estado').textContent = 'Tomando las proporciones…';
+      const fit = await pedirAlEstudio('proporciones', { tipo: 'pedir-proporciones' });
+      const pj = prepararPersonaje($('crear-nombre').value.trim() || 'Aventurero', $('crear-clase').value, fit);
+      $('crear-estado').textContent = 'Generando armaduras…';
+      await generarArmaduras(pj);
+      $('crear').classList.remove('show');
+      alCrear(pj);
+    } catch (err) { $('crear-estado').textContent = err.message; }
+    finally { ok.disabled = false; }
+  }
+  $('crear-ok').onclick = confirmarCrear;
+  $('crear-cancel').onclick = () => $('crear').classList.remove('show');
+
+  // Partida nueva con el personaje elegido
+  function crearPartida(pj) {
+    let list = PartidaLib.readList(store, worldId);
+    if (list.length >= PartidaLib.MAX_PER_WORLD) { toast('Ya hay 5 partidas. Borra una para crear otra.', 3500); return; }
+    const id = PartidaLib.newId();
+    const name = pj.nombre + ' · Partida ' + (list.length + 1);
+    personajeActual = pj;
+    hero = CombatLib.newHero();
+    inv = ItemsLib.newInventory();
+    visited.clear();
+    const start = towns.find(o => o.t.isStart) || towns[0];
+    if (start) character.teleport(start.t.x + 6, start.t.y + 6);
+    curTown = null; curZone = null;
+    PartidaLib.setActiveId(store, worldId, id);
+    list = PartidaLib.upsert(list, snapshot(name, id));
+    PartidaLib.writeList(store, worldId, list);
+    setFollow(true);
+    buildUI(); updateStats();
+    toast('Nueva partida: ' + name);
+    renderPartidas();
+  }
+
   // Al abrir un mundo: se usa su partida activa, o se crea la primera
   function bootPartida() {
     let list = PartidaLib.readList(store, worldId);
@@ -2382,7 +2514,7 @@
       PartidaLib.setActiveId(store, worldId, active.id);
     }
     if (active) applyPartida(active);
-    else saveActive(true);
+    else openCrearPersonaje(crearPartida);
   }
 
   // ===========================================================================

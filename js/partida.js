@@ -39,6 +39,21 @@
     else store.removeItem(activeKey(worldId));
   }
 
+  // Personaje elegido al crear la partida: proporciones del estudio, equipo y piezas que posee
+  function cleanPersonaje(pj) {
+    if (!pj || typeof pj !== 'object') return null;
+    const fit = {};
+    Object.keys(pj.fit || {}).forEach(k => { if (isFinite(pj.fit[k])) fit[k] = pj.fit[k]; });
+    const equipo = {};
+    Object.keys(pj.equipo || {}).forEach(k => { equipo[k] = Math.floor(pj.equipo[k]) || 0; });
+    return {
+      nombre: String(pj.nombre || 'Aventurero').slice(0, 40),
+      clase: String(pj.clase || 'guerrero'),
+      fit, equipo,
+      posee: (pj.posee || []).filter(x => typeof x === 'string')
+    };
+  }
+
   // Crea el objeto de partida a partir del estado actual del juego
   function makePartida(o) {
     return {
@@ -54,7 +69,8 @@
       hero: { level: o.hero.level, xp: Math.floor(o.hero.xp), hp: round1(o.hero.hp), mp: round1(o.hero.mp) },
       inv: { gold: Math.floor(o.inv.gold), vida: Math.floor(o.inv.vida), mana: Math.floor(o.inv.mana) },
       visited: (o.visited || []).slice(),
-      timeOfDay: o.timeOfDay || 'day'
+      timeOfDay: o.timeOfDay || 'day',
+      personaje: cleanPersonaje(o.personaje)
     };
   }
 
@@ -95,7 +111,7 @@
       level: p.hero.level, xp: p.hero.xp, hp: p.hero.hp, mp: p.hero.mp,
       gold: p.inv.gold, vida: p.inv.vida, mana: p.inv.mana,
       x: p.player.x, z: p.player.z, yaw: p.player.yaw,
-      visited: p.visited.slice(), timeOfDay: p.timeOfDay
+      visited: p.visited.slice(), timeOfDay: p.timeOfDay, personaje: p.personaje || null
     };
   }
 

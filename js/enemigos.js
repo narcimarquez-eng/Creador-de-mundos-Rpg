@@ -4359,3 +4359,4 @@ var EnemyLib = (() => {
   }
   return __toCommonJS(entrada_exports);
 })();
+window.EnemyLib = EnemyLib;
