@@ -169,6 +169,7 @@
     <button id="btn-fit" title="Ver todo el mundo">⤢</button>
     <a id="btn-view3d" class="hide-mobile" href="#" title="Ver el mundo en 3D" style="color:inherit;text-decoration:none;padding:7px 10px;border:1px solid #334155;border-radius:7px;background:#1e293b">🗺 3D</a>
     <button id="btn-enemigos" title="Diseñar enemigos y añadirlos al mundo">🐉<span class="hide-mobile"> Enemigos</span></button>
+    <button id="btn-personaje" title="Crear personaje y sus armaduras">🧙<span class="hide-mobile"> Personaje</span></button>
     <button id="btn-panel" title="Mostrar / ocultar panel">☰</button>
   </div>
 
@@ -253,9 +254,26 @@
     </div>
   </div>
 
+  <!-- Personaje y armaduras -->
+  <div class="modal-bg" id="modal-personaje">
+    <div class="modal">
+      <h2>🧙 Crear personaje</h2>
+      <label>Nombre</label>
+      <input type="text" id="pj-nombre" value="Aventurero">
+      <label>Clase</label>
+      <select id="pj-clase"><option value="guerrero">Guerrero</option><option value="mago">Mago</option></select>
+      <div class="btns"><button class="gold" id="pj-crear">⚔ Crear personaje</button></div>
+      <p class="muted">Sale con la cota de malla. Las demás armaduras se equipan al subir de nivel. Para cada una, exporta su .glb desde el estudio <a href="https://github.com/narcimarquez-eng/armaduras-glb/tree/main/public/assets/aistudio" target="_blank" rel="noopener" style="color:var(--accent)">armaduras-glb</a> (abre el HTML en el navegador, equipa la pieza y pulsa «Armadura Ligera») y súbelo aquí.</p>
+      <div id="pj-lista"></div>
+      <p class="muted">Los .glb se guardan solo en esta pestaña: si recargas la página, vuelve a subirlos.</p>
+      <div class="btns"><button id="pj-cerrar">Cerrar</button></div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="js/world-core.js"></script>
+  <script src="js/equipo.js"></script>
   <script src="js/enemigos-catalogo.js"></script>
   <script>
   "use strict";
@@ -1554,6 +1572,46 @@
     try { localStorage.setItem('rpgMundo.enemigosNuevos', JSON.stringify(pendientes)); } catch (err) { alert('No se pudo guardar el enemigo: ' + err.message); return; }
     $('enemigos-overlay').hidden = true;
     refreshAll();
+  });
+
+  // Personaje: clase y armaduras por niveles (js/equipo.js). Los .glb se suben desde el estudio armaduras-glb
+  let personaje = null;
+  function renderPersonaje() {
+    if (!personaje) { $('pj-lista').innerHTML = '<p class="muted">Elige clase y crea el personaje para ver todas sus armaduras.</p>'; return; }
+    const sin = EquipoLib.sinModelo(personaje).length;
+    $('pj-lista').innerHTML = `<h3 style="margin:12px 0 4px;font-size:13px">${esc(personaje.nombre)} · ${esc(EquipoLib.CLASES[personaje.clase].name)} · ${personaje.armaduras.length} armaduras (${sin} sin modelo)</h3>` +
+      personaje.armaduras.map(a => `
+        <div class="row" style="border-top:1px solid #1e293b;padding:6px 0">
+          <div><b>${esc(a.nombre)}</b> <span class="muted">· ${esc(a.lineaNombre)} · nivel ${a.nivelMin} · defensa ${a.defensa}${a.id === personaje.equipada ? ' · ✅ equipada' : ''}</span></div>
+          ${a.modelo
+            ? `<div class="muted">🧱 ${esc(a.modelo.nombre)} <button data-quitar="${a.id}">✕</button></div>`
+            : `<input type="file" accept=".glb,model/gltf-binary" data-armadura="${a.id}"> <span class="muted">sin modelo</span>`}
+        </div>`).join('');
+  }
+  function openPersonaje() { closeModals(); renderPersonaje(); $('modal-personaje').classList.add('show'); }
+  $('btn-personaje').onclick = openPersonaje;
+  $('pj-cerrar').onclick = closeModals;
+  $('pj-crear').onclick = () => {
+    const clase = $('pj-clase').value;
+    personaje = EquipoLib.crearPersonaje(clase);
+    personaje.nombre = $('pj-nombre').value.trim() || 'Aventurero';
+    renderPersonaje();
+    toast(`Personaje creado: ${EquipoLib.CLASES[clase].name} con ${personaje.armaduras.length} armaduras`, 2600);
+  };
+  $('pj-lista').addEventListener('change', e => {
+    const input = e.target.closest('input[data-armadura]');
+    if (!input || !input.files[0]) return;
+    const file = input.files[0];
+    EquipoLib.asignarModelo(personaje, input.dataset.armadura, { nombre: file.name, url: URL.createObjectURL(file) });
+    renderPersonaje();
+  });
+  $('pj-lista').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-quitar]');
+    if (!btn) return;
+    const armadura = personaje.armaduras.find(a => a.id === btn.dataset.quitar);
+    if (armadura && armadura.modelo) URL.revokeObjectURL(armadura.modelo.url);
+    EquipoLib.asignarModelo(personaje, btn.dataset.quitar, null);
+    renderPersonaje();
   });
 
   window.addEventListener('keydown', e => {

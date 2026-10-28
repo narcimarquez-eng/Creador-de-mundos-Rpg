@@ -58,4 +58,17 @@ t('clase desconocida se rechaza', () => {
   assert.throws(() => E.crearPersonaje('paladin'), /Clase desconocida/);
 });
 
-console.log(`\n${n} pruebas de equipo superadas.`);
+t('asignar modelo GLB a un tramo y quitarlo', () => {
+  const p = E.crearPersonaje('guerrero');
+  assert.strictEqual(E.sinModelo(p).length, 8);
+  E.asignarModelo(p, 'guerrero.ligera.1', { nombre: 'cota.glb', url: 'blob:x' });
+  assert.strictEqual(p.armaduras[0].id, 'guerrero.ligera.1');
+  assert.strictEqual(p.armaduras.find(a => a.id === 'guerrero.ligera.1').modelo.nombre, 'cota.glb');
+  assert.strictEqual(E.sinModelo(p).length, 7);
+  E.asignarModelo(p, 'guerrero.ligera.1', null);
+  assert.strictEqual(E.sinModelo(p).length, 8);
+  assert.throws(() => E.asignarModelo(p, 'mago.tunica.1', null), /no disponible/);
+});
+
+console.log(`
+${n} pruebas de equipo superadas.`);

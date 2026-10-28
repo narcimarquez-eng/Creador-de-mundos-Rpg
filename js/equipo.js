@@ -109,7 +109,20 @@
     return disponibles(personaje, nivel).reduce((mejor, a) => (!mejor || a.defensa > mejor.defensa ? a : mejor), null);
   }
 
-  const api = { CLASES, lineaInicial, generarArmaduras, crearPersonaje, puedeEquipar, disponibles, equipar, mejorDisponible };
+  // Asigna el modelo GLB de un tramo: { nombre, url }. Con null quita el modelo.
+  function asignarModelo(personaje, id, modelo) {
+    const armadura = personaje.armaduras.find(a => a.id === id);
+    if (!armadura) throw new Error('Armadura no disponible para esta clase: ' + id);
+    armadura.modelo = modelo || null;
+    return armadura;
+  }
+
+  // Armaduras de la clase que todavía no tienen modelo GLB
+  function sinModelo(personaje) {
+    return personaje.armaduras.filter(a => !a.modelo);
+  }
+
+  const api = { CLASES, lineaInicial, generarArmaduras, crearPersonaje, puedeEquipar, disponibles, equipar, mejorDisponible, asignarModelo, sinModelo };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.EquipoLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);
