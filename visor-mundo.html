@@ -230,6 +230,7 @@
 
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
   <script src="js/casa-madera.js"></script>
+  <script src="js/lagos.js"></script>
   <script type="module" src="js/three-puente.js"></script>
   <script type="module" src="js/world-core.js"></script>
   <script type="module" src="js/arboles.js"></script>
@@ -321,6 +322,8 @@
   // una rejilla para buscar rápido el más cercano a cada punto
   const RIO_CELDA = 120;
   let rios = [];
+  let lagosMundo = [];       // lagos, oasis y arenas movedizas del mundo actual (js/lagos.js)
+  let lagosGroup = null;
   function prepararRios() {
     rios = [];
     W.calcularRios(world);
@@ -388,7 +391,8 @@
       const lecho = r.nivel - RIO_FONDO;
       h = Math.min(h, lecho + (h - lecho) * smooth(RIO_CAUCE, RIO_BANCO, r.d));
     }
-    return h;
+    // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
+    return LagosLib.aplicar(lagosMundo, x, z, h);
   }
 
   function kitFor(style) {
@@ -600,6 +604,7 @@
   }
 
   function clearWorldObjects() {
+    if (lagosGroup) { scene.remove(lagosGroup); lagosGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); lagosGroup = null; }
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
     clearTerrainRender();
@@ -649,11 +654,23 @@
     bounds.cz = (bounds.minZ + bounds.maxZ) / 2;
     bounds.size = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
 
+    // Lagos, oasis y arenas movedizas: se planean antes del relieve, porque lo excavan. Usan la altura base
+    // (sin excavar y sin pueblos); los pueblos y los ríos se respetan con sus márgenes.
+    lagosMundo = LagosLib.planear({
+      rng: new W.PRNG((world.seed ^ 0x1a6e) >>> 0), limites: bounds,
+      altura: (x, z) => (terrain.elevation(x, z) - SEA) * HEIGHT_SCALE,
+      bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
+      libre: (x, z, m) => !towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.tileHalf + BLEND_OUT + m) &&
+        !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < m),
+      rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
+    });
+
     buildTerrain();
     buildWater();
     buildTowns();
     buildRoads();
     buildRios();
+    buildLagos();
     buildZones();
     buildMonsters();
     buildDecorado();
@@ -943,6 +960,10 @@
   // Agua: superficie animada con rizos y brillo; en los ríos, espuma en las orillas
   // ===========================================================================
   const AGUA_U = { uTime: { value: 0 }, uCielo: { value: new THREE.Color('#bfe6f7') } };
+  // Normales del agua de New-Rol (assets/agua/waternormals.jpg), las mismas que su superficie de agua
+  const aguaNormales = new THREE.TextureLoader().load('assets/agua/waternormals.jpg');
+  aguaNormales.wrapS = aguaNormales.wrapT = THREE.RepeatWrapping;
+  aguaNormales.colorSpace = THREE.NoColorSpace;
   const AGUA_FRAG = `
     vec2 p = vMundo;
     float o1 = sin(p.x * 0.35 + uTime * 0.9) + sin(p.y * 0.42 - uTime * 0.7);
@@ -987,7 +1008,7 @@
     const g = terrainGrid;
     const xa = g.x0 + cx * CHUNK * g.step - 40, xb = xa + CHUNK * g.step + 80;
     const za = g.z0 + cz * CHUNK * g.step - 40, zb = za + CHUNK * g.step + 80;
-    return rios.some(r => r.segs.some(s =>
+    return lagosMundo.some(L => L.x + L.R * 1.4 >= xa && L.x - L.R * 1.4 <= xb && L.z + L.R * 1.4 >= za && L.z - L.R * 1.4 <= zb) || rios.some(r => r.segs.some(s =>
       Math.max(s.ax, s.bx) >= xa && Math.min(s.ax, s.bx) <= xb && Math.max(s.az, s.bz) >= za && Math.min(s.az, s.bz) <= zb));
   }
   function buildFineNear(cx, cz) {
@@ -1321,6 +1342,13 @@
     } catch (e) { /* sin el arbusto: se usan matorrales de código */ }
   }
 
+  // Superficies de los lagos, arenas movedizas y palmeras de los oasis (la excavación ya está en Hgen)
+  function buildLagos() {
+    if (lagosGroup) { scene.remove(lagosGroup); lagosGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); lagosGroup = null; }
+    lagosGroup = LagosLib.crear(THREE, lagosMundo, { altura: Hgen, normales: aguaNormales, tiempo: AGUA_U.uTime, cielo: AGUA_U.uCielo });
+    scene.add(lagosGroup);
+  }
+
   function buildDecorado() {
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     const rng = new W.PRNG((world.seed ^ 0x7e7e) >>> 0);
@@ -1328,7 +1356,7 @@
       rng, limites: bounds, arbusto: arbustoGLB, props: NR,
       altura: (x, z) => H(x, z),
       bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
-      agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02,
+      agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02 || LagosLib.enAgua(lagosMundo, x, z),
       libre: (x, z) => !towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.R + 60) &&
         !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < 9),
       caminos: world.roads.map(r => r.points)
@@ -2447,7 +2475,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, character, get hero() { return hero; } };
+    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

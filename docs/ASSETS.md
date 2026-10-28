@@ -80,6 +80,13 @@ usa tal cual, pero conviene confirmarlo antes de publicar el juego.
 
 Los modelos del arbusto de Kenney (CC0, `assets/vegetacion/arbusto.glb`) quedan como respaldo si no se carga TreeLib.
 
+## Agua, lagos y oasis
+
+- `assets/agua/waternormals.jpg`: normales del agua copiadas de `public/assets/tex/waternormals.jpg` de New-Rol
+  (misma cuenta; el repositorio no declara licencia para sus recursos). Confirmar antes de publicar.
+- `js/lagos.js`: lagos en praderas y montañas, oasis y arenas movedizas en el desierto. Son huecos del relieve
+  generados en código (sin archivos de terceros); el agua usa el mismo tono y las mismas normales que New-Rol.
+
 ## Rocas y setos
 
 Las rocas son icosaedros con relieve irregular generados por código, sin textura externa. Los setos son cajas procedurales.
