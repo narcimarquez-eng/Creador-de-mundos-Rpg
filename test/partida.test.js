@@ -85,13 +85,19 @@ t('restaurar: devuelve los campos de juego, con copia de los pueblos visitados',
 });
 
 t('el personaje se guarda con la partida y vuelve al restaurarla', () => {
-  const pj = { nombre: 'Ana', clase: 'guerrero', fit: { torsoScale: 1.1, bad: 'x' }, equipo: { helmet: 1, torso: 0 }, posee: ['helmet.1', 7] };
+  const pj = {
+    nombre: 'Ana', clase: 'guerrero', fit: { torsoScale: 1.1, bad: 'x' },
+    inventario: [{ uid: 'o1', piezaId: 'underlayer.2', ranura: 'underlayer', idx: 2, nombre: 'Cota de malla', nivel: 1, estado: 0.8, defensa: 1.2 }, { nombre: 'sin uid' }],
+    equipo: { underlayer: 'o1', weapon: 99 }
+  };
   const p = P.makePartida(Object.assign({}, base, { personaje: pj }));
   assert.strictEqual(p.personaje.nombre, 'Ana');
   assert.strictEqual(p.personaje.fit.torsoScale, 1.1);
   assert.ok(!('bad' in p.personaje.fit));
-  assert.deepStrictEqual(p.personaje.posee, ['helmet.1']);
-  assert.strictEqual(P.restoreFields(P.parsePartida(JSON.stringify(p))).personaje.equipo.helmet, 1);
+  assert.strictEqual(p.personaje.inventario.length, 1);
+  assert.strictEqual(p.personaje.inventario[0].estado, 0.8);
+  assert.deepStrictEqual(p.personaje.equipo, { underlayer: 'o1' });
+  assert.strictEqual(P.restoreFields(P.parsePartida(JSON.stringify(p))).personaje.equipo.underlayer, 'o1');
   assert.strictEqual(P.makePartida(base).personaje, null);
 });
 

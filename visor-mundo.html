@@ -280,6 +280,7 @@
   <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
   <script src="js/casa-madera.js"></script>
   <script src="js/lagos.js"></script>
+  <script src="js/equipo.js"></script>
   <script type="module" src="js/three-puente.js"></script>
   <script type="module" src="js/world-core.js"></script>
   <script type="module" src="js/arboles.js"></script>
@@ -1926,7 +1927,10 @@
     m.muriendo = performance.now() + 1000;
     m.bar.visible = false;
     const levels = CombatLib.gainXp(hero, m.xp);
-    const loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
+    let loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
+    // Objetos del personaje: cotas (hasta nivel 5) y armas, cada uno con su estado
+    const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
+    if (obj) loot += ' · 🎁 ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)';
     if (m.boss) {
       character.playOneShot('victory', lastNowSec);
       announce('👑 ¡Jefe derrotado!', m.name + ' · +' + m.xp + ' XP · ' + loot);
@@ -2275,6 +2279,8 @@
     r.visited.forEach(id => visited.add(id));
     setTimeOfDay(r.timeOfDay);
     personajeActual = r.personaje;
+    actualizarArma();
+    if (personajeActual) cargarCatalogoPiezas().catch(() => {});
     if (personajeActual) {
       generarArmaduras(personajeActual).then(() => mostrarCuerpo(personajeActual)).catch(() => {});
     }
@@ -2288,6 +2294,12 @@
     $('deadmsg').classList.remove('show');
     buildUI();
     updateStats();
+  }
+
+  // Ataque del arma equipada: suma al daño del héroe (ver CombatLib.heroDamage)
+  function actualizarArma() {
+    const arma = personajeActual && EquipoLib.objeto(personajeActual, personajeActual.equipo.weapon);
+    hero.ataque = arma && arma.ataque ? arma.ataque : 0;
   }
 
   function activePartida() {
@@ -2431,29 +2443,27 @@
     return catalogoPiezas;
   }
 
-  // Genera las piezas del personaje con sus proporciones: una a una, porque el estudio exporta de una en una
+  // Genera un GLB por modelo distinto del inventario, con las proporciones del personaje.
+  // El estudio exporta de una en una.
   async function generarArmaduras(pj) {
     frameEstudio();
     await cargarCatalogoPiezas();
     await estudioListo;
     enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit });
-    for (const id of pj.posee) {
+    const ids = [...new Set(pj.inventario.map(o => o.piezaId))];
+    for (const id of ids) {
       const [ranura, idx] = id.split('.');
       const pieza = (catalogoPiezas.ranuras[ranura] || []).find(p => p.idx === Number(idx));
-      if (!pieza || !pieza.archivo || piezasGlb[id]) continue;   // sin modelo, o ya generada
+      if (!pieza || !pieza.archivo || piezasGlb[id]) continue;   // sin modelo, o ya generado
       await pedirAlEstudio(id, { tipo: 'exportar-pieza', id, ranura, idx: Number(idx) });
     }
   }
 
-  // Personaje nuevo: equipo inicial del catálogo y las proporciones que tenga el estudio ahora
+  // Personaje nuevo: cota inicial y arma básica (js/equipo.js) con las proporciones que tenga el estudio ahora
   function prepararPersonaje(nombre, clase, fit) {
-    const equipo = {};
-    const posee = [];
-    Object.keys(catalogoPiezas.inicial).forEach(r => {
-      equipo[r] = catalogoPiezas.inicial[r];
-      posee.push(r + '.' + catalogoPiezas.inicial[r]);
-    });
-    return { nombre, clase, fit, equipo, posee };
+    const pj = EquipoLib.crearPersonaje(catalogoPiezas, clase, nombre);
+    pj.fit = fit;
+    return pj;
   }
 
   async function openCrearPersonaje(alCrearFn) {
@@ -2488,7 +2498,7 @@
 
   // Muestra al personaje con su armadura: el estudio exporta el cuerpo completo con el equipo
   async function mostrarCuerpo(pj) {
-    const url = await pedirAlEstudio('cuerpo', { tipo: 'exportar-personaje', id: 'cuerpo', equipo: pj.equipo });
+    const url = await pedirAlEstudio('cuerpo', { tipo: 'exportar-personaje', id: 'cuerpo', equipo: EquipoLib.equipoPorIdx(pj) });
     character.loadGLB(url, pj.nombre);
   }
 
@@ -2500,6 +2510,7 @@
     const name = pj.nombre + ' · Partida ' + (list.length + 1);
     personajeActual = pj;
     hero = CombatLib.newHero();
+    actualizarArma();
     inv = ItemsLib.newInventory();
     visited.clear();
     const start = towns.find(o => o.t.isStart) || towns[0];

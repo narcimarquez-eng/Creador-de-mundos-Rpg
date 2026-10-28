@@ -39,18 +39,23 @@
     else store.removeItem(activeKey(worldId));
   }
 
-  // Personaje elegido al crear la partida: proporciones del estudio, equipo y piezas que posee
+  // Personaje elegido al crear la partida: proporciones del estudio, inventario de objetos y equipo (uid por ranura)
   function cleanPersonaje(pj) {
     if (!pj || typeof pj !== 'object') return null;
     const fit = {};
     Object.keys(pj.fit || {}).forEach(k => { if (isFinite(pj.fit[k])) fit[k] = pj.fit[k]; });
+    const inventario = (pj.inventario || []).filter(o => o && typeof o.uid === 'string' && typeof o.piezaId === 'string').map(o => {
+      const obj = { uid: o.uid, piezaId: o.piezaId, ranura: String(o.ranura), idx: Math.floor(o.idx) || 0, nombre: String(o.nombre || ''), nivel: Math.floor(o.nivel) || 1, estado: Math.max(0, Math.min(1, Number(o.estado) || 0)) };
+      if (isFinite(o.ataque)) obj.ataque = o.ataque;
+      if (isFinite(o.defensa)) obj.defensa = o.defensa;
+      return obj;
+    });
     const equipo = {};
-    Object.keys(pj.equipo || {}).forEach(k => { equipo[k] = Math.floor(pj.equipo[k]) || 0; });
+    Object.keys(pj.equipo || {}).forEach(k => { if (typeof pj.equipo[k] === 'string') equipo[k] = pj.equipo[k]; });
     return {
       nombre: String(pj.nombre || 'Aventurero').slice(0, 40),
       clase: String(pj.clase || 'guerrero'),
-      fit, equipo,
-      posee: (pj.posee || []).filter(x => typeof x === 'string')
+      fit, inventario, equipo
     };
   }
 

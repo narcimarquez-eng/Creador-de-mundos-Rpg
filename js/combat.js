@@ -72,7 +72,8 @@
 
   function heroDamage(hero, skill, targetLevel) {
     const s = SKILLS[skill];
-    return (HERO.baseDamage + HERO.damagePerLevel * hero.level) * s.mult * diffMult(hero.level, targetLevel);
+    // hero.ataque: ataque del arma equipada (0 sin arma)
+    return (HERO.baseDamage + HERO.damagePerLevel * hero.level + (hero.ataque || 0)) * s.mult * diffMult(hero.level, targetLevel);
   }
 
   function canUse(hero, skill) {
