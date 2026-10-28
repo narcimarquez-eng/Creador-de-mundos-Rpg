@@ -11,6 +11,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `visor-mundo.html` | **Visor 3D del mundo**: recorre el mundo entero con el personaje (WASD / joystick), pueblos, caminos, zonas de caza y bosques. Se abre con el botón «🗺 3D» del editor o cargando un `.mundo.json`. |
 | `js/character.js` | Personaje, joystick, cámara y animaciones (incluidas las de un solo uso) compartidas por el Creador de Pueblos y el visor. |
 | `js/items.js` | Oro, pociones, botín, tienda y descanso. Pruebas en `test/items.test.js`. |
+| `js/equipo.js` | Clases (guerrero, mago) y armaduras por niveles: al crear el personaje se generan todas las de su clase; cada tramo exige un nivel mínimo. Pruebas en `test/equipo.test.js`. |
 | `js/combat.js` | Reglas del combate (daño, XP, muerte, IA de los monstruos). Pruebas en `test/combat.test.js`. |
 | `js/enemigos.js` | Generación de enemigos del editor «Enemigo-rpg» (compilada con `tools/hornear-enemigos.mjs`). El visor la usa para los monstruos: modo por niveles o aleatorio. |
 | `enemigos-editor/` | Editor de enemigos «Enemigo-rpg» ya compilado (sin servidor). Se abre desde el botón «🐉 Enemigos» del Creador de Mundos y del Creador de Pueblos; al enviar un enemigo se añade a «Propios del mundo». Se construye con `tools/construir-editor-enemigos.sh`. |
