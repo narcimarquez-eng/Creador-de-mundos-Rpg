@@ -308,7 +308,7 @@
   let aguaPuebloMat = null;
   let decorGroup = null;     // rocas, ruinas y vallas entre pueblos
   let lastDecor = 0;         // última vez que se actualizó el detalle de los arbustos
-  let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
+  let townMesh, roadMesh, calzadaMesh, ladrillosMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
@@ -662,7 +662,7 @@
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
-    [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
+    [roadMesh, calzadaMesh, ladrillosMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
@@ -1250,46 +1250,61 @@
   // Calzada romana: losas irregulares con juntas (sombreado en el material) y bordillos a los dos lados
   function pintarCalzada(mb, linea, alt) {
     const w = roadWidth('calzada');
-    mb.ribbon(linea, w, rgb('#cbd5e1'), 0.35, alt);
+    mb.ribbon(linea, w, rgb('#8c867d'), 0.35, alt);
     [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#a8a29e'), 0.5, alt));
   }
 
-  // Sombrea las losas con celdas Voronoi sobre el color de vértice: no necesita texturas
-  const LOSAS_GLSL = `
-    vec2 hash2(vec2 p) {
-      p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
-      return fract(sin(p) * 43758.5453);
-    }`;
-  const LOSAS_FRAG = `
-    vec2 celda = vPosXZ * 0.9;
-    vec2 base = floor(celda), fr = fract(celda);
-    float f1 = 8.0, f2 = 8.0; vec2 id = vec2(0.0);
-    for (int j = -1; j <= 1; j++) {
-      for (int i = -1; i <= 1; i++) {
-        vec2 g = vec2(float(i), float(j));
-        vec2 r = g + hash2(base + g) - fr;
-        float d = dot(r, r);
-        if (d < f1) { f2 = f1; f1 = d; id = base + g; }
-        else if (d < f2) { f2 = d; }
+  // Ladrillos: en un aparejo a soga cada hilera va desfasada medio ladrillo, y los impares se levantan
+  // unos centímetros sobre la calzada, con sus juntas alrededor (un ladrillo grande, para pocos ladrillos)
+  const LADRILLO = { largo: 1.4, ancho: 0.8, alto: 0.05, junta: 0.05 };
+  function pintarLadrillos(mb, linea, alt, w) {
+    const PASO = 0.2, desdeCalzada = 0.35;
+    // Muestras de la línea cada PASO metros: posición, normal hacia la izquierda y distancia recorrida
+    const m = [];
+    let s = 0;
+    for (let i = 0; i < linea.length - 1; i++) {
+      const a = linea[i], b = linea[i + 1];
+      const len = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const tx = (b.x - a.x) / len, tz = (b.z - a.z) / len;
+      const n = Math.max(1, Math.ceil(len / PASO));
+      for (let k = 0; k < n; k++) {
+        const u = k / n;
+        m.push({ x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u, nx: -tz, nz: tx, s: s + len * u });
+      }
+      s += len;
+    }
+    const ult = linea[linea.length - 1], pen = m[m.length - 1];
+    m.push({ x: ult.x, z: ult.z, nx: pen.nx, nz: pen.nz, s });
+    const total = s;
+    // Punto de la calzada en la distancia s y a t metros del eje (la muestra más cercana por búsqueda binaria)
+    const en = (sv, tv) => {
+      let lo = 0, hi = m.length - 1;
+      while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (m[mid].s <= sv) lo = mid; else hi = mid - 1; }
+      const p = m[lo], x = p.x + p.nx * tv, z = p.z + p.nz * tv;
+      return { x, z, y: alt(x, z) + desdeCalzada };
+    };
+    const mitad = w / 2 - 0.9, filas = Math.max(1, Math.round(2 * mitad / LADRILLO.ancho)), anchoFila = 2 * mitad / filas;
+    const arriba = rgb('#dfe5ec'), pared = rgb('#9aa3ae');
+    const columnas = Math.ceil(total / LADRILLO.largo) + 1;
+    for (let j = 0; j < filas; j++) {
+      const desfase = (j % 2) * LADRILLO.largo / 2;
+      for (let i = -1; i <= columnas; i++) {
+        // Solo los impares, en damero sobre las hileras
+        if (Math.abs(i + j) % 2 !== 1) continue;
+        const sa = Math.max(0, i * LADRILLO.largo + desfase + LADRILLO.junta), sb = Math.min(total, (i + 1) * LADRILLO.largo + desfase - LADRILLO.junta);
+        if (sb - sa < 0.3) continue;
+        const ta = -mitad + j * anchoFila + LADRILLO.junta, tb = -mitad + (j + 1) * anchoFila - LADRILLO.junta;
+        // Cuatro esquinas en el suelo y en la cara superior; cara de arriba y cuatro paredes
+        const suelo = [en(sa, ta), en(sb, ta), en(sb, tb), en(sa, tb)];
+        const tope = suelo.map(p => ({ x: p.x, y: p.y + LADRILLO.alto, z: p.z }));
+        const P = p => [p.x, p.y, p.z];
+        mb.quadC(P(tope[0]), P(tope[1]), P(tope[2]), P(tope[3]), arriba, arriba, arriba, arriba);
+        for (let k = 0; k < 4; k++) {
+          const k2 = (k + 1) % 4;
+          mb.quad(P(suelo[k]), P(suelo[k2]), P(tope[k2]), P(tope[k]), pared);
+        }
       }
     }
-    float junta = smoothstep(0.05, 0.12, sqrt(f2) - sqrt(f1));
-    vec2 azar = hash2(id + 3.7);
-    float tono = 0.7 + 0.55 * azar.x;
-    vec3 losa = diffuseColor.rgb * tono * vec3(1.0 + 0.06 * azar.y, 1.0, 1.0 - 0.06 * azar.y);
-    vec3 tierra = vec3(0.30, 0.29, 0.18) * (0.6 + 0.8 * hash2(vPosXZ * 4.0).x);
-    diffuseColor.rgb = mix(tierra, losa, junta);`;
-  function calzadaMaterial() {
-    const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
-    m.onBeforeCompile = shader => {
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vPosXZ;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPosXZ = position.xz;');
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vPosXZ;' + LOSAS_GLSL)
-        .replace('#include <color_fragment>', '#include <color_fragment>' + LOSAS_FRAG);
-    };
-    return m;
   }
 
   // Puntos con los que el camino de un pueblo se une a su calle de salida (la misma del Creador):
@@ -1313,7 +1328,7 @@
   }
 
   function buildRoads() {
-    const mb = new MB(), mbCalzada = new MB();
+    const mb = new MB(), mbCalzada = new MB(), mbLadrillos = new MB();
     world.roads.forEach(r => {
       const a = W.findTown(world, r.from), b = W.findTown(world, r.to);
       if (!a || !b) return;
@@ -1328,13 +1343,15 @@
       if (ini.length) medio = medio.filter(p => alCentro(p, oa) > alCentro(ini[1], oa));
       if (fin.length) medio = medio.filter(p => alCentro(p, ob) > alCentro(fin[0], ob));
       const linea = curvePath([...ini, ...medio, ...fin], 8);
-      if (r.kind === 'calzada') pintarCalzada(mbCalzada, linea, alturaCamino);
+      if (r.kind === 'calzada') { pintarCalzada(mbCalzada, linea, alturaCamino); pintarLadrillos(mbLadrillos, linea, alturaCamino, roadWidth('calzada')); }
       else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.35, alturaCamino);
     });
     roadMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
     scene.add(roadMesh);
-    calzadaMesh = new THREE.Mesh(mbCalzada.geom(), calzadaMaterial());
+    calzadaMesh = new THREE.Mesh(mbCalzada.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
     scene.add(calzadaMesh);
+    ladrillosMesh = new THREE.Mesh(mbLadrillos.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    scene.add(ladrillosMesh);
   }
 
   // Agua de los ríos fuera de los pueblos, a la altura de su curso (baja hasta el mar).
@@ -2545,7 +2562,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, character, get hero() { return hero; } };
+    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosMesh; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
