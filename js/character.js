@@ -412,6 +412,8 @@
       if (this.activeState === 'oneshot' && elapsedTime >= this.oneShotUntil) this.activeState = 'none';
       if (this.fallbackAct && elapsedTime - this.fallbackAct.start >= this.fallbackAct.duration) this.fallbackAct = null;
       const locked = elapsedTime < this.lockUntil;
+      // Mientras dura una acción de un solo uso (combo, patada, nova) no se cambia la animación
+      const enAccion = this.activeState === 'oneshot' && elapsedTime < this.oneShotUntil;
 
       const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
       const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
@@ -422,7 +424,7 @@
 
       if (mag > 0.08 && !locked) {
         const isRunning = this.keys.shift || mag > 0.85;
-        this.switchAnimation(isRunning ? 'run' : 'walk');
+        if (!enAccion) this.switchAnimation(isRunning ? 'run' : 'walk');
         const speed = (isRunning ? this.runSpeed : this.walkSpeed) * Math.min(1.0, mag);
 
         const camForward = new THREE.Vector3();
@@ -459,7 +461,7 @@
           this.camera.position.z += deltaZ;
         }
       } else {
-        if (!this.fallbackAct || this.fallbackAct.kind !== 'spin') this.switchAnimation('idle');
+        if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'spin')) this.switchAnimation('idle');
         this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
       }
 
