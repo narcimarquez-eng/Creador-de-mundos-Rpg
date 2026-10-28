@@ -100,6 +100,14 @@
     #crear.show { display: flex; }
     #crear .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: 560px; max-width: 100%; max-height: 96vh; overflow-y: auto; }
     #crear h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
+    #objetos { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
+    #objetos.show { display: flex; }
+    #objetos .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 420px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+    #objetos h2 { margin: 0 0 6px; color: var(--gold); font-size: 16px; }
+    #objetos .slot { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
+    #objetos .slot .info { flex: 1; min-width: 0; }
+    #objetos .muted { color: var(--muted); font-size: 12px; }
+    #objetos .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     #crear label { display: block; color: var(--muted); font-size: 12px; margin: 6px 0; }
     #crear input, #crear select { width: 100%; margin-top: 3px; }
     #crear .muted { color: var(--muted); font-size: 12px; }
@@ -224,9 +232,16 @@
       <button id="sk-vida" title="Poción de vida (1)">🧪<small>1</small></button>
       <button id="sk-mana" title="Poción de maná (2)">💧<small>2</small></button>
       <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
+      <button id="sk-objetos" title="Objetos y equipo (I)">🎒<small>I</small></button>
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
     </div>
   </div>
+  <div id="objetos"><div class="box">
+    <h2>🎒 Objetos</h2>
+    <div class="muted">Cada objeto tiene su estado: un objeto malo rinde la mitad que uno perfecto.</div>
+    <div id="obj-lista"></div>
+    <div class="btns"><button id="obj-cerrar">Cerrar</button></div>
+  </div></div>
   <div id="crear"><div class="box">
     <h2>🧙 Crear personaje</h2>
     <label>Nombre <input type="text" id="crear-nombre" value="Aventurero"></label>
@@ -2098,8 +2113,12 @@
   }
 
   // Habilidades: daño a los monstruos del alcance y animación del personaje
+  // Habilidades que se desbloquean con una misión (aún no hay misiones): se ven, pero no se usan
+  const BLOQUEADAS = new Set(['spin', 'nova']);
+
   function useSkill(name) {
     if (hero.dead) return;
+    if (BLOQUEADAS.has(name)) { toast('🔒 Se desbloquea con una misión'); return; }
     if (!CombatLib.canUse(hero, name)) {
       if (hero.cd[name] > 0) toast(name === 'attack' ? 'Combo listo en un momento' : 'Recargando…');
       else if (hero.mp < CombatLib.SKILLS[name].mp) toast('Sin maná');
@@ -2134,8 +2153,9 @@
     $('hud-lv').textContent = 'Nv ' + hero.level;
     ['attack', 'spin', 'nova'].forEach(k => {
       const btn = $('sk-' + k), cd = hero.cd[k];
-      btn.disabled = hero.dead || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
-      btn.querySelector('.cd').textContent = cd > 0 ? Math.ceil(cd) : '';
+      const bloqueada = BLOQUEADAS.has(k);
+      btn.disabled = hero.dead || bloqueada || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
+      btn.querySelector('.cd').textContent = bloqueada ? '🔒' : (cd > 0 ? Math.ceil(cd) : '');
     });
     $('inv-gold').textContent = inv.gold;
     $('inv-vida').textContent = inv.vida;
@@ -2502,6 +2522,33 @@
     character.loadGLB(url, pj.nombre);
   }
 
+  // Inventario: objetos del personaje con su estado. Equipar regenera el cuerpo con la nueva pieza.
+  function renderObjetos() {
+    const pj = personajeActual;
+    if (!pj) { $('obj-lista').innerHTML = '<div class="muted">Esta partida no tiene personaje.</div>'; return; }
+    const equipados = new Set(Object.values(pj.equipo));
+    $('obj-lista').innerHTML = pj.inventario.map(o => {
+      const stat = o.ataque ? 'ataque ' + o.ataque : 'defensa ' + o.defensa;
+      const accion = equipados.has(o.uid) ? '<span class="muted">✅ equipado</span>'
+        : (o.nivel <= hero.level ? `<button data-equipar="${esc(o.uid)}">Equipar</button>` : `<span class="muted">🔒 nivel ${o.nivel}</span>`);
+      return `<div class="slot"><div class="info"><b>${esc(o.nombre)}</b>
+        <span class="muted">${esc(o.ranura)} · nivel ${o.nivel} · estado ${Math.round(o.estado * 100)}% · ${stat}</span></div>${accion}</div>`;
+    }).join('') || '<div class="muted">No tienes objetos.</div>';
+  }
+  $('sk-objetos').onclick = () => { renderObjetos(); $('objetos').classList.add('show'); };
+  $('obj-cerrar').onclick = () => $('objetos').classList.remove('show');
+  $('obj-lista').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-equipar]');
+    if (!b) return;
+    try {
+      EquipoLib.equipar(personajeActual, b.dataset.equipar, hero.level);
+      actualizarArma();
+      renderObjetos();
+      toast('Equipado');
+      await mostrarCuerpo(personajeActual);
+    } catch (err) { toast(err.message); }
+  });
+
   // Partida nueva con el personaje elegido
   function crearPartida(pj) {
     let list = PartidaLib.readList(store, worldId);
@@ -2525,8 +2572,62 @@
     renderPartidas();
   }
 
+  // ===========================================================================
+  // Gurús del conocimiento: cinco NPC fijos en la plaza del pueblo inicial
+  // ===========================================================================
+  const GURUS = [
+    { id: 'guru-1', nombre: 'Sabia Elara', tema: 'la historia del reino', frase: 'Antes de Aden hubo siete reinos. Sus murallas aún guardan las runas.' },
+    { id: 'guru-2', nombre: 'Maestro Oren', tema: 'los caminos', frase: 'Cada camino lleva a una zona de caza. Sigue el de piedra para no perderte.' },
+    { id: 'guru-3', nombre: 'Hermana Ysolde', tema: 'las runas', frase: 'Las runas se leen de abajo arriba. Un monstruo marcado con ellas es más débil.' },
+    { id: 'guru-4', nombre: 'Viejo Tamsin', tema: 'los monstruos', frase: 'Los de nivel 1 a 3 temen al acero. Con tu espada basta: no te preocupes por ellos.' },
+    { id: 'guru-5', nombre: 'Erudita Mirel', tema: 'el equipo', frase: 'Una cota malgastada rinde la mitad. Revisa el estado de cada objeto en el 🎒.' }
+  ];
+  const gurus = [];
+  const RADIO_GURUS = 6;
+  const DISTANCIA_HABLAR = 4;
+
+  function colocarGurus() {
+    const inicio = towns.find(o => o.t.isStart) || towns[0];
+    if (!inicio || gurus.length) return;
+    const loader = new THREE.GLTFLoader();
+    GURUS.forEach((g, i) => {
+      const a = (i / GURUS.length) * Math.PI * 2;
+      const x = inicio.t.x + Math.cos(a) * RADIO_GURUS, z = inicio.t.y + Math.sin(a) * RADIO_GURUS;
+      loader.load('npc/gurus/' + g.id + '.glb', gltf => {
+        const modelo = gltf.scene;
+        const size = new THREE.Vector3();
+        new THREE.Box3().setFromObject(modelo).getSize(size);
+        if (size.y > 0.01) modelo.scale.setScalar(1.85 / size.y);
+        modelo.position.y = -new THREE.Box3().setFromObject(modelo).min.y;
+        const raiz = new THREE.Group();
+        raiz.add(modelo);
+        raiz.position.set(x, H(x, z), z);
+        raiz.lookAt(inicio.t.x, raiz.position.y, inicio.t.y);   // miran al centro de la plaza
+        scene.add(raiz);
+        const mixer = new THREE.AnimationMixer(modelo);
+        const idle = (gltf.animations || []).find(c => c.name === 'idle');
+        if (idle) mixer.clipAction(idle).play();
+        gurus.push({ info: g, raiz, mixer, dicho: -Infinity });
+      }, undefined, () => { /* sin modelo: el gurú no aparece */ });
+    });
+  }
+
+  // Animación en reposo y aviso al acercarse. Cada gurú habla de su tema.
+  function actualizarGurus(dt, sec) {
+    if (!gurus.length) return;
+    gurus.forEach(g => {
+      g.mixer.update(dt);
+      const d = Math.hypot(character.root.position.x - g.raiz.position.x, character.root.position.z - g.raiz.position.z);
+      if (d < DISTANCIA_HABLAR && sec - g.dicho > 25) {
+        g.dicho = sec;
+        toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + g.info.frase + '»');
+      }
+    });
+  }
+
   // Al abrir un mundo: se usa su partida activa, o se crea la primera
   function bootPartida() {
+    colocarGurus();
     let list = PartidaLib.readList(store, worldId);
     let active = activePartida();
     if (!active && list.length) {
@@ -2618,6 +2719,7 @@
     if (k === ' ') { e.preventDefault(); useSkill('attack'); }
     if (k === 'q') useSkill('spin');
     if (k === 'e') useSkill('nova');
+    if (k === 'i') $('sk-objetos').click();
     if (k === 'x') jump();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');
@@ -2720,6 +2822,7 @@
     actualizarZonaTela();
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
+    actualizarGurus(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
     animateTowns(dt);
     updateAtmosphere(dt);

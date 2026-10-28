@@ -26,7 +26,7 @@
     idle: ['idle', 'stand', 'wait', 'guardia', 'reposo'],
     walk: ['walk', 'andar', 'caminar', 'marcha', 'move'],
     run: ['run', 'sprint', 'correr', 'carrera', 'fast'],
-    attack: ['combo', 'ataque', 'attack', 'slash'],
+    attack: ['combo', 'ataque', 'attack', 'slash', 'punch'],
     spin: ['patada', 'spin', 'kick', 'giratoria'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
