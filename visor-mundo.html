@@ -1254,11 +1254,10 @@
     [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#a8a29e'), 0.5, alt));
   }
 
-  // Ladrillos: en un aparejo a soga cada hilera va desfasada medio ladrillo, y los impares se levantan
-  // unos centímetros sobre la calzada, con sus juntas alrededor (un ladrillo grande, para pocos ladrillos)
-  const LADRILLO = { largo: 1.4, ancho: 0.8, alto: 0.05, junta: 0.05 };
+  // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su propia altura
+  // (unas sobresalen más que otras) y su tono, sobre la junta oscura de la calzada. Cubre toda la calzada.
   function pintarLadrillos(mb, linea, alt, w) {
-    const PASO = 0.2, desdeCalzada = 0.35;
+    const PASO = 0.2, desdeCalzada = 0.35, JUNTA = 0.05;
     // Muestras de la línea cada PASO metros: posición, normal hacia la izquierda y distancia recorrida
     const m = [];
     let s = 0;
@@ -1276,34 +1275,47 @@
     const ult = linea[linea.length - 1], pen = m[m.length - 1];
     m.push({ x: ult.x, z: ult.z, nx: pen.nx, nz: pen.nz, s });
     const total = s;
-    // Punto de la calzada en la distancia s y a t metros del eje (la muestra más cercana por búsqueda binaria)
+    // Punto de la calzada en la distancia s y a t metros del eje (muestra más cercana por búsqueda binaria)
     const en = (sv, tv) => {
       let lo = 0, hi = m.length - 1;
       while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (m[mid].s <= sv) lo = mid; else hi = mid - 1; }
       const p = m[lo], x = p.x + p.nx * tv, z = p.z + p.nz * tv;
       return { x, z, y: alt(x, z) + desdeCalzada };
     };
-    const mitad = w / 2 - 0.9, filas = Math.max(1, Math.round(2 * mitad / LADRILLO.ancho)), anchoFila = 2 * mitad / filas;
-    const arriba = rgb('#dfe5ec'), pared = rgb('#9aa3ae');
-    const columnas = Math.ceil(total / LADRILLO.largo) + 1;
-    for (let j = 0; j < filas; j++) {
-      const desfase = (j % 2) * LADRILLO.largo / 2;
-      for (let i = -1; i <= columnas; i++) {
-        // Solo los impares, en damero sobre las hileras
-        if (Math.abs(i + j) % 2 !== 1) continue;
-        const sa = Math.max(0, i * LADRILLO.largo + desfase + LADRILLO.junta), sb = Math.min(total, (i + 1) * LADRILLO.largo + desfase - LADRILLO.junta);
-        if (sb - sa < 0.3) continue;
-        const ta = -mitad + j * anchoFila + LADRILLO.junta, tb = -mitad + (j + 1) * anchoFila - LADRILLO.junta;
-        // Cuatro esquinas en el suelo y en la cara superior; cara de arriba y cuatro paredes
-        const suelo = [en(sa, ta), en(sb, ta), en(sb, tb), en(sa, tb)];
-        const tope = suelo.map(p => ({ x: p.x, y: p.y + LADRILLO.alto, z: p.z }));
-        const P = p => [p.x, p.y, p.z];
-        mb.quadC(P(tope[0]), P(tope[1]), P(tope[2]), P(tope[3]), arriba, arriba, arriba, arriba);
-        for (let k = 0; k < 4; k++) {
-          const k2 = (k + 1) % 4;
-          mb.quad(P(suelo[k]), P(suelo[k2]), P(tope[k2]), P(tope[k]), pared);
+    // Números pseudoaleatorios con semilla: el mismo camino sale siempre igual
+    let semilla = (Math.floor(linea[0].x * 13.1 + linea[0].z * 7.3) >>> 0) || 1;
+    const azar = () => { semilla = (Math.imul(semilla, 1664525) + 1013904223) >>> 0; return semilla / 4294967296; };
+    const mitad = w / 2 - 0.9;
+    const piedra = (sa, sb, ta, tb) => {
+      const h = azar() * 0.06;             // 0–6 cm: unas piedras quedan más altas que otras
+      const gris = 0.52 + azar() * 0.28;   // tono de piedra
+      const color = [gris, gris * 0.98, gris * 0.94], pared = [gris * 0.7, gris * 0.68, gris * 0.64];
+      const suelo = [en(sa, ta), en(sb, ta), en(sb, tb), en(sa, tb)];
+      const tope = suelo.map(p => ({ x: p.x, y: p.y + h, z: p.z }));
+      const P = p => [p.x, p.y, p.z];
+      mb.quad(P(tope[0]), P(tope[1]), P(tope[2]), P(tope[3]), color);
+      if (h < 0.004) return;
+      for (let k = 0; k < 4; k++) {
+        const k2 = (k + 1) % 4;
+        mb.quad(P(suelo[k]), P(suelo[k2]), P(tope[k2]), P(tope[k]), pared);
+      }
+    };
+    let t = -mitad;
+    while (t < mitad - 0.2) {
+      // Hilera de anchura variable (la última se ajusta al borde)
+      const ancho = Math.min(mitad - t, 0.6 + azar() * 0.4);
+      const ta = t + JUNTA, tb = t + ancho - JUNTA;
+      if (tb - ta > 0.15) {
+        // Piedras de largo variable en la hilera, con un desfase inicial al azar
+        let sv = -azar() * 1.2;
+        while (sv < total) {
+          const largo = 0.8 + azar() * 0.8;
+          const sa = Math.max(0, sv + JUNTA), sb = Math.min(total, sv + largo - JUNTA);
+          if (sb - sa > 0.3) piedra(sa, sb, ta, tb);
+          sv += largo;
         }
       }
+      t += ancho;
     }
   }
 
