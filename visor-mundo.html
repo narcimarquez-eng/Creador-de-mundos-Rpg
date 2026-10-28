@@ -26,6 +26,7 @@
     #side .stats { padding: 0 12px 8px; color: var(--muted); font-size: 12px; line-height: 1.6; border-bottom: 1px solid var(--line); }
     #side .stats b { color: var(--gold); }
     #towns { overflow-y: auto; flex: 1; padding: 6px; scrollbar-width: thin; }
+    .tabs-m { display: none; }
     .trow { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 8px; }
     .trow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .trow small { color: var(--muted); }
@@ -118,13 +119,36 @@
     @media (max-width: 760px) {
       #side { width: auto; right: 8px; bottom: auto; top: 54px; max-height: 40vh; }
       #info { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 50vh; }
-      #joystick-zone { bottom: 14px; right: 10px; width: 96px; height: 96px; }
-      #minimap { right: 10px; bottom: 120px; width: 110px; height: 110px; }
+      /* Joystick a la izquierda; acciones a la derecha, compactas; el ataque algo mayor */
+      #joystick-zone { left: 12px; right: auto; bottom: 14px; width: 88px; height: 88px; }
+      #joystick-knob { width: 34px; height: 34px; }
+      #minimap { right: 8px; bottom: 190px; width: 96px; height: 96px; }
       #banner { max-width: calc(100vw - 20px); }
-      #hud { left: 8px; bottom: 10px; transform: none; width: 220px; align-items: flex-start; }
-      .skills button { width: 50px; height: 46px; }
-      .util button { width: 50px; height: 42px; }
-      #joystick-knob { width: 38px; height: 38px; }
+      #hud { left: auto; right: 8px; bottom: 8px; transform: none; width: auto; align-items: flex-end; gap: 4px; }
+      #hud .hud-bars { width: 170px; padding: 4px 6px; gap: 3px; }
+      .hud-bars .row { gap: 6px; }
+      .lv { font-size: 10px; min-width: 30px; }
+      .bar { height: 9px; }
+      .bar b { font-size: 8px; line-height: 9px; }
+      .bar.xp { height: 4px; }
+      .inv { font-size: 10px; gap: 6px; }
+      .skills { gap: 4px; align-items: flex-end; }
+      .skills button { width: 44px; height: 42px; font-size: 15px; }
+      .skills button small { font-size: 8px; }
+      .skills #sk-attack { width: 62px; height: 58px; font-size: 24px; }
+      .util { gap: 4px; }
+      .util button { width: 38px; height: 34px; font-size: 13px; }
+      .util button small { font-size: 8px; }
+      /* Pueblos y zonas como pestañas: una lista cada vez */
+      .tabs-m { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); }
+      .tabs-m button { flex: 1; padding: 5px 4px; font-size: 12px; background: transparent; }
+      .tabs-m button.on { background: #0c4a6e; border-color: var(--accent); color: #fff; }
+      #side[data-tab="pueblos"] #sec-zonas, #side[data-tab="zonas"] #sec-pueblos { display: none; }
+      #side section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      #side section h3 { display: none; }
+      #side #towns, #side #zonas { flex: 1; min-height: 0; overflow-y: auto; }
+      #side .stats { font-size: 11px; line-height: 1.4; }
+      #side .trow { padding: 5px 7px; margin-bottom: 3px; }
       #top button span.long { display: none; }
       #hint { display: none; }
       #top a.btn span.long { display: none; }
@@ -145,13 +169,21 @@
     <button id="btn-full" title="Pantalla completa">⛶<span class="long"> Completa</span></button>
   </div>
 
-  <aside id="side">
+  <aside id="side" data-tab="pueblos">
     <h3>Mundo</h3>
     <div class="stats" id="stats"></div>
-    <h3>Pueblos</h3>
-    <div id="towns"></div>
-    <h3>Zonas de monstruos</h3>
-    <div id="zonas"></div>
+    <div class="tabs-m" id="tabs-m">
+      <button data-tab="pueblos" class="on">🏘 Pueblos</button>
+      <button data-tab="zonas">⚔ Zonas</button>
+    </div>
+    <section id="sec-pueblos">
+      <h3>Pueblos</h3>
+      <div id="towns"></div>
+    </section>
+    <section id="sec-zonas">
+      <h3>Zonas de monstruos</h3>
+      <div id="zonas"></div>
+    </section>
     <div class="layers">
       <label><input type="checkbox" id="chk-zones" checked> Zonas</label>
       <label><input type="checkbox" id="chk-labels" checked> Nombres</label>
@@ -2339,6 +2371,11 @@
   }
 
   $('btn-side').onclick = () => $('side').classList.toggle('collapsed');
+  // Pestañas del panel en móvil: pueblos o zonas, una lista cada vez
+  document.querySelectorAll('#tabs-m button').forEach(b => b.onclick = () => {
+    $('side').dataset.tab = b.dataset.tab;
+    document.querySelectorAll('#tabs-m button').forEach(x => x.classList.toggle('on', x === b));
+  });
   $('btn-save').onclick = openPartidas;
   $('p-save').onclick = () => saveActive(false);
   $('p-new').onclick = newPartida;
