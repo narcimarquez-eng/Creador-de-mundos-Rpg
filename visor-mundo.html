@@ -2454,7 +2454,8 @@
   // Envía un mensaje al estudio y espera su respuesta (con límite de tiempo)
   function pedirAlEstudio(clave, datos) {
     return new Promise((res, rej) => {
-      const t = setTimeout(() => { delete esperando[clave]; rej(new Error('El estudio no respondió a tiempo')); }, 60000);
+      // Exportar una pieza o el cuerpo tarda; 4 minutos de margen
+      const t = setTimeout(() => { delete esperando[clave]; rej(new Error('El estudio no respondió a tiempo')); }, 240000);
       esperando[clave] = v => { clearTimeout(t); res(v); };
       enviarAlEstudio(datos);
     });
