@@ -1260,7 +1260,7 @@
   // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su altura y su tono.
   // Se reparte en tramos de TRAMO_PIEDRA metros; solo se dibujan los que están a menos de PIEDRA_VISIBLE_M
   // de la cámara (ver actualizarPiedras). Lejos, la calzada es lisa: solo la junta oscura de la base.
-  const TRAMO_PIEDRA = 20, PIEDRA_VISIBLE_M = 35;
+  const TRAMO_PIEDRA = 20, PIEDRA_VISIBLE_M = 80;
   function pintarLadrillos(linea, alt, w) {
     const PASO = 0.2, desdeCalzada = 0.35, JUNTA = 0.05;
     // Muestras de la línea cada PASO metros: posición, normal hacia la izquierda y distancia recorrida
