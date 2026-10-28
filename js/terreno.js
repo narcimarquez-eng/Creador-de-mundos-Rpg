@@ -36,7 +36,10 @@
     return { splat: [g / sum * rest, d / sum * rest, r / sum * rest, s / sum * rest], snow };
   }
 
-  // Material con las cinco texturas mezcladas en el fragmento. uniforms: { tGrass, tDirt, tRock, tSand, tSnow, uTile, uTexOn }
+  // Material del terreno: un atlas de 10 × 10 texturas reales (tAtlas, de assets/terreno/atlas.jpg), con las
+  // clases en orden: hierba (0–14), tierra (15–55), roca (56–70), arena (71–89) y nieve (90–99). Cada celda de
+  // ~14 m de cerca (70 m de lejos) elige una textura de su clase según el ruido de la celda, y en el borde se
+  // mezcla con la celda vecina. uniforms: { tAtlas, uBase, uCuenta, uBaseNieve, uCuentaNieve, uTexOn }
   function createTerrainMaterial(THREE, uniforms) {
     const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
     m.onBeforeCompile = shader => {
@@ -47,16 +50,39 @@
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', [
           '#include <common>',
-          'uniform sampler2D tGrass; uniform sampler2D tDirt; uniform sampler2D tRock; uniform sampler2D tSand; uniform sampler2D tSnow;',
-          'uniform float uTile; uniform float uTexOn;',
+          'uniform sampler2D tAtlas; uniform vec4 uBase; uniform vec4 uCuenta; uniform float uBaseNieve; uniform float uCuentaNieve;',
+          'uniform float uTexOn;',
           'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld;',
-          'vec3 terrainTex(sampler2D t) { vec2 a = vTWorld.xz * uTile; vec2 b = vTWorld.xz * uTile * 0.31; return mix(texture2D(t, a).rgb, texture2D(t, b).rgb, 0.4); }',
-          // Ruido de valor: rompe la repetición de las texturas con manchas de tono a gran escala
+          // Textura de una clase en el punto xz: celda de tamaño celdaM, repetición de escala tile, borde mezclado
+          'vec3 atlasTex(float base, float cuenta, vec2 xz, float semilla, float tile, float celdaM) {',
+          '  vec2 c = xz / celdaM; vec2 celda = floor(c); vec2 f = fract(c);',
+          '  vec2 vecino = (f.x < 0.5 ? vec2(-1.0, 0.0) : vec2(1.0, 0.0));',
+          '  if (min(f.y, 1.0 - f.y) * celdaM < min(f.x, 1.0 - f.x) * celdaM) vecino = (f.y < 0.5 ? vec2(0.0, -1.0) : vec2(0.0, 1.0));',
+          '  float dBorde = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)) * celdaM;',
+          '  vec2 local = fract(xz * tile);',
+          '  float i1 = base + floor(fract(sin(dot(celda, vec2(127.1, 311.7)) + semilla) * 43758.5453) * cuenta);',
+          '  vec2 uv1 = (vec2(mod(i1, 10.0), floor(i1 / 10.0)) + 0.04 + local * 0.92) / 10.0;',
+          '  vec2 ce2 = celda + vecino;',
+          '  float i2 = base + floor(fract(sin(dot(ce2, vec2(127.1, 311.7)) + semilla) * 43758.5453) * cuenta);',
+          '  vec2 uv2 = (vec2(mod(i2, 10.0), floor(i2 / 10.0)) + 0.04 + local * 0.92) / 10.0;',
+          '  float w = 0.5 * (1.0 - smoothstep(0.0, 2.5, dBorde));',
+          '  return mix(texture2D(tAtlas, uv1).rgb, texture2D(tAtlas, uv2).rgb, w);',
+          '}',
+          // Ruido de valor: rompe la repetición con manchas de tono a gran escala
           'float ruidoValor(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }'
         ].join('\n'))
         .replace('#include <color_fragment>', [
           '#include <color_fragment>',
-          'vec3 tex = terrainTex(tGrass) * vSplat.x + terrainTex(tDirt) * vSplat.y + terrainTex(tRock) * vSplat.z + terrainTex(tSand) * vSplat.w + terrainTex(tSnow) * vSnow;',
+          // Cerca: textura cada 8 m y celdas de 14 m; lejos (más de 120–600 m): repetición y celdas mayores
+          'float dCam = length(vTWorld.xz - cameraPosition.xz);',
+          'float tL = smoothstep(120.0, 600.0, dCam);',
+          'float tile = mix(1.0 / 8.0, 1.0 / 40.0, tL), celdaM = mix(14.0, 70.0, tL);',
+          'vec3 tex = vec3(0.0);',
+          'if (vSplat.x > 0.001) tex += atlasTex(uBase.x, uCuenta.x, vTWorld.xz, 1.3, tile, celdaM) * vSplat.x;',
+          'if (vSplat.y > 0.001) tex += atlasTex(uBase.y, uCuenta.y, vTWorld.xz, 7.1, tile, celdaM) * vSplat.y;',
+          'if (vSplat.z > 0.001) tex += atlasTex(uBase.z, uCuenta.z, vTWorld.xz, 3.9, tile, celdaM) * vSplat.z;',
+          'if (vSplat.w > 0.001) tex += atlasTex(uBase.w, uCuenta.w, vTWorld.xz, 5.5, tile, celdaM) * vSplat.w;',
+          'if (vSnow > 0.001) tex += atlasTex(uBaseNieve, uCuentaNieve, vTWorld.xz, 9.2, tile, celdaM) * vSnow;',
           'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
           'vec3 tinte = mix(vec3(1.0, 0.97, 0.9), vec3(0.93, 1.02, 0.88), ruidoValor(vTWorld.xz * 0.006 + 17.0));',
           'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * tinte;'

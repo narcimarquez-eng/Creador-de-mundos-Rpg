@@ -279,6 +279,7 @@
   <script type="module" src="js/enemigos-combate.js"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
+  import * as PV from "./js/props-variados.js";
   "use strict";
   const W = window.RPGWorld;
   const SEA = W.SEA_LEVEL;
@@ -316,10 +317,10 @@
   let terrainMat = null, farMesh = null, lastChunks = 0;
   const nearChunks = new Map();          // trozos de 300 m con detalle completo, por "cx,cz"
   const CHUNK = 16;                      // celdas de 20 m por trozo (320 m); múltiplo de los pasos de la malla lejana
-  const TEX_NAMES = { tGrass: 'hierba', tDirt: 'tierra', tRock: 'roca', tSand: 'arena', tSnow: 'nieve' };
+  // Atlas de 100 texturas reales (assets/terreno/atlas.jpg): hierba 0–14, tierra 15–55, roca 56–70, arena 71–89, nieve 90–99
   const terrainU = {
-    tGrass: { value: null }, tDirt: { value: null }, tRock: { value: null }, tSand: { value: null }, tSnow: { value: null },
-    uTile: { value: 1 / 60 }, uTexOn: { value: 0 }
+    tAtlas: { value: null }, uBase: { value: new THREE.Vector4(0, 15, 56, 71) }, uCuenta: { value: new THREE.Vector4(15, 41, 15, 19) },
+    uBaseNieve: { value: 90 }, uCuentaNieve: { value: 10 }, uTexOn: { value: 0 }
   };
   // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
   const QUALITY = { bajo: { radius: 1000, shadows: 0, pixel: 1, far: 4 }, medio: { radius: 1400, shadows: 1024, pixel: 1.5, far: 2 }, alto: { radius: 1800, shadows: 2048, pixel: 2, far: 2 } };
@@ -664,8 +665,6 @@
     monsters = [];
     curTown = null; curZone = null;
     ladrillosTramos.forEach(t => { scene.remove(t.malla); t.malla.geometry.dispose(); });
-    if (detalleMalla) { scene.remove(detalleMalla); detalleMalla.geometry.dispose(); detalleMalla = null; }
-    detalleCamPos = null;
     ladrillosTramos = [];
     [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
@@ -905,20 +904,15 @@
 
   // Texturas de hierba, tierra, roca, arena y nieve (assets/terreno, CC0 de ambientCG)
   function loadTerrainTextures() {
-    const white = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
-    white.needsUpdate = true;
-    Object.keys(TEX_NAMES).forEach(k => { terrainU[k].value = white; });
-    const loader = new THREE.TextureLoader();
-    let loaded = 0;
-    Object.keys(TEX_NAMES).forEach(k => {
-      loader.load('assets/terreno/' + TEX_NAMES[k] + '.jpg', tex => {
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-        tex.anisotropy = 4;
-        terrainU[k].value = tex;
-        loaded += 1;
-        if (loaded === 5) terrainU.uTexOn.value = 1;
-      }, undefined, () => { /* sin textura (p. ej. abriendo el archivo sin servidor): color plano */ });
-    });
+    const blanco = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    blanco.needsUpdate = true;
+    terrainU.tAtlas.value = blanco;
+    new THREE.TextureLoader().load('assets/terreno/atlas.jpg', tex => {
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.anisotropy = 4;
+      terrainU.tAtlas.value = tex;
+      terrainU.uTexOn.value = 1;
+    }, undefined, () => { /* sin atlas: color plano */ });
   }
 
   // Trozos con detalle completo (cerca del personaje) y malla gruesa del resto del mundo
@@ -1380,81 +1374,6 @@
     return RELIEVE_AMP * (0.7 * (ruidoRelieve(x / 14, z / 14) - 0.5) + 0.3 * (ruidoRelieve(x / 6 + 7, z / 6 - 4) - 0.5)) * 2 * w;
   }
 
-  // Suelo cercano a menos de DETALLE_M de la cámara: las mismas texturas reales de hierba y tierra del terreno,
-  // a más detalle (5 m por repetición) y mezcladas por zonas. Es una malla de celdas centrada en la cámara que
-  // se rehace cada DETALLE_MOVER metros; las celdas sobre caminos, pueblos, agua o lagos se omiten, y el radio
-  // se desvanece hacia fuera.
-  const DETALLE_M = 80, DETALLE_CELDA = 3, DETALLE_MOVER = 6;
-  let detalleMalla = null, detalleCamPos = null;
-  const detalleU = { uCam: { value: new THREE.Vector2() }, uRadio: { value: DETALLE_M } };
-  const DETALLE_GLSL = `
-    float hashDet(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-    float ruidoDet(vec2 p) {
-      vec2 i = floor(p), f = fract(p);
-      f = f * f * (3.0 - 2.0 * f);
-      return mix(mix(hashDet(i), hashDet(i + vec2(1.0, 0.0)), f.x), mix(hashDet(i + vec2(0.0, 1.0)), hashDet(i + vec2(1.0, 1.0)), f.x), f.y);
-    }`;
-  const detalleMat = new THREE.MeshLambertMaterial({ transparent: true, depthWrite: false });
-  detalleMat.onBeforeCompile = shader => {
-    shader.uniforms.uCam = detalleU.uCam;
-    shader.uniforms.uRadio = detalleU.uRadio;
-    shader.uniforms.tGrass = terrainU.tGrass;
-    shader.uniforms.tDirt = terrainU.tDirt;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vDetXZ;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vDetXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vDetXZ;\nuniform vec2 uCam;\nuniform float uRadio;\nuniform sampler2D tGrass;\nuniform sampler2D tDirt;\n' + DETALLE_GLSL)
-      .replace('#include <color_fragment>', `#include <color_fragment>
-        // Hierba y tierra reales, mezcladas por zonas irregulares; se desvanecen hacia el borde del radio
-        float zona = smoothstep(0.42, 0.68, ruidoDet(vDetXZ * 0.04));
-        vec3 hierba = texture2D(tGrass, vDetXZ * 0.2).rgb;
-        vec3 tierra = texture2D(tDirt, vDetXZ * 0.16).rgb;
-        diffuseColor.rgb = mix(hierba, tierra, zona * 0.7) * 1.35;
-        diffuseColor.a *= 1.0 - smoothstep(uRadio * 0.7, uRadio, distance(vDetXZ, uCam));`);
-  };
-  // Un camino, un pueblo, el agua o un lago no llevan hierba encima
-  function sueloLibreDetalle(x, z, h) {
-    if (h < SEA + 0.3) return false;
-    if (towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.tileHalf + 6)) return false;
-    if (lagosMundo.some(L => Math.hypot(x - L.x, z - L.z) < L.R * 1.1)) return false;
-    return !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < 8);
-  }
-  function construirDetalle(cx, cz) {
-    const N = Math.ceil(2 * (DETALLE_M + DETALLE_CELDA) / DETALLE_CELDA) + 1;
-    const x0 = Math.floor((cx - DETALLE_M - DETALLE_CELDA) / DETALLE_CELDA) * DETALLE_CELDA;
-    const z0 = Math.floor((cz - DETALLE_M - DETALLE_CELDA) / DETALLE_CELDA) * DETALLE_CELDA;
-    const pos = [], idx = [];
-    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      const x = x0 + i * DETALLE_CELDA, z = z0 + j * DETALLE_CELDA;
-      pos.push(x, meshHeight(x, z) + 0.04, z);
-    }
-    // Una celda entra si su centro está en el radio y el suelo es libre
-    for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
-      const x = x0 + (i + 0.5) * DETALLE_CELDA, z = z0 + (j + 0.5) * DETALLE_CELDA;
-      if (Math.hypot(x - cx, z - cz) > DETALLE_M || !sueloLibreDetalle(x, z, meshHeight(x, z))) continue;
-      const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
-      idx.push(a, c, b, b, c, d);
-    }
-    if (detalleMalla) { scene.remove(detalleMalla); detalleMalla.geometry.dispose(); detalleMalla = null; }
-    if (!idx.length) return;
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setIndex(idx);
-    geo.computeVertexNormals();
-    detalleMalla = new THREE.Mesh(geo, detalleMat);
-    scene.add(detalleMalla);
-  }
-  // Se rehace al moverse la cámara; la uniforme del desvanecido sigue a la cámara en cada frame
-  function actualizarDetalle() {
-    if (!world || !terrainGrid) return;
-    const x = camera.position.x, z = camera.position.z;
-    detalleU.uCam.value.set(x, z);
-    if (detalleCamPos && (x - detalleCamPos.x) ** 2 + (z - detalleCamPos.z) ** 2 < DETALLE_MOVER * DETALLE_MOVER) return;
-    detalleCamPos = { x, z };
-    construirDetalle(x, z);
-  }
-
   // Enciende solo los tramos de empedrado cerca de la cámara
   function actualizarPiedras() {
     const x = camera.position.x, z = camera.position.z;
@@ -1607,7 +1526,7 @@
   function buildDecorado() {
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     const rng = new W.PRNG((world.seed ^ 0x7e7e) >>> 0);
-    decorGroup = DecoradoLib.generar(THREE, {
+    const opciones = {
       rng, limites: bounds, arbusto: arbustoGLB, props: NR,
       altura: (x, z) => H(x, z),
       bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
@@ -1615,7 +1534,10 @@
       libre: (x, z) => !towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.R + 60) &&
         !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < 9),
       caminos: world.roads.map(r => r.points)
-    });
+    };
+    decorGroup = DecoradoLib.generar(THREE, opciones);
+    // 310 variantes de decoración (rocas, troncos, setas, helechos, cactus…), por bioma
+    decorGroup.add(PV.generarCampo({ ...opciones, rng: new W.PRNG((world.seed ^ 0x3c3c) >>> 0) }));
     decorGroup.userData.arboles.visible = $('chk-trees').checked;
     scene.add(decorGroup);
   }
@@ -2643,7 +2565,6 @@
       decorGroup.userData.actualizar(camera.position.x, camera.position.z);
     }
     actualizarPiedras();
-    actualizarDetalle();
     actualizarZonaTela();
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
@@ -2738,7 +2659,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get detalle() { return detalleMalla; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
+    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
