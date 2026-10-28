@@ -12,6 +12,14 @@
   const ROCA_COLOR = [0x8a8580, 0x9a948c, 0x7b766f, 0xa39d93, 0x6f6a64];
   // Desde esta distancia (m) a una celda de matorrales se dibuja su silueta en vez de las hojas
   const LOD_ARBUSTOS_M = 260;
+  // Árboles del campo: probabilidad por intento según el bioma (como TREE_BIOME de los bosques del visor)
+  const ARBOL_BIOMA = { bosque: 0.6, taiga: 0.5, pantano: 0.3, pradera: 0.1, montana: 0.08, tundra: 0.04, nieve: 0.02 };
+  // Pinos por bioma; el resto usa el 55 % de pinos de los pueblos
+  const PINO_BIOMA = { taiga: 0.9, tundra: 0.8, montana: 0.7 };
+  const ARBOL_COLOR = { pino: [0x1b4332, 0x2b4a3a, 0x3b5b48], hoja: [0x2d6a4f, 0x40916c, 0x588157, 0x52b788] };
+  const ARBOL_ESCALA = 0.8;   // TREE_SCALE de los pueblos (roble, álamo y pino)
+  // Distancias (m) a la cámara: hasta la primera, hojas completas; hasta la segunda, hojas reducidas; más allá, silueta
+  const LOD_ARBOL_M = [70, 300];
 
   function generar(THREE, o) {
     const rng = o.rng, L = o.limites;
@@ -28,6 +36,17 @@
       const e = 4;
       return Math.hypot(o.altura(x + e, z) - o.altura(x - e, z), o.altura(x, z + e) - o.altura(x, z - e)) / (2 * e);
     };
+
+    // Silueta de un arbusto o árbol: elipsoide de 80 triángulos con la caja de sus partes (origen en el suelo)
+    function siluetaDe(partes) {
+      const caja = new THREE.Box3();
+      partes.forEach(parte => { parte.geo.computeBoundingBox(); caja.union(parte.geo.boundingBox); });
+      const mx = (caja.max.x - caja.min.x) / 2, my = (caja.max.y - caja.min.y) / 2, mz = (caja.max.z - caja.min.z) / 2;
+      const geo = new THREE.IcosahedronGeometry(1, 1);
+      geo.scale(mx, my, mz);
+      geo.translate((caja.max.x + caja.min.x) / 2, caja.min.y + my, (caja.max.z + caja.min.z) / 2);
+      return geo;
+    }
 
     // ---------------------------------------------------------------- Rocas
     // Icosaedro con relieve irregular (fijo para todas las rocas) y escala por instancia
@@ -95,13 +114,8 @@
         if (!celdas.has(k)) celdas.set(k, []);
         celdas.get(k).push(m);
       });
-      // Silueta lejana: la caja de las partes del arbusto hecha elipsoide (80 triángulos, no 1.400)
-      const caja = new THREE.Box3();
-      op.partes.forEach(parte => { parte.geo.computeBoundingBox(); caja.union(parte.geo.boundingBox); });
-      const mx = (caja.max.x - caja.min.x) / 2, my = (caja.max.y - caja.min.y) / 2, mz = (caja.max.z - caja.min.z) / 2;
-      const silueta = new THREE.IcosahedronGeometry(1, 1);
-      silueta.scale(mx, my, mz);
-      silueta.translate((caja.max.x + caja.min.x) / 2, caja.min.y + my, (caja.max.z + caja.min.z) / 2);
+      // Silueta lejana: 80 triángulos en vez de las hojas de ez-tree (unos 1.400)
+      const silueta = siluetaDe(op.partes);
       const siluetaMat = material({ flatShading: true });
       celdas.forEach(gl => {
         const cercanas = [];
@@ -271,7 +285,72 @@
       mm.instanceMatrix.needsUpdate = true; mm.instanceColor.needsUpdate = true;
       grupo.add(mm);
     }
-    // Llamado desde el visor con la posición de la cámara: cambia cada celda entre detalle y silueta
+    // ---------------------------------------------------------------- Árboles
+    // Los mismos árboles de ez-tree que en los pueblos (roble, álamo y pino; los arbustos van aparte).
+    // Celdas de 600 m (pocas mallas, el motor descarta las que no se ven); dentro de cada celda, cada árbol
+    // cambia de detalle según su distancia a la cámara (repartirArboles). Se activan con «Bosques».
+    const bosque = new THREE.Group();
+    grupo.add(bosque);
+    grupo.userData.arboles = bosque;
+    const campo = {};
+    const arbolCampo = (esp) => {
+      if (campo[esp] === undefined) {
+        const cerca = o.props.arbolPartes(esp, 'cerca'), lejos = o.props.arbolPartes(esp, 'lejos');
+        campo[esp] = cerca && lejos ? { cerca, lejos, silueta: siluetaDe(lejos), siluetaMat: material({ flatShading: true }) } : null;
+      }
+      return campo[esp];
+    };
+    const arbolesLod = [];
+    if (o.props) {
+      const porCelda = new Map();
+      const intentos = Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 1000);
+      for (let k = 0; k < intentos; k++) {
+        const x = L.minX + rng.next() * (L.maxX - L.minX), z = L.minZ + rng.next() * (L.maxZ - L.minZ);
+        if (o.agua(x, z) || !o.libre(x, z)) continue;
+        const b = o.bioma(x, z);
+        if (!rng.chance((ARBOL_BIOMA[b] || 0) * (1 - Math.min(0.8, pendiente(x, z) * 2)))) continue;
+        const pino = rng.chance(PINO_BIOMA[b] || 0.55);
+        const esp = pino ? 'pino' : (rng.chance(0.59) ? 'roble' : 'alamo');
+        if (!arbolCampo(esp)) continue;
+        const paleta = ARBOL_COLOR[pino ? 'pino' : 'hoja'];
+        const sc = ARBOL_ESCALA * (0.9 + rng.next() * 0.55);
+        const color = paleta[Math.floor(rng.next() * paleta.length)];
+        const m = new THREE.Matrix4().compose(p.set(x, o.altura(x, z) - 0.15, z), q.setFromEuler(euler.set(0, rng.next() * 6.28, 0)), s.set(sc, sc, sc));
+        const clave = Math.floor(x / 600) + ',' + Math.floor(z / 600) + ',' + esp;
+        if (!porCelda.has(clave)) porCelda.set(clave, { esp, arboles: [] });
+        porCelda.get(clave).arboles.push({ x, z, m, color: new THREE.Color(color) });
+      }
+      porCelda.forEach(({ esp, arboles }) => {
+        const A = arbolCampo(esp), n = arboles.length;
+        const mallas = { cerca: A.cerca.map(parte => new THREE.InstancedMesh(parte.geo, parte.mat, n)), lejos: A.lejos.map(parte => new THREE.InstancedMesh(parte.geo, parte.mat, n)), silueta: new THREE.InstancedMesh(A.silueta, A.siluetaMat, n) };
+        [...mallas.cerca, ...mallas.lejos, mallas.silueta].forEach(mm => { mm.count = 0; mm.visible = false; bosque.add(mm); });
+        const c = { arboles, mallas };
+        repartirArboles(c, Infinity, Infinity);   // sin cámara todo va en silueta hasta la primera actualización
+        arbolesLod.push(c);
+      });
+    }
+    // Reparte los árboles de una celda entre sus niveles de detalle según la distancia a la cámara
+    function repartirArboles(c, cx, cz) {
+      const R1 = LOD_ARBOL_M[0] * LOD_ARBOL_M[0], R2 = LOD_ARBOL_M[1] * LOD_ARBOL_M[1];
+      const n = { cerca: 0, lejos: 0, silueta: 0 };
+      c.arboles.forEach(a => {
+        const d2 = (a.x - cx) * (a.x - cx) + (a.z - cz) * (a.z - cz);
+        const nivel = d2 < R1 ? 'cerca' : d2 < R2 ? 'lejos' : 'silueta';
+        const i = n[nivel]++;
+        if (nivel === 'silueta') { c.mallas.silueta.setMatrixAt(i, a.m); c.mallas.silueta.setColorAt(i, a.color); }
+        else { const [ramas, hojas] = c.mallas[nivel]; ramas.setMatrixAt(i, a.m); hojas.setMatrixAt(i, a.m); hojas.setColorAt(i, a.color); }
+      });
+      const fijar = (mm, k) => {
+        mm.count = k; mm.visible = k > 0; mm.boundingSphere = null;
+        mm.instanceMatrix.needsUpdate = true;
+        if (mm.instanceColor) mm.instanceColor.needsUpdate = true;
+      };
+      ['cerca', 'lejos'].forEach(nv => c.mallas[nv].forEach(mm => fijar(mm, n[nv])));
+      fijar(c.mallas.silueta, n.silueta);
+    }
+
+    // Llamado desde el visor con la posición de la cámara: cambia el detalle de matorrales y de árboles
+    let camArboles = null;   // dónde se repartieron los árboles por última vez
     grupo.userData.actualizar = (x, z) => {
       lodCeldas.forEach(c => {
         const dx = Math.max(c.x0 - x, 0, x - c.x1), dz = Math.max(c.z0 - z, 0, z - c.z1);
@@ -279,6 +358,11 @@
         c.cercanas.forEach(malla => { malla.visible = cerca; });
         c.lejana.visible = !cerca;
       });
+      // Los árboles solo se vuelven a repartir si la cámara se ha movido más de 4 m
+      if (!camArboles || (x - camArboles.x) * (x - camArboles.x) + (z - camArboles.z) * (z - camArboles.z) > 16) {
+        camArboles = { x, z };
+        arbolesLod.forEach(c => repartirArboles(c, x, z));
+      }
     };
     return grupo;
   }

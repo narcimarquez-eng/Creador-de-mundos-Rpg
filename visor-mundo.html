@@ -258,8 +258,6 @@
   const ROOF = { l2_fantasy: '#1d4ed8', european: '#9a3412', frontier: '#a16207', elven: '#0d9488', dwarven: '#475569', fortified: '#1e293b', trade: '#b91c1c' };
   const WALL = { l2_fantasy: '#e2e8f0', european: '#fde68a', frontier: '#e7e5e4', elven: '#f0fdfa', dwarven: '#cbd5e1', fortified: '#cbd5e1', trade: '#fef3c7' };
   const SIZE_NAMES = { 2: 'Aldea', 3: 'Mediano', 4: 'Grande', 5: 'Ciudadela' };
-  const TREE_BIOME = { bosque: 0.6, taiga: 0.5, pantano: 0.3, pradera: 0.1, montana: 0.08, tundra: 0.04, nieve: 0.02, desierto: 0, costa: 0, oceano: 0, agua: 0 };
-  const TREE_COLORS = [0x2d6a4f, 0x40916c, 0x1b4332, 0x52b788, 0x3a5a40];
 
   function rgb(hex) { const c = new THREE.Color(hex); return [c.r, c.g, c.b]; }
   function smooth(a, b, x) { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
@@ -277,7 +275,7 @@
   let aguaPuebloMat = null;
   let decorGroup = null;     // rocas, ruinas y vallas entre pueblos
   let lastDecor = 0;         // última vez que se actualizó el detalle de los arbustos
-  let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, treeMesh, selectRing = null;
+  let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
   let character = null;
   let hemiLight = null, sunLight = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
@@ -609,7 +607,7 @@
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
-    [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, treeMesh, selectRing].forEach(m => {
+    [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
@@ -658,7 +656,6 @@
     buildRios();
     buildZones();
     buildMonsters();
-    buildTrees();
     buildDecorado();
     buildLabels();
     buildUI();
@@ -1305,47 +1302,6 @@
   }
   const zoneLines = [];
 
-  // Bosques: árboles dispersos según el bioma, sin tapar pueblos ni caminos
-  function buildTrees() {
-    const rng = new W.PRNG((world.seed ^ 0x5151) >>> 0);
-    const cand = [];
-    const tries = Math.min(9000, Math.round(bounds.size * bounds.size / 9000));
-    for (let k = 0; k < tries; k++) {
-      const x = bounds.minX + rng.next() * (bounds.maxX - bounds.minX);
-      const z = bounds.minZ + rng.next() * (bounds.maxZ - bounds.minZ);
-      const e = terrain.elevation(x, z);
-      if (e < SEA + 0.02) continue;
-      const b = terrain.biomeAt(x, z, e);
-      if (!rng.chance(TREE_BIOME[b] || 0)) continue;
-      if (towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.R + 150)) continue;
-      cand.push({ x, z, b });
-      if (cand.length >= 3500) break;
-    }
-    // Quitar los que caen sobre caminos
-    const roadPts = world.roads.map(r => r.points);
-    const keep = cand.filter(c => !roadPts.some(pts => W.distToPolyline({ x: c.x, y: c.z }, pts) < 7));
-    if (!keep.length) return;
-    const geo = new THREE.ConeGeometry(1, 1, 6);
-    geo.translate(0, 0.5, 0);
-    treeMesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: '#ffffff' }), keep.length);
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
-    keep.forEach((c, i) => {
-      const h = 9 + rng.next() * 9;
-      const rad = h * 0.34;
-      p.set(c.x, H(c.x, c.z), c.z);
-      s.set(rad, h, rad);
-      q.setFromEuler(new THREE.Euler(0, rng.next() * 6.28, 0));
-      m.compose(p, q, s);
-      treeMesh.setMatrixAt(i, m);
-      col.setHex(c.b === 'pantano' ? 0x4f6b4a : c.b === 'taiga' ? 0x3b5b48 : TREE_COLORS[Math.floor(rng.next() * TREE_COLORS.length)]);
-      treeMesh.setColorAt(i, col);
-    });
-    treeMesh.instanceMatrix.needsUpdate = true;
-    if (treeMesh.instanceColor) treeMesh.instanceColor.needsUpdate = true;
-    treeMesh.visible = $('chk-trees').checked;
-    scene.add(treeMesh);
-  }
-
   // Rocas, casas en ruinas y vallas: la semilla del mundo decide dónde van; no entran en pueblos ni en caminos
   // Arbusto de Kenney (CC0, assets/vegetacion): se escala a 1,6 m y se apoya en el suelo; luego se reconstruye la decoración
   let arbustoGLB = null;
@@ -1377,6 +1333,7 @@
         !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < 9),
       caminos: world.roads.map(r => r.points)
     });
+    decorGroup.userData.arboles.visible = $('chk-trees').checked;
     scene.add(decorGroup);
   }
 
@@ -2377,7 +2334,7 @@
   $('btn-view-detail').onclick = viewDetail;
   $('chk-zones').onchange = e => { zoneMesh.visible = e.target.checked; zoneLines.forEach(l => l.visible = e.target.checked); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); };
   $('chk-labels').onchange = e => { townLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked || !$('chk-zones').checked)); };
-  $('chk-trees').onchange = e => { if (treeMesh) treeMesh.visible = e.target.checked; };
+  $('chk-trees').onchange = e => { if (decorGroup) decorGroup.userData.arboles.visible = e.target.checked; };
   $('sel-quality').onchange = e => applyQuality(e.target.value, true);
   $('sel-enemigos').onchange = e => { enemyMode = e.target.value; buildMonsters(); };
   $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
