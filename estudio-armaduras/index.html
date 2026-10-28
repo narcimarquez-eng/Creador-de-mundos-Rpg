@@ -19469,14 +19469,14 @@ function resetCharacter() {
         window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'proporciones', fit: STATE.fit }, '*');
       }
       if (d.tipo === 'reiniciar-cuerpo') {
-        resetCharacter();
+        window.CreadorHumano.resetCharacter();
       }
       if (d.tipo === 'proporciones') {
         Object.assign(STATE.fit, d.fit || {});
         // Cuerpo: parámetros de CONFIG por sección (torso, brazos, piernas), p. ej. { torso: { height: 0.95 } }
         if (d.cuerpo) {
-          Object.keys(d.cuerpo).forEach(seccion => Object.assign(CONFIG[seccion], d.cuerpo[seccion]));
-          rebuildCharacter();
+          Object.keys(d.cuerpo).forEach(seccion => Object.assign(window.CreadorHumano.CONFIG[seccion], d.cuerpo[seccion]));
+          window.CreadorHumano.rebuildCharacter();
         }
         syncFitSlidersUI();
         updateWardrobePieces();
