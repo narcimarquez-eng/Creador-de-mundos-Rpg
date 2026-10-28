@@ -104,6 +104,7 @@
       this.oneShots = {};
       this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
       this.lockUntil = 0;        // mientras dure, el personaje no se mueve
+      this.tiempo = 0;           // reloj propio del personaje (segundos acumulados)
       this.fallbackAct = null;   // { kind, start, duration } para el avatar de respaldo
 
       this.initInput();
@@ -389,31 +390,33 @@
 
     // Reproduce una acción de un solo uso (ataque, patada, nova, salto, victoria).
     // Si el GLB no la trae, el avatar de respaldo hace un gesto sencillo.
-    playOneShot(kind, elapsedTime) {
+    // El tiempo lo lleva el propio personaje (suma de dt): no depende del reloj que pase quien llama
+    playOneShot(kind) {
       const info = ONE_SHOT[kind];
       if (!info) return 0;
       const shot = this.oneShots[kind];
       const duration = shot ? shot.duration : (kind === 'victory' ? 3 : 0.6);
-      if (info.lock > 0) this.lockUntil = elapsedTime + info.lock;
-      this.oneShotUntil = elapsedTime + duration;
+      if (info.lock > 0) this.lockUntil = this.tiempo + info.lock;
+      this.oneShotUntil = this.tiempo + duration;
       if (shot && this.mixer) {
         shot.action.reset().fadeIn(0.1).play();
         if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.1);
         this.currentAction = shot.action;
         this.activeState = 'oneshot';
       } else {
-        this.fallbackAct = { kind, start: elapsedTime, duration };
+        this.fallbackAct = { kind, start: this.tiempo, duration };
       }
       return duration;
     }
 
-    update(dt, elapsedTime) {
+    update(dt) {
+      this.tiempo += dt;
       // Al terminar una acción de un solo uso se vuelve a idle, andar o correr
-      if (this.activeState === 'oneshot' && elapsedTime >= this.oneShotUntil) this.activeState = 'none';
-      if (this.fallbackAct && elapsedTime - this.fallbackAct.start >= this.fallbackAct.duration) this.fallbackAct = null;
-      const locked = elapsedTime < this.lockUntil;
+      if (this.activeState === 'oneshot' && this.tiempo >= this.oneShotUntil) this.activeState = 'none';
+      if (this.fallbackAct && this.tiempo - this.fallbackAct.start >= this.fallbackAct.duration) this.fallbackAct = null;
+      const locked = this.tiempo < this.lockUntil;
       // Mientras dura una acción de un solo uso (combo, patada, nova) no se cambia la animación
-      const enAccion = this.activeState === 'oneshot' && elapsedTime < this.oneShotUntil;
+      const enAccion = this.activeState === 'oneshot' && this.tiempo < this.oneShotUntil;
 
       const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
       const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
@@ -473,12 +476,12 @@
         this.mixer.update(dt);
       } else if (this.isFallbackAvatar && this.fallbackLimbs.leftLeg) {
         if (this.fallbackAct) {
-          this.applyFallbackAct(elapsedTime);
+          this.applyFallbackAct(this.tiempo);
           return;
         }
         const freq = this.activeState === 'run' ? 14 : (this.activeState === 'walk' ? 8 : 0);
         const amp = this.activeState === 'run' ? 0.65 : (this.activeState === 'walk' ? 0.4 : 0);
-        const angle = freq > 0 ? Math.sin(elapsedTime * freq) * amp : 0;
+        const angle = freq > 0 ? Math.sin(this.tiempo * freq) * amp : 0;
         this.fallbackLimbs.leftLeg.rotation.x = angle;
         this.fallbackLimbs.rightLeg.rotation.x = -angle;
         this.fallbackLimbs.leftArm.rotation.x = -angle * 0.8;
