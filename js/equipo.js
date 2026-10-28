@@ -14,6 +14,10 @@
   const RANGO_DROP = 5;         // niveles por debajo del monstruo que puede soltar una pieza
   const NIVEL_SOLO_COTAS = 5;   // hasta este nivel de monstruo solo caen cotas
   const FORJA_ORO = 12;         // oro por nivel de la pieza al fabricarla en el herrero
+  const COMPRA_ORO = 30;        // oro por nivel de la pieza que vende el mercader (calidad estándar)
+  const ESTADO_MERCADO = 0.75;  // estado de lo que vende el mercader
+  const VENTA_ORO = 4;          // oro por nivel de un objeto vendido (según su estado)
+  const CAPACIDAD = 20;         // huecos del inventario (los equipados también ocupan hueco)
 
   const esArma = ranura => ranura === 'weapon';
   const esCota = pieza => /cota/i.test(pieza.nombre);
@@ -124,9 +128,22 @@
         .filter(p => !esArma(p.ranura) && p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
       candidatas = candidatas.concat(armasDeDrop(catalogo, personaje.clase, nivelMonstruo));
     }
-    if (!candidatas.length) return null;
+    if (!candidatas.length || llena(personaje)) return null;   // sin hueco no cabe nada
     const pieza = candidatas[Math.floor(rnd() * candidatas.length)];
-    const obj = instancia(pieza, rnd());
+    return guardar(personaje, instancia(pieza, rnd()));
+  }
+
+  function llena(personaje) {
+    return personaje.inventario.length >= CAPACIDAD;
+  }
+
+  function huecosLibres(personaje) {
+    return Math.max(0, CAPACIDAD - personaje.inventario.length);
+  }
+
+  // Añade una instancia al inventario, si hay hueco
+  function guardar(personaje, obj) {
+    if (llena(personaje)) throw new Error('Inventario lleno (' + CAPACIDAD + ' huecos)');
     personaje.inventario.push(obj);
     return obj;
   }
@@ -138,15 +155,53 @@
     if (nivelHeroe < pieza.nivel) throw new Error(pieza.nombre + ' requiere nivel ' + pieza.nivel);
     const coste = FORJA_ORO * pieza.nivel;
     if (oro < coste) throw new Error('Faltan ' + (coste - oro) + ' de oro');
-    const obj = instancia(pieza, 1);
-    personaje.inventario.push(obj);
+    guardar(personaje, instancia(pieza, 1));
     return coste;
   }
 
+  // Mercader: piezas que vende a su nivel (cualquiera de la clase con nivel ≤ nivel del héroe)
+  function piezasDeTienda(catalogo, clase, nivelHeroe) {
+    return piezasDeClase(catalogo, clase).filter(p => p.nivel <= nivelHeroe);
+  }
+
+  // Compra una pieza al mercader con calidad estándar. Devuelve el oro que cuesta.
+  function comprar(personaje, catalogo, id, nivelHeroe, oro) {
+    const pieza = piezasDeClase(catalogo, personaje.clase).find(p => p.id === id);
+    if (!pieza) throw new Error('El mercader no tiene ' + id);
+    if (nivelHeroe < pieza.nivel) throw new Error(pieza.nombre + ' requiere nivel ' + pieza.nivel);
+    const coste = COMPRA_ORO * pieza.nivel;
+    if (oro < coste) throw new Error('Faltan ' + (coste - oro) + ' de oro');
+    guardar(personaje, instancia(pieza, ESTADO_MERCADO));
+    return coste;
+  }
+
+  // Oro que da vender un objeto: depende de su nivel y su estado. No se puede vender lo equipado.
+  function precioVenta(personaje, obj) {
+    return Math.max(1, Math.round(VENTA_ORO * obj.nivel * factorEstado(obj.estado)));
+  }
+
+  // Quita un objeto del inventario (no equipado). Devuelve el objeto.
+  function tirar(personaje, uid) {
+    const obj = objeto(personaje, uid);
+    if (!obj) throw new Error('No tienes ese objeto');
+    if (Object.values(personaje.equipo).includes(uid)) throw new Error('Desequipa ' + obj.nombre + ' antes');
+    personaje.inventario = personaje.inventario.filter(o => o.uid !== uid);
+    return obj;
+  }
+
+  // Vende un objeto no equipado. Devuelve el oro que se recibe.
+  function vender(personaje, uid) {
+    const obj = objeto(personaje, uid);
+    const oro = obj ? precioVenta(personaje, obj) : 0;
+    tirar(personaje, uid);
+    return oro;
+  }
+
   const api = {
-    RANURAS, DROP_NORMAL, FORJA_ORO, NIVEL_SOLO_COTAS,
+    RANURAS, DROP_NORMAL, FORJA_ORO, COMPRA_ORO, NIVEL_SOLO_COTAS, CAPACIDAD,
     piezasDeClase, instancia, crearPersonaje, objeto, equipoPorIdx, equipar,
-    armasDeDrop, soltarPieza, fabricar, esCota
+    armasDeDrop, soltarPieza, fabricar, esCota,
+    llena, huecosLibres, piezasDeTienda, comprar, precioVenta, tirar, vender
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.EquipoLib = api;

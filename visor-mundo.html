@@ -104,6 +104,15 @@
     #objetos.show { display: flex; }
     #objetos .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 420px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
     #objetos h2 { margin: 0 0 6px; color: var(--gold); font-size: 16px; }
+    #npc { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
+    #npc.show { display: flex; }
+    #npc .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 420px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+    #npc h2 { margin: 0 0 6px; color: var(--gold); font-size: 16px; }
+    #npc .npc-h { margin: 10px 0 4px; font-size: 12px; color: var(--gold); }
+    #npc .slot { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 5px; }
+    #npc .slot .info { flex: 1; min-width: 0; }
+    #npc .muted { color: var(--muted); font-size: 12px; }
+    #npc .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     #objetos .slot { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
     #objetos .slot .info { flex: 1; min-width: 0; }
     #objetos .muted { color: var(--muted); font-size: 12px; }
@@ -239,8 +248,16 @@
   <div id="objetos"><div class="box">
     <h2>🎒 Objetos</h2>
     <div class="muted">Cada objeto tiene su estado: un objeto malo rinde la mitad que uno perfecto.</div>
+    <div id="obj-huecos" class="muted" style="margin:4px 0"></div>
     <div id="obj-lista"></div>
     <div class="btns"><button id="obj-cerrar">Cerrar</button></div>
+  </div></div>
+  <div id="npc"><div class="box">
+    <h2 id="npc-titulo"></h2>
+    <div id="npc-frase" class="muted" style="margin-bottom:6px"></div>
+    <div class="muted">Oro: <b id="npc-oro"></b> 🪙</div>
+    <div id="npc-lista"></div>
+    <div class="btns"><button id="npc-cerrar">Cerrar</button></div>
   </div></div>
   <div id="crear"><div class="box">
     <h2>🧙 Crear personaje</h2>
@@ -1946,6 +1963,7 @@
     // Objetos del personaje: cotas (hasta nivel 5) y armas, cada uno con su estado
     const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
     if (obj) loot += ' · 🎁 ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)';
+    else if (personajeActual && EquipoLib.llena(personajeActual)) loot += ' · 🎒 inventario lleno';
     if (m.boss) {
       character.playOneShot('victory', lastNowSec);
       announce('👑 ¡Jefe derrotado!', m.name + ' · +' + m.xp + ' XP · ' + loot);
@@ -2527,10 +2545,13 @@
     const pj = personajeActual;
     if (!pj) { $('obj-lista').innerHTML = '<div class="muted">Esta partida no tiene personaje.</div>'; return; }
     const equipados = new Set(Object.values(pj.equipo));
+    $('obj-huecos').textContent = pj.inventario.length + ' / ' + EquipoLib.CAPACIDAD + ' huecos';
     $('obj-lista').innerHTML = pj.inventario.map(o => {
       const stat = o.ataque ? 'ataque ' + o.ataque : 'defensa ' + o.defensa;
       const accion = equipados.has(o.uid) ? '<span class="muted">✅ equipado</span>'
-        : (o.nivel <= hero.level ? `<button data-equipar="${esc(o.uid)}">Equipar</button>` : `<span class="muted">🔒 nivel ${o.nivel}</span>`);
+        : (o.nivel <= hero.level ? `<button data-equipar="${esc(o.uid)}">Equipar</button>` : `<span class="muted">🔒 nivel ${o.nivel}</span>`)
+          + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
+          + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
       return `<div class="slot"><div class="info"><b>${esc(o.nombre)}</b>
         <span class="muted">${esc(o.ranura)} · nivel ${o.nivel} · estado ${Math.round(o.estado * 100)}% · ${stat}</span></div>${accion}</div>`;
     }).join('') || '<div class="muted">No tienes objetos.</div>';
@@ -2538,6 +2559,15 @@
   $('sk-objetos').onclick = () => { renderObjetos(); $('objetos').classList.add('show'); };
   $('obj-cerrar').onclick = () => $('objetos').classList.remove('show');
   $('obj-lista').addEventListener('click', async e => {
+    const t = e.target.closest('button[data-tirar], button[data-vender]');
+    if (t) {
+      try {
+        if (t.dataset.tirar) { EquipoLib.tirar(personajeActual, t.dataset.tirar); toast('Tirado'); }
+        else { const oro = EquipoLib.vender(personajeActual, t.dataset.vender); inv.gold += oro; updateStats(); toast('Vendido por ' + oro + ' 🪙'); }
+        renderObjetos();
+      } catch (err) { toast(err.message); }
+      return;
+    }
     const b = e.target.closest('button[data-equipar]');
     if (!b) return;
     try {
@@ -2548,6 +2578,74 @@
       await mostrarCuerpo(personajeActual);
     } catch (err) { toast(err.message); }
   });
+
+  // ===========================================================================
+  // Servicios de la plaza: herrero (fabricar con oro) y mercader (comprar y vender)
+  // ===========================================================================
+  function servicioCercano() {
+    let mejor = null, mejorD = DISTANCIA_HABLAR;
+    gurus.forEach(g => {
+      if (!g.info.servicio) return;
+      const d = Math.hypot(character.root.position.x - g.raiz.position.x, character.root.position.z - g.raiz.position.z);
+      if (d < mejorD) { mejorD = d; mejor = g; }
+    });
+    return mejor;
+  }
+
+  function abrirServicioCercano() {
+    const g = servicioCercano();
+    if (!g) { toast('Acércate a un herrero o un mercader y pulsa H'); return; }
+    if (!personajeActual) { toast('Crea un personaje primero'); return; }
+    cargarCatalogoPiezas().then(() => {
+      $('npc-titulo').textContent = (g.info.servicio === 'herrero' ? '🔨 ' : '🧺 ') + g.info.nombre;
+      $('npc-frase').textContent = '«' + g.info.frase + '»';
+      $('npc-oro').textContent = inv.gold;
+      renderNpc(g.info.servicio);
+      $('npc').classList.add('show');
+    }).catch(err => toast(err.message));
+  }
+
+  function renderNpc(servicio) {
+    const pj = personajeActual;
+    const piezas = EquipoLib.piezasDeClase(catalogoPiezas, pj.clase).filter(p => p.nivel <= hero.level);
+    let html = '';
+    if (servicio === 'herrero') {
+      html = '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + (piezas.map(p => {
+        const coste = EquipoLib.FORJA_ORO * p.nivel;
+        return `<div class="slot"><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
+          <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
+      }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
+    } else {
+      html = '<h3 class="npc-h">Comprar</h3>' + (piezas.map(p => {
+        const coste = EquipoLib.COMPRA_ORO * p.nivel;
+        return `<div class="slot"><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
+          <button data-comprar="${esc(p.id)}" ${inv.gold < coste || EquipoLib.llena(pj) ? 'disabled' : ''}>${coste} 🪙</button></div>`;
+      }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
+      const equipados = new Set(Object.values(pj.equipo));
+      const vendibles = pj.inventario.filter(o => !equipados.has(o.uid));
+      html += '<h3 class="npc-h">Vender</h3>' + (vendibles.map(o => `
+        <div class="slot"><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel} · ${Math.round(o.estado * 100)}%</span></div>
+        <button data-vender="${esc(o.uid)}">${EquipoLib.precioVenta(pj, o)} 🪙</button></div>`).join('') || '<div class="muted">No tienes objetos que vender.</div>');
+    }
+    $('npc-lista').innerHTML = html;
+  }
+
+  function accionNpc(fn) {
+    try { fn(); } catch (err) { toast(err.message); }
+    $('npc-oro').textContent = inv.gold;
+    updateStats();
+    renderObjetos();
+    renderNpc($('npc-titulo').textContent.startsWith('🔨') ? 'herrero' : 'mercader');
+  }
+
+  $('npc-lista').addEventListener('click', e => {
+    const pj = personajeActual;
+    const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
+    if (f) accionNpc(() => { inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold); toast('Fabricada'); });
+    if (c) accionNpc(() => { inv.gold -= EquipoLib.comprar(pj, catalogoPiezas, c.dataset.comprar, hero.level, inv.gold); toast('Comprada'); });
+    if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
+  });
+  $('npc-cerrar').onclick = () => $('npc').classList.remove('show');
 
   // Partida nueva con el personaje elegido
   function crearPartida(pj) {
@@ -2586,14 +2684,22 @@
   const RADIO_GURUS = 6;
   const DISTANCIA_HABLAR = 4;
 
+  // Herrero y mercader: mismos cuerpos de npc/gurus; cambian por su función
+  const SERVICIOS = [
+    { id: 'serv-herrero', modelo: 'guru-4', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
+    { id: 'serv-mercader', modelo: 'guru-5', nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' }
+  ];
+
   function colocarGurus() {
     const inicio = towns.find(o => o.t.isStart) || towns[0];
     if (!inicio || gurus.length) return;
     const loader = new THREE.GLTFLoader();
-    GURUS.forEach((g, i) => {
-      const a = (i / GURUS.length) * Math.PI * 2;
+    const todos = GURUS.map(g => ({ info: g, modelo: g.id })).concat(SERVICIOS.map(sv => ({ info: sv, modelo: sv.modelo })));
+    todos.forEach((entrada, i) => {
+      const g = entrada.info;
+      const a = (i / todos.length) * Math.PI * 2;
       const x = inicio.t.x + Math.cos(a) * RADIO_GURUS, z = inicio.t.y + Math.sin(a) * RADIO_GURUS;
-      loader.load('npc/gurus/' + g.id + '.glb', gltf => {
+      loader.load('npc/gurus/' + entrada.modelo + '.glb', gltf => {
         const modelo = gltf.scene;
         const size = new THREE.Vector3();
         new THREE.Box3().setFromObject(modelo).getSize(size);
@@ -2608,7 +2714,7 @@
         const idle = (gltf.animations || []).find(c => c.name === 'idle');
         if (idle) mixer.clipAction(idle).play();
         gurus.push({ info: g, raiz, mixer, x, z, dicho: -Infinity });
-      }, undefined, () => { /* sin modelo: el gurú no aparece */ });
+      }, undefined, () => { /* sin modelo: no aparece */ });
     });
   }
 
@@ -2620,7 +2726,7 @@
       // Misma altura que el personaje: el pueblo puede cargarse y cambiar el suelo
       g.raiz.position.y = visorWorld.getWalkableHeight(g.x, g.z);
       const d = Math.hypot(character.root.position.x - g.raiz.position.x, character.root.position.z - g.raiz.position.z);
-      if (d < DISTANCIA_HABLAR && sec - g.dicho > 25) {
+      if (d < DISTANCIA_HABLAR && !g.info.servicio && sec - g.dicho > 25) {
         g.dicho = sec;
         toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + g.info.frase + '»');
       }
@@ -2722,6 +2828,7 @@
     if (k === 'q') useSkill('spin');
     if (k === 'e') useSkill('nova');
     if (k === 'i') $('sk-objetos').click();
+    if (k === 'h') abrirServicioCercano();
     if (k === 'x') jump();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');

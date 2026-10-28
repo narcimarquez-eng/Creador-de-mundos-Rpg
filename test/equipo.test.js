@@ -99,4 +99,38 @@ t('herrero: fabrica con estado perfecto, cuesta oro y exige nivel', () => {
   assert.strictEqual(casco.estado, 1);
 });
 
+t('inventario: tope de huecos; sin hueco no cae nada', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  while (!E.llena(p)) E.fabricar(p, CATALOGO, 'helmet.1', 10, 1e9);
+  assert.strictEqual(E.huecosLibres(p), 0);
+  assert.strictEqual(E.soltarPieza(p, CATALOGO, 1, true, () => 0.0), null);
+  assert.throws(() => E.fabricar(p, CATALOGO, 'helmet.1', 10, 1e9), /Inventario lleno/);
+});
+
+t('vender: da oro según nivel y estado, no vende lo equipado', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  // Con jefe no se tira el dado de «¿cae algo?»: 1.º = pieza, 2.º = estado
+  const malo = E.soltarPieza(p, CATALOGO, 1, true, sec(0.0, 0.0));
+  const perfecto = E.soltarPieza(p, CATALOGO, 1, true, sec(0.0, 0.99));
+  assert.ok(malo.estado < perfecto.estado);
+  assert.ok(E.precioVenta(p, perfecto) > E.precioVenta(p, malo));
+  const antes = p.inventario.length;
+  const oro = E.vender(p, malo.uid);
+  assert.strictEqual(oro, E.precioVenta(p, malo));
+  assert.strictEqual(p.inventario.length, antes - 1);
+  assert.throws(() => E.vender(p, p.equipo.underlayer), /Desequipa/);
+});
+
+t('mercader: vende a nivel del héroe con calidad estándar y cobra', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  const venta = E.piezasDeTienda(CATALOGO, 'guerrero', 4).map(x => x.id);
+  assert.ok(venta.includes('helmet.1') && venta.includes('weapon.3'));
+  assert.ok(!venta.includes('weapon.4'));
+  assert.throws(() => E.comprar(p, CATALOGO, 'helmet.1', 4, 10), /Faltan/);
+  assert.throws(() => E.comprar(p, CATALOGO, 'weapon.4', 4, 1e9), /requiere nivel 8/);
+  const coste = E.comprar(p, CATALOGO, 'weapon.3', 4, 1e9);
+  assert.strictEqual(coste, E.COMPRA_ORO * 4);
+  assert.strictEqual(p.inventario[p.inventario.length - 1].estado, 0.75);
+});
+
 console.log(`\n${n} pruebas de equipo superadas.`);
