@@ -308,7 +308,8 @@
   let aguaPuebloMat = null;
   let decorGroup = null;     // rocas, ruinas y vallas entre pueblos
   let lastDecor = 0;         // última vez que se actualizó el detalle de los arbustos
-  let townMesh, roadMesh, calzadaMesh, ladrillosMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
+  let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
+  let ladrillosTramos = [];   // tramos del empedrado de las calzadas: { malla, x, z }
   let character = null;
   let hemiLight = null, sunLight = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
@@ -662,7 +663,9 @@
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
-    [roadMesh, calzadaMesh, ladrillosMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
+    ladrillosTramos.forEach(t => { scene.remove(t.malla); t.malla.geometry.dispose(); });
+    ladrillosTramos = [];
+    [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
@@ -1254,9 +1257,11 @@
     [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#a8a29e'), 0.5, alt));
   }
 
-  // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su propia altura
-  // (unas sobresalen más que otras) y su tono, sobre la junta oscura de la calzada. Cubre toda la calzada.
-  function pintarLadrillos(mb, linea, alt, w) {
+  // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su altura y su tono.
+  // Se reparte en tramos de TRAMO_PIEDRA metros; solo se dibujan los que están a menos de PIEDRA_VISIBLE_M
+  // de la cámara (ver actualizarPiedras). Lejos, la calzada es lisa: solo la junta oscura de la base.
+  const TRAMO_PIEDRA = 20, PIEDRA_VISIBLE_M = 35;
+  function pintarLadrillos(linea, alt, w) {
     const PASO = 0.2, desdeCalzada = 0.35, JUNTA = 0.05;
     // Muestras de la línea cada PASO metros: posición, normal hacia la izquierda y distancia recorrida
     const m = [];
@@ -1286,20 +1291,8 @@
     let semilla = (Math.floor(linea[0].x * 13.1 + linea[0].z * 7.3) >>> 0) || 1;
     const azar = () => { semilla = (Math.imul(semilla, 1664525) + 1013904223) >>> 0; return semilla / 4294967296; };
     const mitad = w / 2 - 0.9;
-    const piedra = (sa, sb, ta, tb) => {
-      const h = azar() * 0.06;             // 0–6 cm: unas piedras quedan más altas que otras
-      const gris = 0.52 + azar() * 0.28;   // tono de piedra
-      const color = [gris, gris * 0.98, gris * 0.94], pared = [gris * 0.7, gris * 0.68, gris * 0.64];
-      const suelo = [en(sa, ta), en(sb, ta), en(sb, tb), en(sa, tb)];
-      const tope = suelo.map(p => ({ x: p.x, y: p.y + h, z: p.z }));
-      const P = p => [p.x, p.y, p.z];
-      mb.quad(P(tope[0]), P(tope[1]), P(tope[2]), P(tope[3]), color);
-      if (h < 0.004) return;
-      for (let k = 0; k < 4; k++) {
-        const k2 = (k + 1) % 4;
-        mb.quad(P(suelo[k]), P(suelo[k2]), P(tope[k2]), P(tope[k]), pared);
-      }
-    };
+    // Todas las piedras del camino, con sus números, antes de repartirlas en tramos
+    const piedras = [];
     let t = -mitad;
     while (t < mitad - 0.2) {
       // Hilera de anchura variable (la última se ajusta al borde)
@@ -1311,12 +1304,45 @@
         while (sv < total) {
           const largo = 0.8 + azar() * 0.8;
           const sa = Math.max(0, sv + JUNTA), sb = Math.min(total, sv + largo - JUNTA);
-          if (sb - sa > 0.3) piedra(sa, sb, ta, tb);
+          if (sb - sa > 0.3) piedras.push({ sa, sb, ta, tb, h: azar() * 0.06, gris: 0.52 + azar() * 0.28 });  // 0–6 cm: unas sobresalen más
           sv += largo;
         }
       }
       t += ancho;
     }
+    // Cada piedra va al tramo de su centro; cada tramo es una malla que se enciende o apaga por distancia
+    const tramos = new Map();
+    piedras.forEach(p => {
+      const k = Math.floor((p.sa + p.sb) / 2 / TRAMO_PIEDRA);
+      if (!tramos.has(k)) tramos.set(k, []);
+      tramos.get(k).push(p);
+    });
+    tramos.forEach((lista, k) => {
+      const mb = new MB();
+      lista.forEach(p => {
+        const color = [p.gris, p.gris * 0.98, p.gris * 0.94], pared = [p.gris * 0.7, p.gris * 0.68, p.gris * 0.64];
+        const suelo = [en(p.sa, p.ta), en(p.sb, p.ta), en(p.sb, p.tb), en(p.sa, p.tb)];
+        const tope = suelo.map(q => ({ x: q.x, y: q.y + p.h, z: q.z }));
+        const P = q => [q.x, q.y, q.z];
+        mb.quad(P(tope[0]), P(tope[1]), P(tope[2]), P(tope[3]), color);
+        if (p.h < 0.004) return;
+        for (let j = 0; j < 4; j++) {
+          const j2 = (j + 1) % 4;
+          mb.quad(P(suelo[j]), P(suelo[j2]), P(tope[j2]), P(tope[j]), pared);
+        }
+      });
+      const c = en(Math.min(total, (k + 0.5) * TRAMO_PIEDRA), 0);
+      const malla = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      malla.visible = false;
+      scene.add(malla);
+      ladrillosTramos.push({ malla, x: c.x, z: c.z });
+    });
+  }
+
+  // Enciende solo los tramos de empedrado cerca de la cámara
+  function actualizarPiedras() {
+    const x = camera.position.x, z = camera.position.z;
+    ladrillosTramos.forEach(t => { t.malla.visible = (t.x - x) ** 2 + (t.z - z) ** 2 < PIEDRA_VISIBLE_M * PIEDRA_VISIBLE_M; });
   }
 
   // Puntos con los que el camino de un pueblo se une a su calle de salida (la misma del Creador):
@@ -1340,7 +1366,7 @@
   }
 
   function buildRoads() {
-    const mb = new MB(), mbCalzada = new MB(), mbLadrillos = new MB();
+    const mb = new MB(), mbCalzada = new MB();
     world.roads.forEach(r => {
       const a = W.findTown(world, r.from), b = W.findTown(world, r.to);
       if (!a || !b) return;
@@ -1355,15 +1381,13 @@
       if (ini.length) medio = medio.filter(p => alCentro(p, oa) > alCentro(ini[1], oa));
       if (fin.length) medio = medio.filter(p => alCentro(p, ob) > alCentro(fin[0], ob));
       const linea = curvePath([...ini, ...medio, ...fin], 8);
-      if (r.kind === 'calzada') { pintarCalzada(mbCalzada, linea, alturaCamino); pintarLadrillos(mbLadrillos, linea, alturaCamino, roadWidth('calzada')); }
+      if (r.kind === 'calzada') { pintarCalzada(mbCalzada, linea, alturaCamino); pintarLadrillos(linea, alturaCamino, roadWidth('calzada')); }
       else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.35, alturaCamino);
     });
     roadMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
     scene.add(roadMesh);
     calzadaMesh = new THREE.Mesh(mbCalzada.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
     scene.add(calzadaMesh);
-    ladrillosMesh = new THREE.Mesh(mbLadrillos.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-    scene.add(ladrillosMesh);
   }
 
   // Agua de los ríos fuera de los pueblos, a la altura de su curso (baja hasta el mar).
@@ -2481,6 +2505,7 @@
       lastDecor = now;
       decorGroup.userData.actualizar(camera.position.x, camera.position.z);
     }
+    actualizarPiedras();
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
@@ -2574,7 +2599,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosMesh; }, character, get hero() { return hero; } };
+    window.__visor = { renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
