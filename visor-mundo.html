@@ -130,6 +130,9 @@
     #objetos .slot .info { flex: 1; min-width: 0; }
     #objetos .muted { color: var(--muted); font-size: 12px; }
     #objetos .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    #objetos .cell { height: 36px; border: 1px dashed #334155; border-radius: 6px; font-size: 9px; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; color: #64748b; padding: 2px; }
+    #objetos .cell.lleno { border: 1px solid #38bdf8; background: #0c4a6e; color: #e2e8f0; }
+    #objetos .cell.eq { border-color: var(--gold); background: #713f12; }
     #crear label { display: block; color: var(--muted); font-size: 12px; margin: 6px 0; }
     #crear input, #crear select { width: 100%; margin-top: 3px; }
     #crear .muted { color: var(--muted); font-size: 12px; }
@@ -270,6 +273,11 @@
     <h2>🎒 Objetos</h2>
     <div class="muted">Cada objeto tiene su estado: un objeto malo rinde la mitad que uno perfecto.</div>
     <div id="obj-huecos" class="muted" style="margin:4px 0"></div>
+    <div class="ic-body" style="display:flex;gap:8px;align-items:flex-start">
+      <canvas id="obj-doll" width="110" height="200"></canvas>
+      <div id="obj-equip" style="flex:1;min-width:0;line-height:1.5;font-size:12px"></div>
+    </div>
+    <div id="obj-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0"></div>
     <div id="obj-lista"></div>
     <div class="btns"><button id="obj-cerrar">Cerrar</button></div>
   </div></div>
@@ -2653,8 +2661,8 @@
   const ZONA_NOMBRE = { underlayer: 'Cota', helmet: 'Casco', shoulders: 'Hombreras', torso: 'Torso', gloves: 'Guanteletes', belt: 'Cinturón', tassets: 'Escarcelas', cuisses: 'Musleras', knees: 'Rodilleras', boots: 'Botas', weapon: 'Arma' };
 
   // Dibujo esquemático: cada pieza equipada se pinta en su zona del cuerpo
-  function dibujarPersonaje(pj) {
-    const c = $('ic-doll'), g = c.getContext('2d');
+  function dibujarPersonaje(pj, id = 'ic-doll') {
+    const c = $(id), g = c.getContext('2d');
     g.clearRect(0, 0, c.width, c.height);
     const eq = {};
     Object.keys(pj.equipo).forEach(r => { const o = pj.inventario.find(x => x.uid === pj.equipo[r]); if (o) eq[r] = o; });
@@ -2703,6 +2711,10 @@
       celdas += `<div class="cell lleno ${equipados.has(o.uid) ? 'eq' : ''}" data-ver="${esc(o.uid)}" title="${esc(o.nombre)}">${esc(o.nombre)}</div>`;
     }
     $('ic-grid').innerHTML = celdas;
+    // Mismo contenido en el panel de objetos (en móvil la tarjeta queda oculta)
+    dibujarPersonaje(pj, 'obj-doll');
+    $('obj-grid').innerHTML = celdas;
+    $('obj-equip').innerHTML = $('ic-equip').innerHTML;
   }
   $('ic-toggle').onclick = () => { $('inv-card').classList.add('oculta'); $('inv-card').classList.remove('visible-movil'); };
   $('ic-grid').addEventListener('click', e => {
