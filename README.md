@@ -14,6 +14,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `js/equipo.js` | Clases (guerrero, mago) y armaduras por niveles: al crear el personaje se generan todas las de su clase; cada tramo exige un nivel mínimo. Pruebas en `test/equipo.test.js`. El botón 🧙 Personaje del creador crea el personaje y pide los .glb exportados desde el estudio [armaduras-glb](https://github.com/narcimarquez-eng/armaduras-glb) (`public/assets/aistudio/`). Los magos no tienen modelo todavía. |
 | `js/combat.js` | Reglas del combate (daño, XP, muerte, IA de los monstruos). Pruebas en `test/combat.test.js`. |
 | `js/heroe.js` | Estadísticas del héroe (arma, armadura y escudo con sus especiales), habilidades pasivas y activas, misiones y puntos. Pruebas en `test/heroe.test.js`. Reglas en `docs/COMBATE.md`. |
+| `js/mapa.js` | Geometría del mapa del mundo (límites, escalas, orientación de la flecha y rejilla) para el minimapa y el mapa del mundo de la visor. Pruebas en `test/mapa.test.js`. |
 | `js/mision-zona.js` | Encargos de zona: cada zona de combate tiene un NPC en el pueblo más cercano que le encarga una misión (matar, derrotar al jefe o visitar la zona). Independientes de la crónica. Pruebas en `test/mision-zona.test.js`. |
 | `js/enemigos.js` | Generación de enemigos del editor «Enemigo-rpg» (compilada con `tools/hornear-enemigos.mjs`). El visor la usa para los monstruos: modo por niveles o aleatorio. |
 | `enemigos-editor/` | Editor de enemigos «Enemigo-rpg» ya compilado (sin servidor). Se abre desde el botón «🐉 Enemigos» del Creador de Mundos y del Creador de Pueblos; al enviar un enemigo se añade a «Propios del mundo». Se construye con `tools/construir-editor-enemigos.sh`. |
@@ -57,7 +58,8 @@ Desde el editor, **🗺 3D** (o **🗺 Ver en 3D** en la pestaña Mundo) abre el
 
 - **Modo juego:** al entrar en un pueblo la cámara pasa a tercera persona. 🗺 Mapa (**M**) vuelve a ver el mundo.
 - **Hora:** ☀ / 🌇 / 🌙 (**T**) cambia entre día, atardecer y noche, con transición suave.
-- **Anuncios:** al entrar en un pueblo o una zona aparece su nombre, nivel y tipo. El minimapa (abajo a la derecha) muestra caminos, zonas, pueblos y monstruos.
+- **Anuncios:** al entrar en un pueblo o una zona aparece su nombre, nivel y tipo.
+- **Minimapa** (abajo a la derecha): la flecha marca hacia dónde miras, los anillos marcan 100 y 200 m y abajo aparecen tus coordenadas (x e y en metros, la y es la z del 3D). Muestra caminos, zonas, pueblos y monstruos. **Púlsalo** para ver el mapa del mundo completo: pueblos, caminos, zonas y lugares, con la rejilla en metros; al pasar el ratón (o tocar) se leen las coordenadas y el pueblo más cercano.
 - **Combate:** Espacio (combo de ataque), **Q** (patada giratoria), **E** (explosión nova) y **X** (salto acrobático). Las reglas, los controles y los números están en `docs/COMBATE.md`. Vida, maná, XP y tu oro aparecen abajo. Los monstruos sueltan oro y pociones. En los pueblos puedes **descansar** (R) para recuperarte y comprar pociones en la **tienda** (B). Las pociones se usan con **1** y **2**. Si caes, reapareces en el pueblo más cercano.
 - **Partidas:** 💾 en la barra superior. La partida se guarda sola cada 20 s, al entrar en un pueblo y al cerrar la página. Puedes tener hasta 5 partidas por mundo, cargar, borrar, exportar e importar. Los pueblos que visitas aparecen con ✓.
 

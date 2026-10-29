@@ -121,6 +121,17 @@
     #heroe .muted { color: var(--muted); font-size: 12px; }
     #heroe .fila { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
     #heroe .btns { display: flex; gap: 6px; margin-top: 10px; }
+    #minimap { cursor: pointer; }
+    #mapa-mundo { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 46; padding: 12px; }
+    #mapa-mundo.show { display: flex; }
+    #mapa-mundo .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(760px, 100%); max-height: 96vh; overflow-y: auto; }
+    #mapa-mundo h2 { margin: 0 0 8px; color: var(--gold); font-size: 17px; }
+    #mapa-lienzo { display: block; width: min(100%, max(260px, calc(100vh - 250px))); aspect-ratio: 1; margin: 0 auto; border-radius: 8px; border: 1px solid #1e293b; cursor: crosshair; touch-action: none; }
+    #mapa-cursor { margin: 8px 0 6px; font-size: 13px; color: #e2e8f0; min-height: 18px; }
+    #mapa-mundo .muted { color: var(--muted); font-size: 12px; }
+    #mapa-mundo .leyenda { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+    #mapa-mundo .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+    #mapa-mundo .btns { display: flex; gap: 6px; margin-top: 10px; }
     #inv-card { position: absolute; top: 54px; right: 8px; width: 250px; z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 11px; }
     #inv-card.oculta { display: none; }
     #inv-card .ic-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
@@ -255,7 +266,7 @@
   <div id="info"></div>
 
   <div id="banner"></div>
-  <canvas id="minimap" width="300" height="300"></canvas>
+  <canvas id="minimap" width="300" height="300" title="Pulsa para ver el mapa del mundo"></canvas>
   <div id="hud">
     <div id="zona-marca"></div>
     <div class="hud-bars">
@@ -303,6 +314,22 @@
     <h2>🧬 Héroe</h2>
     <div id="heroe-cuerpo"></div>
     <div class="btns"><button id="heroe-cerrar">Cerrar</button></div>
+  </div></div>
+  <div id="mapa-mundo"><div class="box">
+    <h2>🗺 Mapa del mundo</h2>
+    <canvas id="mapa-lienzo" width="800" height="800"></canvas>
+    <div id="mapa-cursor" class="muted">Pasa el ratón o toca el mapa para ver coordenadas (x e y en metros).</div>
+    <div class="leyenda">
+      <span><i style="background:#fbbf24"></i>Pueblo inicial</span>
+      <span><i style="background:#e2e8f0"></i>Pueblo</span>
+      <span><i style="background:#a16207"></i>Camino</span>
+      <span><i style="background:#a3e635"></i>Zona de caza</span>
+      <span><i style="background:#c084fc"></i>Élite</span>
+      <span><i style="background:#f87171"></i>Jefe</span>
+      <span><i style="background:#67e8f9"></i>Zona segura</span>
+      <span><i style="background:#fde047"></i>Tú (la flecha marca hacia dónde miras)</span>
+    </div>
+    <div class="btns"><button id="mapa-cerrar">Cerrar</button></div>
   </div></div>
   <div id="objetos"><div class="box">
     <h2>🎒 Objetos</h2>
@@ -380,6 +407,7 @@
   <script src="js/historia.js?v=20251029"></script>
   <script src="js/heroe.js?v=20251029"></script>
   <script src="js/mision-zona.js?v=20251029"></script>
+  <script src="js/mapa.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -2376,42 +2404,155 @@
     const cv = $('minimap'), g = cv.getContext('2d');
     const S = cv.width, R = 290;               // metros desde el centro hasta el borde
     const p = character.root.position;
-    const sc = (S / 2) / R;
-    const X = x => S / 2 + (x - p.x) * sc, Y = z => S / 2 + (z - p.z) * sc;
+    const V = MapaLib.centrada(p.x, p.z, R, S);   // el personaje en el centro
     g.clearRect(0, 0, S, S);
     g.save();
     g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); g.clip();
     g.fillStyle = '#1e3a5f'; g.fillRect(0, 0, S, S);
     world.zones.forEach(z => {
-      g.beginPath(); g.arc(X(z.x), Y(z.y), z.radius * sc, 0, Math.PI * 2);
+      g.beginPath(); g.arc(V.px(z.x), V.py(z.y), z.radius * V.escala, 0, Math.PI * 2);
       g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.25)' : 'rgba(250,204,21,.22)';
       g.fill();
     });
-    g.lineWidth = Math.max(2, 6 * sc); g.strokeStyle = '#8b6b43';
+    g.lineWidth = Math.max(2, 6 * V.escala); g.strokeStyle = '#8b6b43';
     world.roads.forEach(r => {
       if (!r.points.length) return;
       g.beginPath();
-      r.points.forEach((q, i) => { if (i) g.lineTo(X(q.x), Y(q.y)); else g.moveTo(X(q.x), Y(q.y)); });
+      r.points.forEach((q, i) => { if (i) g.lineTo(V.px(q.x), V.py(q.y)); else g.moveTo(V.px(q.x), V.py(q.y)); });
       g.stroke();
     });
     towns.forEach(o => {
       g.fillStyle = o.t.isStart ? '#fbbf24' : '#e2e8f0';
-      g.fillRect(X(o.t.x) - 4, Y(o.t.y) - 4, 8, 8);
+      g.fillRect(V.px(o.t.x) - 4, V.py(o.t.y) - 4, 8, 8);
     });
     monsters.forEach(m => {
       if (!m.alive) return;
       g.fillStyle = m.boss ? '#ef4444' : '#f97316';
-      g.beginPath(); g.arc(X(m.x), Y(m.z), 2.5, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(V.px(m.x), V.py(m.z), 2.5, 0, Math.PI * 2); g.fill();
     });
     g.restore();
-    const yaw = character.root.rotation.y;
-    g.save(); g.translate(S / 2, S / 2); g.rotate(yaw);
-    g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(0, 4); g.lineTo(-7, 8); g.closePath();
-    g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.fill(); g.stroke();
+    // Anillos de distancia desde el personaje: 100 y 200 m
+    g.save();
+    g.setLineDash([3, 4]); g.lineWidth = 1; g.strokeStyle = 'rgba(226,232,240,.35)';
+    g.font = 'bold 19px sans-serif'; g.fillStyle = 'rgba(226,232,240,.9)'; g.textAlign = 'left';
+    [100, 200].forEach(m => {
+      g.beginPath(); g.arc(S / 2, S / 2, m * V.escala, 0, Math.PI * 2); g.stroke();
+      g.fillText(m + ' m', S / 2 + 6, S / 2 - m * V.escala + 20);
+    });
     g.restore();
-    g.fillStyle = '#e2e8f0'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center';
-    g.fillText('N', S / 2, 26);
+    // Flecha: hacia donde mira el personaje (su frente en el mapa es (sin yaw, cos yaw))
+    const f = MapaLib.frente(character.root.rotation.y);
+    const cx = S / 2, cy = S / 2;
+    g.beginPath();
+    g.moveTo(cx + f.dx * 26, cy + f.dy * 26);
+    g.lineTo(cx - f.dx * 10 - f.dy * 11, cy - f.dy * 10 + f.dx * 11);
+    g.lineTo(cx - f.dx * 10 + f.dy * 11, cy - f.dy * 10 - f.dx * 11);
+    g.closePath();
+    g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.fill(); g.stroke();
+    g.fillStyle = '#e2e8f0'; g.font = 'bold 26px sans-serif'; g.textAlign = 'center';
+    g.fillText('N', S / 2, 30);
+    // Coordenadas del personaje (x e y en metros, y = z del mundo 3D)
+    const txt = 'x ' + Math.round(p.x) + ' · y ' + Math.round(p.z);
+    g.font = 'bold 24px sans-serif';
+    const ancho = g.measureText(txt).width + 20;
+    g.fillStyle = 'rgba(11,17,30,.9)';
+    g.fillRect(S / 2 - ancho / 2, S - 52, ancho, 34);
+    g.fillStyle = '#e2e8f0'; g.fillText(txt, S / 2, S - 27);
   }
+
+  // Mapa del mundo (esquema): se abre al pulsar el minimapa. Pueblos, caminos, zonas, lugares y tu posición.
+  let mapaT = null;   // transformación del esquema abierto, para leer coordenadas con el ratón
+  function etiqueta(g, texto, x, y, color) {
+    g.lineWidth = 4; g.strokeStyle = '#0b1220'; g.strokeText(texto, x, y);
+    g.fillStyle = color; g.fillText(texto, x, y);
+  }
+  function drawMapaMundo() {
+    const cv = $('mapa-lienzo'), g = cv.getContext('2d');
+    const L = cv.width;
+    const lim = MapaLib.limites(world);
+    const T = MapaLib.encajar(lim, L, L, 40);
+    mapaT = T;
+    const p = character.root.position;
+    g.setLineDash([]);
+    g.fillStyle = '#0b1220'; g.fillRect(0, 0, L, L);
+    // Rejilla con coordenadas en metros
+    const paso = MapaLib.pasoRejilla(Math.max(lim.maxX - lim.minX, lim.maxY - lim.minY));
+    g.font = '15px sans-serif'; g.textAlign = 'left'; g.fillStyle = '#64748b';
+    g.lineWidth = 1; g.strokeStyle = 'rgba(148,163,184,.14)';
+    for (let x = Math.ceil(lim.minX / paso) * paso; x <= lim.maxX; x += paso) {
+      g.beginPath(); g.moveTo(T.px(x), 0); g.lineTo(T.px(x), L); g.stroke();
+      g.fillText(String(x), T.px(x) + 4, 17);
+    }
+    for (let y = Math.ceil(lim.minY / paso) * paso; y <= lim.maxY; y += paso) {
+      g.beginPath(); g.moveTo(0, T.py(y)); g.lineTo(L, T.py(y)); g.stroke();
+      g.fillText(String(y), 6, T.py(y) - 5);
+    }
+    g.textAlign = 'right'; g.fillText('norte ↑', L - 10, L - 10);
+    // Zonas de combate, del mismo color que en el 3D
+    world.zones.forEach(z => {
+      const color = '#' + zoneColor(z).getHexString();
+      g.beginPath(); g.arc(T.px(z.x), T.py(z.y), z.radius * T.escala, 0, Math.PI * 2);
+      g.globalAlpha = 0.2; g.fillStyle = color; g.fill();
+      g.globalAlpha = 0.9; g.strokeStyle = color; g.lineWidth = 2; g.stroke();
+      g.globalAlpha = 1;
+    });
+    // Caminos
+    g.strokeStyle = '#a16207'; g.lineWidth = 3; g.lineJoin = 'round';
+    world.roads.forEach(r => {
+      if (!r.points.length) return;
+      g.beginPath();
+      r.points.forEach((q, i) => { if (i) g.lineTo(T.px(q.x), T.py(q.y)); else g.moveTo(T.px(q.x), T.py(q.y)); });
+      g.stroke();
+    });
+    // Nombres de zona (en su centro) y lugares de interés
+    g.textAlign = 'center'; g.font = '13px sans-serif';
+    world.zones.forEach(z => etiqueta(g, z.name + ' · Nv ' + z.levelMin + '–' + z.levelMax, T.px(z.x), T.py(z.y), '#fde68a'));
+    g.font = '18px sans-serif'; g.textBaseline = 'middle';
+    (world.pois || []).forEach(q => {
+      const tipo = W.POI_TYPES[q.type] || {};
+      g.fillText(tipo.icon || '•', T.px(q.x), T.py(q.y));
+    });
+    g.textBaseline = 'alphabetic';
+    // Pueblos: cuadrado y nombre (el inicial, destacado)
+    g.font = 'bold 15px sans-serif'; g.textAlign = 'left';
+    world.towns.forEach(t => {
+      const x = T.px(t.x), y = T.py(t.y);
+      g.fillStyle = t.isStart ? '#fbbf24' : '#e2e8f0';
+      g.fillRect(x - 6, y - 6, 12, 12);
+      etiqueta(g, (t.isStart ? '⭐ ' : '') + t.name, x + 10, y + 5, t.isStart ? '#fde68a' : '#f8fafc');
+    });
+    // Tú: un círculo y una flecha que indica hacia dónde miras
+    const f = MapaLib.frente(character.root.rotation.y);
+    const x = T.px(p.x), y = T.py(p.z);
+    g.beginPath(); g.arc(x, y, 16, 0, Math.PI * 2); g.fillStyle = 'rgba(253,224,71,.25)'; g.fill();
+    g.beginPath();
+    g.moveTo(x + f.dx * 22, y + f.dy * 22);
+    g.lineTo(x - f.dx * 8 - f.dy * 9, y - f.dy * 8 + f.dx * 9);
+    g.lineTo(x - f.dx * 8 + f.dy * 9, y - f.dy * 8 - f.dx * 9);
+    g.closePath();
+    g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.fill(); g.stroke();
+    g.font = 'bold 15px sans-serif'; g.textAlign = 'left';
+    etiqueta(g, 'Tú', x + 18, y - 12, '#fde047');
+  }
+
+  function abrirMapaMundo() {
+    $('mapa-cursor').textContent = 'Pasa el ratón o toca el mapa para ver coordenadas (x e y en metros).';
+    $('mapa-mundo').classList.add('show');
+    drawMapaMundo();
+  }
+  function cerrarMapaMundo() { $('mapa-mundo').classList.remove('show'); }
+  $('minimap').onclick = abrirMapaMundo;
+  $('mapa-cerrar').onclick = cerrarMapaMundo;
+  // Coordenadas bajo el dedo o el ratón, y el pueblo más cercano
+  function leerCoordenadas(e) {
+    if (!mapaT) return;
+    const cv = $('mapa-lienzo'), r = cv.getBoundingClientRect();
+    const m = mapaT.mundo((e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height);
+    const cerca = MapaLib.puebloCercano(world, m.x, m.y);
+    $('mapa-cursor').textContent = 'x ' + Math.round(m.x) + ' · y ' + Math.round(m.y) + (cerca ? ' · ' + cerca.town.name + ' a ' + Math.round(cerca.d) + ' m' : '');
+  }
+  $('mapa-lienzo').addEventListener('pointermove', leerCoordenadas);
+  $('mapa-lienzo').addEventListener('pointerdown', leerCoordenadas);
 
   // ===========================================================================
   // Partidas: guardado separado del mundo (js/partida.js)
@@ -3317,7 +3458,7 @@
     if (k === '2') drink('mana');
     if (k === 'r') (hero.resting ? stopRest('Descanso cancelado') : startRest());
     if (k === 'b') (($('shop').classList.contains('show')) ? closeShop() : openShop());
-    if (k === 'escape') { showSelection(null); closeShop(); closePartidas(); }
+    if (k === 'escape') { showSelection(null); closeShop(); closePartidas(); cerrarMapaMundo(); }
   });
 
   let downAt = null;
