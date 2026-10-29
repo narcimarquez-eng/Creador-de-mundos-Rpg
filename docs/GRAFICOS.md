@@ -77,7 +77,7 @@ Estado: **hecho, con dos pendientes.**
 - Hecho: texturas de ambientCG (CC0, ver `docs/ASSETS.md`), mezcla por altura, pendiente y bioma en el shader,
   trozos de 16 × 16 celdas de 20 m (320 m), anillo lejano con paso según la calidad, agujeros bajo los
   pueblos cargados y alturas tomadas del mismo triángulo que se dibuja (`meshHeight`), así que el personaje no se
-  hunde. Calidades bajo / medio / alto (radio 1000 / 1400 / 1800 m; sombras no / 1024 / 2048; píxeles 1 / 1,5 / 2).
+  hunde. Calidades bajo / medio / alto (radio 800 / 1000 / 1200 m; sombras no / 1024 / 2048; píxeles 1 / 1,5 / 2).
   Pruebas en `test/terreno.test.js`.
 - Pendiente: las texturas son de 1K (la decisión pide 2K en ordenador, ver `docs/ASSETS.md`); la costura entre
   trozos y el anillo lejano se revisan a ojo en la siguiente pasada.

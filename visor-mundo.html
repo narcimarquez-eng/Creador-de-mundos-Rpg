@@ -470,7 +470,9 @@
   let towns = [];           // entradas de pueblo: datos, modelo simple y, si está cargado, el pueblo completo
   const kitCache = {};      // un kit (texturas y materiales) por estilo
   let groundKit = null;
-  const LOAD_R = 650, UNLOAD_R = 900, MAX_LOADED = 6;
+  // Pueblos completos: se cargan a 500 m (de su centro al héroe o a lo que mira la cámara) y se descargan a
+  // 650 m; más lejos se ve su modelo simple. Como mucho 4 a la vez.
+  const LOAD_R = 500, UNLOAD_R = 650, MAX_LOADED = 4;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let aguaPuebloMat = null;
@@ -488,7 +490,7 @@
   const terrainU = { tCapas: { value: null }, uTexOn: { value: 0 } };
   // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
   // sombra: medio lado (m) de la caja de sombras alrededor del héroe; crece si la cámara se aleja
-  const QUALITY = { bajo: { radius: 1000, shadows: 0, pixel: 1, far: 4, sombra: 0 }, medio: { radius: 1400, shadows: 1024, pixel: 1.5, far: 2, sombra: 120 }, alto: { radius: 1800, shadows: 2048, pixel: 2, far: 2, sombra: 160 } };
+  const QUALITY = { bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0 }, medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120 }, alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160 } };
   let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
   let monsters = [];
@@ -1757,7 +1759,9 @@
     };
     decorGroup = DecoradoLib.generar(THREE, opciones);
     // 310 variantes de decoración (rocas, troncos, setas, helechos, cactus…), por bioma
-    decorGroup.add(PV.generarCampo({ ...opciones, rng: new W.PRNG((world.seed ^ 0x3c3c) >>> 0) }));
+    const campo = PV.generarCampo({ ...opciones, rng: new W.PRNG((world.seed ^ 0x3c3c) >>> 0) });
+    decorGroup.add(campo);
+    decorGroup.userData.registrarLejanos(campo);   // sus celdas se ocultan de lejos
     decorGroup.userData.arboles.visible = $('chk-trees').checked;
     scene.add(decorGroup);
   }
@@ -2366,6 +2370,18 @@
   // Monstruos a distancia: se ven hasta 300 m; se animan cada fotograma y hacen sombra hasta 80 m;
   // de 80 a 200 m se animan uno de cada 4 fotogramas; más lejos se quedan quietos
   const MONSTRUO_VISIBLE = 300, MONSTRUO_ANIMA = 80, MONSTRUO_ANIMA_LENTO = 200;
+  const MONSTRUO_DESCARGA = 600;   // más lejos se liberan sus modelos; se reconstruyen al volver
+
+  function descargarModelosEnemigo(m) {
+    if (m.rig) m.group.remove(m.rig.rootGroup);
+    Object.values(m.versiones).forEach(v => v.rig.rootGroup.traverse(o => {
+      if (!o.isMesh) return;
+      o.geometry.dispose();
+      // Las texturas son del juego de texturas compartido: solo se liberan los materiales
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(mat => { materialesEntorno.delete(mat); mat.dispose(); });
+    }));
+    m.versiones = {}; m.rig = null; m.fx = null; m.activa = null; m.posado = false; m.sombra = undefined;
+  }
   let fotogramaCombate = 0;
 
   function updateCombat(dt, now) {
@@ -2405,6 +2421,7 @@
         const r = CombatLib.monsterTick(m, hero, p.x, p.z, dt);
         if (r.attack && !hero.dead) monsterHitsHero(m);
       }
+      if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && performance.now() < m.muriendo)) descargarModelosEnemigo(m);
       const near = d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d);
       m.group.visible = near;
       if (near) {

@@ -280,6 +280,7 @@ export function generarCampo(o) {
     const malla = new THREE.Mesh(fusion, mat);
     malla.castShadow = false;
     malla.receiveShadow = true;
+    malla.userData.lejos = 350;   // piezas pequeñas: el visor oculta la celda más lejos de la cámara
     grupo.add(malla);
   });
   return grupo;

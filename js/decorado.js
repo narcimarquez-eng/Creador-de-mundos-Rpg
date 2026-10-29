@@ -20,6 +20,44 @@
   const ARBOL_ESCALA = 0.8;   // TREE_SCALE de los pueblos (roble, álamo y pino)
   // Distancias (m) a la cámara: hasta la primera, hojas completas; hasta la segunda, hojas reducidas; más allá, silueta
   const LOD_ARBOL_M = [70, 300];
+  // Más lejos de la cámara no se dibuja (m, hasta el borde de la celda): según el tamaño, para que al
+  // desaparecer ocupe solo unos pocos píxeles en pantalla
+  const LEJOS = { cascotes: 250, vallas: 350, rocas: 400, muretes: 400, setos: 450, matorrales: 600, ruinas: 800, cabanas: 900, arboles: 1600 };
+  const CELDA_LEJOS = 300;   // las mallas instanciadas de todo el mundo se trocean en celdas de este lado
+
+  // Trocea una malla instanciada repartida por todo el mundo en una por celda de 'lado' m (según la posición
+  // de cada instancia), con la misma geometría y material. Así el motor descarta las celdas fuera de la vista
+  // y el visor puede ocultar las lejanas. Devuelve [{ malla, x0, x1, z0, z1 }] con los límites de cada celda.
+  function trocear(THREE, malla, lado) {
+    const celdas = new Map(), m = new THREE.Matrix4(), p = new THREE.Vector3(), c = new THREE.Color();
+    for (let i = 0; i < malla.count; i++) {
+      malla.getMatrixAt(i, m);
+      p.setFromMatrixPosition(m);
+      const k = Math.floor(p.x / lado) + ',' + Math.floor(p.z / lado);
+      if (!celdas.has(k)) celdas.set(k, { ids: [], x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity });
+      const e = celdas.get(k);
+      e.ids.push(i);
+      e.x0 = Math.min(e.x0, p.x); e.x1 = Math.max(e.x1, p.x); e.z0 = Math.min(e.z0, p.z); e.z1 = Math.max(e.z1, p.z);
+    }
+    const out = [];
+    celdas.forEach(e => {
+      const nueva = new THREE.InstancedMesh(malla.geometry, malla.material, e.ids.length);
+      e.ids.forEach((id, j) => {
+        malla.getMatrixAt(id, m); nueva.setMatrixAt(j, m);
+        if (malla.instanceColor) { malla.getColorAt(id, c); nueva.setColorAt(j, c); }
+      });
+      nueva.instanceMatrix.needsUpdate = true;
+      if (nueva.instanceColor) nueva.instanceColor.needsUpdate = true;
+      nueva.castShadow = malla.castShadow; nueva.receiveShadow = malla.receiveShadow;
+      nueva.visible = malla.visible;
+      nueva.userData = Object.assign({}, malla.userData);
+      nueva.computeBoundingSphere();
+      out.push({ malla: nueva, x0: e.x0, x1: e.x1, z0: e.z0, z1: e.z1 });
+    });
+    return out;
+  }
+  // Distancia en el plano de (x, z) a la caja de una celda
+  const distCaja = (c, x, z) => Math.hypot(Math.max(c.x0 - x, 0, x - c.x1), Math.max(c.z0 - z, 0, z - c.z1));
 
   function generar(THREE, o) {
     const rng = o.rng, L = o.limites;
@@ -82,6 +120,7 @@
         });
         malla.instanceMatrix.needsUpdate = true;
         malla.instanceColor.needsUpdate = true;
+        malla.userData.lejos = LEJOS.rocas;
         grupo.add(malla);
       });
     }
@@ -167,6 +206,7 @@
       }));
       malla.instanceMatrix.needsUpdate = true;
       malla.instanceColor.needsUpdate = true;
+      malla.userData.lejos = LEJOS.ruinas;
       grupo.add(malla);
       // Cascotes: rocas pequeñas junto a los muros
       const cascotes = [];
@@ -175,6 +215,7 @@
       cascotes.forEach((c, j) => ponerInstancia(cm, j, c.x, o.altura(c.x, c.z) - 0.1, c.z, c.tam, c.tam * 0.6, c.tam, c.ry, 0x8d8680));
       cm.instanceMatrix.needsUpdate = true;
       cm.instanceColor.needsUpdate = true;
+      cm.userData.lejos = LEJOS.cascotes;
       grupo.add(cm);
     }
 
@@ -205,12 +246,15 @@
         const partes = C.partesRuina(THREE, { tipo: c.tipo, ancho: c.ancho, fondo: c.fondo, semilla: c.semilla, hundir: Math.max(0, hc - yEsq + 0.2) });
         const M = new THREE.Matrix4().compose(new THREE.Vector3(c.x, hc, c.z),
           new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), c.ry), new THREE.Vector3(1, 1, 1));
-        Object.keys(partes).forEach(k => { (piezas[k] = piezas[k] || []).push(partes[k].clone().applyMatrix4(M)); });
+        // Una malla por material y celda, para poder ocultar las lejanas
+        const celdaC = Math.floor(c.x / CELDA_LEJOS * 0.5) + ',' + Math.floor(c.z / CELDA_LEJOS * 0.5);
+        Object.keys(partes).forEach(k => { const clave = celdaC + '|' + k; (piezas[clave] = piezas[clave] || []).push(partes[k].clone().applyMatrix4(M)); });
       });
       const mats = C.materiales(THREE);
-      Object.keys(piezas).forEach(k => {
-        const malla = new THREE.Mesh(C.fundir(THREE, piezas[k]), mats[k]);
+      Object.keys(piezas).forEach(clave => {
+        const malla = new THREE.Mesh(C.fundir(THREE, piezas[clave]), mats[clave.split('|')[1]]);
         malla.castShadow = true; malla.receiveShadow = true;
+        malla.userData.lejos = LEJOS.cabanas;
         grupo.add(malla);
       });
     }
@@ -259,6 +303,7 @@
       const pm = new THREE.InstancedMesh(pGeo, material(), postes.length);
       postes.forEach((c, j) => ponerInstancia(pm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0x6b4a2b));
       pm.instanceMatrix.needsUpdate = true; pm.instanceColor.needsUpdate = true;
+      pm.userData.lejos = LEJOS.vallas;
       grupo.add(pm);
       const tGeo = new THREE.BoxGeometry(tramo, 0.09, 0.09);
       const tm = new THREE.InstancedMesh(tGeo, material(), travesanos.length * 2);
@@ -267,6 +312,7 @@
         ponerInstancia(tm, j * 2 + 1, c.x, c.y + 1.1, c.z, 1, 1, 1, c.ry, 0x7a5a36);
       });
       tm.instanceMatrix.needsUpdate = true; tm.instanceColor.needsUpdate = true;
+      tm.userData.lejos = LEJOS.vallas;
       grupo.add(tm);
     }
     if (setos.length) {
@@ -275,6 +321,7 @@
         const malla = new THREE.InstancedMesh(parte.geo, parte.mat, setos.length);
         setos.forEach((c, j) => ponerInstancia(malla, j, c.x, c.y, c.z, 1, 1, 1, c.ry, undefined));
         malla.instanceMatrix.needsUpdate = true;
+        malla.userData.lejos = LEJOS.setos;
         grupo.add(malla);
       });
     }
@@ -283,6 +330,7 @@
       const mm = new THREE.InstancedMesh(mGeo, material(), muretes.length);
       muretes.forEach((c, j) => ponerInstancia(mm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0xa29a8c));
       mm.instanceMatrix.needsUpdate = true; mm.instanceColor.needsUpdate = true;
+      mm.userData.lejos = LEJOS.muretes;
       grupo.add(mm);
     }
     // ---------------------------------------------------------------- Árboles
@@ -331,10 +379,11 @@
     }
     // Reparte los árboles de una celda entre sus niveles de detalle según la distancia a la cámara
     function repartirArboles(c, cx, cz) {
-      const R1 = LOD_ARBOL_M[0] * LOD_ARBOL_M[0], R2 = LOD_ARBOL_M[1] * LOD_ARBOL_M[1];
+      const R1 = LOD_ARBOL_M[0] * LOD_ARBOL_M[0], R2 = LOD_ARBOL_M[1] * LOD_ARBOL_M[1], RF = LEJOS.arboles * LEJOS.arboles;
       const n = { cerca: 0, lejos: 0, silueta: 0 };
       c.arboles.forEach(a => {
         const d2 = (a.x - cx) * (a.x - cx) + (a.z - cz) * (a.z - cz);
+        if (d2 > RF && cx !== Infinity) return;   // demasiado lejos: no se dibuja
         const nivel = d2 < R1 ? 'cerca' : d2 < R2 ? 'lejos' : 'silueta';
         const i = n[nivel]++;
         if (nivel === 'silueta') { c.mallas.silueta.setMatrixAt(i, a.m); c.mallas.silueta.setColorAt(i, a.color); }
@@ -351,13 +400,36 @@
 
     // Llamado desde el visor con la posición de la cámara: cambia el detalle de matorrales y de árboles
     let camArboles = null;   // dónde se repartieron los árboles por última vez
+    // Mallas que se ocultan de lejos (userData.lejos, en m): las instanciadas de todo el mundo se trocean en
+    // celdas; las demás (ya hechas por celda: cabañas, decoración variada) se miden con su caja
+    const lejanos = [];
+    grupo.userData.registrarLejanos = obj => {
+      const lista = [];
+      obj.traverse(h => { if (h.isMesh && h.userData.lejos && !h.userData.enLejania) lista.push(h); });
+      lista.forEach(h => {
+        if (h.isInstancedMesh) {
+          const padre = h.parent;
+          padre.remove(h);
+          trocear(THREE, h, CELDA_LEJOS).forEach(c => { c.malla.userData.enLejania = true; padre.add(c.malla); lejanos.push(Object.assign(c, { dist: h.userData.lejos })); });
+          h.dispose();
+        } else {
+          h.geometry.computeBoundingBox();
+          const b = h.geometry.boundingBox;
+          h.userData.enLejania = true;
+          lejanos.push({ malla: h, x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z, dist: h.userData.lejos });
+        }
+      });
+    };
+    grupo.userData.registrarLejanos(grupo);
+    grupo.userData.lejanos = lejanos;
+
     grupo.userData.actualizar = (x, z) => {
       lodCeldas.forEach(c => {
-        const dx = Math.max(c.x0 - x, 0, x - c.x1), dz = Math.max(c.z0 - z, 0, z - c.z1);
-        const cerca = Math.hypot(dx, dz) < LOD_ARBUSTOS_M;
+        const d = distCaja(c, x, z), cerca = d < LOD_ARBUSTOS_M;
         c.cercanas.forEach(malla => { malla.visible = cerca; });
-        c.lejana.visible = !cerca;
+        c.lejana.visible = !cerca && d < LEJOS.matorrales;
       });
+      lejanos.forEach(c => { c.malla.visible = distCaja(c, x, z) < c.dist; });
       // Los árboles solo se vuelven a repartir si la cámara se ha movido más de 4 m
       if (!camArboles || (x - camArboles.x) * (x - camArboles.x) + (z - camArboles.z) * (z - camArboles.z) > 16) {
         camArboles = { x, z };
@@ -367,7 +439,7 @@
     return grupo;
   }
 
-  const api = { generar };
+  const api = { generar, trocear, LEJOS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.DecoradoLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);
