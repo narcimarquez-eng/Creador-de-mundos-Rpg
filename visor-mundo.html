@@ -193,6 +193,13 @@
     #load h2 { margin: 0 0 8px; color: var(--gold); font-size: 17px; }
     #load .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
+    /* Lo que falta por cargar: encima del minimapa, solo mientras hay algo pendiente */
+    #carga { position: absolute; right: 24px; bottom: 312px; width: 170px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 9px; z-index: 17; font-size: 11px; color: var(--muted); opacity: 0; transition: opacity .4s; pointer-events: none; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+    #carga.show { opacity: 1; }
+    #carga .c-tit { display: flex; justify-content: space-between; color: #e2e8f0; font-weight: 600; font-size: 12px; }
+    #carga .c-barra { height: 5px; background: #1e293b; border-radius: 3px; margin: 4px 0; overflow: hidden; }
+    #carga .c-barra i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+    @media (max-width: 760px) { #carga { right: 8px; bottom: 292px; width: 140px; } }
     #toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #0f172a; border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none; }
     #toast.show { opacity: 1; }
 
@@ -283,6 +290,7 @@
     <div class="m-pie"><span id="mision-prog"></span><button id="mision-ir">🧭 Llévame</button></div>
   </div>
   <canvas id="minimap" width="300" height="300" title="Pulsa para ver el mapa del mundo"></canvas>
+  <div id="carga" aria-live="polite"><div class="c-tit"><span>⏳ Cargando</span><b id="carga-pct"></b></div><div class="c-barra"><i id="carga-barra"></i></div><div id="carga-det"></div></div>
   <div id="hud">
     <div id="zona-marca"></div>
     <div class="hud-bars">
@@ -488,6 +496,14 @@
   const CHUNK = 16;                      // celdas de 20 m por trozo (320 m); múltiplo de los pasos de la malla lejana
   // Texturas del suelo: 15 capas (tres por clase, TerrainLib.CAPAS) sacadas del atlas assets/terreno/atlas.jpg
   const terrainU = { tCapas: { value: null }, uTexOn: { value: 0 } };
+  // Archivos que se están descargando (modelos, texturas…): todos los cargadores de THREE pasan por el
+  // gestor por defecto; se cuentan para el indicador de carga
+  let archivosPendientes = 0, archivosEmpezados = 0, archivosAcabados = 0;   // los dos últimos, de la tanda actual
+  {
+    const g = THREE.DefaultLoadingManager, inicio = g.itemStart.bind(g), fin = g.itemEnd.bind(g);
+    g.itemStart = url => { archivosPendientes++; archivosEmpezados++; inicio(url); };
+    g.itemEnd = url => { archivosPendientes = Math.max(0, archivosPendientes - 1); archivosAcabados++; fin(url); };
+  }
   // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
   // sombra: medio lado (m) de la caja de sombras alrededor del héroe; crece si la cámara se aleja
   const QUALITY = { bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0 }, medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120 }, alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160 } };
@@ -1971,11 +1987,54 @@
   }
 
   let lastStream = 0;
+  // Distancia de un pueblo al héroe o a lo que mira la cámara (la menor)
+  function distPueblo(o) {
+    const a = character.root.position, b = controls.target;
+    return Math.min(Math.hypot(a.x - o.t.x, a.z - o.t.y), Math.hypot(b.x - o.t.x, b.z - o.t.y));
+  }
+
+  // Indicador de lo que falta por cargar: monstruos cercanos sin su modelo, pueblos que entran y archivos
+  const cargaUI = { t: 0, maxMon: 0, maxPue: 0, mostrado: 0 };
+  function actualizarCarga(now) {
+    if (now - cargaUI.t < 250) return;
+    cargaUI.t = now;
+    const p = character.root.position;
+    let mon = 0;
+    monsters.forEach(m => {
+      if (!m.alive || !m.versiones) return;
+      const d = Math.hypot(m.x - p.x, m.z - p.z);
+      if (d < MONSTRUO_VISIBLE && !m.versiones[tipoEnemigo(m, d)]) mon++;
+    });
+    const huecos = Math.max(0, MAX_LOADED - towns.filter(o => o.village).length);
+    const pue = Math.min(huecos, towns.filter(o => !o.village && distPueblo(o) < LOAD_R).length) + towns.filter(o => o.village && o.rise < 1).length;
+    const arch = archivosPendientes;
+    const total = mon + pue + arch;
+    const el = $('carga');
+    if (!total) {
+      // Tanda terminada: el siguiente progreso empieza de cero
+      cargaUI.maxMon = cargaUI.maxPue = cargaUI.mostrado = 0; archivosEmpezados = archivosAcabados = 0;
+      el.classList.remove('show');
+      return;
+    }
+    // Progreso de la tanda actual: archivos acabados de los empezados, y monstruos y pueblos hechos frente a
+    // lo máximo que ha llegado a faltar de cada uno
+    cargaUI.maxMon = Math.max(cargaUI.maxMon, mon);
+    cargaUI.maxPue = Math.max(cargaUI.maxPue, pue);
+    const hecho = Math.min(archivosAcabados, archivosEmpezados) + (cargaUI.maxMon - mon) + (cargaUI.maxPue - pue);
+    const todo = Math.max(archivosEmpezados, arch) + cargaUI.maxMon + cargaUI.maxPue;
+    // La barra no retrocede: si llega trabajo nuevo, se queda quieta hasta que el progreso la alcanza
+    const pct = cargaUI.mostrado = Math.max(cargaUI.mostrado, Math.min(99, Math.round(100 * hecho / Math.max(1, todo))));
+    $('carga-pct').textContent = pct + ' %';
+    $('carga-barra').style.width = pct + '%';
+    const n = (k, uno, varios) => k ? k + ' ' + (k === 1 ? uno : varios) : '';
+    $('carga-det').textContent = [n(mon, 'monstruo', 'monstruos'), n(pue, 'pueblo', 'pueblos'), n(arch, 'archivo', 'archivos')].filter(Boolean).join(' · ');
+    el.classList.add('show');
+  }
+
   function streamTowns(now) {
     if (now - lastStream < 200 || !towns.length) return;
     lastStream = now;
-    const centers = [character.root.position, controls.target];
-    const dist = o => Math.min(...centers.map(c => Math.hypot(c.x - o.t.x, c.z - o.t.y)));
+    const dist = distPueblo;
     let changed = false;
     towns.forEach(o => { if (o.village && dist(o) > UNLOAD_R) { unloadTown(o); changed = true; } });
     const loaded = towns.filter(o => o.village);
@@ -2173,9 +2232,14 @@
   }
 
   // Muestra la versión adecuada a la distancia d. Devuelve false si aún no hay ninguna construida.
+  // Versión que le toca a un monstruo a la distancia d (con margen para que no parpadee)
+  function tipoEnemigo(m, d) {
+    if (quality === 'bajo') return 'cerca';   // en calidad baja las dos serían iguales
+    return d < MONSTRUO_DETALLE + (m.activa === 'cerca' ? 5 : -5) ? 'cerca' : 'lejos';
+  }
+
   function construirModeloEnemigo(m, d) {
-    let tipo = d < MONSTRUO_DETALLE + (m.activa === 'cerca' ? 5 : -5) ? 'cerca' : 'lejos';
-    if (quality === 'bajo') tipo = 'cerca';   // en calidad baja las dos serían iguales
+    const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
       if (presupuestoModelos <= 0) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
       presupuestoModelos--;
@@ -4087,6 +4151,7 @@
     lastT = now;
 
     streamTowns(now);
+    actualizarCarga(now);
     AGUA_U.uTime.value = now / 1000;
     if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
       lastDecor = now;
