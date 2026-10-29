@@ -331,7 +331,7 @@
         return;
       }
       const ux = dx / dist, uz = dz / dist;
-      const paso = Math.min(dist - d.parar, this.walkSpeed * dt);
+      const paso = Math.min(dist - d.parar, this.runSpeed * dt);   // hacia un objetivo se corre
       const antes = this.root.position.clone();
       const resolved = this.resolveCollisions(this.root.position.x + ux * paso, this.root.position.z + uz * paso);
       this.root.position.x = resolved.x;
@@ -343,7 +343,7 @@
       this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
       const objetivoGiro = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(ux, uz));
       this.root.quaternion.slerp(objetivoGiro, Math.min(1, dt * 12));
-      if (!enAccion) this.switchAnimation('walk');
+      if (!enAccion) this.switchAnimation('run');
     }
 
     resolveCollisions(nextX, nextZ) {

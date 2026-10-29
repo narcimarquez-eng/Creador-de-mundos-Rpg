@@ -3123,6 +3123,8 @@
   function loadText(text, label) {
     try {
       const w = W.deserialize(text);
+      // Versión 2 de monstruos: más monstruos por zona, según su tamaño. Los mundos antiguos se repueblan.
+      if (w.monstruosVersion !== 2) { W.recomputeLevels(w); w.monstruosVersion = 2; }
       buildWorld(w);
       if (label) toast('Mundo «' + w.name + '» cargado');
       return true;
