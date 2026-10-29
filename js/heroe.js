@@ -185,18 +185,35 @@
     return s;
   }
 
+  // Texto de un efecto de habilidad especial («+10 % de daño», «vida máxima +15», ...)
+  function efectoTexto(efecto) {
+    const pct = v => Math.round(v * 100) + ' %';
+    const frases = {
+      critico: v => '+' + pct(v) + ' de crítico',
+      danio: v => '+' + pct(v) + ' de daño',
+      velocidadAtaque: v => '+' + pct(v) + ' de velocidad de ataque',
+      robo: v => 'roba ' + pct(v) + ' del daño como vida',
+      reflejo: v => 'devuelve ' + pct(v) + ' del daño recibido',
+      velocidad: v => '+' + pct(v) + ' de velocidad',
+      vida: v => 'vida máxima +' + v,
+      bloqueo: v => '+' + pct(v) + ' de bloqueo',
+      defensa: v => '+' + pct(v) + ' de defensa'
+    };
+    return Object.keys(efecto).map(k => frases[k](efecto[k])).join(', ');
+  }
+
   // Texto de las estadísticas y especiales de un objeto, para el panel
   function ficha(obj) {
     const lineas = [];
     if (obj.ataque) lineas.push('Ataque ' + obj.ataque);
     if (obj.defensa) lineas.push('Defensa ' + obj.defensa);
     if (tipoDe(obj) === 'escudo') lineas.push('Bloqueo ' + Math.round(15 * (obj.estado || 1)) + ' %');
-    const especiales = especialesDe(obj).map(e => e.nombre);
+    const especiales = especialesDe(obj).map(e => ({ nombre: e.nombre, texto: efectoTexto(e.efecto) }));
     return { tipo: tipoDe(obj), lineas, especiales };
   }
 
   const api = { HABILIDADES, MISIONES, ESPECIALES, PUNTOS_KILLS, nuevoHeroe, limpiarHeroe, registrarEvento, registrarMuerte,
-    mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales };
+    mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.HeroeLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

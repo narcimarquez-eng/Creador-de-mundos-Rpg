@@ -113,6 +113,14 @@
     #cronica .cap p { margin: 4px 0 0; line-height: 1.5; font-size: 13px; }
     #cronica .muted, #capitulo .muted { color: var(--muted); font-size: 12px; }
     #cronica .btns, #capitulo .btns { display: flex; gap: 6px; margin-top: 10px; }
+    #heroe { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 45; padding: 16px; }
+    #heroe.show { display: flex; }
+    #heroe .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; width: 520px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+    #heroe h2 { margin: 0 0 6px; color: var(--gold); font-size: 17px; }
+    #heroe h3 { margin: 12px 0 4px; font-size: 13px; color: var(--gold); }
+    #heroe .muted { color: var(--muted); font-size: 12px; }
+    #heroe .fila { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
+    #heroe .btns { display: flex; gap: 6px; margin-top: 10px; }
     #inv-card { position: absolute; top: 54px; right: 8px; width: 250px; z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 11px; }
     #inv-card.oculta { display: none; }
     #inv-card .ic-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
@@ -268,6 +276,7 @@
       <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
       <button id="sk-objetos" title="Objetos y equipo (I)">🎒<small>I</small></button>
       <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
+      <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
     </div>
   </div>
@@ -289,6 +298,11 @@
     <h2>📜 Crónica del pueblo</h2>
     <div id="cro-lista"></div>
     <div class="btns"><button id="cro-cerrar">Cerrar</button></div>
+  </div></div>
+  <div id="heroe"><div class="box">
+    <h2>🧬 Héroe</h2>
+    <div id="heroe-cuerpo"></div>
+    <div class="btns"><button id="heroe-cerrar">Cerrar</button></div>
   </div></div>
   <div id="objetos"><div class="box">
     <h2>🎒 Objetos</h2>
@@ -364,6 +378,7 @@
   <script src="js/lagos.js?v=20251029"></script>
   <script src="js/equipo.js?v=20251029"></script>
   <script src="js/historia.js?v=20251029"></script>
+  <script src="js/heroe.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -1730,12 +1745,12 @@
       const serv = n.info.servicio;
       html = `
         <button class="close" data-close>✕</button>
-        <span class="kind">${serv ? (serv === 'herrero' ? 'Herrero' : 'Mercader') : 'Gurú del conocimiento'}</span>
+        <span class="kind">${serv ? TEXTO_SERVICIO[serv].tipo : 'Gurú del conocimiento'}</span>
         <h2>${esc(n.info.nombre)}</h2>
         <div class="muted">${esc(n.info.tema)}</div>
-        <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${serv ? '' : '«' + esc(n.info.frase) + '»'}</div>
+        <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${serv && serv !== 'entrenador' ? '' : '«' + esc(n.info.frase) + '»'}</div>
         <div class="btns">
-          ${serv ? `<button class="gold" data-servicio>${serv === 'herrero' ? '🔨 Forjar' : '🧺 Comerciar'}</button>` : '<button class="gold" data-hablar>💬 Hablar</button>'}
+          ${serv ? `<button class="gold" data-servicio>${TEXTO_SERVICIO[serv].boton}</button>` : '<button class="gold" data-hablar>💬 Hablar</button>'}
         </div>`;
     } else if (sel.kind === 'monster') {
       const m = sel.ref;
@@ -2055,6 +2070,10 @@
     m.bar.visible = false;
     const nivelAntes = hero.level;
     const levels = CombatLib.gainXp(hero, m.xp);
+    anunciarHechas(HeroeLib.registrarMuerte(heroeEst, m.boss));
+    if (heroeEst.kills % HeroeLib.PUNTOS_KILLS === 0) toast('🧬 +1 punto de habilidad por tu lucha');
+    aplicarStats();
+    if (levels) { hero.hp = hero.maxHp; hero.mp = hero.maxMp; }
     const capNuevos = HistoriaLib.nuevosCapitulos(nivelAntes, hero.level);
     if (capNuevos.length) setTimeout(() => mostrarCapitulo(capNuevos[0]), 3200);
     let loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
@@ -2094,7 +2113,10 @@
   }
 
   function aplicarDanoEnemigo(m) {
-    const dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level);
+    // Reducción por armadura y entereza; el bloqueo del escudo recorta a la mitad; las espinas devuelven parte del daño
+    let dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level) * (1 - statsHeroe.reduccion);
+    if (Math.random() < statsHeroe.bloqueo) dmg *= 0.5;
+    if (statsHeroe.reflejo) damageMonster(m, dmg * statsHeroe.reflejo);
     if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
   }
 
@@ -2234,18 +2256,21 @@
   }
 
   // Habilidades: daño a los monstruos del alcance y animación del personaje
-  // Habilidades que se desbloquean con una misión (aún no hay misiones): se ven, pero no se usan
-  const BLOQUEADAS = new Set(['spin', 'nova']);
+  // Patada (Q) y nova (E) se desbloquean con una misión (ver js/heroe.js)
+  const HAB_DE_SKILL = { spin: 'patada', nova: 'nova' };
+  function bloqueada(name) { const hab = HAB_DE_SKILL[name]; return !!hab && !heroeEst.desbloqueadas[hab]; }
 
   function useSkill(name) {
     if (hero.dead) return;
-    if (BLOQUEADAS.has(name)) { toast('🔒 Se desbloquea con una misión'); return; }
+    if (bloqueada(name)) { toast('🔒 Se desbloquea con una misión'); return; }
     if (!CombatLib.canUse(hero, name)) {
       if (hero.cd[name] > 0) toast(name === 'attack' ? 'Combo listo en un momento' : 'Recargando…');
       else if (hero.mp < CombatLib.SKILLS[name].mp) toast('Sin maná');
       return;
     }
     CombatLib.useSkill(hero, name);
+    // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
+    if (statsHeroe.velocidadAtaque) hero.cd[name] = Math.max(CombatLib.SKILLS[name].lock, hero.cd[name] / (1 + statsHeroe.velocidadAtaque));
     character.playOneShot(SKILL_ANIM[name], lastNowSec);
     const p = character.root.position;
     const fx = Math.sin(character.root.rotation.y), fz = Math.cos(character.root.rotation.y);
@@ -2253,7 +2278,7 @@
     monsters.slice().forEach(m => {
       if (!m.alive || !CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z)) return;
       hits++;
-      damageMonster(m, CombatLib.heroDamage(hero, name, m.level));
+      golpear(m, danioDelHeroe(name, m.level));
     });
     if (name !== 'attack' && hits === 0) toast('Sin objetivos en el alcance');
   }
@@ -2274,9 +2299,9 @@
     $('hud-lv').textContent = 'Nv ' + hero.level;
     ['attack', 'spin', 'nova'].forEach(k => {
       const btn = $('sk-' + k), cd = hero.cd[k];
-      const bloqueada = BLOQUEADAS.has(k);
-      btn.disabled = hero.dead || bloqueada || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
-      btn.querySelector('.cd').textContent = bloqueada ? '🔒' : (cd > 0 ? Math.ceil(cd) : '');
+      const bloq = bloqueada(k);
+      btn.disabled = hero.dead || bloq || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
+      btn.querySelector('.cd').textContent = bloq ? '🔒' : (cd > 0 ? Math.ceil(cd) : '');
     });
     $('inv-gold').textContent = inv.gold;
     $('inv-vida').textContent = inv.vida;
@@ -2314,6 +2339,7 @@
         announce('🏘 ' + town.t.name, 'Nivel ' + town.t.level + ' · ' + (SIZE_NAMES[size] || '') + (town.t.isStart ? ' · pueblo inicial' : ''));
         if (!visited.has(town.t.id)) {
           visited.add(town.t.id);
+          anunciarHechas(HeroeLib.registrarEvento(heroeEst, 'visitar', visited.size));
           buildUI();
           updateStats();
           saveActive(true);
@@ -2402,7 +2428,7 @@
       where: nearestTownName(),
       player: character.root.position, yaw: character.root.rotation.y,
       hero, inv, visited: [...visited], timeOfDay,
-      personaje: personajeActual
+      personaje: personajeActual, heroe: heroeEst
     });
   }
 
@@ -2420,7 +2446,8 @@
     r.visited.forEach(id => visited.add(id));
     setTimeOfDay(r.timeOfDay);
     personajeActual = r.personaje;
-    actualizarArma();
+    heroeEst = HeroeLib.limpiarHeroe(r.heroe);
+    aplicarStats();
     renderInvCard();
     if (personajeActual) cargarCatalogoPiezas().catch(() => {});
     if (personajeActual) {
@@ -2475,10 +2502,41 @@
     }
   }
 
-  // Ataque del arma equipada: suma al daño del héroe (ver CombatLib.heroDamage)
-  function actualizarArma() {
-    const arma = personajeActual && EquipoLib.objeto(personajeActual, personajeActual.equipo.weapon);
-    hero.ataque = arma && arma.ataque ? arma.ataque : 0;
+  // Estadísticas del héroe: nivel, equipo (con sus especiales) y habilidades pasivas. Se recalculan al cambiar
+  // de equipo, subir de nivel, mejorar una habilidad o cargar la partida.
+  function aplicarStats() {
+    const equipados = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
+    statsHeroe = HeroeLib.estadisticas(heroeEst, hero.level, equipados);
+    hero.maxHp = statsHeroe.vida;
+    hero.maxMp = statsHeroe.maná;
+    hero.hp = Math.min(hero.hp, hero.maxHp);
+    hero.mp = Math.min(hero.mp, hero.maxMp);
+    hero.ataque = statsHeroe.ataque;
+    if (!velBase) velBase = { walk: character.walkSpeed, run: character.runSpeed };
+    character.walkSpeed = velBase.walk * (1 + statsHeroe.velocidad);
+    character.runSpeed = velBase.run * (1 + statsHeroe.velocidad);
+  }
+
+  const CRITICO = 1.5;   // multiplicador del golpe crítico
+  // Daño de una habilidad: arma, daño extra, patada/nova mejoradas y crítico
+  function danioDelHeroe(name, targetLevel) {
+    let dmg = CombatLib.heroDamage(hero, name, targetLevel) * (1 + statsHeroe.danio);
+    if (name === 'spin') dmg *= statsHeroe.patada;
+    if (name === 'nova') dmg *= statsHeroe.nova;
+    return Math.random() < statsHeroe.critico ? dmg * CRITICO : dmg;
+  }
+  // Un golpe del héroe: con robo de vida recupera parte del daño
+  function golpear(m, dmg) {
+    if (statsHeroe.robo) hero.hp = Math.min(hero.maxHp, hero.hp + dmg * statsHeroe.robo);
+    damageMonster(m, dmg);
+  }
+
+  // Misiones completadas: aviso con su recompensa
+  function anunciarHechas(lista) {
+    lista.forEach(mi => {
+      const extra = mi.recompensa.desbloquea ? ' · desbloquea ' + HeroeLib.HABILIDADES[mi.recompensa.desbloquea].nombre : '';
+      toast('📜 Misión completada: ' + mi.titulo + ' (+' + mi.recompensa.puntos + ' puntos)' + extra);
+    });
   }
 
   function activePartida() {
@@ -2574,6 +2632,10 @@
   const ESTUDIO_URL = 'estudio-armaduras/index.html';
   let catalogoPiezas = null;
   let personajeActual = null;   // personaje de la partida activa (ver js/partida.js)
+  let heroeEst = HeroeLib.nuevoHeroe();                        // puntos, misiones y habilidades (ver js/heroe.js)
+  let statsHeroe = HeroeLib.estadisticas(heroeEst, 1, []);    // estadísticas actuales: las recalcula aplicarStats()
+  let velBase = null;                                          // velocidades del personaje sin equipo
+  let servicioActual = null;                                   // servicio del NPC abierto: herrero, mercader o entrenador
   let alCrear = null;
   let estudioListo = null;      // promesa: el maniquí del estudio está listo
   const piezasGlb = {};         // id de pieza → URL del GLB generado en esta sesión
@@ -2785,7 +2847,7 @@
     if (!b) return;
     try {
       EquipoLib.equipar(personajeActual, b.dataset.equipar, hero.level);
-      actualizarArma();
+      aplicarStats();
       renderObjetos();
       toast('Equipado');
       await mostrarCuerpo(personajeActual);
@@ -2814,7 +2876,8 @@
   function abrirServicio(g) {
     if (!personajeActual) { toast('Crea un personaje primero'); return; }
     cargarCatalogoPiezas().then(() => {
-      $('npc-titulo').textContent = (g.info.servicio === 'herrero' ? '🔨 ' : '🧺 ') + g.info.nombre;
+      servicioActual = g.info.servicio;
+      $('npc-titulo').textContent = TEXTO_SERVICIO[servicioActual].icono + ' ' + g.info.nombre;
       $('npc-frase').textContent = '«' + g.info.frase + '»';
       $('npc-oro').textContent = inv.gold;
       renderNpc(g.info.servicio);
@@ -2838,6 +2901,8 @@
         return `<div class="slot"><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
           <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
       }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
+    } else if (servicio === 'entrenador') {
+      html = renderEntrenador();
     } else {
       html = '<h3 class="npc-h">Comprar</h3>' + (piezas.map(p => {
         const coste = EquipoLib.COMPRA_ORO * p.nivel;
@@ -2858,19 +2923,78 @@
     $('npc-oro').textContent = inv.gold;
     updateStats();
     renderObjetos();
-    renderNpc($('npc-titulo').textContent.startsWith('🔨') ? 'herrero' : 'mercader');
+    renderNpc(servicioActual);
   }
 
   $('npc-lista').addEventListener('click', e => {
     const pj = personajeActual;
+    const mj = e.target.closest('button[data-mejorar]');
+    if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar); aplicarStats(); toast('Habilidad mejorada'); });
     const fh = e.target.closest('button[data-forjar-hoja]');
-    if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); toast('Forjada con su hoja'); });
+    if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); anunciarHechas(HeroeLib.registrarEvento(heroeEst, 'forjar', 1)); toast('Forjada con su hoja'); });
     const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
     if (f) accionNpc(() => { inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold); toast('Fabricada'); });
     if (c) accionNpc(() => { inv.gold -= EquipoLib.comprar(pj, catalogoPiezas, c.dataset.comprar, hero.level, inv.gold); toast('Comprada'); });
     if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
   });
   $('npc-cerrar').onclick = () => $('npc').classList.remove('show');
+
+  // Entrenador: gasta puntos de habilidad en pasivas y en activas (desbloqueadas por misión)
+  function renderEntrenador() {
+    const H = HeroeLib;
+    const fila = id => {
+      const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
+      let accion;
+      if (hab.tipo === 'activa' && !heroeEst.desbloqueadas[id]) accion = '<span class="muted">🔒 ' + esc(H.MISIONES.find(m => m.id === hab.mision).titulo) + '</span>';
+      else if (nivel >= hab.max) accion = '<span class="muted">máximo</span>';
+      else accion = '<button data-mejorar="' + id + '" ' + (heroeEst.puntos < 1 ? 'disabled' : '') + '>Mejorar</button>';
+      return '<div class="slot"><div class="info"><b>' + esc(hab.nombre) + '</b> <span class="muted">' + nivel + '/' + hab.max + '</span><div class="muted">' + esc(hab.desc) + '</div></div>' + accion + '</div>';
+    };
+    const ids = Object.keys(H.HABILIDADES);
+    return '<div class="muted">Puntos de habilidad: <b>' + heroeEst.puntos + '</b>. Se ganan con misiones y cada ' + H.PUNTOS_KILLS + ' monstruos derrotados.</div>'
+      + '<h3 class="npc-h">Pasivas</h3>' + ids.filter(i => H.HABILIDADES[i].tipo === 'pasiva').map(fila).join('')
+      + '<h3 class="npc-h">Activas</h3>' + ids.filter(i => H.HABILIDADES[i].tipo === 'activa').map(fila).join('');
+  }
+
+  // Panel del héroe (tecla P): todas las estadísticas aunque valgan 0, equipo con sus especiales, habilidades y misiones
+  function renderHeroe() {
+    const H = HeroeLib, s = statsHeroe;
+    const pct = v => Math.round(v * 100) + ' %';
+    const mas = v => '+' + pct(v);
+    const filas = [
+      ['Vida máxima', s.vida], ['Maná máximo', s.maná], ['Ataque (arma + fuerza)', s.ataque], ['Defensa de armadura', s.defensa],
+      ['Reducción de daño', pct(s.reduccion)], ['Bloqueo (escudo)', pct(s.bloqueo)], ['Crítico (daño ×' + CRITICO + ')', pct(s.critico)],
+      ['Daño extra', mas(s.danio)], ['Robo de vida', pct(s.robo)], ['Reflejo (espinas)', pct(s.reflejo)],
+      ['Velocidad de movimiento', mas(s.velocidad)], ['Velocidad de ataque', mas(s.velocidadAtaque)],
+      ['Patada giratoria (Q), daño', pct(s.patada)], ['Explosión nova (E), daño', pct(s.nova)]
+    ];
+    const equipo = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
+    const equipoHtml = equipo.map(o => {
+      const f = H.ficha(o);
+      return '<div class="fila"><span><b>' + esc(o.nombre) + '</b> <span class="muted">' + f.tipo + ' · nivel ' + o.nivel + ' · estado ' + Math.round(o.estado * 100) + ' %</span></span></div>'
+        + f.lineas.map(l => '<div class="muted">· ' + esc(l) + '</div>').join('')
+        + f.especiales.map(e => '<div class="muted">✦ ' + esc(e.nombre) + ': ' + esc(e.texto) + '</div>').join('');
+    }).join('') || '<div class="muted">Sin equipo.</div>';
+    const habs = Object.keys(H.HABILIDADES).map(id => {
+      const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
+      const estado = hab.tipo === 'activa' && !heroeEst.desbloqueadas[id] ? '🔒' : nivel + '/' + hab.max;
+      return '<div class="fila"><span>' + esc(hab.nombre) + '<br><span class="muted">' + esc(hab.desc) + '</span></span><b>' + estado + '</b></div>';
+    }).join('');
+    const misiones = H.MISIONES.map(mi => {
+      const hecha = !!heroeEst.hechas[mi.id];
+      const prog = hecha ? mi.cantidad : Math.min(heroeEst.progreso[mi.id] || 0, mi.cantidad);
+      return '<div class="fila"><span>' + (hecha ? '✅' : '📜') + ' ' + esc(mi.titulo) + '<br><span class="muted">' + esc(mi.texto) + ' · +' + mi.recompensa.puntos + ' puntos</span></span><b>' + prog + '/' + mi.cantidad + '</b></div>';
+    }).join('');
+    const posibles = Object.keys(H.ESPECIALES).map(tipo => '<div class="muted"><b>' + tipo + '</b>: ' + H.ESPECIALES[tipo].map(e => esc(e.nombre) + ' (' + esc(H.efectoTexto(e.efecto)) + ')').join(' · ') + '</div>').join('');
+    $('heroe-cuerpo').innerHTML =
+      '<div class="muted">Nivel ' + hero.level + ' · puntos de habilidad: <b>' + heroeEst.puntos + '</b> · monstruos derrotados: ' + heroeEst.kills + ' (siguiente punto en ' + (H.PUNTOS_KILLS - heroeEst.kills % H.PUNTOS_KILLS) + ')</div>'
+      + '<h3>Estadísticas</h3>' + filas.map(f => '<div class="fila"><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('')
+      + '<h3>Equipo</h3>' + equipoHtml
+      + '<h3>Habilidades</h3>' + habs
+      + '<h3>Misiones</h3>' + misiones
+      + '<h3>Especiales posibles</h3>' + posibles
+      + '<div class="muted" style="margin-top:6px">Una pieza tiene 1 especial desde nivel 5, 2 desde 15 y 3 desde 30. Son fijos para cada pieza.</div>';
+  }
 
   // Crónica del pueblo: capítulos que se desbloquean con el nivel del héroe
   function mostrarCapitulo(c) {
@@ -2890,6 +3014,8 @@
   $('sk-cronica').onclick = () => { renderCronica(); $('cronica').classList.add('show'); };
   $('cro-cerrar').onclick = () => $('cronica').classList.remove('show');
   $('cap-cerrar').onclick = () => $('capitulo').classList.remove('show');
+  $('sk-heroe').onclick = () => { renderHeroe(); $('heroe').classList.add('show'); };
+  $('heroe-cerrar').onclick = () => $('heroe').classList.remove('show');
 
   // Partida nueva con el personaje elegido
   function crearPartida(pj) {
@@ -2899,7 +3025,8 @@
     const name = pj.nombre + ' · Partida ' + (list.length + 1);
     personajeActual = pj;
     hero = CombatLib.newHero();
-    actualizarArma();
+    heroeEst = HeroeLib.nuevoHeroe();
+    aplicarStats();
     renderInvCard();
     inv = ItemsLib.newInventory();
     visited.clear();
@@ -2921,7 +3048,7 @@
   const GURUS = [
     { id: 'guru-1', nombre: 'Sabia Elara', tema: 'la historia del reino', frase: 'Antes de Aden hubo siete reinos. Sus murallas aún guardan las runas.' },
     { id: 'guru-2', nombre: 'Maestro Oren', tema: 'los caminos', frase: 'Cada camino lleva a una zona de caza. Sigue el de piedra para no perderte.' },
-    { id: 'guru-3', nombre: 'Hermana Ysolde', tema: 'las runas', frase: 'Las runas se leen de abajo arriba. Un monstruo marcado con ellas es más débil.' },
+    { id: 'guru-3', nombre: 'Hermana Ysolde', tema: 'las runas', frase: 'Las runas se leen de abajo arriba. Un monstruo marcado con ellas es más débil.', servicio: 'entrenador' },
     { id: 'guru-4', nombre: 'Viejo Tamsin', tema: 'los monstruos', frase: 'Los de nivel 1 a 3 temen al acero. Con tu espada basta: no te preocupes por ellos.' },
     { id: 'guru-5', nombre: 'Erudita Mirel', tema: 'el equipo', frase: 'Una cota malgastada rinde la mitad. Revisa el estado de cada objeto en el 🎒.' }
   ];
@@ -2931,6 +3058,12 @@
   const DISTANCIA_HABLAR = 4;
 
   // Herrero y mercader: mismos cuerpos de npc/gurus; cambian por su función
+  // Texto de cada servicio: tipo, botón del panel del NPC e icono
+  const TEXTO_SERVICIO = {
+    herrero: { tipo: 'Herrero', boton: '🔨 Forjar', icono: '🔨' },
+    mercader: { tipo: 'Mercader', boton: '🧺 Comerciar', icono: '🧺' },
+    entrenador: { tipo: 'Entrenador', boton: '🎓 Entrenar', icono: '🎓' }
+  };
   const SERVICIOS = [
     { id: 'serv-herrero', modelo: 'guru-4', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
     { id: 'serv-mercader', modelo: 'guru-5', nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' }
@@ -3080,6 +3213,7 @@
     if (k === 'i') $('sk-objetos').click();
     if (k === 'h') abrirServicioCercano();
     if (k === 'c') { renderCronica(); $('cronica').classList.add('show'); }
+    if (k === 'p') { renderHeroe(); $('heroe').classList.add('show'); }
     if (k === 'x') jump();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');

@@ -39,6 +39,29 @@ Las acciones se buscan por el nombre de la animación del GLB (inglés o españo
 - **Experiencia:** cada nivel necesita 100 × nivel de XP. Al subir de nivel se restaura la vida y el maná.
 - **Muerte:** se pierde el 5 % del XP actual. Se reaparece a los 4 s en el pueblo más cercano, con vida y maná completos.
 
+### Estadísticas del héroe (tecla P)
+
+Las estadísticas salen del nivel, de las habilidades pasivas y del equipo (arma, armadura y escudo, cada uno con sus
+especiales). Reglas en `js/heroe.js`; el panel 🧬 las muestra todas, aunque valgan 0.
+
+- **Arma:** su ataque se suma al daño. Los especiales son: filo (crítico), golpe pesado (daño), ataque veloz
+  (velocidad de ataque), vampírica (robo de vida). Un arma con «Escudo» en el nombre cuenta como escudo.
+- **Armadura:** defensa (reduce el daño, con la fórmula defensa / (defensa + 60)). Especiales: piel de acero
+  (+defensa), vigía (+vida), ligera (+velocidad de movimiento), espinas (devuelve parte del daño recibido).
+- **Escudo:** bloqueo (un golpe bloqueado hace la mitad de daño). Especiales: bloqueo firme, escudo solar (+vida).
+- **Especiales:** aparecen según el nivel de la pieza (1 desde nivel 5, 2 desde 15, 3 desde 30) y son fijos.
+- **Crítico:** 5 % + 1 % por punto de destreza (máximo 75 %), daño ×1,5.
+
+**Puntos de habilidad:** de 2 a 4 por cada misión completada (según la misión) y 1 por cada 20 monstruos derrotados.
+Se gastan con el entrenador **Hermana Ysolde** (tecla H cerca de ella):
+
+- Pasivas (hasta 10 puntos cada una): vitalidad, fuerza, destreza, entereza, intelecto.
+- Activas: patada (Q) y nova (E). Se desbloquean con una misión y suben hasta 3 niveles (+25 % de daño por nivel).
+
+**Misiones** (ver el panel 🧬): primeros pasos (5 monstruos), cazador del bosque (25), camino de
+piedra (visitar 3 pueblos, desbloquea patada), el guardián del bosque (derrotar a un jefe, desbloquea nova) y
+forja de hojas (forjar una pieza superior con su hoja).
+
 ## Monstruos
 
 - **Vida:** 20 + 8 por nivel. **Daño:** 3 + 1,5 por nivel. **XP:** 10 por nivel.

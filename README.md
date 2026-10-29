@@ -13,6 +13,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `js/items.js` | Oro, pociones, botín, tienda y descanso. Pruebas en `test/items.test.js`. |
 | `js/equipo.js` | Clases (guerrero, mago) y armaduras por niveles: al crear el personaje se generan todas las de su clase; cada tramo exige un nivel mínimo. Pruebas en `test/equipo.test.js`. El botón 🧙 Personaje del creador crea el personaje y pide los .glb exportados desde el estudio [armaduras-glb](https://github.com/narcimarquez-eng/armaduras-glb) (`public/assets/aistudio/`). Los magos no tienen modelo todavía. |
 | `js/combat.js` | Reglas del combate (daño, XP, muerte, IA de los monstruos). Pruebas en `test/combat.test.js`. |
+| `js/heroe.js` | Estadísticas del héroe (arma, armadura y escudo con sus especiales), habilidades pasivas y activas, misiones y puntos. Pruebas en `test/heroe.test.js`. Reglas en `docs/COMBATE.md`. |
 | `js/enemigos.js` | Generación de enemigos del editor «Enemigo-rpg» (compilada con `tools/hornear-enemigos.mjs`). El visor la usa para los monstruos: modo por niveles o aleatorio. |
 | `enemigos-editor/` | Editor de enemigos «Enemigo-rpg» ya compilado (sin servidor). Se abre desde el botón «🐉 Enemigos» del Creador de Mundos y del Creador de Pueblos; al enviar un enemigo se añade a «Propios del mundo». Se construye con `tools/construir-editor-enemigos.sh`. |
 | `js/enemigos-optimizar.js` | Une las mallas estáticas de cada enemigo y quita sus hitboxes de depuración, para dibujar menos. |
