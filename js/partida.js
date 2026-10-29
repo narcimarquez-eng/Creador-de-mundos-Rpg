@@ -72,7 +72,7 @@
       savedAt: new Date(o.now || Date.now()).toISOString(),
       player: { x: round1(o.player.x), z: round1(o.player.z), yaw: round2(o.player.yaw || 0) },
       hero: { level: o.hero.level, xp: Math.floor(o.hero.xp), hp: round1(o.hero.hp), mp: round1(o.hero.mp) },
-      inv: { gold: Math.floor(o.inv.gold), vida: Math.floor(o.inv.vida), mana: Math.floor(o.inv.mana) },
+      inv: { gold: Math.floor(o.inv.gold), vida: Math.floor(o.inv.vida), mana: Math.floor(o.inv.mana), arena: Math.floor(o.inv.arena) || 0 },
       visited: (o.visited || []).slice(),
       timeOfDay: o.timeOfDay || 'day',
       personaje: cleanPersonaje(o.personaje)
@@ -114,7 +114,7 @@
   function restoreFields(p) {
     return {
       level: p.hero.level, xp: p.hero.xp, hp: p.hero.hp, mp: p.hero.mp,
-      gold: p.inv.gold, vida: p.inv.vida, mana: p.inv.mana,
+      gold: p.inv.gold, vida: p.inv.vida, mana: p.inv.mana, arena: p.inv.arena || 0,
       x: p.player.x, z: p.player.z, yaw: p.player.yaw,
       visited: p.visited.slice(), timeOfDay: p.timeOfDay, personaje: p.personaje || null
     };

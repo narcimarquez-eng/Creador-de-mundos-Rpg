@@ -401,7 +401,7 @@
   let curTown = null, curZone = null;
   let lastMinimap = 0;
   let hero = CombatLib.newHero();
-  let inv = ItemsLib.newInventory();
+  let inv = Object.assign(ItemsLib.newInventory(), { arena: 0 });
   let restPos = null, restPrevSinceHit = 0;
   let worldId = null;
   const visited = new Set();
@@ -1694,6 +1694,19 @@
         <div class="muted">Nivel <b style="color:#fbbf24">${z.levelMin}–${z.levelMax}</b> · bioma ${esc((W.BIOMES[z.biome] || {}).name || z.biome) } · radio ${z.radius} m</div>
         <table>${z.monsters.map(m => `<tr><td>${m.boss ? '☠ ' : ''}${esc(m.name)}</td><td class="lv">Nv ${m.level}</td></tr>`).join('')}</table>
         <div class="btns"><button class="gold" data-tp="${z.x},${z.y}">🧍 Ir aquí</button></div>`;
+    } else if (sel.kind === 'npc') {
+      const n = sel.ref;
+      cx = n.raiz.position.x; cz = n.raiz.position.z; r = 2.2;
+      const serv = n.info.servicio;
+      html = `
+        <button class="close" data-close>✕</button>
+        <span class="kind">${serv ? (serv === 'herrero' ? 'Herrero' : 'Mercader') : 'Gurú del conocimiento'}</span>
+        <h2>${esc(n.info.nombre)}</h2>
+        <div class="muted">${esc(n.info.tema)}</div>
+        <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${serv ? '' : '«' + esc(n.info.frase) + '»'}</div>
+        <div class="btns">
+          ${serv ? `<button class="gold" data-servicio>${serv === 'herrero' ? '🔨 Forjar' : '🧺 Comerciar'}</button>` : '<button class="gold" data-hablar>💬 Hablar</button>'}
+        </div>`;
     } else if (sel.kind === 'monster') {
       const m = sel.ref;
       cx = m.x; cz = m.z; r = 2.2;
@@ -1722,6 +1735,12 @@
     info.innerHTML = html;
     info.classList.add('show');
     info.querySelector('[data-close]').onclick = () => showSelection(null);
+    info.querySelectorAll('[data-hablar]').forEach(btn => btn.onclick = () => {
+      const txt = sel.ref.info.frase;
+      $('npc-dialogo').textContent = '«' + txt + '»';
+      sel.ref.dicho = lastNowSec;
+    });
+    info.querySelectorAll('[data-servicio]').forEach(btn => btn.onclick = () => abrirServicio(sel.ref));
     if (sel.kind === 'monster' && !catalogoPiezas) {
       cargarCatalogoPiezas().then(() => {
         const el = $('sel-drops');
@@ -2009,6 +2028,10 @@
     // Objetos del personaje: cotas (hasta nivel 5) y armas, cada uno con su estado
     const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
     if (obj) loot += ' · 🎁 ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)';
+    const arena = EquipoLib.soltarArena(m.level, m.boss, Math.random);
+    if (arena) { inv.arena = (inv.arena || 0) + arena; loot += ' · 🧱 arena ×' + arena; }
+    const hoja = personajeActual && catalogoPiezas ? EquipoLib.soltarHoja(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
+    if (hoja) loot += ' · 📜 ' + hoja.nombre;
     else if (personajeActual && EquipoLib.llena(personajeActual)) loot += ' · 🎒 inventario lleno';
     renderInvCard();
     if (m.boss) {
@@ -2359,7 +2382,7 @@
     hero.maxHp = m.maxHp; hero.maxMp = m.maxMp;
     hero.hp = Math.min(m.maxHp, Math.max(1, r.hp));
     hero.mp = Math.min(m.maxMp, Math.max(0, r.mp));
-    inv = { gold: r.gold, vida: r.vida, mana: r.mana };
+    inv = { gold: r.gold, vida: r.vida, mana: r.mana, arena: r.arena || 0 };
     visited.clear();
     r.visited.forEach(id => visited.add(id));
     setTimeOfDay(r.timeOfDay);
@@ -2695,10 +2718,11 @@
     renderInvCard();
     if (!pj) { $('obj-lista').innerHTML = '<div class="muted">Esta partida no tiene personaje.</div>'; return; }
     const equipados = new Set(Object.values(pj.equipo));
-    $('obj-huecos').textContent = pj.inventario.length + ' / ' + EquipoLib.CAPACIDAD + ' huecos';
+    $('obj-huecos').textContent = pj.inventario.length + ' / ' + EquipoLib.CAPACIDAD + ' huecos · arena ' + (inv.arena || 0) + ' 🧱';
     $('obj-lista').innerHTML = pj.inventario.map(o => {
       const stat = o.ataque ? 'ataque ' + o.ataque : 'defensa ' + o.defensa;
       const accion = equipados.has(o.uid) ? '<span class="muted">✅ equipado</span>'
+        : o.tipo === 'hoja' ? '<span class="muted">📜 forja en el herrero</span>'
         : (o.nivel <= hero.level ? `<button data-equipar="${esc(o.uid)}">Equipar</button>` : `<span class="muted">🔒 nivel ${o.nivel}</span>`)
           + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
           + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
@@ -2747,6 +2771,10 @@
   function abrirServicioCercano() {
     const g = servicioCercano();
     if (!g) { toast('Acércate a un herrero o un mercader y pulsa H'); return; }
+    abrirServicio(g);
+  }
+
+  function abrirServicio(g) {
     if (!personajeActual) { toast('Crea un personaje primero'); return; }
     cargarCatalogoPiezas().then(() => {
       $('npc-titulo').textContent = (g.info.servicio === 'herrero' ? '🔨 ' : '🧺 ') + g.info.nombre;
@@ -2762,7 +2790,13 @@
     const piezas = EquipoLib.piezasDeClase(catalogoPiezas, pj.clase).filter(p => p.nivel <= hero.level);
     let html = '';
     if (servicio === 'herrero') {
-      html = '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + (piezas.map(p => {
+      const hojas = pj.inventario.filter(o => o.tipo === 'hoja');
+      html = '<h3 class="npc-h">Forjar con hoja (arena ' + (inv.arena || 0) + ' 🧱)</h3>' + (hojas.map(o => {
+        const coste = EquipoLib.ARENA_FORJA * o.nivel;
+        return `<div class="slot"><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel}</span></div>
+          <button data-forjar-hoja="${esc(o.uid)}" ${(inv.arena || 0) < coste || hero.level < o.nivel ? 'disabled' : ''}>${coste} 🧱</button></div>`;
+      }).join('') || '<div class="muted">No tienes hojas. Los monstruos de nivel 8 o más pueden soltarlas.</div>');
+      html += '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + (piezas.map(p => {
         const coste = EquipoLib.FORJA_ORO * p.nivel;
         return `<div class="slot"><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
           <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
@@ -2792,6 +2826,8 @@
 
   $('npc-lista').addEventListener('click', e => {
     const pj = personajeActual;
+    const fh = e.target.closest('button[data-forjar-hoja]');
+    if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); toast('Forjada con su hoja'); });
     const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
     if (f) accionNpc(() => { inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold); toast('Fabricada'); });
     if (c) accionNpc(() => { inv.gold -= EquipoLib.comprar(pj, catalogoPiezas, c.dataset.comprar, hero.level, inv.gold); toast('Comprada'); });
@@ -2866,7 +2902,9 @@
         const mixer = new THREE.AnimationMixer(modelo);
         const idle = (gltf.animations || []).find(c => c.name === 'idle');
         if (idle) mixer.clipAction(idle).play();
-        gurus.push({ info: g, raiz, mixer, x, z, dicho: -Infinity });
+        const entrada = { info: g, raiz, mixer, x, z, dicho: -Infinity };
+        raiz.userData.npc = entrada;
+        gurus.push(entrada);
       }, undefined, () => { /* sin modelo: no aparece */ });
     });
   }
@@ -3001,6 +3039,13 @@
     const mouse = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(mouse, camera);
     const objs = [...nearChunks.values(), farMesh, ...towns.filter(o => o.patch).map(o => o.patch)].filter(Boolean);
+    const cuerpos = gurus.map(g => g.raiz);
+    const toque = raycaster.intersectObjects(cuerpos, true)[0];
+    if (toque) {
+      let o = toque.object;
+      while (o && !o.userData.npc) o = o.parent;
+      if (o) { showSelection({ kind: 'npc', ref: o.userData.npc }); return; }
+    }
     const vivos = monsters.filter(m => m.alive && m.group).map(m => m.group);
     const golpe = raycaster.intersectObjects(vivos, true)[0];
     if (golpe) {
