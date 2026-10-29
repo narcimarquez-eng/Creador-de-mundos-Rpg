@@ -618,7 +618,8 @@
 
       player.update(dt, elapsed);
       controls.update();
-      clampCameraToWorld(camera, controls.target, world);
+      // La distancia que dejas con el ratón se mantiene al seguir; el recorte por muros y suelo no se acumula
+      player.encuadrar(() => clampCameraToWorld(camera, controls.target, world));
       renderer.render(scene, camera);
     }
     animate();

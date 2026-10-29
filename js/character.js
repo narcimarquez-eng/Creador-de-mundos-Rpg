@@ -128,6 +128,11 @@
       this.keys = { forward: false, backward: false, left: false, right: false, shift: false };
       this.joyVec = { x: 0, y: 0 };
       this.cameraMode = 'free';
+      // Modo seguir: la cámara guarda su desfase respecto al personaje (lo que el usuario ha girado y alejado con
+      // el ratón) y va con él cada fotograma. Quien dibuja llama a encuadrar(recortar) tras controls.update().
+      this.offsetCamara = null;      // desfase deseado (antes de apartarla de muros y suelo)
+      this.camaraFinal = null;       // dónde quedó la cámara al final del fotograma anterior
+      this.modoCamaraAnterior = 'free';
       this.oneShots = {};
       this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
       this.lockUntil = 0;        // mientras dure, el personaje no se mueve
@@ -443,17 +448,35 @@
     // Devuelve false si el punto no es caminable (agua)
     teleport(x, z) {
       if (this.world.isWaterHazard && this.world.isWaterHazard(x, z, this.radius)) return false;
-      const dx = x - this.root.position.x, dz = z - this.root.position.z;
       this.root.position.x = x;
       this.root.position.z = z;
-      if (this.cameraMode === 'follow') {
-        this.camera.position.x += dx;
-        this.camera.position.z += dz;
-        this.controls.target.x += dx;
-        this.controls.target.z += dz;
-      }
       this.root.position.y = this.world.getWalkableHeight(x, z);
+      if (this.cameraMode === 'follow') this.colocarCamara();
       return true;
+    }
+
+    // Cámara en modo seguir: el objetivo va al personaje y la cámara le acompaña con su desfase.
+    // - Al entrar en el modo: el desfase que haya entre la cámara y el personaje.
+    // - Si nadie la ha tocado desde el fotograma anterior: el desfase deseado (sin el recorte por muros y suelo).
+    // - Si el ratón la ha movido entretanto (OrbitControls gira y acerca dentro del propio evento): lo que dejó.
+    colocarCamara() {
+      const t = this.controls.target, cam = this.camera.position, p = this.root.position;
+      const nuevo = new THREE.Vector3(p.x, p.y + 1.4, p.z);
+      let desfase;
+      if (this.modoCamaraAnterior !== 'follow' || !this.offsetCamara) desfase = cam.clone().sub(nuevo);
+      else if (this.camaraFinal && cam.distanceToSquared(this.camaraFinal) < 1e-6) desfase = this.offsetCamara.clone();
+      else desfase = cam.clone().sub(t);
+      t.copy(nuevo);
+      cam.copy(nuevo).add(desfase);
+    }
+
+    // Final del fotograma, tras controls.update(): guarda el desfase que ha dejado el ratón, aparta la cámara de
+    // muros y suelo con recortar() y anota dónde quedó. El recorte no se acumula: al dejar de estorbar, la cámara
+    // vuelve a la distancia que elegiste.
+    encuadrar(recortar) {
+      if (this.cameraMode === 'follow') this.offsetCamara = this.camera.position.clone().sub(this.controls.target);
+      if (recortar) recortar();
+      this.camaraFinal = this.camera.position.clone();
     }
 
     // Reproduce una acción de un solo uso (ataque, impacto sísmico, nova, salto, victoria).
@@ -519,20 +542,10 @@
         const candidateZ = this.root.position.z + moveDir.z * speed * dt;
         const resolved = this.resolveCollisions(candidateX, candidateZ);
 
-        const deltaX = resolved.x - this.root.position.x;
-        const deltaZ = resolved.z - this.root.position.z;
         this.root.position.x = resolved.x;
         this.root.position.z = resolved.z;
 
-        const groundY = this.world.getWalkableHeight(resolved.x, resolved.z);
-        const deltaY = groundY - this.root.position.y;
-        this.root.position.y = groundY;
-
-        if (this.cameraMode === 'follow') {
-          this.camera.position.x += deltaX;
-          this.camera.position.y += deltaY;
-          this.camera.position.z += deltaZ;
-        }
+        this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
       } else if (this.destino && !locked) {
         this.caminarADestino(dt, enAccion);
       } else {
@@ -540,9 +553,8 @@
         this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
       }
 
-      if (this.cameraMode === 'follow') {
-        this.controls.target.set(this.root.position.x, this.root.position.y + 1.4, this.root.position.z);
-      }
+      if (this.cameraMode === 'follow') this.colocarCamara();
+      this.modoCamaraAnterior = this.cameraMode;
 
       if (this.mixer) {
         this.mixer.update(dt);

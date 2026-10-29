@@ -53,7 +53,8 @@ Atajos de teclado: `1–6` herramientas, `Supr` borrar selección, `Ctrl+Z` / `C
 
 Desde el editor, **🗺 3D** (o **🗺 Ver en 3D** en la pestaña Mundo) abre el mundo en `visor-mundo.html`:
 
-- **Mover:** WASD o flechas (Shift corre; andar 6,5 m/s, correr 12 m/s, igual que en el Creador de Pueblos). En móvil, el joystick de la derecha. **F** activa la cámara que sigue al personaje.
+- **Mover:** WASD o flechas (Shift corre; andar 6,5 m/s, correr 12 m/s, igual que en el Creador de Pueblos). En móvil, el joystick de la derecha. **F** activa la cámara que sigue al personaje: mantiene la distancia y el giro que le das con el ratón (rueda y arrastre), también cuando el personaje anda solo; si un muro o el suelo estorban, se acerca un momento y luego vuelve a tu distancia.
+- **Ataque automático:** 🤖 (**K**) dentro de una zona de caza: va siempre a por el monstruo más cercano de esa zona y, al matarlo, al siguiente; usa las habilidades de la barra que estén listas y bebe una poción de vida por debajo del 35 %. Moverte, caer o volver a pulsarlo lo para.
 - **Cámaras:** 🌍 General (ver el mundo), ⛲ Plaza y 🏠 Fachada (del pueblo más cercano, con el mismo encuadre que el creador), 🧍 Seguir.
 - **Ver:** arrastrar para girar, rueda o pellizco para acercar. **G** o 🌍 General vuelve a ver todo el mundo.
 - **Lugares:** toca un pueblo, zona o punto del terreno para ver su información. «Ir aquí» lleva al personaje.

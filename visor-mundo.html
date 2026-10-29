@@ -307,6 +307,7 @@
       <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
       <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
+      <button id="sk-auto" title="Ataque automático en la zona (K)">🤖<small>K</small></button>
     </div>
   </div>
   <div id="inv-card" class="oculta">
@@ -2766,15 +2767,17 @@
   function atacarObjetivo() {
     if (character.cancelado) {
       character.cancelado = false;
-      if (objetivo) toast('Ataque cancelado');
+      if (autoZona) pararAuto('Ataque automático parado: has tomado el control');
+      else if (objetivo) toast('Ataque cancelado');
       objetivo = null;
     }
     if (!objetivo) return;
     if (!objetivo.alive || hero.dead) { objetivo = null; character.destino = null; return; }
     if (character.atascado) {
       character.atascado = false;
+      if (autoZona) autoInalcanzables.set(objetivo, performance.now() + 20000);   // otro, y este luego
+      else toast('No hay camino hasta él');
       objetivo = null;
-      toast('No hay camino hasta él');
       return;
     }
     const cx = character.root.position.x, cz = character.root.position.z;
@@ -2786,8 +2789,64 @@
     character.destino = { x: objetivo.x, z: objetivo.z, parar: arco ? alcance - 1 : 1.8 };
     if (d <= alcance) {
       character.root.rotation.y = Math.atan2(objetivo.x - cx, objetivo.z - cz);
-      if (CombatLib.canUse(hero, golpe)) useSkill(golpe);
+      // En automático, primero una habilidad de la barra que esté lista y le alcance; si no, el golpe normal
+      const habilidad = autoZona && habilidadLista(objetivo);
+      if (habilidad) useSkill(habilidad);
+      else if (CombatLib.canUse(hero, golpe)) useSkill(golpe);
     }
+  }
+
+  // Ataque automático (botón 🤖 o tecla K): en la zona donde estás, va siempre a por el monstruo vivo más cercano
+  // y, al matarlo, al siguiente. Moverte, caer o volver a pulsarlo lo para. Si la vida baja del 35 %, bebe una poción.
+  let autoZona = null;
+  let autoEsperando = false;
+  const autoInalcanzables = new Map();   // monstruo → hasta cuándo no se intenta (no había camino)
+  function alternarAuto() {
+    if (autoZona) { pararAuto('Ataque automático desactivado'); return; }
+    if (hero.dead) return;
+    if (!curZone || !curZone.monsters || !curZone.monsters.length) { toast('Entra en una zona de caza para el ataque automático'); return; }
+    detenerRuta();
+    autoZona = curZone;
+    autoEsperando = false;
+    autoInalcanzables.clear();
+    character.cancelado = false;
+    toast('🤖 Ataque automático en ' + autoZona.name + ' (muévete para pararlo)');
+    $('sk-auto').classList.add('gold');
+  }
+  function pararAuto(aviso) {
+    if (!autoZona) return;
+    autoZona = null;
+    objetivo = null;
+    character.destino = null;
+    $('sk-auto').classList.remove('gold');
+    if (aviso) toast(aviso);
+  }
+  // Primera habilidad de la barra que se puede usar ya y cuyo golpe alcanzaría al monstruo
+  function habilidadLista(m) {
+    const p = character.root.position, y = character.root.rotation.y;
+    return HeroeLib.TECLAS.map(t => heroeEst.barra[t]).find(id => id && !bloqueada(id) && !faltaArma(id) && CombatLib.canUse(hero, id)
+      && CombatLib.inSkillArea(id, p.x, p.z, Math.sin(y), Math.cos(y), m.x, m.z)) || null;
+  }
+  function atacarAuto() {
+    if (!autoZona) return;
+    if (hero.dead) { pararAuto('Ataque automático parado: has caído'); return; }
+    if (hero.hp < hero.maxHp * 0.35 && inv.vida > 0 && ItemsLib.usePotion(hero, inv, 'vida')) toast('🧪 Poción de vida (automática)');
+    if (objetivo && objetivo.alive) return;   // atacarObjetivo sigue con el que hay
+    const p = character.root.position, ahora = performance.now();
+    let mejor = null, mejorD = Infinity;
+    monsters.forEach(m => {
+      if (!m.alive || m.zone !== autoZona || (autoInalcanzables.get(m) || 0) > ahora) return;
+      const d = Math.hypot(m.x - p.x, m.z - p.z);
+      if (d < mejorD) { mejorD = d; mejor = m; }
+    });
+    if (!mejor) {
+      if (!autoEsperando) toast('Zona despejada: esperando a que vuelvan los monstruos');
+      autoEsperando = true;
+      character.destino = null;
+      return;
+    }
+    autoEsperando = false;
+    objetivo = mejor;
   }
 
   // Estadísticas del héroe: nivel, equipo (con sus especiales) y habilidades pasivas. Se recalculan al cambiar
@@ -3446,6 +3505,7 @@
     const d = destinoDeMision();
     if (!d) return;
     const p = character.root.position;
+    pararAuto();
     objetivo = null;
     ruta = { puntos: RutaLib.calcularRuta(world, { x: p.x, y: p.z }, d, opcionesRuta()), i: 0, parar: d.parar, nombre: d.nombre, npc: d.npc || null, intentos: 0 };
     character.cancelado = false;
@@ -3710,6 +3770,7 @@
   function setFollow(on) {
     follow = on;
     character.cameraMode = on ? 'follow' : 'free';
+    controls.enablePan = !on;   // siguiendo, el centro es el personaje: girar y acercar sí, desplazar no
     $('btn-follow').classList.toggle('gold', on);
     if (on) {
       const p = character.root.position;
@@ -3772,6 +3833,7 @@
     if (k === 'c') { renderCronica(); $('cronica').classList.add('show'); }
     if (k === 'p') { renderHeroe(); $('heroe').classList.add('show'); }
     if (k === 'x') jump();
+    if (k === 'k') alternarAuto();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');
     if (k === 'r') (hero.resting ? stopRest('Descanso cancelado') : startRest());
@@ -3848,6 +3910,7 @@
   $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
   $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
   $('sk-attack').onclick = () => useSkill('attack');
+  $('sk-auto').onclick = alternarAuto;
   HeroeLib.TECLAS.forEach(t => { $('sk-' + t).onclick = () => usarHueco(t); });
   $('sk-jump').onclick = jump;
   $('sk-vida').onclick = () => drink('vida');
@@ -3887,6 +3950,7 @@
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
     seguirRuta();
+    atacarAuto();
     atacarObjetivo();
     actualizarEfectos(dt);
     actualizarGurus(dt, now / 1000);
@@ -3908,7 +3972,8 @@
 
     controls.maxDistance = character.cameraMode === 'follow' ? 280 : 9000;
     controls.update();
-    CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld);
+    // Al seguir, se mantienen la distancia y el giro que dejas con el ratón; el recorte por muros y suelo no se acumula
+    character.encuadrar(() => CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld));
     renderer.render(scene, camera);
     updateLabels(character.root.position.y);
   }
@@ -3988,7 +4053,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
