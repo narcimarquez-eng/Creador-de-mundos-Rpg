@@ -36,10 +36,14 @@
     return { splat: [g / sum * rest, d / sum * rest, r / sum * rest, s / sum * rest], snow };
   }
 
-  // Material del terreno: un atlas de 10 × 10 texturas reales (tAtlas, de assets/terreno/atlas.jpg), con las
-  // clases en orden: hierba (0–14), tierra (15–55), roca (56–70), arena (71–89) y nieve (90–99). Cada celda de
-  // ~14 m de cerca (70 m de lejos) elige una textura de su clase según el ruido de la celda, y en el borde se
-  // mezcla con la celda vecina. uniforms: { tAtlas, uBase, uCuenta, uBaseNieve, uCuentaNieve, uTexOn }
+  // Texturas del atlas (assets/terreno/atlas.jpg, 10 × 10 celdas de 256 px) que usa el suelo: tres parecidas por
+  // clase, en orden hierba, tierra, roca, arena y nieve. Antes cada celda de 14 m elegía una al azar entre
+  // todas las de su clase (hasta 41 muy distintas) y el suelo parecía un damero.
+  const CAPAS = [[5, 6, 3], [32, 34, 36], [56, 57, 67], [89, 24, 52], [90, 92, 99]];
+
+  // Material del terreno. uniforms: { tCapas (DataArrayTexture de 15 capas, CAPAS en orden), uTexOn }.
+  // Las tres texturas de cada clase se mezclan con manchas de ruido grandes e irregulares (sin celdas); la
+  // textura array repite sin costuras y con mipmaps, así no salen líneas cada vez que se repite.
   function createTerrainMaterial(THREE, uniforms) {
     const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
     m.onBeforeCompile = shader => {
@@ -50,45 +54,65 @@
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', [
           '#include <common>',
-          'uniform sampler2D tAtlas; uniform vec4 uBase; uniform vec4 uCuenta; uniform float uBaseNieve; uniform float uCuentaNieve;',
+          'uniform highp sampler2DArray tCapas;',
           'uniform float uTexOn;',
           'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld;',
-          // Textura de una clase en el punto xz: celda de tamaño celdaM, repetición de escala tile, borde mezclado
-          'vec3 atlasTex(float base, float cuenta, vec2 xz, float semilla, float tile, float celdaM) {',
-          '  vec2 c = xz / celdaM; vec2 celda = floor(c); vec2 f = fract(c);',
-          '  vec2 vecino = (f.x < 0.5 ? vec2(-1.0, 0.0) : vec2(1.0, 0.0));',
-          '  if (min(f.y, 1.0 - f.y) * celdaM < min(f.x, 1.0 - f.x) * celdaM) vecino = (f.y < 0.5 ? vec2(0.0, -1.0) : vec2(0.0, 1.0));',
-          '  float dBorde = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)) * celdaM;',
-          '  vec2 local = fract(xz * tile);',
-          '  float i1 = base + floor(fract(sin(dot(celda, vec2(127.1, 311.7)) + semilla) * 43758.5453) * cuenta);',
-          '  vec2 uv1 = (vec2(mod(i1, 10.0), floor(i1 / 10.0)) + 0.04 + local * 0.92) / 10.0;',
-          '  vec2 ce2 = celda + vecino;',
-          '  float i2 = base + floor(fract(sin(dot(ce2, vec2(127.1, 311.7)) + semilla) * 43758.5453) * cuenta);',
-          '  vec2 uv2 = (vec2(mod(i2, 10.0), floor(i2 / 10.0)) + 0.04 + local * 0.92) / 10.0;',
-          '  float w = 0.5 * (1.0 - smoothstep(0.0, 2.5, dBorde));',
-          '  return mix(texture2D(tAtlas, uv1).rgb, texture2D(tAtlas, uv2).rgb, w);',
+          // Ruido de valor: manchas suaves
+          'float ruidoValor(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }',
+          // Una clase a una escala: la 1.ª textura de fondo, la 2.ª y la 3.ª en manchas de unos 30–60 m con
+          // borde irregular. Cada textura va girada y desplazada para que sus repeticiones no coincidan.
+          'vec3 claseTex(float base, vec2 xz, float sem, float tile) {',
+          '  float n2 = ruidoValor(xz * 0.09 + sem * 5.3);',
+          '  float a = smoothstep(0.42, 0.62, ruidoValor(xz * 0.021 + sem * 13.1) * 0.75 + n2 * 0.25);',
+          '  float b = smoothstep(0.58, 0.74, ruidoValor(xz * 0.016 + sem * 3.7 + 40.0) * 0.75 + n2 * 0.25);',
+          '  vec2 uv = xz * tile;',
+          '  vec3 c = vec3(0.0);',
+          '  if (a < 0.999) c = texture(tCapas, vec3(uv, base)).rgb * (1.0 - a);',
+          '  if (a > 0.001) c += texture(tCapas, vec3(mat2(0.8, -0.6, 0.6, 0.8) * uv * 0.87 + 0.31, base + 1.0)).rgb * a;',
+          '  if (b > 0.001) c = mix(c, texture(tCapas, vec3(mat2(0.28, 0.96, -0.96, 0.28) * uv * 1.13 + 0.67, base + 2.0)).rgb, b);',
+          '  return c;',
           '}',
-          // Ruido de valor: rompe la repetición con manchas de tono a gran escala
-          'float ruidoValor(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }'
+          // Cerca, una repetición cada 8 m; lejos (de 120 a 600 m), cada 32 m para que no se vea el patrón
+          'vec3 claseLejos(float base, vec2 xz, float sem, float tL) {',
+          '  vec3 c = vec3(0.0);',
+          '  if (tL < 0.999) c = claseTex(base, xz, sem, 1.0 / 8.0) * (1.0 - tL);',
+          '  if (tL > 0.001) c += claseTex(base, xz, sem, 1.0 / 32.0) * tL;',
+          '  return c;',
+          '}'
         ].join('\n'))
         .replace('#include <color_fragment>', [
           '#include <color_fragment>',
-          // Cerca: textura cada 8 m y celdas de 14 m; lejos (más de 120–600 m): repetición y celdas mayores
           'float dCam = length(vTWorld.xz - cameraPosition.xz);',
           'float tL = smoothstep(120.0, 600.0, dCam);',
-          'float tile = mix(1.0 / 8.0, 1.0 / 40.0, tL), celdaM = mix(14.0, 70.0, tL);',
           'vec3 tex = vec3(0.0);',
-          'if (vSplat.x > 0.001) tex += atlasTex(uBase.x, uCuenta.x, vTWorld.xz, 1.3, tile, celdaM) * vSplat.x;',
-          'if (vSplat.y > 0.001) tex += atlasTex(uBase.y, uCuenta.y, vTWorld.xz, 7.1, tile, celdaM) * vSplat.y;',
-          'if (vSplat.z > 0.001) tex += atlasTex(uBase.z, uCuenta.z, vTWorld.xz, 3.9, tile, celdaM) * vSplat.z;',
-          'if (vSplat.w > 0.001) tex += atlasTex(uBase.w, uCuenta.w, vTWorld.xz, 5.5, tile, celdaM) * vSplat.w;',
-          'if (vSnow > 0.001) tex += atlasTex(uBaseNieve, uCuentaNieve, vTWorld.xz, 9.2, tile, celdaM) * vSnow;',
+          'if (uTexOn > 0.5) {',
+          '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tL) * vSplat.x;',
+          '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tL) * vSplat.y;',
+          '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tL) * vSplat.z;',
+          '  if (vSplat.w > 0.001) tex += claseLejos(9.0, vTWorld.xz, 5.5, tL) * vSplat.w;',
+          '  if (vSnow > 0.001) tex += claseLejos(12.0, vTWorld.xz, 9.2, tL) * vSnow;',
+          '}',
           'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
           'vec3 tinte = mix(vec3(1.0, 0.97, 0.9), vec3(0.93, 1.02, 0.88), ruidoValor(vTWorld.xz * 0.006 + 17.0));',
           'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * tinte;'
         ].join('\n'));
     };
     return m;
+  }
+
+  // Capas de la textura array a partir de los píxeles RGBA del atlas (lado x lado). Devuelve
+  // { datos: Uint8Array de 15 capas de 256 × 256 RGBA, tam, capas }.
+  function capasDelAtlas(rgba, lado) {
+    const lista = CAPAS.flat(), tam = lado / 10;
+    const datos = new Uint8Array(tam * tam * 4 * lista.length);
+    lista.forEach((celda, l) => {
+      const x0 = (celda % 10) * tam, y0 = Math.floor(celda / 10) * tam;
+      for (let y = 0; y < tam; y++) {
+        const desde = ((y0 + y) * lado + x0) * 4;
+        datos.set(rgba.subarray(desde, desde + tam * 4), (l * tam + y) * tam * 4);
+      }
+    });
+    return { datos, tam, capas: lista.length };
   }
 
   // Malla de una rejilla de nodos. grid: { x0, z0, step, n, N, pos, col, splat, snow, nrm }.
@@ -165,7 +189,7 @@
     return [-dx / l, 1 / l, -dz / l];
   }
 
-  const api = { splatFor, createTerrainMaterial, buildGridGeometry, nodeNormal, smooth };
+  const api = { splatFor, createTerrainMaterial, capasDelAtlas, CAPAS, buildGridGeometry, nodeNormal, smooth };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TerrainLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

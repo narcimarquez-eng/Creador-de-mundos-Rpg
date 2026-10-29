@@ -429,6 +429,7 @@
   <script src="js/mision-zona.js?v=20251029"></script>
   <script src="js/mapa.js?v=20251029"></script>
   <script src="js/ruta.js?v=20251029"></script>
+  <script src="js/fusionar-modelo.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -483,13 +484,12 @@
   let terrainMat = null, farMesh = null, lastChunks = 0;
   const nearChunks = new Map();          // trozos de 300 m con detalle completo, por "cx,cz"
   const CHUNK = 16;                      // celdas de 20 m por trozo (320 m); múltiplo de los pasos de la malla lejana
-  // Atlas de 100 texturas reales (assets/terreno/atlas.jpg): hierba 0–14, tierra 15–55, roca 56–70, arena 71–89, nieve 90–99
-  const terrainU = {
-    tAtlas: { value: null }, uBase: { value: new THREE.Vector4(0, 15, 56, 71) }, uCuenta: { value: new THREE.Vector4(15, 41, 15, 19) },
-    uBaseNieve: { value: 90 }, uCuentaNieve: { value: 10 }, uTexOn: { value: 0 }
-  };
+  // Texturas del suelo: 15 capas (tres por clase, TerrainLib.CAPAS) sacadas del atlas assets/terreno/atlas.jpg
+  const terrainU = { tCapas: { value: null }, uTexOn: { value: 0 } };
   // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
-  const QUALITY = { bajo: { radius: 1000, shadows: 0, pixel: 1, far: 4 }, medio: { radius: 1400, shadows: 1024, pixel: 1.5, far: 2 }, alto: { radius: 1800, shadows: 2048, pixel: 2, far: 2 } };
+  // sombra: medio lado (m) de la caja de sombras alrededor del héroe; crece si la cámara se aleja
+  const QUALITY = { bajo: { radius: 1000, shadows: 0, pixel: 1, far: 4, sombra: 0 }, medio: { radius: 1400, shadows: 1024, pixel: 1.5, far: 2, sombra: 120 }, alto: { radius: 1800, shadows: 2048, pixel: 2, far: 2, sombra: 160 } };
+  let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
   let monsters = [];
   let timeOfDay = 'day';
@@ -780,6 +780,7 @@
     scene.add(hemiLight);
     sunLight = new THREE.DirectionalLight('#fffbeb', 1.1);
     sunLight.position.set(900, 1400, 700);
+    sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.25;   // sin rayas de sombra en el suelo
     scene.add(sunLight);
     scene.add(sunLight.target);
     loadTerrainTextures();
@@ -1070,15 +1071,27 @@
     if (!terrainMat) terrainMat = TerrainLib.createTerrainMaterial(THREE, terrainU);
   }
 
-  // Texturas de hierba, tierra, roca, arena y nieve (assets/terreno, CC0 de ambientCG)
+  // Texturas de hierba, tierra, roca, arena y nieve (assets/terreno, CC0 de ambientCG). Del atlas se copian
+  // las 15 que usa el suelo a una textura array: repite sin costuras y con sus mipmaps.
   function loadTerrainTextures() {
-    const blanco = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+    const blanco = new THREE.DataArrayTexture(new Uint8Array(15 * 4).fill(255), 1, 1, 15);
     blanco.needsUpdate = true;
-    terrainU.tAtlas.value = blanco;
-    new THREE.TextureLoader().load('assets/terreno/atlas.jpg', tex => {
-      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    terrainU.tCapas.value = blanco;
+    new THREE.ImageLoader().load('assets/terreno/atlas.jpg', img => {
+      const lado = img.width;
+      const lienzo = document.createElement('canvas');
+      lienzo.width = lienzo.height = lado;
+      const ctx = lienzo.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      const c = TerrainLib.capasDelAtlas(ctx.getImageData(0, 0, lado, lado).data, lado);
+      const tex = new THREE.DataArrayTexture(c.datos, c.tam, c.tam, c.capas);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.generateMipmaps = true;
       tex.anisotropy = 4;
-      terrainU.tAtlas.value = tex;
+      tex.needsUpdate = true;
+      terrainU.tCapas.value = tex;
       terrainU.uTexOn.value = 1;
     }, undefined, () => { /* sin atlas: color plano */ });
   }
@@ -1176,17 +1189,55 @@
     if (Q.shadows > 0) {
       sunLight.shadow.mapSize.set(Q.shadows, Q.shadows);
       const sc = sunLight.shadow.camera;
-      sc.left = -600; sc.right = 600; sc.top = 600; sc.bottom = -600; sc.near = 10; sc.far = 2400;
-      sc.updateProjectionMatrix();
+      sc.near = 10; sc.far = 2400;
+      sombraMitad = 0;
+      ajustarCajaSombra(Q.sombra);
       if (sunLight.shadow.map) { sunLight.shadow.map.dispose(); sunLight.shadow.map = null; }
     }
     scene.traverse(o => {
-      if (o.isMesh && o !== waterMesh) { o.castShadow = Q.shadows > 0; o.receiveShadow = Q.shadows > 0; if (o.material) o.material.needsUpdate = true; }
+      if (o.isMesh && o !== waterMesh) { o.castShadow = Q.shadows > 0 && proyectaSombra(o); o.receiveShadow = Q.shadows > 0; if (o.material) o.material.needsUpdate = true; }
     });
     if (terrainMat) terrainMat.needsUpdate = true;
     $('sel-quality').value = q;
     if (save) store.setItem('rpgMundo.calidad', q);
     updateTerrainChunks(performance.now(), true);
+  }
+
+  // Sin sombra: el cielo, lo transparente y las mallas enormes y planas (caminos, ríos, marcas de zona), que
+  // cubren el mundo entero y se dibujarían enteras en el mapa de sombras cada fotograma sin aportar nada
+  function proyectaSombra(o) {
+    if (o === cielo || o.material.isShaderMaterial || o.material.transparent) return false;
+    if (o.isInstancedMesh || o.isSkinnedMesh) return true;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    const e = o.getWorldScale(new THREE.Vector3());
+    return o.geometry.boundingSphere.radius * Math.max(e.x, e.y, e.z) < 150;
+  }
+
+  // Caja de sombras: solo alrededor del héroe (más nítidas y menos objetos que dibujar dos veces)
+  function ajustarCajaSombra(mitad) {
+    if (mitad === sombraMitad) return;
+    sombraMitad = mitad;
+    const sc = sunLight.shadow.camera;
+    sc.left = -mitad; sc.right = mitad; sc.top = mitad; sc.bottom = -mitad;
+    sc.updateProjectionMatrix();
+  }
+  const _sDir = new THREE.Vector3(), _sDer = new THREE.Vector3(), _sArr = new THREE.Vector3(), _sP = new THREE.Vector3();
+  function seguirSombra() {
+    const Q = QUALITY[quality];
+    // Con la cámara lejos se ve más terreno: la caja crece por saltos de 40 m (hasta 600)
+    const dCam = camera.position.distanceTo(controls.target);
+    ajustarCajaSombra(Math.min(600, Math.max(Q.sombra, Math.ceil(dCam * 1.1 / 40) * 40)));
+    // El centro se ajusta a los píxeles del mapa de sombras: así los bordes no tiemblan al andar
+    const dir = _sDir.copy(atmoNow.sunPos).normalize();
+    _sDer.set(0, 1, 0).cross(dir).normalize();
+    if (_sDer.lengthSq() < 1e-6) _sDer.set(1, 0, 0);
+    _sArr.copy(dir).cross(_sDer);
+    const p = character.root.position, texel = sombraMitad * 2 / Q.shadows;
+    const a = Math.round(p.dot(_sDer) / texel) * texel, b = Math.round(p.dot(_sArr) / texel) * texel, c = p.dot(dir);
+    _sP.copy(_sDer).multiplyScalar(a).addScaledVector(_sArr, b).addScaledVector(dir, c);
+    sunLight.position.copy(_sP).addScaledVector(dir, 900);
+    sunLight.target.position.copy(_sP);
+    sunLight.target.updateMatrixWorld();
   }
 
   // ===========================================================================
@@ -3615,6 +3666,7 @@
   const RADIO_GURUS = 6;
   const RADIO_PUESTOS = 12.2;   // anillo de los puestos de mercado del pueblo
   const DISTANCIA_HABLAR = 4;
+  const DISTANCIA_VER_NPC = 150;   // más lejos, los NPCs no se dibujan ni se animan
 
   // Herrero y mercader: mismos cuerpos de npc/gurus; cambian por su función
   // Texto de cada servicio: tipo, botón del panel del NPC e icono
@@ -3650,6 +3702,7 @@
         raiz.add(modelo);
         raiz.position.set(x, visorWorld.getWalkableHeight(x, z), z);
         raiz.lookAt(inicio.t.x, raiz.position.y, inicio.t.y);   // miran al centro de la plaza
+        FusionLib.fusionarPorMaterial(THREE, modelo);   // ~87 piezas → una malla por material
         scene.add(raiz);
         aplicarEntorno(raiz);
         const mixer = new THREE.AnimationMixer(modelo);
@@ -3703,6 +3756,7 @@
     raiz.add(modelo);
     raiz.position.set(pos.x, visorWorld.getWalkableHeight(pos.x, pos.z), pos.z);
     raiz.lookAt(pos.cx, raiz.position.y, pos.cz);
+    FusionLib.fusionarPorMaterial(THREE, modelo);
     scene.add(raiz);
     aplicarEntorno(raiz);
     const mixer = new THREE.AnimationMixer(modelo);
@@ -3717,11 +3771,16 @@
   // Animación en reposo y aviso al acercarse. Cada gurú habla de su tema.
   function actualizarGurus(dt, sec) {
     if (!gurus.length) return;
+    const cam = camera.position;
     gurus.forEach(g => {
+      const d = Math.hypot(character.root.position.x - g.x, character.root.position.z - g.z);
+      // Se ve si está cerca del personaje o de la cámara (en vista general la cámara puede estar lejos de él)
+      const visto = Math.min(d, Math.hypot(cam.x - g.x, cam.z - g.z)) < DISTANCIA_VER_NPC;
+      g.raiz.visible = visto;
+      if (!visto) return;
       g.mixer.update(dt);
       // Misma altura que el personaje: el pueblo puede cargarse y cambiar el suelo
       g.raiz.position.y = visorWorld.getWalkableHeight(g.x, g.z);
-      const d = Math.hypot(character.root.position.x - g.raiz.position.x, character.root.position.z - g.raiz.position.z);
       if (d < DISTANCIA_HABLAR && !g.info.servicio && sec - g.dicho > 25) {
         g.dicho = sec;
         toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + g.info.frase + '»');
@@ -3849,7 +3908,7 @@
     const mouse = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(mouse, camera);
     const objs = [...nearChunks.values(), farMesh, ...towns.filter(o => o.patch).map(o => o.patch)].filter(Boolean);
-    const cuerpos = gurus.map(g => g.raiz);
+    const cuerpos = gurus.filter(g => g.raiz.visible).map(g => g.raiz);
     const toque = raycaster.intersectObjects(cuerpos, true)[0];
     if (toque) {
       let o = toque.object;
@@ -3955,12 +4014,7 @@
     animateTowns(dt);
     updateAtmosphere(dt);
     updateTerrainChunks(now, false);
-    if (quality !== 'bajo') {
-      const p = character.root.position, dir = atmoNow.sunPos.clone().normalize();
-      sunLight.position.copy(p).addScaledVector(dir, 900);
-      sunLight.target.position.copy(p);
-      sunLight.target.updateMatrixWorld();
-    }
+    if (quality !== 'bajo') seguirSombra();
     lastNowSec = now / 1000;
     updateCombat(dt, now);
     updateHud(now);
@@ -4050,7 +4104,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

@@ -7,9 +7,10 @@ Regla: solo packs con licencia libre (CC0 o equivalente). Cada entrada debe tene
 
 `assets/terreno/atlas.jpg`: 100 texturas reales de ambientCG (licencia CC0), a 256 px, en un atlas de 10 × 10 y
 con el orden de `assets/terreno/atlas.json`. Clases: hierba (0–14), tierra y arcilla (15–55), roca (56–70),
-arena y grava (71–89) y nieve (90–99). `js/terreno.js` elige una textura por celda de ~14 m según la clase del
-bioma y la altitud, y la mezcla con la celda vecina en el borde; lejos (más de 120–600 m) la celda y la
-repetición crecen. Las texturas se bajaron de ambientCG en su versión 1K-JPG y se redujeron a 256 px.
+arena y grava (71–89) y nieve (90–99). El suelo usa solo tres texturas parecidas por clase (`CAPAS` en
+`js/terreno.js`; la arena toma alguna arenosa de «tierra»), copiadas a una textura array que repite sin
+costuras. Se mezclan con manchas de ruido grandes e irregulares, sin celdas; lejos (más de 120–600 m) la
+repetición pasa de 8 a 32 m. Las texturas se bajaron de ambientCG en su versión 1K-JPG y se redujeron a 256 px.
 
 
 ## Árboles (pueblos)

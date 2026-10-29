@@ -37,4 +37,34 @@ t('normal de un terreno plano apunta hacia arriba', () => {
   assert.ok(Math.abs(nrm[0]) < 1e-9 && Math.abs(nrm[2]) < 1e-9 && Math.abs(nrm[1] - 1) < 1e-9);
 });
 
+t('el suelo usa tres texturas distintas por clase, todas del atlas', () => {
+  // La arena toma alguna textura arenosa que el atlas tiene en «tierra»: las de su clase son casi todas grava
+  const meta = require('../assets/terreno/atlas.json');
+  assert.strictEqual(T.CAPAS.length, 5);
+  T.CAPAS.forEach(lista => assert.strictEqual(lista.length, 3));
+  const todas = T.CAPAS.flat();
+  assert.strictEqual(new Set(todas).size, todas.length);
+  todas.forEach(i => assert.ok(Number.isInteger(i) && i >= 0 && i < meta.texturas.length, String(i)));
+  const [bH, cH] = meta.clases.hierba, [bN, cN] = meta.clases.nieve;
+  T.CAPAS[0].forEach(i => assert.ok(i >= bH && i < bH + cH, 'hierba ' + i));
+  T.CAPAS[4].forEach(i => assert.ok(i >= bN && i < bN + cN, 'nieve ' + i));
+});
+
+t('las capas se recortan de su celda del atlas', () => {
+  const lado = 40, tam = 4, rgba = new Uint8Array(lado * lado * 4);
+  for (let y = 0; y < lado; y++) for (let x = 0; x < lado; x++) {
+    const celda = Math.floor(y / tam) * 10 + Math.floor(x / tam), k = (y * lado + x) * 4;
+    rgba[k] = celda; rgba[k + 1] = x % tam; rgba[k + 2] = y % tam; rgba[k + 3] = 255;
+  }
+  const r = T.capasDelAtlas(rgba, lado);
+  assert.strictEqual(r.capas, 15);
+  assert.strictEqual(r.tam, tam);
+  T.CAPAS.flat().forEach((celda, l) => {
+    for (let y = 0; y < tam; y++) for (let x = 0; x < tam; x++) {
+      const k = ((l * tam + y) * tam + x) * 4;
+      assert.deepStrictEqual([...r.datos.subarray(k, k + 3)], [celda, x, y]);
+    }
+  });
+});
+
 console.log(`\n${n} pruebas correctas`);
