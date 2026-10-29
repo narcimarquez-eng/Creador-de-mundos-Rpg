@@ -79,7 +79,7 @@
 
   // Estado de un héroe nuevo
   function nuevoHeroe() {
-    return { puntos: 0, kills: 0, gastados: {}, progreso: {}, hechas: {}, desbloqueadas: {} };
+    return { puntos: 0, kills: 0, gastados: {}, progreso: {}, hechas: {}, desbloqueadas: {}, zonas: {} };
   }
 
   // Sanea el estado guardado en una partida (campos desconocidos o dañados se descartan)
@@ -93,7 +93,50 @@
     Object.keys(h.progreso || {}).forEach(k => { if (MISIONES.some(m => m.id === k)) base.progreso[k] = num(h.progreso[k]); });
     Object.keys(h.hechas || {}).forEach(k => { if (MISIONES.some(m => m.id === k)) base.hechas[k] = true; });
     Object.keys(h.desbloqueadas || {}).forEach(k => { if (HABILIDADES[k]) base.desbloqueadas[k] = true; });
+    Object.keys(h.zonas || {}).forEach(k => {
+      const z = h.zonas[k];
+      if (!z || !TIPOS_ZONA.includes(z.tipo)) return;
+      const cantidad = Math.max(1, num(z.cantidad));
+      base.zonas[k] = { tipo: z.tipo, cantidad, progreso: Math.min(cantidad, num(z.progreso)),
+        lista: !!z.lista, entregada: !!z.entregada };
+    });
     return base;
+  }
+
+  // Encargos de zona (ver js/mision-zona.js). Cada uno cuenta lo que pide su tipo: matar (cualquier monstruo de la
+  // zona, también el jefe), jefe (solo el jefe) o visitar (entrar en la zona).
+  const TIPOS_ZONA = ['matar', 'jefe', 'visitar'];
+
+  // Acepta un encargo de zona. objetivo: {tipo, cantidad}
+  function aceptarZona(h, zonaId, objetivo) {
+    if (!TIPOS_ZONA.includes(objetivo.tipo)) throw new Error('Tipo de encargo desconocido');
+    if (h.zonas[zonaId]) throw new Error('Ya tienes este encargo');
+    h.zonas[zonaId] = { tipo: objetivo.tipo, cantidad: Math.max(1, objetivo.cantidad), progreso: 0, lista: false, entregada: false };
+    return h.zonas[zonaId];
+  }
+
+  // Un evento en una zona: evento es 'matar' (monstruo normal), 'jefe' o 'visitar'.
+  // Devuelve true solo si este evento completa el encargo.
+  function registrarZona(h, zonaId, evento) {
+    const z = h.zonas[zonaId];
+    if (!z || z.lista) return false;
+    const cuenta = z.tipo === 'visitar' ? evento === 'visitar'
+      : z.tipo === 'jefe' ? evento === 'jefe'
+      : evento === 'matar' || evento === 'jefe';
+    if (!cuenta) return false;
+    z.progreso = Math.min(z.cantidad, z.progreso + 1);
+    if (z.progreso < z.cantidad) return false;
+    z.lista = true;
+    return true;
+  }
+
+  // Entrega un encargo completado en su pueblo. Los premios (oro, pociones) los da la visor; aquí, los puntos.
+  function entregarZona(h, zonaId, puntos) {
+    const z = h.zonas[zonaId];
+    if (!z || !z.lista || z.entregada) throw new Error('Este encargo no se puede entregar');
+    z.entregada = true;
+    h.puntos += puntos || 0;
+    return z;
   }
 
   // Concede puntos y desbloqueos de una misión completada
@@ -213,6 +256,7 @@
   }
 
   const api = { HABILIDADES, MISIONES, ESPECIALES, PUNTOS_KILLS, nuevoHeroe, limpiarHeroe, registrarEvento, registrarMuerte,
+    aceptarZona, registrarZona, entregarZona,
     mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.HeroeLib = api;

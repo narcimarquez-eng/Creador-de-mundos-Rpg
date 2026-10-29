@@ -62,6 +62,18 @@ Se gastan con el entrenador **Hermana Ysolde** (tecla H cerca de ella):
 piedra (visitar 3 pueblos, desbloquea patada), el guardián del bosque (derrotar a un jefe, desbloquea nova) y
 forja de hojas (forjar una pieza superior con su hoja).
 
+### Encargos de zona
+
+Cada zona de combate tiene un NPC en el pueblo más cercano que le encarga una misión (`js/mision-zona.js`).
+Son independientes de la crónica y se derivan de los datos de la zona, así que una zona nueva tiene su encargo
+sin cambiar el mundo guardado.
+
+- **Tipo de encargo según la zona:** caza, élite y pvp piden matar monstruos (entre 3 y 10, según el tamaño);
+  el territorio de jefe pide derrotar al jefe; la zona segura pide entrar en ella.
+- **Cómo se cumple:** se acepta hablando con el NPC (H cerca o pulsar el NPC). El progreso sube con cada
+  monstruo de la zona (o al entrar, en la zona segura). Al completarlo, se entrega en el mismo NPC para cobrar.
+- **Premio:** oro según el nivel de la zona, pociones y, en los encargos de jefe, 1 punto de habilidad.
+
 ## Monstruos
 
 - **Vida:** 20 + 8 por nivel. **Daño:** 3 + 1,5 por nivel. **XP:** 10 por nivel.

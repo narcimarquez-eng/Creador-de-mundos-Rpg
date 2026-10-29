@@ -379,6 +379,7 @@
   <script src="js/equipo.js?v=20251029"></script>
   <script src="js/historia.js?v=20251029"></script>
   <script src="js/heroe.js?v=20251029"></script>
+  <script src="js/mision-zona.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -1748,7 +1749,7 @@
         <span class="kind">${serv ? TEXTO_SERVICIO[serv].tipo : 'Gurú del conocimiento'}</span>
         <h2>${esc(n.info.nombre)}</h2>
         <div class="muted">${esc(n.info.tema)}</div>
-        <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${serv && serv !== 'entrenador' ? '' : '«' + esc(n.info.frase) + '»'}</div>
+        <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${serv === 'herrero' || serv === 'mercader' ? '' : '«' + esc(n.info.frase) + '»'}</div>
         <div class="btns">
           ${serv ? `<button class="gold" data-servicio>${TEXTO_SERVICIO[serv].boton}</button>` : '<button class="gold" data-hablar>💬 Hablar</button>'}
         </div>`;
@@ -2071,6 +2072,7 @@
     const nivelAntes = hero.level;
     const levels = CombatLib.gainXp(hero, m.xp);
     anunciarHechas(HeroeLib.registrarMuerte(heroeEst, m.boss));
+    if (m.zone && HeroeLib.registrarZona(heroeEst, m.zone.id, m.boss ? 'jefe' : 'matar')) anunciarEncargo(m.zone.id);
     if (heroeEst.kills % HeroeLib.PUNTOS_KILLS === 0) toast('🧬 +1 punto de habilidad por tu lucha');
     aplicarStats();
     if (levels) { hero.hp = hero.maxHp; hero.mp = hero.maxMp; }
@@ -2351,6 +2353,7 @@
     world.zones.forEach(z => { if (W.pointInZone(z, { x: p.x, y: p.z }) && z.radius < zr) { zr = z.radius; zone = z; } });
     if (zone !== curZone) {
       curZone = zone;
+      if (zone && HeroeLib.registrarZona(heroeEst, zone.id, 'visitar')) anunciarEncargo(zone.id);
       const marca = $('zona-marca');
       if (zone) {
         const type = (W.ZONE_TYPES[zone.type] || {}).name || zone.type;
@@ -2531,6 +2534,12 @@
     damageMonster(m, dmg);
   }
 
+  // Encargo de zona completado: dice a quién hay que entregárselo
+  function anunciarEncargo(zonaId) {
+    const m = misionPorZona[zonaId];
+    if (m) toast('📜 Encargo cumplido: ' + m.titulo + ' · entrégaselo a ' + m.npc.nombre + ' en ' + m.puebloNombre);
+  }
+
   // Misiones completadas: aviso con su recompensa
   function anunciarHechas(lista) {
     lista.forEach(mi => {
@@ -2636,6 +2645,9 @@
   let statsHeroe = HeroeLib.estadisticas(heroeEst, 1, []);    // estadísticas actuales: las recalcula aplicarStats()
   let velBase = null;                                          // velocidades del personaje sin equipo
   let servicioActual = null;                                   // servicio del NPC abierto: herrero, mercader o entrenador
+  let npcActual = null;        // NPC abierto (con su encargo de zona, si lo tiene)
+  let misionPorZona = {};      // encargo de cada zona de combate (ver js/mision-zona.js)
+  let encargosColocados = false;
   let alCrear = null;
   let estudioListo = null;      // promesa: el maniquí del estudio está listo
   const piezasGlb = {};         // id de pieza → URL del GLB generado en esta sesión
@@ -2877,6 +2889,7 @@
     if (!personajeActual) { toast('Crea un personaje primero'); return; }
     cargarCatalogoPiezas().then(() => {
       servicioActual = g.info.servicio;
+      npcActual = g.info;
       $('npc-titulo').textContent = TEXTO_SERVICIO[servicioActual].icono + ' ' + g.info.nombre;
       $('npc-frase').textContent = '«' + g.info.frase + '»';
       $('npc-oro').textContent = inv.gold;
@@ -2903,6 +2916,8 @@
       }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
     } else if (servicio === 'entrenador') {
       html = renderEntrenador();
+    } else if (servicio === 'encargo') {
+      html = renderEncargo();
     } else {
       html = '<h3 class="npc-h">Comprar</h3>' + (piezas.map(p => {
         const coste = EquipoLib.COMPRA_ORO * p.nivel;
@@ -2928,6 +2943,14 @@
 
   $('npc-lista').addEventListener('click', e => {
     const pj = personajeActual;
+    const az = e.target.closest('button[data-aceptar-zona]'), ez = e.target.closest('button[data-entregar-zona]');
+    if (az) accionNpc(() => { HeroeLib.aceptarZona(heroeEst, npcActual.mision.zona, npcActual.mision.objetivo); toast('Encargo aceptado: ' + npcActual.mision.titulo); });
+    if (ez) accionNpc(() => {
+      const m = npcActual.mision;
+      HeroeLib.entregarZona(heroeEst, m.zona, m.recompensa.puntos);
+      inv.gold += m.recompensa.oro; inv.vida += m.recompensa.vida; inv.mana += m.recompensa.mana;
+      toast('Encargo entregado: +' + m.recompensa.oro + ' 🪙');
+    });
     const mj = e.target.closest('button[data-mejorar]');
     if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar); aplicarStats(); toast('Habilidad mejorada'); });
     const fh = e.target.closest('button[data-forjar-hoja]');
@@ -2938,6 +2961,22 @@
     if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
   });
   $('npc-cerrar').onclick = () => $('npc').classList.remove('show');
+
+  // Encargo de zona: el NPC lo ofrece, sigue el progreso y paga al entregarlo
+  function renderEncargo() {
+    const m = npcActual.mision;
+    const st = heroeEst.zonas[m.zona];
+    const premio = '🪙 ' + m.recompensa.oro + ' · 🧪 ' + m.recompensa.vida + ' · 💧 ' + m.recompensa.mana + (m.recompensa.puntos ? ' · 🧬 1 punto de habilidad' : '');
+    let accion;
+    if (!st) accion = '<button class="gold" data-aceptar-zona="' + esc(m.zona) + '">Aceptar encargo</button>';
+    else if (st.entregada) accion = '<div class="muted">Encargo cumplido. «' + esc(m.gracias) + '»</div>';
+    else if (st.lista) accion = '<button class="gold" data-entregar-zona="' + esc(m.zona) + '">Entregar y cobrar</button>';
+    else accion = '<div class="muted">En curso: ' + st.progreso + ' / ' + st.cantidad + '</div>';
+    return '<h3 class="npc-h">' + esc(m.titulo) + '</h3>'
+      + '<div class="muted">' + esc(m.texto) + ' (' + esc(m.zonaNombre) + ')</div>'
+      + '<div class="muted" style="margin-top:4px">Recompensa: ' + premio + '</div>'
+      + '<div class="btns" style="margin-top:8px">' + accion + '</div>';
+  }
 
   // Entrenador: gasta puntos de habilidad en pasivas y en activas (desbloqueadas por misión)
   function renderEntrenador() {
@@ -2986,12 +3025,18 @@
       return '<div class="fila"><span>' + (hecha ? '✅' : '📜') + ' ' + esc(mi.titulo) + '<br><span class="muted">' + esc(mi.texto) + ' · +' + mi.recompensa.puntos + ' puntos</span></span><b>' + prog + '/' + mi.cantidad + '</b></div>';
     }).join('');
     const posibles = Object.keys(H.ESPECIALES).map(tipo => '<div class="muted"><b>' + tipo + '</b>: ' + H.ESPECIALES[tipo].map(e => esc(e.nombre) + ' (' + esc(H.efectoTexto(e.efecto)) + ')').join(' · ') + '</div>').join('');
+    const encargos = Object.keys(heroeEst.zonas).map(id => {
+      const z = heroeEst.zonas[id], m = misionPorZona[id];
+      const estado = z.entregada ? '✅ entregado' : z.lista ? '📦 listo para entregar' : z.progreso + ' / ' + z.cantidad;
+      return '<div class="fila"><span>' + esc(m ? m.titulo : 'Zona desconocida') + '<br><span class="muted">' + esc(m ? m.texto : '') + '</span></span><b>' + estado + '</b></div>';
+    }).join('') || '<div class="muted">Aún no has aceptado encargos de zona. Los NPC de los pueblos los ofrecen.</div>';
     $('heroe-cuerpo').innerHTML =
       '<div class="muted">Nivel ' + hero.level + ' · puntos de habilidad: <b>' + heroeEst.puntos + '</b> · monstruos derrotados: ' + heroeEst.kills + ' (siguiente punto en ' + (H.PUNTOS_KILLS - heroeEst.kills % H.PUNTOS_KILLS) + ')</div>'
       + '<h3>Estadísticas</h3>' + filas.map(f => '<div class="fila"><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('')
       + '<h3>Equipo</h3>' + equipoHtml
       + '<h3>Habilidades</h3>' + habs
       + '<h3>Misiones</h3>' + misiones
+      + '<h3>Encargos de zona</h3>' + encargos
       + '<h3>Especiales posibles</h3>' + posibles
       + '<div class="muted" style="margin-top:6px">Una pieza tiene 1 especial desde nivel 5, 2 desde 15 y 3 desde 30. Son fijos para cada pieza.</div>';
   }
@@ -3062,7 +3107,8 @@
   const TEXTO_SERVICIO = {
     herrero: { tipo: 'Herrero', boton: '🔨 Forjar', icono: '🔨' },
     mercader: { tipo: 'Mercader', boton: '🧺 Comerciar', icono: '🧺' },
-    entrenador: { tipo: 'Entrenador', boton: '🎓 Entrenar', icono: '🎓' }
+    entrenador: { tipo: 'Entrenador', boton: '🎓 Entrenar', icono: '🎓' },
+    encargo: { tipo: 'Encargo de zona', boton: '📜 Ver encargo', icono: '📜' }
   };
   const SERVICIOS = [
     { id: 'serv-herrero', modelo: 'guru-4', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
@@ -3101,6 +3147,57 @@
     });
   }
 
+  // Encargos de zona: un NPC en el pueblo más cercano de cada zona de combate (ver js/mision-zona.js).
+  // Cada modelo se carga una vez y se clona para los encargados que lo usan (no tienen huesos: el clon anima igual).
+  function colocarEncargos() {
+    if (encargosColocados || !world || !towns.length) return;
+    encargosColocados = true;
+    const lista = MisionZonaLib.encargosDeMundo(world.zones, towns.map(o => o.t));
+    const RADIO_ENCARGO = 8;
+    const posicion = {};
+    const porPueblo = {};
+    lista.forEach(m => {
+      misionPorZona[m.zona] = m;
+      (porPueblo[m.pueblo] = porPueblo[m.pueblo] || []).push(m);
+    });
+    Object.keys(porPueblo).forEach(idPueblo => {
+      const o = towns.find(x => x.t.id === idPueblo);
+      if (!o) return;
+      porPueblo[idPueblo].forEach((m, k, todos) => {
+        const a = (k / todos.length) * Math.PI * 2 + 0.9;
+        posicion[m.zona] = { x: o.t.x + Math.cos(a) * RADIO_ENCARGO, z: o.t.y + Math.sin(a) * RADIO_ENCARGO, cx: o.t.x, cz: o.t.y };
+      });
+    });
+    const loader = new THREE.GLTFLoader();
+    MisionZonaLib.MODELOS.forEach(modelo => {
+      const encargados = lista.filter(m => m.npc.modelo === modelo && posicion[m.zona]);
+      if (!encargados.length) return;
+      loader.load('npc/gurus/' + modelo + '.glb', gltf => {
+        encargados.forEach(m => colocarEncargado(m, gltf, posicion[m.zona]));
+      }, undefined, () => { /* sin modelo: no aparecen */ });
+    });
+  }
+
+  function colocarEncargado(m, gltf, pos) {
+    const modelo = gltf.scene.clone(true);
+    const size = new THREE.Vector3();
+    new THREE.Box3().setFromObject(modelo).getSize(size);
+    if (size.y > 0.01) modelo.scale.setScalar(1.85 / size.y);
+    modelo.position.y = -new THREE.Box3().setFromObject(modelo).min.y;
+    const raiz = new THREE.Group();
+    raiz.add(modelo);
+    raiz.position.set(pos.x, visorWorld.getWalkableHeight(pos.x, pos.z), pos.z);
+    raiz.lookAt(pos.cx, raiz.position.y, pos.cz);
+    scene.add(raiz);
+    const mixer = new THREE.AnimationMixer(modelo);
+    const idle = (gltf.animations || []).find(c => c.name === 'idle');
+    if (idle) mixer.clipAction(idle).play();
+    const info = { id: m.npc.id, nombre: m.npc.nombre, tema: m.npc.tema, frase: m.npc.frase, servicio: 'encargo', mision: m };
+    const entrada = { info, raiz, mixer, x: pos.x, z: pos.z, dicho: -Infinity };
+    raiz.userData.npc = entrada;
+    gurus.push(entrada);
+  }
+
   // Animación en reposo y aviso al acercarse. Cada gurú habla de su tema.
   function actualizarGurus(dt, sec) {
     if (!gurus.length) return;
@@ -3119,6 +3216,7 @@
   // Al abrir un mundo: se usa su partida activa, o se crea la primera
   function bootPartida() {
     colocarGurus();
+    colocarEncargos();
     let list = PartidaLib.readList(store, worldId);
     let active = activePartida();
     if (!active && list.length) {

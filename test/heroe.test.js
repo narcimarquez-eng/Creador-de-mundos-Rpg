@@ -95,4 +95,42 @@ t('limpiar: un estado dañado se corrige sin romper la partida', () => {
   assert.ok(h.desbloqueadas.nova && !h.desbloqueadas.zzz);
 });
 
+t('encargos de zona: matar cuenta cualquier monstruo; se completa y se entrega una vez', () => {
+  const h = H.nuevoHeroe();
+  H.aceptarZona(h, 'z1', { tipo: 'matar', cantidad: 2 });
+  assert.throws(() => H.aceptarZona(h, 'z1', { tipo: 'matar', cantidad: 2 }), /Ya tienes/);
+  assert.strictEqual(H.registrarZona(h, 'z1', 'matar'), false);
+  assert.strictEqual(H.registrarZona(h, 'z1', 'jefe'), true);   // el jefe también cuenta como monstruo
+  assert.ok(h.zonas.z1.lista);
+  assert.strictEqual(H.registrarZona(h, 'z1', 'matar'), false); // ya completado: no vuelve a contar
+  assert.throws(() => H.entregarZona(H.nuevoHeroe(), 'z1', 0), /no se puede entregar/);
+  H.entregarZona(h, 'z1', 1);
+  assert.strictEqual(h.puntos, 1);
+  assert.throws(() => H.entregarZona(h, 'z1', 1), /no se puede entregar/);
+});
+
+t('encargos de zona: el jefe solo cuenta jefes; visitar solo cuenta visitas; otra zona no cuenta', () => {
+  const h = H.nuevoHeroe();
+  H.aceptarZona(h, 'j', { tipo: 'jefe', cantidad: 1 });
+  H.aceptarZona(h, 'v', { tipo: 'visitar', cantidad: 1 });
+  assert.strictEqual(H.registrarZona(h, 'j', 'matar'), false);
+  assert.strictEqual(H.registrarZona(h, 'v', 'matar'), false);
+  assert.strictEqual(H.registrarZona(h, 'j', 'visitar'), false);
+  assert.strictEqual(H.registrarZona(h, 'v', 'visitar'), true);
+  assert.strictEqual(H.registrarZona(h, 'j', 'jefe'), true);
+  assert.strictEqual(H.registrarZona(h, 'sin-encargo', 'matar'), false);
+});
+
+t('encargos de zona: se guardan y se sanean al cargar la partida', () => {
+  const h = H.nuevoHeroe();
+  H.aceptarZona(h, 'z1', { tipo: 'matar', cantidad: 3 });
+  H.registrarZona(h, 'z1', 'matar');
+  const copia = H.limpiarHeroe(JSON.parse(JSON.stringify(h)));
+  assert.deepStrictEqual(copia.zonas.z1, { tipo: 'matar', cantidad: 3, progreso: 1, lista: false, entregada: false });
+  const dañado = H.limpiarHeroe({ zonas: { a: { tipo: 'raro', cantidad: 2 }, b: { tipo: 'jefe', cantidad: -4, progreso: 9 } } });
+  assert.deepStrictEqual(Object.keys(dañado.zonas), ['b']);
+  assert.strictEqual(dañado.zonas.b.cantidad, 1);
+  assert.strictEqual(dañado.zonas.b.progreso, 1);   // el progreso guardado se acota al total del encargo
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);
