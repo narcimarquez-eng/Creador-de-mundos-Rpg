@@ -75,7 +75,8 @@
       inv: { gold: Math.floor(o.inv.gold), vida: Math.floor(o.inv.vida), mana: Math.floor(o.inv.mana), arena: Math.floor(o.inv.arena) || 0 },
       visited: (o.visited || []).slice(),
       timeOfDay: o.timeOfDay || 'day',
-      personaje: cleanPersonaje(o.personaje)
+      personaje: cleanPersonaje(o.personaje),
+      heroe: o.heroe && typeof o.heroe === 'object' ? o.heroe : null
     };
   }
 
@@ -116,7 +117,7 @@
       level: p.hero.level, xp: p.hero.xp, hp: p.hero.hp, mp: p.hero.mp,
       gold: p.inv.gold, vida: p.inv.vida, mana: p.inv.mana, arena: p.inv.arena || 0,
       x: p.player.x, z: p.player.z, yaw: p.player.yaw,
-      visited: p.visited.slice(), timeOfDay: p.timeOfDay, personaje: p.personaje || null
+      visited: p.visited.slice(), timeOfDay: p.timeOfDay, personaje: p.personaje || null, heroe: p.heroe || null
     };
   }
 

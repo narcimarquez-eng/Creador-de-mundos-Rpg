@@ -101,4 +101,11 @@ t('el personaje se guarda con la partida y vuelve al restaurarla', () => {
   assert.strictEqual(P.makePartida(base).personaje, null);
 });
 
+t('el héroe (puntos, habilidades, misiones) se guarda con la partida', () => {
+  const heroe = { puntos: 3, kills: 40, gastados: { vitalidad: 2 }, progreso: { cazador1: 5 }, hechas: { cazador1: true }, desbloqueadas: {} };
+  const p = P.makePartida(Object.assign({}, base, { heroe }));
+  assert.strictEqual(P.restoreFields(P.parsePartida(JSON.stringify(p))).heroe.puntos, 3);
+  assert.strictEqual(P.makePartida(base).heroe, null);
+});
+
 console.log(`\n${n} pruebas correctas`);
