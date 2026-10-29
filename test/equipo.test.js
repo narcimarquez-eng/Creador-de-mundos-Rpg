@@ -133,4 +133,12 @@ t('mercader: vende a nivel del héroe con calidad estándar y cobra', () => {
   assert.strictEqual(p.inventario[p.inventario.length - 1].estado, 0.75);
 });
 
+t('los drops son del nivel del monstruo: un nivel 3 no suelta piezas de nivel 6 ni más', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  for (let i = 0; i < 100; i++) {
+    const o = E.soltarPieza(p, CATALOGO, 3, true, sec(0.0, i / 100, 0.5));
+    if (o) assert.ok(o.nivel <= 3 && o.nivel >= 1, o.nombre + ' nivel ' + o.nivel);
+  }
+});
+
 console.log(`\n${n} pruebas de equipo superadas.`);

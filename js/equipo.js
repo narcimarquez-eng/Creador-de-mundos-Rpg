@@ -10,8 +10,8 @@
   "use strict";
 
   const RANURAS = ['underlayer', 'helmet', 'shoulders', 'torso', 'gloves', 'belt', 'tassets', 'cuisses', 'knees', 'boots', 'weapon'];
-  const DROP_NORMAL = 0.05;     // probabilidad de que un monstruo normal suelte algo
-  const RANGO_DROP = 5;         // niveles por debajo del monstruo que puede soltar una pieza
+  const DROP_NORMAL = 0.12;     // probabilidad de que un monstruo normal suelte algo
+  const RANGO_DROP = 2;         // el monstruo suelta piezas de su nivel o de 2 niveles por debajo
   const NIVEL_SOLO_COTAS = 5;   // hasta este nivel de monstruo solo caen cotas
   const FORJA_ORO = 12;         // oro por nivel de la pieza al fabricarla en el herrero
   const COMPRA_ORO = 30;        // oro por nivel de la pieza que vende el mercader (calidad estándar)
@@ -121,8 +121,9 @@
     if (!jefe && rnd() >= DROP_NORMAL) return null;
     let candidatas;
     if (nivelMonstruo <= NIVEL_SOLO_COTAS) {
-      candidatas = piezasDeClase(catalogo, personaje.clase)
-        .filter(p => !esArma(p.ranura) && esCota(p) && p.nivel <= nivelMonstruo);
+      const cotas = piezasDeClase(catalogo, personaje.clase).filter(p => !esArma(p.ranura) && esCota(p));
+      candidatas = cotas.filter(p => p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
+      if (!candidatas.length) candidatas = cotas.filter(p => p.nivel <= nivelMonstruo);
     } else {
       candidatas = piezasDeClase(catalogo, personaje.clase)
         .filter(p => !esArma(p.ranura) && p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);

@@ -104,6 +104,8 @@
       this.oneShots = {};
       this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
       this.lockUntil = 0;        // mientras dure, el personaje no se mueve
+      this.destino = null;       // { x, z, parar }: camina solo hasta ese punto (p. ej. hacia un monstruo)
+      this.cancelado = false;    // true cuando el jugador mueve al personaje y se cancela el destino
       this.tiempo = 0;           // reloj propio del personaje (segundos acumulados)
       this.fallbackAct = null;   // { kind, start, duration } para el avatar de respaldo
 
@@ -319,6 +321,26 @@
       }
     }
 
+    // Camina hacia this.destino hasta quedar a `parar` metros. Lo esquiva todo como el movimiento manual.
+    caminarADestino(dt, enAccion) {
+      const d = this.destino;
+      const dx = d.x - this.root.position.x, dz = d.z - this.root.position.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist <= d.parar) {
+        if (!enAccion) this.switchAnimation('idle');
+        return;
+      }
+      const ux = dx / dist, uz = dz / dist;
+      const paso = Math.min(dist - d.parar, this.walkSpeed * dt);
+      const resolved = this.resolveCollisions(this.root.position.x + ux * paso, this.root.position.z + uz * paso);
+      this.root.position.x = resolved.x;
+      this.root.position.z = resolved.z;
+      this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
+      const objetivoGiro = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(ux, uz));
+      this.root.quaternion.slerp(objetivoGiro, Math.min(1, dt * 12));
+      if (!enAccion) this.switchAnimation('walk');
+    }
+
     resolveCollisions(nextX, nextZ) {
       let rx = nextX, rz = nextZ;
       const r = this.radius;
@@ -424,6 +446,8 @@
       const moveX = kbX !== 0 ? kbX : this.joyVec.x;
       const moveZ = kbZ !== 0 ? kbZ : this.joyVec.y;
       const mag = Math.hypot(moveX, moveZ);
+      // El jugador toma el control: se cancela el destino automático
+      if (mag > 0.08 && this.destino) { this.destino = null; this.cancelado = true; }
 
       if (mag > 0.08 && !locked) {
         const isRunning = this.keys.shift || mag > 0.85;
@@ -463,6 +487,8 @@
           this.camera.position.y += deltaY;
           this.camera.position.z += deltaZ;
         }
+      } else if (this.destino && !locked) {
+        this.caminarADestino(dt, enAccion);
       } else {
         if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'spin')) this.switchAnimation('idle');
         this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);

@@ -1694,6 +1694,16 @@
         <div class="muted">Nivel <b style="color:#fbbf24">${z.levelMin}–${z.levelMax}</b> · bioma ${esc((W.BIOMES[z.biome] || {}).name || z.biome) } · radio ${z.radius} m</div>
         <table>${z.monsters.map(m => `<tr><td>${m.boss ? '☠ ' : ''}${esc(m.name)}</td><td class="lv">Nv ${m.level}</td></tr>`).join('')}</table>
         <div class="btns"><button class="gold" data-tp="${z.x},${z.y}">🧍 Ir aquí</button></div>`;
+    } else if (sel.kind === 'monster') {
+      const m = sel.ref;
+      cx = m.x; cz = m.z; r = 2.2;
+      html = `
+        <button class="close" data-close>✕</button>
+        <span class="kind">${m.boss ? 'Jefe' : 'Monstruo'}</span>
+        <h2>${esc(m.name || 'Monstruo')}</h2>
+        <div class="muted">Nivel ${m.level} · vida ${Math.ceil(m.hp)} / ${Math.ceil(m.maxHp)}</div>
+        <div class="btns"><button class="gold" data-atacar>⚔ Atacar</button></div>
+        <div class="muted" style="margin-top:6px">El personaje camina hasta él y ataca hasta matarlo. Muévete con las teclas para cancelar.</div>`;
     } else {
       const p = sel.at;
       const terr = W.getTerrain(world.seed);
@@ -1709,6 +1719,11 @@
     info.innerHTML = html;
     info.classList.add('show');
     info.querySelector('[data-close]').onclick = () => showSelection(null);
+    info.querySelectorAll('[data-atacar]').forEach(btn => btn.onclick = () => {
+      if (!sel.ref || !sel.ref.alive) { toast('Ese monstruo ya no está'); return; }
+      objetivo = sel.ref;
+      toast('Vas a por ' + (objetivo.name || 'el monstruo'));
+    });
     info.querySelectorAll('[data-tp]').forEach(btn => btn.onclick = () => {
       const [x, z] = btn.dataset.tp.split(',').map(Number);
       if (character.teleport(x, z)) toast('Personaje en ' + Math.round(x) + ', ' + Math.round(z));
@@ -1950,6 +1965,7 @@
           const m = CombatLib.newMonster({ level: info.level, boss: info.boss, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, leash: z.radius + 25 });
           m.name = info.name; m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
           m.group = new THREE.Group();
+          m.group.userData.monstruo = m;
           // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
           m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
           m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
@@ -2355,6 +2371,26 @@
     $('deadmsg').classList.remove('show');
     buildUI();
     updateStats();
+  }
+
+  // Ataque automático: camina hasta el monstruo elegido y ataca hasta matarlo (o hasta que el jugador se mueva)
+  let objetivo = null;
+  const ALCANCE_ATAQUE = 2.4;
+  function atacarObjetivo() {
+    if (character.cancelado) {
+      character.cancelado = false;
+      if (objetivo) toast('Ataque cancelado');
+      objetivo = null;
+    }
+    if (!objetivo) return;
+    if (!objetivo.alive || hero.dead) { objetivo = null; character.destino = null; return; }
+    const cx = character.root.position.x, cz = character.root.position.z;
+    const d = Math.hypot(objetivo.x - cx, objetivo.z - cz);
+    character.destino = { x: objetivo.x, z: objetivo.z, parar: 1.8 };
+    if (d <= ALCANCE_ATAQUE) {
+      character.root.rotation.y = Math.atan2(objetivo.x - cx, objetivo.z - cz);
+      if (CombatLib.canUse(hero, 'attack')) useSkill('attack');
+    }
   }
 
   // Ataque del arma equipada: suma al daño del héroe (ver CombatLib.heroDamage)
@@ -2939,6 +2975,13 @@
     const mouse = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(mouse, camera);
     const objs = [...nearChunks.values(), farMesh, ...towns.filter(o => o.patch).map(o => o.patch)].filter(Boolean);
+    const vivos = monsters.filter(m => m.alive && m.group).map(m => m.group);
+    const golpe = raycaster.intersectObjects(vivos, true)[0];
+    if (golpe) {
+      let o = golpe.object;
+      while (o && !o.userData.monstruo) o = o.parent;
+      if (o) { showSelection({ kind: 'monster', ref: o.userData.monstruo }); return; }
+    }
     const hit = raycaster.intersectObjects(objs, false)[0];
     if (!hit) return;
     showSelection(pick({ x: hit.point.x, z: hit.point.z }));
@@ -3022,6 +3065,7 @@
     actualizarZonaTela();
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
+    atacarObjetivo();
     actualizarGurus(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
     animateTowns(dt);
@@ -3114,7 +3158,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get gurus() { return gurus; }, renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
