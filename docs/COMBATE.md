@@ -37,7 +37,7 @@ y +25 % por cada punto gastado en el entrenador (hasta 3).
 
 Las técnicas de espada, hacha, maza, daga, lanza o báculo no se usan con un arco, y las de arco solo con un arco: el
 botón lo marca con ✖. El tiro con arco solo va en el .GLB si el cuerpo se exporta con un arco equipado; en el
-catálogo actual los arcos son de nivel 44 a 50.
+catálogo, como cada familia de armas, hay arcos del nivel 1 al 40.
 
 ## Animaciones del personaje
 

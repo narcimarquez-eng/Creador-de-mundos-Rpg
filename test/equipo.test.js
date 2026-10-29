@@ -58,9 +58,10 @@ t('el mismo nombre sale con distinto estado (de malo a perfecto)', () => {
 
 t('nivel bajo: las armas que caen son las de menor ataque', () => {
   const lista = E.armasDeDrop(CATALOGO, 'guerrero', 1);
-  assert.strictEqual(lista.length, 1);
-  assert.strictEqual(lista[0].nivel, 1);
+  // Las dos de nivel 1 tienen el mismo ataque: caen las dos (no se corta un empate por el orden del catálogo)
+  assert.deepStrictEqual(lista.map(a => a.nombre), ['Espada básica', 'Maza']);
   assert.ok(lista.every(a => a.nivel <= 1));
+  assert.ok(!E.armasDeDrop(CATALOGO, 'guerrero', 4).some(a => a.nivel > 4));
 });
 
 t('a partir de nivel 6 también caen armaduras de su nivel', () => {

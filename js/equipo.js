@@ -116,7 +116,9 @@
       const todas = piezasDeClase(catalogo, clase).filter(p => esArma(p.ranura) && p.nivel <= nivelMonstruo);
       return todas.sort((a, b) => ataqueBase(a) - ataqueBase(b)).slice(0, 1);
     }
-    return armas.slice(0, 1 + Math.floor(nivelMonstruo / 3));
+    // Las de los N ataques más bajos: con varias armas del mismo ataque (una por familia: espada, arco…) entran todas
+    const ataques = [...new Set(armas.map(ataqueBase))].slice(0, 1 + Math.floor(nivelMonstruo / 3));
+    return armas.filter(p => ataques.includes(ataqueBase(p)));
   }
 
   // Piezas que puede soltar un monstruo de ese nivel (lo mismo que usa soltarPieza y el panel del visor)

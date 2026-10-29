@@ -18,7 +18,8 @@ Un objeto es una **instancia** de una pieza del catálogo (`estudio-armaduras/ca
 - Monstruo normal: 5 % de probabilidad de soltar algo. El jefe suelta siempre.
 - **Hasta nivel 5**: solo caen cotas de nivel ≤ el del monstruo, cada una con un estado aleatorio.
 - **Desde nivel 6**: caen armaduras de su rango (5 niveles por debajo) y armas.
-- **Armas**: caen primero las de menor ataque. Se abren más con el nivel del monstruo (`1 + nivel/3` opciones).
+- **Armas**: caen primero las de menor ataque. Se abren más con el nivel del monstruo (los `1 + nivel/3` ataques más bajos; con el mismo ataque, entran todas, una por familia).
+- **Niveles del catálogo**: de 1 a 40. Las armas se reparten dentro de su familia (legado, espada, hacha, maza, daga, lanza, báculo, arco), así que cada tipo, también el arco, tiene piezas desde el nivel 1.
 
 ## Herrero
 Fabrica una pieza de nivel ≤ nivel del héroe con estado perfecto. Cuesta 12 de oro × nivel.
