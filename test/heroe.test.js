@@ -91,7 +91,45 @@ t('partidas antiguas: la patada giratoria pasa a ser el impacto sísmico, con su
   assert.strictEqual(h.gastados.sismo, 2);
   assert.ok(h.desbloqueadas.sismo);
   assert.ok(!('patada' in h.gastados) && !('patada' in h.desbloqueadas));
-  assert.strictEqual(H.estadisticas(h, 1, []).sismo, 1.5);
+  assert.strictEqual(H.estadisticas(h, 1, []).mult.sismo, 1.5);
+});
+
+t('técnicas: se usan desde su nivel; los puntos las mejoran (+25 % de daño por punto)', () => {
+  const h = H.nuevoHeroe();
+  assert.ok(!H.disponible(h, 'estocada', 4));
+  assert.ok(H.disponible(h, 'estocada', 5));
+  assert.ok(!H.disponible(h, 'nova', 50));          // la nova la da la historia, no el nivel
+  h.puntos = 2;
+  assert.throws(() => H.mejorar(h, 'estocada', 4), /nivel 5/);
+  assert.strictEqual(H.mejorar(h, 'estocada', 5), 1);
+  assert.strictEqual(H.estadisticas(h, 5, []).mult.estocada, 1.25);
+  assert.strictEqual(H.estadisticas(h, 5, []).mult.tajo, 1);
+  assert.match(H.requisito('tornillo'), /nivel 18/);
+  assert.match(H.requisito('sismo'), /capítulo 4/);
+});
+
+t('barra: cuatro huecos con valores iniciales; asignar intercambia si ya estaba en otro hueco', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.barra, { q: 'sismo', e: 'nova', z: 'tajo', v: 'estocada' });
+  H.asignar(h, 'q', 'torbellino');
+  assert.strictEqual(h.barra.q, 'torbellino');
+  H.asignar(h, 'z', 'torbellino');                    // estaba en Q: Q recibe lo que había en Z
+  assert.deepStrictEqual([h.barra.q, h.barra.z], ['tajo', 'torbellino']);
+  assert.throws(() => H.asignar(h, 'x', 'tajo'), /Hueco/);
+  assert.throws(() => H.asignar(h, 'q', 'fuerza'), /barra/);
+});
+
+t('barra: se guarda y se sanea (sin repetidas, sin pasivas, la patada antigua pasa al sismo)', () => {
+  const h = H.limpiarHeroe({ barra: { q: 'patada', e: 'fuerza', z: 'tajo', v: 'tajo' } });
+  assert.deepStrictEqual(h.barra, { q: 'sismo', e: null, z: 'tajo', v: null });
+  assert.deepStrictEqual(H.limpiarHeroe({ puntos: 1 }).barra, H.BARRA_INICIAL);
+});
+
+t('arco: se reconoce por el nombre del arma', () => {
+  assert.ok(H.esArco({ ranura: 'weapon', nombre: 'Arco de Caza' }));
+  assert.ok(!H.esArco({ ranura: 'weapon', nombre: 'Espada Solar + Escudo Heráldico Sol' }));
+  assert.ok(!H.esArco({ ranura: 'torso', nombre: 'Arco' }));
+  assert.ok(!H.esArco(null));
 });
 
 t('historia: un héroe nuevo empieza en el capítulo 1 con el progreso a 0', () => {

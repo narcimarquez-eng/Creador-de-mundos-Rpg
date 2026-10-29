@@ -26,19 +26,46 @@
     idle: ['idle', 'stand', 'wait', 'guardia', 'reposo'],
     walk: ['walk', 'andar', 'caminar', 'marcha', 'move'],
     run: ['run', 'sprint', 'correr', 'carrera', 'fast'],
-    attack: ['combo', 'ataque', 'attack', 'slash', 'punch'],
+    attack: ['combo', 'ataque', 'attack', 'punch'],
     sismo: ['slam', 'sismo', 'sísmico'],
+    // Técnicas de arma y de arco (nombres del cuerpo que exporta el estudio de armaduras)
+    tajo: ['spin_slash', 'tajo giratorio'],
+    estocada: ['thrust_lunge', 'estocada'],
+    ascendente: ['rising_slash', 'tajo ascendente'],
+    hendidura: ['overhead_cleave', 'hendidura'],
+    contraataque: ['guard_counter', 'contraataque'],
+    torbellino: ['whirlwind', 'torbellino'],
+    voltereta: ['backflip', 'voltereta'],
+    tornillo: ['triple_corkscrew', 'tornillo'],
+    disparo: ['archery', 'tiro con arco'],
+    suspension: ['aerial_shot', 'suspensión'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
     victory: ['victoria', 'victory', 'postura de victoria', 'win']
   };
   // Duración de cada acción de un solo uso (segundos) y tiempo en que bloquea el movimiento
+  // (los bloqueos de las habilidades son los mismos que en js/combat.js; las pruebas lo comprueban)
   const ONE_SHOT = {
     attack: { lock: 0.5 },
     sismo: { lock: 1.2 },
     nova: { lock: 1.0 },
+    tajo: { lock: 1.0 },
+    estocada: { lock: 0.8 },
+    ascendente: { lock: 0.9 },
+    hendidura: { lock: 1.0 },
+    contraataque: { lock: 1.2 },
+    torbellino: { lock: 1.6 },
+    voltereta: { lock: 1.2 },
+    tornillo: { lock: 1.8 },
+    disparo: { lock: 0.8 },
+    suspension: { lock: 2.0 },
     jump: { lock: 0.0 },
     victory: { lock: 0.0 }
+  };
+  // Gestos del avatar de respaldo (sin GLB): vueltas sobre sí mismo, salto y tiro con arco
+  const GESTO = {
+    tajo: { vueltas: 1 }, torbellino: { vueltas: 2 }, tornillo: { vueltas: 3, salto: 1.2 },
+    voltereta: { salto: 1.2 }, suspension: { salto: 1.4, arco: true }, disparo: { arco: true }
   };
 
   // Índice de la primera animación cuyo nombre contiene alguna palabra clave; -1 si no hay
@@ -269,7 +296,7 @@
             this.actions.run = this.mixer.clipAction(pick('run', Math.min(2, clips.length - 1)));
             // Acciones de un solo uso: si el GLB no las trae, se usa la animación de respaldo
             this.oneShots = {};
-            ['attack', 'sismo', 'nova', 'jump', 'victory'].forEach(kind => {
+            Object.keys(ONE_SHOT).forEach(kind => {
               const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
               if (i >= 0) {
                 const action = this.mixer.clipAction(clips[i]);
@@ -310,6 +337,14 @@
       }
       if (f.kind === 'nova') { const s = 1 + 0.25 * swing; this.model.scale.set(s, s, s); } else if (this.model.scale.x !== 1) this.model.scale.set(1, 1, 1);
       if (f.kind === 'jump') this.model.position.y = 1.2 * swing;
+      const gesto = GESTO[f.kind];
+      if (gesto || (ONE_SHOT[f.kind] && !['attack', 'sismo', 'nova', 'jump', 'victory'].includes(f.kind))) {
+        const g = gesto || {};
+        if (g.vueltas) this.model.rotation.y = t * Math.PI * 2 * g.vueltas;
+        if (g.salto) this.model.position.y = g.salto * swing;
+        if (g.arco) { L.leftArm.rotation.x = -1.5; L.rightArm.rotation.x = -1.5 * (1 - swing); }
+        else L.rightArm.rotation.x = -2.2 * swing;
+      }
       if (f.kind === 'victory') { L.leftArm.rotation.x = -2.6; L.rightArm.rotation.x = -2.6; }
     }
 

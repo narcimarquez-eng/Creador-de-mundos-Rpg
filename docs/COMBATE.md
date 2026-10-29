@@ -7,12 +7,37 @@ Primera versión del combate. Las reglas están en `js/combat.js` (sin gráficos
 
 | Tecla | Móvil | Acción | Coste | Enfriamiento |
 |---|---|---|---|---|
-| **Espacio** | ⚔ Combo | Combo de ataque (cono frontal de 3 m) | — | 0,7 s |
-| **Q** | 🪨 | Impacto sísmico: salta y golpea el suelo (alrededor, 4,5 m, daño ×2; golpea al caer, a los 0,95 s) | 18 de maná | 5 s |
-| **E** | 💥 | Explosión nova (alrededor, 7 m) | 30 de maná | 12 s |
+| **Espacio** | ⚔ / 🏹 | Combo de ataque (cono frontal de 3 m); con un arco, tiro con arco (24 m, a un solo blanco) | — | 0,7 s / 1,2 s |
+| **Q E Z V** | huecos | La habilidad que lleve cada hueco de la barra (al empezar: impacto sísmico, nova, tajo giratorio y estocada) | según la habilidad | según la habilidad |
 | **X** | 🦘 | Salto acrobático (solo animación) | — | — |
 
-Cada habilidad bloquea el movimiento mientras dura su animación (ataque 0,5 s, impacto sísmico 1,2 s, nova 1 s).
+Los huecos se cambian en el panel 🧬 (P): cada habilidad tiene botones Q, E, Z y V; si ya estaba en otro hueco, se
+intercambian. Cada habilidad bloquea el movimiento mientras dura su animación y golpea en su momento (al caer, al
+cerrar el giro, al soltar la flecha), no al pulsar.
+
+### Habilidades activas
+
+Cada una usa su animación del cuerpo que exporta el estudio de armaduras. Daño: el del héroe por el multiplicador,
+y +25 % por cada punto gastado en el entrenador (hasta 3).
+
+| Habilidad | Animación | Área | Daño | Maná | Recarga | Se consigue |
+|---|---|---|---|---|---|---|
+| Impacto sísmico 🪨 | `ultimate_slam` | alrededor, 4,5 m | ×2 | 18 | 5 s | capítulo 4 de la historia |
+| Explosión nova 💥 | `ultimate_nova` | alrededor, 7 m | ×2,5 | 30 | 12 s | capítulo 8 de la historia |
+| Tajo giratorio 🌀 | `spin_slash` | alrededor, 3,5 m | ×1,8 | 12 | 5 s | nivel 3 |
+| Estocada a fondo 🗡 | `thrust_lunge` | delante (estrecho), 5 m | ×2,2 | 10 | 4 s | nivel 5 |
+| Tajo ascendente ⤴ | `rising_slash` | delante, 3,2 m | ×2 | 12 | 5 s | nivel 7 |
+| Hendidura vertical 🪓 | `overhead_cleave` | delante, 3,5 m | ×2,6 | 16 | 7 s | nivel 9 |
+| Parada y contraataque 🛡 | `guard_counter` | delante, 3 m | ×2,8 | 15 | 9 s | nivel 11 |
+| Torbellino 🌪 | `whirlwind` | alrededor, 4 m, dos golpes | ×1,4 cada uno | 24 | 9 s | nivel 13 |
+| Voltereta mortal 🤸 | `backflip` | alrededor, 3 m | ×1,6 | 14 | 8 s | nivel 15 |
+| Tornillo triple 🌩 | `triple_corkscrew` | alrededor, 4,5 m | ×3,4 | 35 | 15 s | nivel 18 |
+| Tiro con arco 🏹 | `archery` | delante, 24 m, un blanco | ×1,2 | — | 1,2 s | con un arco (Espacio) |
+| Flecha en suspensión 🎯 | `aerial_shot` | delante, 26 m, un blanco | ×2,6 | 20 | 8 s | nivel 6, con un arco |
+
+Las técnicas de espada, hacha, maza, daga, lanza o báculo no se usan con un arco, y las de arco solo con un arco: el
+botón lo marca con ✖. El tiro con arco solo va en el .GLB si el cuerpo se exporta con un arco equipado; en el
+catálogo actual los arcos son de nivel 44 a 50.
 
 ## Animaciones del personaje
 
@@ -25,6 +50,7 @@ Las acciones se buscan por el nombre de la animación del GLB (inglés o españo
 | Correr | run, carrera | Carrera (Run) |
 | Ataque | combo, ataque, punch | Combo de Ataque · `punch` |
 | Impacto sísmico | slam, sismo, sísmico | Impacto Sísmico · `ultimate_slam` |
+| Técnicas y arco | spin_slash, whirlwind, overhead_cleave, thrust_lunge, rising_slash, guard_counter, triple_corkscrew, backflip, archery, aerial_shot | (nombres del estudio) |
 | Nova | nova, explos | Explosión Nova |
 | Salto | salto, acrobat | Salto Acrobático |
 | Victoria | victoria | Postura de Victoria |

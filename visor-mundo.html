@@ -73,6 +73,7 @@
     .skills button .cd { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; background: rgba(2,6,23,.6); border-radius: 7px; }
     .skills button .cd:empty { display: none; }
     .skills button:disabled { opacity: .5; }
+    .skills button .ico { font-weight: normal; }
     .inv { font-size: 12px; color: var(--muted); display: flex; gap: 10px; justify-content: flex-end; }
     .inv b { color: #fde68a; }
     .util { display: flex; gap: 6px; }
@@ -121,6 +122,8 @@
     #heroe .muted { color: var(--muted); font-size: 12px; }
     #heroe .fila { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
     #heroe .btns { display: flex; gap: 6px; margin-top: 10px; }
+    #heroe .huecos { display: flex; gap: 3px; flex: none; }
+    #heroe .hueco-b { padding: 2px 7px; font-size: 11px; }
     #minimap { cursor: pointer; }
     #mision { position: absolute; top: 54px; left: 50%; transform: translateX(-50%); z-index: 19; width: min(360px, calc(100vw - 560px)); min-width: 260px; background: var(--panel); border: 1px solid #a16207; border-radius: 10px; padding: 7px 10px; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
     #mision:hover { border-color: var(--gold); }
@@ -289,9 +292,11 @@
       <div class="inv"><span>🪙 <b id="inv-gold">0</b></span><span>🧪 <b id="inv-vida">0</b></span><span>💧 <b id="inv-mana">0</b></span></div>
     </div>
     <div class="skills">
-      <button id="sk-attack" title="Combo de ataque (Espacio)">⚔<small>Espacio</small><span class="cd"></span></button>
-      <button id="sk-sismo" title="Impacto sísmico (Q)">🪨<small>Q</small><span class="cd"></span></button>
-      <button id="sk-nova" title="Explosión nova (E)">💥<small>E</small><span class="cd"></span></button>
+      <button id="sk-attack" title="Combo de ataque (Espacio)"><b class="ico">⚔</b><small>Espacio</small><span class="cd"></span></button>
+      <button id="sk-q"><b class="ico"></b><small>Q</small><span class="cd"></span></button>
+      <button id="sk-e"><b class="ico"></b><small>E</small><span class="cd"></span></button>
+      <button id="sk-z"><b class="ico"></b><small>Z</small><span class="cd"></span></button>
+      <button id="sk-v"><b class="ico"></b><small>V</small><span class="cd"></span></button>
       <button id="sk-jump" title="Salto acrobático (X)">🦘<small>X</small></button>
     </div>
     <div class="util">
@@ -2028,8 +2033,6 @@
   // ===========================================================================
   // Combate: héroe, monstruos, habilidades y muerte (reglas en js/combat.js)
   // ===========================================================================
-  const SKILL_ANIM = { attack: 'attack', sismo: 'sismo', nova: 'nova' };
-  const SKILL_KEY = { attack: 'Espacio', sismo: 'Q', nova: 'E' };
   let lastNowSec = 0, lastHud = 0;
   let deadTimerShown = false;
 
@@ -2299,66 +2302,115 @@
     });
   }
 
-  // Habilidades: daño a los monstruos del alcance y animación del personaje
-  // Impacto sísmico (Q) y nova (E) se desbloquean con la historia (ver js/heroe.js y js/historia.js)
-  const HAB_DE_SKILL = { sismo: 'sismo', nova: 'nova' };
-  function bloqueada(name) { const hab = HAB_DE_SKILL[name]; return !!hab && !heroeEst.desbloqueadas[hab]; }
+  // Habilidades: daño a los monstruos del alcance y animación del personaje (la del mismo nombre, ver js/character.js).
+  // Espacio: combo, o tiro con arco si el arma es un arco. Q, E, Z y V: lo que lleve cada hueco de la barra.
+  function armaDelHeroe() {
+    const arma = personajeActual && EquipoLib.objeto(personajeActual, personajeActual.equipo.weapon);
+    return HeroeLib.esArco(arma) ? 'arco' : 'cuerpo';
+  }
+  // Las de la historia, hasta su capítulo; las técnicas, hasta su nivel (ver js/heroe.js)
+  function bloqueada(name) { return !!HeroeLib.HABILIDADES[name] && !HeroeLib.disponible(heroeEst, name, hero.level); }
+  // Por qué no se puede usar con el arma que lleva ('' si se puede)
+  function faltaArma(name) {
+    const req = CombatLib.SKILLS[name].arma;
+    if (!req || req === armaDelHeroe()) return '';
+    return req === 'arco' ? 'Necesitas un arco' : 'Con el arco no puedes usar ' + CombatLib.SKILLS[name].nombre.toLowerCase();
+  }
+  function usarHueco(tecla) {
+    const id = heroeEst.barra[tecla];
+    if (!id) { toast('Hueco ' + tecla.toUpperCase() + ' vacío: elige una habilidad en el panel 🧬 (P)'); return; }
+    useSkill(id);
+  }
 
   function useSkill(name) {
     if (hero.dead) return;
-    if (bloqueada(name)) { toast('🔒 Se desbloquea con la historia (capítulo ' + HeroeLib.HABILIDADES[HAB_DE_SKILL[name]].capitulo + ')'); return; }
+    if (name === 'attack' && armaDelHeroe() === 'arco') name = 'disparo';
+    if (bloqueada(name)) { toast('🔒 ' + CombatLib.SKILLS[name].nombre + ': ' + HeroeLib.requisito(name)); return; }
+    const falta = faltaArma(name);
+    if (falta) { toast(falta); return; }
     if (!CombatLib.canUse(hero, name)) {
-      if (hero.cd[name] > 0) toast(name === 'attack' ? 'Combo listo en un momento' : 'Recargando…');
+      if (hero.cd[name] > 0) toast(name === 'attack' || name === 'disparo' ? 'Listo en un momento' : 'Recargando…');
       else if (hero.mp < CombatLib.SKILLS[name].mp) toast('Sin maná');
       return;
     }
     CombatLib.useSkill(hero, name);
     // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
     if (statsHeroe.velocidadAtaque) hero.cd[name] = Math.max(CombatLib.SKILLS[name].lock, hero.cd[name] / (1 + statsHeroe.velocidadAtaque));
-    character.playOneShot(SKILL_ANIM[name], lastNowSec);
-    // El impacto sísmico golpea al caer (a mitad de su animación); el resto, al instante
-    const impacto = CombatLib.SKILLS[name].impacto || 0;
-    if (impacto) setTimeout(() => { if (!hero.dead) { ondaSismica(CombatLib.SKILLS[name].range); aplicarGolpe(name); } }, impacto * 1000);
-    else aplicarGolpe(name);
+    character.playOneShot(name, lastNowSec);
+    // Cada golpe llega en su momento de la animación (al caer, al cerrar el giro, al soltar la flecha); sin momento, al instante
+    const sk = CombatLib.SKILLS[name];
+    CombatLib.impactos(name).forEach((t, i) => {
+      const golpe = () => {
+        if (hero.dead) return;
+        if (sk.arc <= -1 && t > 0) ondaSismica(sk.range);   // los golpes alrededor dejan una onda en el suelo
+        aplicarGolpe(name, i === 0);
+      };
+      if (t > 0) setTimeout(golpe, t * 1000); else golpe();
+    });
   }
 
-  // Daña a los monstruos del área de la habilidad, desde donde esté el personaje en ese momento
-  function aplicarGolpe(name) {
+  // Daña a los monstruos del área de la habilidad, desde donde esté el personaje en ese momento.
+  // Las flechas (unico) solo dan al más cercano. Sin blancos, avisa solo en el primer golpe.
+  function aplicarGolpe(name, primero = true) {
+    const sk = CombatLib.SKILLS[name];
     const p = character.root.position;
     const fx = Math.sin(character.root.rotation.y), fz = Math.cos(character.root.rotation.y);
-    let hits = 0;
-    monsters.slice().forEach(m => {
-      if (!m.alive || !CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z)) return;
-      hits++;
+    let blancos = monsters.filter(m => m.alive && CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z));
+    if (sk.unico) blancos = blancos.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)).slice(0, 1);
+    blancos.forEach(m => {
+      if (sk.unico) flecha(m);
       golpear(m, danioDelHeroe(name, m.level));
     });
-    if (name !== 'attack' && hits === 0) toast('Sin objetivos en el alcance');
+    if (primero && name !== 'attack' && name !== 'disparo' && !blancos.length) toast('Sin objetivos en el alcance');
   }
 
-  // Onda en el suelo del impacto sísmico: un anillo que se abre hasta el alcance y se desvanece
-  const ondas = [];
+  // Efectos breves: la onda en el suelo de los golpes alrededor y la flecha que vuela hasta su blanco
+  const efectos = [];
+  function efecto(malla, dur, paso) {
+    scene.add(malla);
+    efectos.push({ malla, t: 0, dur, paso });
+  }
   function ondaSismica(alcance) {
     const p = character.root.position;
     const malla = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 48), new THREE.MeshBasicMaterial({ color: 0xd6a35c, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
     malla.rotation.x = -Math.PI / 2;
     malla.position.set(p.x, p.y + 0.15, p.z);
-    scene.add(malla);
-    ondas.push({ malla, t: 0, dur: 0.45, alcance });
+    efecto(malla, 0.45, k => {
+      malla.scale.setScalar(0.6 + k * (alcance - 0.6));
+      malla.material.opacity = 0.85 * (1 - k);
+    });
   }
-  function actualizarOndas(dt) {
-    for (let i = ondas.length - 1; i >= 0; i--) {
-      const o = ondas[i];
-      o.t += dt;
-      const k = Math.min(1, o.t / o.dur);
-      o.malla.scale.setScalar(0.6 + k * (o.alcance - 0.6));
-      o.malla.material.opacity = 0.85 * (1 - k);
-      if (k >= 1) { scene.remove(o.malla); o.malla.geometry.dispose(); o.malla.material.dispose(); ondas.splice(i, 1); }
+  function flecha(m) {
+    const p = character.root.position;
+    const desde = new THREE.Vector3(p.x, p.y + 1.4, p.z);
+    const hasta = new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.0, m.z);
+    const malla = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), new THREE.MeshBasicMaterial({ color: 0xe7d3a1 }));
+    malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), hasta.clone().sub(desde).normalize());
+    malla.position.copy(desde);
+    efecto(malla, Math.min(0.35, desde.distanceTo(hasta) / 60), k => malla.position.lerpVectors(desde, hasta, k));
+  }
+  function actualizarEfectos(dt) {
+    for (let i = efectos.length - 1; i >= 0; i--) {
+      const e = efectos[i];
+      e.t += dt;
+      const k = Math.min(1, e.t / e.dur);
+      e.paso(k);
+      if (k >= 1) { scene.remove(e.malla); e.malla.geometry.dispose(); e.malla.material.dispose(); efectos.splice(i, 1); }
     }
   }
 
   function jump() {
     if (hero.dead) return;
     character.playOneShot('jump', lastNowSec);
+  }
+
+  // Botón de una habilidad: icono, si está bloqueada (🔒), si el arma no vale (✖) y su enfriamiento
+  function estadoBoton(btn, id, titulo) {
+    const cd = hero.cd[id], bloq = bloqueada(id), falta = faltaArma(id);
+    btn.querySelector('.ico').textContent = CombatLib.SKILLS[id].icono;
+    btn.title = titulo + (bloq ? ' · ' + HeroeLib.requisito(id) : falta ? ' · ' + falta : '');
+    btn.disabled = hero.dead || bloq || !!falta || cd > 0 || hero.mp < CombatLib.SKILLS[id].mp;
+    btn.querySelector('.cd').textContent = bloq ? '🔒' : falta ? '✖' : (cd > 0 ? Math.ceil(cd) : '');
   }
 
   function updateHud(now) {
@@ -2370,11 +2422,15 @@
     $('hud-xp').style.width = pct(hero.xp, CombatLib.xpToNext(hero.level));
     $('hud-hp-t').textContent = Math.ceil(hero.hp) + ' / ' + hero.maxHp;
     $('hud-lv').textContent = 'Nv ' + hero.level;
-    ['attack', 'sismo', 'nova'].forEach(k => {
-      const btn = $('sk-' + k), cd = hero.cd[k];
-      const bloq = bloqueada(k);
-      btn.disabled = hero.dead || bloq || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
-      btn.querySelector('.cd').textContent = bloq ? '🔒' : (cd > 0 ? Math.ceil(cd) : '');
+    const arco = armaDelHeroe() === 'arco';
+    estadoBoton($('sk-attack'), arco ? 'disparo' : 'attack', arco ? 'Tiro con arco (Espacio)' : 'Combo de ataque (Espacio)');
+    HeroeLib.TECLAS.forEach(t => {
+      const id = heroeEst.barra[t], btn = $('sk-' + t);
+      if (id) { estadoBoton(btn, id, CombatLib.SKILLS[id].nombre + ' (' + t.toUpperCase() + ')'); return; }
+      btn.disabled = true;
+      btn.title = 'Hueco ' + t.toUpperCase() + ' vacío: elige una habilidad en el panel 🧬 (P)';
+      btn.querySelector('.ico').textContent = '·';
+      btn.querySelector('.cd').textContent = '';
     });
     $('inv-gold').textContent = inv.gold;
     $('inv-vida').textContent = inv.vida;
@@ -2684,10 +2740,14 @@
     }
     const cx = character.root.position.x, cz = character.root.position.z;
     const d = Math.hypot(objetivo.x - cx, objetivo.z - cz);
-    character.destino = { x: objetivo.x, z: objetivo.z, parar: 1.8 };
-    if (d <= ALCANCE_ATAQUE) {
+    // Con arco se dispara desde lejos; con cualquier otra arma, se va hasta él
+    const arco = armaDelHeroe() === 'arco';
+    const golpe = arco ? 'disparo' : 'attack';
+    const alcance = arco ? CombatLib.SKILLS.disparo.range * 0.8 : ALCANCE_ATAQUE;
+    character.destino = { x: objetivo.x, z: objetivo.z, parar: arco ? alcance - 1 : 1.8 };
+    if (d <= alcance) {
       character.root.rotation.y = Math.atan2(objetivo.x - cx, objetivo.z - cz);
-      if (CombatLib.canUse(hero, 'attack')) useSkill('attack');
+      if (CombatLib.canUse(hero, golpe)) useSkill(golpe);
     }
   }
 
@@ -2707,11 +2767,10 @@
   }
 
   const CRITICO = 1.5;   // multiplicador del golpe crítico
-  // Daño de una habilidad: arma, daño extra, impacto sísmico y nova mejorados, y crítico
+  // Daño de una habilidad: arma, daño extra, la propia habilidad mejorada con puntos y crítico
   function danioDelHeroe(name, targetLevel) {
     let dmg = CombatLib.heroDamage(hero, name, targetLevel) * (1 + statsHeroe.danio);
-    if (name === 'sismo') dmg *= statsHeroe.sismo;
-    if (name === 'nova') dmg *= statsHeroe.nova;
+    dmg *= statsHeroe.mult[name] || 1;
     return Math.random() < statsHeroe.critico ? dmg * CRITICO : dmg;
   }
   // Un golpe del héroe: con robo de vida recupera parte del daño
@@ -3130,7 +3189,7 @@
       toast('Encargo entregado: +' + m.recompensa.oro + ' 🪙');
     });
     const mj = e.target.closest('button[data-mejorar]');
-    if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar); aplicarStats(); toast('Habilidad mejorada'); });
+    if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar, hero.level); aplicarStats(); toast('Habilidad mejorada'); });
     const fh = e.target.closest('button[data-forjar-hoja]');
     if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); avanzarHistoria({ tipo: 'forjar' }); toast('Forjada con su hoja'); });
     const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
@@ -3162,7 +3221,7 @@
     const fila = id => {
       const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
       let accion;
-      if (hab.tipo === 'activa' && !heroeEst.desbloqueadas[id]) accion = '<span class="muted">🔒 Capítulo ' + hab.capitulo + ' de la historia</span>';
+      if (!H.disponible(heroeEst, id, hero.level)) accion = '<span class="muted">🔒 ' + esc(H.requisito(id)) + '</span>';
       else if (nivel >= hab.max) accion = '<span class="muted">máximo</span>';
       else accion = '<button data-mejorar="' + id + '" ' + (heroeEst.puntos < 1 ? 'disabled' : '') + '>Mejorar</button>';
       return '<div class="slot"><div class="info"><b>' + esc(hab.nombre) + '</b> <span class="muted">' + nivel + '/' + hab.max + '</span><div class="muted">' + esc(hab.desc) + '</div></div>' + accion + '</div>';
@@ -3183,7 +3242,7 @@
       ['Reducción de daño', pct(s.reduccion)], ['Bloqueo (escudo)', pct(s.bloqueo)], ['Crítico (daño ×' + CRITICO + ')', pct(s.critico)],
       ['Daño extra', mas(s.danio)], ['Robo de vida', pct(s.robo)], ['Reflejo (espinas)', pct(s.reflejo)],
       ['Velocidad de movimiento', mas(s.velocidad)], ['Velocidad de ataque', mas(s.velocidadAtaque)],
-      ['Impacto sísmico (Q), daño', pct(s.sismo)], ['Explosión nova (E), daño', pct(s.nova)]
+      ...H.TECLAS.filter(t => heroeEst.barra[t]).map(t => [t.toUpperCase() + ' · ' + CombatLib.SKILLS[heroeEst.barra[t]].nombre + ', daño', pct(s.mult[heroeEst.barra[t]])])
     ];
     const equipo = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
     const equipoHtml = equipo.map(o => {
@@ -3192,10 +3251,15 @@
         + f.lineas.map(l => '<div class="muted">· ' + esc(l) + '</div>').join('')
         + f.especiales.map(e => '<div class="muted">✦ ' + esc(e.nombre) + ': ' + esc(e.texto) + '</div>').join('');
     }).join('') || '<div class="muted">Sin equipo.</div>';
+    // Pasivas con su nivel; activas con su área, coste y los huecos de la barra donde ponerlas
     const habs = Object.keys(H.HABILIDADES).map(id => {
       const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
-      const estado = hab.tipo === 'activa' && !heroeEst.desbloqueadas[id] ? '🔒' : nivel + '/' + hab.max;
-      return '<div class="fila"><span>' + esc(hab.nombre) + '<br><span class="muted">' + esc(hab.desc) + '</span></span><b>' + estado + '</b></div>';
+      if (hab.tipo !== 'activa') return '<div class="fila"><span>' + esc(hab.nombre) + '<br><span class="muted">' + esc(hab.desc) + '</span></span><b>' + nivel + '/' + hab.max + '</b></div>';
+      const sk = CombatLib.SKILLS[id];
+      const datos = (sk.arc <= -1 ? 'alrededor' : 'delante') + ', ' + sk.range + ' m · ' + sk.mp + ' maná · recarga ' + sk.cd + ' s' + (hab.arma === 'arco' ? ' · con arco' : '');
+      const huecos = H.TECLAS.map(t => '<button class="hueco-b' + (heroeEst.barra[t] === id ? ' gold' : '') + '" data-asignar="' + id + '" data-tecla="' + t + '">' + t.toUpperCase() + '</button>').join('');
+      return '<div class="fila"><span>' + sk.icono + ' ' + esc(hab.nombre) + ' <span class="muted">' + nivel + '/' + hab.max + '</span><br><span class="muted">' + esc(datos)
+        + (H.disponible(heroeEst, id, hero.level) ? '' : ' · 🔒 ' + esc(H.requisito(id))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
     }).join('');
     const pr = heroeEst.principal, capAct = HistoriaLib.capituloActual(pr), total = HistoriaLib.CAPITULOS.length;
     const objAct = capAct && world ? HistoriaLib.asegurarObjetivo(pr, world) : null;
@@ -3213,7 +3277,7 @@
       '<div class="muted">Nivel ' + hero.level + ' · puntos de habilidad: <b>' + heroeEst.puntos + '</b> · monstruos derrotados: ' + heroeEst.kills + ' (siguiente punto en ' + (H.PUNTOS_KILLS - heroeEst.kills % H.PUNTOS_KILLS) + ')</div>'
       + '<h3>Estadísticas</h3>' + filas.map(f => '<div class="fila"><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('')
       + '<h3>Equipo</h3>' + equipoHtml
-      + '<h3>Habilidades</h3>' + habs
+      + '<h3>Habilidades · pulsa Q, E, Z o V para ponerla en ese hueco de la barra</h3>' + habs
       + '<h3>Historia</h3>' + historia
       + '<h3>Encargos de zona</h3>' + encargos
       + '<h3>Especiales posibles</h3>' + posibles
@@ -3403,6 +3467,15 @@
   $('cap-cerrar').onclick = () => $('capitulo').classList.remove('show');
   $('sk-heroe').onclick = () => { renderHeroe(); $('heroe').classList.add('show'); };
   $('heroe-cerrar').onclick = () => $('heroe').classList.remove('show');
+  // Poner una habilidad en un hueco de la barra (si ya estaba en otro, se intercambian)
+  $('heroe-cuerpo').addEventListener('click', e => {
+    const b = e.target.closest('button[data-asignar]');
+    if (!b) return;
+    HeroeLib.asignar(heroeEst, b.dataset.tecla, b.dataset.asignar);
+    toast(CombatLib.SKILLS[b.dataset.asignar].nombre + ' en el hueco ' + b.dataset.tecla.toUpperCase());
+    renderHeroe();
+    saveActive(true);
+  });
 
   // Partida nueva con el personaje elegido
   function crearPartida(pj) {
@@ -3652,8 +3725,7 @@
     if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
     if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
     if (k === ' ') { e.preventDefault(); useSkill('attack'); }
-    if (k === 'q') useSkill('sismo');
-    if (k === 'e') useSkill('nova');
+    if (HeroeLib.TECLAS.includes(k)) usarHueco(k);
     if (k === 'i') $('sk-objetos').click();
     if (k === 'h') abrirServicioCercano();
     if (k === 'c') { renderCronica(); $('cronica').classList.add('show'); }
@@ -3735,8 +3807,7 @@
   $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
   $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
   $('sk-attack').onclick = () => useSkill('attack');
-  $('sk-sismo').onclick = () => useSkill('sismo');
-  $('sk-nova').onclick = () => useSkill('nova');
+  HeroeLib.TECLAS.forEach(t => { $('sk-' + t).onclick = () => usarHueco(t); });
   $('sk-jump').onclick = jump;
   $('sk-vida').onclick = () => drink('vida');
   $('sk-mana').onclick = () => drink('mana');
@@ -3776,7 +3847,7 @@
     character.update(dt, now / 1000);
     seguirRuta();
     atacarObjetivo();
-    actualizarOndas(dt);
+    actualizarEfectos(dt);
     actualizarGurus(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
     animateTowns(dt);

@@ -3,7 +3,8 @@
  * Expone window.HeroeLib (o module.exports en Node para las pruebas).
  *
  * Los puntos llegan de la historia (capítulos de js/historia.js), de los encargos de zona y de la lucha
- * (cada PUNTOS_KILLS monstruos). Se gastan en el entrenador. Las activas (impacto sísmico y nova) las desbloquea la historia.
+ * (cada PUNTOS_KILLS monstruos). Se gastan en el entrenador. Las activas: el impacto sísmico y la nova las desbloquea la historia;
+ * las técnicas de arma y de arco, el nivel del héroe. Cuatro huecos (Q, E, Z, V) eligen cuáles se usan.
  */
 (function (root) {
   "use strict";
@@ -17,9 +18,23 @@
     destreza: { tipo: 'pasiva', nombre: 'Destreza', desc: '+1 % de crítico por punto', max: 10 },
     entereza: { tipo: 'pasiva', nombre: 'Entereza', desc: '+1 % de reducción de daño por punto', max: 10 },
     intelecto: { tipo: 'pasiva', nombre: 'Intelecto', desc: '+8 maná máximo por punto', max: 10 },
-    sismo: { tipo: 'activa', nombre: 'Impacto sísmico (Q)', desc: '+25 % de daño por nivel', max: 3, capitulo: 4 },
-    nova: { tipo: 'activa', nombre: 'Explosión nova (E)', desc: '+25 % de daño por nivel', max: 3, capitulo: 8 }
+    sismo: { tipo: 'activa', nombre: 'Impacto sísmico', desc: '+25 % de daño por nivel', max: 3, capitulo: 4 },
+    nova: { tipo: 'activa', nombre: 'Explosión nova', desc: '+25 % de daño por nivel', max: 3, capitulo: 8 },
+    // Técnicas: se pueden usar desde su nivel; los puntos las mejoran. arma: 'cuerpo' (no arco) o 'arco'
+    tajo: { tipo: 'activa', nombre: 'Tajo giratorio', desc: '+25 % de daño por nivel', max: 3, nivel: 3, arma: 'cuerpo' },
+    estocada: { tipo: 'activa', nombre: 'Estocada a fondo', desc: '+25 % de daño por nivel', max: 3, nivel: 5, arma: 'cuerpo' },
+    suspension: { tipo: 'activa', nombre: 'Flecha en suspensión', desc: '+25 % de daño por nivel', max: 3, nivel: 6, arma: 'arco' },
+    ascendente: { tipo: 'activa', nombre: 'Tajo ascendente', desc: '+25 % de daño por nivel', max: 3, nivel: 7, arma: 'cuerpo' },
+    hendidura: { tipo: 'activa', nombre: 'Hendidura vertical', desc: '+25 % de daño por nivel', max: 3, nivel: 9, arma: 'cuerpo' },
+    contraataque: { tipo: 'activa', nombre: 'Parada y contraataque', desc: '+25 % de daño por nivel', max: 3, nivel: 11, arma: 'cuerpo' },
+    torbellino: { tipo: 'activa', nombre: 'Torbellino', desc: '+25 % de daño por nivel', max: 3, nivel: 13, arma: 'cuerpo' },
+    voltereta: { tipo: 'activa', nombre: 'Voltereta mortal', desc: '+25 % de daño por nivel', max: 3, nivel: 15, arma: 'cuerpo' },
+    tornillo: { tipo: 'activa', nombre: 'Tornillo triple', desc: '+25 % de daño por nivel', max: 3, nivel: 18, arma: 'cuerpo' }
   };
+
+  // Huecos de la barra de habilidades y lo que llevan al empezar
+  const TECLAS = ['q', 'e', 'z', 'v'];
+  const BARRA_INICIAL = { q: 'sismo', e: 'nova', z: 'tajo', v: 'estocada' };
 
   // Habilidades con otro nombre en partidas antiguas: la patada giratoria es ahora el impacto sísmico
   const RENOMBRADAS = { patada: 'sismo' };
@@ -59,6 +74,11 @@
     return 'armadura';
   }
 
+  // ¿Es un arco? (las técnicas de arco lo necesitan; con él no se usan las de cuerpo a cuerpo)
+  function esArco(obj) {
+    return !!obj && obj.ranura === 'weapon' && /\bArco\b/.test(obj.nombre);
+  }
+
   // Número de habilidades especiales según el nivel del objeto
   function cantidadEspeciales(nivel) {
     return nivel >= 30 ? 3 : nivel >= 15 ? 2 : nivel >= 5 ? 1 : 0;
@@ -76,7 +96,8 @@
 
   // Estado de un héroe nuevo
   function nuevoHeroe() {
-    return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, principal: { paso: 0, progreso: 0, objetivo: null } };
+    return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, barra: Object.assign({}, BARRA_INICIAL),
+      principal: { paso: 0, progreso: 0, objetivo: null } };
   }
 
   // Sanea el estado guardado en una partida (campos desconocidos o dañados se descartan)
@@ -91,6 +112,15 @@
       if (HABILIDADES[id]) base.gastados[id] = Math.min(HABILIDADES[id].max, Math.max(base.gastados[id] || 0, num(h.gastados[k])));
     });
     Object.keys(h.desbloqueadas || {}).forEach(k => { const id = RENOMBRADAS[k] || k; if (HABILIDADES[id]) base.desbloqueadas[id] = true; });
+    // Barra: solo habilidades activas, cada una en un hueco como mucho (partidas sin barra: la inicial)
+    if (h.barra && typeof h.barra === 'object') {
+      const usadas = new Set();
+      TECLAS.forEach(t => {
+        const id = RENOMBRADAS[h.barra[t]] || h.barra[t];
+        base.barra[t] = HABILIDADES[id] && HABILIDADES[id].tipo === 'activa' && !usadas.has(id) ? id : null;
+        if (base.barra[t]) usadas.add(base.barra[t]);
+      });
+    }
     Object.keys(h.zonas || {}).forEach(k => {
       const z = h.zonas[k];
       if (!z || !TIPOS_ZONA.includes(z.tipo)) return;
@@ -166,11 +196,37 @@
     return true;
   }
 
-  // Gasta un punto en una habilidad. Las activas necesitan su capítulo de la historia y ganan nivel.
-  function mejorar(h, id) {
+  // ¿Se puede usar ya? Las de la historia, al cumplir su capítulo; las técnicas, desde su nivel
+  function disponible(h, id, nivelHeroe) {
+    const hab = HABILIDADES[id];
+    if (!hab) return false;
+    if (hab.tipo !== 'activa') return true;
+    if (hab.capitulo) return !!h.desbloqueadas[id];
+    return nivelHeroe >= (hab.nivel || 1);
+  }
+
+  // Por qué no se puede usar aún (texto para la interfaz)
+  function requisito(id) {
+    const hab = HABILIDADES[id];
+    if (!hab || hab.tipo !== 'activa') return '';
+    return hab.capitulo ? 'se desbloquea con la historia (capítulo ' + hab.capitulo + ')' : 'se aprende en el nivel ' + hab.nivel;
+  }
+
+  // Pone una habilidad activa en un hueco de la barra. Si ya estaba en otro, se intercambian.
+  function asignar(h, tecla, id) {
+    if (!TECLAS.includes(tecla)) throw new Error('Hueco desconocido: ' + tecla);
+    if (id !== null && (!HABILIDADES[id] || HABILIDADES[id].tipo !== 'activa')) throw new Error('Esa habilidad no va en la barra');
+    const otra = TECLAS.find(t => t !== tecla && h.barra[t] === id);
+    if (otra) h.barra[otra] = h.barra[tecla];
+    h.barra[tecla] = id;
+    return h.barra;
+  }
+
+  // Gasta un punto en una habilidad. nivelHeroe: para las técnicas, que piden un nivel.
+  function mejorar(h, id, nivelHeroe = Infinity) {
     const hab = HABILIDADES[id];
     if (!hab) throw new Error('Habilidad desconocida: ' + id);
-    if (hab.tipo === 'activa' && !h.desbloqueadas[id]) throw new Error('Se desbloquea con la historia (capítulo ' + hab.capitulo + ')');
+    if (!disponible(h, id, nivelHeroe)) { const r = requisito(id); throw new Error(r.charAt(0).toUpperCase() + r.slice(1)); }
     const nivel = h.gastados[id] || 0;
     if (nivel >= hab.max) throw new Error(hab.nombre + ' ya está al máximo');
     if (h.puntos < 1) throw new Error('No tienes puntos de habilidad');
@@ -195,9 +251,9 @@
       reflejo: 0,
       velocidad: 0,
       velocidadAtaque: 0,
-      sismo: 1 + 0.25 * (h.gastados.sismo || 0),
-      nova: 1 + 0.25 * (h.gastados.nova || 0)
+      mult: {}   // daño de cada habilidad activa: +25 % por punto
     };
+    Object.keys(HABILIDADES).forEach(id => { if (HABILIDADES[id].tipo === 'activa') s.mult[id] = 1 + 0.25 * (h.gastados[id] || 0); });
     let defensaArmadura = 0, ataqueArma = 0;
     equipados.forEach(obj => {
       if (obj.defensa) defensaArmadura += obj.defensa;
@@ -252,7 +308,8 @@
     return { tipo: tipoDe(obj), lineas, especiales };
   }
 
-  const api = { HABILIDADES, ESPECIALES, PUNTOS_KILLS, nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
+  const api = { HABILIDADES, ESPECIALES, PUNTOS_KILLS, TECLAS, BARRA_INICIAL, nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
+    disponible, requisito, asignar, esArco,
     aceptarZona, registrarZona, entregarZona,
     mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

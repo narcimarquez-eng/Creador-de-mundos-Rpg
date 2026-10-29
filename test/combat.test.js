@@ -59,6 +59,16 @@ t('habilidades: maná, enfriamiento y bloqueo', () => {
   assert.ok(!C.canUse(h, 'sismo'));         // sin maná
 });
 
+t('habilidades: el héroe nuevo tiene enfriamiento de todas; los golpes llegan en sus momentos', () => {
+  const h = C.newHero();
+  Object.keys(C.SKILLS).forEach(k => assert.strictEqual(h.cd[k], 0, k));
+  assert.deepStrictEqual(C.impactos('attack'), [0]);
+  assert.deepStrictEqual(C.impactos('torbellino'), [0.7, 1.5]);
+  assert.ok(C.SKILLS.disparo.unico && C.SKILLS.disparo.range > 20);
+  assert.ok(C.inSkillArea('disparo', 0, 0, 0, 1, 0, 20));
+  assert.ok(!C.inSkillArea('disparo', 0, 0, 0, 1, 8, 2));   // fuera del cono estrecho
+});
+
 t('muerte: pierde 5 % del XP y reaparece con vida completa', () => {
   const h = C.newHero();
   h.xp = 200;
@@ -145,6 +155,16 @@ t('animaciones: el GLB con los nombres de la lista asigna cada acción', () => {
   assert.strictEqual(deEstudio('sismo'), 'ultimate_slam');
   assert.strictEqual(deEstudio('attack'), 'punch');
   assert.strictEqual(deEstudio('nova'), 'ultimate_nova');
+  // Todas las habilidades tienen su animación en el cuerpo del estudio (el tiro, con arco) y el mismo bloqueo
+  const conArco = estudio.concat(['spin_slash', 'whirlwind', 'overhead_cleave', 'thrust_lunge', 'rising_slash', 'guard_counter', 'triple_corkscrew', 'backflip', 'archery', 'aerial_shot']);
+  const esperada = { tajo: 'spin_slash', torbellino: 'whirlwind', hendidura: 'overhead_cleave', estocada: 'thrust_lunge', ascendente: 'rising_slash',
+    contraataque: 'guard_counter', tornillo: 'triple_corkscrew', voltereta: 'backflip', disparo: 'archery', suspension: 'aerial_shot' };
+  Object.keys(C.SKILLS).forEach(k => {
+    assert.ok(CH.CLIP_KEYWORDS[k], 'animación para ' + k);
+    const clip = conArco[CH.findClipIndex(conArco, CH.CLIP_KEYWORDS[k])];
+    if (esperada[k]) assert.strictEqual(clip, esperada[k], k);
+    assert.strictEqual(CH.ONE_SHOT[k].lock, C.SKILLS[k].lock, 'bloqueo de ' + k);
+  });
   assert.strictEqual(pick('jump'), 'Salto Acrobático');
   assert.strictEqual(pick('victory'), 'Postura de Victoria');
   assert.strictEqual(pick('nova'), 'Explosión Nova');

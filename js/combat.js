@@ -16,12 +16,34 @@
     deathXpLoss: 0.05                                // se pierde el 5 % del XP actual al morir
   };
 
-  // arc: coseno del semiángulo del cono frontal (-1 = alrededor del personaje)
+  // arc: coseno del semiángulo del cono frontal (-1 = alrededor del personaje).
+  // impacto: segundos desde que empieza la animación hasta el golpe (una lista = varios golpes, mult por golpe).
+  // arma: 'cuerpo' (cualquier arma menos el arco) o 'arco'; sin arma, vale con cualquiera.
+  // unico: golpea solo al monstruo más cercano del área (las flechas).
+  // Cada habilidad usa la animación del mismo nombre del personaje (ver js/character.js).
   const SKILLS = {
-    attack: { cd: 0.7, lock: 0.5, range: 3.0, arc: 0.5, mult: 1.0, mp: 0 },  // Espacio: Combo de Ataque
-    sismo:  { cd: 5.0, lock: 1.2, range: 4.5, arc: -1,  mult: 2.0, mp: 18, impacto: 0.95 }, // Q: Impacto Sísmico (salta y golpea el suelo)
-    nova:   { cd: 12,  lock: 1.0, range: 7.0, arc: -1,  mult: 2.5, mp: 30 }  // E: Explosión Nova
+    attack:      { nombre: 'Combo de ataque', icono: '⚔', cd: 0.7, lock: 0.5, range: 3.0, arc: 0.5, mult: 1.0, mp: 0 },
+    sismo:       { nombre: 'Impacto sísmico', icono: '🪨', cd: 5.0, lock: 1.2, range: 4.5, arc: -1, mult: 2.0, mp: 18, impacto: 0.95, arma: 'cuerpo' },
+    nova:        { nombre: 'Explosión nova', icono: '💥', cd: 12, lock: 1.0, range: 7.0, arc: -1, mult: 2.5, mp: 30 },
+    // Técnicas de arma (animaciones de ataque especial del estudio)
+    tajo:        { nombre: 'Tajo giratorio', icono: '🌀', cd: 5, lock: 1.0, range: 3.5, arc: -1, mult: 1.8, mp: 12, impacto: 0.6, arma: 'cuerpo' },
+    estocada:    { nombre: 'Estocada a fondo', icono: '🗡', cd: 4, lock: 0.8, range: 5.0, arc: 0.9, mult: 2.2, mp: 10, impacto: 0.45, arma: 'cuerpo' },
+    ascendente:  { nombre: 'Tajo ascendente', icono: '⤴', cd: 5, lock: 0.9, range: 3.2, arc: 0.5, mult: 2.0, mp: 12, impacto: 0.5, arma: 'cuerpo' },
+    hendidura:   { nombre: 'Hendidura vertical', icono: '🪓', cd: 7, lock: 1.0, range: 3.5, arc: 0.7, mult: 2.6, mp: 16, impacto: 0.7, arma: 'cuerpo' },
+    contraataque:{ nombre: 'Parada y contraataque', icono: '🛡', cd: 9, lock: 1.2, range: 3.0, arc: 0.5, mult: 2.8, mp: 15, impacto: 1.1, arma: 'cuerpo' },
+    torbellino:  { nombre: 'Torbellino', icono: '🌪', cd: 9, lock: 1.6, range: 4.0, arc: -1, mult: 1.4, mp: 24, impacto: [0.7, 1.5], arma: 'cuerpo' },
+    voltereta:   { nombre: 'Voltereta mortal', icono: '🤸', cd: 8, lock: 1.2, range: 3.0, arc: -1, mult: 1.6, mp: 14, impacto: 1.0, arma: 'cuerpo' },
+    tornillo:    { nombre: 'Tornillo triple', icono: '🌩', cd: 15, lock: 1.8, range: 4.5, arc: -1, mult: 3.4, mp: 35, impacto: 1.5, arma: 'cuerpo' },
+    // Arco: el tiro sustituye al combo cuando el arma es un arco
+    disparo:     { nombre: 'Tiro con arco', icono: '🏹', cd: 1.2, lock: 0.8, range: 24, arc: 0.95, mult: 1.2, mp: 0, impacto: 0.9, arma: 'arco', unico: true },
+    suspension:  { nombre: 'Flecha en suspensión', icono: '🎯', cd: 8, lock: 2.0, range: 26, arc: 0.9, mult: 2.6, mp: 20, impacto: 1.5, arma: 'arco', unico: true }
   };
+
+  // Momentos de golpe de una habilidad (segundos desde que empieza); [0] = al instante
+  function impactos(skill) {
+    const i = SKILLS[skill].impacto;
+    return Array.isArray(i) ? i.slice() : [i || 0];
+  }
 
   const MONSTER = {
     hpBase: 20, hpPerLevel: 8,
@@ -50,7 +72,7 @@
       level: 1, xp: 0,
       hp: m.maxHp, maxHp: m.maxHp, mp: m.maxMp, maxMp: m.maxMp,
       sinceHit: 99, dead: false, deadUntil: 0,
-      cd: { attack: 0, sismo: 0, nova: 0 }, lock: 0
+      cd: Object.fromEntries(Object.keys(SKILLS).map(k => [k, 0])), lock: 0
     };
   }
 
@@ -196,7 +218,7 @@
     HERO, SKILLS, MONSTER,
     diffMult, heroMax, newHero, xpToNext, gainXp, heroDamage,
     canUse, useSkill, monsterStats, monsterDamage, takeHit, tickHero,
-    die, respawn, newMonster, monsterTick, inSkillArea
+    die, respawn, newMonster, monsterTick, inSkillArea, impactos
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CombatLib = api;
