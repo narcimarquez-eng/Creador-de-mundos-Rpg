@@ -1702,6 +1702,9 @@
         <span class="kind">${m.boss ? 'Jefe' : 'Monstruo'}</span>
         <h2>${esc(m.name || 'Monstruo')}</h2>
         <div class="muted">Nivel ${m.level} · vida ${Math.ceil(m.hp)} / ${Math.ceil(m.maxHp)}</div>
+        <div class="muted" style="margin-top:6px">⭐ ${m.xp} XP · 🪙 ${ItemsLib.monsterGold(m.level, m.boss)} oro</div>
+        <div class="muted">🧪 ${m.boss ? 'Jefe: siempre suelta pociones de vida y maná' : 'Pociones: a veces (vida o maná)'}</div>
+        <div class="muted" id="sel-drops" style="margin-top:4px">🎁 ${dropsDeMonstruo(m)}</div>
         <div class="btns"><button class="gold" data-atacar>⚔ Atacar</button></div>
         <div class="muted" style="margin-top:6px">El personaje camina hasta él y ataca hasta matarlo. Muévete con las teclas para cancelar.</div>`;
     } else {
@@ -1719,6 +1722,12 @@
     info.innerHTML = html;
     info.classList.add('show');
     info.querySelector('[data-close]').onclick = () => showSelection(null);
+    if (sel.kind === 'monster' && !catalogoPiezas) {
+      cargarCatalogoPiezas().then(() => {
+        const el = $('sel-drops');
+        if (el && selected && selected.ref === sel.ref) el.textContent = '🎁 ' + dropsDeMonstruo(sel.ref);
+      }).catch(() => {});
+    }
     info.querySelectorAll('[data-atacar]').forEach(btn => btn.onclick = () => {
       if (!sel.ref || !sel.ref.alive) { toast('Ese monstruo ya no está'); return; }
       objetivo = sel.ref;
@@ -2371,6 +2380,17 @@
     $('deadmsg').classList.remove('show');
     buildUI();
     updateStats();
+  }
+
+  // Equipo que puede soltar un monstruo: el mismo cálculo que usa el drop (EquipoLib.candidatasDrop)
+  function dropsDeMonstruo(m) {
+    if (!catalogoPiezas) return 'cargando equipo…';
+    const clase = personajeActual ? personajeActual.clase : 'guerrero';
+    const cand = EquipoLib.candidatasDrop(catalogoPiezas, clase, m.level);
+    if (!cand.length) return 'sin equipo a su nivel';
+    const prob = m.boss ? 'siempre' : Math.round(EquipoLib.DROP_NORMAL * 100) + ' %';
+    const lista = cand.slice(0, 6).map(p => `${esc(p.nombre)} (nv ${p.nivel})`).join(', ');
+    return `equipo (${prob}): ${lista}${cand.length > 6 ? ' … y ' + (cand.length - 6) + ' más' : ''}`;
   }
 
   // Ataque automático: camina hasta el monstruo elegido y ataca hasta matarlo (o hasta que el jugador se mueva)

@@ -114,21 +114,23 @@
     return armas.slice(0, 1 + Math.floor(nivelMonstruo / 3));
   }
 
+  // Piezas que puede soltar un monstruo de ese nivel (lo mismo que usa soltarPieza y el panel del visor)
+  function candidatasDrop(catalogo, clase, nivelMonstruo) {
+    const piezas = piezasDeClase(catalogo, clase);
+    if (nivelMonstruo <= NIVEL_SOLO_COTAS) {
+      const cotas = piezas.filter(p => !esArma(p.ranura) && esCota(p));
+      const banda = cotas.filter(p => p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
+      return banda.length ? banda : cotas.filter(p => p.nivel <= nivelMonstruo);
+    }
+    const armaduras = piezas.filter(p => !esArma(p.ranura) && p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
+    return armaduras.concat(armasDeDrop(catalogo, clase, nivelMonstruo));
+  }
+
   // Monstruo derrotado: a veces suelta un objeto nuevo (una instancia, aunque su nombre ya lo tengas).
-  // Hasta el nivel NIVEL_SOLO_COTAS solo caen cotas; después, armaduras y armas de su nivel.
   // rnd: función que devuelve un número en [0, 1)
   function soltarPieza(personaje, catalogo, nivelMonstruo, jefe, rnd) {
     if (!jefe && rnd() >= DROP_NORMAL) return null;
-    let candidatas;
-    if (nivelMonstruo <= NIVEL_SOLO_COTAS) {
-      const cotas = piezasDeClase(catalogo, personaje.clase).filter(p => !esArma(p.ranura) && esCota(p));
-      candidatas = cotas.filter(p => p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
-      if (!candidatas.length) candidatas = cotas.filter(p => p.nivel <= nivelMonstruo);
-    } else {
-      candidatas = piezasDeClase(catalogo, personaje.clase)
-        .filter(p => !esArma(p.ranura) && p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
-      candidatas = candidatas.concat(armasDeDrop(catalogo, personaje.clase, nivelMonstruo));
-    }
+    const candidatas = candidatasDrop(catalogo, personaje.clase, nivelMonstruo);
     if (!candidatas.length || llena(personaje)) return null;   // sin hueco no cabe nada
     const pieza = candidatas[Math.floor(rnd() * candidatas.length)];
     return guardar(personaje, instancia(pieza, rnd()));
@@ -201,7 +203,7 @@
   const api = {
     RANURAS, DROP_NORMAL, FORJA_ORO, COMPRA_ORO, NIVEL_SOLO_COTAS, CAPACIDAD,
     piezasDeClase, instancia, crearPersonaje, objeto, equipoPorIdx, equipar,
-    armasDeDrop, soltarPieza, fabricar, esCota,
+    armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota,
     llena, huecosLibres, piezasDeTienda, comprar, precioVenta, tirar, vender
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -141,4 +141,12 @@ t('los drops son del nivel del monstruo: un nivel 3 no suelta piezas de nivel 6 
   }
 });
 
+t('candidatas de drop: las que se muestran al seleccionar un monstruo son las que caen', () => {
+  const bajo = E.candidatasDrop(CATALOGO, 'guerrero', 3).map(p => p.nombre);
+  assert.ok(bajo.length > 0 && bajo.every(x => /Cota/.test(x)), bajo.join(','));
+  const medio = E.candidatasDrop(CATALOGO, 'guerrero', 8).map(p => p.nombre);
+  assert.ok(medio.includes('Peto'), medio.join(','));
+  assert.ok(medio.includes('Espada solar'), medio.join(','));
+});
+
 console.log(`\n${n} pruebas de equipo superadas.`);
