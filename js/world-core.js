@@ -553,14 +553,20 @@
     return road;
   }
 
-  function rollMonsters(rng, biome, levelMin, levelMax, type) {
+  // Monstruos por zona: uno cada MONSTER_AREA metros cuadrados (una zona de 280 m tiene más que una de 160 m)
+  const MONSTER_AREA = 12000;
+  const MONSTERS_MIN = 4, MONSTERS_MAX = 24;
+
+  function rollMonsters(rng, biome, levelMin, levelMax, type, radius) {
     const pool = MONSTERS[landBiome(biome)] || MONSTERS.pradera;
-    const count = type === 'segura' ? 0 : rng.int(3, 5);
-    const picks = pool.slice().sort(() => rng.next() - 0.5).slice(0, count);
+    const r = radius || 200;
+    const proporcional = Math.round(Math.PI * r * r / MONSTER_AREA);
+    const count = type === 'segura' ? 0 : Math.max(MONSTERS_MIN, Math.min(MONSTERS_MAX, proporcional));
+    const picks = Array.from({ length: count }, () => rng.pick(pool));
     const out = picks.map((name, i) => ({
       name,
       level: Math.round(lerp(levelMin, levelMax, count > 1 ? i / (count - 1) : 0.5)),
-      density: rng.pick(['baja', 'media', 'alta']),
+      density: 'baja',
       boss: false
     }));
     if (type === 'jefe' && pool.length) {
@@ -593,7 +599,7 @@
       respawnSec: 60,
       notes: ''
     };
-    zone.monsters = rollMonsters(rng, biome, zone.levelMin, zone.levelMax, type);
+    zone.monsters = rollMonsters(rng, biome, zone.levelMin, zone.levelMax, type, zone.radius);
     world.zones.push(zone);
     commit();
     return zone;
@@ -762,7 +768,7 @@
     const rngBox = rngFor(world);
     world.zones.forEach(z => {
       levelZoneFrom(world, z, d);
-      z.monsters = rollMonsters(rngBox.rng, z.biome, z.levelMin, z.levelMax, z.type);
+      z.monsters = rollMonsters(rngBox.rng, z.biome, z.levelMin, z.levelMax, z.type, z.radius);
       syncPoiLevels(world, z);
     });
     rngBox.commit();
@@ -781,7 +787,7 @@
 
   function rerollZoneMonsters(world, zone) {
     const { rng, commit } = rngFor(world);
-    zone.monsters = rollMonsters(rng, zone.biome, zone.levelMin, zone.levelMax, zone.type);
+    zone.monsters = rollMonsters(rng, zone.biome, zone.levelMin, zone.levelMax, zone.type, zone.radius);
     commit();
   }
 
@@ -863,7 +869,7 @@
     const { rng, commit } = rngFor(world);
     world.zones.filter(z => roadIds.has(z.roadId)).forEach(z => {
       levelZoneFrom(world, z, d);
-      z.monsters = rollMonsters(rng, z.biome, z.levelMin, z.levelMax, z.type);
+      z.monsters = rollMonsters(rng, z.biome, z.levelMin, z.levelMax, z.type, z.radius);
       syncPoiLevels(world, z);
     });
     commit();
