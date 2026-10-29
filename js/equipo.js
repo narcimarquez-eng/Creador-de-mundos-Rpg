@@ -17,6 +17,10 @@
   const COMPRA_ORO = 30;        // oro por nivel de la pieza que vende el mercader (calidad estándar)
   const ESTADO_MERCADO = 0.75;  // estado de lo que vende el mercader
   const VENTA_ORO = 4;          // oro por nivel de un objeto vendido (según su estado)
+  const HOJA_NIVEL = 8;         // desde este nivel de monstruo puede caer una hoja de armadura superior
+  const HOJA_NORMAL = 0.04;     // probabilidad de hoja en un monstruo normal (el jefe la suelta casi siempre)
+  const PIEZA_SUPERIOR = 10;    // las hojas son de piezas de este nivel o superior
+  const ARENA_FORJA = 2;        // arena por nivel de la pieza al forjarla con su hoja
   const CAPACIDAD = 20;         // huecos del inventario (los equipados también ocupan hueco)
 
   const esArma = ranura => ranura === 'weapon';
@@ -95,6 +99,7 @@
   function equipar(personaje, uid, nivelHeroe) {
     const o = objeto(personaje, uid);
     if (!o) throw new Error('No tienes ese objeto');
+    if (o.tipo === 'hoja') throw new Error('Una hoja se forja en el herrero, no se equipa');
     if (nivelHeroe < o.nivel) throw new Error(o.nombre + ' requiere nivel ' + o.nivel);
     personaje.equipo[o.ranura] = o.uid;
     return o;
@@ -151,6 +156,44 @@
     return obj;
   }
 
+  // Monstruo derrotado: arena (material de forja). Devuelve cuánta suelta.
+  function soltarArena(nivelMonstruo, jefe, rnd) {
+    if (!jefe && rnd() >= 0.2) return 0;
+    return 1 + Math.floor(nivelMonstruo / 5);
+  }
+
+  // Monstruo derrotado: a veces una hoja de una armadura o arma superior (nivel ≥ PIEZA_SUPERIOR).
+  // La hoja ocupa hueco y se forja en el herrero con arena.
+  function soltarHoja(personaje, catalogo, nivelMonstruo, jefe, rnd) {
+    if (nivelMonstruo < HOJA_NIVEL) return null;
+    if (!jefe && rnd() >= HOJA_NORMAL) return null;
+    const superiores = candidatasDrop(catalogo, personaje.clase, nivelMonstruo).filter(p => p.nivel >= PIEZA_SUPERIOR);
+    if (!superiores.length || llena(personaje)) return null;
+    const pieza = superiores[Math.floor(rnd() * superiores.length)];
+    contador += 1;
+    const hoja = {
+      uid: 'h' + contador.toString(36) + Math.floor(Math.random() * 1296).toString(36),
+      tipo: 'hoja', piezaId: pieza.id, ranura: pieza.ranura, idx: pieza.idx,
+      nombre: 'Hoja de ' + pieza.nombre, nivel: pieza.nivel
+    };
+    personaje.inventario.push(hoja);
+    return hoja;
+  }
+
+  // Herrero: forja la pieza de una hoja con arena. Consume la hoja. Devuelve la arena que cuesta.
+  function forjarConHoja(personaje, catalogo, hojaUid, nivelHeroe, arena) {
+    const hoja = objeto(personaje, hojaUid);
+    if (!hoja || hoja.tipo !== 'hoja') throw new Error('No tienes esa hoja');
+    if (nivelHeroe < hoja.nivel) throw new Error(hoja.nombre + ' requiere nivel ' + hoja.nivel);
+    const coste = ARENA_FORJA * hoja.nivel;
+    if (arena < coste) throw new Error('Faltan ' + (coste - arena) + ' de arena');
+    const pieza = piezasDeClase(catalogo, personaje.clase).find(p => p.id === hoja.piezaId);
+    if (!pieza) throw new Error('La pieza de la hoja ya no existe');
+    personaje.inventario = personaje.inventario.filter(o => o.uid !== hojaUid);
+    personaje.inventario.push(instancia(pieza, 1));
+    return coste;
+  }
+
   // Herrero: fabrica una pieza de nivel ≤ nivel del héroe con estado perfecto. Devuelve el oro que cuesta.
   function fabricar(personaje, catalogo, id, nivelHeroe, oro) {
     const pieza = piezasDeClase(catalogo, personaje.clase).find(p => p.id === id);
@@ -204,6 +247,7 @@
     RANURAS, DROP_NORMAL, FORJA_ORO, COMPRA_ORO, NIVEL_SOLO_COTAS, CAPACIDAD,
     piezasDeClase, instancia, crearPersonaje, objeto, equipoPorIdx, equipar,
     armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota,
+    soltarArena, soltarHoja, forjarConHoja, HOJA_NIVEL, ARENA_FORJA,
     llena, huecosLibres, piezasDeTienda, comprar, precioVenta, tirar, vender
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

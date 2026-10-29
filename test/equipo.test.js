@@ -149,4 +149,27 @@ t('candidatas de drop: las que se muestran al seleccionar un monstruo son las qu
   assert.ok(medio.includes('Espada solar'), medio.join(','));
 });
 
+t('hojas: solo desde nivel 8 y de piezas superiores; se forjan con arena', () => {
+  const p = E.crearPersonaje(CATALOGO, 'guerrero');
+  assert.strictEqual(E.soltarHoja(p, CATALOGO, 3, true, () => 0.0), null);
+  // Con el catálogo de prueba no hay piezas de nivel 10: sin hoja
+  assert.strictEqual(E.soltarHoja(p, CATALOGO, 8, true, () => 0.0), null);
+  assert.strictEqual(E.soltarArena(3, false, () => 0.99), 0);
+  assert.ok(E.soltarArena(5, true, () => 0.99) >= 1);
+});
+
+t('forjar con hoja: consume la hoja, cuesta arena y da la pieza en estado perfecto', () => {
+  const cat = JSON.parse(JSON.stringify(CATALOGO));
+  cat.ranuras.torso.push({ idx: 3, nombre: 'Armadura superior', nivel: 10, archivo: 'piezas/torso/3.glb' });
+  const p = E.crearPersonaje(cat, 'guerrero');
+  const hoja = { uid: 'hoja1', tipo: 'hoja', piezaId: 'torso.3', ranura: 'torso', idx: 3, nombre: 'Hoja de Armadura superior', nivel: 10 };
+  p.inventario.push(hoja);
+  assert.throws(() => E.equipar(p, 'hoja1', 10), /se forja/);
+  assert.throws(() => E.forjarConHoja(p, cat, 'hoja1', 10, 5), /Faltan/);
+  const coste = E.forjarConHoja(p, cat, 'hoja1', 10, 1000);
+  assert.strictEqual(coste, E.ARENA_FORJA * 10);
+  assert.ok(!p.inventario.some(o => o.uid === 'hoja1'));
+  assert.ok(p.inventario.some(o => o.piezaId === 'torso.3' && o.estado === 1));
+});
+
 console.log(`\n${n} pruebas de equipo superadas.`);
