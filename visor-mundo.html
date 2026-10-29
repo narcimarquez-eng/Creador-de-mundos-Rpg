@@ -428,6 +428,7 @@
   <script src="js/mision-zona.js?v=20251029"></script>
   <script src="js/mapa.js?v=20251029"></script>
   <script src="js/ruta.js?v=20251029"></script>
+  <script src="js/paletas.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -753,6 +754,7 @@
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.toneMapping = THREE.NeutralToneMapping;   // conserva los colores sin apagar las luces
     renderer.toneMappingExposure = 1.12;
+    prepararEntorno();
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;  // sombras con borde suave
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -795,6 +797,7 @@
       joystick: { zone: $('joystick-zone'), knob: $('joystick-knob') },
       glbUrl: './personaje.glb'
     });
+    character.alCargarModelo = modelo => aplicarEntorno(modelo);
 
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
@@ -2018,6 +2021,7 @@
     atmoNow.sunPos.lerp(T.sunV, k);
     atmoNow.fogD += (T.fogD - atmoNow.fogD) * k;
     atmoNow.hemiI += (T.hemiI - atmoNow.hemiI) * k;
+    if (materialesEntorno.size) { const ie = intensidadEntorno(); materialesEntorno.forEach(mat => { mat.envMapIntensity = ie; }); }
     atmoNow.sunI += (T.sunI - atmoNow.sunI) * k;
     ['glow', 'window', 'pool', 'plaza', 'forge'].forEach(key => { atmoNow[key] += (T[key] - atmoNow[key]) * k; });
 
@@ -2056,18 +2060,50 @@
     const propio = world.enemigos && world.enemigos[clave];
     return propio ? propio.config : null;
   }
+  // Entorno de reflejos para personajes, NPC y monstruos, como en el estudio de armaduras y el editor de enemigos.
+  // Sin él, sus metales y barnices (materiales PBR) no tienen nada que reflejar y salen oscuros y pardos.
+  // Solo se aplica a sus materiales: el terreno y los pueblos se ven igual que antes.
+  let entornoActores = null;
+  const materialesEntorno = new Set();
+  const pendientesEntorno = [];
+  function prepararEntorno() {
+    import('three/addons/environments/RoomEnvironment.js').then(({ RoomEnvironment }) => {
+      const pm = new THREE.PMREMGenerator(renderer);
+      entornoActores = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+      pm.dispose();
+      pendientesEntorno.splice(0).forEach(aplicarEntorno);
+    }).catch(err => console.warn('Sin entorno de reflejos:', err));
+  }
+  // Más tenue al atardecer y de noche, como la luz ambiente
+  const intensidadEntorno = () => (atmoNow ? atmoNow.hemiI * 1.25 : 1);
+  function aplicarEntorno(obj) {
+    if (!entornoActores) { pendientesEntorno.push(obj); return; }
+    obj.traverse(o => {
+      if (!o.isMesh) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(mat => {
+        if (!mat || !mat.isMeshStandardMaterial || (mat.envMap && mat.envMap !== entornoActores)) return;
+        mat.envMap = entornoActores;
+        mat.envMapIntensity = intensidadEntorno();
+        mat.needsUpdate = true;
+        materialesEntorno.add(mat);
+      });
+    });
+  }
+
   function construirModeloEnemigo(m) {
     if (m.rig) return;
     if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(renderer.capabilities.getMaxAnisotropy());
     // Calidad baja: menos segmentos y menos fragmentos; se aplica al construir el modelo
     const densidad = quality === 'bajo' ? 'low' : 'medium';
-    const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
+    const materials = m.colorDeZona ? PaletasLib.materialDeMonstruo(EnemyLib.MATERIAL_PRESETS, m.zone, m.semillaColor) : m.enemigo.materials;
+    const cfg = Object.assign({}, m.enemigo, { materials, morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
     m.rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
     EnemyOpt.optimizarRig(m.rig);
     // Enemigos un 50 % más grandes: el modelo del editor se ve pequeño en el mapa
     m.rig.rootGroup.scale.setScalar(1.5);
     m.fx = EnemyFx.crear(m.rig, m.enemigo);
     m.group.add(m.rig.rootGroup);
+    aplicarEntorno(m.rig.rootGroup);
     m.barHeight = new THREE.Box3().setFromObject(m.rig.rootGroup).max.y + 0.9;
   }
 
@@ -2090,6 +2126,9 @@
           m.group.userData.monstruo = m;
           // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
           m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
+          // Los que elige el juego toman los colores de su zona (js/paletas.js); los elegidos a mano, los suyos
+          m.colorDeZona = !enemigoPorClave(info.enemigo);
+          m.semillaColor = z.id + '|' + mi + '|' + k;
           m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
           m.group.visible = false;
           scene.add(m.group);
@@ -3555,6 +3594,7 @@
         raiz.position.set(x, visorWorld.getWalkableHeight(x, z), z);
         raiz.lookAt(inicio.t.x, raiz.position.y, inicio.t.y);   // miran al centro de la plaza
         scene.add(raiz);
+        aplicarEntorno(raiz);
         const mixer = new THREE.AnimationMixer(modelo);
         const idle = (gltf.animations || []).find(c => c.name === 'idle');
         if (idle) mixer.clipAction(idle).play();
@@ -3607,6 +3647,7 @@
     raiz.position.set(pos.x, visorWorld.getWalkableHeight(pos.x, pos.z), pos.z);
     raiz.lookAt(pos.cx, raiz.position.y, pos.cz);
     scene.add(raiz);
+    aplicarEntorno(raiz);
     const mixer = new THREE.AnimationMixer(modelo);
     const idle = (gltf.animations || []).find(c => c.name === 'idle');
     if (idle) mixer.clipAction(idle).play();
@@ -3947,7 +3988,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

@@ -131,6 +131,7 @@
       this.oneShots = {};
       this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
       this.lockUntil = 0;        // mientras dure, el personaje no se mueve
+      this.alCargarModelo = null; // función(modelo) que se llama al cargar un GLB (p. ej. para retocar sus materiales)
       this.destino = null;       // { x, z, parar }: camina solo hasta ese punto (p. ej. hacia un monstruo)
       this.cancelado = false;    // true cuando el jugador mueve al personaje y se cancela el destino
       this.tiempo = 0;           // reloj propio del personaje (segundos acumulados)
@@ -282,6 +283,7 @@
             }
           });
           this.root.add(this.model);
+          if (this.alCargarModelo) this.alCargarModelo(this.model);
 
           const clips = gltf.animations || [];
           if (clips.length > 0) {
