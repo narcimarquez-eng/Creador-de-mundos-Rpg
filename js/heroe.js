@@ -1,9 +1,9 @@
 /*
- * heroe.js — Estadísticas del héroe, habilidades (pasivas y activas), misiones y puntos (sin gráficos).
+ * heroe.js — Estadísticas del héroe, habilidades (pasivas y activas), puntos y estado guardado (sin gráficos).
  * Expone window.HeroeLib (o module.exports en Node para las pruebas).
  *
- * Los puntos llegan de las misiones y de la lucha (cada PUNTOS_KILLS monstruos). Se gastan en el
- * entrenador de habilidades. Las activas (patada y nova) se desbloquean con una misión.
+ * Los puntos llegan de la historia (capítulos de js/historia.js), de los encargos de zona y de la lucha
+ * (cada PUNTOS_KILLS monstruos). Se gastan en el entrenador. Las activas (patada y nova) las desbloquea la historia.
  */
 (function (root) {
   "use strict";
@@ -17,18 +17,12 @@
     destreza: { tipo: 'pasiva', nombre: 'Destreza', desc: '+1 % de crítico por punto', max: 10 },
     entereza: { tipo: 'pasiva', nombre: 'Entereza', desc: '+1 % de reducción de daño por punto', max: 10 },
     intelecto: { tipo: 'pasiva', nombre: 'Intelecto', desc: '+8 maná máximo por punto', max: 10 },
-    patada: { tipo: 'activa', nombre: 'Patada giratoria (Q)', desc: '+25 % de daño por nivel', max: 3, mision: 'viajero' },
-    nova: { tipo: 'activa', nombre: 'Explosión nova (E)', desc: '+25 % de daño por nivel', max: 3, mision: 'jefe1' }
+    patada: { tipo: 'activa', nombre: 'Patada giratoria (Q)', desc: '+25 % de daño por nivel', max: 3, capitulo: 4 },
+    nova: { tipo: 'activa', nombre: 'Explosión nova (E)', desc: '+25 % de daño por nivel', max: 3, capitulo: 8 }
   };
 
-  // Misiones: progreso por tipo de evento; al completarse dan puntos y, si procede, desbloquean una habilidad
-  const MISIONES = [
-    { id: 'cazador1', titulo: 'Primeros pasos', texto: 'Derrota a 5 monstruos.', tipo: 'matar', cantidad: 5, recompensa: { puntos: 2 } },
-    { id: 'cazador2', titulo: 'Cazador del bosque', texto: 'Derrota a 25 monstruos.', tipo: 'matar', cantidad: 25, recompensa: { puntos: 3 } },
-    { id: 'viajero', titulo: 'Camino de piedra', texto: 'Visita 3 pueblos. Desbloquea la patada giratoria.', tipo: 'visitar', cantidad: 3, recompensa: { puntos: 2, desbloquea: 'patada' } },
-    { id: 'jefe1', titulo: 'El guardián del bosque', texto: 'Derrota a un jefe. Desbloquea la explosión nova.', tipo: 'jefe', cantidad: 1, recompensa: { puntos: 4, desbloquea: 'nova' } },
-    { id: 'forja', titulo: 'Forja de hojas', texto: 'Forja una pieza superior con su hoja.', tipo: 'forjar', cantidad: 1, recompensa: { puntos: 3 } }
-  ];
+  // Tipos de objetivo de la historia (ver js/historia.js)
+  const TIPOS_HISTORIA = ['matar', 'jefe', 'visitar', 'hablar', 'forjar'];
 
   // Habilidades especiales de los objetos (según el tipo de pieza). Se eligen por piezaId y nivel.
   const ESPECIALES = {
@@ -79,7 +73,7 @@
 
   // Estado de un héroe nuevo
   function nuevoHeroe() {
-    return { puntos: 0, kills: 0, gastados: {}, progreso: {}, hechas: {}, desbloqueadas: {}, zonas: {} };
+    return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, principal: { paso: 0, progreso: 0, objetivo: null } };
   }
 
   // Sanea el estado guardado en una partida (campos desconocidos o dañados se descartan)
@@ -90,8 +84,6 @@
     base.puntos = num(h.puntos);
     base.kills = num(h.kills);
     Object.keys(h.gastados || {}).forEach(k => { if (HABILIDADES[k]) base.gastados[k] = Math.min(HABILIDADES[k].max, num(h.gastados[k])); });
-    Object.keys(h.progreso || {}).forEach(k => { if (MISIONES.some(m => m.id === k)) base.progreso[k] = num(h.progreso[k]); });
-    Object.keys(h.hechas || {}).forEach(k => { if (MISIONES.some(m => m.id === k)) base.hechas[k] = true; });
     Object.keys(h.desbloqueadas || {}).forEach(k => { if (HABILIDADES[k]) base.desbloqueadas[k] = true; });
     Object.keys(h.zonas || {}).forEach(k => {
       const z = h.zonas[k];
@@ -100,7 +92,22 @@
       base.zonas[k] = { tipo: z.tipo, cantidad, progreso: Math.min(cantidad, num(z.progreso)),
         lista: !!z.lista, entregada: !!z.entregada };
     });
+    // Historia: paso actual, su progreso y el objetivo ya elegido. Las partidas antiguas empiezan en el capítulo 1.
+    const pr = h.principal;
+    if (pr && typeof pr === 'object') {
+      base.principal.paso = num(pr.paso);
+      base.principal.objetivo = limpiarObjetivo(pr.objetivo);
+      base.principal.progreso = base.principal.objetivo ? Math.min(base.principal.objetivo.cantidad, num(pr.progreso)) : 0;
+    }
     return base;
+  }
+
+  function limpiarObjetivo(o) {
+    if (!o || typeof o !== 'object' || !TIPOS_HISTORIA.includes(o.tipo)) return null;
+    const texto = v => (typeof v === 'string' ? v : '');
+    const out = { tipo: o.tipo, cantidad: Math.max(1, isFinite(o.cantidad) ? Math.floor(o.cantidad) : 1), nombre: texto(o.nombre), texto: texto(o.texto), encargo: texto(o.encargo) };
+    ['zona', 'pueblo', 'npc'].forEach(k => { if (typeof o[k] === 'string' && o[k]) out[k] = o[k]; });
+    return out;
   }
 
   // Encargos de zona (ver js/mision-zona.js). Cada uno cuenta lo que pide su tipo: matar (cualquier monstruo de la
@@ -139,41 +146,25 @@
     return z;
   }
 
-  // Concede puntos y desbloqueos de una misión completada
-  function completar(h, m) {
-    h.hechas[m.id] = true;
-    h.puntos += m.recompensa.puntos || 0;
-    if (m.recompensa.desbloquea) h.desbloqueadas[m.recompensa.desbloquea] = true;
-    return m;
+  // Recompensa de un capítulo de la historia: puntos y, si procede, una habilidad activa
+  function recompensar(h, r) {
+    h.puntos += (r && r.puntos) || 0;
+    if (r && r.desbloquea && HABILIDADES[r.desbloquea]) h.desbloqueadas[r.desbloquea] = true;
   }
 
-  // Un evento de juego: suma progreso a las misiones de ese tipo y devuelve las recién completadas.
-  // valor: cuántas unidades (por defecto 1). Para «visitar», valor es el total de pueblos visitados.
-  function registrarEvento(h, tipo, valor = 1) {
-    const hechas = [];
-    MISIONES.forEach(m => {
-      if (m.tipo !== tipo || h.hechas[m.id]) return;
-      if (tipo === 'visitar') h.progreso[m.id] = Math.max(h.progreso[m.id] || 0, valor);
-      else h.progreso[m.id] = (h.progreso[m.id] || 0) + valor;
-      if (h.progreso[m.id] >= m.cantidad) hechas.push(completar(h, m));
-    });
-    return hechas;
-  }
-
-  // Monstruo derrotado: cuenta para «matar», «jefe» y los puntos de lucha
-  function registrarMuerte(h, esJefe) {
+  // Monstruo derrotado: cuenta para los puntos de lucha. Devuelve true si gana un punto.
+  function registrarMuerte(h) {
     h.kills += 1;
-    const hechas = registrarEvento(h, 'matar', 1);
-    if (h.kills % PUNTOS_KILLS === 0) h.puntos += 1;
-    if (esJefe) hechas.push(...registrarEvento(h, 'jefe', 1));
-    return hechas;
+    if (h.kills % PUNTOS_KILLS !== 0) return false;
+    h.puntos += 1;
+    return true;
   }
 
-  // Gasta un punto en una habilidad. Las activas necesitan su misión y ganan nivel.
+  // Gasta un punto en una habilidad. Las activas necesitan su capítulo de la historia y ganan nivel.
   function mejorar(h, id) {
     const hab = HABILIDADES[id];
     if (!hab) throw new Error('Habilidad desconocida: ' + id);
-    if (hab.tipo === 'activa' && !h.desbloqueadas[id]) throw new Error('Se desbloquea con una misión');
+    if (hab.tipo === 'activa' && !h.desbloqueadas[id]) throw new Error('Se desbloquea con la historia (capítulo ' + hab.capitulo + ')');
     const nivel = h.gastados[id] || 0;
     if (nivel >= hab.max) throw new Error(hab.nombre + ' ya está al máximo');
     if (h.puntos < 1) throw new Error('No tienes puntos de habilidad');
@@ -255,7 +246,7 @@
     return { tipo: tipoDe(obj), lineas, especiales };
   }
 
-  const api = { HABILIDADES, MISIONES, ESPECIALES, PUNTOS_KILLS, nuevoHeroe, limpiarHeroe, registrarEvento, registrarMuerte,
+  const api = { HABILIDADES, ESPECIALES, PUNTOS_KILLS, nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
     aceptarZona, registrarZona, entregarZona,
     mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

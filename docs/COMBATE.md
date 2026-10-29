@@ -52,15 +52,43 @@ especiales). Reglas en `js/heroe.js`; el panel 🧬 las muestra todas, aunque va
 - **Especiales:** aparecen según el nivel de la pieza (1 desde nivel 5, 2 desde 15, 3 desde 30) y son fijos.
 - **Crítico:** 5 % + 1 % por punto de destreza (máximo 75 %), daño ×1,5.
 
-**Puntos de habilidad:** de 2 a 4 por cada misión completada (según la misión) y 1 por cada 20 monstruos derrotados.
-Se gastan con el entrenador **Hermana Ysolde** (tecla H cerca de ella):
+**Puntos de habilidad:** de 1 a 5 por cada capítulo de la historia (según el capítulo), los de los encargos de
+jefe y 1 por cada 20 monstruos derrotados. Se gastan con el entrenador **Hermana Ysolde** (tecla H cerca de ella):
 
 - Pasivas (hasta 10 puntos cada una): vitalidad, fuerza, destreza, entereza, intelecto.
-- Activas: patada (Q) y nova (E). Se desbloquean con una misión y suben hasta 3 niveles (+25 % de daño por nivel).
+- Activas: patada (Q, capítulo 4) y nova (E, capítulo 8). Las desbloquea la historia y suben hasta 3 niveles
+  (+25 % de daño por nivel).
 
-**Misiones** (ver el panel 🧬): primeros pasos (5 monstruos), cazador del bosque (25), camino de
-piedra (visitar 3 pueblos, desbloquea patada), el guardián del bosque (derrotar a un jefe, desbloquea nova) y
-forja de hojas (forjar una pieza superior con su hoja).
+### Historia (misión principal)
+
+La crónica del pueblo inicial se vive capítulo a capítulo (`js/historia.js`). Cada capítulo lo encarga un sabio de
+la plaza y solo hay uno activo: su progreso empieza en 0 al activarse, y lo que se haga antes no cuenta. Al
+cumplirlo, el sabio cuenta su parte de la historia, da la recompensa y encarga el siguiente.
+
+| # | Capítulo | Sabio | Qué pide | Recompensa |
+|---|---|---|---|---|
+| 1 | Los siete reinos | Elara | Hablar con ella | 1 punto |
+| 2 | El camino de piedra | Oren | Llegar al pueblo vecino | 2 puntos |
+| 3 | Las runas de la muralla | Ysolde | 4 criaturas en una zona de nivel 2 | 2 puntos |
+| 4 | Los que no temen al acero | Tamsin | 8 criaturas en una zona de nivel 4 | 2 puntos y la patada |
+| 5 | El valor de una cota | Mirel | Encargar una pieza al herrero | 2 puntos |
+| 6 | La arena del herrero | Elara | 10 criaturas en una zona de nivel 6 | 2 puntos |
+| 7 | Los caminos del norte | Oren | Llegar al pueblo más al norte | 3 puntos |
+| 8 | El sello de la nova | Ysolde | 12 criaturas en una zona de nivel 10 | 3 puntos y la nova |
+| 9 | Los jefes del bosque | Tamsin | Derrotar al jefe de un territorio de jefe | 4 puntos |
+| 10 | El héroe de la plaza | Mirel | Volver a hablar con ella | 5 puntos |
+
+- **El lugar** se elige con los datos del mundo: la zona de caza o élite de nivel más parecido (a igualdad, la más
+  cercana al pueblo inicial), el territorio de jefe, el pueblo vecino o el que está más al norte. Solo cuentan los
+  monstruos de esa zona. Si el mundo no tiene lo que pide (sin más pueblos, sin territorio de jefe), el capítulo se
+  adapta: hablar con su sabio o luchar en la zona más difícil.
+- **Ir andando:** arriba se ve la misión activa. Al pulsarla (o «🧭 Llévame»), el personaje va andando por los
+  caminos hasta donde se cumple (`js/ruta.js`): sale del pueblo por la puerta de su camino, sigue el trazado y
+  atraviesa los pueblos por su plaza. Moverse con las teclas o el joystick la para. Si algo lo bloquea, rodea por
+  un lado; tras tres intentos, se para y lo avisa.
+- **Hablar** cuenta al pulsar «💬 Hablar» en el sabio o al llegar a él con la misión, no solo por pasar cerca.
+- La crónica (tecla C) muestra los capítulos contados, el actual y los que faltan. Las partidas antiguas empiezan
+  en el capítulo 1.
 
 ### Encargos de zona
 

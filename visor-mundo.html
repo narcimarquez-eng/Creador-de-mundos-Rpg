@@ -47,7 +47,7 @@
 
     #joystick-zone { position: absolute; bottom: 24px; right: 24px; width: 110px; height: 110px; border-radius: 50%; background: rgba(15, 23, 42, 0.55); border: 2px solid rgba(56, 189, 248, 0.5); z-index: 25; touch-action: none; display: flex; align-items: center; justify-content: center; }
     #joystick-knob { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle, #38bdf8, #0284c7); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6); pointer-events: none; transform: translate(0px, 0px); }
-    #banner { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); z-index: 30; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .4s; max-width: calc(100vw - 300px); }
+    #banner { position: absolute; top: 132px; left: 50%; transform: translateX(-50%); z-index: 30; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .4s; max-width: calc(100vw - 300px); }
     #banner.show { opacity: 1; }
     #banner b { color: #fde68a; font-size: 15px; }
     #banner small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
@@ -122,6 +122,14 @@
     #heroe .fila { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
     #heroe .btns { display: flex; gap: 6px; margin-top: 10px; }
     #minimap { cursor: pointer; }
+    #mision { position: absolute; top: 54px; left: 50%; transform: translateX(-50%); z-index: 19; width: min(360px, calc(100vw - 560px)); min-width: 260px; background: var(--panel); border: 1px solid #a16207; border-radius: 10px; padding: 7px 10px; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+    #mision:hover { border-color: var(--gold); }
+    #mision .m-cap { color: var(--gold); font-weight: 600; font-size: 12px; }
+    #mision .m-obj { color: #e2e8f0; font-size: 13px; margin: 2px 0 4px; }
+    #mision .m-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
+    #mision .m-pie button { padding: 3px 8px; font-size: 12px; }
+    #mision .m-aviso { color: #fca5a5; }
+    @media (max-width: 760px) { #mision { top: 52px; width: calc(100vw - 16px); min-width: 0; } }
     #mapa-mundo { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 46; padding: 12px; }
     #mapa-mundo.show { display: flex; }
     #mapa-mundo .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(760px, 100%); max-height: 96vh; overflow-y: auto; }
@@ -266,6 +274,11 @@
   <div id="info"></div>
 
   <div id="banner"></div>
+  <div id="mision" title="Pulsa para ir andando a donde se cumple la misión">
+    <div class="m-cap" id="mision-cap"></div>
+    <div class="m-obj" id="mision-obj"></div>
+    <div class="m-pie"><span id="mision-prog"></span><button id="mision-ir">🧭 Llévame</button></div>
+  </div>
   <canvas id="minimap" width="300" height="300" title="Pulsa para ver el mapa del mundo"></canvas>
   <div id="hud">
     <div id="zona-marca"></div>
@@ -303,7 +316,8 @@
     <div id="cap-sabio" class="muted"></div>
     <h2 id="cap-titulo"></h2>
     <p id="cap-texto" style="line-height:1.6;margin:8px 0"></p>
-    <div class="btns"><button id="cap-cerrar">Cerrar</button></div>
+    <div id="cap-extra" class="muted" style="line-height:1.5;margin:6px 0"></div>
+    <div class="btns"><button id="cap-ir" class="gold">🧭 Llévame</button><button id="cap-cerrar">Cerrar</button></div>
   </div></div>
   <div id="cronica"><div class="box">
     <h2>📜 Crónica del pueblo</h2>
@@ -408,6 +422,7 @@
   <script src="js/heroe.js?v=20251029"></script>
   <script src="js/mision-zona.js?v=20251029"></script>
   <script src="js/mapa.js?v=20251029"></script>
+  <script src="js/ruta.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -1813,6 +1828,7 @@
       const txt = sel.ref.info.frase;
       $('npc-dialogo').textContent = '«' + txt + '»';
       sel.ref.dicho = lastNowSec;
+      avanzarHistoria({ tipo: 'hablar', npc: sel.ref.info.id });
     });
     info.querySelectorAll('[data-servicio]').forEach(btn => btn.onclick = () => abrirServicio(sel.ref));
     if (sel.kind === 'monster' && !catalogoPiezas) {
@@ -1823,6 +1839,7 @@
     }
     info.querySelectorAll('[data-atacar]').forEach(btn => btn.onclick = () => {
       if (!sel.ref || !sel.ref.alive) { toast('Ese monstruo ya no está'); return; }
+      detenerRuta();
       objetivo = sel.ref;
       toast('Vas a por ' + (objetivo.name || 'el monstruo'));
     });
@@ -2097,15 +2114,12 @@
     m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
     m.muriendo = performance.now() + 1000;
     m.bar.visible = false;
-    const nivelAntes = hero.level;
     const levels = CombatLib.gainXp(hero, m.xp);
-    anunciarHechas(HeroeLib.registrarMuerte(heroeEst, m.boss));
+    if (HeroeLib.registrarMuerte(heroeEst)) toast('🧬 +1 punto de habilidad por tu lucha');
+    avanzarHistoria({ tipo: m.boss ? 'jefe' : 'matar', zona: m.zone && m.zone.id });
     if (m.zone && HeroeLib.registrarZona(heroeEst, m.zone.id, m.boss ? 'jefe' : 'matar')) anunciarEncargo(m.zone.id);
-    if (heroeEst.kills % HeroeLib.PUNTOS_KILLS === 0) toast('🧬 +1 punto de habilidad por tu lucha');
     aplicarStats();
-    if (levels) { hero.hp = hero.maxHp; hero.mp = hero.maxMp; }
-    const capNuevos = HistoriaLib.nuevosCapitulos(nivelAntes, hero.level);
-    if (capNuevos.length) setTimeout(() => mostrarCapitulo(capNuevos[0]), 3200);
+    if (levels) { hero.hp = hero.maxHp; hero.mp = hero.maxMp; actualizarMision(); }
     let loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
     // Objetos del personaje: cotas (hasta nivel 5) y armas, cada uno con su estado
     const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
@@ -2292,7 +2306,7 @@
 
   function useSkill(name) {
     if (hero.dead) return;
-    if (bloqueada(name)) { toast('🔒 Se desbloquea con una misión'); return; }
+    if (bloqueada(name)) { toast('🔒 Se desbloquea con la historia (capítulo ' + HeroeLib.HABILIDADES[HAB_DE_SKILL[name]].capitulo + ')'); return; }
     if (!CombatLib.canUse(hero, name)) {
       if (hero.cd[name] > 0) toast(name === 'attack' ? 'Combo listo en un momento' : 'Recargando…');
       else if (hero.mp < CombatLib.SKILLS[name].mp) toast('Sin maná');
@@ -2369,12 +2383,12 @@
         announce('🏘 ' + town.t.name, 'Nivel ' + town.t.level + ' · ' + (SIZE_NAMES[size] || '') + (town.t.isStart ? ' · pueblo inicial' : ''));
         if (!visited.has(town.t.id)) {
           visited.add(town.t.id);
-          anunciarHechas(HeroeLib.registrarEvento(heroeEst, 'visitar', visited.size));
           buildUI();
           updateStats();
           saveActive(true);
         }
         if (!follow) setFollow(true);
+        avanzarHistoria({ tipo: 'visitar', pueblo: town.t.id });
       }
     }
     let zone = null, zr = Infinity;
@@ -2592,6 +2606,7 @@
     personajeActual = r.personaje;
     heroeEst = HeroeLib.limpiarHeroe(r.heroe);
     aplicarStats();
+    ruta = null;
     renderInvCard();
     if (personajeActual) cargarCatalogoPiezas().catch(() => {});
     if (personajeActual) {
@@ -2607,6 +2622,7 @@
     $('deadmsg').classList.remove('show');
     buildUI();
     updateStats();
+    actualizarMision();
   }
 
   // Equipo que puede soltar un monstruo: el mismo cálculo que usa el drop (EquipoLib.candidatasDrop)
@@ -2679,14 +2695,6 @@
   function anunciarEncargo(zonaId) {
     const m = misionPorZona[zonaId];
     if (m) toast('📜 Encargo cumplido: ' + m.titulo + ' · entrégaselo a ' + m.npc.nombre + ' en ' + m.puebloNombre);
-  }
-
-  // Misiones completadas: aviso con su recompensa
-  function anunciarHechas(lista) {
-    lista.forEach(mi => {
-      const extra = mi.recompensa.desbloquea ? ' · desbloquea ' + HeroeLib.HABILIDADES[mi.recompensa.desbloquea].nombre : '';
-      toast('📜 Misión completada: ' + mi.titulo + ' (+' + mi.recompensa.puntos + ' puntos)' + extra);
-    });
   }
 
   function activePartida() {
@@ -3095,9 +3103,9 @@
     const mj = e.target.closest('button[data-mejorar]');
     if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar); aplicarStats(); toast('Habilidad mejorada'); });
     const fh = e.target.closest('button[data-forjar-hoja]');
-    if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); anunciarHechas(HeroeLib.registrarEvento(heroeEst, 'forjar', 1)); toast('Forjada con su hoja'); });
+    if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); avanzarHistoria({ tipo: 'forjar' }); toast('Forjada con su hoja'); });
     const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
-    if (f) accionNpc(() => { inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold); toast('Fabricada'); });
+    if (f) accionNpc(() => { inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold); toast('Fabricada'); avanzarHistoria({ tipo: 'forjar' }); });
     if (c) accionNpc(() => { inv.gold -= EquipoLib.comprar(pj, catalogoPiezas, c.dataset.comprar, hero.level, inv.gold); toast('Comprada'); });
     if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
   });
@@ -3125,7 +3133,7 @@
     const fila = id => {
       const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
       let accion;
-      if (hab.tipo === 'activa' && !heroeEst.desbloqueadas[id]) accion = '<span class="muted">🔒 ' + esc(H.MISIONES.find(m => m.id === hab.mision).titulo) + '</span>';
+      if (hab.tipo === 'activa' && !heroeEst.desbloqueadas[id]) accion = '<span class="muted">🔒 Capítulo ' + hab.capitulo + ' de la historia</span>';
       else if (nivel >= hab.max) accion = '<span class="muted">máximo</span>';
       else accion = '<button data-mejorar="' + id + '" ' + (heroeEst.puntos < 1 ? 'disabled' : '') + '>Mejorar</button>';
       return '<div class="slot"><div class="info"><b>' + esc(hab.nombre) + '</b> <span class="muted">' + nivel + '/' + hab.max + '</span><div class="muted">' + esc(hab.desc) + '</div></div>' + accion + '</div>';
@@ -3160,11 +3168,12 @@
       const estado = hab.tipo === 'activa' && !heroeEst.desbloqueadas[id] ? '🔒' : nivel + '/' + hab.max;
       return '<div class="fila"><span>' + esc(hab.nombre) + '<br><span class="muted">' + esc(hab.desc) + '</span></span><b>' + estado + '</b></div>';
     }).join('');
-    const misiones = H.MISIONES.map(mi => {
-      const hecha = !!heroeEst.hechas[mi.id];
-      const prog = hecha ? mi.cantidad : Math.min(heroeEst.progreso[mi.id] || 0, mi.cantidad);
-      return '<div class="fila"><span>' + (hecha ? '✅' : '📜') + ' ' + esc(mi.titulo) + '<br><span class="muted">' + esc(mi.texto) + ' · +' + mi.recompensa.puntos + ' puntos</span></span><b>' + prog + '/' + mi.cantidad + '</b></div>';
-    }).join('');
+    const pr = heroeEst.principal, capAct = HistoriaLib.capituloActual(pr), total = HistoriaLib.CAPITULOS.length;
+    const objAct = capAct && world ? HistoriaLib.asegurarObjetivo(pr, world) : null;
+    const historia = (objAct
+      ? '<div class="fila"><span>📜 Capítulo ' + (pr.paso + 1) + ' · ' + esc(capAct.titulo) + '<br><span class="muted">' + esc(objAct.texto) + '</span></span><b>' + pr.progreso + ' / ' + objAct.cantidad + '</b></div>'
+      : '<div class="muted">Crónica completa.</div>')
+      + '<div class="muted">Capítulos contados: ' + Math.min(pr.paso, total) + ' / ' + total + ' (los cuenta la crónica, tecla C)</div>';
     const posibles = Object.keys(H.ESPECIALES).map(tipo => '<div class="muted"><b>' + tipo + '</b>: ' + H.ESPECIALES[tipo].map(e => esc(e.nombre) + ' (' + esc(H.efectoTexto(e.efecto)) + ')').join(' · ') + '</div>').join('');
     const encargos = Object.keys(heroeEst.zonas).map(id => {
       const z = heroeEst.zonas[id], m = misionPorZona[id];
@@ -3176,27 +3185,190 @@
       + '<h3>Estadísticas</h3>' + filas.map(f => '<div class="fila"><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('')
       + '<h3>Equipo</h3>' + equipoHtml
       + '<h3>Habilidades</h3>' + habs
-      + '<h3>Misiones</h3>' + misiones
+      + '<h3>Historia</h3>' + historia
       + '<h3>Encargos de zona</h3>' + encargos
       + '<h3>Especiales posibles</h3>' + posibles
       + '<div class="muted" style="margin-top:6px">Una pieza tiene 1 especial desde nivel 5, 2 desde 15 y 3 desde 30. Son fijos para cada pieza.</div>';
   }
 
-  // Crónica del pueblo: capítulos que se desbloquean con el nivel del héroe
-  function mostrarCapitulo(c) {
-    $('cap-sabio').textContent = c.sabio + ' cuenta:';
-    $('cap-titulo').textContent = 'Capítulo ' + (HistoriaLib.CAPITULOS.indexOf(c) + 1) + ' · ' + c.titulo;
-    $('cap-texto').textContent = c.texto;
+  // ===========================================================================
+  // Historia (misión principal): un capítulo cada vez, contado al cumplirlo (js/historia.js).
+  // Al pulsar la misión, el personaje va andando por los caminos hasta donde se cumple (js/ruta.js).
+  // ===========================================================================
+  let ruta = null;   // ruta a pie en curso: { puntos, i, parar, nombre, npc, intentos }
+
+  function actualizarMision() {
+    if (!world) return;
+    const p = heroeEst.principal;
+    const cap = HistoriaLib.capituloActual(p);
+    if (!cap) {
+      $('mision-cap').textContent = '📜 Crónica completa';
+      $('mision-obj').textContent = 'Has vivido los ' + HistoriaLib.CAPITULOS.length + ' capítulos de la historia.';
+      $('mision-prog').textContent = '';
+      $('mision-ir').style.display = 'none';
+      return;
+    }
+    const o = HistoriaLib.asegurarObjetivo(p, world);
+    $('mision-cap').textContent = '📜 Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
+    $('mision-obj').textContent = o.texto;
+    $('mision-prog').innerHTML = p.progreso + ' / ' + o.cantidad + ' · <span' + (hero.level < cap.nivel ? ' class="m-aviso"' : '') + '>nivel recomendado ' + cap.nivel + '</span>';
+    $('mision-ir').style.display = '';
+    $('mision-ir').textContent = ruta ? '⏹ Parar' : '🧭 Llévame';
+  }
+
+  // Un hecho del juego (matar, visitar, hablar, forjar): solo cuenta para el capítulo activo
+  function avanzarHistoria(ev) {
+    const p = heroeEst.principal;
+    if (!world || HistoriaLib.terminada(p)) return;
+    HistoriaLib.asegurarObjetivo(p, world);
+    const antes = p.progreso;
+    if (HistoriaLib.registrar(p, ev)) cerrarCapitulo();
+    else if (p.progreso !== antes) actualizarMision();
+  }
+
+  // Capítulo cumplido: recompensa, se cuenta su historia y empieza el siguiente (con su progreso a 0)
+  function cerrarCapitulo() {
+    const r = HistoriaLib.completar(heroeEst.principal);
+    HeroeLib.recompensar(heroeEst, r.recompensa);
+    aplicarStats();
+    detenerRuta();
+    HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
+    actualizarMision();
+    mostrarCapitulo(r);
+    saveActive(true);
+  }
+
+  // Ventana del capítulo cumplido: lo que cuenta el sabio, la recompensa y el encargo siguiente
+  function mostrarCapitulo(r) {
+    $('cap-sabio').textContent = r.capitulo.sabio + ' cuenta:';
+    $('cap-titulo').textContent = 'Capítulo ' + r.numero + ' · ' + r.capitulo.titulo;
+    $('cap-texto').textContent = r.texto;
+    const pts = r.recompensa.puntos;
+    let premio = '🧬 +' + pts + (pts === 1 ? ' punto' : ' puntos') + ' de habilidad';
+    if (r.recompensa.desbloquea) premio += ' · desbloqueas ' + HeroeLib.HABILIDADES[r.recompensa.desbloquea].nombre;
+    const p = heroeEst.principal, sig = HistoriaLib.capituloActual(p);
+    const o = sig ? HistoriaLib.asegurarObjetivo(p, world) : null;
+    $('cap-extra').innerHTML = esc(premio) + '<br><br>' + (sig
+      ? '<b>Siguiente · Capítulo ' + (p.paso + 1) + ' · ' + esc(sig.titulo) + '</b><br>' + esc(o.encargo) + '<br>📍 ' + esc(o.texto)
+      : '<b>Has completado la crónica.</b>');
+    $('cap-ir').style.display = sig ? '' : 'none';
     $('capitulo').classList.add('show');
   }
+
+  // Ventana del encargo activo (al empezar la partida): qué pide el sabio y dónde
+  function mostrarEncargo() {
+    const p = heroeEst.principal, cap = HistoriaLib.capituloActual(p);
+    if (!cap || !world) return;
+    const o = HistoriaLib.asegurarObjetivo(p, world);
+    $('cap-sabio').textContent = cap.sabio + ' te pide:';
+    $('cap-titulo').textContent = 'Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
+    $('cap-texto').textContent = o.encargo;
+    $('cap-extra').textContent = '📍 ' + o.texto + ' · nivel recomendado ' + cap.nivel + '. Pulsa la misión (arriba) para ir andando.';
+    $('cap-ir').style.display = '';
+    $('capitulo').classList.add('show');
+  }
+
+  // La crónica: capítulos contados, el actual con su encargo y los que faltan, cerrados
   function renderCronica() {
+    const p = heroeEst.principal;
+    const o = world && !HistoriaLib.terminada(p) ? HistoriaLib.asegurarObjetivo(p, world) : null;
     $('cro-lista').innerHTML = HistoriaLib.CAPITULOS.map((c, i) => {
-      const abierto = hero.level >= c.nivel;
-      return abierto
-        ? `<div class="cap"><b>${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)}</span><p>${esc(c.texto)}</p></div>`
-        : `<div class="cap"><b>🔒 Capítulo ${i + 1}</b> <span class="muted">· se desbloquea en el nivel ${c.nivel}</span></div>`;
+      if (i < p.paso) return `<div class="cap"><b>✅ ${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)}</span><p>${esc(HistoriaLib.textoContado(c, world))}</p></div>`;
+      if (i === p.paso && o) return `<div class="cap"><b>▶ ${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)} · en curso</span><p>${esc(o.encargo)}</p><p class="muted">📍 ${esc(o.texto)} · ${p.progreso} / ${o.cantidad} · nivel recomendado ${c.nivel}</p></div>`;
+      return `<div class="cap"><b>🔒 Capítulo ${i + 1}</b> <span class="muted">· se cuenta al terminar el anterior</span></div>`;
     }).join('');
   }
+
+  // Destino de la misión activa: la zona, el pueblo o el NPC donde se cumple
+  function destinoDeMision() {
+    const o = HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
+    if (!o) return null;
+    if (o.zona) {
+      const z = world.zones.find(x => x.id === o.zona);
+      return { x: z.x, y: z.y, parar: Math.max(6, Math.min(40, z.radius * 0.35)), nombre: z.name };
+    }
+    if (o.pueblo) {
+      const t = W.findTown(world, o.pueblo);
+      return { x: t.x, y: t.y, parar: 10, nombre: t.name };
+    }
+    const g = gurus.find(x => x.info.id === o.npc);
+    if (g) return { x: g.x, y: g.z, parar: 2.6, nombre: g.info.nombre, npc: g };
+    const t = HistoriaLib.puebloInicial(world);   // el NPC aún no ha llegado a la plaza
+    return { x: t.x, y: t.y, parar: 6, nombre: t.name };
+  }
+
+  // Puertas y tamaño de los pueblos, los mismos con los que se dibujan los caminos
+  function opcionesRuta() {
+    return {
+      mitad: id => { const o = towns.find(x => x.t.id === id); return o ? o.tileHalf : null; },
+      salida: (idPueblo, idCamino) => {
+        const o = towns.find(x => x.t.id === idPueblo), r = world.roads.find(x => x.id === idCamino);
+        return o && r ? salidaDePueblo(o, r) : [];
+      }
+    };
+  }
+
+  function irAMision() {
+    if (!world || !character) return;
+    if (hero.dead) { toast('Primero tienes que reaparecer'); return; }
+    const d = destinoDeMision();
+    if (!d) return;
+    const p = character.root.position;
+    objetivo = null;
+    ruta = { puntos: RutaLib.calcularRuta(world, { x: p.x, y: p.z }, d, opcionesRuta()), i: 0, parar: d.parar, nombre: d.nombre, npc: d.npc || null, intentos: 0 };
+    character.cancelado = false;
+    character.atascado = false;
+    if (!follow) setFollow(true);
+    toast('🧭 En camino a ' + d.nombre + ' (muévete para parar)');
+    actualizarMision();
+  }
+
+  function detenerRuta(aviso) {
+    if (!ruta) return;
+    ruta = null;
+    character.destino = null;
+    if (aviso) toast(aviso);
+    actualizarMision();
+  }
+
+  // Cada fotograma: va de punto en punto (la plaza se da por alcanzada a 8 m, por si hay una fuente en su centro);
+  // si algo lo bloquea, rodea por un lado (hasta 3 veces)
+  function seguirRuta() {
+    if (!ruta) return;
+    if (character.cancelado) { character.cancelado = false; detenerRuta('Ruta parada: has tomado el control'); return; }
+    if (hero.dead) { detenerRuta(); return; }
+    const pos = character.root.position;
+    let w = ruta.puntos[ruta.i];
+    let ultimo = ruta.i === ruta.puntos.length - 1;
+    const d = Math.hypot(w.x - pos.x, w.y - pos.z);
+    if (ultimo && d <= ruta.parar + 0.5) { llegada(); return; }
+    if (!ultimo && d <= (w.plaza ? 8 : 3)) { ruta.i++; ruta.intentos = 0; w = ruta.puntos[ruta.i]; ultimo = ruta.i === ruta.puntos.length - 1; }
+    if (character.atascado) {
+      character.atascado = false;
+      ruta.intentos++;
+      if (ruta.intentos > 3) { detenerRuta('El paso está bloqueado. Muévete un poco y vuelve a pulsar la misión.'); return; }
+      const dx = w.x - pos.x, dz = w.y - pos.z, L = Math.hypot(dx, dz) || 1, lado = ruta.intentos % 2 ? 1 : -1;
+      ruta.puntos.splice(ruta.i, 0, { x: pos.x - dz / L * 6 * lado + dx / L * 2, y: pos.z + dx / L * 6 * lado + dz / L * 2 });
+      w = ruta.puntos[ruta.i];
+      ultimo = false;
+    }
+    character.destino = { x: w.x, z: w.y, parar: ultimo ? ruta.parar : 0.5 };
+  }
+
+  // Al llegar a un NPC por la misión se habla con él (cuenta si el capítulo pide hablarle)
+  function llegada() {
+    const r = ruta;
+    detenerRuta();
+    toast('📍 Has llegado: ' + r.nombre);
+    if (!r.npc) return;
+    const antes = heroeEst.principal.paso;
+    avanzarHistoria({ tipo: 'hablar', npc: r.npc.info.id });
+    if (heroeEst.principal.paso === antes) showSelection({ kind: 'npc', ref: r.npc });
+  }
+
+  $('mision').onclick = () => { if (ruta) detenerRuta('Ruta parada'); else irAMision(); };
+  $('cap-ir').onclick = () => { $('capitulo').classList.remove('show'); irAMision(); };
+
   $('sk-cronica').onclick = () => { renderCronica(); $('cronica').classList.add('show'); };
   $('cro-cerrar').onclick = () => $('cronica').classList.remove('show');
   $('cap-cerrar').onclick = () => $('capitulo').classList.remove('show');
@@ -3226,6 +3398,9 @@
     buildUI(); updateStats();
     toast('Nueva partida: ' + name);
     renderPartidas();
+    ruta = null;
+    actualizarMision();
+    mostrarEncargo();   // la historia empieza: capítulo 1
   }
 
   // ===========================================================================
@@ -3358,6 +3533,7 @@
   function bootPartida() {
     colocarGurus();
     colocarEncargos();
+    actualizarMision();
     let list = PartidaLib.readList(store, worldId);
     let active = activePartida();
     if (!active && list.length) {
@@ -3569,6 +3745,7 @@
     actualizarZonaTela();
     if (cielo) cielo.position.copy(camera.position);
     character.update(dt, now / 1000);
+    seguirRuta();
     atacarObjetivo();
     actualizarGurus(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
@@ -3669,7 +3846,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

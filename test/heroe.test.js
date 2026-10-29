@@ -11,37 +11,28 @@ t('héroe nuevo: sin puntos ni habilidades', () => {
   assert.deepStrictEqual(h.gastados, {});
 });
 
-t('lucha: cada 20 monstruos, 1 punto (sin contar misiones)', () => {
+t('lucha: cada 20 monstruos, 1 punto', () => {
   const h = H.nuevoHeroe();
-  // Las misiones de cazador dan puntos a los 5 y 25 monstruos; se cuentan aparte
-  for (let i = 0; i < 19; i++) H.registrarMuerte(h, false);
-  const antes = h.puntos;
-  H.registrarMuerte(h, false);
-  assert.strictEqual(h.puntos - antes, 1);
+  for (let i = 0; i < 19; i++) assert.strictEqual(H.registrarMuerte(h), false);
+  assert.strictEqual(H.registrarMuerte(h), true);
+  assert.strictEqual(h.puntos, 1);
+  assert.strictEqual(h.kills, 20);
 });
 
-t('misión de cazadores: 5 monstruos dan puntos y se completa una vez', () => {
+t('recompensa de un capítulo: suma puntos y desbloquea la activa que diga', () => {
   const h = H.nuevoHeroe();
-  let hechas = [];
-  for (let i = 0; i < 5; i++) hechas = hechas.concat(H.registrarMuerte(h, false));
-  assert.ok(hechas.some(m => m.id === 'cazador1'));
-  assert.ok(h.puntos >= 2);
-  const otra = H.registrarMuerte(h, false);
-  assert.ok(!otra.some(m => m.id === 'cazador1'));
-});
-
-t('misión de viaje: visitar 3 pueblos desbloquea la patada', () => {
-  const h = H.nuevoHeroe();
-  H.registrarEvento(h, 'visitar', 2);
-  assert.ok(!h.desbloqueadas.patada);
-  H.registrarEvento(h, 'visitar', 3);
-  assert.ok(h.desbloqueadas.patada);
+  H.recompensar(h, { puntos: 2, desbloquea: 'patada' });
+  assert.strictEqual(h.puntos, 2);
+  assert.ok(h.desbloqueadas.patada && !h.desbloqueadas.nova);
+  H.recompensar(h, { puntos: 1, desbloquea: 'inexistente' });
+  assert.strictEqual(h.puntos, 3);
+  assert.ok(!h.desbloqueadas.inexistente);
 });
 
 t('activas: solo se mejoran si están desbloqueadas; cada nivel cuesta un punto', () => {
   const h = H.nuevoHeroe();
   h.puntos = 5;
-  assert.throws(() => H.mejorar(h, 'nova'), /misión/);
+  assert.throws(() => H.mejorar(h, 'nova'), /historia \(capítulo 8\)/);
   h.desbloqueadas.nova = true;
   assert.strictEqual(H.mejorar(h, 'nova'), 1);
   assert.strictEqual(H.mejorar(h, 'nova'), 2);
@@ -93,6 +84,23 @@ t('limpiar: un estado dañado se corrige sin romper la partida', () => {
   assert.strictEqual(h.gastados.fuerza, 10);
   assert.ok(!h.gastados.nope);
   assert.ok(h.desbloqueadas.nova && !h.desbloqueadas.zzz);
+});
+
+t('historia: un héroe nuevo empieza en el capítulo 1 con el progreso a 0', () => {
+  assert.deepStrictEqual(H.nuevoHeroe().principal, { paso: 0, progreso: 0, objetivo: null });
+  // Partidas antiguas, sin historia: también empiezan de 0
+  assert.deepStrictEqual(H.limpiarHeroe({ puntos: 3, hechas: { cazador1: true } }).principal, { paso: 0, progreso: 0, objetivo: null });
+});
+
+t('historia: el paso, el progreso y el objetivo se guardan y se sanean', () => {
+  const guardado = { principal: { paso: 3, progreso: 99, objetivo: { tipo: 'matar', cantidad: 8, zona: 'z1', nombre: 'Prados', texto: 'Derrota a 8', encargo: 'Tamsin…', raro: 'x' } } };
+  const h = H.limpiarHeroe(JSON.parse(JSON.stringify(guardado)));
+  assert.strictEqual(h.principal.paso, 3);
+  assert.strictEqual(h.principal.progreso, 8);   // acotado a la cantidad
+  assert.strictEqual(h.principal.objetivo.zona, 'z1');
+  assert.ok(!('raro' in h.principal.objetivo));
+  const malo = H.limpiarHeroe({ principal: { paso: -2, progreso: 4, objetivo: { tipo: 'bailar' } } });
+  assert.deepStrictEqual(malo.principal, { paso: 0, progreso: 0, objetivo: null });
 });
 
 t('encargos de zona: matar cuenta cualquier monstruo; se completa y se entrega una vez', () => {
