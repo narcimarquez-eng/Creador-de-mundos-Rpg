@@ -455,6 +455,8 @@
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js";
+  // Simplificador de mallas (meshoptimizer, MIT): versión lejana de los monstruos con menos triángulos
+  import { MeshoptSimplifier } from "./js/vendor/meshopt_simplifier.js";
   "use strict";
   const W = window.RPGWorld;
   const SEA = W.SEA_LEVEL;
@@ -2207,9 +2209,14 @@
     });
   }
 
-  // Dos versiones de cada monstruo: la de cerca (densidad media) y la de lejos (densidad baja, ~la mitad de
-  // triángulos). Se construyen la primera vez que hacen falta, como mucho una por fotograma para no dar tirones.
-  const MONSTRUO_DETALLE = 70;   // cambio de versión, con 5 m de margen a cada lado para que no parpadee
+  // Dos versiones de cada monstruo: la de cerca (densidad media, solo a menos de 10 m) y la de lejos (densidad
+  // baja, ~la mitad de triángulos). Se construyen la primera vez que hacen falta, como mucho una por fotograma para no dar tirones.
+  let simplificadorListo = false;
+  MeshoptSimplifier.ready.then(() => { simplificadorListo = true; }).catch(() => { /* sin simplificar */ });
+  // Escamas en relieve: de lejos no se distinguen y la versión lejana no las lleva. El pelaje sí se queda
+  // (simplificado): sin él cambian la silueta y el color del animal.
+  const CAPAS_DE_CERCA = /^Skinned_3D_Dragon_Scale_Relief/;
+  const MONSTRUO_DETALLE = 10;   // cambio de versión, con 2 m de margen a cada lado para que no parpadee
   let presupuestoModelos = 1;
 
   function construirVersionEnemigo(m, tipo) {
@@ -2225,7 +2232,14 @@
     // cambia por separado (núcleo, aliento, aura…) se quedan como están
     const animadas = [];
     Object.values(rig.parts || {}).forEach(p => [].concat(p).forEach(o => { if (o && o.isMesh) animadas.push(o); }));
+    if (tipo === 'lejos') {
+      const capas = [];
+      rig.rootGroup.traverse(o => { if (o.isMesh && CAPAS_DE_CERCA.test(o.name || '')) capas.push(o); });
+      capas.forEach(o => { o.removeFromParent(); o.geometry.dispose(); });
+    }
     FusionLib.fusionarPorMaterial(THREE, rig.rootGroup, { excluir: animadas });
+    // Versión lejana: cada malla a ~40 % de sus triángulos (mismos vértices y huesos: la animación no cambia)
+    if (tipo === 'lejos' && simplificadorListo) FusionLib.simplificarModelo(THREE, MeshoptSimplifier, rig.rootGroup, { ratio: 0.4, error: 0.02 });
     const fx = EnemyFx.crear(rig, m.enemigo);
     aplicarEntorno(rig.rootGroup);
     return { rig, fx, barHeight: new THREE.Box3().setFromObject(rig.rootGroup).max.y + 0.9 };
@@ -2235,7 +2249,7 @@
   // Versión que le toca a un monstruo a la distancia d (con margen para que no parpadee)
   function tipoEnemigo(m, d) {
     if (quality === 'bajo') return 'cerca';   // en calidad baja las dos serían iguales
-    return d < MONSTRUO_DETALLE + (m.activa === 'cerca' ? 5 : -5) ? 'cerca' : 'lejos';
+    return d < MONSTRUO_DETALLE + (m.activa === 'cerca' ? 2 : -2) ? 'cerca' : 'lejos';
   }
 
   function construirModeloEnemigo(m, d) {
@@ -2431,10 +2445,10 @@
     renderShop();
   }
 
-  // Monstruos a distancia: se ven hasta 300 m; se animan cada fotograma y hacen sombra hasta 80 m;
-  // de 80 a 200 m se animan uno de cada 4 fotogramas; más lejos se quedan quietos
-  const MONSTRUO_VISIBLE = 300, MONSTRUO_ANIMA = 80, MONSTRUO_ANIMA_LENTO = 200;
-  const MONSTRUO_DESCARGA = 600;   // más lejos se liberan sus modelos; se reconstruyen al volver
+  // Monstruos a distancia: solo existen cerca del héroe. Se ven hasta 120 m; se animan cada fotograma y hacen
+  // sombra hasta 60 m, y de 60 a 120 m se animan uno de cada 4 fotogramas. A más de 160 m se descargan.
+  const MONSTRUO_VISIBLE = 120, MONSTRUO_ANIMA = 60, MONSTRUO_ANIMA_LENTO = 120;
+  const MONSTRUO_DESCARGA = 160;   // más lejos se liberan sus modelos (con margen sobre los 120 m para no cargar y descargar sin parar)
 
   function descargarModelosEnemigo(m) {
     if (m.rig) m.group.remove(m.rig.rootGroup);
@@ -4185,6 +4199,17 @@
     updateLabels(character.root.position.y);
   }
 
+  const NOMBRE_ZONA_M = 120;
+  // ¿Hay terreno entre la cámara y el punto? Se mira la altura del suelo en 12 puntos del segmento
+  function tapadoPorTerreno(item) {
+    const c = camera.position;
+    for (let i = 1; i < 12; i++) {
+      const f = i / 12, x = c.x + (item.x - c.x) * f, z = c.z + (item.z - c.z) * f, y = c.y + (item.y - c.y) * f;
+      if (H(x, z) > y + 0.5) return true;
+    }
+    return false;
+  }
+
   function updateLabels(py) {
     const w = window.innerWidth, h = window.innerHeight;
     const v = new THREE.Vector3();
@@ -4198,8 +4223,9 @@
     const showTowns = $('chk-labels').checked;
     townLabels.forEach(item => place(item, () => showTowns));
     const showZones = $('chk-labels').checked && $('chk-zones').checked;
+    // Nombres de zona: como mucho a 120 m del héroe y solo si ninguna colina los tapa
     zoneLabels.forEach(item => {
-      place(item, () => showZones && Math.hypot(item.x - character.root.position.x, item.z - character.root.position.z) < 900);
+      place(item, () => showZones && Math.hypot(item.x - character.root.position.x, item.z - character.root.position.z) < NOMBRE_ZONA_M && !tapadoPorTerreno(item));
     });
   }
 

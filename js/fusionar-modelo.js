@@ -92,7 +92,35 @@
     return quedan;
   }
 
-  const api = { fusionarPorMaterial };
+  // Menos triángulos para la versión lejana de un modelo: cada malla con índices pasa a ~'ratio' de sus
+  // triángulos (meshoptimizer: S es MeshoptSimplifier ya listo). Solo cambian los índices: los vértices, la
+  // piel y los huesos son los mismos, así que la animación no cambia. La geometría nueva comparte los
+  // atributos con la original (no se duplica memoria). Devuelve [triángulos antes, después].
+  function simplificarModelo(THREE, S, raiz, opciones) {
+    const o = Object.assign({ ratio: 0.4, error: 0.02, minTris: 600 }, opciones);
+    let antes = 0, despues = 0;
+    raiz.traverse(m => {
+      if (!m.isMesh || m.isInstancedMesh || !m.visible || Array.isArray(m.material)) return;
+      const g = m.geometry, P = g.attributes.position;
+      if (!g.index || !P || P.isInterleavedBufferAttribute || !(P.array instanceof Float32Array) || P.itemSize !== 3) return;
+      if (Object.keys(g.morphAttributes || {}).length) return;
+      const n = Math.min(g.index.count, g.drawRange.count);
+      antes += n / 3;
+      if (n / 3 < o.minTris || g.drawRange.start !== 0) { despues += n / 3; return; }
+      const indices = g.index.array instanceof Uint32Array ? g.index.array.subarray(0, n) : Uint32Array.from(g.index.array.subarray(0, n));
+      const [nuevos] = S.simplify(indices, P.array.subarray(0, P.count * 3), 3, Math.floor(n * o.ratio / 3) * 3, o.error, []);
+      if (nuevos.length >= n * 0.9) { despues += n / 3; return; }
+      const ng = new THREE.BufferGeometry();
+      Object.keys(g.attributes).forEach(k => ng.setAttribute(k, g.attributes[k]));
+      ng.setIndex(new THREE.BufferAttribute(nuevos, 1));
+      ng.groups = g.groups.slice();
+      m.geometry = ng;
+      despues += nuevos.length / 3;
+    });
+    return [Math.round(antes), Math.round(despues)];
+  }
+
+  const api = { fusionarPorMaterial, simplificarModelo };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FusionLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

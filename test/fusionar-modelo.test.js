@@ -99,4 +99,26 @@ t('no se tocan las piezas ocultas, transparentes, con hijos o excluidas', () => 
   [a, b, extra].forEach(o => assert.ok(!quedan.includes(o)));
 });
 
-console.log(`\n${n} pruebas de la unión de modelos superadas.`);
+// Simplificación con meshoptimizer (módulo ES): se prueba aparte, al final
+(async () => {
+  const { MeshoptSimplifier } = await import('../tools/node_modules/meshoptimizer/index.js');
+  await MeshoptSimplifier.ready;
+  t('simplificar: menos triángulos, mismos vértices y atributos (la piel no cambia)', () => {
+    const geo = new THREE.SphereGeometry(1, 64, 48);
+    const nV = geo.attributes.position.count;
+    geo.setAttribute('skinIndex', new THREE.BufferAttribute(new Uint16Array(nV * 4), 4));
+    geo.setAttribute('skinWeight', new THREE.BufferAttribute(new Float32Array(nV * 4).fill(0.25), 4));
+    const malla = new THREE.Mesh(geo, new THREE.MeshBasicMaterial());
+    const pequena = new THREE.Mesh(new THREE.BoxGeometry(), malla.material);   // 12 triángulos: no se toca
+    const raiz = new THREE.Group(); raiz.add(malla, pequena);
+    const [antes, despues] = F.simplificarModelo(THREE, MeshoptSimplifier, raiz, { ratio: 0.3, error: 0.05 });
+    assert.ok(despues < antes * 0.5, antes + ' → ' + despues);
+    assert.notStrictEqual(malla.geometry, geo, 'geometría nueva: la original no cambia');
+    assert.strictEqual(malla.geometry.attributes.position, geo.attributes.position);
+    assert.strictEqual(malla.geometry.attributes.skinIndex, geo.attributes.skinIndex);
+    assert.ok(geo.index.count > malla.geometry.index.count);
+    for (const i of malla.geometry.index.array) assert.ok(i < nV);
+    assert.strictEqual(pequena.geometry.index.count, 36);
+  });
+  console.log(`\n${n} pruebas de la unión de modelos superadas.`);
+})();

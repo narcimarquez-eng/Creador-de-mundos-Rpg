@@ -112,3 +112,9 @@ Three.js r186.1 (ES modules, con `importmap` desde jsDelivr). Los scripts del ju
 `js/props-variados.js`: 310 variantes procedurales en 12 familias (rocas, lajas, troncos caídos, tocones, ramas,
 setas, pilas de piedra, helechos, cactus, palmeras, juncos y restos de madera). Sin archivos de terceros; cada
 variante sale de una semilla fija. La colocación depende del bioma.
+
+## Simplificador de mallas (meshoptimizer)
+
+`js/vendor/meshopt_simplifier.js`: módulo de navegador de [meshoptimizer](https://github.com/zeux/meshoptimizer)
+1.3 (licencia MIT, `js/vendor/LICENSE-meshoptimizer-MIT.md`). El visor lo usa para la versión lejana de los
+monstruos; `tools/simplificar-npcs.mjs` usa el mismo paquete en Node para las versiones lejanas de los NPCs.
