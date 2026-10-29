@@ -2048,7 +2048,7 @@
             const sx = Math.cos(ang) * 12.2;
             const sz = Math.sin(ang) * 12.2;
             const sy = this.getTerrainHeight(sx, sz);
-            stalls.push({ x: sx, y: sy, z: sz, rot: -ang + Math.PI / 2, color: i % 2 === 0 ? 0xdc2626 : 0x0284c7 });
+            stalls.push({ x: sx, y: sy, z: sz, rot: -ang + Math.PI / 2, color: i % 2 === 0 ? 0x8b5a2b : 0xa16207 });
             barrels.push({ x: sx + 1.6, y: sy, z: sz + 0.8 });
           }
         }
@@ -2391,13 +2391,26 @@
 
         this.construirCasasMadera(maderas, HW, HD);
 
-        const stallRoofG = new THREE.ConeGeometry(2.2, 1.2, 4); stallRoofG.rotateY(Math.PI / 4);
+        // Puesto de mercado de madera: mostrador, cuatro postes, tejado a dos aguas y cajas (una geometría por instancia)
+        const pB = (w, h, d, x, y, z, rx = 0) => { const g = new THREE.BoxGeometry(w, h, d); if (rx) g.rotateX(rx); g.translate(x, y, z); return g; };
+        const stallG = mergeGeometriesList([
+          pB(2.0, 0.9, 0.7, 0, 0.45, 0),          // mostrador
+          pB(2.2, 0.08, 0.8, 0, 0.94, 0),         // tablero
+          pB(0.12, 2.2, 0.12, -0.9, 1.1, -0.3),   // postes
+          pB(0.12, 2.2, 0.12, 0.9, 1.1, -0.3),
+          pB(0.12, 2.2, 0.12, -0.9, 1.1, 0.3),
+          pB(0.12, 2.2, 0.12, 0.9, 1.1, 0.3),
+          pB(2.6, 0.12, 1.1, 0, 2.45, -0.45, 0.55),  // faldón del tejado (dos vertientes)
+          pB(2.6, 0.12, 1.1, 0, 2.45, 0.45, -0.55),
+          pB(0.5, 0.4, 0.5, 0.95, 0.2, -0.45),    // cajas
+          pB(0.45, 0.35, 0.45, -0.95, 0.18, 0.5),
+        ]);
         const barrelG = new THREE.CylinderGeometry(0.38, 0.42, 0.95, 8); mapUVBand(barrelG, 0.0, 0.25); barrelG.translate(0, 0.48, 0);
-        const iStall = makeInstanced(stallRoofG, matCloth, stalls.length);
+        const iStall = makeInstanced(stallG, matCloth, stalls.length);
         const iBarrel = makeInstanced(barrelG, matAtlas, barrels.length);
 
         stalls.forEach((s, idx) => {
-          dPos.set(s.x, s.y + 2.4, s.z);
+          dPos.set(s.x, s.y, s.z);
           dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s.rot);
           dScale.set(1, 1, 1);
           dMat.compose(dPos, dQuat, dScale);

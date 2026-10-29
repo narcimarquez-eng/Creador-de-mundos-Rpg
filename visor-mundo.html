@@ -2871,6 +2871,7 @@
   ];
   const gurus = [];
   const RADIO_GURUS = 6;
+  const RADIO_PUESTOS = 12.2;   // anillo de los puestos de mercado del pueblo
   const DISTANCIA_HABLAR = 4;
 
   // Herrero y mercader: mismos cuerpos de npc/gurus; cambian por su función
@@ -2883,11 +2884,13 @@
     const inicio = towns.find(o => o.t.isStart) || towns[0];
     if (!inicio || gurus.length) return;
     const loader = new THREE.GLTFLoader();
-    const todos = GURUS.map(g => ({ info: g, modelo: g.id })).concat(SERVICIOS.map(sv => ({ info: sv, modelo: sv.modelo })));
-    todos.forEach((entrada, i) => {
+    // Gurús en los huecos entre los puestos de mercado (anillo de 12,2 m, como en village-core); servicios en el centro, a 6 m
+    const todos = GURUS.map((g, i) => ({ info: g, modelo: g.id, r: RADIO_PUESTOS, a: (i / 6) * Math.PI * 2 + 0.4 + Math.PI / 6 }))
+      .concat(SERVICIOS.map((sv, i) => ({ info: sv, modelo: sv.modelo, r: RADIO_GURUS, a: Math.PI * (i ? 4 / 3 : 1 / 3) })));
+    todos.forEach(entrada => {
       const g = entrada.info;
-      const a = (i / todos.length) * Math.PI * 2;
-      const x = inicio.t.x + Math.cos(a) * RADIO_GURUS, z = inicio.t.y + Math.sin(a) * RADIO_GURUS;
+      const a = entrada.a;
+      const x = inicio.t.x + Math.cos(a) * entrada.r, z = inicio.t.y + Math.sin(a) * entrada.r;
       loader.load('npc/gurus/' + entrada.modelo + '.glb', gltf => {
         const modelo = gltf.scene;
         const size = new THREE.Vector3();
