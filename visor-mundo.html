@@ -429,7 +429,6 @@
   <script src="js/mision-zona.js?v=20251029"></script>
   <script src="js/mapa.js?v=20251029"></script>
   <script src="js/ruta.js?v=20251029"></script>
-  <script src="js/paletas.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -2042,8 +2041,9 @@
   let deadTimerShown = false;
 
 
-  // Enemigos del editor «Enemigo-rpg» (js/enemigos.js). Modo «por niveles»: el arquetipo de nivel más cercano
-  // (entre los 3 más cercanos, al azar); modo «aleatorios»: cualquiera del mismo tipo (normal o jefe).
+  // Enemigos del editor «Enemigo-rpg» (js/enemigos.js). Modo «por niveles»: al azar entre los arquetipos que están
+  // a 2 niveles o menos del monstruo (si hay menos de 3, los 3 más cercanos); modo «aleatorios»: cualquiera del mismo
+  // tipo (normal o jefe).
   let enemyMode = 'niveles';
   let enemyTextures = null;
   const ENEMY_PRESETS = Object.values(EnemyLib.ARCHETYPE_PRESETS);
@@ -2051,7 +2051,8 @@
   function elegirEnemigo(info, rng) {
     const pool = ENEMY_PRESETS.filter(c => esJefeEnemigo(c) === !!info.boss);
     if (enemyMode === 'aleatorio') return pool[Math.min(pool.length - 1, Math.floor(rng.range(0, pool.length)))];
-    const cercanos = pool.slice().sort((a, b) => Math.abs(a.stats.level - info.level) - Math.abs(b.stats.level - info.level)).slice(0, 3);
+    let cercanos = pool.filter(c => Math.abs(c.stats.level - info.level) <= 2);
+    if (cercanos.length < 3) cercanos = pool.slice().sort((a, b) => Math.abs(a.stats.level - info.level) - Math.abs(b.stats.level - info.level)).slice(0, 3);
     return cercanos[Math.min(cercanos.length - 1, Math.floor(rng.range(0, cercanos.length)))];
   }
   // Enemigo por clave: arquetipo del editor o enemigo propio guardado en el mundo
@@ -2096,8 +2097,7 @@
     if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(renderer.capabilities.getMaxAnisotropy());
     // Calidad baja: menos segmentos y menos fragmentos; se aplica al construir el modelo
     const densidad = quality === 'bajo' ? 'low' : 'medium';
-    const materials = m.colorDeZona ? PaletasLib.materialDeMonstruo(EnemyLib.MATERIAL_PRESETS, m.zone, m.semillaColor) : m.enemigo.materials;
-    const cfg = Object.assign({}, m.enemigo, { materials, morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
+    const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
     m.rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
     EnemyOpt.optimizarRig(m.rig);
     // Enemigos un 50 % más grandes: el modelo del editor se ve pequeño en el mapa
@@ -2127,9 +2127,6 @@
           m.group.userData.monstruo = m;
           // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
           m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
-          // Los que elige el juego toman los colores de su zona (js/paletas.js); los elegidos a mano, los suyos
-          m.colorDeZona = !enemigoPorClave(info.enemigo);
-          m.semillaColor = z.id + '|' + mi + '|' + k;
           m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
           m.group.visible = false;
           scene.add(m.group);

@@ -1,8 +1,8 @@
 // Reduce las llamadas de dibujo de un enemigo del módulo de enemigos (js/enemigos.js).
 // 1) Quita el grupo de hitboxes de depuración: el juego usa las estadísticas, no esas mallas.
 // 2) Une las mallas estáticas que son hijas de un mismo grupo y comparten material, horneando su posición.
-// Se conservan los grupos animados y las mallas que la animación mueve directamente (núcleo, aliento, aura),
-// para que updateEnemyAnimation siga funcionando igual.
+// Se conservan los grupos animados, las mallas que la animación mueve directamente (núcleo, aliento, aura) y las
+// mallas con piel (SkinnedMesh, que deforman los huesos), para que updateEnemyAnimation siga funcionando igual.
 (function (root) {
   'use strict';
 
@@ -53,7 +53,7 @@
     grupos.forEach(grupo => {
       const porClave = new Map();
       grupo.children.forEach(h => {
-        if (!h.isMesh || h.isInstancedMesh || animadas.has(h) || h.children.length) return;
+        if (!h.isMesh || h.isInstancedMesh || h.isSkinnedMesh || animadas.has(h) || h.children.length) return;
         const clave = h.material.uuid + '|' + h.castShadow + '|' + h.receiveShadow;
         if (!porClave.has(clave)) porClave.set(clave, []);
         porClave.get(clave).push(h);

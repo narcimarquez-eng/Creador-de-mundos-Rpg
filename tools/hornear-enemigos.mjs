@@ -30,6 +30,8 @@ await build({
   target: 'es2018',
   outfile: path.join(here, '..', 'js', 'enemigos.js'),
   plugins: [globalThreePlugin],
+  // El visor lo carga como módulo: sin esto, EnemyLib no sería global
+  footer: { js: "if (typeof window !== 'undefined') window.EnemyLib = EnemyLib;" },
   banner: {
     js: [
       '// Generado por tools/hornear-enemigos.mjs desde el editor «Enemigo-rpg». No editar a mano.',
