@@ -332,9 +332,14 @@
       }
       const ux = dx / dist, uz = dz / dist;
       const paso = Math.min(dist - d.parar, this.walkSpeed * dt);
+      const antes = this.root.position.clone();
       const resolved = this.resolveCollisions(this.root.position.x + ux * paso, this.root.position.z + uz * paso);
       this.root.position.x = resolved.x;
       this.root.position.z = resolved.z;
+      // Sin avanzar durante 2 s (un muro en medio): se rinde el destino
+      if (antes.distanceTo(this.root.position) < 0.02) this.sinAvance = (this.sinAvance || 0) + dt;
+      else this.sinAvance = 0;
+      if (this.sinAvance > 2) { this.destino = null; this.sinAvance = 0; this.atascado = true; }
       this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
       const objetivoGiro = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(ux, uz));
       this.root.quaternion.slerp(objetivoGiro, Math.min(1, dt * 12));

@@ -2384,6 +2384,12 @@
     }
     if (!objetivo) return;
     if (!objetivo.alive || hero.dead) { objetivo = null; character.destino = null; return; }
+    if (character.atascado) {
+      character.atascado = false;
+      objetivo = null;
+      toast('No hay camino hasta él');
+      return;
+    }
     const cx = character.root.position.x, cz = character.root.position.z;
     const d = Math.hypot(objetivo.x - cx, objetivo.z - cz);
     character.destino = { x: objetivo.x, z: objetivo.z, parar: 1.8 };
