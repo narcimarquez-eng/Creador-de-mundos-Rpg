@@ -35,9 +35,9 @@
     {
       id: 'c4', nivel: 4, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Los que no temen al acero',
       encargo: 'El Viejo Tamsin no se fía de los forasteros. «Demuéstrame que tu acero sirve: {n} criaturas en {lugar}, y hablamos.»',
-      texto: 'En los bosques de la zona viven criaturas que el acero vence sin esfuerzo. Son el primer examen de cualquier guerrero. Tamsin asiente y te enseña a girar sobre un pie: la patada giratoria (Q) ya es tuya.',
+      texto: 'En los bosques de la zona viven criaturas que el acero vence sin esfuerzo. Son el primer examen de cualquier guerrero. Tamsin asiente, salta y golpea el suelo con las dos manos: la tierra tiembla bajo las bestias. El impacto sísmico (Q) ya es tuyo.',
       mision: { tipo: 'matar', cantidad: 8, nivel: 4 },
-      recompensa: { puntos: 2, desbloquea: 'patada' }
+      recompensa: { puntos: 2, desbloquea: 'sismo' }
     },
     {
       id: 'c5', nivel: 4, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'El valor de una cota',

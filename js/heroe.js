@@ -3,7 +3,7 @@
  * Expone window.HeroeLib (o module.exports en Node para las pruebas).
  *
  * Los puntos llegan de la historia (capítulos de js/historia.js), de los encargos de zona y de la lucha
- * (cada PUNTOS_KILLS monstruos). Se gastan en el entrenador. Las activas (patada y nova) las desbloquea la historia.
+ * (cada PUNTOS_KILLS monstruos). Se gastan en el entrenador. Las activas (impacto sísmico y nova) las desbloquea la historia.
  */
 (function (root) {
   "use strict";
@@ -17,9 +17,12 @@
     destreza: { tipo: 'pasiva', nombre: 'Destreza', desc: '+1 % de crítico por punto', max: 10 },
     entereza: { tipo: 'pasiva', nombre: 'Entereza', desc: '+1 % de reducción de daño por punto', max: 10 },
     intelecto: { tipo: 'pasiva', nombre: 'Intelecto', desc: '+8 maná máximo por punto', max: 10 },
-    patada: { tipo: 'activa', nombre: 'Patada giratoria (Q)', desc: '+25 % de daño por nivel', max: 3, capitulo: 4 },
+    sismo: { tipo: 'activa', nombre: 'Impacto sísmico (Q)', desc: '+25 % de daño por nivel', max: 3, capitulo: 4 },
     nova: { tipo: 'activa', nombre: 'Explosión nova (E)', desc: '+25 % de daño por nivel', max: 3, capitulo: 8 }
   };
+
+  // Habilidades con otro nombre en partidas antiguas: la patada giratoria es ahora el impacto sísmico
+  const RENOMBRADAS = { patada: 'sismo' };
 
   // Tipos de objetivo de la historia (ver js/historia.js)
   const TIPOS_HISTORIA = ['matar', 'jefe', 'visitar', 'hablar', 'forjar'];
@@ -83,8 +86,11 @@
     const num = x => (isFinite(x) && x >= 0 ? Math.floor(x) : 0);
     base.puntos = num(h.puntos);
     base.kills = num(h.kills);
-    Object.keys(h.gastados || {}).forEach(k => { if (HABILIDADES[k]) base.gastados[k] = Math.min(HABILIDADES[k].max, num(h.gastados[k])); });
-    Object.keys(h.desbloqueadas || {}).forEach(k => { if (HABILIDADES[k]) base.desbloqueadas[k] = true; });
+    Object.keys(h.gastados || {}).forEach(k => {
+      const id = RENOMBRADAS[k] || k;
+      if (HABILIDADES[id]) base.gastados[id] = Math.min(HABILIDADES[id].max, Math.max(base.gastados[id] || 0, num(h.gastados[k])));
+    });
+    Object.keys(h.desbloqueadas || {}).forEach(k => { const id = RENOMBRADAS[k] || k; if (HABILIDADES[id]) base.desbloqueadas[id] = true; });
     Object.keys(h.zonas || {}).forEach(k => {
       const z = h.zonas[k];
       if (!z || !TIPOS_ZONA.includes(z.tipo)) return;
@@ -189,7 +195,7 @@
       reflejo: 0,
       velocidad: 0,
       velocidadAtaque: 0,
-      patada: 1 + 0.25 * (h.gastados.patada || 0),
+      sismo: 1 + 0.25 * (h.gastados.sismo || 0),
       nova: 1 + 0.25 * (h.gastados.nova || 0)
     };
     let defensaArmadura = 0, ataqueArma = 0;

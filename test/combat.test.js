@@ -56,7 +56,7 @@ t('habilidades: maná, enfriamiento y bloqueo', () => {
   assert.ok(h.cd.nova === 0);
   assert.ok(h.mp <= h.maxMp);
   h.mp = 5;
-  assert.ok(!C.canUse(h, 'spin'));          // sin maná
+  assert.ok(!C.canUse(h, 'sismo'));         // sin maná
 });
 
 t('muerte: pierde 5 % del XP y reaparece con vida completa', () => {
@@ -124,17 +124,27 @@ t('área: cono frontal para el ataque, alrededor del personaje para la nova', ()
   assert.ok(!C.inSkillArea('attack', 0, 0, 0, 1, 0, -2));
   assert.ok(C.inSkillArea('nova', 0, 0, 0, 1, 0, -6));
   assert.ok(!C.inSkillArea('nova', 0, 0, 0, 1, 0, -8));
+  // Impacto sísmico: alrededor del personaje, hasta 4,5 m, y golpea al caer (no al pulsar)
+  assert.ok(C.inSkillArea('sismo', 0, 0, 0, 1, 0, -4));
+  assert.ok(!C.inSkillArea('sismo', 0, 0, 0, 1, 5, 0));
+  assert.ok(C.SKILLS.sismo.impacto > 0);
 });
 
 t('animaciones: el GLB con los nombres de la lista asigna cada acción', () => {
   const names = ['Guardia (Idle)', 'Pose Estática (Bind Pose)', 'Marcha (Walk)', 'Carrera (Run)', 'Combo de Ataque',
-    'Patada Giratoria', 'Salto Acrobático', 'Postura de Victoria', 'Explosión Nova'];
+    'Impacto Sísmico', 'Salto Acrobático', 'Postura de Victoria', 'Explosión Nova'];
   const pick = k => names[CH.findClipIndex(names, CH.CLIP_KEYWORDS[k])];
   assert.strictEqual(pick('idle'), 'Guardia (Idle)');
   assert.strictEqual(pick('walk'), 'Marcha (Walk)');
   assert.strictEqual(pick('run'), 'Carrera (Run)');
   assert.strictEqual(pick('attack'), 'Combo de Ataque');
-  assert.strictEqual(pick('spin'), 'Patada Giratoria');
+  assert.strictEqual(pick('sismo'), 'Impacto Sísmico');
+  // Nombres del cuerpo que exporta el estudio de armaduras
+  const estudio = ['idle', 'walk', 'run', 'jump', 'crouch', 'swim', 'punch', 'kick', 'dodge', 'hit', 'ultimate_nova', 'ultimate_slam', 'ultimate_beam', 'victory'];
+  const deEstudio = k => estudio[CH.findClipIndex(estudio, CH.CLIP_KEYWORDS[k])];
+  assert.strictEqual(deEstudio('sismo'), 'ultimate_slam');
+  assert.strictEqual(deEstudio('attack'), 'punch');
+  assert.strictEqual(deEstudio('nova'), 'ultimate_nova');
   assert.strictEqual(pick('jump'), 'Salto Acrobático');
   assert.strictEqual(pick('victory'), 'Postura de Victoria');
   assert.strictEqual(pick('nova'), 'Explosión Nova');

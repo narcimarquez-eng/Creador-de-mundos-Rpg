@@ -8,11 +8,11 @@ Primera versión del combate. Las reglas están en `js/combat.js` (sin gráficos
 | Tecla | Móvil | Acción | Coste | Enfriamiento |
 |---|---|---|---|---|
 | **Espacio** | ⚔ Combo | Combo de ataque (cono frontal de 3 m) | — | 0,7 s |
-| **Q** | 🌀 | Patada giratoria (alrededor, 3,5 m) | 15 de maná | 4 s |
+| **Q** | 🪨 | Impacto sísmico: salta y golpea el suelo (alrededor, 4,5 m, daño ×2; golpea al caer, a los 0,95 s) | 18 de maná | 5 s |
 | **E** | 💥 | Explosión nova (alrededor, 7 m) | 30 de maná | 12 s |
 | **X** | 🦘 | Salto acrobático (solo animación) | — | — |
 
-Cada habilidad bloquea el movimiento mientras dura su animación (ataque 0,5 s, patada 0,7 s, nova 1 s).
+Cada habilidad bloquea el movimiento mientras dura su animación (ataque 0,5 s, impacto sísmico 1,2 s, nova 1 s).
 
 ## Animaciones del personaje
 
@@ -23,8 +23,8 @@ Las acciones se buscan por el nombre de la animación del GLB (inglés o españo
 | Idle | idle, guardia | Guardia (Idle) |
 | Andar | walk, marcha | Marcha (Walk) |
 | Correr | run, carrera | Carrera (Run) |
-| Ataque | combo, ataque | Combo de Ataque |
-| Patada | patada, spin | Patada Giratoria |
+| Ataque | combo, ataque, punch | Combo de Ataque · `punch` |
+| Impacto sísmico | slam, sismo, sísmico | Impacto Sísmico · `ultimate_slam` |
 | Nova | nova, explos | Explosión Nova |
 | Salto | salto, acrobat | Salto Acrobático |
 | Victoria | victoria | Postura de Victoria |
@@ -35,7 +35,7 @@ Las acciones se buscan por el nombre de la animación del GLB (inglés o españo
 
 - **Vida:** 100 + 12 por nivel. Sin regeneración durante 6 s después de recibir un golpe; después, 2 por segundo.
 - **Maná:** 50 + 6 por nivel, regenera 2 por segundo.
-- **Daño base:** 8 + 3 por nivel (ataque). Patada ×1,6, nova ×2,5.
+- **Daño base:** 8 + 3 por nivel (ataque). Impacto sísmico ×2, nova ×2,5.
 - **Experiencia:** cada nivel necesita 100 × nivel de XP. Al subir de nivel se restaura la vida y el maná.
 - **Muerte:** se pierde el 5 % del XP actual. Se reaparece a los 4 s en el pueblo más cercano, con vida y maná completos.
 
@@ -56,7 +56,7 @@ especiales). Reglas en `js/heroe.js`; el panel 🧬 las muestra todas, aunque va
 jefe y 1 por cada 20 monstruos derrotados. Se gastan con el entrenador **Hermana Ysolde** (tecla H cerca de ella):
 
 - Pasivas (hasta 10 puntos cada una): vitalidad, fuerza, destreza, entereza, intelecto.
-- Activas: patada (Q, capítulo 4) y nova (E, capítulo 8). Las desbloquea la historia y suben hasta 3 niveles
+- Activas: impacto sísmico (Q, capítulo 4) y nova (E, capítulo 8). Las desbloquea la historia y suben hasta 3 niveles
   (+25 % de daño por nivel).
 
 ### Historia (misión principal)
@@ -70,7 +70,7 @@ cumplirlo, el sabio cuenta su parte de la historia, da la recompensa y encarga e
 | 1 | Los siete reinos | Elara | Hablar con ella | 1 punto |
 | 2 | El camino de piedra | Oren | Llegar al pueblo vecino | 2 puntos |
 | 3 | Las runas de la muralla | Ysolde | 4 criaturas en una zona de nivel 2 | 2 puntos |
-| 4 | Los que no temen al acero | Tamsin | 8 criaturas en una zona de nivel 4 | 2 puntos y la patada |
+| 4 | Los que no temen al acero | Tamsin | 8 criaturas en una zona de nivel 4 | 2 puntos y el impacto sísmico |
 | 5 | El valor de una cota | Mirel | Encargar una pieza al herrero | 2 puntos |
 | 6 | La arena del herrero | Elara | 10 criaturas en una zona de nivel 6 | 2 puntos |
 | 7 | Los caminos del norte | Oren | Llegar al pueblo más al norte | 3 puntos |

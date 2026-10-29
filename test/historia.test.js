@@ -96,13 +96,13 @@ t('luchar: solo cuentan los monstruos de la zona pedida (el jefe también)', () 
   assert.strictEqual(p.progreso, 1);
 });
 
-t('la historia completa: diez capítulos en orden, con la patada en el 4 y la nova en el 8', () => {
+t('la historia completa: diez capítulos en orden, con el impacto sísmico en el 4 y la nova en el 8', () => {
   const w = mundo(), p = H.nuevaPrincipal();
   const resultados = [];
   while (!H.terminada(p)) resultados.push(cumplir(p, w));
   assert.strictEqual(resultados.length, H.CAPITULOS.length);
   assert.deepStrictEqual(resultados.map(r => r.numero), H.CAPITULOS.map((c, i) => i + 1));
-  assert.strictEqual(resultados[3].recompensa.desbloquea, 'patada');
+  assert.strictEqual(resultados[3].recompensa.desbloquea, 'sismo');
   assert.strictEqual(resultados[7].recompensa.desbloquea, 'nova');
   assert.strictEqual(H.asegurarObjetivo(p, w), null);
   assert.strictEqual(H.contados(p).length, H.CAPITULOS.length);

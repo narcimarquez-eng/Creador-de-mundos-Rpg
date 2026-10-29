@@ -27,7 +27,7 @@
     walk: ['walk', 'andar', 'caminar', 'marcha', 'move'],
     run: ['run', 'sprint', 'correr', 'carrera', 'fast'],
     attack: ['combo', 'ataque', 'attack', 'slash', 'punch'],
-    spin: ['patada', 'spin', 'kick', 'giratoria'],
+    sismo: ['slam', 'sismo', 'sísmico'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
     victory: ['victoria', 'victory', 'postura de victoria', 'win']
@@ -35,7 +35,7 @@
   // Duración de cada acción de un solo uso (segundos) y tiempo en que bloquea el movimiento
   const ONE_SHOT = {
     attack: { lock: 0.5 },
-    spin: { lock: 0.7 },
+    sismo: { lock: 1.2 },
     nova: { lock: 1.0 },
     jump: { lock: 0.0 },
     victory: { lock: 0.0 }
@@ -269,7 +269,7 @@
             this.actions.run = this.mixer.clipAction(pick('run', Math.min(2, clips.length - 1)));
             // Acciones de un solo uso: si el GLB no las trae, se usa la animación de respaldo
             this.oneShots = {};
-            ['attack', 'spin', 'nova', 'jump', 'victory'].forEach(kind => {
+            ['attack', 'sismo', 'nova', 'jump', 'victory'].forEach(kind => {
               const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
               if (i >= 0) {
                 const action = this.mixer.clipAction(clips[i]);
@@ -303,7 +303,11 @@
       L.leftArm.rotation.x = 0; L.rightArm.rotation.x = 0;
       this.model.rotation.y = 0; this.model.position.y = 0;
       if (f.kind === 'attack') L.rightArm.rotation.x = -2.2 * swing;
-      if (f.kind === 'spin') this.model.rotation.y = t * Math.PI * 2;
+      if (f.kind === 'sismo') {   // salta con los brazos arriba y cae golpeando el suelo
+        const subida = t < 0.45 ? t / 0.45 : 1;
+        this.model.position.y = t < 0.45 ? 0.9 * Math.sin(subida * Math.PI * 0.85) : 0;
+        L.leftArm.rotation.x = L.rightArm.rotation.x = t < 0.45 ? -2.6 * subida : -2.6 + 3.2 * Math.min(1, (t - 0.45) / 0.15);
+      }
       if (f.kind === 'nova') { const s = 1 + 0.25 * swing; this.model.scale.set(s, s, s); } else if (this.model.scale.x !== 1) this.model.scale.set(1, 1, 1);
       if (f.kind === 'jump') this.model.position.y = 1.2 * swing;
       if (f.kind === 'victory') { L.leftArm.rotation.x = -2.6; L.rightArm.rotation.x = -2.6; }
@@ -415,7 +419,7 @@
       return true;
     }
 
-    // Reproduce una acción de un solo uso (ataque, patada, nova, salto, victoria).
+    // Reproduce una acción de un solo uso (ataque, impacto sísmico, nova, salto, victoria).
     // Si el GLB no la trae, el avatar de respaldo hace un gesto sencillo.
     // El tiempo lo lleva el propio personaje (suma de dt): no depende del reloj que pase quien llama
     playOneShot(kind) {
@@ -442,7 +446,7 @@
       if (this.activeState === 'oneshot' && this.tiempo >= this.oneShotUntil) this.activeState = 'none';
       if (this.fallbackAct && this.tiempo - this.fallbackAct.start >= this.fallbackAct.duration) this.fallbackAct = null;
       const locked = this.tiempo < this.lockUntil;
-      // Mientras dura una acción de un solo uso (combo, patada, nova) no se cambia la animación
+      // Mientras dura una acción de un solo uso (combo, impacto sísmico, nova) no se cambia la animación
       const enAccion = this.activeState === 'oneshot' && this.tiempo < this.oneShotUntil;
 
       const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
@@ -495,7 +499,7 @@
       } else if (this.destino && !locked) {
         this.caminarADestino(dt, enAccion);
       } else {
-        if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'spin')) this.switchAnimation('idle');
+        if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'sismo')) this.switchAnimation('idle');
         this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
       }
 

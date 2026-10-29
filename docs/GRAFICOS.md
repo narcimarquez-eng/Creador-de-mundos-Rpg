@@ -13,7 +13,7 @@
 | Árboles | Conos y cilindros | Modelos de árbol, hierba y rocas con variedad. |
 | Personaje | Avatar de respaldo o tu GLB | Tu GLB con sus animaciones; sombra y efectos de golpe. |
 | Monstruos | Conos de color | Modelos propios con animaciones (andar, atacar, morir). |
-| Efectos | Ninguno | Impactos, estela de la patada, anillo de la nova, daño flotante. |
+| Efectos | Ninguno | Impactos, onda del impacto sísmico, anillo de la nova, daño flotante. |
 | Interfaz | Paneles de color plano | Iconos y tipografía propios; barras de vida con estilo. |
 
 Lo que sí funciona bien: la coherencia de la hora del día (día, atardecer, noche), los pueblos completos y la
@@ -41,7 +41,7 @@ cantidades y movimiento suave con el viento.
 **G4. Personajes y monstruos.** Modelos de monstruos con animaciones básicas (andar, atacar, morir), la sombra
 del personaje y las barras de vida con estilo.
 
-**G5. Efectos de combate.** Impactos, estela de la patada, anillo de la nova, números de daño que flotan.
+**G5. Efectos de combate.** Impactos, onda del impacto sísmico, anillo de la nova, números de daño que flotan.
 
 **G6. Interfaz.** Iconos, tipografía y marcos coherentes con el estilo elegido; minimapa a juego.
 
@@ -93,7 +93,7 @@ pequeñas cantidades. El viento se aplica en el shader, sin animar cada hoja.
 **G4. Personajes y monstruos.** Tu GLB del personaje y modelos de monstruos de packs gratuitos con animaciones
 básicas. Sombra bajo cada personaje también en bajo.
 
-**G5. Efectos de combate.** Impactos, estela de la patada, anillo de la nova y números de daño.
+**G5. Efectos de combate.** Impactos, onda del impacto sísmico, anillo de la nova y números de daño.
 
 **G6. Interfaz pintada.** Iconos y marcos a juego; tipografía legible en pantallas pequeñas.
 

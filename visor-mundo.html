@@ -290,7 +290,7 @@
     </div>
     <div class="skills">
       <button id="sk-attack" title="Combo de ataque (Espacio)">⚔<small>Espacio</small><span class="cd"></span></button>
-      <button id="sk-spin" title="Patada giratoria (Q)">🌀<small>Q</small><span class="cd"></span></button>
+      <button id="sk-sismo" title="Impacto sísmico (Q)">🪨<small>Q</small><span class="cd"></span></button>
       <button id="sk-nova" title="Explosión nova (E)">💥<small>E</small><span class="cd"></span></button>
       <button id="sk-jump" title="Salto acrobático (X)">🦘<small>X</small></button>
     </div>
@@ -2028,8 +2028,8 @@
   // ===========================================================================
   // Combate: héroe, monstruos, habilidades y muerte (reglas en js/combat.js)
   // ===========================================================================
-  const SKILL_ANIM = { attack: 'attack', spin: 'spin', nova: 'nova' };
-  const SKILL_KEY = { attack: 'Espacio', spin: 'Q', nova: 'E' };
+  const SKILL_ANIM = { attack: 'attack', sismo: 'sismo', nova: 'nova' };
+  const SKILL_KEY = { attack: 'Espacio', sismo: 'Q', nova: 'E' };
   let lastNowSec = 0, lastHud = 0;
   let deadTimerShown = false;
 
@@ -2300,8 +2300,8 @@
   }
 
   // Habilidades: daño a los monstruos del alcance y animación del personaje
-  // Patada (Q) y nova (E) se desbloquean con una misión (ver js/heroe.js)
-  const HAB_DE_SKILL = { spin: 'patada', nova: 'nova' };
+  // Impacto sísmico (Q) y nova (E) se desbloquean con la historia (ver js/heroe.js y js/historia.js)
+  const HAB_DE_SKILL = { sismo: 'sismo', nova: 'nova' };
   function bloqueada(name) { const hab = HAB_DE_SKILL[name]; return !!hab && !heroeEst.desbloqueadas[hab]; }
 
   function useSkill(name) {
@@ -2316,6 +2316,14 @@
     // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
     if (statsHeroe.velocidadAtaque) hero.cd[name] = Math.max(CombatLib.SKILLS[name].lock, hero.cd[name] / (1 + statsHeroe.velocidadAtaque));
     character.playOneShot(SKILL_ANIM[name], lastNowSec);
+    // El impacto sísmico golpea al caer (a mitad de su animación); el resto, al instante
+    const impacto = CombatLib.SKILLS[name].impacto || 0;
+    if (impacto) setTimeout(() => { if (!hero.dead) { ondaSismica(CombatLib.SKILLS[name].range); aplicarGolpe(name); } }, impacto * 1000);
+    else aplicarGolpe(name);
+  }
+
+  // Daña a los monstruos del área de la habilidad, desde donde esté el personaje en ese momento
+  function aplicarGolpe(name) {
     const p = character.root.position;
     const fx = Math.sin(character.root.rotation.y), fz = Math.cos(character.root.rotation.y);
     let hits = 0;
@@ -2325,6 +2333,27 @@
       golpear(m, danioDelHeroe(name, m.level));
     });
     if (name !== 'attack' && hits === 0) toast('Sin objetivos en el alcance');
+  }
+
+  // Onda en el suelo del impacto sísmico: un anillo que se abre hasta el alcance y se desvanece
+  const ondas = [];
+  function ondaSismica(alcance) {
+    const p = character.root.position;
+    const malla = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 48), new THREE.MeshBasicMaterial({ color: 0xd6a35c, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
+    malla.rotation.x = -Math.PI / 2;
+    malla.position.set(p.x, p.y + 0.15, p.z);
+    scene.add(malla);
+    ondas.push({ malla, t: 0, dur: 0.45, alcance });
+  }
+  function actualizarOndas(dt) {
+    for (let i = ondas.length - 1; i >= 0; i--) {
+      const o = ondas[i];
+      o.t += dt;
+      const k = Math.min(1, o.t / o.dur);
+      o.malla.scale.setScalar(0.6 + k * (o.alcance - 0.6));
+      o.malla.material.opacity = 0.85 * (1 - k);
+      if (k >= 1) { scene.remove(o.malla); o.malla.geometry.dispose(); o.malla.material.dispose(); ondas.splice(i, 1); }
+    }
   }
 
   function jump() {
@@ -2341,7 +2370,7 @@
     $('hud-xp').style.width = pct(hero.xp, CombatLib.xpToNext(hero.level));
     $('hud-hp-t').textContent = Math.ceil(hero.hp) + ' / ' + hero.maxHp;
     $('hud-lv').textContent = 'Nv ' + hero.level;
-    ['attack', 'spin', 'nova'].forEach(k => {
+    ['attack', 'sismo', 'nova'].forEach(k => {
       const btn = $('sk-' + k), cd = hero.cd[k];
       const bloq = bloqueada(k);
       btn.disabled = hero.dead || bloq || cd > 0 || hero.mp < CombatLib.SKILLS[k].mp;
@@ -2678,10 +2707,10 @@
   }
 
   const CRITICO = 1.5;   // multiplicador del golpe crítico
-  // Daño de una habilidad: arma, daño extra, patada/nova mejoradas y crítico
+  // Daño de una habilidad: arma, daño extra, impacto sísmico y nova mejorados, y crítico
   function danioDelHeroe(name, targetLevel) {
     let dmg = CombatLib.heroDamage(hero, name, targetLevel) * (1 + statsHeroe.danio);
-    if (name === 'spin') dmg *= statsHeroe.patada;
+    if (name === 'sismo') dmg *= statsHeroe.sismo;
     if (name === 'nova') dmg *= statsHeroe.nova;
     return Math.random() < statsHeroe.critico ? dmg * CRITICO : dmg;
   }
@@ -3154,7 +3183,7 @@
       ['Reducción de daño', pct(s.reduccion)], ['Bloqueo (escudo)', pct(s.bloqueo)], ['Crítico (daño ×' + CRITICO + ')', pct(s.critico)],
       ['Daño extra', mas(s.danio)], ['Robo de vida', pct(s.robo)], ['Reflejo (espinas)', pct(s.reflejo)],
       ['Velocidad de movimiento', mas(s.velocidad)], ['Velocidad de ataque', mas(s.velocidadAtaque)],
-      ['Patada giratoria (Q), daño', pct(s.patada)], ['Explosión nova (E), daño', pct(s.nova)]
+      ['Impacto sísmico (Q), daño', pct(s.sismo)], ['Explosión nova (E), daño', pct(s.nova)]
     ];
     const equipo = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
     const equipoHtml = equipo.map(o => {
@@ -3623,7 +3652,7 @@
     if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
     if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
     if (k === ' ') { e.preventDefault(); useSkill('attack'); }
-    if (k === 'q') useSkill('spin');
+    if (k === 'q') useSkill('sismo');
     if (k === 'e') useSkill('nova');
     if (k === 'i') $('sk-objetos').click();
     if (k === 'h') abrirServicioCercano();
@@ -3706,7 +3735,7 @@
   $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
   $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
   $('sk-attack').onclick = () => useSkill('attack');
-  $('sk-spin').onclick = () => useSkill('spin');
+  $('sk-sismo').onclick = () => useSkill('sismo');
   $('sk-nova').onclick = () => useSkill('nova');
   $('sk-jump').onclick = jump;
   $('sk-vida').onclick = () => drink('vida');
@@ -3747,6 +3776,7 @@
     character.update(dt, now / 1000);
     seguirRuta();
     atacarObjetivo();
+    actualizarOndas(dt);
     actualizarGurus(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
     animateTowns(dt);

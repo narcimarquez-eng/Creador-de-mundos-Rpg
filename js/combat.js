@@ -19,7 +19,7 @@
   // arc: coseno del semiángulo del cono frontal (-1 = alrededor del personaje)
   const SKILLS = {
     attack: { cd: 0.7, lock: 0.5, range: 3.0, arc: 0.5, mult: 1.0, mp: 0 },  // Espacio: Combo de Ataque
-    spin:   { cd: 4.0, lock: 0.7, range: 3.5, arc: -1,  mult: 1.6, mp: 15 }, // Q: Patada Giratoria
+    sismo:  { cd: 5.0, lock: 1.2, range: 4.5, arc: -1,  mult: 2.0, mp: 18, impacto: 0.95 }, // Q: Impacto Sísmico (salta y golpea el suelo)
     nova:   { cd: 12,  lock: 1.0, range: 7.0, arc: -1,  mult: 2.5, mp: 30 }  // E: Explosión Nova
   };
 
@@ -50,7 +50,7 @@
       level: 1, xp: 0,
       hp: m.maxHp, maxHp: m.maxHp, mp: m.maxMp, maxMp: m.maxMp,
       sinceHit: 99, dead: false, deadUntil: 0,
-      cd: { attack: 0, spin: 0, nova: 0 }, lock: 0
+      cd: { attack: 0, sismo: 0, nova: 0 }, lock: 0
     };
   }
 

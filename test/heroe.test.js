@@ -21,9 +21,9 @@ t('lucha: cada 20 monstruos, 1 punto', () => {
 
 t('recompensa de un capítulo: suma puntos y desbloquea la activa que diga', () => {
   const h = H.nuevoHeroe();
-  H.recompensar(h, { puntos: 2, desbloquea: 'patada' });
+  H.recompensar(h, { puntos: 2, desbloquea: 'sismo' });
   assert.strictEqual(h.puntos, 2);
-  assert.ok(h.desbloqueadas.patada && !h.desbloqueadas.nova);
+  assert.ok(h.desbloqueadas.sismo && !h.desbloqueadas.nova);
   H.recompensar(h, { puntos: 1, desbloquea: 'inexistente' });
   assert.strictEqual(h.puntos, 3);
   assert.ok(!h.desbloqueadas.inexistente);
@@ -84,6 +84,14 @@ t('limpiar: un estado dañado se corrige sin romper la partida', () => {
   assert.strictEqual(h.gastados.fuerza, 10);
   assert.ok(!h.gastados.nope);
   assert.ok(h.desbloqueadas.nova && !h.desbloqueadas.zzz);
+});
+
+t('partidas antiguas: la patada giratoria pasa a ser el impacto sísmico, con sus puntos', () => {
+  const h = H.limpiarHeroe({ puntos: 1, gastados: { patada: 2, fuerza: 3 }, desbloqueadas: { patada: true } });
+  assert.strictEqual(h.gastados.sismo, 2);
+  assert.ok(h.desbloqueadas.sismo);
+  assert.ok(!('patada' in h.gastados) && !('patada' in h.desbloqueadas));
+  assert.strictEqual(H.estadisticas(h, 1, []).sismo, 1.5);
 });
 
 t('historia: un héroe nuevo empieza en el capítulo 1 con el progreso a 0', () => {
