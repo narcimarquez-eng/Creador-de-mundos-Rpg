@@ -774,6 +774,15 @@
     rngBox.commit();
   }
 
+  // Regenera solo los monstruos de cada zona: no toca niveles ni pueblos (para migrar mundos antiguos)
+  function repoblarMonstruos(world) {
+    const rngBox = rngFor(world);
+    world.zones.forEach(z => {
+      z.monsters = rollMonsters(rngBox.rng, z.biome, z.levelMin, z.levelMax, z.type, z.radius);
+    });
+    rngBox.commit();
+  }
+
   // Calcula el nivel de una sola zona (p. ej. creada a mano) y regenera sus monstruos
   function autoLevelZone(world, zone) {
     levelZoneFrom(world, zone, townDistances(world));
@@ -1081,7 +1090,7 @@
     createTown, createRoad, createZone, createPoi,
     moveEntity, removeEntity, refreshRoad, setStartTown,
     computeTownExits, updateAllExits, exitWorldPoint, townTileHalf,
-    recomputeLevels, recomputeLevelsSoft, autoLevelZone, autoLevelTown, rerollZoneMonsters, townRadius, defaultTownCfg,
+    recomputeLevels, repoblarMonstruos, recomputeLevelsSoft, autoLevelZone, autoLevelTown, rerollZoneMonsters, townRadius, defaultTownCfg,
     findTown, findRoad, findZone, findPoi, findAny, kindOf,
     zoneOutline, zoneRadiusAt, pointInZone, distToPolyline, pointOnPolyline,
     serialize, deserialize, validate, stats

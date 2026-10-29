@@ -3191,8 +3191,13 @@
   function loadText(text, label) {
     try {
       const w = W.deserialize(text);
-      // Versión 2 de monstruos: más monstruos por zona, según su tamaño. Los mundos antiguos se repueblan.
-      if (w.monstruosVersion !== 2) { W.recomputeLevels(w); w.monstruosVersion = 2; }
+      // Versión 2 de monstruos: más monstruos por zona, según su tamaño. Solo se repueblan los monstruos
+      // (los niveles que hayas editado se respetan) y se guarda la migración para no repetirla.
+      if (w.monstruosVersion !== 2) {
+        W.repoblarMonstruos(w);
+        w.monstruosVersion = 2;
+        try { if (worldId) localStorage.setItem('rpgMundo.sesion.' + worldId, W.serialize(w)); } catch (e) { /* sin guardar */ }
+      }
       buildWorld(w);
       if (label) toast('Mundo «' + w.name + '» cargado');
       return true;
