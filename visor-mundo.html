@@ -104,6 +104,15 @@
     #objetos.show { display: flex; }
     #objetos .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 420px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
     #objetos h2 { margin: 0 0 6px; color: var(--gold); font-size: 16px; }
+    #capitulo, #cronica { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 45; padding: 16px; }
+    #capitulo.show, #cronica.show { display: flex; }
+    #capitulo .box, #cronica .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; width: 440px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+    #capitulo h2, #cronica h2 { margin: 0 0 6px; color: var(--gold); font-size: 17px; }
+    #cronica .cap { padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
+    #cronica .cap b { color: #e2e8f0; }
+    #cronica .cap p { margin: 4px 0 0; line-height: 1.5; font-size: 13px; }
+    #cronica .muted, #capitulo .muted { color: var(--muted); font-size: 12px; }
+    #cronica .btns, #capitulo .btns { display: flex; gap: 6px; margin-top: 10px; }
     #inv-card { position: absolute; top: 54px; right: 8px; width: 250px; z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 11px; }
     #inv-card.oculta { display: none; }
     #inv-card .ic-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
@@ -258,6 +267,7 @@
       <button id="sk-mana" title="Poción de maná (2)">💧<small>2</small></button>
       <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
       <button id="sk-objetos" title="Objetos y equipo (I)">🎒<small>I</small></button>
+      <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
     </div>
   </div>
@@ -269,6 +279,17 @@
     </div>
     <div id="ic-grid"></div>
   </div>
+  <div id="capitulo"><div class="box">
+    <div id="cap-sabio" class="muted"></div>
+    <h2 id="cap-titulo"></h2>
+    <p id="cap-texto" style="line-height:1.6;margin:8px 0"></p>
+    <div class="btns"><button id="cap-cerrar">Cerrar</button></div>
+  </div></div>
+  <div id="cronica"><div class="box">
+    <h2>📜 Crónica del pueblo</h2>
+    <div id="cro-lista"></div>
+    <div class="btns"><button id="cro-cerrar">Cerrar</button></div>
+  </div></div>
   <div id="objetos"><div class="box">
     <h2>🎒 Objetos</h2>
     <div class="muted">Cada objeto tiene su estado: un objeto malo rinde la mitad que uno perfecto.</div>
@@ -342,6 +363,7 @@
   <script src="js/casa-madera.js?v=20251029"></script>
   <script src="js/lagos.js?v=20251029"></script>
   <script src="js/equipo.js?v=20251029"></script>
+  <script src="js/historia.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -2031,7 +2053,10 @@
     m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
     m.muriendo = performance.now() + 1000;
     m.bar.visible = false;
+    const nivelAntes = hero.level;
     const levels = CombatLib.gainXp(hero, m.xp);
+    const capNuevos = HistoriaLib.nuevosCapitulos(nivelAntes, hero.level);
+    if (capNuevos.length) setTimeout(() => mostrarCapitulo(capNuevos[0]), 3200);
     let loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
     // Objetos del personaje: cotas (hasta nivel 5) y armas, cada uno con su estado
     const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
@@ -2847,6 +2872,25 @@
   });
   $('npc-cerrar').onclick = () => $('npc').classList.remove('show');
 
+  // Crónica del pueblo: capítulos que se desbloquean con el nivel del héroe
+  function mostrarCapitulo(c) {
+    $('cap-sabio').textContent = c.sabio + ' cuenta:';
+    $('cap-titulo').textContent = 'Capítulo ' + (HistoriaLib.CAPITULOS.indexOf(c) + 1) + ' · ' + c.titulo;
+    $('cap-texto').textContent = c.texto;
+    $('capitulo').classList.add('show');
+  }
+  function renderCronica() {
+    $('cro-lista').innerHTML = HistoriaLib.CAPITULOS.map((c, i) => {
+      const abierto = hero.level >= c.nivel;
+      return abierto
+        ? `<div class="cap"><b>${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)}</span><p>${esc(c.texto)}</p></div>`
+        : `<div class="cap"><b>🔒 Capítulo ${i + 1}</b> <span class="muted">· se desbloquea en el nivel ${c.nivel}</span></div>`;
+    }).join('');
+  }
+  $('sk-cronica').onclick = () => { renderCronica(); $('cronica').classList.add('show'); };
+  $('cro-cerrar').onclick = () => $('cronica').classList.remove('show');
+  $('cap-cerrar').onclick = () => $('capitulo').classList.remove('show');
+
   // Partida nueva con el personaje elegido
   function crearPartida(pj) {
     let list = PartidaLib.readList(store, worldId);
@@ -3035,6 +3079,7 @@
     if (k === 'e') useSkill('nova');
     if (k === 'i') $('sk-objetos').click();
     if (k === 'h') abrirServicioCercano();
+    if (k === 'c') { renderCronica(); $('cronica').classList.add('show'); }
     if (k === 'x') jump();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');
