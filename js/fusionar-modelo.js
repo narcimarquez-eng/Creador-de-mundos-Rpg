@@ -9,14 +9,26 @@
 (function (root) {
   "use strict";
 
+  const ATRIBUTOS = new Set(['position', 'normal', 'uv', 'color']);
+
+  // Se puede unir una pieza si nada la toca por separado: sin esqueleto propio, un solo material opaco,
+  // visible, sin hijos (al quitarla se perderían), sin morph y solo con posición, normal, uv y color
+  function unible(o, excluir) {
+    if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || !o.parent || excluir.has(o)) return false;
+    if (Array.isArray(o.material) || o.material.transparent || !o.visible || o.children.length) return false;
+    const g = o.geometry;
+    if (!g.attributes.position || Object.keys(g.morphAttributes || {}).length) return false;
+    return Object.keys(g.attributes).every(k => ATRIBUTOS.has(k));
+  }
+
   // modelo: Object3D ya colocado (escala y posición) y con sus matrices al día. Devuelve cuántas mallas
-  // quedan. Las piezas con varios materiales o con esqueleto propio se dejan como estaban.
-  function fusionarPorMaterial(THREE, modelo) {
+  // quedan unidas. opciones.excluir: piezas que no se tocan (las que una animación cambia por separado).
+  function fusionarPorMaterial(THREE, modelo, opciones) {
+    const excluir = new Set((opciones && opciones.excluir) || []);
     modelo.updateMatrixWorld(true);
     const grupos = new Map();   // material → piezas
     modelo.traverse(o => {
-      if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || Array.isArray(o.material) || !o.parent) return;
-      if (!o.geometry.attributes.position) return;
+      if (!unible(o, excluir)) return;
       if (!grupos.has(o.material)) grupos.set(o.material, []);
       grupos.get(o.material).push(o);
     });

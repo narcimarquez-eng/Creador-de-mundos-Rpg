@@ -85,4 +85,18 @@ t('el color de vértice que falta en una pieza se rellena con blanco', () => {
   assert.ok(C.includes(0.5) && C.includes(1));
 });
 
+t('no se tocan las piezas ocultas, transparentes, con hijos o excluidas', () => {
+  const { modelo } = muneco();
+  const rojas = []; modelo.traverse(o => { if (o.isMesh && o.material.name === 'rojo') rojas.push(o); });
+  const [a, b, c] = rojas;
+  const extra = new THREE.Mesh(a.geometry, a.material); a.parent.add(extra);
+  const oculta = new THREE.Mesh(a.geometry, a.material); oculta.visible = false; a.parent.add(oculta);
+  const conHijo = new THREE.Mesh(a.geometry, a.material); conHijo.add(new THREE.Object3D()); a.parent.add(conHijo);
+  const transp = new THREE.Mesh(a.geometry, a.material.clone()); transp.material.transparent = true; a.parent.add(transp);
+  F.fusionarPorMaterial(THREE, modelo, { excluir: [c] });
+  const quedan = []; modelo.traverse(o => { if (o.isMesh) quedan.push(o); });
+  [oculta, conHijo, transp, c].forEach(o => assert.ok(quedan.includes(o)));
+  [a, b, extra].forEach(o => assert.ok(!quedan.includes(o)));
+});
+
 console.log(`\n${n} pruebas de la unión de modelos superadas.`);
