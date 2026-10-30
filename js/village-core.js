@@ -87,10 +87,14 @@
     const TREE_LOD_M = 70;
     const treeLodInv = new THREE.Matrix4(), treeLodCam = new THREE.Vector3();
     // Reparte los árboles de un grupo entre «cerca» y «lejos». Sin cámara (cz null) todos van en «cerca»
-    function repartirArboles(grupo, cx, cz) {
+    // nivel: 'cerca' (con la cámara, de cerca o de lejos según la distancia), 'silueta' (una forma sencilla por
+    // árbol, para el pueblo a más de 40 m de su muralla) o 'nada'. Sin cámara (cz null) todos van en «cerca».
+    function repartirArboles(grupo, cx, cz, nivel = 'cerca') {
       const R2 = TREE_LOD_M * TREE_LOD_M;
-      let nc = 0, nl = 0;
+      let nc = 0, nl = 0, ns = 0;
       grupo.arboles.forEach(a => {
+        if (nivel === 'nada') return;
+        if (nivel === 'silueta') { grupo.sil.setMatrixAt(ns, a.m); grupo.sil.setColorAt(ns, a.color); ns++; return; }
         const cerca = cz === null || (a.x - cx) * (a.x - cx) + (a.z - cz) * (a.z - cz) < R2;
         const parte = cerca ? grupo.cerca : grupo.lejos;
         const k = cerca ? nc++ : nl++;
@@ -102,6 +106,20 @@
         [parte.ramas, parte.hojas].forEach(m => { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; });
         parte.hojas.instanceColor.needsUpdate = true;
       });
+      grupo.sil.count = ns; grupo.sil.visible = ns > 0;
+      grupo.sil.instanceMatrix.needsUpdate = true;
+      if (grupo.sil.instanceColor) grupo.sil.instanceColor.needsUpdate = true;
+    }
+
+    // Forma sencilla de un árbol: un elipsoide (80 triángulos) con la caja de sus partes, origen en el suelo
+    function siluetaArbol(asset) {
+      const caja = new THREE.Box3();
+      [asset.ramas.geo, asset.hojas.geo].forEach(g => { g.computeBoundingBox(); caja.union(g.boundingBox); });
+      const mx = (caja.max.x - caja.min.x) / 2, my = (caja.max.y - caja.min.y) / 2, mz = (caja.max.z - caja.min.z) / 2;
+      const geo = new THREE.IcosahedronGeometry(1, 1);
+      geo.scale(mx, my, mz);
+      geo.translate((caja.max.x + caja.min.x) / 2, caja.min.y + my, (caja.max.z + caja.min.z) / 2);
+      return geo;
     }
 
     // Roca: icosaedro con relieve irregular y aplastado, para que parezca piedra (una sola geometría compartida)
@@ -568,6 +586,7 @@
     const matCurb = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.85 });
     const matWater = new THREE.MeshStandardMaterial({ color: '#0284c7', roughness: 0.12, metalness: 0.65, transparent: true, opacity: 0.86 });
     const matFoliage = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.78, metalness: 0.05 });
+    const matSilueta = new THREE.MeshLambertMaterial({ color: '#ffffff' });   // siluetas de árboles lejanos (color por instancia)
     const matTrunk = new THREE.MeshStandardMaterial({ color: '#451a03', roughness: 0.9 });
     const matIron = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.38, metalness: 0.88 });
     const matGlassGlow = new THREE.MeshStandardMaterial({ color: '#fef08a', emissive: '#f59e0b', emissiveIntensity: 3.0, roughness: 0.15 });
@@ -901,9 +920,18 @@
         if (!this.treeLod) return;
         treeLodInv.copy(this.scene.matrixWorld).invert();
         treeLodCam.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(treeLodInv);
-        if (this.treeLodPos && this.treeLodPos.distanceToSquared(treeLodCam) < 1) return;
+        const nivel = this.nivelArboles || 'cerca';
+        if (this.treeLodPos && this.treeLodPos.distanceToSquared(treeLodCam) < 1 && this.treeLodNivel === nivel) return;
         this.treeLodPos = (this.treeLodPos || new THREE.Vector3()).copy(treeLodCam);
-        this.treeLod.forEach(g => repartirArboles(g, treeLodCam.x, treeLodCam.z));
+        this.treeLodNivel = nivel;
+        this.treeLod.forEach(g => repartirArboles(g, treeLodCam.x, treeLodCam.z, nivel));
+      }
+
+      // Nivel de detalle de los árboles del pueblo ('cerca', 'silueta' o 'nada'); lo fija el visor según la distancia a la muralla
+      setNivelArboles(nivel) {
+        if (this.nivelArboles === nivel) return;
+        this.nivelArboles = nivel;
+        this.treeLodPos = null;   // se reparte en la próxima llamada a updateTreeLod
       }
 
       update(elapsed) {
@@ -2509,7 +2537,7 @@
             ramas: makeInstanced(asset.ramas.geo, asset.ramas.mat, n),
             hojas: makeInstanced(asset.hojas.geo, asset.hojas.mat, n)
           });
-          const grupo = { cerca: parte(assetCerca), lejos: parte(assetLejos), arboles: [] };
+          const grupo = { cerca: parte(assetCerca), lejos: parte(assetLejos), sil: makeInstanced(siluetaArbol(assetCerca), matSilueta, n), arboles: [] };
           porEspecie[esp].forEach(({ t, idx }) => {
             const sc = t.scale * (TREE_SCALE[t.especie] || 1);
             dPos.set(t.x, t.y - 0.15, t.z);
@@ -2517,7 +2545,7 @@
             dScale.set(sc, sc, sc);
             grupo.arboles.push({ x: t.x, z: t.z, m: new THREE.Matrix4().compose(dPos, dQuat, dScale), color: new THREE.Color(t.color) });
           });
-          repartirArboles(grupo, 0, null);
+          repartirArboles(grupo, 0, null, 'cerca');
           this.treeLod.push(grupo);
         });
         const iHedge = makeInstanced(hedgeG, matFoliage, hedges.length);
@@ -2558,7 +2586,7 @@
           iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
           iLampPost, iLampArm, iLantern, iLightPool,
-          ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas]), []), iHedge, iFence, iRock
+          ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas, g.sil]), []), iHedge, iFence, iRock
         ];
 
         allInstanced.forEach(m => {

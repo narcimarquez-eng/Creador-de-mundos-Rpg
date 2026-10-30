@@ -482,9 +482,11 @@
   let towns = [];           // entradas de pueblo: datos, modelo simple y, si está cargado, el pueblo completo
   const kitCache = {};      // un kit (texturas y materiales) por estilo
   let groundKit = null;
-  // Pueblos completos: se cargan a 500 m (de su centro al héroe o a lo que mira la cámara) y se descargan a
-  // 650 m; más lejos se ve su modelo simple. Como mucho 4 a la vez.
-  const LOAD_R = 500, UNLOAD_R = 650, MAX_LOADED = 4;
+  // Pueblos completos: se cargan a 200 m de su muralla (del héroe o de lo que mira la cámara) y se descargan a
+  // 300 m, donde queda solo su modelo simple. Como mucho 4 a la vez. Dentro, los árboles bajan de detalle a
+  // partir de 40 m de la muralla (ver nivelArbolesMuro).
+  const LOAD_R = 200, UNLOAD_R = 300, MAX_LOADED = 4;
+  const ARBOLES_CERCA_M = 40;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let aguaPuebloMat = null;
@@ -1991,11 +1993,14 @@
   }
 
   let lastStream = 0;
-  // Distancia de un pueblo al héroe o a lo que mira la cámara (la menor)
+  // Distancia de un pueblo a su muralla (cuadrado de radio o.R) desde el héroe o lo que mira la cámara (la menor)
+  function distMuro(o, x, z) { return Math.max(Math.abs(x - o.t.x), Math.abs(z - o.t.y)) - o.R; }
   function distPueblo(o) {
     const a = character.root.position, b = controls.target;
-    return Math.min(Math.hypot(a.x - o.t.x, a.z - o.t.y), Math.hypot(b.x - o.t.x, b.z - o.t.y));
+    return Math.min(distMuro(o, a.x, a.z), distMuro(o, b.x, b.z));
   }
+  // Árboles del pueblo: dentro de 40 m de la muralla, todos; hasta 300 m, una silueta por árbol; más lejos, ninguno
+  function nivelArbolesMuro(d) { return d <= ARBOLES_CERCA_M ? 'cerca' : d <= UNLOAD_R ? 'silueta' : 'nada'; }
 
   // Indicador de lo que falta por cargar: monstruos cercanos sin su modelo, pueblos que entran y archivos
   const cargaUI = { t: 0, maxMon: 0, maxPue: 0, mostrado: 0 };
@@ -4251,7 +4256,7 @@
     atacarObjetivo();
     actualizarEfectos(dt);
     actualizarGurus(dt, now / 1000);
-    towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.updateTreeLod(camera); } });
+    towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.setNivelArboles(nivelArbolesMuro(distPueblo(o))); o.village.updateTreeLod(camera); } });
     animateTowns(dt);
     updateAtmosphere(dt);
     updateTerrainChunks(now, false);
