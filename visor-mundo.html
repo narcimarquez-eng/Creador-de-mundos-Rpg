@@ -819,7 +819,7 @@
       joystick: { zone: $('joystick-zone'), knob: $('joystick-knob') },
       glbUrl: './personaje.glb'
     });
-    character.alCargarModelo = modelo => aplicarEntorno(modelo);
+    character.alCargarModelo = modelo => { aplicarEntorno(modelo); aligerarPersonaje(modelo); };
 
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
@@ -2215,14 +2215,25 @@
   // queda y 'error', cuánto puede desviarse la forma (relativo al tamaño de cada malla). Se construyen la primera
   // vez que hacen falta, como mucho una por fotograma para no dar tirones.
   const VERSION_ENEMIGO = {
-    cerca: { densidad: 'low', ratio: 0.6, error: 0.006 },
-    lejos: { densidad: 'low', ratio: 0.25, error: 0.03 }
+    cerca: { densidad: 'low', ratio: 0.3, error: 0.006 },
+    lejos: { densidad: 'low', ratio: 0.18, error: 0.015 }
   };
   let simplificadorListo = false, esperandoSimplificador = true;
   MeshoptSimplifier.ready.then(() => { simplificadorListo = true; }).catch(() => { /* sin simplificar */ }).finally(() => { esperandoSimplificador = false; });
 
   // Tamaño de los monstruos: el del mundo (Creador de mundos, «Tamaño de los monstruos») o el que se pruebe en
   // el panel del visor (no se guarda). 1 es el tamaño del editor de enemigos.
+  // Personaje del héroe (GLB del estudio): sus piezas se unen por material y se simplifica como los NPCs de
+  // cerca (~25 % de los triángulos; de cerca se ve igual). La animación por nodos sigue valiendo.
+  const AJUSTE_PERSONAJE = { ratio: 0.25, error: 0.008, pesoNormal: 0.2, pesoUv: 0.2, pesoColor: 0.2 };
+  function aligerarPersonaje(modelo) {
+    FusionLib.fusionarPorMaterial(THREE, modelo);
+    MeshoptSimplifier.ready.then(() => {
+      const [antes, despues] = FusionLib.simplificarModelo(THREE, MeshoptSimplifier, modelo, AJUSTE_PERSONAJE);
+      modelo.userData.triangulos = [antes, despues];
+    }).catch(() => { /* sin simplificar */ });
+  }
+
   let escalaEnemigosPanel = null;
   const escalaEnemigos = () => escalaEnemigosPanel || (world && world.settings && world.settings.enemyScale) || 1;
   function aplicarEscalaEnemigos() {
@@ -3835,6 +3846,13 @@
   const DISTANCIA_NPC_LEJOS = 35;  // más lejos de la cámara, su versión simplificada (npc/gurus/*-lejos.glb)
   const npcLejos = {};             // modelo → promesa del glTF simplificado (se carga una vez)
 
+  // Modelo de cerca de un NPC: su versión simplificada (npc/gurus/*-cerca.glb, ~25 % de los triángulos, que de
+  // cerca se ve igual; tools/simplificar-npcs.mjs) o, si falta, el original
+  function cargarNpc(nombreModelo, ok, fallo) {
+    const loader = new THREE.GLTFLoader();
+    loader.load('npc/gurus/' + nombreModelo + '-cerca.glb', ok, undefined, () => loader.load('npc/gurus/' + nombreModelo + '.glb', ok, undefined, fallo));
+  }
+
   // Versión lejana de un NPC (~13 % de los triángulos, tools/simplificar-npcs.mjs): mismos nodos, así que
   // su animación vale igual. Se coloca como el modelo de cerca y se muestra uno u otro por distancia.
   function ponerVersionLejana(entrada, nombreModelo, modelo) {
@@ -3872,7 +3890,6 @@
   function colocarGurus() {
     const inicio = towns.find(o => o.t.isStart) || towns[0];
     if (!inicio || gurus.length) return;
-    const loader = new THREE.GLTFLoader();
     // Gurús en los huecos entre los puestos de mercado (anillo de 12,2 m, como en village-core); servicios en el centro, a 6 m
     const todos = GURUS.map((g, i) => ({ info: g, modelo: g.id, r: RADIO_PUESTOS, a: (i / 6) * Math.PI * 2 + 0.4 + Math.PI / 6 }))
       .concat(SERVICIOS.map((sv, i) => ({ info: sv, modelo: sv.modelo, r: RADIO_GURUS, a: Math.PI * (i ? 4 / 3 : 1 / 3) })));
@@ -3881,7 +3898,7 @@
       const nombreModelo = entrada.modelo;
       const a = entrada.a;
       const x = inicio.t.x + Math.cos(a) * entrada.r, z = inicio.t.y + Math.sin(a) * entrada.r;
-      loader.load('npc/gurus/' + entrada.modelo + '.glb', gltf => {
+      cargarNpc(entrada.modelo, gltf => {
         const modelo = gltf.scene;
         const size = new THREE.Vector3();
         new THREE.Box3().setFromObject(modelo).getSize(size);
@@ -3901,7 +3918,7 @@
         raiz.userData.npc = entrada;
         gurus.push(entrada);
         ponerVersionLejana(entrada, nombreModelo, modelo);
-      }, undefined, () => { /* sin modelo: no aparece */ });
+      }, () => { /* sin modelo: no aparece */ });
     });
   }
 
@@ -3926,13 +3943,12 @@
         posicion[m.zona] = { x: o.t.x + Math.cos(a) * RADIO_ENCARGO, z: o.t.y + Math.sin(a) * RADIO_ENCARGO, cx: o.t.x, cz: o.t.y };
       });
     });
-    const loader = new THREE.GLTFLoader();
     MisionZonaLib.MODELOS.forEach(modelo => {
       const encargados = lista.filter(m => m.npc.modelo === modelo && posicion[m.zona]);
       if (!encargados.length) return;
-      loader.load('npc/gurus/' + modelo + '.glb', gltf => {
+      cargarNpc(modelo, gltf => {
         encargados.forEach(m => colocarEncargado(m, gltf, posicion[m.zona]));
-      }, undefined, () => { /* sin modelo: no aparecen */ });
+      }, () => { /* sin modelo: no aparecen */ });
     });
   }
 
@@ -4315,7 +4331,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

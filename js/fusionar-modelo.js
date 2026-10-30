@@ -92,35 +92,72 @@
     return quedan;
   }
 
-  // Menos triángulos para la versión lejana de un modelo: cada malla con índices pasa a ~'ratio' de sus
-  // triángulos (meshoptimizer: S es MeshoptSimplifier ya listo). Solo cambian los índices: los vértices, la
-  // piel y los huesos son los mismos, así que la animación no cambia. La geometría nueva comparte los
-  // atributos con la original (no se duplica memoria). Devuelve [triángulos antes, después].
+  // Índices simplificados de una malla (sin THREE, sirve también en Node). S: MeshoptSimplifier ya listo.
+  // indices: Uint32Array o null (malla sin índices: cada 3 vértices, un triángulo). posiciones: Float32Array
+  // (x, y, z). atributos: { array: Float32Array, stride, pesos: [...] } o null. Se simplifica teniendo en cuenta
+  // normales, uv y color (los pesos dicen cuánto importa cada uno) y con 'Permissive', que deja juntar vértices
+  // partidos por una costura de uv o de normales si el cambio no se nota: es lo que permite bajar mucho más sin
+  // perder forma ni sombreado. Devuelve los índices nuevos, o null si no merece la pena (menos de un 10 %).
+  function indicesSimplificados(S, indices, posiciones, atributos, o) {
+    const nV = posiciones.length / 3;
+    const idx = indices || Uint32Array.from({ length: nV - (nV % 3) }, (_, i) => i);
+    const n = idx.length;
+    const objetivo = Math.max(3, Math.floor(n * o.ratio / 3) * 3);
+    const flags = ['Permissive'].concat(o.podar ? ['Prune'] : []);
+    const [nuevos] = atributos
+      ? S.simplifyWithAttributes(idx, posiciones, 3, atributos.array, atributos.stride, atributos.pesos, null, objetivo, o.error, flags)
+      : S.simplify(idx, posiciones, 3, objetivo, o.error, flags);
+    return nuevos.length >= n * 0.9 ? null : nuevos;
+  }
+
+  // Normal (3), uv (2) y color (3) de cada vértice en un solo Float32Array, con sus pesos
+  function atributosDe(g, o) {
+    const N = g.attributes.normal, U = g.attributes.uv, C = g.attributes.color;
+    const campos = [];
+    if (N) campos.push([N, 3, o.pesoNormal]);
+    if (U) campos.push([U, 2, o.pesoUv]);
+    if (C) campos.push([C, 3, o.pesoColor]);
+    if (!campos.length) return null;
+    const stride = campos.reduce((a, c) => a + c[1], 0), nV = g.attributes.position.count;
+    const array = new Float32Array(nV * stride), pesos = [];
+    let base = 0;
+    campos.forEach(([A, k, peso]) => {
+      for (let i = 0; i < nV; i++) for (let c = 0; c < k; c++) array[i * stride + base + c] = c < A.itemSize ? A.getComponent(i, c) : 0;
+      for (let c = 0; c < k; c++) pesos.push(peso);
+      base += k;
+    });
+    return { array, stride, pesos };
+  }
+
+  // Menos triángulos en todas las mallas de un modelo: cada una pasa a ~'ratio' de sus triángulos sin pasar de
+  // 'error' (relativo a su tamaño). Solo cambian los índices: los vértices, la piel y los huesos son los mismos,
+  // así que la animación no cambia. La geometría nueva comparte los atributos con la original (no se duplica
+  // memoria). Vale para mallas con y sin índices. Devuelve [triángulos antes, después].
   function simplificarModelo(THREE, S, raiz, opciones) {
-    const o = Object.assign({ ratio: 0.4, error: 0.02, minTris: 600 }, opciones);
+    const o = Object.assign({ ratio: 0.4, error: 0.02, minTris: 600, atributos: true, pesoNormal: 0.5, pesoUv: 0.5, pesoColor: 0.5, podar: false }, opciones);
     let antes = 0, despues = 0;
     raiz.traverse(m => {
       if (!m.isMesh || m.isInstancedMesh || !m.visible || Array.isArray(m.material)) return;
       const g = m.geometry, P = g.attributes.position;
-      if (!g.index || !P || P.isInterleavedBufferAttribute || !(P.array instanceof Float32Array) || P.itemSize !== 3) return;
+      if (!P || P.isInterleavedBufferAttribute || !(P.array instanceof Float32Array) || P.itemSize !== 3) return;
       if (Object.keys(g.morphAttributes || {}).length) return;
-      const n = Math.min(g.index.count, g.drawRange.count);
+      const total = g.index ? g.index.count : P.count - (P.count % 3);
+      const n = Math.min(total, g.drawRange.count);
       antes += n / 3;
-      if (n / 3 < o.minTris || g.drawRange.start !== 0) { despues += n / 3; return; }
-      const indices = g.index.array instanceof Uint32Array ? g.index.array.subarray(0, n) : Uint32Array.from(g.index.array.subarray(0, n));
-      const [nuevos] = S.simplify(indices, P.array.subarray(0, P.count * 3), 3, Math.floor(n * o.ratio / 3) * 3, o.error, []);
-      if (nuevos.length >= n * 0.9) { despues += n / 3; return; }
+      if (n / 3 < o.minTris || g.drawRange.start !== 0 || n < total) { despues += n / 3; return; }
+      const indices = g.index ? (g.index.array instanceof Uint32Array ? g.index.array.subarray(0, n) : Uint32Array.from(g.index.array.subarray(0, n))) : null;
+      const nuevos = indicesSimplificados(S, indices, P.array.subarray(0, P.count * 3), o.atributos ? atributosDe(g, o) : null, o);
+      if (!nuevos) { despues += n / 3; return; }
       const ng = new THREE.BufferGeometry();
       Object.keys(g.attributes).forEach(k => ng.setAttribute(k, g.attributes[k]));
       ng.setIndex(new THREE.BufferAttribute(nuevos, 1));
-      ng.groups = g.groups.slice();
       m.geometry = ng;
       despues += nuevos.length / 3;
     });
     return [Math.round(antes), Math.round(despues)];
   }
 
-  const api = { fusionarPorMaterial, simplificarModelo };
+  const api = { fusionarPorMaterial, simplificarModelo, indicesSimplificados };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FusionLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -120,5 +120,21 @@ t('no se tocan las piezas ocultas, transparentes, con hijos o excluidas', () => 
     for (const i of malla.geometry.index.array) assert.ok(i < nV);
     assert.strictEqual(pequena.geometry.index.count, 36);
   });
+  t('simplificar una malla sin índices (cada triángulo con sus vértices): ahora también baja', () => {
+    const geo = new THREE.SphereGeometry(1, 48, 32).toNonIndexed();
+    const malla = new THREE.Mesh(geo, new THREE.MeshBasicMaterial());
+    const raiz = new THREE.Group(); raiz.add(malla);
+    const [antes, despues] = F.simplificarModelo(THREE, MeshoptSimplifier, raiz, { ratio: 0.3, error: 0.02 });
+    assert.ok(despues < antes * 0.5, antes + ' → ' + despues);
+    assert.strictEqual(malla.geometry.attributes.position, geo.attributes.position);
+  });
+  t('con normales y uv baja más que solo con la posición, sin pasar del error', () => {
+    const base = new THREE.TorusKnotGeometry(1, 0.3, 160, 24);
+    const soloPos = new THREE.Mesh(base, new THREE.MeshBasicMaterial()), conAttr = new THREE.Mesh(base, soloPos.material);
+    const r1 = new THREE.Group(); r1.add(soloPos); const r2 = new THREE.Group(); r2.add(conAttr);
+    const a = F.simplificarModelo(THREE, MeshoptSimplifier, r1, { ratio: 0.2, error: 0.01, atributos: false });
+    const b = F.simplificarModelo(THREE, MeshoptSimplifier, r2, { ratio: 0.2, error: 0.01 });
+    assert.ok(a[1] < a[0] && b[1] < b[0], JSON.stringify([a, b]));
+  });
   console.log(`\n${n} pruebas de la unión de modelos superadas.`);
 })();
