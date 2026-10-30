@@ -759,10 +759,11 @@
         tabardWidthMult: 1.00      // ancho del tabardo delantero (multiplicador)
       },
       materialType: 'paladin_sun_gold',
-      primaryColor: '#f1f5f9', 
-      secondaryColor: '#d97706', 
-      clothColor: '#f8fafc', 
+      primaryColor: '#f59e0b', 
+      secondaryColor: '#b45309', 
+      clothColor: '#991b1b', 
       glowColor: '#fbbf24',
+      useGlobalMaterial: false,
       metalness: 0.88, 
       roughness: 0.22, 
       bumpDepth: 0.75,
@@ -1030,27 +1031,27 @@
 
     const TEXTURE_PRESETS = [
       // === CATEGORÍA 1: PALADÍN & ORDEN SAGRADA (1 - 7) ===
-      { id: 'dynasty_celestial_rose',  category: 'paladin', name: '01. Dinastía Celestial (Nácar & Oro Rosa)',    primary: '#f8fafc', secondary: '#f43f5e', cloth: '#064e3b', glow: '#f43f5e', metalness: 0.90, roughness: 0.18, texture: 'dynasty_celestial_rose',  bump: 0.85, tiling: 1.0, pattern: 'dynasty_celestial_rose' },
-      { id: 'paladin_sun_gold',        category: 'paladin', name: '02. Paladín Solar (Marfil & Sol Oro)',         primary: '#f1f5f9', secondary: '#d97706', cloth: '#f8fafc', glow: '#fbbf24', metalness: 0.86, roughness: 0.22, texture: 'paladin_sun_gold',        bump: 0.75, tiling: 1.0, pattern: 'paladin_sun_gold' },
-      { id: 'laurel_leaf_plate',       category: 'paladin', name: '03. Hoja de Laurel (Blanco & Guirnalda Oro)',  primary: '#f8fafc', secondary: '#d97706', cloth: '#4c1d95', glow: '#f59e0b', metalness: 0.88, roughness: 0.20, texture: 'laurel_leaf_plate',       bump: 0.80, tiling: 1.0, pattern: 'laurel_leaf_plate' },
-      { id: 'royal_alliance_plate',    category: 'paladin', name: '04. Campeón Real Alianza (Plata & Azul)',      primary: '#cbd5e1', secondary: '#eab308', cloth: '#1e3a8a', glow: '#38bdf8', metalness: 0.93, roughness: 0.18, texture: 'royal_alliance_plate',    bump: 0.70, tiling: 1.0, pattern: 'royal_alliance_plate' },
-      { id: 'seraphim_feather_gold',   category: 'paladin', name: '05. Plumas de Serafín (Altorrelieve Alado)',   primary: '#fffbeb', secondary: '#f59e0b', cloth: '#7c2d12', glow: '#fde047', metalness: 0.91, roughness: 0.19, texture: 'seraphim_feather_gold',   bump: 0.90, tiling: 1.1, pattern: 'feathers', baseHex: '#fffbeb', accentHex: '#d97706', detailHex: '#fef08a' },
-      { id: 'crusader_templar_cross',  category: 'paladin', name: '06. Cruzado Templario (Albo & Cruz Roja)',     primary: '#f1f5f9', secondary: '#b91c1c', cloth: '#7f1d1d', glow: '#ef4444', metalness: 0.85, roughness: 0.24, texture: 'crusader_templar_cross',  bump: 0.80, tiling: 1.0, pattern: 'templar_cross', baseHex: '#f1f5f9', accentHex: '#b91c1c', detailHex: '#d97706' },
-      { id: 'valkyrie_wing_pearl',     category: 'paladin', name: '07. Valquiria del Alba (Perla & Bronce)',      primary: '#fdf4ff', secondary: '#d97706', cloth: '#1e3a8a', glow: '#38bdf8', metalness: 0.92, roughness: 0.16, texture: 'valkyrie_wing_pearl',     bump: 0.85, tiling: 1.0, pattern: 'feathers', baseHex: '#f8fafc', accentHex: '#b45309', detailHex: '#e0f2fe' },
+      { id: 'dynasty_celestial_rose',  category: 'paladin', name: '01. Dinastía Celestial (Nácar & Oro Rosa)',    primary: '#fda4af', secondary: '#e11d48', cloth: '#047857', glow: '#f43f5e', metalness: 0.90, roughness: 0.18, texture: 'dynasty_celestial_rose',  bump: 0.85, tiling: 1.0, pattern: 'dynasty_celestial_rose' },
+      { id: 'paladin_sun_gold',        category: 'paladin', name: '02. Paladín Solar (Oro Radiante & Carmesí)',   primary: '#f59e0b', secondary: '#b45309', cloth: '#991b1b', glow: '#fbbf24', metalness: 0.86, roughness: 0.22, texture: 'paladin_sun_gold',        bump: 0.75, tiling: 1.0, pattern: 'paladin_sun_gold' },
+      { id: 'laurel_leaf_plate',       category: 'paladin', name: '03. Hoja de Laurel (Oro Imperial & Púrpura)',  primary: '#fbbf24', secondary: '#b45309', cloth: '#5b21b6', glow: '#f59e0b', metalness: 0.88, roughness: 0.20, texture: 'laurel_leaf_plate',       bump: 0.80, tiling: 1.0, pattern: 'laurel_leaf_plate' },
+      { id: 'royal_alliance_plate',    category: 'paladin', name: '04. Campeón Real Alianza (Azul & Oro)',        primary: '#3b82f6', secondary: '#eab308', cloth: '#1e3a8a', glow: '#38bdf8', metalness: 0.93, roughness: 0.18, texture: 'royal_alliance_plate',    bump: 0.70, tiling: 1.0, pattern: 'royal_alliance_plate' },
+      { id: 'seraphim_feather_gold',   category: 'paladin', name: '05. Plumas de Serafín (Altorrelieve Dorado)',  primary: '#fcd34d', secondary: '#d97706', cloth: '#9a3412', glow: '#fde047', metalness: 0.91, roughness: 0.19, texture: 'seraphim_feather_gold',   bump: 0.90, tiling: 1.1, pattern: 'feathers', baseHex: '#fde68a', accentHex: '#d97706', detailHex: '#fef08a' },
+      { id: 'crusader_templar_cross',  category: 'paladin', name: '06. Cruzado Templario (Carmesí & Cruz Oro)',   primary: '#dc2626', secondary: '#eab308', cloth: '#7f1d1d', glow: '#ef4444', metalness: 0.85, roughness: 0.24, texture: 'crusader_templar_cross',  bump: 0.80, tiling: 1.0, pattern: 'templar_cross', baseHex: '#fecaca', accentHex: '#b91c1c', detailHex: '#d97706' },
+      { id: 'valkyrie_wing_pearl',     category: 'paladin', name: '07. Valquiria del Alba (Celeste & Bronce)',    primary: '#38bdf8', secondary: '#d97706', cloth: '#1e3a8a', glow: '#38bdf8', metalness: 0.92, roughness: 0.16, texture: 'valkyrie_wing_pearl',     bump: 0.85, tiling: 1.0, pattern: 'feathers', baseHex: '#bae6fd', accentHex: '#b45309', detailHex: '#e0f2fe' },
 
       // === CATEGORÍA 2: CELTA, NÓRDICO & RUNAS (8 - 14) ===
-      { id: 'triskele_full_plate',     category: 'celta',   name: '08. Triskele Celta (Espirales D&D)',           primary: '#cbd5e1', secondary: '#64748b', cloth: '#1e293b', glow: '#818cf8', metalness: 0.92, roughness: 0.20, texture: 'triskele_full_plate',     bump: 0.85, tiling: 1.0, pattern: 'triskele_full_plate' },
+      { id: 'triskele_full_plate',     category: 'celta',   name: '08. Triskele Celta (Espirales Índigo D&D)',    primary: '#6366f1', secondary: '#eab308', cloth: '#1e3a8a', glow: '#818cf8', metalness: 0.92, roughness: 0.20, texture: 'triskele_full_plate',     bump: 0.85, tiling: 1.0, pattern: 'triskele_full_plate' },
       { id: 'runic_plate',             category: 'celta',   name: '09. Cenefa Rúnica Futhark (Acero Arcano)',     primary: '#94a3b8', secondary: '#38bdf8', cloth: '#0f172a', glow: '#38bdf8', metalness: 0.89, roughness: 0.23, texture: 'runic_plate',             bump: 0.88, tiling: 1.0, pattern: 'runic_futhark', baseHex: '#cbd5e1', accentHex: '#0284c7', detailHex: '#e0f2fe' },
       { id: 'nordic_knotwork_steel',   category: 'celta',   name: '10. Entrelazado Vikingo de Asgard',            primary: '#9ca3af', secondary: '#b45309', cloth: '#1f2937', glow: '#f59e0b', metalness: 0.87, roughness: 0.27, texture: 'nordic_knotwork_steel',   bump: 0.92, tiling: 1.2, pattern: 'nordic_knot', baseHex: '#d1d5db', accentHex: '#92400e', detailHex: '#fef3c7' },
       { id: 'dwarven_geometric_gold',  category: 'celta',   name: '11. Forja Enana de Khazad (Grecas & Oro)',     primary: '#57534e', secondary: '#eab308', cloth: '#451a03', glow: '#f97316', metalness: 0.91, roughness: 0.24, texture: 'dwarven_geometric_gold',  bump: 0.95, tiling: 1.2, pattern: 'dwarven_fret', baseHex: '#78716c', accentHex: '#eab308', detailHex: '#fde047' },
       { id: 'valhalla_einherjar_bronze',category:'celta',   name: '12. Bronce Antiguo de Valhalla (Runas)',       primary: '#b45309', secondary: '#fde68a', cloth: '#14532d', glow: '#fbbf24', metalness: 0.88, roughness: 0.28, texture: 'valhalla_einherjar_bronze',bump: 0.86, tiling: 1.0, pattern: 'runic_futhark', baseHex: '#d97706', accentHex: '#78350f', detailHex: '#fef08a' },
-      { id: 'celtic_shield_boss',      category: 'celta',   name: '13. Escudetes Celtas de Tara (Bronce & Verde)',primary: '#a1a1aa', secondary: '#15803d', cloth: '#064e3b', glow: '#22c55e', metalness: 0.86, roughness: 0.25, texture: 'celtic_shield_boss',      bump: 0.88, tiling: 1.1, pattern: 'nordic_knot', baseHex: '#e4e4e7', accentHex: '#166534', detailHex: '#ca8a04' },
-      { id: 'mjolnir_thunder_plate',   category: 'celta',   name: '14. Acero del Trueno Mjölnir (Relámpagos)',    primary: '#64748b', secondary: '#bae6fd', cloth: '#1e3a8a', glow: '#38bdf8', metalness: 0.93, roughness: 0.19, texture: 'mjolnir_thunder_plate',   bump: 0.90, tiling: 1.0, pattern: 'runic_futhark', baseHex: '#94a3b8', accentHex: '#0369a1', detailHex: '#ffffff' },
+      { id: 'celtic_shield_boss',      category: 'celta',   name: '13. Escudetes Celtas de Tara (Bronce & Verde)',primary: '#15803d', secondary: '#ca8a04', cloth: '#064e3b', glow: '#22c55e', metalness: 0.86, roughness: 0.25, texture: 'celtic_shield_boss',      bump: 0.88, tiling: 1.1, pattern: 'nordic_knot', baseHex: '#86efac', accentHex: '#166534', detailHex: '#ca8a04' },
+      { id: 'mjolnir_thunder_plate',   category: 'celta',   name: '14. Acero del Trueno Mjölnir (Relámpagos)',    primary: '#0284c7', secondary: '#bae6fd', cloth: '#1e3a8a', glow: '#38bdf8', metalness: 0.93, roughness: 0.19, texture: 'mjolnir_thunder_plate',   bump: 0.90, tiling: 1.0, pattern: 'runic_futhark', baseHex: '#94a3b8', accentHex: '#0369a1', detailHex: '#ffffff' },
 
       // === CATEGORÍA 3: ESCAMAS & DRACÓNICOS (15 - 21) ===
-      { id: 'dragon_scale_ruby',       category: 'draconico', name: '15. Escamas de Dragón & Rubí (D&D)',         primary: '#fef08a', secondary: '#b91c1c', cloth: '#7f1d1d', glow: '#ef4444', metalness: 0.82, roughness: 0.28, texture: 'dragon_scale_ruby',       bump: 0.95, tiling: 1.0, pattern: 'dragon_scale_ruby' },
+      { id: 'dragon_scale_ruby',       category: 'draconico', name: '15. Escamas de Dragón & Rubí (D&D)',         primary: '#f59e0b', secondary: '#b91c1c', cloth: '#7f1d1d', glow: '#ef4444', metalness: 0.82, roughness: 0.28, texture: 'dragon_scale_ruby',       bump: 0.95, tiling: 1.0, pattern: 'dragon_scale_ruby' },
       { id: 'scales_curved',           category: 'draconico', name: '16. Láminas Solapadas de Dragón Dorado',     primary: '#eab308', secondary: '#78350f', cloth: '#450a0a', glow: '#f59e0b', metalness: 0.88, roughness: 0.24, texture: 'scales_curved',           bump: 0.90, tiling: 1.2, pattern: 'scales_curved' },
-      { id: 'bahamut_platinum_scale',  category: 'draconico', name: '17. Escamas de Platino de Bahamut',          primary: '#e2e8f0', secondary: '#38bdf8', cloth: '#1e3a8a', glow: '#7dd3fc', metalness: 0.95, roughness: 0.15, texture: 'bahamut_platinum_scale',  bump: 0.92, tiling: 1.2, pattern: 'dragon_carapace', baseHex: '#f1f5f9', accentHex: '#0284c7', detailHex: '#ffffff' },
+      { id: 'bahamut_platinum_scale',  category: 'draconico', name: '17. Escamas de Platino de Bahamut',          primary: '#0ea5e9', secondary: '#fde047', cloth: '#1e3a8a', glow: '#7dd3fc', metalness: 0.95, roughness: 0.15, texture: 'bahamut_platinum_scale',  bump: 0.92, tiling: 1.2, pattern: 'dragon_carapace', baseHex: '#bae6fd', accentHex: '#0284c7', detailHex: '#ffffff' },
       { id: 'hydra_emerald_scale',     category: 'draconico', name: '18. Escamas de Hidra Venenosa (Esmeralda)',  primary: '#047857', secondary: '#a3e635', cloth: '#064e3b', glow: '#4ade80', metalness: 0.78, roughness: 0.30, texture: 'hydra_emerald_scale',     bump: 0.96, tiling: 1.3, pattern: 'dragon_carapace', baseHex: '#059669', accentHex: '#365314', detailHex: '#bef264' },
       { id: 'phoenix_flame_plumage',   category: 'draconico', name: '19. Plumaje Ígneo de Fénix (Oro & Fuego)',   primary: '#ea580c', secondary: '#facc15', cloth: '#7c2d12', glow: '#fb923c', metalness: 0.86, roughness: 0.22, texture: 'phoenix_flame_plumage',   bump: 0.92, tiling: 1.1, pattern: 'feathers', baseHex: '#f97316', accentHex: '#b91c1c', detailHex: '#fef08a' },
       { id: 'kraken_chitin_carapace',  category: 'draconico', name: '20. Caparazón Abisal de Kraken (Bioluz)',    primary: '#0f766e', secondary: '#2dd4bf', cloth: '#134e4a', glow: '#2dd4bf', metalness: 0.72, roughness: 0.34, texture: 'kraken_chitin_carapace',  bump: 0.98, tiling: 1.1, pattern: 'dragon_carapace', baseHex: '#115e59', accentHex: '#042f2e', detailHex: '#5eead4' },
@@ -1058,11 +1059,11 @@
 
       // === CATEGORÍA 4: MALLAS, LAMELARES & BANDAS (22 - 28) ===
       { id: 'banded_splint_mail',      category: 'lamelar', name: '22. Armadura Anillada & Tablillas (D&D)',      primary: '#eab308', secondary: '#15803d', cloth: '#14532d', glow: '#22c55e', metalness: 0.88, roughness: 0.25, texture: 'banded_splint_mail',      bump: 0.85, tiling: 1.0, pattern: 'banded_splint_mail' },
-      { id: 'interlocked_chainmail',   category: 'lamelar', name: '23. Cota de Malla Anillada Fina',              primary: '#94a3b8', secondary: '#cbd5e1', cloth: '#1e293b', glow: '#38bdf8', metalness: 0.90, roughness: 0.28, texture: 'interlocked_chainmail',   bump: 0.90, tiling: 1.6, pattern: 'interlocked_chainmail' },
+      { id: 'interlocked_chainmail',   category: 'lamelar', name: '23. Cota de Malla Anillada Fina',              primary: '#64748b', secondary: '#38bdf8', cloth: '#1e293b', glow: '#38bdf8', metalness: 0.90, roughness: 0.28, texture: 'interlocked_chainmail',   bump: 0.90, tiling: 1.6, pattern: 'interlocked_chainmail' },
       { id: 'byzantine_lamellar_brass',category: 'lamelar', name: '24. Lamelar Bizantino Imperial (Latón)',       primary: '#ca8a04', secondary: '#7f1d1d', cloth: '#450a0a', glow: '#fbbf24', metalness: 0.87, roughness: 0.26, texture: 'byzantine_lamellar_brass',bump: 0.92, tiling: 1.3, pattern: 'lamellar_armor', baseHex: '#eab308', accentHex: '#991b1b', detailHex: '#fef08a' },
       { id: 'samurai_kozane_lacquer',  category: 'lamelar', name: '25. Lamelar Samurai O-Yoroi (Laca & Oro)',     primary: '#991b1b', secondary: '#eab308', cloth: '#172554', glow: '#ef4444', metalness: 0.76, roughness: 0.20, texture: 'samurai_kozane_lacquer',  bump: 0.94, tiling: 1.2, pattern: 'lamellar_armor', baseHex: '#b91c1c', accentHex: '#f59e0b', detailHex: '#1e1b4b' },
-      { id: 'roman_lorica_segmentata', category: 'lamelar', name: '26. Lorica Segmentata Romana (Hierro & Oro)',  primary: '#cbd5e1', secondary: '#d97706', cloth: '#991b1b', glow: '#f59e0b', metalness: 0.91, roughness: 0.22, texture: 'roman_lorica_segmentata', bump: 0.85, tiling: 1.0, pattern: 'lamellar_armor', baseHex: '#e2e8f0', accentHex: '#b45309', detailHex: '#7f1d1d' },
-      { id: 'riveted_hauberk_steel',   category: 'lamelar', name: '27. Jacerina Remachada Pesada de Cruzado',     primary: '#64748b', secondary: '#e2e8f0', cloth: '#334155', glow: '#f8fafc', metalness: 0.89, roughness: 0.30, texture: 'riveted_hauberk_steel',   bump: 0.95, tiling: 1.8, pattern: 'interlocked_chainmail' },
+      { id: 'roman_lorica_segmentata', category: 'lamelar', name: '26. Lorica Segmentata Romana (Hierro & Oro)',  primary: '#94a3b8', secondary: '#d97706', cloth: '#991b1b', glow: '#f59e0b', metalness: 0.91, roughness: 0.22, texture: 'roman_lorica_segmentata', bump: 0.85, tiling: 1.0, pattern: 'lamellar_armor', baseHex: '#cbd5e1', accentHex: '#b45309', detailHex: '#7f1d1d' },
+      { id: 'riveted_hauberk_steel',   category: 'lamelar', name: '27. Jacerina Remachada Pesada de Cruzado',     primary: '#64748b', secondary: '#eab308', cloth: '#7f1d1d', glow: '#fbbf24', metalness: 0.89, roughness: 0.30, texture: 'riveted_hauberk_steel',   bump: 0.95, tiling: 1.8, pattern: 'interlocked_chainmail' },
       { id: 'scale_jazerant_gold',     category: 'lamelar', name: '28. Jazerant Real (Escama sobre Terciopelo)',  primary: '#f59e0b', secondary: '#581c87', cloth: '#3b0764', glow: '#c084fc', metalness: 0.86, roughness: 0.25, texture: 'scale_jazerant_gold',     bump: 0.90, tiling: 1.3, pattern: 'lamellar_armor', baseHex: '#fbbf24', accentHex: '#6b21a8', detailHex: '#f3e8ff' },
 
       // === CATEGORÍA 5: CUEROS, BRIGANTINAS & TEJIDOS (29 - 35) ===
@@ -1075,32 +1076,216 @@
       { id: 'boiled_wyrmhide_armor',   category: 'cuero',   name: '35. Piel Curtida de Dragón Antiguo',           primary: '#4c1d95', secondary: '#c084fc', cloth: '#2e1065', glow: '#a855f7', metalness: 0.55, roughness: 0.44, texture: 'boiled_wyrmhide_armor',   bump: 0.94, tiling: 1.3, pattern: 'dragon_carapace', baseHex: '#4c1d95', accentHex: '#9333ea', detailHex: '#e9d5ff' },
 
       // === CATEGORÍA 6: FORJA, DAMASCO & ACEROS DE TORNEO (36 - 42) ===
-      { id: 'forged_commander_steel',  category: 'forja',   name: '36. Comandante (Acero Forjado Bruñido)',       primary: '#94a3b8', secondary: '#b45309', cloth: '#1e293b', glow: '#f59e0b', metalness: 0.91, roughness: 0.26, texture: 'forged_commander_steel',  bump: 0.55, tiling: 1.0, pattern: 'forged_commander_steel' },
-      { id: 'damascus',                category: 'forja',   name: '37. Acero de Damasco Ondulado Real',           primary: '#94a3b8', secondary: '#e2e8f0', cloth: '#1e293b', glow: '#38bdf8', metalness: 0.92, roughness: 0.22, texture: 'damascus',                bump: 0.65, tiling: 1.2, pattern: 'damascus' },
-      { id: 'mirror_steel',            category: 'forja',   name: '38. Acero Espejo de Gala (Cromo Pulido)',      primary: '#e2e8f0', secondary: '#eab308', cloth: '#1e3a8a', glow: '#60a5fa', metalness: 0.97, roughness: 0.12, texture: 'mirror_steel',            bump: 0.35, tiling: 1.0, pattern: 'mirror_steel' },
-      { id: 'hammered_smooth',         category: 'forja',   name: '39. Placas de Torneo Biseladas a Mano',        primary: '#cbd5e1', secondary: '#d97706', cloth: '#334155', glow: '#fbbf24', metalness: 0.90, roughness: 0.22, texture: 'hammered_smooth',         bump: 0.60, tiling: 1.0, pattern: 'hammered_smooth' },
-      { id: 'gothic_fluted_maximilian',category: 'forja',   name: '40. Acanalado Gótico Maximiliano (Nervios)',   primary: '#d4d4d8', secondary: '#a16207', cloth: '#18181b', glow: '#facc15', metalness: 0.94, roughness: 0.18, texture: 'gothic_fluted_maximilian',bump: 0.96, tiling: 1.2, pattern: 'maximilian_fluted', baseHex: '#e4e4e7', accentHex: '#ca8a04', detailHex: '#52525b' },
+      { id: 'forged_commander_steel',  category: 'forja',   name: '36. Comandante (Acero Forjado Bruñido)',       primary: '#475569', secondary: '#d97706', cloth: '#1e3a8a', glow: '#f59e0b', metalness: 0.91, roughness: 0.26, texture: 'forged_commander_steel',  bump: 0.55, tiling: 1.0, pattern: 'forged_commander_steel' },
+      { id: 'damascus',                category: 'forja',   name: '37. Acero de Damasco Ondulado Real',           primary: '#64748b', secondary: '#eab308', cloth: '#1e3a8a', glow: '#38bdf8', metalness: 0.92, roughness: 0.22, texture: 'damascus',                bump: 0.65, tiling: 1.2, pattern: 'damascus' },
+      { id: 'mirror_steel',            category: 'forja',   name: '38. Acero Espejo de Gala (Cobalto & Oro)',     primary: '#60a5fa', secondary: '#eab308', cloth: '#1e3a8a', glow: '#60a5fa', metalness: 0.97, roughness: 0.12, texture: 'mirror_steel',            bump: 0.35, tiling: 1.0, pattern: 'mirror_steel' },
+      { id: 'hammered_smooth',         category: 'forja',   name: '39. Placas de Torneo Biseladas a Mano',        primary: '#64748b', secondary: '#d97706', cloth: '#7f1d1d', glow: '#fbbf24', metalness: 0.90, roughness: 0.22, texture: 'hammered_smooth',         bump: 0.60, tiling: 1.0, pattern: 'hammered_smooth' },
+      { id: 'gothic_fluted_maximilian',category: 'forja',   name: '40. Acanalado Gótico Maximiliano (Nervios)',   primary: '#52525b', secondary: '#ca8a04', cloth: '#7f1d1d', glow: '#facc15', metalness: 0.94, roughness: 0.18, texture: 'gothic_fluted_maximilian',bump: 0.96, tiling: 1.2, pattern: 'maximilian_fluted', baseHex: '#a1a1aa', accentHex: '#ca8a04', detailHex: '#3f3f46' },
       { id: 'toledo_blued_gold_inlay', category: 'forja',   name: '41. Acero Pavonado de Toledo (Damasquinado)',  primary: '#1e293b', secondary: '#f59e0b', cloth: '#0f172a', glow: '#fbbf24', metalness: 0.93, roughness: 0.19, texture: 'toledo_blued_gold_inlay', bump: 0.88, tiling: 1.0, pattern: 'maximilian_fluted', baseHex: '#1e293b', accentHex: '#f59e0b', detailHex: '#fef08a' },
-      { id: 'weathered_veteran_iron',  category: 'forja',   name: '42. Hierro Veterano de Mil Batallas',          primary: '#52525b', secondary: '#78716c', cloth: '#292524', glow: '#f97316', metalness: 0.84, roughness: 0.38, texture: 'weathered_veteran_iron',  bump: 0.92, tiling: 1.1, pattern: 'maximilian_fluted', baseHex: '#71717a', accentHex: '#3f3f46', detailHex: '#d4d4d8' },
+      { id: 'weathered_veteran_iron',  category: 'forja',   name: '42. Hierro Veterano de Mil Batallas',          primary: '#52525b', secondary: '#b45309', cloth: '#292524', glow: '#f97316', metalness: 0.84, roughness: 0.38, texture: 'weathered_veteran_iron',  bump: 0.92, tiling: 1.1, pattern: 'maximilian_fluted', baseHex: '#71717a', accentHex: '#3f3f46', detailHex: '#d4d4d8' },
 
       // === CATEGORÍA 7: CABALLERO OSCURO, ABISAL & CAOS (43 - 49) ===
-      { id: 'dark_abyssal_plate',      category: 'abisal',  name: '43. Caballero Oscuro Abisal (Nervios en V)',   primary: '#27272a', secondary: '#71717a', cloth: '#18181b', glow: '#ef4444', metalness: 0.90, roughness: 0.28, texture: 'dark_abyssal_plate',      bump: 0.85, tiling: 1.0, pattern: 'dark_abyssal_plate' },
+      { id: 'dark_abyssal_plate',      category: 'abisal',  name: '43. Caballero Oscuro Abisal (Nervios en V)',   primary: '#27272a', secondary: '#dc2626', cloth: '#450a0a', glow: '#ef4444', metalness: 0.90, roughness: 0.28, texture: 'dark_abyssal_plate',      bump: 0.85, tiling: 1.0, pattern: 'dark_abyssal_plate' },
       { id: 'black_gold_marble',       category: 'abisal',  name: '44. Obsidiana Imperial con Vetas de Oro',      primary: '#18181b', secondary: '#eab308', cloth: '#09090b', glow: '#facc15', metalness: 0.92, roughness: 0.16, texture: 'black_gold_marble',       bump: 0.82, tiling: 1.0, pattern: 'abyssal_chaos', baseHex: '#18181b', accentHex: '#eab308', detailHex: '#fef08a' },
-      { id: 'blood_knight_crimson',    category: 'abisal',  name: '45. Caballero de Sangre (Carmesí & Carbón)',   primary: '#7f1d1d', secondary: '#18181b', cloth: '#450a0a', glow: '#ef4444', metalness: 0.89, roughness: 0.22, texture: 'blood_knight_crimson',    bump: 0.88, tiling: 1.1, pattern: 'abyssal_chaos', baseHex: '#991b1b', accentHex: '#09090b', detailHex: '#f87171' },
-      { id: 'necrotic_bone_plate',     category: 'abisal',  name: '46. Armadura Ósea de Nigromante (Marfil)',     primary: '#e7e5e4', secondary: '#44403c', cloth: '#1c1917', glow: '#10b981', metalness: 0.45, roughness: 0.42, texture: 'necrotic_bone_plate',     bump: 0.94, tiling: 1.0, pattern: 'abyssal_chaos', baseHex: '#e7e5e4', accentHex: '#292524', detailHex: '#34d399' },
+      { id: 'blood_knight_crimson',    category: 'abisal',  name: '45. Caballero de Sangre (Carmesí & Carbón)',   primary: '#7f1d1d', secondary: '#eab308', cloth: '#450a0a', glow: '#ef4444', metalness: 0.89, roughness: 0.22, texture: 'blood_knight_crimson',    bump: 0.88, tiling: 1.1, pattern: 'abyssal_chaos', baseHex: '#991b1b', accentHex: '#09090b', detailHex: '#f87171' },
+      { id: 'necrotic_bone_plate',     category: 'abisal',  name: '46. Armadura Ósea de Nigromante (Ocre)',       primary: '#d6b88c', secondary: '#3f3f46', cloth: '#14532d', glow: '#10b981', metalness: 0.45, roughness: 0.42, texture: 'necrotic_bone_plate',     bump: 0.94, tiling: 1.0, pattern: 'abyssal_chaos', baseHex: '#d6b88c', accentHex: '#292524', detailHex: '#34d399' },
       { id: 'hellfire_magma_forged',   category: 'abisal',  name: '47. Forja Infernal de Magma (Hierro & Brasa)', primary: '#27272a', secondary: '#ea580c', cloth: '#431407', glow: '#f97316', metalness: 0.86, roughness: 0.30, texture: 'hellfire_magma_forged',   bump: 0.96, tiling: 1.1, pattern: 'abyssal_chaos', baseHex: '#18181b', accentHex: '#ea580c', detailHex: '#fde047' },
       { id: 'void_corrupted_adamant',  category: 'abisal',  name: '48. Adamantita del Vacío (Espirales Violeta)', primary: '#1e1b4b', secondary: '#a855f7', cloth: '#0f172a', glow: '#c084fc', metalness: 0.92, roughness: 0.20, texture: 'void_corrupted_adamant',  bump: 0.90, tiling: 1.1, pattern: 'abyssal_chaos', baseHex: '#1e1b4b', accentHex: '#9333ea', detailHex: '#e9d5ff' },
       { id: 'daedric_ebony_spikes',    category: 'abisal',  name: '49. Ébano Daédrico (Estrías Volcánicas)',      primary: '#09090b', secondary: '#dc2626', cloth: '#18181b', glow: '#ef4444', metalness: 0.91, roughness: 0.24, texture: 'daedric_ebony_spikes',    bump: 0.95, tiling: 1.2, pattern: 'abyssal_chaos', baseHex: '#09090b', accentHex: '#dc2626', detailHex: '#fca5a5' },
 
       // === CATEGORÍA 8: ÉLFICO, ARCANO & METALES MÍSTICOS (50 - 56) ===
-      { id: 'emerald_elven_filigree',  category: 'arcano',  name: '50. Guardián Esmeralda (Filigrana Élfica)',    primary: '#065f46', secondary: '#b45309', cloth: '#064e3b', glow: '#10b981', metalness: 0.85, roughness: 0.25, texture: 'emerald_elven_filigree',  bump: 0.85, tiling: 1.0, pattern: 'emerald_elven_filigree' },
+      { id: 'emerald_elven_filigree',  category: 'arcano',  name: '50. Guardián Esmeralda (Filigrana Élfica)',    primary: '#065f46', secondary: '#eab308', cloth: '#064e3b', glow: '#10b981', metalness: 0.85, roughness: 0.25, texture: 'emerald_elven_filigree',  bump: 0.85, tiling: 1.0, pattern: 'emerald_elven_filigree' },
       { id: 'ornate',                  category: 'arcano',  name: '51. Filigrana Real Barroca en Oro',            primary: '#334155', secondary: '#f59e0b', cloth: '#0f172a', glow: '#fbbf24', metalness: 0.88, roughness: 0.24, texture: 'ornate',                  bump: 0.80, tiling: 1.0, pattern: 'ornate' },
       { id: 'spiral_filigree',         category: 'arcano',  name: '52. Cenefa Imperial de Volutas Renacentistas', primary: '#1e3a8a', secondary: '#fde047', cloth: '#172554', glow: '#38bdf8', metalness: 0.90, roughness: 0.21, texture: 'spiral_filigree',         bump: 0.85, tiling: 1.0, pattern: 'spiral_filigree' },
-      { id: 'mithril_starlight_weave', category: 'arcano',  name: '53. Mithril Luz Estelar (Plata Élfica Lunar)', primary: '#e0f2fe', secondary: '#38bdf8', cloth: '#0c4a6e', glow: '#7dd3fc', metalness: 0.96, roughness: 0.14, texture: 'mithril_starlight_weave', bump: 0.78, tiling: 1.2, pattern: 'arcane_celestial', baseHex: '#f0f9ff', accentHex: '#0284c7', detailHex: '#ffffff' },
+      { id: 'mithril_starlight_weave', category: 'arcano',  name: '53. Mithril Luz Estelar (Plata Élfica Lunar)', primary: '#38bdf8', secondary: '#fde047', cloth: '#0c4a6e', glow: '#7dd3fc', metalness: 0.96, roughness: 0.14, texture: 'mithril_starlight_weave', bump: 0.78, tiling: 1.2, pattern: 'arcane_celestial', baseHex: '#bae6fd', accentHex: '#0284c7', detailHex: '#ffffff' },
       { id: 'orichalcum_atlantean',    category: 'arcano',  name: '54. Oricalco Atlante (Aleación Solar Cobre)',  primary: '#f97316', secondary: '#2dd4bf', cloth: '#134e4a', glow: '#5eead4', metalness: 0.92, roughness: 0.19, texture: 'orichalcum_atlantean',    bump: 0.88, tiling: 1.0, pattern: 'arcane_celestial', baseHex: '#fb923c', accentHex: '#0d9488', detailHex: '#fef08a' },
       { id: 'arcane_crystal_amethyst', category: 'arcano',  name: '55. Cristal Arcano de Amatista Facetado',      primary: '#6b21a8', secondary: '#f0abfc', cloth: '#3b0764', glow: '#e879f9', metalness: 0.84, roughness: 0.16, texture: 'arcane_crystal_amethyst', bump: 0.92, tiling: 1.1, pattern: 'arcane_celestial', baseHex: '#7e22ce', accentHex: '#e879f9', detailHex: '#ffffff' },
       { id: 'celestial_astral_constellation',category:'arcano',name:'56. Armadura Astral del Cosmos (Estelar)',   primary: '#0f172a', secondary: '#facc15', cloth: '#1e1b4b', glow: '#fde047', metalness: 0.91, roughness: 0.18, texture: 'celestial_astral_constellation',bump:0.86, tiling: 1.0, pattern: 'arcane_celestial', baseHex: '#1e1b4b', accentHex: '#eab308', detailHex: '#ffffff' }
     ];
+
+    // Alias de compatibilidad para presets Lineage II / Valquiria y estilo propio por cada pieza del catálogo
+    const TEXTURE_PRESET_ALIASES = {
+      imperial_crusader_crimson: 'samurai_kozane_lacquer',
+      draconic_crimson_gold:     'phoenix_flame_plumage',
+      nightmare_obsidian_blood:  'blood_knight_crimson',
+      valkyrie_winged_silver:    'valkyrie_wing_pearl'
+    };
+
+    function findTexturePreset(id) {
+      if (!id) return null;
+      const resolved = TEXTURE_PRESET_ALIASES[id] || id;
+      return TEXTURE_PRESETS.find(t => t.id === resolved) || null;
+    }
+
+    const ITEM_DEFAULT_TEXTURES = {
+      helmet: [
+        null,
+        'royal_alliance_plate',
+        'dynasty_celestial_rose',
+        'emerald_elven_filigree',
+        'phoenix_flame_plumage',
+        'celestial_astral_constellation',
+        'paladin_sun_gold',
+        'blood_knight_crimson',
+        'arcane_crystal_amethyst'
+      ],
+      shoulders: [
+        null,
+        'paladin_sun_gold',
+        'daedric_ebony_spikes',
+        'royal_alliance_plate',
+        'dynasty_celestial_rose',
+        'phoenix_flame_plumage',
+        'samurai_kozane_lacquer',
+        'spiral_filigree',
+        'blood_knight_crimson',
+        'valkyrie_wing_pearl',
+        'arcane_crystal_amethyst',
+        'orichalcum_atlantean'
+      ],
+      torso: [
+        null,
+        'paladin_sun_gold',
+        'royal_alliance_plate',
+        'hellfire_magma_forged',
+        'emerald_elven_filigree',
+        'dynasty_celestial_rose',
+        'laurel_leaf_plate',
+        'triskele_full_plate',
+        'dragon_scale_ruby',
+        'leather_cuirass',
+        'samurai_kozane_lacquer',
+        'blood_knight_crimson',
+        'scale_jazerant_gold',
+        'void_corrupted_adamant',
+        'valkyrie_wing_pearl',
+        'phoenix_flame_plumage',
+        'toledo_blued_gold_inlay',
+        'orichalcum_atlantean',
+        'kraken_chitin_carapace',
+        'arcane_crystal_amethyst'
+      ],
+      gloves: [
+        null,
+        'paladin_sun_gold',
+        'blood_knight_crimson',
+        'royal_alliance_plate',
+        'dynasty_celestial_rose',
+        'phoenix_flame_plumage'
+      ],
+      belt: [
+        null,
+        'paladin_sun_gold',
+        'royal_alliance_plate',
+        'byzantine_lamellar_brass',
+        'void_corrupted_adamant',
+        'toledo_blued_gold_inlay',
+        'dynasty_celestial_rose',
+        'leather_cuirass'
+      ],
+      tassets: [
+        null,
+        'paladin_sun_gold',
+        'blood_knight_crimson',
+        'toledo_blued_gold_inlay',
+        'emerald_elven_filigree',
+        'royal_alliance_plate',
+        'dynasty_celestial_rose',
+        'dragon_scale_ruby',
+        'banded_splint_mail'
+      ],
+      cuisses: [
+        null,
+        'paladin_sun_gold',
+        'hellfire_magma_forged',
+        'toledo_blued_gold_inlay',
+        'emerald_elven_filigree',
+        'royal_alliance_plate',
+        'dynasty_celestial_rose',
+        'samurai_kozane_lacquer'
+      ],
+      knees: [
+        null,
+        'paladin_sun_gold',
+        'royal_alliance_plate',
+        'blood_knight_crimson',
+        'valhalla_einherjar_bronze',
+        'emerald_elven_filigree',
+        'dynasty_celestial_rose',
+        'dragon_scale_ruby'
+      ],
+      boots: [
+        null,
+        'paladin_sun_gold',
+        'blood_knight_crimson',
+        'toledo_blued_gold_inlay',
+        'dynasty_celestial_rose',
+        'emerald_elven_filigree',
+        'phoenix_flame_plumage',
+        'runic_plate',
+        'hydra_emerald_scale',
+        'samurai_kozane_lacquer',
+        'valkyrie_wing_pearl',
+        'void_corrupted_adamant',
+        'orichalcum_atlantean'
+      ],
+      shield: [
+        null,
+        'paladin_sun_gold',
+        'royal_alliance_plate',
+        'void_corrupted_adamant',
+        'valhalla_einherjar_bronze',
+        'dynasty_celestial_rose',
+        'samurai_kozane_lacquer',
+        'celtic_shield_boss',
+        'black_gold_marble',
+        'dragon_scale_ruby',
+        'emerald_elven_filigree'
+      ],
+      weapon: [
+        null,
+        'paladin_sun_gold',
+        'royal_alliance_plate',
+        'toledo_blued_gold_inlay',
+        'emerald_elven_filigree',
+        'dynasty_celestial_rose',
+        'blood_knight_crimson',
+        'valhalla_einherjar_bronze',
+        'mithril_starlight_weave',
+        'void_corrupted_adamant',
+        'orichalcum_atlantean'
+      ]
+    };
+
+    function getDefaultPresetForItem(slotKey, idx) {
+      if (!slotKey || !idx || idx <= 0) return null;
+      const list = ITEM_DEFAULT_TEXTURES[slotKey];
+      if (list && list[idx]) return list[idx];
+      if (slotKey === 'weapon' && ITEMS_DB.weapon[idx]) {
+        const nm = ITEMS_DB.weapon[idx].name.toLowerCase();
+        if (nm.includes('solar') || nm.includes('dorada') || nm.includes('luz') || nm.includes('alba')) return 'paladin_sun_gold';
+        if (nm.includes('élfica') || nm.includes('élfico') || nm.includes('espino') || nm.includes('druida') || nm.includes('raíces')) return 'emerald_elven_filigree';
+        if (nm.includes('gótica') || nm.includes('gótico') || nm.includes('abisal') || nm.includes('verdugo') || nm.includes('asesino')) return 'blood_knight_crimson';
+        if (nm.includes('lunar') || nm.includes('plata')) return 'mithril_starlight_weave';
+        if (nm.includes('cristal') || nm.includes('arcano') || nm.includes('mago') || nm.includes('runas') || nm.includes('orbe')) return 'arcane_crystal_amethyst';
+        if (nm.includes('flamígera') || nm.includes('dragón')) return 'phoenix_flame_plumage';
+        if (nm.includes('vikinga') || nm.includes('clan')) return 'valhalla_einherjar_bronze';
+        if (nm.includes('imperial') || nm.includes('caballero') || nm.includes('torneo')) return 'royal_alliance_plate';
+      }
+      return TEXTURE_PRESETS[idx % TEXTURE_PRESETS.length].id;
+    }
+
+    function resolveSlotTexturePreset(slotKey) {
+      if (!slotKey) return null;
+      const explicitId = STATE.slotTextures ? STATE.slotTextures[slotKey] : null;
+      if (explicitId) return findTexturePreset(explicitId);
+      if (!STATE.useGlobalMaterial) {
+        const eqIdx = STATE.equipment ? STATE.equipment[slotKey] : 0;
+        const defId = getDefaultPresetForItem(slotKey, eqIdx);
+        if (defId) return findTexturePreset(defId);
+      }
+      return null;
+    }
 
     const CHARACTER_PRESETS = [
       {
@@ -1368,7 +1553,7 @@
     function applyArmorLook(look) {
       const cls = ARMOR_CLASSES[look.cls];
       const rank = ARMOR_RANKS[look.rank];
-      const tp = TEXTURE_PRESETS.find(t => t.id === look.tex) || TEXTURE_PRESETS[0];
+      const tp = findTexturePreset(look.tex) || TEXTURE_PRESETS[0];
 
       // Las hombreras van integradas en el peto
       STATE.equipment = { shield: (look.cls === 'mago' ? 0 : 1), ...look.gear, shoulders: 0 };
@@ -1382,6 +1567,7 @@
       STATE.fit.bootShapeOverride = { ...cls.boot };
 
       // Material
+      STATE.useGlobalMaterial = true;
       Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
       STATE.materialType = tp.id; STATE.primaryColor = tp.primary; STATE.secondaryColor = tp.secondary;
       STATE.clothColor = tp.cloth; STATE.metalness = tp.metalness; STATE.roughness = tp.roughness;
@@ -2770,8 +2956,7 @@
 
     function getPBRMaterial(role = 'primary', slotOverride = null) {
       const slotKey = slotOverride || currentBuildingSlot;
-      const slotPresetId = (STATE.slotTextures && slotKey) ? STATE.slotTextures[slotKey] : null;
-      const slotTp = slotPresetId ? TEXTURE_PRESETS.find(t => t.id === slotPresetId) : null;
+      const slotTp = resolveSlotTexturePreset(slotKey);
 
       const activeSurfaceTex = slotTp ? slotTp.texture : STATE.surfaceTexture;
       const activePrimary = slotTp ? slotTp.primary : STATE.primaryColor;
@@ -2842,8 +3027,7 @@
 
     function getGlowMaterial(slotOverride = null) {
       const slotKey = slotOverride || currentBuildingSlot;
-      const slotPresetId = (STATE.slotTextures && slotKey) ? STATE.slotTextures[slotKey] : null;
-      const slotTp = slotPresetId ? TEXTURE_PRESETS.find(t => t.id === slotPresetId) : null;
+      const slotTp = resolveSlotTexturePreset(slotKey);
       const activeGlow = (slotTp && slotTp.glow) ? slotTp.glow : STATE.glowColor;
 
       return new THREE.MeshStandardMaterial({
@@ -2858,8 +3042,7 @@
 
     function getFacetedGemMaterial(gemPreset = 'ruby', slot = 'torso') {
       const slotKey = slot || currentBuildingSlot;
-      const slotPresetId = (STATE.slotTextures && slotKey) ? STATE.slotTextures[slotKey] : null;
-      const slotTp = slotPresetId ? TEXTURE_PRESETS.find(t => t.id === slotPresetId) : null;
+      const slotTp = resolveSlotTexturePreset(slotKey);
       const baseGlow = (slotTp && slotTp.glow) ? slotTp.glow : STATE.glowColor;
 
       const GEM_SPECS = {
@@ -9654,7 +9837,7 @@
 
       // Configuración individualizada de las 15 Capas Internas y Cotas de Malla precargadas
       const UNDERLAYER_STYLES = {
-        1:  { tex: 'under_gambeson_diamond',      color: STATE.clothColor || '#2b3954', rough: 0.78, metal: 0.08, bump: 0.032, tile: 2.2 },
+        1:  { tex: 'under_gambeson_diamond',      color: STATE.useGlobalMaterial ? (STATE.clothColor || '#2b3954') : '#2b3954', rough: 0.78, metal: 0.08, bump: 0.032, tile: 2.2 },
         2:  { tex: 'under_chain_euro_4in1',       color: '#cbd5e1',                     rough: 0.30, metal: 0.88, bump: 0.042, tile: 3.6 },
         3:  { tex: 'under_leather_crossband',     color: '#3b281e',                     rough: 0.58, metal: 0.16, bump: 0.030, tile: 2.4 },
         4:  { tex: 'under_silk_dynasty',          color: '#10b981',                     rough: 0.32, metal: 0.35, bump: 0.024, tile: 2.5 },
@@ -13580,11 +13763,14 @@
       armorSlots.forEach(slot => {
         const badgeBtn = document.getElementById(`slot-tex-cycle-${slot}`);
         if (!badgeBtn) return;
-        const presetId = STATE.slotTextures ? STATE.slotTextures[slot] : null;
-        const tp = presetId ? TEXTURE_PRESETS.find(t => t.id === presetId) : null;
-        if (tp) {
+        const explicitId = STATE.slotTextures ? STATE.slotTextures[slot] : null;
+        const tp = explicitId ? findTexturePreset(explicitId) : (slot !== 'underlayer' ? resolveSlotTexturePreset(slot) : null);
+        if (explicitId && tp) {
           badgeBtn.innerHTML = `<span class="w-2 h-2 rounded-full inline-block mr-1" style="background:${tp.primary};border:1px solid ${tp.secondary}"></span><span class="truncate max-w-[68px]">${tp.name.replace(/^\d+\.\s*/, '')}</span>`;
           badgeBtn.className = 'text-[9px] bg-amber-950/80 hover:bg-amber-800/80 text-amber-200 px-1.5 py-0.5 rounded border border-amber-500/40 transition flex items-center gap-0.5';
+        } else if (tp) {
+          badgeBtn.innerHTML = `<span class="w-2 h-2 rounded-full inline-block mr-1" style="background:${tp.primary};border:1px solid ${tp.secondary}"></span><span>56 Tex</span>`;
+          badgeBtn.className = 'text-[9px] bg-slate-800/80 hover:bg-indigo-600/80 text-slate-200 hover:text-white px-1.5 py-0.5 rounded border border-white/10 transition flex items-center gap-0.5';
         } else {
           badgeBtn.innerHTML = `<i data-lucide="palette" class="w-2.5 h-2.5"></i><span>56 Tex</span>`;
           badgeBtn.className = 'text-[9px] bg-slate-800/80 hover:bg-indigo-600/80 text-slate-300 hover:text-white px-1.5 py-0.5 rounded border border-white/10 transition flex items-center gap-1';
@@ -13616,7 +13802,7 @@
               if (matTabBtn) matTabBtn.click();
               return;
             }
-            const currId = STATE.slotTextures[slot];
+            const currId = STATE.slotTextures[slot] || (!STATE.useGlobalMaterial ? getDefaultPresetForItem(slot, STATE.equipment[slot]) : null);
             const currIdx = currId ? TEXTURE_PRESETS.findIndex(t => t.id === currId) : -1;
             const nextIdx = (currIdx + 1) % TEXTURE_PRESETS.length;
             const nextTp = TEXTURE_PRESETS[nextIdx];
@@ -13638,7 +13824,11 @@
           btn.innerHTML = `<i data-lucide="${item.icon}" class="w-3.5 h-3.5"></i><span class="truncate w-full text-center leading-tight">${labelText}</span>`;
           btn.addEventListener('click', () => {
             STATE.equipment[slot] = idx;
-            if (slot === 'underlayer') STATE.slotTextures.underlayer = null;
+            if (slot === 'underlayer') {
+              STATE.slotTextures.underlayer = null;
+            } else {
+              STATE.slotTextures[slot] = (STATE.useGlobalMaterial && idx > 0) ? getDefaultPresetForItem(slot, idx) : null;
+            }
             if (slot === 'shoulders') STATE.fit.shoulderShapeOverride = null;
             if (slot === 'torso') STATE.fit.chestCutoutOverride = null;
             if (slot === 'boots') STATE.fit.bootShapeOverride = null;
@@ -13905,6 +14095,7 @@
           btn.addEventListener('click', () => {
             const slotMode = STATE.activeTextureTargetSlot || 'all';
             if (slotMode === 'all') {
+              STATE.useGlobalMaterial = true;
               STATE.materialType = tp.id;
               STATE.primaryColor = tp.primary;
               STATE.secondaryColor = tp.secondary;
@@ -13947,6 +14138,7 @@
       if (btnRandomPerSlot) {
         btnRandomPerSlot.addEventListener('click', () => {
           // Elegir una familia armónica o combinar texturas complementarias entre las 56 disponibles para cada pieza equipada
+          STATE.useGlobalMaterial = false;
           Object.keys(STATE.slotTextures).forEach(slot => {
             const randTp = TEXTURE_PRESETS[Math.floor(Math.random() * TEXTURE_PRESETS.length)];
             STATE.slotTextures[slot] = randTp.id;
@@ -13961,6 +14153,7 @@
       const btnUnifySlots = document.getElementById('btn-unify-slot-textures');
       if (btnUnifySlots) {
         btnUnifySlots.addEventListener('click', () => {
+          STATE.useGlobalMaterial = true;
           Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
           STATE.activeTextureTargetSlot = 'all';
           if (selTargetSlot) selTargetSlot.value = 'all';
@@ -14011,12 +14204,13 @@
           STATE.fit.shoulderShapeOverride = null;
           STATE.fit.chestCutoutOverride = null;
           STATE.fit.bootShapeOverride = null;
+          STATE.useGlobalMaterial = true;
           Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
-          const tp = TEXTURE_PRESETS.find(t => t.id === cp.texturePreset) || TEXTURE_PRESETS[0];
+          const tp = findTexturePreset(cp.texturePreset) || TEXTURE_PRESETS[0];
           STATE.materialType = tp.id; STATE.primaryColor = tp.primary; STATE.secondaryColor = tp.secondary;
           STATE.clothColor = tp.cloth; STATE.metalness = tp.metalness; STATE.roughness = tp.roughness;
           STATE.surfaceTexture = tp.texture; STATE.bumpDepth = tp.bump; STATE.textureTiling = tp.tiling;
-          STATE.glowColor = cp.glow;
+          STATE.glowColor = cp.glow || tp.glow;
           updateSlotTextureBadgesUI();
           syncMaterialUI();
           renderTexturePresetsGrid();
@@ -14261,10 +14455,15 @@
       });
 
       // Materiales y Controles de Textura
-      document.getElementById('picker-primary').addEventListener('input', (e) => { STATE.primaryColor = e.target.value; updateWardrobePieces(); });
-      document.getElementById('picker-secondary').addEventListener('input', (e) => { STATE.secondaryColor = e.target.value; updateWardrobePieces(); });
-      document.getElementById('picker-cloth').addEventListener('input', (e) => { STATE.clothColor = e.target.value; updateWardrobePieces(); });
-      document.getElementById('picker-glow').addEventListener('input', (e) => { STATE.glowColor = e.target.value; updateWardrobePieces(); });
+      const activateCustomGlobalColors = () => {
+        STATE.useGlobalMaterial = true;
+        Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
+        updateSlotTextureBadgesUI();
+      };
+      document.getElementById('picker-primary').addEventListener('input', (e) => { STATE.primaryColor = e.target.value; activateCustomGlobalColors(); updateWardrobePieces(); });
+      document.getElementById('picker-secondary').addEventListener('input', (e) => { STATE.secondaryColor = e.target.value; activateCustomGlobalColors(); updateWardrobePieces(); });
+      document.getElementById('picker-cloth').addEventListener('input', (e) => { STATE.clothColor = e.target.value; activateCustomGlobalColors(); updateWardrobePieces(); });
+      document.getElementById('picker-glow').addEventListener('input', (e) => { STATE.glowColor = e.target.value; activateCustomGlobalColors(); updateWardrobePieces(); });
 
       document.getElementById('slider-metal').addEventListener('input', (e) => { STATE.metalness = parseFloat(e.target.value); document.getElementById('val-metal').textContent = STATE.metalness.toFixed(2); updateWardrobePieces(); });
       document.getElementById('slider-rough').addEventListener('input', (e) => { STATE.roughness = parseFloat(e.target.value); document.getElementById('val-rough').textContent = STATE.roughness.toFixed(2); updateWardrobePieces(); });
@@ -14276,6 +14475,10 @@
         const matchedTp = TEXTURE_PRESETS.find(t => t.texture === e.target.value);
         if (STATE.activeTextureTargetSlot && STATE.activeTextureTargetSlot !== 'all' && matchedTp) {
           STATE.slotTextures[STATE.activeTextureTargetSlot] = matchedTp.id;
+          updateSlotTextureBadgesUI();
+        } else {
+          STATE.useGlobalMaterial = true;
+          Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
           updateSlotTextureBadgesUI();
         }
         updateWardrobePieces();
@@ -14385,6 +14588,7 @@
     function randomizeArmorSetup() {
       // Muestrear directamente de las 56 Texturas Precargadas de Alta Fantasía
       const tp = TEXTURE_PRESETS[Math.floor(Math.random() * TEXTURE_PRESETS.length)];
+      STATE.useGlobalMaterial = true;
       STATE.materialType = tp.id;
       STATE.primaryColor = tp.primary;
       STATE.secondaryColor = tp.secondary;
@@ -21027,6 +21231,8 @@ function resetCharacter() {
       if (d.tipo === 'exportar-personaje') {
         // Cuerpo completo con el equipo dado (armadura incluida) y sus animaciones. Con un arco equipado
         // el GLB lleva además el tiro con arco y la flecha en suspensión.
+        STATE.useGlobalMaterial = false;
+        Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
         Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = d.equipo[k] || 0; });
         if (d.equipo.shield == null) STATE.equipment.shield = escudoPorDefecto(STATE.equipment.weapon);
         updateWardrobePieces();
@@ -21034,6 +21240,8 @@ function resetCharacter() {
         exportLightweightGLB(false);
       }
       if (d.tipo === 'exportar-pieza') {
+        STATE.useGlobalMaterial = false;
+        Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
         Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = 0; });
         STATE.equipment[d.ranura] = d.idx;
         if (d.ranura === 'weapon') STATE.equipment.shield = escudoPorDefecto(d.idx);
@@ -21053,7 +21261,8 @@ function resetCharacter() {
 
     // Acceso de inspección/QA al estudio (encajar armas en el puño, revisar el tiro con arco)
     window.__studio = {
-      STATE, ITEMS_DB, WEAPON_LOADOUT, bonesMap, armorSockets,
+      STATE, ITEMS_DB, WEAPON_LOADOUT, TEXTURE_PRESETS, ITEM_DEFAULT_TEXTURES,
+      findTexturePreset, resolveSlotTexturePreset, bonesMap, armorSockets,
       get mannequinRoot() { return mannequinRoot; },
       get archeryRig() { return archeryRig; },
       get camera() { return camera; },

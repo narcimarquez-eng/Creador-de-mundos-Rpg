@@ -108,7 +108,7 @@
     #partidas .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     #crear { position: absolute; inset: 0; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; z-index: 44; padding: 12px; }
     #crear.show { display: flex; }
-    #crear .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: 560px; max-width: 100%; max-height: 96vh; overflow-y: auto; }
+    #crear .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(1140px, 96vw); max-width: 100%; max-height: 96vh; overflow-y: auto; }
     #crear h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
     #objetos { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
     #objetos.show { display: flex; }
@@ -394,7 +394,7 @@
     <label>Nombre <input type="text" id="crear-nombre" value="Aventurero"></label>
     <label>Clase <select id="crear-clase"><option value="guerrero">Guerrero</option><option value="mago" disabled>Mago (túnicas pendientes)</option></select></label>
     <div class="muted">Ajusta el cuerpo en el estudio: las armaduras iniciales se generan con esas proporciones.</div>
-    <iframe id="crear-frame" title="Estudio de armaduras" style="width:100%;height:360px;border:0;border-radius:8px;margin-top:6px;background:#070a13"></iframe>
+    <iframe id="crear-frame" title="Estudio de armaduras" style="width:100%;height:min(620px,68vh);border:0;border-radius:8px;margin-top:6px;background:#070a13"></iframe>
     <div id="crear-estado" class="muted" style="margin-top:6px"></div>
     <div class="btns"><button id="crear-ok" class="gold">✅ Crear personaje</button><button id="crear-cancel">Cancelar</button></div>
   </div></div>
@@ -3548,7 +3548,7 @@
   // ===========================================================================
   // Personaje: el estudio de armaduras (embebido) ajusta las proporciones y genera las piezas
   // ===========================================================================
-  const ESTUDIO_URL = 'estudio-armaduras/index.html';
+  const ESTUDIO_URL = 'estudio-armaduras/index.html?v=20261031';
   let catalogoPiezas = null;
   let personajeActual = null;   // personaje de la partida activa (ver js/partida.js)
   let heroeEst = HeroeLib.nuevoHeroe();                        // puntos, misiones y habilidades (ver js/heroe.js)
@@ -3563,7 +3563,7 @@
   const esperando = {};         // respuestas pendientes del estudio, por clave
 
   // Caché persistente en IndexedDB del GLB exportado del héroe para cargar la partida al instante sin abrir el estudio
-  const DB_HEROE = 'rpg-heroe-glb-v1';
+  const DB_HEROE = 'rpg-heroe-glb-v2';
   let dbHeroePromesa = null;
   function abrirDbHeroe() {
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);
