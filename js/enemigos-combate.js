@@ -16,7 +16,7 @@
   }
 
   function crear(rig, config) {
-    const color = new THREE.Color(config.materials.emissiveColor || '#7dd3fc');
+    const color = new THREE.Color((config && config.materials && config.materials.emissiveColor) || '#7dd3fc');
     const bola = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), new THREE.MeshBasicMaterial({ color }));
     bola.visible = false;
     rig.rootGroup.add(bola);

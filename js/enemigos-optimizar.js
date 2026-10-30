@@ -109,10 +109,12 @@
     clonRoot.traverse(n => {
       if (n.isSkinnedMesh && n.skeleton) {
         const orig = deClon.get(n);
-        if (orig.boundingSphere) n.boundingSphere = orig.boundingSphere.clone();
-        const huesos = orig.skeleton.bones.map(h => aClon.get(h) || h);
-        const inversas = orig.skeleton.boneInverses.map(m => m.clone());
-        n.bind(new THREE.Skeleton(huesos, inversas), orig.bindMatrix.clone());
+        if (orig && orig.boundingSphere) n.boundingSphere = orig.boundingSphere.clone();
+        if (orig && orig.skeleton) {
+          const huesos = orig.skeleton.bones.map(h => aClon.get(h) || h);
+          const inversas = orig.skeleton.boneInverses.map(m => m.clone());
+          n.bind(new THREE.Skeleton(huesos, inversas), orig.bindMatrix.clone());
+        }
       }
     });
 

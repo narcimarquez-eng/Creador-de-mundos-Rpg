@@ -2344,6 +2344,7 @@
         monsters.forEach(m => {
           if (!m.enemigo && m._pendEnemigo) {
             m.enemigo = resolverEnemigoPendiente(m._pendEnemigo.info, m._pendEnemigo.s);
+            if (m.enemigo && (!m.name || m.name === 'Nuevo monstruo' || m.name === 'Monstruo')) m.name = m.enemigo.name || m.name;
             m._pendEnemigo = null;
           }
         });
@@ -2530,6 +2531,15 @@
   }
 
   function buildMonsters() {
+    protoEnemigoCache.forEach(proto => {
+      if (proto.rig && proto.rig.rootGroup) {
+        proto.rig.rootGroup.traverse(o => {
+          if (!o.isMesh) return;
+          if (o.geometry) o.geometry.dispose();
+          if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mat => { materialesEntorno.delete(mat); mat.dispose(); });
+        });
+      }
+    });
     protoEnemigoCache.clear();
     enemyMode = (world.settings && world.settings.enemyMode) || enemyMode;
     $('sel-enemigos').value = enemyMode;
@@ -2554,6 +2564,7 @@
           // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
           if (window.EnemyLib) {
             m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
+            if (m.enemigo && (!m.name || m.name === 'Nuevo monstruo' || m.name === 'Monstruo')) m.name = m.enemigo.name || m.name;
           } else {
             m._pendEnemigo = { info, s: rng.s };
             m.enemigo = null;
@@ -2612,6 +2623,7 @@
   }
 
   function damageMonster(m, dmg) {
+    if (!m.alive || m.hp <= 0) return;
     m.hp = Math.max(0, m.hp - dmg);
     m.flashUntil = performance.now() + 120;
     if (m.fx) EnemyFx.disparar(m.fx, 'hit', performance.now() / 1000);
@@ -2731,12 +2743,8 @@
 
   function descargarModelosEnemigo(m) {
     if (m.rig) m.group.remove(m.rig.rootGroup);
-    Object.values(m.versiones).forEach(v => v.rig.rootGroup.traverse(o => {
-      if (!o.isMesh) return;
-      o.geometry.dispose();
-      // Las texturas son del juego de texturas compartido: solo se liberan los materiales
-      (Array.isArray(o.material) ? o.material : [o.material]).forEach(mat => { materialesEntorno.delete(mat); mat.dispose(); });
-    }));
+    // Las geometrías y materiales pertenecen a protoEnemigoCache y se reutilizan entre instancias;
+    // solo se desvincula el rig de la escena y se limpian las referencias de la instancia.
     m.versiones = {}; m.rig = null; m.fx = null; m.activa = null; m.posado = false; m.sombra = undefined;
   }
   let fotogramaCombate = 0;
@@ -3241,7 +3249,7 @@
       objetivo = null;
     }
     if (!objetivo) return;
-    if (!objetivo.alive || hero.dead) { objetivo = null; character.destino = null; return; }
+    if (!objetivo.alive || objetivo.hp <= 0 || (objetivo.muriendo && performance.now() < objetivo.muriendo) || hero.dead) { objetivo = null; character.destino = null; return; }
     if (character.atascado) {
       character.atascado = false;
       if (autoZona) autoInalcanzables.set(objetivo, performance.now() + 20000);   // otro, y este luego
@@ -3300,11 +3308,11 @@
     if (!autoZona) return;
     if (hero.dead) { pararAuto('Ataque automático parado: has caído'); return; }
     if (hero.hp < hero.maxHp * 0.35 && inv.vida > 0 && ItemsLib.usePotion(hero, inv, 'vida')) toast('🧪 Poción de vida (automática)');
-    if (objetivo && objetivo.alive) return;   // atacarObjetivo sigue con el que hay
+    if (objetivo && objetivo.alive && objetivo.hp > 0 && !(objetivo.muriendo && performance.now() < objetivo.muriendo)) return;   // atacarObjetivo sigue con el que hay
     const p = character.root.position, ahora = performance.now();
     let mejor = null, mejorD = Infinity;
     monsters.forEach(m => {
-      if (!m.alive || m.zone !== autoZona || (autoInalcanzables.get(m) || 0) > ahora) return;
+      if (!m.alive || m.hp <= 0 || m.zone !== autoZona || (autoInalcanzables.get(m) || 0) > ahora || (m.muriendo && performance.now() < m.muriendo)) return;
       const d = Math.hypot(m.x - p.x, m.z - p.z);
       if (d < mejorD) { mejorD = d; mejor = m; }
     });
@@ -4577,7 +4585,11 @@
     controls.update();
     // Al seguir, se mantienen la distancia y el giro que dejas con el ratón; el recorte por muros y suelo no se acumula
     character.encuadrar(() => CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld));
-    renderer.render(scene, camera);
+    try {
+      renderer.render(scene, camera);
+    } catch (errRender) {
+      console.error('Error al renderizar fotograma:', errRender);
+    }
     updateLabels(character.root.position.y);
   }
 
