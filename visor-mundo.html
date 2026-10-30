@@ -276,7 +276,7 @@
       <label><input type="checkbox" id="chk-labels" checked> Nombres</label>
       <label><input type="checkbox" id="chk-trees" checked> Bosques</label>
       <label><input type="checkbox" id="chk-water" checked> Agua</label>
-      <label>Calidad <select id="sel-quality"><option value="bajo">Bajo</option><option value="medio">Medio</option><option value="alto">Alto</option></select></label>
+      <label title="Un solo ajuste: texturas, sombras, reflejos, detalle de monstruos, pueblos y decoración">Calidad gráfica <select id="sel-quality"><option value="muybajo">Muy baja</option><option value="bajo">Baja</option><option value="medio">Media</option><option value="alto">Alta</option></select></label>
       <label title="Pelo y escamas de los monstruos: son la mayor parte de sus polígonos">Pelo y escamas <select id="sel-pelo"><option value="completo">Completo (hasta 30 m)</option><option value="ligero">Ligero (hasta 8 m)</option><option value="nada">Sin detalle</option></select></label>
       <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
       <label title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
@@ -485,8 +485,8 @@
   // Pueblos completos: se cargan a 200 m de su muralla (del héroe o de lo que mira la cámara) y se descargan a
   // 300 m, donde queda solo su modelo simple. Como mucho 4 a la vez. Dentro, los árboles bajan de detalle a
   // partir de 40 m de la muralla (ver nivelArbolesMuro).
-  const LOAD_R = 200, UNLOAD_R = 300, MAX_LOADED = 4;
-  const ARBOLES_CERCA_M = 40;
+  let LOAD_R = 200, UNLOAD_R = 300, MAX_LOADED = 4;
+  let ARBOLES_CERCA_M = 40;
   let bounds = null;
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let aguaPuebloMat = null;
@@ -502,6 +502,7 @@
   const CHUNK = 16;                      // celdas de 20 m por trozo (320 m); múltiplo de los pasos de la malla lejana
   // Texturas del suelo: 15 capas (tres por clase, TerrainLib.CAPAS) sacadas del atlas assets/terreno/atlas.jpg
   const terrainU = { tCapas: { value: null }, uTexOn: { value: 0 } };
+  let texturasCargadas = false;
   // Archivos que se están descargando (modelos, texturas…): todos los cargadores de THREE pasan por el
   // gestor por defecto; se cuentan para el indicador de carga
   let archivosPendientes = 0, archivosEmpezados = 0, archivosAcabados = 0;   // los dos últimos, de la tanda actual
@@ -512,7 +513,24 @@
   }
   // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
   // sombra: medio lado (m) de la caja de sombras alrededor del héroe; crece si la cámara se aleja
-  const QUALITY = { bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0 }, medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120 }, alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160 } };
+  // Calidad gráfica: cada nivel fija todo lo que cuesta. Para ajustar uno, cambia sus números aquí.
+  //   radius: detalle del terreno (m) · shadows: mapa de sombras (px, 0 = sin sombras) · sombra: lado de la caja
+  //   de sombras (m) · pixel: píxeles por punto de pantalla · far: lejanía del terreno · texturas: atlas del suelo
+  //   y texturas de monstruos (si no, color plano / filtrado mínimo) · reflejos: reflejos del entorno en actores
+  //   malla: parte de los triángulos de los monstruos que se conserva · versionCerca: si los monstruos tienen
+  //   versión de cerca (si no, siempre la ligera) · monstruoVisible / monstruoAnima / monstruoDescarga: metros
+  //   · arbolesCerca: metros de muralla con todos los árboles · pueblo: [cargar, descargar] (m de muralla) y máximo
+  //   de pueblos completos · decor: multiplicador de la distancia de ocultación de la decoración del campo
+  const QUALITY = {
+    muybajo: { radius: 600, shadows: 0, pixel: 0.75, far: 4, sombra: 0, texturas: false, reflejos: false, malla: 0.35,
+      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3 },
+    bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0, texturas: true, reflejos: true, malla: 0.6,
+      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6 },
+    medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120, texturas: true, reflejos: true, malla: 0.8,
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85 },
+    alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160, texturas: true, reflejos: true, malla: 1,
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1 }
+  };
   let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
   let monsters = [];
@@ -1116,7 +1134,8 @@
       tex.anisotropy = 4;
       tex.needsUpdate = true;
       terrainU.tCapas.value = tex;
-      terrainU.uTexOn.value = 1;
+      texturasCargadas = true;
+      terrainU.uTexOn.value = QUALITY[quality].texturas ? 1 : 0;
     }, undefined, () => { /* sin atlas: color plano */ });
   }
 
@@ -1223,6 +1242,13 @@
     });
     monsters.forEach(m => { m.sombra = undefined; });   // cada monstruo vuelve a decidir su sombra por distancia
     if (terrainMat) terrainMat.needsUpdate = true;
+    // Texturas del suelo, distancias de monstruos, pueblos y árboles según el nivel
+    if (texturasCargadas) terrainU.uTexOn.value = Q.texturas ? 1 : 0;
+    LOAD_R = Q.pueblo[0]; UNLOAD_R = Q.pueblo[1]; MAX_LOADED = Q.pueblosMax; ARBOLES_CERCA_M = Q.arbolesCerca;
+    MONSTRUO_VISIBLE = Q.monstruoVisible; MONSTRUO_ANIMA = Q.monstruoAnima; MONSTRUO_ANIMA_LENTO = Q.monstruoVisible; MONSTRUO_DESCARGA = Q.monstruoDescarga;
+    // Los modelos de monstruos se reconstruyen con la nueva resolución (se hacen de nuevo al acercarse)
+    enemyTextures = null;
+    monsters.forEach(m => descargarModelosEnemigo(m));
     $('sel-quality').value = q;
     if (save) store.setItem('rpgMundo.calidad', q);
     updateTerrainChunks(performance.now(), true);
@@ -2201,7 +2227,7 @@
     }).catch(err => console.warn('Sin entorno de reflejos:', err));
   }
   // Más tenue al atardecer y de noche, como la luz ambiente
-  const intensidadEntorno = () => (atmoNow ? atmoNow.hemiI * 1.25 : 1);
+  const intensidadEntorno = () => (QUALITY[quality].reflejos ? (atmoNow ? atmoNow.hemiI * 1.25 : 1) : 0);
   function aplicarEntorno(obj) {
     if (!entornoActores) { pendientesEntorno.push(obj); return; }
     obj.traverse(o => {
@@ -2261,8 +2287,8 @@
   let presupuestoModelos = 1;
 
   function construirVersionEnemigo(m, tipo) {
-    if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(renderer.capabilities.getMaxAnisotropy());
-    const V = VERSION_ENEMIGO[tipo];
+    if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(QUALITY[quality].texturas ? renderer.capabilities.getMaxAnisotropy() : 1);
+    const V = Object.assign({}, VERSION_ENEMIGO[tipo], { ratio: VERSION_ENEMIGO[tipo].ratio * QUALITY[quality].malla });
     const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: V.densidad }) });
     const rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
     EnemyOpt.optimizarRig(rig);
@@ -2310,7 +2336,7 @@
 
   // Versión que le toca a un monstruo a la distancia d (con margen para que no parpadee)
   function tipoEnemigo(m, d) {
-    if (quality === 'bajo') return 'lejos';   // en calidad baja, siempre la versión ligera
+    if (!QUALITY[quality].versionCerca) return 'lejos';   // en calidades bajas, siempre la versión ligera
     return d < MONSTRUO_DETALLE + (m.activa === 'cerca' ? 2 : -2) ? 'cerca' : 'lejos';
   }
 
@@ -2514,8 +2540,8 @@
 
   // Monstruos a distancia: solo existen cerca del héroe. Se ven hasta 120 m; se animan cada fotograma y hacen
   // sombra hasta 60 m, y de 60 a 120 m se animan uno de cada 4 fotogramas. A más de 160 m se descargan.
-  const MONSTRUO_VISIBLE = 120, MONSTRUO_ANIMA = 60, MONSTRUO_ANIMA_LENTO = 120;
-  const MONSTRUO_DESCARGA = 160;
+  let MONSTRUO_VISIBLE = 120, MONSTRUO_ANIMA = 60, MONSTRUO_ANIMA_LENTO = 120;
+  let MONSTRUO_DESCARGA = 160;
   // Presencia: a más de 400 m del héroe el monstruo sale de la escena y no se actualiza; vuelve al acercarse
   // (con 10 m de margen). Conserva su estado (vida, si está vivo, cuándo reaparece).
   const MONSTRUO_PRESENTE = 400;
@@ -4258,6 +4284,7 @@
     AGUA_U.uTime.value = now / 1000;
     if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
       lastDecor = now;
+      decorGroup.userData.factorLejos = QUALITY[quality].decor;
       decorGroup.userData.actualizar(camera.position.x, camera.position.z);
     }
     actualizarPiedras();
@@ -4273,7 +4300,7 @@
     animateTowns(dt);
     updateAtmosphere(dt);
     updateTerrainChunks(now, false);
-    if (quality !== 'bajo') seguirSombra();
+    if (QUALITY[quality].shadows > 0) seguirSombra();
     lastNowSec = now / 1000;
     updateCombat(dt, now);
     updateHud(now);

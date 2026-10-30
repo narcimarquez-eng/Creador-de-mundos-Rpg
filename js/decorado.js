@@ -429,7 +429,9 @@
         c.cercanas.forEach(malla => { malla.visible = cerca; });
         c.lejana.visible = !cerca && d < LEJOS.matorrales;
       });
-      lejanos.forEach(c => { c.malla.visible = distCaja(c, x, z) < c.dist; });
+      // factorLejos (1 por defecto): la calidad del visor lo baja para ocultar antes lo lejano
+      const f = grupo.userData.factorLejos || 1;
+      lejanos.forEach(c => { c.malla.visible = distCaja(c, x, z) < c.dist * f; });
       // Los árboles solo se vuelven a repartir si la cámara se ha movido más de 4 m
       if (!camArboles || (x - camArboles.x) * (x - camArboles.x) + (z - camArboles.z) * (z - camArboles.z) > 16) {
         camArboles = { x, z };
