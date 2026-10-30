@@ -110,15 +110,15 @@
   };
 
   const MONSTERS = {
-    costa:    ['Cangrejo gigante', 'Pirata saqueador', 'Naga de las mareas', 'Tortuga acorazada', 'Sirena oscura', 'Gaviota furiosa'],
-    pradera:  ['Lobo gris', 'Jabalí salvaje', 'Goblin explorador', 'Bandido de caminos', 'Escarabajo gigante', 'Kobold'],
-    bosque:   ['Araña del bosque', 'Treant joven', 'Oso pardo', 'Orco cazador', 'Duende travieso', 'Lobo alfa'],
-    pantano:  ['Sapo venenoso', 'Lagarto del cieno', 'Zombi ahogado', 'Bruja del pantano', 'Sanguijuela gigante', 'Hombre lagarto'],
-    desierto: ['Escorpión gigante', 'Momia errante', 'Gusano de arena', 'Nómada renegado', 'Basilisco', 'Elemental de arena'],
-    tundra:   ['Lobo de las nieves', 'Bárbaro del norte', 'Espectro helado', 'Mamut lanudo', 'Troll de hielo', 'Liebre colmillo'],
-    taiga:    ['Oso negro', 'Lince sombrío', 'Cazador furtivo', 'Wendigo', 'Lobo de escarcha', 'Ent de pino'],
-    montana:  ['Gárgola', 'Golem de piedra', 'Arpía', 'Troll de las cumbres', 'Grifo salvaje', 'Enano corrupto'],
-    nieve:    ['Elemental de hielo', 'Yeti', 'Dragón blanco joven', 'Gigante de escarcha', 'Fantasma de la ventisca', 'Grifo nival']
+    costa:    ['Cangrejo gigante', 'Pirata saqueador', 'Naga de las mareas', 'Tortuga acorazada', 'Sirena oscura', 'Gaviota furiosa', 'Tiburón de arrecife', 'Gólem de coral'],
+    pradera:  ['Lobo gris', 'Jabalí salvaje', 'Goblin explorador', 'Bandido de caminos', 'Escarabajo gigante', 'Kobold', 'Cuervo carroñero', 'Centauro errante'],
+    bosque:   ['Araña del bosque', 'Treant joven', 'Oso pardo', 'Orco cazador', 'Duende travieso', 'Lobo alfa', 'Ciervo espinoso', 'Mántico silvestre'],
+    pantano:  ['Sapo venenoso', 'Lagarto del cieno', 'Zombi ahogado', 'Bruja del pantano', 'Sanguijuela gigante', 'Hombre lagarto', 'Hidra lodosa', 'Fuego fatuo'],
+    desierto: ['Escorpión gigante', 'Momia errante', 'Gusano de arena', 'Nómada renegado', 'Basilisco', 'Elemental de arena', 'Buitre real', 'Chacal de dunas'],
+    tundra:   ['Lobo de las nieves', 'Bárbaro del norte', 'Espectro helado', 'Mamut lanudo', 'Troll de hielo', 'Liebre colmillo', 'Oso polar', 'Acechador boreal'],
+    taiga:    ['Oso negro', 'Lince sombrío', 'Cazador furtivo', 'Wendigo', 'Lobo de escarcha', 'Ent de pino', 'Jabalí colmilludo', 'Chamán del frío'],
+    montana:  ['Gárgola', 'Golem de piedra', 'Arpía', 'Troll de las cumbres', 'Grifo salvaje', 'Enano corrupto', 'Wyvern rocoso', 'Cabra demoníaca'],
+    nieve:    ['Elemental de hielo', 'Yeti', 'Dragón blanco joven', 'Gigante de escarcha', 'Fantasma de la ventisca', 'Grifo nival', 'Gólem glaciar', 'Valquiria caída']
   };
 
   const BOSSES = ['Señor', 'Reina', 'Rey', 'Antiguo', 'Devorador', 'Guardián'];
@@ -553,24 +553,45 @@
     return road;
   }
 
-  // Monstruos por zona: uno cada MONSTER_AREA metros cuadrados (una zona de 280 m tiene más que una de 160 m)
-  const MONSTER_AREA = 12000;
-  const MONSTERS_MIN = 4, MONSTERS_MAX = 24;
+  // Variedades de monstruos por zona (entre 4 y 8) y densidades disponibles con su cantidad de ejemplares
+  const MONSTER_DENSITIES = {
+    baja: 1,
+    media: 4,
+    alta: 8,
+    'muy alta': 12
+  };
+  const DENSITY_KEYS = ['baja', 'media', 'alta', 'muy alta'];
+  const MONSTERS_MIN = 4, MONSTERS_MAX = 8;
+  const MONSTRUOS_VERSION = 3;
 
-  function rollMonsters(rng, biome, levelMin, levelMax, type, radius) {
+  function monsterCount(info) {
+    if (!info || info.boss || info.density === 'única' || info.density === 'unica') return 1;
+    return MONSTER_DENSITIES[info.density] || 1;
+  }
+
+  function rollMonsters(rng, biome, levelMin, levelMax, type) {
+    if (type === 'segura') return [];
     const pool = MONSTERS[landBiome(biome)] || MONSTERS.pradera;
-    const r = radius || 200;
-    const proporcional = Math.round(Math.PI * r * r / MONSTER_AREA);
-    const count = type === 'segura' ? 0 : Math.max(MONSTERS_MIN, Math.min(MONSTERS_MAX, proporcional));
-    const picks = Array.from({ length: count }, () => rng.pick(pool));
+    const totalCount = rng.int(MONSTERS_MIN, MONSTERS_MAX);
+    const normalCount = type === 'jefe'
+      ? Math.max(MONSTERS_MIN, Math.min(MONSTERS_MAX - 1, totalCount))
+      : totalCount;
+
+    // Barajar una copia del bioma para que las variedades de la zona no se repitan
+    const baraja = pool.slice();
+    for (let i = baraja.length - 1; i > 0; i--) {
+      const j = rng.int(0, i);
+      const tmp = baraja[i]; baraja[i] = baraja[j]; baraja[j] = tmp;
+    }
+    const picks = Array.from({ length: normalCount }, (_, i) => baraja[i % baraja.length]);
     const out = picks.map((name, i) => ({
       name,
-      level: Math.round(lerp(levelMin, levelMax, count > 1 ? i / (count - 1) : 0.5)),
-      density: 'baja',
+      level: Math.round(lerp(levelMin, levelMax, normalCount > 1 ? i / (normalCount - 1) : 0.5)),
+      density: rng.pick(DENSITY_KEYS),
       boss: false
     }));
     if (type === 'jefe' && pool.length) {
-      out.push({ name: rng.pick(pool) + ' ' + rng.pick(BOSSES), level: levelMax + 3, density: 'única', boss: true });
+      out.push({ name: rng.pick(pool) + ' ' + rng.pick(BOSSES), level: levelMax + 3, density: 'baja', boss: true });
     }
     return out;
   }
@@ -780,7 +801,27 @@
     world.zones.forEach(z => {
       z.monsters = rollMonsters(rngBox.rng, z.biome, z.levelMin, z.levelMax, z.type, z.radius);
     });
+    world.monstruosVersion = MONSTRUOS_VERSION;
     rngBox.commit();
+  }
+
+  // Migra mundos antiguos por defecto a 4–8 variedades con las 4 densidades; respeta las zonas editadas a mano
+  function migrarMonstruosSiAntiguo(world) {
+    if (!world || world.monstruosVersion === MONSTRUOS_VERSION) return false;
+    const rngBox = rngFor(world);
+    (world.zones || []).forEach(z => {
+      const editada = (z.monsters || []).some(m => m.enemigo || (!m.boss && m.density && m.density !== 'baja'));
+      if (!editada) {
+        z.monsters = rollMonsters(rngBox.rng, z.biome, z.levelMin, z.levelMax, z.type, z.radius);
+      } else {
+        (z.monsters || []).forEach(m => {
+          if (!MONSTER_DENSITIES[m.density]) m.density = 'baja';
+        });
+      }
+    });
+    world.monstruosVersion = MONSTRUOS_VERSION;
+    rngBox.commit();
+    return true;
   }
 
   // Calcula el nivel de una sola zona (p. ej. creada a mano) y regenera sus monstruos
@@ -903,6 +944,7 @@
     return {
       format: FORMAT,
       version: VERSION,
+      monstruosVersion: MONSTRUOS_VERSION,
       name: name || 'Nuevo mundo',
       seed: (seed >>> 0) || 1,
       rngState: (seed >>> 0) || 1,
@@ -1085,13 +1127,13 @@
   }
 
   const api = {
-    FORMAT, VERSION, SEA_LEVEL, BIOMES, MONSTERS, POI_TYPES, ZONE_TYPES, DEFAULT_SETTINGS,
+    FORMAT, VERSION, MONSTRUOS_VERSION, SEA_LEVEL, BIOMES, MONSTERS, MONSTER_DENSITIES, monsterCount, POI_TYPES, ZONE_TYPES, DEFAULT_SETTINGS,
     PRNG, hashString, makeNoise2D, fbm, getTerrain, calcularRios,
     emptyWorld, generateWorld, addTown, autoConnect, populateRoad,
     createTown, createRoad, createZone, createPoi,
     moveEntity, removeEntity, refreshRoad, setStartTown,
     computeTownExits, updateAllExits, exitWorldPoint, townTileHalf,
-    recomputeLevels, repoblarMonstruos, recomputeLevelsSoft, autoLevelZone, autoLevelTown, rerollZoneMonsters, townRadius, defaultTownCfg,
+    recomputeLevels, repoblarMonstruos, migrarMonstruosSiAntiguo, recomputeLevelsSoft, autoLevelZone, autoLevelTown, rerollZoneMonsters, townRadius, defaultTownCfg,
     findTown, findRoad, findZone, findPoi, findAny, kindOf,
     zoneOutline, zoneRadiusAt, pointInZone, distToPolyline, pointOnPolyline,
     serialize, deserialize, validate, stats

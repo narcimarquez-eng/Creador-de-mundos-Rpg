@@ -124,7 +124,7 @@
     table.mon td { padding: 2px 2px; }
     table.mon input { padding: 4px 5px; }
     table.mon select { padding: 3px 2px; font-size: 11px; max-width: 100%; }
-    table.mon select[data-mf="density"] { width: 74px; }
+    table.mon select[data-mf="density"] { width: 96px; }
     table.mon td.lv { width: 54px; }
     table.mon td.x { width: 28px; }
     table.mon button { padding: 3px 7px; }
@@ -272,7 +272,7 @@
 
   <div id="toast"></div>
 
-  <script src="js/world-core.js?v=20251029"></script>
+  <script src="js/world-core.js?v=20261030c"></script>
   <script src="js/equipo.js?v=20251029"></script>
   <script defer src="js/enemigos-catalogo.js?v=20251029" onload="if(window.__alCargarCatalogo)window.__alCargarCatalogo()"></script>
   <script>
@@ -414,7 +414,9 @@
     const text = lsGet(STORE.data(id));
     if (!text) { toast('Sesión no encontrada.'); return false; }
     try {
-      openWorld(W.deserialize(text), id);
+      const w = W.deserialize(text);
+      if (typeof W.migrarMonstruosSiAntiguo === 'function') W.migrarMonstruosSiAntiguo(w);
+      openWorld(w, id);
       return true;
     } catch (e) {
       toast('Error al cargar: ' + e.message, 4000);
@@ -1234,12 +1236,12 @@
       <input type="range" min="60" max="900" step="10" data-f="radius" value="${z.radius}">
       <label>Reaparición de monstruos (s)</label><input type="number" min="5" max="3600" data-f="respawnSec" data-num="1" value="${z.respawnSec}">
       <div class="muted" style="margin-top:6px">${road ? 'En el camino ' + esc((W.findTown(world, road.from) || {}).name) + ' ⇄ ' + esc((W.findTown(world, road.to) || {}).name) + (z.anchored ? ' (sigue al camino)' : '') : 'Zona libre (no ligada a un camino)'}</div>
-      <h3>Monstruos</h3>
+      <h3>Monstruos <span class="muted" style="font-weight:400">(${z.monsters.length} variedades · ${z.monsters.reduce((s, m) => s + W.monsterCount(m), 0)} ejemplares)</span></h3>
       <table class="mon">
         ${z.monsters.map((m, i) => `<tr>
           <td><input type="text" data-m="${i}" data-mf="name" value="${esc(m.name)}" ${m.boss ? 'style="color:#fca5a5"' : ''}></td>
           <td class="lv"><input type="number" min="1" max="120" data-m="${i}" data-mf="level" value="${m.level}"></td>
-          <td><select data-m="${i}" data-mf="density">${['baja', 'media', 'alta', 'única'].map(d => `<option ${m.density === d ? 'selected' : ''}>${d}</option>`).join('')}</select></td>
+          <td>${m.boss ? '<span class="muted" title="El jefe siempre aparece una sola vez en la zona">Jefe (×1)</span>' : `<select data-m="${i}" data-mf="density">${Object.keys(W.MONSTER_DENSITIES).map(d => `<option value="${d}" ${m.density === d ? 'selected' : ''}>${d} (×${W.MONSTER_DENSITIES[d]})</option>`).join('')}</select>`}</td>
           <td><select data-m="${i}" data-mf="enemigo"><option value="">Automático</option>${enemyOptions(m.enemigo)}</select></td>
           <td class="x"><button data-mdel="${i}">✕</button></td></tr>`).join('')}
       </table>
@@ -1484,6 +1486,7 @@
     reader.onload = () => {
       try {
         const w = W.deserialize(reader.result);
+        if (typeof W.migrarMonstruosSiAntiguo === 'function') W.migrarMonstruosSiAntiguo(w);
         openWorld(w, newSessionId());
         closeModals();
         toast('Mundo «' + w.name + '» importado como nueva sesión');
