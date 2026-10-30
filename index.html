@@ -1105,6 +1105,8 @@
       <input type="range" data-s="extraLinks" data-pct="1" min="0" max="100" value="${Math.round(S.extraLinks * 100)}">
       <label>Enemigos de los monstruos (sin elegir)</label>
       <select data-s="enemyMode"><option value="niveles" ${S.enemyMode !== 'aleatorio' ? 'selected' : ''}>Por nivel</option><option value="aleatorio" ${S.enemyMode === 'aleatorio' ? 'selected' : ''}>Aleatorios</option></select>
+      <label>Tamaño de los monstruos: <b>×${(S.enemyScale || 1).toFixed(2)}</b></label>
+      <input type="range" data-s="enemyScale" min="0.5" max="1.5" step="0.05" value="${S.enemyScale || 1}" title="1 es el tamaño del editor de enemigos">
       <label>Zonas por camino</label>
       <select data-s="zonesPerRoad"><option value="0" ${S.zonesPerRoad == 0 ? 'selected' : ''}>Ninguna</option><option value="1" ${S.zonesPerRoad == 1 ? 'selected' : ''}>1</option><option value="2" ${S.zonesPerRoad == 2 ? 'selected' : ''}>1–2 según longitud</option></select>
       <label>Lugares por zona: <b>${Math.round(S.poiChance * 100)}%</b></label>

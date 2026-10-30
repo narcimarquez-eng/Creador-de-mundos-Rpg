@@ -894,7 +894,8 @@
     zonesPerRoad: 2,      // 0, 1 o 2 zonas de caza por camino
     poiChance: 0.45,      // probabilidad de punto de interés por zona
     metersPerLevel: 180,  // metros de camino por cada nivel recomendado
-    enemyMode: 'niveles'  // enemigo de los monstruos sin elegir: 'niveles' (por nivel) o 'aleatorio'
+    enemyMode: 'niveles', // enemigo de los monstruos sin elegir: 'niveles' (por nivel) o 'aleatorio'
+    enemyScale: 1         // tamaño de los monstruos en el visor (1 = el del editor de enemigos)
   };
 
   function emptyWorld(name, seed, settings) {

@@ -278,6 +278,7 @@
       <label><input type="checkbox" id="chk-water" checked> Agua</label>
       <label>Calidad <select id="sel-quality"><option value="bajo">Bajo</option><option value="medio">Medio</option><option value="alto">Alto</option></select></label>
       <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
+      <label title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
     </div>
   </aside>
 
@@ -2209,10 +2210,34 @@
     });
   }
 
-  // Dos versiones de cada monstruo: la de cerca (densidad media, solo a menos de 10 m) y la de lejos (densidad
-  // baja, ~la mitad de triángulos). Se construyen la primera vez que hacen falta, como mucho una por fotograma para no dar tirones.
-  let simplificadorListo = false;
-  MeshoptSimplifier.ready.then(() => { simplificadorListo = true; }).catch(() => { /* sin simplificar */ });
+  // Dos versiones de cada monstruo: la de cerca (solo a menos de 10 m) y la de lejos. Las dos parten de la
+  // densidad baja del generador y se simplifican con meshoptimizer: 'ratio' es la parte de triángulos que se
+  // queda y 'error', cuánto puede desviarse la forma (relativo al tamaño de cada malla). Se construyen la primera
+  // vez que hacen falta, como mucho una por fotograma para no dar tirones.
+  const VERSION_ENEMIGO = {
+    cerca: { densidad: 'low', ratio: 0.6, error: 0.006 },
+    lejos: { densidad: 'low', ratio: 0.25, error: 0.03 }
+  };
+  let simplificadorListo = false, esperandoSimplificador = true;
+  MeshoptSimplifier.ready.then(() => { simplificadorListo = true; }).catch(() => { /* sin simplificar */ }).finally(() => { esperandoSimplificador = false; });
+
+  // Tamaño de los monstruos: el del mundo (Creador de mundos, «Tamaño de los monstruos») o el que se pruebe en
+  // el panel del visor (no se guarda). 1 es el tamaño del editor de enemigos.
+  let escalaEnemigosPanel = null;
+  const escalaEnemigos = () => escalaEnemigosPanel || (world && world.settings && world.settings.enemyScale) || 1;
+  function aplicarEscalaEnemigos() {
+    const e = escalaEnemigos();
+    monsters.forEach(m => {
+      Object.values(m.versiones || {}).forEach(v => {
+        const antes = v.rig.rootGroup.scale.x || 1;
+        v.rig.rootGroup.scale.setScalar(e);
+        v.barHeight = (v.barHeight - 0.9) * e / antes + 0.9;   // la barra de vida sigue a la cabeza
+      });
+      const activa = m.activa && m.versiones[m.activa];
+      if (activa) m.barHeight = activa.barHeight;
+    });
+    $('tam-enemigos-v').textContent = '×' + e.toFixed(2);
+  }
   // Escamas en relieve: de lejos no se distinguen y la versión lejana no las lleva. El pelaje sí se queda
   // (simplificado): sin él cambian la silueta y el color del animal.
   const CAPAS_DE_CERCA = /^Skinned_3D_Dragon_Scale_Relief/;
@@ -2221,13 +2246,12 @@
 
   function construirVersionEnemigo(m, tipo) {
     if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(renderer.capabilities.getMaxAnisotropy());
-    // Calidad baja: menos segmentos y menos fragmentos también de cerca
-    const densidad = tipo === 'lejos' || quality === 'bajo' ? 'low' : 'medium';
-    const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: densidad }) });
+    const V = VERSION_ENEMIGO[tipo];
+    const cfg = Object.assign({}, m.enemigo, { morphology: Object.assign({}, m.enemigo.morphology, { meshDensity: V.densidad }) });
     const rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
     EnemyOpt.optimizarRig(rig);
-    // Enemigos un 50 % más grandes: el modelo del editor se ve pequeño en el mapa
-    rig.rootGroup.scale.setScalar(1.5);
+    // Tamaño de los monstruos: ajuste del mundo (Creador de mundos) o del panel del visor
+    rig.rootGroup.scale.setScalar(escalaEnemigos());
     // Las piezas rígidas pegadas a los huesos se unen por material (de ~70 dibujos a ~20); las que la animación
     // cambia por separado (núcleo, aliento, aura…) se quedan como están
     const animadas = [];
@@ -2238,8 +2262,8 @@
       capas.forEach(o => { o.removeFromParent(); o.geometry.dispose(); });
     }
     FusionLib.fusionarPorMaterial(THREE, rig.rootGroup, { excluir: animadas });
-    // Versión lejana: cada malla a ~40 % de sus triángulos (mismos vértices y huesos: la animación no cambia)
-    if (tipo === 'lejos' && simplificadorListo) FusionLib.simplificarModelo(THREE, MeshoptSimplifier, rig.rootGroup, { ratio: 0.4, error: 0.02 });
+    // Menos triángulos (mismos vértices y huesos: la animación no cambia)
+    if (simplificadorListo) FusionLib.simplificarModelo(THREE, MeshoptSimplifier, rig.rootGroup, { ratio: V.ratio, error: V.error });
     const fx = EnemyFx.crear(rig, m.enemigo);
     aplicarEntorno(rig.rootGroup);
     return { rig, fx, barHeight: new THREE.Box3().setFromObject(rig.rootGroup).max.y + 0.9 };
@@ -2248,14 +2272,15 @@
   // Muestra la versión adecuada a la distancia d. Devuelve false si aún no hay ninguna construida.
   // Versión que le toca a un monstruo a la distancia d (con margen para que no parpadee)
   function tipoEnemigo(m, d) {
-    if (quality === 'bajo') return 'cerca';   // en calidad baja las dos serían iguales
+    if (quality === 'bajo') return 'lejos';   // en calidad baja, siempre la versión ligera
     return d < MONSTRUO_DETALLE + (m.activa === 'cerca' ? 2 : -2) ? 'cerca' : 'lejos';
   }
 
   function construirModeloEnemigo(m, d) {
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
-      if (presupuestoModelos <= 0) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
+      // Se espera al simplificador (unos milisegundos al abrir): sin él, la versión saldría con todos sus triángulos
+      if (presupuestoModelos <= 0 || esperandoSimplificador) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
       presupuestoModelos--;
       m.versiones[tipo] = construirVersionEnemigo(m, tipo);
     }
@@ -2272,6 +2297,9 @@
   function buildMonsters() {
     enemyMode = (world.settings && world.settings.enemyMode) || enemyMode;
     $('sel-enemigos').value = enemyMode;
+    escalaEnemigosPanel = null;
+    $('tam-enemigos').value = escalaEnemigos();
+    $('tam-enemigos-v').textContent = '×' + escalaEnemigos().toFixed(2);
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     const barGeo = new THREE.PlaneGeometry(2.6, 0.28);
@@ -4153,6 +4181,7 @@
   $('chk-trees').onchange = e => { if (decorGroup) decorGroup.userData.arboles.visible = e.target.checked; };
   $('sel-quality').onchange = e => applyQuality(e.target.value, true);
   $('sel-enemigos').onchange = e => { enemyMode = e.target.value; buildMonsters(); };
+  $('tam-enemigos').oninput = e => { escalaEnemigosPanel = parseFloat(e.target.value); aplicarEscalaEnemigos(); };
   $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
 
   // ===========================================================================
@@ -4286,7 +4315,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, character, get hero() { return hero; } };
+    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
