@@ -459,8 +459,8 @@
   <script type="module" src="js/terreno.js?v=20251029"></script>
   <script type="module" src="js/decorado.js?v=20251029"></script>
   <script type="module" src="js/character.js?v=20251029"></script>
-  <script type="module" src="js/enemigos-optimizar.js?v=20251029"></script>
-  <script type="module" src="js/enemigos-combate.js?v=20251029"></script>
+  <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
+  <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js";
@@ -1272,6 +1272,7 @@
     // Los modelos de monstruos se reconstruyen con la nueva resolución (se hacen de nuevo al acercarse)
     enemyTextures = null;
     monsters.forEach(m => descargarModelosEnemigo(m));
+    limpiarCachePrototiposEnemigos();
     $('sel-quality').value = q;
     if (save) store.setItem('rpgMundo.calidad', q);
     updateTerrainChunks(performance.now(), true);
@@ -2348,6 +2349,13 @@
             m._pendEnemigo = null;
           }
         });
+        // Precalienta el atlas de texturas procedurales en segundo plano mientras el jugador aún está en el pueblo
+        const idle = window.requestIdleCallback || (fn => setTimeout(fn, 150));
+        idle(() => {
+          if (!enemyTextures && window.EnemyLib && renderer) {
+            enemyTextures = window.EnemyLib.createProceduralTextureSet(QUALITY[quality].texturas ? renderer.capabilities.getMaxAnisotropy() : 1);
+          }
+        });
         return window.EnemyLib;
       }).catch(err => { console.error('Error al cargar enemigos.js:', err); return null; });
     }
@@ -2410,6 +2418,11 @@
   const escalaEnemigos = () => escalaEnemigosPanel || (world && world.settings && world.settings.enemyScale) || 1;
   function aplicarEscalaEnemigos() {
     const e = escalaEnemigos();
+    protoEnemigoCache.forEach(v => {
+      const antes = v.rig.rootGroup.scale.x || 1;
+      v.rig.rootGroup.scale.setScalar(e);
+      v.barHeight = (v.barHeight - 0.9) * e / antes + 0.9;
+    });
     monsters.forEach(m => {
       Object.values(m.versiones || {}).forEach(v => {
         const antes = v.rig.rootGroup.scale.x || 1;
@@ -2426,11 +2439,28 @@
   const CAPAS_DE_CERCA = /^Skinned_3D_Dragon_Scale_Relief/;
   const MONSTRUO_DETALLE = 10;   // cambio de versión, con 2 m de margen a cada lado para que no parpadee
   let presupuestoModelos = 1;
-  const protoEnemigoCache = new Map(); // claveArquetipo + '|' + tipo -> { rig, fx, detalle, barHeight }
+  const protoEnemigoCache = new Map(); // claveArquetipo + '|' + tipo -> { rig, detalle, barHeight }
+
+  function limpiarCachePrototiposEnemigos() {
+    protoEnemigoCache.forEach(proto => {
+      if (proto.rig && proto.rig.rootGroup) {
+        proto.rig.rootGroup.traverse(o => {
+          if (!o.isMesh && !o.isPoints) return;
+          if (o.geometry) o.geometry.dispose();
+          if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mat => { if (mat) { materialesEntorno.delete(mat); mat.dispose(); } });
+        });
+      }
+    });
+    protoEnemigoCache.clear();
+  }
+
+  function claveCacheEnemigo(m, tipo) {
+    const idArquetipo = (m.enemigo && (m.enemigo.id || m.enemigo.name || m.enemigo.archetype)) || m.name || 'comun';
+    return idArquetipo + '|' + tipo;
+  }
 
   function obtenerPrototipoVersionEnemigo(m, tipo) {
-    const idArquetipo = (m.enemigo && (m.enemigo.id || m.enemigo.archetype)) || m.name || 'comun';
-    const claveCache = idArquetipo + '|' + tipo;
+    const claveCache = claveCacheEnemigo(m, tipo);
     if (protoEnemigoCache.has(claveCache)) {
       return protoEnemigoCache.get(claveCache);
     }
@@ -2441,7 +2471,9 @@
 
   function instanciarVersionEnemigo(m, tipo) {
     const proto = obtenerPrototipoVersionEnemigo(m, tipo);
-    if (!EnemyOpt || !EnemyOpt.clonarRig) return proto;
+    if (!EnemyOpt || !EnemyOpt.clonarRig) {
+      return Object.assign({}, proto, { fx: proto.fx || (EnemyFx ? EnemyFx.crear(proto.rig, m.enemigo) : null) });
+    }
     const clonRig = EnemyOpt.clonarRig(THREE, proto.rig);
     const clonFx = EnemyFx ? EnemyFx.crear(clonRig, m.enemigo) : null;
     const detalle = [];
@@ -2465,13 +2497,15 @@
     // Tamaño de los monstruos: ajuste del mundo (Creador de mundos) o del panel del visor
     rig.rootGroup.scale.setScalar(escalaEnemigos());
     // Las piezas rígidas pegadas a los huesos se unen por material (de ~70 dibujos a ~20); las que la animación
-    // cambia por separado (núcleo, aliento, aura…) se quedan como están
+    // cambia por separado (núcleo, aliento, proyectil, rastro, aura…) y sus hijos se quedan como están
     const animadas = [];
-    Object.values(rig.parts || {}).forEach(p => [].concat(p).forEach(o => { if (o && o.isMesh) animadas.push(o); }));
+    Object.values(rig.parts || {}).forEach(p => [].concat(p).forEach(o => {
+      if (o && o.isMesh) o.traverse(sub => { if (sub.isMesh) animadas.push(sub); });
+    }));
     if (tipo === 'lejos') {
       const capas = [];
       rig.rootGroup.traverse(o => { if (o.isMesh && CAPAS_DE_CERCA.test(o.name || '')) capas.push(o); });
-      capas.forEach(o => { o.removeFromParent(); o.geometry.dispose(); });
+      capas.forEach(o => { if (o.parent) o.parent.remove(o); o.geometry.dispose(); });
     }
     FusionLib.fusionarPorMaterial(THREE, rig.rootGroup, { excluir: animadas });
     // Menos triángulos (mismos vértices y huesos: la animación no cambia)
@@ -2479,9 +2513,8 @@
     // Pelo y escamas: capas aparte que se muestran solo cerca (ver aplicarDetalle)
     const detalle = [];
     rig.rootGroup.traverse(o => { if (o.isMesh && DETALLE_RE.test((o.name || '') + ' ' + ((o.material && o.material.name) || ''))) detalle.push(o); });
-    const fx = EnemyFx.crear(rig, m.enemigo);
     aplicarEntorno(rig.rootGroup);
-    return { rig, fx, detalle, barHeight: new THREE.Box3().setFromObject(rig.rootGroup).max.y + 0.9 };
+    return { rig, detalle, barHeight: new THREE.Box3().setFromObject(rig.rootGroup).max.y + 0.9 };
   }
 
   // Muestra la versión adecuada a la distancia d. Devuelve false si aún no hay ninguna construida.
@@ -2515,8 +2548,12 @@
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
       // Se espera al simplificador (unos milisegundos al abrir): sin él, la versión saldría con todos sus triángulos
-      if (presupuestoModelos <= 0 || esperandoSimplificador) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
-      presupuestoModelos--;
+      if (esperandoSimplificador) return !!m.rig;
+      // Solo se limita a 1 por fotograma la generación inicial del prototipo; clonar uno ya cacheado cuesta ~0.2 ms
+      if (!protoEnemigoCache.has(claveCacheEnemigo(m, tipo))) {
+        if (presupuestoModelos <= 0) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
+        presupuestoModelos--;
+      }
       m.versiones[tipo] = instanciarVersionEnemigo(m, tipo);
     }
     if (m.activa !== tipo) {
@@ -2531,16 +2568,7 @@
   }
 
   function buildMonsters() {
-    protoEnemigoCache.forEach(proto => {
-      if (proto.rig && proto.rig.rootGroup) {
-        proto.rig.rootGroup.traverse(o => {
-          if (!o.isMesh) return;
-          if (o.geometry) o.geometry.dispose();
-          if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mat => { materialesEntorno.delete(mat); mat.dispose(); });
-        });
-      }
-    });
-    protoEnemigoCache.clear();
+    limpiarCachePrototiposEnemigos();
     enemyMode = (world.settings && world.settings.enemyMode) || enemyMode;
     $('sel-enemigos').value = enemyMode;
     escalaEnemigosPanel = null;
@@ -2743,9 +2771,24 @@
 
   function descargarModelosEnemigo(m) {
     if (m.rig) m.group.remove(m.rig.rootGroup);
-    // Las geometrías y materiales pertenecen a protoEnemigoCache y se reutilizan entre instancias;
-    // solo se desvincula el rig de la escena y se limpian las referencias de la instancia.
+    // Las geometrías y materiales de las mallas pertenecen a protoEnemigoCache y se reutilizan entre instancias;
+    // aquí solo se liberan los pequeños buffers propios de cada clon (partículas y proyectil mágico).
+    Object.values(m.versiones || {}).forEach(v => {
+      if (v.rig) {
+        if (v.rig.auraParticleSystem && v.rig.auraParticleSystem.points && v.rig.auraParticleSystem.points.geometry) {
+          v.rig.auraParticleSystem.points.geometry.dispose();
+        }
+        if (v.rig.mouthBreathSystem && v.rig.mouthBreathSystem.points && v.rig.mouthBreathSystem.points.geometry) {
+          v.rig.mouthBreathSystem.points.geometry.dispose();
+        }
+      }
+      if (v.fx) {
+        if (v.fx.bola && v.fx.bola.material) v.fx.bola.material.dispose();
+        if (v.fx.matDestello) v.fx.matDestello.dispose();
+      }
+    });
     m.versiones = {}; m.rig = null; m.fx = null; m.activa = null; m.posado = false; m.sombra = undefined;
+    m.group.visible = false; m.bar.visible = false;
   }
   let fotogramaCombate = 0;
 
@@ -2763,58 +2806,62 @@
     }
 
     monsters.forEach(m => {
-      const dPresencia = Math.hypot(m.x - p.x, m.z - p.z);
-      const presente = m.group.parent ? dPresencia <= MONSTRUO_PRESENTE : dPresencia < MONSTRUO_PRESENTE - 10;
-      if (!presente) { if (m.group.parent) quitarMonstruo(m); return; }
-      if (!m.group.parent) ponerMonstruo(m);
-      if (!m.alive) {
-        // Muerte: el modelo cae un segundo antes de desaparecer
-        if (m.fx && performance.now() < m.muriendo) {
-          m.group.visible = true;
-          EnemyFx.actualizar(m.fx, 'death', now / 1000, dt, now / 1000);
-          return;
+      try {
+        const dPresencia = Math.hypot(m.x - p.x, m.z - p.z);
+        const presente = m.group.parent ? dPresencia <= MONSTRUO_PRESENTE : dPresencia < MONSTRUO_PRESENTE - 10;
+        if (!presente) { if (m.group.parent) quitarMonstruo(m); return; }
+        if (!m.group.parent) ponerMonstruo(m);
+        if (!m.alive) {
+          // Muerte: el modelo cae un segundo antes de desaparecer
+          if (m.fx && performance.now() < m.muriendo) {
+            m.group.visible = true;
+            EnemyFx.actualizar(m.fx, 'death', now / 1000, dt, now / 1000);
+            return;
+          }
+          if (performance.now() >= m.respawnAt) respawnMonster(m);
+          else { m.group.visible = false; m.bar.visible = false; return; }
         }
-        if (performance.now() >= m.respawnAt) respawnMonster(m);
-        else { m.group.visible = false; m.bar.visible = false; return; }
-      }
-      const d = Math.hypot(m.x - p.x, m.z - p.z);
-      // Daño de un ataque que ya ha llegado al héroe (golpe o proyectil)
-      if (m.impactoEn && now >= 0 && performance.now() >= m.impactoEn) {
-        m.impactoEn = 0;
-        if (!hero.dead) aplicarDanoEnemigo(m);
-      }
-      // Los monstruos no entran en los pueblos: si llegan a uno, vuelven a su zona
-      const inTown = towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
-      if (inTown) m.state = 'return';
-      if (d < 120 && !inTown) {
-        const r = CombatLib.monsterTick(m, hero, p.x, p.z, dt);
-        if (r.attack && !hero.dead) monsterHitsHero(m);
-      }
-      if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && performance.now() < m.muriendo)) descargarModelosEnemigo(m);
-      const near = d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d);
-      m.group.visible = near;
-      if (near) {
-        aplicarDetalle(m, d);
-        m.group.position.set(m.x, H(m.x, m.z), m.z);
-        if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
-        const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
-        // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
-        const cada = d < MONSTRUO_ANIMA ? 1 : d < MONSTRUO_ANIMA_LENTO ? 4 : 0;
-        m.dtAnim = (m.dtAnim || 0) + dt;
-        if ((cada && (fotogramaCombate + m.turno) % cada === 0) || !m.posado) { EnemyFx.actualizar(m.fx, estado, now / 1000, m.dtAnim, now / 1000); m.dtAnim = 0; m.posado = true; }
-        // Solo los cercanos dibujan su sombra (fuera de la caja de sombras no se vería)
-        const sombra = d < MONSTRUO_ANIMA && QUALITY[quality].shadows > 0;
-        if (sombra !== m.sombra) { m.sombra = sombra; m.rig.rootGroup.traverse(o => { if (o.isMesh) o.castShadow = sombra; }); }
-      }
-      const showBar = near && (m.hp < m.maxHp || d < 12);
-      m.bar.visible = showBar;
-      if (showBar) {
-        m.bar.position.set(m.x, H(m.x, m.z) + m.barHeight, m.z);
-        m.bar.quaternion.copy(camera.quaternion);
-        const f = Math.max(0.001, m.hp / m.maxHp);
-        m.fg.scale.x = f;
-        m.fg.position.x = -(1 - f) * 1.3;
-        m.fg.material.color.set(f > 0.5 ? '#22c55e' : f > 0.25 ? '#f59e0b' : '#ef4444');
+        const d = Math.hypot(m.x - p.x, m.z - p.z);
+        // Daño de un ataque que ya ha llegado al héroe (golpe o proyectil)
+        if (m.impactoEn && now >= 0 && performance.now() >= m.impactoEn) {
+          m.impactoEn = 0;
+          if (!hero.dead) aplicarDanoEnemigo(m);
+        }
+        // Los monstruos no entran en los pueblos: si llegan a uno, vuelven a su zona
+        const inTown = towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
+        if (inTown) m.state = 'return';
+        if (d < 120 && !inTown) {
+          const r = CombatLib.monsterTick(m, hero, p.x, p.z, dt);
+          if (r.attack && !hero.dead) monsterHitsHero(m);
+        }
+        if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && performance.now() < m.muriendo)) descargarModelosEnemigo(m);
+        const near = d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d);
+        m.group.visible = near;
+        if (near) {
+          aplicarDetalle(m, d);
+          m.group.position.set(m.x, H(m.x, m.z), m.z);
+          if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
+          const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
+          // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
+          const cada = d < MONSTRUO_ANIMA ? 1 : d < MONSTRUO_ANIMA_LENTO ? 4 : 0;
+          m.dtAnim = (m.dtAnim || 0) + dt;
+          if ((cada && (fotogramaCombate + m.turno) % cada === 0) || !m.posado) { EnemyFx.actualizar(m.fx, estado, now / 1000, m.dtAnim, now / 1000); m.dtAnim = 0; m.posado = true; }
+          // Solo los cercanos dibujan su sombra (fuera de la caja de sombras no se vería)
+          const sombra = d < MONSTRUO_ANIMA && QUALITY[quality].shadows > 0;
+          if (sombra !== m.sombra) { m.sombra = sombra; m.rig.rootGroup.traverse(o => { if (o.isMesh) o.castShadow = sombra; }); }
+        }
+        const showBar = near && (m.hp < m.maxHp || d < 12);
+        m.bar.visible = showBar;
+        if (showBar) {
+          m.bar.position.set(m.x, H(m.x, m.z) + m.barHeight, m.z);
+          m.bar.quaternion.copy(camera.quaternion);
+          const f = Math.max(0.001, m.hp / m.maxHp);
+          m.fg.scale.x = f;
+          m.fg.position.x = -(1 - f) * 1.3;
+          m.fg.material.color.set(f > 0.5 ? '#22c55e' : f > 0.25 ? '#f59e0b' : '#ef4444');
+        }
+      } catch (errMon) {
+        console.error('Error actualizando monstruo:', m && m.name, errMon);
       }
     });
   }

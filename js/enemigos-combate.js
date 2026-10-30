@@ -8,22 +8,30 @@
   'use strict';
 
   const DURACION = { golpe: 0.5, magia: 0.9, hit: 0.3 };
+  let bolaGeoCompartida = null;
 
   // Qué gesto usa cada enemigo al atacar
   function tipoAtaque(config) {
+    if (!config) return 'golpe';
     if (config.raceCategory === 'magical' || config.weapon === 'arcane_staff' || config.weapon === 'dragon_breath_maw') return 'magia';
     return 'golpe';
   }
 
   function crear(rig, config) {
     const color = new THREE.Color((config && config.materials && config.materials.emissiveColor) || '#7dd3fc');
-    const bola = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), new THREE.MeshBasicMaterial({ color }));
+    if (!bolaGeoCompartida) bolaGeoCompartida = new THREE.SphereGeometry(0.28, 12, 8);
+    const bola = new THREE.Mesh(bolaGeoCompartida, new THREE.MeshBasicMaterial({ color }));
     bola.visible = false;
     rig.rootGroup.add(bola);
-    const armadura = rig.materials.primaryArmorMat;
+    const armadura = rig.materials && rig.materials.primaryArmorMat;
+    const mallasArmadura = [];
+    if (armadura) {
+      rig.rootGroup.traverse(o => { if (o.isMesh && o.material === armadura) mallasArmadura.push(o); });
+    }
     const nucleo = rig.parts.coreMesh && rig.parts.coreMesh.material;
     return {
       rig, bola, accion: null, inicio: 0, offsets: new Map(), destello: false,
+      armadura, mallasArmadura, matDestello: null,
       armaduraEmisivo: armadura ? { color: armadura.emissive.clone(), intensidad: armadura.emissiveIntensity } : null,
       nucleoIntensidad: nucleo && nucleo.emissiveIntensity !== undefined ? nucleo.emissiveIntensity : null,
       nucleo,
@@ -94,24 +102,29 @@
       fx.bola.visible = false;
     }
 
-    // Destello y empujón al recibir un golpe
-    if (a === 'hit') {
+    // Destello y empujón al recibir un golpe (material temporal por instancia para no teñir a los demás clones)
+    if (a === 'hit' && estado !== 'death') {
       const f = 1 - q;
       sumar(fx, p.torsoGroup, -0.25 * f, 0, 0);
       sumar(fx, p.headGroup, -0.3 * f, 0, 0);
-      if (fx.armaduraEmisivo) {
-        const m = rig.materials.primaryArmorMat;
-        m.emissive.setHex(0xff2a2a);
-        m.emissiveIntensity = 0.9 * f;
-        fx.destello = true;
+      if (fx.armadura && fx.mallasArmadura.length) {
+        if (!fx.matDestello) fx.matDestello = fx.armadura.clone();
+        if (!fx.destello) {
+          fx.matDestello.envMap = fx.armadura.envMap;
+          fx.matDestello.envMapIntensity = fx.armadura.envMapIntensity;
+          for (let i = 0; i < fx.mallasArmadura.length; i++) fx.mallasArmadura[i].material = fx.matDestello;
+          fx.destello = true;
+        }
+        fx.matDestello.emissive.setHex(0xff2a2a);
+        fx.matDestello.emissiveIntensity = 0.9 * f;
       }
-    } else if (fx.destello && fx.armaduraEmisivo) {
-      const m = rig.materials.primaryArmorMat;
-      m.emissive.copy(fx.armaduraEmisivo.color);
-      m.emissiveIntensity = fx.armaduraEmisivo.intensidad;
+    } else if (fx.destello) {
+      for (let i = 0; i < fx.mallasArmadura.length; i++) fx.mallasArmadura[i].material = fx.armadura;
       fx.destello = false;
     }
   }
 
-  root.EnemyFx = { crear, disparar, actualizar, tipoAtaque, momentoImpacto };
+  const api = { crear, disparar, actualizar, tipoAtaque, momentoImpacto };
+  root.EnemyFx = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
