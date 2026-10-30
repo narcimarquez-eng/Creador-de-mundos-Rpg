@@ -2515,7 +2515,17 @@
   // Monstruos a distancia: solo existen cerca del héroe. Se ven hasta 120 m; se animan cada fotograma y hacen
   // sombra hasta 60 m, y de 60 a 120 m se animan uno de cada 4 fotogramas. A más de 160 m se descargan.
   const MONSTRUO_VISIBLE = 120, MONSTRUO_ANIMA = 60, MONSTRUO_ANIMA_LENTO = 120;
-  const MONSTRUO_DESCARGA = 160;   // más lejos se liberan sus modelos (con margen sobre los 120 m para no cargar y descargar sin parar)
+  const MONSTRUO_DESCARGA = 160;
+  // Presencia: a más de 400 m del héroe el monstruo sale de la escena y no se actualiza; vuelve al acercarse
+  // (con 10 m de margen). Conserva su estado (vida, si está vivo, cuándo reaparece).
+  const MONSTRUO_PRESENTE = 400;
+  function quitarMonstruo(m) {
+    scene.remove(m.group); scene.remove(m.bar);
+    descargarModelosEnemigo(m);
+  }
+  function ponerMonstruo(m) {
+    scene.add(m.group); scene.add(m.bar);
+  }   // más lejos se liberan sus modelos (con margen sobre los 120 m para no cargar y descargar sin parar)
 
   function descargarModelosEnemigo(m) {
     if (m.rig) m.group.remove(m.rig.rootGroup);
@@ -2543,6 +2553,10 @@
     }
 
     monsters.forEach(m => {
+      const dPresencia = Math.hypot(m.x - p.x, m.z - p.z);
+      const presente = m.group.parent ? dPresencia <= MONSTRUO_PRESENTE : dPresencia < MONSTRUO_PRESENTE - 10;
+      if (!presente) { if (m.group.parent) quitarMonstruo(m); return; }
+      if (!m.group.parent) ponerMonstruo(m);
       if (!m.alive) {
         // Muerte: el modelo cae un segundo antes de desaparecer
         if (m.fx && performance.now() < m.muriendo) {
@@ -4157,7 +4171,7 @@
       while (o && !o.userData.npc) o = o.parent;
       if (o) { showSelection({ kind: 'npc', ref: o.userData.npc }); return; }
     }
-    const vivos = monsters.filter(m => m.alive && m.group).map(m => m.group);
+    const vivos = monsters.filter(m => m.alive && m.group && m.group.parent).map(m => m.group);
     const golpe = raycaster.intersectObjects(vivos, true)[0];
     if (golpe) {
       let o = golpe.object;
