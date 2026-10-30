@@ -103,26 +103,68 @@
     const idx = indices || Uint32Array.from({ length: nV - (nV % 3) }, (_, i) => i);
     const n = idx.length;
     const objetivo = Math.max(3, Math.floor(n * o.ratio / 3) * 3);
-    const flags = ['Permissive'].concat(o.podar ? ['Prune'] : []);
+    // 'Permissive' deja juntar vértices a ambos lados de una costura de uv: la textura se verá con zonas equivocadas
+    const flags = (o.permisivo ? ['Permissive'] : []).concat(o.podar ? ['Prune'] : []);
     const [nuevos] = atributos
       ? S.simplifyWithAttributes(idx, posiciones, 3, atributos.array, atributos.stride, atributos.pesos, null, objetivo, o.error, flags)
       : S.simplify(idx, posiciones, 3, objetivo, o.error, flags);
     return nuevos.length >= n * 0.9 ? null : nuevos;
   }
 
+  // Suelda solo los vértices idénticos (misma posición y mismos atributos): no cambia el aspecto, pero deja que el
+  // simplificador trabaje sobre una malla con vértices compartidos (las mallas sin índices, como las piezas unidas,
+  // no se podían reducir de otra forma). Las costuras de uv siguen separadas, así que la textura no se corre.
+  // Devuelve { filas: { atributo: TypedArray con los vértices únicos }, indice: Uint32Array } o null si no se puede.
+  // Valor de un componente tal como se ve (sin cuantizar)
+  const MAX_CUANTIZADO = { Int8Array: 127, Uint8Array: 255, Int16Array: 32767, Uint16Array: 65535, Int32Array: 2147483647, Uint32Array: 4294967295 };
+  function valorDe(A, v, c) {
+    const x = A.getComponent(v, c);
+    return A.normalized && MAX_CUANTIZADO[A.array.constructor.name] ? Math.max(-1, x / MAX_CUANTIZADO[A.array.constructor.name]) : x;
+  }
+  function soldarVertices(g, indices) {
+    const nombres = Object.keys(g.attributes);
+    const P = g.attributes.position, nV = P.count;
+    if (!P || P.itemSize !== 3) return null;
+    const idx = indices || Uint32Array.from({ length: nV - (nV % 3) }, (_, i) => i);
+    const cubos = new Map(), unicos = [], mapa = new Uint32Array(nV);
+    const clave = i => { const x = Math.round(valorDe(P, i, 0) * 1e4), y = Math.round(valorDe(P, i, 1) * 1e4), z = Math.round(valorDe(P, i, 2) * 1e4); return x * 73856093 ^ y * 19349663 ^ z * 83492791; };
+    const igual = (a, b) => nombres.every(n => { const A = g.attributes[n]; for (let c = 0; c < A.itemSize; c++) if (valorDe(A, a, c) !== valorDe(A, b, c)) return false; return true; });
+    for (let i = 0; i < nV; i++) {
+      const k = clave(i);
+      let lista = cubos.get(k);
+      if (!lista) { lista = []; cubos.set(k, lista); }
+      let hallado = -1;
+      for (const j of lista) if (igual(unicos[j], i)) { hallado = j; break; }
+      if (hallado < 0) { lista.push(unicos.length); unicos.push(i); hallado = unicos.length - 1; }
+      mapa[i] = hallado;
+    }
+    // Posición, normal, uv y color como decimales (los GLB del estudio guardan algunos cuantizados, en enteros);
+    // la piel (índices de hueso) conserva su tipo
+    const decimal = n => n === 'position' || n === 'normal' || n === 'uv' || n === 'color';
+    const filas = {};
+    nombres.forEach(n => {
+      const A = g.attributes[n], k = A.itemSize, out = decimal(n) ? new Float32Array(unicos.length * k) : new A.array.constructor(unicos.length * k);
+      unicos.forEach((v, j) => { for (let c = 0; c < k; c++) out[j * k + c] = valorDe(A, v, c); });
+      filas[n] = { array: out, itemSize: k, normalized: decimal(n) ? false : A.normalized };
+    });
+    const indice = Uint32Array.from(idx, v => mapa[v]);
+    return { filas, indice, nVertices: unicos.length };
+  }
+
   // Normal (3), uv (2) y color (3) de cada vértice en un solo Float32Array, con sus pesos
-  function atributosDe(g, o) {
-    const N = g.attributes.normal, U = g.attributes.uv, C = g.attributes.color;
+  function atributosDeFilas(filas, o) {
     const campos = [];
-    if (N) campos.push([N, 3, o.pesoNormal]);
-    if (U) campos.push([U, 2, o.pesoUv]);
-    if (C) campos.push([C, 3, o.pesoColor]);
+    if (filas.normal) campos.push([filas.normal, o.pesoNormal]);
+    if (filas.uv) campos.push([filas.uv, o.pesoUv]);
+    if (filas.color) campos.push([filas.color, o.pesoColor]);
     if (!campos.length) return null;
-    const stride = campos.reduce((a, c) => a + c[1], 0), nV = g.attributes.position.count;
+    const nV = filas.position.array.length / 3;
+    const stride = campos.reduce((a, c) => a + c[0].itemSize, 0);
     const array = new Float32Array(nV * stride), pesos = [];
     let base = 0;
-    campos.forEach(([A, k, peso]) => {
-      for (let i = 0; i < nV; i++) for (let c = 0; c < k; c++) array[i * stride + base + c] = c < A.itemSize ? A.getComponent(i, c) : 0;
+    campos.forEach(([A, peso]) => {
+      const k = A.itemSize;
+      for (let i = 0; i < nV; i++) for (let c = 0; c < k; c++) array[i * stride + base + c] = A.array[i * k + c];
       for (let c = 0; c < k; c++) pesos.push(peso);
       base += k;
     });
@@ -133,23 +175,39 @@
   // 'error' (relativo a su tamaño). Solo cambian los índices: los vértices, la piel y los huesos son los mismos,
   // así que la animación no cambia. La geometría nueva comparte los atributos con la original (no se duplica
   // memoria). Vale para mallas con y sin índices. Devuelve [triángulos antes, después].
+  // opciones.presupuesto: triángulos totales que puede tener el modelo (fijo, sea cual sea la distancia). Si lo
+  // supera, todas las mallas bajan a la misma proporción; si no, no se toca nada.
   function simplificarModelo(THREE, S, raiz, opciones) {
     const o = Object.assign({ ratio: 0.4, error: 0.02, minTris: 600, atributos: true, pesoNormal: 0.5, pesoUv: 0.5, pesoColor: 0.5, podar: false }, opciones);
+    if (o.presupuesto) {
+      let total = 0;
+      raiz.traverse(m => {
+        if (!m.isMesh || m.isInstancedMesh || !m.visible || Array.isArray(m.material) || !m.geometry.attributes.position) return;
+        total += (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3;
+      });
+      o.ratio = total > o.presupuesto ? o.presupuesto / total : 1;
+      if (o.ratio >= 1) return [Math.round(total), Math.round(total)];
+    }
     let antes = 0, despues = 0;
     raiz.traverse(m => {
       if (!m.isMesh || m.isInstancedMesh || !m.visible || Array.isArray(m.material)) return;
       const g = m.geometry, P = g.attributes.position;
-      if (!P || P.isInterleavedBufferAttribute || !(P.array instanceof Float32Array) || P.itemSize !== 3) return;
+      if (!P || P.itemSize !== 3) return;
       if (Object.keys(g.morphAttributes || {}).length) return;
       const total = g.index ? g.index.count : P.count - (P.count % 3);
       const n = Math.min(total, g.drawRange.count);
       antes += n / 3;
       if (n / 3 < o.minTris || g.drawRange.start !== 0 || n < total) { despues += n / 3; return; }
       const indices = g.index ? (g.index.array instanceof Uint32Array ? g.index.array.subarray(0, n) : Uint32Array.from(g.index.array.subarray(0, n))) : null;
-      const nuevos = indicesSimplificados(S, indices, P.array.subarray(0, P.count * 3), o.atributos ? atributosDe(g, o) : null, o);
+      const s = soldarVertices(g, indices);
+      if (!s) { despues += n / 3; return; }
+      const nuevos = indicesSimplificados(S, s.indice, s.filas.position.array, o.atributos ? atributosDeFilas(s.filas, o) : null, o);
       if (!nuevos) { despues += n / 3; return; }
       const ng = new THREE.BufferGeometry();
-      Object.keys(g.attributes).forEach(k => ng.setAttribute(k, g.attributes[k]));
+      Object.keys(s.filas).forEach(k => {
+        const f = s.filas[k];
+        ng.setAttribute(k, new THREE.BufferAttribute(f.array, f.itemSize, f.normalized));
+      });
       ng.setIndex(new THREE.BufferAttribute(nuevos, 1));
       m.geometry = ng;
       despues += nuevos.length / 3;

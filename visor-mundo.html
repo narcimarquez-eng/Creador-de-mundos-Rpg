@@ -2229,13 +2229,12 @@
 
   // Tamaño de los monstruos: el del mundo (Creador de mundos, «Tamaño de los monstruos») o el que se pruebe en
   // el panel del visor (no se guarda). 1 es el tamaño del editor de enemigos.
-  // Personaje del héroe (GLB del estudio): sus piezas se unen por material y se simplifica como los NPCs de
-  // cerca (~25 % de los triángulos; de cerca se ve igual). La animación por nodos sigue valiendo.
-  const AJUSTE_PERSONAJE = { ratio: 0.25, error: 0.008, pesoNormal: 0.2, pesoUv: 0.2, pesoColor: 0.2 };
+  // Personaje del héroe (GLB del estudio): un presupuesto fijo de triángulos, sea cual sea la distancia; las mallas
+  // se simplifican en su sitio (sin unirlas ni moverlas), así que el equipo conserva su estructura y sus piezas.
+  const PRESUPUESTO_HEROE = 60000;
   function aligerarPersonaje(modelo) {
-    FusionLib.fusionarPorMaterial(THREE, modelo);
     MeshoptSimplifier.ready.then(() => {
-      const [antes, despues] = FusionLib.simplificarModelo(THREE, MeshoptSimplifier, modelo, AJUSTE_PERSONAJE);
+      const [antes, despues] = FusionLib.simplificarModelo(THREE, MeshoptSimplifier, modelo, { presupuesto: PRESUPUESTO_HEROE, error: 0.03, pesoNormal: 0.3, pesoUv: 1, pesoColor: 0.3 });
       modelo.userData.triangulos = [antes, despues];
     }).catch(() => { /* sin simplificar */ });
   }
@@ -2280,7 +2279,7 @@
     }
     FusionLib.fusionarPorMaterial(THREE, rig.rootGroup, { excluir: animadas });
     // Menos triángulos (mismos vértices y huesos: la animación no cambia)
-    if (simplificadorListo) FusionLib.simplificarModelo(THREE, MeshoptSimplifier, rig.rootGroup, { ratio: V.ratio, error: V.error });
+    if (simplificadorListo) FusionLib.simplificarModelo(THREE, MeshoptSimplifier, rig.rootGroup, Object.assign({}, V));
     // Pelo y escamas: capas aparte que se muestran solo cerca (ver aplicarDetalle)
     const detalle = [];
     rig.rootGroup.traverse(o => { if (o.isMesh && DETALLE_RE.test((o.name || '') + ' ' + ((o.material && o.material.name) || ''))) detalle.push(o); });

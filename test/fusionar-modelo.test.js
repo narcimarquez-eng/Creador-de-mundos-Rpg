@@ -114,8 +114,11 @@ t('no se tocan las piezas ocultas, transparentes, con hijos o excluidas', () => 
     const [antes, despues] = F.simplificarModelo(THREE, MeshoptSimplifier, raiz, { ratio: 0.3, error: 0.05 });
     assert.ok(despues < antes * 0.5, antes + ' → ' + despues);
     assert.notStrictEqual(malla.geometry, geo, 'geometría nueva: la original no cambia');
-    assert.strictEqual(malla.geometry.attributes.position, geo.attributes.position);
-    assert.strictEqual(malla.geometry.attributes.skinIndex, geo.attributes.skinIndex);
+    // Vértices soldados (idénticos fusionados): no hay más que los originales, con sus pesos de piel
+    assert.ok(malla.geometry.attributes.position.count <= nV);
+    assert.strictEqual(malla.geometry.attributes.skinIndex.itemSize, 4);
+    assert.strictEqual(malla.geometry.attributes.skinWeight.itemSize, 4);
+    assert.ok(Math.abs(malla.geometry.attributes.skinWeight.getX(0) - 0.25) < 1e-6);
     assert.ok(geo.index.count > malla.geometry.index.count);
     for (const i of malla.geometry.index.array) assert.ok(i < nV);
     assert.strictEqual(pequena.geometry.index.count, 36);
@@ -126,7 +129,7 @@ t('no se tocan las piezas ocultas, transparentes, con hijos o excluidas', () => 
     const raiz = new THREE.Group(); raiz.add(malla);
     const [antes, despues] = F.simplificarModelo(THREE, MeshoptSimplifier, raiz, { ratio: 0.3, error: 0.02 });
     assert.ok(despues < antes * 0.5, antes + ' → ' + despues);
-    assert.strictEqual(malla.geometry.attributes.position, geo.attributes.position);
+    assert.ok(malla.geometry.attributes.position.count <= geo.attributes.position.count);
   });
   t('con normales y uv baja más que solo con la posición, sin pasar del error', () => {
     const base = new THREE.TorusKnotGeometry(1, 0.3, 160, 24);
@@ -135,6 +138,18 @@ t('no se tocan las piezas ocultas, transparentes, con hijos o excluidas', () => 
     const a = F.simplificarModelo(THREE, MeshoptSimplifier, r1, { ratio: 0.2, error: 0.01, atributos: false });
     const b = F.simplificarModelo(THREE, MeshoptSimplifier, r2, { ratio: 0.2, error: 0.01 });
     assert.ok(a[1] < a[0] && b[1] < b[0], JSON.stringify([a, b]));
+  });
+  t('presupuesto fijo: baja al total pedido y no toca un modelo que ya cabe; la jerarquía no cambia', () => {
+    const grande = new THREE.Group(); const cuerpo = new THREE.Group(); grande.add(cuerpo);
+    const pieza = (n) => { const m = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 30), new THREE.MeshBasicMaterial({ name: 'mat' + n })); m.name = 'pieza' + n; cuerpo.add(m); return m; };
+    [1, 2, 3].forEach(pieza);
+    const nombres = []; grande.traverse(o => nombres.push(o.name + ':' + (o.parent ? o.parent.name : '')));
+    const [antes, despues] = F.simplificarModelo(THREE, MeshoptSimplifier, grande, { presupuesto: 1500, error: 0.5 });
+    assert.ok(despues <= 1700 && despues < antes, antes + ' → ' + despues);
+    const despuesNombres = []; grande.traverse(o => despuesNombres.push(o.name + ':' + (o.parent ? o.parent.name : '')));
+    assert.deepStrictEqual(despuesNombres, nombres);
+    const [a2, d2] = F.simplificarModelo(THREE, MeshoptSimplifier, grande, { presupuesto: 10000000 });
+    assert.strictEqual(a2, d2);
   });
   console.log(`\n${n} pruebas de la unión de modelos superadas.`);
 })();

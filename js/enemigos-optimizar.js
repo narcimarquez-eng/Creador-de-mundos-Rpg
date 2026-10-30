@@ -18,11 +18,19 @@
     });
     const total = partes.reduce((a, g) => a + g.attributes.position.count, 0);
     const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), uv = new Float32Array(total * 2);
+    // Color por vértice: si alguna parte lo tiene, se conserva (las que no lo tienen van en blanco). Sin él, los
+    // materiales con colores por vértice se verían negros o pardos.
+    const conColor = partes.some(g => g.attributes.color);
+    const col = conColor ? new Float32Array(total * 3) : null;
     let o3 = 0, o2 = 0;
     partes.forEach(g => {
       pos.set(g.attributes.position.array, o3);
       nor.set(g.attributes.normal.array, o3);
       uv.set(g.attributes.uv.array, o2);
+      if (col) {
+        const C = g.attributes.color, n = g.attributes.position.count;
+        for (let i = 0; i < n; i++) for (let c = 0; c < 3; c++) col[o3 + i * 3 + c] = C ? C.getComponent(i, c) : 1;
+      }
       o3 += g.attributes.position.count * 3;
       o2 += g.attributes.position.count * 2;
       g.dispose();
@@ -31,6 +39,7 @@
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
     geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    if (col) geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     const base = mallas[0];
     const merged = new THREE.Mesh(geo, base.material);
     merged.castShadow = base.castShadow;
