@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Creador de Mundos RPG</title>
+  <link rel="icon" href="data:,">
   <style>
     :root {
       --bg: #0b111e;
@@ -273,7 +274,7 @@
 
   <script src="js/world-core.js?v=20251029"></script>
   <script src="js/equipo.js?v=20251029"></script>
-  <script src="js/enemigos-catalogo.js?v=20251029"></script>
+  <script defer src="js/enemigos-catalogo.js?v=20251029" onload="if(window.__alCargarCatalogo)window.__alCargarCatalogo()"></script>
   <script>
   "use strict";
   // Enemigos del catálogo (js/enemigos-catalogo.js) agrupados por raza; `actual` es la clave elegida
@@ -526,9 +527,11 @@
   const CHUNK = 64;
   const chunkCache = new Map();
   let chunkSeed = null;
+  let chunkTerrain = null;
+  window.__alCargarCatalogo = () => { if (selectedId) renderPanel(); };
 
   function renderChunk(lod, cx, cy) {
-    const terrain = W.getTerrain(world.seed);
+    const terrain = chunkTerrain || (chunkTerrain = W.getTerrain(world.seed));
     const mpp = Math.pow(2, lod);
     const x0 = cx * CHUNK * mpp, y0 = cy * CHUNK * mpp;
     const N = CHUNK + 1;
@@ -565,7 +568,7 @@
   }
 
   function drawTerrain() {
-    if (chunkSeed !== world.seed) { chunkCache.clear(); chunkSeed = world.seed; }
+    if (chunkSeed !== world.seed) { chunkCache.clear(); chunkSeed = world.seed; chunkTerrain = W.getTerrain(world.seed); }
     const lod = Math.max(-1, Math.ceil(Math.log2(1.6 / view.scale)));
     const mpp = Math.pow(2, lod);
     const cw = CHUNK * mpp;

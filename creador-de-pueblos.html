@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Generador Procedural de Pueblos 3D HD - Estilo Lineage 2</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.core.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/controls/OrbitControls.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/meshopt_decoder.module.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/BufferGeometryUtils.js">
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -459,7 +468,7 @@
           <input type="file" id="inp-glb-file" accept=".glb,.gltf">
         </label>
       </div>
-      <div id="glb-status">Buscando ./personaje.glb...</div>
+      <div id="glb-status" style="color:#fb923c">Avatar integrado activo. Usa "Archivo .GLB" para elegir tu personaje.glb.</div>
     </div>
 
     <div class="control-row">
@@ -500,8 +509,7 @@
     <b>WASD / Flechas / Joystick:</b> Mover Personaje &nbsp;|&nbsp; <b>Shift:</b> Correr &nbsp;|&nbsp; <b>Ratón / Táctil:</b> Rotar, Zoom y Desplazar
   </div>
 
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
-  <script src="js/casa-madera.js"></script>
+  <script defer src="js/casa-madera.js"></script>
   <script type="module" src="js/three-puente.js"></script>
   <script type="module" src="js/arboles.js"></script>
   <script type="module" src="js/pueblo-edits.js"></script>
@@ -529,7 +537,7 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -605,7 +613,7 @@
       scene, camera, controls, world,
       joystick: { zone: document.getElementById('joystick-zone'), knob: document.getElementById('joystick-knob') },
       status: document.getElementById('glb-status'),
-      glbUrl: './personaje.glb'
+      glbUrl: null
     });
 
     const clock = new THREE.Clock();
@@ -615,6 +623,7 @@
       const elapsed = clock.getElapsedTime();
 
       world.update(elapsed);
+      world.updateTreeLod(camera);
 
       player.update(dt, elapsed);
       controls.update();
@@ -808,8 +817,17 @@
       rebuildFromUI();
     });
 
-    document.querySelectorAll('#ui-panel input[type="range"], #ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time').forEach(el => {
-      el.addEventListener('input', rebuildFromUI);
+    let rebuildPendiente = false;
+    function pedirRebuildUI() {
+      if (rebuildPendiente) return;
+      rebuildPendiente = true;
+      requestAnimationFrame(() => { rebuildPendiente = false; rebuildFromUI(); });
+    }
+    document.querySelectorAll('#ui-panel input[type="range"]').forEach(el => {
+      el.addEventListener('input', pedirRebuildUI);
+    });
+    document.querySelectorAll('#ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time, #inp-trazado').forEach(el => {
+      el.addEventListener('change', rebuildFromUI);
     });
 
     document.getElementById('btn-toggle-ui').addEventListener('click', () => {

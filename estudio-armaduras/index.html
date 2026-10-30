@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Parametric Wardrobe 3D - Calibración Métrica & Detección Anatómica Precisa</title>
+  <link rel="icon" href="data:,">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
   <script type="importmap">
@@ -2913,8 +2914,9 @@
       camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
       camera.position.set(0, 1.30, 3.2);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      const embebido = window.parent !== window;
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, embebido ? 1.5 : 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap se eliminó en r186
@@ -2934,9 +2936,11 @@
       setupLighting();
       setupGroundStage();
       buildBaseHumanoid();
-      setupArmorSockets();
-      setupHairLabEngine();
-      updateWardrobePieces();
+      if (!window.CreadorHumano) {
+        setupArmorSockets();
+        setupHairLabEngine();
+        updateWardrobePieces();
+      }
 
       window.addEventListener('resize', onWindowResize);
       setupDragAndDrop();
@@ -2988,8 +2992,9 @@
       const keyLight = new THREE.DirectionalLight(0xfffbeb, 2.0 * Math.PI);
       keyLight.position.set(3.2, 4.8, 3.4);
       keyLight.castShadow = true;
-      keyLight.shadow.mapSize.width = 2048;
-      keyLight.shadow.mapSize.height = 2048;
+      const shadowRes = window.parent !== window ? 1024 : 2048;
+      keyLight.shadow.mapSize.width = shadowRes;
+      keyLight.shadow.mapSize.height = shadowRes;
       keyLight.shadow.bias = -0.0004;
       scene.add(keyLight);
 
@@ -20144,7 +20149,7 @@ const CLOTH_TONES = [
  * Genera un personaje aleatorio pero condicionado de forma realista y coherente
  * según el biotipo / demografía seleccionada (anciano, mujer, niño, hombre, etc.)
  */
-function randomizeArchetype(archetypeKey) {
+function randomizeArchetype(archetypeKey, skipRebuild = false) {
   const rVal = (min, max) => Number((min + Math.random() * (max - min)).toFixed(2));
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -20645,7 +20650,7 @@ function randomizeArchetype(archetypeKey) {
 
   // 3. Sincronizar materiales y reconstruir la malla 3D completa
   syncMaterialColors();
-  rebuildCharacter();
+  if (!skipRebuild) rebuildCharacter();
 }
 
 /**
@@ -20653,9 +20658,9 @@ function randomizeArchetype(archetypeKey) {
  * o con los valores preestablecidos estáticos exactos si randomize = false
  */
 function applyArchetype(archetypeKey, options = {}) {
-  const { randomize = true } = options;
+  const { randomize = true, skipRebuild = false } = options;
   if (randomize) {
-    randomizeArchetype(archetypeKey);
+    randomizeArchetype(archetypeKey, skipRebuild);
   } else {
     const preset = ARCHETYPES[archetypeKey];
     if (!preset) return;
@@ -20669,14 +20674,14 @@ function applyArchetype(archetypeKey, options = {}) {
       }
     });
 
-    rebuildCharacter();
+    if (!skipRebuild) rebuildCharacter();
   }
 }
 
 /**
  * Genera una combinación aleatoria pero anatómicamente coherente y proporcional
  */
-function randomizeCharacter() {
+function randomizeCharacter(skipRebuild = false) {
   const rRange = (min, max) => min + Math.random() * (max - min);
 
   const buildFactor = rRange(0.86, 1.28);
@@ -20742,7 +20747,7 @@ function randomizeCharacter() {
   CONFIG.colors.beard = CONFIG.colors.hair;
   CONFIG.colors.cloth = clothTones[Math.floor(Math.random() * clothTones.length)];
 
-  rebuildCharacter();
+  if (!skipRebuild) rebuildCharacter();
 }
 
 /**
@@ -20807,7 +20812,7 @@ function resetCharacter() {
       CH.CONFIG.items.accessory = 'ninguno';
 
       if (archetype === 'random') {
-        CH.randomizeCharacter();
+        CH.randomizeCharacter(true);
         CH.CONFIG.items.pose = activePose;
         CH.CONFIG.items.animation = 'none';
         CH.CONFIG.items.outfit = 'shorts';
@@ -20816,7 +20821,7 @@ function resetCharacter() {
         labelName = 'Cuerpo Random (Creador 1.0)';
       } else {
         if (CH.ARCHETYPES && CH.ARCHETYPES[archetype]) {
-          CH.applyArchetype(archetype);
+          CH.applyArchetype(archetype, { skipRebuild: true });
         }
         CH.CONFIG.items.pose = activePose;
         CH.CONFIG.items.animation = 'none';
@@ -20930,8 +20935,25 @@ function resetCharacter() {
       }
     }
 
-    function animate() {
+    let renderPausado = false;
+    let rafPendiente = false;
+    function pedirFotograma() {
+      if (renderPausado || rafPendiente) return;
+      rafPendiente = true;
       requestAnimationFrame(animate);
+    }
+    function fijarPausaRender(pausa) {
+      renderPausado = !!pausa;
+      if (!renderPausado) {
+        clock.update();
+        pedirFotograma();
+      }
+    }
+
+    function animate() {
+      rafPendiente = false;
+      if (renderPausado) return;
+      pedirFotograma();
       clock.update();
       const delta = clock.getDelta();
       hairUniforms.uTime.value = clock.getElapsed();
@@ -20945,13 +20967,26 @@ function resetCharacter() {
       renderer.render(scene, camera);
     }
 
+    document.addEventListener('visibilitychange', () => {
+      if (window.parent === window) fijarPausaRender(document.hidden);
+    });
+
+    let estudioCompilado = false;
     window.addEventListener('DOMContentLoaded', () => {
       try {
         init3D();
         buildUI();
         syncMaterialUI();
         syncFitSlidersUI();
-        animate();
+        if (renderer && renderer.compileAsync) {
+          renderer.compileAsync(scene, camera).catch(() => {}).finally(() => {
+            estudioCompilado = true;
+            pedirFotograma();
+          });
+        } else {
+          estudioCompilado = true;
+          pedirFotograma();
+        }
       } catch (err) {
         console.error("Error al iniciar aplicación:", err);
       }
@@ -20970,6 +21005,9 @@ function resetCharacter() {
     window.addEventListener('message', (e) => {
       const d = e.data;
       if (!d || d.origen !== 'juego-armaduras') return;
+      if (d.tipo === 'pausar') {
+        fijarPausaRender(!!d.pausa);
+      }
       if (d.tipo === 'pedir-proporciones') {
         window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'proporciones', fit: STATE.fit }, '*');
       }
@@ -21007,10 +21045,10 @@ function resetCharacter() {
 
     if (window.parent !== window) {
       const esperarManiqui = setInterval(() => {
-        if (!mannequinRoot) return;
+        if (!mannequinRoot || !estudioCompilado) return;
         clearInterval(esperarManiqui);
         window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'listo' }, '*');
-      }, 200);
+      }, 100);
     }
 
     // Acceso de inspección/QA al estudio (encajar armas en el puño, revisar el tiro con arco)

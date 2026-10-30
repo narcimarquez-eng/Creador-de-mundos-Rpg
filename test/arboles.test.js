@@ -5,10 +5,10 @@ const T = require('../js/arboles.js');
 let n = 0;
 function t(name, fn) { fn(); n++; console.log('ok -', name); }
 
-const ESPECIES = ['roble', 'alamo', 'pino', 'arbusto'];
+const ESPECIES = ['roble', 'alamo', 'pino', 'arbusto', 'seto'];
 const NIVELES = ['cerca', 'lejos'];
 
-t('hay las cuatro especies y los dos niveles de detalle', () => {
+t('hay las cinco especies y los dos niveles de detalle', () => {
   assert.deepStrictEqual(T.especies.slice().sort(), ESPECIES.slice().sort());
   assert.deepStrictEqual(T.niveles.slice().sort(), NIVELES.slice().sort());
 });
@@ -44,7 +44,7 @@ t('el nivel cercano tiene más triángulos que el lejano', () => {
 });
 
 t('la altura de cada especie coincide con la del diseño (metros)', () => {
-  const alturas = { roble: 9.5, alamo: 10.5, pino: 11, arbusto: 2.0 };
+  const alturas = { roble: 9.5, alamo: 10.5, pino: 11, arbusto: 2.0, seto: 3.6 };
   ESPECIES.forEach(e => {
     assert.strictEqual(T.alto(e), alturas[e], e + ': altura');
     const pos = T.datos(e, 'cerca').ramas.pos;

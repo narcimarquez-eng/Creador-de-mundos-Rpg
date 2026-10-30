@@ -14,18 +14,18 @@ const texDir = path.join(aquí, '..', 'assets', 'arboles', 'tex');
 
 // Presets de ez-tree y altura final en metros (igual que los tipos de vegetación de New-Rol)
 const ESPECIES = {
-  roble:   { preset: 'Oak Medium',   alto: 9.5,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xd8e8b0, seed: 4242 },
-  alamo:   { preset: 'Aspen Medium', alto: 10.5, corteza: 'corteza_abedul.jpg', hoja: 'hoja_alamo.png', tinta: 0xe2ecc0, seed: 5151 },
-  pino:    { preset: 'Pine Medium',  alto: 11,   corteza: 'corteza_pino.jpg',  hoja: 'hoja_pino.png',   tinta: 0xbfd8a8, seed: 3131 },
-  arbusto: { preset: 'Bush 1',       alto: 2.0,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xc8e0a0, seed: 7373 },
+  roble:   { preset: 'Oak Medium',   alto: 9.5,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xd8e8b0, seed: 4242, factorHojas: 0.78 },
+  alamo:   { preset: 'Aspen Medium', alto: 10.5, corteza: 'corteza_abedul.jpg', hoja: 'hoja_alamo.png', tinta: 0xe2ecc0, seed: 5151, factorHojas: 0.8 },
+  pino:    { preset: 'Pine Medium',  alto: 11,   corteza: 'corteza_pino.jpg',  hoja: 'hoja_pino.png',   tinta: 0xbfd8a8, seed: 3131, factorHojas: 0.78 },
+  arbusto: { preset: 'Bush 1',       alto: 2.0,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xc8e0a0, seed: 7373, factorHojas: 0.5 },
   // Seto de New-Rol (Bush 3, «hedge»): lindes de campo
-  seto:    { preset: 'Bush 3',       alto: 3.6,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xa8c888, seed: 8282 }
+  seto:    { preset: 'Bush 3',       alto: 3.6,  corteza: 'corteza_roble.jpg', hoja: 'hoja_roble.png',  tinta: 0xa8c888, seed: 8282, factorHojas: 0.42 }
 };
 // Detalle por nivel: fracción de hojas, secciones y segmentos radiales de las ramas (menos = menos triángulos)
 const NIVELES = {
   // «cerca»: árboles junto al pueblo. «lejos»: el bosque, que es casi todo lo demás.
-  cerca: { hojas: 0.4, secciones: { 0: 8, 1: 6, 2: 5, 3: 4 }, segmentos: { 0: 6, 1: 5, 2: 4, 3: 3 }, hijos: null, niveles: 3 },
-  lejos: { hojas: 0.3, secciones: { 0: 4, 1: 3, 2: 3, 3: 2 }, segmentos: { 0: 4, 1: 3, 2: 3, 3: 3 }, hijos: null, niveles: 2 }
+  cerca: { hojas: 0.34, secciones: { 0: 7, 1: 5, 2: 4, 3: 3 }, segmentos: { 0: 6, 1: 4, 2: 3, 3: 3 }, hijos: null, niveles: 3 },
+  lejos: { hojas: 0.24, secciones: { 0: 4, 1: 3, 2: 2, 3: 2 }, segmentos: { 0: 4, 1: 3, 2: 3, 3: 3 }, hijos: null, niveles: 2 }
 };
 
 function aBase64(arr) { return Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength).toString('base64'); }
@@ -42,6 +42,17 @@ function cuantizar(arr, escala, Ctor) {
   for (let i = 0; i < arr.length; i++) out[i] = Math.max(-32767, Math.min(32767, Math.round(arr[i] * escala)));
   return out;
 }
+function deltaCodificar(arr, paso, Ctor) {
+  const out = new Ctor(arr.length);
+  for (let i = 0; i < arr.length; i++) out[i] = i < paso ? arr[i] : arr[i] - arr[i - paso];
+  const bytes = new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
+  const bpe = Ctor.BYTES_PER_ELEMENT;
+  if (bpe === 1) return aBase64(bytes);
+  // Agrupar bytes bajos y altos por separado mejora drásticamente la compresión gzip sin perder precisión
+  const planos = new Uint8Array(bytes.length), n = out.length;
+  for (let i = 0; i < n; i++) for (let b = 0; b < bpe; b++) planos[b * n + i] = bytes[i * bpe + b];
+  return aBase64(planos);
+}
 function extraer(geo) {
   const pos = geo.attributes.position.array, nrm = geo.attributes.normal.array;
   const uv = geo.attributes.uv ? geo.attributes.uv.array : new Float32Array(pos.length / 3 * 2);
@@ -49,8 +60,10 @@ function extraer(geo) {
   if (pos.length / 3 > 65535) throw new Error('demasiados vértices para índices de 16 bits');
   const nrm8 = cuantizar(nrm, 127, Int8Array);
   return {
-    pos: aBase64(cuantizar(pos, ESCALA, Int16Array)), nrm: aBase64(nrm8),
-    uv: aBase64(cuantizar(uv, ESCALA, Int16Array)), idx: aBase64(new Uint16Array(idx)),
+    pos: deltaCodificar(cuantizar(pos, ESCALA, Int16Array), 3, Int16Array),
+    nrm: deltaCodificar(nrm8, 3, Int8Array),
+    uv: deltaCodificar(cuantizar(uv, ESCALA, Int16Array), 2, Int16Array),
+    idx: deltaCodificar(new Uint16Array(idx), 3, Uint16Array),
     vertices: pos.length / 3, triangulos: idx.length / 3
   };
 }
@@ -60,7 +73,9 @@ function generar(esp, cfg) {
   t.loadPreset(esp.preset);
   t.options.seed = esp.seed;
   t.options.bark.textured = false;
-  t.options.leaves.count = Math.max(4, Math.round(t.options.leaves.count * cfg.hojas));
+  const fh = cfg.hojas * (esp.factorHojas || 1);
+  t.options.leaves.count = Math.max(4, Math.round(t.options.leaves.count * fh));
+  t.options.leaves.size *= Math.min(1.28, Math.pow(0.4 / fh, 0.35));
   t.options.branch.levels = Math.min(t.options.branch.levels, cfg.niveles);
   Object.assign(t.options.branch.sections, cfg.secciones);
   Object.assign(t.options.branch.segments, cfg.segmentos);
@@ -111,11 +126,21 @@ const cuerpo = `// Árboles realistas generados con ez-tree (MIT, Daniel Greenhe
 // No editar a mano: se regenera con el horneador. Ver docs/ASSETS.md.
 (function (root) {
   'use strict';
-  function decode(b64, Ctor) {
+  function decode(b64, Ctor, paso) {
     const bin = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Ctor(bytes.buffer);
+    const len = bin.length, bpe = Ctor.BYTES_PER_ELEMENT, n = len / bpe;
+    const raw = new Uint8Array(len);
+    if (bpe === 1) {
+      for (let i = 0; i < len; i++) raw[i] = bin.charCodeAt(i);
+    } else {
+      for (let b = 0; b < bpe; b++) {
+        const off = b * n;
+        for (let i = 0; i < n; i++) raw[i * bpe + b] = bin.charCodeAt(off + i);
+      }
+    }
+    const out = new Ctor(raw.buffer);
+    for (let i = paso; i < n; i++) out[i] = out[i] + out[i - paso];
+    return out;
   }
   const TEX = ${JSON.stringify(TEX)};
   const RAW = ${JSON.stringify(datos)};
@@ -135,8 +160,8 @@ const cuerpo = `// Árboles realistas generados con ez-tree (MIT, Daniel Greenhe
       const key = id + ':' + nivel;
       if (!cache[key]) {
         // Se descuantiza a Float32 para THREE.BufferAttribute (posiciones /1024, normales /127, UV /1024)
-      const f = (b64, Ctor, escala) => { const q = decode(b64, Ctor); const o = new Float32Array(q.length); for (let i = 0; i < q.length; i++) o[i] = q[i] / escala; return o; };
-      const parte = (p) => ({ pos: f(p.pos, Int16Array, 1024), nrm: f(p.nrm, Int8Array, 127), uv: f(p.uv, Int16Array, 1024), idx: decode(p.idx, Uint16Array) });
+        const f = (b64, Ctor, paso, inv) => { const q = decode(b64, Ctor, paso); const o = new Float32Array(q.length); for (let i = 0; i < q.length; i++) o[i] = q[i] * inv; return o; };
+        const parte = (p) => ({ pos: f(p.pos, Int16Array, 3, 1 / 1024), nrm: f(p.nrm, Int8Array, 3, 1 / 127), uv: f(p.uv, Int16Array, 2, 1 / 1024), idx: decode(p.idx, Uint16Array, 3) });
         cache[key] = { ramas: parte(e.ramas), hojas: parte(e.hojas) };
       }
       return cache[key];

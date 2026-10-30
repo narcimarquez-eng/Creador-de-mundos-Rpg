@@ -58,7 +58,11 @@ function texturaDe(nombre) {
   if (!texCache[nombre]) {
     const img = new Image();
     const tex = new THREE.Texture(img);
-    tex.magFilter = THREE.NearestFilter;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.anisotropy = 4;
     img.onload = () => { tex.needsUpdate = true; };
     img.src = url;
     texCache[nombre] = tex;
@@ -80,6 +84,7 @@ export function arbolPartes(id, nivel = 'lejos') {
     g.setAttribute('normal', new THREE.BufferAttribute(p.nrm, 3));
     g.setAttribute('uv', new THREE.BufferAttribute(p.uv, 2));
     g.setIndex(new THREE.BufferAttribute(p.idx, 1));
+    g.computeBoundingSphere();
     return g;
   };
   if (!matCache[id + ':ramas']) {
@@ -87,7 +92,7 @@ export function arbolPartes(id, nivel = 'lejos') {
   }
   if (!matCache[id + ':hojas']) {
     // Hojas recortadas por su canal alfa; el tinte de la especie va en el material
-    matCache[id + ':hojas'] = new THREE.MeshLambertMaterial({ map: texturaDe(TreeLib.hoja(id)), color: new THREE.Color(TreeLib.tinta(id)), alphaTest: 0.5, side: THREE.DoubleSide });
+    matCache[id + ':hojas'] = new THREE.MeshLambertMaterial({ map: texturaDe(TreeLib.hoja(id)), color: new THREE.Color(TreeLib.tinta(id)), alphaTest: 0.45, alphaToCoverage: true, side: THREE.DoubleSide });
   }
   return (geoCache[key] = [
     { geo: geoDe(d.ramas), mat: matCache[id + ':ramas'] },

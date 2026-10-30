@@ -43,13 +43,18 @@
     const TREE_SCALE = { roble: 0.8, alamo: 0.8, pino: 0.8, arbusto: 1.0 };
     const treeGeo = {};
     const treeMat = {};
+    const sharedTreeGeos = new Set();
     function texturaDe(nombre) {
       const url = typeof TreeLib !== 'undefined' ? TreeLib.textura(nombre) : null;
       if (!url) return null;
       if (!treeMat['tex:' + nombre]) {
         const img = new Image();
         const tex = new THREE.Texture(img);
-        tex.magFilter = THREE.NearestFilter;
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.anisotropy = 4;
         img.onload = () => { tex.needsUpdate = true; };
         img.src = url;
         treeMat['tex:' + nombre] = tex;
@@ -68,6 +73,8 @@
         g.setAttribute('normal', new THREE.BufferAttribute(p.nrm, 3));
         g.setAttribute('uv', new THREE.BufferAttribute(p.uv, 2));
         g.setIndex(new THREE.BufferAttribute(p.idx, 1));
+        g.computeBoundingSphere();
+        sharedTreeGeos.add(g);
         return g;
       };
       const matKey = (parte) => especie + ':' + parte;
@@ -76,7 +83,7 @@
       }
       if (!treeMat[matKey('hojas')]) {
         // Hojas recortadas por su canal alfa; el tinte de la especie se aplica al material
-        treeMat[matKey('hojas')] = new THREE.MeshLambertMaterial({ map: texturaDe(TreeLib.hoja(especie)), color: new THREE.Color(TreeLib.tinta(especie)), alphaTest: 0.5, side: THREE.DoubleSide });
+        treeMat[matKey('hojas')] = new THREE.MeshLambertMaterial({ map: texturaDe(TreeLib.hoja(especie)), color: new THREE.Color(TreeLib.tinta(especie)), alphaTest: 0.45, alphaToCoverage: true, side: THREE.DoubleSide });
       }
       return (treeGeo[key] = {
         ramas: { geo: geoDe(d.ramas), mat: treeMat[matKey('ramas')] },
@@ -103,22 +110,29 @@
         parte.hojas.setColorAt(k, a.color);
       });
       [[grupo.cerca, nc], [grupo.lejos, nl]].forEach(([parte, n]) => {
-        [parte.ramas, parte.hojas].forEach(m => { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; });
-        parte.hojas.instanceColor.needsUpdate = true;
+        [parte.ramas, parte.hojas].forEach(m => { m.count = n; m.visible = n > 0; if (n > 0) m.instanceMatrix.needsUpdate = true; });
+        if (n > 0) parte.hojas.instanceColor.needsUpdate = true;
       });
       grupo.sil.count = ns; grupo.sil.visible = ns > 0;
-      grupo.sil.instanceMatrix.needsUpdate = true;
-      if (grupo.sil.instanceColor) grupo.sil.instanceColor.needsUpdate = true;
+      if (ns > 0) {
+        grupo.sil.instanceMatrix.needsUpdate = true;
+        if (grupo.sil.instanceColor) grupo.sil.instanceColor.needsUpdate = true;
+      }
     }
 
     // Forma sencilla de un árbol: un elipsoide (80 triángulos) con la caja de sus partes, origen en el suelo
+    const siluetaCache = new Map();
     function siluetaArbol(asset) {
+      if (siluetaCache.has(asset)) return siluetaCache.get(asset);
       const caja = new THREE.Box3();
       [asset.ramas.geo, asset.hojas.geo].forEach(g => { g.computeBoundingBox(); caja.union(g.boundingBox); });
       const mx = (caja.max.x - caja.min.x) / 2, my = (caja.max.y - caja.min.y) / 2, mz = (caja.max.z - caja.min.z) / 2;
       const geo = new THREE.IcosahedronGeometry(1, 1);
       geo.scale(mx, my, mz);
       geo.translate((caja.max.x + caja.min.x) / 2, caja.min.y + my, (caja.max.z + caja.min.z) / 2);
+      geo.computeBoundingSphere();
+      sharedTreeGeos.add(geo);
+      siluetaCache.set(asset, geo);
       return geo;
     }
 
@@ -447,11 +461,11 @@
 
       const atlasTex = new THREE.CanvasTexture(dCanvas);
       atlasTex.wrapS = atlasTex.wrapT = THREE.RepeatWrapping;
-      atlasTex.anisotropy = 4;
+      atlasTex.anisotropy = 8;
 
       const bumpTex = new THREE.CanvasTexture(bCanvas);
       bumpTex.wrapS = bumpTex.wrapT = THREE.RepeatWrapping;
-      bumpTex.anisotropy = 4;
+      bumpTex.anisotropy = 8;
 
       // --- TEXTURA DE CALZADA EMPEDRADA + BUMP MAP ---
       const roadCanvas = document.createElement('canvas');
@@ -496,10 +510,11 @@
 
       const roadTex = new THREE.CanvasTexture(roadCanvas);
       roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
-      roadTex.anisotropy = 4;
+      roadTex.anisotropy = 8;
 
       const roadBumpTex = new THREE.CanvasTexture(roadBumpCanvas);
       roadBumpTex.wrapS = roadBumpTex.wrapT = THREE.RepeatWrapping;
+      roadBumpTex.anisotropy = 8;
 
       return { atlasTex, bumpTex, roadTex, roadBumpTex };
     }
@@ -603,6 +618,9 @@
     const matLightPool = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
     const matRock = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, metalness: 0.05 });
     const matCloth = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7 });
+    const matSignWood = new THREE.MeshStandardMaterial({ color: '#5c3a1e', roughness: 0.85 });
+    const kitGeos = new Set();
+    let kitProto = null;
 
     // --- 5. COMBINADOR DE GEOMETRÍAS Y CONSTRUCTORES ARQUITECTÓNICOS HD ---
     function mapUVBand(geom, vMin, vMax) {
@@ -877,21 +895,98 @@
       return geom;
     }
 
-    function makeInstanced(geom, mat, maxCount) {
+    function makeInstanced(geom, mat, maxCount, opts) {
       const safeCount = Math.max(1, maxCount);
       const mesh = new THREE.InstancedMesh(geom, mat, safeCount);
       mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.frustumCulled = false;
+      mesh.count = maxCount;
+      mesh.visible = maxCount > 0;
+      mesh.castShadow = !opts || opts.castShadow !== false;
+      mesh.receiveShadow = !opts || opts.receiveShadow !== false;
+      mesh.frustumCulled = true;
 
-      const zeroMat = new THREE.Matrix4().makeScale(0, 0, 0);
-      const white = new THREE.Color(0xffffff);
-      for (let i = 0; i < safeCount; i++) {
-        mesh.setMatrixAt(i, zeroMat);
-        mesh.setColorAt(i, white);
+      if (maxCount > 0) {
+        const zeroMat = new THREE.Matrix4().makeScale(0, 0, 0);
+        const white = new THREE.Color(0xffffff);
+        for (let i = 0; i < maxCount; i++) {
+          mesh.setMatrixAt(i, zeroMat);
+          mesh.setColorAt(i, white);
+        }
       }
       return mesh;
+    }
+
+    // Une mallas estáticas opacas (calles, puentes, murallas, edificios, carteles) en una sola BufferGeometry
+    // por (material, castShadow, receiveShadow), bajando ~270 llamadas de dibujo por pueblo a ~5.
+    function compactarGruposEstaticos(grupos, excluidos) {
+      const lotes = new Map();
+      grupos.forEach(grp => {
+        if (!grp) return;
+        grp.updateMatrixWorld(true);
+        grp.traverse(o => {
+          if (!o.isMesh || excluidos.has(o) || o.children.length || !o.visible) return;
+          if (!o.material || Array.isArray(o.material) || o.material.transparent) return;
+          const g = o.geometry;
+          if (!g || !g.attributes.position) return;
+          const key = o.material.uuid + '|' + (o.castShadow ? 1 : 0) + '|' + (o.receiveShadow ? 1 : 0);
+          if (!lotes.has(key)) lotes.set(key, { mat: o.material, cast: !!o.castShadow, recv: !!o.receiveShadow, items: [] });
+          lotes.get(key).items.push(o);
+        });
+      });
+      const mallas = [];
+      const vTmp = new THREE.Vector3(), nMat = new THREE.Matrix3();
+      lotes.forEach(lote => {
+        let totalV = 0, totalI = 0;
+        lote.items.forEach(o => {
+          const g = o.geometry;
+          if (!g.attributes.normal) g.computeVertexNormals();
+          totalV += g.attributes.position.count;
+          totalI += g.index ? g.index.count : g.attributes.position.count;
+        });
+        if (!totalV) return;
+        const pos = new Float32Array(totalV * 3);
+        const nrm = new Float32Array(totalV * 3);
+        const uv = new Float32Array(totalV * 2);
+        const idx = totalV > 65535 ? new Uint32Array(totalI) : new Uint16Array(totalI);
+        let vOff = 0, iOff = 0;
+        lote.items.forEach(o => {
+          const g = o.geometry, P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+          const cnt = P.count, mw = o.matrixWorld;
+          nMat.getNormalMatrix(mw);
+          for (let i = 0; i < cnt; i++) {
+            const k = vOff + i;
+            vTmp.fromBufferAttribute(P, i).applyMatrix4(mw);
+            pos[k * 3] = vTmp.x; pos[k * 3 + 1] = vTmp.y; pos[k * 3 + 2] = vTmp.z;
+            if (N) {
+              vTmp.fromBufferAttribute(N, i).applyMatrix3(nMat).normalize();
+              nrm[k * 3] = vTmp.x; nrm[k * 3 + 1] = vTmp.y; nrm[k * 3 + 2] = vTmp.z;
+            }
+            if (U) { uv[k * 2] = U.getX(i); uv[k * 2 + 1] = U.getY(i); }
+          }
+          if (g.index) {
+            const I = g.index.array;
+            for (let i = 0; i < I.length; i++) idx[iOff + i] = vOff + I[i];
+            iOff += I.length;
+          } else {
+            for (let i = 0; i < cnt; i++) idx[iOff + i] = vOff + i;
+            iOff += cnt;
+          }
+          vOff += cnt;
+          if (!kitGeos.has(g) && !sharedTreeGeos.has(g) && g !== rockGeoCache) g.dispose();
+          if (o.parent) o.parent.remove(o);
+        });
+        const merged = new THREE.BufferGeometry();
+        merged.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        merged.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+        merged.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+        merged.setIndex(new THREE.BufferAttribute(idx, 1));
+        merged.computeBoundingSphere();
+        const mesh = new THREE.Mesh(merged, lote.mat);
+        mesh.castShadow = lote.cast;
+        mesh.receiveShadow = lote.recv;
+        mallas.push(mesh);
+      });
+      return mallas;
     }
 
     // --- 6. MOTOR GENERADOR DE PUEBLOS LINEAGE 2 ---
@@ -952,13 +1047,24 @@
 
       clear() {
         this.extraBridges = [];
-        if (this.scene) {
+        this.hasForge = false;
+        this.lightPoolMesh = null;
+        this.lightPoolCount = 0;
+        if (this.scene && !this.opts.noLights) {
           this.scene.remove(this.plazaLight);
           this.scene.remove(this.forgeLight);
         }
         this.objects.forEach(obj => {
-          this.scene.remove(obj);
-          if (obj.geometry) obj.geometry.dispose();
+          if (this.scene) this.scene.remove(obj);
+          obj.traverse(c => {
+            if (c.geometry && !kitGeos.has(c.geometry) && !sharedTreeGeos.has(c.geometry) && c.geometry !== rockGeoCache) {
+              c.geometry.dispose();
+            }
+            if (c.isSprite && c.material) {
+              if (c.material.map) c.material.map.dispose();
+              c.material.dispose();
+            }
+          });
         });
         this.objects = [];
         this.colliders = [];
@@ -1274,6 +1380,7 @@
 
           const worldForgePos = new THREE.Vector3(2.8, 2.5, 0.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY).add(new THREE.Vector3(x, y0, z));
           this.forgeLight.position.copy(worldForgePos);
+          this.hasForge = true;
 
           this.colliders.push({ type: 'box', minX: x - 4.8, maxX: x + 4.8, minZ: z - 4.5, maxZ: z + 4.5 });
 
@@ -1437,7 +1544,7 @@
       }
 
       addExitSigns(group, paths) {
-        const matWood = new THREE.MeshStandardMaterial({ color: '#5c3a1e', roughness: 0.85 });
+        const matWood = matSignWood;
         paths.forEach(p => {
           // Cartel junto al camino, poco después de salir de la muralla
           let idx = p.points.findIndex(q => Math.hypot(q.x, q.z) > this.townRadius + 34);
@@ -1675,8 +1782,10 @@
 
       generate(cfg) {
         this.clear();
-        this.scene.add(this.plazaLight);
-        this.scene.add(this.forgeLight);
+        if (!this.opts.noLights) {
+          this.scene.add(this.plazaLight);
+          this.scene.add(this.forgeLight);
+        }
         this.cfg = cfg;
         const edit = indexEdits(cfg);
         this.editables = { houses: [], streets: [], walls: [], lamps: [] };
@@ -1736,6 +1845,7 @@
 
         // 2. RÍO Y PUENTE DE PIEDRA
         const lampsList = [];
+        let bridgeGroup = null;
         if (cfg.hasRiver) {
           const waterGeom = new THREE.PlaneGeometry(RIVER_WIDTH + 6, WORLD_SIZE, 24, 90);
           waterGeom.rotateX(-Math.PI / 2);
@@ -1763,7 +1873,7 @@
             maxZ: cfg.roadWidth * 0.55
           };
 
-          const bridgeGroup = new THREE.Group();
+          bridgeGroup = new THREE.Group();
           // Tablero que une las dos orillas por la calle principal: sigue la altura del terreno en cada extremo
           const halfS = bSpan * 0.5 + 3.5;
           const pA = { x: bx - halfS, z: 0 }, pB = { x: bx + halfS, z: 0 };
@@ -1779,9 +1889,6 @@
             this.colliders.push({ type: 'box', minX: this.bridgeBounds.minX, maxX: this.bridgeBounds.maxX, minZ: pz - 0.45, maxZ: pz + 0.45 });
           });
           this.bridgeTopAt = topAt;
-
-          this.scene.add(bridgeGroup);
-          this.objects.push(bridgeGroup);
 
           if (cfg.hasLamps) {
             const alturaFarola = x => topAt((x - pA.x) / (pB.x - pA.x)) + 2.6;
@@ -1927,8 +2034,9 @@
         roadsGroup.add(monumentGroup);
 
         // 5. MURALLAS FORTIFICADAS CON ALMENAS Y TORRES
+        let wallGroup = null;
         if (cfg.hasWalls) {
-          const wallGroup = new THREE.Group();
+          wallGroup = new THREE.Group();
           const wallSegs = 36;
           for (let i = 0; i < wallSegs; i++) {
             const a1 = (i / wallSegs) * Math.PI * 2;
@@ -2021,8 +2129,6 @@
               this.colliders.push({ type: 'circle', x: mx + Math.sin(ang) * t, z: mz - Math.cos(ang) * t, r: 1.3, wall: true });
             }
           }
-          this.scene.add(wallGroup);
-          this.objects.push(wallGroup);
         }
 
         // 6. EDIFICIOS ESPECIALES
@@ -2058,8 +2164,6 @@
           ];
           addStreet('especial-' + i, spurPts, 3.4, 0.14);
         }
-        this.scene.add(specialsGroup);
-        this.objects.push(specialsGroup);
 
         // 7. VIVIENDAS CON ACCESOS Y ELEMENTOS DECORATIVOS
         const houses = [];
@@ -2188,9 +2292,6 @@
           });
         }
 
-        this.scene.add(roadsGroup);
-        this.objects.push(roadsGroup);
-
         // 7b. CASAS AÑADIDAS A MANO: solo si cabe según las mismas reglas que las del pueblo
         edit.addedHouses.forEach(ad => {
           if (edit.removedHouses.has(ad.id)) return;
@@ -2317,20 +2418,65 @@
           this.colliders = this.colliders.filter(c => !(c.type === 'circle' && c.r <= 0.7 && onExit(c.x, c.z)));
         }
 
-        // 8. INSTANCED MESHES CON GEOMETRÍAS COMPUESTAS DE ALTA DEFINICIÓN
+        // 7d. COMPACTACIÓN DE MALLAS ESTÁTICAS (calles, puentes, murallas y edificios especiales)
+        const excluidosEstaticos = new Set(this.animatedCrystals.map(c => c.mesh));
+        compactarGruposEstaticos([bridgeGroup, roadsGroup, wallGroup, specialsGroup], excluidosEstaticos).forEach(m => {
+          this.scene.add(m);
+          this.objects.push(m);
+        });
+        [bridgeGroup, roadsGroup, wallGroup, specialsGroup].forEach(grp => {
+          if (!grp) return;
+          let tieneHijos = false;
+          grp.traverse(o => { if (o !== grp && (o.isMesh || o.isSprite)) tieneHijos = true; });
+          if (tieneHijos) { this.scene.add(grp); this.objects.push(grp); }
+        });
+
+        // 8. INSTANCED MESHES CON GEOMETRÍAS COMPUESTAS DE ALTA DEFINICIÓN (compartidas por kit)
         const HW = 6.2, HD = 7.4, FH = 2.8, PH = 2.4, RH = 1.95;
 
-        const plinthG = new THREE.BoxGeometry(HW + 0.42, PH, HD + 0.42); mapUVBand(plinthG, 0.25, 0.50);
-        const wallG = createDetailedWallGeometry(HW, FH, HD);
-        const roofG = createRoofGeometry(HW, HD, RH, 0.58, 0.58, 0.22);
-        const gableG = createGableGeometry(HW, RH, 0.28);
-
-        // Separamos el cristal emplomado (iWinGlass) del marco compuesto con repisa, dintel y contraventanas (iWinFrame)
-        const winGlassG = new THREE.BoxGeometry(1.18, 1.42, 0.18);
-        const winFrameG = createDetailedWindowFrameGeometry();
-        const doorG = createDetailedDoorGeometry();
-        const chimG = createDetailedChimneyGeometry();
-        const balcG = new THREE.BoxGeometry(2.6, 0.95, 0.95);
+        if (!kitProto) {
+          const pB = (w, h, d, x, y, z, rx = 0) => { const g = new THREE.BoxGeometry(w, h, d); if (rx) g.rotateX(rx); g.translate(x, y, z); return g; };
+          const reg = g => { g.computeBoundingSphere(); kitGeos.add(g); return g; };
+          const plinthG = new THREE.BoxGeometry(HW + 0.42, PH, HD + 0.42); mapUVBand(plinthG, 0.25, 0.50);
+          const barrelG = new THREE.CylinderGeometry(0.38, 0.42, 0.95, 8); mapUVBand(barrelG, 0.0, 0.25); barrelG.translate(0, 0.48, 0);
+          const postG = new THREE.CylinderGeometry(0.09, 0.16, 4.0, 8); postG.translate(0, 2.0, 0);
+          const armG = new THREE.BoxGeometry(0.1, 0.1, 0.85); armG.translate(0, 3.95, 0.42);
+          const lanternG = new THREE.CylinderGeometry(0.22, 0.14, 0.45, 6); lanternG.translate(0, 3.75, 0.8);
+          const poolG = new THREE.PlaneGeometry(7.5, 7.5); poolG.rotateX(-Math.PI / 2);
+          const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95); hedgeG.translate(0, 0.48, 0);
+          const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
+          kitProto = {
+            plinthG: reg(plinthG),
+            wallG: reg(createDetailedWallGeometry(HW, FH, HD)),
+            roofG: reg(createRoofGeometry(HW, HD, RH, 0.58, 0.58, 0.22)),
+            gableG: reg(createGableGeometry(HW, RH, 0.28)),
+            winGlassG: reg(new THREE.BoxGeometry(1.18, 1.42, 0.18)),
+            winFrameG: reg(createDetailedWindowFrameGeometry()),
+            doorG: reg(createDetailedDoorGeometry()),
+            chimG: reg(createDetailedChimneyGeometry()),
+            balcG: reg(new THREE.BoxGeometry(2.6, 0.95, 0.95)),
+            stallG: reg(mergeGeometriesList([
+              pB(2.0, 0.9, 0.7, 0, 0.45, 0),
+              pB(2.2, 0.08, 0.8, 0, 0.94, 0),
+              pB(0.12, 2.2, 0.12, -0.9, 1.1, -0.3),
+              pB(0.12, 2.2, 0.12, 0.9, 1.1, -0.3),
+              pB(0.12, 2.2, 0.12, -0.9, 1.1, 0.3),
+              pB(0.12, 2.2, 0.12, 0.9, 1.1, 0.3),
+              pB(2.6, 0.12, 1.1, 0, 2.45, -0.45, 0.55),
+              pB(2.6, 0.12, 1.1, 0, 2.45, 0.45, -0.55),
+              pB(0.5, 0.4, 0.5, 0.95, 0.2, -0.45),
+              pB(0.45, 0.35, 0.45, -0.95, 0.18, 0.5)
+            ])),
+            barrelG: reg(barrelG),
+            postG: reg(postG),
+            armG: reg(armG),
+            lanternG: reg(lanternG),
+            poolG: reg(poolG),
+            hedgeG: reg(hedgeG),
+            fenceG: reg(fenceG)
+          };
+        }
+        const { plinthG, wallG, roofG, gableG, winGlassG, winFrameG, doorG, chimG, balcG, stallG, barrelG, postG, armG, lanternG, poolG, hedgeG, fenceG } = kitProto;
 
         // Casas de madera (cabañas procedurales): según el pueblo, todas o mezcladas con las casas de siempre.
         // Las de madera se componen aparte; el resto sigue en las mallas instanciadas de siempre.
@@ -2351,7 +2497,7 @@
         const iWall = makeInstanced(wallG, matAtlas, totFloors);
         const iRoof = makeInstanced(roofG, matAtlas, casas.length);
         const iGable = makeInstanced(gableG, matAtlas, casas.length * 2);
-        const iWinGlass = makeInstanced(winGlassG, matWindowGlass, totWins);
+        const iWinGlass = makeInstanced(winGlassG, matWindowGlass, totWins, { castShadow: false });
         const iWinFrame = makeInstanced(winFrameG, matAtlas, totWins);
         const iDoor = makeInstanced(doorG, matAtlas, casas.length);
         const iChim = makeInstanced(chimG, matAtlas, totChims);
@@ -2419,23 +2565,8 @@
 
         this.construirCasasMadera(maderas, HW, HD);
 
-        // Puesto de mercado de madera: mostrador, cuatro postes, tejado a dos aguas y cajas (una geometría por instancia)
-        const pB = (w, h, d, x, y, z, rx = 0) => { const g = new THREE.BoxGeometry(w, h, d); if (rx) g.rotateX(rx); g.translate(x, y, z); return g; };
-        const stallG = mergeGeometriesList([
-          pB(2.0, 0.9, 0.7, 0, 0.45, 0),          // mostrador
-          pB(2.2, 0.08, 0.8, 0, 0.94, 0),         // tablero
-          pB(0.12, 2.2, 0.12, -0.9, 1.1, -0.3),   // postes
-          pB(0.12, 2.2, 0.12, 0.9, 1.1, -0.3),
-          pB(0.12, 2.2, 0.12, -0.9, 1.1, 0.3),
-          pB(0.12, 2.2, 0.12, 0.9, 1.1, 0.3),
-          pB(2.6, 0.12, 1.1, 0, 2.45, -0.45, 0.55),  // faldón del tejado (dos vertientes)
-          pB(2.6, 0.12, 1.1, 0, 2.45, 0.45, -0.55),
-          pB(0.5, 0.4, 0.5, 0.95, 0.2, -0.45),    // cajas
-          pB(0.45, 0.35, 0.45, -0.95, 0.18, 0.5),
-        ]);
-        const barrelG = new THREE.CylinderGeometry(0.38, 0.42, 0.95, 8); mapUVBand(barrelG, 0.0, 0.25); barrelG.translate(0, 0.48, 0);
         const iStall = makeInstanced(stallG, matCloth, stalls.length);
-        const iBarrel = makeInstanced(barrelG, matAtlas, barrels.length);
+        const iBarrel = makeInstanced(barrelG, matAtlas, barrels.length, { castShadow: false });
 
         stalls.forEach((s, idx) => {
           dPos.set(s.x, s.y, s.z);
@@ -2454,11 +2585,6 @@
           iBarrel.setMatrixAt(idx, dMat);
         });
 
-        const postG = new THREE.CylinderGeometry(0.09, 0.16, 4.0, 8); postG.translate(0, 2.0, 0);
-        const armG = new THREE.BoxGeometry(0.1, 0.1, 0.85); armG.translate(0, 3.95, 0.42);
-        const lanternG = new THREE.CylinderGeometry(0.22, 0.14, 0.45, 6); lanternG.translate(0, 3.75, 0.8);
-        const poolG = new THREE.PlaneGeometry(7.5, 7.5); poolG.rotateX(-Math.PI / 2);
-
         // Farolas: las de fábrica se numeran por orden (f0, f1…). Las quitadas no se dibujan; las nuevas se suman.
         lampsList.forEach((l, idx) => { l.id = 'f' + idx; });
         const lampsAll = lampsList
@@ -2468,8 +2594,11 @@
 
         const iLampPost = makeInstanced(postG, matIron, lampsAll.length);
         const iLampArm = makeInstanced(armG, matIron, lampsAll.length);
-        const iLantern = makeInstanced(lanternG, matGlassGlow, lampsAll.length);
-        const iLightPool = makeInstanced(poolG, matLightPool, lampsAll.length);
+        const iLantern = makeInstanced(lanternG, matGlassGlow, lampsAll.length, { castShadow: false });
+        const iLightPool = makeInstanced(poolG, matLightPool, lampsAll.length, { castShadow: false, receiveShadow: false });
+        this.lightPoolMesh = iLightPool;
+        this.lightPoolCount = lampsAll.length;
+        iLightPool.visible = lampsAll.length > 0 && matLightPool.opacity > 0.005;
 
         lampsAll.forEach((l, idx) => {
           dPos.set(l.x, l.y, l.z);
@@ -2520,8 +2649,6 @@
         this.editables.trees = trees.map(t => ({ id: t.id, x: t.x, z: t.z }));
         this.editables.fences = fences.map(f => ({ id: f.id, x: f.x, z: f.z }));
 
-        const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95); hedgeG.translate(0, 0.48, 0);
-        const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
         const rockG = rockGeometry();
 
         // Por especie, una malla de ramas y otra de hojas para el nivel «cerca» y otras dos para «lejos».
@@ -2533,11 +2660,12 @@
           const assetCerca = treeAsset(esp, 'cerca'), assetLejos = treeAsset(esp, 'lejos');
           if (!assetCerca || !assetLejos) return;
           const n = porEspecie[esp].length;
-          const parte = asset => ({
-            ramas: makeInstanced(asset.ramas.geo, asset.ramas.mat, n),
-            hojas: makeInstanced(asset.hojas.geo, asset.hojas.mat, n)
+          const parte = (asset, sombra) => ({
+            ramas: makeInstanced(asset.ramas.geo, asset.ramas.mat, n, { castShadow: sombra }),
+            hojas: makeInstanced(asset.hojas.geo, asset.hojas.mat, n, { castShadow: sombra })
           });
-          const grupo = { cerca: parte(assetCerca), lejos: parte(assetLejos), sil: makeInstanced(siluetaArbol(assetCerca), matSilueta, n), arboles: [] };
+          const sombraCerca = esp !== 'arbusto' && esp !== 'seto';
+          const grupo = { cerca: parte(assetCerca, sombraCerca), lejos: parte(assetLejos, false), sil: makeInstanced(siluetaArbol(assetCerca), matSilueta, n, { castShadow: false }), arboles: [] };
           porEspecie[esp].forEach(({ t, idx }) => {
             const sc = t.scale * (TREE_SCALE[t.especie] || 1);
             dPos.set(t.x, t.y - 0.15, t.z);
@@ -2548,9 +2676,9 @@
           repartirArboles(grupo, 0, null, 'cerca');
           this.treeLod.push(grupo);
         });
-        const iHedge = makeInstanced(hedgeG, matFoliage, hedges.length);
+        const iHedge = makeInstanced(hedgeG, matFoliage, hedges.length, { castShadow: false });
         const iFence = makeInstanced(fenceG, matAtlas, fences.length);
-        const iRock = makeInstanced(rockG, matRock, rocks.length);
+        const iRock = makeInstanced(rockG, matRock, rocks.length, { castShadow: false });
 
         const cVeg = new THREE.Color();
         dScale.set(1, 1, 1);
@@ -2582,6 +2710,7 @@
           iRock.setColorAt(idx, cVeg);
         });
 
+        const esferaPueblo = new THREE.Sphere(new THREE.Vector3(0, 12, 0), WORLD_SIZE * 0.68);
         const allInstanced = [
           iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
@@ -2590,8 +2719,11 @@
         ];
 
         allInstanced.forEach(m => {
-          m.instanceMatrix.needsUpdate = true;
-          if (m.instanceColor) m.instanceColor.needsUpdate = true;
+          m.boundingSphere = esferaPueblo;
+          if (m.count > 0) {
+            m.instanceMatrix.needsUpdate = true;
+            if (m.instanceColor) m.instanceColor.needsUpdate = true;
+          }
           this.scene.add(m);
           this.objects.push(m);
         });
@@ -2630,11 +2762,19 @@
         matWindowGlass.emissiveIntensity = a.window;
         matLightPool.opacity = a.pool;
         kitState.levels = { plaza: a.plaza, forge: a.forge };
-        kitState.instances.forEach(v => { v.plazaLight.intensity = a.plaza; v.forgeLight.intensity = a.forge; });
+        const poolVis = a.pool > 0.005;
+        kitState.instances.forEach(v => {
+          v.plazaLight.intensity = a.plaza;
+          v.forgeLight.intensity = a.forge;
+          if (v.lightPoolMesh) v.lightPoolMesh.visible = poolVis && v.lightPoolCount > 0;
+        });
       },
       instanceCount() { return kitState.instances.size; },
       dispose() {
         [matAtlas.map, matAtlas.bumpMap, matRoad.map, matRoad.bumpMap, glowTex, leadedGlassTex].forEach(t => { if (t) t.dispose(); });
+        kitGeos.forEach(g => g.dispose());
+        kitGeos.clear();
+        kitProto = null;
       }
     };
   }

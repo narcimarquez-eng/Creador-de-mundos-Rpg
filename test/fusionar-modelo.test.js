@@ -74,6 +74,22 @@ t('dos clones que comparten geometría se unen cada uno por su lado', () => {
   assert.deepStrictEqual(verticesDe(otro, 'rojo'), verticesDe(modelo, 'rojo'));
 });
 
+t('clonarModelo reutiliza la geometría unida y anima sus propios huesos de forma independiente', () => {
+  const { modelo, clip } = muneco();
+  F.fusionarPorMaterial(THREE, modelo);
+  const clon = F.clonarModelo(THREE, modelo);
+  let mOrig, mClon;
+  modelo.traverse(o => { if (o.isSkinnedMesh) mOrig = o; });
+  clon.traverse(o => { if (o.isSkinnedMesh) mClon = o; });
+  assert.strictEqual(mOrig.geometry, mClon.geometry, 'comparten BufferGeometry');
+  const mx1 = new THREE.AnimationMixer(modelo), mx2 = new THREE.AnimationMixer(clon);
+  mx1.clipAction(clip).play(); mx2.clipAction(clip).play();
+  mx1.update(0.7); mx2.update(0.2);
+  assert.notDeepStrictEqual(verticesDe(modelo, 'rojo'), verticesDe(clon, 'rojo'));
+  mx2.update(0.5);
+  assert.deepStrictEqual(verticesDe(modelo, 'rojo'), verticesDe(clon, 'rojo'));
+});
+
 t('el color de vértice que falta en una pieza se rellena con blanco', () => {
   const { modelo } = muneco();
   const conColor = []; modelo.traverse(o => { if (o.isMesh && o.material.name === 'rojo') conColor.push(o); });

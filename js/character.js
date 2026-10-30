@@ -147,7 +147,7 @@
         this.initTouchJoystick(opts.joystick.zone, opts.joystick.knob);
       }
       this.buildFallbackAvatar();
-      this.loadGLB(opts.glbUrl || './personaje.glb');
+      if (opts.glbUrl !== null) this.loadGLB(opts.glbUrl || './personaje.glb');
     }
 
     setStatus(text, color) {
@@ -261,65 +261,81 @@
       this.root.add(group);
     }
 
+    _instalarGLTF(gltf, labelName) {
+      this.clearCurrentModel();
+      this.isFallbackAvatar = false;
+      this.model = gltf.scene;
+
+      const box = new THREE.Box3().setFromObject(this.model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      if (size.y > 0.01) {
+        this.model.scale.setScalar(1.85 / size.y);
+      }
+      const scaledBox = new THREE.Box3().setFromObject(this.model);
+      this.model.position.y = -scaledBox.min.y;
+
+      this.model.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      this.root.add(this.model);
+      if (this.alCargarModelo) this.alCargarModelo(this.model);
+
+      const clips = gltf.animations || [];
+      if (clips.length > 0) {
+        this.mixer = new THREE.AnimationMixer(this.model);
+        const names = clips.map(c => c.name);
+        const pick = (kind, fallbackIdx) => {
+          const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
+          return clips[i >= 0 ? i : fallbackIdx];
+        };
+        this.actions.idle = this.mixer.clipAction(pick('idle', 0));
+        this.actions.walk = this.mixer.clipAction(pick('walk', Math.min(1, clips.length - 1)));
+        this.actions.run = this.mixer.clipAction(pick('run', Math.min(2, clips.length - 1)));
+        // Acciones de un solo uso: si el GLB no las trae, se usa la animación de respaldo
+        this.oneShots = {};
+        Object.keys(ONE_SHOT).forEach(kind => {
+          const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
+          if (i >= 0) {
+            const action = this.mixer.clipAction(clips[i]);
+            action.setLoop(THREE.LoopOnce, 1);
+            action.clampWhenFinished = true;
+            this.oneShots[kind] = { action, duration: clips[i].duration };
+          }
+        });
+
+        this.currentAction = this.actions.idle;
+        this.currentAction.play();
+        this.setStatus(`GLB activo (${clips.length} clips cargados)`, '#4ade80');
+      } else {
+        this.setStatus('GLB cargado (sin animaciones internas).', '#facc15');
+      }
+    }
+
+    loadGLBBuffer(buffer, labelName = 'personaje') {
+      this.setStatus(`Cargando ${labelName}...`, '#38bdf8');
+      const loader = new THREE.GLTFLoader();
+      loader.parse(
+        buffer,
+        '',
+        (gltf) => this._instalarGLTF(gltf, labelName),
+        () => {
+          if (!this.model) this.buildFallbackAvatar();
+          this.setStatus('Avatar integrado activo. Usa "Archivo .GLB" para elegir tu personaje.glb.', '#fb923c');
+        }
+      );
+    }
+
     loadGLB(url, labelName = url) {
       this.setStatus(`Cargando ${labelName}...`, '#38bdf8');
 
       const loader = new THREE.GLTFLoader();
       loader.load(
         url,
-        (gltf) => {
-          this.clearCurrentModel();
-          this.isFallbackAvatar = false;
-          this.model = gltf.scene;
-
-          const box = new THREE.Box3().setFromObject(this.model);
-          const size = new THREE.Vector3();
-          box.getSize(size);
-          if (size.y > 0.01) {
-            this.model.scale.setScalar(1.85 / size.y);
-          }
-          const scaledBox = new THREE.Box3().setFromObject(this.model);
-          this.model.position.y = -scaledBox.min.y;
-
-          this.model.traverse(child => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-          this.root.add(this.model);
-          if (this.alCargarModelo) this.alCargarModelo(this.model);
-
-          const clips = gltf.animations || [];
-          if (clips.length > 0) {
-            this.mixer = new THREE.AnimationMixer(this.model);
-            const names = clips.map(c => c.name);
-            const pick = (kind, fallbackIdx) => {
-              const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
-              return clips[i >= 0 ? i : fallbackIdx];
-            };
-            this.actions.idle = this.mixer.clipAction(pick('idle', 0));
-            this.actions.walk = this.mixer.clipAction(pick('walk', Math.min(1, clips.length - 1)));
-            this.actions.run = this.mixer.clipAction(pick('run', Math.min(2, clips.length - 1)));
-            // Acciones de un solo uso: si el GLB no las trae, se usa la animación de respaldo
-            this.oneShots = {};
-            Object.keys(ONE_SHOT).forEach(kind => {
-              const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
-              if (i >= 0) {
-                const action = this.mixer.clipAction(clips[i]);
-                action.setLoop(THREE.LoopOnce, 1);
-                action.clampWhenFinished = true;
-                this.oneShots[kind] = { action, duration: clips[i].duration };
-              }
-            });
-
-            this.currentAction = this.actions.idle;
-            this.currentAction.play();
-            this.setStatus(`GLB activo (${clips.length} clips cargados)`, '#4ade80');
-          } else {
-            this.setStatus('GLB cargado (sin animaciones internas).', '#facc15');
-          }
-        },
+        (gltf) => this._instalarGLTF(gltf, labelName),
         undefined,
         () => {
           if (!this.model) this.buildFallbackAvatar();

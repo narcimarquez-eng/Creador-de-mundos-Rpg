@@ -245,9 +245,16 @@ const HABITAT = {
 };
 const indicesPorFamilia = {};
 CATALOGO.forEach((c, i) => { (indicesPorFamilia[c.familia] = indicesPorFamilia[c.familia] || []).push(i); });
+const FAMILIAS_TODOS = Object.keys(HABITAT);
+const familiasPorBioma = {};
+function obtenerFamiliasBioma(b) {
+  let l = familiasPorBioma[b];
+  if (!l) l = familiasPorBioma[b] = FAMILIAS_TODOS.filter(f => HABITAT[f][b]);
+  return l;
+}
 
 // Coloca la decoración del campo. o: { rng (con next()), limites, altura(x,z), bioma(x,z), agua(x,z), libre(x,z) }
-// Devuelve un grupo con una malla por celda de 400 m y familia.
+// Devuelve un grupo con una malla por celda de 400 m.
 export function generarCampo(o) {
   const L = o.limites, r = o.rng;
   const grupo = new THREE.Group();
@@ -257,7 +264,7 @@ export function generarCampo(o) {
     const x = L.minX + r.next() * (L.maxX - L.minX), z = L.minZ + r.next() * (L.maxZ - L.minZ);
     if (o.agua(x, z) || !o.libre(x, z)) continue;
     const b = o.bioma(x, z);
-    const familias = Object.keys(HABITAT).filter(f => HABITAT[f][b]);
+    const familias = obtenerFamiliasBioma(b);
     if (!familias.length) continue;
     const f = familias[Math.floor(r.next() * familias.length)];
     if (!r.chance(HABITAT[f][b])) continue;
@@ -267,16 +274,53 @@ export function generarCampo(o) {
     if (!celdas.has(clave)) celdas.set(clave, []);
     celdas.get(clave).push({ i, x, y: o.altura(x, z), z, s: 0.75 + r.next() * 0.6, ry: r.next() * Math.PI * 2 });
   }
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3();
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   celdas.forEach(items => {
-    const partes = items.map(it => {
-      const g = geometriaVariante(it.i).clone();
-      m.compose(p.set(it.x, it.y - 0.05, it.z), q.setFromEuler(e.set(0, it.ry, 0)), s.set(it.s, it.s, it.s));
-      return g.applyMatrix4(m);
-    });
-    const fusion = mergeGeometries(partes);
-    fusion.computeBoundingSphere();
+    let totalV = 0;
+    const geos = new Array(items.length);
+    for (let k = 0; k < items.length; k++) {
+      const g = geometriaVariante(items[k].i);
+      geos[k] = g;
+      totalV += g.attributes.position.count;
+    }
+    const posOut = new Float32Array(totalV * 3);
+    const nrmOut = new Float32Array(totalV * 3);
+    const colOut = new Float32Array(totalV * 3);
+    let off = 0;
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (let k = 0; k < items.length; k++) {
+      const it = items[k], g = geos[k];
+      const P = g.attributes.position.array, N = g.attributes.normal.array, C = g.attributes.color.array;
+      const len = P.length, sc = it.s, tx = it.x, ty = it.y - 0.05, tz = it.z;
+      const cy = Math.cos(it.ry), sy = Math.sin(it.ry);
+      colOut.set(C, off);
+      for (let j = 0; j < len; j += 3) {
+        const px = P[j], py = P[j + 1], pz = P[j + 2];
+        const ox = (px * cy + pz * sy) * sc + tx;
+        const oy = py * sc + ty;
+        const oz = (-px * sy + pz * cy) * sc + tz;
+        posOut[off + j] = ox;
+        posOut[off + j + 1] = oy;
+        posOut[off + j + 2] = oz;
+        if (ox < x0) x0 = ox; if (ox > x1) x1 = ox;
+        if (oy < y0) y0 = oy; if (oy > y1) y1 = oy;
+        if (oz < z0) z0 = oz; if (oz > z1) z1 = oz;
+        const nx = N[j], ny = N[j + 1], nz = N[j + 2];
+        nrmOut[off + j] = nx * cy + nz * sy;
+        nrmOut[off + j + 1] = ny;
+        nrmOut[off + j + 2] = -nx * sy + nz * cy;
+      }
+      off += len;
+    }
+    const fusion = new THREE.BufferGeometry();
+    fusion.setAttribute('position', new THREE.BufferAttribute(posOut, 3));
+    fusion.setAttribute('normal', new THREE.BufferAttribute(nrmOut, 3));
+    fusion.setAttribute('color', new THREE.BufferAttribute(colOut, 3));
+    fusion.boundingBox = new THREE.Box3(new THREE.Vector3(x0, y0, z0), new THREE.Vector3(x1, y1, z1));
+    fusion.boundingSphere = new THREE.Sphere(
+      new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+      Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2
+    );
     const malla = new THREE.Mesh(fusion, mat);
     malla.castShadow = false;
     malla.receiveShadow = true;

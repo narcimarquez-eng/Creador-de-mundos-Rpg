@@ -29,15 +29,19 @@
   // de cada instancia), con la misma geometría y material. Así el motor descarta las celdas fuera de la vista
   // y el visor puede ocultar las lejanas. Devuelve [{ malla, x0, x1, z0, z1 }] con los límites de cada celda.
   function trocear(THREE, malla, lado) {
+    if (!malla.geometry.boundingSphere) malla.geometry.computeBoundingSphere();
+    const rGeo = (malla.geometry.boundingSphere ? malla.geometry.boundingSphere.radius : 2) * 3.5;
     const celdas = new Map(), m = new THREE.Matrix4(), p = new THREE.Vector3(), c = new THREE.Color();
     for (let i = 0; i < malla.count; i++) {
       malla.getMatrixAt(i, m);
       p.setFromMatrixPosition(m);
       const k = Math.floor(p.x / lado) + ',' + Math.floor(p.z / lado);
-      if (!celdas.has(k)) celdas.set(k, { ids: [], x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity });
+      if (!celdas.has(k)) celdas.set(k, { ids: [], x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity });
       const e = celdas.get(k);
       e.ids.push(i);
-      e.x0 = Math.min(e.x0, p.x); e.x1 = Math.max(e.x1, p.x); e.z0 = Math.min(e.z0, p.z); e.z1 = Math.max(e.z1, p.z);
+      if (p.x < e.x0) e.x0 = p.x; if (p.x > e.x1) e.x1 = p.x;
+      if (p.y < e.y0) e.y0 = p.y; if (p.y > e.y1) e.y1 = p.y;
+      if (p.z < e.z0) e.z0 = p.z; if (p.z > e.z1) e.z1 = p.z;
     }
     const out = [];
     celdas.forEach(e => {
@@ -51,7 +55,10 @@
       nueva.castShadow = malla.castShadow; nueva.receiveShadow = malla.receiveShadow;
       nueva.visible = malla.visible;
       nueva.userData = Object.assign({}, malla.userData);
-      nueva.computeBoundingSphere();
+      nueva.boundingSphere = new THREE.Sphere(
+        new THREE.Vector3((e.x0 + e.x1) / 2, (e.y0 + e.y1) / 2, (e.z0 + e.z1) / 2),
+        Math.hypot(e.x1 - e.x0, e.y1 - e.y0, e.z1 - e.z0) / 2 + rGeo
+      );
       out.push({ malla: nueva, x0: e.x0, x1: e.x1, z0: e.z0, z1: e.z1 });
     });
     return out;
@@ -158,24 +165,37 @@
       const siluetaMat = material({ flatShading: true });
       celdas.forEach(gl => {
         const cercanas = [];
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+        const altM = new Float32Array(gl.length);
+        gl.forEach((m, i) => {
+          const hy = o.altura(m.x, m.z) + op.base * m.tam;
+          altM[i] = hy;
+          if (m.x < x0) x0 = m.x; if (m.x > x1) x1 = m.x;
+          if (hy < y0) y0 = hy; if (hy > y1) y1 = hy;
+          if (m.z < z0) z0 = m.z; if (m.z > z1) z1 = m.z;
+        });
+        const esfera = new THREE.Sphere(
+          new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2 + 1.5, (z0 + z1) / 2),
+          Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + 5
+        );
         op.partes.forEach(parte => {
           const malla = new THREE.InstancedMesh(parte.geo, parte.mat, gl.length);
-          gl.forEach((m, i) => ponerInstancia(malla, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, m.tam * op.alto, m.tam, m.ry, op.tinta ? m.color : undefined));
+          gl.forEach((m, i) => ponerInstancia(malla, i, m.x, altM[i], m.z, m.tam, m.tam * op.alto, m.tam, m.ry, op.tinta ? m.color : undefined));
           malla.instanceMatrix.needsUpdate = true;
           if (malla.instanceColor) malla.instanceColor.needsUpdate = true;
+          malla.boundingSphere = esfera;
           grupo.add(malla);
           cercanas.push(malla);
         });
         const lejana = new THREE.InstancedMesh(silueta, siluetaMat, gl.length);
-        gl.forEach((m, i) => ponerInstancia(lejana, i, m.x, o.altura(m.x, m.z) + op.base * m.tam, m.z, m.tam, m.tam * op.alto, m.tam, m.ry, m.color));
+        gl.forEach((m, i) => ponerInstancia(lejana, i, m.x, altM[i], m.z, m.tam, m.tam * op.alto, m.tam, m.ry, m.color));
         lejana.instanceMatrix.needsUpdate = true;
         lejana.instanceColor.needsUpdate = true;
+        lejana.boundingSphere = esfera;
         lejana.visible = false;
         grupo.add(lejana);
         // Límites reales de los arbustos de la celda, para medir la distancia a la cámara
-        const r = { x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity, cercanas, lejana };
-        gl.forEach(m => { r.x0 = Math.min(r.x0, m.x); r.x1 = Math.max(r.x1, m.x); r.z0 = Math.min(r.z0, m.z); r.z1 = Math.max(r.z1, m.z); });
-        lodCeldas.push(r);
+        lodCeldas.push({ x0, x1, z0, z1, cercanas, lejana });
       });
     });
 
@@ -363,39 +383,72 @@
         const paleta = ARBOL_COLOR[pino ? 'pino' : 'hoja'];
         const sc = ARBOL_ESCALA * (0.9 + rng.next() * 0.55);
         const color = paleta[Math.floor(rng.next() * paleta.length)];
-        const m = new THREE.Matrix4().compose(p.set(x, o.altura(x, z) - 0.15, z), q.setFromEuler(euler.set(0, rng.next() * 6.28, 0)), s.set(sc, sc, sc));
+        const hy = o.altura(x, z) - 0.15;
+        const m = new THREE.Matrix4().compose(p.set(x, hy, z), q.setFromEuler(euler.set(0, rng.next() * 6.28, 0)), s.set(sc, sc, sc));
         const clave = Math.floor(x / 600) + ',' + Math.floor(z / 600) + ',' + esp;
-        if (!porCelda.has(clave)) porCelda.set(clave, { esp, arboles: [] });
-        porCelda.get(clave).arboles.push({ x, z, m, color: new THREE.Color(color) });
+        if (!porCelda.has(clave)) porCelda.set(clave, { esp, arboles: [], x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity });
+        const ce = porCelda.get(clave);
+        ce.arboles.push({ x, z, m, color: new THREE.Color(color) });
+        if (x < ce.x0) ce.x0 = x; if (x > ce.x1) ce.x1 = x;
+        if (hy < ce.y0) ce.y0 = hy; if (hy > ce.y1) ce.y1 = hy;
+        if (z < ce.z0) ce.z0 = z; if (z > ce.z1) ce.z1 = z;
       }
-      porCelda.forEach(({ esp, arboles }) => {
+      porCelda.forEach(ce => {
+        const { esp, arboles, x0, x1, y0, y1, z0, z1 } = ce;
         const A = arbolCampo(esp), n = arboles.length;
+        const esfera = new THREE.Sphere(
+          new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2 + 6, (z0 + z1) / 2),
+          Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + 16
+        );
         const mallas = { cerca: A.cerca.map(parte => new THREE.InstancedMesh(parte.geo, parte.mat, n)), lejos: A.lejos.map(parte => new THREE.InstancedMesh(parte.geo, parte.mat, n)), silueta: new THREE.InstancedMesh(A.silueta, A.siluetaMat, n) };
-        [...mallas.cerca, ...mallas.lejos, mallas.silueta].forEach(mm => { mm.count = 0; mm.visible = false; bosque.add(mm); });
-        const c = { arboles, mallas };
-        repartirArboles(c, Infinity, Infinity);   // sin cámara todo va en silueta hasta la primera actualización
-        arbolesLod.push(c);
+        [...mallas.cerca, ...mallas.lejos, mallas.silueta].forEach(mm => {
+          mm.count = 0; mm.visible = false; mm.boundingSphere = esfera; bosque.add(mm);
+        });
+        arbolesLod.push({ arboles, mallas, x0, x1, z0, z1, modo: 'vacio' });
       });
     }
     // Reparte los árboles de una celda entre sus niveles de detalle según la distancia a la cámara
     function repartirArboles(c, cx, cz) {
+      const dMin = distCaja(c, cx, cz);
+      if (dMin > LEJOS.arboles) {
+        if (c.modo === 'vacio') return;
+        ['cerca', 'lejos'].forEach(nv => c.mallas[nv].forEach(mm => { mm.count = 0; mm.visible = false; }));
+        c.mallas.silueta.count = 0; c.mallas.silueta.visible = false;
+        c.modo = 'vacio';
+        return;
+      }
+      const dMax = Math.hypot(Math.max(cx - c.x0, c.x1 - cx), Math.max(cz - c.z0, c.z1 - cz));
+      if (dMin >= LOD_ARBOL_M[1] && dMax <= LEJOS.arboles) {
+        if (c.modo === 'todoSilueta') return;
+        c.mallas.cerca.forEach(mm => { mm.count = 0; mm.visible = false; });
+        c.mallas.lejos.forEach(mm => { mm.count = 0; mm.visible = false; });
+        const sil = c.mallas.silueta;
+        c.arboles.forEach((a, i) => { sil.setMatrixAt(i, a.m); sil.setColorAt(i, a.color); });
+        sil.count = c.arboles.length; sil.visible = sil.count > 0;
+        if (sil.count > 0) { sil.instanceMatrix.needsUpdate = true; if (sil.instanceColor) sil.instanceColor.needsUpdate = true; }
+        c.modo = 'todoSilueta';
+        return;
+      }
       const R1 = LOD_ARBOL_M[0] * LOD_ARBOL_M[0], R2 = LOD_ARBOL_M[1] * LOD_ARBOL_M[1], RF = LEJOS.arboles * LEJOS.arboles;
       const n = { cerca: 0, lejos: 0, silueta: 0 };
       c.arboles.forEach(a => {
         const d2 = (a.x - cx) * (a.x - cx) + (a.z - cz) * (a.z - cz);
-        if (d2 > RF && cx !== Infinity) return;   // demasiado lejos: no se dibuja
+        if (d2 > RF) return;   // demasiado lejos: no se dibuja
         const nivel = d2 < R1 ? 'cerca' : d2 < R2 ? 'lejos' : 'silueta';
         const i = n[nivel]++;
         if (nivel === 'silueta') { c.mallas.silueta.setMatrixAt(i, a.m); c.mallas.silueta.setColorAt(i, a.color); }
         else { const [ramas, hojas] = c.mallas[nivel]; ramas.setMatrixAt(i, a.m); hojas.setMatrixAt(i, a.m); hojas.setColorAt(i, a.color); }
       });
       const fijar = (mm, k) => {
-        mm.count = k; mm.visible = k > 0; mm.boundingSphere = null;
-        mm.instanceMatrix.needsUpdate = true;
-        if (mm.instanceColor) mm.instanceColor.needsUpdate = true;
+        mm.count = k; mm.visible = k > 0;
+        if (k > 0) {
+          mm.instanceMatrix.needsUpdate = true;
+          if (mm.instanceColor) mm.instanceColor.needsUpdate = true;
+        }
       };
       ['cerca', 'lejos'].forEach(nv => c.mallas[nv].forEach(mm => fijar(mm, n[nv])));
       fijar(c.mallas.silueta, n.silueta);
+      c.modo = 'mixto';
     }
 
     // Llamado desde el visor con la posición de la cámara: cambia el detalle de matorrales y de árboles

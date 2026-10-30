@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Visor 3D del Mundo</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.core.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/controls/OrbitControls.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/loaders/GLTFLoader.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/libs/meshopt_decoder.module.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/utils/BufferGeometryUtils.js">
   <style>
     :root { --panel: rgba(11, 17, 30, 0.93); --line: rgba(255,255,255,.14); --accent: #38bdf8; --gold: #fbbf24; --muted: #94a3b8; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -430,16 +439,15 @@
 
   <div id="toast"></div>
 
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
-  <script src="js/casa-madera.js?v=20251029"></script>
-  <script src="js/lagos.js?v=20251029"></script>
-  <script src="js/equipo.js?v=20251029"></script>
-  <script src="js/historia.js?v=20251029"></script>
-  <script src="js/heroe.js?v=20251029"></script>
-  <script src="js/mision-zona.js?v=20251029"></script>
-  <script src="js/mapa.js?v=20251029"></script>
-  <script src="js/ruta.js?v=20251029"></script>
-  <script src="js/fusionar-modelo.js?v=20251029"></script>
+  <script defer src="js/casa-madera.js?v=20251029"></script>
+  <script defer src="js/lagos.js?v=20251029"></script>
+  <script defer src="js/equipo.js?v=20251029"></script>
+  <script defer src="js/historia.js?v=20251029"></script>
+  <script defer src="js/heroe.js?v=20251029"></script>
+  <script defer src="js/mision-zona.js?v=20251029"></script>
+  <script defer src="js/mapa.js?v=20251029"></script>
+  <script defer src="js/ruta.js?v=20251029"></script>
+  <script defer src="js/fusionar-modelo.js?v=20251029"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
   <script type="module" src="js/world-core.js?v=20251029"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
@@ -451,7 +459,6 @@
   <script type="module" src="js/terreno.js?v=20251029"></script>
   <script type="module" src="js/decorado.js?v=20251029"></script>
   <script type="module" src="js/character.js?v=20251029"></script>
-  <script type="module" src="js/enemigos.js?v=20251029"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20251029"></script>
   <script type="module" src="js/enemigos-combate.js?v=20251029"></script>
   <script type="module">
@@ -495,7 +502,7 @@
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
   let ladrillosTramos = [];   // tramos del empedrado de las calzadas: { malla, x, z }
   let character = null;
-  let hemiLight = null, sunLight = null;
+  let hemiLight = null, sunLight = null, luzPlazaMundo = null, luzForjaMundo = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
   let terrainMat = null, farMesh = null, lastChunks = 0;
   const nearChunks = new Map();          // trozos de 300 m con detalle completo, por "cx,cz"
@@ -793,11 +800,10 @@
 
   function ensureScene() {
     if (scene) return;
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.toneMapping = THREE.NeutralToneMapping;   // conserva los colores sin apagar las luces
     renderer.toneMappingExposure = 1.12;
-    prepararEntorno();
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;  // sombras con borde suave
+    renderer.shadowMap.type = THREE.PCFShadowMap;      // sombras suaves compatibles con Three r186
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.insertBefore(renderer.domElement, document.body.firstChild);
@@ -815,7 +821,7 @@
     cielo.renderOrder = -1;
     cielo.frustumCulled = false;
     scene.add(cielo);
-    cargarArbusto();
+    if (!(NR && typeof NR.arbolPartes === 'function' && NR.arbolPartes('arbusto', 'lejos'))) cargarArbusto();
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 40000);
 
     hemiLight = new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.8);
@@ -825,7 +831,13 @@
     sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.25;   // sin rayas de sombra en el suelo
     scene.add(sunLight);
     scene.add(sunLight.target);
+    // Dos luces puntuales fijas para toda la partida: evita recompilar todos los shaders al cargar o descargar pueblos
+    luzPlazaMundo = new THREE.PointLight('#38bdf8', 0, 55, 1.5);
+    luzForjaMundo = new THREE.PointLight('#f97316', 0, 35, 1.5);
+    scene.add(luzPlazaMundo, luzForjaMundo);
     loadTerrainTextures();
+    // El entorno PMREM y el catálogo pesado de monstruos se preparan justo tras pintar el primer fotograma
+    requestAnimationFrame(() => setTimeout(() => { prepararEntorno(); cargarModuloEnemigos(); }, 0));
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -838,7 +850,7 @@
     character = new CharacterLib.CharacterController({
       scene, camera, controls, world: visorWorld,
       joystick: { zone: $('joystick-zone'), knob: $('joystick-knob') },
-      glbUrl: './personaje.glb'
+      glbUrl: null
     });
     character.alCargarModelo = modelo => { aplicarEntorno(modelo); aligerarPersonaje(modelo); };
 
@@ -869,6 +881,11 @@
   function clearWorldObjects() {
     if (lagosGroup) { scene.remove(lagosGroup); lagosGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); lagosGroup = null; }
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
+    gurus.forEach(g => scene.remove(g.raiz));
+    gurus.length = 0;
+    encargosPendientes.length = 0;
+    encargosColocados = false;
+    misionPorZona = {};
     towns.forEach(o => { unloadTown(o); if (o.proxy) { scene.remove(o.proxy); o.proxy.geometry.dispose(); } });
     clearTerrainRender();
     terrainGrid = null;
@@ -919,14 +936,16 @@
     bounds.cz = (bounds.minZ + bounds.maxZ) / 2;
     bounds.size = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
 
+    // Índice espacial de tramos de camino para consultas O(1) en lagos y decoración
+    rejillaCaminosMundo = crearRejillaCaminos(world.roads);
+
     // Lagos, oasis y arenas movedizas: se planean antes del relieve, porque lo excavan. Usan la altura base
     // (sin excavar y sin pueblos); los pueblos y los ríos se respetan con sus márgenes.
     lagosMundo = LagosLib.planear({
       rng: new W.PRNG((world.seed ^ 0x1a6e) >>> 0), limites: bounds,
       altura: (x, z) => (terrain.elevation(x, z) - SEA) * HEIGHT_SCALE,
       bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
-      libre: (x, z, m) => !towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.tileHalf + BLEND_OUT + m) &&
-        !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < m),
+      libre: (x, z, m) => !enMargenPueblo(x, z, BLEND_OUT + m, true) && !rejillaCaminosMundo(x, z, m),
       rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
     });
 
@@ -953,6 +972,15 @@
     }
     $('title').textContent = '🌍 ' + world.name;
     $('load').classList.remove('show');
+    const ahora = performance.now();
+    lastStream = -Infinity;
+    streamTowns(ahora);
+    updateTerrainChunks(ahora, true);
+    updateAtmosphere(0);
+    if (renderer && renderer.compileAsync) {
+      compilandoEscena = true;
+      renderer.compileAsync(scene, camera).catch(() => {}).finally(() => { compilandoEscena = false; });
+    }
     updateStats();
   }
 
@@ -1114,24 +1142,19 @@
   }
 
   // Texturas de hierba, tierra, roca, arena y nieve (assets/terreno, CC0 de ambientCG). Del atlas se copian
-  // las 15 que usa el suelo a una textura array: repite sin costuras y con sus mipmaps.
+  // solo las 15 celdas que usa el suelo a una textura array: repite sin costuras y con sus mipmaps.
   function loadTerrainTextures() {
     const blanco = new THREE.DataArrayTexture(new Uint8Array(15 * 4).fill(255), 1, 1, 15);
     blanco.needsUpdate = true;
     terrainU.tCapas.value = blanco;
     new THREE.ImageLoader().load('assets/terreno/atlas.jpg', img => {
-      const lado = img.width;
-      const lienzo = document.createElement('canvas');
-      lienzo.width = lienzo.height = lado;
-      const ctx = lienzo.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(img, 0, 0);
-      const c = TerrainLib.capasDelAtlas(ctx.getImageData(0, 0, lado, lado).data, lado);
+      const c = TerrainLib.capasDesdeImagen(img);
       const tex = new THREE.DataArrayTexture(c.datos, c.tam, c.tam, c.capas);
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.minFilter = THREE.LinearMipmapLinearFilter;
       tex.magFilter = THREE.LinearFilter;
       tex.generateMipmaps = true;
-      tex.anisotropy = 4;
+      tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
       tex.needsUpdate = true;
       terrainU.tCapas.value = tex;
       texturasCargadas = true;
@@ -1793,16 +1816,72 @@
     scene.add(lagosGroup);
   }
 
+  // Rejilla espacial de segmentos de camino para comprobar distancias en O(1) sin recorrer todo el mapa
+  let rejillaCaminosMundo = () => false;
+  function crearRejillaCaminos(roads) {
+    const CELDA = 64;
+    const mapa = new Map();
+    let numSegs = 0;
+    for (let r = 0; r < roads.length; r++) {
+      const pts = roads[r].points;
+      if (!pts || pts.length < 2) continue;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const dx = b.x - a.x, dz = b.y - a.y;
+        const s = { id: numSegs++, ax: a.x, az: a.y, dx, dz, len2: dx * dx + dz * dz };
+        const x0 = Math.floor(Math.min(a.x, b.x) / CELDA), x1 = Math.floor(Math.max(a.x, b.x) / CELDA);
+        const z0 = Math.floor(Math.min(a.y, b.y) / CELDA), z1 = Math.floor(Math.max(a.y, b.y) / CELDA);
+        for (let cx = x0; cx <= x1; cx++) {
+          for (let cz = z0; cz <= z1; cz++) {
+            const k = (cx << 16) ^ (cz & 0xffff);
+            let arr = mapa.get(k);
+            if (!arr) { arr = []; mapa.set(k, arr); }
+            arr.push(s);
+          }
+        }
+      }
+    }
+    if (!numSegs) return () => false;
+    return function cercaDeCamino(x, z, m) {
+      const m2 = m * m;
+      const x0 = Math.floor((x - m) / CELDA), x1 = Math.floor((x + m) / CELDA);
+      const z0 = Math.floor((z - m) / CELDA), z1 = Math.floor((z + m) / CELDA);
+      for (let cx = x0; cx <= x1; cx++) {
+        for (let cz = z0; cz <= z1; cz++) {
+          const arr = mapa.get((cx << 16) ^ (cz & 0xffff));
+          if (!arr) continue;
+          for (let i = 0; i < arr.length; i++) {
+            const s = arr[i];
+            const t = s.len2 > 0 ? Math.max(0, Math.min(1, ((x - s.ax) * s.dx + (z - s.az) * s.dz) / s.len2)) : 0;
+            const px = x - (s.ax + s.dx * t), pz = z - (s.az + s.dz * t);
+            if (px * px + pz * pz < m2) return true;
+          }
+        }
+      }
+      return false;
+    };
+  }
+
+  function enMargenPueblo(x, z, extra, usarTileHalf) {
+    for (let i = 0; i < towns.length; i++) {
+      const o = towns[i];
+      const dx = x - o.t.x, dz = z - o.t.y;
+      const rad = (usarTileHalf ? o.tileHalf : o.R) + extra;
+      if (dx * dx + dz * dz < rad * rad) return true;
+    }
+    return false;
+  }
+
   function buildDecorado() {
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     const rng = new W.PRNG((world.seed ^ 0x7e7e) >>> 0);
+    const cercaCamino = rejillaCaminosMundo;
     const opciones = {
       rng, limites: bounds, arbusto: arbustoGLB, props: NR,
       altura: (x, z) => H(x, z),
       bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
       agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02 || LagosLib.enAgua(lagosMundo, x, z),
-      libre: (x, z) => !towns.some(o => Math.hypot(x - o.t.x, z - o.t.y) < o.R + 60) &&
-        !world.roads.some(r => W.distToPolyline({ x, y: z }, r.points) < 9),
+      libre: (x, z) => !enMargenPueblo(x, z, 60, false) && !cercaCamino(x, z, 9),
       caminos: world.roads.map(r => r.points)
     };
     decorGroup = DecoradoLib.generar(THREE, opciones);
@@ -1985,7 +2064,7 @@
     group.position.set(o.t.x, o.h0, o.t.y);
     group.rotation.y = -o.rot;
     scene.add(group);
-    const village = kit.createVillage(group, { skipGround: true });
+    const village = kit.createVillage(group, { skipGround: true, noLights: true });
     village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
     if (village.waterMesh) { aguaPuebloMat = aguaPuebloMat || aguaMaterial(false, 0.86, true); village.waterMesh.material = aguaPuebloMat; }
     o.village = village; o.group = group; o.kit = kit;
@@ -2028,6 +2107,7 @@
   // Árboles del pueblo: dentro de 40 m de la muralla, todos; hasta 300 m, una silueta por árbol; más lejos, ninguno
   function nivelArbolesMuro(d) { return d <= ARBOLES_CERCA_M ? 'cerca' : d <= UNLOAD_R ? 'silueta' : 'nada'; }
 
+  let compilandoEscena = false, estudioCargando = false;
   // Indicador de lo que falta por cargar: monstruos cercanos sin su modelo, pueblos que entran y archivos
   const cargaUI = { t: 0, maxMon: 0, maxPue: 0, mostrado: 0 };
   function actualizarCarga(now) {
@@ -2042,7 +2122,7 @@
     });
     const huecos = Math.max(0, MAX_LOADED - towns.filter(o => o.village).length);
     const pue = Math.min(huecos, towns.filter(o => !o.village && distPueblo(o) < LOAD_R).length) + towns.filter(o => o.village && o.rise < 1).length;
-    const arch = archivosPendientes;
+    const arch = archivosPendientes + (compilandoEscena ? 1 : 0) + (estudioCargando ? 1 : 0);
     const total = mon + pue + arch;
     const el = $('carga');
     if (!total) {
@@ -2182,6 +2262,39 @@
     if (hemiLight) { hemiLight.color.copy(atmoNow.hemi); hemiLight.groundColor.copy(atmoNow.ground); hemiLight.intensity = atmoNow.hemiI; }
     if (sunLight) { sunLight.color.copy(atmoNow.sun); sunLight.intensity = atmoNow.sunI; sunLight.position.copy(atmoNow.sunPos); }
     Object.values(kitCache).forEach(kit => kit.setLevels(atmoNow));
+    actualizarLucesPueblo();
+  }
+
+  function actualizarLucesPueblo() {
+    if (!luzPlazaMundo || !luzForjaMundo) return;
+    let cercaPlaza = null, dPlaza = Infinity;
+    let cercaForja = null, dForja = Infinity;
+    const cx = camera.position.x, cz = camera.position.z;
+    for (let i = 0; i < towns.length; i++) {
+      const o = towns[i];
+      if (!o.village) continue;
+      const dx = o.t.x - cx, dz = o.t.y - cz, d2 = dx * dx + dz * dz;
+      if (d2 < dPlaza) { dPlaza = d2; cercaPlaza = o; }
+      if (o.village.hasForge && d2 < dForja) { dForja = d2; cercaForja = o; }
+    }
+    if (cercaPlaza) {
+      const lp = cercaPlaza.village.plazaLight.position;
+      const wp = townPoint(cercaPlaza, lp.x, lp.z);
+      luzPlazaMundo.color.copy(cercaPlaza.village.plazaLight.color);
+      luzPlazaMundo.position.set(wp.x, cercaPlaza.h0 + lp.y * cercaPlaza.group.scale.y, wp.z);
+      luzPlazaMundo.intensity = atmoNow.plaza * cercaPlaza.rise;
+    } else {
+      luzPlazaMundo.intensity = 0;
+    }
+    if (cercaForja) {
+      const fp = cercaForja.village.forgeLight.position;
+      const wf = townPoint(cercaForja, fp.x, fp.z);
+      luzForjaMundo.color.copy(cercaForja.village.forgeLight.color);
+      luzForjaMundo.position.set(wf.x, cercaForja.h0 + fp.y * cercaForja.group.scale.y, wf.z);
+      luzForjaMundo.intensity = atmoNow.forge * cercaForja.rise;
+    } else {
+      luzForjaMundo.intensity = 0;
+    }
   }
 
   // ===========================================================================
@@ -2196,10 +2309,17 @@
   // tipo (normal o jefe).
   let enemyMode = 'niveles';
   let enemyTextures = null;
-  const ENEMY_PRESETS = Object.values(EnemyLib.ARCHETYPE_PRESETS);
+  let enemyPresetsCache = null;
+  let promesaEnemigos = null;
   const esJefeEnemigo = c => c.stats.tier === 'Mini-Boss' || c.stats.tier === 'Raid Boss';
+  function obtenerPresetsEnemigos() {
+    if (!window.EnemyLib) return [];
+    if (!enemyPresetsCache) enemyPresetsCache = Object.values(window.EnemyLib.ARCHETYPE_PRESETS);
+    return enemyPresetsCache;
+  }
   function elegirEnemigo(info, rng) {
-    const pool = ENEMY_PRESETS.filter(c => esJefeEnemigo(c) === !!info.boss);
+    const pool = obtenerPresetsEnemigos().filter(c => esJefeEnemigo(c) === !!info.boss);
+    if (!pool.length) return null;
     if (enemyMode === 'aleatorio') return pool[Math.min(pool.length - 1, Math.floor(rng.range(0, pool.length)))];
     let cercanos = pool.filter(c => Math.abs(c.stats.level - info.level) <= 2);
     if (cercanos.length < 3) cercanos = pool.slice().sort((a, b) => Math.abs(a.stats.level - info.level) - Math.abs(b.stats.level - info.level)).slice(0, 3);
@@ -2208,9 +2328,29 @@
   // Enemigo por clave: arquetipo del editor o enemigo propio guardado en el mundo
   function enemigoPorClave(clave) {
     if (!clave) return null;
-    if (EnemyLib.ARCHETYPE_PRESETS[clave]) return EnemyLib.ARCHETYPE_PRESETS[clave];
+    if (window.EnemyLib && window.EnemyLib.ARCHETYPE_PRESETS[clave]) return window.EnemyLib.ARCHETYPE_PRESETS[clave];
     const propio = world.enemigos && world.enemigos[clave];
     return propio ? propio.config : null;
+  }
+  function resolverEnemigoPendiente(info, estadoRng) {
+    const rng = new W.PRNG(1);
+    rng.s = estadoRng;
+    return enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
+  }
+  function cargarModuloEnemigos() {
+    if (window.EnemyLib) return Promise.resolve(window.EnemyLib);
+    if (!promesaEnemigos) {
+      promesaEnemigos = import('./js/enemigos.js?v=20251029').then(() => {
+        monsters.forEach(m => {
+          if (!m.enemigo && m._pendEnemigo) {
+            m.enemigo = resolverEnemigoPendiente(m._pendEnemigo.info, m._pendEnemigo.s);
+            m._pendEnemigo = null;
+          }
+        });
+        return window.EnemyLib;
+      }).catch(err => { console.error('Error al cargar enemigos.js:', err); return null; });
+    }
+    return promesaEnemigos;
   }
   // Entorno de reflejos para personajes, NPC y monstruos, como en el estudio de armaduras y el editor de enemigos.
   // Sin él, sus metales y barnices (materiales PBR) no tienen nada que reflejar y salen oscuros y pardos.
@@ -2341,6 +2481,7 @@
   }
 
   function construirModeloEnemigo(m, d) {
+    if (!window.EnemyLib || !m.enemigo) return false;
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
       // Se espera al simplificador (unos milisegundos al abrir): sin él, la versión saldría con todos sus triángulos
@@ -2381,7 +2522,12 @@
           m.group = new THREE.Group();
           m.group.userData.monstruo = m;
           // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
-          m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
+          if (window.EnemyLib) {
+            m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rng);
+          } else {
+            m._pendEnemigo = { info, s: rng.s };
+            m.enemigo = null;
+          }
           m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
           m.versiones = {};
           m.group.visible = false;
@@ -3028,7 +3174,7 @@
     renderInvCard();
     if (personajeActual) cargarCatalogoPiezas().catch(() => {});
     if (personajeActual) {
-      generarArmaduras(personajeActual).then(() => mostrarCuerpo(personajeActual)).catch(() => {});
+      mostrarCuerpo(personajeActual).catch(() => {});
     }
     if (!character.teleport(r.x, r.z)) {
       const start = towns.find(o => o.t.isStart) || towns[0];
@@ -3278,8 +3424,47 @@
   let encargosColocados = false;
   let alCrear = null;
   let estudioListo = null;      // promesa: el maniquí del estudio está listo
-  const piezasGlb = {};         // id de pieza → URL del GLB generado en esta sesión
   const esperando = {};         // respuestas pendientes del estudio, por clave
+
+  // Caché persistente en IndexedDB del GLB exportado del héroe para cargar la partida al instante sin abrir el estudio
+  const DB_HEROE = 'rpg-heroe-glb-v1';
+  let dbHeroePromesa = null;
+  function abrirDbHeroe() {
+    if (typeof indexedDB === 'undefined') return Promise.resolve(null);
+    if (!dbHeroePromesa) {
+      dbHeroePromesa = new Promise(res => {
+        try {
+          const req = indexedDB.open(DB_HEROE, 1);
+          req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains('modelos')) req.result.createObjectStore('modelos'); };
+          req.onsuccess = () => res(req.result);
+          req.onerror = () => res(null);
+        } catch (e) { res(null); }
+      });
+    }
+    return dbHeroePromesa;
+  }
+  function claveModeloHeroe(pj) {
+    return JSON.stringify({ c: pj.clase || 'guerrero', f: pj.fit || {}, e: EquipoLib.equipoPorIdx(pj) });
+  }
+  async function leerModeloHeroeCache(clave) {
+    const db = await abrirDbHeroe();
+    if (!db) return null;
+    return new Promise(res => {
+      try {
+        const req = db.transaction('modelos', 'readonly').objectStore('modelos').get(clave);
+        req.onsuccess = () => res(req.result instanceof ArrayBuffer ? req.result : null);
+        req.onerror = () => res(null);
+      } catch (e) { res(null); }
+    });
+  }
+  async function guardarModeloHeroeCache(clave, buffer) {
+    const db = await abrirDbHeroe();
+    if (!db || !(buffer instanceof ArrayBuffer)) return;
+    try {
+      const tx = db.transaction('modelos', 'readwrite');
+      tx.objectStore('modelos').put(buffer.slice(0), clave);
+    } catch (e) { /* caché opcional */ }
+  }
 
   function frameEstudio() {
     const f = $('crear-frame');
@@ -3292,6 +3477,13 @@
 
   function enviarAlEstudio(datos) {
     frameEstudio().contentWindow.postMessage(Object.assign({ origen: 'juego-armaduras' }, datos), '*');
+  }
+
+  function pausarEstudioSiOculto() {
+    const f = $('crear-frame');
+    if (f && f.getAttribute('src') && f.contentWindow) {
+      f.contentWindow.postMessage({ origen: 'juego-armaduras', tipo: 'pausar', pausa: !$('crear').classList.contains('show') }, '*');
+    }
   }
 
   // Envía un mensaje al estudio y espera su respuesta (con límite de tiempo)
@@ -3307,11 +3499,10 @@
   window.addEventListener('message', e => {
     const d = e.data;
     if (!d || d.origen !== 'armadura-estudio') return;
-    if (d.tipo === 'listo' && esperando.listo) { esperando.listo(); delete esperando.listo; }
+    if (d.tipo === 'listo' && esperando.listo) { esperando.listo(); delete esperando.listo; pausarEstudioSiOculto(); }
     if (d.tipo === 'proporciones' && esperando.proporciones) { esperando.proporciones(d.fit); delete esperando.proporciones; }
     if (d.tipo === 'glb' && esperando[d.id]) {
-      piezasGlb[d.id] = URL.createObjectURL(new Blob([d.buffer], { type: 'model/gltf-binary' }));
-      esperando[d.id](piezasGlb[d.id]);
+      esperando[d.id](d.buffer);
       delete esperando[d.id];
     }
   });
@@ -3325,22 +3516,6 @@
     return catalogoPiezas;
   }
 
-  // Genera un GLB por modelo distinto del inventario, con las proporciones del personaje.
-  // El estudio exporta de una en una.
-  async function generarArmaduras(pj) {
-    frameEstudio();
-    await cargarCatalogoPiezas();
-    await estudioListo;
-    enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit });
-    const ids = [...new Set(pj.inventario.map(o => o.piezaId))];
-    for (const id of ids) {
-      const [ranura, idx] = id.split('.');
-      const pieza = (catalogoPiezas.ranuras[ranura] || []).find(p => p.idx === Number(idx));
-      if (!pieza || !pieza.archivo || piezasGlb[id]) continue;   // sin modelo, o ya generado
-      await pedirAlEstudio(id, { tipo: 'exportar-pieza', id, ranura, idx: Number(idx) });
-    }
-  }
-
   // Personaje nuevo: cota inicial y arma básica (js/equipo.js) con las proporciones que tenga el estudio ahora
   function prepararPersonaje(nombre, clase, fit) {
     const pj = EquipoLib.crearPersonaje(catalogoPiezas, clase, nombre);
@@ -3348,16 +3523,25 @@
     return pj;
   }
 
+  const esperarPrimerPintadoMundo = () => new Promise(ok => {
+    const paso = () => (renderer && renderer.info.render.frame > 3 ? setTimeout(ok, 80) : requestAnimationFrame(paso));
+    requestAnimationFrame(paso);
+  });
+
   async function openCrearPersonaje(alCrearFn) {
     alCrear = alCrearFn;
     $('crear-estado').textContent = 'Cargando el estudio…';
     $('crear').classList.add('show');
+    estudioCargando = true;
     try {
+      await esperarPrimerPintadoMundo();
       await cargarCatalogoPiezas();
       frameEstudio();
       await estudioListo;
+      pausarEstudioSiOculto();
       $('crear-estado').textContent = 'Ajusta el cuerpo y pulsa «Crear personaje».';
     } catch (err) { $('crear-estado').textContent = err.message; }
+    finally { estudioCargando = false; }
   }
 
   async function confirmarCrear() {
@@ -3367,21 +3551,32 @@
       $('crear-estado').textContent = 'Tomando las proporciones…';
       const fit = await pedirAlEstudio('proporciones', { tipo: 'pedir-proporciones' });
       const pj = prepararPersonaje($('crear-nombre').value.trim() || 'Aventurero', $('crear-clase').value, fit);
-      $('crear-estado').textContent = 'Generando armaduras…';
-      await generarArmaduras(pj);
-      await mostrarCuerpo(pj);
+      $('crear-estado').textContent = 'Preparando personaje…';
       $('crear').classList.remove('show');
+      pausarEstudioSiOculto();
       alCrear(pj);
+      await mostrarCuerpo(pj);
     } catch (err) { $('crear-estado').textContent = err.message; }
     finally { ok.disabled = false; }
   }
   $('crear-ok').onclick = confirmarCrear;
-  $('crear-cancel').onclick = () => $('crear').classList.remove('show');
+  $('crear-cancel').onclick = () => { $('crear').classList.remove('show'); pausarEstudioSiOculto(); };
 
-  // Muestra al personaje con su armadura: el estudio exporta el cuerpo completo con el equipo
+  // Muestra al personaje con su armadura: usa la caché persistente si existe; si no, lo exporta desde el estudio y lo guarda
   async function mostrarCuerpo(pj) {
-    const url = await pedirAlEstudio('cuerpo', { tipo: 'exportar-personaje', id: 'cuerpo', equipo: EquipoLib.equipoPorIdx(pj) });
-    character.loadGLB(url, pj.nombre);
+    const clave = claveModeloHeroe(pj);
+    const cacheado = await leerModeloHeroeCache(clave);
+    if (cacheado) {
+      character.loadGLBBuffer(cacheado, pj.nombre);
+      return;
+    }
+    frameEstudio();
+    await estudioListo;
+    enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit });
+    const buffer = await pedirAlEstudio('cuerpo', { tipo: 'exportar-personaje', id: 'cuerpo', equipo: EquipoLib.equipoPorIdx(pj) });
+    pausarEstudioSiOculto();
+    guardarModeloHeroeCache(clave, buffer);
+    character.loadGLBBuffer(buffer, pj.nombre);
   }
 
   // Tarjeta del inventario: dibujo del personaje con las piezas equipadas, equipo y huecos
@@ -3908,39 +4103,103 @@
     { id: 'guru-5', nombre: 'Erudita Mirel', tema: 'el equipo', frase: 'Una cota malgastada rinde la mitad. Revisa el estado de cada objeto en el 🎒.' }
   ];
   const gurus = [];
+  const encargosPendientes = [];   // encargos lejanos que aún no han necesitado descargar/instanciar su modelo 3D
   const RADIO_GURUS = 6;
   const RADIO_PUESTOS = 12.2;   // anillo de los puestos de mercado del pueblo
   const DISTANCIA_HABLAR = 4;
   const DISTANCIA_VER_NPC = 150;   // más lejos, los NPCs no se dibujan ni se animan
   const DISTANCIA_NPC_LEJOS = 35;  // más lejos de la cámara, su versión simplificada (npc/gurus/*-lejos.glb)
-  const npcLejos = {};             // modelo → promesa del glTF simplificado (se carga una vez)
+  const npcProtoCerca = {};        // modelo → promesa de { proto, idle } fusionado una sola vez
+  const npcProtoLejos = {};        // modelo → promesa de { proto, idle } lejano (se pide solo al alejarse)
 
-  // Modelo de cerca de un NPC: su versión simplificada (npc/gurus/*-cerca.glb, ~25 % de los triángulos, que de
-  // cerca se ve igual; tools/simplificar-npcs.mjs) o, si falta, el original
-  function cargarNpc(nombreModelo, ok, fallo) {
-    const loader = new THREE.GLTFLoader();
-    loader.load('npc/gurus/' + nombreModelo + '-cerca.glb', ok, undefined, () => loader.load('npc/gurus/' + nombreModelo + '.glb', ok, undefined, fallo));
+  function prepararPrototipoNpc(gltf) {
+    if (!gltf || !gltf.scene) return null;
+    const proto = gltf.scene;
+    const size = new THREE.Vector3();
+    new THREE.Box3().setFromObject(proto).getSize(size);
+    if (size.y > 0.01) proto.scale.setScalar(1.85 / size.y);
+    proto.position.y = -new THREE.Box3().setFromObject(proto).min.y;
+    const maxAniso = renderer ? Math.min(4, renderer.capabilities.getMaxAnisotropy()) : 4;
+    proto.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+        if (m && m.map && m.map.anisotropy < maxAniso) { m.map.anisotropy = maxAniso; m.map.needsUpdate = true; }
+      });
+    });
+    FusionLib.fusionarPorMaterial(THREE, proto);   // se une una única vez; todos los clones comparten su geometría y textura
+    const idle = (gltf.animations || []).find(c => c.name === 'idle') || null;
+    return { proto, idle };
   }
 
-  // Versión lejana de un NPC (~13 % de los triángulos, tools/simplificar-npcs.mjs): mismos nodos, así que
-  // su animación vale igual. Se coloca como el modelo de cerca y se muestra uno u otro por distancia.
-  function ponerVersionLejana(entrada, nombreModelo, modelo) {
-    if (!npcLejos[nombreModelo]) npcLejos[nombreModelo] = new Promise(ok => new THREE.GLTFLoader().load('npc/gurus/' + nombreModelo + '-lejos.glb', ok, undefined, () => ok(null)));
-    npcLejos[nombreModelo].then(gltf => {
-      if (!gltf) return;   // sin versión lejana: se queda la de cerca
-      const lejos = gltf.scene.clone(true);
-      lejos.scale.copy(modelo.scale);
-      lejos.position.copy(modelo.position);
+  // Prototipo de cerca de un NPC (se descarga y fusiona una sola vez por modelo)
+  function obtenerNpcCerca(nombreModelo) {
+    if (!npcProtoCerca[nombreModelo]) {
+      npcProtoCerca[nombreModelo] = new Promise(res => {
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+          'npc/gurus/' + nombreModelo + '-cerca.glb',
+          gltf => res(prepararPrototipoNpc(gltf)),
+          undefined,
+          () => loader.load('npc/gurus/' + nombreModelo + '.glb', gltf => res(prepararPrototipoNpc(gltf)), undefined, () => res(null))
+        );
+      });
+    }
+    return npcProtoCerca[nombreModelo];
+  }
+
+  // Prototipo lejano de un NPC: solo se descarga si la cámara ve al NPC a más de 35 m
+  function obtenerNpcLejos(nombreModelo) {
+    if (!npcProtoLejos[nombreModelo]) {
+      npcProtoLejos[nombreModelo] = new Promise(res => {
+        new THREE.GLTFLoader().load('npc/gurus/' + nombreModelo + '-lejos.glb', gltf => res(prepararPrototipoNpc(gltf)), undefined, () => res(null));
+      });
+    }
+    return npcProtoLejos[nombreModelo];
+  }
+
+  function asegurarVersionCercanaNpc(entrada) {
+    if (entrada.cerca || entrada.cargandoCerca) return;
+    entrada.cargandoCerca = true;
+    obtenerNpcCerca(entrada.nombreModelo).then(async base => {
+      if (!base) return;
+      const modelo = FusionLib.clonarModelo(THREE, base.proto);
+      modelo.visible = false;
+      entrada.raiz.add(modelo);
+      aplicarEntorno(modelo);
+      if (renderer && renderer.compileAsync) { try { await renderer.compileAsync(modelo, camera, scene); } catch (e) {} }
+      const mixer = new THREE.AnimationMixer(modelo);
+      if (base.idle) mixer.clipAction(base.idle).play();
+      entrada.cerca = modelo;
+      entrada.mixer = mixer;
+    });
+  }
+
+  function asegurarVersionLejanaNpc(entrada) {
+    if (entrada.lejos || entrada.cargandoLejos) return;
+    entrada.cargandoLejos = true;
+    obtenerNpcLejos(entrada.nombreModelo).then(async base => {
+      if (!base) return;
+      const lejos = FusionLib.clonarModelo(THREE, base.proto);
       lejos.visible = false;
       entrada.raiz.add(lejos);
-      FusionLib.fusionarPorMaterial(THREE, lejos);
       aplicarEntorno(lejos);
+      if (renderer && renderer.compileAsync) { try { await renderer.compileAsync(lejos, camera, scene); } catch (e) {} }
       const mixer = new THREE.AnimationMixer(lejos);
-      const idle = (gltf.animations || []).find(c => c.name === 'idle');
-      if (idle) mixer.clipAction(idle).play();
-      entrada.cerca = modelo;
+      if (base.idle) mixer.clipAction(base.idle).play();
       entrada.lejos = { modelo: lejos, mixer };
     });
+  }
+
+  function instanciarNpc(info, nombreModelo, x, z, lookX, lookZ) {
+    const raiz = new THREE.Group();
+    raiz.position.set(x, visorWorld.getWalkableHeight(x, z), z);
+    raiz.lookAt(lookX, raiz.position.y, lookZ);
+    scene.add(raiz);
+    const entrada = { info, nombreModelo, cerca: null, raiz, mixer: null, x, z, dicho: -Infinity, lejos: null, cargandoCerca: false, cargandoLejos: false };
+    raiz.userData.npc = entrada;
+    gurus.push(entrada);
+    if (camera && camera.position.distanceTo(raiz.position) <= DISTANCIA_NPC_LEJOS + 25) asegurarVersionCercanaNpc(entrada);
+    else asegurarVersionLejanaNpc(entrada);
   }
 
   // Herrero y mercader: mismos cuerpos de npc/gurus; cambian por su función
@@ -3962,43 +4221,20 @@
     // Gurús en los huecos entre los puestos de mercado (anillo de 12,2 m, como en village-core); servicios en el centro, a 6 m
     const todos = GURUS.map((g, i) => ({ info: g, modelo: g.id, r: RADIO_PUESTOS, a: (i / 6) * Math.PI * 2 + 0.4 + Math.PI / 6 }))
       .concat(SERVICIOS.map((sv, i) => ({ info: sv, modelo: sv.modelo, r: RADIO_GURUS, a: Math.PI * (i ? 4 / 3 : 1 / 3) })));
-    todos.forEach(entrada => {
-      const g = entrada.info;
-      const nombreModelo = entrada.modelo;
-      const a = entrada.a;
-      const x = inicio.t.x + Math.cos(a) * entrada.r, z = inicio.t.y + Math.sin(a) * entrada.r;
-      cargarNpc(entrada.modelo, gltf => {
-        const modelo = gltf.scene;
-        const size = new THREE.Vector3();
-        new THREE.Box3().setFromObject(modelo).getSize(size);
-        if (size.y > 0.01) modelo.scale.setScalar(1.85 / size.y);
-        modelo.position.y = -new THREE.Box3().setFromObject(modelo).min.y;
-        const raiz = new THREE.Group();
-        raiz.add(modelo);
-        raiz.position.set(x, visorWorld.getWalkableHeight(x, z), z);
-        raiz.lookAt(inicio.t.x, raiz.position.y, inicio.t.y);   // miran al centro de la plaza
-        FusionLib.fusionarPorMaterial(THREE, modelo);   // ~87 piezas → una malla por material
-        scene.add(raiz);
-        aplicarEntorno(raiz);
-        const mixer = new THREE.AnimationMixer(modelo);
-        const idle = (gltf.animations || []).find(c => c.name === 'idle');
-        if (idle) mixer.clipAction(idle).play();
-        const entrada = { info: g, raiz, mixer, x, z, dicho: -Infinity };
-        raiz.userData.npc = entrada;
-        gurus.push(entrada);
-        ponerVersionLejana(entrada, nombreModelo, modelo);
-      }, () => { /* sin modelo: no aparece */ });
+    todos.forEach(item => {
+      const x = inicio.t.x + Math.cos(item.a) * item.r, z = inicio.t.y + Math.sin(item.a) * item.r;
+      instanciarNpc(item.info, item.modelo, x, z, inicio.t.x, inicio.t.y);
     });
   }
 
   // Encargos de zona: un NPC en el pueblo más cercano de cada zona de combate (ver js/mision-zona.js).
-  // Cada modelo se carga una vez y se clona para los encargados que lo usan (no tienen huesos: el clon anima igual).
+  // Sus datos quedan listos desde el inicio, pero el modelo 3D solo se instancia al acercarse al pueblo correspondiente.
   function colocarEncargos() {
     if (encargosColocados || !world || !towns.length) return;
     encargosColocados = true;
+    encargosPendientes.length = 0;
     const lista = MisionZonaLib.encargosDeMundo(world.zones, towns.map(o => o.t));
     const RADIO_ENCARGO = 8;
-    const posicion = {};
     const porPueblo = {};
     lista.forEach(m => {
       misionPorZona[m.zona] = m;
@@ -4009,58 +4245,44 @@
       if (!o) return;
       porPueblo[idPueblo].forEach((m, k, todos) => {
         const a = (k / todos.length) * Math.PI * 2 + 0.9;
-        posicion[m.zona] = { x: o.t.x + Math.cos(a) * RADIO_ENCARGO, z: o.t.y + Math.sin(a) * RADIO_ENCARGO, cx: o.t.x, cz: o.t.y };
+        const pos = { x: o.t.x + Math.cos(a) * RADIO_ENCARGO, z: o.t.y + Math.sin(a) * RADIO_ENCARGO, cx: o.t.x, cz: o.t.y };
+        const info = { id: m.npc.id, nombre: m.npc.nombre, tema: m.npc.tema, frase: m.npc.frase, servicio: 'encargo', mision: m };
+        encargosPendientes.push({ info, modelo: m.npc.modelo, pos });
       });
     });
-    MisionZonaLib.MODELOS.forEach(modelo => {
-      const encargados = lista.filter(m => m.npc.modelo === modelo && posicion[m.zona]);
-      if (!encargados.length) return;
-      cargarNpc(modelo, gltf => {
-        encargados.forEach(m => colocarEncargado(m, gltf, posicion[m.zona]));
-      }, () => { /* sin modelo: no aparecen */ });
-    });
-  }
-
-  function colocarEncargado(m, gltf, pos) {
-    const modelo = gltf.scene.clone(true);
-    const size = new THREE.Vector3();
-    new THREE.Box3().setFromObject(modelo).getSize(size);
-    if (size.y > 0.01) modelo.scale.setScalar(1.85 / size.y);
-    modelo.position.y = -new THREE.Box3().setFromObject(modelo).min.y;
-    const raiz = new THREE.Group();
-    raiz.add(modelo);
-    raiz.position.set(pos.x, visorWorld.getWalkableHeight(pos.x, pos.z), pos.z);
-    raiz.lookAt(pos.cx, raiz.position.y, pos.cz);
-    FusionLib.fusionarPorMaterial(THREE, modelo);
-    scene.add(raiz);
-    aplicarEntorno(raiz);
-    const mixer = new THREE.AnimationMixer(modelo);
-    const idle = (gltf.animations || []).find(c => c.name === 'idle');
-    if (idle) mixer.clipAction(idle).play();
-    const info = { id: m.npc.id, nombre: m.npc.nombre, tema: m.npc.tema, frase: m.npc.frase, servicio: 'encargo', mision: m };
-    const entrada = { info, raiz, mixer, x: pos.x, z: pos.z, dicho: -Infinity };
-    raiz.userData.npc = entrada;
-    gurus.push(entrada);
-    ponerVersionLejana(entrada, m.npc.modelo, modelo);
   }
 
   // Animación en reposo y aviso al acercarse. Cada gurú habla de su tema.
   function actualizarGurus(dt, sec) {
-    if (!gurus.length) return;
     const cam = camera.position;
+    const px = character.root.position.x, pz = character.root.position.z;
+    // Instancia bajo demanda los encargados de zona cuando el héroe o la cámara se acercan
+    for (let i = encargosPendientes.length - 1; i >= 0; i--) {
+      const ep = encargosPendientes[i];
+      const dHeroe = Math.hypot(px - ep.pos.x, pz - ep.pos.z);
+      const dCam = Math.hypot(cam.x - ep.pos.x, cam.z - ep.pos.z);
+      if (Math.min(dHeroe, dCam) < DISTANCIA_VER_NPC + 45) {
+        encargosPendientes.splice(i, 1);
+        instanciarNpc(ep.info, ep.modelo, ep.pos.x, ep.pos.z, ep.pos.cx, ep.pos.cz);
+      }
+    }
+    if (!gurus.length) return;
     gurus.forEach(g => {
-      const d = Math.hypot(character.root.position.x - g.x, character.root.position.z - g.z);
+      const d = Math.hypot(px - g.x, pz - g.z);
       // Se ve si está cerca del personaje o de la cámara (en vista general la cámara puede estar lejos de él)
       const visto = Math.min(d, Math.hypot(cam.x - g.x, cam.z - g.z)) < DISTANCIA_VER_NPC;
       g.raiz.visible = visto;
       if (!visto) return;
-      // De cerca, el modelo completo; de lejos, el simplificado (solo se anima el que se ve)
-      if (g.lejos) {
-        const lejos = camera.position.distanceTo(g.raiz.position) > DISTANCIA_NPC_LEJOS;
-        g.cerca.visible = !lejos;
-        g.lejos.modelo.visible = lejos;
-        (lejos ? g.lejos.mixer : g.mixer).update(dt);
-      } else g.mixer.update(dt);
+      // De cerca, el modelo completo; de lejos, el simplificado (solo se descarga y anima el nivel necesario)
+      const distCam = cam.distanceTo(g.raiz.position);
+      const lejos = distCam > DISTANCIA_NPC_LEJOS;
+      if (distCam <= DISTANCIA_NPC_LEJOS + 25 && !g.cerca) asegurarVersionCercanaNpc(g);
+      if (lejos && !g.lejos) asegurarVersionLejanaNpc(g);
+      const usarLejos = g.lejos ? (lejos || !g.cerca) : false;
+      if (g.cerca) g.cerca.visible = !usarLejos;
+      if (g.lejos) g.lejos.modelo.visible = usarLejos;
+      if (usarLejos && g.lejos) g.lejos.mixer.update(dt);
+      else if (!usarLejos && g.mixer) g.mixer.update(dt);
       // Misma altura que el personaje: el pueblo puede cargarse y cambiar el suelo
       g.raiz.position.y = visorWorld.getWalkableHeight(g.x, g.z);
       if (d < DISTANCIA_HABLAR && !g.info.servicio && sec - g.dicho > 25) {
@@ -4273,11 +4495,25 @@
   // ===========================================================================
   // Bucle de render
   // ===========================================================================
+  let fotogramaModal = 0;
   function loop(now) {
     requestAnimationFrame(loop);
     if (!world) return;
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
+
+    if (compilandoEscena) {
+      actualizarCarga(now);
+      return;
+    }
+
+    const modalTapando = ($('crear').classList.contains('show') || $('mapa-mundo').classList.contains('show')) &&
+      renderer.info.render.frame > 4 && towns.every(o => !o.village || o.rise >= 1);
+    if (modalTapando) {
+      streamTowns(now);
+      actualizarCarga(now);
+      if (++fotogramaModal % 6 !== 0) return;
+    }
 
     streamTowns(now);
     actualizarCarga(now);

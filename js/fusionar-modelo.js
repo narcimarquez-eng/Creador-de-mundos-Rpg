@@ -77,7 +77,13 @@
       geo.setAttribute('skinIndex', new THREE.BufferAttribute(sIdx, 4));
       geo.setAttribute('skinWeight', new THREE.BufferAttribute(sPes, 4));
       geo.setIndex(new THREE.BufferAttribute(idx, 1));
+      geo.computeBoundingBox();
+      geo.computeBoundingSphere();
       const malla = new THREE.SkinnedMesh(geo, material);
+      if (geo.boundingSphere) {
+        malla.boundingSphere = geo.boundingSphere.clone();
+        malla.boundingSphere.radius *= 1.25;
+      }
       malla.name = 'fusion-' + (material.name || material.uuid.slice(0, 6));
       malla.castShadow = piezas.some(p => p.castShadow);
       malla.receiveShadow = piezas.some(p => p.receiveShadow);
@@ -90,6 +96,27 @@
       quedan++;
     });
     return quedan;
+  }
+
+  // Clona un modelo ya unido con fusionarPorMaterial re-enlazando cada SkinnedMesh a los nodos clonados,
+  // de modo que todas las copias comparten la misma geometría, materiales y texturas en GPU.
+  function clonarModelo(THREE, origen) {
+    const deClon = new Map(), aClon = new Map();
+    const clon = origen.clone(true);
+    (function recorrer(a, b) {
+      deClon.set(b, a);
+      aClon.set(a, b);
+      for (let i = 0; i < a.children.length; i++) recorrer(a.children[i], b.children[i]);
+    })(origen, clon);
+    clon.traverse(n => {
+      if (!n.isSkinnedMesh || !n.skeleton) return;
+      const orig = deClon.get(n);
+      if (orig.boundingSphere) n.boundingSphere = orig.boundingSphere.clone();
+      const huesos = orig.skeleton.bones.map(h => aClon.get(h) || h);
+      const inversas = orig.skeleton.boneInverses.map(m => m.clone());
+      n.bind(new THREE.Skeleton(huesos, inversas), orig.bindMatrix.clone());
+    });
+    return clon;
   }
 
   // Índices simplificados de una malla (sin THREE, sirve también en Node). S: MeshoptSimplifier ya listo.
@@ -215,7 +242,7 @@
     return [Math.round(antes), Math.round(despues)];
   }
 
-  const api = { fusionarPorMaterial, simplificarModelo, indicesSimplificados };
+  const api = { fusionarPorMaterial, clonarModelo, simplificarModelo, indicesSimplificados };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FusionLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

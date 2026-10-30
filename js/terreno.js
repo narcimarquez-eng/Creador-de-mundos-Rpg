@@ -115,6 +115,20 @@
     return { datos, tam, capas: lista.length };
   }
 
+  // Extrae directamente solo las 15 celdas usadas del atlas sin decodificar las otras 85 celdas
+  function capasDesdeImagen(img) {
+    const lista = CAPAS.flat(), lado = img.width, tam = lado / 10;
+    const lienzo = document.createElement('canvas');
+    lienzo.width = tam;
+    lienzo.height = tam * lista.length;
+    const ctx = lienzo.getContext('2d', { willReadFrequently: true });
+    lista.forEach((celda, l) => {
+      ctx.drawImage(img, (celda % 10) * tam, Math.floor(celda / 10) * tam, tam, tam, 0, l * tam, tam, tam);
+    });
+    const imgData = ctx.getImageData(0, 0, tam, tam * lista.length);
+    return { datos: new Uint8Array(imgData.data.buffer), tam, capas: lista.length };
+  }
+
   // Malla de una rejilla de nodos. grid: { x0, z0, step, n, N, pos, col, splat, snow, nrm }.
   // gi0, gj0: nodo inicial; cellsI, cellsJ: celdas; stride: nodos por celda (1 = detalle completo).
   // skipCell(gi, gj, s): true para no dibujar la celda que empieza en el nodo (gi, gj) y mide s nodos
@@ -189,7 +203,7 @@
     return [-dx / l, 1 / l, -dz / l];
   }
 
-  const api = { splatFor, createTerrainMaterial, capasDelAtlas, CAPAS, buildGridGeometry, nodeNormal, smooth };
+  const api = { splatFor, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, CAPAS, buildGridGeometry, nodeNormal, smooth };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TerrainLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);
