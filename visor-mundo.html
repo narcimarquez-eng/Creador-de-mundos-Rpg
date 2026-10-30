@@ -2425,6 +2425,35 @@
   const CAPAS_DE_CERCA = /^Skinned_3D_Dragon_Scale_Relief/;
   const MONSTRUO_DETALLE = 10;   // cambio de versión, con 2 m de margen a cada lado para que no parpadee
   let presupuestoModelos = 1;
+  const protoEnemigoCache = new Map(); // claveArquetipo + '|' + tipo -> { rig, fx, detalle, barHeight }
+
+  function obtenerPrototipoVersionEnemigo(m, tipo) {
+    const idArquetipo = (m.enemigo && (m.enemigo.id || m.enemigo.archetype)) || m.name || 'comun';
+    const claveCache = idArquetipo + '|' + tipo;
+    if (protoEnemigoCache.has(claveCache)) {
+      return protoEnemigoCache.get(claveCache);
+    }
+    const base = construirVersionEnemigo(m, tipo);
+    protoEnemigoCache.set(claveCache, base);
+    return base;
+  }
+
+  function instanciarVersionEnemigo(m, tipo) {
+    const proto = obtenerPrototipoVersionEnemigo(m, tipo);
+    if (!EnemyOpt || !EnemyOpt.clonarRig) return proto;
+    const clonRig = EnemyOpt.clonarRig(THREE, proto.rig);
+    const clonFx = EnemyFx ? EnemyFx.crear(clonRig, m.enemigo) : null;
+    const detalle = [];
+    clonRig.rootGroup.traverse(o => {
+      if (o.isMesh && DETALLE_RE.test((o.name || '') + ' ' + ((o.material && o.material.name) || ''))) detalle.push(o);
+    });
+    return {
+      rig: clonRig,
+      fx: clonFx,
+      detalle,
+      barHeight: proto.barHeight
+    };
+  }
 
   function construirVersionEnemigo(m, tipo) {
     if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(QUALITY[quality].texturas ? renderer.capabilities.getMaxAnisotropy() : 1);
@@ -2487,7 +2516,7 @@
       // Se espera al simplificador (unos milisegundos al abrir): sin él, la versión saldría con todos sus triángulos
       if (presupuestoModelos <= 0 || esperandoSimplificador) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
       presupuestoModelos--;
-      m.versiones[tipo] = construirVersionEnemigo(m, tipo);
+      m.versiones[tipo] = instanciarVersionEnemigo(m, tipo);
     }
     if (m.activa !== tipo) {
       const v = m.versiones[tipo];
@@ -2501,6 +2530,7 @@
   }
 
   function buildMonsters() {
+    protoEnemigoCache.clear();
     enemyMode = (world.settings && world.settings.enemyMode) || enemyMode;
     $('sel-enemigos').value = enemyMode;
     escalaEnemigosPanel = null;

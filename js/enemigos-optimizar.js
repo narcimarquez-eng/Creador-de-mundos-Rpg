@@ -94,5 +94,54 @@
     return { mallas, tris: Math.round(tris) };
   }
 
-  root.EnemyOpt = { optimizarRig, medirVisibles };
+  // Clona un rig procedural ya optimizado y fusionado para que varias instancias compartan
+  // la misma geometría, texturas y materiales en GPU sin duplicar memoria ni compilar nuevos shaders.
+  function clonarRig(THREE, protoRig) {
+    const origRoot = protoRig.rootGroup;
+    const deClon = new Map(), aClon = new Map();
+    const clonRoot = origRoot.clone(true);
+    (function recorrer(a, b) {
+      deClon.set(b, a);
+      aClon.set(a, b);
+      for (let i = 0; i < a.children.length; i++) recorrer(a.children[i], b.children[i]);
+    })(origRoot, clonRoot);
+
+    clonRoot.traverse(n => {
+      if (n.isSkinnedMesh && n.skeleton) {
+        const orig = deClon.get(n);
+        if (orig.boundingSphere) n.boundingSphere = orig.boundingSphere.clone();
+        const huesos = orig.skeleton.bones.map(h => aClon.get(h) || h);
+        const inversas = orig.skeleton.boneInverses.map(m => m.clone());
+        n.bind(new THREE.Skeleton(huesos, inversas), orig.bindMatrix.clone());
+      }
+    });
+
+    const exportableGroup = clonRoot.children[0] || clonRoot;
+    const parts = {};
+    if (protoRig.parts) {
+      for (const [k, v] of Object.entries(protoRig.parts)) {
+        if (!v) { parts[k] = v; continue; }
+        if (Array.isArray(v)) parts[k] = v.map(item => aClon.get(item) || item);
+        else parts[k] = aClon.get(v) || v;
+      }
+    }
+    const sockets = {};
+    if (protoRig.sockets) {
+      for (const [k, v] of Object.entries(protoRig.sockets)) {
+        sockets[k] = aClon.get(v) || v;
+      }
+    }
+
+    return {
+      rootGroup: clonRoot,
+      exportableGroup,
+      parts,
+      sockets,
+      materials: protoRig.materials,
+      auraParticleSystem: protoRig.auraParticleSystem,
+      mouthBreathSystem: protoRig.mouthBreathSystem
+    };
+  }
+
+  root.EnemyOpt = { optimizarRig, medirVisibles, clonarRig };
 })(typeof window !== 'undefined' ? window : globalThis);
