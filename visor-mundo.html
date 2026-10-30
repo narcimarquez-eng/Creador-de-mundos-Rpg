@@ -277,6 +277,7 @@
       <label><input type="checkbox" id="chk-trees" checked> Bosques</label>
       <label><input type="checkbox" id="chk-water" checked> Agua</label>
       <label>Calidad <select id="sel-quality"><option value="bajo">Bajo</option><option value="medio">Medio</option><option value="alto">Alto</option></select></label>
+      <label title="Pelo y escamas de los monstruos: son la mayor parte de sus polígonos">Pelo y escamas <select id="sel-pelo"><option value="completo">Completo (hasta 30 m)</option><option value="ligero">Ligero (hasta 8 m)</option><option value="nada">Sin detalle</option></select></label>
       <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
       <label title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
     </div>
@@ -2275,12 +2276,34 @@
     FusionLib.fusionarPorMaterial(THREE, rig.rootGroup, { excluir: animadas });
     // Menos triángulos (mismos vértices y huesos: la animación no cambia)
     if (simplificadorListo) FusionLib.simplificarModelo(THREE, MeshoptSimplifier, rig.rootGroup, { ratio: V.ratio, error: V.error });
+    // Pelo y escamas: capas aparte que se muestran solo cerca (ver aplicarDetalle)
+    const detalle = [];
+    rig.rootGroup.traverse(o => { if (o.isMesh && DETALLE_RE.test((o.name || '') + ' ' + ((o.material && o.material.name) || ''))) detalle.push(o); });
     const fx = EnemyFx.crear(rig, m.enemigo);
     aplicarEntorno(rig.rootGroup);
-    return { rig, fx, barHeight: new THREE.Box3().setFromObject(rig.rootGroup).max.y + 0.9 };
+    return { rig, fx, detalle, barHeight: new THREE.Box3().setFromObject(rig.rootGroup).max.y + 0.9 };
   }
 
   // Muestra la versión adecuada a la distancia d. Devuelve false si aún no hay ninguna construida.
+  // Pelo y escamas: capas de detalle que solo se dibujan a menos de cierta distancia (según el ajuste del panel)
+  const DETALLE_RE = /Hair_Strands|Scale_Relief|3DHairStrands/;
+  const DETALLE_M = { completo: 30, ligero: 8, nada: 0 };
+  let detalleModo = 'ligero';
+  function aplicarDetalle(m, d) {
+    const lim = DETALLE_M[detalleModo] || 0;
+    // Con 1 m de margen para que no parpadee al cruzar el límite
+    const ver = lim > 0 && d < lim + (m.detalleOn ? 1 : -1);
+    if (m.detalleOn === ver) return;
+    m.detalleOn = ver;
+    (m.detalle || []).forEach(o => { o.visible = ver; });
+  }
+  function fijarDetalle(modo, guardar) {
+    detalleModo = DETALLE_M[modo] !== undefined ? modo : 'ligero';
+    $('sel-pelo').value = detalleModo;
+    if (guardar) store.setItem('rpgMundo.pelo', detalleModo);
+    monsters.forEach(m => { m.detalleOn = undefined; });   // se reaplica en el siguiente fotograma
+  }
+
   // Versión que le toca a un monstruo a la distancia d (con margen para que no parpadee)
   function tipoEnemigo(m, d) {
     if (quality === 'bajo') return 'lejos';   // en calidad baja, siempre la versión ligera
@@ -2299,6 +2322,7 @@
       const v = m.versiones[tipo];
       if (m.rig) m.group.remove(m.rig.rootGroup);
       m.rig = v.rig; m.fx = v.fx; m.barHeight = v.barHeight;
+      m.detalle = v.detalle; m.detalleOn = undefined;   // se decide en el siguiente fotograma
       m.activa = tipo; m.sombra = undefined; m.posado = false;
       m.group.add(v.rig.rootGroup);
     }
@@ -2542,6 +2566,7 @@
       const near = d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d);
       m.group.visible = near;
       if (near) {
+        aplicarDetalle(m, d);
         m.group.position.set(m.x, H(m.x, m.z), m.z);
         if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
         const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
@@ -4196,6 +4221,7 @@
   $('chk-labels').onchange = e => { townLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked)); zoneLabels.forEach(l => l.el.classList.toggle('hide', !e.target.checked || !$('chk-zones').checked)); };
   $('chk-trees').onchange = e => { if (decorGroup) decorGroup.userData.arboles.visible = e.target.checked; };
   $('sel-quality').onchange = e => applyQuality(e.target.value, true);
+  $('sel-pelo').onchange = e => fijarDetalle(e.target.value, true);
   $('sel-enemigos').onchange = e => { enemyMode = e.target.value; buildMonsters(); };
   $('tam-enemigos').oninput = e => { escalaEnemigosPanel = parseFloat(e.target.value); aplicarEscalaEnemigos(); };
   $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
@@ -4318,6 +4344,9 @@
     const movil = matchMedia('(pointer: coarse)').matches || window.innerWidth < 800;
     ensureScene();
     applyQuality(saved || (movil ? 'bajo' : 'alto'), false);
+    let pelo = null;
+    try { pelo = localStorage.getItem('rpgMundo.pelo'); } catch (e) { /* nada */ }
+    fijarDetalle(pelo || 'ligero', false);
     const params = new URLSearchParams(location.search);
     let id = params.get('s');
     if (!id) { try { id = localStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }
