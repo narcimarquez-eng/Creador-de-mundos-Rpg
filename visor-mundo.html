@@ -458,7 +458,7 @@
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20251029"></script>
   <script type="module" src="js/decorado.js?v=20251029"></script>
-  <script type="module" src="js/character.js?v=20251029"></script>
+  <script type="module" src="js/character.js?v=20261030d"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script type="module">
@@ -2808,7 +2808,6 @@
     CombatLib.tickHero(hero, dt);
     updateRest(dt);
     const p = character.root.position;
-    const yawX = Math.sin(character.root.rotation.y), yawZ = Math.cos(character.root.rotation.y);
 
     if (hero.dead) {
       if (now >= hero.deadUntil) respawnHero();
@@ -2896,7 +2895,7 @@
     useSkill(id);
   }
 
-  function useSkill(name) {
+  function useSkill(name, blancoFijado = null) {
     if (hero.dead) return;
     if (name === 'attack' && armaDelHeroe() === 'arco') name = 'disparo';
     if (bloqueada(name)) { toast('🔒 ' + CombatLib.SKILLS[name].nombre + ': ' + HeroeLib.requisito(name)); return; }
@@ -2906,6 +2905,10 @@
       if (hero.cd[name] > 0) toast(name === 'attack' || name === 'disparo' ? 'Listo en un momento' : 'Recargando…');
       else if (hero.mp < CombatLib.SKILLS[name].mp) toast('Sin maná');
       return;
+    }
+    const blanco = blancoFijado || (objetivo && objetivo.alive && objetivo.hp > 0 ? objetivo : null);
+    if (blanco && blanco.alive) {
+      character.mirarHacia(blanco.x - character.root.position.x, blanco.z - character.root.position.z);
     }
     CombatLib.useSkill(hero, name);
     // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
@@ -2917,20 +2920,48 @@
       const golpe = () => {
         if (hero.dead) return;
         if (sk.arc <= -1 && t > 0) ondaSismica(sk.range);   // los golpes alrededor dejan una onda en el suelo
-        aplicarGolpe(name, i === 0);
+        aplicarGolpe(name, i === 0, blanco);
       };
       if (t > 0) setTimeout(golpe, t * 1000); else golpe();
     });
   }
 
   // Daña a los monstruos del área de la habilidad, desde donde esté el personaje en ese momento.
-  // Las flechas (unico) solo dan al más cercano. Sin blancos, avisa solo en el primer golpe.
-  function aplicarGolpe(name, primero = true) {
+  // Las flechas (unico) apuntan al objetivo fijado (o al más cercano al frente) encarando al héroe al soltar.
+  function aplicarGolpe(name, primero = true, blancoFijado = null) {
     const sk = CombatLib.SKILLS[name];
     const p = character.root.position;
-    const fx = Math.sin(character.root.rotation.y), fz = Math.cos(character.root.rotation.y);
-    let blancos = monsters.filter(m => m.alive && CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z));
-    if (sk.unico) blancos = blancos.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)).slice(0, 1);
+    let blancos = [];
+    if (sk.unico) {
+      let diana = (blancoFijado && blancoFijado.alive && blancoFijado.hp > 0 &&
+        Math.hypot(blancoFijado.x - p.x, blancoFijado.z - p.z) <= sk.range * 1.15) ? blancoFijado : null;
+      if (!diana && autoZona) {
+        let mejorD = Infinity;
+        monsters.forEach(m => {
+          if (!m.alive || m.hp <= 0 || m.zone !== autoZona) return;
+          const d = Math.hypot(m.x - p.x, m.z - p.z);
+          if (d <= sk.range && d < mejorD) { mejorD = d; diana = m; }
+        });
+      }
+      if (!diana) {
+        const { x: fx, z: fz } = character.frente();
+        const enCono = monsters
+          .filter(m => m.alive && m.hp > 0 && CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z))
+          .sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
+        diana = enCono[0] || null;
+      }
+      if (diana) {
+        character.mirarHacia(diana.x - p.x, diana.z - p.z);
+        blancos = [diana];
+      }
+    } else {
+      if (blancoFijado && blancoFijado.alive && blancoFijado.hp > 0 &&
+          Math.hypot(blancoFijado.x - p.x, blancoFijado.z - p.z) <= sk.range * 1.15) {
+        character.mirarHacia(blancoFijado.x - p.x, blancoFijado.z - p.z);
+      }
+      const { x: fx, z: fz } = character.frente();
+      blancos = monsters.filter(m => m.alive && CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z));
+    }
     blancos.forEach(m => {
       if (sk.unico) flecha(m);
       golpear(m, danioDelHeroe(name, m.level));
@@ -2956,12 +2987,19 @@
   }
   function flecha(m) {
     const p = character.root.position;
-    const desde = new THREE.Vector3(p.x, p.y + 1.4, p.z);
-    const hasta = new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.0, m.z);
-    const malla = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), new THREE.MeshBasicMaterial({ color: 0xe7d3a1 }));
-    malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), hasta.clone().sub(desde).normalize());
+    const { x: fx, z: fz } = character.frente();
+    const desde = new THREE.Vector3(p.x + fx * 0.5, p.y + 1.38, p.z + fz * 0.5);
+    const hasta = new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.05, m.z);
+    const dir = hasta.clone().sub(desde);
+    const dist = dir.length() || 1;
+    dir.divideScalar(dist);
+    const malla = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.95, 6), new THREE.MeshBasicMaterial({ color: 0xe7d3a1 }));
+    malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     malla.position.copy(desde);
-    efecto(malla, Math.min(0.35, desde.distanceTo(hasta) / 60), k => malla.position.lerpVectors(desde, hasta, k));
+    efecto(malla, Math.max(0.08, Math.min(0.35, dist / 60)), k => {
+      hasta.set(m.x, (m.group ? m.group.position.y : p.y) + 1.05, m.z);
+      malla.position.lerpVectors(desde, hasta, k);
+    });
   }
   function actualizarEfectos(dt) {
     for (let i = efectos.length - 1; i >= 0; i--) {
@@ -3114,7 +3152,7 @@
     });
     g.restore();
     // Flecha: hacia donde mira el personaje (su frente en el mapa es (sin yaw, cos yaw))
-    const f = MapaLib.frente(character.root.rotation.y);
+    const f = MapaLib.frente(character.anguloY());
     const cx = S / 2, cy = S / 2;
     g.beginPath();
     g.moveTo(cx + f.dx * 26, cy + f.dy * 26);
@@ -3195,7 +3233,7 @@
       etiqueta(g, (t.isStart ? '⭐ ' : '') + t.name, x + 10, y + 5, t.isStart ? '#fde68a' : '#f8fafc');
     });
     // Tú: un círculo y una flecha que indica hacia dónde miras
-    const f = MapaLib.frente(character.root.rotation.y);
+    const f = MapaLib.frente(character.anguloY());
     const x = T.px(p.x), y = T.py(p.z);
     g.beginPath(); g.arc(x, y, 16, 0, Math.PI * 2); g.fillStyle = 'rgba(253,224,71,.25)'; g.fill();
     g.beginPath();
@@ -3243,7 +3281,7 @@
       id, name,
       worldName: world.name, worldSeed: world.seed,
       where: nearestTownName(),
-      player: character.root.position, yaw: character.root.rotation.y,
+      player: character.root.position, yaw: character.anguloY(),
       hero, inv, visited: [...visited], timeOfDay,
       personaje: personajeActual, heroe: heroeEst
     });
@@ -3275,7 +3313,7 @@
       const start = towns.find(o => o.t.isStart) || towns[0];
       if (start) character.teleport(start.t.x + 6, start.t.y + 6);
     }
-    character.root.rotation.y = r.yaw;
+    character.mirarAngulo(r.yaw || 0);
     setFollow(true);
     curTown = null; curZone = null;
     $('deadmsg').classList.remove('show');
@@ -3319,14 +3357,17 @@
     // Con arco se dispara desde lejos; con cualquier otra arma, se va hasta él
     const arco = armaDelHeroe() === 'arco';
     const golpe = arco ? 'disparo' : 'attack';
-    const alcance = arco ? CombatLib.SKILLS.disparo.range * 0.8 : ALCANCE_ATAQUE;
-    character.destino = { x: objetivo.x, z: objetivo.z, parar: arco ? alcance - 1 : 1.8 };
+    const alcance = arco ? CombatLib.SKILLS.disparo.range * 0.82 : ALCANCE_ATAQUE;
     if (d <= alcance) {
-      character.root.rotation.y = Math.atan2(objetivo.x - cx, objetivo.z - cz);
+      // Ya está en distancia de ataque: planta los pies, encara continuamente al monstruo y ataca sin micro-deslizarse
+      character.destino = null;
+      character.mirarHacia(objetivo.x - cx, objetivo.z - cz);
       // En automático, primero una habilidad de la barra que esté lista y le alcance; si no, el golpe normal
       const habilidad = autoZona && habilidadLista(objetivo);
-      if (habilidad) useSkill(habilidad);
-      else if (CombatLib.canUse(hero, golpe)) useSkill(golpe);
+      if (habilidad) useSkill(habilidad, objetivo);
+      else if (CombatLib.canUse(hero, golpe)) useSkill(golpe, objetivo);
+    } else {
+      character.destino = { x: objetivo.x, z: objetivo.z, parar: arco ? alcance * 0.9 : ALCANCE_ATAQUE * 0.8 };
     }
   }
 
@@ -3357,9 +3398,9 @@
   }
   // Primera habilidad de la barra que se puede usar ya y cuyo golpe alcanzaría al monstruo
   function habilidadLista(m) {
-    const p = character.root.position, y = character.root.rotation.y;
+    const p = character.root.position, { x: fx, z: fz } = character.frente();
     return HeroeLib.TECLAS.map(t => heroeEst.barra[t]).find(id => id && !bloqueada(id) && !faltaArma(id) && CombatLib.canUse(hero, id)
-      && CombatLib.inSkillArea(id, p.x, p.z, Math.sin(y), Math.cos(y), m.x, m.z)) || null;
+      && CombatLib.inSkillArea(id, p.x, p.z, fx, fz, m.x, m.z)) || null;
   }
   function atacarAuto() {
     if (!autoZona) return;
@@ -4621,10 +4662,14 @@
     actualizarPiedras();
     actualizarZonaTela();
     if (cielo) cielo.position.copy(camera.position);
-    character.update(dt, now / 1000);
+    if (character.tieneEntradaManual() && (ruta || objetivo || autoZona)) {
+      character.destino = null;
+      character.cancelado = true;
+    }
     seguirRuta();
     atacarAuto();
     atacarObjetivo();
+    character.update(dt, now / 1000);
     actualizarEfectos(dt);
     actualizarGurus(dt, now / 1000);
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.setNivelArboles(nivelArbolesMuro(distPueblo(o))); o.village.updateTreeLod(camera); } });

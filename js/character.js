@@ -111,6 +111,7 @@
       this.status = opts.status || null;
 
       this.root = new THREE.Group();
+      this.root.rotation.order = 'YXZ';   // evita inversión Euler (π, π - y, π) al girar más de ±90° en Y
       this.root.position.set(0, 0.5, 10);
       this.scene.add(this.root);
 
@@ -134,6 +135,7 @@
       this.camaraFinal = null;       // dónde quedó la cámara al final del fotograma anterior
       this.modoCamaraAnterior = 'free';
       this.oneShots = {};
+      this.oneShotKind = null;
       this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
       this.lockUntil = 0;        // mientras dure, el personaje no se mueve
       this.alCargarModelo = null; // función(modelo) que se llama al cargar un GLB (p. ej. para retocar sus materiales)
@@ -371,15 +373,64 @@
       if (f.kind === 'victory') { L.leftArm.rotation.x = -2.6; L.rightArm.rotation.x = -2.6; }
     }
 
+    // Vector frontal unitario real en el plano XZ directamente desde el cuaternión (inmune a volteos Euler)
+    frente() {
+      const q = this.root.quaternion;
+      const fx = 2 * (q.x * q.z + q.w * q.y);
+      const fz = 1 - 2 * (q.x * q.x + q.y * q.y);
+      const len = Math.hypot(fx, fz) || 1;
+      return { x: fx / len, z: fz / len };
+    }
+
+    anguloY() {
+      const f = this.frente();
+      return Math.atan2(f.x, f.z);
+    }
+
+    mirarAngulo(yaw) {
+      this.root.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    }
+
+    mirarHacia(dx, dz) {
+      if (dx * dx + dz * dz > 1e-8) this.mirarAngulo(Math.atan2(dx, dz));
+    }
+
+    tieneEntradaManual() {
+      const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+      const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
+      const moveX = kbX !== 0 ? kbX : this.joyVec.x;
+      const moveZ = kbZ !== 0 ? kbZ : this.joyVec.y;
+      return Math.hypot(moveX, moveZ) > 0.08;
+    }
+
+    _cortarOneShot() {
+      if (this.activeState === 'oneshot' && this.oneShotKind !== 'jump') {
+        if (this.currentAction) this.currentAction.fadeOut(0.12);
+        this.activeState = 'none';
+        this.oneShotKind = null;
+        this.oneShotUntil = 0;
+      }
+      if (this.fallbackAct && this.fallbackAct.kind !== 'jump') {
+        this.fallbackAct = null;
+        if (this.model) { this.model.rotation.y = 0; this.model.position.y = 0; this.model.scale.set(1, 1, 1); }
+      }
+    }
+
     switchAnimation(nextState) {
       if (this.activeState === nextState) return;
       this.activeState = nextState;
       if (!this.mixer) return;
       const nextAction = this.actions[nextState];
-      if (nextAction && nextAction !== this.currentAction) {
-        nextAction.reset().fadeIn(0.2).play();
-        if (this.currentAction) this.currentAction.fadeOut(0.2);
+      if (!nextAction) return;
+      nextAction.enabled = true;
+      nextAction.setEffectiveTimeScale(1);
+      nextAction.setEffectiveWeight(1);
+      if (nextAction !== this.currentAction) {
+        nextAction.reset().fadeIn(0.15).play();
+        if (this.currentAction) this.currentAction.fadeOut(0.15);
         this.currentAction = nextAction;
+      } else if (!nextAction.isRunning()) {
+        nextAction.reset().play();
       }
     }
 
@@ -392,6 +443,8 @@
         if (!enAccion) this.switchAnimation('idle');
         return;
       }
+      // En cuanto empieza a desplazarse tras el bloqueo del golpe, corta la cola del ataque para correr de verdad
+      this._cortarOneShot();
       const ux = dx / dist, uz = dz / dist;
       const paso = Math.min(dist - d.parar, this.runSpeed * dt);   // hacia un objetivo se corre
       const antes = this.root.position.clone();
@@ -404,8 +457,8 @@
       if (this.sinAvance > 2) { this.destino = null; this.sinAvance = 0; this.atascado = true; }
       this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
       const objetivoGiro = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(ux, uz));
-      this.root.quaternion.slerp(objetivoGiro, Math.min(1, dt * 12));
-      if (!enAccion) this.switchAnimation('run');
+      this.root.quaternion.slerp(objetivoGiro, Math.min(1, dt * 14));
+      if (this.activeState !== 'oneshot') this.switchAnimation('run');
     }
 
     resolveCollisions(nextX, nextZ) {
@@ -502,12 +555,21 @@
       const info = ONE_SHOT[kind];
       if (!info) return 0;
       const shot = this.oneShots[kind];
-      const duration = shot ? shot.duration : (kind === 'victory' ? 3 : 0.6);
+      const rawDuration = shot ? shot.duration : (kind === 'victory' ? 3 : 0.6);
+      // Ajusta la velocidad de clips largos del estudio (p. ej. tiro con arco de 3.4 s suelta en 2.35 s, impacto en 0.9 s)
+      let escala = 1;
+      if (shot && kind === 'disparo' && rawDuration > 1.6) escala = 2.35 / 0.9;
+      else if (shot && kind === 'attack' && rawDuration > 0.9) escala = rawDuration / 0.72;
+      const duration = rawDuration / escala;
       if (info.lock > 0) this.lockUntil = this.tiempo + info.lock;
+      this.oneShotKind = kind;
       this.oneShotUntil = this.tiempo + duration;
       if (shot && this.mixer) {
-        shot.action.reset().fadeIn(0.1).play();
-        if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.1);
+        shot.action.enabled = true;
+        shot.action.setEffectiveTimeScale(escala);
+        shot.action.setEffectiveWeight(1);
+        shot.action.reset().fadeIn(0.08).play();
+        if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.08);
         this.currentAction = shot.action;
         this.activeState = 'oneshot';
       } else {
@@ -519,10 +581,13 @@
     update(dt) {
       this.tiempo += dt;
       // Al terminar una acción de un solo uso se vuelve a idle, andar o correr
-      if (this.activeState === 'oneshot' && this.tiempo >= this.oneShotUntil) this.activeState = 'none';
+      if (this.activeState === 'oneshot' && this.tiempo >= this.oneShotUntil) {
+        this.activeState = 'none';
+        this.oneShotKind = null;
+      }
       if (this.fallbackAct && this.tiempo - this.fallbackAct.start >= this.fallbackAct.duration) this.fallbackAct = null;
       const locked = this.tiempo < this.lockUntil;
-      // Mientras dura una acción de un solo uso (combo, impacto sísmico, nova) no se cambia la animación
+      // Mientras dura una acción de un solo uso no se cambia a idle
       const enAccion = this.activeState === 'oneshot' && this.tiempo < this.oneShotUntil;
 
       const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
@@ -535,8 +600,9 @@
       if (mag > 0.08 && this.destino) { this.destino = null; this.cancelado = true; }
 
       if (mag > 0.08 && !locked) {
+        this._cortarOneShot();
         const isRunning = this.keys.shift || mag > 0.85;
-        if (!enAccion) this.switchAnimation(isRunning ? 'run' : 'walk');
+        if (this.activeState !== 'oneshot') this.switchAnimation(isRunning ? 'run' : 'walk');
         const speed = (isRunning ? this.runSpeed : this.walkSpeed) * Math.min(1.0, mag);
 
         const camForward = new THREE.Vector3();
