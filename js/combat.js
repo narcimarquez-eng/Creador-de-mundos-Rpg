@@ -34,6 +34,15 @@
     torbellino:  { nombre: 'Torbellino', icono: '🌪', cd: 9, lock: 1.6, range: 4.0, arc: -1, mult: 1.4, mp: 24, impacto: [0.7, 1.5], arma: 'cuerpo' },
     voltereta:   { nombre: 'Voltereta mortal', icono: '🤸', cd: 8, lock: 1.2, range: 3.0, arc: -1, mult: 1.6, mp: 14, impacto: 1.0, arma: 'cuerpo' },
     tornillo:    { nombre: 'Tornillo triple', icono: '🌩', cd: 15, lock: 1.8, range: 4.5, arc: -1, mult: 3.4, mp: 35, impacto: 1.5, arma: 'cuerpo' },
+    // Nuevas habilidades añadidas (desbloqueables por subida de nivel)
+    corte_cruzado: { nombre: 'Corte en Cruz', icono: '⚔️', cd: 4.5, lock: 0.8, range: 3.5, arc: 0.7, mult: 1.9, mp: 10, impacto: [0.35, 0.65], arma: 'cuerpo' },
+    rafaga:      { nombre: 'Ráfaga de Viento', icono: '💨', cd: 6.0, lock: 0.8, range: 7.0, arc: 0.6, mult: 2.1, mp: 14, impacto: 0.5, arma: 'cuerpo' },
+    furia:       { nombre: 'Furia Sangrienta', icono: '🔥', cd: 7.5, lock: 0.9, range: 3.6, arc: 0.8, mult: 2.5, mp: 18, impacto: 0.6, arma: 'cuerpo' },
+    escudo_espiritu: { nombre: 'Escudo del Bastión', icono: '🛡️', cd: 10.0, lock: 0.9, range: 3.4, arc: 0.6, mult: 2.3, mp: 20, impacto: 0.5, arma: 'cuerpo' },
+    salto_demoledor: { nombre: 'Salto Demoledor', icono: '⚡', cd: 11.0, lock: 1.3, range: 5.5, arc: -1, mult: 2.8, mp: 26, impacto: 0.9, arma: 'cuerpo' },
+    lluvia_proyectiles: { nombre: 'Lluvia de Flechas', icono: '🎯', cd: 9.0, lock: 1.5, range: 25.0, arc: -1, mult: 2.5, mp: 22, impacto: [0.6, 1.1], arma: 'arco', unico: true },
+    juicio_relampago: { nombre: 'Filo Relámpago', icono: '⚡', cd: 12.0, lock: 1.1, range: 4.2, arc: 0.8, mult: 3.2, mp: 30, impacto: 0.75, arma: 'cuerpo' },
+    sentencia_titan: { nombre: 'Sentencia del Titán', icono: '💥', cd: 16.0, lock: 1.6, range: 6.5, arc: -1, mult: 4.0, mp: 42, impacto: 1.2, arma: 'cuerpo' },
     // Arco: el tiro sustituye al combo cuando el arma es un arco
     disparo:     { nombre: 'Tiro con arco', icono: '🏹', cd: 1.2, lock: 0.8, range: 24, arc: 0.95, mult: 1.2, mp: 0, impacto: 0.9, arma: 'arco', unico: true },
     suspension:  { nombre: 'Flecha en suspensión', icono: '🎯', cd: 8, lock: 2.0, range: 26, arc: 0.9, mult: 2.6, mp: 20, impacto: 1.5, arma: 'arco', unico: true }
@@ -111,12 +120,14 @@
     hero.lock = s.lock;
   }
 
-  function monsterStats(level, boss) {
+  function monsterStats(level, boss, eliteMult = 1) {
     const b = boss ? MONSTER.bossMult : { hp: 1, dmg: 1, xp: 1 };
+    const e = (eliteMult && eliteMult > 1) ? Number(eliteMult) : 1;
+    const multXpElite = e === 2 ? 2.5 : e === 3 ? 3.8 : e >= 4 ? 5.5 : 1;
     return {
-      maxHp: (MONSTER.hpBase + MONSTER.hpPerLevel * level) * b.hp,
-      dmg: (MONSTER.dmgBase + MONSTER.dmgPerLevel * level) * b.dmg,
-      xp: MONSTER.xpPerLevel * level * b.xp
+      maxHp: Math.round((MONSTER.hpBase + MONSTER.hpPerLevel * level) * b.hp * e),
+      dmg: Math.round((MONSTER.dmgBase + MONSTER.dmgPerLevel * level) * b.dmg * (1 + (e - 1) * 0.25)),
+      xp: Math.round(MONSTER.xpPerLevel * level * b.xp * multXpElite)
     };
   }
 
@@ -159,15 +170,19 @@
 
   // Un monstruo vivo: posición de origen, estado y temporizador de ataque
   function newMonster(opts) {
-    const st = monsterStats(opts.level, opts.boss);
+    const eliteMult = opts.rangoElite || opts.eliteMult || 1;
+    const st = monsterStats(opts.level, opts.boss, eliteMult);
     return {
       level: opts.level, boss: !!opts.boss,
+      rangoElite: eliteMult,
       maxHp: st.maxHp, hp: st.maxHp, xp: st.xp, dmg: st.dmg,
       spawnX: opts.x, spawnZ: opts.z, x: opts.x, z: opts.z,
       leash: opts.leash || 40,
       state: 'idle', attackTimer: 0,
       aggro: opts.boss ? MONSTER.bossAggro : MONSTER.aggro,
-      speed: opts.boss ? MONSTER.bossChaseSpeed : MONSTER.chaseSpeed
+      speed: opts.boss ? MONSTER.bossChaseSpeed : MONSTER.chaseSpeed,
+      danoPorFuente: { hero: 0, acompanante: 0 },
+      danoTotal: 0
     };
   }
 

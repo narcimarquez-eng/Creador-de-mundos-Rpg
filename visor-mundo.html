@@ -2770,16 +2770,39 @@
           const rng = new W.PRNG((W.hashString(z.id + '|' + mi + '|' + k) ^ world.seed) >>> 0);
           const a = rng.range(0, Math.PI * 2);
           const r = info.boss ? 0 : z.radius * rng.range(0.2, 0.78);
-          const m = CombatLib.newMonster({ level: info.level, boss: info.boss, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, leash: z.radius + 25 });
-          m.name = info.name; m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
-          m.recibirDano = (dmg) => damageMonster(m, dmg);
+          let rangoElite = 1;
+          if (!info.boss) {
+            const roll = rng.range(0, 100);
+            if (roll < 6) rangoElite = 4;
+            else if (roll < 18) rangoElite = 3;
+            else if (roll < 38) rangoElite = 2;
+          }
+          const m = CombatLib.newMonster({
+            level: info.level,
+            boss: info.boss,
+            rangoElite,
+            x: z.x + Math.cos(a) * r,
+            z: z.y + Math.sin(a) * r,
+            leash: z.radius + 25
+          });
+          m.rangoElite = rangoElite;
+          m.esElite = rangoElite >= 2;
+          const prefijoElite = rangoElite === 4 ? '👑 [Élite ×4] ' : rangoElite === 3 ? '🔥 [Élite ×3] ' : rangoElite === 2 ? '⭐ [Élite ×2] ' : '';
+          m.name = prefijoElite + (info.name || 'Monstruo');
+          m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
+          m.recibirDano = (dmg, fuente = 'hero') => damageMonster(m, dmg, fuente);
+          m.danoPorFuente = { hero: 0, acompanante: 0 };
+          m.danoTotal = 0;
           m.turno = monsters.length % 4;   // reparte los monstruos lejanos entre los fotogramas
           m.group = new THREE.Group();
           m.group.userData.monstruo = m;
+          if (rangoElite >= 2) {
+            m.group.scale.setScalar(1 + (rangoElite - 1) * 0.16);
+          }
           // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
           if (window.EnemyLib) {
             m.enemigo = enemigoVariedad;
-            if (m.enemigo && (!m.name || m.name === 'Nuevo monstruo' || m.name === 'Monstruo')) m.name = m.enemigo.name || m.name;
+            if (m.enemigo && (!m.name || m.name === 'Nuevo monstruo' || m.name === 'Monstruo')) m.name = prefijoElite + (m.enemigo.name || m.name);
           } else {
             m._pendEnemigo = { info, s: semillaVar };
             m.enemigo = null;
@@ -2791,10 +2814,11 @@
           // Barra de vida: fondo oscuro y relleno que se acorta con el daño
           m.bar = new THREE.Group();
           const bg = new THREE.Mesh(barGeo, bgMat);
-          m.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: '#22c55e', depthTest: false }));
+          const colorBarra = info.boss ? '#ef4444' : rangoElite === 4 ? '#ec4899' : rangoElite === 3 ? '#f97316' : rangoElite === 2 ? '#eab308' : '#22c55e';
+          m.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: colorBarra, depthTest: false }));
           m.fg.position.z = 0.01;
           m.bar.add(bg, m.fg);
-          m.barHeight = info.boss ? 5.6 : 2.9;   // se ajusta al tamaño real del modelo al construirlo
+          m.barHeight = (info.boss ? 5.6 : 2.9) * (rangoElite >= 2 ? (1 + (rangoElite - 1) * 0.12) : 1);
           m.bar.visible = false;
           scene.add(m.bar);
           monsters.push(m);
@@ -2805,6 +2829,8 @@
 
   function respawnMonster(m) {
     m.alive = true; m.hp = m.maxHp; m.x = m.spawnX; m.z = m.spawnZ; m.state = 'idle'; m.attackTimer = 0;
+    m.danoPorFuente = { hero: 0, acompanante: 0 };
+    m.danoTotal = 0;
   }
 
   function killMonster(m) {
@@ -2813,7 +2839,41 @@
     m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
     m.muriendo = performance.now() + 1000;
     m.bar.visible = false;
-    const levels = CombatLib.gainXp(hero, m.xp);
+
+    // Reparto de experiencia:
+    // En bichos élite (x2, x3, x4 de vida), la exp se reparte por igual.
+    // En bichos normales, la exp se reparte en función del daño aportado por cada uno.
+    let xpHeroe = m.xp;
+    let xpComp = 0;
+    const compActivo = acompanante && acompanante.activo && !acompanante.inconsciente;
+
+    if (compActivo) {
+      if (m.esElite || (m.rangoElite && m.rangoElite >= 2)) {
+        // En élites, reparten la experiencia por igual
+        xpHeroe = Math.round(m.xp * 0.5);
+        xpComp = Math.round(m.xp * 0.5);
+      } else {
+        // En normales, se reparte en función del daño que se hace
+        const dHero = (m.danoPorFuente && m.danoPorFuente.hero) || 0;
+        const dComp = (m.danoPorFuente && m.danoPorFuente.acompanante) || 0;
+        const dTot = dHero + dComp;
+        if (dTot > 0) {
+          xpHeroe = Math.max(1, Math.round(m.xp * (dHero / dTot)));
+          xpComp = Math.round(m.xp * (dComp / dTot));
+        }
+      }
+    }
+
+    const levels = CombatLib.gainXp(hero, xpHeroe);
+    if (xpComp > 0 && typeof AcompananteLib !== 'undefined' && AcompananteLib.ganarXpAcompanante) {
+      const rComp = AcompananteLib.ganarXpAcompanante(acompanante, xpComp);
+      if (rComp.subioNivel) {
+        announce('⭐ ¡' + acompanante.nombre + ' sube al Nivel ' + acompanante.nivel + '!', '+1 punto de maestría de compañero');
+        toast('⭐ ' + acompanante.nombre + ' ha subido a Nivel ' + acompanante.nivel);
+        if ($('modal-companero') && $('modal-companero').classList.contains('show')) renderCompanero();
+      }
+    }
+
     if (HeroeLib.registrarMuerte(heroeEst)) toast('🧬 +1 punto de habilidad por tu lucha');
     avanzarHistoria({ tipo: m.boss ? 'jefe' : 'matar', zona: m.zone && m.zone.id });
     if (m.zone && HeroeLib.registrarZona(heroeEst, m.zone.id, m.boss ? 'jefe' : 'matar')) anunciarEncargo(m.zone.id);
@@ -2836,6 +2896,13 @@
     aplicarStats();
     if (levels) { hero.hp = hero.maxHp; hero.mp = hero.maxMp; actualizarMision(); }
     let loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
+    if (m.rangoElite && m.rangoElite >= 2) {
+      const extraOro = Math.round(ItemsLib.monsterGold(m.level, false) * (m.rangoElite - 1));
+      if (extraOro > 0) {
+        inv.gold = (inv.gold || 0) + extraOro;
+        loot += ' · 🪙 extra élite +' + extraOro;
+      }
+    }
     // Objetos del personaje: cotas (hasta nivel 5) y armas, cada uno con su estado
     const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
     if (obj) loot += ' · 🎁 ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)';
@@ -2847,15 +2914,18 @@
     renderInvCard();
     if (m.boss) {
       character.playOneShot('victory', lastNowSec);
-      announce('👑 ¡Jefe derrotado!', m.name + ' · +' + m.xp + ' XP · ' + loot);
+      announce('👑 ¡Jefe derrotado!', m.name + ' · +' + xpHeroe + ' XP · ' + loot);
     } else {
-      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · +' + m.xp + ' XP · ' + loot);
+      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · +' + xpHeroe + ' XP' + (xpComp ? ' (+' + xpComp + ' para ' + acompanante.nombre + ')' : '') + ' · ' + loot);
     }
     if (levels) setTimeout(() => announce('⭐ Nivel ' + hero.level, 'Vida y maná completos'), 2300);
   }
 
-  function damageMonster(m, dmg) {
+  function damageMonster(m, dmg, fuente = 'hero') {
     if (!m || !m.alive) return;
+    if (!m.danoPorFuente) m.danoPorFuente = { hero: 0, acompanante: 0 };
+    m.danoPorFuente[fuente] = (m.danoPorFuente[fuente] || 0) + dmg;
+    m.danoTotal = (m.danoTotal || 0) + dmg;
     m.hp = Math.max(0, m.hp - dmg);
     m.flashUntil = performance.now() + 120;
     if (m.fx) EnemyFx.disparar(m.fx, 'hit', performance.now() / 1000);
@@ -3711,7 +3781,7 @@
   // Un golpe del héroe: con robo de vida recupera parte del daño
   function golpear(m, dmg) {
     if (statsHeroe.robo) hero.hp = Math.min(hero.maxHp, hero.hp + dmg * statsHeroe.robo);
-    damageMonster(m, dmg);
+    damageMonster(m, dmg, 'hero');
   }
 
   // Encargo de zona completado: dice a quién hay que entregárselo
@@ -5774,7 +5844,7 @@
         typeof objetivo !== 'undefined' ? objetivo : null,
         (x, z) => visorWorld.getWalkableHeight(x, z),
         ev => avanzarHistoria(ev),
-        (m, dmg) => damageMonster(m, dmg),
+        (m, dmg) => damageMonster(m, dmg, 'acompanante'),
         { hp: hero.hp, maxHp: hero.maxHp },
         (tipoSkill, infoSkill) => {
           const compNom = (acompanante && acompanante.nombre) || 'Compañero';

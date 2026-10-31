@@ -39,6 +39,15 @@
     tornillo: ['triple_corkscrew', 'tornillo'],
     disparo: ['archery', 'tiro con arco'],
     suspension: ['aerial_shot', 'suspensión'],
+    // Nuevas habilidades activas mapeadas a las animaciones de combate
+    corte_cruzado: ['spin_slash', 'punch', 'corte'],
+    rafaga: ['rising_slash', 'kick', 'rafaga'],
+    furia: ['overhead_cleave', 'furia'],
+    escudo_espiritu: ['guard_counter', 'escudo'],
+    salto_demoledor: ['ultimate_slam', 'slam', 'salto_demoledor'],
+    lluvia_proyectiles: ['aerial_shot', 'archery', 'lluvia'],
+    juicio_relampago: ['triple_corkscrew', 'juicio'],
+    sentencia_titan: ['ultimate_nova', 'sentencia'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
     victory: ['victoria', 'victory', 'postura de victoria', 'win']
@@ -59,6 +68,14 @@
     tornillo: { lock: 1.8 },
     disparo: { lock: 0.8 },
     suspension: { lock: 2.0 },
+    corte_cruzado: { lock: 0.8 },
+    rafaga: { lock: 0.8 },
+    furia: { lock: 0.9 },
+    escudo_espiritu: { lock: 0.9 },
+    salto_demoledor: { lock: 1.3 },
+    lluvia_proyectiles: { lock: 1.5 },
+    juicio_relampago: { lock: 1.1 },
+    sentencia_titan: { lock: 1.6 },
     jump: { lock: 0.0 },
     victory: { lock: 0.0 }
   };

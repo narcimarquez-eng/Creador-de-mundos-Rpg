@@ -273,6 +273,31 @@
     return true;
   }
 
+  // Otorga experiencia al acompañante, sube de nivel sus estadísticas y concede puntos de maestría
+  function ganarXpAcompanante(acompanante, amount) {
+    if (!acompanante || amount <= 0) return { subioNivel: false, nivelesGanados: 0 };
+    acompanante.xp = (acompanante.xp || 0) + amount;
+    acompanante.nivel = acompanante.nivel || 1;
+    let ganados = 0;
+    const xpNecesaria = n => 100 * n;
+    while (acompanante.xp >= xpNecesaria(acompanante.nivel)) {
+      acompanante.xp -= xpNecesaria(acompanante.nivel);
+      acompanante.nivel++;
+      ganados++;
+      acompanante.maxHp = Math.round(acompanante.maxHp + 25);
+      acompanante.hp = acompanante.maxHp;
+      acompanante.dano = Math.round(acompanante.dano + 3);
+      acompanante.defensa = Math.round(acompanante.defensa + 2);
+      acompanante.puntosCompanero = (acompanante.puntosCompanero || 0) + 1;
+    }
+    return {
+      subioNivel: ganados > 0,
+      nivelesGanados: ganados,
+      nuevoNivel: acompanante.nivel,
+      puntosGanados: ganados
+    };
+  }
+
   // Aplica o refresca un dope activo en pantalla con temporizador
   function aplicarDopeActivo(acompanante, dopeInfo) {
     if (!acompanante) return null;
@@ -1156,6 +1181,7 @@
     cambiarArquetipo,
     equiparSkill,
     subirNivelSkill,
+    ganarXpAcompanante,
     aplicarDopeActivo,
     construirModeloAcompanante,
     instalarModeloGLBAcompanante,

@@ -30,7 +30,16 @@
     contraataque: { tipo: 'activa', nombre: 'Parada y contraataque', desc: '+25 % de daño por nivel', max: 3, nivel: 11, arma: 'cuerpo' },
     torbellino: { tipo: 'activa', nombre: 'Torbellino', desc: '+25 % de daño por nivel', max: 3, nivel: 13, arma: 'cuerpo' },
     voltereta: { tipo: 'activa', nombre: 'Voltereta mortal', desc: '+25 % de daño por nivel', max: 3, nivel: 15, arma: 'cuerpo' },
-    tornillo: { tipo: 'activa', nombre: 'Tornillo triple', desc: '+25 % de daño por nivel', max: 3, nivel: 18, arma: 'cuerpo' }
+    tornillo: { tipo: 'activa', nombre: 'Tornillo triple', desc: '+25 % de daño por nivel', max: 3, nivel: 18, arma: 'cuerpo' },
+    // Nuevas habilidades activas desbloqueables por nivel
+    corte_cruzado: { tipo: 'activa', nombre: 'Corte en Cruz', desc: '+25 % de daño por nivel · dos tajos cruzados veloces', max: 3, nivel: 2, arma: 'cuerpo' },
+    rafaga: { tipo: 'activa', nombre: 'Ráfaga de Viento', desc: '+25 % de daño por nivel · proyectil cortante de viento', max: 3, nivel: 4, arma: 'cuerpo' },
+    furia: { tipo: 'activa', nombre: 'Furia Sangrienta', desc: '+25 % de daño por nivel · tajo salvaje devastador', max: 3, nivel: 8, arma: 'cuerpo' },
+    escudo_espiritu: { tipo: 'activa', nombre: 'Escudo del Bastión', desc: '+25 % de daño por nivel · golpe contundente con barrera', max: 3, nivel: 10, arma: 'cuerpo' },
+    salto_demoledor: { tipo: 'activa', nombre: 'Salto Demoledor', desc: '+25 % de daño por nivel · caída sísmica circular', max: 3, nivel: 12, arma: 'cuerpo' },
+    lluvia_proyectiles: { tipo: 'activa', nombre: 'Lluvia de Flechas', desc: '+25 % de daño por nivel · salva perforante a distancia', max: 3, nivel: 14, arma: 'arco' },
+    juicio_relampago: { tipo: 'activa', nombre: 'Filo Relámpago', desc: '+25 % de daño por nivel · descarga eléctrica veloz', max: 3, nivel: 16, arma: 'cuerpo' },
+    sentencia_titan: { tipo: 'activa', nombre: 'Sentencia del Titán', desc: '+25 % de daño por nivel · ataque colosal en área', max: 3, nivel: 20, arma: 'cuerpo' }
   };
 
   // Huecos de la barra de habilidades y lo que llevan al empezar
