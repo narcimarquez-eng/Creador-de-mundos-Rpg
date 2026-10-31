@@ -96,6 +96,9 @@
     #shop .item { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
     #shop .item span { flex: 1; }
     #shop .item small { color: var(--muted); display: block; }
+    #modal-companero { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 44; padding: 16px; }
+    #modal-companero.show { display: flex; }
+    #modal-companero .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; width: 500px; max-width: 100%; color: #f1f5f9; }
     #partidas { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
     #partidas.show { display: flex; }
     #partidas .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 380px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
@@ -338,6 +341,7 @@
       <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
       <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
+      <button id="sk-companero" title="Acompañante Rowan (O)">🛡️<small>O</small></button>
       <button id="sk-auto" title="Ataque automático en la zona (K)">🤖<small>K</small></button>
     </div>
   </div>
@@ -429,6 +433,58 @@
     <div class="btns"><button id="p-close">Cerrar</button></div>
     <div class="muted" style="margin-top:8px">Se guarda sola cada 20 segundos y al cerrar la página. Hasta 5 partidas por mundo. Las partidas son independientes del mundo.</div>
   </div></div>
+  <div id="modal-companero"><div class="box" style="max-width:540px">
+    <h2>🛡️ Rowan el Aldeano · Acompañante</h2>
+    <div id="comp-ficha" style="display:flex;gap:12px;align-items:center;margin-bottom:10px;background:rgba(255,255,255,0.05);padding:10px;border-radius:6px">
+      <div style="font-size:32px">🧑‍🌾</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <b>Rowan</b> <span id="comp-nivel" class="muted">Nivel 1</span>
+        </div>
+        <div class="bar hp" style="height:10px;background:#334155;border-radius:4px;overflow:hidden;margin-bottom:4px">
+          <i id="comp-hp-bar" style="display:block;height:100%;background:#22c55e;width:100%"></i>
+        </div>
+        <div style="font-size:11px;display:flex;justify-content:space-between" class="muted">
+          <span>HP: <b id="comp-hp-txt">180 / 180</b></span>
+          <span>Ataque: <b id="comp-dano">24</b></span>
+          <span>Defensa: <b id="comp-defensa">14</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button id="btn-comp-dar-pocion" class="gold" style="flex:1;padding:6px 8px;font-size:12px">🧪 Dar 1 Poción de Salud (auto-toma si HP &lt; 50%)</button>
+      <button id="btn-comp-dar-5-pociones" style="padding:6px 10px;font-size:12px">🧪×5</button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b>🎒 Inventario de Rowan (20 slots)</b>
+      <span id="comp-slots-txt" class="muted" style="font-size:12px">0 / 20</span>
+    </div>
+    <div id="comp-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;max-height:160px;overflow-y:auto;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;margin-bottom:12px"></div>
+
+    <div style="margin-bottom:6px"><b>✨ Habilidades de Apoyo Activas</b></div>
+    <div id="comp-skills" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;font-size:11px">
+      <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);padding:6px;border-radius:4px">
+        <b>🌿 Rocío Sanador</b>
+        <div class="muted">Cura +30% HP si caes o cae &lt; 45% HP.</div>
+        <div id="comp-cd-cura" style="color:#22c55e;margin-top:2px">Lista</div>
+      </div>
+      <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);padding:6px;border-radius:4px">
+        <b>⚔️ Grito de Aliento</b>
+        <div class="muted">+25% daño de ataque a ambos durante 12s.</div>
+        <div id="comp-cd-ataque" style="color:#ef4444;margin-top:2px">Lista</div>
+      </div>
+      <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:6px;border-radius:4px">
+        <b>🛡️ Baluarte de Cuero</b>
+        <div class="muted">-20% daño recibido ante impactos fuertes.</div>
+        <div id="comp-cd-defensa" style="color:#3b82f6;margin-top:2px">Lista</div>
+      </div>
+    </div>
+
+    <div class="btns" style="margin-top:12px"><button id="comp-close">Cerrar</button></div>
+  </div></div>
+
   <div id="shop"><div class="box">
     <h2>🛒 Tienda · <span id="shop-gold">0</span> 🪙</h2>
     <div class="item"><span>🧪 Poción de vida<small>Cura el 35 % de la vida</small></span><button id="buy-vida">15 🪙</button></div>
@@ -2668,6 +2724,22 @@
     if (HeroeLib.registrarMuerte(heroeEst)) toast('🧬 +1 punto de habilidad por tu lucha');
     avanzarHistoria({ tipo: m.boss ? 'jefe' : 'matar', zona: m.zone && m.zone.id });
     if (m.zone && HeroeLib.registrarZona(heroeEst, m.zone.id, m.boss ? 'jefe' : 'matar')) anunciarEncargo(m.zone.id);
+    if (lugaresSecretos && lugaresSecretos.length) {
+      lugaresSecretos.forEach(s => {
+        if (s.misionCabana && !s.misionCabana.cumplida) {
+          const objEsp = (s.misionCabana.objetivoEspecie || '').toLowerCase();
+          const mNom = (m.name || '').toLowerCase();
+          if (!objEsp || mNom.includes(objEsp) || (s.zonaAsignada && m.zone && m.zone.id === s.zonaAsignada)) {
+            if (s.misionCabana.progreso < s.misionCabana.objetivoCantidad) {
+              s.misionCabana.progreso++;
+              if (s.misionCabana.progreso === s.misionCabana.objetivoCantidad) {
+                toast('🏡 ¡Encargo de cabaña cumplido (100/100)! Visita a ' + (s.aldeano ? s.aldeano.nombre : 'el aldeano') + ' para cobrar.');
+              }
+            }
+          }
+        }
+      });
+    }
     aplicarStats();
     if (levels) { hero.hp = hero.maxHp; hero.mp = hero.maxMp; actualizarMision(); }
     let loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
@@ -2713,6 +2785,15 @@
     if (Math.random() < statsHeroe.bloqueo) dmg *= 0.5;
     if (statsHeroe.reflejo) damageMonster(m, dmg * statsHeroe.reflejo);
     if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
+    if (acompanante && acompanante.activo && !acompanante.debilitado && typeof AcompananteLib !== 'undefined') {
+      const dAcomp = Math.hypot(m.x - acompanante.x, m.z - acompanante.z);
+      if (dAcomp < 5.0) {
+        AcompananteLib.recibirDanoAcompanante(acompanante, dmg * 0.75);
+        if (acompanante.debilitado) {
+          toast('⚠️ ¡Rowan ha caído debilitado! Protégelo o dale pociones para recuperarse.');
+        }
+      }
+    }
   }
 
   function onHeroDeath(now) {
@@ -3488,6 +3569,9 @@
   function danioDelHeroe(name, targetLevel) {
     let dmg = CombatLib.heroDamage(hero, name, targetLevel) * (1 + statsHeroe.danio);
     dmg *= statsHeroe.mult[name] || 1;
+    if (acompanante && acompanante.buffs && acompanante.buffs.ataqueTimer > 0) {
+      dmg *= (acompanante.buffs.multAtaque || 1.25);
+    }
     return Math.random() < statsHeroe.critico ? dmg * CRITICO : dmg;
   }
   // Un golpe del héroe: con robo de vida recupera parte del daño
@@ -3941,6 +4025,7 @@
       const accion = esEq ? '<span class="muted">✅ equipado</span>'
         : o.tipo === 'hoja' ? '<span class="muted">📜 forja en el herrero</span>'
         : (o.nivel <= hero.level ? `<button data-equipar="${esc(o.uid)}">Equipar</button>` : `<span class="muted">🔒 nivel ${o.nivel}</span>`)
+          + ` <button data-dar-rowan="${esc(o.uid)}" title="Transferir al inventario de Rowan">🤝 Rowan</button>`
           + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
           + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
       return `<div class="slot ${esEq ? 'eq' : ''}" data-uid="${esc(o.uid)}">
@@ -3963,6 +4048,25 @@
         else { const oro = EquipoLib.vender(personajeActual, t.dataset.vender); inv.gold += oro; updateStats(); toast('Vendido por ' + oro + ' 🪙'); }
         renderObjetos();
       } catch (err) { toast(err.message); }
+      return;
+    }
+    const dr = e.target.closest('button[data-dar-rowan]');
+    if (dr) {
+      asegurarAcompananteActivo();
+      if (!acompanante) { toast('Rowan aún no te acompaña'); return; }
+      const uid = dr.dataset.darRowan;
+      const idx = personajeActual.inventario.findIndex(x => x.uid === uid);
+      if (idx !== -1) {
+        const item = personajeActual.inventario[idx];
+        if (AcompananteLib.agregarObjetoAcompanante(acompanante, item)) {
+          personajeActual.inventario.splice(idx, 1);
+          toast(`🤝 Has pasado ${item.nombre} al inventario de Rowan`);
+          renderObjetos();
+          if ($('modal-companero') && $('modal-companero').classList.contains('show')) renderCompanero();
+        } else {
+          toast('El inventario de Rowan está lleno (máximo 20 slots)');
+        }
+      }
       return;
     }
     const b = e.target.closest('button[data-equipar]');
@@ -3996,11 +4100,11 @@
   }
 
   function abrirServicio(g) {
-    if (!personajeActual) { toast('Crea un personaje primero'); return; }
-    cargarCatalogoPiezas().then(() => {
+    if (!personajeActual) { toast('Crea un personaje primero'); return Promise.resolve(); }
+    return cargarCatalogoPiezas().then(() => {
       servicioActual = g.info.servicio;
       npcActual = g.info;
-      $('npc-titulo').textContent = TEXTO_SERVICIO[servicioActual].icono + ' ' + g.info.nombre;
+      $('npc-titulo').textContent = (TEXTO_SERVICIO[servicioActual] ? TEXTO_SERVICIO[servicioActual].icono : '👤') + ' ' + g.info.nombre;
       $('npc-frase').textContent = '«' + g.info.frase + '»';
       $('npc-oro').textContent = inv.gold;
       renderNpc(g.info.servicio);
@@ -4017,7 +4121,7 @@
       const hojas = pj.inventario.filter(o => o.tipo === 'hoja');
       html = '<h3 class="npc-h">Forjar con hoja (arena ' + (inv.arena || 0) + ' 🧱)</h3>' + (hojas.map(o => {
         const coste = EquipoLib.ARENA_FORJA * o.nivel;
-        return `<div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel}</span></div>
+        return `<div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${esc(p.nombre || o.nombre)}</b><span class="muted">nivel ${o.nivel}</span></div>
           <button data-forjar-hoja="${esc(o.uid)}" ${(inv.arena || 0) < coste || hero.level < o.nivel ? 'disabled' : ''}>${coste} 🧱</button></div>`;
       }).join('') || '<div class="muted">No tienes hojas. Los monstruos de nivel 8 o más pueden soltarlas.</div>');
       if (hero.level < 12) {
@@ -4033,6 +4137,8 @@
       html = renderEntrenador();
     } else if (servicio === 'encargo') {
       html = renderEncargo();
+    } else if (servicio === 'cabana') {
+      html = renderCabana(npcActual ? npcActual.cabana : null);
     } else {
       if (hero.level < 12) {
         html = '<h3 class="npc-h">Comprar 🔒 Requiere Nivel 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">El Mercader Tovi reserva su catálogo de armaduras para viajeros de nivel 12 o superior. Completa las misiones de caza de la historia para equiparte.</div>';
@@ -4087,8 +4193,110 @@
       toast('Comprada');
     });
     if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
+    const ec = e.target.closest('button[data-entregar-cabana]');
+    if (ec) accionNpc(() => {
+      const s = npcActual.cabana;
+      if (!s || !s.misionCabana) return;
+      const m = s.misionCabana;
+      const cant = m.objetivoCantidad || m.cantidad || 100;
+      if (m.progreso < cant || m.cumplida || m.entregada) return;
+      m.cumplida = true;
+      m.entregada = true;
+      const rec = m.recompensa || {};
+      const oro = rec.oro || Math.floor(Math.random() * ((rec.oroMax || 2000) - (rec.oroMin || 1) + 1)) + (rec.oroMin || 1);
+      const arena = rec.arena || Math.floor(Math.random() * ((rec.arenaMax || 50) - (rec.arenaMin || 10) + 1)) + (rec.arenaMin || 10);
+      const pociones = rec.pociones || rec.pocionesVida || 4;
+      const armNivel = rec.armaduraNivel || ((m.nivelMonstruo || 1) * (rec.nivelPiezaMultiplicador || 10));
+      const armCalidad = rec.armaduraCalidad || (0.50 + Math.random() * 0.40);
+      const armNombre = rec.armaduraNombre || ('Peto Reforzado de Cazador Nv.' + armNivel);
+
+      inv.gold = (inv.gold || 0) + oro;
+      inv.arena = (inv.arena || 0) + arena;
+      inv.vida = (inv.vida || 0) + pociones;
+      const pieza = {
+        uid: 'armadura-cabana-' + Date.now(),
+        id: 'pieza-cabana-' + armNivel,
+        nombre: armNombre,
+        clase: pj.clase || 'guerrero',
+        tipo: 'armadura',
+        slot: 'torso',
+        nivel: armNivel,
+        calidad: armCalidad,
+        defensa: Math.round(15 * (armNivel / 10) * (0.8 + armCalidad * 0.4)),
+        vida: Math.round(30 * (armNivel / 10) * (0.8 + armCalidad * 0.4))
+      };
+      if (!pj.inventario) pj.inventario = [];
+      pj.inventario.push(pieza);
+      toast(`🎉 ¡Misión completada! +${oro} 🪙, +${arena} ⏳, +${pociones} 🧪 y ${armNombre}`);
+    });
   });
   $('npc-cerrar').onclick = () => $('npc').classList.remove('show');
+
+  // Misión de cabaña especial (100 monstruos)
+  function renderCabana(s) {
+    if (!s || !s.misionCabana) return '<div class="muted">No hay encargos disponibles en esta cabaña.</div>';
+    const m = s.misionCabana;
+    const cant = m.objetivoCantidad || m.cantidad || 100;
+    const especie = m.objetivoEspecie || m.especie || 'Monstruos';
+    const cumplida = m.cumplida || m.entregada;
+    const pct = Math.min(100, Math.round((m.progreso / cant) * 100));
+    const rec = m.recompensa || {};
+    const oroTxt = rec.oro ? rec.oro : ((rec.oroMin || 1) + '-' + (rec.oroMax || 2000));
+    const arenaTxt = rec.arena ? rec.arena : ((rec.arenaMin || 10) + '-' + (rec.arenaMax || 50));
+    const pocionesTxt = rec.pociones || rec.pocionesVida || 4;
+    const armNivel = rec.armaduraNivel || ((m.nivelMonstruo || 1) * (rec.nivelPiezaMultiplicador || 10));
+    const armNombre = rec.armaduraNombre || ('Peto Reforzado de Cazador Nv.' + armNivel);
+    let html = `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:12px">
+        <h3 class="npc-h" style="margin-top:0">🏡 Gran Cacería: 100 ${esc(especie)}</h3>
+        <p class="muted" style="line-height:1.5;margin:6px 0 10px">
+          Las bestias amenazan la ruta entre los primeros pueblos. Elimina <b>${cant}</b> criaturas de esta zona para asegurar la cabaña.
+        </p>
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span>Progreso de caza:</span>
+            <b>${m.progreso} / ${cant} (${pct}%)</b>
+          </div>
+          <div style="height:8px;background:#1e293b;border-radius:4px;overflow:hidden">
+            <div style="height:100%;background:${cumplida ? '#22c55e' : '#eab308'};width:${pct}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="npc-h">🎁 Recompensa al Completar</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:12px">
+        <div style="background:#1e293b;padding:8px;border-radius:6px">🪙 <b>${oroTxt}</b> Oro</div>
+        <div style="background:#1e293b;padding:8px;border-radius:6px">⏳ <b>${arenaTxt}</b> Arena de forja</div>
+        <div style="background:#1e293b;padding:8px;border-radius:6px">🧪 <b>${pocionesTxt}</b> Pociones de salud</div>
+        <div style="background:#1e293b;padding:8px;border-radius:6px">🛡️ <b>${esc(armNombre)}</b><br><small class="muted">Nv. ${armNivel} · Calidad 50%-90%</small></div>
+      </div>
+    `;
+
+    if (cumplida) {
+      html += `
+        <div style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#86efac;padding:10px;border-radius:6px;text-align:center">
+          ✅ ¡Misión completada y recompensa cobrada! Gracias por proteger las tierras.
+        </div>
+      `;
+    } else if (m.progreso >= cant) {
+      html += `
+        <div style="text-align:center">
+          <button class="gold" data-entregar-cabana="${esc(s.id)}" style="padding:10px 20px;font-size:14px;font-weight:bold;width:100%">
+            🎉 ¡Entregar Encargo y Reclamar Recompensas!
+          </button>
+        </div>
+      `;
+    } else {
+      html += `
+        <div style="text-align:center">
+          <button disabled style="opacity:0.6;padding:8px 16px;width:100%">
+            ⚔️ Faltan ${cant - m.progreso} monstruos por derrotar
+          </button>
+        </div>
+      `;
+    }
+    return html;
+  }
 
   // Encargo de zona: el NPC lo ofrece, sigue el progreso y paga al entregarlo
   function renderEncargo() {
@@ -4627,7 +4835,8 @@
     herrero: { tipo: 'Herrero', boton: '🔨 Forjar', icono: '🔨' },
     mercader: { tipo: 'Mercader', boton: '🧺 Comerciar', icono: '🧺' },
     entrenador: { tipo: 'Entrenador', boton: '🎓 Entrenar', icono: '🎓' },
-    encargo: { tipo: 'Encargo de zona', boton: '📜 Ver encargo', icono: '📜' }
+    encargo: { tipo: 'Encargo de zona', boton: '📜 Ver encargo', icono: '📜' },
+    cabana: { tipo: 'Encargo de la Cabaña', boton: '🏡 Misión de Caza (100)', icono: '🏡' }
   };
   const SERVICIOS = [
     { id: 'serv-herrero', modelo: 'guru-4', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
@@ -4727,6 +4936,19 @@
         try {
           const m = LugaresSecretosLib.construirModeloSecreto(THREE, s, (x, z) => visorWorld.getWalkableHeight(x, z));
           if (m) grupo.add(m);
+          if (s.tipo === 'cabana' && s.aldeano) {
+            const nombreAld = typeof s.aldeano === 'object' ? s.aldeano.nombre : s.aldeano;
+            const npcInfo = {
+              id: typeof s.aldeano === 'object' ? s.aldeano.id : ('npc-' + s.id),
+              nombre: nombreAld,
+              tema: 'Encargo de la Cabaña',
+              frase: s.frase || 'Caza 100 monstruos para despejar la zona y te recompensaré con oro, arena y armadura superior.',
+              servicio: 'cabana',
+              cabana: s
+            };
+            const nx = s.x + 2.5, nz = s.z + 2.5;
+            instanciarNpc(npcInfo, (typeof s.aldeano === 'object' && s.aldeano.modelo) ? s.aldeano.modelo : 'guru-1', nx, nz, s.x, s.z);
+          }
         } catch (eSec) {
           console.warn('Lugar secreto:', s.id, eSec);
         }
@@ -4778,6 +5000,132 @@
     el.style.left = x + 'px';
     el.style.top = y + 'px';
     el.style.opacity = '1';
+  }
+
+  function abrirModalCompanero() {
+    asegurarAcompananteActivo();
+    renderCompanero();
+    const m = $('modal-companero');
+    if (m) m.classList.add('show');
+  }
+
+  function cerrarModalCompanero() {
+    const m = $('modal-companero');
+    if (m) m.classList.remove('show');
+  }
+
+  function renderCompanero() {
+    if (!acompanante) return;
+    if ($('comp-nivel')) $('comp-nivel').textContent = 'Nivel ' + (acompanante.nivel || 1);
+    const hpPct = Math.max(0, Math.min(100, (acompanante.hp / acompanante.maxHp) * 100));
+    if ($('comp-hp-bar')) {
+      $('comp-hp-bar').style.width = hpPct + '%';
+      $('comp-hp-bar').style.background = hpPct > 50 ? '#22c55e' : hpPct > 20 ? '#eab308' : '#ef4444';
+    }
+    if ($('comp-hp-txt')) $('comp-hp-txt').textContent = Math.ceil(acompanante.hp) + ' / ' + Math.ceil(acompanante.maxHp);
+    if ($('comp-dano')) $('comp-dano').textContent = acompanante.dano;
+    if ($('comp-defensa')) $('comp-defensa').textContent = acompanante.defensa;
+    if ($('comp-slots-txt')) $('comp-slots-txt').textContent = (acompanante.inventario ? acompanante.inventario.length : 0) + ' / ' + (AcompananteLib.MAX_SLOTS_INVENTARIO || 20);
+
+    // Cooldowns de skills
+    if (acompanante.skills) {
+      if ($('comp-cd-cura')) {
+        const cd = acompanante.skills.cura && acompanante.skills.cura.timer > 0 ? Math.ceil(acompanante.skills.cura.timer) + 's' : 'Lista';
+        $('comp-cd-cura').textContent = cd;
+      }
+      if ($('comp-cd-ataque')) {
+        const cd = acompanante.skills.ataque && acompanante.skills.ataque.timer > 0 ? Math.ceil(acompanante.skills.ataque.timer) + 's' : 'Lista';
+        $('comp-cd-ataque').textContent = cd;
+      }
+      if ($('comp-cd-defensa')) {
+        const cd = acompanante.skills.defensa && acompanante.skills.defensa.timer > 0 ? Math.ceil(acompanante.skills.defensa.timer) + 's' : 'Lista';
+        $('comp-cd-defensa').textContent = cd;
+      }
+    }
+
+    // Grid de inventario (20 slots)
+    const grid = $('comp-grid');
+    if (grid) {
+      grid.innerHTML = '';
+      const slots = AcompananteLib.MAX_SLOTS_INVENTARIO || 20;
+      const invComp = acompanante.inventario || [];
+      for (let i = 0; i < slots; i++) {
+        const item = invComp[i];
+        const slotEl = document.createElement('div');
+        slotEl.style.cssText = 'background:rgba(255,255,255,0.06);border:1px solid #334155;border-radius:6px;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;font-size:10px;text-align:center;position:relative';
+        if (item) {
+          slotEl.innerHTML = `
+            <div style="font-size:16px">${item.tipo === 'pocion' ? '🧪' : item.tipo === 'arma' ? '⚔️' : '🛡️'}</div>
+            <div style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold">${esc(item.nombre)}</div>
+            <div style="display:flex;gap:2px;margin-top:2px">
+              ${(item.tipo === 'armadura' || item.tipo === 'arma') ? `<button data-equipar-comp="${esc(item.uid)}" style="font-size:9px;padding:1px 3px" title="Equipar a Rowan">Equipar</button>` : ''}
+              <button data-devolver-comp="${esc(item.uid)}" style="font-size:9px;padding:1px 3px" title="Devolver al héroe">Devolver</button>
+            </div>
+          `;
+        } else {
+          slotEl.innerHTML = `<span class="muted" style="opacity:0.3">${i + 1}</span>`;
+        }
+        grid.appendChild(slotEl);
+      }
+    }
+  }
+
+  // Inicializar listeners del modal del compañero
+  if ($('sk-companero')) $('sk-companero').onclick = abrirModalCompanero;
+  if ($('comp-close')) $('comp-close').onclick = cerrarModalCompanero;
+
+  if ($('btn-comp-dar-pocion')) {
+    $('btn-comp-dar-pocion').onclick = () => {
+      if (!inv.vida || inv.vida <= 0) { toast('No tienes pociones de salud en tu inventario'); return; }
+      asegurarAcompananteActivo();
+      inv.vida--;
+      AcompananteLib.darPocionesVidaAcompanante(acompanante, 1);
+      toast('🧪 1 poción entregada a Rowan (se tomará automáticamente si su HP < 50%)');
+      updateStats();
+      renderCompanero();
+    };
+  }
+
+  if ($('btn-comp-dar-5-pociones')) {
+    $('btn-comp-dar-5-pociones').onclick = () => {
+      if (!inv.vida || inv.vida <= 0) { toast('No tienes pociones de salud en tu inventario'); return; }
+      asegurarAcompananteActivo();
+      const cant = Math.min(5, inv.vida);
+      inv.vida -= cant;
+      AcompananteLib.darPocionesVidaAcompanante(acompanante, cant);
+      toast(`🧪 ${cant} pociones entregadas a Rowan`);
+      updateStats();
+      renderCompanero();
+    };
+  }
+
+  if ($('comp-grid')) {
+    $('comp-grid').addEventListener('click', e => {
+      const be = e.target.closest('button[data-equipar-comp]');
+      if (be && acompanante) {
+        const uid = be.dataset.equiparComp;
+        const idx = (acompanante.inventario || []).findIndex(x => x.uid === uid);
+        if (idx !== -1) {
+          const item = acompanante.inventario[idx];
+          AcompananteLib.equiparPiezaAcompanante(acompanante, item);
+          toast(`🛡️ Rowan se ha equipado ${item.nombre}`);
+          renderCompanero();
+        }
+      }
+      const bd = e.target.closest('button[data-devolver-comp]');
+      if (bd && acompanante && personajeActual) {
+        const uid = bd.dataset.devolverComp;
+        const item = AcompananteLib.removerObjetoAcompanante(acompanante, uid);
+        if (item) {
+          if (item.tipo === 'pocion') inv.vida = (inv.vida || 0) + (item.cantidad || 1);
+          else personajeActual.inventario.push(item);
+          toast(`🎒 Devuelto ${item.nombre} al inventario del héroe`);
+          updateStats();
+          renderObjetos();
+          renderCompanero();
+        }
+      }
+    });
   }
 
   // Al abrir un mundo: se usa su partida activa, o se crea la primera
@@ -4881,13 +5229,14 @@
     if (k === 'h') abrirServicioCercano();
     if (k === 'c') { renderCronica(); $('cronica').classList.add('show'); }
     if (k === 'p') { renderHeroe(); $('heroe').classList.add('show'); }
+    if (k === 'o') { if ($('modal-companero') && $('modal-companero').classList.contains('show')) cerrarModalCompanero(); else abrirModalCompanero(); }
     if (k === 'x') jump();
     if (k === 'k') alternarAuto();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');
     if (k === 'r') (hero.resting ? stopRest('Descanso cancelado') : startRest());
     if (k === 'b') (($('shop').classList.contains('show')) ? closeShop() : openShop());
-    if (k === 'escape') { showSelection(null); closeShop(); closePartidas(); cerrarMapaMundo(); }
+    if (k === 'escape') { showSelection(null); closeShop(); closePartidas(); cerrarMapaMundo(); cerrarModalCompanero(); }
   });
 
   let downAt = null;
@@ -5035,7 +5384,19 @@
         typeof objetivo !== 'undefined' ? objetivo : null,
         (x, z) => visorWorld.getWalkableHeight(x, z),
         ev => avanzarHistoria(ev),
-        (m, dmg) => damageMonster(m, dmg)
+        (m, dmg) => damageMonster(m, dmg),
+        { hp: hero.hp, maxHp: hero.maxHp },
+        (tipoSkill, infoSkill) => {
+          if (tipoSkill === 'cura') {
+            hero.hp = Math.min(hero.maxHp, hero.hp + (infoSkill.potencia || 45));
+            toast('🌿 Rowan lanza ' + infoSkill.nombre + ': +45 HP de curación');
+          } else if (tipoSkill === 'ataque') {
+            toast('⚔️ Rowan lanza ' + infoSkill.nombre + ': +25% daño de ataque a ambos (12s)');
+          } else if (tipoSkill === 'defensa') {
+            toast('🛡️ Rowan activa ' + infoSkill.nombre + ': escudo defensivo');
+          }
+          if ($('modal-companero') && $('modal-companero').classList.contains('show')) renderCompanero();
+        }
       );
       actualizarBocadilloAcompanante();
     }
@@ -5161,7 +5522,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, renderInvCard, renderObjetos, abrirServicio, renderNpc, cerrarCapitulo, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

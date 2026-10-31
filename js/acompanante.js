@@ -68,19 +68,36 @@
     return lista[Math.floor(Math.random() * lista.length)];
   }
 
+  const MAX_SLOTS_INVENTARIO = 20;
+
   // Estado lógico del acompañante
   function crearAcompanante(config = {}) {
     return {
       id: 'rowan-aldeano',
       nombre: config.nombre || EQUIPO_ALDEANO.nombre,
       rol: EQUIPO_ALDEANO.rol,
-      equipo: Object.assign({}, EQUIPO_ALDEANO),
+      equipo: Object.assign({}, EQUIPO_ALDEANO, config.equipo || {}),
       desbloqueado: !!config.desbloqueado,
       activo: !!config.activo,
       nivel: config.nivel || 1,
-      hp: config.hp || 140,
-      maxHp: config.maxHp || 140,
-      dano: config.dano || 18,
+      hp: config.hp || 180,
+      maxHp: config.maxHp || 180,
+      defensa: config.defensa || 14,
+      dano: config.dano || 24,
+      inconsciente: false,
+      // Inventario propio de 20 ranuras para equipamiento y pociones automáticas
+      inventario: Array.isArray(config.inventario) ? config.inventario.slice(0, MAX_SLOTS_INVENTARIO) : [],
+      pocionesVida: typeof config.pocionesVida === 'number' ? config.pocionesVida : 0,
+      // Habilidades complementarias de apoyo (dopes y curas)
+      skills: {
+        cura: { id: 'cura', nombre: 'Rocío Sanador', desc: 'Restaura 30% de salud al héroe y a Rowan cuando la vida baja del 45%', cooldown: 22, timer: 0 },
+        ataque: { id: 'ataque', nombre: 'Grito de Aliento', desc: 'Aumenta el daño de ataque un 25% para el héroe y Rowan durante 12s en combate', cooldown: 30, timer: 0 },
+        defensa: { id: 'defensa', nombre: 'Baluarte de Cuero', desc: 'Reduce el daño recibido un 20% durante 10s ante impactos graves', cooldown: 35, timer: 0 }
+      },
+      buffs: {
+        ataqueTimer: 0,
+        defensaTimer: 0
+      },
       rangoAtaque: 2.2,
       cooldownAtaque: 1.25,
       tiempoSiguienteAtaque: 0,
@@ -89,7 +106,7 @@
       z: config.z || 0,
       rotacion: 0,
       velocidadActual: 0,
-      estado: 'idle', // 'idle' | 'walk' | 'run' | 'attack'
+      estado: 'idle', // 'idle' | 'walk' | 'run' | 'attack' | 'debilitado'
       tiempoEstado: 0,
       fraseActual: null,
       tiempoFrase: 0,
@@ -100,6 +117,128 @@
       limbs: null,
       bocadilloDom: null
     };
+  }
+
+  // Daño recibido por el acompañante con mitigación por armadura y buff de defensa
+  function recibirDanoAcompanante(acompanante, danoBruto) {
+    if (!acompanante || !acompanante.activo || acompanante.inconsciente) return 0;
+    
+    // Mitigación por defensa base
+    let defTotal = acompanante.defensa || 0;
+    let factor = 1 - (defTotal / (defTotal + 80));
+    let dmg = Math.max(1, Math.round(danoBruto * factor));
+
+    // Mitigación adicional si tiene activo el Baluarte de Cuero (-20%)
+    if (acompanante.buffs && acompanante.buffs.defensaTimer > 0) {
+      dmg = Math.max(1, Math.round(dmg * 0.80));
+    }
+
+    acompanante.hp = Math.max(0, acompanante.hp - dmg);
+
+    if (acompanante.hp <= 0) {
+      acompanante.inconsciente = true;
+      acompanante.estado = 'debilitado';
+      decirFrase(acompanante, '¡He caído! Protégeme... necesito recuperarme.', 5.0);
+    } else if (acompanante.hp < acompanante.maxHp * 0.40) {
+      const ahora = Date.now();
+      if (ahora - (acompanante._avisoVidaBaja || 0) > 8000) {
+        acompanante._avisoVidaBaja = ahora;
+        decirFrase(acompanante, '¡Me hieren de gravedad! ¡Cuidado con sus garras!', 3.5);
+      }
+    }
+
+    return dmg;
+  }
+
+  // Revivir o restaurar al acompañante tras descansar o curar
+  function revivirAcompanante(acompanante, porcentaje = 0.50) {
+    if (!acompanante) return;
+    acompanante.inconsciente = false;
+    acompanante.hp = Math.max(Math.round(acompanante.maxHp * porcentaje), acompanante.hp);
+    if (acompanante.estado === 'debilitado') acompanante.estado = 'idle';
+  }
+
+  // Añade un objeto al inventario del acompañante (hasta 20 slots)
+  function agregarObjetoAcompanante(acompanante, obj) {
+    if (!acompanante) return false;
+    acompanante.inventario = acompanante.inventario || [];
+    if (acompanante.inventario.length >= MAX_SLOTS_INVENTARIO) {
+      throw new Error('El inventario de Rowan está lleno (máximo 20 objetos)');
+    }
+    acompanante.inventario.push(obj);
+    if (obj.tipo === 'pocion_vida') {
+      acompanante.pocionesVida = (acompanante.pocionesVida || 0) + 1;
+    }
+    return true;
+  }
+
+  // Retira un objeto del inventario del acompañante por su uid
+  function removerObjetoAcompanante(acompanante, uid) {
+    if (!acompanante || !acompanante.inventario) return null;
+    const idx = acompanante.inventario.findIndex(o => o.uid === uid);
+    if (idx === -1) return null;
+    const [removido] = acompanante.inventario.splice(idx, 1);
+    if (removido.tipo === 'pocion_vida') {
+      acompanante.pocionesVida = Math.max(0, (acompanante.pocionesVida || 0) - 1);
+    }
+    return removido;
+  }
+
+  // Da pociones de vida al inventario del acompañante
+  function darPocionesVidaAcompanante(acompanante, cantidad = 1) {
+    if (!acompanante) return 0;
+    let dadas = 0;
+    for (let i = 0; i < cantidad; i++) {
+      if (acompanante.inventario.length >= MAX_SLOTS_INVENTARIO) break;
+      const pocion = {
+        uid: 'pocion-vida-acomp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        tipo: 'pocion_vida',
+        nombre: 'Poción de Salud',
+        cura: 0.35,
+        icono: '🧪'
+      };
+      acompanante.inventario.push(pocion);
+      acompanante.pocionesVida = (acompanante.pocionesVida || 0) + 1;
+      dadas++;
+    }
+    return dadas;
+  }
+
+  // Auto-consumo de poción de vida por el propio acompañante si baja de 50% HP
+  function tomarPocionAutomaticaAcompanante(acompanante) {
+    if (!acompanante || acompanante.inconsciente) return false;
+    if (acompanante.hp >= acompanante.maxHp * 0.50) return false;
+
+    // Buscar una poción en su inventario
+    const idxPocion = (acompanante.inventario || []).findIndex(o => o.tipo === 'pocion_vida');
+    if (idxPocion === -1 && (!acompanante.pocionesVida || acompanante.pocionesVida <= 0)) return false;
+
+    if (idxPocion !== -1) {
+      acompanante.inventario.splice(idxPocion, 1);
+    }
+    acompanante.pocionesVida = Math.max(0, (acompanante.pocionesVida || 1) - 1);
+
+    const cura = Math.round(acompanante.maxHp * 0.35);
+    acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + cura);
+    decirFrase(acompanante, '¡He tomado una poción de salud! (+' + cura + ' HP)', 3.5);
+    return cura;
+  }
+
+  // Equipar una pieza de armadura o arma en el acompañante
+  function equiparPiezaAcompanante(acompanante, obj) {
+    if (!acompanante || !obj || !obj.ranura) return false;
+    acompanante.equipo = acompanante.equipo || {};
+    acompanante.equipo[obj.ranura] = obj.nombre || obj.uid;
+
+    // Bonificaciones de stats según la pieza
+    if (obj.ranura === 'weapon') {
+      acompanante.dano = Math.max(24, Math.round(18 + (obj.ataque || 10)));
+    } else {
+      acompanante.defensa = Math.max(14, Math.round(10 + (obj.defensa || 8)));
+      acompanante.maxHp = Math.max(180, Math.round(160 + (obj.defensa || 6) * 4));
+      acompanante.hp = Math.min(acompanante.hp, acompanante.maxHp);
+    }
+    return true;
   }
 
   // Construcción del modelo 3D del aldeano en Three.js con materiales y vestimenta de cuero
@@ -449,11 +588,38 @@
   }
 
   // Actualización de la IA del acompañante en cada frame
-  function actualizarAcompanante(acompanante, dt, heroePos, heroeRot, monstruos, heroeObjetivo, getAlturaFn, registrarEventoFn, aplicarDanoMonstruoFn) {
+  function actualizarAcompanante(acompanante, dt, heroePos, heroeRot, monstruos, heroeObjetivo, getAlturaFn, registrarEventoFn, aplicarDanoMonstruoFn, heroeInfo, alLanzarSkillFn) {
     if (!acompanante || !acompanante.activo || !acompanante.mesh) return;
 
     acompanante.tiempoEstado += dt;
     acompanante.tiempoSiguienteAtaque = Math.max(0, acompanante.tiempoSiguienteAtaque - dt);
+
+    // Actualización de timers de buffs y habilidades de apoyo
+    if (acompanante.buffs) {
+      acompanante.buffs.ataqueTimer = Math.max(0, (acompanante.buffs.ataqueTimer || 0) - dt);
+      acompanante.buffs.defensaTimer = Math.max(0, (acompanante.buffs.defensaTimer || 0) - dt);
+    }
+    if (acompanante.skills) {
+      if (acompanante.skills.cura) acompanante.skills.cura.timer = Math.max(0, acompanante.skills.cura.timer - dt);
+      if (acompanante.skills.ataque) acompanante.skills.ataque.timer = Math.max(0, acompanante.skills.ataque.timer - dt);
+      if (acompanante.skills.defensa) acompanante.skills.defensa.timer = Math.max(0, acompanante.skills.defensa.timer - dt);
+    }
+
+    // Si ha caído inconsciente, no ataca ni se desplaza hasta ser curado
+    if (acompanante.inconsciente) {
+      acompanante.estado = 'debilitado';
+      acompanante.velocidadActual = 0;
+      const ySuelo = getAlturaFn ? getAlturaFn(acompanante.x, acompanante.z) : 0;
+      acompanante.y = ySuelo;
+      acompanante.mesh.position.set(acompanante.x, ySuelo, acompanante.z);
+      if (acompanante.mixer) acompanante.mixer.update(dt);
+      return;
+    }
+
+    // Auto-toma de poción de vida automática si la salud cae por debajo del 50%
+    if (acompanante.hp < acompanante.maxHp * 0.50) {
+      tomarPocionAutomaticaAcompanante(acompanante);
+    }
 
     // 1. Determinar si hay un monstruo hostil al alcance o el objetivo actual del héroe
     let objetivoCombate = null;
@@ -479,6 +645,45 @@
           }
         }
       });
+    }
+
+    // Gestión y activación de Skills Complementarias de Apoyo (Dopes y Curas)
+    if (acompanante.skills) {
+      const heroeHpActual = (heroeInfo && typeof heroeInfo.hp === 'number') ? heroeInfo.hp : 100;
+      const heroeHpMax = (heroeInfo && typeof heroeInfo.maxHp === 'number') ? heroeInfo.maxHp : 100;
+      const heroeBajo = (heroeHpActual / heroeHpMax) < 0.45;
+      const rowanBajo = (acompanante.hp / acompanante.maxHp) < 0.45;
+
+      // 1. Skill de Cura: Rocío Sanador
+      if (acompanante.skills.cura && acompanante.skills.cura.timer <= 0 && (heroeBajo || rowanBajo)) {
+        acompanante.skills.cura.timer = acompanante.skills.cura.cooldown;
+        const curaRowan = Math.round(acompanante.maxHp * 0.30);
+        acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + curaRowan);
+        decirFrase(acompanante, '🌿 ¡Rocío Sanador! ¡Ánimo, resistiremos juntos!', 4.0);
+        if (typeof alLanzarSkillFn === 'function') {
+          alLanzarSkillFn({ tipo: 'cura', nombre: 'Rocío Sanador', valor: 0.30, curaRowan });
+        }
+      }
+
+      // 2. Skill de Dope de Ataque: Grito de Aliento (en combate)
+      if (objetivoCombate && acompanante.skills.ataque && acompanante.skills.ataque.timer <= 0) {
+        acompanante.skills.ataque.timer = acompanante.skills.ataque.cooldown;
+        acompanante.buffs.ataqueTimer = 12;
+        decirFrase(acompanante, '⚔️ ¡Por la gloria de Aden! ¡Aplastémoslos a todos! (+25% daño)', 4.0);
+        if (typeof alLanzarSkillFn === 'function') {
+          alLanzarSkillFn({ tipo: 'buff_ataque', nombre: 'Grito de Aliento', duracion: 12, valor: 0.25 });
+        }
+      }
+
+      // 3. Skill de Dope de Defensa: Baluarte de Cuero (al luchar o sufrir daño)
+      if (objetivoCombate && acompanante.skills.defensa && acompanante.skills.defensa.timer <= 0 && (rowanBajo || (distObjetivoMin < 3.5))) {
+        acompanante.skills.defensa.timer = acompanante.skills.defensa.cooldown;
+        acompanante.buffs.defensaTimer = 10;
+        decirFrase(acompanante, '🛡️ ¡Formación cerrada! ¡Escudos arriba! (-20% daño)', 4.0);
+        if (typeof alLanzarSkillFn === 'function') {
+          alLanzarSkillFn({ tipo: 'buff_defensa', nombre: 'Baluarte de Cuero', duracion: 10, valor: 0.20 });
+        }
+      }
     }
 
     // 2. Destino de movimiento: combate o formación táctica
@@ -520,7 +725,8 @@
 
       if (acompanante.tiempoSiguienteAtaque <= 0) {
         acompanante.tiempoSiguienteAtaque = acompanante.cooldownAtaque;
-        const golpeDano = Math.round(acompanante.dano * (0.85 + Math.random() * 0.3));
+        const multAtaque = (acompanante.buffs && acompanante.buffs.ataqueTimer > 0) ? 1.25 : 1.0;
+        const golpeDano = Math.round(acompanante.dano * multAtaque * (0.85 + Math.random() * 0.3));
 
         if (typeof aplicarDanoMonstruoFn === 'function') {
           aplicarDanoMonstruoFn(objetivoCombate, golpeDano);
@@ -649,6 +855,7 @@
   const api = {
     EQUIPO_ALDEANO,
     FRASES,
+    MAX_SLOTS_INVENTARIO,
     elegirFrase,
     crearAcompanante,
     construirModeloAcompanante,
@@ -658,7 +865,14 @@
     actualizarAcompanante,
     esMonstruoCombatible,
     decirFrase,
-    comprobarLugaresSecretos
+    comprobarLugaresSecretos,
+    recibirDanoAcompanante,
+    revivirAcompanante,
+    agregarObjetoAcompanante,
+    removerObjetoAcompanante,
+    darPocionesVidaAcompanante,
+    tomarPocionAutomaticaAcompanante,
+    equiparPiezaAcompanante
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

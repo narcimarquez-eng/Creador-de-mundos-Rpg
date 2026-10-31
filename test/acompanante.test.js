@@ -237,4 +237,94 @@ t('combate: daño vía m.recibirDano y remate sin estancar la vida', () => {
   assert.strictEqual(m.alive, false, 'El monstruo no debe quedar en un estado inmortal');
 });
 
+t('inventario del acompañante: capacidad máxima de 20 slots y almacenamiento de pociones', () => {
+  const c = A.crearAcompanante();
+  assert.strictEqual(c.inventario.length, 0);
+  assert.strictEqual(A.MAX_SLOTS_INVENTARIO, 20);
+
+  // Añadir pociones hasta llenar los 20 slots
+  const dadas = A.darPocionesVidaAcompanante(c, 25);
+  assert.strictEqual(dadas, 20, 'No debe permitir agregar más de 20 objetos');
+  assert.strictEqual(c.inventario.length, 20);
+  assert.strictEqual(c.pocionesVida, 20);
+
+  // Intentar agregar uno más debe lanzar error
+  assert.throws(() => A.agregarObjetoAcompanante(c, { uid: 'extra', tipo: 'botin' }), /lleno/);
+
+  // Remover un objeto
+  const obj = A.removerObjetoAcompanante(c, c.inventario[0].uid);
+  assert.ok(obj && obj.tipo === 'pocion_vida');
+  assert.strictEqual(c.inventario.length, 19);
+  assert.strictEqual(c.pocionesVida, 19);
+});
+
+t('auto-toma de pociones: consume poción automáticamente al bajar de 50% HP', () => {
+  const c = A.crearAcompanante({ hp: 180, maxHp: 180, activo: true });
+  c.mesh = { position: { set() {} }, rotation: { y: 0 } };
+  A.darPocionesVidaAcompanante(c, 3);
+  assert.strictEqual(c.pocionesVida, 3);
+
+  // Daño severo que baja la vida a menos de 50% (ej. 70 / 180)
+  c.hp = 70;
+  assert.ok(c.hp < c.maxHp * 0.50);
+
+  // En la actualización debe consumirse automáticamente una poción
+  A.actualizarAcompanante(c, 0.1, { x: 0, y: 0, z: 0 }, 0, [], null, () => 0, null);
+
+  assert.ok(c.hp > 70, 'La salud debió incrementarse tras tomar la poción');
+  assert.strictEqual(c.pocionesVida, 2, 'Debió descontarse 1 poción del inventario');
+  assert.ok(c.fraseActual.includes('poción de salud'));
+});
+
+t('supervivencia: mitigación de daño y estado debilitado al llegar a 0 HP', () => {
+  const c = A.crearAcompanante({ hp: 100, maxHp: 180, defensa: 14, activo: true });
+  assert.strictEqual(c.inconsciente, false);
+
+  // Recibir daño
+  const recibido = A.recibirDanoAcompanante(c, 30);
+  assert.ok(recibido > 0 && recibido < 30, 'La defensa debe mitigar parte del daño');
+  assert.strictEqual(c.hp, 100 - recibido);
+
+  // Daño letal
+  A.recibirDanoAcompanante(c, 500);
+  assert.strictEqual(c.hp, 0);
+  assert.strictEqual(c.inconsciente, true);
+  assert.strictEqual(c.estado, 'debilitado');
+
+  // Revivir
+  A.revivirAcompanante(c, 0.50);
+  assert.strictEqual(c.inconsciente, false);
+  assert.strictEqual(c.hp, 90);
+});
+
+t('skills complementarias de apoyo: cura y dopes en combate', () => {
+  const c = A.crearAcompanante({ hp: 60, maxHp: 180, activo: true });
+  c.mesh = { position: { set() {} }, rotation: { y: 0 } };
+  const m = { x: 1, z: 1, hp: 50, maxHp: 50, alive: true, muerto: false };
+
+  let skillLanzada = null;
+  const alLanzar = sk => { skillLanzada = sk; };
+
+  // Ejecutar update con héroe y Rowan con vida baja en combate
+  A.actualizarAcompanante(c, 0.1, { x: 0, y: 0, z: 0 }, 0, [m], m, () => 0, null, null, { hp: 30, maxHp: 100 }, alLanzar);
+
+  assert.ok(skillLanzada !== null, 'Debe haber disparado una skill de apoyo');
+  assert.ok(c.buffs.ataqueTimer > 0 || c.skills.cura.timer > 0, 'Alguna skill debe haber entrado en cooldown');
+});
+
+t('equipamiento de piezas en Rowan: aumenta daño, defensa y vida máxima', () => {
+  const c = A.crearAcompanante({ dano: 24, defensa: 14, maxHp: 180 });
+  const armaSuperior = { ranura: 'weapon', nombre: 'Mandoble del León', ataque: 22 };
+  const petoSuperior = { ranura: 'torso', nombre: 'Peto de Placas Solar', defensa: 25 };
+
+  A.equiparPiezaAcompanante(c, armaSuperior);
+  assert.strictEqual(c.equipo.weapon, 'Mandoble del León');
+  assert.ok(c.dano > 24, 'El daño de ataque debe haber aumentado');
+
+  A.equiparPiezaAcompanante(c, petoSuperior);
+  assert.strictEqual(c.equipo.torso, 'Peto de Placas Solar');
+  assert.ok(c.defensa > 14, 'La defensa debe haber aumentado');
+  assert.ok(c.maxHp > 180, 'La vida máxima debe haber aumentado');
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);

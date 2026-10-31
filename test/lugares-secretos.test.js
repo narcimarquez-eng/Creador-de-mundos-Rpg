@@ -57,4 +57,29 @@ t('ubicación de secretos: se colocan lejos de las plazas de los pueblos', () =>
   });
 });
 
+t('las 5 cabañas especiales GLB: se generan con aldeanos, misión de 100 monstruos y una junto al mar', () => {
+  const w = mundoMock();
+  const secretos = L.generarLugaresSecretos(w);
+  const cabanas = secretos.filter(s => s.tipo === 'cabana' && s.modeloGLB);
+
+  assert.strictEqual(cabanas.length, 5, 'Debe haber exactamente 5 cabañas especiales GLB');
+  const mar = cabanas.filter(c => c.esMar);
+  assert.strictEqual(mar.length, 1, 'Exactamente una cabaña debe estar orientada al mar');
+  assert.ok(mar[0].nombre.includes('Pescador') || mar[0].icono.includes('🌊'));
+
+  cabanas.forEach(c => {
+    assert.ok(c.aldeano && c.aldeano.length > 2, `Cabaña ${c.id} debe tener un aldeano asignado`);
+    assert.ok(c.misionCabana, `Cabaña ${c.id} debe tener misionCabana`);
+    assert.strictEqual(c.misionCabana.cantidad, 100, 'La misión debe pedir 100 monstruos');
+    assert.strictEqual(c.misionCabana.progreso, 0, 'El progreso inicial debe ser 0');
+    assert.strictEqual(c.misionCabana.recompensa.pocionesVida, 4, 'Debe recompensar 4 pociones de salud');
+    assert.strictEqual(c.misionCabana.recompensa.oroMin, 1, 'Oro min 1');
+    assert.strictEqual(c.misionCabana.recompensa.oroMax, 2000, 'Oro max 2000');
+    assert.strictEqual(c.misionCabana.recompensa.arenaMin, 10, 'Arena min 10');
+    assert.strictEqual(c.misionCabana.recompensa.arenaMax, 50, 'Arena max 50');
+    assert.strictEqual(c.misionCabana.recompensa.nivelPiezaMultiplicador, 10, 'Nivel de pieza superior x10');
+    assert.ok(c.misionCabana.recompensa.calidadMin >= 0.5 && c.misionCabana.recompensa.calidadMax <= 0.9, 'Calidad 50-90%');
+  });
+});
+
 console.log(`\n${n} pruebas de lugares secretos superadas.`);
