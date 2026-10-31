@@ -174,4 +174,67 @@ t('modelo GLB del estudio de armaduras: instalación y control de AnimationMixer
   assert.ok(c.mixer.updateCalls > 0, 'El mixer debe haberse actualizado con dt');
 });
 
+t('combate: daño vía aplicarDanoMonstruoFn y remate que marca alive=false y muerto=true', () => {
+  const c = A.crearAcompanante({ activo: true, x: 0, z: 0, dano: 25 });
+  c.mesh = { position: { set() {} }, rotation: { y: 0 } };
+
+  const m = {
+    x: 0.5,
+    z: 0.5,
+    hp: 15, // Poca vida para que el golpe lo remate
+    maxHp: 50,
+    alive: true,
+    muerto: false,
+    zoneId: 'zona-bosque'
+  };
+
+  let danoRecibido = 0;
+  let eventoRegistrado = null;
+  const aplicarDanoFn = (mon, dmg) => {
+    danoRecibido = dmg;
+    mon.hp = Math.max(0, mon.hp - dmg);
+    if (mon.hp <= 0) {
+      mon.alive = false;
+      mon.muerto = true;
+    }
+  };
+
+  A.actualizarAcompanante(c, 0.1, { x: 0, y: 0, z: 0 }, 0, [m], m, () => 0, ev => { eventoRegistrado = ev; }, aplicarDanoFn);
+
+  assert.ok(danoRecibido > 0, 'aplicarDanoFn debe haber sido llamado');
+  assert.strictEqual(m.hp, 0, 'La vida del monstruo debe haber llegado a 0');
+  assert.strictEqual(m.alive, false, 'El monstruo debe quedar muerto (alive=false)');
+  assert.strictEqual(m.muerto, true, 'El monstruo debe quedar muerto (muerto=true)');
+  assert.strictEqual(A.esMonstruoCombatible(m), false, 'El monstruo muerto ya no debe ser combatible');
+});
+
+t('combate: daño vía m.recibirDano y remate sin estancar la vida', () => {
+  const c = A.crearAcompanante({ activo: true, x: 0, z: 0, dano: 30 });
+  c.mesh = { position: { set() {} }, rotation: { y: 0 } };
+
+  let golpesRecibidos = 0;
+  const m = {
+    x: 1.0,
+    z: 1.0,
+    hp: 20,
+    maxHp: 60,
+    alive: true,
+    muerto: false,
+    recibirDano: function(dmg) {
+      golpesRecibidos++;
+      this.hp = Math.max(0, this.hp - dmg);
+      if (this.hp <= 0) {
+        this.alive = false;
+        this.muerto = true;
+      }
+    }
+  };
+
+  A.actualizarAcompanante(c, 0.1, { x: 0, y: 0, z: 0 }, 0, [m], m, () => 0, null);
+
+  assert.ok(golpesRecibidos > 0, 'm.recibirDano debió ser invocado');
+  assert.strictEqual(m.hp, 0, 'La vida del monstruo debe quedar en 0');
+  assert.strictEqual(m.alive, false, 'El monstruo no debe quedar en un estado inmortal');
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);

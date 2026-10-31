@@ -2623,6 +2623,7 @@
           const r = info.boss ? 0 : z.radius * rng.range(0.2, 0.78);
           const m = CombatLib.newMonster({ level: info.level, boss: info.boss, x: z.x + Math.cos(a) * r, z: z.y + Math.sin(a) * r, leash: z.radius + 25 });
           m.name = info.name; m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
+          m.recibirDano = (dmg) => damageMonster(m, dmg);
           m.turno = monsters.length % 4;   // reparte los monstruos lejanos entre los fotogramas
           m.group = new THREE.Group();
           m.group.userData.monstruo = m;
@@ -2659,6 +2660,7 @@
 
   function killMonster(m) {
     m.alive = false; m.hp = 0;
+    if (typeof objetivo !== 'undefined' && objetivo === m) objetivo = null;
     m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
     m.muriendo = performance.now() + 1000;
     m.bar.visible = false;
@@ -2688,7 +2690,7 @@
   }
 
   function damageMonster(m, dmg) {
-    if (!m.alive || m.hp <= 0) return;
+    if (!m || !m.alive) return;
     m.hp = Math.max(0, m.hp - dmg);
     m.flashUntil = performance.now() + 120;
     if (m.fx) EnemyFx.disparar(m.fx, 'hit', performance.now() / 1000);
@@ -4981,7 +4983,8 @@
         monsters,
         typeof objetivo !== 'undefined' ? objetivo : null,
         (x, z) => visorWorld.getWalkableHeight(x, z),
-        ev => avanzarHistoria(ev)
+        ev => avanzarHistoria(ev),
+        (m, dmg) => damageMonster(m, dmg)
       );
       actualizarBocadilloAcompanante();
     }

@@ -439,8 +439,17 @@
     return contenedor;
   }
 
+  // Validador estricto de monstruos vivos y combatibles
+  function esMonstruoCombatible(m) {
+    if (!m) return false;
+    if (m.alive === false || m.muerto) return false;
+    if (typeof m.hp === 'number' && m.hp <= 0) return false;
+    if (m.muriendo && typeof performance !== 'undefined' && performance.now() < m.muriendo) return false;
+    return true;
+  }
+
   // Actualización de la IA del acompañante en cada frame
-  function actualizarAcompanante(acompanante, dt, heroePos, heroeRot, monstruos, heroeObjetivo, getAlturaFn, registrarEventoFn) {
+  function actualizarAcompanante(acompanante, dt, heroePos, heroeRot, monstruos, heroeObjetivo, getAlturaFn, registrarEventoFn, aplicarDanoMonstruoFn) {
     if (!acompanante || !acompanante.activo || !acompanante.mesh) return;
 
     acompanante.tiempoEstado += dt;
@@ -450,7 +459,7 @@
     let objetivoCombate = null;
     let distObjetivoMin = Infinity;
 
-    if (heroeObjetivo && heroeObjetivo.hp > 0 && !heroeObjetivo.muerto) {
+    if (esMonstruoCombatible(heroeObjetivo)) {
       const dHeroe = Math.hypot(heroeObjetivo.x - heroePos.x, heroeObjetivo.z - heroePos.z);
       if (dHeroe < 14) {
         objetivoCombate = heroeObjetivo;
@@ -460,7 +469,7 @@
 
     if (!objetivoCombate && monstruos && monstruos.length) {
       monstruos.forEach(m => {
-        if (!m || m.hp <= 0 || m.muerto) return;
+        if (!esMonstruoCombatible(m)) return;
         const d = Math.hypot(m.x - heroePos.x, m.z - heroePos.z);
         if (d < 10) {
           const dComp = Math.hypot(m.x - acompanante.x, m.z - acompanante.z);
@@ -512,13 +521,34 @@
       if (acompanante.tiempoSiguienteAtaque <= 0) {
         acompanante.tiempoSiguienteAtaque = acompanante.cooldownAtaque;
         const golpeDano = Math.round(acompanante.dano * (0.85 + Math.random() * 0.3));
-        if (typeof objetivoCombate.recibirDano === 'function') {
+
+        if (typeof aplicarDanoMonstruoFn === 'function') {
+          aplicarDanoMonstruoFn(objetivoCombate, golpeDano);
+        } else if (typeof objetivoCombate.recibirDano === 'function') {
           objetivoCombate.recibirDano(golpeDano, 'companero');
+        } else if (typeof objetivoCombate.damageMonster === 'function') {
+          objetivoCombate.damageMonster(golpeDano);
         } else if (typeof objetivoCombate.hp === 'number') {
           objetivoCombate.hp = Math.max(0, objetivoCombate.hp - golpeDano);
-          if (objetivoCombate.hp <= 0 && registrarEventoFn) {
-            registrarEventoFn({ tipo: objetivoCombate.boss ? 'jefe' : 'matar', zona: objetivoCombate.zoneId });
+          if (objetivoCombate.hp <= 0) {
+            objetivoCombate.alive = false;
+            objetivoCombate.muerto = true;
+            if (typeof objetivoCombate.kill === 'function') objetivoCombate.kill();
+            if (registrarEventoFn) {
+              const zId = objetivoCombate.zoneId || (objetivoCombate.zone && objetivoCombate.zone.id);
+              registrarEventoFn({ tipo: objetivoCombate.boss ? 'jefe' : 'matar', zona: zId });
+            }
           }
+        }
+
+        // Si el monstruo ha muerto con este golpe, celebrar victoria
+        if (!esMonstruoCombatible(objetivoCombate)) {
+          const ahora = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          if (ahora - acompanante.ultimoComentarioMs > 6000) {
+            acompanante.ultimoComentarioMs = ahora;
+            decirFrase(acompanante, elegirFrase('combate_victoria'), 4.0);
+          }
+          objetivoCombate = null;
         }
       }
     } else if (distDestino > distanciaFreno) {
@@ -626,6 +656,7 @@
     reproducirAnimacionGLB,
     animarMiembros,
     actualizarAcompanante,
+    esMonstruoCombatible,
     decirFrase,
     comprobarLugaresSecretos
   };
