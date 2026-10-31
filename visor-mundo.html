@@ -4698,6 +4698,17 @@
     acompanante.bocadilloDom = $('bocadillo-rowan');
     scene.add(m3d.root);
     toast('🤝 Rowan el aldeano se ha unido a tu expedición');
+
+    // Cargar modelo HD con mallas de cuero, cinturón y botas generado con el Estudio de Armaduras
+    if (typeof THREE.GLTFLoader !== 'undefined') {
+      new THREE.GLTFLoader().load('npc/aldeanos/aldeano.glb', gltf => {
+        if (acompanante && acompanante.activo) {
+          AcompananteLib.instalarModeloGLBAcompanante(acompanante, gltf, THREE);
+        }
+      }, undefined, err => {
+        console.warn('Carga aldeano.glb:', err);
+      });
+    }
   }
 
   function actualizarBocadilloAcompanante() {

@@ -319,6 +319,126 @@
     }
   }
 
+  // Reproducción de animaciones esqueléticas para el modelo GLB del Estudio de Armaduras
+  function reproducirAnimacionGLB(acompanante, nombreAnim, fadeDuration = 0.22) {
+    if (!acompanante || !acompanante.mixer || !acompanante.actions) return;
+
+    let clipName = nombreAnim;
+    if (nombreAnim === 'attack') {
+      const ataques = ['overhead_cleave', 'thrust_lunge', 'spin_slash'];
+      clipName = ataques.find(n => acompanante.actions[n]) || 'punch';
+    }
+
+    if (!acompanante.actions[clipName]) {
+      clipName = 'idle';
+    }
+
+    const proxima = acompanante.actions[clipName];
+    if (!proxima) return;
+
+    if (acompanante.nombreAnimActual === clipName && proxima.isRunning()) {
+      return;
+    }
+
+    const anterior = acompanante.accionActual;
+    proxima.reset();
+    proxima.enabled = true;
+
+    if (nombreAnim === 'attack') {
+      proxima.setLoop(1, 1);
+      proxima.clampWhenFinished = false;
+    } else {
+      proxima.setLoop(1000);
+    }
+
+    if (anterior && anterior !== proxima) {
+      proxima.crossFadeFrom(anterior, Math.min(fadeDuration, 0.25), true);
+    }
+    proxima.play();
+    acompanante.accionActual = proxima;
+    acompanante.nombreAnimActual = clipName;
+  }
+
+  // Integración del modelo humanoide GLB generado con el Estudio de Armaduras
+  function instalarModeloGLBAcompanante(acompanante, gltf, THREE) {
+    if (!acompanante || !gltf || !gltf.scene) return null;
+    const root = gltf.scene;
+
+    // Normalizar escala anatómica a 1.82m
+    const bbox = new THREE.Box3().setFromObject(root);
+    const size = new THREE.Vector3();
+    bbox.getSize(size);
+    if (size.y > 0.01) {
+      const escala = 1.82 / size.y;
+      root.scale.setScalar(escala);
+    }
+    bbox.setFromObject(root);
+    root.position.y = -bbox.min.y;
+
+    const contenedor = new THREE.Group();
+    contenedor.name = 'Acompanante_Rowan_GLB';
+    contenedor.add(root);
+
+    // Ajustar materiales y sombras
+    root.traverse(o => {
+      if (o.isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+        if (o.material) {
+          if (Array.isArray(o.material)) {
+            o.material.forEach(m => { if (m) m.roughness = Math.max(0.35, m.roughness || 0.6); });
+          } else {
+            o.material.roughness = Math.max(0.35, o.material.roughness || 0.6);
+          }
+        }
+      }
+    });
+
+    // Marcador sutil de aliado (halo tenue verde a sus pies)
+    const haloGeo = new THREE.RingGeometry(0.4, 0.55, 24);
+    haloGeo.rotateX(-Math.PI / 2);
+    const matHalo = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false
+    });
+    const halo = new THREE.Mesh(haloGeo, matHalo);
+    halo.position.y = 0.04;
+    contenedor.add(halo);
+
+    // AnimationMixer y mapeo de animaciones disponibles
+    let mixer = null;
+    const actions = {};
+    if (gltf.animations && gltf.animations.length > 0) {
+      mixer = new THREE.AnimationMixer(root);
+      gltf.animations.forEach(clip => {
+        actions[clip.name] = mixer.clipAction(clip);
+      });
+    }
+
+    // Reemplazo limpio en la escena
+    if (acompanante.mesh) {
+      contenedor.position.copy(acompanante.mesh.position);
+      contenedor.rotation.copy(acompanante.mesh.rotation);
+      if (acompanante.mesh.parent) {
+        const parent = acompanante.mesh.parent;
+        parent.remove(acompanante.mesh);
+        parent.add(contenedor);
+      }
+    }
+
+    acompanante.mesh = contenedor;
+    acompanante.limbs = null;
+    acompanante.mixer = mixer;
+    acompanante.actions = actions;
+    acompanante.accionActual = null;
+    acompanante.nombreAnimActual = null;
+
+    reproducirAnimacionGLB(acompanante, 'idle', 0.1);
+    return contenedor;
+  }
+
   // Actualización de la IA del acompañante en cada frame
   function actualizarAcompanante(acompanante, dt, heroePos, heroeRot, monstruos, heroeObjetivo, getAlturaFn, registrarEventoFn) {
     if (!acompanante || !acompanante.activo || !acompanante.mesh) return;
@@ -444,7 +564,12 @@
     acompanante.mesh.position.set(acompanante.x, ySuelo, acompanante.z);
     acompanante.mesh.rotation.y = acompanante.rotacion;
 
-    animarMiembros(acompanante.limbs, acompanante.estado, acompanante.tiempoEstado, velocidad);
+    if (acompanante.mixer) {
+      acompanante.mixer.update(dt);
+      reproducirAnimacionGLB(acompanante, acompanante.estado, 0.2);
+    } else if (acompanante.limbs) {
+      animarMiembros(acompanante.limbs, acompanante.estado, acompanante.tiempoEstado, velocidad);
+    }
 
     // 5. Gestión del tiempo del bocadillo de diálogo flotante
     if (acompanante.tiempoFrase > 0) {
@@ -497,6 +622,8 @@
     elegirFrase,
     crearAcompanante,
     construirModeloAcompanante,
+    instalarModeloGLBAcompanante,
+    reproducirAnimacionGLB,
     animarMiembros,
     actualizarAcompanante,
     decirFrase,

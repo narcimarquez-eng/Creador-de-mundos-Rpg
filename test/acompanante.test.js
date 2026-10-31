@@ -98,4 +98,80 @@ t('detección de lugares secretos: comenta y marca el secreto al entrar en su ra
   assert.ok(c.fraseActual.length > 0);
 });
 
+t('modelo GLB del estudio de armaduras: instalación y control de AnimationMixer', () => {
+  const c = A.crearAcompanante({ activo: true, x: 5, z: 5 });
+
+  // Mock de Three.js y objeto GLTF
+  const fakeThree = {
+    Group: function() {
+      this.children = [];
+      this.position = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, copy(p) { Object.assign(this, p); } };
+      this.rotation = { y: 0, copy(r) { Object.assign(this, r); } };
+      this.add = function(c) { this.children.push(c); };
+      this.remove = function(c) {
+        const i = this.children.indexOf(c);
+        if (i !== -1) this.children.splice(i, 1);
+      };
+    },
+    Box3: function() {
+      this.min = { x: -0.5, y: 0, z: -0.5 };
+      this.max = { x: 0.5, y: 1.8, z: 0.5 };
+      this.setFromObject = function() { return this; };
+      this.getSize = function(target) { target.set(1, 1.8, 1); return target; };
+    },
+    Vector3: function(x = 0, y = 0, z = 0) {
+      this.x = x; this.y = y; this.z = z;
+      this.set = function(nx, ny, nz) { this.x = nx; this.y = ny; this.z = nz; return this; };
+    },
+    RingGeometry: function() {
+      this.rotateX = function() {};
+    },
+    MeshBasicMaterial: function() {},
+    Mesh: function(geo, mat) {
+      this.position = { y: 0 };
+    },
+    AnimationMixer: function(root) {
+      this.updateCalls = 0;
+      this.update = function(dt) { this.updateCalls += dt; };
+      this.clipAction = function(clip) {
+        return {
+          clip,
+          running: false,
+          reset() {},
+          enabled: true,
+          setLoop() {},
+          crossFadeFrom() {},
+          play() { this.running = true; },
+          isRunning() { return this.running; }
+        };
+      };
+    }
+  };
+
+  const fakeGLTF = {
+    scene: {
+      scale: { setScalar(s) { this.s = s; } },
+      position: { y: 0 },
+      traverse(fn) { fn({ isMesh: true, material: {} }); }
+    },
+    animations: [
+      { name: 'idle', duration: 2.0 },
+      { name: 'walk', duration: 1.0 },
+      { name: 'run', duration: 0.8 },
+      { name: 'overhead_cleave', duration: 0.9 }
+    ]
+  };
+
+  A.instalarModeloGLBAcompanante(c, fakeGLTF, fakeThree);
+  assert.ok(c.mixer, 'El mixer de animación debe estar configurado');
+  assert.ok(c.actions.idle, 'La acción idle debe estar registrada');
+  assert.strictEqual(c.nombreAnimActual, 'idle');
+
+  // Actualizar en modo ataque con un monstruo en rango
+  const monstruo = { x: 5.5, z: 5.5, hp: 40, muerto: false };
+  A.actualizarAcompanante(c, 0.1, { x: 5, y: 0, z: 5 }, 0, [monstruo], monstruo, () => 0, null);
+  assert.strictEqual(c.nombreAnimActual, 'overhead_cleave');
+  assert.ok(c.mixer.updateCalls > 0, 'El mixer debe haberse actualizado con dt');
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);
