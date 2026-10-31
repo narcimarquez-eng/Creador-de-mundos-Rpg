@@ -98,7 +98,19 @@
     #shop .item small { color: var(--muted); display: block; }
     #modal-companero { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 44; padding: 16px; }
     #modal-companero.show { display: flex; }
-    #modal-companero .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; width: 500px; max-width: 100%; color: #f1f5f9; }
+    #modal-companero .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; width: 560px; max-width: 100%; color: #f1f5f9; max-height: 92vh; overflow-y: auto; }
+    #hud-dopes { position: absolute; top: 76px; right: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 35; pointer-events: none; }
+    .dope-item { display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.90); border: 1px solid #3b82f6; border-radius: 8px; padding: 5px 10px; color: #f8fafc; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); min-width: 180px; }
+    .dope-item.buff { border-color: #3b82f6; }
+    .dope-item.cura { border-color: #22c55e; }
+    .dope-item.debuff { border-color: #ef4444; }
+    .dope-timer { font-weight: bold; font-size: 12px; color: #facc15; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+    #modal-prologo { position: absolute; inset: 0; background: rgba(2,6,23,.90); display: none; align-items: center; justify-content: center; z-index: 55; padding: 16px; }
+    #modal-prologo.show { display: flex; }
+    #modal-prologo .box { background: #0f172a; border: 1px solid #eab308; border-radius: 14px; padding: 20px; width: 680px; max-width: 96vw; max-height: 94vh; overflow-y: auto; color: #f8fafc; box-shadow: 0 10px 35px rgba(0,0,0,0.8); }
+    .comp-card { background: rgba(255,255,255,0.04); border: 2px solid #334155; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s; }
+    .comp-card:hover { border-color: #60a5fa; background: rgba(255,255,255,0.07); }
+    .comp-card.selected { border-color: #facc15; background: rgba(250,204,21,0.1); box-shadow: 0 0 12px rgba(250,204,21,0.25); }
     #partidas { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
     #partidas.show { display: flex; }
     #partidas .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 380px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
@@ -433,13 +445,92 @@
     <div class="btns"><button id="p-close">Cerrar</button></div>
     <div class="muted" style="margin-top:8px">Se guarda sola cada 20 segundos y al cerrar la página. Hasta 5 partidas por mundo. Las partidas son independientes del mundo.</div>
   </div></div>
-  <div id="modal-companero"><div class="box" style="max-width:540px">
-    <h2>🛡️ Rowan el Aldeano · Acompañante</h2>
+  <!-- HUD de Dopes y Buffs Activos en Pantalla -->
+  <div id="hud-dopes"></div>
+
+  <!-- Prólogo e Introducción Inicial: Juramento de Héroes y Elección de Compañero -->
+  <div id="modal-prologo"><div class="box">
+    <h2 style="color:#facc15;margin-top:0">⚔️ Prólogo: El Juramento de los Héroes</h2>
+    <div id="prologo-historia" style="line-height:1.6;font-size:13px;background:rgba(0,0,0,0.3);padding:14px;border-radius:8px;border-left:3px solid #facc15;margin-bottom:14px">
+      <p style="margin:0 0 10px">
+        El cielo sobre las comarcas de <b>Aden</b> se oscurece con la amenaza de monstruos y criaturas salvajes que asedian los caminos, destruyen caravanas de mercaderes y acorralan los pueblos. Los sabios de la plaza advierten que los reyes antiguos cayeron por la inacción.
+      </p>
+      <p style="margin:0 0 10px">
+        Tú y tu camarada de la aldea contempláis el horizonte desde los muros. <i>«No podemos quedarnos sentados esperando a que el mal arrase nuestras cosechas y nuestros hogares»</i>, dice con la mirada decidida. <i>«Dejemos la vida de simples aldeanos. ¡Hagamos un juramento, tomemos las armas y convirtámonos en los héroes que salven esta tierra!»</i>
+      </p>
+      <p style="margin:0;color:#93c5fd;font-weight:bold">
+        Elige cuál de tus cuatro leales compañeros marchará a tu lado en esta gesta:
+      </p>
+    </div>
+
+    <div id="prologo-companeros" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <!-- Tarjeta 1: Rowan -->
+      <div class="comp-card selected" data-arquetipo="rowan">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:26px">🧑‍🌾</span>
+          <div><b>Rowan el Guardián</b> <small class="muted" style="display:block">Dopes de Ataque & Motivación</small></div>
+        </div>
+        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+          Forzudo aldeano que anima los corazones en batalla. Proporciona dopes masivos de daño (+25% ataque), golpes demoledores y velocidad bélica.
+        </div>
+        <div style="font-size:10px;color:#fde047">⚔️ Grito de Aliento · 💥 Golpe de Ímpetu · 🔥 Fervor Bélico</div>
+      </div>
+
+      <!-- Tarjeta 2: Lyra -->
+      <div class="comp-card" data-arquetipo="lyra">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:26px">🧝‍♀️</span>
+          <div><b>Lyra de las Sombras</b> <small class="muted" style="display:block">DPS Rápido con Dagas</small></div>
+        </div>
+        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+          Rápida y letal con sus dos dagas. Asesta golpes críticos consecutivos, aplica sangrado profundo y unta veneno para desgarrar a los monstruos.
+        </div>
+        <div style="font-size:10px;color:#fde047">🗡️ Danza de Dagas · 🧪 Veneno Letal · 🩸 Sangrado</div>
+      </div>
+
+      <!-- Tarjeta 3: Elian -->
+      <div class="comp-card" data-arquetipo="elian">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:26px">🧙‍♂️</span>
+          <div><b>Elian el Teúrgo</b> <small class="muted" style="display:block">Mago de Apoyo & Protección</small></div>
+        </div>
+        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+          Devoto de la luz celestial. Despliega baluartes protectores (-35% daño), cura heridas críticas y aniquila con daño sacro triple a criaturas no-muertas.
+        </div>
+        <div style="font-size:10px;color:#fde047">🌿 Gracia Sanadora · 🛡️ Baluarte de Luz · ☀️ Castigo Sagrado</div>
+      </div>
+
+      <!-- Tarjeta 4: Brenda -->
+      <div class="comp-card" data-arquetipo="brenda">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:26px">👩‍🦰</span>
+          <div><b>Brenda la Berserker</b> <small class="muted" style="display:block">Tanque & Furia Berserker</small></div>
+        </div>
+        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+          Tanque indómita con gran vitalidad. Provoca a los enemigos para absorber golpes y activa el modo Berserker ganando daño y resistencia salvaje ante el dolor.
+        </div>
+        <div style="font-size:10px;color:#fde047">🔥 Modo Berserker · 📢 Grito Provocador · 🌀 Torbellino Feroz</div>
+      </div>
+    </div>
+
+    <div style="text-align:center">
+      <button id="btn-prologo-iniciar" class="gold" style="padding:10px 24px;font-size:14px;font-weight:bold;width:100%">
+        🤝 Sellar el Juramento y Comenzar la Aventura
+      </button>
+    </div>
+  </div></div>
+
+  <div id="modal-companero"><div class="box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 id="comp-modal-titulo" style="margin:0;color:var(--gold);font-size:16px">🛡️ Ficha del Acompañante</h2>
+      <span id="comp-puntos-txt" style="background:#1e293b;border:1px solid #3b82f6;color:#60a5fa;font-size:11px;padding:2px 8px;border-radius:12px">🧬 0 Puntos de Maestría</span>
+    </div>
+
     <div id="comp-ficha" style="display:flex;gap:12px;align-items:center;margin-bottom:10px;background:rgba(255,255,255,0.05);padding:10px;border-radius:6px">
-      <div style="font-size:32px">🧑‍🌾</div>
+      <div id="comp-avatar" style="font-size:34px">🧑‍🌾</div>
       <div style="flex:1">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <b>Rowan</b> <span id="comp-nivel" class="muted">Nivel 1</span>
+          <b id="comp-nombre-txt">Rowan</b> <span id="comp-nivel" class="muted">Nivel 1</span>
         </div>
         <div class="bar hp" style="height:10px;background:#334155;border-radius:4px;overflow:hidden;margin-bottom:4px">
           <i id="comp-hp-bar" style="display:block;height:100%;background:#22c55e;width:100%"></i>
@@ -448,8 +539,18 @@
           <span>HP: <b id="comp-hp-txt">180 / 180</b></span>
           <span>Ataque: <b id="comp-dano">24</b></span>
           <span>Defensa: <b id="comp-defensa">14</b></span>
+          <span id="comp-rol-tag" style="color:#93c5fd">Buffer Ofensivo</span>
         </div>
       </div>
+    </div>
+
+    <!-- Cambiar compañero en el pueblo -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;background:rgba(0,0,0,0.25);padding:6px;border-radius:6px;align-items:center">
+      <small class="muted" style="font-size:11px;flex:none">Compañero:</small>
+      <button class="comp-sel-btn" data-arq="rowan" style="flex:1;padding:4px 6px;font-size:11px">🧑‍🌾 Rowan</button>
+      <button class="comp-sel-btn" data-arq="lyra" style="flex:1;padding:4px 6px;font-size:11px">🧝‍♀️ Lyra</button>
+      <button class="comp-sel-btn" data-arq="elian" style="flex:1;padding:4px 6px;font-size:11px">🧙‍♂️ Elian</button>
+      <button class="comp-sel-btn" data-arq="brenda" style="flex:1;padding:4px 6px;font-size:11px">👩‍🦰 Brenda</button>
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:10px">
@@ -457,32 +558,24 @@
       <button id="btn-comp-dar-5-pociones" style="padding:6px 10px;font-size:12px">🧪×5</button>
     </div>
 
+    <!-- 3 Ranuras de Habilidades / Dopes Equipados -->
+    <div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+      <b>✨ Habilidades y Dopes Equipados (3 ranuras activas)</b>
+      <small class="muted" style="font-size:11px">Se activan automáticamente en combate</small>
+    </div>
+    <div id="comp-slots-equipados" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;margin-bottom:12px"></div>
+
+    <!-- Catálogo de Habilidades Desbloqueadas y Mejoras -->
+    <div style="margin-bottom:6px"><b>📚 Catálogo de Habilidades del Compañero (Mejorar)</b></div>
+    <div id="comp-catalogo-skills" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;background:rgba(0,0,0,0.25);padding:6px;border-radius:6px;margin-bottom:12px"></div>
+
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <b>🎒 Inventario de Rowan (20 slots)</b>
+      <b>🎒 Inventario del Compañero (20 slots)</b>
       <span id="comp-slots-txt" class="muted" style="font-size:12px">0 / 20</span>
     </div>
-    <div id="comp-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;max-height:160px;overflow-y:auto;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;margin-bottom:12px"></div>
+    <div id="comp-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;max-height:140px;overflow-y:auto;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;margin-bottom:12px"></div>
 
-    <div style="margin-bottom:6px"><b>✨ Habilidades de Apoyo Activas</b></div>
-    <div id="comp-skills" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;font-size:11px">
-      <div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);padding:6px;border-radius:4px">
-        <b>🌿 Rocío Sanador</b>
-        <div class="muted">Cura +30% HP si caes o cae &lt; 45% HP.</div>
-        <div id="comp-cd-cura" style="color:#22c55e;margin-top:2px">Lista</div>
-      </div>
-      <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);padding:6px;border-radius:4px">
-        <b>⚔️ Grito de Aliento</b>
-        <div class="muted">+25% daño de ataque a ambos durante 12s.</div>
-        <div id="comp-cd-ataque" style="color:#ef4444;margin-top:2px">Lista</div>
-      </div>
-      <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:6px;border-radius:4px">
-        <b>🛡️ Baluarte de Cuero</b>
-        <div class="muted">-20% daño recibido ante impactos fuertes.</div>
-        <div id="comp-cd-defensa" style="color:#3b82f6;margin-top:2px">Lista</div>
-      </div>
-    </div>
-
-    <div class="btns" style="margin-top:12px"><button id="comp-close">Cerrar</button></div>
+    <div class="btns"><button id="comp-close">Cerrar</button></div>
   </div></div>
 
   <div id="shop"><div class="box">
@@ -3163,6 +3256,26 @@
     $('sk-rest').querySelector('small').textContent = hero.resting ? 'parar' : 'R';
     $('sk-shop').disabled = hero.dead || !curTown;
     if ($('shop').classList.contains('show')) renderShop();
+    actualizarHudDopes();
+  }
+
+  // Renderiza en pantalla el HUD de dopes y buffs activos con tiempo regresivo
+  function actualizarHudDopes() {
+    const el = $('hud-dopes');
+    if (!el) return;
+    if (!acompanante || !acompanante.buffsActivos || !acompanante.buffsActivos.length) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = acompanante.buffsActivos.map(b => {
+      const segs = Math.max(0, Math.ceil(b.timer || 0));
+      const tipoClase = b.efecto === 'cura_regen' ? 'cura' : b.efecto === 'defensa' ? 'debuff' : 'buff';
+      return `<div class="dope-item ${tipoClase}">
+        <span class="dope-icon">${b.icono || '⚡'}</span>
+        <span class="dope-name">${esc(b.nombre)}</span>
+        <span class="dope-timer">${segs}s</span>
+      </div>`;
+    }).join('');
   }
 
 
@@ -3399,7 +3512,7 @@
   }
 
   function snapshot(name, id) {
-    return PartidaLib.makePartida({
+    const snap = PartidaLib.makePartida({
       id, name,
       worldName: world.name, worldSeed: world.seed,
       where: nearestTownName(),
@@ -3407,6 +3520,20 @@
       hero, inv, visited: [...visited], timeOfDay,
       personaje: personajeActual, heroe: heroeEst
     });
+    const act = activePartida();
+    if (act && act.prologoVisto) snap.prologoVisto = true;
+    if (acompanante) {
+      snap.arquetipoCompanero = acompanante.arquetipo;
+      snap.acompanante = {
+        arquetipo: acompanante.arquetipo,
+        nivel: acompanante.nivel || 1,
+        puntosCompanero: acompanante.puntosCompanero || 0,
+        inventario: acompanante.inventario || [],
+        skillsCatalogo: acompanante.skillsCatalogo || [],
+        skillsEquipadas: acompanante.skillsEquipadas || []
+      };
+    }
+    return snap;
   }
 
   function applyPartida(p) {
@@ -3442,8 +3569,15 @@
     buildUI();
     updateStats();
     actualizarMision();
-    if (heroeEst && (heroeEst.desbloqueadas.acompanante || (heroeEst.principal && heroeEst.principal.paso >= 3))) {
-      asegurarAcompananteActivo();
+    const arq = p.arquetipoCompanero || (p.acompanante ? p.acompanante.arquetipo : 'rowan');
+    if (p.acompanante || p.arquetipoCompanero || (heroeEst && (heroeEst.desbloqueadas.acompanante || (heroeEst.principal && heroeEst.principal.paso >= 3)))) {
+      asegurarAcompananteActivo(arq);
+      if (p.acompanante && acompanante) {
+        if (p.acompanante.puntosCompanero != null) acompanante.puntosCompanero = p.acompanante.puntosCompanero;
+        if (p.acompanante.inventario) acompanante.inventario = p.acompanante.inventario;
+        if (p.acompanante.skillsCatalogo) acompanante.skillsCatalogo = p.acompanante.skillsCatalogo;
+        if (p.acompanante.skillsEquipadas) acompanante.skillsEquipadas = p.acompanante.skillsEquipadas;
+      }
     }
   }
 
@@ -4118,8 +4252,38 @@
     const piezas = EquipoLib.piezasDeClase(catalogoPiezas, pj.clase).filter(p => p.nivel <= hero.level);
     let html = '';
     if (servicio === 'herrero') {
+      if (heroeEst && heroeEst.forjaPendiente) {
+        const fp = heroeEst.forjaPendiente;
+        const nombrePieza = {
+          belt: 'Cinturón de Cuero Reforzado',
+          boots: 'Botas de Viajero',
+          gloves: 'Brazales / Guantes Curtidos',
+          torso: 'Peto de Cuero y Mallas',
+          helmet: 'Yelmo de Explorador',
+          shoulders: 'Hombreras de Caza',
+          weapon: 'Arma de Combate de Acero'
+        }[fp.ranura] || 'Pieza de Equipo';
+
+        html += `
+          <div style="background:linear-gradient(135deg,rgba(234,179,8,0.2),rgba(20,20,30,0.8));border:2px solid #eab308;border-radius:8px;padding:12px;margin-bottom:14px;box-shadow:0 0 10px rgba(234,179,8,0.3)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <span style="font-size:24px">🔨</span>
+              <div>
+                <b style="color:#facc15;font-size:14px">Misión de Historia: Forja de ${esc(nombrePieza)}</b>
+                <div style="font-size:12px;color:#94a3b8">Capítulo ${(fp.capIndex != null ? fp.capIndex + 1 : '')}: ${esc(fp.titulo || 'Encargo de Historia')}</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:#e2e8f0;line-height:1.4;margin:8px 0;background:rgba(0,0,0,0.25);padding:8px;border-radius:6px;border-left:3px solid #facc15">
+              <i>«¡Has traído las pieles y materiales necesarios! Calentemos el hierro y martillemos en el yunque para forjar tu ${esc(nombrePieza)} de entrada.»</i>
+            </div>
+            <button data-forjar-historia class="gold" style="width:100%;padding:8px;font-weight:bold;font-size:13px;cursor:pointer">
+              🔨 Entregar materiales y Forjar ${esc(nombrePieza)}
+            </button>
+          </div>
+        `;
+      }
       const hojas = pj.inventario.filter(o => o.tipo === 'hoja');
-      html = '<h3 class="npc-h">Forjar con hoja (arena ' + (inv.arena || 0) + ' 🧱)</h3>' + (hojas.map(o => {
+      html += '<h3 class="npc-h">Forjar con hoja (arena ' + (inv.arena || 0) + ' 🧱)</h3>' + (hojas.map(o => {
         const coste = EquipoLib.ARENA_FORJA * o.nivel;
         return `<div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${esc(p.nombre || o.nombre)}</b><span class="muted">nivel ${o.nivel}</span></div>
           <button data-forjar-hoja="${esc(o.uid)}" ${(inv.arena || 0) < coste || hero.level < o.nivel ? 'disabled' : ''}>${coste} 🧱</button></div>`;
@@ -4178,6 +4342,14 @@
     });
     const mj = e.target.closest('button[data-mejorar]');
     if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar, hero.level); aplicarStats(); toast('Habilidad mejorada'); });
+    const fhist = e.target.closest('button[data-forjar-historia]');
+    if (fhist) accionNpc(() => {
+      if (!heroeEst || !heroeEst.forjaPendiente) return;
+      heroeEst.forjaPendiente = null;
+      cerrarCapitulo();
+      cerrarNpc();
+      toast('🔨 ¡El Herrero Brann ha forjado tu pieza de historia!');
+    });
     const fh = e.target.closest('button[data-forjar-hoja]');
     if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); avanzarHistoria({ tipo: 'forjar' }); toast('Forjada con su hoja'); });
     const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
@@ -4400,6 +4572,20 @@
       $('mision-ir').style.display = 'none';
       return;
     }
+    if (heroeEst && heroeEst.forjaPendiente) {
+      const fp = heroeEst.forjaPendiente;
+      const ranurasNombres = {
+        belt: 'cinturón', boots: 'botas', gloves: 'guantes/brazales',
+        torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
+      };
+      const nPieza = ranurasNombres[fp.ranura] || 'pieza';
+      $('mision-cap').textContent = '📜 Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
+      $('mision-obj').textContent = '🔨 ¡Materiales reunidos! Vuelve a la forja del pueblo y habla con el Herrero Brann para forjar tu ' + nPieza + '.';
+      $('mision-prog').innerHTML = '<span style="color:#facc15;font-weight:bold">Materiales listos (100%)</span> · Habla con el Herrero Brann';
+      $('mision-ir').style.display = '';
+      $('mision-ir').textContent = ruta ? '⏹ Parar' : '🧭 Ir al Herrero';
+      return;
+    }
     const o = HistoriaLib.asegurarObjetivo(p, world);
     $('mision-cap').textContent = '📜 Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
     $('mision-obj').textContent = o.texto;
@@ -4414,8 +4600,24 @@
     if (!world || HistoriaLib.terminada(p)) return;
     HistoriaLib.asegurarObjetivo(p, world);
     const antes = p.progreso;
-    if (HistoriaLib.registrar(p, ev)) cerrarCapitulo();
-    else if (p.progreso !== antes) actualizarMision();
+    const cumplido = HistoriaLib.registrar(p, ev);
+    if (cumplido) {
+      const cap = HistoriaLib.capituloActual(p);
+      if (cap && cap.recompensa && cap.recompensa.forjarPieza) {
+        heroeEst.forjaPendiente = {
+          ranura: cap.recompensa.forjarPieza,
+          capIndex: p.paso,
+          sabio: cap.sabio,
+          titulo: cap.titulo
+        };
+        actualizarMision();
+        toast('🔨 ¡Materiales reunidos! Vuelve a la forja con el Herrero Brann en el pueblo');
+      } else {
+        cerrarCapitulo();
+      }
+    } else if (p.progreso !== antes) {
+      actualizarMision();
+    }
   }
 
   // Entrega y auto-equipa la pieza básica de recompensa forjada por el herrero tras una misión de caza
@@ -4450,6 +4652,10 @@
     }
     if (r.recompensa.forjarPieza) {
       entregarPiezaCapitulo(r.recompensa.forjarPieza);
+    }
+    if (acompanante) {
+      acompanante.puntosCompanero = (acompanante.puntosCompanero || 0) + 1;
+      toast(`⭐ ¡${acompanante.nombre} ha obtenido +1 punto de maestría de compañero!`);
     }
     aplicarStats();
     detenerRuta();
@@ -4534,6 +4740,12 @@
 
   // Destino de la misión activa: la zona, el pueblo, el lugar secreto o el NPC donde se cumple
   function destinoDeMision() {
+    if (heroeEst && heroeEst.forjaPendiente) {
+      const herreroGuru = gurus.find(x => x.info && (x.info.servicio === 'herrero' || x.info.id === 'herrero'));
+      if (herreroGuru) return { x: herreroGuru.x, y: herreroGuru.z, parar: 2.6, nombre: 'Herrero Brann', npc: herreroGuru };
+      const t = HistoriaLib.puebloInicial(world);
+      return { x: t.x, y: t.y, parar: 6, nombre: 'Forja del Herrero (' + (t ? t.name : 'Pueblo') + ')' };
+    }
     const o = HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
     if (!o) return null;
     if (o.secretoId || o.tipo === 'secreto') {
@@ -4959,11 +5171,18 @@
     }
   }
 
-  function asegurarAcompananteActivo() {
-    if (acompanante || typeof AcompananteLib === 'undefined' || !character) return;
+  function asegurarAcompananteActivo(arquetipoId) {
+    if (acompanante) {
+      if (arquetipoId && acompanante.arquetipo !== arquetipoId && typeof AcompananteLib !== 'undefined') {
+        AcompananteLib.cambiarArquetipo(acompanante, arquetipoId);
+      }
+      return;
+    }
+    if (typeof AcompananteLib === 'undefined' || !character) return;
     const p = character.root.position;
     acompanante = AcompananteLib.crearAcompanante({
       activo: true,
+      arquetipo: arquetipoId || 'rowan',
       x: p.x - 2.5,
       z: p.z - 2.5
     });
@@ -4972,7 +5191,7 @@
     acompanante.limbs = m3d.limbs;
     acompanante.bocadilloDom = $('bocadillo-rowan');
     scene.add(m3d.root);
-    toast('🤝 Rowan el aldeano se ha unido a tu expedición');
+    toast('🤝 ' + (acompanante.nombre || 'Rowan') + ' se ha unido a tu expedición');
 
     // Cargar modelo HD con mallas de cuero, cinturón y botas generado con el Estudio de Armaduras
     if (typeof THREE.GLTFLoader !== 'undefined') {
@@ -5016,7 +5235,14 @@
 
   function renderCompanero() {
     if (!acompanante) return;
+    const nomComp = acompanante.nombre || 'Compañero';
+    if ($('comp-modal-titulo')) $('comp-modal-titulo').textContent = '🛡️ Ficha de ' + nomComp;
+    if ($('comp-puntos-txt')) $('comp-puntos-txt').textContent = '🧬 ' + (acompanante.puntosCompanero || 0) + ' Puntos de Maestría';
+    if ($('comp-avatar')) $('comp-avatar').textContent = acompanante.avatar || '🧑‍🌾';
+    if ($('comp-nombre-txt')) $('comp-nombre-txt').textContent = nomComp;
     if ($('comp-nivel')) $('comp-nivel').textContent = 'Nivel ' + (acompanante.nivel || 1);
+    if ($('comp-rol-tag')) $('comp-rol-tag').textContent = acompanante.rol || 'Compañero de viaje';
+
     const hpPct = Math.max(0, Math.min(100, (acompanante.hp / acompanante.maxHp) * 100));
     if ($('comp-hp-bar')) {
       $('comp-hp-bar').style.width = hpPct + '%';
@@ -5027,20 +5253,80 @@
     if ($('comp-defensa')) $('comp-defensa').textContent = acompanante.defensa;
     if ($('comp-slots-txt')) $('comp-slots-txt').textContent = (acompanante.inventario ? acompanante.inventario.length : 0) + ' / ' + (AcompananteLib.MAX_SLOTS_INVENTARIO || 20);
 
-    // Cooldowns de skills
-    if (acompanante.skills) {
-      if ($('comp-cd-cura')) {
-        const cd = acompanante.skills.cura && acompanante.skills.cura.timer > 0 ? Math.ceil(acompanante.skills.cura.timer) + 's' : 'Lista';
-        $('comp-cd-cura').textContent = cd;
+    // Botones de selector de arquetipo
+    document.querySelectorAll('.comp-sel-btn').forEach(btn => {
+      if (btn.dataset.arq === acompanante.arquetipo) {
+        btn.style.borderColor = '#eab308';
+        btn.style.background = 'rgba(234,179,8,0.2)';
+        btn.style.color = '#fde047';
+        btn.style.fontWeight = 'bold';
+      } else {
+        btn.style.borderColor = '#334155';
+        btn.style.background = 'rgba(255,255,255,0.05)';
+        btn.style.color = '#94a3b8';
+        btn.style.fontWeight = 'normal';
       }
-      if ($('comp-cd-ataque')) {
-        const cd = acompanante.skills.ataque && acompanante.skills.ataque.timer > 0 ? Math.ceil(acompanante.skills.ataque.timer) + 's' : 'Lista';
-        $('comp-cd-ataque').textContent = cd;
+    });
+
+    // 3 Ranuras activas de skills equipadas
+    const slotsCont = $('comp-slots-equipados');
+    if (slotsCont) {
+      slotsCont.innerHTML = '';
+      const equipadas = acompanante.skillsEquipadas || [];
+      for (let i = 0; i < 3; i++) {
+        const skId = equipadas[i];
+        const skInfo = skId ? (acompanante.skillsCatalogo || []).find(s => s.id === skId) : null;
+        const slotEl = document.createElement('div');
+        slotEl.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid #475569;border-radius:6px;padding:6px;text-align:center;font-size:11px;position:relative';
+        if (skInfo) {
+          const cd = skInfo.timer > 0 ? `<span style="color:#facc15;font-weight:bold">${Math.ceil(skInfo.timer)}s</span>` : `<span style="color:#22c55e">Listo</span>`;
+          slotEl.innerHTML = `
+            <div style="font-size:18px">${skInfo.icono || '✨'}</div>
+            <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(skInfo.nombre)}</b>
+            <div style="font-size:10px;color:#94a3b8">Nv. ${skInfo.nivel || 1} · ${cd}</div>
+            <button data-desequipar-slot="${i}" style="margin-top:4px;font-size:9px;padding:2px 4px;border-radius:4px" title="Quitar habilidad">Desequipar</button>
+          `;
+        } else {
+          slotEl.innerHTML = `
+            <div style="font-size:18px;opacity:0.3">➕</div>
+            <div class="muted" style="font-size:10px">Ranura ${i + 1} libre</div>
+            <div style="font-size:9px;color:#64748b">Asigna abajo</div>
+          `;
+        }
+        slotsCont.appendChild(slotEl);
       }
-      if ($('comp-cd-defensa')) {
-        const cd = acompanante.skills.defensa && acompanante.skills.defensa.timer > 0 ? Math.ceil(acompanante.skills.defensa.timer) + 's' : 'Lista';
-        $('comp-cd-defensa').textContent = cd;
-      }
+    }
+
+    // Catálogo de Habilidades disponibles para mejorar y equipar
+    const catalogoCont = $('comp-catalogo-skills');
+    if (catalogoCont) {
+      catalogoCont.innerHTML = '';
+      const catalogo = acompanante.skillsCatalogo || [];
+      const equipadasSet = new Set(acompanante.skillsEquipadas || []);
+      catalogo.forEach(sk => {
+        const card = document.createElement('div');
+        const estaEquipada = equipadasSet.has(sk.id);
+        const puedeSubir = (acompanante.puntosCompanero || 0) >= 1 && sk.nivel < (sk.maxNivel || 5);
+        card.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid #334155;border-radius:6px;padding:6px 8px;display:flex;align-items:center;justify-content:space-between;gap:8px';
+        card.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+            <span style="font-size:20px;flex:none">${sk.icono || '✨'}</span>
+            <div style="overflow:hidden">
+              <div style="display:flex;gap:6px;align-items:center">
+                <b style="font-size:12px;color:#f8fafc;white-space:nowrap">${esc(sk.nombre)}</b>
+                <span style="font-size:10px;color:#38bdf8;background:rgba(56,189,248,0.1);padding:1px 4px;border-radius:4px">Nv. ${sk.nivel}/${sk.maxNivel || 5}</span>
+                ${estaEquipada ? '<span style="font-size:10px;color:#4ade80;background:rgba(74,222,128,0.1);padding:1px 4px;border-radius:4px">✓ Equipada</span>' : ''}
+              </div>
+              <div style="font-size:11px;color:#94a3b8;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sk.desc)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;flex:none">
+            <button data-subir-skill="${esc(sk.id)}" ${puedeSubir ? '' : 'disabled'} style="font-size:10px;padding:3px 6px" class="gold" title="Mejorar habilidad usando 1 punto de maestría">⬆️ Nv.${sk.nivel + 1}</button>
+            ${!estaEquipada ? `<button data-equipar-skill-id="${esc(sk.id)}" style="font-size:10px;padding:3px 6px">Equipar</button>` : ''}
+          </div>
+        `;
+        catalogoCont.appendChild(card);
+      });
     }
 
     // Grid de inventario (20 slots)
@@ -5058,7 +5344,7 @@
             <div style="font-size:16px">${item.tipo === 'pocion' ? '🧪' : item.tipo === 'arma' ? '⚔️' : '🛡️'}</div>
             <div style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold">${esc(item.nombre)}</div>
             <div style="display:flex;gap:2px;margin-top:2px">
-              ${(item.tipo === 'armadura' || item.tipo === 'arma') ? `<button data-equipar-comp="${esc(item.uid)}" style="font-size:9px;padding:1px 3px" title="Equipar a Rowan">Equipar</button>` : ''}
+              ${(item.tipo === 'armadura' || item.tipo === 'arma') ? `<button data-equipar-comp="${esc(item.uid)}" style="font-size:9px;padding:1px 3px" title="Equipar a ${esc(nomComp)}">Equipar</button>` : ''}
               <button data-devolver-comp="${esc(item.uid)}" style="font-size:9px;padding:1px 3px" title="Devolver al héroe">Devolver</button>
             </div>
           `;
@@ -5074,13 +5360,67 @@
   if ($('sk-companero')) $('sk-companero').onclick = abrirModalCompanero;
   if ($('comp-close')) $('comp-close').onclick = cerrarModalCompanero;
 
+  // Selector de arquetipo en el modal de compañero
+  document.querySelectorAll('.comp-sel-btn').forEach(btn => {
+    btn.onclick = () => {
+      const arq = btn.dataset.arq;
+      if (!acompanante || acompanante.arquetipo === arq || typeof AcompananteLib === 'undefined') return;
+      AcompananteLib.cambiarArquetipo(acompanante, arq);
+      renderCompanero();
+      toast(`🤝 Ahora te acompaña ${acompanante.nombre} (${acompanante.rol})`);
+      saveActive(true);
+    };
+  });
+
+  // Mejorar y equipar skills en el catálogo del compañero
+  if ($('comp-catalogo-skills')) {
+    $('comp-catalogo-skills').addEventListener('click', e => {
+      const bSubir = e.target.closest('button[data-subir-skill]');
+      if (bSubir && acompanante && typeof AcompananteLib !== 'undefined') {
+        const id = bSubir.dataset.subirSkill;
+        if (AcompananteLib.subirNivelSkill(acompanante, id)) {
+          toast(`✨ ¡Habilidad mejorada al Nivel ${(acompanante.skillsCatalogo.find(s=>s.id===id)||{}).nivel}!`);
+          renderCompanero();
+          saveActive(true);
+        } else {
+          toast('No tienes suficientes puntos de maestría');
+        }
+      }
+      const bEquip = e.target.closest('button[data-equipar-skill-id]');
+      if (bEquip && acompanante && typeof AcompananteLib !== 'undefined') {
+        const id = bEquip.dataset.equiparSkillId;
+        let idx = (acompanante.skillsEquipadas || []).findIndex(x => !x);
+        if (idx === -1) idx = (acompanante.skillsEquipadas && acompanante.skillsEquipadas.length < 3) ? acompanante.skillsEquipadas.length : 0;
+        AcompananteLib.equiparSkill(acompanante, idx, id);
+        toast(`Equipada en ranura ${idx + 1}`);
+        renderCompanero();
+        saveActive(true);
+      }
+    });
+  }
+
+  // Desequipar habilidad activa de ranura
+  if ($('comp-slots-equipados')) {
+    $('comp-slots-equipados').addEventListener('click', e => {
+      const bDes = e.target.closest('button[data-desequipar-slot]');
+      if (bDes && acompanante) {
+        const idx = Number(bDes.dataset.desequiparSlot);
+        if (!isNaN(idx) && acompanante.skillsEquipadas) {
+          acompanante.skillsEquipadas.splice(idx, 1);
+          renderCompanero();
+          saveActive(true);
+        }
+      }
+    });
+  }
+
   if ($('btn-comp-dar-pocion')) {
     $('btn-comp-dar-pocion').onclick = () => {
       if (!inv.vida || inv.vida <= 0) { toast('No tienes pociones de salud en tu inventario'); return; }
       asegurarAcompananteActivo();
       inv.vida--;
       AcompananteLib.darPocionesVidaAcompanante(acompanante, 1);
-      toast('🧪 1 poción entregada a Rowan (se tomará automáticamente si su HP < 50%)');
+      toast(`🧪 1 poción entregada a ${acompanante.nombre} (se tomará automáticamente si su HP < 50%)`);
       updateStats();
       renderCompanero();
     };
@@ -5093,7 +5433,7 @@
       const cant = Math.min(5, inv.vida);
       inv.vida -= cant;
       AcompananteLib.darPocionesVidaAcompanante(acompanante, cant);
-      toast(`🧪 ${cant} pociones entregadas a Rowan`);
+      toast(`🧪 ${cant} pociones entregadas a ${acompanante.nombre}`);
       updateStats();
       renderCompanero();
     };
@@ -5108,7 +5448,7 @@
         if (idx !== -1) {
           const item = acompanante.inventario[idx];
           AcompananteLib.equiparPiezaAcompanante(acompanante, item);
-          toast(`🛡️ Rowan se ha equipado ${item.nombre}`);
+          toast(`🛡️ ${acompanante.nombre} se ha equipado ${item.nombre}`);
           renderCompanero();
         }
       }
@@ -5128,6 +5468,52 @@
     });
   }
 
+  // ===========================================================================
+  // Prólogo e Introducción Inicial: Selección de Compañero de Camino
+  // ===========================================================================
+  let arquetipoSeleccionadoPrologo = 'rowan';
+
+  function comprobarPrologo(active) {
+    if (!active || active.prologoVisto) return;
+    abrirPrologo();
+  }
+
+  function abrirPrologo() {
+    const m = $('modal-prologo');
+    if (m) m.classList.add('show');
+  }
+
+  function cerrarPrologo() {
+    const m = $('modal-prologo');
+    if (m) m.classList.remove('show');
+  }
+
+  if ($('prologo-companeros')) {
+    $('prologo-companeros').addEventListener('click', e => {
+      const card = e.target.closest('.comp-card');
+      if (!card) return;
+      document.querySelectorAll('#prologo-companeros .comp-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      arquetipoSeleccionadoPrologo = card.dataset.arquetipo || 'rowan';
+    });
+  }
+
+  if ($('btn-prologo-iniciar')) {
+    $('btn-prologo-iniciar').onclick = () => {
+      asegurarAcompananteActivo(arquetipoSeleccionadoPrologo);
+      const active = activePartida();
+      if (active) {
+        active.prologoVisto = true;
+        active.arquetipoCompanero = arquetipoSeleccionadoPrologo;
+        saveActive(true);
+      }
+      cerrarPrologo();
+      const compInfo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS) ? AcompananteLib.COMPANEROS[arquetipoSeleccionadoPrologo] : null;
+      const nom = compInfo ? compInfo.nombre : 'Tu compañero';
+      toast(`🤝 ¡Juramento sellado! ${nom} se une a tu causa.`);
+    };
+  }
+
   // Al abrir un mundo: se usa su partida activa, o se crea la primera
   function bootPartida() {
     iniciarLugaresSecretos();
@@ -5140,8 +5526,12 @@
       active = list[0];
       PartidaLib.setActiveId(store, worldId, active.id);
     }
-    if (active) applyPartida(active);
-    else openCrearPersonaje(crearPartida);
+    if (active) {
+      applyPartida(active);
+      comprobarPrologo(active);
+    } else {
+      openCrearPersonaje(crearPartida);
+    }
   }
 
   // ===========================================================================
@@ -5387,14 +5777,18 @@
         (m, dmg) => damageMonster(m, dmg),
         { hp: hero.hp, maxHp: hero.maxHp },
         (tipoSkill, infoSkill) => {
+          const compNom = (acompanante && acompanante.nombre) || 'Compañero';
           if (tipoSkill === 'cura') {
             hero.hp = Math.min(hero.maxHp, hero.hp + (infoSkill.potencia || 45));
-            toast('🌿 Rowan lanza ' + infoSkill.nombre + ': +45 HP de curación');
-          } else if (tipoSkill === 'ataque') {
-            toast('⚔️ Rowan lanza ' + infoSkill.nombre + ': +25% daño de ataque a ambos (12s)');
+            toast(`🌿 ${compNom} lanza ${infoSkill.nombre}: +${infoSkill.potencia || 45} HP`);
+          } else if (tipoSkill === 'ataque' || tipoSkill === 'buff') {
+            toast(`⚔️ ${compNom} lanza ${infoSkill.nombre}: dope activo (${Math.ceil(infoSkill.duracion || 12)}s)`);
           } else if (tipoSkill === 'defensa') {
-            toast('🛡️ Rowan activa ' + infoSkill.nombre + ': escudo defensivo');
+            toast(`🛡️ ${compNom} activa ${infoSkill.nombre}: escudo defensivo`);
+          } else if (tipoSkill === 'debuff') {
+            toast(`💫 ${compNom} lanza ${infoSkill.nombre}: debuff al enemigo`);
           }
+          actualizarHudDopes();
           if ($('modal-companero') && $('modal-companero').classList.contains('show')) renderCompanero();
         }
       );
@@ -5522,7 +5916,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

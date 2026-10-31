@@ -327,4 +327,82 @@ t('equipamiento de piezas en Rowan: aumenta daño, defensa y vida máxima', () =
   assert.ok(c.maxHp > 180, 'La vida máxima debe haber aumentado');
 });
 
+t('los 4 compañeros de camino: arquetipos, roles y habilidades diferenciadas', () => {
+  assert.ok(A.COMPANEROS.rowan, 'Rowan especialista en dopes de ataque');
+  assert.ok(A.COMPANEROS.lyra, 'Lyra especialista en daño masivo rápido con dagas');
+  assert.ok(A.COMPANEROS.elian, 'Elian mago de apoyo, curas y contra no-muertos');
+  assert.ok(A.COMPANEROS.brenda, 'Brenda tanque y furia berserker');
+
+  const lyra = A.crearAcompanante({ arquetipo: 'lyra' });
+  assert.strictEqual(lyra.nombre, 'Lyra de las Sombras');
+  assert.ok(lyra.dano > 30, 'Lyra tiene un daño base elevado con dagas');
+  assert.strictEqual(lyra.skillsEquipadas.length, 3, 'Equipa 3 habilidades iniciales');
+
+  const elian = A.crearAcompanante({ arquetipo: 'elian' });
+  assert.strictEqual(elian.nombre, 'Elian el Teúrgo');
+  assert.ok(elian.skillsCatalogo.some(s => s.id === 'purificacion'));
+
+  const brenda = A.crearAcompanante({ arquetipo: 'brenda' });
+  assert.strictEqual(brenda.nombre, 'Brenda la Berserker');
+  assert.ok(brenda.hp > 200, 'Brenda posee alta resistencia y salud como tanque');
+});
+
+t('cambio de arquetipo de compañero: preserva inventario y cambia rol', () => {
+  const c = A.crearAcompanante({ arquetipo: 'rowan' });
+  A.agregarObjetoAcompanante(c, { uid: 'poc-1', tipo: 'pocion_vida', cantidad: 5 });
+  assert.strictEqual(c.inventario.length, 1);
+
+  const cambiado = A.cambiarArquetipo(c, 'brenda');
+  assert.strictEqual(cambiado, true);
+  assert.strictEqual(c.arquetipo, 'brenda');
+  assert.strictEqual(c.nombre, 'Brenda la Berserker');
+  assert.strictEqual(c.inventario.length, 1, 'El inventario de 20 ranuras se conserva íntegro');
+  assert.strictEqual(c.skillsEquipadas.length, 3);
+});
+
+t('progresión de habilidades: subir de nivel con puntos de maestría y equipar 3 dopes', () => {
+  const c = A.crearAcompanante({ arquetipo: 'rowan', puntosCompanero: 2 });
+  const sk = c.skillsCatalogo.find(s => s.id === 'grito');
+  assert.strictEqual(sk.nivel, 1);
+  const potInicial = sk.potencia;
+
+  // Subir de nivel
+  const subio = A.subirNivelSkill(c, 'grito');
+  assert.strictEqual(subio, true);
+  assert.strictEqual(sk.nivel, 2);
+  assert.ok(sk.potencia > potInicial, 'La potencia del dope de ataque aumentó');
+  assert.strictEqual(c.puntosCompanero, 1);
+
+  // Equipar una habilidad en la ranura 1
+  A.equiparSkill(c, 1, 'partesuelos');
+  assert.strictEqual(c.skillsEquipadas[1], 'partesuelos');
+});
+
+t('dopes activos en pantalla: registro y descuento en tiempo real para el HUD', () => {
+  const c = A.crearAcompanante({ arquetipo: 'rowan', activo: true });
+  c.mesh = { position: { set() {} }, rotation: { y: 0 } };
+
+  // Aplicar dope activo
+  A.aplicarDopeActivo(c, {
+    id: 'grito',
+    nombre: 'Grito de Aliento',
+    icono: '⚔️',
+    desc: '+25% Ataque',
+    duracion: 10
+  });
+
+  assert.strictEqual(c.buffsActivos.length, 1);
+  assert.strictEqual(c.buffsActivos[0].nombre, 'Grito de Aliento');
+  assert.strictEqual(c.buffsActivos[0].timer, 10);
+
+  // Tick de 3 segundos
+  A.actualizarAcompanante(c, 3.0, { x: 0, y: 0, z: 0 }, 0, [], null, () => 0, null);
+  assert.strictEqual(c.buffsActivos.length, 1);
+  assert.strictEqual(Math.round(c.buffsActivos[0].timer), 7, 'El temporizador debe descontar el tiempo transcurrido');
+
+  // Tick que agote el dope
+  A.actualizarAcompanante(c, 8.0, { x: 0, y: 0, z: 0 }, 0, [], null, () => 0, null);
+  assert.strictEqual(c.buffsActivos.length, 0, 'Al expirar el tiempo, el dope desaparece del HUD');
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);

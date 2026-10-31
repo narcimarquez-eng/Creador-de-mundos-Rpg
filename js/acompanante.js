@@ -70,29 +70,132 @@
 
   const MAX_SLOTS_INVENTARIO = 20;
 
+  // Catálogo de los 4 Compañeros de Camino seleccionables con roles y habilidades diferenciadas
+  const COMPANEROS = {
+    rowan: {
+      id: 'rowan',
+      nombre: 'Rowan el Guardián',
+      titulo: 'Especialista en Dopes de Ataque',
+      icono: '⚔️',
+      avatar: '🧑‍🌾',
+      rol: 'Guardián del Aliento (Buffer Ofensivo)',
+      desc: 'Aldeano fornido que inspira fervor en el combate. Proporciona dopes continuos de ataque, velocidad y motivación marcial a ambos héroes.',
+      hp: 180,
+      dano: 24,
+      defensa: 14,
+      modeloGLB: 'npc/aldeanos/aldeano.glb',
+      skillsCatalogo: [
+        { id: 'grito', nombre: 'Grito de Aliento', icono: '⚔️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 20, timer: 0, duracion: 12, potencia: 25, desc: '+{potencia}% daño de ataque a ambos por {duracion}s' },
+        { id: 'impetu', nombre: 'Golpe de Ímpetu', icono: '💥', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 12, timer: 0, potencia: 38, desc: 'Golpe demoledor que inflige {potencia} de daño contundente' },
+        { id: 'fervor', nombre: 'Fervor Bélico', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 25, timer: 0, duracion: 10, potencia: 30, desc: '+{potencia}% velocidad y ritmo de ataque por {duracion}s' },
+        { id: 'partesuelos', nombre: 'Hendedura Letal', icono: '🪓', tipo: 'debuff', nivel: 1, maxNivel: 5, cd: 16, timer: 0, duracion: 8, potencia: 20, desc: 'Debilita al objetivo reduciendo su defensa un {potencia}%' }
+      ],
+      skillsEquipadas: ['grito', 'impetu', 'fervor']
+    },
+    lyra: {
+      id: 'lyra',
+      nombre: 'Lyra de las Sombras',
+      titulo: 'Pícara Asesina con Dagas',
+      icono: '🗡️',
+      avatar: '🧝‍♀️',
+      rol: 'DPS Rápido con Dagas (Críticos & Sangrado)',
+      desc: 'Ágil y escurridiza cazadora de las sombras. Ataca a velocidad vertiginosa con dos dagas causando tajos críticos continuos y sangrado mortal.',
+      hp: 145,
+      dano: 34,
+      defensa: 10,
+      modeloGLB: 'npc/aldeanos/aldeano.glb',
+      skillsCatalogo: [
+        { id: 'danza_dagas', nombre: 'Danza de Dagas', icono: '🗡️', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 10, timer: 0, potencia: 46, desc: 'Ráfaga de tres estocadas rápidas que inflige {potencia} daño crítico' },
+        { id: 'veneno', nombre: 'Veneno Letal', icono: '🧪', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 20, timer: 0, duracion: 12, potencia: 18, desc: 'Unta las armas con toxinas: +{potencia} daño de veneno continuo' },
+        { id: 'sangrado', nombre: 'Corte Hemorrágico', icono: '🩸', tipo: 'debuff', nivel: 1, maxNivel: 5, cd: 14, timer: 0, duracion: 8, potencia: 22, desc: 'Aplica sangrado que desangra al objetivo por {potencia} daño/s' },
+        { id: 'remate', nombre: 'Filo del Verdugo', icono: '⚡', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 15, timer: 0, potencia: 65, desc: 'Ejecuta al enemigo con daño x2.5 si tiene menos del 40% de vida' }
+      ],
+      skillsEquipadas: ['danza_dagas', 'veneno', 'sangrado']
+    },
+    elian: {
+      id: 'elian',
+      nombre: 'Elian el Teúrgo',
+      titulo: 'Mago de Apoyo, Defensa & Curas',
+      icono: '✨',
+      avatar: '🧙‍♂️',
+      rol: 'Clérigo Sanador & Protección Sacra',
+      desc: 'Erudito arcano devoto de la luz celestial. Despliega barreras impenetrables, sana heridas críticas y purifica con furia a criaturas no-muertas.',
+      hp: 150,
+      dano: 18,
+      defensa: 12,
+      modeloGLB: 'npc/aldeanos/aldeano.glb',
+      skillsCatalogo: [
+        { id: 'rocio_sanador', nombre: 'Gracia Sanadora', icono: '🌿', tipo: 'cura', nivel: 1, maxNivel: 5, cd: 18, timer: 0, potencia: 50, desc: 'Restaura {potencia} HP al instante para ambos si la salud cae < 50%' },
+        { id: 'baluarte_luz', nombre: 'Baluarte de Luz', icono: '🛡️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 12, potencia: 35, desc: 'Escudo sacro que absorbe y mitiga un {potencia}% de todo el daño' },
+        { id: 'purificacion', nombre: 'Castigo Sagrado', icono: '☀️', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 14, timer: 0, potencia: 44, desc: 'Haz de luz que inflige {potencia} daño sagrado (daño x3 contra no-muertos)' },
+        { id: 'manantial', nombre: 'Manantial Místico', icono: '💧', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 25, timer: 0, duracion: 15, potencia: 14, desc: 'Regenera +{potencia} HP y maná por segundo durante {duracion}s' }
+      ],
+      skillsEquipadas: ['rocio_sanador', 'baluarte_luz', 'purificacion']
+    },
+    brenda: {
+      id: 'brenda',
+      nombre: 'Brenda la Berserker',
+      titulo: 'Tanque & Furia Berserker',
+      icono: '🪓',
+      avatar: '👩‍🦰',
+      rol: 'Tanque de Choque (Frenesí & Absorción)',
+      desc: 'Guerrera impetuosa que se interpone entre el peligro y el héroe. Cuanto más daño recibe, más se enfurece, entrando en modo Berserker.',
+      hp: 230,
+      dano: 22,
+      defensa: 18,
+      modeloGLB: 'npc/aldeanos/aldeano.glb',
+      skillsCatalogo: [
+        { id: 'frenesi', nombre: 'Modo Berserker', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 12, potencia: 40, desc: 'Desata furia salvaje ante el dolor: +{potencia}% daño y resistencia férrea' },
+        { id: 'provocacion', nombre: 'Grito Provocador', icono: '📢', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 16, timer: 0, duracion: 8, potencia: 35, desc: 'Atrae a los monstruos hacia ella, protegiendo al héroe de los golpes' },
+        { id: 'sed_sangre', nombre: 'Sed de Sangre', icono: '🩸', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 20, timer: 0, duracion: 10, potencia: 30, desc: 'Convierte el {potencia}% del daño asestado en curación para ambos' },
+        { id: 'torbellino', nombre: 'Torbellino Feroz', icono: '🌀', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 14, timer: 0, potencia: 38, desc: 'Giro con hacha pesada que hiere a todos los enemigos circundantes' }
+      ],
+      skillsEquipadas: ['frenesi', 'provocacion', 'torbellino']
+    }
+  };
+
+  // Clona un catálogo de habilidades para un acompañante
+  function clonarSkillsCatalogo(lista) {
+    return (lista || []).map(s => Object.assign({}, s));
+  }
+
   // Estado lógico del acompañante
   function crearAcompanante(config = {}) {
-    return {
-      id: 'rowan-aldeano',
-      nombre: config.nombre || EQUIPO_ALDEANO.nombre,
-      rol: EQUIPO_ALDEANO.rol,
+    const arqKey = config.arquetipo || 'rowan';
+    const arq = COMPANEROS[arqKey] || COMPANEROS.rowan;
+
+    const acompanante = {
+      id: arq.id + '-companero',
+      arquetipo: arq.id,
+      arquetipoInfo: arq,
+      nombre: config.nombre || (config.arquetipo ? arq.nombre : EQUIPO_ALDEANO.nombre),
+      rol: config.rol || (config.arquetipo ? arq.rol : EQUIPO_ALDEANO.rol),
+      titulo: arq.titulo,
+      icono: arq.icono,
+      avatar: arq.avatar,
       equipo: Object.assign({}, EQUIPO_ALDEANO, config.equipo || {}),
       desbloqueado: !!config.desbloqueado,
       activo: !!config.activo,
       nivel: config.nivel || 1,
-      hp: config.hp || 180,
-      maxHp: config.maxHp || 180,
-      defensa: config.defensa || 14,
-      dano: config.dano || 24,
+      puntosCompanero: typeof config.puntosCompanero === 'number' ? config.puntosCompanero : 2,
+      hp: config.hp || arq.hp,
+      maxHp: config.maxHp || arq.hp,
+      defensa: config.defensa || arq.defensa,
+      dano: config.dano || arq.dano,
       inconsciente: false,
       // Inventario propio de 20 ranuras para equipamiento y pociones automáticas
       inventario: Array.isArray(config.inventario) ? config.inventario.slice(0, MAX_SLOTS_INVENTARIO) : [],
       pocionesVida: typeof config.pocionesVida === 'number' ? config.pocionesVida : 0,
-      // Habilidades complementarias de apoyo (dopes y curas)
+      // Catálogo de habilidades del arquetipo y hasta 3 habilidades activas equipadas
+      skillsCatalogo: clonarSkillsCatalogo(arq.skillsCatalogo),
+      skillsEquipadas: Array.isArray(config.skillsEquipadas) ? config.skillsEquipadas.slice(0, 3) : arq.skillsEquipadas.slice(0, 3),
+      // Dopes y buffs actualmente activos en pantalla para el HUD con temporizadores
+      buffsActivos: [],
+      // Habilidades complementarias de apoyo (retrocompatibilidad)
       skills: {
-        cura: { id: 'cura', nombre: 'Rocío Sanador', desc: 'Restaura 30% de salud al héroe y a Rowan cuando la vida baja del 45%', cooldown: 22, timer: 0 },
-        ataque: { id: 'ataque', nombre: 'Grito de Aliento', desc: 'Aumenta el daño de ataque un 25% para el héroe y Rowan durante 12s en combate', cooldown: 30, timer: 0 },
-        defensa: { id: 'defensa', nombre: 'Baluarte de Cuero', desc: 'Reduce el daño recibido un 20% durante 10s ante impactos graves', cooldown: 35, timer: 0 }
+        cura: { id: 'cura', nombre: 'Rocío Sanador', desc: 'Restaura salud cuando cae < 45%', cooldown: 22, timer: 0 },
+        ataque: { id: 'ataque', nombre: 'Grito de Aliento', desc: 'Aumenta el daño de ataque un 25% por 12s', cooldown: 30, timer: 0 },
+        defensa: { id: 'defensa', nombre: 'Baluarte de Cuero', desc: 'Reduce el daño recibido un 20% por 10s', cooldown: 35, timer: 0 }
       },
       buffs: {
         ataqueTimer: 0,
@@ -117,6 +220,78 @@
       limbs: null,
       bocadilloDom: null
     };
+
+    return acompanante;
+  }
+
+  // Cambia el compañero de camino activo (Rowan, Lyra, Elian, Brenda) preservando inventario y progreso
+  function cambiarArquetipo(acompanante, idArquetipo) {
+    if (!acompanante || !COMPANEROS[idArquetipo]) return false;
+    const nuevo = COMPANEROS[idArquetipo];
+    acompanante.arquetipo = nuevo.id;
+    acompanante.arquetipoInfo = nuevo;
+    acompanante.nombre = nuevo.nombre;
+    acompanante.rol = nuevo.rol;
+    acompanante.titulo = nuevo.titulo;
+    acompanante.icono = nuevo.icono;
+    acompanante.avatar = nuevo.avatar;
+    acompanante.hp = nuevo.hp;
+    acompanante.maxHp = nuevo.hp;
+    acompanante.defensa = nuevo.defensa;
+    acompanante.dano = nuevo.dano;
+    acompanante.skillsCatalogo = clonarSkillsCatalogo(nuevo.skillsCatalogo);
+    acompanante.skillsEquipadas = nuevo.skillsEquipadas.slice(0, 3);
+    acompanante.buffsActivos = [];
+    decirFrase(acompanante, `🤝 ¡${nuevo.nombre} se prepara para el combate!`, 4.0);
+    return true;
+  }
+
+  // Equipa una habilidad en una de las 3 ranuras activas (slotIndex: 0, 1, 2)
+  function equiparSkill(acompanante, slotIndex, skillId) {
+    if (!acompanante || slotIndex < 0 || slotIndex > 2) return false;
+    const existe = acompanante.skillsCatalogo.find(s => s.id === skillId);
+    if (!existe) return false;
+    // Si ya estaba en otra ranura, se intercambian
+    const idxPrevio = acompanante.skillsEquipadas.indexOf(skillId);
+    if (idxPrevio !== -1) {
+      acompanante.skillsEquipadas[idxPrevio] = acompanante.skillsEquipadas[slotIndex];
+    }
+    acompanante.skillsEquipadas[slotIndex] = skillId;
+    return true;
+  }
+
+  // Sube de nivel una habilidad del acompañante usando puntos de maestría
+  function subirNivelSkill(acompanante, skillId) {
+    if (!acompanante || (acompanante.puntosCompanero || 0) < 1) return false;
+    const sk = (acompanante.skillsCatalogo || []).find(s => s.id === skillId);
+    if (!sk || sk.nivel >= (sk.maxNivel || 5)) return false;
+    sk.nivel++;
+    acompanante.puntosCompanero--;
+    sk.potencia = Math.round(sk.potencia * 1.25);
+    if (sk.duracion) sk.duracion = Math.min(25, sk.duracion + 2);
+    if (sk.cd) sk.cd = Math.max(8, sk.cd - 1.5);
+    return true;
+  }
+
+  // Aplica o refresca un dope activo en pantalla con temporizador
+  function aplicarDopeActivo(acompanante, dopeInfo) {
+    if (!acompanante) return null;
+    if (!acompanante.buffsActivos) acompanante.buffsActivos = [];
+    const idx = acompanante.buffsActivos.findIndex(b => b.id === dopeInfo.id);
+    const duracion = dopeInfo.duracion || 10;
+    const item = {
+      id: dopeInfo.id,
+      nombre: dopeInfo.nombre,
+      icono: dopeInfo.icono || '✨',
+      desc: dopeInfo.desc || '',
+      efecto: dopeInfo.efecto || 'buff',
+      valor: dopeInfo.valor || 0,
+      timer: duracion,
+      maxTimer: duracion
+    };
+    if (idx !== -1) acompanante.buffsActivos[idx] = item;
+    else acompanante.buffsActivos.push(item);
+    return item;
   }
 
   // Daño recibido por el acompañante con mitigación por armadura y buff de defensa
@@ -604,6 +779,22 @@
       if (acompanante.skills.ataque) acompanante.skills.ataque.timer = Math.max(0, acompanante.skills.ataque.timer - dt);
       if (acompanante.skills.defensa) acompanante.skills.defensa.timer = Math.max(0, acompanante.skills.defensa.timer - dt);
     }
+    // Descontar temporizadores del catálogo de habilidades
+    if (acompanante.skillsCatalogo) {
+      acompanante.skillsCatalogo.forEach(sk => {
+        if (sk.timer > 0) sk.timer = Math.max(0, sk.timer - dt);
+      });
+    }
+    // Descontar y depurar temporizadores de dopes activos en pantalla (HUD)
+    if (acompanante.buffsActivos && acompanante.buffsActivos.length) {
+      for (let i = acompanante.buffsActivos.length - 1; i >= 0; i--) {
+        const b = acompanante.buffsActivos[i];
+        b.timer = Math.max(0, b.timer - dt);
+        if (b.timer <= 0) {
+          acompanante.buffsActivos.splice(i, 1);
+        }
+      }
+    }
 
     // Si ha caído inconsciente, no ataca ni se desplaza hasta ser curado
     if (acompanante.inconsciente) {
@@ -647,18 +838,119 @@
       });
     }
 
-    // Gestión y activación de Skills Complementarias de Apoyo (Dopes y Curas)
-    if (acompanante.skills) {
-      const heroeHpActual = (heroeInfo && typeof heroeInfo.hp === 'number') ? heroeInfo.hp : 100;
-      const heroeHpMax = (heroeInfo && typeof heroeInfo.maxHp === 'number') ? heroeInfo.maxHp : 100;
-      const heroeBajo = (heroeHpActual / heroeHpMax) < 0.45;
-      const rowanBajo = (acompanante.hp / acompanante.maxHp) < 0.45;
+    // Gestión y activación de las 3 Skills Equipadas y Dopes de Apoyo
+    const heroeHpActual = (heroeInfo && typeof heroeInfo.hp === 'number') ? heroeInfo.hp : 100;
+    const heroeHpMax = (heroeInfo && typeof heroeInfo.maxHp === 'number') ? heroeInfo.maxHp : 100;
+    const heroeBajo = (heroeHpActual / heroeHpMax) < 0.50;
+    const compBajo = (acompanante.hp / acompanante.maxHp) < 0.50;
 
+    // Ejecutar hasta las 3 habilidades equipadas del catálogo
+    if (acompanante.skillsCatalogo && acompanante.skillsEquipadas) {
+      acompanante.skillsEquipadas.forEach(skId => {
+        const sk = acompanante.skillsCatalogo.find(s => s.id === skId);
+        if (!sk || sk.timer > 0) return;
+
+        // 1. Habilidades de Curación
+        if (sk.tipo === 'cura' && (heroeBajo || compBajo)) {
+          sk.timer = sk.cd || 18;
+          const pct = (sk.potencia || 45) / 100;
+          const curaComp = Math.round(acompanante.maxHp * pct);
+          acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + curaComp);
+          aplicarDopeActivo(acompanante, {
+            id: sk.id,
+            nombre: sk.nombre,
+            icono: sk.icono || '🌿',
+            desc: `+${sk.potencia}% HP Sanado`,
+            duracion: 4,
+            efecto: 'cura',
+            valor: sk.potencia
+          });
+          decirFrase(acompanante, `🌿 ¡${sk.nombre}! ¡Sano vuestras heridas!`, 3.5);
+          if (typeof alLanzarSkillFn === 'function') {
+            alLanzarSkillFn('cura', { nombre: sk.nombre, potencia: sk.potencia, curaComp });
+          }
+        }
+
+        // 2. Habilidades de Buff / Dope (en combate)
+        else if (sk.tipo === 'buff' && (objetivoCombate || heroeBajo || compBajo)) {
+          sk.timer = sk.cd || 20;
+          const dur = sk.duracion || 12;
+          if (sk.id === 'grito' || sk.id === 'fervor') {
+            acompanante.buffs.ataqueTimer = dur;
+          }
+          if (sk.id === 'baluarte_luz' || sk.id === 'baluarte') {
+            acompanante.buffs.defensaTimer = dur;
+          }
+          if (sk.id === 'frenesi') {
+            acompanante.buffs.ataqueTimer = dur;
+            acompanante.buffs.defensaTimer = dur;
+          }
+          aplicarDopeActivo(acompanante, {
+            id: sk.id,
+            nombre: sk.nombre,
+            icono: sk.icono || '✨',
+            desc: sk.desc ? sk.desc.replace('{potencia}', sk.potencia).replace('{duracion}', dur) : `+${sk.potencia}% potencia`,
+            duracion: dur,
+            efecto: 'buff',
+            valor: sk.potencia
+          });
+          decirFrase(acompanante, `${sk.icono || '✨'} ¡${sk.nombre}! (+${sk.potencia}% efectividad)`, 3.5);
+          if (typeof alLanzarSkillFn === 'function') {
+            alLanzarSkillFn(sk.id, { nombre: sk.nombre, duracion: dur, valor: sk.potencia, icono: sk.icono });
+          }
+        }
+
+        // 3. Habilidades Ofensivas Especiales
+        else if (sk.tipo === 'ataque' && objetivoCombate && distObjetivoMin <= (acompanante.rangoAtaque + 1.5)) {
+          sk.timer = sk.cd || 12;
+          let bonusDano = Math.round((sk.potencia || 35) * (0.9 + Math.random() * 0.3));
+          // Daño triplicado contra no-muertos si es Castigo Sagrado de Elian
+          if (sk.id === 'purificacion' && objetivoCombate.name && /esqueleto|zombi|muerto|sombra|espectro|fantasma/i.test(objetivoCombate.name)) {
+            bonusDano *= 3;
+            decirFrase(acompanante, '☀️ ¡Luz celestial! ¡Purificación para los no-muertos!', 3.5);
+          } else {
+            decirFrase(acompanante, `${sk.icono || '💥'} ¡${sk.nombre}!`, 3.0);
+          }
+
+          if (typeof aplicarDanoMonstruoFn === 'function') {
+            aplicarDanoMonstruoFn(objetivoCombate, bonusDano);
+          } else if (typeof objetivoCombate.recibirDano === 'function') {
+            objetivoCombate.recibirDano(bonusDano, 'companero_skill');
+          } else if (typeof objetivoCombate.hp === 'number') {
+            objetivoCombate.hp = Math.max(0, objetivoCombate.hp - bonusDano);
+          }
+
+          if (typeof alLanzarSkillFn === 'function') {
+            alLanzarSkillFn('ataque_skill', { nombre: sk.nombre, dano: bonusDano });
+          }
+        }
+
+        // 4. Habilidades de Debuff sobre el enemigo
+        else if (sk.tipo === 'debuff' && objetivoCombate && distObjetivoMin <= (acompanante.rangoAtaque + 2.0)) {
+          sk.timer = sk.cd || 15;
+          const dur = sk.duracion || 8;
+          aplicarDopeActivo(acompanante, {
+            id: sk.id,
+            nombre: sk.nombre,
+            icono: sk.icono || '🩸',
+            desc: `Debuff: -${sk.potencia}% armadura`,
+            duracion: dur,
+            efecto: 'debuff',
+            valor: sk.potencia
+          });
+          decirFrase(acompanante, `${sk.icono || '🩸'} ¡${sk.nombre}! El enemigo flaquea.`, 3.0);
+        }
+      });
+    }
+
+    // Retrocompatibilidad con la estructura anterior de 3 skills
+    if (acompanante.skills) {
       // 1. Skill de Cura: Rocío Sanador
-      if (acompanante.skills.cura && acompanante.skills.cura.timer <= 0 && (heroeBajo || rowanBajo)) {
+      if (acompanante.skills.cura && acompanante.skills.cura.timer <= 0 && (heroeBajo || compBajo)) {
         acompanante.skills.cura.timer = acompanante.skills.cura.cooldown;
         const curaRowan = Math.round(acompanante.maxHp * 0.30);
         acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + curaRowan);
+        aplicarDopeActivo(acompanante, { id: 'cura', nombre: 'Rocío Sanador', icono: '🌿', desc: '+30% HP Curado', duracion: 4, efecto: 'cura', valor: 30 });
         decirFrase(acompanante, '🌿 ¡Rocío Sanador! ¡Ánimo, resistiremos juntos!', 4.0);
         if (typeof alLanzarSkillFn === 'function') {
           alLanzarSkillFn({ tipo: 'cura', nombre: 'Rocío Sanador', valor: 0.30, curaRowan });
@@ -669,6 +961,7 @@
       if (objetivoCombate && acompanante.skills.ataque && acompanante.skills.ataque.timer <= 0) {
         acompanante.skills.ataque.timer = acompanante.skills.ataque.cooldown;
         acompanante.buffs.ataqueTimer = 12;
+        aplicarDopeActivo(acompanante, { id: 'ataque', nombre: 'Grito de Aliento', icono: '⚔️', desc: '+25% Daño de Ataque', duracion: 12, efecto: 'buff', valor: 25 });
         decirFrase(acompanante, '⚔️ ¡Por la gloria de Aden! ¡Aplastémoslos a todos! (+25% daño)', 4.0);
         if (typeof alLanzarSkillFn === 'function') {
           alLanzarSkillFn({ tipo: 'buff_ataque', nombre: 'Grito de Aliento', duracion: 12, valor: 0.25 });
@@ -676,9 +969,10 @@
       }
 
       // 3. Skill de Dope de Defensa: Baluarte de Cuero (al luchar o sufrir daño)
-      if (objetivoCombate && acompanante.skills.defensa && acompanante.skills.defensa.timer <= 0 && (rowanBajo || (distObjetivoMin < 3.5))) {
+      if (objetivoCombate && acompanante.skills.defensa && acompanante.skills.defensa.timer <= 0 && (compBajo || (distObjetivoMin < 3.5))) {
         acompanante.skills.defensa.timer = acompanante.skills.defensa.cooldown;
         acompanante.buffs.defensaTimer = 10;
+        aplicarDopeActivo(acompanante, { id: 'defensa', nombre: 'Baluarte de Cuero', icono: '🛡️', desc: '-20% Daño Recibido', duracion: 10, efecto: 'buff', valor: 20 });
         decirFrase(acompanante, '🛡️ ¡Formación cerrada! ¡Escudos arriba! (-20% daño)', 4.0);
         if (typeof alLanzarSkillFn === 'function') {
           alLanzarSkillFn({ tipo: 'buff_defensa', nombre: 'Baluarte de Cuero', duracion: 10, valor: 0.20 });
@@ -855,9 +1149,14 @@
   const api = {
     EQUIPO_ALDEANO,
     FRASES,
+    COMPANEROS,
     MAX_SLOTS_INVENTARIO,
     elegirFrase,
     crearAcompanante,
+    cambiarArquetipo,
+    equiparSkill,
+    subirNivelSkill,
+    aplicarDopeActivo,
     construirModeloAcompanante,
     instalarModeloGLBAcompanante,
     reproducirAnimacionGLB,
