@@ -211,6 +211,8 @@
     @media (max-width: 760px) { #carga { right: 8px; bottom: 292px; width: 140px; } }
     #toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #0f172a; border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none; }
     #toast.show { opacity: 1; }
+    #bocadillo-rowan { position: fixed; background: rgba(15, 23, 42, 0.94); color: #f8fafc; border: 1px solid #f59e0b; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.45); pointer-events: none; z-index: 45; opacity: 0; transition: opacity 0.25s; max-width: 260px; text-align: center; transform: translate(-50%, -100%); }
+    #bocadillo-rowan::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #f59e0b transparent transparent transparent; }
 
     @media (max-width: 760px) {
       #side { width: auto; right: 8px; bottom: auto; top: 54px; max-height: 40vh; }
@@ -438,11 +440,14 @@
   </div>
 
   <div id="toast"></div>
+  <div id="bocadillo-rowan"></div>
 
   <script defer src="js/casa-madera.js?v=20251029"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
+  <script defer src="js/lugares-secretos.js?v=20261031"></script>
+  <script defer src="js/acompanante.js?v=20261031"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
   <script defer src="js/mapa.js?v=20251029"></script>
@@ -3141,6 +3146,18 @@
       g.fillStyle = m.boss ? '#ef4444' : '#f97316';
       g.beginPath(); g.arc(V.px(m.x), V.py(m.z), 2.5, 0, Math.PI * 2); g.fill();
     });
+    if (lugaresSecretos && lugaresSecretos.length) {
+      lugaresSecretos.forEach(s => {
+        if (s.descubierto || Math.hypot(p.x - s.x, p.z - s.z) < 220) {
+          g.fillStyle = s.tipo === 'fuente' ? '#38bdf8' : (s.tipo === 'altar' ? '#c084fc' : (s.tipo === 'santuario' ? '#fbbf24' : '#34d399'));
+          g.beginPath(); g.arc(V.px(s.x), V.py(s.z), 4.5, 0, Math.PI * 2); g.fill();
+        }
+      });
+    }
+    if (acompanante && acompanante.activo) {
+      g.fillStyle = '#22c55e';
+      g.beginPath(); g.arc(V.px(acompanante.x), V.py(acompanante.z), 3.5, 0, Math.PI * 2); g.fill();
+    }
     g.restore();
     // Anillos de distancia desde el personaje: 100 y 200 m
     g.save();
@@ -3320,6 +3337,9 @@
     buildUI();
     updateStats();
     actualizarMision();
+    if (heroeEst && (heroeEst.desbloqueadas.acompanante || (heroeEst.principal && heroeEst.principal.paso >= 3))) {
+      asegurarAcompananteActivo();
+    }
   }
 
   // Equipo que puede soltar un monstruo: el mismo cálculo que usa el drop (EquipoLib.candidatasDrop)
@@ -4045,6 +4065,9 @@
   function cerrarCapitulo() {
     const r = HistoriaLib.completar(heroeEst.principal);
     HeroeLib.recompensar(heroeEst, r.recompensa);
+    if (r.recompensa.desbloquea === 'acompanante' || heroeEst.desbloqueadas.acompanante) {
+      asegurarAcompananteActivo();
+    }
     aplicarStats();
     detenerRuta();
     HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
@@ -4060,7 +4083,10 @@
     $('cap-texto').textContent = r.texto;
     const pts = r.recompensa.puntos;
     let premio = '🧬 +' + pts + (pts === 1 ? ' punto' : ' puntos') + ' de habilidad';
-    if (r.recompensa.desbloquea) premio += ' · desbloqueas ' + HeroeLib.HABILIDADES[r.recompensa.desbloquea].nombre;
+    if (r.recompensa.desbloquea) {
+      const hab = HeroeLib.HABILIDADES[r.recompensa.desbloquea];
+      premio += ' · desbloqueas ' + (hab ? hab.nombre : r.recompensa.desbloquea);
+    }
     const p = heroeEst.principal, sig = HistoriaLib.capituloActual(p);
     const o = sig ? HistoriaLib.asegurarObjetivo(p, world) : null;
     $('cap-extra').innerHTML = esc(premio) + '<br><br>' + (sig
@@ -4094,10 +4120,14 @@
     }).join('');
   }
 
-  // Destino de la misión activa: la zona, el pueblo o el NPC donde se cumple
+  // Destino de la misión activa: la zona, el pueblo, el lugar secreto o el NPC donde se cumple
   function destinoDeMision() {
     const o = HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
     if (!o) return null;
+    if (o.secretoId || o.tipo === 'secreto') {
+      const sec = (lugaresSecretos || []).find(x => x.id === o.secretoId) || (lugaresSecretos || [])[0];
+      if (sec) return { x: sec.x, y: sec.z, parar: Math.max(6, (sec.radio || 16) * 0.75), nombre: sec.nombre };
+    }
     if (o.zona) {
       const z = world.zones.find(x => x.id === o.zona);
       return { x: z.x, y: z.y, parar: Math.max(6, Math.min(40, z.radius * 0.35)), nombre: z.name };
@@ -4428,8 +4458,59 @@
     });
   }
 
+  let lugaresSecretos = [];
+  let lugaresSecretosIniciados = false;
+  let acompanante = null;
+
+  function iniciarLugaresSecretos() {
+    if (!world || lugaresSecretosIniciados || typeof LugaresSecretosLib === 'undefined') return;
+    lugaresSecretosIniciados = true;
+    lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
+    world.secretPlaces = lugaresSecretos;
+    const grupo = new THREE.Group();
+    grupo.name = 'LugaresSecretosMundo';
+    lugaresSecretos.forEach(s => {
+      const m = LugaresSecretosLib.construirModeloSecreto(THREE, s, visorWorld.getWalkableHeight);
+      if (m) grupo.add(m);
+    });
+    scene.add(grupo);
+  }
+
+  function asegurarAcompananteActivo() {
+    if (acompanante || typeof AcompananteLib === 'undefined' || !character) return;
+    const p = character.root.position;
+    acompanante = AcompananteLib.crearAcompanante({
+      activo: true,
+      x: p.x - 2.5,
+      z: p.z - 2.5
+    });
+    const m3d = AcompananteLib.construirModeloAcompanante(THREE);
+    acompanante.mesh = m3d.root;
+    acompanante.limbs = m3d.limbs;
+    acompanante.bocadilloDom = $('bocadillo-rowan');
+    scene.add(m3d.root);
+    toast('🤝 Rowan el aldeano se ha unido a tu expedición');
+  }
+
+  function actualizarBocadilloAcompanante() {
+    const el = $('bocadillo-rowan');
+    if (!el || !acompanante || !acompanante.mesh || acompanante.tiempoFrase <= 0) {
+      if (el) el.style.opacity = '0';
+      return;
+    }
+    const pos = new THREE.Vector3(acompanante.x, acompanante.y + 2.15, acompanante.z);
+    pos.project(camera);
+    if (pos.z > 1) { el.style.opacity = '0'; return; }
+    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.opacity = '1';
+  }
+
   // Al abrir un mundo: se usa su partida activa, o se crea la primera
   function bootPartida() {
+    iniciarLugaresSecretos();
     colocarGurus();
     colocarEncargos();
     actualizarMision();
@@ -4672,6 +4753,30 @@
     character.update(dt, now / 1000);
     actualizarEfectos(dt);
     actualizarGurus(dt, now / 1000);
+    if (acompanante && acompanante.activo && typeof AcompananteLib !== 'undefined') {
+      AcompananteLib.actualizarAcompanante(
+        acompanante,
+        dt,
+        character.root.position,
+        character.anguloY ? character.anguloY() : 0,
+        monsters,
+        combat ? combat.target : null,
+        visorWorld.getWalkableHeight,
+        ev => avanzarHistoria(ev)
+      );
+      actualizarBocadilloAcompanante();
+    }
+    if (lugaresSecretos && lugaresSecretos.length && typeof AcompananteLib !== 'undefined') {
+      AcompananteLib.comprobarLugaresSecretos(
+        acompanante,
+        lugaresSecretos,
+        character.root.position,
+        sec => {
+          avanzarHistoria({ tipo: 'secreto', id: sec.id, tipoSecreto: sec.tipo });
+          toast('✨ ¡Has descubierto: ' + sec.nombre + '! (' + sec.icono + ')');
+        }
+      );
+    }
     towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.setNivelArboles(nivelArbolesMuro(distPueblo(o))); o.village.updateTreeLod(camera); } });
     animateTowns(dt);
     updateAtmosphere(dt);

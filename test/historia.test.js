@@ -32,6 +32,7 @@ function eventoDe(o) {
   if (o.tipo === 'jefe') return { tipo: 'jefe', zona: o.zona };
   if (o.tipo === 'visitar') return { tipo: 'visitar', pueblo: o.pueblo };
   if (o.tipo === 'hablar') return { tipo: 'hablar', npc: o.npc };
+  if (o.tipo === 'secreto') return { tipo: 'secreto', id: o.secretoId, tipoSecreto: o.secretoTipo };
   return { tipo: 'forjar' };
 }
 function cumplir(p, w) {
@@ -96,12 +97,13 @@ t('luchar: solo cuentan los monstruos de la zona pedida (el jefe también)', () 
   assert.strictEqual(p.progreso, 1);
 });
 
-t('la historia completa: diez capítulos en orden, con el impacto sísmico en el 4 y la nova en el 8', () => {
+t('la historia completa: 16 capítulos en orden, con el acompañante en el 3, impacto sísmico en el 4 y la nova en el 8', () => {
   const w = mundo(), p = H.nuevaPrincipal();
   const resultados = [];
   while (!H.terminada(p)) resultados.push(cumplir(p, w));
   assert.strictEqual(resultados.length, H.CAPITULOS.length);
   assert.deepStrictEqual(resultados.map(r => r.numero), H.CAPITULOS.map((c, i) => i + 1));
+  assert.strictEqual(resultados[2].recompensa.desbloquea, 'acompanante');
   assert.strictEqual(resultados[3].recompensa.desbloquea, 'sismo');
   assert.strictEqual(resultados[7].recompensa.desbloquea, 'nova');
   assert.strictEqual(H.asegurarObjetivo(p, w), null);
@@ -110,9 +112,10 @@ t('la historia completa: diez capítulos en orden, con el impacto sísmico en el
 
 t('el jefe se busca en un territorio de jefe; sin él, se lucha en la zona más difícil', () => {
   const w = mundo();
-  assert.deepStrictEqual([H.resolverObjetivo(H.CAPITULOS[8], w).tipo, H.resolverObjetivo(H.CAPITULOS[8], w).zona], ['jefe', 'zj']);
+  const capJefe = H.CAPITULOS.find(c => c.mision.tipo === 'jefe');
+  assert.deepStrictEqual([H.resolverObjetivo(capJefe, w).tipo, H.resolverObjetivo(capJefe, w).zona], ['jefe', 'zj']);
   w.zones = w.zones.filter(z => z.type !== 'jefe');
-  const o = H.resolverObjetivo(H.CAPITULOS[8], w);
+  const o = H.resolverObjetivo(capJefe, w);
   assert.strictEqual(o.tipo, 'matar');
   assert.strictEqual(o.zona, 'z3');
 });

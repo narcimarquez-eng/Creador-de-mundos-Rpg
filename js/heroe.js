@@ -20,6 +20,7 @@
     intelecto: { tipo: 'pasiva', nombre: 'Intelecto', desc: '+8 maná máximo por punto', max: 10 },
     sismo: { tipo: 'activa', nombre: 'Impacto sísmico', desc: '+25 % de daño por nivel', max: 3, capitulo: 4 },
     nova: { tipo: 'activa', nombre: 'Explosión nova', desc: '+25 % de daño por nivel', max: 3, capitulo: 8 },
+    acompanante: { tipo: 'especial', nombre: 'Acompañante Aldeano (Rowan)', desc: 'Un leal aldeano explorador te acompaña y lucha a tu lado', max: 1, capitulo: 3 },
     // Técnicas: se pueden usar desde su nivel; los puntos las mejoran. arma: 'cuerpo' (no arco) o 'arco'
     tajo: { tipo: 'activa', nombre: 'Tajo giratorio', desc: '+25 % de daño por nivel', max: 3, nivel: 3, arma: 'cuerpo' },
     estocada: { tipo: 'activa', nombre: 'Estocada a fondo', desc: '+25 % de daño por nivel', max: 3, nivel: 5, arma: 'cuerpo' },
@@ -40,7 +41,7 @@
   const RENOMBRADAS = { patada: 'sismo' };
 
   // Tipos de objetivo de la historia (ver js/historia.js)
-  const TIPOS_HISTORIA = ['matar', 'jefe', 'visitar', 'hablar', 'forjar'];
+  const TIPOS_HISTORIA = ['matar', 'jefe', 'visitar', 'hablar', 'forjar', 'secreto'];
 
   // Habilidades especiales de los objetos (según el tipo de pieza). Se eligen por piezaId y nivel.
   const ESPECIALES = {
