@@ -14,53 +14,53 @@
   // {lugar} es el nombre del objetivo (zona, pueblo, NPC o lugar secreto) y {n} la cantidad.
   const CAPITULOS = [
     {
-      id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Los siete reinos',
-      encargo: 'Has llegado a la plaza con una espada nueva y ninguna historia. La Sabia Elara te espera junto a los puestos del mercado: dice que quien llega aquí debe saber dónde pisa.',
-      texto: 'Antes de Aden hubo siete reinos. Cuando cayeron, sus piedras quedaron en los caminos y en nuestras murallas. «Tú también vienes de lejos», te dice Elara. «Empieza por aprender el camino.»',
-      mision: { tipo: 'hablar', npc: 'guru-1', nombre: 'Sabia Elara' },
-      recompensa: { puntos: 1 }
+      id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Pieles de caza y el primer cinturón',
+      encargo: 'La Sabia Elara te encomienda adentrarte en los campos de {lugar} y abatir a {n} criaturas de bajo nivel para conseguir pieles toscas con las que el herrero te forjará tu primer cinturón.',
+      texto: 'Regresas con las pieles toscas de las bestias. El herrero Brann toma las pieles curtidas, remacha una hebilla de bronce y te entrega tu nuevo cinturón. «Buen comienzo, recluta. Así se viste un guerrero». Has forjado tu primer cinturón básico.',
+      mision: { tipo: 'matar', cantidad: 3, nivel: 1 },
+      recompensa: { puntos: 1, forjarPieza: 'belt' }
     },
     {
-      id: 'c2', nivel: 1, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El camino de piedra',
-      encargo: 'El Maestro Oren quiere saber si el camino de piedra sigue abierto. Síguelo hasta {lugar} y mira quién vive allí.',
-      texto: 'El camino de piedra une los pueblos desde antes que existieran los mapas. Quien lo sigue no se pierde, aunque cambie el tiempo. En {lugar} te reciben con pan y preguntas: hace semanas que nadie llegaba por ese camino.',
-      mision: { tipo: 'visitar', pueblo: 'vecino' },
-      recompensa: { puntos: 2 }
+      id: 'c2', nivel: 1, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El camino agreste y las botas de marcha',
+      encargo: 'El Maestro Oren necesita tendones y cuero grueso de {n} bestias en {lugar} para calzar a los exploradores con botas resistentes para los pedregales.',
+      texto: 'Con los tendones y el cuero reforzado recogidos en {lugar}, el herrero remata las suelas de tus nuevas botas de viaje. Tus pasos ahora son firmes y seguros en cualquier terreno.',
+      mision: { tipo: 'matar', cantidad: 4, nivel: 1 },
+      recompensa: { puntos: 2, forjarPieza: 'boots' }
     },
     {
-      id: 'c3', nivel: 2, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Las runas de la muralla',
-      encargo: 'La Hermana Ysolde ha visto marcas rúnicas en la piel de las bestias de {lugar}, idénticas a la frase secreta de la piedra del pozo. Rowan, un joven aldeano con jubón de cuero y botas de viaje, quiere acompañarte a investigar y derrotar a {n} criaturas.',
-      texto: 'Las runas de la muralla se leen de abajo arriba: las marcas de las bestias coinciden con la frase del pozo que nadie ha descifrado. Alguien las está copiando. Rowan empuña su espada corta: «¡No seré una carga! Te cubriré la espalda». Rowan el aldeano se une a tu aventura como fiel acompañante.',
-      mision: { tipo: 'matar', cantidad: 4, nivel: 2 },
-      recompensa: { puntos: 2, desbloquea: 'acompanante' }
+      id: 'c3', nivel: 2, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Garras de bestia y el aldeano leal',
+      encargo: 'La Hermana Ysolde detecta perturbaciones en {lugar}. Rowan, un joven aldeano con jubón de cuero y botas de viaje, empuña su espada corta y se ofrece a luchar a tu lado para abatir a {n} criaturas y obtener garras con las que reforzar brazales de combate.',
+      texto: 'Rowan y tú combatís espalda contra espalda: sus estocadas coordinadas demuestran su valía. Con las garras y escamas recogidas, el herrero forja un par de guantes y brazales de protección. Rowan el aldeano se une a tu aventura como fiel acompañante.',
+      mision: { tipo: 'matar', cantidad: 5, nivel: 2 },
+      recompensa: { puntos: 2, forjarPieza: 'gloves', desbloquea: 'acompanante' }
     },
     {
-      id: 'c4', nivel: 4, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Los que no temen al acero',
-      encargo: 'El Viejo Tamsin no se fía de los forasteros. «Demuéstrame que tu acero y el coraje de tu aldeano sirven: {n} criaturas en {lugar}, y hablamos.»',
-      texto: 'En los bosques de la zona viven criaturas que el acero vence sin esfuerzo: son el primer examen de cualquier guerrero. Tamsin asiente satisfecho, salta y golpea el suelo con las dos manos: la tierra tiembla bajo las bestias. El impacto sísmico (Q) ya es tuyo.',
+      id: 'c4', nivel: 4, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Planchas de caparazón y el peto de acero',
+      encargo: 'El Viejo Tamsin exige temple: «Si queréis un peto que os salve el pellejo, abated a {n} criaturas en {lugar} y traed sus resistentes planchas quitinosas». Rowan y tú marcháis al combate.',
+      texto: 'Con las duras planchas de caparazón recogidas tras el combate, Brann martilla un sólido peto sobre el yunque. Tamsin sonríe y os enseña a canalizar la fuerza al golpear el suelo: ¡has desbloqueado el impacto sísmico (Q) y equipado tu nuevo peto!',
       mision: { tipo: 'matar', cantidad: 8, nivel: 4 },
-      recompensa: { puntos: 2, desbloquea: 'sismo' }
+      recompensa: { puntos: 2, forjarPieza: 'torso', desbloquea: 'sismo' }
     },
     {
-      id: 'c5', nivel: 4, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'El valor de una cota',
-      encargo: 'La Erudita Mirel ha visto cómo vuelves de la caza: con el equipo hecho jirones. Encarga una pieza nueva al Herrero Brann.',
-      texto: 'Una cota malgastada rinde la mitad. Quien conoce el estado de su equipo sabe cuándo luchar y cuándo reparar. Brann te guiña un ojo: «Vuelve cuando quieras, que el hierro no se acaba».',
-      mision: { tipo: 'forjar', npc: 'serv-herrero', nombre: 'Herrero Brann' },
-      recompensa: { puntos: 2 }
+      id: 'c5', nivel: 4, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'Astas de hueso y el yelmo protector',
+      encargo: 'La Erudita Mirel advierte que una cabeza descubierta es presa fácil. Derrota a {n} criaturas en {lugar} para recolectar astas y fragmentos óseos para forjar un yelmo.',
+      texto: 'Brann encaja los refuerzos óseos en una corona de hierro acolchada. Al colocarte el yelmo sientes la protección completa de tu cabeza ante los golpes enemigos. El equipo básico toma forma.',
+      mision: { tipo: 'matar', cantidad: 8, nivel: 4 },
+      recompensa: { puntos: 2, forjarPieza: 'helmet' }
     },
     {
-      id: 'c6', nivel: 5, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'La arena del herrero y la fuente arcana',
-      encargo: 'Elara recuerda que la arena de las dunas templa las armaduras superiores y que en los riscos mana una legendaria {lugar}. ¡Explorad con Rowan hasta descubrirla!',
-      texto: 'Dicen que la arena templa el acero superior, pero solo quien posea la hoja de la pieza puede forjarla. Al pie de la fuente arcana halláis aguas luminosas entre sillares pulidos que revitalizan vuestras fuerzas.',
+      id: 'c6', nivel: 5, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'La fuente arcana y las hombreras benditas',
+      encargo: 'Elara recuerda que para forjar unas hombreras que soporten el peso de los mandobles debéis templar las placas en la mística {lugar}. ¡Explorad con Rowan hasta descubrirla!',
+      texto: 'Al pie de la fuente arcana sumergís las hombreras forjadas en sus aguas luminosas. Las placas absorben el fulgor místico, dotándolas de una resistencia prodigiosa para proteger vuestros hombros.',
       mision: { tipo: 'secreto', secreto: 'fuente' },
-      recompensa: { puntos: 3 }
+      recompensa: { puntos: 3, forjarPieza: 'shoulders' }
     },
     {
-      id: 'c7', nivel: 8, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'Los caminos del norte',
-      encargo: 'Oren señala el norte en su mapa: «{lugar} es el último pueblo antes de los caminos que no figuran en ningún mapa. Ve con Rowan y míralo con tus ojos».',
-      texto: 'Más allá de las zonas de caza hay caminos que no figuran en ningún mapa. Algunos conducen a los guardianes que cortan las rutas. En {lugar} hablan de criaturas salvajes y de una vieja cabaña solitaria en los valles.',
-      mision: { tipo: 'visitar', pueblo: 'norte' },
-      recompensa: { puntos: 3 }
+      id: 'c7', nivel: 8, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'Mineral salvaje y la forja del arma',
+      encargo: 'Oren señala los valles salvajes de {lugar}: «Las criaturas de las profundidades devoran vetas de mineral puro. Derrotad a {n} de ellas para extraer el hierro salvaje y forjar un arma digna de vuestra clase». Rowan empuña su filo y asiente.',
+      texto: 'El mineral extraído brilla al rojo vivo bajo los martillazos de Brann en la fragua. De las chispas surge un arma formidable forjada a medida de tu clase y estilo. ¡Tu equipo de combate básico de nivel de entrada queda completamente ensamblado!',
+      mision: { tipo: 'matar', cantidad: 10, nivel: 8 },
+      recompensa: { puntos: 3, forjarPieza: 'weapon' }
     },
     {
       id: 'c8', nivel: 10, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'El sello de la nova',
@@ -84,9 +84,9 @@
       recompensa: { puntos: 3 }
     },
     {
-      id: 'c11', nivel: 12, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El altar de las estrellas',
-      encargo: 'Oren os encomienda seguir los mapas del ermitaño hasta el {lugar}. Dicen que allí resuena la memoria viva de los siete reinos.',
-      texto: 'Los monolitos del altar rúnico se alzan hacia el cielo. Al posar la mano sobre la losa central, una oleada de energía recorre vuestras armas. Rowan siente que el destino os guía.',
+      id: 'c11', nivel: 12, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El altar de las estrellas y el despertar del comercio',
+      encargo: 'Oren os encomienda seguir los mapas del ermitaño hasta el {lugar}. Al alcanzar el nivel 12 y consagrar el altar rúnico, las rutas de comercio y las forjas superiores del herrero quedarán desbloqueadas.',
+      texto: 'Los monolitos del altar rúnico se alzan hacia el cielo. Al posar la mano sobre la losa central, una oleada de energía recorre vuestras armas. A partir de nivel 12, el Herrero Brann y los mercaderes abren sus tiendas y fraguas para la compra y forja directa de equipo superior.',
       mision: { tipo: 'secreto', secreto: 'altar' },
       recompensa: { puntos: 4 }
     },

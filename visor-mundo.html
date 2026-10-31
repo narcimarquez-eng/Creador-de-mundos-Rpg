@@ -4010,6 +4010,7 @@
 
   function renderNpc(servicio) {
     const pj = personajeActual;
+    if (!pj || !catalogoPiezas) return;
     const piezas = EquipoLib.piezasDeClase(catalogoPiezas, pj.clase).filter(p => p.nivel <= hero.level);
     let html = '';
     if (servicio === 'herrero') {
@@ -4019,21 +4020,29 @@
         return `<div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel}</span></div>
           <button data-forjar-hoja="${esc(o.uid)}" ${(inv.arena || 0) < coste || hero.level < o.nivel ? 'disabled' : ''}>${coste} 🧱</button></div>`;
       }).join('') || '<div class="muted">No tienes hojas. Los monstruos de nivel 8 o más pueden soltarlas.</div>');
-      html += '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + (piezas.map(p => {
-        const coste = EquipoLib.FORJA_ORO * p.nivel;
-        return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
-          <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
-      }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
+      if (hero.level < 12) {
+        html += '<h3 class="npc-h">Fabricar (estado perfecto) 🔒 Requiere Nivel 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">El Herrero Brann solo forja equipo por encargo directo a partir de nivel 12. Consigue materiales cazando en los primeros capítulos de la historia para que te forje tu equipo básico de entrada.</div>';
+      } else {
+        html += '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + (piezas.map(p => {
+          const coste = EquipoLib.FORJA_ORO * p.nivel;
+          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
+            <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
+        }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
+      }
     } else if (servicio === 'entrenador') {
       html = renderEntrenador();
     } else if (servicio === 'encargo') {
       html = renderEncargo();
     } else {
-      html = '<h3 class="npc-h">Comprar</h3>' + (piezas.map(p => {
-        const coste = EquipoLib.COMPRA_ORO * p.nivel;
-        return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
-          <button data-comprar="${esc(p.id)}" ${inv.gold < coste || EquipoLib.llena(pj) ? 'disabled' : ''}>${coste} 🪙</button></div>`;
-      }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
+      if (hero.level < 12) {
+        html = '<h3 class="npc-h">Comprar 🔒 Requiere Nivel 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">El Mercader Tovi reserva su catálogo de armaduras para viajeros de nivel 12 o superior. Completa las misiones de caza de la historia para equiparte.</div>';
+      } else {
+        html = '<h3 class="npc-h">Comprar</h3>' + (piezas.map(p => {
+          const coste = EquipoLib.COMPRA_ORO * p.nivel;
+          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
+            <button data-comprar="${esc(p.id)}" ${inv.gold < coste || EquipoLib.llena(pj) ? 'disabled' : ''}>${coste} 🪙</button></div>`;
+        }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
+      }
       const equipados = new Set(Object.values(pj.equipo));
       const vendibles = pj.inventario.filter(o => !equipados.has(o.uid));
       html += '<h3 class="npc-h">Vender</h3>' + (vendibles.map(o => `
@@ -4066,8 +4075,17 @@
     const fh = e.target.closest('button[data-forjar-hoja]');
     if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); avanzarHistoria({ tipo: 'forjar' }); toast('Forjada con su hoja'); });
     const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
-    if (f) accionNpc(() => { inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold); toast('Fabricada'); avanzarHistoria({ tipo: 'forjar' }); });
-    if (c) accionNpc(() => { inv.gold -= EquipoLib.comprar(pj, catalogoPiezas, c.dataset.comprar, hero.level, inv.gold); toast('Comprada'); });
+    if (f) accionNpc(() => {
+      if (hero.level < 12) throw new Error('Se requiere nivel 12 para fabricar equipo directamente en el herrero');
+      inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold);
+      toast('Fabricada');
+      avanzarHistoria({ tipo: 'forjar' });
+    });
+    if (c) accionNpc(() => {
+      if (hero.level < 12) throw new Error('Se requiere nivel 12 para comprar equipo en el mercader');
+      inv.gold -= EquipoLib.comprar(pj, catalogoPiezas, c.dataset.comprar, hero.level, inv.gold);
+      toast('Comprada');
+    });
     if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
   });
   $('npc-cerrar').onclick = () => $('npc').classList.remove('show');
@@ -4192,12 +4210,38 @@
     else if (p.progreso !== antes) actualizarMision();
   }
 
+  // Entrega y auto-equipa la pieza básica de recompensa forjada por el herrero tras una misión de caza
+  async function entregarPiezaCapitulo(ranura) {
+    const pj = personajeActual;
+    if (!pj) return;
+    try {
+      await cargarCatalogoPiezas();
+      const obj = EquipoLib.forjarPiezaBasica(pj, catalogoPiezas, ranura, Math.random);
+      if (obj) {
+        EquipoLib.equipar(pj, obj.uid, hero.level);
+        aplicarStats();
+        renderObjetos();
+        renderInvCard();
+        toast('🔨 ¡Pieza forjada y equipada: ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)!');
+        await mostrarCuerpo(pj);
+      }
+    } catch (err) {
+      console.warn('Error entregando pieza forjada del capítulo:', err);
+    }
+  }
+
   // Capítulo cumplido: recompensa, se cuenta su historia y empieza el siguiente (con su progreso a 0)
   function cerrarCapitulo() {
     const r = HistoriaLib.completar(heroeEst.principal);
     HeroeLib.recompensar(heroeEst, r.recompensa);
+    if (r.recompensa.desbloquea) {
+      heroeEst.desbloqueadas[r.recompensa.desbloquea] = true;
+    }
     if (r.recompensa.desbloquea === 'acompanante' || heroeEst.desbloqueadas.acompanante) {
       asegurarAcompananteActivo();
+    }
+    if (r.recompensa.forjarPieza) {
+      entregarPiezaCapitulo(r.recompensa.forjarPieza);
     }
     aplicarStats();
     detenerRuta();
@@ -4214,6 +4258,13 @@
     $('cap-texto').textContent = r.texto;
     const pts = r.recompensa.puntos;
     let premio = '🧬 +' + pts + (pts === 1 ? ' punto' : ' puntos') + ' de habilidad';
+    if (r.recompensa.forjarPieza) {
+      const ranurasNombres = {
+        belt: 'cinturón', boots: 'botas', gloves: 'guantes/brazales',
+        torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
+      };
+      premio += ' · 🔨 forja de ' + (ranurasNombres[r.recompensa.forjarPieza] || r.recompensa.forjarPieza) + ' aleatorio';
+    }
     if (r.recompensa.desbloquea) {
       const hab = HeroeLib.HABILIDADES[r.recompensa.desbloquea];
       premio += ' · desbloqueas ' + (hab ? hab.nombre : r.recompensa.desbloquea);
@@ -5110,7 +5161,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, renderInvCard, renderObjetos, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, renderInvCard, renderObjetos, abrirServicio, renderNpc, cerrarCapitulo, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

@@ -182,6 +182,24 @@
     return hoja;
   }
 
+  // Herrero: forja una pieza básica de entrada (nivel 1-2) para una ranura específica y la guarda en inventario.
+  function forjarPiezaBasica(personaje, catalogo, ranura, rnd = Math.random) {
+    const piezas = piezasDeClase(catalogo, personaje.clase);
+    let candidatas = piezas.filter(p => p.ranura === ranura && p.nivel <= 2);
+    if (!candidatas.length) {
+      candidatas = (catalogo.ranuras[ranura] || []).filter(p => p.nivel <= 2).map(p => Object.assign({ ranura, id: ranura + '.' + p.idx }, p));
+    }
+    if (!candidatas.length) {
+      candidatas = piezas.filter(p => p.ranura === ranura);
+    }
+    if (!candidatas.length) return null;
+    const pieza = candidatas[Math.floor(rnd() * candidatas.length)];
+    const calidad = Math.round((0.85 + rnd() * 0.15) * 100) / 100;
+    const obj = instancia(pieza, calidad);
+    guardar(personaje, obj);
+    return obj;
+  }
+
   // Herrero: forja la pieza de una hoja con arena. Consume la hoja. Devuelve la arena que cuesta.
   function forjarConHoja(personaje, catalogo, hojaUid, nivelHeroe, arena) {
     const hoja = objeto(personaje, hojaUid);
@@ -248,7 +266,7 @@
   const api = {
     RANURAS, DROP_NORMAL, FORJA_ORO, COMPRA_ORO, NIVEL_SOLO_COTAS, CAPACIDAD,
     piezasDeClase, instancia, crearPersonaje, objeto, equipoPorIdx, equipar,
-    armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota,
+    armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota, forjarPiezaBasica,
     soltarArena, soltarHoja, forjarConHoja, HOJA_NIVEL, ARENA_FORJA,
     llena, huecosLibres, piezasDeTienda, comprar, precioVenta, tirar, vender
   };

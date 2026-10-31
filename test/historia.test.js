@@ -22,6 +22,12 @@ function mundo() {
       { id: 'zj', name: 'Guarida', type: 'jefe', x: 2000, y: 0, levelMin: 12, levelMax: 15, monsters: normal.concat([{ name: 'Rey', level: 18, boss: true }]) },
       { id: 'zs', name: 'Remanso', type: 'segura', x: 100, y: 100, levelMin: 1, levelMax: 1, monsters: [] }
     ],
+    secretPlaces: [
+      { id: 'sec-f1', tipo: 'fuente', nombre: 'Fuente Arcana de las Ninfas', x: 300, z: 200 },
+      { id: 'sec-c1', tipo: 'cabana', nombre: 'Cabaña del Viejo Erudito', x: 600, z: -300 },
+      { id: 'sec-a1', tipo: 'altar', nombre: 'Altar Rúnico de las Estrellas', x: 1100, z: 500 },
+      { id: 'sec-s1', tipo: 'santuario', nombre: 'Santuario de Piedra y Luz', x: 2200, z: 100 }
+    ],
     roads: []
   };
 }
@@ -43,47 +49,48 @@ function cumplir(p, w) {
   return H.completar(p);
 }
 
-t('empieza de 0: capítulo 1, hablar con la Sabia Elara, sin progreso', () => {
+t('empieza de 0: capítulo 1, cazar criaturas nivel 1 para forjar cinturón, sin progreso', () => {
   const p = H.nuevaPrincipal();
   const o = H.asegurarObjetivo(p, mundo());
   assert.strictEqual(p.paso, 0);
   assert.strictEqual(p.progreso, 0);
-  assert.strictEqual(o.tipo, 'hablar');
-  assert.strictEqual(o.npc, 'guru-1');
+  assert.strictEqual(o.tipo, 'matar');
+  assert.strictEqual(o.cantidad, 3);
+  assert.strictEqual(H.CAPITULOS[0].recompensa.forjarPieza, 'belt');
 });
 
 t('uno a uno: lo que pide un capítulo futuro no cuenta hasta que llega su turno', () => {
   const w = mundo(), p = H.nuevaPrincipal();
   H.asegurarObjetivo(p, w);
-  assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), false);
+  assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z2' }), false);
   assert.strictEqual(H.registrar(p, { tipo: 'visitar', pueblo: 't2' }), false);
-  assert.strictEqual(H.registrar(p, { tipo: 'hablar', npc: 'guru-2' }), false);
+  assert.strictEqual(H.registrar(p, { tipo: 'hablar', npc: 'guru-1' }), false);
   assert.strictEqual(p.progreso, 0);
   assert.throws(() => H.completar(p), /no está cumplido/);
-  assert.strictEqual(H.registrar(p, { tipo: 'hablar', npc: 'guru-1' }), true);
+  assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), false);
+  assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), false);
+  assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), true);
   const r = H.completar(p);
   assert.strictEqual(r.numero, 1);
-  assert.strictEqual(r.capitulo.titulo, 'Los siete reinos');
+  assert.strictEqual(r.capitulo.titulo, 'Pieles de caza y el primer cinturón');
+  assert.strictEqual(r.recompensa.forjarPieza, 'belt');
   assert.strictEqual(p.paso, 1);
   assert.strictEqual(p.objetivo, null);
 });
 
+t('los primeros 7 capítulos otorgan las 7 piezas de equipo básico completo', () => {
+  const ranuras = H.CAPITULOS.slice(0, 7).map(c => c.recompensa.forjarPieza);
+  assert.deepStrictEqual(ranuras, ['belt', 'boots', 'gloves', 'torso', 'helmet', 'shoulders', 'weapon']);
+});
+
 t('cada capítulo nuevo empieza con su progreso a 0, aunque antes hubiera luchado', () => {
   const w = mundo(), p = H.nuevaPrincipal();
-  cumplir(p, w);   // 1: hablar
-  for (let i = 0; i < 10; i++) H.registrar(p, { tipo: 'matar', zona: 'z1' });   // durante el 2 (visitar) no cuenta
-  cumplir(p, w);   // 2: visitar
+  cumplir(p, w);   // 1: matar 3 en z1 (belt)
+  for (let i = 0; i < 10; i++) H.registrar(p, { tipo: 'matar', zona: 'z2' });   // no cuenta para cap 2
+  cumplir(p, w);   // 2: matar 4 en z1 (boots)
   const o = H.asegurarObjetivo(p, w);
   assert.strictEqual(o.tipo, 'matar');
   assert.strictEqual(p.progreso, 0);
-});
-
-t('el capítulo de visitar pide el pueblo vecino; el del norte, el más al norte', () => {
-  const w = mundo(), p = H.nuevaPrincipal();
-  cumplir(p, w);
-  assert.strictEqual(H.asegurarObjetivo(p, w).pueblo, 't2');
-  const norte = H.resolverObjetivo(H.CAPITULOS[6], w);
-  assert.strictEqual(norte.pueblo, 't3');
 });
 
 t('luchar: solo cuentan los monstruos de la zona pedida (el jefe también)', () => {
@@ -132,12 +139,20 @@ t('si el objetivo guardado ya no existe (zona borrada), se elige otro y el progr
   assert.strictEqual(p.progreso, 0);
 });
 
-t('sin más pueblos, el capítulo de viajar se cambia por hablar con su sabio', () => {
+t('soporte de misión visitar: pide pueblo vecino o más al norte, y sin pueblos cambia a sabio', () => {
   const w = mundo();
+  const capTest = { sabio: 'Maestro Oren', npc: 'guru-2', encargo: 'Ve a {lugar}', mision: { tipo: 'visitar', pueblo: 'vecino' } };
+  const o1 = H.resolverObjetivo(capTest, w);
+  assert.strictEqual(o1.tipo, 'visitar');
+  assert.strictEqual(o1.pueblo, 't2');
+  const capNorte = { sabio: 'Maestro Oren', npc: 'guru-2', encargo: 'Ve al norte {lugar}', mision: { tipo: 'visitar', pueblo: 'norte' } };
+  const oNorte = H.resolverObjetivo(capNorte, w);
+  assert.strictEqual(oNorte.pueblo, 't3');
+
   w.towns = w.towns.slice(0, 1);
-  const o = H.resolverObjetivo(H.CAPITULOS[1], w);
-  assert.strictEqual(o.tipo, 'hablar');
-  assert.strictEqual(o.npc, 'guru-2');
+  const o2 = H.resolverObjetivo(capTest, w);
+  assert.strictEqual(o2.tipo, 'hablar');
+  assert.strictEqual(o2.npc, 'guru-2');
 });
 
 t('los textos contados y los encargos nombran el lugar y no dejan marcas sin rellenar', () => {
@@ -150,7 +165,7 @@ t('los textos contados y los encargos nombran el lugar y no dejan marcas sin rel
   }
   const p2 = H.nuevaPrincipal();
   cumplir(p2, w);
-  assert.ok(H.asegurarObjetivo(p2, w).encargo.includes('Corwyn'));
+  assert.ok(H.asegurarObjetivo(p2, w).encargo.includes('Prados'));
 });
 
 t('la crónica repite el texto contado con el mismo lugar', () => {
@@ -158,7 +173,7 @@ t('la crónica repite el texto contado con el mismo lugar', () => {
   cumplir(p, w);
   const r = cumplir(p, w);
   assert.strictEqual(H.textoContado(H.CAPITULOS[1], w), r.texto);
-  assert.ok(r.texto.includes('Corwyn'));
+  assert.ok(r.texto.includes('Prados'));
 });
 
 console.log(`\n${n} pruebas de la historia superadas.`);
