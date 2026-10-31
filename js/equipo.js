@@ -21,7 +21,7 @@
   const HOJA_NORMAL = 0.04;     // probabilidad de hoja en un monstruo normal (el jefe la suelta casi siempre)
   const PIEZA_SUPERIOR = 10;    // las hojas son de piezas de este nivel o superior
   const ARENA_FORJA = 2;        // arena por nivel de la pieza al forjarla con su hoja
-  const CAPACIDAD = 20;         // huecos del inventario (los equipados también ocupan hueco)
+  const CAPACIDAD = 50;         // huecos del inventario (los equipados también ocupan hueco)
 
   const esArma = ranura => ranura === 'weapon';
   const esCota = pieza => /cota/i.test(pieza.nombre);

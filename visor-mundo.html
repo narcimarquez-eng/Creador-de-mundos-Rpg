@@ -112,7 +112,7 @@
     #crear h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
     #objetos { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
     #objetos.show { display: flex; }
-    #objetos .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 420px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+    #objetos .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 620px; max-width: 96vw; max-height: 90vh; overflow-y: auto; }
     #objetos h2 { margin: 0 0 6px; color: var(--gold); font-size: 16px; }
     #capitulo, #cronica { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 45; padding: 16px; }
     #capitulo.show, #cronica.show { display: flex; }
@@ -152,7 +152,7 @@
     #mapa-mundo .leyenda { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
     #mapa-mundo .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
     #mapa-mundo .btns { display: flex; gap: 6px; margin-top: 10px; }
-    #inv-card { position: absolute; top: 54px; right: 8px; width: 250px; z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 11px; }
+    #inv-card { position: absolute; top: 54px; right: 8px; width: 285px; max-width: calc(100vw - 16px); z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 11px; }
     #inv-card.oculta { display: none; }
     #inv-card .ic-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
     #inv-card .ic-head b { flex: 1; color: var(--gold); }
@@ -160,27 +160,37 @@
     #inv-card .ic-body { display: flex; gap: 8px; align-items: flex-start; }
     #inv-card #ic-equip { flex: 1; min-width: 0; line-height: 1.5; }
     #inv-card #ic-equip b { color: #e2e8f0; font-weight: 600; }
-    #inv-card #ic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
-    #inv-card .cell { height: 36px; border: 1px dashed #334155; border-radius: 6px; font-size: 9px; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; color: #64748b; cursor: pointer; padding: 2px; }
-    #inv-card .cell.lleno { border: 1px solid #38bdf8; background: #0c4a6e; color: #e2e8f0; }
-    #inv-card .cell.eq { border-color: var(--gold); background: #713f12; }
-    @media (max-width: 760px) { #inv-card { display: none; } #inv-card.visible-movil { display: block; top: auto; bottom: 150px; right: 8px; width: 210px; } }
+    #inv-card #ic-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px; max-height: 240px; overflow-y: auto; padding-right: 2px; }
+    .cell { position: relative; height: 44px; border: 1px dashed #334155; border-radius: 6px; font-size: 9px; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; color: #475569; cursor: pointer; padding: 2px; background: rgba(15,23,42,0.4); box-sizing: border-box; transition: transform 0.1s, border-color 0.15s; }
+    .cell.vacio { color: #334155; }
+    .cell.lleno { border: 1px solid #0284c7; background: radial-gradient(circle at 50% 30%, #0369a1 0%, #0f172a 90%); color: #e2e8f0; }
+    .cell.lleno:hover { border-color: #38bdf8; transform: translateY(-1px); }
+    .cell.eq { border-color: var(--gold); background: radial-gradient(circle at 50% 30%, #854d0e 0%, #1c1917 90%); box-shadow: inset 0 0 8px rgba(234,179,8,0.25); }
+    .cell.hoja { border-color: #d97706; background: radial-gradient(circle at 50% 30%, #78350f 0%, #0f172a 90%); }
+    .cell .cell-lvl { position: absolute; bottom: 1px; right: 2px; font-size: 8px; font-weight: 700; color: #94a3b8; text-shadow: 0 1px 2px #000; pointer-events: none; }
+    .cell .cell-eq { position: absolute; top: 1px; left: 2px; font-size: 8px; font-weight: 800; color: #fbbf24; background: rgba(0,0,0,0.65); border: 1px solid rgba(251,191,36,0.4); border-radius: 3px; padding: 0 2px; line-height: 1; pointer-events: none; }
+    .cell .cell-num { font-size: 8px; color: #334155; font-weight: 600; }
+    @media (max-width: 760px) { #inv-card { display: none; } #inv-card.visible-movil { display: block; top: auto; bottom: 150px; right: 8px; width: 230px; } }
     #npc { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
     #npc.show { display: flex; }
-    #npc .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 420px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+    #npc .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 440px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
     #npc h2 { margin: 0 0 6px; color: var(--gold); font-size: 16px; }
     #npc .npc-h { margin: 10px 0 4px; font-size: 12px; color: var(--gold); }
-    #npc .slot { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 5px; }
+    #npc .slot { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 5px; background: rgba(15,23,42,0.6); }
     #npc .slot .info { flex: 1; min-width: 0; }
     #npc .muted { color: var(--muted); font-size: 12px; }
     #npc .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    #objetos .slot { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; }
+    #objetos #obj-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin: 10px 0; max-height: 250px; overflow-y: auto; padding: 6px; background: rgba(2,6,23,.5); border: 1px solid #1e293b; border-radius: 8px; }
+    @media (max-width: 640px) { #objetos #obj-grid { grid-template-columns: repeat(5, 1fr); } }
+    #obj-lista { max-height: 320px; overflow-y: auto; padding-right: 4px; margin-top: 8px; }
+    #objetos .slot { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; background: rgba(15,23,42,0.5); transition: background 0.2s, border-color 0.2s; }
+    #objetos .slot.eq { border-color: rgba(234,179,8,0.4); background: rgba(30,27,75,0.3); }
+    #objetos .slot.resaltado { border-color: #38bdf8; background: rgba(2,132,199,0.2); }
+    .item-thumb { width: 38px; height: 38px; border-radius: 6px; background: #0b1120; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+    .slot.eq .item-thumb { border-color: var(--gold); }
     #objetos .slot .info { flex: 1; min-width: 0; }
     #objetos .muted { color: var(--muted); font-size: 12px; }
     #objetos .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    #objetos .cell { height: 36px; border: 1px dashed #334155; border-radius: 6px; font-size: 9px; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; color: #64748b; padding: 2px; }
-    #objetos .cell.lleno { border: 1px solid #38bdf8; background: #0c4a6e; color: #e2e8f0; }
-    #objetos .cell.eq { border-color: var(--gold); background: #713f12; }
     #crear label { display: block; color: var(--muted); font-size: 12px; margin: 6px 0; }
     #crear input, #crear select { width: 100%; margin-top: 3px; }
     #crear .muted { color: var(--muted); font-size: 12px; }
@@ -384,7 +394,7 @@
       <canvas id="obj-doll" width="110" height="200"></canvas>
       <div id="obj-equip" style="flex:1;min-width:0;line-height:1.5;font-size:12px"></div>
     </div>
-    <div id="obj-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:8px 0"></div>
+    <div id="obj-grid"></div>
     <div id="obj-lista"></div>
     <div class="btns"><button id="obj-cerrar">Cerrar</button></div>
   </div></div>
@@ -3782,6 +3792,86 @@
     g.strokeStyle = tela; g.strokeRect(0.5, 0.5, c.width - 1, c.height - 1);
   }
 
+  function iconoItemSvg(obj, size = 28) {
+    if (!obj) return '';
+    const nom = obj.nombre || '';
+    const ranura = obj.ranura || '';
+    const esHoja = obj.tipo === 'hoja' || /^hoja/i.test(nom);
+
+    let inner = '';
+    if (esHoja) {
+      inner = '<path d="M7 6 C7 4, 11 4, 13 6 L25 6 C27 4, 29 6, 29 8 L27 25 C27 27, 23 27, 21 25 L9 25 C7 27, 5 25, 5 23 L7 6 Z" fill="#fef3c7" stroke="#b45309" stroke-width="1.2"/>'
+        + '<path d="M10 10 L22 10 M10 14 L20 14 M10 18 L18 18" stroke="#92400e" stroke-width="1.2" stroke-linecap="round"/>'
+        + '<circle cx="21" cy="20" r="3.5" fill="#dc2626"/><circle cx="21" cy="20" r="1.8" fill="#f59e0b"/>';
+    } else if (ranura === 'helmet') {
+      inner = '<path d="M16 3 C12 3, 11 8, 11 10 C16 9, 21 9, 21 10 C21 8, 20 3, 16 3 Z" fill="#f59e0b" stroke="#b45309" stroke-width="1"/>'
+        + '<path d="M8 12 C8 7, 24 7, 24 12 L24 22 C24 25, 20 28, 16 28 C12 28, 8 25, 8 22 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>'
+        + '<path d="M10 14 Q16 12 22 14 L21 18 Q16 19 11 18 Z" fill="#1e293b"/>'
+        + '<line x1="12" y1="16" x2="20" y2="16" stroke="#38bdf8" stroke-width="1.2" stroke-linecap="round"/>'
+        + '<path d="M15 18 L17 18 L16.5 25 L15.5 25 Z" fill="#64748b"/>'
+        + '<circle cx="13" cy="22" r="0.8" fill="#1e293b"/><circle cx="19" cy="22" r="0.8" fill="#1e293b"/>';
+    } else if (ranura === 'torso') {
+      inner = '<path d="M9 7 L13 6 L16 9 L19 6 L23 7 L25 15 C23 20, 22 24, 21 27 L11 27 C10 24, 9 20, 7 15 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>'
+        + '<path d="M16 9 L16 27" stroke="#64748b" stroke-width="1.2"/><path d="M11 14 Q16 17 21 14" fill="none" stroke="#64748b" stroke-width="1.2"/>'
+        + '<circle cx="12" cy="8" r="1" fill="#f59e0b"/><circle cx="20" cy="8" r="1" fill="#f59e0b"/><rect x="13" y="24" width="6" height="2" fill="#f59e0b" rx="0.5"/>';
+    } else if (ranura === 'shoulders') {
+      inner = '<path d="M4 12 C4 8, 12 7, 13 12 L12 19 C9 19, 4 17, 4 12 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>'
+        + '<path d="M5 15 C7 17, 11 17, 12 16" fill="none" stroke="#f59e0b" stroke-width="1"/>'
+        + '<path d="M28 12 C28 8, 20 7, 19 12 L20 19 C23 19, 28 17, 28 12 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>'
+        + '<path d="M27 15 C25 17, 21 17, 20 16" fill="none" stroke="#f59e0b" stroke-width="1"/>'
+        + '<path d="M13 11 Q16 13 19 11" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>';
+    } else if (ranura === 'gloves') {
+      inner = '<path d="M6 18 L7 11 L12 11 L13 18 L12 25 L7 25 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2" rx="1"/>'
+        + '<rect x="7" y="19" width="5" height="2" fill="#f59e0b"/><line x1="9" y1="11" x2="9" y2="16" stroke="#475569" stroke-width="1"/>'
+        + '<path d="M26 18 L25 11 L20 11 L19 18 L20 25 L25 25 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2" rx="1"/>'
+        + '<rect x="20" y="19" width="5" height="2" fill="#f59e0b"/><line x1="23" y1="11" x2="23" y2="16" stroke="#475569" stroke-width="1"/>';
+    } else if (ranura === 'belt') {
+      inner = '<rect x="4" y="13" width="24" height="7" rx="1.5" fill="#78350f" stroke="#451a03" stroke-width="1.2"/>'
+        + '<line x1="4" y1="16.5" x2="28" y2="16.5" stroke="#92400e" stroke-width="1" stroke-dasharray="2,2"/>'
+        + '<rect x="12" y="11" width="8" height="11" rx="2" fill="#f59e0b" stroke="#78350f" stroke-width="1.2"/>'
+        + '<rect x="14" y="13" width="4" height="7" rx="1" fill="#451a03"/><line x1="16" y1="12" x2="16" y2="21" stroke="#f59e0b" stroke-width="1.5"/>';
+    } else if (ranura === 'tassets') {
+      inner = '<rect x="7" y="7" width="18" height="3" fill="#78350f" stroke="#451a03" stroke-width="1" rx="1"/>'
+        + '<path d="M8 11 L14 11 L13 24 L7 21 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/><line x1="9" y1="15" x2="13" y2="15" stroke="#cbd5e1" stroke-width="1"/>'
+        + '<path d="M18 11 L24 11 L25 21 L19 24 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/><line x1="19" y1="15" x2="23" y2="15" stroke="#cbd5e1" stroke-width="1"/>'
+        + '<path d="M14 11 L18 11 L17 19 L15 19 Z" fill="#f59e0b" stroke="#b45309" stroke-width="1"/>';
+    } else if (ranura === 'cuisses') {
+      inner = '<path d="M7 8 L13 7 L12 24 L8 24 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2" rx="1"/><line x1="8" y1="13" x2="12.5" y2="13" stroke="#cbd5e1" stroke-width="1"/>'
+        + '<path d="M19 7 L25 8 L24 24 L20 24 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2" rx="1"/><line x1="19.5" y1="13" x2="24" y2="13" stroke="#cbd5e1" stroke-width="1"/>';
+    } else if (ranura === 'knees') {
+      inner = '<path d="M7 12 C7 9, 14 9, 14 12 L15 16 L10 21 L6 16 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/><circle cx="10.5" cy="15" r="2" fill="#f59e0b"/>'
+        + '<path d="M18 12 C18 9, 25 9, 25 12 L26 16 L22 21 L17 16 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/><circle cx="21.5" cy="15" r="2" fill="#f59e0b"/>';
+    } else if (ranura === 'boots') {
+      inner = '<path d="M8 7 L13 7 L12 18 L15 20 L15 24 L6 24 L6 18 Z" fill="#78350f" stroke="#451a03" stroke-width="1.2"/><path d="M8 7 L13 7 L12.5 13 L7.5 13 Z" fill="#94a3b8" stroke="#334155" stroke-width="1"/><rect x="6" y="22" width="9" height="2.5" fill="#451a03"/>'
+        + '<path d="M19 7 L24 7 L26 18 L26 24 L17 24 L17 20 L20 18 Z" fill="#78350f" stroke="#451a03" stroke-width="1.2"/><path d="M19 7 L24 7 L24.5 13 L19.5 13 Z" fill="#94a3b8" stroke="#334155" stroke-width="1"/><rect x="17" y="22" width="9" height="2.5" fill="#451a03"/>';
+    } else if (ranura === 'underlayer') {
+      inner = '<path d="M10 6 L14 5 L16 8 L18 5 L22 6 L27 12 L23 15 L21 13 L21 26 L11 26 L11 13 L9 15 L5 12 Z" fill="#64748b" stroke="#334155" stroke-width="1.2"/>'
+        + '<line x1="13" y1="12" x2="19" y2="12" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/><line x1="12" y1="16" x2="20" y2="16" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/><line x1="12" y1="20" x2="20" y2="20" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/><line x1="13" y1="24" x2="19" y2="24" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/>';
+    } else if (ranura === 'weapon') {
+      if (/arco/i.test(nom)) {
+        inner = '<path d="M8 4 Q20 16 8 28" fill="none" stroke="#a16207" stroke-width="2.5" stroke-linecap="round"/><line x1="8" y1="4" x2="8" y2="28" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,1"/><line x1="6" y1="16" x2="26" y2="16" stroke="#f59e0b" stroke-width="1.5"/><polygon points="26,16 22,13 23,16 22,19" fill="#dc2626"/><line x1="6" y1="14" x2="8" y2="16" stroke="#f1f5f9" stroke-width="1.2"/><line x1="6" y1="18" x2="8" y2="16" stroke="#f1f5f9" stroke-width="1.2"/>';
+      } else if (/escudo|rodela|broquel|pav[eé]s/i.test(nom)) {
+        inner = '<path d="M8 6 L24 6 L23 18 C23 23, 16 27, 16 28 C16 27, 9 23, 9 18 Z" fill="#1e3a8a" stroke="#f59e0b" stroke-width="1.5"/><line x1="16" y1="7" x2="16" y2="26" stroke="#fbbf24" stroke-width="1.5"/><line x1="9.5" y1="14" x2="22.5" y2="14" stroke="#fbbf24" stroke-width="1.5"/><line x1="5" y1="27" x2="27" y2="5" stroke="#f8fafc" stroke-width="2" stroke-linecap="round"/><line x1="7" y1="22" x2="12" y2="27" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/><circle cx="5" cy="27" r="1.5" fill="#f59e0b"/>';
+      } else if (/hacha|labrys|tomahawk/i.test(nom)) {
+        inner = '<line x1="8" y1="27" x2="23" y2="6" stroke="#78350f" stroke-width="2.5" stroke-linecap="round"/><path d="M21 7 C23 5, 27 5, 29 8 C27 12, 23 14, 20 12 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/><path d="M19 10 C16 12, 13 11, 12 8 C15 7, 18 8, 19 9 Z" fill="#94a3b8" stroke="#334155" stroke-width="1"/>';
+      } else if (/maza|martillo|mangual|porra|macuahuitl/i.test(nom)) {
+        inner = '<line x1="8" y1="26" x2="22" y2="8" stroke="#78350f" stroke-width="2.5" stroke-linecap="round"/><circle cx="23" cy="8" r="5" fill="#64748b" stroke="#1e293b" stroke-width="1.2"/><circle cx="23" cy="8" r="2.5" fill="#f59e0b"/><line x1="23" y1="2" x2="23" y2="5" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"/><line x1="27" y1="5" x2="25" y2="7" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"/><line x1="28" y1="10" x2="25" y2="9" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"/>';
+      } else if (/b[aá]culo|cetro|bast[oó]n|vara/i.test(nom)) {
+        inner = '<line x1="8" y1="27" x2="22" y2="9" stroke="#78350f" stroke-width="2.5" stroke-linecap="round"/><circle cx="23" cy="8" r="4.5" fill="#a855f7" stroke="#f59e0b" stroke-width="1.5"/><circle cx="23" cy="8" r="2" fill="#c084fc"/><circle cx="21.5" cy="6.5" r="1" fill="#fff"/>';
+      } else if (/lanza|alabarda|pica|tridente|glaive|partesana|bisarma/i.test(nom)) {
+        inner = '<line x1="6" y1="26" x2="23" y2="9" stroke="#78350f" stroke-width="2" stroke-linecap="round"/><polygon points="26,6 20,9 23,12" fill="#e2e8f0" stroke="#334155" stroke-width="1"/><line x1="20" y1="9" x2="26" y2="6" stroke="#38bdf8" stroke-width="1.2"/><line x1="20" y1="11" x2="22" y2="13" stroke="#f59e0b" stroke-width="1.5"/>';
+      } else if (/daga|cuchillo|punz[oó]n|kris|misericordia/i.test(nom)) {
+        inner = '<line x1="8" y1="24" x2="12" y2="20" stroke="#78350f" stroke-width="3" stroke-linecap="round"/><circle cx="7" cy="25" r="2" fill="#f59e0b"/><line x1="10" y1="18" x2="14" y2="22" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/><polygon points="24,8 14,18 12,16" fill="#e2e8f0" stroke="#475569" stroke-width="1"/><line x1="13" y1="17" x2="24" y2="8" stroke="#38bdf8" stroke-width="1"/>';
+      } else {
+        inner = '<line x1="6" y1="26" x2="10" y2="22" stroke="#78350f" stroke-width="3" stroke-linecap="round"/><circle cx="5" cy="27" r="2" fill="#f59e0b"/><line x1="8" y1="19" x2="13" y2="24" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/><polygon points="27,5 12,20 10,18" fill="#f1f5f9" stroke="#334155" stroke-width="1"/><line x1="11" y1="19" x2="27" y2="5" stroke="#38bdf8" stroke-width="1"/>';
+      }
+    } else {
+      inner = '<circle cx="16" cy="16" r="9" fill="#64748b" stroke="#334155" stroke-width="1.5"/><circle cx="16" cy="16" r="4" fill="#f59e0b"/>';
+    }
+
+    return `<svg class="item-svg" viewBox="0 0 32 32" width="${size}" height="${size}" style="display:block;margin:auto;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5))">${inner}</svg>`;
+  }
+
   function renderInvCard() {
     const card = $('inv-card');
     const pj = personajeActual;
@@ -3794,11 +3884,23 @@
       const o = pj.inventario.find(x => x.uid === pj.equipo[r]);
       return o ? `<div>${ZONA_NOMBRE[r] || r}: <b>${esc(o.nombre)}</b></div>` : '';
     }).join('') || '<span class="muted">Sin equipo</span>';
+
     let celdas = '';
     for (let i = 0; i < EquipoLib.CAPACIDAD; i++) {
       const o = pj.inventario[i];
-      if (!o) { celdas += '<div class="cell">libre</div>'; continue; }
-      celdas += `<div class="cell lleno ${equipados.has(o.uid) ? 'eq' : ''}" data-ver="${esc(o.uid)}" title="${esc(o.nombre)}">${esc(o.nombre)}</div>`;
+      if (!o) {
+        celdas += `<div class="cell vacio"><span class="cell-num">${i + 1}</span></div>`;
+        continue;
+      }
+      const esEq = equipados.has(o.uid);
+      const esHoja = o.tipo === 'hoja' || /^hoja/i.test(o.nombre);
+      const stat = o.ataque ? `Atq +${o.ataque}` : (o.defensa ? `Def +${o.defensa}` : '');
+      const desc = `${o.nombre}\nNivel ${o.nivel} · ${ZONA_NOMBRE[o.ranura] || o.ranura || (esHoja ? 'Plano' : '')}${stat ? ' · ' + stat : ''}${o.estado != null ? ' · Estado ' + Math.round(o.estado * 100) + '%' : ''}${esEq ? '\n[EQUIPADO]' : ''}`;
+      celdas += `<div class="cell lleno ${esEq ? 'eq' : ''} ${esHoja ? 'hoja' : ''}" data-ver="${esc(o.uid)}" title="${esc(desc)}">`
+        + (esEq ? '<span class="cell-eq">E</span>' : '')
+        + iconoItemSvg(o, 26)
+        + `<span class="cell-lvl">${o.nivel ? 'N' + o.nivel : ''}</span>`
+        + `</div>`;
     }
     $('ic-grid').innerHTML = celdas;
     // Mismo contenido en el panel de objetos (en móvil la tarjeta queda oculta)
@@ -3813,6 +3915,16 @@
     renderObjetos();
     $('objetos').classList.add('show');
   });
+  $('obj-grid').addEventListener('click', e => {
+    const c = e.target.closest('.cell.lleno');
+    if (!c || !c.dataset.ver) return;
+    const targetEl = $('obj-lista').querySelector(`[data-uid="${c.dataset.ver}"]`);
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      targetEl.classList.add('resaltado');
+      setTimeout(() => targetEl.classList.remove('resaltado'), 1500);
+    }
+  });
 
   // Inventario: objetos del personaje con su estado. Equipar regenera el cuerpo con la nueva pieza.
   function renderObjetos() {
@@ -3822,14 +3934,19 @@
     const equipados = new Set(Object.values(pj.equipo));
     $('obj-huecos').textContent = pj.inventario.length + ' / ' + EquipoLib.CAPACIDAD + ' huecos · arena ' + (inv.arena || 0) + ' 🧱';
     $('obj-lista').innerHTML = pj.inventario.map(o => {
-      const stat = o.ataque ? 'ataque ' + o.ataque : 'defensa ' + o.defensa;
-      const accion = equipados.has(o.uid) ? '<span class="muted">✅ equipado</span>'
+      const stat = o.ataque ? 'ataque ' + o.ataque : (o.defensa ? 'defensa ' + o.defensa : '');
+      const esEq = equipados.has(o.uid);
+      const accion = esEq ? '<span class="muted">✅ equipado</span>'
         : o.tipo === 'hoja' ? '<span class="muted">📜 forja en el herrero</span>'
         : (o.nivel <= hero.level ? `<button data-equipar="${esc(o.uid)}">Equipar</button>` : `<span class="muted">🔒 nivel ${o.nivel}</span>`)
           + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
           + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
-      return `<div class="slot"><div class="info"><b>${esc(o.nombre)}</b>
-        <span class="muted">${esc(o.ranura)} · nivel ${o.nivel} · estado ${Math.round(o.estado * 100)}% · ${stat}</span></div>${accion}</div>`;
+      return `<div class="slot ${esEq ? 'eq' : ''}" data-uid="${esc(o.uid)}">
+        <div class="item-thumb" title="${esc(o.nombre)}">${iconoItemSvg(o, 30)}</div>
+        <div class="info"><b>${esc(o.nombre)}</b>
+        <span class="muted">${esc(ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : ''))} · nivel ${o.nivel} · estado ${Math.round((o.estado != null ? o.estado : 1) * 100)}%${stat ? ' · ' + stat : ''}</span></div>
+        ${accion}
+      </div>`;
     }).join('') || '<div class="muted">No tienes objetos.</div>';
   }
   $('sk-objetos').onclick = () => { renderObjetos(); $('objetos').classList.add('show'); };
@@ -3897,12 +4014,12 @@
       const hojas = pj.inventario.filter(o => o.tipo === 'hoja');
       html = '<h3 class="npc-h">Forjar con hoja (arena ' + (inv.arena || 0) + ' 🧱)</h3>' + (hojas.map(o => {
         const coste = EquipoLib.ARENA_FORJA * o.nivel;
-        return `<div class="slot"><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel}</span></div>
+        return `<div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel}</span></div>
           <button data-forjar-hoja="${esc(o.uid)}" ${(inv.arena || 0) < coste || hero.level < o.nivel ? 'disabled' : ''}>${coste} 🧱</button></div>`;
       }).join('') || '<div class="muted">No tienes hojas. Los monstruos de nivel 8 o más pueden soltarlas.</div>');
       html += '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + (piezas.map(p => {
         const coste = EquipoLib.FORJA_ORO * p.nivel;
-        return `<div class="slot"><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
+        return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
           <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
       }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
     } else if (servicio === 'entrenador') {
@@ -3912,13 +4029,13 @@
     } else {
       html = '<h3 class="npc-h">Comprar</h3>' + (piezas.map(p => {
         const coste = EquipoLib.COMPRA_ORO * p.nivel;
-        return `<div class="slot"><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
+        return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
           <button data-comprar="${esc(p.id)}" ${inv.gold < coste || EquipoLib.llena(pj) ? 'disabled' : ''}>${coste} 🪙</button></div>`;
       }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
       const equipados = new Set(Object.values(pj.equipo));
       const vendibles = pj.inventario.filter(o => !equipados.has(o.uid));
       html += '<h3 class="npc-h">Vender</h3>' + (vendibles.map(o => `
-        <div class="slot"><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel} · ${Math.round(o.estado * 100)}%</span></div>
+        <div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel} · ${Math.round(o.estado * 100)}%</span></div>
         <button data-vender="${esc(o.uid)}">${EquipoLib.precioVenta(pj, o)} 🪙</button></div>`).join('') || '<div class="muted">No tienes objetos que vender.</div>');
     }
     $('npc-lista').innerHTML = html;
@@ -4979,7 +5096,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, renderInvCard, renderObjetos, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
