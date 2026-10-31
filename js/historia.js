@@ -28,16 +28,16 @@
       recompensa: { puntos: 2 }
     },
     {
-      id: 'c3', nivel: 2, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'El joven de la aldea',
-      encargo: 'Rowan, un joven aldeano con jubón de cuero y botas de viaje, quiere aprender a defender su tierra. La Hermana Ysolde te pide que lo lleves contigo a {lugar} y derrotes a {n} criaturas.',
-      texto: 'Rowan empuña su espada corta con determinación: «¡No seré una carga! Te cubriré la espalda». Rowan el aldeano se une a tu aventura como fiel acompañante.',
+      id: 'c3', nivel: 2, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Las runas de la muralla',
+      encargo: 'La Hermana Ysolde ha visto marcas rúnicas en la piel de las bestias de {lugar}, idénticas a la frase secreta de la piedra del pozo. Rowan, un joven aldeano con jubón de cuero y botas de viaje, quiere acompañarte a investigar y derrotar a {n} criaturas.',
+      texto: 'Las runas de la muralla se leen de abajo arriba: las marcas de las bestias coinciden con la frase del pozo que nadie ha descifrado. Alguien las está copiando. Rowan empuña su espada corta: «¡No seré una carga! Te cubriré la espalda». Rowan el aldeano se une a tu aventura como fiel acompañante.',
       mision: { tipo: 'matar', cantidad: 4, nivel: 2 },
       recompensa: { puntos: 2, desbloquea: 'acompanante' }
     },
     {
       id: 'c4', nivel: 4, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Los que no temen al acero',
       encargo: 'El Viejo Tamsin no se fía de los forasteros. «Demuéstrame que tu acero y el coraje de tu aldeano sirven: {n} criaturas en {lugar}, y hablamos.»',
-      texto: 'En los bosques viven criaturas que el acero vence sin esfuerzo. Tamsin asiente, salta y golpea el suelo con las dos manos: la tierra tiembla bajo las bestias. El impacto sísmico (Q) ya es tuyo.',
+      texto: 'En los bosques de la zona viven criaturas que el acero vence sin esfuerzo: son el primer examen de cualquier guerrero. Tamsin asiente satisfecho, salta y golpea el suelo con las dos manos: la tierra tiembla bajo las bestias. El impacto sísmico (Q) ya es tuyo.',
       mision: { tipo: 'matar', cantidad: 8, nivel: 4 },
       recompensa: { puntos: 2, desbloquea: 'sismo' }
     },
@@ -49,30 +49,30 @@
       recompensa: { puntos: 2 }
     },
     {
-      id: 'c6', nivel: 5, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'El susurro de la fuente',
-      encargo: 'Rowan recuerda haber visto reflejos azulados en lo profundo de los riscos. Elara confirma que una legendaria {lugar} mana aguas mágicas. ¡Explorad hasta encontrarla!',
-      texto: 'Encontráis la fuente arcana brotando entre sillares pulidos. Rowan se arrodilla fascinado: el agua cristalina revitaliza vuestras fuerzas y ahuyenta el cansancio de las batallas.',
+      id: 'c6', nivel: 5, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'La arena del herrero y la fuente arcana',
+      encargo: 'Elara recuerda que la arena de las dunas templa las armaduras superiores y que en los riscos mana una legendaria {lugar}. ¡Explorad con Rowan hasta descubrirla!',
+      texto: 'Dicen que la arena templa el acero superior, pero solo quien posea la hoja de la pieza puede forjarla. Al pie de la fuente arcana halláis aguas luminosas entre sillares pulidos que revitalizan vuestras fuerzas.',
       mision: { tipo: 'secreto', secreto: 'fuente' },
       recompensa: { puntos: 3 }
     },
     {
       id: 'c7', nivel: 8, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'Los caminos del norte',
       encargo: 'Oren señala el norte en su mapa: «{lugar} es el último pueblo antes de los caminos que no figuran en ningún mapa. Ve con Rowan y míralo con tus ojos».',
-      texto: 'Más allá de las zonas de caza hay caminos que no figuran en ningún mapa. En {lugar} hablan de criaturas salvajes que acechan a los viajeros y de viejas cabañas solitarias en los valles.',
+      texto: 'Más allá de las zonas de caza hay caminos que no figuran en ningún mapa. Algunos conducen a los guardianes que cortan las rutas. En {lugar} hablan de criaturas salvajes y de una vieja cabaña solitaria en los valles.',
       mision: { tipo: 'visitar', pueblo: 'norte' },
       recompensa: { puntos: 3 }
     },
     {
       id: 'c8', nivel: 10, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'El sello de la nova',
-      encargo: 'Ysolde por fin ha descifrado la profecía: «El sello de poder despierta con la sangre de {lugar}». Derrota a {n} criaturas allí junto a Rowan.',
-      texto: 'La nova de energía pura brota de tus manos. Rowan observa maravillado el estallido: la explosión nova (E) ya es tuya para combatir a las hordas del territorio.',
+      encargo: 'Ysolde por fin ha descifrado la frase oculta del pozo: «El sello despierta con la sangre de {lugar}». Derrota a {n} criaturas allí junto a Rowan.',
+      texto: 'La nova de energía pura no es un truco vulgar: es un sello sagrado que las runas antiguas dejaron a quien lo merezca. Rowan observa maravillado el estallido: la explosión nova (E) ya es tuya.',
       mision: { tipo: 'matar', cantidad: 12, nivel: 10 },
       recompensa: { puntos: 3, desbloquea: 'nova' }
     },
     {
       id: 'c9', nivel: 10, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'La cabaña en la espesura',
-      encargo: 'Tamsin menciona un viejo ermitaño que vigilaba los bosques desde una cabaña escondida. Encuentra la {lugar} para recuperar sus mapas olvidados.',
-      texto: 'Entre la espesura halláis la cabaña de troncos envejecidos. Entre viejos pergaminos descubrís bocetos de un altar astronómico y anotaciones sobre las bestias.',
+      encargo: 'Tamsin menciona un viejo ermitaño que vigilaba los bosques desde una cabaña escondida. Encuentra la {lugar} para recuperar sus mapas olvidados y advertencias sobre las bestias.',
+      texto: 'Entre la espesura halláis la cabaña de troncos envejecidos. Entre viejos pergaminos descubrís bocetos de un altar astronómico y anotaciones sobre los grandes señores de la fauna salvaje.',
       mision: { tipo: 'secreto', secreto: 'cabana' },
       recompensa: { puntos: 3 }
     },
@@ -85,7 +85,7 @@
     },
     {
       id: 'c11', nivel: 12, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El altar de las estrellas',
-      encargo: 'Oren os encomienda seguir los mapas del ermitaño hasta el {lugar}. Dicen que allí resuena la memoria de los antiguos gobernantes.',
+      encargo: 'Oren os encomienda seguir los mapas del ermitaño hasta el {lugar}. Dicen que allí resuena la memoria viva de los siete reinos.',
       texto: 'Los monolitos del altar rúnico se alzan hacia el cielo. Al posar la mano sobre la losa central, una oleada de energía recorre vuestras armas. Rowan siente que el destino os guía.',
       mision: { tipo: 'secreto', secreto: 'altar' },
       recompensa: { puntos: 4 }
@@ -99,29 +99,29 @@
     },
     {
       id: 'c13', nivel: 14, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'El santuario de la luz',
-      encargo: 'Elara revela la cúspide de la crónica: «En el corazón del mundo se yergue el {lugar}, la mayor maravilla de los siete reinos. Descubridlo».',
+      encargo: 'Elara revela la cúspide de la crónica: «En el corazón del mundo se yergue el {lugar}, la mayor maravilla de los siete reinos. Descubrid su fulgor».',
       texto: 'Ante vosotros se alza el Santuario de Piedra y Luz: columnas ciclópeas y un cristal flotante que ilumina las nubes. El aire mismo vibra de poder milenario.',
       mision: { tipo: 'secreto', secreto: 'santuario' },
       recompensa: { puntos: 4 }
     },
     {
-      id: 'c14', nivel: 15, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'El titán de las sombras',
+      id: 'c14', nivel: 15, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Los jefes del bosque y el titán',
       encargo: 'Tamsin advierte con gravedad: «El señor de las bestias en {lugar} vigila los accesos finales. Nadie ha regresado de allí. Derrotadlo».',
-      texto: 'Tras un combate colosal donde Rowan te cubre en el momento crítico, el titán cae derribado haciendo temblar el valle entero. Las tierras quedan por fin liberadas.',
+      texto: 'Cada territorio de jefe tiene su guardián, y ninguno cae a la primera. Tras un combate colosal donde Rowan te cubre en el momento crítico, el titán cae derribado. Las caravanas vuelven a salir y los caminos quedan libres.',
       mision: { tipo: 'jefe', nivel: 15 },
       recompensa: { puntos: 5 }
     },
     {
       id: 'c15', nivel: 15, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'El juramento en la fuente',
       encargo: 'Rowan te pide visitar una {lugar} para purificar las armas tras la gran batalla y renovar vuestro juramento de protección sobre Aden.',
-      texto: 'Bajo el fulgor de la fuente arcana, las aguas limpian el óxido y el cansancio. Rowan sonríe: ya no es un muchacho tímido de aldea, sino un auténtico explorador.',
+      texto: 'Bajo el fulgor de la fuente arcana, las aguas limpian el óxido y el cansancio. Rowan sonríe: ya no es un muchacho tímido de aldea, sino un auténtico héroe de leyenda.',
       mision: { tipo: 'secreto', secreto: 'fuente' },
       recompensa: { puntos: 4 }
     },
     {
-      id: 'c16', nivel: 15, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'Los héroes de la crónica',
-      encargo: 'Regresad a la plaza de la aldea inicial. La Erudita Mirel os aguarda para sellar la crónica y coronaros como los héroes eternos de Aden.',
-      texto: 'Las campanas de la aldea doblan al unísono. La Sabia Elara, Oren, Ysolde, Tamsin y Mirel os aclaman ante toda la multitud. Vuestra crónica vivirá para siempre.',
+      id: 'c16', nivel: 15, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'El héroe de la plaza',
+      encargo: 'Regresad a la plaza de la aldea inicial. La Erudita Mirel y los sabios os aguardan para grabar vuestros nombres en la crónica, junto a los siete reinos.',
+      texto: 'Cuando alguien sube hasta aquí, la plaza le recuerda. Los puestos siguen abiertos, las runas siguen en la muralla, y el camino de piedra lleva a casa. Las campanas doblan al unísono y la multitud os aclama como los Campeones de Aden.',
       mision: { tipo: 'hablar', npc: 'guru-5', nombre: 'Erudita Mirel' },
       recompensa: { puntos: 6, titulo: 'Campeones de Aden' }
     }
