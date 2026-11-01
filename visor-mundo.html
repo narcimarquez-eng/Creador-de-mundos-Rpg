@@ -616,6 +616,50 @@
     </div>
   </div>
 
+  <!-- HUD Superior del Jefe de Mazmorra -->
+  <div id="dungeon-boss-hud" style="display:none;position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:90;width:min(580px,90vw);background:rgba(15,23,42,0.92);border:1.5px solid #a855f7;box-shadow:0 0 24px rgba(168,85,247,0.45);border-radius:10px;padding:8px 14px;text-align:center;backdrop-filter:blur(6px);pointer-events:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-weight:700;font-size:14px;color:#f3e8ff;text-shadow:0 0 8px rgba(192,132,252,0.8)"><span style="font-size:16px">👑</span> <span id="dbh-name">Señor del Trono Caído</span></span>
+      <span id="dbh-lvl" style="font-size:12px;font-weight:600;color:#c084fc;background:#3b0764;padding:2px 8px;border-radius:10px;border:1px solid #7e22ce">Nv 20</span>
+    </div>
+    <div style="position:relative;height:16px;background:#1e1b4b;border:1px solid #4c1d95;border-radius:8px;overflow:hidden">
+      <div id="dbh-bar" style="height:100%;width:100%;background:linear-gradient(90deg,#9333ea,#dc2626);transition:width 0.15s ease"></div>
+      <div id="dbh-hp-txt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#ffffff;text-shadow:0 1px 2px #000">100%</div>
+    </div>
+  </div>
+
+  <!-- Prompt para entrar a la Mazmorra tras cruzar el pasillo de 30m -->
+  <div id="dungeon-prompt" style="display:none;position:fixed;bottom:135px;left:50%;transform:translateX(-50%);z-index:90;background:rgba(15,23,42,0.94);border:1.5px solid #a855f7;box-shadow:0 0 25px rgba(168,85,247,0.6);border-radius:12px;padding:10px 18px;text-align:center;backdrop-filter:blur(8px);cursor:pointer">
+    <div id="dp-title" style="font-weight:700;font-size:14px;color:#f3e8ff;margin-bottom:3px">🗝 Mazmorra Ancestral</div>
+    <div style="font-size:12px;color:#cbd5e1">Has recorrido los 30 metros del corredor. <b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para cruzar a la Mazmorra.</div>
+  </div>
+
+  <!-- Modal de Victoria en la Mazmorra -->
+  <div class="modal-bg" id="modal-dungeon-victory" style="display:none;z-index:999">
+    <div class="modal" style="width:min(480px,92vw);text-align:center;border:1.5px solid #a855f7;box-shadow:0 0 35px rgba(168,85,247,0.5)">
+      <div style="font-size:42px;margin-bottom:6px">👑</div>
+      <h2 style="color:#f3e8ff;margin:0 0 8px;font-size:20px;text-shadow:0 0 12px rgba(168,85,247,0.8)">¡JEFE DE MAZMORRA DERROTADO!</h2>
+      <p id="dv-desc" style="color:#cbd5e1;font-size:13px;line-height:1.5;margin-bottom:14px">Has vencido al gobernante de la cripta y despejado la mazmorra ancestral.</p>
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:16px;text-align:left">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#a855f7;margin-bottom:8px">🎁 Gran Botín Obtenido:</div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #1e293b"><span>🪙 Oro Arcano:</span><b id="dv-gold" style="color:#fbbf24">+3000</b></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #1e293b"><span>🔮 Arena Arcana:</span><b id="dv-arena" style="color:#38bdf8">+60</b></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span>🛡 Equipo Legendario:</span><b id="dv-equip" style="color:#c084fc">Yelmo del Soberano Caído</b></div>
+      </div>
+      <button class="gold" id="btn-dungeon-exit" style="width:100%;padding:10px;font-size:14px;font-weight:700;cursor:pointer">🧭 Regresar a la Superficie</button>
+    </div>
+  </div>
+
+  <!-- Modal de Derrota en la Mazmorra -->
+  <div class="modal-bg" id="modal-dungeon-defeat" style="display:none;z-index:999">
+    <div class="modal" style="width:min(440px,92vw);text-align:center;border:1.5px solid #ef4444;box-shadow:0 0 35px rgba(239,68,68,0.5)">
+      <div style="font-size:42px;margin-bottom:6px">💀</div>
+      <h2 style="color:#fee2e2;margin:0 0 8px;font-size:20px;text-shadow:0 0 12px rgba(239,68,68,0.8)">HAS SIDO DERROTADO</h2>
+      <p style="color:#cbd5e1;font-size:13px;line-height:1.5;margin-bottom:16px">Tus fuerzas cedieron ante las criaturas de la mazmorra. Eres devuelto al exterior frente al arco con tu salud restaurada.</p>
+      <button class="danger" id="btn-dungeon-respawn" style="width:100%;padding:10px;font-size:14px;font-weight:700;cursor:pointer">🚪 Reaparecer en la Entrada Exterior</button>
+    </div>
+  </div>
+
   <div id="toast"></div>
   <div id="bocadillo-rowan"></div>
 
@@ -623,7 +667,8 @@
   <script defer src="js/lagos.js?v=20251029"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
-  <script defer src="js/lugares-secretos.js?v=20261031"></script>
+  <script defer src="js/lugares-secretos.js?v=20261101b"></script>
+  <script defer src="js/mazmorras.js?v=20261101"></script>
   <script defer src="js/acompanante.js?v=20261031"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
@@ -1079,6 +1124,10 @@
     lugaresSecretos = [];
     const grupoSecAntiguo = scene.getObjectByName('LugaresSecretosMundo');
     if (grupoSecAntiguo) scene.remove(grupoSecAntiguo);
+    mazmorrasIniciadas = false;
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) gestorMazmorras.salirInstancia(false);
+    const grupoMazAntiguo = scene.getObjectByName('EntradasMazmorrasMundo');
+    if (grupoMazAntiguo) scene.remove(grupoMazAntiguo);
     encargosPendientes.length = 0;
     encargosColocados = false;
     misionPorZona = {};
@@ -1104,6 +1153,13 @@
     ensureScene();
     clearWorldObjects();
     world = w;
+    world.dungeons = world.dungeons || [];
+    if (!world.dungeons.length && typeof MazmorrasLib !== 'undefined') {
+      const p1 = world.towns && world.towns[0];
+      const dX = p1 ? (p1.x + 180) : 400;
+      const dY = p1 ? (p1.y + 180) : 400;
+      world.dungeons.push(MazmorrasLib.generarMazmorraPorDefecto(world, dX, dY));
+    }
     terrain = W.getTerrain(world.seed);
     selected = null;
     hideInfo();
@@ -1192,6 +1248,7 @@
     }
     updateStats();
     iniciarLugaresSecretos();
+    iniciarMazmorras();
     colocarGurus();
     colocarEncargos();
     actualizarMision();
@@ -5735,6 +5792,192 @@
     }
   }
 
+  /* ===========================================================================
+   * GESTIÓN DE MAZMORRAS ANCESTRALES (Arco exterior + 30m pasillo + Instancia)
+   * =========================================================================== */
+  let mazmorrasIniciadas = false;
+  let gestorMazmorras = null;
+  let dungeonPromptActiva = null;
+
+  function iniciarMazmorras() {
+    if (!world) return;
+    world.dungeons = world.dungeons || [];
+    if (!world.dungeons.length && typeof MazmorrasLib !== 'undefined') {
+      const p1 = world.towns && world.towns[0];
+      const dX = p1 ? (p1.x + 180) : 400;
+      const dY = p1 ? (p1.y + 180) : 400;
+      world.dungeons.push(MazmorrasLib.generarMazmorraPorDefecto(world, dX, dY));
+    }
+
+    if (mazmorrasIniciadas || typeof MazmorrasLib === 'undefined') return;
+    mazmorrasIniciadas = true;
+
+    // Inicializar el gestor de mazmorras
+    gestorMazmorras = new MazmorrasLib.GestorMazmorras({
+      THREE,
+      scene,
+      hero,
+      acompanante,
+      terrenoGroup: terrainMesh,
+      aguaMesh: waterMesh,
+      pueblosGroup: towns.length && towns[0].group ? towns[0].group.parent : null,
+      getWalkableHeight: (x, z) => visorWorld.getWalkableHeight(x, z),
+      crearMonstruoCombate: (info, parentGroup, isBoss) => {
+        const m = CombatLib.newMonster({
+          level: info.level,
+          boss: isBoss || !!info.boss,
+          rangoElite: info.rangoElite || info.multiplicador || (isBoss ? 10 : 4),
+          x: info.x,
+          z: info.z
+        });
+        m.name = info.name;
+        m.alive = true;
+        m.hp = m.maxHp;
+        m.group = new THREE.Group();
+        m.group.position.set(info.x, info.y || 0.5, info.z);
+        if (parentGroup) parentGroup.add(m.group); else scene.add(m.group);
+
+        const barGeo = new THREE.PlaneGeometry(isBoss ? 4.2 : 2.4, isBoss ? 0.45 : 0.28);
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x111827, depthTest: false });
+        m.bar = new THREE.Group();
+        const bg = new THREE.Mesh(barGeo, bgMat);
+        const colBar = isBoss ? 0xdc2626 : (info.rangoElite === 8 ? 0xa855f7 : 0xec4899);
+        m.fg = new THREE.Mesh(new THREE.PlaneGeometry(isBoss ? 4.1 : 2.3, isBoss ? 0.4 : 0.24), new THREE.MeshBasicMaterial({ color: colBar, depthTest: false }));
+        m.fg.position.z = 0.01;
+        m.bar.add(bg, m.fg);
+        m.barHeight = isBoss ? 5.2 : 3.2;
+        m.bar.position.set(info.x, (info.y || 0.5) + m.barHeight, info.z);
+        if (parentGroup) parentGroup.add(m.bar); else scene.add(m.bar);
+
+        info.combatRef = m;
+        m.dungeonInfoRef = info;
+        monsters.push(m);
+        return m;
+      }
+    });
+
+    // Construir la entrada exterior de cada mazmorra (Arco penetrable + 30m pasillo entre muros)
+    const grupoEntradas = new THREE.Group();
+    grupoEntradas.name = 'EntradasMazmorrasMundo';
+    (world.dungeons || []).forEach(d => {
+      try {
+        const entMesh = MazmorrasLib.construirEntradaExterior(THREE, d, (x, z) => visorWorld.getWalkableHeight(x, z));
+        if (entMesh) grupoEntradas.add(entMesh);
+      } catch (e) {
+        console.warn('Error construyendo entrada de mazmorra:', d.name, e);
+      }
+    });
+    scene.add(grupoEntradas);
+
+    // Enlazar botones de modales y prompt
+    const btnExit = $('btn-dungeon-exit');
+    if (btnExit) btnExit.onclick = () => {
+      $('modal-dungeon-victory').style.display = 'none';
+      if (gestorMazmorras) gestorMazmorras.salirInstancia(true);
+      toast('Has regresado a la superficie con el botín');
+    };
+
+    const btnRespawn = $('btn-dungeon-respawn');
+    if (btnRespawn) btnRespawn.onclick = () => {
+      $('modal-dungeon-defeat').style.display = 'none';
+      if (gestorMazmorras) gestorMazmorras.salirInstancia(false);
+      toast('Has reaparecido ante el arco exterior');
+    };
+
+    const promptEl = $('dungeon-prompt');
+    if (promptEl) promptEl.onclick = () => {
+      if (dungeonPromptActiva) entrarEnMazmorra(dungeonPromptActiva);
+    };
+  }
+
+  function entrarEnMazmorra(dungeon) {
+    if (!gestorMazmorras || gestorMazmorras.enMazmorra) return;
+    const promptEl = $('dungeon-prompt');
+    if (promptEl) promptEl.style.display = 'none';
+    dungeonPromptActiva = null;
+
+    gestorMazmorras.iniciarInstancia(dungeon, {
+      onIniciarHUD: (boss, d) => {
+        const hud = $('dungeon-boss-hud');
+        if (hud) {
+          hud.style.display = 'block';
+          $('dbh-name').textContent = boss.name;
+          $('dbh-lvl').textContent = 'Nv ' + boss.level;
+          $('dbh-bar').style.width = '100%';
+          $('dbh-hp-txt').textContent = '100%';
+        }
+        toast('🗝 Adentrándote en «' + d.name + '»');
+      }
+    });
+  }
+
+  function updateMazmorras(dt, now) {
+    if (!gestorMazmorras) return;
+
+    if (gestorMazmorras.enMazmorra) {
+      // Dentro de la mazmorra:
+      // 1. Actualizar barra superior del Boss
+      const b = gestorMazmorras.bossInstancia;
+      if (b && b.combatRef) {
+        b.hp = Math.max(0, b.combatRef.hp);
+        b.maxHp = b.combatRef.maxHp || 1;
+        const pct = Math.max(0, Math.min(100, Math.round((b.hp / b.maxHp) * 100)));
+        const barEl = $('dbh-bar');
+        const txtEl = $('dbh-hp-txt');
+        if (barEl) barEl.style.width = pct + '%';
+        if (txtEl) txtEl.textContent = `${b.hp} / ${b.maxHp} (${pct}%)`;
+      }
+
+      // 2. Comprobar condiciones de fin (muerte del Jefe o muerte del héroe)
+      gestorMazmorras.actualizarInstancia(dt, hero, {
+        onVictoria: res => {
+          const hud = $('dungeon-boss-hud');
+          if (hud) hud.style.display = 'none';
+
+          const r = res.recompensas || {};
+          if (inv && typeof r.oro === 'number') inv.gold = (inv.gold || 0) + r.oro;
+          if (inv && typeof r.arena === 'number') inv.arena = (inv.arena || 0) + r.arena;
+          if (typeof updateInventoryUI === 'function') updateInventoryUI();
+
+          const vModal = $('modal-dungeon-victory');
+          if (vModal) {
+            $('dv-desc').textContent = `Has vencido a «${res.boss ? res.boss.name : 'el Jefe'}» y conquistado «${res.dungeon.name}».`;
+            $('dv-gold').textContent = `+${r.oro || 3000}`;
+            $('dv-arena').textContent = `+${r.arena || 60}`;
+            $('dv-equip').textContent = r.equipo || 'Armadura del Soberano Caído';
+            vModal.style.display = 'flex';
+          }
+        },
+        onDerrota: res => {
+          const hud = $('dungeon-boss-hud');
+          if (hud) hud.style.display = 'none';
+
+          const dModal = $('modal-dungeon-defeat');
+          if (dModal) dModal.style.display = 'flex';
+        }
+      });
+    } else {
+      // En el supramundo exterior:
+      // Comprobar si el héroe ha recorrido los 30 metros del corredor y está frente al portal de carga
+      if (character && character.root && world && world.dungeons) {
+        const hx = character.root.position.x;
+        const hz = character.root.position.z;
+        const hallazgo = gestorMazmorras.comprobarEntradaExterior(world.dungeons, hx, hz);
+        const promptEl = $('dungeon-prompt');
+        if (hallazgo && hallazgo.distanciaAlPortal <= 3.8) {
+          dungeonPromptActiva = hallazgo.dungeon;
+          if (promptEl) {
+            promptEl.style.display = 'block';
+            $('dp-title').textContent = `🗝 ${hallazgo.dungeon.name} (Nv. ${hallazgo.dungeon.level})`;
+          }
+        } else {
+          dungeonPromptActiva = null;
+          if (promptEl) promptEl.style.display = 'none';
+        }
+      }
+    }
+  }
+
   function asegurarAcompananteActivo(arquetipoId, roster) {
     if (acompanante) {
       if (arquetipoId && acompanante.arquetipo !== arquetipoId && typeof AcompananteLib !== 'undefined') {
@@ -6091,6 +6334,7 @@
   // Al abrir un mundo: se usa su partida activa, o se crea la primera
   function bootPartida() {
     iniciarLugaresSecretos();
+    iniciarMazmorras();
     colocarGurus();
     colocarEncargos();
     actualizarMision();
@@ -6188,6 +6432,10 @@
     if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
     if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
     if (k === ' ') { e.preventDefault(); useSkill('attack'); }
+    if (k === 'e' && typeof dungeonPromptActiva !== 'undefined' && dungeonPromptActiva) {
+      entrarEnMazmorra(dungeonPromptActiva);
+      return;
+    }
     if (HeroeLib.TECLAS.includes(k)) usarHueco(k);
     if (k === 'i') $('sk-objetos').click();
     if (k === 'h') abrirServicioCercano();
@@ -6390,6 +6638,7 @@
     updateHud(now);
     checkRegions();
     drawMinimap(now);
+    updateMazmorras(dt, now);
 
     controls.maxDistance = character.cameraMode === 'follow' ? 280 : 9000;
     controls.update();
@@ -6491,7 +6740,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

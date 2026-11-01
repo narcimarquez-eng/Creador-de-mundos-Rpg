@@ -452,7 +452,7 @@
         loader.load(lugar.modeloGLB, gltf => {
           const modelo = gltf.scene;
 
-          // 1. Eliminar cualquier terreno, suelo, camino o agua incluidos dentro del archivo GLB
+          // 1. Eliminar cualquier terreno, suelo plano exterior, camino, agua o árboles incluidos dentro del archivo GLB
           const nodosTerreno = [];
           modelo.traverse(o => {
             const nm = (o.name || '').toLowerCase();
@@ -465,6 +465,9 @@
           nodosTerreno.forEach(o => {
             if (o.parent) o.parent.remove(o);
             o.visible = false;
+            if (o.geometry) {
+              try { o.geometry.dispose(); } catch (e) {}
+            }
           });
 
           // 2. Calcular el bounding box de la estructura real del edificio
