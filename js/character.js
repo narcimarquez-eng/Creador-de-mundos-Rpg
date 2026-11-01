@@ -493,6 +493,45 @@
         }
       }
 
+      // Pendiente máxima escalable: 50% (desnivel / distancia horizontal > 0.50).
+      // Impide escalar montañas o laderas de más del 50% de inclinación a pie.
+      if (typeof this.world.getWalkableHeight === 'function') {
+        const ox = this.root.position.x, oz = this.root.position.z;
+        const h0 = this.world.getWalkableHeight(ox, oz);
+        const MAX_PENDIENTE = 0.50; // 50% de desnivel
+
+        const esInescalable = (x, z) => {
+          const dx = x - ox, dz = z - oz;
+          const dist = Math.hypot(dx, dz);
+          if (dist < 0.001) return false;
+          const hStep = this.world.getWalkableHeight(x, z);
+          const dhStep = hStep - h0;
+          if (dhStep > 0 && (dhStep / dist) > MAX_PENDIENTE) {
+            // Sondeo a 0.8m para asegurar pendiente continua y no un bordillo de menos de 25cm
+            const probeDist = Math.max(0.8, dist);
+            const px = ox + (dx / dist) * probeDist;
+            const pz = oz + (dz / dist) * probeDist;
+            const hProbe = this.world.getWalkableHeight(px, pz);
+            const dhProbe = hProbe - h0;
+            if (dhProbe > 0 && (dhProbe / probeDist) > MAX_PENDIENTE) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        if (esInescalable(rx, rz)) {
+          if (!esInescalable(rx, oz)) {
+            rz = oz;
+          } else if (!esInescalable(ox, rz)) {
+            rx = ox;
+          } else {
+            rx = ox;
+            rz = oz;
+          }
+        }
+      }
+
       const cols = getColliders(this.world, rx, rz);
       for (let i = 0; i < cols.length; i++) {
         const c = cols[i];

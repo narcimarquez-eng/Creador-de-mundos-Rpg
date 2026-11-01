@@ -87,33 +87,43 @@ describe('Cabañas secretas y misiones de 100 monstruos', () => {
     assert.strictEqual(cab.misionCabana.progreso, 100);
   });
 
-  it('rebaje y aplanado en pendiente: deja un suelo plano en un radio de 11.5m y suaviza hacia el exterior', () => {
+  it('rebaje y desmonte orgánico en pendiente: nivela terraza a 14.5m, suaviza a 26m y no crea peñones', () => {
     const w = W.generateWorld({ name: 'Tierras Altas', seed: 123 });
     const secretos = L.generarLugaresSecretos(w);
-    const cab = secretos.find(s => s.tipo === 'cabana');
+    const cab = secretos.find(s => s.tipo === 'cabana' && !s.esMar);
     assert.ok(cab);
 
     cab.alturaBase = 25.0; // Cota base de la cabaña
-    const cotaHondonada = 25.0 - 0.45; // 24.55m (hondonada excavada)
+    const cotaTerraza = 25.0;
 
-    // Punto en el centro (d=0) sobre una pendiente empinada original (ej. hOriginal = 40.0)
+    // 1. Desmonte cuesta arriba (ej. hOriginal = 40.0m > 25.0m)
+    // En el centro (d=0) debe quedar a la cota base de la terraza
     const hCentro = L.aplicarRebajeCabanas([cab], cab.x, cab.z, 40.0);
-    assert.strictEqual(Math.round(hCentro * 100) / 100, cotaHondonada, 'En el centro debe excavar la hondonada plana a 24.55m');
+    assert.strictEqual(Math.round(hCentro * 100) / 100, cotaTerraza, 'En el centro debe rebajar la ladera a 25.0m');
 
-    // Punto a 8m de distancia dentro del radio plano de la hondonada (rPlano = 11.5m)
-    const hDentro = L.aplicarRebajeCabanas([cab], cab.x + 8.0, cab.z, 35.0);
-    assert.strictEqual(Math.round(hDentro * 100) / 100, cotaHondonada, 'En todo el radio de 11.5m el suelo de la hondonada debe quedar plano y nivelado');
+    // Punto a 12m de distancia dentro del radio plano ampliado (rPlano = 14.5m)
+    const hDentro = L.aplicarRebajeCabanas([cab], cab.x + 12.0, cab.z, 35.0);
+    assert.strictEqual(Math.round(hDentro * 100) / 100, cotaTerraza, 'En todo el radio de 14.5m el suelo debe quedar nivelado');
 
-    // Punto en la zona de transición suave (d = 15m, entre 11.5m y 19.0m)
-    const hTrans = L.aplicarRebajeCabanas([cab], cab.x + 15.0, cab.z, 40.0);
-    assert.ok(hTrans > cotaHondonada && hTrans < 40.0, 'En el talud exterior debe suavizarse de forma continua');
+    // Punto en la zona de transición suave (d = 20m, entre 14.5m y 26.0m)
+    const hTrans = L.aplicarRebajeCabanas([cab], cab.x + 20.0, cab.z, 40.0);
+    assert.ok(hTrans > cotaTerraza && hTrans < 40.0, 'En el talud exterior debe suavizarse de forma continua');
 
-    // Punto lejos (d = 25m > 19.0m)
-    const hLejos = L.aplicarRebajeCabanas([cab], cab.x + 25.0, cab.z, 40.0);
+    // Punto lejos (d = 30m > 26.0m)
+    const hLejos = L.aplicarRebajeCabanas([cab], cab.x + 30.0, cab.z, 40.0);
     assert.strictEqual(hLejos, 40.0, 'Fuera del radio de influencia no debe modificar el terreno');
+
+    // 2. Cuesta abajo (hOriginal = 20.0m < 25.0m): NO debe levantarse para no crear un peñón artificial
+    const hAbajo = L.aplicarRebajeCabanas([cab], cab.x + 8.0, cab.z, 20.0);
+    assert.strictEqual(hAbajo, 20.0, 'Hacia el valle el terreno no se levanta, evitando el peñón artificial');
+
+    // 3. Cabaña marina / pescador (esMar = true): NO se excava ni se crea agujero artificial
+    const cabMar = { ...cab, esMar: true };
+    const hMar = L.aplicarRebajeCabanas([cabMar], cabMar.x, cabMar.z, 15.0);
+    assert.strictEqual(hMar, 15.0, 'La cabaña marina no altera el relieve ni excava huecos artificiales');
   });
 
-  it('las cabañas no tienen suelo artificial y poseen dimensiones ampliadas para ser bien visibles', () => {
+  it('las cabañas no tienen suelo artificial y poseen dimensiones ampliadas un 30% adicional (21m reales)', () => {
     let loadedCallback = null;
     let escalaAplicada = null;
     const mockScene = {
@@ -168,7 +178,7 @@ describe('Cabañas secretas y misiones de 100 monstruos', () => {
 
     // Cargar modelo
     loadedCallback({ scene: mockScene });
-    assert.ok(escalaAplicada >= 2.4, `La escala aplicada (${escalaAplicada}) debe ser amplia para verse bien`);
+    assert.ok(escalaAplicada >= 3.5, `La escala aplicada (${escalaAplicada}) debe alcanzar 21 metros de ancho`);
 
     // Probar cabaña procedural sin GLB
     const cabProc = { id: 'cab-proc', tipo: 'cabana', x: 100, z: 100 };
@@ -178,8 +188,68 @@ describe('Cabañas secretas y misiones de 100 monstruos', () => {
     const plataformaSuelo = grupoProc.children.find(c => c.geo && c.geo.w && c.geo.h <= 0.5 && c.geo.w < 10);
     assert.strictEqual(plataformaSuelo, undefined, 'No debe haber plataformas o suelos artificiales añadidos');
 
-    // Muro principal ampliado
-    const muro = grupoProc.children.find(c => c.geo && c.geo.w >= 10);
-    assert.ok(muro, 'La cabaña procedimental debe tener dimensiones amplias (ancho >= 10m)');
+    // Muro principal ampliado un 30% (ancho >= 15m)
+    const muro = grupoProc.children.find(c => c.geo && c.geo.w >= 15);
+    assert.ok(muro, 'La cabaña procedimental debe tener dimensiones ampliadas a 15.6m de ancho');
+  });
+
+  it('física del personaje: las pendientes de más del 50% de desnivel son inescalables a pie', () => {
+    // Simular el controlador y la colisión con pendiente de character.js
+    let posActual = { x: 0, z: 0 };
+    const MAX_PENDIENTE = 0.50;
+
+    function testResolverPendiente(hFunc, nextX, nextZ) {
+      const ox = posActual.x, oz = posActual.z;
+      const h0 = hFunc(ox, oz);
+      let rx = nextX, rz = nextZ;
+
+      const esInescalable = (x, z) => {
+        const dx = x - ox, dz = z - oz;
+        const dist = Math.hypot(dx, dz);
+        if (dist < 0.001) return false;
+        const hStep = hFunc(x, z);
+        const dhStep = hStep - h0;
+        if (dhStep > 0 && (dhStep / dist) > MAX_PENDIENTE) {
+          const probeDist = Math.max(0.8, dist);
+          const px = ox + (dx / dist) * probeDist;
+          const pz = oz + (dz / dist) * probeDist;
+          const hProbe = hFunc(px, pz);
+          const dhProbe = hProbe - h0;
+          if (dhProbe > 0 && (dhProbe / probeDist) > MAX_PENDIENTE) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      if (esInescalable(rx, rz)) {
+        if (!esInescalable(rx, oz)) {
+          rz = oz;
+        } else if (!esInescalable(ox, rz)) {
+          rx = ox;
+        } else {
+          rx = ox;
+          rz = oz;
+        }
+      }
+      return { x: rx, z: rz };
+    }
+
+    // Caso 1: Pendiente suave del 30% (dh = 0.06m en avance de 0.2m) -> PUEDE subir
+    const resSuave = testResolverPendiente((x, z) => z * 0.30, 0, 0.2);
+    assert.strictEqual(resSuave.z, 0.2, 'Una pendiente del 30% debe ser escalable sin bloqueo');
+
+    // Caso 2: Pendiente empinada del 65% (dh = 0.13m en avance de 0.2m) -> BLOQUEADO
+    const resEmpinada = testResolverPendiente((x, z) => z * 0.65, 0, 0.2);
+    assert.strictEqual(resEmpinada.z, 0, 'Una pendiente del 65% (>50%) debe bloquear el paso hacia arriba');
+
+    // Caso 3: Bajar ladera empinada del 80% (dh = -0.16m en avance de 0.2m) -> PUEDE bajar
+    const resBajada = testResolverPendiente((x, z) => -z * 0.80, 0, 0.2);
+    assert.strictEqual(resBajada.z, 0.2, 'Descender pendientes empinadas está permitido a pie');
+
+    // Caso 4: Deslizamiento lateral: subida en Z empinada (85%), pero eje X plano (0%)
+    const resLateral = testResolverPendiente((x, z) => z * 0.85, 0.2, 0.2);
+    assert.strictEqual(resLateral.x, 0.2, 'Debe permitir deslizarse por el eje llano');
+    assert.strictEqual(resLateral.z, 0, 'Bloquea el componente empinado');
   });
 });

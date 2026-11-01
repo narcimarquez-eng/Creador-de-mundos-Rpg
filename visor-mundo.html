@@ -2516,7 +2516,21 @@
     getWalkableHeight(x, z) {
       const v = visorWorld.villageAt(x, z);
       if (v) return v.o.h0 + v.o.village.getWalkableHeight(v.lx, v.lz);
-      return H(x, z);
+      let groundH = H(x, z);
+      // Plataforma transitable interior para las cabañas (tanto en tierra como sobre el agua)
+      if (typeof lugaresSecretos !== 'undefined' && lugaresSecretos && lugaresSecretos.length) {
+        for (let i = 0; i < lugaresSecretos.length; i++) {
+          const s = lugaresSecretos[i];
+          if (s.tipo === 'cabana') {
+            const d = Math.hypot(x - s.x, z - s.z);
+            if (d < 11.5) {
+              const floorY = (typeof s.y === 'number' ? s.y : (s.alturaBase || 0)) + 0.15;
+              if (floorY > groundH) groundH = floorY;
+            }
+          }
+        }
+      }
+      return groundH;
     },
     getColliders(x, z) {
       const out = [];
@@ -4522,11 +4536,12 @@
   // Servicios de la plaza: herrero (fabricar con oro) y mercader (comprar y vender)
   // ===========================================================================
   function servicioCercano() {
-    let mejor = null, mejorD = DISTANCIA_HABLAR;
+    let mejor = null, mejorD = Infinity;
     gurus.forEach(g => {
       if (!g.info.servicio) return;
       const d = Math.hypot(character.root.position.x - g.raiz.position.x, character.root.position.z - g.raiz.position.z);
-      if (d < mejorD) { mejorD = d; mejor = g; }
+      const radioMax = g.info.servicio === 'cabana' ? 9.5 : DISTANCIA_HABLAR;
+      if (d < radioMax && d < mejorD) { mejorD = d; mejor = g; }
     });
     return mejor;
   }
@@ -5668,8 +5683,19 @@
         world.secretPlaces = lugaresSecretos;
       }
       lugaresSecretos.forEach(s => {
-        if (s.tipo === 'cabana' && typeof s.alturaBase !== 'number' && terrain) {
-          s.alturaBase = (terrain.elevation(s.x, s.z) - SEA) * HEIGHT_SCALE;
+        if (s.tipo === 'cabana' && typeof s.alturaBase !== 'number') {
+          if (s.esMar) {
+            const r = typeof rioCercano === 'function' ? rioCercano(s.x, s.z) : null;
+            if (r && typeof r.nivel === 'number') {
+              s.alturaBase = r.nivel;
+            } else if (terrain) {
+              s.alturaBase = Math.max(0.0, (terrain.elevation(s.x, s.z) - SEA) * HEIGHT_SCALE);
+            } else {
+              s.alturaBase = 0.0;
+            }
+          } else if (terrain) {
+            s.alturaBase = (terrain.elevation(s.x, s.z) - SEA) * HEIGHT_SCALE;
+          }
           s.y = s.alturaBase;
         }
       });
@@ -5689,9 +5715,13 @@
               servicio: 'cabana',
               cabana: s
             };
-            // Ubicar al aldeano en el exterior frontal junto a la hoguera en la hondonada (acorde a la escala ampliada de 16m)
-            const nx = s.x - 3.2, nz = s.z + 10.5;
-            instanciarNpc(npcInfo, (typeof s.aldeano === 'object' && s.aldeano.modelo) ? s.aldeano.modelo : 'guru-1', nx, nz, s.x, s.z);
+            // Ubicar al aldeano en el INTERIOR de la cabaña (en el centro del hogar, mirando hacia la puerta frontal)
+            const rot = s.rotacion || 0;
+            const nx = s.x - Math.sin(rot) * 1.2;
+            const nz = s.z - Math.cos(rot) * 1.2;
+            const lookX = s.x + Math.sin(rot) * 8.0;
+            const lookZ = s.z + Math.cos(rot) * 8.0;
+            instanciarNpc(npcInfo, (typeof s.aldeano === 'object' && s.aldeano.modelo) ? s.aldeano.modelo : 'guru-1', nx, nz, lookX, lookZ);
           }
         } catch (eSec) {
           console.warn('Lugar secreto:', s.id, eSec);
