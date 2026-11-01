@@ -5104,6 +5104,164 @@
     return npcProtoLejos[nombreModelo];
   }
 
+  // Estilos visuales temáticos para cada gurú y servicio: elimina la armadura blanca idéntica
+  // dotando a cada personaje de colores ricos, metales templados, cuero curtido o sedas de mercader.
+  const ESTILOS_NPC = {
+    'guru-1': { // Sabia Elara (Historia del Reino)
+      armadura: 0xd4af37, // Oro ceremonial envejecido
+      metalness: 0.85,
+      roughness: 0.25,
+      ribete: 0x38bdf8,   // Zafiro arcano
+      tela: 0x1e3a8a,     // Azul noche profundo
+      faldon: 0x581c87,   // Púrpura imperial
+      capa: 0x312e81,     // Índigo regio
+      botas: 0x1e293b,    // Cuero marino oscuro
+      cabello: 0x94a3b8   // Ceniza platino
+    },
+    'guru-2': { // Maestro Oren (Los Caminos)
+      armadura: 0xb45309, // Bronce forjado y cobre de explorador
+      metalness: 0.75,
+      roughness: 0.35,
+      ribete: 0xf59e0b,   // Ámbar cálido
+      tela: 0x14532d,     // Verde bosque / musgo
+      faldon: 0x166534,   // Verde camuflaje
+      capa: 0x78350f,     // Cuero de viaje
+      botas: 0x451a03,    // Cuero oscuro
+      cabello: 0xd97706   // Castaño cobrizo
+    },
+    'guru-3': { // Hermana Ysolde (Las Runas y Entrenamiento)
+      armadura: 0x94a3b8, // Acero rúnico / plata pulida
+      metalness: 0.92,
+      roughness: 0.15,
+      ribete: 0xa855f7,   // Amatista brillante
+      tela: 0x6b21a8,     // Púrpura litúrgico
+      faldon: 0x7e22ce,   // Seda amatista
+      capa: 0x3b0764,     // Terciopelo morado
+      botas: 0x334155,    // Grebas de acero
+      cabello: 0xf1f5f9   // Blanco místico
+    },
+    'guru-4': { // Viejo Tamsin (Los Monstruos)
+      armadura: 0x334155, // Hierro oscuro pavonado
+      metalness: 0.8,
+      roughness: 0.45,
+      ribete: 0x991b1b,   // Ribete carmesí
+      tela: 0x78350f,     // Cuero curtido resistente
+      faldon: 0x451a03,   // Faldón de piel
+      capa: 0x1c1917,     // Capa negra de acechador
+      botas: 0x1c1917,    // Botas altas de oso
+      cabello: 0x64748b   // Gris canoso curtido
+    },
+    'guru-5': { // Erudita Mirel (El Equipo)
+      armadura: 0xf59e0b, // Oro noble pulido
+      metalness: 0.9,
+      roughness: 0.2,
+      ribete: 0xd946ef,   // Rubí engarzado
+      tela: 0x991b1b,     // Escarlata borgoña brillante
+      faldon: 0xbe123c,   // Seda carmesí
+      capa: 0x831843,     // Capa granate noble
+      botas: 0x78350f,    // Cuero noble
+      cabello: 0x7c2d12   // Caoba rojizo
+    },
+    'serv-herrero': { // Herrero Brann (La Forja)
+      armadura: 0x1f2937, // Peto de hierro pesado forjado ennegrecido
+      metalness: 0.85,
+      roughness: 0.55,
+      ribete: 0xea580c,   // Reflejos incandescentes de fragua
+      tela: 0x292524,     // Mandil y ropas de cuero ahumado resistente al fuego
+      faldon: 0x44403c,   // Delantal de forja
+      capa: 0x7c2d12,     // Refuerzos de cuero pesado
+      botas: 0x0c0a09,    // Botas de hierro y cuero de trabajo
+      cabello: 0x18181b   // Pelo y barba negros de carbón
+    },
+    'serv-mercader': { // Mercader Tovi (El Comercio)
+      armadura: 0xfacc15, // Alhajas y adornos de oro puro brillante
+      metalness: 0.95,
+      roughness: 0.12,
+      ribete: 0x10b981,   // Filigranas de jade y esmeralda
+      tela: 0x047857,     // Seda verde esmeralda de mercader
+      faldon: 0x065f46,   // Brocado verde oscuro
+      capa: 0x0f766e,     // Manto de terciopelo verde azulado
+      botas: 0x78350f,    // Cuero fino repujado
+      cabello: 0xd97706   // Castaño dorado
+    },
+    'cabana': { // Aldeanos de cabañas remotas
+      armadura: 0x57534e, // Cuero y refuerzos rústicos
+      metalness: 0.45,
+      roughness: 0.65,
+      ribete: 0x854d0e,   // Cuero ocre
+      tela: 0x3f6212,     // Lona verde oliva y tierra
+      faldon: 0x365314,   // Piel de bosque
+      capa: 0x44403c,     // Manto rústico
+      botas: 0x292524,    // Botas de montaña
+      cabello: 0x78350f   // Castaño silvestre
+    }
+  };
+
+  function personalizarEstiloNpc(entrada, modelo3D) {
+    if (!entrada || !modelo3D || !entrada.info) return;
+    const info = entrada.info;
+    const key = (info.servicio === 'herrero' || (info.id && String(info.id).includes('herrero')))
+      ? 'serv-herrero'
+      : (info.servicio === 'mercader' || (info.id && String(info.id).includes('mercader')))
+      ? 'serv-mercader'
+      : (info.servicio === 'cabana' || info.cabana)
+      ? 'cabana'
+      : (ESTILOS_NPC[info.id] ? info.id : entrada.nombreModelo);
+
+    const estilo = ESTILOS_NPC[key] || (info.cabana ? ESTILOS_NPC['cabana'] : ESTILOS_NPC['guru-2']);
+    if (!estilo) return;
+
+    modelo3D.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      const mat = o.material.clone();
+      o.material = mat;
+
+      const n = (mat.name || o.name || '').toLowerCase();
+
+      // 1. Cabello
+      if (n.includes('cabello') || n.includes('hair') || n.includes('2c:mate')) {
+        mat.color.setHex(estilo.cabello);
+        mat.roughness = 0.8;
+        mat.needsUpdate = true;
+      }
+      // 2. Tela principal / túnica / jubón (Material_16)
+      else if (n.includes('material_16') || n.includes('tela')) {
+        mat.color.setHex(estilo.tela);
+        mat.metalness = 0.1;
+        mat.roughness = 0.75;
+        mat.needsUpdate = true;
+      }
+      // 3. Ribetes / filigranas metálicas secundarias (Material_9, Material_10, MatComun_2c:brillo)
+      else if (n.includes('material_9') || n.includes('material_10') || n.includes('2c:brillo')) {
+        mat.color.setHex(estilo.ribete || estilo.armadura);
+        mat.metalness = 0.9;
+        mat.roughness = 0.2;
+        mat.needsUpdate = true;
+      }
+      // 4. Faldón / cinturón / capas / estolas (Material_17, Material_18, Material_19, Material_11)
+      else if (n.includes('material_17') || n.includes('material_18') || n.includes('material_19') || n.includes('material_11')) {
+        mat.color.setHex(estilo.faldon || estilo.capa || estilo.tela);
+        mat.metalness = 0.2;
+        mat.roughness = 0.6;
+        mat.needsUpdate = true;
+      }
+      // 5. Botas y grebas bajas (Material_20 o Material_21)
+      else if (n.includes('material_20') || n.includes('material_21')) {
+        mat.color.setHex(estilo.botas || estilo.armadura);
+        mat.roughness = 0.6;
+        mat.needsUpdate = true;
+      }
+      // 6. Placas principales de la armadura (Material_12, Material_1, casco MatComun_1c:brillo)
+      else if (n.includes('material_12') || /(^|[^0-9])material_1([^0-9]|$)/.test(n) || n.includes('1c:brillo') || n.includes('armadura')) {
+        mat.color.setHex(estilo.armadura);
+        if (estilo.metalness !== undefined) mat.metalness = estilo.metalness;
+        if (estilo.roughness !== undefined) mat.roughness = estilo.roughness;
+        mat.needsUpdate = true;
+      }
+      // La piel (Material_5 o Material_0) se conserva con su tono natural humano
+    });
+  }
+
   function asegurarVersionCercanaNpc(entrada) {
     if (entrada.cerca || entrada.cargandoCerca) return;
     entrada.cargandoCerca = true;
@@ -5113,6 +5271,7 @@
       modelo.visible = false;
       entrada.raiz.add(modelo);
       aplicarEntorno(modelo);
+      personalizarEstiloNpc(entrada, modelo);
       if (renderer && renderer.compileAsync) { try { await renderer.compileAsync(modelo, camera, scene); } catch (e) {} }
       const mixer = new THREE.AnimationMixer(modelo);
       if (base.idle) mixer.clipAction(base.idle).play();
@@ -5130,6 +5289,7 @@
       lejos.visible = false;
       entrada.raiz.add(lejos);
       aplicarEntorno(lejos);
+      personalizarEstiloNpc(entrada, lejos.modelo || lejos);
       if (renderer && renderer.compileAsync) { try { await renderer.compileAsync(lejos, camera, scene); } catch (e) {} }
       const mixer = new THREE.AnimationMixer(lejos);
       if (base.idle) mixer.clipAction(base.idle).play();
@@ -6054,7 +6214,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>

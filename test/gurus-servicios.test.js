@@ -137,3 +137,140 @@ test('los gurús, el herrero y el mercader se instancian correctamente incluso c
   assert.strictEqual(servCercanoMercader.info.servicio, 'mercader');
   assert.strictEqual(servCercanoMercader.info.nombre, 'Mercader Tovi');
 });
+
+test('los gurús, el herrero y la comerciante tienen armaduras y atuendos diferenciados y ninguno es blanco', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+
+  // Extraer bloque ESTILOS_NPC de visor-mundo.html
+  const iStart = html.indexOf('const ESTILOS_NPC = {');
+  assert.ok(iStart > 0, 'Debe existir ESTILOS_NPC en visor-mundo.html');
+  const iEnd = html.indexOf('function personalizarEstiloNpc', iStart);
+  assert.ok(iEnd > iStart, 'Debe existir la función personalizarEstiloNpc');
+
+  // Evaluar ESTILOS_NPC
+  const code = html.substring(iStart, iEnd) + '\nreturn ESTILOS_NPC;';
+  const ESTILOS_NPC = new Function(code)();
+
+  // Conjunto de colores blancos o lavados
+  const COLORES_BLANCOS_LAVADOS = new Set([
+    0xffffff, 0xf8fafc, 0xf1f5f9, 0xfffbeb, 0xfdf4ff, 0xe2e8f0, 0xe0f2fe, 0xcbd5e1, 0xf0f9ff
+  ]);
+
+  const personajes = ['guru-1', 'guru-2', 'guru-3', 'guru-4', 'guru-5', 'serv-herrero', 'serv-mercader'];
+  const armadurasVistas = new Set();
+  const telasVistas = new Set();
+
+  personajes.forEach(id => {
+    const estilo = ESTILOS_NPC[id];
+    assert.ok(estilo, 'Existe estilo definido para ' + id);
+    assert.ok(typeof estilo.armadura === 'number', 'Armadura tiene color numérico en ' + id);
+    assert.ok(typeof estilo.tela === 'number', 'Tela tiene color numérico en ' + id);
+
+    // Ninguno debe ser blanco lavado
+    assert.ok(!COLORES_BLANCOS_LAVADOS.has(estilo.armadura), 'La armadura de ' + id + ' no debe ser blanca');
+    assert.ok(!COLORES_BLANCOS_LAVADOS.has(estilo.tela), 'La tela de ' + id + ' no debe ser blanca');
+
+    armadurasVistas.add(estilo.armadura);
+    telasVistas.add(estilo.tela);
+  });
+
+  // Verificar diferenciación: al menos 5 colores de armadura distintos entre los 7 personajes
+  assert.ok(armadurasVistas.size >= 5, 'Los gurús y servicios deben tener armaduras claramente diferenciadas entre sí (encontradas: ' + armadurasVistas.size + ')');
+  assert.ok(telasVistas.size >= 5, 'Los gurús y servicios deben tener telas y túnicas claramente diferenciadas entre sí (encontradas: ' + telasVistas.size + ')');
+
+  // Verificar roles temáticos específicos
+  assert.strictEqual(ESTILOS_NPC['serv-herrero'].armadura, 0x1f2937, 'Herrero usa hierro forjado oscuro');
+  assert.strictEqual(ESTILOS_NPC['serv-herrero'].ribete, 0xea580c, 'Herrero tiene reflejos de fragua incandescente');
+  assert.strictEqual(ESTILOS_NPC['serv-mercader'].tela, 0x047857, 'Mercader viste sedas verde esmeralda');
+  assert.strictEqual(ESTILOS_NPC['guru-1'].tela, 0x1e3a8a, 'Sabia Elara viste azul noche arcano');
+  assert.strictEqual(ESTILOS_NPC['guru-2'].tela, 0x14532d, 'Maestro Oren viste verde bosque de explorador');
+  assert.strictEqual(ESTILOS_NPC['guru-5'].tela, 0x991b1b, 'Erudita Mirel viste escarlata noble');
+});
+
+test('personalizarEstiloNpc asigna colores temáticos a tela, armadura, faldón y botas sin colisión de subcadena', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+
+  const iEstilos = html.indexOf('const ESTILOS_NPC = {');
+  const iPers = html.indexOf('function personalizarEstiloNpc(entrada, modelo3D) {', iEstilos);
+  const iAseg = html.indexOf('function asegurarVersionCercanaNpc', iPers);
+
+  const code = html.substring(iEstilos, iAseg) + '\nreturn { ESTILOS_NPC, personalizarEstiloNpc };';
+  const { ESTILOS_NPC, personalizarEstiloNpc } = new Function(code)();
+
+  function makeMockMesh(matName) {
+    const mat = {
+      name: matName,
+      color: {
+        hex: 0xffffff,
+        setHex(val) { this.hex = val; },
+        getHexString() { return this.hex.toString(16).padStart(6, '0'); }
+      }
+    };
+    mat.clone = function() {
+      const copy = {
+        name: this.name,
+        color: {
+          hex: this.color.hex,
+          setHex(v) { this.hex = v; },
+          getHexString() { return this.hex.toString(16).padStart(6, '0'); }
+        }
+      };
+      copy.clone = mat.clone;
+      return copy;
+    };
+    return {
+      isMesh: true,
+      name: 'fusion-' + matName,
+      material: mat
+    };
+  }
+
+  const meshes = [
+    makeMockMesh('Material_12'),   // armadura
+    makeMockMesh('Material_16'),   // tela principal
+    makeMockMesh('Material_9'),    // ribete metálico
+    makeMockMesh('Material_18'),   // faldón/capa
+    makeMockMesh('Material_20'),   // botas
+    makeMockMesh('Cabello_14'),    // cabello
+    makeMockMesh('Material_5')     // piel
+  ];
+
+  const mockModel = {
+    traverse(cb) { meshes.forEach(cb); }
+  };
+
+  // Probar con Sabia Elara (guru-1)
+  const entradaElara = { info: { id: 'guru-1', nombre: 'Sabia Elara' }, nombreModelo: 'guru-1' };
+  personalizarEstiloNpc(entradaElara, mockModel);
+
+  const mat12 = meshes.find(m => m.material.name === 'Material_12');
+  const mat16 = meshes.find(m => m.material.name === 'Material_16');
+  const mat9 = meshes.find(m => m.material.name === 'Material_9');
+  const mat20 = meshes.find(m => m.material.name === 'Material_20');
+  const matCab = meshes.find(m => m.material.name === 'Cabello_14');
+
+  // Armadura: Oro ceremonial (#d4af37)
+  assert.strictEqual(mat12.material.color.hex, 0xd4af37, 'Armadura es oro ceremonial');
+  // Tela: Azul noche (#1e3a8a) - NO DEBE SER ORO
+  assert.strictEqual(mat16.material.color.hex, 0x1e3a8a, 'Tela es azul noche');
+  // Ribete: Zafiro arcano (#38bdf8)
+  assert.strictEqual(mat9.material.color.hex, 0x38bdf8, 'Ribete es zafiro');
+  // Botas: Cuero marino (#1e293b)
+  assert.strictEqual(mat20.material.color.hex, 0x1e293b, 'Botas son cuero marino');
+  // Cabello: Platino (#94a3b8)
+  assert.strictEqual(matCab.material.color.hex, 0x94a3b8, 'Cabello es platino');
+
+  // Probar con Herrero Brann (serv-herrero)
+  const entradaHerrero = { info: { id: 'serv-herrero', nombre: 'Herrero Brann', servicio: 'herrero' }, nombreModelo: 'guru-4' };
+  personalizarEstiloNpc(entradaHerrero, mockModel);
+
+  assert.strictEqual(mat12.material.color.hex, 0x1f2937, 'Herrero: Armadura de hierro forjado oscuro');
+  assert.strictEqual(mat16.material.color.hex, 0x292524, 'Herrero: Mandil de cuero ahumado');
+  assert.strictEqual(mat9.material.color.hex, 0xea580c, 'Herrero: Reflejos de fragua naranja fuego');
+  assert.strictEqual(mat20.material.color.hex, 0x0c0a09, 'Herrero: Botas pesadas');
+});
+
