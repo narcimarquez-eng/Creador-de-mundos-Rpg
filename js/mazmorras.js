@@ -285,6 +285,7 @@
             const mats = Array.isArray(o.material) ? o.material : [o.material];
             mats.forEach(m => {
               if (m) {
+                m.side = THREE.DoubleSide;
                 m.roughness = Math.min(0.92, Math.max(0.40, m.roughness || 0.7));
                 if (typeof m.metalness === 'number') m.metalness = Math.min(0.35, m.metalness);
               }
@@ -375,23 +376,35 @@
       };
 
       // 2. Ocultar estrictamente el supramundo ("solo gráficamente debe estar la mazmorra")
-      if (this.ctx.terrenoGroup) this.ctx.terrenoGroup.visible = false;
-      if (this.ctx.aguaMesh) this.ctx.aguaMesh.visible = false;
-      if (this.ctx.pueblosGroup) this.ctx.pueblosGroup.visible = false;
+      scene.visible = true;
+      if (this.ctx.farMesh) this.ctx.farMesh.visible = false;
+      if (this.ctx.nearChunks) Object.values(this.ctx.nearChunks).forEach(c => { if (c && c.mesh) c.mesh.visible = false; });
+      if (this.ctx.lagos) Object.values(this.ctx.lagos).forEach(l => { if (l && l.mesh) l.mesh.visible = false; });
+      if (this.ctx.waterMesh) this.ctx.waterMesh.visible = false;
+      if (Array.isArray(this.ctx.towns)) this.ctx.towns.forEach(t => { if (t && t.group) t.group.visible = false; });
+      if (this.ctx.terrenoGroup && this.ctx.terrenoGroup !== scene) this.ctx.terrenoGroup.visible = false;
+      if (this.ctx.aguaMesh && this.ctx.aguaMesh !== scene) this.ctx.aguaMesh.visible = false;
+      if (this.ctx.pueblosGroup && this.ctx.pueblosGroup !== scene) this.ctx.pueblosGroup.visible = false;
       if (this.ctx.cielo) this.ctx.cielo.visible = false;
 
-      // Atmósfera de mazmorra tenebrosa
-      scene.background = new THREE.Color(0x050811);
-      scene.fog = new THREE.FogExp2(0x050811, 0.016);
+      // Atmósfera de mazmorra tenebrosa (cripta oscura)
+      scene.background = new THREE.Color(0x060913);
+      scene.fog = new THREE.FogExp2(0x060913, 0.015);
 
       // Crear grupo raíz de la mazmorra
       this.grupoInstancia = new THREE.Group();
       this.grupoInstancia.name = 'InstanciaMazmorra_' + dungeon.id;
       scene.add(this.grupoInstancia);
 
-      // Iluminación interior tenue ambiental
-      const luzAmbiente = new THREE.AmbientLight(0x1e293b, 1.4);
+      // Iluminación interior clara y atmosférica de mazmorra
+      const luzAmbiente = new THREE.AmbientLight(0xffffff, 1.8);
       this.grupoInstancia.add(luzAmbiente);
+
+      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 2.4);
+      luzDirPasillo.position.set(0, 12.0, 28.0);
+      luzDirPasillo.target.position.set(0, 1.79, 10.0);
+      this.grupoInstancia.add(luzDirPasillo);
+      this.grupoInstancia.add(luzDirPasillo.target);
 
       // Antorchas con luz dorada a lo largo del pasillo estrecho de la mazmorra
       const matLlama = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
@@ -418,12 +431,14 @@
       });
 
       // 4. Posicionar al Héroe y al Acompañante AL INICIO DEL ARCHIVO EN LOS PASILLOS MÁS ESTRECHOS
-      // Según la geometría real de mazmorra1.glb a 22x:
-      // El pasillo más estrecho (Grupo_2) discurre de z = +26m a z = -25m con vano X = [-2.1m, +2.1m] y suelo y = 1.79m.
-      // El inicio del archivo / entrada se sitúa en z = +25.5m mirando hacia -Z (hacia el interior del corredor).
+      // Dimensiones exactas calculadas de mazmorra1.glb a escala 22x:
+      // - Longitud total: Z in [-31.3m, +30.8m]. Anchura total: X in [-13.9m, +13.9m].
+      // - Pasillo más estrecho (Grupo_2_12piezas): X in [-2.3m, +2.1m], Y_suelo = 1.79m, Y_techo = 4.36m, Z in [-24.6m, +26.0m].
+      // - Inicio del pasillo estrecho: Z = +23.0m orientado hacia el interior (-Z, rotY = PI).
+      // - La cámara se sitúa a Z = 25.4m (2.4m detrás), dentro del pasillo antes de la pared de fondo (Z=26.0m).
       const SPAWN_X = 0.0;
       const SPAWN_Y = 1.79;
-      const SPAWN_Z = 25.5;
+      const SPAWN_Z = 23.0;
 
       hero.x = SPAWN_X;
       hero.y = SPAWN_Y;
@@ -440,11 +455,16 @@
 
       // Teletransportar la cámara y el control orbital detrás del héroe en el pasillo estrecho
       if (controls) {
-        controls.target.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z - 3.5);
+        controls.target.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z);
         if (camera) {
-          camera.position.set(SPAWN_X, SPAWN_Y + 2.2, SPAWN_Z + 3.8);
+          camera.position.set(SPAWN_X, SPAWN_Y + 1.0, SPAWN_Z + 2.4);
           controls.update();
         }
+      }
+      if (charCtrl) {
+        charCtrl.offsetCamara = (THREE && THREE.Vector3) ? new THREE.Vector3(0, 0.4, 2.4) : { x: 0, y: 0.4, z: 2.4 };
+        if (camera && typeof camera.position.clone === 'function') charCtrl.camaraFinal = camera.position.clone();
+        charCtrl.modoCamaraAnterior = 'follow';
       }
 
       // Conectar física de suelo plana de la mazmorra a 1.79m de altura
@@ -455,11 +475,11 @@
 
       // Posicionar al acompañante inmediatamente detrás del héroe en el pasillo estrecho
       if (this.ctx.acompanante) {
-        this.ctx.acompanante.x = 0.0;
-        this.ctx.acompanante.z = 27.2;
+        this.ctx.acompanante.x = -0.75;
+        this.ctx.acompanante.z = SPAWN_Z + 1.4;
         this.ctx.acompanante.y = SPAWN_Y;
         if (this.ctx.acompanante.mesh) {
-          this.ctx.acompanante.mesh.position.set(0.0, SPAWN_Y, 27.2);
+          this.ctx.acompanante.mesh.position.set(-0.75, SPAWN_Y, SPAWN_Z + 1.4);
           this.ctx.acompanante.mesh.rotation.set(0, Math.PI, 0);
         }
       }
@@ -468,10 +488,10 @@
       this.elitesInstancia = [];
       const listaElites = dungeon.elites || [];
       const posicionesElites = [
-        { x: -0.7, z: 18.5 }, { x: 0.7, z: 18.5 },  // Pareja 1 en el pasillo estrecho
-        { x: -0.8, z: 11.5 }, { x: 0.8, z: 11.5 },  // Pareja 2 en el pasillo estrecho
-        { x: -2.2, z: 3.0 },  { x: 2.2, z: 3.0 },   // Pareja 3 abriéndose a la antecámara
-        { x: -3.5, z: -7.0 }, { x: 3.5, z: -7.0 }   // Pareja 4 frente al salón del trono
+        { x: -0.7, z: 16.5 }, { x: 0.7, z: 16.5 },  // Pareja 1 en el pasillo estrecho (a 6.5m de distancia)
+        { x: -0.7, z: 10.0 }, { x: 0.7, z: 10.0 },  // Pareja 2 en el pasillo estrecho
+        { x: -2.0, z: 3.0 },  { x: 2.0, z: 3.0 },   // Pareja 3 abriéndose a la antecámara
+        { x: -3.0, z: -6.0 }, { x: 3.0, z: -6.0 }   // Pareja 4 frente al salón del trono
       ];
 
       let posIdx = 0;
@@ -576,12 +596,18 @@
       this.elitesInstancia = [];
 
       // 2. Restaurar supramundo exterior
+      if (scene) scene.visible = true;
       if (this.estadoPrevio && scene) {
         scene.background = this.estadoPrevio.background;
         scene.fog = this.estadoPrevio.fog;
-        if (this.ctx.terrenoGroup) this.ctx.terrenoGroup.visible = this.estadoPrevio.terrenoVisible;
-        if (this.ctx.aguaMesh) this.ctx.aguaMesh.visible = this.estadoPrevio.aguaVisible;
-        if (this.ctx.pueblosGroup) this.ctx.pueblosGroup.visible = this.estadoPrevio.pueblosVisible;
+        if (this.ctx.farMesh) this.ctx.farMesh.visible = true;
+        if (this.ctx.nearChunks) Object.values(this.ctx.nearChunks).forEach(c => { if (c && c.mesh) c.mesh.visible = true; });
+        if (this.ctx.lagos) Object.values(this.ctx.lagos).forEach(l => { if (l && l.mesh) l.mesh.visible = true; });
+        if (this.ctx.waterMesh) this.ctx.waterMesh.visible = true;
+        if (Array.isArray(this.ctx.towns)) this.ctx.towns.forEach(t => { if (t && t.group) t.group.visible = true; });
+        if (this.ctx.terrenoGroup && this.ctx.terrenoGroup !== scene) this.ctx.terrenoGroup.visible = this.estadoPrevio.terrenoVisible;
+        if (this.ctx.aguaMesh && this.ctx.aguaMesh !== scene) this.ctx.aguaMesh.visible = this.estadoPrevio.aguaVisible;
+        if (this.ctx.pueblosGroup && this.ctx.pueblosGroup !== scene) this.ctx.pueblosGroup.visible = this.estadoPrevio.pueblosVisible;
         if (this.ctx.cielo) this.ctx.cielo.visible = this.estadoPrevio.cieloVisible;
       }
 

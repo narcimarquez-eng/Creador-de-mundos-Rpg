@@ -2984,6 +2984,11 @@
   }
 
   function updateAtmosphere(dt) {
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+      if (cielo && cielo.visible) cielo.visible = false;
+      return;
+    }
+    if (cielo && !cielo.visible) cielo.visible = true;
     const T = ATMO_C[timeOfDay];
     const k = 1 - Math.exp(-dt * 2.2);
     atmoNow.bg.lerp(T.bgC, k); atmoNow.fog.lerp(T.fogC, k);
@@ -3711,7 +3716,8 @@
         m.group.visible = near;
         if (near) {
           aplicarDetalle(m, d);
-          m.group.position.set(m.x, H(m.x, m.z), m.z);
+          const my = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? 1.79 : H(m.x, m.z);
+          m.group.position.set(m.x, my, m.z);
           if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
           const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
           // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
@@ -3725,7 +3731,8 @@
         const showBar = near && (m.hp < m.maxHp || d < 12);
         m.bar.visible = showBar;
         if (showBar) {
-          m.bar.position.set(m.x, H(m.x, m.z) + m.barHeight, m.z);
+          const myBar = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? 1.79 : H(m.x, m.z);
+          m.bar.position.set(m.x, myBar + m.barHeight, m.z);
           m.bar.quaternion.copy(camera.quaternion);
           const f = Math.max(0.001, m.hp / m.maxHp);
           m.fg.scale.x = f;
@@ -6167,9 +6174,15 @@
       get camera() { return camera; },
       get controls() { return controls; },
       get acompanante() { return acompanante; },
-      terrenoGroup: terrainMesh,
+      get cielo() { return cielo; },
+      get towns() { return towns; },
+      get farMesh() { return farMesh; },
+      get nearChunks() { return nearChunks; },
+      get lagos() { return lagosMundo; },
+      get waterMesh() { return waterMesh; },
+      terrenoGroup: null,
       aguaMesh: waterMesh,
-      pueblosGroup: towns.length && towns[0].group ? towns[0].group.parent : null,
+      pueblosGroup: null,
       getWalkableHeight: (x, z) => visorWorld.getWalkableHeight(x, z),
       crearMonstruoCombate: (info, parentGroup, isBoss) => {
         const m = CombatLib.newMonster({
@@ -6183,7 +6196,18 @@
         m.alive = true;
         m.hp = m.maxHp;
         m.group = new THREE.Group();
-        m.group.position.set(info.x, info.y || 0.5, info.z);
+        m.group.position.set(info.x, info.y || 1.79, info.z);
+        m.group.visible = true;
+
+        if (window.EnemyLib) {
+          const rngTemp = (typeof W !== 'undefined' && W.PRNG) ? new W.PRNG((info.level * 101) ^ (isBoss ? 9999 : 1234)) : { range: (a, b) => a + Math.random() * (b - a) };
+          m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp);
+          if (m.enemigo) {
+            m.versiones = {};
+            m.rig = null;
+            construirModeloEnemigo(m, 4);
+          }
+        }
         if (parentGroup) parentGroup.add(m.group); else scene.add(m.group);
 
         const barGeo = new THREE.PlaneGeometry(isBoss ? 4.2 : 2.4, isBoss ? 0.45 : 0.28);
@@ -6195,7 +6219,7 @@
         m.fg.position.z = 0.01;
         m.bar.add(bg, m.fg);
         m.barHeight = isBoss ? 5.2 : 3.2;
-        m.bar.position.set(info.x, (info.y || 0.5) + m.barHeight, info.z);
+        m.bar.position.set(info.x, (info.y || 1.79) + m.barHeight, info.z);
         if (parentGroup) parentGroup.add(m.bar); else scene.add(m.bar);
 
         info.combatRef = m;
@@ -6929,7 +6953,13 @@
     }
     actualizarPiedras();
     actualizarZonaTela();
-    if (cielo) cielo.position.copy(camera.position);
+    if (cielo) {
+      if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+        cielo.visible = false;
+      } else {
+        cielo.position.copy(camera.position);
+      }
+    }
     if (character.tieneEntradaManual() && (ruta || objetivo || autoZona)) {
       character.destino = null;
       character.cancelado = true;
@@ -6996,7 +7026,15 @@
     controls.maxDistance = character.cameraMode === 'follow' ? 280 : 9000;
     controls.update();
     // Al seguir, se mantienen la distancia y el giro que dejas con el ratón; el recorte por muros y suelo no se acumula
-    character.encuadrar(() => CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld));
+    character.encuadrar(() => {
+      if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+        camera.position.x = Math.max(-1.8, Math.min(1.8, camera.position.x));
+        camera.position.y = Math.max(2.1, Math.min(4.0, camera.position.y));
+        camera.position.z = Math.max(-28.0, Math.min(25.5, camera.position.z));
+        return;
+      }
+      CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld);
+    });
     try {
       renderer.render(scene, camera);
     } catch (errRender) {
@@ -7092,8 +7130,8 @@
       ensureScene();
       $('load').classList.add('show');
     }
-  })();
     window.__visor = { loadText, buildWorld, get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+  })();
   </script>
 </body>
 </html>
