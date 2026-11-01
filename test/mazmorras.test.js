@@ -133,6 +133,7 @@ test('gestor de mazmorras: detección del portal a 30m y resolución de victoria
   assert.ok(cerca, 'Al final de los 30 metros debe detectar el portal');
   assert.strictEqual(cerca.dungeon.id, d.id);
   assert.ok(cerca.distanciaAlPortal <= 3.5, 'Distancia al portal menor a 3.5m');
+  assert.strictEqual(cerca.cruzandoPortal, true, 'Al tocar o cruzar el portal debe marcar cruzandoPortal para entrada automática');
 
   // 2. Condición de victoria por muerte del Jefe
   let victoriaDisparada = false;
@@ -153,4 +154,97 @@ test('gestor de mazmorras: detección del portal a 30m y resolución de victoria
     onDerrota: () => { derrotaDisparada = true; }
   });
   assert.strictEqual(derrotaDisparada, true, 'La muerte del personaje debe disparar derrota');
+});
+
+test('instancia de mazmorra: sitúa al personaje al inicio del archivo en los pasillos más estrechos (z = 25.5m)', () => {
+  function createPos() {
+    const p = { x: 0, y: 0, z: 0 };
+    p.set = function(x, y, z) { p.x = x; p.y = y; p.z = z; };
+    p.clone = function() { return { x: p.x, y: p.y, z: p.z }; };
+    return p;
+  }
+  function MockObj3D() {
+    this.position = createPos();
+    this.rotation = createPos();
+  }
+  function MockGroup() {
+    MockObj3D.call(this);
+    this.children = [];
+    this.add = function(c) { this.children.push(c); };
+    this.remove = function(c) {
+      const idx = this.children.indexOf(c);
+      if (idx >= 0) this.children.splice(idx, 1);
+    };
+  }
+
+  const mockTHREE = {
+    Group: MockGroup,
+    Mesh: MockObj3D,
+    Color: function() {},
+    FogExp2: function() {},
+    AmbientLight: MockObj3D,
+    PointLight: MockObj3D,
+    ConeGeometry: function() {},
+    MeshBasicMaterial: function() {}
+  };
+
+  const scene = new MockGroup();
+  const hero = { x: 80, y: 19, z: 0 };
+  const mockCharacter = {
+    root: new MockObj3D(),
+    target: { set: function(x, y, z) { this.x = x; this.y = y; this.z = z; } },
+    world: { getWalkableHeight: () => 19, isWaterHazard: () => false }
+  };
+  const mockControls = {
+    target: { x: 80, y: 19, z: 0, set: function(x, y, z) { this.x = x; this.y = y; this.z = z; }, clone: function() { return { ...this }; } },
+    update: () => {}
+  };
+  const mockCamera = {
+    position: { x: 80, y: 25, z: 10, set: function(x, y, z) { this.x = x; this.y = y; this.z = z; }, clone: function() { return { ...this }; } }
+  };
+  const mockAcompanante = {
+    x: 78, y: 19, z: -2,
+    mesh: new MockObj3D()
+  };
+
+  const d = MazmorrasLib.generarMazmorraPorDefecto({ dungeons: [] }, 80, 0, { level: 12 });
+  const gestor = new MazmorrasLib.GestorMazmorras({
+    THREE: mockTHREE,
+    scene,
+    hero,
+    character: mockCharacter,
+    controls: mockControls,
+    camera: mockCamera,
+    acompanante: mockAcompanante,
+    getWalkableHeight: (x, z) => 19
+  });
+
+  gestor.iniciarInstancia(d);
+
+  // Verificación: el personaje debe estar al inicio del archivo en los pasillos más estrechos
+  assert.strictEqual(hero.x, 0.0, 'X centrada en el pasillo estrecho');
+  assert.strictEqual(hero.y, 1.79, 'Y correspondiente a la cota del suelo de la mazmorra (1.79m)');
+  assert.strictEqual(hero.z, 25.5, 'Z en el inicio del archivo (z = 25.5m en el pasillo estrecho)');
+
+  // Teletransporte del CharacterController
+  assert.strictEqual(mockCharacter.root.position.x, 0.0);
+  assert.strictEqual(mockCharacter.root.position.y, 1.79);
+  assert.strictEqual(mockCharacter.root.position.z, 25.5);
+  assert.strictEqual(mockCharacter.root.rotation.y, Math.PI, 'Personaje orientado hacia el interior (-Z)');
+
+  // Suelo transitable de la mazmorra conectado
+  assert.strictEqual(mockCharacter.world.getWalkableHeight(0, 25.5), 1.79);
+
+  // Acompañante situado detrás en el pasillo estrecho
+  assert.strictEqual(mockAcompanante.mesh.position.z, 27.2);
+
+  // Cámara orientada hacia el pasillo
+  assert.strictEqual(mockControls.target.z, 22.0);
+
+  // Al salir de la instancia, restaura el personaje al supramundo exterior
+  gestor.salirInstancia(true);
+  assert.strictEqual(gestor.enMazmorra, false);
+  assert.strictEqual(mockCharacter.root.position.x, 80);
+  assert.strictEqual(mockCharacter.root.position.z, -4.5);
+  assert.strictEqual(mockCharacter.world.getWalkableHeight(80, -4.5), 19);
 });

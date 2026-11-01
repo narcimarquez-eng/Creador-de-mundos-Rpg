@@ -324,14 +324,19 @@
         // Transformar posición del héroe a coordenadas locales de la entrada
         const dx = heroX - d.x;
         const dz = heroZ - d.y;
-        const cosR = Math.cos(-rot);
-        const sinR = Math.sin(-rot);
+        const cosR = Math.cos(rot);
+        const sinR = Math.sin(rot);
         const lx = dx * cosR - dz * sinR;
         const lz = dx * sinR + dz * cosR;
 
-        // Comprobar si el héroe está cerca del portal (z entre 27m y 32m y |x| < 2.8m)
-        if (lz >= 26.5 && lz <= 32.0 && Math.abs(lx) <= 2.8) {
-          return { dungeon: d, distanciaAlPortal: Math.hypot(lx, lz - 30.0) };
+        // Comprobar si el héroe está cerca del portal (z entre 25.5m y 34m y |x| < 3.2m)
+        if (lz >= 25.5 && lz <= 34.0 && Math.abs(lx) <= 3.2) {
+          const dist = Math.hypot(lx, lz - 30.0);
+          return {
+            dungeon: d,
+            distanciaAlPortal: dist,
+            cruzandoPortal: dist <= 2.4 || lz >= 28.5
+          };
         }
       }
       return null;
@@ -343,6 +348,9 @@
       const THREE = this.ctx.THREE || (typeof window !== 'undefined' ? window.THREE : null);
       const scene = this.ctx.scene;
       const hero = this.ctx.hero;
+      const charCtrl = this.ctx.character;
+      const camera = this.ctx.camera;
+      const controls = this.ctx.controls;
       if (!THREE || !scene || !hero) return;
 
       this.enMazmorra = true;
@@ -352,6 +360,12 @@
       // 1. Guardar estado del supramundo exterior
       this.estadoPrevio = {
         heroPos: { x: hero.x, y: hero.y, z: hero.z },
+        charPos: charCtrl && charCtrl.root ? charCtrl.root.position.clone() : null,
+        charRot: charCtrl && charCtrl.root ? charCtrl.root.rotation.clone() : null,
+        camPos: camera ? camera.position.clone() : null,
+        ctrlTarget: controls ? controls.target.clone() : null,
+        origGetWalkableHeight: (charCtrl && charCtrl.world) ? charCtrl.world.getWalkableHeight : null,
+        origIsWaterHazard: (charCtrl && charCtrl.world) ? charCtrl.world.isWaterHazard : null,
         background: scene.background,
         fog: scene.fog,
         terrenoVisible: this.ctx.terrenoGroup ? this.ctx.terrenoGroup.visible : true,
@@ -375,37 +389,89 @@
       this.grupoInstancia.name = 'InstanciaMazmorra_' + dungeon.id;
       scene.add(this.grupoInstancia);
 
-      // Iluminación interior tenue
+      // Iluminación interior tenue ambiental
       const luzAmbiente = new THREE.AmbientLight(0x1e293b, 1.4);
       this.grupoInstancia.add(luzAmbiente);
 
-      const luzTrono = new THREE.PointLight(0xa855f7, 3.5, 35, 1.4);
-      luzTrono.position.set(0, 6.0, -20.0);
+      // Antorchas con luz dorada a lo largo del pasillo estrecho de la mazmorra
+      const matLlama = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+      const geoLlama = new THREE.ConeGeometry(0.18, 0.5, 6);
+      [-16.0, -8.0, 0.0, 8.0, 16.0, 24.0].forEach(zAnt => {
+        [-1.85, 1.85].forEach(xAnt => {
+          const pLuz = new THREE.PointLight(0xf59e0b, 2.4, 15, 1.5);
+          pLuz.position.set(xAnt, 3.2, zAnt);
+          this.grupoInstancia.add(pLuz);
+
+          const llama = new THREE.Mesh(geoLlama, matLlama);
+          llama.position.set(xAnt, 3.1, zAnt);
+          this.grupoInstancia.add(llama);
+        });
+      });
+
+      const luzTrono = new THREE.PointLight(0xa855f7, 3.8, 38, 1.3);
+      luzTrono.position.set(0, 6.0, -16.0);
       this.grupoInstancia.add(luzTrono);
 
-      // 3. Cargar el modelo 3D de la mazmorra
+      // 3. Cargar el modelo 3D de la mazmorra (mazmorra1.glb)
       cargarModeloMazmorra(THREE, dungeon.glb || 'glb/mazmorras/mazmorra1.glb', modelo => {
         if (this.grupoInstancia) this.grupoInstancia.add(modelo);
       });
 
-      // 4. Posicionar al Héroe y al Acompañante al inicio de la nave (z = +22m, mirando hacia el trono al fondo)
-      hero.x = 0;
-      hero.z = 22.0;
-      hero.y = 0.5;
-      if (this.ctx.acompanante) {
-        this.ctx.acompanante.x = 1.8;
-        this.ctx.acompanante.z = 23.5;
-        this.ctx.acompanante.y = 0.5;
+      // 4. Posicionar al Héroe y al Acompañante AL INICIO DEL ARCHIVO EN LOS PASILLOS MÁS ESTRECHOS
+      // Según la geometría real de mazmorra1.glb a 22x:
+      // El pasillo más estrecho (Grupo_2) discurre de z = +26m a z = -25m con vano X = [-2.1m, +2.1m] y suelo y = 1.79m.
+      // El inicio del archivo / entrada se sitúa en z = +25.5m mirando hacia -Z (hacia el interior del corredor).
+      const SPAWN_X = 0.0;
+      const SPAWN_Y = 1.79;
+      const SPAWN_Z = 25.5;
+
+      hero.x = SPAWN_X;
+      hero.y = SPAWN_Y;
+      hero.z = SPAWN_Z;
+
+      // Teletransportar físicamente la malla 3D del personaje
+      if (charCtrl && charCtrl.root) {
+        charCtrl.root.position.set(SPAWN_X, SPAWN_Y, SPAWN_Z);
+        charCtrl.root.rotation.set(0, Math.PI, 0); // Mirando hacia el pasillo interior (-Z)
+        if (charCtrl.target) charCtrl.target.set(SPAWN_X, SPAWN_Y, SPAWN_Z);
+        charCtrl.destino = null;
+        charCtrl.sinAvance = 0;
       }
 
-      // 5. Spawneo de Luchadores de Élite (todos x4 o x8 según configuración)
+      // Teletransportar la cámara y el control orbital detrás del héroe en el pasillo estrecho
+      if (controls) {
+        controls.target.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z - 3.5);
+        if (camera) {
+          camera.position.set(SPAWN_X, SPAWN_Y + 2.2, SPAWN_Z + 3.8);
+          controls.update();
+        }
+      }
+
+      // Conectar física de suelo plana de la mazmorra a 1.79m de altura
+      if (charCtrl && charCtrl.world) {
+        charCtrl.world.getWalkableHeight = () => SPAWN_Y;
+        charCtrl.world.isWaterHazard = () => false;
+      }
+
+      // Posicionar al acompañante inmediatamente detrás del héroe en el pasillo estrecho
+      if (this.ctx.acompanante) {
+        this.ctx.acompanante.x = 0.0;
+        this.ctx.acompanante.z = 27.2;
+        this.ctx.acompanante.y = SPAWN_Y;
+        if (this.ctx.acompanante.mesh) {
+          this.ctx.acompanante.mesh.position.set(0.0, SPAWN_Y, 27.2);
+          this.ctx.acompanante.mesh.rotation.set(0, Math.PI, 0);
+        }
+      }
+
+      // 5. Spawneo de Luchadores de Élite (todos x4 o x8 según configuración) a lo largo del pasillo y nave
       this.elitesInstancia = [];
       const listaElites = dungeon.elites || [];
       const posicionesElites = [
-        { x: -3.5, z: 14.0 }, { x: 3.5, z: 14.0 },
-        { x: -4.0, z: 6.0 },  { x: 4.0, z: 6.0 },
-        { x: -3.0, z: -4.0 }, { x: 3.0, z: -4.0 },
-        { x: -4.2, z: -12.0 }, { x: 4.2, z: -12.0 }
+        { x: -0.7, z: 18.5 }, { x: 0.7, z: 18.5 },  // Pareja 1 en el pasillo estrecho
+        { x: -0.8, z: 11.5 }, { x: 0.8, z: 11.5 },  // Pareja 2 en el pasillo estrecho
+        { x: -2.2, z: 3.0 },  { x: 2.2, z: 3.0 },   // Pareja 3 abriéndose a la antecámara
+        { x: -3.5, z: -7.0 }, { x: 3.5, z: -7.0 }   // Pareja 4 frente al salón del trono
       ];
 
       let posIdx = 0;
@@ -424,7 +490,7 @@
             boss: false,
             x: pt.x,
             z: pt.z,
-            y: 0.5,
+            y: SPAWN_Y,
             modelo: elDef.modelo || 'caballero_oscuro',
             hp: 1, maxHp: 1 // Inicializado por combat.js
           };
@@ -435,7 +501,7 @@
         }
       });
 
-      // 6. Spawneo del Jefe de Mazmorra frente al trono (z = -22m)
+      // 6. Spawneo del Jefe de Mazmorra frente al trono al fondo (z = -15.5m)
       const bDef = dungeon.boss || {};
       this.bossInstancia = {
         id: 'boss-dungeon-' + dungeon.id,
@@ -444,8 +510,8 @@
         boss: true,
         rangoElite: bDef.rangoElite || 10,
         x: 0,
-        z: -21.5,
-        y: 0.6,
+        z: -15.5,
+        y: SPAWN_Y + 0.1,
         recompensas: {
           oro: bDef.recompensaOro || 3000,
           arena: bDef.recompensaArena || 60,
@@ -520,6 +586,10 @@
       }
 
       // 3. Teletransportar al héroe frente al arco exterior penetrable (z = -4m en coords locales)
+      const charCtrl = this.ctx.character;
+      const camera = this.ctx.camera;
+      const controls = this.ctx.controls;
+
       if (d && hero) {
         const rot = d.rotacion || 0;
         // Frente al arco de entrada mirando hacia afuera (alejándose de la entrada)
@@ -532,11 +602,43 @@
           hero.y = this.ctx.getWalkableHeight(hero.x, hero.z);
         }
 
+        // Restaurar física del mundo exterior para el personaje
+        if (charCtrl && charCtrl.world && this.estadoPrevio) {
+          if (this.estadoPrevio.origGetWalkableHeight) {
+            charCtrl.world.getWalkableHeight = this.estadoPrevio.origGetWalkableHeight;
+          }
+          if (this.estadoPrevio.origIsWaterHazard) {
+            charCtrl.world.isWaterHazard = this.estadoPrevio.origIsWaterHazard;
+          }
+        }
+
+        // Teletransportar físicamente la malla 3D del personaje
+        if (charCtrl && charCtrl.root) {
+          charCtrl.root.position.set(wx, hero.y, wz);
+          charCtrl.root.rotation.set(0, rot, 0);
+          if (charCtrl.target) charCtrl.target.set(wx, hero.y, wz);
+          charCtrl.destino = null;
+          charCtrl.sinAvance = 0;
+        }
+
+        // Teletransportar cámara y controles al exterior
+        if (controls) {
+          controls.target.set(wx, hero.y + 1.2, wz);
+          if (camera) {
+            camera.position.set(wx - Math.sin(rot) * 9.0, hero.y + 4.5, wz - Math.cos(rot) * 9.0);
+            controls.update();
+          }
+        }
+
         if (this.ctx.acompanante) {
           this.ctx.acompanante.x = hero.x + 1.6;
           this.ctx.acompanante.z = hero.z - 1.2;
           if (typeof this.ctx.getWalkableHeight === 'function') {
             this.ctx.acompanante.y = this.ctx.getWalkableHeight(this.ctx.acompanante.x, this.ctx.acompanante.z);
+          }
+          if (this.ctx.acompanante.mesh) {
+            this.ctx.acompanante.mesh.position.set(this.ctx.acompanante.x, this.ctx.acompanante.y, this.ctx.acompanante.z);
+            this.ctx.acompanante.mesh.rotation.set(0, rot, 0);
           }
         }
       }
