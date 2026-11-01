@@ -34,8 +34,15 @@
     #side h3 { margin: 0; padding: 10px 12px 6px; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .7px; }
     #side .stats { padding: 0 12px 8px; color: var(--muted); font-size: 12px; line-height: 1.6; border-bottom: 1px solid var(--line); }
     #side .stats b { color: var(--gold); }
-    #towns { overflow-y: auto; flex: 1; padding: 6px; scrollbar-width: thin; }
-    .tabs-m { display: none; }
+    .tabs-m { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); }
+    .tabs-m button { flex: 1; padding: 6px 4px; font-size: 11px; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); cursor: pointer; text-align: center; }
+    .tabs-m button.on { background: #0c4a6e; border-color: var(--accent); color: #fff; font-weight: bold; }
+    #side[data-tab="pueblos"] #sec-zonas, #side[data-tab="pueblos"] #sec-cabanas,
+    #side[data-tab="zonas"] #sec-pueblos, #side[data-tab="zonas"] #sec-cabanas,
+    #side[data-tab="cabanas"] #sec-pueblos, #side[data-tab="cabanas"] #sec-zonas { display: none; }
+    #side section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    #side section h3 { display: none; }
+    #side #towns, #side #zonas, #side #cabanas-lista { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; scrollbar-width: thin; }
     .trow { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 8px; }
     .trow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .trow small { color: var(--muted); }
@@ -266,10 +273,12 @@
       .tabs-m { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); }
       .tabs-m button { flex: 1; padding: 5px 4px; font-size: 12px; background: transparent; }
       .tabs-m button.on { background: #0c4a6e; border-color: var(--accent); color: #fff; }
-      #side[data-tab="pueblos"] #sec-zonas, #side[data-tab="zonas"] #sec-pueblos { display: none; }
+      #side[data-tab="pueblos"] #sec-zonas, #side[data-tab="pueblos"] #sec-cabanas,
+      #side[data-tab="zonas"] #sec-pueblos, #side[data-tab="zonas"] #sec-cabanas,
+      #side[data-tab="cabanas"] #sec-pueblos, #side[data-tab="cabanas"] #sec-zonas { display: none; }
       #side section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       #side section h3 { display: none; }
-      #side #towns, #side #zonas { flex: 1; min-height: 0; overflow-y: auto; }
+      #side #towns, #side #zonas, #side #cabanas-lista { flex: 1; min-height: 0; overflow-y: auto; }
       #side .stats { font-size: 11px; line-height: 1.4; }
       #side .trow { padding: 5px 7px; margin-bottom: 3px; }
       #top button span.long { display: none; }
@@ -298,6 +307,7 @@
     <div class="tabs-m" id="tabs-m">
       <button data-tab="pueblos" class="on">🏘 Pueblos</button>
       <button data-tab="zonas">⚔ Zonas</button>
+      <button data-tab="cabanas">🏡 Cabañas (5)</button>
     </div>
     <section id="sec-pueblos">
       <h3>Pueblos</h3>
@@ -306,6 +316,10 @@
     <section id="sec-zonas">
       <h3>Zonas de monstruos</h3>
       <div id="zonas"></div>
+    </section>
+    <section id="sec-cabanas">
+      <h3>Cabañas y Encargos (100)</h3>
+      <div id="cabanas-lista"></div>
     </section>
     <div class="layers">
       <label><input type="checkbox" id="chk-zones" checked> Zonas</label>
@@ -827,7 +841,12 @@
       h = h + (cauce - h) * k;
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
-    return LagosLib.aplicar(lagosMundo, x, z, h);
+    h = LagosLib.aplicar(lagosMundo, x, z, h);
+    // Rebaje y aplanado de suelo para las cabañas en pendiente (sin suelo artificial)
+    if (typeof LugaresSecretosLib !== 'undefined' && LugaresSecretosLib.aplicarRebajeCabanas) {
+      h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h);
+    }
+    return h;
   }
 
   function kitFor(style) {
@@ -1121,6 +1140,19 @@
       libre: (x, z, m) => !enMargenPueblo(x, z, BLEND_OUT + m, true) && !rejillaCaminosMundo(x, z, m),
       rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
     });
+
+    // Lugares secretos y cabañas: se generan antes del relieve para que el terreno rebaje y aplane la huella de cada cabaña
+    if (typeof LugaresSecretosLib !== 'undefined') {
+      lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
+      world.secretPlaces = lugaresSecretos;
+      lugaresSecretos.forEach(s => {
+        if (s.tipo === 'cabana') {
+          const e = terrain.elevation(s.x, s.z);
+          s.alturaBase = (e - SEA) * HEIGHT_SCALE;
+          s.y = s.alturaBase;
+        }
+      });
+    }
 
     buildTerrain();
     buildWater();
@@ -2090,8 +2122,84 @@
   }
 
   // ===========================================================================
-  // Panel de información y lista de pueblos
+  // Panel de información, lista de pueblos, zonas y cabañas secretas (100 monstruos)
   // ===========================================================================
+  function buildCabanasUI() {
+    if (!$('cabanas-lista')) return;
+    const lista = (lugaresSecretos || []).filter(s => s.tipo === 'cabana');
+    if (!lista.length) {
+      $('cabanas-lista').innerHTML = '<div class="muted" style="padding:8px">Explorando cabañas del reino...</div>';
+      return;
+    }
+    $('cabanas-lista').innerHTML = lista.map(c => {
+      const m = c.misionCabana || {};
+      const cant = m.cantidad || m.objetivoCantidad || 100;
+      const prog = m.progreso || 0;
+      const entregada = m.entregada || m.cumplida;
+      const completada = m.completada || prog >= cant;
+      const pct = Math.min(100, Math.round((prog / cant) * 100));
+      const aldeanoNom = c.aldeano ? (c.aldeano.nombre || c.aldeano) : 'Aldeano';
+      const estadoColor = entregada ? '#86efac' : (completada ? '#facc15' : '#38bdf8');
+      const estadoTxt = entregada ? '✓ Cobrada' : (completada ? '🎉 ¡Lista para entregar!' : `${prog}/${cant}`);
+
+      return `
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px;margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-weight:bold;color:#fde047;font-size:12px">${c.icono || '🏡'} ${esc(c.nombre)}</span>
+            <small style="color:${estadoColor};font-weight:bold">${estadoTxt}</small>
+          </div>
+          <div style="font-size:11px;color:#cbd5e1;margin-bottom:4px">
+            👤 <b>${esc(aldeanoNom)}</b>: Cazar 100 ${esc(m.especie || 'Monstruos')}
+          </div>
+          <div style="height:5px;background:#0f172a;border-radius:3px;overflow:hidden;margin-bottom:6px">
+            <div style="height:100%;background:${estadoColor};width:${pct}%"></div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="trow" data-ir-cabana="${c.id}" style="padding:4px 8px;font-size:11px;flex:1;text-align:center;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#e2e8f0;cursor:pointer">
+              🧭 Ir a Cabaña
+            </button>
+            ${completada && !entregada ? `
+              <button class="gold" data-cobrar-cabana="${c.id}" style="padding:4px 8px;font-size:11px;cursor:pointer">
+                🎁 Cobrar
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    $('cabanas-lista').querySelectorAll('[data-ir-cabana]').forEach(b => b.onclick = () => {
+      const c = (lugaresSecretos || []).find(x => x.id === b.dataset.irCabana);
+      if (c) {
+        focusPoint(c.x, c.z, 90, { kind: 'cabana', ref: c });
+        irAPunto(c.x, c.z, c.nombre, 4);
+      }
+    });
+
+    $('cabanas-lista').querySelectorAll('[data-cobrar-cabana]').forEach(b => b.onclick = () => {
+      const c = (lugaresSecretos || []).find(x => x.id === b.dataset.cobrarCabana);
+      if (c) {
+        focusPoint(c.x, c.z, 90, { kind: 'cabana', ref: c });
+        abrirServicio('cabana', { id: 'npc-' + c.id, nombre: c.aldeano, tema: 'Encargo de la Cabaña', cabana: c });
+      }
+    });
+  }
+
+  function irAPunto(targetX, targetZ, nombreDestino, pararDist = 3) {
+    if (!world || !character) return;
+    if (hero.dead) { toast('Primero tienes que reaparecer'); return; }
+    const p = character.root.position;
+    pararAuto();
+    objetivo = null;
+    const dest = { x: targetX, y: targetZ, parar: pararDist, nombre: nombreDestino };
+    ruta = { puntos: RutaLib.calcularRuta(world, { x: p.x, y: p.z }, dest, opcionesRuta()), i: 0, parar: pararDist, nombre: nombreDestino, npc: null, intentos: 0 };
+    character.cancelado = false;
+    character.atascado = false;
+    if (!follow) setFollow(true);
+    toast('🧭 En camino a ' + nombreDestino + ' (muévete para parar)');
+    actualizarMision();
+  }
+
   function buildUI() {
     const list = world.towns.slice().sort((a, b) => a.level - b.level);
     $('towns').innerHTML = list.map(t => `
@@ -2112,6 +2220,7 @@
       const z = world.zones.find(x => x.id === b.dataset.zona);
       if (z) focusPoint(z.x, z.y, Math.max(90, z.radius * 2.2), { kind: 'zone', ref: z });
     });
+    buildCabanasUI();
   }
 
   function updateStats() {
@@ -2178,6 +2287,34 @@
         <div class="muted" id="sel-drops" style="margin-top:4px">🎁 ${dropsDeMonstruo(m)}</div>
         <div class="btns"><button class="gold" data-atacar>⚔ Atacar</button></div>
         <div class="muted" style="margin-top:6px">El personaje camina hasta él y ataca hasta matarlo. Muévete con las teclas para cancelar.</div>`;
+    } else if (sel.kind === 'cabana') {
+      const c = sel.ref;
+      cx = c.x; cz = c.z; r = 16;
+      const m = c.misionCabana || {};
+      const cant = m.cantidad || m.objetivoCantidad || 100;
+      const prog = m.progreso || 0;
+      const entregada = m.entregada || m.cumplida;
+      const completada = m.completada || prog >= cant;
+      const aldeanoNom = c.aldeano ? (c.aldeano.nombre || c.aldeano) : 'Aldeano de la Cabaña';
+      html = `
+        <button class="close" data-close>✕</button>
+        <span class="kind">🏡 Refugio Especial</span>
+        <h2>${esc(c.nombre)}</h2>
+        <div class="muted">Aldeano: <b>${esc(aldeanoNom)}</b></div>
+        <div class="muted" style="margin-top:6px;font-style:italic">«${esc(c.frase || '')}»</div>
+        <div style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;margin:8px 0">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span>Caza de 100 ${esc(m.especie || 'Monstruos')}:</span>
+            <b style="color:${entregada ? '#86efac' : (completada ? '#facc15' : '#38bdf8')}">${entregada ? '✓ Cobrada' : (completada ? '🎉 ¡Lista para entregar!' : prog + '/' + cant)}</b>
+          </div>
+          <div style="height:6px;background:#1e293b;border-radius:3px;overflow:hidden">
+            <div style="height:100%;background:${entregada ? '#22c55e' : (completada ? '#facc15' : '#38bdf8')};width:${Math.min(100, Math.round(prog/cant*100))}%"></div>
+          </div>
+        </div>
+        <div class="btns">
+          <button class="gold" data-tp="${c.x},${c.z}">🧍 Ir aquí</button>
+          <button class="gold" data-abrir-cabana="${c.id}">🏡 Ver Encargo / Cobrar</button>
+        </div>`;
     } else {
       const p = sel.at;
       const terr = W.getTerrain(world.seed);
@@ -2193,6 +2330,10 @@
     info.innerHTML = html;
     info.classList.add('show');
     info.querySelector('[data-close]').onclick = () => showSelection(null);
+    info.querySelectorAll('[data-abrir-cabana]').forEach(btn => btn.onclick = () => {
+      const c = (lugaresSecretos || []).find(x => x.id === btn.dataset.abrirCabana) || sel.ref;
+      if (c) abrirServicio('cabana', { id: 'npc-' + c.id, nombre: c.aldeano, tema: 'Encargo de la Cabaña', cabana: c });
+    });
     info.querySelectorAll('[data-hablar]').forEach(btn => btn.onclick = () => {
       const txt = sel.ref.info.frase;
       $('npc-dialogo').textContent = '«' + txt + '»';
@@ -2886,18 +3027,36 @@
     if (HeroeLib.registrarMuerte(heroeEst)) toast('🧬 +1 punto de habilidad por tu lucha');
     avanzarHistoria({ tipo: m.boss ? 'jefe' : 'matar', zona: m.zone && m.zone.id });
     if (m.zone && HeroeLib.registrarZona(heroeEst, m.zone.id, m.boss ? 'jefe' : 'matar')) anunciarEncargo(m.zone.id);
+    // Contabilización precisa de bajas para las misiones de las 5 cabañas especiales (100 monstruos)
     if (lugaresSecretos && lugaresSecretos.length) {
       lugaresSecretos.forEach(s => {
-        if (s.misionCabana && !s.misionCabana.cumplida) {
-          const objEsp = (s.misionCabana.objetivoEspecie || '').toLowerCase();
+        if (s.misionCabana && !s.misionCabana.entregada && !s.misionCabana.cumplida) {
+          const mObj = s.misionCabana;
+          const cantMax = mObj.cantidad || mObj.objetivoCantidad || 100;
+          const esp = (mObj.especie || mObj.objetivoEspecie || '').toLowerCase();
           const mNom = (m.name || '').toLowerCase();
-          if (!objEsp || mNom.includes(objEsp) || (s.zonaAsignada && m.zone && m.zone.id === s.zonaAsignada)) {
-            if (s.misionCabana.progreso < s.misionCabana.objetivoCantidad) {
-              s.misionCabana.progreso++;
-              if (s.misionCabana.progreso === s.misionCabana.objetivoCantidad) {
-                toast('🏡 ¡Encargo de cabaña cumplido (100/100)! Visita a ' + (s.aldeano ? s.aldeano.nombre : 'el aldeano') + ' para cobrar.');
-              }
+          const zId = m.zone && m.zone.id;
+
+          // Coincidencia por especie, por zona de caza asignada o por proximidad geográfica a la cabaña
+          const distCabanaMonstruo = Math.hypot(m.x - s.x, m.z - s.z);
+          const coincideEsp = !esp || mNom.includes(esp) || esp.includes(mNom) || esp.split(' ').some(p => p.length > 3 && mNom.includes(p));
+          const coincideZona = (mObj.zonaId && zId && mObj.zonaId === zId) || (s.zonaAsignada && zId && s.zonaAsignada === zId);
+          const coincideCerca = distCabanaMonstruo < 350;
+
+          if ((coincideEsp || coincideZona || coincideCerca) && mObj.progreso < cantMax) {
+            mObj.progreso++;
+            const nombreAld = s.aldeano ? (s.aldeano.nombre || s.aldeano) : 'Aldeano de la cabaña';
+            
+            // Notificaciones de progreso dinámicas
+            if (mObj.progreso === 1 || mObj.progreso % 10 === 0 || mObj.progreso === cantMax) {
+              toast(`🏡 ${nombreAld}: ${mObj.progreso}/${cantMax} monstruos abatidos`);
             }
+            if (mObj.progreso >= cantMax) {
+              mObj.completada = true;
+              announce(`🏡 ¡Cacería de Cabaña Cumplida (${cantMax}/${cantMax})!`, `Regresa con ${nombreAld} en ${s.nombre} para reclamar oro, arena, pociones y armadura superior.`);
+            }
+            actualizarMision();
+            if (typeof buildCabanasUI === 'function') buildCabanasUI();
           }
         }
       });
@@ -3446,8 +3605,17 @@
     });
     if (lugaresSecretos && lugaresSecretos.length) {
       lugaresSecretos.forEach(s => {
-        if (s.descubierto || Math.hypot(p.x - s.x, p.z - s.z) < 220) {
-          g.fillStyle = s.tipo === 'fuente' ? '#38bdf8' : (s.tipo === 'altar' ? '#c084fc' : (s.tipo === 'santuario' ? '#fbbf24' : '#34d399'));
+        const d = Math.hypot(p.x - s.x, p.z - s.z);
+        if (s.tipo === 'cabana') {
+          // Cabañas visibles siempre en el minimapa con marcador distintivo
+          const m = s.misionCabana || {};
+          const cumplida = m.entregada || m.cumplida;
+          const completada = m.completada || (m.progreso >= (m.cantidad || 100));
+          g.fillStyle = cumplida ? '#22c55e' : (completada ? '#facc15' : '#38bdf8');
+          g.beginPath(); g.arc(V.px(s.x), V.py(s.z), 5.5, 0, Math.PI * 2); g.fill();
+          g.strokeStyle = '#0f172a'; g.lineWidth = 1.5; g.stroke();
+        } else if (s.descubierto || d < 220) {
+          g.fillStyle = s.tipo === 'fuente' ? '#38bdf8' : (s.tipo === 'altar' ? '#c084fc' : '#fbbf24');
           g.beginPath(); g.arc(V.px(s.x), V.py(s.z), 4.5, 0, Math.PI * 2); g.fill();
         }
       });
@@ -3539,6 +3707,30 @@
       g.fillText(tipo.icon || '•', T.px(q.x), T.py(q.y));
     });
     g.textBaseline = 'alphabetic';
+    // Cabañas especiales y lugares secretos en el mapa del mundo
+    if (lugaresSecretos && lugaresSecretos.length) {
+      lugaresSecretos.forEach(s => {
+        const x = T.px(s.x), y = T.py(s.z);
+        if (s.tipo === 'cabana') {
+          const m = s.misionCabana || {};
+          const cant = m.cantidad || 100;
+          const prog = m.progreso || 0;
+          const entregada = m.entregada || m.cumplida;
+          const completada = m.completada || prog >= cant;
+          const colorCab = entregada ? '#86efac' : (completada ? '#facc15' : '#38bdf8');
+          g.fillStyle = colorCab;
+          g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.fill();
+          g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.stroke();
+          const txtProg = entregada ? ' ✓' : (completada ? ' ¡LISTA!' : ` [${prog}/${cant}]`);
+          etiqueta(g, '🏡 ' + s.nombre + txtProg, x + 10, y + 4, colorCab);
+        } else if (s.descubierto) {
+          g.fillStyle = s.tipo === 'fuente' ? '#38bdf8' : (s.tipo === 'altar' ? '#c084fc' : '#fbbf24');
+          g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill();
+          etiqueta(g, (s.icono || '✦') + ' ' + s.nombre, x + 8, y + 4, '#cbd5e1');
+        }
+      });
+    }
+
     // Pueblos: cuadrado y nombre (el inicial, destacado)
     g.font = 'bold 15px sans-serif'; g.textAlign = 'left';
     world.towns.forEach(t => {
@@ -3618,6 +3810,15 @@
         skillsEquipadas: acompanante.skillsEquipadas || []
       };
     }
+    if (lugaresSecretos && lugaresSecretos.length) {
+      snap.misionesCabana = lugaresSecretos.filter(s => s.tipo === 'cabana' && s.misionCabana).map(s => ({
+        cabanaId: s.id,
+        progreso: s.misionCabana.progreso,
+        entregada: !!(s.misionCabana.entregada || s.misionCabana.cumplida),
+        completada: !!s.misionCabana.completada,
+        descubierto: !!s.descubierto
+      }));
+    }
     return snap;
   }
 
@@ -3651,6 +3852,18 @@
     setFollow(true);
     curTown = null; curZone = null;
     $('deadmsg').classList.remove('show');
+    if (p.misionesCabana && Array.isArray(p.misionesCabana) && lugaresSecretos && lugaresSecretos.length) {
+      p.misionesCabana.forEach(saved => {
+        const cab = lugaresSecretos.find(s => s.id === saved.cabanaId);
+        if (cab && cab.misionCabana) {
+          cab.misionCabana.progreso = saved.progreso || 0;
+          cab.misionCabana.entregada = !!saved.entregada;
+          cab.misionCabana.cumplida = !!saved.entregada;
+          cab.misionCabana.completada = !!saved.completada;
+          if (saved.descubierto) cab.descubierto = true;
+        }
+      });
+    }
     buildUI();
     updateStats();
     actualizarMision();
@@ -4675,10 +4888,28 @@
     }
     const o = HistoriaLib.asegurarObjetivo(p, world);
     $('mision-cap').textContent = '📜 Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
-    $('mision-obj').textContent = o.texto;
+
+    // Detectar si hay encargos de cabaña en marcha o listos para cobrar
+    const cabanasListas = (lugaresSecretos || []).filter(s => s.tipo === 'cabana' && s.misionCabana && (s.misionCabana.progreso >= (s.misionCabana.cantidad || 100)) && !s.misionCabana.entregada);
+    const cabanaActiva = cabanasListas[0] || (lugaresSecretos || []).find(s => s.tipo === 'cabana' && s.misionCabana && s.misionCabana.progreso > 0 && !s.misionCabana.entregada);
+
+    let avisoCabana = '';
+    if (cabanasListas.length > 0) {
+      avisoCabana = `<div style="margin-top:5px;padding:3px 8px;background:rgba(234,179,8,0.25);border:1px solid #facc15;border-radius:4px;font-size:11px;color:#fef08a">
+        🎉 <b>${esc(cabanasListas[0].nombre)}</b>: ¡100/100 Monstruos! Habla con ${esc(cabanasListas[0].aldeano ? (cabanasListas[0].aldeano.nombre || cabanasListas[0].aldeano) : 'el aldeano')} para cobrar.
+      </div>`;
+    } else if (cabanaActiva) {
+      const mc = cabanaActiva.misionCabana;
+      avisoCabana = `<div style="margin-top:5px;padding:3px 8px;background:rgba(56,189,248,0.18);border:1px solid #38bdf8;border-radius:4px;font-size:11px;color:#bae6fd">
+        🏡 <b>${esc(cabanaActiva.nombre)}</b>: ${mc.progreso}/${mc.cantidad || 100} ${esc(mc.especie || 'Monstruos')} abatidos
+      </div>`;
+    }
+
+    $('mision-obj').innerHTML = esc(o.texto) + avisoCabana;
     $('mision-prog').innerHTML = p.progreso + ' / ' + o.cantidad + ' · <span' + (hero.level < cap.nivel ? ' class="m-aviso"' : '') + '>nivel recomendado ' + cap.nivel + '</span>';
     $('mision-ir').style.display = '';
     $('mision-ir').textContent = ruta ? '⏹ Parar' : '🧭 Llévame';
+    if (typeof buildCabanasUI === 'function') buildCabanasUI();
   }
 
   // Un hecho del juego (matar, visitar, hablar, forjar): solo cuenta para el capítulo activo
@@ -5428,8 +5659,16 @@
     if (!world || lugaresSecretosIniciados || typeof LugaresSecretosLib === 'undefined') return;
     lugaresSecretosIniciados = true;
     try {
-      lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
-      world.secretPlaces = lugaresSecretos;
+      if (!lugaresSecretos || !lugaresSecretos.length) {
+        lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
+        world.secretPlaces = lugaresSecretos;
+      }
+      lugaresSecretos.forEach(s => {
+        if (s.tipo === 'cabana' && typeof s.alturaBase !== 'number' && terrain) {
+          s.alturaBase = (terrain.elevation(s.x, s.z) - SEA) * HEIGHT_SCALE;
+          s.y = s.alturaBase;
+        }
+      });
       const grupo = new THREE.Group();
       grupo.name = 'LugaresSecretosMundo';
       lugaresSecretos.forEach(s => {
@@ -5446,8 +5685,8 @@
               servicio: 'cabana',
               cabana: s
             };
-            // Ubicar al aldeano en el exterior frontal junto a la hoguera de la cabaña
-            const nx = s.x - 1.2, nz = s.z + 4.8;
+            // Ubicar al aldeano en el exterior frontal junto a la hoguera de la cabaña (acorde a la escala ampliada)
+            const nx = s.x - 2.8, nz = s.z + 7.2;
             instanciarNpc(npcInfo, (typeof s.aldeano === 'object' && s.aldeano.modelo) ? s.aldeano.modelo : 'guru-1', nx, nz, s.x, s.z);
           }
         } catch (eSec) {
@@ -5455,6 +5694,8 @@
         }
       });
       scene.add(grupo);
+      if (typeof buildCabanasUI === 'function') buildCabanasUI();
+      if (typeof actualizarMision === 'function') actualizarMision();
     } catch (eGen) {
       console.warn('Generar secretos:', eGen);
     }
@@ -5973,10 +6214,11 @@
   }
 
   $('btn-side').onclick = () => $('side').classList.toggle('collapsed');
-  // Pestañas del panel en móvil: pueblos o zonas, una lista cada vez
+  // Pestañas del panel: pueblos, zonas o cabañas
   document.querySelectorAll('#tabs-m button').forEach(b => b.onclick = () => {
     $('side').dataset.tab = b.dataset.tab;
     document.querySelectorAll('#tabs-m button').forEach(x => x.classList.toggle('on', x === b));
+    if (b.dataset.tab === 'cabanas' && typeof buildCabanasUI === 'function') buildCabanasUI();
   });
   $('btn-save').onclick = openPartidas;
   $('p-save').onclick = () => saveActive(false);

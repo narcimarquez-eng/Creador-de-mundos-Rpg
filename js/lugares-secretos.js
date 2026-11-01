@@ -128,32 +128,97 @@
     const listaZonas = zonasCombate.length ? zonasCombate : zonas;
 
     // 1. Generar e incluir las 5 Cabañas GLB especiales cerca de los dos primeros pueblos en zonas de caza
+    let terrain = null;
+    if (world && world.seed !== undefined) {
+      if (typeof root !== 'undefined' && root.WorldCore && root.WorldCore.getTerrain) {
+        terrain = root.WorldCore.getTerrain(world.seed);
+      } else if (typeof require !== 'undefined') {
+        try { const WC = require('./world-core.js'); terrain = WC.getTerrain(world.seed); } catch (e) {}
+      }
+    }
+
     CABANAS_GLB.forEach((cabDef, idx) => {
       const pRef = (cabDef.puebloIdx === 0) ? pInicio : pSegundo;
-      
+
+      // Zonas de combate cercanas al pueblo de referencia
+      const zonasCercanas = listaZonas.slice().sort((a, b) => {
+        const da = Math.hypot(a.x - pRef.x, (a.y !== undefined ? a.y : a.z) - pRef.y);
+        const db = Math.hypot(b.x - pRef.x, (b.y !== undefined ? b.y : b.z) - pRef.y);
+        return da - db;
+      });
+
       let zonaElegida = null;
       if (cabDef.esMar) {
-        // Cabaña 3: buscar zona más cercana al mar / costa o borde bajo del mapa
-        zonaElegida = listaZonas.slice().sort((a, b) => {
-          const distMarA = Math.min(a.x, a.y, Math.abs(W - a.x), Math.abs(W - a.y));
-          const distMarB = Math.min(b.x, b.y, Math.abs(W - b.x), Math.abs(W - b.y));
-          return distMarA - distMarB;
-        })[0] || listaZonas[0];
+        // Cabaña 3: orientada hacia el agua/mar o ribera más próxima al primer pueblo
+        zonaElegida = zonasCercanas.slice(0, 4).sort((a, b) => {
+          const nomA = (a.name || '').toLowerCase();
+          const nomB = (b.name || '').toLowerCase();
+          const esAguaA = nomA.includes('costa') || nomA.includes('mar') || nomA.includes('bahía') || nomA.includes('río') || nomA.includes('lago');
+          const esAguaB = nomB.includes('costa') || nomB.includes('mar') || nomB.includes('bahía') || nomB.includes('río') || nomB.includes('lago');
+          return (esAguaB ? 1 : 0) - (esAguaA ? 1 : 0);
+        })[0] || zonasCercanas[0];
       } else {
-        // Ordenar zonas por cercanía al pueblo de referencia, alternando
-        const candidatas = listaZonas.slice().sort((a, b) => {
-          return Math.hypot(a.x - pRef.x, a.y - pRef.y) - Math.hypot(b.x - pRef.x, b.y - pRef.y);
-        });
-        zonaElegida = candidatas[idx % candidatas.length] || candidatas[0] || { x: pRef.x + 160, y: pRef.y + 160, name: 'Bosque Cercano', monsters: [{ name: 'Lobo', level: 2 }] };
+        const subIdx = (cabDef.puebloIdx === 0) ? idx : (idx - 3);
+        zonaElegida = zonasCercanas[subIdx % Math.min(3, zonasCercanas.length)] || zonasCercanas[0];
       }
 
-      // Posición dentro o en el borde de la zona de caza (a ~140m+ del pueblo)
-      const angZona = rnd() * Math.PI * 2;
-      const rZona = (zonaElegida.radius ? Math.max(12, zonaElegida.radius * 0.45) : 30) + rnd() * 15;
-      let cx = zonaElegida.x + Math.cos(angZona) * rZona;
-      let cz = (zonaElegida.y !== undefined ? zonaElegida.y : zonaElegida.z) + Math.sin(angZona) * rZona;
+      // Búsqueda preferente de una zona llana para la cabaña (menor pendiente/desnivel)
+      let mejorCand = null;
+      let menorDesnivel = Infinity;
 
-      // Garantizar que no esté encima de la plaza del pueblo
+      const numCandidatos = 20;
+      for (let cI = 0; cI < numCandidatos; cI++) {
+        const angVar = (idx * 1.25) + (cI / numCandidatos) * Math.PI * 2;
+        const dCand = 150 + ((cI * 9 + Math.floor(rnd() * 25)) % 55);
+        let candX = pRef.x + Math.cos(angVar) * dCand;
+        let candZ = pRef.y + Math.sin(angVar) * dCand;
+
+        // Comprobar distancia a pueblos (mínimo 135m y máximo 270m)
+        const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 135);
+        if (cercaPueblo) continue;
+
+        // Separación con otras cabañas ya ubicadas (mínimo 45m)
+        const cercaOtra = lugares.some(l => Math.hypot(candX - l.x, candZ - l.z) < 45);
+        if (cercaOtra) continue;
+
+        let desnivel = 0;
+        if (terrain && typeof terrain.elevation === 'function') {
+          const eCenter = terrain.elevation(candX, candZ);
+          // Si no es marina, evitar agua
+          if (!cabDef.esMar && eCenter < 0.28) continue;
+          if (cabDef.esMar && eCenter < 0.23) continue;
+
+          // Medir desnivel en radio de 10m
+          const eN = terrain.elevation(candX, candZ - 10);
+          const eS = terrain.elevation(candX, candZ + 10);
+          const eE = terrain.elevation(candX + 10, candZ);
+          const eO = terrain.elevation(candX - 10, candZ);
+          desnivel = (Math.max(eCenter, eN, eS, eE, eO) - Math.min(eCenter, eN, eS, eE, eO)) * 420;
+
+          if (cabDef.esMar) {
+            // Cabaña marina: orilla llana cercana al agua
+            desnivel += Math.abs(eCenter - 0.29) * 80;
+          }
+        }
+
+        // Si hay zona de combate asignada, orientación suave
+        if (zonaElegida) {
+          const zy = (zonaElegida.y !== undefined ? zonaElegida.y : zonaElegida.z);
+          const dZona = Math.hypot(candX - zonaElegida.x, candZ - zy);
+          desnivel += (dZona * 0.03);
+        }
+
+        if (desnivel < menorDesnivel) {
+          menorDesnivel = desnivel;
+          mejorCand = { x: candX, z: candZ };
+        }
+      }
+
+      // Si no encontró candidato por restricciones extremas, usar posición base periférica
+      let cx = mejorCand ? mejorCand.x : (pRef.x + Math.cos(idx * 1.28 + rnd() * 0.35) * (150 + rnd() * 55));
+      let cz = mejorCand ? mejorCand.z : (pRef.y + Math.sin(idx * 1.28 + rnd() * 0.35) * (150 + rnd() * 55));
+
+      // Garantizar que no esté dentro de la plaza ni invada muros (distancia mínima de 135m)
       pueblos.forEach(p => {
         const dP = Math.hypot(cx - p.x, cz - p.y);
         if (dP < 135) {
@@ -164,7 +229,7 @@
       });
 
       // Especie de monstruo para la misión de 100
-      const monstruosZona = (zonaElegida.monsters && zonaElegida.monsters.length) ? zonaElegida.monsters : [{ name: 'Criatura Salvaje', level: 2 }];
+      const monstruosZona = (zonaElegida && zonaElegida.monsters && zonaElegida.monsters.length) ? zonaElegida.monsters : [{ name: 'Criatura Salvaje', level: 2 }];
       const mNormal = monstruosZona.find(m => !m.boss) || monstruosZona[0];
       const especieMonstruo = mNormal.name || 'Criatura del Bosque';
       const lvlMonstruo = mNormal.level || 2;
@@ -177,9 +242,12 @@
         frase: cabDef.frase,
         modeloGLB: cabDef.archivo,
         esMar: cabDef.esMar,
+        zonaAsignada: zonaElegida ? zonaElegida.id : null,
         x: Math.round(cx * 10) / 10,
         z: Math.round(cz * 10) / 10,
-        radio: 20,
+        radio: 22,
+        radioPlano: 8.5,
+        radioRebaje: 14.5,
         icono: cabDef.esMar ? '🛖🌊' : '🛖',
         desc: cabDef.nombre + ': refugio habitado por ' + cabDef.aldeano + (cabDef.esMar ? ', situado frente al mar.' : ' en plena zona de caza.'),
         recompensa: 'Cacería mayor de 100 monstruos y forja de armaduras superiores',
@@ -191,12 +259,16 @@
           aldeano: cabDef.aldeano,
           frase: cabDef.frase,
           especie: especieMonstruo,
+          objetivoEspecie: especieMonstruo, // Alias compatible
           nivelMonstruo: lvlMonstruo,
-          zonaId: zonaElegida.id || ('zona-' + idx),
-          zonaNombre: zonaElegida.name || 'Tierras Salvajes',
+          zonaId: zonaElegida ? zonaElegida.id : ('zona-' + idx),
+          zonaNombre: zonaElegida ? (zonaElegida.name || 'Tierras de Caza') : 'Tierras Salvajes',
           cantidad: 100,
+          objetivoCantidad: 100, // Alias compatible
           progreso: 0,
           entregada: false,
+          cumplida: false, // Alias compatible
+          completada: false,
           recompensa: {
             oroMin: 1, oroMax: 2000,
             arenaMin: 10, arenaMax: 50,
@@ -344,11 +416,11 @@
           bboxOrig.getSize(sizeOrig);
           const maxHoriz = Math.max(sizeOrig.x, sizeOrig.z, 1);
 
-          // Escala proporcionada al tamaño humano (personaje 1.82m -> cabaña ancho 7.5 - 8.5m)
-          const escala = Math.min(3.2, Math.max(1.2, 8.2 / maxHoriz));
+          // Escala generosa y visible (personaje 1.82m -> cabaña ancho 15.0 - 16.5m)
+          const escala = Math.min(6.5, Math.max(2.4, 15.5 / maxHoriz));
           modelo.scale.setScalar(escala);
 
-          // Calcular bounding box ya escalado para apoyar la base a ras de suelo sin enterrar cimientos ni escaleras
+          // Calcular bounding box ya escalado para apoyar la base a ras de suelo sin enterrar cimientos ni añadir piso artificial
           const bboxEscalado = new THREE.Box3().setFromObject(modelo);
           modelo.position.set(0, -bboxEscalado.min.y + 0.04, 0);
 
@@ -371,30 +443,30 @@
 
           // Hoguera acogedora ubicada en el frente exterior de la cabaña (sin invadir el interior)
           const profZ = (bboxEscalado.max.z - bboxEscalado.min.z);
-          const frenteZ = Math.max(4.4, (profZ / 2) + 2.2);
+          const frenteZ = Math.max(7.2, (profZ / 2) + 2.8);
 
-          const fuegoBase = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.14, 6, 12), matPiedra);
+          const fuegoBase = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.18, 6, 12), matPiedra);
           fuegoBase.rotation.x = Math.PI / 2;
-          fuegoBase.position.set(-2.2, 0.08, frenteZ);
+          fuegoBase.position.set(-3.2, 0.08, frenteZ);
           fuegoBase.receiveShadow = true;
           grupo.add(fuegoBase);
 
-          const llama = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.65, 6), new THREE.MeshStandardMaterial({
-            color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 1.8
+          const llama = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.85, 6), new THREE.MeshStandardMaterial({
+            color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 2.0
           }));
-          llama.position.set(-2.2, 0.40, frenteZ);
+          llama.position.set(-3.2, 0.50, frenteZ);
           grupo.add(llama);
 
-          const luzFuego = new THREE.PointLight(0xf97316, 1.4, 12, 1.8);
-          luzFuego.position.set(-2.2, 0.75, frenteZ);
+          const luzFuego = new THREE.PointLight(0xf97316, 1.8, 16, 1.8);
+          luzFuego.position.set(-3.2, 0.95, frenteZ);
           grupo.add(luzFuego);
 
         }, undefined, () => {
           // Si falla o no encuentra el GLB, genera la cabaña procedural como respaldo
-          generarCabanaProcedural(grupo, matMadera, matMaderaOscura, matPiedra);
+          generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
         });
       } else {
-        generarCabanaProcedural(grupo, matMadera, matMaderaOscura, matPiedra);
+        generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
       }
     } else if (lugar.tipo === 'altar') {
       // 3. ALTAR RÚNICO
@@ -474,52 +546,81 @@
     return grupo;
   }
 
-  function generarCabanaProcedural(grupo, matMadera, matMaderaOscura, matPiedra) {
-    const THREE = grupo.constructor.name === 'Group' ? (typeof root !== 'undefined' && root.THREE ? root.THREE : (grupo.parent ? grupo.parent.constructor : null)) : null;
+  function generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra) {
+    if (!THREE) {
+      THREE = grupo && grupo.constructor && grupo.constructor.name === 'Group' ? (typeof root !== 'undefined' && root.THREE ? root.THREE : null) : null;
+    }
     if (!THREE) return;
-    const plataforma = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.4, 5.6), matMaderaOscura);
-    plataforma.position.y = 0.2;
-    plataforma.castShadow = true; plataforma.receiveShadow = true;
-    grupo.add(plataforma);
+    // SIN SUELO ARTIFICIAL: La cabaña descansa directamente sobre el terreno rebajado y nivelado
 
-    const muroP = new THREE.Mesh(new THREE.BoxGeometry(5.6, 2.6, 4.8), matMadera);
-    muroP.position.y = 1.6;
+    // Muros amplios de madera rústica (12.0m ancho x 5.4m alto x 9.8m profundidad)
+    const ancho = 12.0, alto = 5.4, prof = 9.8;
+    const muroP = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, prof), matMadera);
+    muroP.position.y = alto / 2;
     muroP.castShadow = true; muroP.receiveShadow = true;
     grupo.add(muroP);
 
-    const puerta = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.0, 0.2), matMaderaOscura);
-    puerta.position.set(0, 1.3, 2.45);
+    // Puerta robusta de madera
+    const puerta = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3.6, 0.3), matMaderaOscura);
+    puerta.position.set(0, 1.8, (prof / 2) + 0.1);
     grupo.add(puerta);
 
-    const tejadoGeo = new THREE.ConeGeometry(4.4, 1.8, 4);
-    tejadoGeo.rotateY(Math.PI / 4);
+    // Tejado a dos aguas piramidal
+    const tejadoGeo = new THREE.ConeGeometry(ancho * 0.72, 3.8, 4);
+    if (tejadoGeo.rotateY) tejadoGeo.rotateY(Math.PI / 4);
     const tejado = new THREE.Mesh(tejadoGeo, matMaderaOscura);
-    tejado.position.y = 3.6;
-    tejado.scale.set(1.1, 1.0, 0.9);
+    tejado.position.y = alto + 1.9;
+    if (tejado.scale && tejado.scale.set) tejado.scale.set(1.15, 1.0, 0.95);
     tejado.castShadow = true;
     grupo.add(tejado);
 
-    [-2.4, 2.4].forEach(px => {
-      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 2.4, 8), matMadera);
-      poste.position.set(px, 1.4, 3.0);
+    // Postes del porche
+    [-4.8, 4.8].forEach(px => {
+      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.22, 5.0, 8), matMadera);
+      poste.position.set(px, 2.5, (prof / 2) + 1.4);
       poste.castShadow = true;
       grupo.add(poste);
     });
-    const aleroPorche = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.2, 1.4), matMaderaOscura);
-    aleroPorche.position.set(0, 2.6, 2.7);
+    const aleroPorche = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.35, 2.8), matMaderaOscura);
+    aleroPorche.position.set(0, 5.0, (prof / 2) + 0.9);
     grupo.add(aleroPorche);
 
-    const chimenea = new THREE.Mesh(new THREE.BoxGeometry(0.8, 3.8, 0.8), matPiedra);
-    chimenea.position.set(2.2, 2.1, -1.6);
+    // Chimenea de piedra
+    const chimenea = new THREE.Mesh(new THREE.BoxGeometry(1.6, 7.8, 1.6), matPiedra);
+    chimenea.position.set(4.6, 4.2, -2.8);
     chimenea.castShadow = true;
     grupo.add(chimenea);
+  }
+
+  // Rebaje y aplanado de suelo para cabañas en pendiente
+  function aplicarRebajeCabanas(lugares, x, z, hActual) {
+    if (!lugares || !lugares.length) return hActual;
+    let hMod = hActual;
+    for (let i = 0; i < lugares.length; i++) {
+      const s = lugares[i];
+      if (s.tipo !== 'cabana') continue;
+      const d = Math.hypot(x - s.x, z - s.z);
+      const rPlano = s.radioPlano || 8.5;
+      const rTotal = s.radioRebaje || 14.5;
+      if (d >= rTotal) continue;
+
+      const hBase = (typeof s.alturaBase === 'number') ? s.alturaBase : (typeof s.y === 'number' ? s.y : hActual);
+      const t = Math.max(0, Math.min(1, (d - rPlano) / (rTotal - rPlano)));
+      const w = 1 - (t * t * (3 - 2 * t));
+
+      if (w > 0) {
+        hMod = hMod + (hBase - hMod) * w;
+      }
+    }
+    return hMod;
   }
 
   const api = {
     TIPOS_SECRETO,
     CABANAS_GLB,
     generarLugaresSecretos,
-    construirModeloSecreto
+    construirModeloSecreto,
+    aplicarRebajeCabanas
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
