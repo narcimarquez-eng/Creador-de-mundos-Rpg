@@ -87,27 +87,28 @@ describe('Cabañas secretas y misiones de 100 monstruos', () => {
     assert.strictEqual(cab.misionCabana.progreso, 100);
   });
 
-  it('rebaje y aplanado en pendiente: deja un suelo plano en un radio de 8.5m y suaviza hacia el exterior', () => {
+  it('rebaje y aplanado en pendiente: deja un suelo plano en un radio de 11.5m y suaviza hacia el exterior', () => {
     const w = W.generateWorld({ name: 'Tierras Altas', seed: 123 });
     const secretos = L.generarLugaresSecretos(w);
     const cab = secretos.find(s => s.tipo === 'cabana');
     assert.ok(cab);
 
-    cab.alturaBase = 25.0; // Cota plana de la cabaña
+    cab.alturaBase = 25.0; // Cota base de la cabaña
+    const cotaHondonada = 25.0 - 0.45; // 24.55m (hondonada excavada)
 
     // Punto en el centro (d=0) sobre una pendiente empinada original (ej. hOriginal = 40.0)
     const hCentro = L.aplicarRebajeCabanas([cab], cab.x, cab.z, 40.0);
-    assert.strictEqual(Math.round(hCentro * 100) / 100, 25.0, 'En el centro debe rebajar la pendiente exactamente a cota 25m');
+    assert.strictEqual(Math.round(hCentro * 100) / 100, cotaHondonada, 'En el centro debe excavar la hondonada plana a 24.55m');
 
-    // Punto a 5m de distancia dentro del radio plano (rPlano = 8.5m)
-    const hDentro = L.aplicarRebajeCabanas([cab], cab.x + 5.0, cab.z, 35.0);
-    assert.strictEqual(Math.round(hDentro * 100) / 100, 25.0, 'En todo el radio de 8.5m el suelo debe quedar plano y nivelado');
+    // Punto a 8m de distancia dentro del radio plano de la hondonada (rPlano = 11.5m)
+    const hDentro = L.aplicarRebajeCabanas([cab], cab.x + 8.0, cab.z, 35.0);
+    assert.strictEqual(Math.round(hDentro * 100) / 100, cotaHondonada, 'En todo el radio de 11.5m el suelo de la hondonada debe quedar plano y nivelado');
 
-    // Punto en la zona de transición suave (d = 11.5m, entre 8.5m y 14.5m)
-    const hTrans = L.aplicarRebajeCabanas([cab], cab.x + 11.5, cab.z, 40.0);
-    assert.ok(hTrans > 25.0 && hTrans < 40.0, 'En el talud exterior debe suavizarse de forma continua');
+    // Punto en la zona de transición suave (d = 15m, entre 11.5m y 19.0m)
+    const hTrans = L.aplicarRebajeCabanas([cab], cab.x + 15.0, cab.z, 40.0);
+    assert.ok(hTrans > cotaHondonada && hTrans < 40.0, 'En el talud exterior debe suavizarse de forma continua');
 
-    // Punto lejos (d = 25m > 14.5m)
+    // Punto lejos (d = 25m > 19.0m)
     const hLejos = L.aplicarRebajeCabanas([cab], cab.x + 25.0, cab.z, 40.0);
     assert.strictEqual(hLejos, 40.0, 'Fuera del radio de influencia no debe modificar el terreno');
   });

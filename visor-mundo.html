@@ -842,9 +842,13 @@
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
     h = LagosLib.aplicar(lagosMundo, x, z, h);
-    // Rebaje y aplanado de suelo para las cabañas en pendiente (sin suelo artificial)
+    // Hondonada y aplanado topográfico para las cabañas en pendiente (sin suelo artificial)
     if (typeof LugaresSecretosLib !== 'undefined' && LugaresSecretosLib.aplicarRebajeCabanas) {
-      h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h);
+      if ((!lugaresSecretos || !lugaresSecretos.length) && world) {
+        lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
+      }
+      const elevFn = (ex, ez) => terrain ? ((terrain.elevation(ex, ez) - SEA) * HEIGHT_SCALE) : 0;
+      h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h, elevFn);
     }
     return h;
   }
@@ -5685,8 +5689,8 @@
               servicio: 'cabana',
               cabana: s
             };
-            // Ubicar al aldeano en el exterior frontal junto a la hoguera de la cabaña (acorde a la escala ampliada)
-            const nx = s.x - 2.8, nz = s.z + 7.2;
+            // Ubicar al aldeano en el exterior frontal junto a la hoguera en la hondonada (acorde a la escala ampliada de 16m)
+            const nx = s.x - 3.2, nz = s.z + 10.5;
             instanciarNpc(npcInfo, (typeof s.aldeano === 'object' && s.aldeano.modelo) ? s.aldeano.modelo : 'guru-1', nx, nz, s.x, s.z);
           }
         } catch (eSec) {

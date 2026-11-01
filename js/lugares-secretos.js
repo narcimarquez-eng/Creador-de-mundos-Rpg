@@ -245,9 +245,9 @@
         zonaAsignada: zonaElegida ? zonaElegida.id : null,
         x: Math.round(cx * 10) / 10,
         z: Math.round(cz * 10) / 10,
-        radio: 22,
-        radioPlano: 8.5,
-        radioRebaje: 14.5,
+        radio: 25,
+        radioPlano: 11.5,
+        radioRebaje: 19.0,
         icono: cabDef.esMar ? '🛖🌊' : '🛖',
         desc: cabDef.nombre + ': refugio habitado por ' + cabDef.aldeano + (cabDef.esMar ? ', situado frente al mar.' : ' en plena zona de caza.'),
         recompensa: 'Cacería mayor de 100 monstruos y forja de armaduras superiores',
@@ -409,20 +409,40 @@
         const loader = new THREE.GLTFLoader();
         loader.load(lugar.modeloGLB, gltf => {
           const modelo = gltf.scene;
-          
-          // Cálculo preciso del bounding box original
-          const bboxOrig = new THREE.Box3().setFromObject(modelo);
-          const sizeOrig = new THREE.Vector3();
-          bboxOrig.getSize(sizeOrig);
-          const maxHoriz = Math.max(sizeOrig.x, sizeOrig.z, 1);
 
-          // Escala generosa y visible (personaje 1.82m -> cabaña ancho 15.0 - 16.5m)
-          const escala = Math.min(6.5, Math.max(2.4, 15.5 / maxHoriz));
+          // 1. Eliminar cualquier terreno, suelo, camino o agua incluidos dentro del archivo GLB
+          const nodosTerreno = [];
+          modelo.traverse(o => {
+            const nm = (o.name || '').toLowerCase();
+            if (nm.includes('hierba') || nm.includes('camino') || nm.includes('agua') ||
+                nm.includes('grass') || nm.includes('ground') || nm.includes('terrain') ||
+                nm.includes('water') || nm.startsWith('arbol') || nm.includes('tree')) {
+              nodosTerreno.push(o);
+            }
+          });
+          nodosTerreno.forEach(o => {
+            if (o.parent) o.parent.remove(o);
+            o.visible = false;
+          });
+
+          // 2. Calcular el bounding box de la estructura real del edificio
+          const bboxEdificio = new THREE.Box3().setFromObject(modelo);
+          const sizeEdificio = new THREE.Vector3();
+          bboxEdificio.getSize(sizeEdificio);
+          const maxHoriz = Math.max(sizeEdificio.x, sizeEdificio.z, 0.1);
+
+          // Escala real proporcionada para un ancho de 16 metros reales
+          const escala = 16.0 / maxHoriz;
           modelo.scale.setScalar(escala);
 
-          // Calcular bounding box ya escalado para apoyar la base a ras de suelo sin enterrar cimientos ni añadir piso artificial
+          // 3. Centrar el edificio y apoyar la base sobre la solera de piedra
           const bboxEscalado = new THREE.Box3().setFromObject(modelo);
-          modelo.position.set(0, -bboxEscalado.min.y + 0.04, 0);
+          const anchoX = Math.max(12.0, bboxEscalado.max.x - bboxEscalado.min.x);
+          const profZ = Math.max(10.0, bboxEscalado.max.z - bboxEscalado.min.z);
+          const centroX = (bboxEscalado.max.x + bboxEscalado.min.x) / 2;
+          const centroZ = (bboxEscalado.max.z + bboxEscalado.min.z) / 2;
+
+          modelo.position.set(-centroX, -bboxEscalado.min.y + 0.15, -centroZ);
 
           modelo.traverse(o => {
             if (o.isMesh) {
@@ -441,24 +461,45 @@
           });
           grupo.add(modelo);
 
-          // Hoguera acogedora ubicada en el frente exterior de la cabaña (sin invadir el interior)
-          const profZ = (bboxEscalado.max.z - bboxEscalado.min.z);
-          const frenteZ = Math.max(7.2, (profZ / 2) + 2.8);
+          // 4. Zócalo de piedra rústica para asentar la cabaña y absorber desniveles en pendiente
+          const altoZocalo = 2.8;
+          const zocalo = new THREE.Mesh(
+            new THREE.BoxGeometry(anchoX * 1.05, altoZocalo, profZ * 1.05),
+            matPiedra
+          );
+          // Sobresale 0.15m en la cota superior y se entierra 2.65m en el terreno
+          zocalo.position.set(0, -altoZocalo / 2 + 0.15, 0);
+          zocalo.castShadow = true;
+          zocalo.receiveShadow = true;
+          grupo.add(zocalo);
 
+          // Escalón de acceso al frente de la cabaña
+          const frenteZ = (profZ / 2) + 0.6;
+          const escalonEntrada = new THREE.Mesh(
+            new THREE.BoxGeometry(3.6, 0.25, 1.4),
+            matPiedraClara
+          );
+          escalonEntrada.position.set(0, 0.08, frenteZ);
+          escalonEntrada.castShadow = true;
+          escalonEntrada.receiveShadow = true;
+          grupo.add(escalonEntrada);
+
+          // Hoguera acogedora exterior en la explanada de la hondonada
+          const hogueraZ = frenteZ + 3.2;
           const fuegoBase = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.18, 6, 12), matPiedra);
           fuegoBase.rotation.x = Math.PI / 2;
-          fuegoBase.position.set(-3.2, 0.08, frenteZ);
+          fuegoBase.position.set(-4.2, 0.08, hogueraZ);
           fuegoBase.receiveShadow = true;
           grupo.add(fuegoBase);
 
-          const llama = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.85, 6), new THREE.MeshStandardMaterial({
-            color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 2.0
+          const llama = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 6), new THREE.MeshStandardMaterial({
+            color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 2.2
           }));
-          llama.position.set(-3.2, 0.50, frenteZ);
+          llama.position.set(-4.2, 0.55, hogueraZ);
           grupo.add(llama);
 
-          const luzFuego = new THREE.PointLight(0xf97316, 1.8, 16, 1.8);
-          luzFuego.position.set(-3.2, 0.95, frenteZ);
+          const luzFuego = new THREE.PointLight(0xf97316, 2.0, 18, 1.8);
+          luzFuego.position.set(-4.2, 1.0, hogueraZ);
           grupo.add(luzFuego);
 
         }, undefined, () => {
@@ -585,6 +626,12 @@
     aleroPorche.position.set(0, 5.0, (prof / 2) + 0.9);
     grupo.add(aleroPorche);
 
+    // Zócalo de piedra rústica para absorción de desniveles
+    const zocaloProc = new THREE.Mesh(new THREE.BoxGeometry(ancho * 1.05, 2.8, prof * 1.05), matPiedra);
+    zocaloProc.position.set(0, -1.25, 0);
+    zocaloProc.castShadow = true; zocaloProc.receiveShadow = true;
+    grupo.add(zocaloProc);
+
     // Chimenea de piedra
     const chimenea = new THREE.Mesh(new THREE.BoxGeometry(1.6, 7.8, 1.6), matPiedra);
     chimenea.position.set(4.6, 4.2, -2.8);
@@ -592,24 +639,30 @@
     grupo.add(chimenea);
   }
 
-  // Rebaje y aplanado de suelo para cabañas en pendiente
-  function aplicarRebajeCabanas(lugares, x, z, hActual) {
+  // Hondonada y aplanado topográfico para cabañas en pendiente
+  function aplicarRebajeCabanas(lugares, x, z, hActual, getElevationFn) {
     if (!lugares || !lugares.length) return hActual;
     let hMod = hActual;
     for (let i = 0; i < lugares.length; i++) {
       const s = lugares[i];
       if (s.tipo !== 'cabana') continue;
       const d = Math.hypot(x - s.x, z - s.z);
-      const rPlano = s.radioPlano || 8.5;
-      const rTotal = s.radioRebaje || 14.5;
+      const rPlano = s.radioPlano || 11.5;
+      const rTotal = s.radioRebaje || 19.0;
       if (d >= rTotal) continue;
 
-      const hBase = (typeof s.alturaBase === 'number') ? s.alturaBase : (typeof s.y === 'number' ? s.y : hActual);
+      let hBase = s.alturaBase;
+      if (typeof hBase !== 'number') {
+        hBase = (typeof getElevationFn === 'function') ? getElevationFn(s.x, s.z) : (typeof s.y === 'number' ? s.y : hActual);
+      }
+      // Hondonada excavada: rebaja 0.45m formando una auténtica explanada hundida
+      const hHondonada = hBase - 0.45;
+
       const t = Math.max(0, Math.min(1, (d - rPlano) / (rTotal - rPlano)));
       const w = 1 - (t * t * (3 - 2 * t));
 
       if (w > 0) {
-        hMod = hMod + (hBase - hMod) * w;
+        hMod = hMod + (hHondonada - hMod) * w;
       }
     }
     return hMod;
