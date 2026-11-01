@@ -2841,27 +2841,35 @@
     m.bar.visible = false;
 
     // Reparto de experiencia:
-    // En bichos élite (x2, x3, x4 de vida), la exp se reparte por igual.
-    // En bichos normales, la exp se reparte en función del daño aportado por cada uno.
+    // Los acompañantes deben subir solo si están luchando en el combate.
+    // Si no usas a uno de ellos nunca, se queda en el nivel mínimo, y el que más se usa sube más.
     let xpHeroe = m.xp;
     let xpComp = 0;
     const compActivo = acompanante && acompanante.activo && !acompanante.inconsciente;
+    const dHero = (m.danoPorFuente && m.danoPorFuente.hero) || 0;
+    const dComp = (m.danoPorFuente && (m.danoPorFuente.acompanante || m.danoPorFuente.companero || m.danoPorFuente.companero_skill)) || 0;
 
-    if (compActivo) {
+    const distComp = compActivo ? Math.hypot(m.x - acompanante.x, m.z - acompanante.z) : Infinity;
+    const compLuchando = compActivo && (dComp > 0 || (acompanante.estado === 'attack' && distComp <= 18));
+
+    if (compLuchando) {
       if (m.esElite || (m.rangoElite && m.rangoElite >= 2)) {
-        // En élites, reparten la experiencia por igual
+        // En élites donde el compañero luchó activamente, se reparte por igual 50% / 50%
         xpHeroe = Math.round(m.xp * 0.5);
         xpComp = Math.round(m.xp * 0.5);
       } else {
-        // En normales, se reparte en función del daño que se hace
-        const dHero = (m.danoPorFuente && m.danoPorFuente.hero) || 0;
-        const dComp = (m.danoPorFuente && m.danoPorFuente.acompanante) || 0;
+        // En normales, se reparte en función del daño aportado por cada uno
         const dTot = dHero + dComp;
         if (dTot > 0) {
           xpHeroe = Math.max(1, Math.round(m.xp * (dHero / dTot)));
           xpComp = Math.round(m.xp * (dComp / dTot));
         }
       }
+      acompanante.combatesLuchados = (acompanante.combatesLuchados || 0) + 1;
+    } else {
+      // El acompañante no luchó: no gana EXP y se queda en su nivel mínimo; el héroe recibe el total
+      xpComp = 0;
+      xpHeroe = m.xp;
     }
 
     const levels = CombatLib.gainXp(hero, xpHeroe);
@@ -2924,7 +2932,8 @@
   function damageMonster(m, dmg, fuente = 'hero') {
     if (!m || !m.alive) return;
     if (!m.danoPorFuente) m.danoPorFuente = { hero: 0, acompanante: 0 };
-    m.danoPorFuente[fuente] = (m.danoPorFuente[fuente] || 0) + dmg;
+    const fKey = (fuente === 'acompanante' || fuente === 'companero' || fuente === 'companero_skill') ? 'acompanante' : 'hero';
+    m.danoPorFuente[fKey] = (m.danoPorFuente[fKey] || 0) + dmg;
     m.danoTotal = (m.danoTotal || 0) + dmg;
     m.hp = Math.max(0, m.hp - dmg);
     m.flashUntil = performance.now() + 120;
@@ -3593,12 +3602,17 @@
     const act = activePartida();
     if (act && act.prologoVisto) snap.prologoVisto = true;
     if (acompanante) {
+      if (typeof AcompananteLib !== 'undefined' && AcompananteLib.sincronizarArquetipoActivo) {
+        AcompananteLib.sincronizarArquetipoActivo(acompanante);
+      }
       snap.arquetipoCompanero = acompanante.arquetipo;
       snap.acompanante = {
         arquetipo: acompanante.arquetipo,
         nivel: acompanante.nivel || 1,
+        xp: acompanante.xp || 0,
         puntosCompanero: acompanante.puntosCompanero || 0,
         inventario: acompanante.inventario || [],
+        roster: acompanante.roster || null,
         skillsCatalogo: acompanante.skillsCatalogo || [],
         skillsEquipadas: acompanante.skillsEquipadas || []
       };
@@ -3641,8 +3655,10 @@
     actualizarMision();
     const arq = p.arquetipoCompanero || (p.acompanante ? p.acompanante.arquetipo : 'rowan');
     if (p.acompanante || p.arquetipoCompanero || (heroeEst && (heroeEst.desbloqueadas.acompanante || (heroeEst.principal && heroeEst.principal.paso >= 3)))) {
-      asegurarAcompananteActivo(arq);
+      const rosterGuardado = p.acompanante ? p.acompanante.roster : null;
+      asegurarAcompananteActivo(arq, rosterGuardado);
       if (p.acompanante && acompanante) {
+        if (p.acompanante.roster) acompanante.roster = p.acompanante.roster;
         if (p.acompanante.puntosCompanero != null) acompanante.puntosCompanero = p.acompanante.puntosCompanero;
         if (p.acompanante.inventario) acompanante.inventario = p.acompanante.inventario;
         if (p.acompanante.skillsCatalogo) acompanante.skillsCatalogo = p.acompanante.skillsCatalogo;
@@ -5241,7 +5257,7 @@
     }
   }
 
-  function asegurarAcompananteActivo(arquetipoId) {
+  function asegurarAcompananteActivo(arquetipoId, roster) {
     if (acompanante) {
       if (arquetipoId && acompanante.arquetipo !== arquetipoId && typeof AcompananteLib !== 'undefined') {
         AcompananteLib.cambiarArquetipo(acompanante, arquetipoId);
@@ -5253,6 +5269,7 @@
     acompanante = AcompananteLib.crearAcompanante({
       activo: true,
       arquetipo: arquetipoId || 'rowan',
+      roster: roster || null,
       x: p.x - 2.5,
       z: p.z - 2.5
     });
@@ -5310,8 +5327,10 @@
     if ($('comp-puntos-txt')) $('comp-puntos-txt').textContent = '🧬 ' + (acompanante.puntosCompanero || 0) + ' Puntos de Maestría';
     if ($('comp-avatar')) $('comp-avatar').textContent = acompanante.avatar || '🧑‍🌾';
     if ($('comp-nombre-txt')) $('comp-nombre-txt').textContent = nomComp;
-    if ($('comp-nivel')) $('comp-nivel').textContent = 'Nivel ' + (acompanante.nivel || 1);
-    if ($('comp-rol-tag')) $('comp-rol-tag').textContent = acompanante.rol || 'Compañero de viaje';
+    const xpReq = 100 * (acompanante.nivel || 1);
+    if ($('comp-nivel')) $('comp-nivel').innerHTML = 'Nivel <b>' + (acompanante.nivel || 1) + '</b> <span style="font-size:11px;color:#94a3b8">(' + (acompanante.xp || 0) + ' / ' + xpReq + ' XP)</span>';
+    const combatesTxt = acompanante.combatesLuchados ? ' · ' + acompanante.combatesLuchados + ' combates' : '';
+    if ($('comp-rol-tag')) $('comp-rol-tag').textContent = (acompanante.rol || 'Compañero de viaje') + combatesTxt;
 
     const hpPct = Math.max(0, Math.min(100, (acompanante.hp / acompanante.maxHp) * 100));
     if ($('comp-hp-bar')) {
@@ -5323,8 +5342,15 @@
     if ($('comp-defensa')) $('comp-defensa').textContent = acompanante.defensa;
     if ($('comp-slots-txt')) $('comp-slots-txt').textContent = (acompanante.inventario ? acompanante.inventario.length : 0) + ' / ' + (AcompananteLib.MAX_SLOTS_INVENTARIO || 20);
 
-    // Botones de selector de arquetipo
+    // Botones de selector de arquetipo con su nivel independiente
     document.querySelectorAll('.comp-sel-btn').forEach(btn => {
+      const arqKey = btn.dataset.arq;
+      const rEntry = (acompanante.roster && acompanante.roster[arqKey]) || (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS && AcompananteLib.COMPANEROS[arqKey]);
+      const nv = rEntry ? (rEntry.nivel || 1) : 1;
+      const arqInfo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS) ? AcompananteLib.COMPANEROS[arqKey] : null;
+      if (arqInfo) {
+        btn.innerHTML = (arqInfo.icono || '👤') + ' ' + arqInfo.nombre.split(' ')[0] + ' <small style="opacity:0.85;font-weight:normal">(Nv ' + nv + ')</small>';
+      }
       if (btn.dataset.arq === acompanante.arquetipo) {
         btn.style.borderColor = '#eab308';
         btn.style.background = 'rgba(234,179,8,0.2)';

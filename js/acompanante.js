@@ -159,36 +159,97 @@
     return (lista || []).map(s => Object.assign({}, s));
   }
 
-  // Estado lógico del acompañante
-  function crearAcompanante(config = {}) {
-    const arqKey = config.arquetipo || 'rowan';
+  // Clona el estado base inicial de un arquetipo a Nivel 1 con 0 XP
+  function clonarEstadoBaseArquetipo(arqKey) {
     const arq = COMPANEROS[arqKey] || COMPANEROS.rowan;
-
-    const acompanante = {
-      id: arq.id + '-companero',
+    return {
       arquetipo: arq.id,
-      arquetipoInfo: arq,
-      nombre: config.nombre || (config.arquetipo ? arq.nombre : EQUIPO_ALDEANO.nombre),
-      rol: config.rol || (config.arquetipo ? arq.rol : EQUIPO_ALDEANO.rol),
+      nombre: arq.nombre,
+      rol: arq.rol,
       titulo: arq.titulo,
       icono: arq.icono,
       avatar: arq.avatar,
+      nivel: 1,
+      xp: 0,
+      puntosCompanero: 2,
+      hp: arq.hp,
+      maxHp: arq.hp,
+      defensa: arq.defensa,
+      dano: arq.dano,
+      combatesLuchados: 0,
+      skillsCatalogo: clonarSkillsCatalogo(arq.skillsCatalogo),
+      skillsEquipadas: arq.skillsEquipadas.slice(0, 3)
+    };
+  }
+
+  // Estado lógico del acompañante con roster persistente independiente por cada arquetipo
+  function crearAcompanante(config = {}) {
+    const roster = {};
+    Object.keys(COMPANEROS).forEach(k => {
+      roster[k] = clonarEstadoBaseArquetipo(k);
+    });
+
+    if (config.roster && typeof config.roster === 'object') {
+      Object.keys(config.roster).forEach(k => {
+        if (roster[k] && config.roster[k]) {
+          const r = config.roster[k];
+          roster[k].nivel = typeof r.nivel === 'number' ? r.nivel : roster[k].nivel;
+          roster[k].xp = typeof r.xp === 'number' ? r.xp : roster[k].xp;
+          roster[k].puntosCompanero = typeof r.puntosCompanero === 'number' ? r.puntosCompanero : roster[k].puntosCompanero;
+          roster[k].hp = typeof r.hp === 'number' ? r.hp : roster[k].hp;
+          roster[k].maxHp = typeof r.maxHp === 'number' ? r.maxHp : roster[k].maxHp;
+          roster[k].defensa = typeof r.defensa === 'number' ? r.defensa : roster[k].defensa;
+          roster[k].dano = typeof r.dano === 'number' ? r.dano : roster[k].dano;
+          roster[k].combatesLuchados = typeof r.combatesLuchados === 'number' ? r.combatesLuchados : 0;
+          if (Array.isArray(r.skillsCatalogo)) roster[k].skillsCatalogo = clonarSkillsCatalogo(r.skillsCatalogo);
+          if (Array.isArray(r.skillsEquipadas)) roster[k].skillsEquipadas = r.skillsEquipadas.slice(0, 3);
+        }
+      });
+    }
+
+    const arqKey = config.arquetipo || 'rowan';
+    const arq = COMPANEROS[arqKey] || COMPANEROS.rowan;
+    const arqData = roster[arq.id] || clonarEstadoBaseArquetipo(arq.id);
+
+    // Compatibilidad si config traía propiedades específicas a nivel raíz para el inicial
+    if (typeof config.nivel === 'number') arqData.nivel = config.nivel;
+    if (typeof config.puntosCompanero === 'number') arqData.puntosCompanero = config.puntosCompanero;
+    if (typeof config.hp === 'number') arqData.hp = config.hp;
+    if (typeof config.maxHp === 'number') arqData.maxHp = config.maxHp;
+    if (typeof config.dano === 'number') arqData.dano = config.dano;
+    if (typeof config.defensa === 'number') arqData.defensa = config.defensa;
+    if (Array.isArray(config.skillsCatalogo)) arqData.skillsCatalogo = clonarSkillsCatalogo(config.skillsCatalogo);
+    if (Array.isArray(config.skillsEquipadas)) arqData.skillsEquipadas = config.skillsEquipadas.slice(0, 3);
+    roster[arq.id] = arqData;
+
+    const acompanante = {
+      id: arq.id + '-companero',
+      roster,
+      arquetipo: arq.id,
+      arquetipoInfo: arq,
+      nombre: config.nombre || (config.arquetipo ? arqData.nombre : EQUIPO_ALDEANO.nombre),
+      rol: config.rol || (config.arquetipo ? arqData.rol : EQUIPO_ALDEANO.rol),
+      titulo: arqData.titulo,
+      icono: arqData.icono,
+      avatar: arqData.avatar,
       equipo: Object.assign({}, EQUIPO_ALDEANO, config.equipo || {}),
       desbloqueado: !!config.desbloqueado,
       activo: !!config.activo,
-      nivel: config.nivel || 1,
-      puntosCompanero: typeof config.puntosCompanero === 'number' ? config.puntosCompanero : 2,
-      hp: config.hp || arq.hp,
-      maxHp: config.maxHp || arq.hp,
-      defensa: config.defensa || arq.defensa,
-      dano: config.dano || arq.dano,
+      nivel: arqData.nivel,
+      xp: arqData.xp || 0,
+      puntosCompanero: arqData.puntosCompanero,
+      hp: arqData.hp,
+      maxHp: arqData.maxHp,
+      defensa: arqData.defensa,
+      dano: arqData.dano,
+      combatesLuchados: arqData.combatesLuchados || 0,
       inconsciente: false,
-      // Inventario propio de 20 ranuras para equipamiento y pociones automáticas
+      // Inventario propio de 20 ranuras para equipamiento y pociones automáticas (compartido por la cuadrilla)
       inventario: Array.isArray(config.inventario) ? config.inventario.slice(0, MAX_SLOTS_INVENTARIO) : [],
       pocionesVida: typeof config.pocionesVida === 'number' ? config.pocionesVida : 0,
       // Catálogo de habilidades del arquetipo y hasta 3 habilidades activas equipadas
-      skillsCatalogo: clonarSkillsCatalogo(arq.skillsCatalogo),
-      skillsEquipadas: Array.isArray(config.skillsEquipadas) ? config.skillsEquipadas.slice(0, 3) : arq.skillsEquipadas.slice(0, 3),
+      skillsCatalogo: arqData.skillsCatalogo,
+      skillsEquipadas: arqData.skillsEquipadas,
       // Dopes y buffs actualmente activos en pantalla para el HUD con temporizadores
       buffsActivos: [],
       // Habilidades complementarias de apoyo (retrocompatibilidad)
@@ -224,25 +285,63 @@
     return acompanante;
   }
 
-  // Cambia el compañero de camino activo (Rowan, Lyra, Elian, Brenda) preservando inventario y progreso
+  // Sincroniza las estadísticas, nivel, xp y skills del compañero activo en su entrada del roster
+  function sincronizarArquetipoActivo(acompanante) {
+    if (!acompanante || !acompanante.roster || !acompanante.arquetipo) return;
+    const r = acompanante.roster[acompanante.arquetipo];
+    if (!r) return;
+    r.nivel = acompanante.nivel || 1;
+    r.xp = acompanante.xp || 0;
+    r.puntosCompanero = acompanante.puntosCompanero || 0;
+    r.hp = acompanante.hp;
+    r.maxHp = acompanante.maxHp;
+    r.defensa = acompanante.defensa;
+    r.dano = acompanante.dano;
+    r.combatesLuchados = acompanante.combatesLuchados || 0;
+    r.skillsCatalogo = acompanante.skillsCatalogo;
+    r.skillsEquipadas = acompanante.skillsEquipadas;
+  }
+
+  // Cambia el compañero de camino activo (Rowan, Lyra, Elian, Brenda) preservando inventario y progreso independiente
   function cambiarArquetipo(acompanante, idArquetipo) {
     if (!acompanante || !COMPANEROS[idArquetipo]) return false;
-    const nuevo = COMPANEROS[idArquetipo];
-    acompanante.arquetipo = nuevo.id;
-    acompanante.arquetipoInfo = nuevo;
+    // 1. Guardar el estado actual del compañero saliente en su roster
+    sincronizarArquetipoActivo(acompanante);
+
+    if (!acompanante.roster) {
+      acompanante.roster = {};
+      Object.keys(COMPANEROS).forEach(k => {
+        acompanante.roster[k] = clonarEstadoBaseArquetipo(k);
+      });
+    }
+    if (!acompanante.roster[idArquetipo]) {
+      acompanante.roster[idArquetipo] = clonarEstadoBaseArquetipo(idArquetipo);
+    }
+
+    // 2. Cargar el estado persistente del nuevo compañero
+    const nuevo = acompanante.roster[idArquetipo];
+    const info = COMPANEROS[idArquetipo];
+
+    acompanante.arquetipo = nuevo.arquetipo;
+    acompanante.arquetipoInfo = info;
     acompanante.nombre = nuevo.nombre;
     acompanante.rol = nuevo.rol;
     acompanante.titulo = nuevo.titulo;
     acompanante.icono = nuevo.icono;
     acompanante.avatar = nuevo.avatar;
+    acompanante.nivel = nuevo.nivel;
+    acompanante.xp = nuevo.xp;
+    acompanante.puntosCompanero = nuevo.puntosCompanero;
     acompanante.hp = nuevo.hp;
-    acompanante.maxHp = nuevo.hp;
+    acompanante.maxHp = nuevo.maxHp;
     acompanante.defensa = nuevo.defensa;
     acompanante.dano = nuevo.dano;
-    acompanante.skillsCatalogo = clonarSkillsCatalogo(nuevo.skillsCatalogo);
+    acompanante.combatesLuchados = nuevo.combatesLuchados || 0;
+    acompanante.skillsCatalogo = nuevo.skillsCatalogo;
     acompanante.skillsEquipadas = nuevo.skillsEquipadas.slice(0, 3);
     acompanante.buffsActivos = [];
-    decirFrase(acompanante, `🤝 ¡${nuevo.nombre} se prepara para el combate!`, 4.0);
+
+    decirFrase(acompanante, `🤝 ¡${nuevo.nombre} (Nivel ${nuevo.nivel}) se prepara para el combate!`, 4.0);
     return true;
   }
 
@@ -257,6 +356,7 @@
       acompanante.skillsEquipadas[idxPrevio] = acompanante.skillsEquipadas[slotIndex];
     }
     acompanante.skillsEquipadas[slotIndex] = skillId;
+    sincronizarArquetipoActivo(acompanante);
     return true;
   }
 
@@ -270,10 +370,11 @@
     sk.potencia = Math.round(sk.potencia * 1.25);
     if (sk.duracion) sk.duracion = Math.min(25, sk.duracion + 2);
     if (sk.cd) sk.cd = Math.max(8, sk.cd - 1.5);
+    sincronizarArquetipoActivo(acompanante);
     return true;
   }
 
-  // Otorga experiencia al acompañante, sube de nivel sus estadísticas y concede puntos de maestría
+  // Otorga experiencia al acompañante activo solo si está luchando, sube de nivel y concede puntos de maestría
   function ganarXpAcompanante(acompanante, amount) {
     if (!acompanante || amount <= 0) return { subioNivel: false, nivelesGanados: 0 };
     acompanante.xp = (acompanante.xp || 0) + amount;
@@ -290,11 +391,13 @@
       acompanante.defensa = Math.round(acompanante.defensa + 2);
       acompanante.puntosCompanero = (acompanante.puntosCompanero || 0) + 1;
     }
+    sincronizarArquetipoActivo(acompanante);
     return {
       subioNivel: ganados > 0,
       nivelesGanados: ganados,
       nuevoNivel: acompanante.nivel,
-      puntosGanados: ganados
+      puntosGanados: ganados,
+      xpActual: acompanante.xp
     };
   }
 
@@ -1197,7 +1300,9 @@
     removerObjetoAcompanante,
     darPocionesVidaAcompanante,
     tomarPocionAutomaticaAcompanante,
-    equiparPiezaAcompanante
+    equiparPiezaAcompanante,
+    sincronizarArquetipoActivo,
+    clonarEstadoBaseArquetipo
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
