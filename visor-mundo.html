@@ -3413,7 +3413,7 @@
   function killMonster(m) {
     m.alive = false; m.hp = 0;
     if (typeof objetivo !== 'undefined' && objetivo === m) objetivo = null;
-    m.respawnAt = performance.now() + Math.max(5, m.zone.respawnSec || 60) * 1000;
+    m.respawnAt = performance.now() + Math.max(5, (m.zone && m.zone.respawnSec) || 60) * 1000;
     m.muriendo = performance.now() + 1000;
     m.bar.visible = false;
 
@@ -3828,9 +3828,11 @@
       let diana = (blancoFijado && blancoFijado.alive && blancoFijado.hp > 0 &&
         Math.hypot(blancoFijado.x - p.x, blancoFijado.z - p.z) <= sk.range * 1.15) ? blancoFijado : null;
       if (!diana && autoZona) {
+        const enDungeon = (autoZona && autoZona.esMazmorra) || (gestorMazmorras && gestorMazmorras.enMazmorra);
         let mejorD = Infinity;
         monsters.forEach(m => {
-          if (!m.alive || m.hp <= 0 || m.zone !== autoZona) return;
+          if (!m.alive || m.hp <= 0) return;
+          if (enDungeon ? !m.dungeonInfoRef : m.zone !== autoZona) return;
           const d = Math.hypot(m.x - p.x, m.z - p.z);
           if (d <= sk.range && d < mejorD) { mejorD = d; diana = m; }
         });
@@ -4366,7 +4368,9 @@
     // Con arco se dispara desde lejos; con cualquier otra arma, se va hasta él
     const arco = armaDelHeroe() === 'arco';
     const golpe = arco ? 'disparo' : 'attack';
-    const alcance = arco ? CombatLib.SKILLS.disparo.range * 0.82 : ALCANCE_ATAQUE;
+    const esBoss = objetivo.boss || (objetivo.rangoElite && objetivo.rangoElite >= 8);
+    const alcanceBase = esBoss ? (ALCANCE_ATAQUE + 1.2) : ALCANCE_ATAQUE;
+    const alcance = arco ? CombatLib.SKILLS.disparo.range * 0.82 : alcanceBase;
     if (d <= alcance) {
       // Ya está en distancia de ataque: planta los pies, encara continuamente al monstruo y ataca sin micro-deslizarse
       character.destino = null;
@@ -4376,7 +4380,7 @@
       if (habilidad) useSkill(habilidad, objetivo);
       else if (CombatLib.canUse(hero, golpe)) useSkill(golpe, objetivo);
     } else {
-      character.destino = { x: objetivo.x, z: objetivo.z, parar: arco ? alcance * 0.9 : ALCANCE_ATAQUE * 0.8 };
+      character.destino = { x: objetivo.x, z: objetivo.z, parar: arco ? alcance * 0.9 : alcance * 0.8 };
     }
   }
 
@@ -4388,6 +4392,20 @@
   function alternarAuto() {
     if (autoZona) { pararAuto('Ataque automático desactivado'); return; }
     if (hero.dead) return;
+    const enDungeon = gestorMazmorras && gestorMazmorras.enMazmorra;
+    if (enDungeon) {
+      const tieneVivos = monsters.some(m => m.dungeonInfoRef && m.alive && m.hp > 0);
+      if (!tieneVivos) { toast('Mazmorra ya despejada'); return; }
+      detenerRuta();
+      const dNom = (gestorMazmorras.dungeonActiva && gestorMazmorras.dungeonActiva.name) || 'la Mazmorra';
+      autoZona = { id: 'dungeon-activa', name: dNom, esMazmorra: true };
+      autoEsperando = false;
+      autoInalcanzables.clear();
+      character.cancelado = false;
+      toast('🤖 Ataque automático en ' + autoZona.name + ' (muévete para pararlo)');
+      $('sk-auto').classList.add('gold');
+      return;
+    }
     if (!curZone || !curZone.monsters || !curZone.monsters.length) { toast('Entra en una zona de caza para el ataque automático'); return; }
     detenerRuta();
     autoZona = curZone;
@@ -4417,14 +4435,23 @@
     if (hero.hp < hero.maxHp * 0.35 && inv.vida > 0 && ItemsLib.usePotion(hero, inv, 'vida')) toast('🧪 Poción de vida (automática)');
     if (objetivo && objetivo.alive && objetivo.hp > 0 && !(objetivo.muriendo && performance.now() < objetivo.muriendo)) return;   // atacarObjetivo sigue con el que hay
     const p = character.root.position, ahora = performance.now();
+    const enDungeon = (autoZona && autoZona.esMazmorra) || (gestorMazmorras && gestorMazmorras.enMazmorra);
     let mejor = null, mejorD = Infinity;
     monsters.forEach(m => {
-      if (!m.alive || m.hp <= 0 || m.zone !== autoZona || (autoInalcanzables.get(m) || 0) > ahora || (m.muriendo && performance.now() < m.muriendo)) return;
+      if (!m.alive || m.hp <= 0 || (autoInalcanzables.get(m) || 0) > ahora || (m.muriendo && performance.now() < m.muriendo)) return;
+      if (enDungeon) {
+        if (!m.dungeonInfoRef) return;
+      } else {
+        if (m.zone !== autoZona) return;
+      }
       const d = Math.hypot(m.x - p.x, m.z - p.z);
       if (d < mejorD) { mejorD = d; mejor = m; }
     });
     if (!mejor) {
-      if (!autoEsperando) toast('Zona despejada: esperando a que vuelvan los monstruos');
+      if (!autoEsperando) {
+        if (enDungeon) toast('¡Mazmorra despejada!');
+        else toast('Zona despejada: esperando a que vuelvan los monstruos');
+      }
       autoEsperando = true;
       character.destino = null;
       return;
@@ -6238,6 +6265,9 @@
         towns.forEach(o => {
           if (o.proxy) o.proxy.visible = true;
         });
+        if (autoZona && autoZona.esMazmorra) {
+          pararAuto();
+        }
         lastStream = 0;
       },
       crearMonstruoCombate: (info, parentGroup, isBoss) => {
@@ -6251,6 +6281,12 @@
         m.name = info.name;
         m.alive = true;
         m.hp = m.maxHp;
+        m.zone = {
+          id: 'dungeon-activa',
+          name: (gestorMazmorras && gestorMazmorras.dungeonActiva && gestorMazmorras.dungeonActiva.name) || 'Mazmorra',
+          respawnSec: 999999,
+          esMazmorra: true
+        };
         m.group = new THREE.Group();
         m.group.position.set(info.x, info.y || 2.92, info.z);
         m.group.visible = true;
@@ -6321,6 +6357,14 @@
     const promptEl = $('dungeon-prompt');
     if (promptEl) promptEl.style.display = 'none';
     dungeonPromptActiva = null;
+
+    if (autoZona) {
+      autoZona = { id: 'dungeon-activa', name: dungeon.name || 'la Mazmorra', esMazmorra: true };
+      autoEsperando = false;
+      autoInalcanzables.clear();
+      objetivo = null;
+      if (character) character.destino = null;
+    }
 
     gestorMazmorras.iniciarInstancia(dungeon, {
       onIniciarHUD: (boss, d) => {
@@ -7188,7 +7232,7 @@
       ensureScene();
       $('load').classList.add('show');
     }
-    window.__visor = { loadText, buildWorld, get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   })();
   </script>
 </body>

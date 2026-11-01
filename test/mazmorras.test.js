@@ -250,3 +250,82 @@ test('instancia de mazmorra: sitúa al personaje al inicio del archivo en los pa
   assert.strictEqual(mockCharacter.root.position.z, -4.5);
   assert.strictEqual(mockCharacter.world.getWalkableHeight(80, -4.5), 19);
 });
+
+test('modo automático en mazmorra: activación, selección progresiva de objetivos y avance', () => {
+  // Simular entorno de mazmorra con monstruos
+  const gestorMazmorras = {
+    enMazmorra: true,
+    dungeonActiva: { id: 'dungeon-1', name: 'Cripta Ancestral' }
+  };
+
+  const monsters = [
+    { id: 'elite-1', name: 'Centinela 1', level: 12, alive: true, hp: 500, maxHp: 500, x: 0, z: 24, dungeonInfoRef: {} },
+    { id: 'elite-2', name: 'Centinela 2', level: 12, alive: true, hp: 500, maxHp: 500, x: 0, z: 12, dungeonInfoRef: {} },
+    { id: 'boss-1', name: 'Señor del Trono', level: 15, alive: true, hp: 4000, maxHp: 4000, x: 0, z: -38, boss: true, dungeonInfoRef: {} }
+  ];
+
+  // 1. Simulación de alternarAuto en mazmorra
+  let autoZona = null;
+  let objetivo = null;
+  const heroPos = { x: 0, z: 37.6 };
+
+  function alternarAutoSim() {
+    if (autoZona) { autoZona = null; return; }
+    if (gestorMazmorras.enMazmorra) {
+      const tieneVivos = monsters.some(m => m.dungeonInfoRef && m.alive && m.hp > 0);
+      if (tieneVivos) {
+        autoZona = { id: 'dungeon-activa', name: gestorMazmorras.dungeonActiva.name, esMazmorra: true };
+      }
+    }
+  }
+
+  alternarAutoSim();
+  assert.ok(autoZona, 'El modo automático debe activarse en la mazmorra');
+  assert.strictEqual(autoZona.esMazmorra, true);
+  assert.strictEqual(autoZona.name, 'Cripta Ancestral');
+
+  // 2. Simulación de atacarAuto: selección del enemigo más cercano
+  function atacarAutoSim() {
+    if (!autoZona) return null;
+    if (objetivo && objetivo.alive && objetivo.hp > 0) return objetivo;
+    let mejor = null, mejorD = Infinity;
+    monsters.forEach(m => {
+      if (!m.alive || m.hp <= 0) return;
+      if (autoZona.esMazmorra && !m.dungeonInfoRef) return;
+      const d = Math.hypot(m.x - heroPos.x, m.z - heroPos.z);
+      if (d < mejorD) { mejorD = d; mejor = m; }
+    });
+    return mejor;
+  }
+
+  objetivo = atacarAutoSim();
+  assert.ok(objetivo, 'Debe fijar al enemigo más cercano');
+  assert.strictEqual(objetivo.id, 'elite-1', 'El primer objetivo debe ser el centinela en z=24 (más cercano a z=37.6)');
+
+  // 3. Matar al primer objetivo: debe avanzar automáticamente al siguiente
+  objetivo.alive = false;
+  objetivo.hp = 0;
+  objetivo = null;
+
+  // El héroe avanza a z=24
+  heroPos.z = 24.0;
+  objetivo = atacarAutoSim();
+  assert.strictEqual(objetivo.id, 'elite-2', 'Tras abatir al primero, fija automáticamente al segundo en z=12');
+
+  // 4. Matar al segundo: debe avanzar al Jefe
+  objetivo.alive = false;
+  objetivo.hp = 0;
+  objetivo = null;
+
+  heroPos.z = 12.0;
+  objetivo = atacarAutoSim();
+  assert.strictEqual(objetivo.id, 'boss-1', 'Tras abatir a los esbirros, fija automáticamente al Jefe en z=-38');
+
+  // 5. Matar al Jefe: mazmorra despejada
+  objetivo.alive = false;
+  objetivo.hp = 0;
+  objetivo = null;
+
+  const fin = atacarAutoSim();
+  assert.strictEqual(fin, null, 'No quedan más objetivos tras derrotar al Jefe');
+});

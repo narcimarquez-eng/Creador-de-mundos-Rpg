@@ -367,6 +367,7 @@
         ctrlTarget: controls ? controls.target.clone() : null,
         origGetWalkableHeight: (charCtrl && charCtrl.world) ? charCtrl.world.getWalkableHeight : null,
         origIsWaterHazard: (charCtrl && charCtrl.world) ? charCtrl.world.isWaterHazard : null,
+        origGetColliders: (charCtrl && charCtrl.world) ? charCtrl.world.getColliders : null,
         background: scene.background,
         fog: scene.fog,
         terrenoVisible: this.ctx.terrenoGroup ? this.ctx.terrenoGroup.visible : true,
@@ -472,10 +473,11 @@
         charCtrl.modoCamaraAnterior = 'follow';
       }
 
-      // Conectar física de suelo plana de la mazmorra a 2.92m de altura
+      // Conectar física de suelo plana de la mazmorra a 2.92m de altura y despejar colisionadores del supramundo
       if (charCtrl && charCtrl.world) {
         charCtrl.world.getWalkableHeight = () => SPAWN_Y;
         charCtrl.world.isWaterHazard = () => false;
+        charCtrl.world.getColliders = () => [];
       }
 
       // Posicionar al acompañante inmediatamente detrás del héroe en el pasillo
@@ -648,6 +650,9 @@
           }
           if (this.estadoPrevio.origIsWaterHazard) {
             charCtrl.world.isWaterHazard = this.estadoPrevio.origIsWaterHazard;
+          }
+          if (this.estadoPrevio.origGetColliders) {
+            charCtrl.world.getColliders = this.estadoPrevio.origGetColliders;
           }
         }
 
