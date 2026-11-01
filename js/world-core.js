@@ -225,9 +225,10 @@
   function findRoad(world, id) { return world.roads.find(r => r.id === id) || null; }
   function findZone(world, id) { return world.zones.find(z => z.id === id) || null; }
   function findPoi(world, id) { return world.pois.find(p => p.id === id) || null; }
+  function findDungeon(world, id) { return (world.dungeons || []).find(d => d.id === id) || null; }
 
   function findAny(world, id) {
-    return findTown(world, id) || findRoad(world, id) || findZone(world, id) || findPoi(world, id);
+    return findTown(world, id) || findRoad(world, id) || findZone(world, id) || findPoi(world, id) || findDungeon(world, id);
   }
 
   function kindOf(world, id) {
@@ -235,6 +236,7 @@
     if (findRoad(world, id)) return 'road';
     if (findZone(world, id)) return 'zone';
     if (findPoi(world, id)) return 'poi';
+    if (findDungeon(world, id)) return 'dungeon';
     return null;
   }
 
@@ -646,6 +648,39 @@
     return poi;
   }
 
+  function createDungeon(world, x, y, opts) {
+    opts = opts || {};
+    world.dungeons = world.dungeons || [];
+    const id = opts.id || ('dungeon-' + (world.nextId++));
+    const glb = opts.glb || 'glb/mazmorras/mazmorra1.glb';
+    const level = typeof opts.level === 'number' ? opts.level : 15;
+    const dungeon = {
+      id,
+      name: opts.name || ('Mazmorra Ancestral ' + (world.dungeons.length + 1)),
+      x: Math.round(x),
+      y: Math.round(y),
+      glb,
+      level,
+      rotacion: typeof opts.rotacion === 'number' ? opts.rotacion : 0,
+      boss: Object.assign({
+        name: 'Señor del Trono Caído',
+        level: level + 2,
+        rangoElite: 10,
+        recompensaOro: 2500,
+        recompensaArena: 50,
+        recompensaEquipo: 'Armadura del Soberano Caído'
+      }, opts.boss || {}),
+      elites: opts.elites || [
+        { name: 'Guardián del Trono (Élite)', level: level, multiplicador: 8, cantidad: 4, modelo: 'caballero_oscuro' },
+        { name: 'Centinela de Piedra (Élite)', level: Math.max(1, level - 1), multiplicador: 4, cantidad: 6, modelo: 'golem_ancestral' }
+      ],
+      completada: false
+    };
+    world.dungeons.push(dungeon);
+    world.updated = new Date().toISOString();
+    return dungeon;
+  }
+
   // Coloca zonas de caza a lo largo de un camino (las zonas conectan pueblos)
   function populateRoad(world, road, zonesPerRoad) {
     const n = zonesPerRoad === undefined ? world.settings.zonesPerRoad : zonesPerRoad;
@@ -707,6 +742,8 @@
       ent.zoneId = zone ? zone.id : null;
       ent.dx = zone ? ent.x - zone.x : 0;
       ent.dy = zone ? ent.y - zone.y : 0;
+    } else if (kind === 'dungeon') {
+      world.updated = new Date().toISOString();
     }
   }
 
@@ -729,6 +766,9 @@
       world.pois.forEach(p => { if (p.zoneId === id) p.zoneId = null; });
     } else if (kind === 'poi') {
       world.pois = world.pois.filter(p => p.id !== id);
+    } else if (kind === 'dungeon') {
+      world.dungeons = (world.dungeons || []).filter(d => d.id !== id);
+      world.updated = new Date().toISOString();
     }
     return kind;
   }
@@ -956,7 +996,8 @@
       towns: [],
       roads: [],
       zones: [],
-      pois: []
+      pois: [],
+      dungeons: []
     };
   }
 
@@ -1100,7 +1141,7 @@
     if (typeof obj.version !== 'number' || obj.version > VERSION) {
       throw new Error('Versión de mundo no soportada: ' + obj.version);
     }
-    ['towns', 'roads', 'zones', 'pois'].forEach(k => { if (!Array.isArray(obj[k])) obj[k] = []; });
+    ['towns', 'roads', 'zones', 'pois', 'dungeons'].forEach(k => { if (!Array.isArray(obj[k])) obj[k] = []; });
     obj.settings = Object.assign({}, DEFAULT_SETTINGS, obj.settings || {});
     obj.seed = (obj.seed >>> 0) || 1;
     obj.nextId = obj.nextId || 1;
@@ -1121,6 +1162,7 @@
       roads: world.roads.length,
       zones: world.zones.length,
       pois: world.pois.length,
+      dungeons: (world.dungeons || []).length,
       roadKm: Math.round(world.roads.reduce((s, r) => s + (r.length || 0), 0) / 100) / 10,
       maxLevel: levels.length ? Math.max.apply(null, levels) : 0
     };
@@ -1130,11 +1172,11 @@
     FORMAT, VERSION, MONSTRUOS_VERSION, SEA_LEVEL, BIOMES, MONSTERS, MONSTER_DENSITIES, monsterCount, POI_TYPES, ZONE_TYPES, DEFAULT_SETTINGS,
     PRNG, hashString, makeNoise2D, fbm, getTerrain, calcularRios,
     emptyWorld, generateWorld, addTown, autoConnect, populateRoad,
-    createTown, createRoad, createZone, createPoi,
+    createTown, createRoad, createZone, createPoi, createDungeon,
     moveEntity, removeEntity, refreshRoad, setStartTown,
     computeTownExits, updateAllExits, exitWorldPoint, townTileHalf,
     recomputeLevels, repoblarMonstruos, migrarMonstruosSiAntiguo, recomputeLevelsSoft, autoLevelZone, autoLevelTown, rerollZoneMonsters, townRadius, defaultTownCfg,
-    findTown, findRoad, findZone, findPoi, findAny, kindOf,
+    findTown, findRoad, findZone, findPoi, findDungeon, findAny, kindOf,
     zoneOutline, zoneRadiusAt, pointInZone, distToPolyline, pointOnPolyline,
     serialize, deserialize, validate, stats
   };

@@ -189,6 +189,7 @@
     <button class="tool" data-tool="zone" title="Añadir zona de caza">⚔<small>Zona</small></button>
     <button class="tool" data-tool="road" title="Unir dos pueblos con un camino">🛤<small>Camino</small></button>
     <button class="tool" data-tool="poi" title="Añadir punto de interés">✦<small>Lugar</small></button>
+    <button class="tool" data-tool="dungeon" title="Añadir mazmorra ancestral">🗝<small>Mazmorra</small></button>
     <button class="tool" data-tool="delete" title="Eliminar lo que toques">🗑<small>Borrar</small></button>
     <button class="tool" id="btn-expand" title="Expandir el mundo: nuevo pueblo en la frontera">➕<small>Expandir</small></button>
   </div>
@@ -273,6 +274,7 @@
   <div id="toast"></div>
 
   <script src="js/world-core.js?v=20261030c"></script>
+  <script src="js/mazmorras.js?v=20261101"></script>
   <script src="js/equipo.js?v=20251029"></script>
   <script defer src="js/enemigos-catalogo.js?v=20251029" onload="if(window.__alCargarCatalogo)window.__alCargarCatalogo()"></script>
   <script>
@@ -652,6 +654,7 @@
     drawRoads();
     drawRios();
     drawPois();
+    drawDungeons();
     drawTowns();
     if (layers.labels) drawLabels();
     niceScale();
@@ -772,6 +775,41 @@
     });
   }
 
+  function drawDungeons() {
+    (world.dungeons || []).forEach(d => {
+      const s = toScreen(d.x, d.y);
+      const sel = d.id === selectedId;
+
+      // Hexágono místico de mazmorra
+      ctx.beginPath();
+      const r = 13.5;
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
+        const hx = s.x + Math.cos(ang) * r;
+        const hy = s.y + Math.sin(ang) * r;
+        if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = d.completada ? '#14532d' : '#581c87';
+      ctx.fill();
+      ctx.lineWidth = sel ? 3.5 : 2;
+      ctx.strokeStyle = sel ? '#fde047' : '#c084fc';
+      ctx.stroke();
+
+      // Icono de llave ancestral
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🗝', s.x, s.y);
+
+      // Etiqueta
+      if (layers.labels) {
+        label(d.name, s.x, s.y + 20, sel ? '#fde047' : '#e9d5ff', 11, 'Nv. ' + d.level + (d.completada ? ' · Superada' : ' · Mazmorra'));
+      }
+    });
+  }
+
   // Dibuja una etiqueta si no choca con otra ya dibujada (evita textos solapados)
   let labelRects = [];
   function label(text, x, y, color, size, sub, force) {
@@ -815,6 +853,10 @@
   // ===========================================================================
   function hitTest(sx, sy) {
     const p = toWorld(sx, sy);
+    for (let i = (world.dungeons || []).length - 1; i >= 0; i--) {
+      const d = world.dungeons[i], q = toScreen(d.x, d.y);
+      if (Math.hypot(q.x - sx, q.y - sy) <= 16) return { kind: 'dungeon', id: d.id };
+    }
     for (let i = world.pois.length - 1; i >= 0; i--) {
       const q = toScreen(world.pois[i].x, world.pois[i].y);
       if (Math.hypot(q.x - sx, q.y - sy) <= 14) return { kind: 'poi', id: world.pois[i].id };
@@ -975,6 +1017,14 @@
         commit(W.POI_TYPES[q.type].name + ' «' + q.name + '» creado');
         break;
       }
+      case 'dungeon': {
+        const glbSel = $('to-dglb') ? $('to-dglb').value : 'glb/mazmorras/mazmorra1.glb';
+        const lvlSel = $('to-dlvl') ? (parseInt($('to-dlvl').value, 10) || 15) : 15;
+        const dungeon = W.createDungeon(world, p.x, p.y, { glb: glbSel, level: lvlSel });
+        selectedId = dungeon.id; activeTab = 'sel';
+        commit('Mazmorra «' + dungeon.name + '» creada');
+        break;
+      }
       case 'road': {
         if (!hit || hit.kind !== 'town') { roadStart = null; renderToolOptions(); requestDraw(); toast('Toca un pueblo para empezar el camino.'); return; }
         if (!roadStart) { roadStart = hit.id; renderToolOptions(); requestDraw(); return; }
@@ -1054,6 +1104,10 @@
       html = `<div class="row"><b>Toca el mapa para crear una zona.</b> <select id="to-ztype">${Object.entries(W.ZONE_TYPES).map(([k, v]) => `<option value="${k}" ${k === zoneType ? 'selected' : ''}>${v.name}</option>`).join('')}</select></div>`;
     } else if (tool === 'poi') {
       html = `<div class="row"><b>Tipo:</b> <select id="to-ptype">${Object.entries(W.POI_TYPES).map(([k, v]) => `<option value="${k}" ${k === poiType ? 'selected' : ''}>${v.icon} ${v.name}</option>`).join('')}</select></div>`;
+    } else if (tool === 'dungeon') {
+      html = `<div class="row"><b>Toca el mapa para situar una Mazmorra Ancestral.</b></div>
+        <div class="row"><label>Modelo GLB: <select id="to-dglb"><option value="glb/mazmorras/mazmorra1.glb">mazmorra1.glb (Cripta del Trono)</option></select></label>
+        <label>Nivel: <input type="number" id="to-dlvl" value="15" min="1" max="99" style="width:60px"></label></div>`;
     } else if (tool === 'road') {
       const a = roadStart && W.findTown(world, roadStart);
       html = `<div class="row"><b>${a ? 'Ahora toca el pueblo destino (desde «' + esc(a.name) + '»)' : 'Toca el primer pueblo'}</b></div>
@@ -1152,6 +1206,7 @@
     if (kind === 'town') return townHTML(ent);
     if (kind === 'road') return roadHTML(ent);
     if (kind === 'zone') return zoneHTML(ent);
+    if (kind === 'dungeon') return dungeonHTML(ent);
     return poiHTML(ent);
   }
 
@@ -1277,6 +1332,78 @@
       </div>`;
   }
 
+  function dungeonHTML(d) {
+    const b = d.boss || {};
+    const elites = d.elites || [];
+    const deg = Math.round(((d.rotacion || 0) * 180 / Math.PI) % 360);
+    return `
+      <span class="kind-badge" style="background:#581c87;color:#f3e8ff">🗝 Mazmorra Ancestral ${d.completada ? '· ✓ Superada' : ''}</span>
+      <label>Nombre de la Mazmorra</label><input type="text" data-df="name" value="${esc(d.name)}">
+      <div class="grid2">
+        <div><label>Nivel recomendado</label><input type="number" min="1" max="99" data-df="level" data-num="1" value="${d.level}"></div>
+        <div><label>Orientación entrada: <b>${deg}°</b></label><input type="range" min="0" max="360" step="15" data-df="rotacionDeg" value="${deg}"></div>
+      </div>
+      <label>Archivo 3D (glb/mazmorras/)</label>
+      <select data-df="glb">
+        <option value="glb/mazmorras/mazmorra1.glb" ${d.glb === 'glb/mazmorras/mazmorra1.glb' ? 'selected' : ''}>mazmorra1.glb (Cripta del Trono Real)</option>
+      </select>
+      <div class="muted" style="margin-top:4px">Entrada: arco de piedra penetrable + pasillo de 30 metros entre altos muros con antorchas + portal arcano.</div>
+
+      <h3>👑 Jefe de la Mazmorra</h3>
+      <label>Nombre del Jefe</label><input type="text" data-boss="name" value="${esc(b.name || 'Señor del Trono Caído')}">
+      <div class="grid2">
+        <div><label>Nivel del Jefe</label><input type="number" min="1" max="120" data-boss="level" data-num="1" value="${b.level || (d.level + 2)}"></div>
+        <div><label>Multiplicador de Vida</label>
+          <select data-boss="rangoElite">
+            <option value="4" ${b.rangoElite === 4 ? 'selected' : ''}>×4 (Élite Mayor)</option>
+            <option value="8" ${b.rangoElite === 8 ? 'selected' : ''}>×8 (Élite Supremo)</option>
+            <option value="10" ${(!b.rangoElite || b.rangoElite >= 10) ? 'selected' : ''}>×10 (Jefe Titánico)</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:6px">
+        <div><label>Recompensa Oro</label><input type="number" min="100" max="50000" data-boss="recompensaOro" data-num="1" value="${b.recompensaOro || 3000}"></div>
+        <div><label>Arena Arcana</label><input type="number" min="5" max="500" data-boss="recompensaArena" data-num="1" value="${b.recompensaArena || 60}"></div>
+      </div>
+      <label>Pieza Legendaria de Botín</label><input type="text" data-boss="recompensaEquipo" value="${esc(b.recompensaEquipo || 'Armadura del Soberano Caído')}">
+
+      <h3>⚔ Luchadores de Élite (Todos élites ×4 u ×8)</h3>
+      <div class="muted" style="margin-bottom:6px">Todos los esbirros de la mazmorra deben ser de élite (×4 o ×8 de vida).</div>
+      <table class="mon">
+        <thead>
+          <tr style="color:var(--muted);font-size:10px;text-align:left">
+            <th>Nombre Élite</th>
+            <th class="lv">Nv</th>
+            <th>Multiplicador</th>
+            <th style="width:42px">Cant</th>
+            <th class="x"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${elites.map((el, i) => `<tr>
+            <td><input type="text" data-elite-idx="${i}" data-elite-f="name" value="${esc(el.name)}"></td>
+            <td class="lv"><input type="number" min="1" max="120" data-elite-idx="${i}" data-elite-f="level" value="${el.level}"></td>
+            <td>
+              <select data-elite-idx="${i}" data-elite-f="multiplicador">
+                <option value="4" ${el.multiplicador === 4 ? 'selected' : ''}>×4 Élite</option>
+                <option value="8" ${el.multiplicador === 8 ? 'selected' : ''}>×8 Élite</option>
+              </select>
+            </td>
+            <td style="width:42px"><input type="number" min="1" max="16" data-elite-idx="${i}" data-elite-f="cantidad" value="${el.cantidad || 1}"></td>
+            <td class="x"><button data-elite-del="${i}">✕</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="btns" style="margin-top:6px">
+        <button data-act="add-elite">➕ Añadir Élite</button>
+      </div>
+
+      <div class="btns" style="margin-top:12px">
+        <button data-act="center">🎯 Centrar</button>
+        <button class="danger" data-act="delete">🗑 Eliminar Mazmorra</button>
+      </div>`;
+  }
+
   // ===========================================================================
   // Panel: eventos
   // ===========================================================================
@@ -1340,6 +1467,55 @@
       commit();
     }));
 
+    // Campos específicos de Mazmorra (dungeon)
+    body.querySelectorAll('[data-df]').forEach(el => {
+      const apply = final => {
+        const f = el.dataset.df;
+        let v = el.value;
+        if (el.dataset.num) v = Math.max(1, parseInt(v, 10) || 1);
+        if (f === 'rotacionDeg') {
+          ent.rotacion = (parseFloat(v) || 0) * Math.PI / 180;
+        } else {
+          ent[f] = v;
+        }
+        if (final) commit(); else requestDraw();
+      };
+      if (el.type === 'range') el.addEventListener('input', () => apply(false));
+      el.addEventListener('change', () => apply(true));
+    });
+
+    // Jefe de la mazmorra
+    body.querySelectorAll('[data-boss]').forEach(el => el.addEventListener('change', () => {
+      ent.boss = ent.boss || {};
+      const f = el.dataset.boss;
+      let v = el.value;
+      if (el.dataset.num) v = Math.max(1, parseInt(v, 10) || 1);
+      else if (f === 'rangoElite') v = parseInt(v, 10) || 10;
+      ent.boss[f] = v;
+      commit();
+    }));
+
+    // Elites de la mazmorra
+    body.querySelectorAll('[data-elite-idx]').forEach(el => el.addEventListener('change', () => {
+      const idx = parseInt(el.dataset.eliteIdx, 10);
+      const f = el.dataset.eliteF;
+      if (!ent.elites || !ent.elites[idx]) return;
+      let v = el.value;
+      if (f === 'level' || f === 'cantidad') v = Math.max(1, parseInt(v, 10) || 1);
+      else if (f === 'multiplicador') v = (parseInt(v, 10) === 8) ? 8 : 4;
+      ent.elites[idx][f] = v;
+      commit();
+    }));
+
+    body.querySelectorAll('[data-elite-del]').forEach(el => el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.eliteDel, 10);
+      if (ent.elites && ent.elites.length > idx) {
+        ent.elites.splice(idx, 1);
+        commit('Élite eliminado');
+        renderPanel();
+      }
+    }));
+
     // Monstruos
     body.querySelectorAll('[data-m]').forEach(el => el.addEventListener('change', () => {
       const m = ent.monsters[+el.dataset.m];
@@ -1376,6 +1552,18 @@
       case 'new': openNewWorld(); break;
       case 'delete': deleteEntity(ent.id); break;
       case 'center': centerOn(ent.x, ent.y); break;
+      case 'add-elite':
+        ent.elites = ent.elites || [];
+        ent.elites.push({
+          name: 'Guardia Élite ' + (ent.elites.length + 1),
+          level: ent.level || 15,
+          multiplicador: 4,
+          cantidad: 2,
+          modelo: 'caballero_oscuro'
+        });
+        commit('Grupo élite añadido');
+        renderPanel();
+        break;
       case 'set-start': W.setStartTown(world, ent.id); commit('«' + ent.name + '» es ahora el pueblo inicial. Pulsa «Recalcular niveles» en Mundo si quieres actualizar niveles.'); break;
       case 'connect': {
         const made = W.autoConnect(world, ent, 1);
