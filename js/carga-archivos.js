@@ -274,6 +274,19 @@
       }
     }
 
+    // Aislamiento estricto de memoria al entrar a la mazmorra:
+    // elimina de la lista de descargas activas cualquier archivo del supramundo exterior
+    aislarMazmorra(urlDungeon) {
+      const dungeonUrl = urlDungeon || 'mazmorra';
+      for (const [id, rec] of this.archivos.entries()) {
+        const u = (rec.url || id || '').toLowerCase();
+        if (rec.estado === 'cargando' && !u.includes('mazmorra')) {
+          this.archivos.delete(id);
+        }
+      }
+      this.solicitarActualizacion();
+    }
+
     // Calcular resumen de totales y porcentajes
     obtenerResumen() {
       const lista = Array.from(this.archivos.values());

@@ -2827,6 +2827,14 @@
   function actualizarCarga(now) {
     if (now - cargaUI.t < 250) return;
     cargaUI.t = now;
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+      if (typeof GestorCargaArchivos !== 'undefined') {
+        GestorCargaArchivos.actualizarDOM();
+      }
+      const el = $('carga');
+      if (el && (!window.GestorCargaArchivos || window.GestorCargaArchivos.visible)) el.classList.remove('show');
+      return;
+    }
     const p = character.root.position;
     let mon = 0;
     monsters.forEach(m => {
@@ -2873,6 +2881,7 @@
   }
 
   function streamTowns(now) {
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) return;
     if (now - lastStream < 200 || !towns.length) return;
     lastStream = now;
     const dist = distPueblo;
@@ -3684,6 +3693,19 @@
 
     monsters.forEach(m => {
       try {
+        // En mazmorra: procesar y mostrar estrictamente los enemigos de la mazmorra; aislar exteriores
+        if (gestorMazmorras && gestorMazmorras.enMazmorra && !m.dungeonInfoRef) {
+          if (m.group) m.group.visible = false;
+          if (m.bar) m.bar.visible = false;
+          return;
+        }
+        // En supramundo exterior: procesar enemigos exteriores e ignorar instancias de mazmorra
+        if ((!gestorMazmorras || !gestorMazmorras.enMazmorra) && m.dungeonInfoRef) {
+          if (m.group) m.group.visible = false;
+          if (m.bar) m.bar.visible = false;
+          return;
+        }
+
         const dPresencia = Math.hypot(m.x - p.x, m.z - p.z);
         const presente = m.group.parent ? dPresencia <= MONSTRUO_PRESENTE : dPresencia < MONSTRUO_PRESENTE - 10;
         if (!presente) { if (m.group.parent) quitarMonstruo(m); return; }
@@ -3704,8 +3726,8 @@
           m.impactoEn = 0;
           if (!hero.dead) aplicarDanoEnemigo(m);
         }
-        // Los monstruos no entran en los pueblos: si llegan a uno, vuelven a su zona
-        const inTown = towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
+        // Los monstruos exteriores no entran en los pueblos; los de mazmorra no tienen restricción
+        const inTown = !m.dungeonInfoRef && !(gestorMazmorras && gestorMazmorras.enMazmorra) && towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
         if (inTown) m.state = 'return';
         if (d < 120 && !inTown) {
           const r = CombatLib.monsterTick(m, hero, p.x, p.z, dt);
@@ -3716,7 +3738,7 @@
         m.group.visible = near;
         if (near) {
           aplicarDetalle(m, d);
-          const my = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? 1.79 : H(m.x, m.z);
+          const my = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? (m.y || 2.92) : H(m.x, m.z);
           m.group.position.set(m.x, my, m.z);
           if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
           const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
@@ -3731,7 +3753,7 @@
         const showBar = near && (m.hp < m.maxHp || d < 12);
         m.bar.visible = showBar;
         if (showBar) {
-          const myBar = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? 1.79 : H(m.x, m.z);
+          const myBar = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? (m.y || 2.92) : H(m.x, m.z);
           m.bar.position.set(m.x, myBar + m.barHeight, m.z);
           m.bar.quaternion.copy(camera.quaternion);
           const f = Math.max(0.001, m.hp / m.maxHp);
@@ -6184,6 +6206,40 @@
       aguaMesh: waterMesh,
       pueblosGroup: null,
       getWalkableHeight: (x, z) => visorWorld.getWalkableHeight(x, z),
+      aislarParaMazmorra: (dungeon) => {
+        // 1. Descargar de memoria y destruir todos los pueblos cargados del supramundo
+        towns.forEach(o => {
+          if (o.village) unloadTown(o);
+          if (o.proxy) o.proxy.visible = false;
+        });
+        // 2. Ocultar monstruos del supramundo exterior
+        monsters.forEach(m => {
+          if (!m.dungeonInfoRef) {
+            if (m.group) m.group.visible = false;
+            if (m.bar) m.bar.visible = false;
+          }
+        });
+        // 3. Aislar lista de descargas: descartar descargas pendientes del supramundo (NPCs, props ajenos)
+        if (typeof GestorCargaArchivos !== 'undefined' && GestorCargaArchivos.aislarMazmorra) {
+          GestorCargaArchivos.aislarMazmorra(dungeon && dungeon.glb);
+        }
+      },
+      limpiarMonstruosMazmorra: () => {
+        monsters = monsters.filter(m => {
+          if (m.dungeonInfoRef) {
+            if (m.group && m.group.parent) m.group.parent.remove(m.group);
+            if (m.bar && m.bar.parent) m.bar.parent.remove(m.bar);
+            return false;
+          }
+          return true;
+        });
+      },
+      restaurarDeMazmorra: () => {
+        towns.forEach(o => {
+          if (o.proxy) o.proxy.visible = true;
+        });
+        lastStream = 0;
+      },
       crearMonstruoCombate: (info, parentGroup, isBoss) => {
         const m = CombatLib.newMonster({
           level: info.level,
@@ -6196,17 +6252,14 @@
         m.alive = true;
         m.hp = m.maxHp;
         m.group = new THREE.Group();
-        m.group.position.set(info.x, info.y || 1.79, info.z);
+        m.group.position.set(info.x, info.y || 2.92, info.z);
         m.group.visible = true;
 
         if (window.EnemyLib) {
           const rngTemp = (typeof W !== 'undefined' && W.PRNG) ? new W.PRNG((info.level * 101) ^ (isBoss ? 9999 : 1234)) : { range: (a, b) => a + Math.random() * (b - a) };
           m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp);
-          if (m.enemigo) {
-            m.versiones = {};
-            m.rig = null;
-            construirModeloEnemigo(m, 4);
-          }
+          m.versiones = {};
+          m.rig = null; // Se construye progresivamente según distancia en updateCombat con control de presupuesto
         }
         if (parentGroup) parentGroup.add(m.group); else scene.add(m.group);
 
@@ -6219,7 +6272,7 @@
         m.fg.position.z = 0.01;
         m.bar.add(bg, m.fg);
         m.barHeight = isBoss ? 5.2 : 3.2;
-        m.bar.position.set(info.x, (info.y || 1.79) + m.barHeight, info.z);
+        m.bar.position.set(info.x, (info.y || 2.92) + m.barHeight, info.z);
         if (parentGroup) parentGroup.add(m.bar); else scene.add(m.bar);
 
         info.combatRef = m;
@@ -6946,15 +6999,18 @@
     streamTowns(now);
     actualizarCarga(now);
     AGUA_U.uTime.value = now / 1000;
-    if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
-      lastDecor = now;
-      decorGroup.userData.factorLejos = QUALITY[quality].decor;
-      decorGroup.userData.actualizar(camera.position.x, camera.position.z);
+    const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    if (!enDungeon) {
+      if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
+        lastDecor = now;
+        decorGroup.userData.factorLejos = QUALITY[quality].decor;
+        decorGroup.userData.actualizar(camera.position.x, camera.position.z);
+      }
+      actualizarPiedras();
+      actualizarZonaTela();
     }
-    actualizarPiedras();
-    actualizarZonaTela();
     if (cielo) {
-      if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+      if (enDungeon) {
         cielo.visible = false;
       } else {
         cielo.position.copy(camera.position);
@@ -6969,7 +7025,7 @@
     atacarObjetivo();
     character.update(dt, now / 1000);
     actualizarEfectos(dt);
-    actualizarGurus(dt, now / 1000);
+    if (!enDungeon) actualizarGurus(dt, now / 1000);
     if (acompanante && acompanante.activo && typeof AcompananteLib !== 'undefined') {
       AcompananteLib.actualizarAcompanante(
         acompanante,
@@ -7000,7 +7056,7 @@
       );
       actualizarBocadilloAcompanante();
     }
-    if (lugaresSecretos && lugaresSecretos.length && typeof AcompananteLib !== 'undefined') {
+    if (!enDungeon && lugaresSecretos && lugaresSecretos.length && typeof AcompananteLib !== 'undefined') {
       AcompananteLib.comprobarLugaresSecretos(
         acompanante,
         lugaresSecretos,
@@ -7011,15 +7067,17 @@
         }
       );
     }
-    towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.setNivelArboles(nivelArbolesMuro(distPueblo(o))); o.village.updateTreeLod(camera); } });
-    animateTowns(dt);
-    updateAtmosphere(dt);
-    updateTerrainChunks(now, false);
-    if (QUALITY[quality].shadows > 0) seguirSombra();
+    if (!enDungeon) {
+      towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.setNivelArboles(nivelArbolesMuro(distPueblo(o))); o.village.updateTreeLod(camera); } });
+      animateTowns(dt);
+      updateAtmosphere(dt);
+      updateTerrainChunks(now, false);
+      if (QUALITY[quality].shadows > 0) seguirSombra();
+    }
     lastNowSec = now / 1000;
     updateCombat(dt, now);
     updateHud(now);
-    checkRegions();
+    if (!enDungeon) checkRegions();
     drawMinimap(now);
     updateMazmorras(dt, now);
 
@@ -7028,9 +7086,9 @@
     // Al seguir, se mantienen la distancia y el giro que dejas con el ratón; el recorte por muros y suelo no se acumula
     character.encuadrar(() => {
       if (gestorMazmorras && gestorMazmorras.enMazmorra) {
-        camera.position.x = Math.max(-1.8, Math.min(1.8, camera.position.x));
-        camera.position.y = Math.max(2.1, Math.min(4.0, camera.position.y));
-        camera.position.z = Math.max(-28.0, Math.min(25.5, camera.position.z));
+        camera.position.x = Math.max(-2.8, Math.min(2.8, camera.position.x));
+        camera.position.y = Math.max(3.2, Math.min(6.2, camera.position.y));
+        camera.position.z = Math.max(-46.0, Math.min(42.0, camera.position.z));
         return;
       }
       CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld);
@@ -7040,7 +7098,7 @@
     } catch (errRender) {
       console.error('Error al renderizar fotograma:', errRender);
     }
-    updateLabels(character.root.position.y);
+    if (!enDungeon) updateLabels(character.root.position.y);
   }
 
   const NOMBRE_ZONA_M = 120;

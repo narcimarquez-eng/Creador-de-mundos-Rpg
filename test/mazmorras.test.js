@@ -156,7 +156,7 @@ test('gestor de mazmorras: detección del portal a 30m y resolución de victoria
   assert.strictEqual(derrotaDisparada, true, 'La muerte del personaje debe disparar derrota');
 });
 
-test('instancia de mazmorra: sitúa al personaje al inicio del archivo en los pasillos más estrechos (z = 25.5m)', () => {
+test('instancia de mazmorra: sitúa al personaje al inicio del archivo en los pasillos más estrechos a escala monumental >2000m²', () => {
   function createPos() {
     const p = { x: 0, y: 0, z: 0 };
     p.set = function(x, y, z) { p.x = x; p.y = y; p.z = z; };
@@ -225,23 +225,23 @@ test('instancia de mazmorra: sitúa al personaje al inicio del archivo en los pa
 
   // Verificación: el personaje debe estar al inicio del archivo en los pasillos más estrechos
   assert.strictEqual(hero.x, 0.0, 'X centrada en el pasillo estrecho');
-  assert.strictEqual(hero.y, 1.79, 'Y correspondiente a la cota del suelo de la mazmorra (1.79m)');
-  assert.strictEqual(hero.z, 23.0, 'Z en el inicio del archivo (z = 23.0m en el pasillo estrecho con espacio para cámara)');
+  assert.strictEqual(hero.y, 2.92, 'Y correspondiente a la cota del suelo de la mazmorra (2.92m)');
+  assert.strictEqual(hero.z, 37.6, 'Z en el inicio del archivo (z = 37.6m en el pasillo a escala monumental >2000m²)');
 
   // Teletransporte del CharacterController
   assert.strictEqual(mockCharacter.root.position.x, 0.0);
-  assert.strictEqual(mockCharacter.root.position.y, 1.79);
-  assert.strictEqual(mockCharacter.root.position.z, 23.0);
+  assert.strictEqual(mockCharacter.root.position.y, 2.92);
+  assert.strictEqual(mockCharacter.root.position.z, 37.6);
   assert.strictEqual(mockCharacter.root.rotation.y, Math.PI, 'Personaje orientado hacia el interior (-Z)');
 
   // Suelo transitable de la mazmorra conectado
-  assert.strictEqual(mockCharacter.world.getWalkableHeight(0, 23.0), 1.79);
+  assert.strictEqual(mockCharacter.world.getWalkableHeight(0, 37.6), 2.92);
 
   // Acompañante situado detrás en el pasillo estrecho
-  assert.strictEqual(mockAcompanante.mesh.position.z, 24.4);
+  assert.strictEqual(mockAcompanante.mesh.position.z, 39.6);
 
   // Cámara orientada hacia el pasillo
-  assert.strictEqual(mockControls.target.z, 23.0);
+  assert.strictEqual(mockControls.target.z, 37.6);
 
   // Al salir de la instancia, restaura el personaje al supramundo exterior
   gestor.salirInstancia(true);

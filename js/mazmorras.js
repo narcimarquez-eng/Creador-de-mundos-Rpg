@@ -268,8 +268,8 @@
       const size = new THREE.Vector3();
       bbox.getSize(size);
 
-      // Escala 22x recomendada para mazmorra1.glb (62m x 28m x 40m)
-      const ESCALA_DUNGEON = 22.0;
+      // Escala 36x para mazmorra1.glb: >2000m² de interior transitable (101.5m largo x 45.5m ancho x 4.2m alto)
+      const ESCALA_DUNGEON = 36.0;
       modelo.scale.setScalar(ESCALA_DUNGEON);
 
       // Alinear el suelo de la alfombra real sobre y = 0
@@ -389,40 +389,45 @@
 
       // Atmósfera de mazmorra tenebrosa (cripta oscura)
       scene.background = new THREE.Color(0x060913);
-      scene.fog = new THREE.FogExp2(0x060913, 0.015);
+      scene.fog = new THREE.FogExp2(0x060913, 0.012);
+
+      // Aislar memoria y detener descargas/streaming del supramundo exterior
+      if (typeof this.ctx.aislarParaMazmorra === 'function') {
+        this.ctx.aislarParaMazmorra(dungeon);
+      }
 
       // Crear grupo raíz de la mazmorra
       this.grupoInstancia = new THREE.Group();
       this.grupoInstancia.name = 'InstanciaMazmorra_' + dungeon.id;
       scene.add(this.grupoInstancia);
 
-      // Iluminación interior clara y atmosférica de mazmorra
-      const luzAmbiente = new THREE.AmbientLight(0xffffff, 1.8);
+      // Iluminación interior clara y atmosférica de mazmorra monumental
+      const luzAmbiente = new THREE.AmbientLight(0xffffff, 2.0);
       this.grupoInstancia.add(luzAmbiente);
 
-      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 2.4);
-      luzDirPasillo.position.set(0, 12.0, 28.0);
-      luzDirPasillo.target.position.set(0, 1.79, 10.0);
+      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 2.6);
+      luzDirPasillo.position.set(0, 18.0, 42.0);
+      luzDirPasillo.target.position.set(0, 2.92, 16.0);
       this.grupoInstancia.add(luzDirPasillo);
       this.grupoInstancia.add(luzDirPasillo.target);
 
-      // Antorchas con luz dorada a lo largo del pasillo estrecho de la mazmorra
+      // Antorchas con luz dorada a lo largo del pasillo monumental de la mazmorra
       const matLlama = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
-      const geoLlama = new THREE.ConeGeometry(0.18, 0.5, 6);
-      [-16.0, -8.0, 0.0, 8.0, 16.0, 24.0].forEach(zAnt => {
-        [-1.85, 1.85].forEach(xAnt => {
-          const pLuz = new THREE.PointLight(0xf59e0b, 2.4, 15, 1.5);
-          pLuz.position.set(xAnt, 3.2, zAnt);
+      const geoLlama = new THREE.ConeGeometry(0.24, 0.65, 6);
+      [-28.0, -16.0, -4.0, 8.0, 20.0, 32.0].forEach(zAnt => {
+        [-3.1, 3.1].forEach(xAnt => {
+          const pLuz = new THREE.PointLight(0xf59e0b, 2.6, 22, 1.4);
+          pLuz.position.set(xAnt, 4.8, zAnt);
           this.grupoInstancia.add(pLuz);
 
           const llama = new THREE.Mesh(geoLlama, matLlama);
-          llama.position.set(xAnt, 3.1, zAnt);
+          llama.position.set(xAnt, 4.7, zAnt);
           this.grupoInstancia.add(llama);
         });
       });
 
-      const luzTrono = new THREE.PointLight(0xa855f7, 3.8, 38, 1.3);
-      luzTrono.position.set(0, 6.0, -16.0);
+      const luzTrono = new THREE.PointLight(0xa855f7, 4.5, 48, 1.2);
+      luzTrono.position.set(0, 8.0, -36.0);
       this.grupoInstancia.add(luzTrono);
 
       // 3. Cargar el modelo 3D de la mazmorra (mazmorra1.glb)
@@ -431,14 +436,14 @@
       });
 
       // 4. Posicionar al Héroe y al Acompañante AL INICIO DEL ARCHIVO EN LOS PASILLOS MÁS ESTRECHOS
-      // Dimensiones exactas calculadas de mazmorra1.glb a escala 22x:
-      // - Longitud total: Z in [-31.3m, +30.8m]. Anchura total: X in [-13.9m, +13.9m].
-      // - Pasillo más estrecho (Grupo_2_12piezas): X in [-2.3m, +2.1m], Y_suelo = 1.79m, Y_techo = 4.36m, Z in [-24.6m, +26.0m].
-      // - Inicio del pasillo estrecho: Z = +23.0m orientado hacia el interior (-Z, rotY = PI).
-      // - La cámara se sitúa a Z = 25.4m (2.4m detrás), dentro del pasillo antes de la pared de fondo (Z=26.0m).
+      // Dimensiones a escala 36x (>2000m² habitables):
+      // - Longitud total: Z in [-51m, +50m]. Anchura total: X in [-23m, +23m].
+      // - Cota de suelo alfombra: Y = 2.92m.
+      // - Inicio del pasillo: Z = +37.6m orientado hacia el interior (-Z, rotY = PI).
+      // - La cámara se sitúa a Z = 41.2m (3.6m detrás) con altura desahogada (Y = 4.12m).
       const SPAWN_X = 0.0;
-      const SPAWN_Y = 1.79;
-      const SPAWN_Z = 23.0;
+      const SPAWN_Y = 2.92;
+      const SPAWN_Z = 37.6;
 
       hero.x = SPAWN_X;
       hero.y = SPAWN_Y;
@@ -453,45 +458,47 @@
         charCtrl.sinAvance = 0;
       }
 
-      // Teletransportar la cámara y el control orbital detrás del héroe en el pasillo estrecho
+      // Teletransportar la cámara y el control orbital con visión amplia y despejada detrás del héroe
       if (controls) {
-        controls.target.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z);
+        controls.target.set(SPAWN_X, SPAWN_Y + 1.1, SPAWN_Z);
         if (camera) {
-          camera.position.set(SPAWN_X, SPAWN_Y + 1.0, SPAWN_Z + 2.4);
+          camera.position.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z + 3.6);
           controls.update();
         }
       }
       if (charCtrl) {
-        charCtrl.offsetCamara = (THREE && THREE.Vector3) ? new THREE.Vector3(0, 0.4, 2.4) : { x: 0, y: 0.4, z: 2.4 };
+        charCtrl.offsetCamara = (THREE && THREE.Vector3) ? new THREE.Vector3(0, 1.2, 3.6) : { x: 0, y: 1.2, z: 3.6 };
         if (camera && typeof camera.position.clone === 'function') charCtrl.camaraFinal = camera.position.clone();
         charCtrl.modoCamaraAnterior = 'follow';
       }
 
-      // Conectar física de suelo plana de la mazmorra a 1.79m de altura
+      // Conectar física de suelo plana de la mazmorra a 2.92m de altura
       if (charCtrl && charCtrl.world) {
         charCtrl.world.getWalkableHeight = () => SPAWN_Y;
         charCtrl.world.isWaterHazard = () => false;
       }
 
-      // Posicionar al acompañante inmediatamente detrás del héroe en el pasillo estrecho
+      // Posicionar al acompañante inmediatamente detrás del héroe en el pasillo
       if (this.ctx.acompanante) {
-        this.ctx.acompanante.x = -0.75;
-        this.ctx.acompanante.z = SPAWN_Z + 1.4;
+        this.ctx.acompanante.x = -1.2;
+        this.ctx.acompanante.z = SPAWN_Z + 2.0;
         this.ctx.acompanante.y = SPAWN_Y;
         if (this.ctx.acompanante.mesh) {
-          this.ctx.acompanante.mesh.position.set(-0.75, SPAWN_Y, SPAWN_Z + 1.4);
+          this.ctx.acompanante.mesh.position.set(-1.2, SPAWN_Y, SPAWN_Z + 2.0);
           this.ctx.acompanante.mesh.rotation.set(0, Math.PI, 0);
         }
       }
 
-      // 5. Spawneo de Luchadores de Élite (todos x4 o x8 según configuración) a lo largo del pasillo y nave
+      // 5. Spawneo de Luchadores de Élite escalonados a lo largo del gran corredor (progresión por salas)
+      // Se sitúan escalonados cada 12m-14m para que se activen progresivamente al avanzar y no todos juntos
       this.elitesInstancia = [];
       const listaElites = dungeon.elites || [];
       const posicionesElites = [
-        { x: -0.7, z: 16.5 }, { x: 0.7, z: 16.5 },  // Pareja 1 en el pasillo estrecho (a 6.5m de distancia)
-        { x: -0.7, z: 10.0 }, { x: 0.7, z: 10.0 },  // Pareja 2 en el pasillo estrecho
-        { x: -2.0, z: 3.0 },  { x: 2.0, z: 3.0 },   // Pareja 3 abriéndose a la antecámara
-        { x: -3.0, z: -6.0 }, { x: 3.0, z: -6.0 }   // Pareja 4 frente al salón del trono
+        { x: -1.4, z: 24.0 }, { x: 1.4, z: 24.0 },   // Pareja 1: Primer encuentro a 13.6m del inicio
+        { x: -1.6, z: 12.0 }, { x: 1.6, z: 12.0 },   // Pareja 2: Segundo encuentro a 25.6m
+        { x: -2.2, z: 0.0 },  { x: 2.2, z: 0.0 },    // Pareja 3: Cruce central de columnas
+        { x: -3.0, z: -12.0 }, { x: 3.0, z: -12.0 }, // Pareja 4: Gran galería norte
+        { x: -3.6, z: -24.0 }, { x: 3.6, z: -24.0 }  // Pareja 5: Guardia de honor ante el trono
       ];
 
       let posIdx = 0;
@@ -521,7 +528,7 @@
         }
       });
 
-      // 6. Spawneo del Jefe de Mazmorra frente al trono al fondo (z = -15.5m)
+      // 6. Spawneo del Jefe de Mazmorra frente al trono al fondo (z = -38.0m)
       const bDef = dungeon.boss || {};
       this.bossInstancia = {
         id: 'boss-dungeon-' + dungeon.id,
@@ -530,7 +537,7 @@
         boss: true,
         rangoElite: bDef.rangoElite || 10,
         x: 0,
-        z: -15.5,
+        z: -38.0,
         y: SPAWN_Y + 0.1,
         recompensas: {
           oro: bDef.recompensaOro || 3000,
@@ -594,9 +601,15 @@
       }
       this.bossInstancia = null;
       this.elitesInstancia = [];
+      if (typeof this.ctx.limpiarMonstruosMazmorra === 'function') {
+        this.ctx.limpiarMonstruosMazmorra();
+      }
 
       // 2. Restaurar supramundo exterior
       if (scene) scene.visible = true;
+      if (typeof this.ctx.restaurarDeMazmorra === 'function') {
+        this.ctx.restaurarDeMazmorra();
+      }
       if (this.estadoPrevio && scene) {
         scene.background = this.estadoPrevio.background;
         scene.fog = this.estadoPrevio.fog;
