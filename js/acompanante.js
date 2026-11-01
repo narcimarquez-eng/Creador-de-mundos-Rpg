@@ -71,6 +71,8 @@
   const MAX_SLOTS_INVENTARIO = 20;
 
   // Catálogo de los 4 Compañeros de Camino seleccionables con roles y habilidades diferenciadas
+  // El tiempo de espera (cooldown) es estrictamente mayor que la duración del efecto (cd > duracion),
+  // calibrado en función del impacto e importancia de cada habilidad.
   const COMPANEROS = {
     rowan: {
       id: 'rowan',
@@ -85,10 +87,10 @@
       defensa: 14,
       modeloGLB: 'npc/aldeanos/aldeano.glb',
       skillsCatalogo: [
-        { id: 'grito', nombre: 'Grito de Aliento', icono: '⚔️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 20, timer: 0, duracion: 12, potencia: 25, desc: '+{potencia}% daño de ataque a ambos por {duracion}s' },
+        { id: 'grito', nombre: 'Grito de Aliento', icono: '⚔️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 10, potencia: 25, desc: '+{potencia}% daño de ataque a ambos por {duracion}s' },
         { id: 'impetu', nombre: 'Golpe de Ímpetu', icono: '💥', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 12, timer: 0, potencia: 38, desc: 'Golpe demoledor que inflige {potencia} de daño contundente' },
-        { id: 'fervor', nombre: 'Fervor Bélico', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 25, timer: 0, duracion: 10, potencia: 30, desc: '+{potencia}% velocidad y ritmo de ataque por {duracion}s' },
-        { id: 'partesuelos', nombre: 'Hendedura Letal', icono: '🪓', tipo: 'debuff', nivel: 1, maxNivel: 5, cd: 16, timer: 0, duracion: 8, potencia: 20, desc: 'Debilita al objetivo reduciendo su defensa un {potencia}%' }
+        { id: 'fervor', nombre: 'Fervor Bélico', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 20, timer: 0, duracion: 8, potencia: 30, desc: '+{potencia}% velocidad y ritmo de ataque por {duracion}s' },
+        { id: 'partesuelos', nombre: 'Hendedura Letal', icono: '🪓', tipo: 'debuff', nivel: 1, maxNivel: 5, cd: 16, timer: 0, duracion: 6, potencia: 20, desc: 'Debilita al objetivo reduciendo su defensa un {potencia}% por {duracion}s' }
       ],
       skillsEquipadas: ['grito', 'impetu', 'fervor']
     },
@@ -106,8 +108,8 @@
       modeloGLB: 'npc/aldeanos/aldeano.glb',
       skillsCatalogo: [
         { id: 'danza_dagas', nombre: 'Danza de Dagas', icono: '🗡️', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 10, timer: 0, potencia: 46, desc: 'Ráfaga de tres estocadas rápidas que inflige {potencia} daño crítico' },
-        { id: 'veneno', nombre: 'Veneno Letal', icono: '🧪', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 20, timer: 0, duracion: 12, potencia: 18, desc: 'Unta las armas con toxinas: +{potencia} daño de veneno continuo' },
-        { id: 'sangrado', nombre: 'Corte Hemorrágico', icono: '🩸', tipo: 'debuff', nivel: 1, maxNivel: 5, cd: 14, timer: 0, duracion: 8, potencia: 22, desc: 'Aplica sangrado que desangra al objetivo por {potencia} daño/s' },
+        { id: 'veneno', nombre: 'Veneno Letal', icono: '🧪', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 18, timer: 0, duracion: 8, potencia: 18, desc: 'Unta las armas con toxinas: +{potencia} daño de veneno por {duracion}s' },
+        { id: 'sangrado', nombre: 'Corte Hemorrágico', icono: '🩸', tipo: 'debuff', nivel: 1, maxNivel: 5, cd: 15, timer: 0, duracion: 6, potencia: 22, desc: 'Aplica sangrado que desangra al objetivo por {potencia} daño/s por {duracion}s' },
         { id: 'remate', nombre: 'Filo del Verdugo', icono: '⚡', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 15, timer: 0, potencia: 65, desc: 'Ejecuta al enemigo con daño x2.5 si tiene menos del 40% de vida' }
       ],
       skillsEquipadas: ['danza_dagas', 'veneno', 'sangrado']
@@ -125,10 +127,10 @@
       defensa: 12,
       modeloGLB: 'npc/aldeanos/aldeano.glb',
       skillsCatalogo: [
-        { id: 'rocio_sanador', nombre: 'Gracia Sanadora', icono: '🌿', tipo: 'cura', nivel: 1, maxNivel: 5, cd: 18, timer: 0, potencia: 50, desc: 'Restaura {potencia} HP al instante para ambos si la salud cae < 50%' },
-        { id: 'baluarte_luz', nombre: 'Baluarte de Luz', icono: '🛡️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 12, potencia: 35, desc: 'Escudo sacro que absorbe y mitiga un {potencia}% de todo el daño' },
+        { id: 'rocio_sanador', nombre: 'Gracia Sanadora', icono: '🌿', tipo: 'cura', nivel: 1, maxNivel: 5, cd: 22, timer: 0, potencia: 50, desc: 'Restaura {potencia} HP al instante para ambos si la salud cae < 50%' },
+        { id: 'baluarte_luz', nombre: 'Baluarte de Luz', icono: '🛡️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 24, timer: 0, duracion: 8, potencia: 35, desc: 'Escudo sacro que absorbe y mitiga un {potencia}% de daño por {duracion}s' },
         { id: 'purificacion', nombre: 'Castigo Sagrado', icono: '☀️', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 14, timer: 0, potencia: 44, desc: 'Haz de luz que inflige {potencia} daño sagrado (daño x3 contra no-muertos)' },
-        { id: 'manantial', nombre: 'Manantial Místico', icono: '💧', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 25, timer: 0, duracion: 15, potencia: 14, desc: 'Regenera +{potencia} HP y maná por segundo durante {duracion}s' }
+        { id: 'manantial', nombre: 'Manantial Místico', icono: '💧', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 8, potencia: 14, desc: 'Regenera +{potencia} HP y maná por segundo durante {duracion}s' }
       ],
       skillsEquipadas: ['rocio_sanador', 'baluarte_luz', 'purificacion']
     },
@@ -145,9 +147,9 @@
       defensa: 18,
       modeloGLB: 'npc/aldeanos/aldeano.glb',
       skillsCatalogo: [
-        { id: 'frenesi', nombre: 'Modo Berserker', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 12, potencia: 40, desc: 'Desata furia salvaje ante el dolor: +{potencia}% daño y resistencia férrea' },
-        { id: 'provocacion', nombre: 'Grito Provocador', icono: '📢', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 16, timer: 0, duracion: 8, potencia: 35, desc: 'Atrae a los monstruos hacia ella, protegiendo al héroe de los golpes' },
-        { id: 'sed_sangre', nombre: 'Sed de Sangre', icono: '🩸', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 20, timer: 0, duracion: 10, potencia: 30, desc: 'Convierte el {potencia}% del daño asestado en curación para ambos' },
+        { id: 'frenesi', nombre: 'Modo Berserker', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 26, timer: 0, duracion: 8, potencia: 40, desc: 'Desata furia salvaje ante el dolor: +{potencia}% daño y resistencia férrea por {duracion}s' },
+        { id: 'provocacion', nombre: 'Grito Provocador', icono: '📢', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 18, timer: 0, duracion: 6, potencia: 35, desc: 'Atrae a los monstruos hacia ella protegiendo al héroe por {duracion}s' },
+        { id: 'sed_sangre', nombre: 'Sed de Sangre', icono: '🩸', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 8, potencia: 30, desc: 'Convierte el {potencia}% del daño asestado en curación por {duracion}s' },
         { id: 'torbellino', nombre: 'Torbellino Feroz', icono: '🌀', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 14, timer: 0, potencia: 38, desc: 'Giro con hacha pesada que hiere a todos los enemigos circundantes' }
       ],
       skillsEquipadas: ['frenesi', 'provocacion', 'torbellino']
@@ -253,10 +255,11 @@
       // Dopes y buffs actualmente activos en pantalla para el HUD con temporizadores
       buffsActivos: [],
       // Habilidades complementarias de apoyo (retrocompatibilidad)
+      // Cooldown estrictamente mayor que la duración (cd > duracion)
       skills: {
         cura: { id: 'cura', nombre: 'Rocío Sanador', desc: 'Restaura salud cuando cae < 45%', cooldown: 22, timer: 0 },
-        ataque: { id: 'ataque', nombre: 'Grito de Aliento', desc: 'Aumenta el daño de ataque un 25% por 12s', cooldown: 30, timer: 0 },
-        defensa: { id: 'defensa', nombre: 'Baluarte de Cuero', desc: 'Reduce el daño recibido un 20% por 10s', cooldown: 35, timer: 0 }
+        ataque: { id: 'ataque', nombre: 'Grito de Aliento', desc: 'Aumenta el daño de ataque un 25% por 10s', cooldown: 22, timer: 0 },
+        defensa: { id: 'defensa', nombre: 'Baluarte de Cuero', desc: 'Reduce el daño recibido un 20% por 8s', cooldown: 20, timer: 0 }
       },
       buffs: {
         ataqueTimer: 0,
@@ -360,16 +363,37 @@
     return true;
   }
 
-  // Sube de nivel una habilidad del acompañante usando puntos de maestría
+  // Sube de nivel una habilidad del acompañante usando puntos de maestría.
+  // Regla de diseño: El tiempo de espera (cooldown) es estrictamente mayor que la duración del efecto
+  // en todos los niveles (1 al 5), calibrado según la trascendencia e impacto de cada habilidad.
   function subirNivelSkill(acompanante, skillId) {
     if (!acompanante || (acompanante.puntosCompanero || 0) < 1) return false;
     const sk = (acompanante.skillsCatalogo || []).find(s => s.id === skillId);
     if (!sk || sk.nivel >= (sk.maxNivel || 5)) return false;
     sk.nivel++;
     acompanante.puntosCompanero--;
-    sk.potencia = Math.round(sk.potencia * 1.25);
-    if (sk.duracion) sk.duracion = Math.min(25, sk.duracion + 2);
-    if (sk.cd) sk.cd = Math.max(8, sk.cd - 1.5);
+    sk.potencia = Math.round(sk.potencia * 1.18);
+
+    if (sk.duracion) {
+      // La duración crece moderadamente (+0.5s por nivel) con un tope firme según la importancia del efecto
+      const topeDuracion = (sk.tipo === 'debuff' || sk.id === 'provocacion') ? 8 : (sk.id === 'frenesi' || sk.id === 'baluarte_luz' ? 10 : 12);
+      sk.duracion = Math.min(topeDuracion, Number((sk.duracion + 0.5).toFixed(1)));
+    }
+
+    if (sk.cd) {
+      // El cooldown se reduce de forma medida (-0.8s por nivel), asegurando siempre una cota mínima proporcional:
+      // Cooldown estrictamente mayor que la duración (ratio mínimo 1.6x a 2.0x según importancia).
+      let cdMinimo = 6;
+      if (sk.duracion) {
+        if (sk.id === 'frenesi' || sk.id === 'baluarte_luz') {
+          cdMinimo = Math.max(Math.round(sk.duracion * 2.0), sk.duracion + 10);
+        } else {
+          cdMinimo = Math.max(Math.round(sk.duracion * 1.6), sk.duracion + 6);
+        }
+      }
+      sk.cd = Math.max(cdMinimo, Number((sk.cd - 0.8).toFixed(1)));
+    }
+
     sincronizarArquetipoActivo(acompanante);
     return true;
   }
@@ -980,7 +1004,7 @@
 
         // 1. Habilidades de Curación
         if (sk.tipo === 'cura' && (heroeBajo || compBajo)) {
-          sk.timer = sk.cd || 18;
+          sk.timer = sk.cd || 22;
           const pct = (sk.potencia || 45) / 100;
           const curaComp = Math.round(acompanante.maxHp * pct);
           acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + curaComp);
@@ -989,7 +1013,7 @@
             nombre: sk.nombre,
             icono: sk.icono || '🌿',
             desc: `+${sk.potencia}% HP Sanado`,
-            duracion: 4,
+            duracion: 3,
             efecto: 'cura',
             valor: sk.potencia
           });
@@ -1001,8 +1025,8 @@
 
         // 2. Habilidades de Buff / Dope (en combate)
         else if (sk.tipo === 'buff' && (objetivoCombate || heroeBajo || compBajo)) {
-          sk.timer = sk.cd || 20;
-          const dur = sk.duracion || 12;
+          sk.timer = sk.cd || 22;
+          const dur = sk.duracion || 8;
           if (sk.id === 'grito' || sk.id === 'fervor') {
             acompanante.buffs.ataqueTimer = dur;
           }
@@ -1055,8 +1079,8 @@
 
         // 4. Habilidades de Debuff sobre el enemigo
         else if (sk.tipo === 'debuff' && objetivoCombate && distObjetivoMin <= (acompanante.rangoAtaque + 2.0)) {
-          sk.timer = sk.cd || 15;
-          const dur = sk.duracion || 8;
+          sk.timer = sk.cd || 16;
+          const dur = sk.duracion || 6;
           aplicarDopeActivo(acompanante, {
             id: sk.id,
             nombre: sk.nombre,
@@ -1078,7 +1102,7 @@
         acompanante.skills.cura.timer = acompanante.skills.cura.cooldown;
         const curaRowan = Math.round(acompanante.maxHp * 0.30);
         acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + curaRowan);
-        aplicarDopeActivo(acompanante, { id: 'cura', nombre: 'Rocío Sanador', icono: '🌿', desc: '+30% HP Curado', duracion: 4, efecto: 'cura', valor: 30 });
+        aplicarDopeActivo(acompanante, { id: 'cura', nombre: 'Rocío Sanador', icono: '🌿', desc: '+30% HP Curado', duracion: 3, efecto: 'cura', valor: 30 });
         decirFrase(acompanante, '🌿 ¡Rocío Sanador! ¡Ánimo, resistiremos juntos!', 4.0);
         if (typeof alLanzarSkillFn === 'function') {
           alLanzarSkillFn({ tipo: 'cura', nombre: 'Rocío Sanador', valor: 0.30, curaRowan });
@@ -1088,22 +1112,22 @@
       // 2. Skill de Dope de Ataque: Grito de Aliento (en combate)
       if (objetivoCombate && acompanante.skills.ataque && acompanante.skills.ataque.timer <= 0) {
         acompanante.skills.ataque.timer = acompanante.skills.ataque.cooldown;
-        acompanante.buffs.ataqueTimer = 12;
-        aplicarDopeActivo(acompanante, { id: 'ataque', nombre: 'Grito de Aliento', icono: '⚔️', desc: '+25% Daño de Ataque', duracion: 12, efecto: 'buff', valor: 25 });
+        acompanante.buffs.ataqueTimer = 10;
+        aplicarDopeActivo(acompanante, { id: 'ataque', nombre: 'Grito de Aliento', icono: '⚔️', desc: '+25% Daño de Ataque', duracion: 10, efecto: 'buff', valor: 25 });
         decirFrase(acompanante, '⚔️ ¡Por la gloria de Aden! ¡Aplastémoslos a todos! (+25% daño)', 4.0);
         if (typeof alLanzarSkillFn === 'function') {
-          alLanzarSkillFn({ tipo: 'buff_ataque', nombre: 'Grito de Aliento', duracion: 12, valor: 0.25 });
+          alLanzarSkillFn({ tipo: 'buff_ataque', nombre: 'Grito de Aliento', duracion: 10, valor: 0.25 });
         }
       }
 
       // 3. Skill de Dope de Defensa: Baluarte de Cuero (al luchar o sufrir daño)
       if (objetivoCombate && acompanante.skills.defensa && acompanante.skills.defensa.timer <= 0 && (compBajo || (distObjetivoMin < 3.5))) {
         acompanante.skills.defensa.timer = acompanante.skills.defensa.cooldown;
-        acompanante.buffs.defensaTimer = 10;
-        aplicarDopeActivo(acompanante, { id: 'defensa', nombre: 'Baluarte de Cuero', icono: '🛡️', desc: '-20% Daño Recibido', duracion: 10, efecto: 'buff', valor: 20 });
+        acompanante.buffs.defensaTimer = 8;
+        aplicarDopeActivo(acompanante, { id: 'defensa', nombre: 'Baluarte de Cuero', icono: '🛡️', desc: '-20% Daño Recibido', duracion: 8, efecto: 'buff', valor: 20 });
         decirFrase(acompanante, '🛡️ ¡Formación cerrada! ¡Escudos arriba! (-20% daño)', 4.0);
         if (typeof alLanzarSkillFn === 'function') {
-          alLanzarSkillFn({ tipo: 'buff_defensa', nombre: 'Baluarte de Cuero', duracion: 10, valor: 0.20 });
+          alLanzarSkillFn({ tipo: 'buff_defensa', nombre: 'Baluarte de Cuero', duracion: 8, valor: 0.20 });
         }
       }
     }

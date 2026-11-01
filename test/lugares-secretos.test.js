@@ -82,4 +82,76 @@ t('las 5 cabañas especiales GLB: se generan con aldeanos, misión de 100 monstr
   });
 });
 
+t('construcción de cabaña GLB: no incluye cilindro intrusivo y asienta el modelo a ras de suelo', () => {
+  let loadedCallback = null;
+  const mockScene = {
+    isMesh: false,
+    scale: { setScalar(s) { this.val = s; } },
+    position: { set(x, y, z) { this.x = x; this.y = y; this.z = z; } },
+    traverse(cb) {
+      cb({ isMesh: true, castShadow: false, receiveShadow: false, material: { roughness: 0.5, metalness: 0.1 } });
+    }
+  };
+
+  const THREE_MOCK = {
+    Group: function() {
+      this.children = [];
+      this.add = obj => this.children.push(obj);
+      this.position = { set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
+      this.rotation = { y: 0 };
+    },
+    BoxGeometry: function() {},
+    CylinderGeometry: function() { this.isCylinder = true; },
+    TorusGeometry: function() {},
+    ConeGeometry: function() {},
+    MeshStandardMaterial: function() {},
+    MeshBasicMaterial: function() {},
+    Mesh: function(geo, mat) {
+      this.geo = geo;
+      this.mat = mat;
+      this.position = { set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
+      this.rotation = { x: 0, y: 0, z: 0 };
+    },
+    PointLight: function() {
+      this.position = { set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
+    },
+    Box3: function() {
+      return {
+        setFromObject: () => ({
+          getSize: v => { v.x = 2.94; v.y = 3.20; v.z = 2.94; },
+          min: { x: -1.47, y: -4.10, z: -1.47 },
+          max: { x: 1.47, y: 4.80, z: 1.47 }
+        })
+      };
+    },
+    Vector3: function() {
+      this.x = 0; this.y = 0; this.z = 0;
+    },
+    GLTFLoader: function() {
+      this.load = (url, onLoad) => {
+        loadedCallback = onLoad;
+      };
+    }
+  };
+
+  const w = mundoMock();
+  const secretos = L.generarLugaresSecretos(w);
+  const cabana = secretos.find(s => s.tipo === 'cabana' && s.modeloGLB);
+  assert.ok(cabana, 'Debe haber una cabaña GLB');
+
+  const grupo = L.construirModeloSecreto(THREE_MOCK, cabana, () => 0);
+  assert.ok(grupo, 'Debe devolver un grupo 3D');
+
+  // Asegurar que NO hay un CylinderGeometry gigante intrusivo cortando la cabaña
+  const cilindros = grupo.children.filter(c => c.geo && c.geo.isCylinder);
+  assert.strictEqual(cilindros.length, 0, 'No debe haber plataformas cilíndricas intrusivas cortando el edificio');
+
+  // Simular la carga asíncrona del GLB
+  assert.ok(loadedCallback, 'El loader debe haber sido llamado');
+  loadedCallback({ scene: mockScene });
+
+  // El modelo debe haberse añadido y su Y debe contrarrestar la base (-bbox.min.y) para asentarse sobre el suelo
+  assert.ok(mockScene.position.y > 4.0, `La posición Y (${mockScene.position.y}) debe elevar la base sobre el suelo sin sepultarla`);
+});
+
 console.log(`\n${n} pruebas de lugares secretos superadas.`);

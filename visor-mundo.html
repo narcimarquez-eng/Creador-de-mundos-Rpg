@@ -5446,7 +5446,8 @@
               servicio: 'cabana',
               cabana: s
             };
-            const nx = s.x + 2.5, nz = s.z + 2.5;
+            // Ubicar al aldeano en el exterior frontal junto a la hoguera de la cabaña
+            const nx = s.x - 1.2, nz = s.z + 4.8;
             instanciarNpc(npcInfo, (typeof s.aldeano === 'object' && s.aldeano.modelo) ? s.aldeano.modelo : 'guru-1', nx, nz, s.x, s.z);
           }
         } catch (eSec) {

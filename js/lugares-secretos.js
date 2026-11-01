@@ -331,46 +331,64 @@
       grupo.add(luz);
 
     } else if (lugar.tipo === 'cabana') {
-      // 2. CABAÑAS: Soporte de modelos GLB dedicados o arquitectura procedural
+      // 2. CABAÑAS: Modelos GLB dedicados a ras de suelo y arquitectura arquitectónica proporcionada
       if (lugar.modeloGLB && typeof THREE.GLTFLoader !== 'undefined') {
-        // Plataforma de base en el terreno
-        const baseSuelo = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.8, 0.4, 16), matMaderaOscura);
-        baseSuelo.position.y = 0.2;
-        baseSuelo.receiveShadow = true;
-        grupo.add(baseSuelo);
-
-        // Hoguera pequeña acogedora al frente
-        const fuegoBase = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.14, 6, 12), matPiedra);
-        fuegoBase.rotation.x = Math.PI / 2;
-        fuegoBase.position.set(-2.2, 0.22, 3.8);
-        grupo.add(fuegoBase);
-        const llama = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.65, 6), new THREE.MeshStandardMaterial({
-          color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 1.8
-        }));
-        llama.position.set(-2.2, 0.55, 3.8);
-        grupo.add(llama);
-        const luzFuego = new THREE.PointLight(0xf97316, 1.4, 12, 1.8);
-        luzFuego.position.set(-2.2, 0.9, 3.8);
-        grupo.add(luzFuego);
-
-        // Carga asíncrona del modelo GLB con dimensionado óptimo
+        // Carga asíncrona del modelo GLB con dimensionado arquitectónico óptimo y apoyo exacto en el suelo
         const loader = new THREE.GLTFLoader();
         loader.load(lugar.modeloGLB, gltf => {
           const modelo = gltf.scene;
-          const bbox = new THREE.Box3().setFromObject(modelo);
-          const size = new THREE.Vector3();
-          bbox.getSize(size);
-          const maxDim = Math.max(size.x, size.z, 1);
-          const escala = Math.min(2.5, Math.max(0.6, 6.8 / maxDim));
+          
+          // Cálculo preciso del bounding box original
+          const bboxOrig = new THREE.Box3().setFromObject(modelo);
+          const sizeOrig = new THREE.Vector3();
+          bboxOrig.getSize(sizeOrig);
+          const maxHoriz = Math.max(sizeOrig.x, sizeOrig.z, 1);
+
+          // Escala proporcionada al tamaño humano (personaje 1.82m -> cabaña ancho 7.5 - 8.5m)
+          const escala = Math.min(3.2, Math.max(1.2, 8.2 / maxHoriz));
           modelo.scale.setScalar(escala);
-          modelo.position.set(0, 0.4, 0);
+
+          // Calcular bounding box ya escalado para apoyar la base a ras de suelo sin enterrar cimientos ni escaleras
+          const bboxEscalado = new THREE.Box3().setFromObject(modelo);
+          modelo.position.set(0, -bboxEscalado.min.y + 0.04, 0);
+
           modelo.traverse(o => {
             if (o.isMesh) {
               o.castShadow = true;
               o.receiveShadow = true;
+              if (o.material) {
+                const mats = Array.isArray(o.material) ? o.material : [o.material];
+                mats.forEach(m => {
+                  if (m) {
+                    m.roughness = Math.min(0.92, Math.max(0.45, m.roughness || 0.7));
+                    if (typeof m.metalness === 'number') m.metalness = Math.min(0.25, m.metalness);
+                  }
+                });
+              }
             }
           });
           grupo.add(modelo);
+
+          // Hoguera acogedora ubicada en el frente exterior de la cabaña (sin invadir el interior)
+          const profZ = (bboxEscalado.max.z - bboxEscalado.min.z);
+          const frenteZ = Math.max(4.4, (profZ / 2) + 2.2);
+
+          const fuegoBase = new THREE.Mesh(new THREE.TorusGeometry(0.65, 0.14, 6, 12), matPiedra);
+          fuegoBase.rotation.x = Math.PI / 2;
+          fuegoBase.position.set(-2.2, 0.08, frenteZ);
+          fuegoBase.receiveShadow = true;
+          grupo.add(fuegoBase);
+
+          const llama = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.65, 6), new THREE.MeshStandardMaterial({
+            color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 1.8
+          }));
+          llama.position.set(-2.2, 0.40, frenteZ);
+          grupo.add(llama);
+
+          const luzFuego = new THREE.PointLight(0xf97316, 1.4, 12, 1.8);
+          luzFuego.position.set(-2.2, 0.75, frenteZ);
+          grupo.add(luzFuego);
+
         }, undefined, () => {
           // Si falla o no encuentra el GLB, genera la cabaña procedural como respaldo
           generarCabanaProcedural(grupo, matMadera, matMaderaOscura, matPiedra);

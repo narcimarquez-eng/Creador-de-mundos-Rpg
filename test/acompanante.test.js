@@ -405,4 +405,44 @@ t('dopes activos en pantalla: registro y descuento en tiempo real para el HUD', 
   assert.strictEqual(c.buffsActivos.length, 0, 'Al expirar el tiempo, el dope desaparece del HUD');
 });
 
+t('balance de habilidades: el tiempo de espera es estrictamente mayor que la duración del efecto (cd > duracion)', () => {
+  const arquetipos = ['rowan', 'lyra', 'elian', 'brenda'];
+
+  arquetipos.forEach(arqKey => {
+    const c = A.crearAcompanante({ arquetipo: arqKey, puntosCompanero: 20 });
+    const skills = c.skillsCatalogo;
+
+    skills.forEach(sk => {
+      if (sk.duracion) {
+        // 1. Verificación en nivel 1
+        assert.ok(
+          sk.cd > sk.duracion,
+          `[Nivel 1] ${c.nombre} - ${sk.nombre}: Cooldown (${sk.cd}s) debe ser mayor que la duración (${sk.duracion}s)`
+        );
+        const ratioInicial = sk.cd / sk.duracion;
+        assert.ok(
+          ratioInicial >= 1.6,
+          `[Nivel 1] ${c.nombre} - ${sk.nombre}: Ratio CD/Duración (${ratioInicial.toFixed(2)}) debe ser al menos 1.6x`
+        );
+
+        // 2. Verificación en subida continua de nivel (niveles 2 a 5)
+        for (let nivelEsperado = 2; nivelEsperado <= (sk.maxNivel || 5); nivelEsperado++) {
+          const subio = A.subirNivelSkill(c, sk.id);
+          assert.strictEqual(subio, true, `Debe poder subir de nivel la skill ${sk.id}`);
+          assert.strictEqual(sk.nivel, nivelEsperado);
+
+          assert.ok(
+            sk.cd > sk.duracion,
+            `[Nivel ${nivelEsperado}] ${c.nombre} - ${sk.nombre}: Cooldown (${sk.cd}s) debe superar a la duración (${sk.duracion}s)`
+          );
+          assert.ok(
+            sk.cd >= sk.duracion + 6,
+            `[Nivel ${nivelEsperado}] ${c.nombre} - ${sk.nombre}: Tiempo de espera neto (${(sk.cd - sk.duracion).toFixed(1)}s) debe ser al menos 6s`
+          );
+        }
+      }
+    });
+  });
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);
