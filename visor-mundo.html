@@ -234,13 +234,293 @@
     #load h2 { margin: 0 0 8px; color: var(--gold); font-size: 17px; }
     #load .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
-    /* Lo que falta por cargar: encima del minimapa, solo mientras hay algo pendiente */
-    #carga { position: absolute; right: 24px; bottom: 312px; width: 170px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 9px; z-index: 17; font-size: 11px; color: var(--muted); opacity: 0; transition: opacity .4s; pointer-events: none; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
-    #carga.show { opacity: 1; }
-    #carga .c-tit { display: flex; justify-content: space-between; color: #e2e8f0; font-weight: 600; font-size: 12px; }
-    #carga .c-barra { height: 5px; background: #1e293b; border-radius: 3px; margin: 4px 0; overflow: hidden; }
-    #carga .c-barra i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
-    @media (max-width: 760px) { #carga { right: 8px; bottom: 292px; width: 140px; } }
+    /* Panel interactivo de carga con lista de archivos desplegable y peso en Megas */
+    #carga {
+      position: absolute;
+      right: 24px;
+      bottom: 312px;
+      width: 320px;
+      max-width: calc(100vw - 32px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 12px;
+      padding: 10px 12px;
+      z-index: 17;
+      font-size: 11px;
+      color: #cbd5e1;
+      opacity: 0;
+      transition: opacity .3s, transform .25s ease;
+      pointer-events: auto;
+      box-shadow: 0 10px 28px rgba(0,0,0,.5);
+      backdrop-filter: blur(10px);
+      user-select: none;
+    }
+    #carga.show { opacity: 1; pointer-events: auto; }
+    
+    #carga details summary {
+      cursor: pointer;
+      list-style: none;
+      outline: none;
+    }
+    #carga details summary::-webkit-details-marker { display: none; }
+    
+    #carga .c-tit {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #f1f5f9;
+      font-weight: 600;
+      font-size: 12px;
+      gap: 6px;
+    }
+    #carga .c-tit-izq {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #carga .c-tit-der {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    
+    #carga .c-badge-mb {
+      background: rgba(56, 189, 248, 0.16);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    #carga .c-btn-cerrar {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color .2s, background .2s;
+    }
+    #carga .c-btn-cerrar:hover {
+      color: #f87171;
+      background: rgba(248, 113, 113, 0.15);
+    }
+
+    #carga .c-barra {
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      margin: 8px 0 4px 0;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    #carga .c-barra i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--accent, #38bdf8);
+      transition: width .25s ease-out, background .3s;
+    }
+
+    #carga .c-subinfo {
+      font-size: 10.5px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+
+    #carga .c-stats-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    #carga .c-stat-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+    #carga .tag-encarga {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    #carga .tag-ok {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    #carga .tag-peso {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+    #carga .tag-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    #carga .c-lista-scroll {
+      max-height: 190px;
+      overflow-y: auto;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 4px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    #carga .c-lista-scroll::-webkit-scrollbar { width: 4px; }
+    #carga .c-lista-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 4px;
+    }
+
+    #carga .c-fila-archivo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 3px 4px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      transition: background .15s;
+    }
+    #carga .c-fila-archivo:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    #carga .c-col-nombre {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #carga .c-item-name {
+      color: #f1f5f9;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #carga .c-item-cat {
+      color: #64748b;
+      font-size: 9.5px;
+    }
+    #carga .c-col-peso {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    #carga .c-item-mb {
+      font-weight: 700;
+      color: #38bdf8;
+      font-variant-numeric: tabular-nums;
+      font-size: 10.5px;
+    }
+    #carga .c-item-tag {
+      font-size: 9.5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    #carga .c-item-vacio {
+      padding: 10px;
+      text-align: center;
+      color: #64748b;
+      font-style: italic;
+    }
+
+    #carga .c-pie-acciones {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    #carga .c-btn-accion {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    #carga .c-btn-accion:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+    }
+
+    /* Botón flotante para restaurar/reabrir */
+    .c-pill-reabrir {
+      position: absolute;
+      right: 24px;
+      bottom: 312px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid #38bdf8;
+      color: #f1f5f9;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      z-index: 17;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      transition: transform .2s, border-color .2s;
+    }
+    .c-pill-reabrir:hover {
+      transform: translateY(-2px);
+      border-color: #7dd3fc;
+    }
+    .c-pill-reabrir b { color: #38bdf8; }
+    .c-pill-reabrir .c-pill-hint { color: #94a3b8; font-size: 10px; }
+
+    @keyframes c-spin-anim {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .c-icono-spin {
+      display: inline-block;
+      animation: c-spin-anim 2.5s linear infinite;
+    }
+    .c-icono-ok {
+      color: #22c55e;
+      font-weight: 700;
+    }
+
+    @media (max-width: 760px) {
+      #carga {
+        right: 8px;
+        bottom: 292px;
+        width: min(290px, calc(100vw - 16px));
+      }
+      .c-pill-reabrir {
+        right: 8px;
+        bottom: 292px;
+      }
+    }
     #toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #0f172a; border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none; }
     #toast.show { opacity: 1; }
     #bocadillo-rowan { position: fixed; background: rgba(15, 23, 42, 0.94); color: #f8fafc; border: 1px solid #f59e0b; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.45); pointer-events: none; z-index: 45; opacity: 0; transition: opacity 0.25s; max-width: 260px; text-align: center; transform: translate(-50%, -100%); }
@@ -342,7 +622,38 @@
     <div class="m-pie"><span id="mision-prog"></span><button id="mision-ir">🧭 Llévame</button></div>
   </div>
   <canvas id="minimap" width="300" height="300" title="Pulsa para ver el mapa del mundo"></canvas>
-  <div id="carga" aria-live="polite"><div class="c-tit"><span>⏳ Cargando</span><b id="carga-pct"></b></div><div class="c-barra"><i id="carga-barra"></i></div><div id="carga-det"></div></div>
+  <div id="carga" class="show" aria-live="polite">
+    <details id="carga-desplegable" open>
+      <summary class="c-tit">
+        <div class="c-tit-izq">
+          <span id="carga-icono-estado" class="c-icono-spin">⏳</span>
+          <span id="carga-tit-texto">Cargando recursos</span>
+          <span id="carga-badge-mb" class="c-badge-mb">0.00 MB</span>
+        </div>
+        <div class="c-tit-der">
+          <b id="carga-pct">0 %</b>
+          <button id="carga-btn-cerrar" type="button" title="Cerrar panel de carga" class="c-btn-cerrar">×</button>
+        </div>
+      </summary>
+      <div class="c-barra"><i id="carga-barra" style="width:0%"></i></div>
+      <div id="carga-det" class="c-subinfo">Iniciando motor gráfico...</div>
+      <div class="c-stats-row">
+        <span id="c-stat-encarga" class="c-stat-tag tag-encarga">⏳ 0 en carga</span>
+        <span id="c-stat-cargados" class="c-stat-tag tag-ok">✓ 0 cargados</span>
+        <span id="c-stat-peso" class="c-stat-tag tag-peso">📦 0.00 MB</span>
+      </div>
+      <div id="carga-lista-archivos" class="c-lista-scroll" tabindex="0" role="region" aria-label="Lista de archivos en carga y cargados">
+        <div class="c-item-vacio">Iniciando descargas...</div>
+      </div>
+      <div class="c-pie-acciones">
+        <span id="carga-pie-info">Total en memoria: <b id="carga-pie-peso">0.00 MB</b></span>
+        <button id="carga-btn-toggle" type="button" class="c-btn-accion" title="Plegar o desplegar la lista">Plegar ▲</button>
+      </div>
+    </details>
+  </div>
+  <button id="carga-pill-reabrir" type="button" class="c-pill-reabrir" style="display:none;" title="Mostrar archivos cargados y su peso en megas">
+    📦 Recursos: <b id="carga-pill-mb">0.00 MB</b> <span class="c-pill-hint">[Ver archivos]</span>
+  </button>
   <div id="hud">
     <div id="zona-marca"></div>
     <div class="hud-bars">
@@ -663,6 +974,7 @@
   <div id="toast"></div>
   <div id="bocadillo-rowan"></div>
 
+  <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20251029"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
@@ -742,8 +1054,30 @@
   let archivosPendientes = 0, archivosEmpezados = 0, archivosAcabados = 0;   // los dos últimos, de la tanda actual
   {
     const g = THREE.DefaultLoadingManager, inicio = g.itemStart.bind(g), fin = g.itemEnd.bind(g);
-    g.itemStart = url => { archivosPendientes++; archivosEmpezados++; inicio(url); };
-    g.itemEnd = url => { archivosPendientes = Math.max(0, archivosPendientes - 1); archivosAcabados++; fin(url); };
+    g.itemStart = url => {
+      archivosPendientes++;
+      archivosEmpezados++;
+      if (typeof GestorCargaArchivos !== 'undefined') GestorCargaArchivos.registrarInicio(url);
+      inicio(url);
+    };
+    g.itemEnd = url => {
+      archivosPendientes = Math.max(0, archivosPendientes - 1);
+      archivosAcabados++;
+      if (typeof GestorCargaArchivos !== 'undefined') GestorCargaArchivos.registrarFin(url, true);
+      fin(url);
+    };
+    if (g.itemError) {
+      const errOrig = g.itemError.bind(g);
+      g.itemError = url => {
+        if (typeof GestorCargaArchivos !== 'undefined') GestorCargaArchivos.registrarFin(url, false, 'Error de descarga');
+        errOrig(url);
+      };
+    }
+    if (typeof GestorCargaArchivos !== 'undefined') {
+      GestorCargaArchivos.conectarFetch();
+      GestorCargaArchivos.escanearRecursosPrevios();
+      GestorCargaArchivos.montar('carga');
+    }
   }
   // Calidad: radio de detalle del terreno, resolución de sombras y píxeles por pantalla
   // sombra: medio lado (m) de la caja de sombras alrededor del héroe; crece si la cámara se aleja
@@ -2505,10 +2839,19 @@
     const arch = archivosPendientes + (compilandoEscena ? 1 : 0) + (estudioCargando ? 1 : 0);
     const total = mon + pue + arch;
     const el = $('carga');
+    if (typeof GestorCargaArchivos !== 'undefined') {
+      GestorCargaArchivos.actualizarDOM();
+    }
     if (!total) {
       // Tanda terminada: el siguiente progreso empieza de cero
       cargaUI.maxMon = cargaUI.maxPue = cargaUI.mostrado = 0; archivosEmpezados = archivosAcabados = 0;
-      el.classList.remove('show');
+      if (typeof GestorCargaArchivos !== 'undefined') {
+        if (GestorCargaArchivos.visible && el) {
+          el.classList.add('show');
+        }
+      } else if (el) {
+        el.classList.remove('show');
+      }
       return;
     }
     // Progreso de la tanda actual: archivos acabados de los empezados, y monstruos y pueblos hechos frente a
@@ -2519,11 +2862,14 @@
     const todo = Math.max(archivosEmpezados, arch) + cargaUI.maxMon + cargaUI.maxPue;
     // La barra no retrocede: si llega trabajo nuevo, se queda quieta hasta que el progreso la alcanza
     const pct = cargaUI.mostrado = Math.max(cargaUI.mostrado, Math.min(99, Math.round(100 * hecho / Math.max(1, todo))));
-    $('carga-pct').textContent = pct + ' %';
-    $('carga-barra').style.width = pct + '%';
+    const elPct = $('carga-pct');
+    if (elPct) elPct.textContent = pct + ' %';
+    const elBarra = $('carga-barra');
+    if (elBarra) elBarra.style.width = pct + '%';
     const n = (k, uno, varios) => k ? k + ' ' + (k === 1 ? uno : varios) : '';
-    $('carga-det').textContent = [n(mon, 'monstruo', 'monstruos'), n(pue, 'pueblo', 'pueblos'), n(arch, 'archivo', 'archivos')].filter(Boolean).join(' · ');
-    el.classList.add('show');
+    const elDet = $('carga-det');
+    if (elDet) elDet.textContent = [n(mon, 'monstruo', 'monstruos'), n(pue, 'pueblo', 'pueblos'), n(arch, 'archivo', 'archivos')].filter(Boolean).join(' · ');
+    if (el && (!window.GestorCargaArchivos || window.GestorCargaArchivos.visible)) el.classList.add('show');
   }
 
   function streamTowns(now) {
@@ -6740,7 +7086,7 @@
       $('load').classList.add('show');
     }
   })();
-    window.__visor = { get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   </script>
 </body>
 </html>
