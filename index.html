@@ -385,6 +385,10 @@
       list.unshift({ id: sessionId, name: world.name, updated: world.updated, towns: world.towns.length, zones: world.zones.length });
       writeIndex(list);
       lsSet(STORE.current, sessionId);
+      try {
+        sessionStorage.setItem(STORE.data(sessionId), text);
+        sessionStorage.setItem(STORE.current, sessionId);
+      } catch (e) {}
       setSaveState('Guardado ✓', 'ok');
     } catch (e) {
       console.error(e);
