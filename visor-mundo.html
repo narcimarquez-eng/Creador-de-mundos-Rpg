@@ -2850,19 +2850,27 @@
   // Pueblos completos: se cargan al acercarse y se descargan al alejarse
   // ===========================================================================
   function loadTown(o) {
+    if (o.village) return;
     const kit = kitFor(o.cfg.style);
     const group = new THREE.Group();
     group.position.set(o.t.x, o.h0, o.t.y);
     group.rotation.y = -o.rot;
     scene.add(group);
-    const village = kit.createVillage(group, { skipGround: true, noLights: true });
-    village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
-    if (village.waterMesh) { aguaPuebloMat = aguaPuebloMat || aguaMaterial(false, 0.86, true); village.waterMesh.material = aguaPuebloMat; }
-    o.village = village; o.group = group; o.kit = kit;
-    createPatch(o);
-    o.worldCols = toWorldColliders(o);
-    o.rise = 0;
-    group.scale.y = 0.02;
+    try {
+      const village = kit.createVillage(group, { skipGround: true, noLights: true });
+      village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
+      if (village.waterMesh) { aguaPuebloMat = aguaPuebloMat || aguaMaterial(false, 0.86, true); village.waterMesh.material = aguaPuebloMat; }
+      o.village = village; o.group = group; o.kit = kit;
+      createPatch(o);
+      o.worldCols = toWorldColliders(o);
+      o.rise = 0;
+      group.scale.y = 0.02;
+    } catch (errTown) {
+      console.warn('Error al cargar pueblo:', o.t && o.t.name, errTown);
+      o.village = { destroy() { scene.remove(group); } };
+      o.group = group;
+      o.rise = 1;
+    }
   }
 
   // Los pueblos completos crecen desde el suelo y el modelo simple se desvanece
@@ -7409,6 +7417,11 @@
     try { saved = localStorage.getItem('rpgMundo.calidad'); } catch (e) { /* nada */ }
     const movil = matchMedia('(pointer: coarse)').matches || window.innerWidth < 800;
     ensureScene();
+    try {
+      if (typeof window !== 'undefined' && window.VillageLib && window.VillageLib.preloadPuestos) {
+        window.VillageLib.preloadPuestos(THREE);
+      }
+    } catch (e) {}
     applyQuality(saved || (movil ? 'bajo' : 'alto'), false);
     let pelo = null;
     try { pelo = localStorage.getItem('rpgMundo.pelo'); } catch (e) { /* nada */ }

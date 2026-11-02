@@ -44,6 +44,49 @@
     const treeGeo = {};
     const treeMat = {};
     const sharedTreeGeos = new Set();
+
+    // Modelos GLB para los puestos del mercado (anillo de la plaza junto a los gurús)
+    const MODELOS_PUESTOS = [
+      'glb/puestos/puesto_armas.glb',
+      'glb/puestos/puesto_frutas.glb',
+      'glb/puestos/puesto_libros.glb',
+      'glb/puestos/puesto_pescado.glb'
+    ];
+    const cachePuestosGLB = {};
+    const promesasCargaPuestos = {};
+
+    function cargarPuestoGLB(ruta, ThreeLib) {
+      if (cachePuestosGLB[ruta]) return Promise.resolve(cachePuestosGLB[ruta]);
+      if (promesasCargaPuestos[ruta]) return promesasCargaPuestos[ruta];
+
+      const GLTFLoaderClass = (ThreeLib && ThreeLib.GLTFLoader)
+        || (typeof THREE !== 'undefined' && THREE.GLTFLoader)
+        || (typeof window !== 'undefined' && window.THREE && window.THREE.GLTFLoader)
+        || null;
+
+      if (!GLTFLoaderClass) return Promise.resolve(null);
+
+      promesasCargaPuestos[ruta] = new Promise(resolve => {
+        try {
+          const loader = new GLTFLoaderClass();
+          loader.load(ruta, gltf => {
+            if (gltf && gltf.scene) {
+              cachePuestosGLB[ruta] = gltf.scene;
+              resolve(gltf.scene);
+            } else {
+              resolve(null);
+            }
+          }, undefined, () => resolve(null));
+        } catch (e) {
+          resolve(null);
+        }
+      });
+      return promesasCargaPuestos[ruta];
+    }
+
+    function preloadPuestosGLB(ThreeLib) {
+      return Promise.all(MODELOS_PUESTOS.map(r => cargarPuestoGLB(r, ThreeLib)));
+    }
     function texturaDe(nombre) {
       const url = typeof TreeLib !== 'undefined' ? TreeLib.textura(nombre) : null;
       if (!url) return null;
@@ -2565,66 +2608,36 @@
 
         this.construirCasasMadera(maderas, HW, HD);
 
-        const iStall = makeInstanced(stallG, matCloth, stalls.length);
+        // Los antiguos puestos procedurales (stallG) se desactivan completamente a favor de los nuevos puestos GLB 3D
+        const iStall = makeInstanced(stallG, matCloth, 0);
         const iBarrel = makeInstanced(barrelG, matAtlas, barrels.length, { castShadow: false });
 
-        stalls.forEach((s, idx) => {
-          dPos.set(s.x, s.y, s.z);
-          dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s.rot);
-          dScale.set(1, 1, 1);
-          dMat.compose(dPos, dQuat, dScale);
-          iStall.setMatrixAt(idx, dMat);
-          iStall.setColorAt(idx, new THREE.Color(s.color));
-        });
-
         // Puestos de mercado GLB personalizados en el anillo cerca de los gurús
-        const GLTFLoaderClass = (typeof THREE !== 'undefined' && THREE.GLTFLoader)
-          || (typeof window !== 'undefined' && window.THREE && window.THREE.GLTFLoader)
-          || null;
-        if (GLTFLoaderClass && stalls.length > 0) {
-          const MODELOS_PUESTOS = [
-            'glb/puestos/puesto_armas.glb',
-            'glb/puestos/puesto_frutas.glb',
-            'glb/puestos/puesto_libros.glb',
-            'glb/puestos/puesto_pescado.glb'
-          ];
+        if (stalls.length > 0) {
           const puestosGrupo = new THREE.Group();
           puestosGrupo.name = 'PuestosMercadoGLB';
-          this.group.add(puestosGrupo);
-
-          if (!VillageGenerator._cachePuestosGLB) VillageGenerator._cachePuestosGLB = {};
-          const cacheGLB = VillageGenerator._cachePuestosGLB;
+          this.scene.add(puestosGrupo);
+          this.objects.push(puestosGrupo);
 
           stalls.forEach((s, idx) => {
-            const ruta = MODELOS_PUESTOS[idx % MODELOS_PUESTOS.length];
-            const cargarProto = cacheGLB[ruta]
-              ? Promise.resolve(cacheGLB[ruta])
-              : new Promise(res => {
-                  try {
-                    const loader = new GLTFLoaderClass();
-                    loader.load(ruta, gltf => {
-                      if (gltf && gltf.scene) {
-                        cacheGLB[ruta] = gltf.scene;
-                        res(gltf.scene);
-                      } else res(null);
-                    }, undefined, () => res(null));
-                  } catch (e) {
-                    res(null);
-                  }
-                });
+            // Colisionador circular en el puesto para que el jugador no lo atraviese
+            this.colliders.push({ type: 'circle', x: s.x, z: s.z, r: 1.45 });
 
-            cargarProto.then(proto => {
+            const ruta = MODELOS_PUESTOS[idx % MODELOS_PUESTOS.length];
+            const instanciarClon = (proto) => {
               if (!proto) return;
               try {
                 const clon = proto.clone(true);
                 const bbox = new THREE.Box3().setFromObject(clon);
                 const sz = new THREE.Vector3();
                 bbox.getSize(sz);
-                if (sz.y > 0.05 && (sz.y < 1.0 || sz.y > 3.5)) {
-                  const escalaH = 2.2 / sz.y;
-                  clon.scale.set(escalaH, escalaH, escalaH);
+                let escala = 1.0;
+                if (sz.y > 0.05) {
+                  escala = 2.25 / sz.y;
+                  clon.scale.set(escala, escala, escala);
                 }
-                clon.position.set(s.x, s.y, s.z);
+                const yOffset = (bbox.min.y < 0) ? (-bbox.min.y * escala) : 0;
+                clon.position.set(s.x, s.y + yOffset, s.z);
                 clon.rotation.y = s.rot;
                 clon.traverse(child => {
                   if (child.isMesh) {
@@ -2633,11 +2646,18 @@
                   }
                 });
                 puestosGrupo.add(clon);
-                if (iStall) iStall.visible = false;
               } catch (e) {
                 console.warn('Error instanciando puesto GLB:', e);
               }
-            }).catch(() => {});
+            };
+
+            if (cachePuestosGLB[ruta]) {
+              instanciarClon(cachePuestosGLB[ruta]);
+            } else {
+              cargarPuestoGLB(ruta, THREE).then(proto => {
+                if (proto) instanciarClon(proto);
+              }).catch(() => {});
+            }
           });
         }
 
@@ -2849,5 +2869,18 @@
     return v - Math.floor(v);
   }
 
-  window.VillageLib = { PRNG, ARCHITECTURAL_STYLES, ATMOSPHERES, createKit };
+  window.VillageLib = {
+    PRNG,
+    ARCHITECTURAL_STYLES,
+    ATMOSPHERES,
+    createKit,
+    preloadPuestos: preloadPuestosGLB,
+    cachePuestos: cachePuestosGLB
+  };
+
+  if (typeof window !== 'undefined') {
+    setTimeout(() => {
+      try { preloadPuestosGLB(window.THREE); } catch (e) {}
+    }, 25);
+  }
 })();
