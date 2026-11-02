@@ -1975,9 +1975,18 @@
 
   async function cargarCatalogo() {
     if (catalogo) return catalogo;
-    const res = await fetch(CATALOGO_URL);
-    if (!res.ok) throw new Error('No se pudo cargar el catálogo (' + res.status + ')');
-    catalogo = await res.json();
+    try {
+      const res = await fetch(CATALOGO_URL);
+      if (res.ok) {
+        catalogo = await res.json();
+        return catalogo;
+      }
+    } catch (e) {
+      console.warn('Fallback a catálogo local:', e);
+    }
+    const resLocal = await fetch('estudio-armaduras/catalogo.json');
+    if (!resLocal.ok) throw new Error('No se pudo cargar el catálogo de armaduras');
+    catalogo = await resLocal.json();
     return catalogo;
   }
 

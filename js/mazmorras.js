@@ -273,10 +273,21 @@
   }
 
   /* --------------------------------------------------------------------------
-   * 2. CARGA Y ADECUACIÓN GRÁFICA DEL MODELO GLB DE LA MAZMORRA
+   * 2. CARGA Y ADECUACIÓN GRÁFICA DEL MODELO GLB DE LA MAZMORRA (CON CACHÉ Y CLONE)
    * -------------------------------------------------------------------------- */
+  const _glbMazmorraCache = new Map();
+
   function cargarModeloMazmorra(THREE, rutaGLB, onLoaded, onError) {
+    if (_glbMazmorraCache.has(rutaGLB)) {
+      const gltfBase = _glbMazmorraCache.get(rutaGLB);
+      const sk = (typeof SkeletonUtils !== 'undefined' && SkeletonUtils.clone) ? SkeletonUtils : (typeof window !== 'undefined' && window.SkeletonUtils);
+      const modeloClon = sk && sk.clone ? sk.clone(gltfBase.scene) : gltfBase.scene.clone(true);
+      if (typeof onLoaded === 'function') onLoaded(modeloClon);
+      return;
+    }
+
     function procesarGLTF(gltf) {
+      _glbMazmorraCache.set(rutaGLB, gltf);
       const modelo = gltf.scene;
 
       // Calcular bounding box para escala real de gran cripta de mazmorra
