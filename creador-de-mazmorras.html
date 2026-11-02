@@ -1426,6 +1426,14 @@
         return;
       }
 
+      if (dungeonConfig.salas && Array.isArray(dungeonConfig.salasPersonalizadas)) {
+        dungeonConfig.salasPersonalizadas.forEach(p => {
+          if (!dungeonConfig.salas.some(s => s.id === p.id)) {
+            dungeonConfig.salas.push(p);
+          }
+        });
+      }
+
       dungeonInstance = dg.generarMazmorra(THREE, {
         estilo: dungeonConfig.estilo,
         seed: dungeonConfig.seed,
@@ -1453,7 +1461,7 @@
         monstruos: dungeonConfig.monstruos
       });
 
-      if (!dungeonConfig.salas && dungeonInstance && dungeonInstance.salas) {
+      if (dungeonInstance && dungeonInstance.salas) {
         dungeonConfig.salas = dungeonInstance.salas;
       }
 
@@ -1586,18 +1594,20 @@
 
       (salas || []).forEach((s, idx) => {
         const def = tiposDef[s.tipo] || { icono: '🏛️', nombre: s.nombre };
+        const esConector = !!s.esConectorAutomatico;
+        const icono = esConector ? '🔗' : (def.icono || '🏛️');
         const row = document.createElement('div');
-        row.className = 'sala-item-row' + (s.id === selectedRoomId ? ' selected' : '');
+        row.className = 'sala-item-row' + (s.id === selectedRoomId ? ' selected' : '') + (esConector ? ' conector-auto' : '');
         row.dataset.idSala = s.id;
         row.innerHTML = `
-          <div class="sala-item-title" style="cursor: pointer;" title="Haz clic para seleccionar e inspeccionar esta estancia">
-            <span>${def.icono || '🏛️'}</span>
-            <span title="${s.nombre}">${s.nombre}</span>
+          <div class="sala-item-title" style="cursor: pointer;" title="${esConector ? 'Pasaje conector generado automáticamente' : 'Haz clic para seleccionar e inspeccionar esta estancia'}">
+            <span>${icono}</span>
+            <span title="${s.nombre}" style="${esConector ? 'color:#38bdf8; font-style:italic;' : ''}">${s.nombre}</span>
           </div>
           <div class="sala-item-dims">${s.w}×${s.d}m (${Math.round(s.x)}, ${Math.round(s.z)})</div>
           <button class="sala-item-btn" data-select="${s.id}" title="Editar estancia">✏️</button>
           <button class="sala-item-btn" data-focus="${idx}" title="Centrar cámara">🎯</button>
-          <button class="sala-item-btn del" data-del-room="${s.id}" title="Eliminar estancia">✕</button>
+          <button class="sala-item-btn del" data-del-room="${s.id}" title="${esConector ? 'Eliminar conector lateral' : 'Eliminar estancia'}">✕</button>
         `;
 
         row.addEventListener('click', (e) => {
@@ -3240,8 +3250,7 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
       const x = parseInt($('new-sala-x').value, 10) || 0;
       const z = parseInt($('new-sala-z').value, 10) || 0;
 
-      dungeonConfig.salasPersonalizadas = dungeonConfig.salasPersonalizadas || [];
-      dungeonConfig.salasPersonalizadas.push({
+      const nuevaSala = {
         id: 'custom_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
         nombre,
         tipo,
@@ -3249,8 +3258,15 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
         d,
         h: dungeonConfig.alturaTechos || 5.2,
         x,
-        z
-      });
+        z,
+        esPersonalizada: true
+      };
+
+      dungeonConfig.salasPersonalizadas = dungeonConfig.salasPersonalizadas || [];
+      dungeonConfig.salasPersonalizadas.push(nuevaSala);
+      if (dungeonConfig.salas && Array.isArray(dungeonConfig.salas)) {
+        dungeonConfig.salas.push(nuevaSala);
+      }
 
       rebuildDungeon();
       showToast(`✨ Estancia «${nombre}» añadida`);

@@ -2935,7 +2935,7 @@
 
         // 1. Conexión Norte-Sur: a está al sur de b (a.z > b.z)
         const gapZ = (a.z - a.d / 2) - (b.z + b.d / 2);
-        if (Math.abs(gapZ) <= 3.0 || (a.z > b.z && gapZ < 6.0 && (a.abiertoNorte || a.tipo === 'pasillo' || b.tipo === 'pasillo'))) {
+        if (Math.abs(gapZ) <= 0.8 || (a.abiertoNorte && b.abiertoSur && Math.abs(gapZ) <= 1.2)) {
           const minX = Math.max(a.x - a.w / 2, b.x - b.w / 2);
           const maxX = Math.min(a.x + a.w / 2, b.x + b.w / 2);
           const overlapX = maxX - minX;
@@ -2955,13 +2955,13 @@
 
         // 2. Conexión Este-Oeste: a está al oeste de b (a.x < b.x)
         const gapX = (b.x - b.w / 2) - (a.x + a.w / 2);
-        if (Math.abs(gapX) <= 6.0 || (a.abiertoEste && b.abiertoOeste)) {
+        if (Math.abs(gapX) <= 0.8 || (a.abiertoEste && b.abiertoOeste && Math.abs(gapX) <= 1.2)) {
           const minZ = Math.max(a.z - a.d / 2, b.z - b.d / 2);
           const maxZ = Math.min(a.z + a.d / 2, b.z + b.d / 2);
           const overlapZ = maxZ - minZ;
 
           if (overlapZ > 1.2 && a.x < b.x) {
-            const pd = Math.max(2.5, Math.min(overlapZ, a.d - 0.2, b.d - 0.2, 6.0));
+            const pd = Math.max(2.5, Math.min(overlapZ, a.d - 0.2, b.d - 0.2, anchoPasillos));
             const czMundo = (minZ + maxZ) / 2;
             const pH = Math.min(a.h, b.h, 3.8);
 
@@ -2988,6 +2988,199 @@
     });
   }
 
+  // --- 7.1 GENERACIÓN AUTOMÁTICA DE PASILLOS LATERALES Y TRANSVERSALES ---
+  // Detecta cuando estancias se ubican a derecha o izquierda con separación y genera automáticamente
+  // el tramo de pasillo conector continuo sin dejar abismos al vacío.
+  function conectarEstanciasLateralesAutomaticamente(salas, config = {}) {
+    const anchoPasillos = typeof config.anchoPasillos === 'number' ? Math.max(3.5, config.anchoPasillos) : 6.8;
+    const alturaTechos = typeof config.alturaTechos === 'number' ? Math.max(3.5, config.alturaTechos) : 5.2;
+
+    // 1. Limpiar pasillos automáticos antiguos para recalcular limpiamente si se movieron estancias
+    const salasBase = salas.filter(s => !s.esConectorAutomatico);
+
+    // Asegurar aperturas de salas base
+    salasBase.forEach(s => {
+      if (!s.aperturas) s.aperturas = {};
+    });
+
+    const nuevosPasillos = [];
+
+    // --- A. CONEXIÓN LATERAL ESTE - OESTE (derecha o izquierda) ---
+    // Para cada estancia, buscar el vecino lateral más próximo a la derecha (Este)
+    salasBase.forEach(oeste => {
+      const bordeDerOeste = oeste.x + (oeste.w / 2);
+      let mejorEste = null;
+      let menorGapX = Infinity;
+      let mejorOverlapZ = 0;
+      let mejorMinZ = 0;
+      let mejorMaxZ = 0;
+
+      salasBase.forEach(este => {
+        if (oeste.id === este.id) return;
+        const bordeIzqEste = este.x - (este.w / 2);
+        const gapX = bordeIzqEste - bordeDerOeste;
+
+        // Debe encontrarse a la derecha (gapX >= -0.3) y dentro de un alcance de mazmorra (65m)
+        if (gapX >= -0.3 && gapX <= 65.0) {
+          const minZ = Math.max(oeste.z - (oeste.d / 2), este.z - (este.d / 2));
+          const maxZ = Math.min(oeste.z + (oeste.d / 2), este.z + (este.d / 2));
+          const overlapZ = maxZ - minZ;
+
+          // Solapamiento suficiente en profundidad Z para transitar
+          if (overlapZ >= 1.5) {
+            if (gapX < menorGapX) {
+              menorGapX = gapX;
+              mejorEste = este;
+              mejorOverlapZ = overlapZ;
+              mejorMinZ = minZ;
+              mejorMaxZ = maxZ;
+            }
+          }
+        }
+      });
+
+      if (mejorEste) {
+        if (menorGapX > 0.2) {
+          const bordeIzqEste = mejorEste.x - (mejorEste.w / 2);
+          // Comprobar si ya existe alguna sala o corredor base intermedio
+          const yaExiste = salasBase.some(s => {
+            if (s.id === oeste.id || s.id === mejorEste.id) return false;
+            const centroZ = (mejorMinZ + mejorMaxZ) / 2;
+            const zOk = Math.abs(s.z - centroZ) < ((mejorOverlapZ + s.d) / 2);
+            const xOk = (s.x - s.w / 2 < bordeDerOeste + 0.4) && (s.x + s.w / 2 > bordeIzqEste - 0.4);
+            return zOk && xOk;
+          });
+
+          if (!yaExiste) {
+            const czMundo = (mejorMinZ + mejorMaxZ) / 2;
+            const anchoD = Math.max(3.5, Math.min(mejorOverlapZ, anchoPasillos, 7.5));
+            const altoH = Math.min(oeste.h || alturaTechos, mejorEste.h || alturaTechos, 4.2);
+            const centroX = (bordeDerOeste + bordeIzqEste) / 2;
+            const anchoW = menorGapX + 0.2; // Solapamiento de 0.1 a cada extremo para unión hermética
+
+            const pasilloId = `corridor_lat_${oeste.id}_${mejorEste.id}`;
+            const pasilloConector = {
+              id: pasilloId,
+              tipo: 'pasillo',
+              nombre: `Pasaje Lateral (${oeste.nombre || oeste.id} ↔ ${mejorEste.nombre || mejorEste.id})`,
+              x: centroX,
+              y: Math.min(oeste.y || 0, mejorEste.y || 0),
+              z: czMundo,
+              w: anchoW,
+              d: anchoD,
+              h: altoH,
+              abiertoOeste: true,
+              abiertoEste: true,
+              esConectorAutomatico: true,
+              estilo: oeste.estilo || config.estilo,
+              estiloPared: oeste.estiloPared || oeste.estilo,
+              estiloSuelo: oeste.estiloSuelo || oeste.estilo,
+              estiloTecho: oeste.estiloTecho || oeste.estilo,
+              estiloZocalo: oeste.estiloZocalo || oeste.estilo
+            };
+
+            nuevosPasillos.push(pasilloConector);
+            oeste.abiertoEste = true;
+            mejorEste.abiertoOeste = true;
+          }
+        } else {
+          // Contacto directo pared con pared
+          oeste.abiertoEste = true;
+          mejorEste.abiertoOeste = true;
+        }
+      }
+    });
+
+    // --- B. CONEXIÓN LONGITUDINAL NORTE - SUR (opcional si se solicita explícitamente) ---
+    if (config.conectarNorteSur) {
+      salasBase.forEach(sur => {
+        const bordeNorteSur = sur.z - (sur.d / 2);
+        let mejorNorte = null;
+        let menorGapZ = Infinity;
+        let mejorOverlapX = 0;
+        let mejorMinX = 0;
+        let mejorMaxX = 0;
+
+        salasBase.forEach(norte => {
+          if (sur.id === norte.id) return;
+          const bordeSurNorte = norte.z + (norte.d / 2);
+          const gapZ = bordeNorteSur - bordeSurNorte;
+
+          if (gapZ >= -0.3 && gapZ <= 65.0) {
+            const minX = Math.max(sur.x - (sur.w / 2), norte.x - (norte.w / 2));
+            const maxX = Math.min(sur.x + (sur.w / 2), norte.x + (norte.w / 2));
+            const overlapX = maxX - minX;
+
+            if (overlapX >= 1.5) {
+              if (gapZ < menorGapZ) {
+                menorGapZ = gapZ;
+                mejorNorte = norte;
+                mejorOverlapX = overlapX;
+                mejorMinX = minX;
+                mejorMaxX = maxX;
+              }
+            }
+          }
+        });
+
+        if (mejorNorte) {
+          if (menorGapZ > 0.2) {
+            const bordeSurNorte = mejorNorte.z + (mejorNorte.d / 2);
+            const yaExiste = salasBase.some(s => {
+              if (s.id === sur.id || s.id === mejorNorte.id) return false;
+              const centroX = (mejorMinX + mejorMaxX) / 2;
+              const xOk = Math.abs(s.x - centroX) < ((mejorOverlapX + s.w) / 2);
+              const zOk = (s.z + s.d / 2 > bordeNorteSur - 0.4) && (s.z - s.d / 2 < bordeSurNorte + 0.4);
+              return zOk && xOk;
+            });
+
+            if (!yaExiste) {
+              const cxMundo = (mejorMinX + mejorMaxX) / 2;
+              const anchoW = Math.max(3.5, Math.min(mejorOverlapX, anchoPasillos, 7.5));
+              const altoH = Math.min(sur.h || alturaTechos, mejorNorte.h || alturaTechos, 4.2);
+              const centroZ = (bordeNorteSur + bordeSurNorte) / 2;
+              const profD = menorGapZ + 0.2;
+
+              const pasilloId = `corridor_ns_${sur.id}_${mejorNorte.id}`;
+              const pasilloConector = {
+                id: pasilloId,
+                tipo: 'pasillo',
+                nombre: `Corredor (${sur.nombre || sur.id} ↔ ${mejorNorte.nombre || mejorNorte.id})`,
+                x: cxMundo,
+                y: Math.min(sur.y || 0, mejorNorte.y || 0),
+                z: centroZ,
+                w: anchoW,
+                d: profD,
+                h: altoH,
+                abiertoSur: true,
+                abiertoNorte: true,
+                esConectorAutomatico: true,
+                estilo: sur.estilo || config.estilo,
+                estiloPared: sur.estiloPared || sur.estilo,
+                estiloSuelo: sur.estiloSuelo || sur.estilo,
+                estiloTecho: sur.estiloTecho || sur.estilo,
+                estiloZocalo: sur.estiloZocalo || sur.estilo
+              };
+
+              nuevosPasillos.push(pasilloConector);
+              sur.abiertoNorte = true;
+              mejorNorte.abiertoSur = true;
+            }
+          } else {
+            sur.abiertoNorte = true;
+            mejorNorte.abiertoSur = true;
+          }
+        }
+      });
+    }
+
+    salas.length = 0;
+    salasBase.forEach(s => salas.push(s));
+    nuevosPasillos.forEach(p => salas.push(p));
+
+    return salas;
+  }
+
   // --- 8. PLANIFICADOR DE PLANTA PROCEDURAL Y ESTANCIAS ---
 
   function generarPlanEstancias(config, rng) {
@@ -3004,7 +3197,7 @@
     const esDefault = (radio === 60 && numeroSalas === 6 && tamanoMedio === 16 && varianzaTamano === 0.35 && salasPersonalizadas.length === 0 && (!config.customLayout));
 
     if (esDefault) {
-      return [
+      const salasDef = [
         { id: 'room_entrada', tipo: 'entrada', nombre: 'Gran Salón de Entrada', x: 0, y: 0, z: 42, w: 26, d: 24, h: 6.5, abiertoNorte: true },
         { id: 'corridor_1', tipo: 'pasillo', nombre: 'Corredor de los Guardias', x: 0, y: 0, z: 27, w: 6.8, d: 16, h: 4.2, abiertoSur: true, abiertoNorte: true },
         { id: 'room_fuente', tipo: 'fuente', nombre: 'Santuario de la Fuente', x: 0, y: 0, z: 11, w: 18, d: 16, h: 5.6, abiertoSur: true, abiertoNorte: true, abiertoEste: true },
@@ -3014,6 +3207,7 @@
         { id: 'corridor_3', tipo: 'pasillo', nombre: 'Pasaje del Trono', x: 0, y: 0, z: -38, w: 7.2, d: 10, h: 4.5, abiertoSur: true, abiertoNorte: true },
         { id: 'room_boss', tipo: 'sala_jefe', nombre: 'Cámara del Trono del Caído', x: 0, y: 0, z: -55, w: 24, d: 24, h: 7.5, abiertoSur: true }
       ];
+      return conectarEstanciasLateralesAutomaticamente(salasDef, config);
     }
 
     // --- GENERACIÓN DINÁMICA DE LA RED DE ESTANCIAS ---
@@ -3168,6 +3362,7 @@
       });
     });
 
+    conectarEstanciasLateralesAutomaticamente(salas, config);
     return salas;
   }
 
@@ -3227,6 +3422,17 @@
     } else {
       salas = generarPlanEstancias(config, rng);
     }
+
+    if (Array.isArray(config.salasPersonalizadas)) {
+      config.salasPersonalizadas.forEach(p => {
+        if (!salas.some(s => s.id === p.id)) {
+          salas.push(p);
+        }
+      });
+    }
+
+    // Insertar pasillos conectores automáticos laterales y transversales cuando las estancias se unen a derecha o izquierda
+    conectarEstanciasLateralesAutomaticamente(salas, config);
 
     // Calcular aperturas herméticas exactas entre salas y pasillos contiguos (evita huecos al vacío)
     calcularAperturasEntreSalas(salas, config);
@@ -3602,6 +3808,7 @@
     crearLaboratorioProps,
     crearObjetoDecorativo,
     calcularAperturasEntreSalas,
+    conectarEstanciasLateralesAutomaticamente,
     construirCajaHabitacion,
     decorarHabitacion,
     ARQUETIPOS_MONSTRUOS,

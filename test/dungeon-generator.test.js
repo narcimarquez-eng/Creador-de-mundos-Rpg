@@ -702,3 +702,76 @@ test('DungeonGenerator: entrada monumental y sistema de colisiones herméticas',
   // 4. userData.colliders en el grupo raíz
   assert.strictEqual(d.group.userData.colliders, d.colliders, 'group.userData.colliders debe enlazar a colliders');
 });
+
+test('DungeonGenerator: generación automática de pasillos laterales al colocar o ramificar estancias a la derecha o izquierda', () => {
+  // Caso de la imagen del usuario: Vestíbulo en (0, 0) y Armería a la derecha en (22, 0)
+  const salaPrincipal = {
+    id: 'room_vestibulo',
+    tipo: 'entrada',
+    nombre: 'Vestíbulo de Entrada',
+    x: 0, y: 0, z: 0,
+    w: 26, d: 24, h: 6.5
+  };
+
+  const salaDerecha = {
+    id: 'room_armeria_derecha',
+    tipo: 'armeria',
+    nombre: 'Armería de la Guardia',
+    x: 22, y: 0, z: 0,
+    w: 16, d: 16, h: 5.2
+  };
+
+  const res = DungeonGenerator.generarMazmorra(mockTHREE, {
+    estilo: 'cripta_gotica',
+    salas: [salaPrincipal, salaDerecha]
+  });
+
+  // 1. Debe haber insertado automáticamente el pasillo lateral conector
+  assert.strictEqual(res.salas.length, 3, 'Debe haber 3 estancias: principal, derecha y el pasillo lateral automático');
+
+  const pasilloAuto = res.salas.find(s => s.tipo === 'pasillo' && s.esConectorAutomatico);
+  assert.ok(pasilloAuto, 'Debe existir un pasillo conector automático');
+  assert.ok(pasilloAuto.id.includes('room_vestibulo') && pasilloAuto.id.includes('room_armeria_derecha'), 'El pasillo debe vincular ambas salas');
+
+  // 2. Comprobar dimensiones del pasillo (borde Este de vestíbulo = 13, borde Oeste de armería = 14 => gapX = 1)
+  assert.ok(pasilloAuto.w >= 1.0, `El ancho del pasillo debe cubrir el gap de 1.0m (actual: ${pasilloAuto.w})`);
+  assert.strictEqual(pasilloAuto.z, 0, 'El pasillo debe estar alineado en Z con el centro de solapamiento');
+  assert.strictEqual(pasilloAuto.abiertoOeste, true, 'El pasillo debe tener abierto su extremo Oeste');
+  assert.strictEqual(pasilloAuto.abiertoEste, true, 'El pasillo debe tener abierto su extremo Este');
+
+  // 3. Comprobar aperturas herméticas en las salas conectadas
+  assert.strictEqual(salaPrincipal.abiertoEste, true, 'La sala principal debe tener abierto su muro Este');
+  assert.ok(salaPrincipal.aperturas && salaPrincipal.aperturas.este, 'Debe tener calculada la apertura Este');
+  assert.strictEqual(salaDerecha.abiertoOeste, true, 'La sala derecha debe tener abierto su muro Oeste');
+  assert.ok(salaDerecha.aperturas && salaDerecha.aperturas.oeste, 'Debe tener calculada la apertura Oeste');
+
+  // 4. Probar adición de una sala a la izquierda (X = -24, Z = 0)
+  const salaIzquierda = {
+    id: 'room_laboratorio_izq',
+    tipo: 'laboratorio',
+    nombre: 'Laboratorio del Oeste',
+    x: -24, y: 0, z: 0,
+    w: 14, d: 16, h: 5.2
+  };
+
+  const res2 = DungeonGenerator.generarMazmorra(mockTHREE, {
+    estilo: 'cripta_gotica',
+    salas: [salaPrincipal, salaDerecha, salaIzquierda]
+  });
+
+  // Deben existir 5 salas: 3 estancias + 2 pasillos laterales (uno a la izquierda y otro a la derecha)
+  assert.strictEqual(res2.salas.length, 5, 'Debe conectar tanto a la izquierda como a la derecha (3 estancias + 2 pasillos laterales)');
+  const pasillosLaterales = res2.salas.filter(s => s.tipo === 'pasillo' && s.esConectorAutomatico);
+  assert.strictEqual(pasillosLaterales.length, 2, 'Deben existir exactamente 2 pasillos conectores laterales');
+
+  // 5. Verificar que al mover la sala derecha de X=22 a X=30 no se duplican pasillos
+  salaDerecha.x = 30;
+  const res3 = DungeonGenerator.generarMazmorra(mockTHREE, {
+    estilo: 'cripta_gotica',
+    salas: res2.salas // Pasamos la lista actual con pasillos previos para probar recálculo limpio
+  });
+  const pasillosActualizados = res3.salas.filter(s => s.tipo === 'pasillo' && s.esConectorAutomatico);
+  assert.strictEqual(pasillosActualizados.length, 2, 'No deben acumularse pasillos duplicados al desplazar una estancia');
+  const nuevoPasilloDer = res3.salas.find(s => s.id.includes('room_armeria_derecha'));
+  assert.ok(nuevoPasilloDer.w >= 8.8, `El nuevo pasillo debe expandirse para cubrir la nueva distancia (w = ${nuevoPasilloDer.w})`);
+});
