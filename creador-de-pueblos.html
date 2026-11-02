@@ -608,6 +608,11 @@
       return kits[key];
     }
     let villageKit = kitFor('l2_fantasy');
+    try {
+      if (typeof window !== 'undefined' && window.VillageLib && window.VillageLib.preloadPuestos) {
+        window.VillageLib.preloadPuestos(THREE);
+      }
+    } catch (e) {}
     let world = villageKit.createVillage(scene);
     const player = new CharacterController({
       scene, camera, controls, world,
