@@ -14,10 +14,12 @@ function MockMesh(geo, mat) {
   this.geometry = geo;
   this.material = mat;
 }
-function MockLight(color, intensity) {
+function MockLight(color, intensity, distance, decay) {
   MockObj3D.call(this);
   this.color = color;
   this.intensity = intensity;
+  this.distance = distance;
+  this.decay = decay;
 }
 
 const mockTHREE = {
@@ -642,4 +644,29 @@ test('DungeonGenerator: generación de monstruos y optimización de sombras en g
   // 2. Con sombrasPuntuales: true explícito
   const antorchaConSombra = DungeonGenerator.crearAntorcha(mockTHREE, instRendimiento.kit, 0xf59e0b, 2.0, { sombrasPuntuales: true });
   assert.strictEqual(antorchaConSombra.userData.luz.castShadow, true, 'Con sombrasPuntuales: true la luz puntual debe proyectar sombra');
+});
+
+test('DungeonGenerator: iluminación de bóveda garantizada por estancia y antorchas expansivas', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const animables = [];
+  const props = { antorchas: [], cofres: [], fuentes: [], animables };
+
+  const salaTest = {
+    id: 'sala_cripta_luminosa',
+    tipo: 'cripta',
+    w: 20, d: 20, h: 5.2,
+    x: 0, y: 0, z: 0
+  };
+
+  // Toda sala debe generar su luz cenital de bóveda para evitar zonas negras
+  const decMesh = DungeonGenerator.decorarHabitacion(mockTHREE, kit, salaTest, DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, new DungeonGenerator.PRNG(999), animables, props, {});
+  const luzBoveda = decMesh.children.find(c => c.name === 'luz_sala_sala_cripta_luminosa');
+  assert.ok(luzBoveda, 'Toda estancia debe incorporar luz cenital de bóveda');
+  assert.ok(luzBoveda.distance >= 40, `Radio de luz cenital debe cubrir la cámara (distancia ${luzBoveda.distance})`);
+  assert.ok(luzBoveda.decay <= 1.2, `Decaimiento debe ser suave para evitar cortes negros (decay ${luzBoveda.decay})`);
+
+  // Las antorchas deben tener radio expansivo y decay suave
+  const antorcha = DungeonGenerator.crearAntorcha(mockTHREE, kit, 0xf59e0b, 3.4, {});
+  assert.ok(antorcha.userData.luz.distance >= 35, 'Antorchas deben tener alcance extendido');
+  assert.ok(antorcha.userData.luz.decay <= 1.2, 'Antorchas deben tener caída suave');
 });

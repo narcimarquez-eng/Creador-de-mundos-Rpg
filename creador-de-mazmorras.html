@@ -957,11 +957,12 @@
       </div>
     </div>
 
-    <h2>🔥 Menú de Creación Automática de Antorchas</h2>
+    <h2>🔥 Menú de Creación de Antorchas (Menos Antorchas, Gran Alcance)</h2>
     <div style="background: rgba(15,23,42,0.7); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 10px; margin-bottom: 12px; box-shadow: 0 0 16px rgba(245,158,11,0.12);">
       <div class="control-row">
-        <label>Distancia entre 2 Antorchas: <span id="lbl-antorchas-dist" style="color:#fbbf24; font-weight:700;">8 m</span></label>
-        <input type="range" id="cfg-antorchas-distancia" min="4" max="20" step="1" value="8">
+        <label>Distancia entre 2 Antorchas: <span id="lbl-antorchas-dist" style="color:#fbbf24; font-weight:700;">16 m</span></label>
+        <input type="range" id="cfg-antorchas-distancia" min="6" max="32" step="1" value="16">
+        <div style="font-size:10px; color:#94a3b8; margin-top:2px;">💡 Mayor distancia = menos antorchas, mejor visibilidad y mayor rendimiento fluido</div>
       </div>
       <div class="control-row">
         <label>Forma / Modelo de la Antorcha:</label>
@@ -988,8 +989,8 @@
         </div>
       </div>
       <div class="control-row">
-        <label>Intensidad de la Luz: <span id="lbl-antorchas-intensidad" style="color:#fbbf24; font-weight:700;">2.4</span></label>
-        <input type="range" id="cfg-antorchas-intensidad" min="0.5" max="5.0" step="0.1" value="2.4">
+        <label>Intensidad de la Luz: <span id="lbl-antorchas-intensidad" style="color:#fbbf24; font-weight:700;">3.4</span></label>
+        <input type="range" id="cfg-antorchas-intensidad" min="1.0" max="6.0" step="0.1" value="3.4">
       </div>
       <button id="btn-aplicar-antorchas-auto" class="sala-item-btn" style="width:100%; margin-top:6px; background:#b45309; border-color:#f59e0b; color:#fff; font-weight:700; padding:6px; cursor:pointer;" title="Redistribuir antorchas en todas las paredes con estos ajustes">
         ⚡ Aplicar Antorchas en Paredes
@@ -1012,10 +1013,19 @@
     <div class="control-row">
       <label>Modo de Iluminación</label>
       <select id="cfg-modo-luz">
-        <option value="antorchas" selected>🔥 Antorchas y Braseros (Sombras Dinámicas Reales)</option>
+        <option value="aventura_clara" selected>✨ Bóveda Radiante & Aventura (HD Clara - Recomendada)</option>
+        <option value="antorchas">🔥 Mazmorra Cálida de Antorchas Expansivas</option>
         <option value="foco_personalizado">☀️ Foco Direccional Personalizado (Ángulo Seleccionable)</option>
         <option value="ambiente_claro">💡 Luz de Trabajo (Editor Claro Uniforme)</option>
       </select>
+    </div>
+    <div class="control-row">
+      <label>Brillo Ambiental General: <span id="lbl-luz-ambiente" style="color:#38bdf8; font-weight:700;">1.35</span></label>
+      <input type="range" id="cfg-luz-ambiente" min="0.4" max="3.0" step="0.05" value="1.35">
+    </div>
+    <div class="control-row">
+      <label>Luz Cenital de Bóveda por Sala: <span id="lbl-luz-boveda" style="color:#a855f7; font-weight:700;">2.8</span></label>
+      <input type="range" id="cfg-luz-boveda" min="0.0" max="5.0" step="0.1" value="2.8">
     </div>
     <div id="panel-controles-foco" style="display:none; background: rgba(15,23,42,0.6); border: 1px solid #334155; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
       <div class="grid2">
@@ -1267,17 +1277,19 @@
       ramificacion: 0.5,
       alturaTechos: 5.2,
       anchoPasillos: 6.8,
-      modoLuz: 'antorchas',
+      modoLuz: 'aventura_clara',
       luzAzimut: 135,
       luzElev: 55,
-      luzIntensidad: 1.5,
+      luzIntensidad: 1.6,
       luzColor: '#ffffff',
+      luzAmbienteIntensidad: 1.35,
+      intensidadLuzCamara: 2.8,
       sombrasActivas: true,
       sombrasPuntuales: false,
-      distanciaAntorchas: 8.0,
+      distanciaAntorchas: 16.0,
       formaAntorcha: 'antorcha_hierro',
       colorLuzAntorcha: '#f59e0b',
-      intensidadAntorchas: 2.4,
+      intensidadAntorchas: 3.4,
       antorchasAutomaticas: true,
       monstruos: {
         habilitados: true,
@@ -1328,18 +1340,25 @@
     // --- ESCENA THREE.JS ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0f172a);
-    scene.fog = new THREE.FogExp2(0x0f172a, 0.003);
+    scene.fog = new THREE.FogExp2(0x0f172a, 0.0006);
 
-    // Iluminación global para edición clara
-    const hemiLight = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 1.2);
-    hemiLight.position.set(0, 50, 0);
+    // Iluminación global calibrada para máxima claridad sin sombras opacas que cubran el suelo
+    const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x475569, 1.45);
+    hemiLight.position.set(0, 70, 0);
     scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    dirLight.position.set(30, 60, 40);
+    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
+    dirLight.position.set(12, 85, 12);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 2048;
     dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 300;
+    dirLight.shadow.camera.left = -80;
+    dirLight.shadow.camera.right = 80;
+    dirLight.shadow.camera.top = 80;
+    dirLight.shadow.camera.bottom = -80;
+    dirLight.shadow.bias = -0.0008;
     scene.add(dirLight);
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -1349,7 +1368,7 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.45;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
@@ -1422,12 +1441,14 @@
         props: dungeonConfig.props,
         sinTecho: !dungeonConfig.mostrarTechos,
         modoLuz: dungeonConfig.modoLuz,
+        luzAmbienteIntensidad: dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35,
+        intensidadLuzCamara: dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8,
         sombrasPuntuales: dungeonConfig.sombrasPuntuales === true,
         sombrasAntorchas: dungeonConfig.sombrasPuntuales === true,
-        distanciaAntorchas: dungeonConfig.distanciaAntorchas || 8.0,
+        distanciaAntorchas: dungeonConfig.distanciaAntorchas || 16.0,
         formaAntorcha: dungeonConfig.formaAntorcha || 'antorcha_hierro',
         colorLuzAntorcha: dungeonConfig.colorLuzAntorcha || '#f59e0b',
-        intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4,
+        intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4,
         antorchasAutomaticas: dungeonConfig.antorchasAutomaticas !== false,
         monstruos: dungeonConfig.monstruos
       });
@@ -1855,22 +1876,34 @@
     }
 
     function actualizarIluminacionEscena() {
-      const modo = dungeonConfig.modoLuz || 'antorchas';
+      const modo = dungeonConfig.modoLuz || 'aventura_clara';
       const sombras = dungeonConfig.sombrasActivas !== false;
+      const intAmb = typeof dungeonConfig.luzAmbienteIntensidad === 'number' ? dungeonConfig.luzAmbienteIntensidad : 1.35;
       renderer.shadowMap.enabled = sombras;
 
-      if (modo === 'antorchas') {
-        hemiLight.intensity = 0.35;
-        hemiLight.color.setHex(0x334155);
-        hemiLight.groundColor.setHex(0x0f172a);
-        dirLight.intensity = 0.25;
-        dirLight.color.setHex(0xffedd5);
+      if (modo === 'aventura_clara') {
+        // Modo Aventura Clara: Bóvedas nítidas, iluminación cenital radiante y visibilidad perfecta en todas las estancias
+        hemiLight.intensity = intAmb * 0.95;
+        hemiLight.color.setHex(0xf8fafc);
+        hemiLight.groundColor.setHex(0x475569);
+        dirLight.intensity = 1.6;
+        dirLight.color.setHex(0xfffbeb);
+        dirLight.castShadow = sombras;
+        dirLight.position.set(25, 65, 35);
+      } else if (modo === 'antorchas') {
+        // Modo Antorchas: Ambiente cálido con brillo suficiente para no generar penumbras ni zonas oscuras
+        hemiLight.intensity = Math.max(0.9, intAmb * 0.75);
+        hemiLight.color.setHex(0xfef3c7);
+        hemiLight.groundColor.setHex(0x334155);
+        dirLight.intensity = 0.85;
+        dirLight.color.setHex(0xfde68a);
         dirLight.castShadow = false;
+        dirLight.position.set(20, 50, 30);
       } else if (modo === 'foco_personalizado') {
-        hemiLight.intensity = 0.5;
-        hemiLight.color.setHex(0x64748b);
+        hemiLight.intensity = Math.max(0.75, intAmb * 0.65);
+        hemiLight.color.setHex(0x94a3b8);
         hemiLight.groundColor.setHex(0x1e293b);
-        dirLight.intensity = dungeonConfig.luzIntensidad || 1.5;
+        dirLight.intensity = dungeonConfig.luzIntensidad || 1.6;
         dirLight.color.setStyle(dungeonConfig.luzColor || '#ffffff');
         dirLight.castShadow = sombras;
 
@@ -1884,13 +1917,21 @@
         );
       } else {
         // ambiente_claro
-        hemiLight.intensity = 1.3;
+        hemiLight.intensity = intAmb;
         hemiLight.color.setHex(0xffffff);
         hemiLight.groundColor.setHex(0x475569);
-        dirLight.intensity = 1.2;
+        dirLight.intensity = 1.4;
         dirLight.color.setHex(0xffffff);
         dirLight.castShadow = sombras;
         dirLight.position.set(30, 60, 40);
+      }
+
+      // Sincronizar luz ambiente interna del dungeon si está instanciado
+      if (dungeonInstance && dungeonInstance.group) {
+        const ambObj = dungeonInstance.group.getObjectByName('dungeon_ambient_light');
+        if (ambObj) {
+          ambObj.intensity = (modo === 'aventura_clara' || modo === 'ambiente_claro') ? intAmb : (intAmb * 0.85);
+        }
       }
     }
 
@@ -2616,26 +2657,36 @@
       $('boss-arena').value = b.recompensaArena || 60;
       $('boss-equipo').value = b.recompensaEquipo || 'Armadura del Soberano Caído';
 
-      if ($('cfg-modo-luz')) $('cfg-modo-luz').value = dungeonConfig.modoLuz || 'antorchas';
+      if ($('cfg-modo-luz')) $('cfg-modo-luz').value = dungeonConfig.modoLuz || 'aventura_clara';
       if ($('panel-controles-foco')) $('panel-controles-foco').style.display = (dungeonConfig.modoLuz === 'foco_personalizado') ? 'block' : 'none';
       if ($('cfg-luz-azimut')) $('cfg-luz-azimut').value = dungeonConfig.luzAzimut || 135;
       if ($('lbl-luz-azimut')) $('lbl-luz-azimut').textContent = (dungeonConfig.luzAzimut || 135) + '°';
       if ($('cfg-luz-elev')) $('cfg-luz-elev').value = dungeonConfig.luzElev || 55;
       if ($('lbl-luz-elev')) $('lbl-luz-elev').textContent = (dungeonConfig.luzElev || 55) + '°';
-      if ($('cfg-luz-intensidad')) $('cfg-luz-intensidad').value = dungeonConfig.luzIntensidad || 1.5;
+      if ($('cfg-luz-intensidad')) $('cfg-luz-intensidad').value = dungeonConfig.luzIntensidad || 1.6;
       if ($('cfg-luz-color')) $('cfg-luz-color').value = dungeonConfig.luzColor || '#ffffff';
       if ($('cfg-sombras-activas')) $('cfg-sombras-activas').checked = dungeonConfig.sombrasActivas !== false;
 
+      // Sincronización de brillo ambiental general y luz de bóveda
+      if ($('cfg-luz-ambiente')) {
+        $('cfg-luz-ambiente').value = dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35;
+        if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = (dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35).toFixed(2);
+      }
+      if ($('cfg-luz-boveda')) {
+        $('cfg-luz-boveda').value = dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8;
+        if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = (dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8).toFixed(1);
+      }
+
       // Sincronización del menú de antorchas automáticas
       if ($('cfg-antorchas-distancia')) {
-        $('cfg-antorchas-distancia').value = dungeonConfig.distanciaAntorchas || 8;
-        if ($('lbl-antorchas-dist')) $('lbl-antorchas-dist').textContent = (dungeonConfig.distanciaAntorchas || 8) + ' m';
+        $('cfg-antorchas-distancia').value = dungeonConfig.distanciaAntorchas || 16;
+        if ($('lbl-antorchas-dist')) $('lbl-antorchas-dist').textContent = (dungeonConfig.distanciaAntorchas || 16) + ' m';
       }
       if ($('cfg-antorchas-forma')) $('cfg-antorchas-forma').value = dungeonConfig.formaAntorcha || 'antorcha_hierro';
       if ($('cfg-antorchas-color')) $('cfg-antorchas-color').value = dungeonConfig.colorLuzAntorcha || '#f59e0b';
       if ($('cfg-antorchas-intensidad')) {
-        $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4;
-        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4).toFixed(1);
+        $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4;
+        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4).toFixed(1);
       }
 
       // Sincronización de monstruos procedurales y optimización de sombras
@@ -2897,10 +2948,31 @@
       rebuildDungeon();
     });
 
-    // --- MENÚ DE CREACIÓN AUTOMÁTICA DE ANTORCHAS EN PAREDES ---
+    if ($('cfg-luz-ambiente')) {
+      $('cfg-luz-ambiente').addEventListener('input', e => {
+        dungeonConfig.luzAmbienteIntensidad = parseFloat(e.target.value) || 1.35;
+        if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = dungeonConfig.luzAmbienteIntensidad.toFixed(2);
+        actualizarIluminacionEscena();
+      });
+      $('cfg-luz-ambiente').addEventListener('change', () => {
+        rebuildDungeon();
+      });
+    }
+
+    if ($('cfg-luz-boveda')) {
+      $('cfg-luz-boveda').addEventListener('input', e => {
+        dungeonConfig.intensidadLuzCamara = parseFloat(e.target.value) || 2.8;
+        if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = dungeonConfig.intensidadLuzCamara.toFixed(1);
+      });
+      $('cfg-luz-boveda').addEventListener('change', () => {
+        rebuildDungeon();
+      });
+    }
+
+    // --- MENÚ DE CREACIÓN DE ANTORCHAS (MENOS ANTORCHAS, GRAN ALCANCE) ---
     if ($('cfg-antorchas-distancia')) {
       $('cfg-antorchas-distancia').addEventListener('input', e => {
-        dungeonConfig.distanciaAntorchas = parseFloat(e.target.value) || 8;
+        dungeonConfig.distanciaAntorchas = parseFloat(e.target.value) || 16;
         if ($('lbl-antorchas-dist')) $('lbl-antorchas-dist').textContent = dungeonConfig.distanciaAntorchas + ' m';
       });
       $('cfg-antorchas-distancia').addEventListener('change', () => {
@@ -2948,13 +3020,13 @@
 
     if ($('btn-aplicar-antorchas-auto')) {
       $('btn-aplicar-antorchas-auto').addEventListener('click', () => {
-        dungeonConfig.distanciaAntorchas = parseFloat($('cfg-antorchas-distancia').value) || 8;
+        dungeonConfig.distanciaAntorchas = parseFloat($('cfg-antorchas-distancia').value) || 16;
         dungeonConfig.formaAntorcha = $('cfg-antorchas-forma').value || 'antorcha_hierro';
         dungeonConfig.colorLuzAntorcha = $('cfg-antorchas-color').value || '#f59e0b';
-        dungeonConfig.intensidadAntorchas = parseFloat($('cfg-antorchas-intensidad').value) || 2.4;
+        dungeonConfig.intensidadAntorchas = parseFloat($('cfg-antorchas-intensidad').value) || 3.4;
         dungeonConfig.antorchasAutomaticas = true;
         rebuildDungeon();
-        showToast('⚡ Antorchas redistribuidas en todas las paredes');
+        showToast('⚡ Antorchas redistribuidas en todas las paredes con iluminación expansiva');
       });
     }
 

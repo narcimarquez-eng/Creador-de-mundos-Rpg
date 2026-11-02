@@ -941,21 +941,21 @@
     const texMadera = crearTexturaMadera(ThreeLib);
     const texHierro = crearTexturaHierro(ThreeLib);
 
-    // Muros: usa exclusivamente textura de pared
+    // Muros: usa exclusivamente textura de pared preservando luminosidad natural del mapa
     const matPiedraMuro = new ThreeLib.MeshStandardMaterial({
-      color: estilo.colorBase,
-      roughness: estilo.rugosidad,
-      metalness: 0.1,
+      color: 0xffffff,
+      roughness: Math.min(0.8, estilo.rugosidad || 0.75),
+      metalness: 0.05,
       map: texPared.diffuse,
       bumpMap: texPared.bump,
       bumpScale: 0.08
     });
 
-    // Suelo: usa exclusivamente textura de losas de pavimento
+    // Suelo: usa exclusivamente textura de losas de pavimento (brillo nítido y claro)
     const matSueloLosas = new ThreeLib.MeshStandardMaterial({
-      color: estilo.colorLosa,
-      roughness: 0.75,
-      metalness: 0.05,
+      color: 0xffffff,
+      roughness: 0.68,
+      metalness: 0.04,
       map: texSuelo.diffuse,
       bumpMap: texSuelo.bump,
       bumpScale: 0.06
@@ -963,9 +963,9 @@
 
     // Zócalo perimetral: moldura y sillar ciclópeo inferior
     const matZocalo = new ThreeLib.MeshStandardMaterial({
-      color: estilo.colorBase,
-      roughness: estilo.rugosidad * 0.95,
-      metalness: 0.12,
+      color: 0xffffff,
+      roughness: Math.min(0.8, (estilo.rugosidad || 0.8) * 0.95),
+      metalness: 0.08,
       map: texZocalo.diffuse,
       bumpMap: texZocalo.bump,
       bumpScale: 0.09
@@ -973,8 +973,8 @@
 
     // Techo / Bóveda
     const matTecho = new ThreeLib.MeshStandardMaterial({
-      color: estilo.colorSecundario,
-      roughness: 0.85,
+      color: 0xffffff,
+      roughness: 0.80,
       metalness: 0.05,
       map: texTecho.diffuse,
       bumpMap: texTecho.bump,
@@ -1058,10 +1058,14 @@
   // --- 5. FABRICA DE PROPS PROCEDURALES ---
 
   // A) Antorcha con soporte de forja, candelabros, faroles, braseros o cristales arcanos
-  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 2.4, opciones = {}) {
+  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 3.4, opciones = {}) {
     const g = new ThreeLib.Group();
     const forma = opciones.forma || opciones.formaAntorcha || 'antorcha_hierro';
     const colorLuzVal = (luzHex !== undefined && luzHex !== null) ? luzHex : ((kit && kit.estilo && kit.estilo.luzAntorchas) || 0xf59e0b);
+
+    // Parámetros de iluminación expansiva (mayor alcance y caída suave para evitar penumbras)
+    const radioLuz = typeof opciones.radioLuz === 'number' ? opciones.radioLuz : 36;
+    const decayLuz = typeof opciones.decayLuz === 'number' ? opciones.decayLuz : 1.15;
 
     // Material de llama sintonizado con el color de la luz
     const matLlamaActual = new ThreeLib.MeshBasicMaterial({ color: colorLuzVal });
@@ -1103,7 +1107,7 @@
         llamas.push(ll);
       });
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
       luz.position.set(0, 0.35, 0.3);
       g.add(luz);
 
@@ -1161,7 +1165,7 @@
       llama.position.set(0, -0.15, 0.32);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
       luz.position.set(0, -0.12, 0.32);
       g.add(luz);
 
@@ -1203,7 +1207,7 @@
       llama.position.set(0, 0.14, 0.26);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
       luz.position.set(0, 0.2, 0.29);
       g.add(luz);
 
@@ -1247,7 +1251,7 @@
       cristal.scale.set(0.8, 1.4, 0.8);
       g.add(cristal);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
       luz.position.set(0, 0.14, 0.24);
       g.add(luz);
 
@@ -1281,7 +1285,7 @@
       llama.position.set(0, 0.3, 0.34);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
       luz.position.set(0, 0.35, 0.36);
       g.add(luz);
 
@@ -2395,28 +2399,32 @@
     const D = sala.d;
     const H = sala.h;
 
-    // Luz ambiental o puntual propia configurada individualmente para la estancia
-    if (sala.colorLuz && sala.colorLuz !== 'default') {
-      const intLuz = typeof sala.intensidadLuz === 'number' ? sala.intensidadLuz : 2.0;
-      const distLuz = Math.max(W, D) * 1.8;
-      const luzSala = new ThreeLib.PointLight(sala.colorLuz, intLuz, distLuz, 1.5);
-      luzSala.position.set(0, H - 0.5, 0);
-      if (config.sombrasPuntuales === true || config.sombrasAntorchas === true) {
-        luzSala.castShadow = true;
-        if (luzSala.shadow) {
-          luzSala.shadow.bias = -0.002;
-          if (luzSala.shadow.mapSize) {
-            luzSala.shadow.mapSize.width = 512;
-            luzSala.shadow.mapSize.height = 512;
-          }
+    // Luz cenital de bóveda/cámara garantizada para toda estancia (evita negruras y penumbras en salas)
+    const colorLuzBoveda = (sala.colorLuz && sala.colorLuz !== 'default')
+      ? sala.colorLuz
+      : ((config && config.colorLuzCamara) || (estilo && estilo.luzAntorchas) || 0xffedd5);
+    const intLuzBoveda = (typeof sala.intensidadLuz === 'number')
+      ? sala.intensidadLuz
+      : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 2.8);
+    const distLuzBoveda = Math.max(W, D, 16) * 2.4;
+    const luzSala = new ThreeLib.PointLight(colorLuzBoveda, intLuzBoveda, distLuzBoveda, 1.12);
+    luzSala.position.set(0, H - 0.45, 0);
+    luzSala.name = 'luz_sala_' + sala.id;
+    if (config.sombrasPuntuales === true) {
+      luzSala.castShadow = true;
+      if (luzSala.shadow) {
+        luzSala.shadow.bias = -0.002;
+        if (luzSala.shadow.mapSize) {
+          luzSala.shadow.mapSize.width = 512;
+          luzSala.shadow.mapSize.height = 512;
         }
       }
-      g.add(luzSala);
     }
+    g.add(luzSala);
 
-    const distEntreAntorchas = (config && (config.distanciaAntorchas || config.distanciaEntreAntorchas)) || 8.0;
-    const colorLuzDefinido = (config && (config.colorLuzAntorcha || config.colorLuz)) || estilo.luzAntorchas || 0xf59e0b;
-    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 2.4;
+    const distEntreAntorchas = (config && (config.distanciaAntorchas || config.distanciaEntreAntorchas)) || 16.0;
+    const colorLuzDefinido = (config && (config.colorLuzAntorcha || config.colorLuz)) || (estilo && estilo.luzAntorchas) || 0xf59e0b;
+    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 3.4;
     const formaAntorchaDef = (config && (config.formaAntorcha || config.forma)) || 'antorcha_hierro';
 
     switch (sala.tipo) {
@@ -2832,7 +2840,7 @@
         fuego.position.y = 0.85;
         p.add(fuego);
         const colLuz = (estilo && estilo.luzAntorchas) || 0xf59e0b;
-        const luz = new ThreeLib.PointLight(colLuz, 2.8, 16, 1.4);
+        const luz = new ThreeLib.PointLight(colLuz, 3.4, 32, 1.15);
         luz.position.y = 1.0;
         const habilitarSombras = (opciones.sombrasAntorchas === true || opciones.sombrasPuntuales === true) && !opciones.sinSombras;
         if (habilitarSombras) {
@@ -3204,9 +3212,11 @@
       dungeonGroup.add(decMesh);
     });
 
-    // 3. Luz ambiental cenital (calibrada según el modo de iluminación elegido)
-    const intAmbiente = (config.modoLuz === 'antorchas') ? 0.35 : (config.modoLuz === 'foco_personalizado' ? 0.45 : 1.3);
-    const luzAmbiente = new THREE_REF.AmbientLight(0xffffff, intAmbiente);
+    // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni penumbras excesivas)
+    const intAmbiente = (typeof config.luzAmbienteIntensidad === 'number')
+      ? config.luzAmbienteIntensidad
+      : ((config.modoLuz === 'antorchas') ? 0.95 : (config.modoLuz === 'foco_personalizado' ? 0.85 : 1.35));
+    const luzAmbiente = new THREE_REF.AmbientLight(0xfffbeb, intAmbiente);
     luzAmbiente.name = 'dungeon_ambient_light';
     dungeonGroup.add(luzAmbiente);
 
