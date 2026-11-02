@@ -481,3 +481,33 @@ test('DungeonGenerator: posicionamiento, rotación Y, escala y lootConfig de pro
   assert.strictEqual(meshCofre.scale.x, 1.5, 'Debe escalar en X a 1.5');
   assert.strictEqual(meshCofre.userData.lootConfig.oroMin, 300, 'Debe conservar lootConfig');
 });
+
+test('DungeonGenerator: generador de thumbnails visuales y propagación de propId en submallas', () => {
+  assert.strictEqual(typeof DungeonGenerator.generarDataURLThumbnail, 'function', 'Debe exportar generarDataURLThumbnail');
+
+  // En entorno headless/Node devuelve string vacío de forma segura
+  const thumb = DungeonGenerator.generarDataURLThumbnail('cripta_gotica', 'pared', 64);
+  assert.strictEqual(typeof thumb, 'string', 'Debe retornar string');
+
+  // Comprobar propagación de propId
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const animables = [];
+  const props = { antorchas: [], cofres: [], fuentes: [], animables };
+
+  const salaTest = {
+    id: 'sala_test_ray',
+    tipo: 'armeria',
+    w: 16, d: 16, h: 5.0,
+    x: 0, y: 0, z: 0,
+    propsPersonalizados: [
+      { id: 'antorcha_wall_1', tipo: 'antorcha', x: 0, y: 2.4, z: -7.8, rotY: 0 }
+    ]
+  };
+
+  const decMesh = DungeonGenerator.decorarHabitacion(mockTHREE, kit, salaTest, DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, new DungeonGenerator.PRNG(789), animables, props);
+  const antorchaMesh = decMesh.children.find(c => c.userData && c.userData.idProp === 'antorcha_wall_1');
+
+  assert.ok(antorchaMesh, 'Debe existir la antorcha instanciada');
+  assert.strictEqual(antorchaMesh.position.y, 2.4, 'La antorcha debe estar a altura Y = 2.4m');
+  assert.strictEqual(antorchaMesh.userData.propId, 'antorcha_wall_1', 'Debe tener propId en userData');
+});

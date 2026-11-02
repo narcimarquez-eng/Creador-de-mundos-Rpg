@@ -1771,11 +1771,24 @@
             if (typeof pDef.escala === 'number') if (pMesh.scale.setScalar) pMesh.scale.setScalar(pDef.escala); else if (pMesh.scale.set) pMesh.scale.set(pDef.escala, pDef.escala, pDef.escala);
             pMesh.userData = pMesh.userData || {};
             pMesh.userData.idProp = pDef.id;
+            pMesh.userData.propId = pDef.id;
             pMesh.userData.tipoProp = pDef.tipo;
             pMesh.userData.idSala = sala.id;
             pMesh.userData.propDef = pDef;
             if (pDef.lootConfig || pDef.tipo === 'cofre' || pDef.tipo === 'cofre_oro') {
               pMesh.userData.lootConfig = pDef.lootConfig || JSON.parse(JSON.stringify(DEFAULT_LOOT_CONFIG));
+            }
+            if (typeof pMesh.traverse === 'function') {
+              pMesh.traverse(child => {
+                if (child) {
+                  child.userData = child.userData || {};
+                  child.userData.idProp = pDef.id;
+                  child.userData.propId = pDef.id;
+                  child.userData.tipoProp = pDef.tipo;
+                  child.userData.idSala = sala.id;
+                  child.userData.propDef = pDef;
+                }
+              });
             }
             g.add(pMesh);
           }
@@ -2339,6 +2352,143 @@
     };
   }
 
+  // --- 3.1 GENERADOR DE THUMBNAILS VISUALES PROCEDURALES (PREVIEWS) ---
+  const _thumbCache = new Map();
+
+  function generarDataURLThumbnail(estiloId, tipo = 'pared', tam = 80) {
+    const key = `${estiloId || 'def'}_${tipo || 'pared'}_${tam}`;
+    if (_thumbCache.has(key)) return _thumbCache.get(key);
+
+    if (typeof document === 'undefined') {
+      return '';
+    }
+
+    const estilo = ESTILOS_PIEDRA[estiloId] || ESTILOS_PIEDRA.cripta_gotica;
+    const canvas = document.createElement('canvas');
+    canvas.width = tam;
+    canvas.height = tam;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+
+    if (tipo === 'suelo') {
+      ctx.fillStyle = estilo.colorMortero || '#0f172a';
+      ctx.fillRect(0, 0, tam, tam);
+
+      const losas = 3;
+      const lTam = tam / losas;
+      const pad = Math.max(1, Math.round(tam * 0.04));
+
+      for (let r = 0; r < losas; r++) {
+        for (let c = 0; c < losas; c++) {
+          const x = c * lTam;
+          const y = r * lTam;
+          const grad = ctx.createLinearGradient(x, y, x + lTam, y + lTam);
+          grad.addColorStop(0, estilo.colorLosa || estilo.colorBase);
+          grad.addColorStop(0.7, estilo.colorBase);
+          grad.addColorStop(1, estilo.colorSecundario);
+          ctx.fillStyle = grad;
+          ctx.fillRect(x + pad, y + pad, lTam - pad * 2, lTam - pad * 2);
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + pad + 0.5, y + pad + 0.5, lTam - pad * 2 - 1, lTam - pad * 2 - 1);
+        }
+      }
+    } else if (tipo === 'fuente') {
+      ctx.fillStyle = estilo.colorBase || '#1e293b';
+      ctx.fillRect(0, 0, tam, tam);
+
+      const cx = tam / 2;
+      const cy = tam / 2;
+      const radExt = tam * 0.44;
+      const radInt = tam * 0.32;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radExt, 0, Math.PI * 2);
+      ctx.fillStyle = estilo.colorSecundario || '#334155';
+      ctx.fill();
+      ctx.strokeStyle = estilo.colorMortero || '#090d16';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const colAguaHex = (typeof estilo.colorAgua === 'number')
+        ? '#' + estilo.colorAgua.toString(16).padStart(6, '0')
+        : (estilo.colorAgua || '#38bdf8');
+      const gradAgua = ctx.createRadialGradient(cx, cy, 2, cx, cy, radInt);
+      gradAgua.addColorStop(0, '#ffffff');
+      gradAgua.addColorStop(0.35, colAguaHex);
+      gradAgua.addColorStop(1, '#0369a1');
+      ctx.beginPath();
+      ctx.arc(cx, cy, radInt, 0, Math.PI * 2);
+      ctx.fillStyle = gradAgua;
+      ctx.fill();
+    } else if (tipo === 'techo') {
+      ctx.fillStyle = estilo.colorSecundario || '#0f172a';
+      ctx.fillRect(0, 0, tam, tam);
+
+      const gradT = ctx.createRadialGradient(tam / 2, tam / 2, 4, tam / 2, tam / 2, tam * 0.7);
+      gradT.addColorStop(0, estilo.colorBase);
+      gradT.addColorStop(1, '#050508');
+      ctx.fillStyle = gradT;
+      ctx.fillRect(0, 0, tam, tam);
+
+      ctx.strokeStyle = estilo.colorMortero || '#1e293b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(tam, tam);
+      ctx.moveTo(tam, 0); ctx.lineTo(0, tam);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = estilo.colorMortero || '#090d16';
+      ctx.fillRect(0, 0, tam, tam);
+
+      const filas = 4;
+      const altoFila = tam / filas;
+      const pad = Math.max(1, Math.round(tam * 0.035));
+
+      for (let f = 0; f < filas; f++) {
+        const y = f * altoFila;
+        const cols = (f % 2 === 0) ? 2 : 3;
+        const anchoCol = tam / cols;
+        const shift = (f % 2 === 0) ? 0 : -(anchoCol * 0.5);
+
+        for (let c = -1; c <= cols + 1; c++) {
+          const x = c * anchoCol + shift;
+          if (x + anchoCol < 0 || x > tam) continue;
+
+          const gradS = ctx.createLinearGradient(x, y, x + anchoCol, y + altoFila);
+          gradS.addColorStop(0, estilo.colorBase);
+          gradS.addColorStop(0.5, estilo.colorSecundario);
+          gradS.addColorStop(1, estilo.colorBase);
+          ctx.fillStyle = gradS;
+
+          const rx = Math.max(0, x + pad);
+          const ry = Math.max(0, y + pad);
+          const rw = Math.min(tam - rx, anchoCol - pad * 2);
+          const rh = Math.min(tam - ry, altoFila - pad * 2);
+
+          if (rw > 0 && rh > 0) {
+            ctx.fillRect(rx, ry, rw, rh);
+            ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1);
+          }
+        }
+      }
+
+      if (estilo.densidadMusgo && estilo.densidadMusgo > 0.2) {
+        ctx.fillStyle = estilo.colorMusgo || 'rgba(34,197,94,0.4)';
+        ctx.beginPath();
+        ctx.arc(tam * 0.8, tam * 0.85, tam * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const dataUrl = canvas.toDataURL();
+    _thumbCache.set(key, dataUrl);
+    return dataUrl;
+  }
+
   return {
     TIPOS_ESTANCIA,
     ESTILOS_PIEDRA,
@@ -2348,6 +2498,7 @@
     simularAperturaCofre,
     resolverMaterialesSala,
     crearAtlasMazmorra,
+    generarDataURLThumbnail,
     crearKitMateriales,
     crearAntorcha,
     crearFuente,

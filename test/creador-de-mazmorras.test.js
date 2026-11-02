@@ -98,6 +98,22 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('id="cfg-modo-luz"'), 'Debe incluir selector de modo de iluminación');
   assert.ok(html.includes('id="cfg-sombras-activas"'), 'Debe incluir toggle de sombras dinámicas');
   assert.ok(html.includes('id="cfg-luz-azimut"'), 'Debe permitir orientar la luz direccional por azimut y elevación');
+
+  // Arrastre con ratón en 3D
+  assert.ok(html.includes('isDraggingProp') && html.includes('dragPlane'), 'Debe implementar arrastre de props con ratón sobre plano 3D');
+  assert.ok(html.includes('controls.enabled = false'), 'Debe deshabilitar orbitcontrols mientras se arrastra');
+
+  // Altura Y y colocación por defecto en pared
+  assert.ok(html.includes('id="prop-sel-y"'), 'Debe incluir control de altura Y para props');
+  assert.ok(html.includes('defY = 2.4') || html.includes('y: 2.4'), 'Las antorchas deben spawnear adosadas a la pared a altura 2.4m');
+
+  // Muestrario visual y vista previa de texturas
+  assert.ok(html.includes('id="modal-galeria-texturas"'), 'Debe incluir modal de catálogo y muestrario visual');
+  assert.ok(html.includes('id="preview-thumb-pared"'), 'Debe incluir vista previa de pared');
+  assert.ok(html.includes('id="preview-thumb-suelo"'), 'Debe incluir vista previa de suelo');
+  assert.ok(html.includes('id="preview-thumb-techo"'), 'Debe incluir vista previa de techo');
+  assert.ok(html.includes('id="preview-thumb-fuente"'), 'Debe incluir vista previa de fuente');
+  assert.ok(html.includes('btn-muestrario'), 'Debe incluir botones para abrir el muestrario visual');
 });
 
 test('index.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {

@@ -279,6 +279,54 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .textura-swatch-mini {
+      width: 26px;
+      height: 26px;
+      border-radius: 4px;
+      border: 1.5px solid #a855f7;
+      object-fit: cover;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      cursor: pointer;
+      background: #0f172a;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .textura-swatch-mini:hover {
+      transform: scale(1.12);
+      border-color: #38bdf8;
+    }
+    .tarjeta-textura-preview {
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 8px;
+      padding: 8px 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .tarjeta-textura-preview:hover {
+      border-color: #38bdf8;
+      background: #334155;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56,189,248,0.3);
+    }
+    .tarjeta-textura-preview.selected {
+      border-color: #c084fc;
+      background: rgba(168,85,247,0.22);
+      box-shadow: 0 0 10px rgba(192,132,252,0.45);
+    }
+    .tarjeta-textura-img {
+      width: 76px;
+      height: 76px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
     .prop-item-row {
       display: flex;
       align-items: center;
@@ -376,8 +424,10 @@
 
     <h2>🏛️ Arquitectura y Piedra</h2>
     <div class="control-row">
-      <label>Estilo de Piedra</label>
-      <select id="cfg-estilo">
+      <label>Estilo de Piedra de la Mazmorra</label>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <img id="preview-thumb-global" class="textura-swatch-mini" title="Vista previa del estilo general" alt="Preview">
+        <select id="cfg-estilo" style="flex:1;">
         <option value="cripta_gotica">Cripta Gótica Oscura</option>
         <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
         <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
@@ -401,6 +451,8 @@
         <option value="madera_petrificada">Cripta de Madera Petrificada</option>
         <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
       </select>
+      <button type="button" class="btn-muestrario sala-item-btn" data-target="global" title="Abrir catálogo visual con vista previa" style="padding: 4px 6px; font-size:10px;">👁️ Muestrario</button>
+      </div>
     </div>
     <div class="control-row">
       <label>Semilla Procedural</label>
@@ -531,31 +583,35 @@
         <!-- Paredes -->
         <div class="control-row" style="margin-bottom: 4px;">
           <label style="font-size:10px;">🧱 Textura de Paredes</label>
-          <select id="insp-estilo" style="font-size:11px;">
-          <option value="">(Heredar de la mazmorra)</option>
-          <option value="cripta_gotica">Cripta Gótica Oscura</option>
-          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
-          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
-          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
-          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
-          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
-          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
-          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
-          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
-          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
-          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
-          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
-          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
-          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
-          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
-          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
-          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
-          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
-          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
-          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
-          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
-          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
-          </select>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <img id="preview-thumb-pared" class="textura-swatch-mini" title="Vista previa de pared (clic para ver muestrario)" alt="Pared">
+            <select id="insp-estilo" style="font-size:11px; flex:1;">
+            <option value="">(Heredar de la mazmorra)</option>
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+            </select>
+            <button type="button" class="btn-muestrario sala-item-btn" data-target="pared" title="Abrir catálogo visual de texturas de pared" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+          </div>
         </div>
         <div class="control-row" style="margin-bottom: 6px;">
           <label style="font-size:10px;">Color de Pared</label>
@@ -568,31 +624,35 @@
         <!-- Suelo -->
         <div class="control-row" style="margin-bottom: 4px;">
           <label style="font-size:10px;">🏛️ Textura de Suelo / Losas</label>
-          <select id="insp-estilo-suelo" style="font-size:11px;">
-          <option value="">(Heredar de la mazmorra)</option>
-          <option value="cripta_gotica">Cripta Gótica Oscura</option>
-          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
-          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
-          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
-          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
-          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
-          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
-          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
-          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
-          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
-          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
-          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
-          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
-          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
-          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
-          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
-          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
-          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
-          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
-          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
-          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
-          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
-          </select>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <img id="preview-thumb-suelo" class="textura-swatch-mini" title="Vista previa de suelo (clic para ver muestrario)" alt="Suelo">
+            <select id="insp-estilo-suelo" style="font-size:11px; flex:1;">
+            <option value="">(Heredar de la mazmorra)</option>
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+            </select>
+            <button type="button" class="btn-muestrario sala-item-btn" data-target="suelo" title="Abrir catálogo visual de texturas de suelo" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+          </div>
         </div>
         <div class="control-row" style="margin-bottom: 6px;">
           <label style="font-size:10px;">Color de Suelo</label>
@@ -605,31 +665,35 @@
         <!-- Techos -->
         <div class="control-row" style="margin-bottom: 4px;">
           <label style="font-size:10px;">🏰 Textura de Techos / Bóveda</label>
-          <select id="insp-estilo-techo" style="font-size:11px;">
-          <option value="">(Heredar de la mazmorra)</option>
-          <option value="cripta_gotica">Cripta Gótica Oscura</option>
-          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
-          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
-          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
-          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
-          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
-          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
-          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
-          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
-          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
-          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
-          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
-          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
-          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
-          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
-          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
-          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
-          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
-          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
-          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
-          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
-          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
-          </select>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <img id="preview-thumb-techo" class="textura-swatch-mini" title="Vista previa de techo (clic para ver muestrario)" alt="Techo">
+            <select id="insp-estilo-techo" style="font-size:11px; flex:1;">
+            <option value="">(Heredar de la mazmorra)</option>
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+            </select>
+            <button type="button" class="btn-muestrario sala-item-btn" data-target="techo" title="Abrir catálogo visual de texturas de techo" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+          </div>
         </div>
         <div class="control-row" style="margin-bottom: 6px;">
           <label style="font-size:10px;">Color de Techo</label>
@@ -642,31 +706,35 @@
         <!-- Fuentes y Agua -->
         <div class="control-row" style="margin-bottom: 4px;">
           <label style="font-size:10px;">⛲ Textura de Fuente / Pilares</label>
-          <select id="insp-estilo-fuente" style="font-size:11px;">
-          <option value="">(Heredar de la mazmorra)</option>
-          <option value="cripta_gotica">Cripta Gótica Oscura</option>
-          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
-          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
-          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
-          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
-          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
-          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
-          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
-          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
-          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
-          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
-          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
-          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
-          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
-          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
-          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
-          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
-          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
-          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
-          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
-          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
-          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
-          </select>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <img id="preview-thumb-fuente" class="textura-swatch-mini" title="Vista previa de fuente (clic para ver muestrario)" alt="Fuente">
+            <select id="insp-estilo-fuente" style="font-size:11px; flex:1;">
+            <option value="">(Heredar de la mazmorra)</option>
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+            </select>
+            <button type="button" class="btn-muestrario sala-item-btn" data-target="fuente" title="Abrir catálogo visual de texturas de fuente" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+          </div>
         </div>
         <div class="control-row" style="margin-bottom: 4px;">
           <label style="font-size:10px;">Color del Agua</label>
@@ -745,6 +813,9 @@
             <div style="font-weight:700; font-size:11px; color:#38bdf8;" id="prop-sel-titulo">📦 Mover Objeto</div>
             <button id="btn-prop-deseleccionar" class="sala-item-btn" style="padding:1px 6px; font-size:9px;" title="Deseleccionar">✕</button>
           </div>
+          <div style="font-size: 9px; color: #7dd3fc; margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+            <span>🖱️</span> <span>Puedes <b>arrastrarlo directamente con el ratón</b> en el visor 3D</span>
+          </div>
           <div class="grid2" style="gap:4px; margin-bottom:4px;">
             <div class="control-row" style="margin:0;">
               <label style="font-size:9.5px;">Desplazamiento X: <span id="lbl-prop-x">0 m</span></label>
@@ -754,6 +825,10 @@
               <label style="font-size:9.5px;">Desplazamiento Z: <span id="lbl-prop-z">0 m</span></label>
               <input type="range" id="prop-sel-z" min="-18" max="18" step="0.2" value="0">
             </div>
+          </div>
+          <div class="control-row" style="margin:0 0 4px 0;">
+            <label style="font-size:9.5px; color:#facc15;">Altura Y (Pared / Techo): <span id="lbl-prop-y">0.0 m</span></label>
+            <input type="range" id="prop-sel-y" min="0" max="8" step="0.1" value="0">
           </div>
           <div class="grid2" style="gap:4px; margin-bottom:6px;">
             <div class="control-row" style="margin:0;">
@@ -964,6 +1039,24 @@
     <div style="display:flex; gap:8px;">
       <button id="btn-loot-test-apertura" class="btn gold" style="flex:1; font-weight:700; font-size:11.5px; padding:8px;">🎲 Probar Tirada de Botín</button>
       <button id="btn-loot-guardar" class="btn primary" style="flex:1; font-weight:700; font-size:11.5px; padding:8px;">✓ Guardar Botín</button>
+    </div>
+  </div>
+
+  <!-- MODAL / GALERÍA VISUAL DE MUESTRARIO DE TEXTURAS CON PREVIEW -->
+  <div id="modal-galeria-texturas" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:210; width:min(740px, 94vw); max-height:88vh; background:rgba(15,23,42,0.98); border:2px solid #a855f7; border-radius:12px; box-shadow:0 0 40px rgba(168,85,247,0.45); backdrop-filter:blur(12px); color:#f8fafc; flex-direction:column; overflow:hidden;">
+    <div style="padding:12px 16px; background:#1e1b4b; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h3 id="mgt-titulo" style="margin:0; font-size:15px; color:#e9d5ff;">🎨 Muestrario Visual de Texturas (Pared)</h3>
+        <div id="mgt-subtitulo" style="font-size:11px; color:#94a3b8;">Haz clic en una textura para aplicarla inmediatamente con vista previa</div>
+      </div>
+      <button id="btn-cerrar-galeria-texturas" class="sala-item-btn" style="padding:4px 10px; font-size:13px; cursor:pointer;">✕</button>
+    </div>
+    <div id="mgt-grid" style="padding:14px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(135px, 1fr)); gap:10px; max-height:65vh;">
+      <!-- Tarjetas renderizadas dinámicamente -->
+    </div>
+    <div style="padding:10px 16px; background:#0b0f19; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8;">
+      <span>Más de 20 texturas de piedra, bóvedas, losas y fuentes</span>
+      <button id="btn-mgt-cancelar" class="btn alt" style="padding:5px 14px; font-size:11px;">Cerrar</button>
     </div>
   </div>
 
@@ -1373,6 +1466,7 @@
       actualizarCajaSeleccion();
       deseleccionarProp();
       renderInspPropsLista(sala);
+      actualizarPreviewsTexturas(sala);
 
       if (enfocarCamara) {
         controls.target.set(sala.x, 1.2, sala.z);
@@ -1392,6 +1486,143 @@
       document.querySelectorAll('.sala-item-row').forEach(r => r.classList.remove('selected'));
     }
 
+
+    // --- MUESTRARIO VISUAL DE TEXTURAS (PREVIEWS & SELECCIÓN INDIVIDUAL) ---
+    let texturaTargetActivo = 'pared'; // 'pared' | 'suelo' | 'techo' | 'fuente' | 'global'
+
+    function actualizarPreviewsTexturas(sala) {
+      const dg = window.DungeonGenerator;
+      if (!dg || !dg.generarDataURLThumbnail) return;
+
+      const estiloBase = dungeonConfig.estilo || 'cripta_gotica';
+
+      const s = sala || (selectedRoomId ? ((dungeonConfig.salas || dungeonInstance.salas).find(x => x.id === selectedRoomId)) : null);
+
+      const ePared = (s && (s.estiloPared || s.estilo)) || estiloBase;
+      const eSuelo = (s && s.estiloSuelo) || estiloBase;
+      const eTecho = (s && s.estiloTecho) || estiloBase;
+      const eFuente = (s && s.estiloFuente) || estiloBase;
+
+      if ($('preview-thumb-pared')) $('preview-thumb-pared').src = dg.generarDataURLThumbnail(ePared, 'pared', 64);
+      if ($('preview-thumb-suelo')) $('preview-thumb-suelo').src = dg.generarDataURLThumbnail(eSuelo, 'suelo', 64);
+      if ($('preview-thumb-techo')) $('preview-thumb-techo').src = dg.generarDataURLThumbnail(eTecho, 'techo', 64);
+      if ($('preview-thumb-fuente')) $('preview-thumb-fuente').src = dg.generarDataURLThumbnail(eFuente, 'fuente', 64);
+      if ($('preview-thumb-global')) $('preview-thumb-global').src = dg.generarDataURLThumbnail(estiloBase, 'pared', 64);
+    }
+
+    function abrirMuestrarioTexturas(target) {
+      texturaTargetActivo = target || 'pared';
+      const dg = window.DungeonGenerator;
+      const estilos = (dg && dg.ESTILOS_PIEDRA) || {};
+      const modal = $('modal-galeria-texturas');
+      const grid = $('mgt-grid');
+      if (!modal || !grid) return;
+
+      const sala = selectedRoomId ? ((dungeonConfig.salas || dungeonInstance.salas).find(s => s.id === selectedRoomId)) : null;
+
+      let actualKey = '';
+      if (texturaTargetActivo === 'pared') {
+        actualKey = (sala && (sala.estiloPared || sala.estilo)) || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🎨 Muestrario de Texturas para PAREDES';
+        $('mgt-subtitulo').textContent = 'Selecciona la textura que vestirá todas las paredes de esta estancia';
+      } else if (texturaTargetActivo === 'suelo') {
+        actualKey = (sala && sala.estiloSuelo) || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🏛️ Muestrario de Texturas para SUELO / LOSAS';
+        $('mgt-subtitulo').textContent = 'Selecciona el grabado y tipo de losas para todo el suelo de la estancia';
+      } else if (texturaTargetActivo === 'techo') {
+        actualKey = (sala && sala.estiloTecho) || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🏰 Muestrario de Texturas para TECHOS / BÓVEDAS';
+        $('mgt-subtitulo').textContent = 'Selecciona la arquitectura de bóveda para el techo de la estancia';
+      } else if (texturaTargetActivo === 'fuente') {
+        actualKey = (sala && sala.estiloFuente) || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '⛲ Muestrario de Texturas para FUENTES Y PILARES';
+        $('mgt-subtitulo').textContent = 'Selecciona la piedra tallada para las fuentes ornamentales de la estancia';
+      } else {
+        actualKey = dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🏰 Estilo General de la Mazmorra';
+        $('mgt-subtitulo').textContent = 'Selecciona el estilo arquitectónico por defecto para toda la mazmorra';
+      }
+
+      grid.innerHTML = '';
+
+      Object.keys(estilos).forEach(k => {
+        const est = estilos[k];
+        const card = document.createElement('div');
+        card.className = 'tarjeta-textura-preview' + (k === actualKey ? ' selected' : '');
+        card.dataset.estiloKey = k;
+
+        const tipoVista = (texturaTargetActivo === 'global') ? 'pared' : texturaTargetActivo;
+        const thumbUrl = (dg && dg.generarDataURLThumbnail) ? dg.generarDataURLThumbnail(k, tipoVista, 80) : '';
+
+        card.innerHTML = `
+          <img src="${thumbUrl}" class="tarjeta-textura-img" alt="${est.nombre}">
+          <div style="font-size:10px; font-weight:700; color:#e2e8f0; line-height:1.2; margin-top:2px;">${est.nombre}</div>
+          <div style="display:flex; gap:3px; justify-content:center; align-items:center; margin-top:3px;">
+            <span style="width:10px; height:10px; border-radius:50%; background:${est.colorBase}; border:1px solid rgba(255,255,255,0.3);" title="Color base: ${est.colorBase}"></span>
+            <span style="width:10px; height:10px; border-radius:50%; background:${est.colorSecundario || est.colorMortero}; border:1px solid rgba(255,255,255,0.3);" title="Mortero/Secundario"></span>
+            ${est.colorAgua ? `<span style="width:10px; height:10px; border-radius:50%; background:${typeof est.colorAgua === 'number' ? '#' + est.colorAgua.toString(16).padStart(6, '0') : est.colorAgua}; border:1px solid rgba(255,255,255,0.3);" title="Agua"></span>` : ''}
+          </div>
+          ${k === actualKey ? '<span style="font-size:9px; background:#7e22ce; color:#fff; border-radius:3px; padding:1px 4px; margin-top:2px;">Activo</span>' : ''}
+        `;
+
+        card.addEventListener('click', () => {
+          aplicarTexturaSeleccionada(k);
+          modal.style.display = 'none';
+        });
+
+        grid.appendChild(card);
+      });
+
+      modal.style.display = 'flex';
+    }
+
+    function aplicarTexturaSeleccionada(estiloKey) {
+      const dg = window.DungeonGenerator;
+      const def = (dg && dg.ESTILOS_PIEDRA && dg.ESTILOS_PIEDRA[estiloKey]) || {};
+
+      if (texturaTargetActivo === 'global') {
+        dungeonConfig.estilo = estiloKey;
+        $('cfg-estilo').value = estiloKey;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+        showToast(`✨ Estilo general cambiado: ${def.nombre || estiloKey}`);
+        return;
+      }
+
+      if (!selectedRoomId) return;
+
+      actualizarSalaSeleccionada(sala => {
+        if (texturaTargetActivo === 'pared') {
+          sala.estiloPared = estiloKey;
+          sala.colorPared = def.colorBase || 'default';
+          $('insp-estilo').value = estiloKey;
+          if (def.colorBase && $('insp-color-pared')) $('insp-color-pared').value = def.colorBase;
+          showToast(`🧱 Textura de pared aplicada: ${def.nombre || estiloKey}`);
+        } else if (texturaTargetActivo === 'suelo') {
+          sala.estiloSuelo = estiloKey;
+          sala.colorSuelo = def.colorLosa || def.colorBase || 'default';
+          $('insp-estilo-suelo').value = estiloKey;
+          if ((def.colorLosa || def.colorBase) && $('insp-color-suelo')) $('insp-color-suelo').value = (def.colorLosa || def.colorBase);
+          showToast(`🏛️ Textura de suelo aplicada: ${def.nombre || estiloKey}`);
+        } else if (texturaTargetActivo === 'techo') {
+          sala.estiloTecho = estiloKey;
+          sala.colorTecho = def.colorSecundario || def.colorBase || 'default';
+          $('insp-estilo-techo').value = estiloKey;
+          if ((def.colorSecundario || def.colorBase) && $('insp-color-techo')) $('insp-color-techo').value = (def.colorSecundario || def.colorBase);
+          showToast(`🏰 Textura de techo aplicada: ${def.nombre || estiloKey}`);
+        } else if (texturaTargetActivo === 'fuente') {
+          sala.estiloFuente = estiloKey;
+          if (def.colorAgua && $('insp-color-agua')) {
+            const hexAgua = typeof def.colorAgua === 'number' ? '#' + def.colorAgua.toString(16).padStart(6, '0') : def.colorAgua;
+            sala.colorAgua = hexAgua;
+            $('insp-color-agua').value = hexAgua;
+          }
+          $('insp-estilo-fuente').value = estiloKey;
+          showToast(`⛲ Textura de fuente aplicada: ${def.nombre || estiloKey}`);
+        }
+        actualizarPreviewsTexturas(sala);
+      });
+    }
 
     function actualizarIluminacionEscena() {
       const modo = dungeonConfig.modoLuz || 'antorchas';
@@ -1459,6 +1690,13 @@
 
       $('prop-sel-z').value = p.z || 0;
       $('lbl-prop-z').textContent = (p.z || 0).toFixed(1) + ' m';
+
+      const alturaProp = p.y !== undefined ? p.y : 0;
+      if ($('prop-sel-y')) {
+        $('prop-sel-y').max = Math.max(8, sala.h || 6.0);
+        $('prop-sel-y').value = alturaProp;
+      }
+      if ($('lbl-prop-y')) $('lbl-prop-y').textContent = alturaProp.toFixed(1) + ' m';
 
       const rotDeg = Math.round(((p.rotY || 0) * 180 / Math.PI) % 360);
       $('prop-sel-rot').value = rotDeg >= 0 ? rotDeg : (rotDeg + 360);
@@ -1574,16 +1812,139 @@
       });
     }
 
-    // --- RAYCASTER PARA SELECCIÓN EN 3D ---
+    // --- RAYCASTER Y CONTROL DE ARRASTRE DE OBJETOS CON EL RATÓN EN 3D ---
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     let pointerDownPos = { x: 0, y: 0 };
+    let isDraggingProp = false;
+    let dragPropRef = null;
+    let dragSalaRef = null;
+    let dragMeshRef = null;
+    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const dragOffset = new THREE.Vector3();
+    const dragIntersectPoint = new THREE.Vector3();
+    let dragHaMovido = false;
 
     renderer.domElement.addEventListener('pointerdown', (e) => {
       pointerDownPos = { x: e.clientX, y: e.clientY };
+      dragHaMovido = false;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      if (!dungeonInstance || !dungeonInstance.group) return;
+
+      const intersects = raycaster.intersectObjects(dungeonInstance.group.children, true);
+      for (let i = 0; i < intersects.length; i++) {
+        let obj = intersects[i].object;
+        let detectedPropId = null;
+        let detectedRoomId = null;
+
+        while (obj && obj !== dungeonInstance.group) {
+          if (obj.userData && (obj.userData.propId || obj.userData.idProp)) {
+            detectedPropId = obj.userData.propId || obj.userData.idProp;
+          }
+          if (obj.userData && obj.userData.idSala) {
+            detectedRoomId = obj.userData.idSala;
+          }
+          obj = obj.parent;
+        }
+
+        if (detectedPropId && detectedRoomId) {
+          const sala = (dungeonConfig.salas || dungeonInstance.salas).find(s => s.id === detectedRoomId);
+          if (sala && sala.propsPersonalizados) {
+            const p = sala.propsPersonalizados.find(pr => pr.id === detectedPropId);
+            if (p) {
+              seleccionarEstancia(detectedRoomId, false);
+              seleccionarProp(detectedPropId);
+
+              // Activar arrastre interactivo con el ratón
+              isDraggingProp = true;
+              dragPropRef = p;
+              dragSalaRef = sala;
+              controls.enabled = false; // Detener orbit mientras se arrastra
+
+              const alturaY = (sala.y || 0) + (p.y || 0);
+              dragPlane.set(new THREE.Vector3(0, 1, 0), -alturaY);
+
+              const hitPoint = intersects[i].point;
+              dragOffset.set(
+                hitPoint.x - (sala.x + p.x),
+                0,
+                hitPoint.z - (sala.z + p.z)
+              );
+
+              // Localizar nodo raíz del prop bajo dungeonInstance.group
+              dragMeshRef = null;
+              let rootP = intersects[i].object;
+              while (rootP && rootP.parent && rootP.parent !== dungeonInstance.group) {
+                rootP = rootP.parent;
+              }
+              dragMeshRef = rootP;
+              break;
+            }
+          }
+        }
+      }
+    });
+
+    renderer.domElement.addEventListener('pointermove', (e) => {
+      if (!isDraggingProp || !dragPropRef || !dragSalaRef) return;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      if (raycaster.ray.intersectPlane(dragPlane, dragIntersectPoint)) {
+        dragHaMovido = true;
+        const sala = dragSalaRef;
+        const p = dragPropRef;
+
+        const targetX = dragIntersectPoint.x - dragOffset.x - sala.x;
+        const targetZ = dragIntersectPoint.z - dragOffset.z - sala.z;
+
+        const limX = Math.max(0.4, (sala.w / 2) - 0.25);
+        const limZ = Math.max(0.4, (sala.d / 2) - 0.25);
+
+        p.x = Math.max(-limX, Math.min(limX, Math.round(targetX * 10) / 10));
+        p.z = Math.max(-limZ, Math.min(limZ, Math.round(targetZ * 10) / 10));
+
+        if (dragMeshRef) {
+          dragMeshRef.position.x = sala.x + p.x;
+          dragMeshRef.position.z = sala.z + p.z;
+        }
+
+        if ($('prop-sel-x')) {
+          $('prop-sel-x').value = p.x;
+          $('lbl-prop-x').textContent = p.x.toFixed(1) + ' m';
+        }
+        if ($('prop-sel-z')) {
+          $('prop-sel-z').value = p.z;
+          $('lbl-prop-z').textContent = p.z.toFixed(1) + ' m';
+        }
+
+        actualizarMarcadorProp();
+      }
     });
 
     renderer.domElement.addEventListener('pointerup', (e) => {
+      if (isDraggingProp) {
+        isDraggingProp = false;
+        controls.enabled = true;
+        if (dragHaMovido) {
+          showToast(`📦 Objeto situado en X: ${dragPropRef.x}m, Z: ${dragPropRef.z}m`);
+          rebuildDungeon();
+          if (selectedPropId) seleccionarProp(selectedPropId);
+        }
+        dragPropRef = null;
+        dragSalaRef = null;
+        dragMeshRef = null;
+        return;
+      }
+
       const dx = Math.abs(e.clientX - pointerDownPos.x);
       const dy = Math.abs(e.clientY - pointerDownPos.y);
       if (dx > 6 || dy > 6) return;
@@ -1603,9 +1964,9 @@
         let isChest = false;
 
         while (obj && obj !== dungeonInstance.group) {
-          if (obj.userData && obj.userData.propId) {
-            detectedPropId = obj.userData.propId;
-            if (obj.userData.tipo === 'cofre') isChest = true;
+          if (obj.userData && (obj.userData.propId || obj.userData.idProp)) {
+            detectedPropId = obj.userData.propId || obj.userData.idProp;
+            if (obj.userData.tipo === 'cofre' || obj.userData.tipoProp === 'cofre') isChest = true;
           }
           if (obj.userData && obj.userData.idSala) {
             detectedRoomId = obj.userData.idSala;
@@ -1789,6 +2150,14 @@
       actualizarPropSeleccionado(p => { p.z = val; });
     });
 
+    if ($('prop-sel-y')) {
+      $('prop-sel-y').addEventListener('input', e => {
+        const val = parseFloat(e.target.value) || 0;
+        if ($('lbl-prop-y')) $('lbl-prop-y').textContent = val.toFixed(1) + ' m';
+        actualizarPropSeleccionado(p => { p.y = val; });
+      });
+    }
+
     $('prop-sel-rot').addEventListener('input', e => {
       const deg = parseInt(e.target.value, 10) || 0;
       $('lbl-prop-rot').textContent = deg + '°';
@@ -1889,6 +2258,7 @@
       if ($('cfg-luz-color')) $('cfg-luz-color').value = dungeonConfig.luzColor || '#ffffff';
       if ($('cfg-sombras-activas')) $('cfg-sombras-activas').checked = dungeonConfig.sombrasActivas !== false;
       actualizarIluminacionEscena();
+      actualizarPreviewsTexturas(null);
 
       renderElitesTable();
     }
@@ -1948,6 +2318,7 @@
       dungeonConfig.salas = null;
       deseleccionarEstancia();
       rebuildDungeon();
+      actualizarPreviewsTexturas(null);
     });
     $('cfg-seed').addEventListener('change', e => {
       dungeonConfig.seed = parseInt(e.target.value, 10) || 1;
@@ -2010,7 +2381,11 @@
 
     // Listeners de texturas individuales de sala
     $('insp-estilo').addEventListener('change', e => {
-      actualizarSalaSeleccionada(s => { s.estiloPared = e.target.value || null; s.estilo = e.target.value || null; });
+      actualizarSalaSeleccionada(s => {
+        s.estiloPared = e.target.value || null;
+        s.estilo = e.target.value || null;
+        actualizarPreviewsTexturas(s);
+      });
     });
     $('btn-insp-color-pared-reset').addEventListener('click', () => {
       $('insp-color-pared').value = '#706860';
@@ -2019,7 +2394,10 @@
     });
 
     $('insp-estilo-suelo').addEventListener('change', e => {
-      actualizarSalaSeleccionada(s => { s.estiloSuelo = e.target.value || null; });
+      actualizarSalaSeleccionada(s => {
+        s.estiloSuelo = e.target.value || null;
+        actualizarPreviewsTexturas(s);
+      });
     });
     $('insp-color-suelo').addEventListener('input', e => {
       actualizarSalaSeleccionada(s => { s.colorSuelo = e.target.value; });
@@ -2031,7 +2409,10 @@
     });
 
     $('insp-estilo-techo').addEventListener('change', e => {
-      actualizarSalaSeleccionada(s => { s.estiloTecho = e.target.value || null; });
+      actualizarSalaSeleccionada(s => {
+        s.estiloTecho = e.target.value || null;
+        actualizarPreviewsTexturas(s);
+      });
     });
     $('insp-color-techo').addEventListener('input', e => {
       actualizarSalaSeleccionada(s => { s.colorTecho = e.target.value; });
@@ -2043,7 +2424,10 @@
     });
 
     $('insp-estilo-fuente').addEventListener('change', e => {
-      actualizarSalaSeleccionada(s => { s.estiloFuente = e.target.value || null; });
+      actualizarSalaSeleccionada(s => {
+        s.estiloFuente = e.target.value || null;
+        actualizarPreviewsTexturas(s);
+      });
     });
     $('insp-color-agua').addEventListener('input', e => {
       actualizarSalaSeleccionada(s => { s.colorAgua = e.target.value; });
@@ -2124,8 +2508,62 @@
       actualizarSalaSeleccionada(s => { s.tipo = e.target.value; });
     });
     $('insp-estilo').addEventListener('change', e => {
-      actualizarSalaSeleccionada(s => { s.estilo = e.target.value || null; });
+      actualizarSalaSeleccionada(s => {
+        s.estilo = e.target.value || null;
+        s.estiloPared = e.target.value || null;
+        actualizarPreviewsTexturas(s);
+      });
     });
+    if ($('insp-estilo-suelo')) {
+      $('insp-estilo-suelo').addEventListener('change', e => {
+        actualizarSalaSeleccionada(s => {
+          s.estiloSuelo = e.target.value || null;
+          actualizarPreviewsTexturas(s);
+        });
+      });
+    }
+    if ($('insp-estilo-techo')) {
+      $('insp-estilo-techo').addEventListener('change', e => {
+        actualizarSalaSeleccionada(s => {
+          s.estiloTecho = e.target.value || null;
+          actualizarPreviewsTexturas(s);
+        });
+      });
+    }
+    if ($('insp-estilo-fuente')) {
+      $('insp-estilo-fuente').addEventListener('change', e => {
+        actualizarSalaSeleccionada(s => {
+          s.estiloFuente = e.target.value || null;
+          actualizarPreviewsTexturas(s);
+        });
+      });
+    }
+
+    // Botones para abrir el catálogo / muestrario visual con previews
+    document.querySelectorAll('.btn-muestrario').forEach(btn => {
+      btn.addEventListener('click', () => {
+        abrirMuestrarioTexturas(btn.dataset.target || 'pared');
+      });
+    });
+    ['preview-thumb-global', 'preview-thumb-pared', 'preview-thumb-suelo', 'preview-thumb-techo', 'preview-thumb-fuente'].forEach(id => {
+      const el = $(id);
+      if (el) {
+        el.addEventListener('click', () => {
+          const target = id.replace('preview-thumb-', '');
+          abrirMuestrarioTexturas(target);
+        });
+      }
+    });
+    if ($('btn-cerrar-galeria-texturas')) {
+      $('btn-cerrar-galeria-texturas').addEventListener('click', () => {
+        $('modal-galeria-texturas').style.display = 'none';
+      });
+    }
+    if ($('btn-mgt-cancelar')) {
+      $('btn-mgt-cancelar').addEventListener('click', () => {
+        $('modal-galeria-texturas').style.display = 'none';
+      });
+    }
     $('insp-color-pared').addEventListener('input', e => {
       actualizarSalaSeleccionada(s => { s.colorPared = e.target.value; });
     });
@@ -2163,17 +2601,42 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
         actualizarSalaSeleccionada(sala => {
           const propTipo = btn.dataset.prop;
           sala.propsPersonalizados = sala.propsPersonalizados || [];
-          const offX = Math.round(((Math.random() - 0.5) * (sala.w * 0.6)) * 10) / 10;
-          const offZ = Math.round(((Math.random() - 0.5) * (sala.d * 0.6)) * 10) / 10;
+
+          let defX = 0;
+          let defY = 0;
+          let defZ = 0;
+          let defRot = 0;
+
+          if (propTipo === 'antorcha') {
+            // Antorchas de pared: colocadas adosadas a la pared a altura 2.4m por defecto
+            defX = 0;
+            defY = 2.4;
+            defZ = Math.round((-sala.d / 2 + 0.18) * 10) / 10;
+            defRot = 0; // orientado hacia el centro de la estancia (+Z)
+          } else if (propTipo === 'celda') {
+            defX = 0;
+            defY = 0;
+            defZ = Math.round((-sala.d / 2 + 0.25) * 10) / 10;
+            defRot = 0;
+          } else {
+            defX = Math.round(((Math.random() - 0.5) * (sala.w * 0.5)) * 10) / 10;
+            defZ = Math.round(((Math.random() - 0.5) * (sala.d * 0.5)) * 10) / 10;
+            defY = 0;
+            defRot = Math.round((Math.floor(Math.random() * 4) * Math.PI / 2) * 100) / 100;
+          }
+
+          const nuevoPropId = 'prop_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
           sala.propsPersonalizados.push({
-            id: 'prop_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+            id: nuevoPropId,
             tipo: propTipo,
-            x: offX,
-            y: 0,
-            z: offZ,
-            rotY: Math.round((Math.floor(Math.random() * 4) * Math.PI / 2) * 100) / 100
+            x: defX,
+            y: defY,
+            z: defZ,
+            rotY: defRot,
+            escala: 1.0
           });
-          showToast(`✨ Objeto decorativo añadido: ${propTipo}`);
+          showToast(`✨ Objeto añadido: ${propTipo} (en ${defY > 0 ? 'pared' : 'suelo'})`);
+          setTimeout(() => seleccionarProp(nuevoPropId), 60);
         });
       });
     });
