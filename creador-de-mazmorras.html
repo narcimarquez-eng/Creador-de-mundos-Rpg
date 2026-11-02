@@ -309,6 +309,7 @@
       <label class="checkbox-item"><input type="checkbox" id="prop-musgo" checked> 🌿 Musgo/Yerbas</label>
       <label class="checkbox-item"><input type="checkbox" id="prop-sarcofagos" checked> 🪦 Sarcófagos</label>
       <label class="checkbox-item"><input type="checkbox" id="prop-hongos" checked> 🍄 Bioluminiscentes</label>
+      <label class="checkbox-item"><input type="checkbox" id="prop-techos"> 🏛️ Mostrar Techos</label>
     </div>
 
     <h2>👑 Jefe de Mazmorra</h2>
@@ -385,6 +386,9 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+    // Exponer THREE y extensiones en window para que módulos y scripts tradicionales lo compartan
+    window.THREE = Object.assign({}, THREE, { OrbitControls, GLTFLoader });
+
     // --- ESTADO Y CONFIGURACIÓN ---
     let dungeonConfig = {
       name: 'Cripta del Trono Caído',
@@ -393,6 +397,7 @@
       estilo: 'cripta_gotica',
       seed: 48291,
       glb: 'glb/mazmorras/mazmorra1.glb',
+      mostrarTechos: false,
       props: {
         fuentes: true,
         antorchas: true,
@@ -435,11 +440,23 @@
 
     // --- ESCENA THREE.JS ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x070b14);
-    scene.fog = new THREE.FogExp2(0x070b14, 0.012);
+    scene.background = new THREE.Color(0x0f172a);
+    scene.fog = new THREE.FogExp2(0x0f172a, 0.003);
 
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 32, 68);
+    // Iluminación global para edición clara
+    const hemiLight = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 1.2);
+    hemiLight.position.set(0, 50, 0);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(30, 60, 40);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    scene.add(dirLight);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 48, 62);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -455,8 +472,8 @@
     controls.dampingFactor = 0.08;
     controls.maxPolarAngle = Math.PI / 2 + 0.05;
     controls.minDistance = 3;
-    controls.maxDistance = 220;
-    controls.target.set(0, 2, 0);
+    controls.maxDistance = 260;
+    controls.target.set(0, 1.5, -8);
 
     let dungeonInstance = null;
     let markersGroup = new THREE.Group();
@@ -464,36 +481,49 @@
 
     // --- RECONSTRUCCIÓN DE LA MAZMORRA 3D ---
     function rebuildDungeon() {
-      if (dungeonInstance && dungeonInstance.group) {
-        scene.remove(dungeonInstance.group);
-      }
-      while (markersGroup.children.length > 0) {
-        markersGroup.remove(markersGroup.children[0]);
-      }
+      try {
+        if (dungeonInstance && dungeonInstance.group) {
+          scene.remove(dungeonInstance.group);
+        }
+        while (markersGroup.children.length > 0) {
+          markersGroup.remove(markersGroup.children[0]);
+        }
 
-      if (dungeonConfig.tipoGeneracion === 'glb' && dungeonConfig.glb) {
-        cargarGlbDungeon();
-      } else {
-        generarProceduralDungeon();
+        if (dungeonConfig.tipoGeneracion === 'glb' && dungeonConfig.glb) {
+          cargarGlbDungeon();
+        } else {
+          generarProceduralDungeon();
+        }
+      } catch (err) {
+        console.error('Error al reconstruir mazmorra:', err);
+        showToast('Aviso: ' + err.message);
       }
     }
 
     function generarProceduralDungeon() {
       const dg = window.DungeonGenerator;
-      if (!dg) return;
+      if (!dg) {
+        console.error('DungeonGenerator no está disponible en window');
+        return;
+      }
 
-      dungeonInstance = dg.generarMazmorra({
+      dungeonInstance = dg.generarMazmorra(THREE, {
         estilo: dungeonConfig.estilo,
         seed: dungeonConfig.seed,
-        props: dungeonConfig.props
+        props: dungeonConfig.props,
+        sinTecho: !dungeonConfig.mostrarTechos
       });
 
       scene.add(dungeonInstance.group);
 
       // Crear marcadores visuales de puntos de aparición (spawns)
-      crearMarcadorHeroe(dungeonInstance.spawns.hero);
-      dungeonInstance.spawns.elites.forEach(sp => crearMarcadorElite(sp));
-      crearMarcadorJefe(dungeonInstance.spawns.boss);
+      if (dungeonInstance.spawns) {
+        if (dungeonInstance.spawns.hero) crearMarcadorHeroe(dungeonInstance.spawns.hero);
+        if (Array.isArray(dungeonInstance.spawns.elites)) {
+          dungeonInstance.spawns.elites.forEach(sp => crearMarcadorElite(sp));
+        }
+        if (dungeonInstance.spawns.boss) crearMarcadorJefe(dungeonInstance.spawns.boss);
+      }
 
       actualizarHUD(dungeonInstance);
     }
@@ -599,6 +629,7 @@
       $('prop-musgo').checked = p.musgo !== false;
       $('prop-sarcofagos').checked = p.sarcofagos !== false;
       $('prop-hongos').checked = p.hongos !== false;
+      $('prop-techos').checked = !!dungeonConfig.mostrarTechos;
 
       const b = dungeonConfig.boss || {};
       $('boss-name').value = b.name || 'Señor del Trono Caído';
@@ -688,6 +719,11 @@
         dungeonConfig.props[p] = e.target.checked;
         rebuildDungeon();
       });
+    });
+
+    $('prop-techos').addEventListener('change', e => {
+      dungeonConfig.mostrarTechos = e.target.checked;
+      rebuildDungeon();
     });
 
     $('boss-name').addEventListener('change', e => { dungeonConfig.boss.name = e.target.value; });

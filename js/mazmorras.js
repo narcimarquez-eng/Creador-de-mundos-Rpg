@@ -255,12 +255,7 @@
    * 2. CARGA Y ADECUACIÓN GRÁFICA DEL MODELO GLB DE LA MAZMORRA
    * -------------------------------------------------------------------------- */
   function cargarModeloMazmorra(THREE, rutaGLB, onLoaded, onError) {
-    if (!THREE || typeof THREE.GLTFLoader === 'undefined') {
-      if (typeof onError === 'function') onError(new Error('GLTFLoader no disponible'));
-      return;
-    }
-    const loader = new THREE.GLTFLoader();
-    loader.load(rutaGLB, gltf => {
+    function procesarGLTF(gltf) {
       const modelo = gltf.scene;
 
       // Calcular bounding box para escala real de gran cripta de mazmorra
@@ -295,10 +290,36 @@
       });
 
       if (typeof onLoaded === 'function') onLoaded(modelo);
-    }, undefined, err => {
-      console.warn('Error cargando GLB de mazmorra:', rutaGLB, err);
-      if (typeof onError === 'function') onError(err);
-    });
+    }
+
+    const LoaderClass = (THREE && THREE.GLTFLoader) || (typeof window !== 'undefined' && window.GLTFLoader);
+    if (LoaderClass) {
+      const loader = new LoaderClass();
+      loader.load(rutaGLB, procesarGLTF, undefined, err => {
+        console.warn('Error cargando GLB de mazmorra:', rutaGLB, err);
+        if (typeof onError === 'function') onError(err);
+      });
+      return;
+    }
+
+    try {
+      const dynamicImport = new Function('specifier', 'return import(specifier);');
+      dynamicImport('three/addons/loaders/GLTFLoader.js').then(mod => {
+        const GLTFLoader = (mod && mod.GLTFLoader) || mod;
+        if (GLTFLoader) {
+          const loader = new GLTFLoader();
+          _ejecutarCarga(loader);
+        } else if (typeof onError === 'function') {
+          onError(new Error('GLTFLoader no exportado'));
+        }
+      }).catch(err => {
+        if (typeof window !== 'undefined') console.warn('GLTFLoader no disponible tras importación dinámica:', err);
+        if (typeof onError === 'function') onError(err);
+      });
+      return;
+    } catch (e) {
+      if (typeof onError === 'function') onError(new Error('GLTFLoader no disponible'));
+    }
   }
 
   /* --------------------------------------------------------------------------
@@ -388,9 +409,9 @@
       if (this.ctx.pueblosGroup && this.ctx.pueblosGroup !== scene) this.ctx.pueblosGroup.visible = false;
       if (this.ctx.cielo) this.ctx.cielo.visible = false;
 
-      // Atmósfera de mazmorra tenebrosa (cripta oscura)
+      // Atmósfera de mazmorra tenebrosa (visibilidad cinematográfica)
       scene.background = new THREE.Color(0x060913);
-      scene.fog = new THREE.FogExp2(0x060913, 0.012);
+      scene.fog = new THREE.FogExp2(0x060913, 0.005);
 
       // Aislar memoria y detener descargas/streaming del supramundo exterior
       if (typeof this.ctx.aislarParaMazmorra === 'function') {
@@ -403,12 +424,18 @@
       scene.add(this.grupoInstancia);
 
       // Iluminación interior clara y atmosférica de mazmorra monumental
-      const luzAmbiente = new THREE.AmbientLight(0xffffff, 2.0);
+      const luzAmbiente = new THREE.AmbientLight(0xffffff, 2.2);
       this.grupoInstancia.add(luzAmbiente);
 
-      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 2.6);
-      luzDirPasillo.position.set(0, 18.0, 42.0);
-      luzDirPasillo.target.position.set(0, 2.92, 16.0);
+      if (typeof THREE.HemisphereLight === 'function') {
+        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 1.4);
+        hemiMazmorra.position.set(0, 30.0, 0);
+        this.grupoInstancia.add(hemiMazmorra);
+      }
+
+      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 2.2);
+      luzDirPasillo.position.set(0, 24.0, 42.0);
+      luzDirPasillo.target.position.set(0, 1.0, 16.0);
       this.grupoInstancia.add(luzDirPasillo);
       this.grupoInstancia.add(luzDirPasillo.target);
 
@@ -431,32 +458,53 @@
       luzTrono.position.set(0, 8.0, -36.0);
       this.grupoInstancia.add(luzTrono);
 
-      // 3. Cargar el modelo 3D de la mazmorra (GLB predeterminado o Procedural estilo creador de pueblos)
+      // 3. Cargar el modelo 3D de la mazmorra (Procedural estilo creador de pueblos o GLB)
       const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
-      if ((dungeon.tipo === 'procedural' || dungeon.procedural) && Gen) {
-        const proc = Gen.generarMazmorra(THREE, {
-          seed: dungeon.seed || (dungeon.x * 1000 + dungeon.y),
+      const esProcedural = dungeon.tipoGeneracion === 'procedural' || dungeon.tipo === 'procedural' || dungeon.procedural || (!dungeon.glb && Gen);
+
+      let proc = null;
+      let SPAWN_X = 0.0;
+      let SPAWN_Y = 0.0;
+      let SPAWN_Z = 46.0;
+
+      if (esProcedural && Gen) {
+        proc = Gen.generarMazmorra(THREE, {
+          seed: dungeon.seed || (dungeon.x * 1000 + dungeon.y) || 48291,
           estilo: dungeon.estilo || 'cripta_gotica',
-          id: dungeon.id
+          id: dungeon.id,
+          props: dungeon.props
         });
         this.instanciaProcedural = proc;
         if (this.grupoInstancia) this.grupoInstancia.add(proc.group);
+
+        if (proc.spawns && proc.spawns.hero) {
+          SPAWN_X = proc.spawns.hero.x || 0.0;
+          SPAWN_Y = proc.spawns.hero.y || 0.0;
+          SPAWN_Z = proc.spawns.hero.z || 46.0;
+        }
       } else {
+        SPAWN_X = 0.0;
+        SPAWN_Y = 2.92;
+        SPAWN_Z = 37.6;
         cargarModeloMazmorra(THREE, dungeon.glb || 'glb/mazmorras/mazmorra1.glb', modelo => {
           if (this.grupoInstancia) this.grupoInstancia.add(modelo);
+        }, err => {
+          if (typeof window !== 'undefined') console.warn('Fallback a DungeonGenerator procedural tras error en GLB:', err);
+          if (Gen) {
+            const fallbackProc = Gen.generarMazmorra(THREE, {
+              seed: dungeon.seed || 48291,
+              estilo: dungeon.estilo || 'cripta_gotica',
+              id: dungeon.id
+            });
+            this.instanciaProcedural = fallbackProc;
+            if (this.grupoInstancia) this.grupoInstancia.add(fallbackProc.group);
+          }
         });
       }
 
       // 4. Posicionar al Héroe y al Acompañante AL INICIO DEL ARCHIVO EN LOS PASILLOS MÁS ESTRECHOS
-      // Dimensiones a escala 36x (>2000m² habitables):
-      // - Longitud total: Z in [-51m, +50m]. Anchura total: X in [-23m, +23m].
-      // - Cota de suelo alfombra: Y = 2.92m.
-      // - Inicio del pasillo: Z = +37.6m orientado hacia el interior (-Z, rotY = PI).
-      // - La cámara se sitúa a Z = 41.2m (3.6m detrás) con altura desahogada (Y = 4.12m).
-      const SPAWN_X = 0.0;
-      const SPAWN_Y = 2.92;
-      const SPAWN_Z = 37.6;
-
+      // Dimensiones >2000m² habitables:
+      // Orientado hacia el interior (-Z, rotY = PI) con visión desahogada en tercera persona.
       hero.x = SPAWN_X;
       hero.y = SPAWN_Y;
       hero.z = SPAWN_Z;
@@ -470,21 +518,23 @@
         charCtrl.sinAvance = 0;
       }
 
-      // Teletransportar la cámara y el control orbital con visión amplia y despejada detrás del héroe
+      // Teletransportar la cámara con encuadre amplio detrás del héroe (visión majestuosa y despejada)
+      const CAM_OFFSET_Y = 3.2;
+      const CAM_OFFSET_Z = 7.5;
       if (controls) {
-        controls.target.set(SPAWN_X, SPAWN_Y + 1.1, SPAWN_Z);
+        controls.target.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z);
         if (camera) {
-          camera.position.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z + 3.6);
+          camera.position.set(SPAWN_X, SPAWN_Y + CAM_OFFSET_Y, SPAWN_Z + CAM_OFFSET_Z);
           controls.update();
         }
       }
       if (charCtrl) {
-        charCtrl.offsetCamara = (THREE && THREE.Vector3) ? new THREE.Vector3(0, 1.2, 3.6) : { x: 0, y: 1.2, z: 3.6 };
+        charCtrl.offsetCamara = (THREE && THREE.Vector3) ? new THREE.Vector3(0, CAM_OFFSET_Y, CAM_OFFSET_Z) : { x: 0, y: CAM_OFFSET_Y, z: CAM_OFFSET_Z };
         if (camera && typeof camera.position.clone === 'function') charCtrl.camaraFinal = camera.position.clone();
         charCtrl.modoCamaraAnterior = 'follow';
       }
 
-      // Conectar física de suelo plana de la mazmorra a 2.92m de altura y despejar colisionadores del supramundo
+      // Conectar física de suelo plana de la mazmorra y despejar colisionadores del supramundo
       if (charCtrl && charCtrl.world) {
         charCtrl.world.getWalkableHeight = () => SPAWN_Y;
         charCtrl.world.isWaterHazard = () => false;
@@ -493,26 +543,28 @@
 
       // Posicionar al acompañante inmediatamente detrás del héroe en el pasillo
       if (this.ctx.acompanante) {
-        this.ctx.acompanante.x = -1.2;
+        this.ctx.acompanante.x = SPAWN_X - 1.2;
         this.ctx.acompanante.z = SPAWN_Z + 2.0;
         this.ctx.acompanante.y = SPAWN_Y;
         if (this.ctx.acompanante.mesh) {
-          this.ctx.acompanante.mesh.position.set(-1.2, SPAWN_Y, SPAWN_Z + 2.0);
+          this.ctx.acompanante.mesh.position.set(SPAWN_X - 1.2, SPAWN_Y, SPAWN_Z + 2.0);
           this.ctx.acompanante.mesh.rotation.set(0, Math.PI, 0);
         }
       }
 
       // 5. Spawneo de Luchadores de Élite escalonados a lo largo del gran corredor (progresión por salas)
-      // Se sitúan escalonados cada 12m-14m para que se activen progresivamente al avanzar y no todos juntos
+      // Se sitúan escalonados cada 12m-16m para que se activen progresivamente al avanzar y no todos juntos
       this.elitesInstancia = [];
       const listaElites = dungeon.elites || [];
-      const posicionesElites = [
-        { x: -1.4, z: 24.0 }, { x: 1.4, z: 24.0 },   // Pareja 1: Primer encuentro a 13.6m del inicio
-        { x: -1.6, z: 12.0 }, { x: 1.6, z: 12.0 },   // Pareja 2: Segundo encuentro a 25.6m
-        { x: -2.2, z: 0.0 },  { x: 2.2, z: 0.0 },    // Pareja 3: Cruce central de columnas
-        { x: -3.0, z: -12.0 }, { x: 3.0, z: -12.0 }, // Pareja 4: Gran galería norte
-        { x: -3.6, z: -24.0 }, { x: 3.6, z: -24.0 }  // Pareja 5: Guardia de honor ante el trono
-      ];
+      const posicionesElites = (proc && proc.spawns && proc.spawns.elites && proc.spawns.elites.length)
+        ? proc.spawns.elites.map(e => ({ x: e.x, z: e.z }))
+        : [
+            { x: -1.4, z: 24.0 }, { x: 1.4, z: 24.0 },   // Pareja 1: Primer encuentro a 13.6m del inicio
+            { x: -1.6, z: 12.0 }, { x: 1.6, z: 12.0 },   // Pareja 2: Segundo encuentro a 25.6m
+            { x: -2.2, z: 0.0 },  { x: 2.2, z: 0.0 },    // Pareja 3: Cruce central de columnas
+            { x: -3.0, z: -12.0 }, { x: 3.0, z: -12.0 }, // Pareja 4: Gran galería norte
+            { x: -3.6, z: -24.0 }, { x: 3.6, z: -24.0 }  // Pareja 5: Guardia de honor ante el trono
+          ];
 
       let posIdx = 0;
       listaElites.forEach(elDef => {
@@ -541,17 +593,21 @@
         }
       });
 
-      // 6. Spawneo del Jefe de Mazmorra frente al trono al fondo (z = -38.0m)
+      // 6. Spawneo del Jefe de Mazmorra frente al trono al fondo
       const bDef = dungeon.boss || {};
+      const bossX = (proc && proc.spawns && proc.spawns.boss) ? proc.spawns.boss.x : 0.0;
+      const bossZ = (proc && proc.spawns && proc.spawns.boss) ? proc.spawns.boss.z : -38.0;
+      const bossY = (proc && proc.spawns && proc.spawns.boss) ? (SPAWN_Y + (proc.spawns.boss.y || 0.6)) : (SPAWN_Y + 0.1);
+
       this.bossInstancia = {
         id: 'boss-dungeon-' + dungeon.id,
         name: bDef.name || 'Señor del Trono Caído',
         level: bDef.level || (dungeon.level + 2),
         boss: true,
         rangoElite: bDef.rangoElite || 10,
-        x: 0,
-        z: -38.0,
-        y: SPAWN_Y + 0.1,
+        x: bossX,
+        z: bossZ,
+        y: bossY,
         recompensas: {
           oro: bDef.recompensaOro || 3000,
           arena: bDef.recompensaArena || 60,

@@ -34,6 +34,15 @@
   'use strict';
 
   // --- 1. PRNG REPRODUCIBLE (MULBERRY32) ---
+  function resolveThree(explicitRef) {
+    if (explicitRef && (explicitRef.Mesh || explicitRef.Group || explicitRef.Vector3)) return explicitRef;
+    if (typeof THREE !== 'undefined' && THREE && THREE.Mesh) return THREE;
+    if (typeof window !== 'undefined' && window.THREE && window.THREE.Mesh) return window.THREE;
+    if (typeof global !== 'undefined' && global.THREE && global.THREE.Mesh) return global.THREE;
+    if (typeof self !== 'undefined' && self.THREE && self.THREE.Mesh) return self.THREE;
+    return null;
+  }
+
   class PRNG {
     constructor(seed = 12345) {
       this.s = (typeof seed === 'number' ? seed : this._hash(String(seed))) >>> 0;
@@ -663,7 +672,7 @@
 
   // --- 6. ARQUITECTURA DE SALAS Y CORREDORES ---
 
-  function construirCajaHabitacion(ThreeLib, kit, sala) {
+  function construirCajaHabitacion(ThreeLib, kit, sala, opciones = {}) {
     const g = new ThreeLib.Group();
     g.position.set(sala.x, sala.y || 0, sala.z);
 
@@ -676,12 +685,15 @@
     suelo.receiveShadow = true;
     g.add(suelo);
 
-    // Techo
-    const techoGeo = new ThreeLib.PlaneGeometry(W, D);
-    const techo = new ThreeLib.Mesh(techoGeo, kit.piedraMuro);
-    techo.rotation.x = Math.PI / 2;
-    techo.position.y = H;
-    g.add(techo);
+    // Techo: si se especifica sinTecho (o techo: false), se omite para vista cenital e isométrica de editor
+    if (opciones.techo !== false && !opciones.sinTecho) {
+      const techoGeo = new ThreeLib.PlaneGeometry(W, D);
+      const techo = new ThreeLib.Mesh(techoGeo, kit.piedraMuro);
+      techo.rotation.x = Math.PI / 2;
+      techo.position.y = H;
+      techo.name = 'techo_' + sala.id;
+      g.add(techo);
+    }
 
     // Muros (Norte, Sur, Este, Oeste con aperturas para puertas si corresponde)
     const grosorMuro = 0.6;
@@ -719,11 +731,29 @@
 
   // --- 7. GENERADOR PRINCIPAL PROCEDURAL ---
 
-  function generarMazmorra(ThreeLib, config = {}) {
-    const THREE_REF = ThreeLib || THREE;
-    if (!THREE_REF) {
+  function generarMazmorra(arg1, arg2) {
+    let ThreeLib = null;
+    let config = {};
+
+    if (arg1 && (arg1.Mesh || arg1.Group || arg1.Vector3)) {
+      ThreeLib = arg1;
+      config = arg2 || {};
+    } else if (arg1 && typeof arg1 === 'object') {
+      config = arg1;
+      ThreeLib = resolveThree(arg2);
+    } else {
+      ThreeLib = resolveThree(arg1);
+      config = arg2 || {};
+    }
+
+    if (!ThreeLib) {
+      ThreeLib = resolveThree();
+    }
+    if (!ThreeLib) {
       throw new Error('DungeonGenerator: Three.js no está disponible.');
     }
+
+    const THREE_REF = ThreeLib;
 
     const rng = new PRNG(config.seed || 108);
     const estiloKey = config.estilo || rng.pick(Object.keys(ESTILOS_PIEDRA));
@@ -818,7 +848,7 @@
 
     // Construir geometría estructural de cada sala
     salas.forEach(s => {
-      const meshSala = construirCajaHabitacion(THREE_REF, kit, s);
+      const meshSala = construirCajaHabitacion(THREE_REF, kit, s, config);
       dungeonGroup.add(meshSala);
     });
 

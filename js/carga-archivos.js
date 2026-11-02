@@ -275,12 +275,12 @@
     }
 
     // Aislamiento estricto de memoria al entrar a la mazmorra:
-    // elimina de la lista de descargas activas cualquier archivo del supramundo exterior
+    // elimina de la lista de descargas activas y en memoria cualquier archivo del supramundo exterior
     aislarMazmorra(urlDungeon) {
-      const dungeonUrl = urlDungeon || 'mazmorra';
+      const dungeonUrl = (urlDungeon || 'mazmorra').toLowerCase();
       for (const [id, rec] of this.archivos.entries()) {
         const u = (rec.url || id || '').toLowerCase();
-        if (rec.estado === 'cargando' && !u.includes('mazmorra')) {
+        if (!u.includes('mazmorra') && !u.includes(dungeonUrl)) {
           this.archivos.delete(id);
         }
       }
