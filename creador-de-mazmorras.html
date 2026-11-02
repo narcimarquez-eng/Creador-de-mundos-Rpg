@@ -662,6 +662,47 @@
           </div>
         </div>
 
+        <!-- Zócalo / Friso Perimetral -->
+        <div class="control-row" style="margin-bottom: 4px;">
+          <label style="font-size:10px;">🏛️ Textura de Zócalo / Moldura</label>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <img id="preview-thumb-zocalo" class="textura-swatch-mini" title="Vista previa de zócalo (clic para ver muestrario)" alt="Zócalo">
+            <select id="insp-estilo-zocalo" style="font-size:11px; flex:1;">
+            <option value="">(Heredar de pared / mazmorra)</option>
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+            </select>
+            <button type="button" class="btn-muestrario sala-item-btn" data-target="zocalo" title="Abrir catálogo visual de texturas de zócalo" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+          </div>
+        </div>
+        <div class="control-row" style="margin-bottom: 6px;">
+          <label style="font-size:10px;">Color de Zócalo</label>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="color" id="insp-color-zocalo" value="#57534e" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+            <button id="btn-insp-color-zocalo-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+          </div>
+        </div>
+
         <!-- Techos -->
         <div class="control-row" style="margin-bottom: 4px;">
           <label style="font-size:10px;">🏰 Textura de Techos / Bóveda</label>
@@ -854,6 +895,45 @@
         <button id="btn-insp-duplicar" class="btn alt" style="flex: 1; padding: 5px;" title="Duplicar esta estancia">📑 Duplicar</button>
         <button id="btn-insp-eliminar" class="btn danger" style="flex: 1; padding: 5px;" title="Eliminar estancia">🗑️ Borrar</button>
       </div>
+    </div>
+
+    <h2>🔥 Menú de Creación Automática de Antorchas</h2>
+    <div style="background: rgba(15,23,42,0.7); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 10px; margin-bottom: 12px; box-shadow: 0 0 16px rgba(245,158,11,0.12);">
+      <div class="control-row">
+        <label>Distancia entre 2 Antorchas: <span id="lbl-antorchas-dist" style="color:#fbbf24; font-weight:700;">8 m</span></label>
+        <input type="range" id="cfg-antorchas-distancia" min="4" max="20" step="1" value="8">
+      </div>
+      <div class="control-row">
+        <label>Forma / Modelo de la Antorcha:</label>
+        <select id="cfg-antorchas-forma" style="width:100%; font-size:12px;">
+          <option value="antorcha_hierro" selected>🗡️ Antorcha de Forja Medieval</option>
+          <option value="candelabro_aplique">🕯️ Candelabro Mural (3 Velas)</option>
+          <option value="farol_jaula">🏮 Farol Enjaulado Gótico</option>
+          <option value="brasero_calavera">💀 Brasero Calavera / Gárgola</option>
+          <option value="cristal_arcano">🔮 Cristal Rúnico Arcano</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>Color de la Luz de las Antorchas:</label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="color" id="cfg-antorchas-color" value="#f59e0b" style="width:36px; height:26px; padding:0; border:1px solid #475569; border-radius:4px; cursor:pointer; background:transparent;">
+          <div style="display:flex; gap:3px; flex-wrap:wrap;">
+            <button type="button" class="btn-color-antorcha-preset sala-item-btn" data-color="#f59e0b" title="Ámbar Cálido" style="background:#f59e0b; width:19px; height:19px; border-radius:3px; padding:0;"></button>
+            <button type="button" class="btn-color-antorcha-preset sala-item-btn" data-color="#ef4444" title="Fuego Carmesí" style="background:#ef4444; width:19px; height:19px; border-radius:3px; padding:0;"></button>
+            <button type="button" class="btn-color-antorcha-preset sala-item-btn" data-color="#10b981" title="Llama Esmeralda" style="background:#10b981; width:19px; height:19px; border-radius:3px; padding:0;"></button>
+            <button type="button" class="btn-color-antorcha-preset sala-item-btn" data-color="#06b6d4" title="Luz Arcana" style="background:#06b6d4; width:19px; height:19px; border-radius:3px; padding:0;"></button>
+            <button type="button" class="btn-color-antorcha-preset sala-item-btn" data-color="#a855f7" title="Púrpura Abisal" style="background:#a855f7; width:19px; height:19px; border-radius:3px; padding:0;"></button>
+            <button type="button" class="btn-color-antorcha-preset sala-item-btn" data-color="#fef08a" title="Luz Sacra" style="background:#fef08a; width:19px; height:19px; border-radius:3px; padding:0;"></button>
+          </div>
+        </div>
+      </div>
+      <div class="control-row">
+        <label>Intensidad de la Luz: <span id="lbl-antorchas-intensidad" style="color:#fbbf24; font-weight:700;">2.4</span></label>
+        <input type="range" id="cfg-antorchas-intensidad" min="0.5" max="5.0" step="0.1" value="2.4">
+      </div>
+      <button id="btn-aplicar-antorchas-auto" class="sala-item-btn" style="width:100%; margin-top:6px; background:#b45309; border-color:#f59e0b; color:#fff; font-weight:700; padding:6px; cursor:pointer;" title="Redistribuir antorchas en todas las paredes con estos ajustes">
+        ⚡ Aplicar Antorchas en Paredes
+      </button>
     </div>
 
     <h2>🏺 Elementos & Decoración Subterránea</h2>
@@ -1096,6 +1176,11 @@
       luzIntensidad: 1.5,
       luzColor: '#ffffff',
       sombrasActivas: true,
+      distanciaAntorchas: 8.0,
+      formaAntorcha: 'antorcha_hierro',
+      colorLuzAntorcha: '#f59e0b',
+      intensidadAntorchas: 2.4,
+      antorchasAutomaticas: true,
       salasPersonalizadas: [],
       props: {
         fuentes: true,
@@ -1232,7 +1317,14 @@
         salas: dungeonConfig.salas,
         salasPersonalizadas: dungeonConfig.salasPersonalizadas,
         props: dungeonConfig.props,
-        sinTecho: !dungeonConfig.mostrarTechos
+        sinTecho: !dungeonConfig.mostrarTechos,
+        modoLuz: dungeonConfig.modoLuz,
+        sombrasAntorchas: dungeonConfig.sombrasActivas !== false,
+        distanciaAntorchas: dungeonConfig.distanciaAntorchas || 8.0,
+        formaAntorcha: dungeonConfig.formaAntorcha || 'antorcha_hierro',
+        colorLuzAntorcha: dungeonConfig.colorLuzAntorcha || '#f59e0b',
+        intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4,
+        antorchasAutomaticas: dungeonConfig.antorchasAutomaticas !== false
       });
 
       if (!dungeonConfig.salas && dungeonInstance && dungeonInstance.salas) {
@@ -1438,6 +1530,9 @@
       $('insp-estilo-suelo').value = sala.estiloSuelo || '';
       $('insp-color-suelo').value = sala.colorSuelo && sala.colorSuelo !== 'default' ? sala.colorSuelo : '#4a423b';
 
+      if ($('insp-estilo-zocalo')) $('insp-estilo-zocalo').value = sala.estiloZocalo || '';
+      if ($('insp-color-zocalo')) $('insp-color-zocalo').value = sala.colorZocalo && sala.colorZocalo !== 'default' ? sala.colorZocalo : '#57534e';
+
       $('insp-estilo-techo').value = sala.estiloTecho || '';
       $('insp-color-techo').value = sala.colorTecho && sala.colorTecho !== 'default' ? sala.colorTecho : '#38302b';
 
@@ -1488,7 +1583,7 @@
 
 
     // --- MUESTRARIO VISUAL DE TEXTURAS (PREVIEWS & SELECCIÓN INDIVIDUAL) ---
-    let texturaTargetActivo = 'pared'; // 'pared' | 'suelo' | 'techo' | 'fuente' | 'global'
+    let texturaTargetActivo = 'pared'; // 'pared' | 'suelo' | 'zocalo' | 'techo' | 'fuente' | 'global'
 
     function actualizarPreviewsTexturas(sala) {
       const dg = window.DungeonGenerator;
@@ -1500,11 +1595,13 @@
 
       const ePared = (s && (s.estiloPared || s.estilo)) || estiloBase;
       const eSuelo = (s && s.estiloSuelo) || estiloBase;
+      const eZocalo = (s && (s.estiloZocalo || s.estiloPared || s.estilo)) || estiloBase;
       const eTecho = (s && s.estiloTecho) || estiloBase;
       const eFuente = (s && s.estiloFuente) || estiloBase;
 
       if ($('preview-thumb-pared')) $('preview-thumb-pared').src = dg.generarDataURLThumbnail(ePared, 'pared', 64);
       if ($('preview-thumb-suelo')) $('preview-thumb-suelo').src = dg.generarDataURLThumbnail(eSuelo, 'suelo', 64);
+      if ($('preview-thumb-zocalo')) $('preview-thumb-zocalo').src = dg.generarDataURLThumbnail(eZocalo, 'zocalo', 64);
       if ($('preview-thumb-techo')) $('preview-thumb-techo').src = dg.generarDataURLThumbnail(eTecho, 'techo', 64);
       if ($('preview-thumb-fuente')) $('preview-thumb-fuente').src = dg.generarDataURLThumbnail(eFuente, 'fuente', 64);
       if ($('preview-thumb-global')) $('preview-thumb-global').src = dg.generarDataURLThumbnail(estiloBase, 'pared', 64);
@@ -1529,6 +1626,10 @@
         actualKey = (sala && sala.estiloSuelo) || dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '🏛️ Muestrario de Texturas para SUELO / LOSAS';
         $('mgt-subtitulo').textContent = 'Selecciona el grabado y tipo de losas para todo el suelo de la estancia';
+      } else if (texturaTargetActivo === 'zocalo') {
+        actualKey = (sala && (sala.estiloZocalo || sala.estiloPared || sala.estilo)) || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🏛️ Muestrario de Texturas para ZÓCALO / MOLDURA';
+        $('mgt-subtitulo').textContent = 'Selecciona el zócalo ciclópeo y moldura de base para el perímetro de la estancia';
       } else if (texturaTargetActivo === 'techo') {
         actualKey = (sala && sala.estiloTecho) || dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '🏰 Muestrario de Texturas para TECHOS / BÓVEDAS';
@@ -1604,6 +1705,12 @@
           $('insp-estilo-suelo').value = estiloKey;
           if ((def.colorLosa || def.colorBase) && $('insp-color-suelo')) $('insp-color-suelo').value = (def.colorLosa || def.colorBase);
           showToast(`🏛️ Textura de suelo aplicada: ${def.nombre || estiloKey}`);
+        } else if (texturaTargetActivo === 'zocalo') {
+          sala.estiloZocalo = estiloKey;
+          sala.colorZocalo = def.colorSecundario || def.colorBase || 'default';
+          if ($('insp-estilo-zocalo')) $('insp-estilo-zocalo').value = estiloKey;
+          if ((def.colorSecundario || def.colorBase) && $('insp-color-zocalo')) $('insp-color-zocalo').value = (def.colorSecundario || def.colorBase);
+          showToast(`🏛️ Textura de zócalo aplicada: ${def.nombre || estiloKey}`);
         } else if (texturaTargetActivo === 'techo') {
           sala.estiloTecho = estiloKey;
           sala.colorTecho = def.colorSecundario || def.colorBase || 'default';
@@ -2257,6 +2364,19 @@
       if ($('cfg-luz-intensidad')) $('cfg-luz-intensidad').value = dungeonConfig.luzIntensidad || 1.5;
       if ($('cfg-luz-color')) $('cfg-luz-color').value = dungeonConfig.luzColor || '#ffffff';
       if ($('cfg-sombras-activas')) $('cfg-sombras-activas').checked = dungeonConfig.sombrasActivas !== false;
+
+      // Sincronización del menú de antorchas automáticas
+      if ($('cfg-antorchas-distancia')) {
+        $('cfg-antorchas-distancia').value = dungeonConfig.distanciaAntorchas || 8;
+        if ($('lbl-antorchas-dist')) $('lbl-antorchas-dist').textContent = (dungeonConfig.distanciaAntorchas || 8) + ' m';
+      }
+      if ($('cfg-antorchas-forma')) $('cfg-antorchas-forma').value = dungeonConfig.formaAntorcha || 'antorcha_hierro';
+      if ($('cfg-antorchas-color')) $('cfg-antorchas-color').value = dungeonConfig.colorLuzAntorcha || '#f59e0b';
+      if ($('cfg-antorchas-intensidad')) {
+        $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4;
+        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4).toFixed(1);
+      }
+
       actualizarIluminacionEscena();
       actualizarPreviewsTexturas(null);
 
@@ -2408,6 +2528,27 @@
       showToast('Color de suelo restaurado por defecto');
     });
 
+    if ($('insp-estilo-zocalo')) {
+      $('insp-estilo-zocalo').addEventListener('change', e => {
+        actualizarSalaSeleccionada(s => {
+          s.estiloZocalo = e.target.value || null;
+          actualizarPreviewsTexturas(s);
+        });
+      });
+    }
+    if ($('insp-color-zocalo')) {
+      $('insp-color-zocalo').addEventListener('input', e => {
+        actualizarSalaSeleccionada(s => { s.colorZocalo = e.target.value; });
+      });
+    }
+    if ($('btn-insp-color-zocalo-reset')) {
+      $('btn-insp-color-zocalo-reset').addEventListener('click', () => {
+        $('insp-color-zocalo').value = '#57534e';
+        actualizarSalaSeleccionada(s => { s.colorZocalo = null; });
+        showToast('Color de zócalo restaurado por defecto');
+      });
+    }
+
     $('insp-estilo-techo').addEventListener('change', e => {
       actualizarSalaSeleccionada(s => {
         s.estiloTecho = e.target.value || null;
@@ -2479,6 +2620,67 @@
       rebuildDungeon();
     });
 
+    // --- MENÚ DE CREACIÓN AUTOMÁTICA DE ANTORCHAS EN PAREDES ---
+    if ($('cfg-antorchas-distancia')) {
+      $('cfg-antorchas-distancia').addEventListener('input', e => {
+        dungeonConfig.distanciaAntorchas = parseFloat(e.target.value) || 8;
+        if ($('lbl-antorchas-dist')) $('lbl-antorchas-dist').textContent = dungeonConfig.distanciaAntorchas + ' m';
+      });
+      $('cfg-antorchas-distancia').addEventListener('change', () => {
+        rebuildDungeon();
+      });
+    }
+
+    if ($('cfg-antorchas-forma')) {
+      $('cfg-antorchas-forma').addEventListener('change', e => {
+        dungeonConfig.formaAntorcha = e.target.value;
+        rebuildDungeon();
+        showToast('Forma de antorcha cambiada a: ' + e.target.options[e.target.selectedIndex].text);
+      });
+    }
+
+    if ($('cfg-antorchas-color')) {
+      $('cfg-antorchas-color').addEventListener('input', e => {
+        dungeonConfig.colorLuzAntorcha = e.target.value;
+      });
+      $('cfg-antorchas-color').addEventListener('change', () => {
+        rebuildDungeon();
+      });
+    }
+
+    document.querySelectorAll('.btn-color-antorcha-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const col = btn.dataset.color;
+        if (!col) return;
+        dungeonConfig.colorLuzAntorcha = col;
+        if ($('cfg-antorchas-color')) $('cfg-antorchas-color').value = col;
+        rebuildDungeon();
+        showToast(`Color de antorcha aplicado: ${col}`);
+      });
+    });
+
+    if ($('cfg-antorchas-intensidad')) {
+      $('cfg-antorchas-intensidad').addEventListener('input', e => {
+        dungeonConfig.intensidadAntorchas = parseFloat(e.target.value) || 2.4;
+        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = dungeonConfig.intensidadAntorchas.toFixed(1);
+      });
+      $('cfg-antorchas-intensidad').addEventListener('change', () => {
+        rebuildDungeon();
+      });
+    }
+
+    if ($('btn-aplicar-antorchas-auto')) {
+      $('btn-aplicar-antorchas-auto').addEventListener('click', () => {
+        dungeonConfig.distanciaAntorchas = parseFloat($('cfg-antorchas-distancia').value) || 8;
+        dungeonConfig.formaAntorcha = $('cfg-antorchas-forma').value || 'antorcha_hierro';
+        dungeonConfig.colorLuzAntorcha = $('cfg-antorchas-color').value || '#f59e0b';
+        dungeonConfig.intensidadAntorchas = parseFloat($('cfg-antorchas-intensidad').value) || 2.4;
+        dungeonConfig.antorchasAutomaticas = true;
+        rebuildDungeon();
+        showToast('⚡ Antorchas redistribuidas en todas las paredes');
+      });
+    }
+
 
     function actualizarSalaSeleccionada(mutator) {
       if (!selectedRoomId) return;
@@ -2545,7 +2747,7 @@
         abrirMuestrarioTexturas(btn.dataset.target || 'pared');
       });
     });
-    ['preview-thumb-global', 'preview-thumb-pared', 'preview-thumb-suelo', 'preview-thumb-techo', 'preview-thumb-fuente'].forEach(id => {
+    ['preview-thumb-global', 'preview-thumb-pared', 'preview-thumb-suelo', 'preview-thumb-zocalo', 'preview-thumb-techo', 'preview-thumb-fuente'].forEach(id => {
       const el = $(id);
       if (el) {
         el.addEventListener('click', () => {

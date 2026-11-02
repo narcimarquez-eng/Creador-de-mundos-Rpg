@@ -485,7 +485,8 @@
   function resolverMaterialesSala(ThreeLib, kitBase, kitsPorEstilo, sala) {
     const kPared = (kitsPorEstilo && (kitsPorEstilo[sala.estiloPared || sala.estilo])) || kitBase;
     const kSuelo = (kitsPorEstilo && (kitsPorEstilo[sala.estiloSuelo])) || (kitsPorEstilo && kitsPorEstilo[sala.estilo]) || kitBase;
-    const kTecho = (kitsPorEstilo && (kitsPorEstilo[sala.estiloTecho])) || kPared;
+    const kZocalo = (kitsPorEstilo && (kitsPorEstilo[sala.estiloZocalo])) || (kitsPorEstilo && kitsPorEstilo[sala.estiloPared || sala.estilo]) || kitBase;
+    const kTecho = (kitsPorEstilo && (kitsPorEstilo[sala.estiloTecho])) || (kitsPorEstilo && kitsPorEstilo[sala.estiloPared || sala.estilo]) || kPared;
     const kFuente = (kitsPorEstilo && (kitsPorEstilo[sala.estiloFuente])) || (kitsPorEstilo && kitsPorEstilo[sala.estilo]) || kitBase;
 
     let matPared = kPared.piedraMuro;
@@ -502,7 +503,14 @@
       else matSuelo.color = sala.colorSuelo;
     }
 
-    let matTecho = kTecho.piedraMuro;
+    let matZocalo = kZocalo.zocalo || kZocalo.piedraMuro;
+    if (sala.colorZocalo && sala.colorZocalo !== 'default') {
+      matZocalo = (matZocalo && typeof matZocalo.clone === 'function') ? matZocalo.clone() : Object.assign({}, matZocalo);
+      if (matZocalo.color && typeof matZocalo.color.set === 'function') matZocalo.color.set(sala.colorZocalo);
+      else matZocalo.color = sala.colorZocalo;
+    }
+
+    let matTecho = kTecho.techo || kTecho.piedraMuro;
     if (sala.colorTecho && sala.colorTecho !== 'default') {
       matTecho = (matTecho && typeof matTecho.clone === 'function') ? matTecho.clone() : Object.assign({}, matTecho);
       if (matTecho.color && typeof matTecho.color.set === 'function') matTecho.color.set(sala.colorTecho);
@@ -519,54 +527,61 @@
     return {
       kPared,
       kSuelo,
+      kZocalo,
       kTecho,
       kFuente,
       matPared,
       matSuelo,
+      matZocalo,
       matTecho,
       matAgua,
       colorAgua: (sala.colorAgua && sala.colorAgua !== "default") ? sala.colorAgua : "#38bdf8",
       kitCompleto: Object.assign({}, kitBase, {
         piedraMuro: matPared,
         sueloLosas: matSuelo,
+        zocalo: matZocalo,
+        techo: matTecho,
         agua: matAgua
       })
     };
   }
 
-  // --- 3. GENERADOR DE TEXTURAS ATLAS PROCEDURALES PBR ---
-  const _atlasCache = new Map();
+  // --- 3. GENERADORES DE TEXTURAS INDEPENDIENTES Y DEDICADAS (PBR PROCEDURAL) ---
+  // Se generan texturas separadas al 100% para cada superficie (Pared, Suelo, Zócalo, Techo, Madera, Hierro)
+  // evitando que se mezclen cuadrantes en una misma malla.
+  const _texParedCache = new Map();
+  const _texSueloCache = new Map();
+  const _texZocaloCache = new Map();
+  const _texTechoCache = new Map();
+  let _texMaderaCache = null;
+  let _texHierroCache = null;
 
-  function crearAtlasMazmorra(estilo, ThreeLib) {
+  function crearTexturaPared(estilo, ThreeLib) {
     const key = estilo.id;
-    if (_atlasCache.has(key)) return _atlasCache.get(key);
+    if (_texParedCache.has(key)) return _texParedCache.get(key);
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    if (typeof document === 'undefined') {
-      // Entorno headless / Node.js
-      return { diffuse: null, bump: null };
-    }
-
-    const size = 1024;
+    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
     canvasB.width = canvasB.height = size;
-
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
 
-    // === CUADRANTE 1: SILLARES DE PIEDRA (Y: 0 - 512, X: 0 - 512) ===
-    ctxD.fillStyle = estilo.colorMortero;
-    ctxD.fillRect(0, 0, 512, 512);
+    // Fondo: mortero entre juntas
+    ctxD.fillStyle = estilo.colorMortero || '#1e293b';
+    ctxD.fillRect(0, 0, size, size);
     ctxB.fillStyle = '#111111';
-    ctxB.fillRect(0, 0, 512, 512);
+    ctxB.fillRect(0, 0, size, size);
 
-    const filasPiedra = 8;
-    const altoFila = 512 / filasPiedra;
-    for (let f = 0; f < filasPiedra; f++) {
+    // Sillares de piedra biselados en hiladas regulares (8 filas trabadas)
+    const filas = 8;
+    const altoFila = size / filas;
+    for (let f = 0; f < filas; f++) {
       const y = f * altoFila;
-      const cols = f % 2 === 0 ? 4 : 5;
-      const anchoCol = 512 / cols;
+      const cols = (f % 2 === 0) ? 4 : 5;
+      const anchoCol = size / cols;
       const shift = (f % 2) * (anchoCol * 0.5);
 
       for (let c = -1; c <= cols; c++) {
@@ -587,9 +602,9 @@
         ctxB.fillStyle = gradB;
         ctxB.fillRect(x + pad, y + pad, anchoCol - pad * 2, altoFila - pad * 2);
 
-        // Grietas orgánicas
+        // Grietas orgánicas de cantería
         if ((f + c) % 3 === 0) {
-          ctxD.strokeStyle = 'rgba(0,0,0,0.4)';
+          ctxD.strokeStyle = 'rgba(0,0,0,0.38)';
           ctxD.lineWidth = 1.5;
           ctxD.beginPath();
           ctxD.moveTo(x + pad + 10, y + pad + 8);
@@ -597,91 +612,15 @@
           ctxD.lineTo(x + pad + 18, y + altoFila - pad - 6);
           ctxD.stroke();
         }
-      }
-    }
 
-    // === CUADRANTE 2: LOSAS GRANDES DE SUELO (X: 512 - 1024, Y: 0 - 512) ===
-    ctxD.fillStyle = '#0f172a';
-    ctxD.fillRect(512, 0, 512, 512);
-    ctxB.fillStyle = '#0a0a0a';
-    ctxB.fillRect(512, 0, 512, 512);
-
-    const losasX = 4;
-    const losasY = 4;
-    const pasoLosa = 512 / losasX;
-    for (let ly = 0; ly < losasY; ly++) {
-      for (let lx = 0; lx < losasX; lx++) {
-        const px = 512 + lx * pasoLosa;
-        const py = ly * pasoLosa;
-        const pad = 5;
-
-        const gradLosa = ctxD.createLinearGradient(px, py, px + pasoLosa, py + pasoLosa);
-        gradLosa.addColorStop(0.0, estilo.colorLosa);
-        gradLosa.addColorStop(0.5, estilo.colorBase);
-        gradLosa.addColorStop(1.0, estilo.colorSecundario);
-        ctxD.fillStyle = gradLosa;
-        ctxD.fillRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
-
-        // Bump losa
-        ctxB.fillStyle = '#d4d4d4';
-        ctxB.fillRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
-        ctxB.strokeStyle = '#222222';
-        ctxB.lineWidth = 4;
-        ctxB.strokeRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
-
-        // Manchas de musgo en esquinas
-        if (estilo.densidadMusgo > 0.2 && (lx + ly) % 2 === 0) {
-          ctxD.fillStyle = estilo.colorMusgo;
+        // Pátina de musgo en juntas si el estilo lo tiene
+        if (estilo.densidadMusgo > 0.18 && (f + c) % 4 === 0) {
+          ctxD.fillStyle = estilo.colorMusgo || 'rgba(34,197,94,0.35)';
           ctxD.beginPath();
-          ctxD.arc(px + pad + 12, py + pad + 12, 14, 0, Math.PI * 2);
+          ctxD.arc(x + pad + 8, y + altoFila - pad - 4, 9, 0, Math.PI * 2);
           ctxD.fill();
         }
       }
-    }
-
-    // === CUADRANTE 3: MADERA Y TABLONES PARA COFRES / PUERTAS (X: 0 - 512, Y: 512 - 1024) ===
-    ctxD.fillStyle = '#451a03';
-    ctxD.fillRect(0, 512, 512, 512);
-    ctxB.fillStyle = '#555555';
-    ctxB.fillRect(0, 512, 512, 512);
-
-    const vigas = 6;
-    const altoViga = 512 / vigas;
-    for (let v = 0; v < vigas; v++) {
-      const vy = 512 + v * altoViga;
-      ctxD.fillStyle = v % 2 === 0 ? '#78350f' : '#92400e';
-      ctxD.fillRect(2, vy + 2, 508, altoViga - 4);
-
-      // Vetas de madera
-      ctxD.fillStyle = 'rgba(0,0,0,0.18)';
-      for (let s = 6; s < 500; s += 22) {
-        ctxD.fillRect(s, vy + 2, 2, altoViga - 4);
-      }
-    }
-
-    // === CUADRANTE 4: HIERRO REMACHADO Y HERRAJES (X: 512 - 1024, Y: 512 - 1024) ===
-    ctxD.fillStyle = '#27272a';
-    ctxD.fillRect(512, 512, 512, 512);
-    ctxB.fillStyle = '#888888';
-    ctxB.fillRect(512, 512, 512, 512);
-
-    // Bandas de hierro con remaches circulares
-    ctxD.fillStyle = '#3f3f46';
-    ctxD.fillRect(512, 512 + 64, 512, 96);
-    ctxD.fillRect(512, 512 + 320, 512, 96);
-
-    ctxD.fillStyle = '#d4d4d8';
-    for (let rx = 512 + 32; rx < 1024; rx += 64) {
-      ctxD.beginPath();
-      ctxD.arc(rx, 512 + 112, 8, 0, Math.PI * 2);
-      ctxD.arc(rx, 512 + 368, 8, 0, Math.PI * 2);
-      ctxD.fill();
-
-      ctxB.fillStyle = '#ffffff';
-      ctxB.beginPath();
-      ctxB.arc(rx, 512 + 112, 8, 0, Math.PI * 2);
-      ctxB.arc(rx, 512 + 368, 8, 0, Math.PI * 2);
-      ctxB.fill();
     }
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
@@ -692,43 +631,374 @@
     texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
 
     const result = { diffuse: texD, bump: texB };
-    _atlasCache.set(key, result);
+    _texParedCache.set(key, result);
     return result;
   }
 
-  // --- 4. CREADOR DE KITS DE MATERIALES PROCEDURALES ---
-  function crearKitMateriales(estilo, ThreeLib) {
-    const atlas = crearAtlasMazmorra(estilo, ThreeLib);
+  function crearTexturaSuelo(estilo, ThreeLib) {
+    const key = estilo.id;
+    if (_texSueloCache.has(key)) return _texSueloCache.get(key);
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
+    const size = 512;
+    const canvasD = document.createElement('canvas');
+    const canvasB = document.createElement('canvas');
+    canvasD.width = canvasD.height = size;
+    canvasB.width = canvasB.height = size;
+    const ctxD = canvasD.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+
+    // Fondo: mortero oscuro de junta de losa
+    ctxD.fillStyle = estilo.colorMortero || '#0f172a';
+    ctxD.fillRect(0, 0, size, size);
+    ctxB.fillStyle = '#0a0a0a';
+    ctxB.fillRect(0, 0, size, size);
+
+    // Cuadrícula limpia y uniforme de losas grandes de pavimento (4x4)
+    const losasX = 4;
+    const losasY = 4;
+    const pasoLosa = size / losasX;
+    for (let ly = 0; ly < losasY; ly++) {
+      for (let lx = 0; lx < losasX; lx++) {
+        const px = lx * pasoLosa;
+        const py = ly * pasoLosa;
+        const pad = 5;
+
+        const gradLosa = ctxD.createLinearGradient(px, py, px + pasoLosa, py + pasoLosa);
+        gradLosa.addColorStop(0.0, estilo.colorLosa || estilo.colorBase);
+        gradLosa.addColorStop(0.5, estilo.colorBase);
+        gradLosa.addColorStop(1.0, estilo.colorSecundario);
+        ctxD.fillStyle = gradLosa;
+        ctxD.fillRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
+
+        // Bisel y relieve de losa
+        ctxB.fillStyle = '#d4d4d4';
+        ctxB.fillRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
+        ctxB.strokeStyle = '#222222';
+        ctxB.lineWidth = 4;
+        ctxB.strokeRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
+
+        // Resalte sutil en el borde de la losa
+        ctxD.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctxD.lineWidth = 1;
+        ctxD.strokeRect(px + pad + 1, py + pad + 1, pasoLosa - pad * 2 - 2, pasoLosa - pad * 2 - 2);
+
+        // Manchas de humedad o musgo sutil en esquinas de losa
+        if (estilo.densidadMusgo > 0.2 && (lx + ly) % 2 === 0) {
+          ctxD.fillStyle = estilo.colorMusgo || 'rgba(34,197,94,0.3)';
+          ctxD.beginPath();
+          ctxD.arc(px + pad + 14, py + pad + 14, 16, 0, Math.PI * 2);
+          ctxD.fill();
+        }
+      }
+    }
+
+    const texD = new ThreeLib.CanvasTexture(canvasD);
+    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
+    texD.colorSpace = ThreeLib.SRGBColorSpace;
+
+    const texB = new ThreeLib.CanvasTexture(canvasB);
+    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+
+    const result = { diffuse: texD, bump: texB };
+    _texSueloCache.set(key, result);
+    return result;
+  }
+
+  function crearTexturaZocalo(estilo, ThreeLib) {
+    const key = estilo.id;
+    if (_texZocaloCache.has(key)) return _texZocaloCache.get(key);
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
+
+    const size = 512;
+    const canvasD = document.createElement('canvas');
+    const canvasB = document.createElement('canvas');
+    canvasD.width = canvasD.height = size;
+    canvasB.width = canvasB.height = size;
+    const ctxD = canvasD.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+
+    // Fondo mortero
+    ctxD.fillStyle = estilo.colorMortero || '#090d16';
+    ctxD.fillRect(0, 0, size, size);
+    ctxB.fillStyle = '#141414';
+    ctxB.fillRect(0, 0, size, size);
+
+    // Moldura superior del zócalo (cincelada y biselada)
+    const gradMoldura = ctxD.createLinearGradient(0, 0, 0, 96);
+    gradMoldura.addColorStop(0.0, estilo.colorSecundario);
+    gradMoldura.addColorStop(0.5, estilo.colorBase);
+    gradMoldura.addColorStop(1.0, estilo.colorMortero);
+    ctxD.fillStyle = gradMoldura;
+    ctxD.fillRect(0, 0, size, 96);
+
+    ctxB.fillStyle = '#ffffff';
+    ctxB.fillRect(0, 0, size, 48);
+    ctxB.fillStyle = '#888888';
+    ctxB.fillRect(0, 48, size, 48);
+
+    // Sillares ciclópeos de base (3 grandes bloques pesados horizontales)
+    const bloques = 3;
+    const anchoB = size / bloques;
+    for (let b = 0; b < bloques; b++) {
+      const bx = b * anchoB;
+      const pad = 4;
+      const gradB = ctxD.createLinearGradient(bx, 102, bx + anchoB, size);
+      gradB.addColorStop(0.0, estilo.colorBase);
+      gradB.addColorStop(0.8, estilo.colorSecundario);
+      ctxD.fillStyle = gradB;
+      ctxD.fillRect(bx + pad, 102 + pad, anchoB - pad * 2, size - 102 - pad * 2);
+
+      ctxB.fillStyle = '#cccccc';
+      ctxB.fillRect(bx + pad, 102 + pad, anchoB - pad * 2, size - 102 - pad * 2);
+      ctxB.strokeStyle = '#1a1a1a';
+      ctxB.lineWidth = 3;
+      ctxB.strokeRect(bx + pad, 102 + pad, anchoB - pad * 2, size - 102 - pad * 2);
+    }
+
+    const texD = new ThreeLib.CanvasTexture(canvasD);
+    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
+    texD.colorSpace = ThreeLib.SRGBColorSpace;
+
+    const texB = new ThreeLib.CanvasTexture(canvasB);
+    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+
+    const result = { diffuse: texD, bump: texB };
+    _texZocaloCache.set(key, result);
+    return result;
+  }
+
+  function crearTexturaTecho(estilo, ThreeLib) {
+    const key = estilo.id;
+    if (_texTechoCache.has(key)) return _texTechoCache.get(key);
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
+
+    const size = 512;
+    const canvasD = document.createElement('canvas');
+    const canvasB = document.createElement('canvas');
+    canvasD.width = canvasD.height = size;
+    canvasB.width = canvasB.height = size;
+    const ctxD = canvasD.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+
+    // Bóveda abovedada oscura con aristas de crucería
+    ctxD.fillStyle = '#05070e';
+    ctxD.fillRect(0, 0, size, size);
+
+    const gradT = ctxD.createRadialGradient(size / 2, size / 2, 8, size / 2, size / 2, size * 0.75);
+    gradT.addColorStop(0.0, estilo.colorBase);
+    gradT.addColorStop(0.65, estilo.colorSecundario);
+    gradT.addColorStop(1.0, '#040508');
+    ctxD.fillStyle = gradT;
+    ctxD.fillRect(0, 0, size, size);
+
+    // Aristas de cantería cruzadas
+    ctxD.strokeStyle = estilo.colorMortero || '#1e293b';
+    ctxD.lineWidth = 6;
+    ctxD.beginPath();
+    ctxD.moveTo(0, 0); ctxD.lineTo(size, size);
+    ctxD.moveTo(size, 0); ctxD.lineTo(0, size);
+    ctxD.stroke();
+
+    ctxB.fillStyle = '#222222';
+    ctxB.fillRect(0, 0, size, size);
+    ctxB.strokeStyle = '#aaaaaa';
+    ctxB.lineWidth = 6;
+    ctxB.beginPath();
+    ctxB.moveTo(0, 0); ctxB.lineTo(size, size);
+    ctxB.moveTo(size, 0); ctxB.lineTo(0, size);
+    ctxB.stroke();
+
+    const texD = new ThreeLib.CanvasTexture(canvasD);
+    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
+    texD.colorSpace = ThreeLib.SRGBColorSpace;
+
+    const texB = new ThreeLib.CanvasTexture(canvasB);
+    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+
+    const result = { diffuse: texD, bump: texB };
+    _texTechoCache.set(key, result);
+    return result;
+  }
+
+  function crearTexturaMadera(ThreeLib) {
+    if (_texMaderaCache) return _texMaderaCache;
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
+
+    const size = 512;
+    const canvasD = document.createElement('canvas');
+    const canvasB = document.createElement('canvas');
+    canvasD.width = canvasD.height = size;
+    canvasB.width = canvasB.height = size;
+    const ctxD = canvasD.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+
+    ctxD.fillStyle = '#3a1700';
+    ctxD.fillRect(0, 0, size, size);
+    ctxB.fillStyle = '#444444';
+    ctxB.fillRect(0, 0, size, size);
+
+    const vigas = 6;
+    const altoViga = size / vigas;
+    for (let v = 0; v < vigas; v++) {
+      const vy = v * altoViga;
+      ctxD.fillStyle = v % 2 === 0 ? '#78350f' : '#92400e';
+      ctxD.fillRect(2, vy + 2, size - 4, altoViga - 4);
+
+      // Vetas de madera
+      ctxD.fillStyle = 'rgba(0,0,0,0.18)';
+      for (let s = 6; s < size; s += 18) {
+        ctxD.fillRect(s, vy + 2, 2, altoViga - 4);
+      }
+
+      ctxB.fillStyle = '#777777';
+      ctxB.fillRect(2, vy + 2, size - 4, altoViga - 4);
+      ctxB.strokeStyle = '#111111';
+      ctxB.lineWidth = 3;
+      ctxB.strokeRect(2, vy + 2, size - 4, altoViga - 4);
+    }
+
+    const texD = new ThreeLib.CanvasTexture(canvasD);
+    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
+    texD.colorSpace = ThreeLib.SRGBColorSpace;
+
+    const texB = new ThreeLib.CanvasTexture(canvasB);
+    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+
+    _texMaderaCache = { diffuse: texD, bump: texB };
+    return _texMaderaCache;
+  }
+
+  function crearTexturaHierro(ThreeLib) {
+    if (_texHierroCache) return _texHierroCache;
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
+
+    const size = 512;
+    const canvasD = document.createElement('canvas');
+    const canvasB = document.createElement('canvas');
+    canvasD.width = canvasD.height = size;
+    canvasB.width = canvasB.height = size;
+    const ctxD = canvasD.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+
+    ctxD.fillStyle = '#27272a';
+    ctxD.fillRect(0, 0, size, size);
+    ctxB.fillStyle = '#888888';
+    ctxB.fillRect(0, 0, size, size);
+
+    // Bandas de forja y remaches
+    ctxD.fillStyle = '#3f3f46';
+    ctxD.fillRect(0, 64, size, 96);
+    ctxD.fillRect(0, 320, size, 96);
+
+    ctxD.fillStyle = '#d4d4d8';
+    for (let rx = 32; rx < size; rx += 64) {
+      ctxD.beginPath();
+      ctxD.arc(rx, 112, 8, 0, Math.PI * 2);
+      ctxD.arc(rx, 368, 8, 0, Math.PI * 2);
+      ctxD.fill();
+
+      ctxB.fillStyle = '#ffffff';
+      ctxB.beginPath();
+      ctxB.arc(rx, 112, 8, 0, Math.PI * 2);
+      ctxB.arc(rx, 368, 8, 0, Math.PI * 2);
+      ctxB.fill();
+    }
+
+    const texD = new ThreeLib.CanvasTexture(canvasD);
+    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
+    texD.colorSpace = ThreeLib.SRGBColorSpace;
+
+    const texB = new ThreeLib.CanvasTexture(canvasB);
+    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+
+    _texHierroCache = { diffuse: texD, bump: texB };
+    return _texHierroCache;
+  }
+
+  // Compatibilidad: función previa crearAtlasMazmorra delegando en las texturas desacopladas
+  function crearAtlasMazmorra(estilo, ThreeLib) {
+    const texPared = crearTexturaPared(estilo, ThreeLib);
+    const texSuelo = crearTexturaSuelo(estilo, ThreeLib);
+    const texZocalo = crearTexturaZocalo(estilo, ThreeLib);
+    const texTecho = crearTexturaTecho(estilo, ThreeLib);
+    return {
+      diffuse: texPared.diffuse,
+      bump: texPared.bump,
+      pared: texPared,
+      suelo: texSuelo,
+      zocalo: texZocalo,
+      techo: texTecho
+    };
+  }
+
+  // --- 4. CREADOR DE KITS DE MATERIALES PROCEDURALES INDEPENDIENTES ---
+  function crearKitMateriales(estilo, ThreeLib) {
+    const texPared = crearTexturaPared(estilo, ThreeLib);
+    const texSuelo = crearTexturaSuelo(estilo, ThreeLib);
+    const texZocalo = crearTexturaZocalo(estilo, ThreeLib);
+    const texTecho = crearTexturaTecho(estilo, ThreeLib);
+    const texMadera = crearTexturaMadera(ThreeLib);
+    const texHierro = crearTexturaHierro(ThreeLib);
+
+    // Muros: usa exclusivamente textura de pared
     const matPiedraMuro = new ThreeLib.MeshStandardMaterial({
       color: estilo.colorBase,
       roughness: estilo.rugosidad,
       metalness: 0.1,
-      map: atlas.diffuse,
-      bumpMap: atlas.bump,
+      map: texPared.diffuse,
+      bumpMap: texPared.bump,
       bumpScale: 0.08
     });
 
+    // Suelo: usa exclusivamente textura de losas de pavimento
     const matSueloLosas = new ThreeLib.MeshStandardMaterial({
       color: estilo.colorLosa,
       roughness: 0.75,
       metalness: 0.05,
-      map: atlas.diffuse,
-      bumpMap: atlas.bump,
+      map: texSuelo.diffuse,
+      bumpMap: texSuelo.bump,
       bumpScale: 0.06
     });
 
+    // Zócalo perimetral: moldura y sillar ciclópeo inferior
+    const matZocalo = new ThreeLib.MeshStandardMaterial({
+      color: estilo.colorBase,
+      roughness: estilo.rugosidad * 0.95,
+      metalness: 0.12,
+      map: texZocalo.diffuse,
+      bumpMap: texZocalo.bump,
+      bumpScale: 0.09
+    });
+
+    // Techo / Bóveda
+    const matTecho = new ThreeLib.MeshStandardMaterial({
+      color: estilo.colorSecundario,
+      roughness: 0.85,
+      metalness: 0.05,
+      map: texTecho.diffuse,
+      bumpMap: texTecho.bump,
+      bumpScale: 0.06
+    });
+
+    // Madera para props (cofres, mesas, puertas)
     const matMadera = new ThreeLib.MeshStandardMaterial({
       color: 0x854d0e,
       roughness: 0.7,
       metalness: 0.05,
-      map: atlas.diffuse
+      map: texMadera.diffuse,
+      bumpMap: texMadera.bump,
+      bumpScale: 0.05
     });
 
+    // Hierro forjado
     const matHierro = new ThreeLib.MeshStandardMaterial({
       color: 0x3f3f46,
       roughness: 0.45,
-      metalness: 0.85
+      metalness: 0.85,
+      map: texHierro.diffuse,
+      bumpMap: texHierro.bump,
+      bumpScale: 0.04
     });
 
     const matOro = new ThreeLib.MeshStandardMaterial({
@@ -764,9 +1034,17 @@
 
     return {
       estilo,
-      atlas,
+      atlas: { diffuse: texPared.diffuse, bump: texPared.bump },
+      texPared,
+      texSuelo,
+      texZocalo,
+      texTecho,
+      texMadera,
+      texHierro,
       piedraMuro: matPiedraMuro,
       sueloLosas: matSueloLosas,
+      zocalo: matZocalo,
+      techo: matTecho,
       madera: matMadera,
       hierro: matHierro,
       oro: matOro,
@@ -779,35 +1057,247 @@
 
   // --- 5. FABRICA DE PROPS PROCEDURALES ---
 
-  // A) Antorcha con soporte de hierro forjado
+  // A) Antorcha con soporte de forja, candelabros, faroles, braseros o cristales arcanos
   function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 2.4, opciones = {}) {
     const g = new ThreeLib.Group();
+    const forma = opciones.forma || opciones.formaAntorcha || 'antorcha_hierro';
+    const colorLuzVal = (luzHex !== undefined && luzHex !== null) ? luzHex : ((kit && kit.estilo && kit.estilo.luzAntorchas) || 0xf59e0b);
 
-    // Soporte de pared (hierro)
-    const basePared = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.12, 0.4, 0.1), kit.hierro);
-    basePared.position.set(0, 0, 0.05);
-    basePared.castShadow = true;
-    g.add(basePared);
+    // Material de llama sintonizado con el color de la luz
+    const matLlamaActual = new ThreeLib.MeshBasicMaterial({ color: colorLuzVal });
 
-    const brazo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.08, 0.08, 0.32), kit.hierro);
-    brazo.position.set(0, 0.05, 0.2);
-    brazo.castShadow = true;
-    g.add(brazo);
+    let luz, llamaObj, animarFn;
 
-    const cazoleta = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.12, 0.06, 0.18, 8), kit.hierro);
-    cazoleta.position.set(0, 0.14, 0.34);
-    cazoleta.castShadow = true;
-    g.add(cazoleta);
+    if (forma === 'candelabro_aplique') {
+      // 1. Candelabro mural con 3 velas ornamentadas
+      const basePared = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.16, 0.38, 0.08), kit.hierro);
+      basePared.position.set(0, 0, 0.04);
+      basePared.castShadow = true;
+      g.add(basePared);
 
-    // Llama (cono estilizado)
-    const llama = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.09, 0.26, 6), kit.llama);
-    llama.position.set(0, 0.3, 0.34);
-    g.add(llama);
+      const brazoC = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.06, 0.06, 0.26), kit.hierro);
+      brazoC.position.set(0, -0.04, 0.15);
+      brazoC.castShadow = true;
+      g.add(brazoC);
 
-    // Luz dinámica con soporte de sombras configurables
-    const luz = new ThreeLib.PointLight(luzHex || kit.estilo.luzAntorchas, intensidad, 18, 1.6);
-    luz.position.set(0, 0.35, 0.36);
-    if (opciones.sombrasAntorchas !== false && !opciones.sinSombras) {
+      const barraT = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.48, 0.05, 0.05), kit.hierro);
+      barraT.position.set(0, -0.04, 0.27);
+      barraT.castShadow = true;
+      g.add(barraT);
+
+      const llamas = [];
+      [-0.18, 0, 0.18].forEach(vx => {
+        const platillo = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.06, 0.04, 0.03, 8), kit.hierro);
+        platillo.position.set(vx, -0.01, 0.27);
+        g.add(platillo);
+
+        const vela = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.035, 0.035, 0.22, 8), new ThreeLib.MeshStandardMaterial({
+          color: 0xfef3c7, roughness: 0.4
+        }));
+        vela.position.set(vx, 0.11, 0.27);
+        g.add(vela);
+
+        const ll = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.045, 0.14, 6), matLlamaActual);
+        ll.position.set(vx, 0.28, 0.27);
+        g.add(ll);
+        llamas.push(ll);
+      });
+
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz.position.set(0, 0.35, 0.3);
+      g.add(luz);
+
+      animarFn = (t) => {
+        luz.intensity = intensidad * (0.88 + Math.sin(t * 11.0) * 0.09 + Math.cos(t * 23.0) * 0.03);
+        llamas.forEach((ll, idx) => {
+          ll.scale.set(
+            1 + Math.sin(t * 14.0 + idx) * 0.12,
+            1 + Math.cos(t * 17.0 + idx) * 0.16,
+            1 + Math.sin(t * 14.0 + idx) * 0.12
+          );
+        });
+      };
+      llamaObj = llamas[1];
+
+    } else if (forma === 'farol_jaula') {
+      // 2. Farol gótico con cúpula y jaula de rejas de hierro
+      const base = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.12, 0.36, 0.08), kit.hierro);
+      base.position.set(0, 0, 0.04);
+      base.castShadow = true;
+      g.add(base);
+
+      const brazo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.06, 0.06, 0.34), kit.hierro);
+      brazo.position.set(0, 0.18, 0.19);
+      brazo.castShadow = true;
+      g.add(brazo);
+
+      const cadena = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.02, 0.02, 0.12, 4), kit.hierro);
+      cadena.position.set(0, 0.09, 0.32);
+      g.add(cadena);
+
+      const cupula = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.18, 0.13, 6), kit.hierro);
+      cupula.position.set(0, 0.04, 0.32);
+      cupula.castShadow = true;
+      g.add(cupula);
+
+      const baseFarol = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.15, 0.12, 0.04, 6), kit.hierro);
+      baseFarol.position.set(0, -0.3, 0.32);
+      baseFarol.castShadow = true;
+      g.add(baseFarol);
+
+      // Cristal traslúcido
+      const cristal = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.13, 0.13, 0.28, 6), new ThreeLib.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.1,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.42
+      }));
+      cristal.position.set(0, -0.14, 0.32);
+      g.add(cristal);
+
+      // Llama interna
+      const llama = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.065, 0.18, 6), matLlamaActual);
+      llama.position.set(0, -0.15, 0.32);
+      g.add(llama);
+
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz.position.set(0, -0.12, 0.32);
+      g.add(luz);
+
+      animarFn = (t) => {
+        luz.intensity = intensidad * (0.90 + Math.sin(t * 8.0) * 0.08 + Math.cos(t * 19.0) * 0.02);
+        llama.scale.set(
+          1 + Math.sin(t * 12.0) * 0.08,
+          1 + Math.cos(t * 15.0) * 0.12,
+          1 + Math.sin(t * 12.0) * 0.08
+        );
+      };
+      llamaObj = llama;
+
+    } else if (forma === 'brasero_calavera') {
+      // 3. Aplique mural esculpido en piedra con calavera escupiendo fuego
+      const basePiedra = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.24, 0.42, 0.14), kit.piedraMuro);
+      basePiedra.position.set(0, 0, 0.07);
+      basePiedra.castShadow = true;
+      g.add(basePiedra);
+
+      const craneo = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.15, 8, 8), kit.piedraMuro);
+      craneo.position.set(0, 0.02, 0.20);
+      craneo.scale.set(1, 1.15, 1);
+      craneo.castShadow = true;
+      g.add(craneo);
+
+      [-0.05, 0.05].forEach(ex => {
+        const ojo = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.03, 6, 6), new ThreeLib.MeshBasicMaterial({ color: 0x09090b }));
+        ojo.position.set(ex, 0.06, 0.32);
+        g.add(ojo);
+      });
+
+      const cuenco = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.13, 0.08, 0.11, 8), kit.hierro);
+      cuenco.position.set(0, -0.05, 0.26);
+      cuenco.castShadow = true;
+      g.add(cuenco);
+
+      const llama = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.10, 0.30, 6), matLlamaActual);
+      llama.position.set(0, 0.14, 0.26);
+      g.add(llama);
+
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz.position.set(0, 0.2, 0.29);
+      g.add(luz);
+
+      animarFn = (t) => {
+        luz.intensity = intensidad * (0.85 + Math.sin(t * 13.0) * 0.1 + Math.cos(t * 29.0) * 0.05);
+        llama.scale.set(
+          1 + Math.sin(t * 16.0) * 0.14,
+          1 + Math.cos(t * 20.0) * 0.18,
+          1 + Math.sin(t * 16.0) * 0.14
+        );
+      };
+      llamaObj = llama;
+
+    } else if (forma === 'cristal_arcano') {
+      // 4. Cristal rúnico flotante sobre soporte de hierro y piedra
+      const base = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.16, 0.38, 0.09), kit.piedraMuro);
+      base.position.set(0, 0, 0.045);
+      base.castShadow = true;
+      g.add(base);
+
+      const garra = new ThreeLib.Mesh(new ThreeLib.TorusGeometry(0.14, 0.03, 6, 8, Math.PI), kit.hierro);
+      garra.position.set(0, -0.06, 0.22);
+      garra.rotation.x = -Math.PI / 2;
+      garra.castShadow = true;
+      g.add(garra);
+
+      const matCristal = new ThreeLib.MeshStandardMaterial({
+        color: colorLuzVal,
+        emissive: colorLuzVal,
+        emissiveIntensity: 1.4,
+        roughness: 0.1,
+        metalness: 0.2,
+        transparent: true,
+        opacity: 0.92
+      });
+      const geoCristal = (typeof ThreeLib.OctahedronGeometry === 'function')
+        ? new ThreeLib.OctahedronGeometry(0.14, 0)
+        : new ThreeLib.ConeGeometry(0.12, 0.28, 6);
+      const cristal = new ThreeLib.Mesh(geoCristal, matCristal);
+      cristal.position.set(0, 0.12, 0.22);
+      cristal.scale.set(0.8, 1.4, 0.8);
+      g.add(cristal);
+
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz.position.set(0, 0.14, 0.24);
+      g.add(luz);
+
+      animarFn = (t) => {
+        const pulso = 0.88 + Math.sin(t * 3.5) * 0.12;
+        luz.intensity = intensidad * pulso;
+        cristal.rotation.y = t * 1.5;
+        cristal.position.y = 0.12 + Math.sin(t * 2.5) * 0.03;
+        matCristal.emissiveIntensity = 1.3 * pulso;
+      };
+      llamaObj = cristal;
+
+    } else {
+      // 5. 'antorcha_hierro': Clásica con forja de hierro y cazoleta
+      const basePared = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.12, 0.4, 0.1), kit.hierro);
+      basePared.position.set(0, 0, 0.05);
+      basePared.castShadow = true;
+      g.add(basePared);
+
+      const brazo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.08, 0.08, 0.32), kit.hierro);
+      brazo.position.set(0, 0.05, 0.2);
+      brazo.castShadow = true;
+      g.add(brazo);
+
+      const cazoleta = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.12, 0.06, 0.18, 8), kit.hierro);
+      cazoleta.position.set(0, 0.14, 0.34);
+      cazoleta.castShadow = true;
+      g.add(cazoleta);
+
+      const llama = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.09, 0.26, 6), matLlamaActual);
+      llama.position.set(0, 0.3, 0.34);
+      g.add(llama);
+
+      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, 18, 1.6);
+      luz.position.set(0, 0.35, 0.36);
+      g.add(luz);
+
+      animarFn = (t) => {
+        luz.intensity = intensidad * (0.88 + Math.sin(t * 12.0) * 0.08 + Math.cos(t * 27.0) * 0.04);
+        llama.scale.set(
+          1 + Math.sin(t * 15.0) * 0.1,
+          1 + Math.cos(t * 18.0) * 0.15,
+          1 + Math.sin(t * 15.0) * 0.1
+        );
+      };
+      llamaObj = llama;
+    }
+
+    // Configuración de sombras
+    if (opciones.sombrasAntorchas !== false && !opciones.sinSombras && luz) {
       luz.castShadow = true;
       if (luz.shadow) {
         luz.shadow.bias = -0.002;
@@ -817,21 +1307,14 @@
         }
       }
     }
-    g.add(luz);
 
     g.userData = {
       tipo: 'antorcha',
+      forma,
       luz,
-      llama,
+      llama: llamaObj,
       baseIntensity: intensidad,
-      flicker: (t) => {
-        luz.intensity = intensidad * (0.88 + Math.sin(t * 12.0) * 0.08 + Math.cos(t * 27.0) * 0.04);
-        llama.scale.set(
-          1 + Math.sin(t * 15.0) * 0.1,
-          1 + Math.cos(t * 18.0) * 0.15,
-          1 + Math.sin(t * 15.0) * 0.1
-        );
-      }
+      flicker: animarFn
     };
 
     return g;
@@ -1342,18 +1825,34 @@
       g.add(techo);
     }
 
-    // Muros herméticos con hombros completos (para que NUNCA queden huecos al conectar con pasillos más estrechos)
+    // Muros herméticos con hombros completos y zócalo perimetral inferior
     const grosorMuro = 0.6;
     const ap = sala.aperturas || {};
+
+    function agregarMuroConZocalo(w, d, px, pz, tipoLado, isHombro = false) {
+      const hZoc = Math.min(0.7, H * 0.22);
+      const hMur = H - hZoc;
+      const tipoMuro = isHombro ? 'muro_hombro' : 'muro';
+
+      // 1. Zócalo inferior
+      const zocMesh = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w, hZoc, d), mats.matZocalo);
+      zocMesh.position.set(px, hZoc / 2, pz);
+      zocMesh.castShadow = true; zocMesh.receiveShadow = true;
+      zocMesh.userData = { tipo: 'zocalo', lado: 'zocalo_' + tipoLado, idSala: sala.id };
+      g.add(zocMesh);
+
+      // 2. Muro superior
+      const murMesh = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w, hMur, d), mats.matPared);
+      murMesh.position.set(px, hZoc + hMur / 2, pz);
+      murMesh.castShadow = true; murMesh.receiveShadow = true;
+      murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id };
+      g.add(murMesh);
+    }
 
     // 1. Muro Norte (-Z)
     const apN = sala.abiertoNorte ? (ap.norte || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apN) {
-      const muroN = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), mats.matPared);
-      muroN.position.set(0, H / 2, -D / 2 + grosorMuro / 2);
-      muroN.castShadow = true; muroN.receiveShadow = true;
-      muroN.userData = { tipo: 'muro', lado: 'norte', idSala: sala.id };
-      g.add(muroN);
+      agregarMuroConZocalo(W, grosorMuro, 0, -D / 2 + grosorMuro / 2, 'norte', false);
     } else {
       const pw = Math.min(W - 0.2, apN.w || 6.8);
       const cx = apN.cx || 0;
@@ -1362,20 +1861,12 @@
       // Hombro izquierdo (-X / Oeste)
       const wIzq = (cx - pw / 2) - (-W / 2);
       if (wIzq > 0.05) {
-        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), mats.matPared);
-        mIzq.position.set(-W / 2 + wIzq / 2, H / 2, -D / 2 + grosorMuro / 2);
-        mIzq.castShadow = true; mIzq.receiveShadow = true;
-        mIzq.userData = { tipo: 'muro_hombro', lado: 'norte_oeste', idSala: sala.id };
-        g.add(mIzq);
+        agregarMuroConZocalo(wIzq, grosorMuro, -W / 2 + wIzq / 2, -D / 2 + grosorMuro / 2, 'norte_oeste', true);
       }
       // Hombro derecho (+X / Este)
       const wDer = (W / 2) - (cx + pw / 2);
       if (wDer > 0.05) {
-        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), mats.matPared);
-        mDer.position.set(cx + pw / 2 + wDer / 2, H / 2, -D / 2 + grosorMuro / 2);
-        mDer.castShadow = true; mDer.receiveShadow = true;
-        mDer.userData = { tipo: 'muro_hombro', lado: 'norte_este', idSala: sala.id };
-        g.add(mDer);
+        agregarMuroConZocalo(wDer, grosorMuro, cx + pw / 2 + wDer / 2, -D / 2 + grosorMuro / 2, 'norte_este', true);
       }
       // Dintel superior sobre la puerta
       if (H > pH + 0.2) {
@@ -1391,11 +1882,7 @@
     // 2. Muro Sur (+Z)
     const apS = sala.abiertoSur ? (ap.sur || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apS) {
-      const muroS = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), mats.matPared);
-      muroS.position.set(0, H / 2, D / 2 - grosorMuro / 2);
-      muroS.castShadow = true; muroS.receiveShadow = true;
-      muroS.userData = { tipo: 'muro', lado: 'sur', idSala: sala.id };
-      g.add(muroS);
+      agregarMuroConZocalo(W, grosorMuro, 0, D / 2 - grosorMuro / 2, 'sur', false);
     } else {
       const pw = Math.min(W - 0.2, apS.w || 6.8);
       const cx = apS.cx || 0;
@@ -1403,19 +1890,11 @@
 
       const wIzq = (cx - pw / 2) - (-W / 2);
       if (wIzq > 0.05) {
-        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), mats.matPared);
-        mIzq.position.set(-W / 2 + wIzq / 2, H / 2, D / 2 - grosorMuro / 2);
-        mIzq.castShadow = true; mIzq.receiveShadow = true;
-        mIzq.userData = { tipo: 'muro_hombro', lado: 'sur_oeste', idSala: sala.id };
-        g.add(mIzq);
+        agregarMuroConZocalo(wIzq, grosorMuro, -W / 2 + wIzq / 2, D / 2 - grosorMuro / 2, 'sur_oeste', true);
       }
       const wDer = (W / 2) - (cx + pw / 2);
       if (wDer > 0.05) {
-        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), mats.matPared);
-        mDer.position.set(cx + pw / 2 + wDer / 2, H / 2, D / 2 - grosorMuro / 2);
-        mDer.castShadow = true; mDer.receiveShadow = true;
-        mDer.userData = { tipo: 'muro_hombro', lado: 'sur_este', idSala: sala.id };
-        g.add(mDer);
+        agregarMuroConZocalo(wDer, grosorMuro, cx + pw / 2 + wDer / 2, D / 2 - grosorMuro / 2, 'sur_este', true);
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
@@ -1430,11 +1909,7 @@
     // 3. Muro Oeste (-X)
     const apO = sala.abiertoOeste ? (ap.oeste || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apO) {
-      const muroO = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), mats.matPared);
-      muroO.position.set(-W / 2 + grosorMuro / 2, H / 2, 0);
-      muroO.castShadow = true; muroO.receiveShadow = true;
-      muroO.userData = { tipo: 'muro', lado: 'oeste', idSala: sala.id };
-      g.add(muroO);
+      agregarMuroConZocalo(grosorMuro, D, -W / 2 + grosorMuro / 2, 0, 'oeste', false);
     } else {
       const pd = Math.min(D - 0.2, apO.d || 6.0);
       const cz = apO.cz || 0;
@@ -1442,19 +1917,11 @@
 
       const dNorte = (cz - pd / 2) - (-D / 2);
       if (dNorte > 0.05) {
-        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), mats.matPared);
-        mNorte.position.set(-W / 2 + grosorMuro / 2, H / 2, -D / 2 + dNorte / 2);
-        mNorte.castShadow = true; mNorte.receiveShadow = true;
-        mNorte.userData = { tipo: 'muro_hombro', lado: 'oeste_norte', idSala: sala.id };
-        g.add(mNorte);
+        agregarMuroConZocalo(grosorMuro, dNorte, -W / 2 + grosorMuro / 2, -D / 2 + dNorte / 2, 'oeste_norte', true);
       }
       const dSur = (D / 2) - (cz + pd / 2);
       if (dSur > 0.05) {
-        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), mats.matPared);
-        mSur.position.set(-W / 2 + grosorMuro / 2, H / 2, cz + pd / 2 + dSur / 2);
-        mSur.castShadow = true; mSur.receiveShadow = true;
-        mSur.userData = { tipo: 'muro_hombro', lado: 'oeste_sur', idSala: sala.id };
-        g.add(mSur);
+        agregarMuroConZocalo(grosorMuro, dSur, -W / 2 + grosorMuro / 2, cz + pd / 2 + dSur / 2, 'oeste_sur', true);
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
@@ -1469,11 +1936,7 @@
     // 4. Muro Este (+X)
     const apE = sala.abiertoEste ? (ap.este || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apE) {
-      const muroE = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), mats.matPared);
-      muroE.position.set(W / 2 - grosorMuro / 2, H / 2, 0);
-      muroE.castShadow = true; muroE.receiveShadow = true;
-      muroE.userData = { tipo: 'muro', lado: 'este', idSala: sala.id };
-      g.add(muroE);
+      agregarMuroConZocalo(grosorMuro, D, W / 2 - grosorMuro / 2, 0, 'este', false);
     } else {
       const pd = Math.min(D - 0.2, apE.d || 6.0);
       const cz = apE.cz || 0;
@@ -1481,19 +1944,11 @@
 
       const dNorte = (cz - pd / 2) - (-D / 2);
       if (dNorte > 0.05) {
-        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), mats.matPared);
-        mNorte.position.set(W / 2 - grosorMuro / 2, H / 2, -D / 2 + dNorte / 2);
-        mNorte.castShadow = true; mNorte.receiveShadow = true;
-        mNorte.userData = { tipo: 'muro_hombro', lado: 'este_norte', idSala: sala.id };
-        g.add(mNorte);
+        agregarMuroConZocalo(grosorMuro, dNorte, W / 2 - grosorMuro / 2, -D / 2 + dNorte / 2, 'este_norte', true);
       }
       const dSur = (D / 2) - (cz + pd / 2);
       if (dSur > 0.05) {
-        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), mats.matPared);
-        mSur.position.set(W / 2 - grosorMuro / 2, H / 2, cz + pd / 2 + dSur / 2);
-        mSur.castShadow = true; mSur.receiveShadow = true;
-        mSur.userData = { tipo: 'muro_hombro', lado: 'este_sur', idSala: sala.id };
-        g.add(mSur);
+        agregarMuroConZocalo(grosorMuro, dSur, W / 2 - grosorMuro / 2, cz + pd / 2 + dSur / 2, 'este_sur', true);
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
@@ -1538,17 +1993,22 @@
       g.add(luzSala);
     }
 
+    const distEntreAntorchas = (config && (config.distanciaAntorchas || config.distanciaEntreAntorchas)) || 8.0;
+    const colorLuzDefinido = (config && (config.colorLuzAntorcha || config.colorLuz)) || estilo.luzAntorchas || 0xf59e0b;
+    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 2.4;
+    const formaAntorchaDef = (config && (config.formaAntorcha || config.forma)) || 'antorcha_hierro';
+
     switch (sala.tipo) {
       case 'entrada': {
         if (cfgProps.antorchas !== false) {
-          const aL = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas, 2.4, config);
+          const aL = crearAntorcha(ThreeLib, kit, colorLuzDefinido, intLuzDefinida, Object.assign({}, config, { forma: formaAntorchaDef }));
           aL.position.set(-2.8, 2.2, D / 2 - 0.4);
           aL.rotation.y = Math.PI / 2;
           g.add(aL);
           animables.push(aL);
           props.antorchas.push(aL);
 
-          const aR = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas, 2.4, config);
+          const aR = crearAntorcha(ThreeLib, kit, colorLuzDefinido, intLuzDefinida, Object.assign({}, config, { forma: formaAntorchaDef }));
           aR.position.set(2.8, 2.2, D / 2 - 0.4);
           aR.rotation.y = -Math.PI / 2;
           g.add(aR);
@@ -1737,18 +2197,18 @@
       }
 
       case 'pasillo': {
-        if (cfgProps.antorchas !== false && D >= 8) {
-          const cantPares = Math.max(1, Math.floor(D / 10));
+        if (cfgProps.antorchas !== false && D >= 6) {
+          const cantPares = Math.max(1, Math.floor(D / distEntreAntorchas));
           for (let p = 0; p < cantPares; p++) {
             const zRel = -D / 2 + (p + 0.5) * (D / cantPares);
-            const aL = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+            const aL = crearAntorcha(ThreeLib, kit, colorLuzDefinido, intLuzDefinida, Object.assign({}, config, { forma: formaAntorchaDef }));
             aL.position.set(-W / 2 + 0.25, 2.2, zRel);
             aL.rotation.y = Math.PI / 2;
             g.add(aL);
             animables.push(aL);
             props.antorchas.push(aL);
 
-            const aR = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+            const aR = crearAntorcha(ThreeLib, kit, colorLuzDefinido, intLuzDefinida, Object.assign({}, config, { forma: formaAntorchaDef }));
             aR.position.set(W / 2 - 0.25, 2.2, zRel);
             aR.rotation.y = -Math.PI / 2;
             g.add(aR);
@@ -1758,6 +2218,60 @@
         }
         break;
       }
+    }
+
+    // Distribución automática paramétrica de antorchas en paredes de salas (según distancia, color, intensidad y forma)
+    if (config && cfgProps.antorchas !== false && config.antorchasAutomaticas !== false && sala.tipo !== 'pasillo' && sala.tipo !== 'entrada') {
+      const ap = sala.aperturas || {};
+      const altPared = 2.4;
+      const offP = 0.22;
+
+      const ponerAntorchasEnPared = (x1, z1, x2, z2, rotY, apPuerta, esHoriz) => {
+        const dx = x2 - x1;
+        const dz = z2 - z1;
+        const distTotal = Math.hypot(dx, dz);
+        if (distTotal < 3.2) return;
+
+        const count = Math.max(1, Math.round(distTotal / distEntreAntorchas));
+        for (let i = 1; i <= count; i++) {
+          const t = i / (count + 1);
+          const ax = x1 + dx * t;
+          const az = z1 + dz * t;
+
+          // Evitar colisión con el hueco o vano de paso de la puerta
+          if (apPuerta) {
+            if (esHoriz) {
+              const cx = apPuerta.cx || 0;
+              const halfW = (apPuerta.w || 6.8) / 2 + 0.5;
+              if (ax >= cx - halfW && ax <= cx + halfW) continue;
+            } else {
+              const cz = apPuerta.cz || 0;
+              const halfD = (apPuerta.d || 6.0) / 2 + 0.5;
+              if (az >= cz - halfD && az <= cz + halfD) continue;
+            }
+          }
+
+          const ant = crearAntorcha(ThreeLib, kit, colorLuzDefinido, intLuzDefinida, Object.assign({}, config, { forma: formaAntorchaDef }));
+          ant.position.set(ax, altPared, az);
+          ant.rotation.y = rotY;
+          ant.userData = ant.userData || {};
+          ant.userData.esAuto = true;
+          ant.userData.idPropAuto = 'antorcha_auto_' + sala.id + '_' + props.antorchas.length;
+          ant.userData.idSala = sala.id;
+          g.add(ant);
+          animables.push(ant);
+          props.antorchas.push(ant);
+        }
+      };
+
+      // 1. Pared Norte
+      ponerAntorchasEnPared(-W / 2 + 1.2, -D / 2 + offP, W / 2 - 1.2, -D / 2 + offP, 0, sala.abiertoNorte ? (ap.norte || { w: 6.8, cx: 0 }) : null, true);
+      // 2. Pared Sur
+      ponerAntorchasEnPared(-W / 2 + 1.2, D / 2 - offP, W / 2 - 1.2, D / 2 - offP, Math.PI, sala.abiertoSur ? (ap.sur || { w: 6.8, cx: 0 }) : null, true);
+      // 3. Pared Oeste
+      ponerAntorchasEnPared(-W / 2 + offP, -D / 2 + 1.2, -W / 2 + offP, D / 2 - 1.2, Math.PI / 2, sala.abiertoOeste ? (ap.oeste || { d: 6.0, cz: 0 }) : null, false);
+      // 4. Pared Este
+      ponerAntorchasEnPared(W / 2 - offP, -D / 2 + 1.2, W / 2 - offP, D / 2 - 1.2, -Math.PI / 2, sala.abiertoEste ? (ap.este || { d: 6.0, cz: 0 }) : null, false);
     }
 
     // Props decorativos introducidos individualmente en esta estancia
@@ -2438,6 +2952,32 @@
       ctx.moveTo(0, 0); ctx.lineTo(tam, tam);
       ctx.moveTo(tam, 0); ctx.lineTo(0, tam);
       ctx.stroke();
+    } else if (tipo === 'zocalo') {
+      ctx.fillStyle = estilo.colorMortero || '#090d16';
+      ctx.fillRect(0, 0, tam, tam);
+
+      // Moldura superior
+      const gradM = ctx.createLinearGradient(0, 0, 0, tam * 0.3);
+      gradM.addColorStop(0, estilo.colorSecundario);
+      gradM.addColorStop(0.5, estilo.colorBase);
+      gradM.addColorStop(1, estilo.colorMortero);
+      ctx.fillStyle = gradM;
+      ctx.fillRect(0, 0, tam, tam * 0.3);
+
+      // Sillares ciclópeos
+      const bAncho = tam / 2;
+      for (let b = 0; b < 2; b++) {
+        const bx = b * bAncho;
+        const pad = Math.max(1, Math.round(tam * 0.03));
+        const gradB = ctx.createLinearGradient(bx, tam * 0.32, bx + bAncho, tam);
+        gradB.addColorStop(0, estilo.colorBase);
+        gradB.addColorStop(0.8, estilo.colorSecundario);
+        ctx.fillStyle = gradB;
+        ctx.fillRect(bx + pad, tam * 0.32 + pad, bAncho - pad * 2, tam * 0.68 - pad * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx + pad + 0.5, tam * 0.32 + pad + 0.5, bAncho - pad * 2 - 1, tam * 0.68 - pad * 2 - 1);
+      }
     } else {
       ctx.fillStyle = estilo.colorMortero || '#090d16';
       ctx.fillRect(0, 0, tam, tam);
@@ -2498,6 +3038,12 @@
     simularAperturaCofre,
     resolverMaterialesSala,
     crearAtlasMazmorra,
+    crearTexturaPared,
+    crearTexturaSuelo,
+    crearTexturaZocalo,
+    crearTexturaTecho,
+    crearTexturaMadera,
+    crearTexturaHierro,
     generarDataURLThumbnail,
     crearKitMateriales,
     crearAntorcha,

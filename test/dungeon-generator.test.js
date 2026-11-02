@@ -32,6 +32,7 @@ const mockTHREE = {
   SphereGeometry: function (...args) { this.args = args; },
   TorusGeometry: function (...args) { this.args = args; },
   CircleGeometry: function (...args) { this.args = args; },
+  OctahedronGeometry: function (...args) { this.args = args; },
   MeshStandardMaterial: function (opts) {
     this.color = { hex: '#ffffff', set(v) { this.hex = v; } };
     Object.assign(this, opts);
@@ -510,4 +511,81 @@ test('DungeonGenerator: generador de thumbnails visuales y propagación de propI
   assert.ok(antorchaMesh, 'Debe existir la antorcha instanciada');
   assert.strictEqual(antorchaMesh.position.y, 2.4, 'La antorcha debe estar a altura Y = 2.4m');
   assert.strictEqual(antorchaMesh.userData.propId, 'antorcha_wall_1', 'Debe tener propId en userData');
+});
+
+test('DungeonGenerator: texturas independientes puras y kit desacoplado (pared, suelo, zocalo, techo, madera, hierro)', () => {
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaPared, 'function', 'Exporta crearTexturaPared');
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaSuelo, 'function', 'Exporta crearTexturaSuelo');
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaZocalo, 'function', 'Exporta crearTexturaZocalo');
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaTecho, 'function', 'Exporta crearTexturaTecho');
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaMadera, 'function', 'Exporta crearTexturaMadera');
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaHierro, 'function', 'Exporta crearTexturaHierro');
+
+  const estilo = DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica;
+  const kit = DungeonGenerator.crearKitMateriales(estilo, mockTHREE);
+
+  assert.ok(kit.piedraMuro, 'Kit contiene material piedraMuro');
+  assert.ok(kit.sueloLosas, 'Kit contiene material sueloLosas');
+  assert.ok(kit.zocalo, 'Kit contiene material zocalo');
+  assert.ok(kit.techo, 'Kit contiene material techo');
+  assert.ok(kit.madera, 'Kit contiene material madera');
+  assert.ok(kit.hierro, 'Kit contiene material hierro');
+
+  // En una caja de habitación, deben instanciarse suelos, paredes y zócalos
+  const sala = { id: 's_texturas', tipo: 'normal', w: 12, d: 12, h: 5.0, x: 0, z: 0 };
+  const caja = DungeonGenerator.construirCajaHabitacion(mockTHREE, kit, sala);
+  const suelos = caja.children.filter(c => c.userData && c.userData.tipo === 'suelo');
+  const muros = caja.children.filter(c => c.userData && c.userData.tipo === 'muro');
+  const zocalos = caja.children.filter(c => c.userData && c.userData.tipo === 'zocalo');
+
+  assert.strictEqual(suelos.length, 1, 'Debe haber 1 suelo');
+  assert.strictEqual(muros.length, 4, 'Debe haber 4 muros superiores');
+  assert.strictEqual(zocalos.length, 4, 'Debe haber 4 zócalos perimetrales inferiores');
+});
+
+test('DungeonGenerator: menú y modelos de antorchas en 5 formas diferentes', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const formas = ['antorcha_hierro', 'candelabro_aplique', 'farol_jaula', 'brasero_calavera', 'cristal_arcano'];
+
+  formas.forEach(forma => {
+    const a = DungeonGenerator.crearAntorcha(mockTHREE, kit, 0x38bdf8, 3.0, { forma });
+    assert.ok(a, `Debe crear antorcha con forma ${forma}`);
+    assert.strictEqual(a.userData.tipo, 'antorcha');
+    assert.strictEqual(a.userData.forma, forma);
+    assert.ok(a.userData.luz, 'Debe tener PointLight');
+    assert.strictEqual(a.userData.baseIntensity, 3.0);
+    assert.strictEqual(typeof a.userData.flicker, 'function', 'Debe contar con función de animación / flicker');
+
+    // Comprobar que flicker oscila sin lanzar errores
+    a.userData.flicker(1.5);
+  });
+});
+
+test('DungeonGenerator: distribución automática paramétrica de antorchas en paredes perimetrales', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const animables = [];
+  const props = { antorchas: [], cofres: [], fuentes: [], animables };
+
+  const salaGrande = {
+    id: 'sala_gran_salon',
+    tipo: 'armeria',
+    w: 24, d: 24, h: 5.2,
+    x: 0, y: 0, z: 0
+  };
+
+  const configAuto = {
+    antorchasAutomaticas: true,
+    distanciaAntorchas: 6.0,
+    formaAntorcha: 'farol_jaula',
+    colorLuzAntorcha: 0x10b981,
+    intensidadAntorchas: 2.8
+  };
+
+  const decMesh = DungeonGenerator.decorarHabitacion(mockTHREE, kit, salaGrande, DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, new DungeonGenerator.PRNG(555), animables, props, configAuto);
+  assert.ok(decMesh, 'Debe decorar la sala');
+
+  // Con distancia 6m en sala de 24x24, debe generar múltiples antorchas automáticas
+  const antorchasAuto = props.antorchas.filter(a => a.userData && a.userData.esAuto);
+  assert.ok(antorchasAuto.length >= 8, 'Debe generar al menos 8 antorchas automáticas en las 4 paredes');
+  assert.strictEqual(antorchasAuto[0].userData.forma, 'farol_jaula', 'Debe aplicar la forma seleccionada en el menú');
 });

@@ -111,9 +111,18 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('id="modal-galeria-texturas"'), 'Debe incluir modal de catálogo y muestrario visual');
   assert.ok(html.includes('id="preview-thumb-pared"'), 'Debe incluir vista previa de pared');
   assert.ok(html.includes('id="preview-thumb-suelo"'), 'Debe incluir vista previa de suelo');
+  assert.ok(html.includes('id="preview-thumb-zocalo"'), 'Debe incluir vista previa de zócalo');
   assert.ok(html.includes('id="preview-thumb-techo"'), 'Debe incluir vista previa de techo');
   assert.ok(html.includes('id="preview-thumb-fuente"'), 'Debe incluir vista previa de fuente');
   assert.ok(html.includes('btn-muestrario'), 'Debe incluir botones para abrir el muestrario visual');
+  assert.ok(html.includes('id="insp-estilo-zocalo"'), 'Debe incluir selector de estilo de zócalo individual');
+
+  // Menú de Creación Automática de Antorchas en Paredes
+  assert.ok(html.includes('id="cfg-antorchas-distancia"'), 'Debe incluir slider de distancia entre antorchas');
+  assert.ok(html.includes('id="cfg-antorchas-forma"'), 'Debe incluir selector de formas de antorcha');
+  assert.ok(html.includes('id="cfg-antorchas-color"'), 'Debe incluir picker de color de luz de antorchas');
+  assert.ok(html.includes('id="cfg-antorchas-intensidad"'), 'Debe incluir slider de intensidad lumínica');
+  assert.ok(html.includes('id="btn-aplicar-antorchas-auto"'), 'Debe incluir botón para aplicar antorchas en paredes');
 });
 
 test('index.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {
