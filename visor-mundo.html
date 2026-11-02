@@ -6425,10 +6425,10 @@
           }
           info.meshProcedural.position.set(0, 0, 0);
           m.group.add(info.meshProcedural);
-        } else if (!info.esMazmorraProcedural && window.EnemyLib) {
+        } else if (window.EnemyLib) {
           const seedOffset = (info.id ? (info.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0)*31) : (monsters.length * 7919 + Math.floor((info.x||0)*13)));
           const rngTemp = (typeof W !== 'undefined' && W.PRNG) ? new W.PRNG((info.level * 101) ^ (isBoss ? 9999 : (1234 + seedOffset))) : { range: (a, b) => a + Math.random() * (b - a) };
-          m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp);
+          m.enemigo = (info.arquetipo && window.EnemyLib.ARCHETYPE_PRESETS[info.arquetipo]) || enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp);
           m.versiones = {};
           m.rig = null; // Se construye progresivamente según distancia en updateCombat con control de presupuesto
         }

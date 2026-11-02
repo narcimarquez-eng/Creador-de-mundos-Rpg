@@ -1873,14 +1873,66 @@
 
   function crearMonstruoProcedural(ThreeLib, arquetipoId, opciones = {}) {
     const g = new ThreeLib.Group();
-    const def = ARQUETIPOS_MONSTRUOS[arquetipoId] || ARQUETIPOS_MONSTRUOS.jefe_caballero_titan;
-    const esJefe = opciones.esJefe !== undefined ? opciones.esJefe : def.esJefe;
+    const enemyLib = (typeof window !== 'undefined' && window.EnemyLib) || (opciones && opciones.EnemyLib) || null;
+    const def = ARQUETIPOS_MONSTRUOS[arquetipoId];
+    const esJefe = opciones.esJefe !== undefined ? opciones.esJefe : (def ? def.esJefe : false);
     const escala = opciones.escala || (esJefe ? 1.25 : 0.95);
     const nivel = opciones.nivel || (esJefe ? 17 : 14);
     const rangoElite = opciones.rangoElite || (esJefe ? 10 : 4);
-    const nombre = opciones.nombre || def.nombre;
+    const nombre = opciones.nombre || (def ? def.nombre : ((enemyLib && enemyLib.ARCHETYPE_PRESETS && enemyLib.ARCHETYPE_PRESETS[arquetipoId] && enemyLib.ARCHETYPE_PRESETS[arquetipoId].name) || (opciones.enemyConfig && opciones.enemyConfig.name) || ARQUETIPOS_MONSTRUOS.jefe_caballero_titan.nombre));
 
     let animarFn = null;
+
+    // 1. Integración con EnemyLib (Generador Procedural de Criaturas de AetherForge / Editor de enemigos)
+    let enemyCfg = null;
+    if (enemyLib && enemyLib.ARCHETYPE_PRESETS) {
+      if (enemyLib.ARCHETYPE_PRESETS[arquetipoId]) {
+        enemyCfg = enemyLib.ARCHETYPE_PRESETS[arquetipoId];
+      } else if (opciones.enemyConfig) {
+        enemyCfg = opciones.enemyConfig;
+      }
+    }
+
+    if (enemyLib && enemyCfg && typeof enemyLib.buildProceduralEnemy === 'function') {
+      try {
+        if (!enemyLib._cachedTextures && typeof enemyLib.createProceduralTextureSet === 'function') {
+          const aniso = (ThreeLib && ThreeLib.capabilities && typeof ThreeLib.capabilities.getMaxAnisotropy === 'function')
+            ? ThreeLib.capabilities.getMaxAnisotropy()
+            : 1;
+          enemyLib._cachedTextures = enemyLib.createProceduralTextureSet(aniso);
+        }
+        const rig = enemyLib.buildProceduralEnemy(enemyCfg, enemyLib._cachedTextures, false, false);
+        const enemyOpt = (typeof window !== 'undefined' && window.EnemyOpt) || null;
+        if (enemyOpt && typeof enemyOpt.optimizarRig === 'function') {
+          try { enemyOpt.optimizarRig(rig); } catch (e) {}
+        }
+        if (rig && rig.rootGroup) {
+          g.add(rig.rootGroup);
+          if (typeof ThreeLib.Box3 === 'function') {
+            const bBox = new ThreeLib.Box3().setFromObject(rig.rootGroup);
+            const sz = new ThreeLib.Vector3();
+            bBox.getSize(sz);
+            if (sz.y > 0.1) {
+              const hObjetivo = (esJefe ? 3.4 : 2.1) * (escala || 1.0);
+              const factorNorm = hObjetivo / sz.y;
+              rig.rootGroup.scale.multiplyScalar(factorNorm);
+            }
+          }
+          animarFn = (t, dt) => {
+            try {
+              if (typeof enemyLib.updateEnemyAnimation === 'function') {
+                enemyLib.updateEnemyAnimation(rig, 'idle', t, dt || 0.016, 1, 0);
+              }
+            } catch (e) {}
+          };
+        }
+      } catch (errEnemy) {
+        console.warn('Fallo al construir criatura con EnemyLib, usando fallback procedural geométrico:', errEnemy);
+      }
+    }
+
+    // 2. Fallback procedural geométrico (si EnemyLib no está disponible o el arquetipo es del kit clásico)
+    if (!animarFn && g.children.length === 0) {
 
     if (arquetipoId === 'jefe_nigromante_arcano') {
       // 1. Archimago Nigromante Espectral (levitante)
@@ -2184,6 +2236,7 @@
         }
       };
     }
+  }
 
     if (g.scale && g.scale.set) {
       g.scale.set(escala, escala, escala);
@@ -3621,13 +3674,19 @@
         for (let i = 0; i < animables.length; i++) {
           const item = animables[i];
           if (item.userData && typeof item.userData.animar === 'function') {
-            item.userData.animar(t);
+            item.userData.animar(t, dt);
           } else if (item.userData && typeof item.userData.flicker === 'function') {
             item.userData.flicker(t);
           } else if (item.userData && typeof item.userData.update === 'function') {
             item.userData.update(t);
           } else if (typeof item.flicker === 'function') {
             item.flicker(t);
+          }
+        }
+        for (let j = 0; j < monstruos.length; j++) {
+          const m = monstruos[j];
+          if (m && m.userData && typeof m.userData.animar === 'function' && !animables.includes(m)) {
+            m.userData.animar(t, dt);
           }
         }
       }
@@ -3797,6 +3856,25 @@
     return dataUrl;
   }
 
+  function obtenerCatalogoMonstruos() {
+    const base = Object.assign({}, ARQUETIPOS_MONSTRUOS);
+    const enemyLib = (typeof window !== 'undefined' && window.EnemyLib) || null;
+    if (enemyLib && enemyLib.ARCHETYPE_PRESETS) {
+      for (const [k, p] of Object.entries(enemyLib.ARCHETYPE_PRESETS)) {
+        base[k] = {
+          id: k,
+          nombre: p.name || k,
+          categoria: p.raceCategory || 'enemigos_procedurales',
+          descripcion: p.title || p.description || '',
+          esJefe: p.stats && (p.stats.tier === 'Mini-Boss' || p.stats.tier === 'Raid Boss'),
+          esEnemyLib: true,
+          icono: (p.raceCategory === 'dragons' ? '🐉' : (p.raceCategory === 'undead' ? '💀' : (p.raceCategory === 'magical' ? '🔮' : (p.raceCategory === 'beasts' ? '🐺' : '👾'))))
+        };
+      }
+    }
+    return base;
+  }
+
   return {
     TIPOS_ESTANCIA,
     ESTILOS_PIEDRA,
@@ -3833,6 +3911,7 @@
     decorarHabitacion,
     ARQUETIPOS_MONSTRUOS,
     crearMonstruoProcedural,
+    obtenerCatalogoMonstruos,
     generarPlanEstancias,
     generarMazmorra
   };
