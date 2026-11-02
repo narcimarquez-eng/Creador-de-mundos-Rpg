@@ -55,6 +55,18 @@
     const cachePuestosGLB = {};
     const promesasCargaPuestos = {};
 
+    function base64ToArrayBuffer(base64) {
+      const binaryString = (typeof window !== 'undefined' && window.atob)
+        ? window.atob(base64)
+        : (typeof Buffer !== 'undefined' ? Buffer.from(base64, 'base64').toString('binary') : '');
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+
     function cargarPuestoGLB(ruta, ThreeLib) {
       if (cachePuestosGLB[ruta]) return Promise.resolve(cachePuestosGLB[ruta]);
       if (promesasCargaPuestos[ruta]) return promesasCargaPuestos[ruta];
@@ -66,17 +78,46 @@
 
       if (!GLTFLoaderClass) return Promise.resolve(null);
 
+      const clave = ruta.replace(/^.*[\\\/]/, '').replace(/\.glb$/, '');
+
       promesasCargaPuestos[ruta] = new Promise(resolve => {
         try {
           const loader = new GLTFLoaderClass();
-          loader.load(ruta, gltf => {
-            if (gltf && gltf.scene) {
-              cachePuestosGLB[ruta] = gltf.scene;
-              resolve(gltf.scene);
-            } else {
-              resolve(null);
+
+          // 1. Carga prioritaria instantánea desde memoria (window.PuestosDatos):
+          // Funciona siempre, offline y en file:/// sin restricciones de CORS
+          if (typeof window !== 'undefined' && window.PuestosDatos && window.PuestosDatos[clave]) {
+            try {
+              const buffer = base64ToArrayBuffer(window.PuestosDatos[clave]);
+              loader.parse(buffer, '', gltf => {
+                if (gltf && gltf.scene) {
+                  cachePuestosGLB[ruta] = gltf.scene;
+                  resolve(gltf.scene);
+                } else {
+                  cargarPorRed();
+                }
+              }, err => {
+                console.warn('Fallo parseo puesto incrustado:', clave, err);
+                cargarPorRed();
+              });
+              return;
+            } catch (errParse) {
+              console.warn('Error convirtiendo base64:', errParse);
             }
-          }, undefined, () => resolve(null));
+          }
+
+          function cargarPorRed() {
+            loader.load(ruta, gltf => {
+              if (gltf && gltf.scene) {
+                cachePuestosGLB[ruta] = gltf.scene;
+                resolve(gltf.scene);
+              } else {
+                resolve(null);
+              }
+            }, undefined, () => resolve(null));
+          }
+
+          cargarPorRed();
         } catch (e) {
           resolve(null);
         }
@@ -1135,7 +1176,8 @@
 
       getTerrainHeight(x, z) {
         if (!this.cfg) return 0;
-        const reliefScale = (this.cfg.relief / 100) * 6.5;
+        const relief = (this.cfg && Number.isFinite(this.cfg.relief)) ? this.cfg.relief : 45;
+        const reliefScale = (relief / 100) * 6.5;
         const rDist = Math.hypot(x, z);
         const plazaFlatten = Math.min(1.0, Math.max(0.0, (rDist - 16.0) / 18.0));
 
@@ -1151,7 +1193,7 @@
           const rim = Math.max(0, (rDist - 65) * 0.12);
           h = ((Math.sin(x * 0.03) * Math.cos(z * 0.03)) * reliefScale * 0.6 + rim) * plazaFlatten;
         } else {
-          const valleyRise = Math.max(0, (rDist - 45) * 0.075) * (this.cfg.relief / 60);
+          const valleyRise = Math.max(0, (rDist - 45) * 0.075) * (relief / 60);
           h = (Math.sin(x * 0.028) * Math.cos(z * 0.028) * reliefScale * 0.55 + valleyRise) * plazaFlatten;
         }
 
@@ -1165,7 +1207,7 @@
             h = h * t + riverBed * (1.0 - t);
           }
         }
-        return h;
+        return Number.isFinite(h) ? h : 0;
       }
 
       // Casas de madera: cada una con su variante y su zócalo hundido en la ladera; las piezas de todas se
@@ -2608,9 +2650,18 @@
 
         this.construirCasasMadera(maderas, HW, HD);
 
-        // Los antiguos puestos procedurales (stallG) se desactivan completamente a favor de los nuevos puestos GLB 3D
-        const iStall = makeInstanced(stallG, matCloth, 0);
+        const iStall = makeInstanced(stallG, matCloth, stalls.length);
         const iBarrel = makeInstanced(barrelG, matAtlas, barrels.length, { castShadow: false });
+
+        stalls.forEach((s, idx) => {
+          const sy = Number.isFinite(s.y) ? s.y : 0;
+          dPos.set(s.x, sy, s.z);
+          dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s.rot);
+          dScale.set(1, 1, 1);
+          dMat.compose(dPos, dQuat, dScale);
+          iStall.setMatrixAt(idx, dMat);
+          iStall.setColorAt(idx, new THREE.Color(s.color));
+        });
 
         // Puestos de mercado GLB personalizados en el anillo cerca de los gurús
         if (stalls.length > 0) {
@@ -2637,7 +2688,8 @@
                   clon.scale.set(escala, escala, escala);
                 }
                 const yOffset = (bbox.min.y < 0) ? (-bbox.min.y * escala) : 0;
-                clon.position.set(s.x, s.y + yOffset, s.z);
+                const sy = Number.isFinite(s.y) ? s.y : 0;
+                clon.position.set(s.x, sy + yOffset, s.z);
                 clon.rotation.y = s.rot;
                 clon.traverse(child => {
                   if (child.isMesh) {
@@ -2646,6 +2698,8 @@
                   }
                 });
                 puestosGrupo.add(clon);
+                // Cuando los puestos GLB se agregan, se ocultan los puestos procedurales antiguos
+                if (iStall) iStall.visible = false;
               } catch (e) {
                 console.warn('Error instanciando puesto GLB:', e);
               }

@@ -31,8 +31,14 @@ test('VillageCore: eliminación de puestos antiguos y uso de puestos GLB con cic
   assert.ok(code.includes('this.scene.add(puestosGrupo)'), 'Debe agregar puestosGrupo a this.scene');
   assert.ok(code.includes('this.objects.push(puestosGrupo)'), 'Debe registrar puestosGrupo en this.objects para su limpieza en destroy()/clear()');
 
-  // 2. Verificación de que los antiguos puestos procedurales queden desactivados (count = 0)
-  assert.ok(code.includes('makeInstanced(stallG, matCloth, 0)'), 'Los puestos antiguos stallG deben instanciarse con 0 elementos para no dibujarse');
+  // 2. Verificación de que los puestos GLB oculten los puestos antiguos
+  assert.ok(code.includes('if (iStall) iStall.visible = false'), 'Al agregarse los puestos GLB se deben ocultar los puestos antiguos');
+
+  // 3. Verificación de datos incrustados Base64 para compatibilidad offline y file:///
+  const puestosDatosPath = path.join(__dirname, '..', 'js', 'puestos-datos.js');
+  assert.ok(fs.existsSync(puestosDatosPath), 'Debe existir js/puestos-datos.js con los modelos incrustados');
+  const datosCode = fs.readFileSync(puestosDatosPath, 'utf8');
+  assert.ok(datosCode.includes('puesto_armas') && datosCode.includes('puesto_frutas'), 'puestos-datos.js debe contener los modelos');
 
   // 3. Verificación de caché global y preloader
   assert.ok(code.includes('preloadPuestosGLB'), 'Debe existir la función preloadPuestosGLB');
