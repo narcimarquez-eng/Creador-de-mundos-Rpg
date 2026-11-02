@@ -1420,7 +1420,7 @@
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.12;
-    controls.minDistance = 2;
+    controls.minDistance = 2.4;
     controls.maxDistance = 9000;
     controls.maxPolarAngle = Math.PI / 2 - 0.02;
 
@@ -6345,7 +6345,8 @@
         m.group.visible = true;
 
         if (window.EnemyLib) {
-          const rngTemp = (typeof W !== 'undefined' && W.PRNG) ? new W.PRNG((info.level * 101) ^ (isBoss ? 9999 : 1234)) : { range: (a, b) => a + Math.random() * (b - a) };
+          const seedOffset = (info.id ? (info.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0)*31) : (monsters.length * 7919 + Math.floor((info.x||0)*13)));
+          const rngTemp = (typeof W !== 'undefined' && W.PRNG) ? new W.PRNG((info.level * 101) ^ (isBoss ? 9999 : (1234 + seedOffset))) : { range: (a, b) => a + Math.random() * (b - a) };
           m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp);
           m.versiones = {};
           m.rig = null; // Se construye progresivamente según distancia en updateCombat con control de presupuesto
@@ -6915,7 +6916,7 @@
     $('btn-follow').classList.toggle('gold', on);
     if (on) {
       const p = character.root.position;
-      camera.position.set(p.x, p.y + 6, p.z + 12);
+      camera.position.set(p.x, p.y + 4.8, p.z + 9.5);
       controls.target.set(p.x, p.y + 1.4, p.z);
     }
   }

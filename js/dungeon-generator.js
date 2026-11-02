@@ -67,7 +67,7 @@
     chance(prob) { return this.next() < prob; }
   }
 
-  // --- 2. TEMAS Y TIPOS DE PIEDRA ---
+  // --- 2. TEMAS Y TIPOS DE PIEDRA (MÁS DE 20 ESTILOS PROCEDURALES) ---
   const ESTILOS_PIEDRA = {
     cripta_gotica: {
       id: 'cripta_gotica',
@@ -121,13 +121,283 @@
       colorSecundario: '#18181b',
       colorMortero: '#27272a',
       colorLosa: '#1c1917',
-      colorMusgo: '#b91c1c', // Líquenes volcánicos rojizos
+      colorMusgo: '#b91c1c',
       colorAgua: 0x6366f1,
       luzAntorchas: 0xff4400,
       luzJefe: 0xdc2626,
       densidadMusgo: 0.10,
       densidadHierba: 0.05,
       rugosidad: 0.60
+    },
+    marmol_imperial: {
+      id: 'marmol_imperial',
+      nombre: 'Templo de Mármol Blanco Imperial',
+      colorBase: '#e2e8f0',
+      colorSecundario: '#f8fafc',
+      colorMortero: '#cbd5e1',
+      colorLosa: '#f1f5f9',
+      colorMusgo: '#94a3b8',
+      colorAgua: 0x38bdf8,
+      luzAntorchas: 0x60a5fa,
+      luzJefe: 0x3b82f6,
+      densidadMusgo: 0.05,
+      densidadHierba: 0.05,
+      rugosidad: 0.35
+    },
+    caverna_obsidiana: {
+      id: 'caverna_obsidiana',
+      nombre: 'Caverna de Obsidiana Abisal',
+      colorBase: '#0a0a0f',
+      colorSecundario: '#12111a',
+      colorMortero: '#1e1b4b',
+      colorLosa: '#181826',
+      colorMusgo: '#4c1d95',
+      colorAgua: 0x818cf8,
+      luzAntorchas: 0xa855f7,
+      luzJefe: 0x7c3aed,
+      densidadMusgo: 0.15,
+      densidadHierba: 0.05,
+      rugosidad: 0.40
+    },
+    ladrillo_medieval: {
+      id: 'ladrillo_medieval',
+      nombre: 'Mazmorra de Ladrillo Medieval Rojizo',
+      colorBase: '#7c2d12',
+      colorSecundario: '#9a3412',
+      colorMortero: '#475569',
+      colorLosa: '#451a03',
+      colorMusgo: '#365314',
+      colorAgua: 0x0284c7,
+      luzAntorchas: 0xf59e0b,
+      luzJefe: 0xd97706,
+      densidadMusgo: 0.40,
+      densidadHierba: 0.20,
+      rugosidad: 0.88
+    },
+    minas_amatista: {
+      id: 'minas_amatista',
+      nombre: 'Minas de Cuarzo y Amatista',
+      colorBase: '#3b0764',
+      colorSecundario: '#581c87',
+      colorMortero: '#1e1b4b',
+      colorLosa: '#6b21a8',
+      colorMusgo: '#a21caf',
+      colorAgua: 0xc084fc,
+      luzAntorchas: 0xe879f9,
+      luzJefe: 0xc026d3,
+      densidadMusgo: 0.20,
+      densidadHierba: 0.10,
+      rugosidad: 0.50
+    },
+    santuario_jade: {
+      id: 'santuario_jade',
+      nombre: 'Santuario de Jade y Esmeralda',
+      colorBase: '#064e3b',
+      colorSecundario: '#065f46',
+      colorMortero: '#022c22',
+      colorLosa: '#047857',
+      colorMusgo: '#10b981',
+      colorAgua: 0x34d399,
+      luzAntorchas: 0x10b981,
+      luzJefe: 0x059669,
+      densidadMusgo: 0.60,
+      densidadHierba: 0.45,
+      rugosidad: 0.45
+    },
+    bastion_hierro: {
+      id: 'bastion_hierro',
+      nombre: 'Bastión de Hierro Oxidado',
+      colorBase: '#3f3f46',
+      colorSecundario: '#52525b',
+      colorMortero: '#7c2d12',
+      colorLosa: '#27272a',
+      colorMusgo: '#9a3412',
+      colorAgua: 0x0284c7,
+      luzAntorchas: 0xf97316,
+      luzJefe: 0xe11d48,
+      densidadMusgo: 0.10,
+      densidadHierba: 0.05,
+      rugosidad: 0.70
+    },
+    cripta_glaciar: {
+      id: 'cripta_glaciar',
+      nombre: 'Cripta de Hielo y Glaciar Azul',
+      colorBase: '#0e7490',
+      colorSecundario: '#155e75',
+      colorMortero: '#083344',
+      colorLosa: '#164e63',
+      colorMusgo: '#67e8f9',
+      colorAgua: 0x22d3ee,
+      luzAntorchas: 0x38bdf8,
+      luzJefe: 0x06b6d4,
+      densidadMusgo: 0.10,
+      densidadHierba: 0.05,
+      rugosidad: 0.30
+    },
+    arenisca_desierto: {
+      id: 'arenisca_desierto',
+      nombre: 'Necrópolis de Arenisca del Desierto',
+      colorBase: '#b45309',
+      colorSecundario: '#d97706',
+      colorMortero: '#78350f',
+      colorLosa: '#92400e',
+      colorMusgo: '#854d0e',
+      colorAgua: 0x06b6d4,
+      luzAntorchas: 0xfbbf24,
+      luzJefe: 0xf59e0b,
+      densidadMusgo: 0.05,
+      densidadHierba: 0.05,
+      rugosidad: 0.85
+    },
+    huesos_calcinados: {
+      id: 'huesos_calcinados',
+      nombre: 'Catacumbas de Calaveras y Huesos',
+      colorBase: '#57534e',
+      colorSecundario: '#78716c',
+      colorMortero: '#1c1917',
+      colorLosa: '#44403c',
+      colorMusgo: '#a8a29e',
+      colorAgua: 0x94a3b8,
+      luzAntorchas: 0xf87171,
+      luzJefe: 0xdc2626,
+      densidadMusgo: 0.15,
+      densidadHierba: 0.10,
+      rugosidad: 0.90
+    },
+    alquimia_azufre: {
+      id: 'alquimia_azufre',
+      nombre: 'Laboratorio de Azufre y Alquimia',
+      colorBase: '#713f12',
+      colorSecundario: '#854d0e',
+      colorMortero: '#365314',
+      colorLosa: '#a16207',
+      colorMusgo: '#84cc16',
+      colorAgua: 0xa3e635,
+      luzAntorchas: 0xeab308,
+      luzJefe: 0x65a30d,
+      densidadMusgo: 0.50,
+      densidadHierba: 0.35,
+      rugosidad: 0.80
+    },
+    cloacas_pizarra: {
+      id: 'cloacas_pizarra',
+      nombre: 'Cloacas de Pizarra Subterránea',
+      colorBase: '#1f2937',
+      colorSecundario: '#111827',
+      colorMortero: '#064e3b',
+      colorLosa: '#374151',
+      colorMusgo: '#047857',
+      colorAgua: 0x059669,
+      luzAntorchas: 0xfacc15,
+      luzJefe: 0x10b981,
+      densidadMusgo: 0.70,
+      densidadHierba: 0.50,
+      rugosidad: 0.75
+    },
+    cripta_sangrienta: {
+      id: 'cripta_sangrienta',
+      nombre: 'Cripta Sangrienta de Pórfido Rojo',
+      colorBase: '#4c0519',
+      colorSecundario: '#881337',
+      colorMortero: '#1f1e24',
+      colorLosa: '#9f1239',
+      colorMusgo: '#be123c',
+      colorAgua: 0xe11d48,
+      luzAntorchas: 0xf43f5e,
+      luzJefe: 0xbe123c,
+      densidadMusgo: 0.30,
+      densidadHierba: 0.15,
+      rugosidad: 0.75
+    },
+    lapislazuli_oro: {
+      id: 'lapislazuli_oro',
+      nombre: 'Salón Regio de Lapislázuli y Oro',
+      colorBase: '#1e3a8a',
+      colorSecundario: '#172554',
+      colorMortero: '#b45309',
+      colorLosa: '#1d4ed8',
+      colorMusgo: '#f59e0b',
+      colorAgua: 0x60a5fa,
+      luzAntorchas: 0xfacc15,
+      luzJefe: 0xeab308,
+      densidadMusgo: 0.10,
+      densidadHierba: 0.05,
+      rugosidad: 0.40
+    },
+    ruinas_celestiales: {
+      id: 'ruinas_celestiales',
+      nombre: 'Ruinas Celestiales de Cuarzo Blanco',
+      colorBase: '#f1f5f9',
+      colorSecundario: '#e2e8f0',
+      colorMortero: '#94a3b8',
+      colorLosa: '#f8fafc',
+      colorMusgo: '#bae6fd',
+      colorAgua: 0x7dd3fc,
+      luzAntorchas: 0x93c5fd,
+      luzJefe: 0x38bdf8,
+      densidadMusgo: 0.20,
+      densidadHierba: 0.10,
+      rugosidad: 0.35
+    },
+    forja_magma: {
+      id: 'forja_magma',
+      nombre: 'Forja Titánica de Magma y Carbón',
+      colorBase: '#18181b',
+      colorSecundario: '#27272a',
+      colorMortero: '#b91c1c',
+      colorLosa: '#09090b',
+      colorMusgo: '#dc2626',
+      colorAgua: 0xf97316,
+      luzAntorchas: 0xff3300,
+      luzJefe: 0xe11d48,
+      densidadMusgo: 0.05,
+      densidadHierba: 0.05,
+      rugosidad: 0.85
+    },
+    vacio_umbrio: {
+      id: 'vacio_umbrio',
+      nombre: 'Mazmorra Umbría del Vacío Estelar',
+      colorBase: '#030712',
+      colorSecundario: '#111827',
+      colorMortero: '#312e81',
+      colorLosa: '#1e1b4b',
+      colorMusgo: '#4338ca',
+      colorAgua: 0x6366f1,
+      luzAntorchas: 0x818cf8,
+      luzJefe: 0x6366f1,
+      densidadMusgo: 0.15,
+      densidadHierba: 0.05,
+      rugosidad: 0.50
+    },
+    madera_petrificada: {
+      id: 'madera_petrificada',
+      nombre: 'Cripta de Madera Petrificada',
+      colorBase: '#291809',
+      colorSecundario: '#3b2310',
+      colorMortero: '#1c1917',
+      colorLosa: '#451a03',
+      colorMusgo: '#15803d',
+      colorAgua: 0x0284c7,
+      luzAntorchas: 0xf59e0b,
+      luzJefe: 0xb45309,
+      densidadMusgo: 0.60,
+      densidadHierba: 0.40,
+      rugosidad: 0.85
+    },
+    coral_abisal: {
+      id: 'coral_abisal',
+      nombre: 'Capilla Sumergida de Coral Abisal',
+      colorBase: '#0f2b38',
+      colorSecundario: '#164e63',
+      colorMortero: '#042f2e',
+      colorLosa: '#155e75',
+      colorMusgo: '#f43f5e',
+      colorAgua: 0x06b6d4,
+      luzAntorchas: 0x38bdf8,
+      luzJefe: 0xf43f5e,
+      densidadMusgo: 0.40,
+      densidadHierba: 0.30,
+      rugosidad: 0.65
     }
   };
 
@@ -144,6 +414,125 @@
     jardin_subterraneo: { id: 'jardin_subterraneo', nombre: 'Jardín Fúngico de Esporas', icono: '🍄', desc: 'Densa maleza, musgo y colonias de hongos bioluminiscentes', w: 18, d: 18, h: 5.8 },
     sala_jefe: { id: 'sala_jefe', nombre: 'Cámara del Trono del Jefe', icono: '👑', desc: 'Estrado elevado, trono de piedra y braseros mágicos', w: 24, d: 24, h: 7.5 }
   };
+
+  // --- 2.2 CONFIGURACIÓN Y SIMULADOR DE BOTÍN DE COFRES ---
+  const DEFAULT_LOOT_CONFIG = {
+    probabilidadApertura: 90, // % de éxito en apertura
+    oroMin: 80,
+    oroMax: 350,
+    arenaMin: 5,
+    arenaMax: 25,
+    items: [
+      { id: 'espada_acero', nombre: 'Espada de Acero Templado', tipo: 'arma', prob: 45, rareza: 'comun' },
+      { id: 'coraza_hierro', nombre: 'Coraza de Malla y Hierro', tipo: 'armadura', prob: 35, rareza: 'comun' },
+      { id: 'pocion_vida_mayor', nombre: 'Poción de Vida Mayor', tipo: 'pocion', prob: 75, rareza: 'comun' },
+      { id: 'pocion_mana', nombre: 'Elixir de Maná Concentrado', tipo: 'pocion', prob: 60, rareza: 'comun' },
+      { id: 'zafiro_arcano', nombre: 'Zafiro Arcano Purificado', tipo: 'gema', prob: 30, rareza: 'raro' },
+      { id: 'pergamino_portal', nombre: 'Pergamino de Teletransporte', tipo: 'pergamino', prob: 25, rareza: 'raro' },
+      { id: 'reliquia_ancestral', nombre: 'Reliquia de los Titanes Caídos', tipo: 'legendario', prob: 12, rareza: 'legendario' }
+    ]
+  };
+
+  function simularAperturaCofre(lootConfig = DEFAULT_LOOT_CONFIG, rng = null) {
+    const r = rng || Math;
+    const cfg = Object.assign({}, DEFAULT_LOOT_CONFIG, lootConfig);
+    const probExito = typeof cfg.probabilidadExito === 'number'
+    ? (cfg.probabilidadExito <= 1 ? cfg.probabilidadExito * 100 : cfg.probabilidadExito)
+    : (typeof cfg.probabilidadApertura === 'number' ? cfg.probabilidadApertura : 90);
+    const rollExito = (r.random ? r.random() : Math.random()) * 100;
+
+    if (rollExito > probExito) {
+      return {
+        exito: false,
+        mensaje: '¡Cerradura atascada o mecanismo trampa activado!',
+        oro: 0,
+        arena: 0,
+        itemsObtenidos: [], items: []
+      };
+    }
+
+    const oMin = cfg.oroMin || 50;
+    const oMax = Math.max(oMin, cfg.oroMax || 250);
+    const oro = Math.floor(oMin + (r.random ? r.random() : Math.random()) * (oMax - oMin + 1));
+
+    const aMin = cfg.arenaMin || 0;
+    const aMax = Math.max(aMin, cfg.arenaMax || 20);
+    const arena = Math.floor(aMin + (r.random ? r.random() : Math.random()) * (aMax - aMin + 1));
+
+    const itemsObtenidos = [];
+    const pool = Array.isArray(cfg.items) ? cfg.items : DEFAULT_LOOT_CONFIG.items;
+    pool.forEach(it => {
+      const prob = typeof it.prob === 'number'
+    ? (it.prob <= 1 ? it.prob * 100 : it.prob)
+    : (typeof it.probabilidad === 'number' ? (it.probabilidad <= 1 ? it.probabilidad * 100 : it.probabilidad) : 30);
+      const roll = (r.random ? r.random() : Math.random()) * 100;
+      if (roll <= prob) {
+        itemsObtenidos.push({ ...it });
+      }
+    });
+
+    return {
+      exito: true,
+      mensaje: '¡Cofre abierto con éxito!',
+      oro,
+      arena,
+      itemsObtenidos,
+      items: itemsObtenidos
+    };
+  }
+
+  // --- 2.3 RESOLUTOR DE MATERIALES INDIVIDUALES POR ESTANCIA ---
+  function resolverMaterialesSala(ThreeLib, kitBase, kitsPorEstilo, sala) {
+    const kPared = (kitsPorEstilo && (kitsPorEstilo[sala.estiloPared || sala.estilo])) || kitBase;
+    const kSuelo = (kitsPorEstilo && (kitsPorEstilo[sala.estiloSuelo])) || (kitsPorEstilo && kitsPorEstilo[sala.estilo]) || kitBase;
+    const kTecho = (kitsPorEstilo && (kitsPorEstilo[sala.estiloTecho])) || kPared;
+    const kFuente = (kitsPorEstilo && (kitsPorEstilo[sala.estiloFuente])) || (kitsPorEstilo && kitsPorEstilo[sala.estilo]) || kitBase;
+
+    let matPared = kPared.piedraMuro;
+    if (sala.colorPared && sala.colorPared !== 'default') {
+      matPared = (matPared && typeof matPared.clone === 'function') ? matPared.clone() : Object.assign({}, matPared);
+      if (matPared.color && typeof matPared.color.set === 'function') matPared.color.set(sala.colorPared);
+      else matPared.color = sala.colorPared;
+    }
+
+    let matSuelo = kSuelo.sueloLosas;
+    if (sala.colorSuelo && sala.colorSuelo !== 'default') {
+      matSuelo = (matSuelo && typeof matSuelo.clone === 'function') ? matSuelo.clone() : Object.assign({}, matSuelo);
+      if (matSuelo.color && typeof matSuelo.color.set === 'function') matSuelo.color.set(sala.colorSuelo);
+      else matSuelo.color = sala.colorSuelo;
+    }
+
+    let matTecho = kTecho.piedraMuro;
+    if (sala.colorTecho && sala.colorTecho !== 'default') {
+      matTecho = (matTecho && typeof matTecho.clone === 'function') ? matTecho.clone() : Object.assign({}, matTecho);
+      if (matTecho.color && typeof matTecho.color.set === 'function') matTecho.color.set(sala.colorTecho);
+      else matTecho.color = sala.colorTecho;
+    }
+
+    let matAgua = kFuente.agua;
+    if (sala.colorAgua && sala.colorAgua !== 'default') {
+      matAgua = (matAgua && typeof matAgua.clone === 'function') ? matAgua.clone() : Object.assign({}, matAgua);
+      if (matAgua.color && typeof matAgua.color.set === 'function') matAgua.color.set(sala.colorAgua);
+      else matAgua.color = sala.colorAgua;
+    }
+
+    return {
+      kPared,
+      kSuelo,
+      kTecho,
+      kFuente,
+      matPared,
+      matSuelo,
+      matTecho,
+      matAgua,
+      colorAgua: (sala.colorAgua && sala.colorAgua !== "default") ? sala.colorAgua : "#38bdf8",
+      kitCompleto: Object.assign({}, kitBase, {
+        piedraMuro: matPared,
+        sueloLosas: matSuelo,
+        agua: matAgua
+      })
+    };
+  }
 
   // --- 3. GENERADOR DE TEXTURAS ATLAS PROCEDURALES PBR ---
   const _atlasCache = new Map();
@@ -391,20 +780,23 @@
   // --- 5. FABRICA DE PROPS PROCEDURALES ---
 
   // A) Antorcha con soporte de hierro forjado
-  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 2.4) {
+  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 2.4, opciones = {}) {
     const g = new ThreeLib.Group();
 
     // Soporte de pared (hierro)
     const basePared = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.12, 0.4, 0.1), kit.hierro);
     basePared.position.set(0, 0, 0.05);
+    basePared.castShadow = true;
     g.add(basePared);
 
     const brazo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.08, 0.08, 0.32), kit.hierro);
     brazo.position.set(0, 0.05, 0.2);
+    brazo.castShadow = true;
     g.add(brazo);
 
     const cazoleta = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.12, 0.06, 0.18, 8), kit.hierro);
     cazoleta.position.set(0, 0.14, 0.34);
+    cazoleta.castShadow = true;
     g.add(cazoleta);
 
     // Llama (cono estilizado)
@@ -412,9 +804,19 @@
     llama.position.set(0, 0.3, 0.34);
     g.add(llama);
 
-    // Luz dinámica
+    // Luz dinámica con soporte de sombras configurables
     const luz = new ThreeLib.PointLight(luzHex || kit.estilo.luzAntorchas, intensidad, 18, 1.6);
     luz.position.set(0, 0.35, 0.36);
+    if (opciones.sombrasAntorchas !== false && !opciones.sinSombras) {
+      luz.castShadow = true;
+      if (luz.shadow) {
+        luz.shadow.bias = -0.002;
+        if (luz.shadow.mapSize) {
+          luz.shadow.mapSize.width = 512;
+          luz.shadow.mapSize.height = 512;
+        }
+      }
+    }
     g.add(luz);
 
     g.userData = {
@@ -436,42 +838,58 @@
   }
 
   // B) Fuente ornamental de piedra con pileta de agua
-  function crearFuente(ThreeLib, kit, radio = 2.8, altura = 1.4) {
+  function crearFuente(ThreeLib, kit, radio = 2.8, altura = 1.4, colorAguaOverride = null) {
     const g = new ThreeLib.Group();
 
     // Pileta octogonal exterior
     const basePiedra = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio, radio * 1.05, altura * 0.7, 8), kit.piedraMuro);
     basePiedra.position.y = altura * 0.35;
+    basePiedra.castShadow = true;
+    basePiedra.receiveShadow = true;
     g.add(basePiedra);
 
     // Reborde de la pileta
     const borde = new ThreeLib.Mesh(new ThreeLib.TorusGeometry(radio * 0.95, 0.22, 6, 8), kit.piedraMuro);
     borde.rotation.x = Math.PI / 2;
     borde.position.y = altura * 0.7;
+    borde.castShadow = true;
+    borde.receiveShadow = true;
     g.add(borde);
 
-    // Agua
-    const agua = new ThreeLib.Mesh(new ThreeLib.CircleGeometry(radio * 0.88, 16), kit.agua);
+    // Superficie de agua (con color override si se define por estancia)
+    let matAgua = kit.agua;
+    if (colorAguaOverride && colorAguaOverride !== 'default') {
+      matAgua = (kit.agua && typeof kit.agua.clone === 'function') ? kit.agua.clone() : Object.assign({}, kit.agua);
+      if (matAgua.color && typeof matAgua.color.set === 'function') matAgua.color.set(colorAguaOverride);
+      else matAgua.color = colorAguaOverride;
+    }
+    const agua = new ThreeLib.Mesh(new ThreeLib.CircleGeometry(radio * 0.88, 16), matAgua);
     agua.rotation.x = -Math.PI / 2;
     agua.position.y = altura * 0.62;
+    agua.receiveShadow = true;
     g.add(agua);
 
     // Pedestal central y cuenco superior
     const pilar = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.45, 0.55, altura * 1.3, 8), kit.piedraMuro);
     pilar.position.y = altura * 0.65;
+    pilar.castShadow = true;
+    pilar.receiveShadow = true;
     g.add(pilar);
 
     const cuenco = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.95, 0.3, 0.45, 8), kit.piedraMuro);
     cuenco.position.y = altura * 1.35;
+    cuenco.castShadow = true;
+    cuenco.receiveShadow = true;
     g.add(cuenco);
 
     // Chorro de agua central
-    const chorro = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.08, 0.16, 0.6, 6), kit.agua);
+    const chorro = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.08, 0.16, 0.6, 6), matAgua);
     chorro.position.y = altura * 1.7;
     g.add(chorro);
 
     // Luz ambiental mística
-    const luzFuente = new ThreeLib.PointLight(kit.estilo.colorAgua, 1.8, 14, 1.4);
+    const colLuz = colorAguaOverride || kit.estilo.colorAgua;
+    const luzFuente = new ThreeLib.PointLight(colLuz, 1.8, 14, 1.4);
     luzFuente.position.set(0, altura + 0.5, 0);
     g.add(luzFuente);
 
@@ -489,23 +907,29 @@
     return g;
   }
 
-  // C) Cofre del tesoro con herrajes de hierro y cerradura dorada
-  function crearCofre(ThreeLib, kit, abierto = false) {
+  // C) Cofre del tesoro con herrajes de hierro, cerradura dorada y tabla de botín configurable
+  function crearCofre(ThreeLib, kit, abierto = false, lootConfig = null) {
     const g = new ThreeLib.Group();
     const w = 1.1, h = 0.65, d = 0.75;
 
     // Cuerpo principal de madera
     const cuerpo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w, h * 0.65, d), kit.madera);
     cuerpo.position.y = (h * 0.65) / 2;
+    cuerpo.castShadow = true;
+    cuerpo.receiveShadow = true;
     g.add(cuerpo);
 
     // Herrajes de hierro
     const herraje1 = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w * 1.02, h * 0.66, 0.08), kit.hierro);
     herraje1.position.set(0, (h * 0.65) / 2, d * 0.25);
+    herraje1.castShadow = true;
+    herraje1.receiveShadow = true;
     g.add(herraje1);
 
     const herraje2 = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w * 1.02, h * 0.66, 0.08), kit.hierro);
     herraje2.position.set(0, (h * 0.65) / 2, -d * 0.25);
+    herraje2.castShadow = true;
+    herraje2.receiveShadow = true;
     g.add(herraje2);
 
     // Tapa abovedada
@@ -516,6 +940,8 @@
     tapa.rotation.z = Math.PI / 2;
     tapa.rotation.x = Math.PI / 2;
     tapa.position.set(0, 0, d / 2);
+    tapa.castShadow = true;
+    tapa.receiveShadow = true;
     tapaGroup.add(tapa);
 
     if (abierto) {
@@ -526,16 +952,26 @@
     // Cerradura de oro
     const cerradura = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.18, 0.22, 0.08), kit.oro);
     cerradura.position.set(0, (h * 0.65) * 0.75, d / 2 + 0.04);
+    cerradura.castShadow = true;
     g.add(cerradura);
 
     // Halo dorado si está cerrado (tesoro dentro)
+    let halo = null;
     if (!abierto) {
-      const halo = new ThreeLib.PointLight(0xf59e0b, 1.2, 5, 2);
+      halo = new ThreeLib.PointLight(0xf59e0b, 1.2, 5, 2);
       halo.position.set(0, h + 0.2, 0);
       g.add(halo);
     }
 
-    g.userData = { tipo: 'cofre', abierto, tapaGroup };
+    const cfgBotin = lootConfig || JSON.parse(JSON.stringify(DEFAULT_LOOT_CONFIG));
+
+    g.userData = {
+      tipo: 'cofre',
+      abierto,
+      tapaGroup,
+      halo,
+      lootConfig: cfgBotin
+    };
     return g;
   }
 
@@ -883,9 +1319,11 @@
 
     const W = sala.w, H = sala.h, D = sala.d;
 
+    const mats = resolverMaterialesSala(ThreeLib, kit, opciones.kitsPorEstilo, sala);
+
     // Suelo
     const sueloGeo = new ThreeLib.PlaneGeometry(W, D);
-    const suelo = new ThreeLib.Mesh(sueloGeo, kit.sueloLosas);
+    const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
     suelo.rotation.x = -Math.PI / 2;
     suelo.receiveShadow = true;
     suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
@@ -894,10 +1332,12 @@
     // Techo: si se especifica sinTecho (o techo: false), se omite para vista cenital e isométrica de editor
     if (opciones.techo !== false && !opciones.sinTecho) {
       const techoGeo = new ThreeLib.PlaneGeometry(W, D);
-      const techo = new ThreeLib.Mesh(techoGeo, kit.piedraMuro);
+      const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
       techo.rotation.x = Math.PI / 2;
       techo.position.y = H;
       techo.name = 'techo_' + sala.id;
+      techo.castShadow = true;
+      techo.receiveShadow = true;
       techo.userData = { tipo: 'techo', idSala: sala.id };
       g.add(techo);
     }
@@ -909,7 +1349,7 @@
     // 1. Muro Norte (-Z)
     const apN = sala.abiertoNorte ? (ap.norte || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apN) {
-      const muroN = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), kit.piedraMuro);
+      const muroN = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), mats.matPared);
       muroN.position.set(0, H / 2, -D / 2 + grosorMuro / 2);
       muroN.castShadow = true; muroN.receiveShadow = true;
       muroN.userData = { tipo: 'muro', lado: 'norte', idSala: sala.id };
@@ -922,7 +1362,7 @@
       // Hombro izquierdo (-X / Oeste)
       const wIzq = (cx - pw / 2) - (-W / 2);
       if (wIzq > 0.05) {
-        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), kit.piedraMuro);
+        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), mats.matPared);
         mIzq.position.set(-W / 2 + wIzq / 2, H / 2, -D / 2 + grosorMuro / 2);
         mIzq.castShadow = true; mIzq.receiveShadow = true;
         mIzq.userData = { tipo: 'muro_hombro', lado: 'norte_oeste', idSala: sala.id };
@@ -931,7 +1371,7 @@
       // Hombro derecho (+X / Este)
       const wDer = (W / 2) - (cx + pw / 2);
       if (wDer > 0.05) {
-        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), kit.piedraMuro);
+        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), mats.matPared);
         mDer.position.set(cx + pw / 2 + wDer / 2, H / 2, -D / 2 + grosorMuro / 2);
         mDer.castShadow = true; mDer.receiveShadow = true;
         mDer.userData = { tipo: 'muro_hombro', lado: 'norte_este', idSala: sala.id };
@@ -940,7 +1380,7 @@
       // Dintel superior sobre la puerta
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), kit.piedraMuro);
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), mats.matPared);
         dintel.position.set(cx, H - dH / 2, -D / 2 + grosorMuro / 2);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'norte', idSala: sala.id };
@@ -951,7 +1391,7 @@
     // 2. Muro Sur (+Z)
     const apS = sala.abiertoSur ? (ap.sur || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apS) {
-      const muroS = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), kit.piedraMuro);
+      const muroS = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), mats.matPared);
       muroS.position.set(0, H / 2, D / 2 - grosorMuro / 2);
       muroS.castShadow = true; muroS.receiveShadow = true;
       muroS.userData = { tipo: 'muro', lado: 'sur', idSala: sala.id };
@@ -963,7 +1403,7 @@
 
       const wIzq = (cx - pw / 2) - (-W / 2);
       if (wIzq > 0.05) {
-        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), kit.piedraMuro);
+        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), mats.matPared);
         mIzq.position.set(-W / 2 + wIzq / 2, H / 2, D / 2 - grosorMuro / 2);
         mIzq.castShadow = true; mIzq.receiveShadow = true;
         mIzq.userData = { tipo: 'muro_hombro', lado: 'sur_oeste', idSala: sala.id };
@@ -971,7 +1411,7 @@
       }
       const wDer = (W / 2) - (cx + pw / 2);
       if (wDer > 0.05) {
-        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), kit.piedraMuro);
+        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), mats.matPared);
         mDer.position.set(cx + pw / 2 + wDer / 2, H / 2, D / 2 - grosorMuro / 2);
         mDer.castShadow = true; mDer.receiveShadow = true;
         mDer.userData = { tipo: 'muro_hombro', lado: 'sur_este', idSala: sala.id };
@@ -979,7 +1419,7 @@
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), kit.piedraMuro);
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), mats.matPared);
         dintel.position.set(cx, H - dH / 2, D / 2 - grosorMuro / 2);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'sur', idSala: sala.id };
@@ -990,7 +1430,7 @@
     // 3. Muro Oeste (-X)
     const apO = sala.abiertoOeste ? (ap.oeste || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apO) {
-      const muroO = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), kit.piedraMuro);
+      const muroO = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), mats.matPared);
       muroO.position.set(-W / 2 + grosorMuro / 2, H / 2, 0);
       muroO.castShadow = true; muroO.receiveShadow = true;
       muroO.userData = { tipo: 'muro', lado: 'oeste', idSala: sala.id };
@@ -1002,7 +1442,7 @@
 
       const dNorte = (cz - pd / 2) - (-D / 2);
       if (dNorte > 0.05) {
-        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), kit.piedraMuro);
+        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), mats.matPared);
         mNorte.position.set(-W / 2 + grosorMuro / 2, H / 2, -D / 2 + dNorte / 2);
         mNorte.castShadow = true; mNorte.receiveShadow = true;
         mNorte.userData = { tipo: 'muro_hombro', lado: 'oeste_norte', idSala: sala.id };
@@ -1010,7 +1450,7 @@
       }
       const dSur = (D / 2) - (cz + pd / 2);
       if (dSur > 0.05) {
-        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), kit.piedraMuro);
+        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), mats.matPared);
         mSur.position.set(-W / 2 + grosorMuro / 2, H / 2, cz + pd / 2 + dSur / 2);
         mSur.castShadow = true; mSur.receiveShadow = true;
         mSur.userData = { tipo: 'muro_hombro', lado: 'oeste_sur', idSala: sala.id };
@@ -1018,7 +1458,7 @@
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), kit.piedraMuro);
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), mats.matPared);
         dintel.position.set(-W / 2 + grosorMuro / 2, H - dH / 2, cz);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'oeste', idSala: sala.id };
@@ -1029,7 +1469,7 @@
     // 4. Muro Este (+X)
     const apE = sala.abiertoEste ? (ap.este || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apE) {
-      const muroE = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), kit.piedraMuro);
+      const muroE = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), mats.matPared);
       muroE.position.set(W / 2 - grosorMuro / 2, H / 2, 0);
       muroE.castShadow = true; muroE.receiveShadow = true;
       muroE.userData = { tipo: 'muro', lado: 'este', idSala: sala.id };
@@ -1041,7 +1481,7 @@
 
       const dNorte = (cz - pd / 2) - (-D / 2);
       if (dNorte > 0.05) {
-        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), kit.piedraMuro);
+        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), mats.matPared);
         mNorte.position.set(W / 2 - grosorMuro / 2, H / 2, -D / 2 + dNorte / 2);
         mNorte.castShadow = true; mNorte.receiveShadow = true;
         mNorte.userData = { tipo: 'muro_hombro', lado: 'este_norte', idSala: sala.id };
@@ -1049,7 +1489,7 @@
       }
       const dSur = (D / 2) - (cz + pd / 2);
       if (dSur > 0.05) {
-        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), kit.piedraMuro);
+        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), mats.matPared);
         mSur.position.set(W / 2 - grosorMuro / 2, H / 2, cz + pd / 2 + dSur / 2);
         mSur.castShadow = true; mSur.receiveShadow = true;
         mSur.userData = { tipo: 'muro_hombro', lado: 'este_sur', idSala: sala.id };
@@ -1057,7 +1497,7 @@
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), kit.piedraMuro);
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), mats.matPared);
         dintel.position.set(W / 2 - grosorMuro / 2, H - dH / 2, cz);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'este', idSala: sala.id };
@@ -1079,17 +1519,36 @@
     const D = sala.d;
     const H = sala.h;
 
+    // Luz ambiental o puntual propia configurada individualmente para la estancia
+    if (sala.colorLuz && sala.colorLuz !== 'default') {
+      const intLuz = typeof sala.intensidadLuz === 'number' ? sala.intensidadLuz : 2.0;
+      const distLuz = Math.max(W, D) * 1.8;
+      const luzSala = new ThreeLib.PointLight(sala.colorLuz, intLuz, distLuz, 1.5);
+      luzSala.position.set(0, H - 0.5, 0);
+      if (config.sombrasAntorchas !== false) {
+        luzSala.castShadow = true;
+        if (luzSala.shadow) {
+          luzSala.shadow.bias = -0.002;
+          if (luzSala.shadow.mapSize) {
+            luzSala.shadow.mapSize.width = 512;
+            luzSala.shadow.mapSize.height = 512;
+          }
+        }
+      }
+      g.add(luzSala);
+    }
+
     switch (sala.tipo) {
       case 'entrada': {
         if (cfgProps.antorchas !== false) {
-          const aL = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+          const aL = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas, 2.4, config);
           aL.position.set(-2.8, 2.2, D / 2 - 0.4);
           aL.rotation.y = Math.PI / 2;
           g.add(aL);
           animables.push(aL);
           props.antorchas.push(aL);
 
-          const aR = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+          const aR = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas, 2.4, config);
           aR.position.set(2.8, 2.2, D / 2 - 0.4);
           aR.rotation.y = -Math.PI / 2;
           g.add(aR);
@@ -1102,7 +1561,8 @@
       case 'fuente': {
         if (cfgProps.fuentes !== false) {
           const radioF = Math.max(1.8, Math.min(3.6, W * 0.18));
-          const fuente = crearFuente(ThreeLib, kit, radioF, 1.4);
+          const kitFuente = (config.kitsPorEstilo && config.kitsPorEstilo[sala.estiloFuente]) || kit;
+          const fuente = crearFuente(ThreeLib, kitFuente, radioF, 1.4, sala.colorAgua);
           fuente.position.set(0, 0, 0);
           g.add(fuente);
           animables.push(fuente);
@@ -1130,15 +1590,21 @@
 
       case 'tesoro': {
         if (cfgProps.cofres !== false) {
-          const c1 = crearCofre(ThreeLib, kit, false);
+          const loot1 = (sala.lootCofres && sala.lootCofres[0]) || JSON.parse(JSON.stringify(DEFAULT_LOOT_CONFIG));
+          const c1 = crearCofre(ThreeLib, kit, false, loot1);
           c1.position.set(0, 0, 0);
+          c1.userData.idProp = 'cofre_auto_' + sala.id + '_0';
+          c1.userData.idSala = sala.id;
           g.add(c1);
           props.cofres.push(c1);
 
           if (W >= 11) {
-            const c2 = crearCofre(ThreeLib, kit, rng.chance(0.5));
+            const loot2 = (sala.lootCofres && sala.lootCofres[1]) || JSON.parse(JSON.stringify(DEFAULT_LOOT_CONFIG));
+            const c2 = crearCofre(ThreeLib, kit, rng.chance(0.5), loot2);
             c2.position.set(W * 0.28, 0, -D * 0.18);
             c2.rotation.y = -Math.PI / 4;
+            c2.userData.idProp = 'cofre_auto_' + sala.id + '_1';
+            c2.userData.idSala = sala.id;
             g.add(c2);
             props.cofres.push(c2);
           }
@@ -1302,11 +1768,15 @@
           if (pMesh) {
             pMesh.position.set(pDef.x || 0, pDef.y || 0, pDef.z || 0);
             if (typeof pDef.rotY === 'number') pMesh.rotation.y = pDef.rotY;
-            if (typeof pDef.escala === 'number') pMesh.scale.setScalar(pDef.escala);
+            if (typeof pDef.escala === 'number') if (pMesh.scale.setScalar) pMesh.scale.setScalar(pDef.escala); else if (pMesh.scale.set) pMesh.scale.set(pDef.escala, pDef.escala, pDef.escala);
             pMesh.userData = pMesh.userData || {};
             pMesh.userData.idProp = pDef.id;
             pMesh.userData.tipoProp = pDef.tipo;
             pMesh.userData.idSala = sala.id;
+            pMesh.userData.propDef = pDef;
+            if (pDef.lootConfig || pDef.tipo === 'cofre' || pDef.tipo === 'cofre_oro') {
+              pMesh.userData.lootConfig = pDef.lootConfig || JSON.parse(JSON.stringify(DEFAULT_LOOT_CONFIG));
+            }
             g.add(pMesh);
           }
         } catch (e) {
@@ -1340,53 +1810,75 @@
   function crearObjetoDecorativo(ThreeLib, kit, tipo, estilo, rng, animables, props, opciones = {}) {
     if (!rng) rng = new PRNG(12345);
     const tipoNorm = (tipo || 'antorcha').toLowerCase();
+    let res = null;
 
     switch (tipoNorm) {
       case 'armero':
-        return crearArmeriaProps(ThreeLib, kit, rng);
+        res = crearArmeriaProps(ThreeLib, kit, rng);
+        break;
       case 'biblioteca':
       case 'atril':
-        return crearBibliotecaProps(ThreeLib, kit, rng);
+        res = crearBibliotecaProps(ThreeLib, kit, rng);
+        break;
       case 'celda':
       case 'prision':
-        return crearPrisionProps(ThreeLib, kit, rng, opciones.h || 5.0);
+        res = crearPrisionProps(ThreeLib, kit, rng, opciones.h || 5.0);
+        break;
       case 'caldero':
       case 'laboratorio':
-        return crearLaboratorioProps(ThreeLib, kit, rng);
+        res = crearLaboratorioProps(ThreeLib, kit, rng);
+        break;
       case 'hongos':
       case 'esporas':
-        return crearHongosLuminosos(ThreeLib, kit, rng);
+        res = crearHongosLuminosos(ThreeLib, kit, rng);
+        break;
       case 'fuente': {
-        const f = crearFuente(ThreeLib, kit, 2.5, 1.2);
+        const f = crearFuente(ThreeLib, kit, 2.5, 1.2, opciones.colorAgua);
         if (animables) animables.push(f);
         if (props && props.fuentes) props.fuentes.push(f);
-        return f;
+        res = f;
+        break;
       }
       case 'cofre': {
-        const c = crearCofre(ThreeLib, kit, false);
+        const loot = opciones.lootConfig || JSON.parse(JSON.stringify(DEFAULT_LOOT_CONFIG));
+        const c = crearCofre(ThreeLib, kit, opciones.abierto || false, loot);
+        c.userData.idProp = opciones.id;
+        c.userData.tipoProp = 'cofre';
+        c.userData.lootConfig = loot;
         if (props && props.cofres) props.cofres.push(c);
-        return c;
+        res = c;
+        break;
       }
       case 'cofre_oro': {
-        const c = crearCofre(ThreeLib, kit, true);
+        const loot = opciones.lootConfig || JSON.parse(JSON.stringify(DEFAULT_LOOT_CONFIG));
+        const c = crearCofre(ThreeLib, kit, true, loot);
+        c.userData.idProp = opciones.id;
+        c.userData.tipoProp = 'cofre_oro';
+        c.userData.lootConfig = loot;
         if (props && props.cofres) props.cofres.push(c);
-        return c;
+        res = c;
+        break;
       }
       case 'jarron':
-        return crearJarron(ThreeLib, kit, 1.0, false);
+        res = crearJarron(ThreeLib, kit, 1.0, false);
+        break;
       case 'sarcofago':
-        return crearSarcofago(ThreeLib, kit);
+        res = crearSarcofago(ThreeLib, kit);
+        break;
       case 'antorcha': {
-        const a = crearAntorcha(ThreeLib, kit, (estilo && estilo.luzAntorchas) || 0xf59e0b, 2.5);
+        const a = crearAntorcha(ThreeLib, kit, (estilo && estilo.luzAntorchas) || 0xf59e0b, 2.5, opciones);
         if (animables) animables.push(a);
         if (props && props.antorchas) props.antorchas.push(a);
-        return a;
+        res = a;
+        break;
       }
       case 'pebetero': {
         const p = new ThreeLib.Group();
         p.userData = { tipo: 'pebetero' };
         const base = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.7, 0.9, 0.7, 8), kit.piedraMuro);
         base.position.y = 0.35;
+        base.castShadow = true;
+        base.receiveShadow = true;
         p.add(base);
         const fuego = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.35, 0.75, 6), kit.llama);
         fuego.position.y = 0.85;
@@ -1394,21 +1886,46 @@
         const colLuz = (estilo && estilo.luzAntorchas) || 0xf59e0b;
         const luz = new ThreeLib.PointLight(colLuz, 2.8, 16, 1.4);
         luz.position.y = 1.0;
+        if (opciones.sombrasAntorchas !== false && !opciones.sinSombras) {
+          luz.castShadow = true;
+          if (luz.shadow) {
+            luz.shadow.bias = -0.002;
+            if (luz.shadow.mapSize) {
+              luz.shadow.mapSize.width = 512;
+              luz.shadow.mapSize.height = 512;
+            }
+          }
+        }
         p.add(luz);
         p.userData.flicker = t => {
           fuego.scale.y = 0.9 + Math.sin(t * 12.0) * 0.18;
           luz.intensity = 2.8 * (0.85 + Math.sin(t * 10.0) * 0.15);
         };
         if (animables) animables.push(p);
-        return p;
+        res = p;
+        break;
       }
       case 'musgo':
-        return crearManchaVegetacion(ThreeLib, kit, rng, opciones.radio || 1.6);
+        res = crearManchaVegetacion(ThreeLib, kit, rng, opciones.radio || 1.6);
+        break;
       case 'columna':
-        return crearColumna(ThreeLib, kit, opciones.h || 5.0, opciones.radio || 0.6);
+        res = crearColumna(ThreeLib, kit, opciones.h || 5.0, opciones.radio || 0.6);
+        break;
       default:
-        return crearJarron(ThreeLib, kit, 1.0, false);
+        res = crearJarron(ThreeLib, kit, 1.0, false);
+        break;
     }
+
+    if (res && typeof res.traverse === 'function') {
+      res.traverse(child => {
+        if (child && child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+    }
+
+    return res;
   }
 
   // --- 7.2 CÁLCULO DE APERTURAS Y HOMBROS HERMÉTICOS ENTRE ESTANCIAS ---
@@ -1723,35 +2240,25 @@
     // Calcular aperturas herméticas exactas entre salas y pasillos contiguos (evita huecos al vacío)
     calcularAperturasEntreSalas(salas, config);
 
-    // 2. Construir geometría estructural y decorar cada sala (respetando textura/estilo y color de pared individual)
+    // 2. Construir geometría estructural y decorar cada sala (respetando textura/estilo y color individual de paredes, suelos, techos y fuentes)
+    const configCompleta = Object.assign({}, config, { kitsPorEstilo });
+
     salas.forEach(s => {
       const estiloKeySala = s.estilo || estiloKey;
       const estiloSala = ESTILOS_PIEDRA[estiloKeySala] || estilo;
-      let kitSala = kitsPorEstilo[estiloKeySala] || kit;
+      const kitSala = kitsPorEstilo[estiloKeySala] || kit;
 
-      if (s.colorPared && s.colorPared !== 'default') {
-        const matPared = (kitSala.piedraMuro && typeof kitSala.piedraMuro.clone === 'function')
-          ? kitSala.piedraMuro.clone()
-          : Object.assign({}, kitSala.piedraMuro);
-        try {
-          if (matPared.color && typeof matPared.color.set === 'function') {
-            matPared.color.set(s.colorPared);
-          } else {
-            matPared.color = s.colorPared;
-          }
-        } catch (_) {}
-        kitSala = Object.assign({}, kitSala, { piedraMuro: matPared });
-      }
-
-      const meshSala = construirCajaHabitacion(THREE_REF, kitSala, s, config);
+      const meshSala = construirCajaHabitacion(THREE_REF, kitSala, s, configCompleta);
       dungeonGroup.add(meshSala);
 
-      const decMesh = decorarHabitacion(THREE_REF, kitSala, s, estiloSala, rng, animables, props, config);
+      const decMesh = decorarHabitacion(THREE_REF, kitSala, s, estiloSala, rng, animables, props, configCompleta);
       dungeonGroup.add(decMesh);
     });
 
-    // 3. Luz ambiental cenital
-    const luzAmbiente = new THREE_REF.AmbientLight(0xffffff, 1.4);
+    // 3. Luz ambiental cenital (calibrada según el modo de iluminación elegido)
+    const intAmbiente = (config.modoLuz === 'antorchas') ? 0.35 : (config.modoLuz === 'foco_personalizado' ? 0.45 : 1.3);
+    const luzAmbiente = new THREE_REF.AmbientLight(0xffffff, intAmbiente);
+    luzAmbiente.name = 'dungeon_ambient_light';
     dungeonGroup.add(luzAmbiente);
 
     // 4. Calcular Puntos de Aparición (Spawns)
@@ -1835,8 +2342,11 @@
   return {
     TIPOS_ESTANCIA,
     ESTILOS_PIEDRA,
+    DEFAULT_LOOT_CONFIG,
     CATALOGO_PROPS_DECORATIVOS,
     PRNG,
+    simularAperturaCofre,
+    resolverMaterialesSala,
     crearAtlasMazmorra,
     crearKitMateriales,
     crearAntorcha,

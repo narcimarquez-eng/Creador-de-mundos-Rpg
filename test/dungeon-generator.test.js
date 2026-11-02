@@ -6,7 +6,7 @@ function MockObj3D() {
   this.children = [];
   this.position = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
   this.rotation = { x: 0, y: 0, z: 0 };
-  this.scale = { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
+  this.scale = { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, setScalar(s) { this.x = s; this.y = s; this.z = s; } };
   this.add = function (c) { this.children.push(c); };
 }
 function MockMesh(geo, mat) {
@@ -353,3 +353,131 @@ test('DungeonGenerator: personalización individual de textura de piedra y color
   assert.strictEqual(res.salas[1].colorPared, '#3d1c1c', 'Debe conservar el color de pared individual');
 });
 
+
+test('DungeonGenerator: catálogo completo de al menos 20 estilos arquitectónicos de piedra', () => {
+  const estilos = DungeonGenerator.ESTILOS_PIEDRA;
+  const claves = Object.keys(estilos);
+  assert.ok(claves.length >= 20, `Debe haber al menos 20 estilos (actual: ${claves.length})`);
+
+  // Comprobar estilos representativos clave solicitados
+  const estilosEsperados = [
+    'cripta_gotica', 'ruinas_musgosas', 'catacumbas_caliza', 'fortaleza_basalto',
+    'marmol_imperial', 'caverna_obsidiana', 'ladrillo_medieval', 'minas_amatista',
+    'santuario_jade', 'bastion_hierro', 'cripta_glaciar', 'arenisca_desierto',
+    'huesos_calcinados', 'alquimia_azufre', 'cloacas_pizarra', 'cripta_sangrienta',
+    'lapislazuli_oro', 'ruinas_celestiales', 'forja_magma', 'vacio_umbrio',
+    'madera_petrificada', 'coral_abisal'
+  ];
+
+  estilosEsperados.forEach(eId => {
+    assert.ok(estilos[eId], `Debe incluir el estilo ${eId}`);
+    assert.ok(estilos[eId].nombre, `El estilo ${eId} debe tener nombre`);
+    assert.ok(estilos[eId].colorBase, `El estilo ${eId} debe tener colorBase`);
+    assert.ok(estilos[eId].colorLosa, `El estilo ${eId} debe tener colorLosa`);
+  });
+});
+
+test('DungeonGenerator: resolución individual desacoplada de pared, suelo, techo y fuente', () => {
+  const kitBase = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const kitsPorEstilo = {
+    marmol_imperial: DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.marmol_imperial, mockTHREE),
+    forja_magma: DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.forja_magma, mockTHREE),
+    cripta_glaciar: DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_glaciar, mockTHREE),
+    santuario_jade: DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.santuario_jade, mockTHREE)
+  };
+
+  const salaHibrida = {
+    id: 'sala_mix',
+    tipo: 'fuente',
+    w: 20, d: 20, h: 5.5,
+    x: 0, y: 0, z: 0,
+    estiloPared: 'marmol_imperial',
+    colorPared: '#ffffff',
+    estiloSuelo: 'forja_magma',
+    colorSuelo: '#ff4500',
+    estiloTecho: 'cripta_glaciar',
+    colorTecho: '#38bdf8',
+    estiloFuente: 'santuario_jade',
+    colorAgua: '#10b981'
+  };
+
+  const matResueltos = DungeonGenerator.resolverMaterialesSala(mockTHREE, kitBase, kitsPorEstilo, salaHibrida);
+  assert.ok(matResueltos.matPared, 'Debe devolver material de pared');
+  assert.ok(matResueltos.matSuelo, 'Debe devolver material de suelo');
+  assert.ok(matResueltos.matTecho, 'Debe devolver material de techo');
+  assert.strictEqual(matResueltos.colorAgua, '#10b981', 'Debe conservar color de agua personalizado');
+
+  // Construir habitación híbrida y verificar aplicación
+  const group = DungeonGenerator.construirCajaHabitacion(mockTHREE, kitBase, salaHibrida, {}, kitsPorEstilo);
+  assert.ok(group, 'Debe construir la habitación híbrida');
+});
+
+test('DungeonGenerator: configuración de botín y simulación de apertura de cofres', () => {
+  assert.ok(DungeonGenerator.DEFAULT_LOOT_CONFIG, 'Debe existir DEFAULT_LOOT_CONFIG');
+  assert.strictEqual(typeof DungeonGenerator.simularAperturaCofre, 'function', 'Debe existir función simularAperturaCofre');
+
+  // Simulación 1: Cofre 100% éxito con recompensas fijas
+  const loot100 = {
+    probabilidadExito: 1.0,
+    oroMin: 100, oroMax: 100,
+    arenaMin: 10, arenaMax: 10,
+    items: [
+      { id: 'espada_test', nombre: 'Espada de Fuego', tipo: 'armas', probabilidad: 1.0 }
+    ]
+  };
+  const tirada1 = DungeonGenerator.simularAperturaCofre(loot100);
+  assert.strictEqual(tirada1.exito, true, 'Debe abrirse con éxito');
+  assert.strictEqual(tirada1.oro, 100, 'Debe otorgar exactamente 100 oro');
+  assert.strictEqual(tirada1.arena, 10, 'Debe otorgar exactamente 10 arena');
+  assert.strictEqual(tirada1.items.length, 1, 'Debe otorgar el ítem garantizado');
+  assert.strictEqual(tirada1.items[0].nombre, 'Espada de Fuego');
+
+  // Simulación 2: Cofre 0% éxito (cerradura trabada)
+  const loot0 = {
+    probabilidadExito: 0.0,
+    oroMin: 50, oroMax: 100,
+    items: []
+  };
+  const tirada2 = DungeonGenerator.simularAperturaCofre(loot0);
+  assert.strictEqual(tirada2.exito, false, 'No debe abrirse si probabilidad es 0');
+  assert.strictEqual(tirada2.oro, 0);
+  assert.strictEqual(tirada2.items.length, 0);
+});
+
+test('DungeonGenerator: posicionamiento, rotación Y, escala y lootConfig de props', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const animables = [];
+  const props = { antorchas: [], cofres: [], fuentes: [], animables };
+
+  const cofreCustomLoot = {
+    probabilidadExito: 0.95,
+    oroMin: 300, oroMax: 800,
+    items: [{ id: 'reliquia_1', nombre: 'Grial Antiguo', tipo: 'reliquias', probabilidad: 0.8 }]
+  };
+
+  const salaConCofreMapeado = {
+    id: 'sala_tesoro_map',
+    tipo: 'tesoro',
+    w: 16, d: 16, h: 5.0,
+    x: 0, y: 0, z: 0,
+    propsPersonalizados: [
+      {
+        id: 'cofre_custom_1',
+        tipo: 'cofre',
+        x: 3.5, y: 0, z: -2.5,
+        rotY: Math.PI / 4,
+        escala: 1.5,
+        lootConfig: cofreCustomLoot
+      }
+    ]
+  };
+
+  const decMesh = DungeonGenerator.decorarHabitacion(mockTHREE, kit, salaConCofreMapeado, DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, new DungeonGenerator.PRNG(456), animables, props);
+  const meshCofre = decMesh.children.find(c => c.userData && c.userData.idProp === 'cofre_custom_1');
+
+  assert.ok(meshCofre, 'Debe instanciar el cofre decorativo');
+  assert.strictEqual(meshCofre.position.x, 3.5, 'Debe situarse en X 3.5');
+  assert.strictEqual(meshCofre.position.z, -2.5, 'Debe situarse en Z -2.5');
+  assert.strictEqual(meshCofre.scale.x, 1.5, 'Debe escalar en X a 1.5');
+  assert.strictEqual(meshCofre.userData.lootConfig.oroMin, 300, 'Debe conservar lootConfig');
+});

@@ -252,15 +252,15 @@
       const matSkin = new THREE.MeshStandardMaterial({ color: '#fcd34d', roughness: 0.6 });
       const matDark = new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.8 });
 
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.72, 0.32), matArmor);
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.64, 0.26), matArmor);
       torso.position.y = 1.1; torso.castShadow = true;
       group.add(torso);
 
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), matSkin);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), matSkin);
       head.position.y = 1.72; head.castShadow = true;
       group.add(head);
 
-      const legGeo = new THREE.BoxGeometry(0.22, 0.7, 0.24);
+      const legGeo = new THREE.BoxGeometry(0.18, 0.65, 0.20);
       legGeo.translate(0, -0.35, 0);
       const leftLeg = new THREE.Mesh(legGeo, matDark);
       leftLeg.position.set(-0.15, 0.72, 0); leftLeg.castShadow = true;
@@ -693,6 +693,28 @@
 
       if (this.cameraMode === 'follow') this.colocarCamara();
       this.modoCamaraAnterior = this.cameraMode;
+
+      // Desvanecimiento suave del avatar si la cámara está demasiado cerca (< 2.6m) para que NUNCA tape la pantalla
+      if (this.camera && this.model) {
+        const dCam = this.camera.position.distanceTo(this.root.position);
+        const opacidad = dCam < 1.1 ? 0.0 : (dCam < 2.6 ? Math.max(0.08, (dCam - 1.1) / 1.5) : 1.0);
+        this.model.traverse(child => {
+          if (child.isMesh && child.material) {
+            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach(m => {
+              if (opacidad < 0.98) {
+                m.transparent = true;
+                m.opacity = opacidad;
+                child.visible = opacidad > 0.05;
+              } else {
+                m.transparent = false;
+                m.opacity = 1.0;
+                child.visible = true;
+              }
+            });
+          }
+        });
+      }
 
       if (this.mixer) {
         this.mixer.update(dt);

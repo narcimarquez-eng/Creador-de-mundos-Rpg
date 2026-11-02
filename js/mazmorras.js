@@ -621,7 +621,7 @@
             x: pt.x,
             z: pt.z,
             y: SPAWN_Y,
-            modelo: elDef.modelo || 'caballero_oscuro',
+            modelo: elDef.modelo || ['caballero_oscuro', 'golem_ancestral', 'brujo_arcano', 'ogro_acorazado', 'asesino_sombras'][posIdx % 5],
             hp: 1, maxHp: 1 // Inicializado por combat.js
           };
           if (this.ctx.crearMonstruoCombate) {

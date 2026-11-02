@@ -381,7 +381,25 @@
         <option value="cripta_gotica">Cripta Gótica Oscura</option>
         <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
         <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
-        <option value="fortaleza_basalto">Fortaleza de Basalto Volcánico</option>
+        <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+        <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+        <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+        <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+        <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+        <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+        <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+        <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+        <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+        <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+        <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+        <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+        <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+        <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+        <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+        <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+        <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+        <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+        <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
       </select>
     </div>
     <div class="control-row">
@@ -506,23 +524,166 @@
         </select>
       </div>
 
-      <!-- TEXTURA Y COLOR DE PAREDES INDIVIDUAL -->
-      <div class="control-row">
-        <label>Textura de Paredes Individual</label>
-        <select id="insp-estilo">
-          <option value="">(Heredar estilo de mazmorra)</option>
+      <!-- TEXTURAS Y COLORES INDIVIDUALES (PARED, SUELO, TECHO, FUENTE) -->
+      <div style="background: rgba(15,23,42,0.6); border: 1px solid #3b4261; border-radius: 6px; padding: 8px; margin-bottom: 10px;">
+        <div style="font-weight: 700; font-size: 11px; color: #c084fc; margin-bottom: 6px;">🎨 Materiales y Texturas de la Sala</div>
+
+        <!-- Paredes -->
+        <div class="control-row" style="margin-bottom: 4px;">
+          <label style="font-size:10px;">🧱 Textura de Paredes</label>
+          <select id="insp-estilo" style="font-size:11px;">
+          <option value="">(Heredar de la mazmorra)</option>
           <option value="cripta_gotica">Cripta Gótica Oscura</option>
           <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
           <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
-          <option value="fortaleza_basalto">Fortaleza de Basalto Volcánico</option>
-        </select>
-      </div>
+          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+        </div>
+        <div class="control-row" style="margin-bottom: 6px;">
+          <label style="font-size:10px;">Color de Pared</label>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="color" id="insp-color-pared" value="#706860" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+            <button id="btn-insp-color-pared-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+          </div>
+        </div>
 
-      <div class="control-row">
-        <label>Color / Tinte de Pared</label>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <input type="color" id="insp-color-pared" value="#706860" style="width: 44px; height: 28px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
-          <button id="btn-insp-color-reset" class="sala-item-btn" style="flex: 1;" title="Restablecer color por defecto">↺ Color Normal</button>
+        <!-- Suelo -->
+        <div class="control-row" style="margin-bottom: 4px;">
+          <label style="font-size:10px;">🏛️ Textura de Suelo / Losas</label>
+          <select id="insp-estilo-suelo" style="font-size:11px;">
+          <option value="">(Heredar de la mazmorra)</option>
+          <option value="cripta_gotica">Cripta Gótica Oscura</option>
+          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+        </div>
+        <div class="control-row" style="margin-bottom: 6px;">
+          <label style="font-size:10px;">Color de Suelo</label>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="color" id="insp-color-suelo" value="#4a423b" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+            <button id="btn-insp-color-suelo-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+          </div>
+        </div>
+
+        <!-- Techos -->
+        <div class="control-row" style="margin-bottom: 4px;">
+          <label style="font-size:10px;">🏰 Textura de Techos / Bóveda</label>
+          <select id="insp-estilo-techo" style="font-size:11px;">
+          <option value="">(Heredar de la mazmorra)</option>
+          <option value="cripta_gotica">Cripta Gótica Oscura</option>
+          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+        </div>
+        <div class="control-row" style="margin-bottom: 6px;">
+          <label style="font-size:10px;">Color de Techo</label>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="color" id="insp-color-techo" value="#38302b" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+            <button id="btn-insp-color-techo-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+          </div>
+        </div>
+
+        <!-- Fuentes y Agua -->
+        <div class="control-row" style="margin-bottom: 4px;">
+          <label style="font-size:10px;">⛲ Textura de Fuente / Pilares</label>
+          <select id="insp-estilo-fuente" style="font-size:11px;">
+          <option value="">(Heredar de la mazmorra)</option>
+          <option value="cripta_gotica">Cripta Gótica Oscura</option>
+          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+          <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+          <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+          <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+          <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+          <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+          <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+          <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+          <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+          <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+          <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+          <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+          <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+          <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+          <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+          <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+          <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+          <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+          <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+          <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+        </div>
+        <div class="control-row" style="margin-bottom: 4px;">
+          <label style="font-size:10px;">Color del Agua</label>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="color" id="insp-color-agua" value="#38bdf8" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+            <button id="btn-insp-color-agua-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Agua azul cristalina">Agua Normal</button>
+          </div>
+        </div>
+
+        <!-- Luz de la estancia -->
+        <div class="control-row" style="margin-bottom: 2px;">
+          <label style="font-size:10px;">💡 Luz propia de Estancia</label>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="color" id="insp-color-luz" value="#f59e0b" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+            <input type="range" id="insp-intensidad-luz" min="0" max="3" step="0.2" value="0" style="flex: 1;">
+            <span id="lbl-insp-luz" style="font-size:10px; width:28px; text-align:right;">0.0</span>
+          </div>
         </div>
       </div>
 
@@ -577,6 +738,39 @@
         <div id="insp-props-lista" style="max-height: 110px; overflow-y: auto; background: rgba(15,23,42,0.7); border: 1px solid #334155; border-radius: 4px; padding: 4px; margin-bottom: 8px;">
           <!-- Lista dinámica de props de la sala seleccionada -->
         </div>
+
+        <!-- SUBPANEL DE MOVIMIENTO Y TRANSFORMACIÓN DEL OBJETO SELECCIONADO -->
+        <div id="panel-prop-movimiento" style="display:none; background: rgba(30,41,59,0.85); border: 1.5px solid #38bdf8; border-radius: 6px; padding: 8px; margin-bottom: 8px; box-shadow: 0 2px 10px rgba(56,189,248,0.25);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+            <div style="font-weight:700; font-size:11px; color:#38bdf8;" id="prop-sel-titulo">📦 Mover Objeto</div>
+            <button id="btn-prop-deseleccionar" class="sala-item-btn" style="padding:1px 6px; font-size:9px;" title="Deseleccionar">✕</button>
+          </div>
+          <div class="grid2" style="gap:4px; margin-bottom:4px;">
+            <div class="control-row" style="margin:0;">
+              <label style="font-size:9.5px;">Desplazamiento X: <span id="lbl-prop-x">0 m</span></label>
+              <input type="range" id="prop-sel-x" min="-18" max="18" step="0.2" value="0">
+            </div>
+            <div class="control-row" style="margin:0;">
+              <label style="font-size:9.5px;">Desplazamiento Z: <span id="lbl-prop-z">0 m</span></label>
+              <input type="range" id="prop-sel-z" min="-18" max="18" step="0.2" value="0">
+            </div>
+          </div>
+          <div class="grid2" style="gap:4px; margin-bottom:6px;">
+            <div class="control-row" style="margin:0;">
+              <label style="font-size:9.5px;">Giro / Rotación Y: <span id="lbl-prop-rot">0°</span></label>
+              <input type="range" id="prop-sel-rot" min="0" max="360" step="5" value="0">
+            </div>
+            <div class="control-row" style="margin:0;">
+              <label style="font-size:9.5px;">Escala: <span id="lbl-prop-escala">1.0x</span></label>
+              <input type="range" id="prop-sel-escala" min="0.4" max="2.5" step="0.05" value="1.0">
+            </div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button id="btn-prop-config-loot" class="btn gold" style="display:none; flex:1; padding:4px; font-size:10px; font-weight:700;">🎁 Configurar Botín</button>
+            <button id="btn-prop-duplicar" class="btn alt" style="flex:1; padding:4px; font-size:10px;">📋 Duplicar</button>
+            <button id="btn-prop-borrar" class="btn danger" style="padding:4px 8px; font-size:10px;">🗑️</button>
+          </div>
+        </div>
       </div>
 
       <!-- BOTONES DE ACCIÓN SOBRE LA SALA -->
@@ -597,6 +791,41 @@
       <label class="checkbox-item"><input type="checkbox" id="prop-sarcofagos" checked> 🪦 Sarcófagos</label>
       <label class="checkbox-item"><input type="checkbox" id="prop-hongos" checked> 🍄 Bioluminiscentes</label>
       <label class="checkbox-item"><input type="checkbox" id="prop-techos"> 🏛️ Mostrar Techos</label>
+    </div>
+
+    <h2>💡 Iluminación y Sombras Dinámicas</h2>
+    <div class="control-row">
+      <label>Modo de Iluminación</label>
+      <select id="cfg-modo-luz">
+        <option value="antorchas" selected>🔥 Antorchas y Braseros (Sombras Dinámicas Reales)</option>
+        <option value="foco_personalizado">☀️ Foco Direccional Personalizado (Ángulo Seleccionable)</option>
+        <option value="ambiente_claro">💡 Luz de Trabajo (Editor Claro Uniforme)</option>
+      </select>
+    </div>
+    <div id="panel-controles-foco" style="display:none; background: rgba(15,23,42,0.6); border: 1px solid #334155; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+      <div class="grid2">
+        <div class="control-row">
+          <label style="font-size:10px;">Azimut (Giro): <span id="lbl-luz-azimut">135°</span></label>
+          <input type="range" id="cfg-luz-azimut" min="0" max="360" step="5" value="135">
+        </div>
+        <div class="control-row">
+          <label style="font-size:10px;">Elevación: <span id="lbl-luz-elev">55°</span></label>
+          <input type="range" id="cfg-luz-elev" min="10" max="85" step="5" value="55">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="control-row">
+          <label style="font-size:10px;">Intensidad Luz</label>
+          <input type="range" id="cfg-luz-intensidad" min="0.2" max="3.5" step="0.1" value="1.5">
+        </div>
+        <div class="control-row">
+          <label style="font-size:10px;">Color de Luz</label>
+          <input type="color" id="cfg-luz-color" value="#ffffff" style="width:100%; height:26px; border:1px solid #475569; border-radius:4px; background:transparent; cursor:pointer;">
+        </div>
+      </div>
+    </div>
+    <div class="checkbox-grid" style="margin-bottom:8px;">
+      <label class="checkbox-item"><input type="checkbox" id="cfg-sombras-activas" checked> 🌑 Sombras Dinámicas 3D</label>
     </div>
 
     <h2>👑 Jefe de Mazmorra</h2>
@@ -664,6 +893,80 @@
     <span>👑 Jefe: <b id="hud-boss">Señor del Trono Caído (Nv 17)</b></span>
   </div>
 
+  <!-- MODAL / PANEL FLOTANTE DE CONFIGURACIÓN DE BOTÍN DE COFRE -->
+  <div id="modal-cofre-loot" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:200; width:min(440px, 92vw); max-height:88vh; overflow-y:auto; background:rgba(15,23,42,0.97); border:2px solid #f59e0b; border-radius:12px; box-shadow:0 0 35px rgba(245,158,11,0.45); padding:16px; backdrop-filter:blur(10px); color:#f8fafc;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:8px; margin-bottom:12px;">
+      <div style="font-weight:700; font-size:14px; color:#fbbf24; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:18px;">🎁</span> <span>Configuración de Botín del Cofre</span>
+      </div>
+      <button id="btn-cerrar-modal-loot" class="sala-item-btn" style="padding:2px 8px; font-size:14px; cursor:pointer;">✕</button>
+    </div>
+
+    <div style="font-size:11px; color:#94a3b8; margin-bottom:10px;">
+      Ajusta las probabilidades de apertura y las recompensas que otorgará este cofre individual al abrirlo en el visor.
+    </div>
+
+    <!-- Probabilidad de éxito -->
+    <div class="control-row">
+      <label style="display:flex; justify-content:space-between;">
+        <span>🎯 Probabilidad de Apertura Exitosa</span>
+        <b id="lbl-loot-exito" style="color:#fbbf24;">90%</b>
+      </label>
+      <input type="range" id="loot-prob-exito" min="10" max="100" step="5" value="90">
+    </div>
+
+    <!-- Rangos de Oro y Arena -->
+    <div class="grid2">
+      <div class="control-row">
+        <label style="font-size:10.5px;">💰 Oro Mín</label>
+        <input type="number" id="loot-oro-min" min="0" max="5000" step="10" value="50">
+      </div>
+      <div class="control-row">
+        <label style="font-size:10.5px;">💰 Oro Máx</label>
+        <input type="number" id="loot-oro-max" min="0" max="10000" step="10" value="250">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="control-row">
+        <label style="font-size:10.5px;">✨ Arena Mín</label>
+        <input type="number" id="loot-arena-min" min="0" max="500" step="1" value="2">
+      </div>
+      <div class="control-row">
+        <label style="font-size:10.5px;">✨ Arena Máx</label>
+        <input type="number" id="loot-arena-max" min="0" max="1000" step="1" value="10">
+      </div>
+    </div>
+
+    <!-- Tabla de ítems con probabilidad -->
+    <div style="font-weight:700; font-size:11px; color:#e2e8f0; margin-top:8px; margin-bottom:6px;">
+      🎲 Probabilidad de Caída de Objetos (%)
+    </div>
+    <div id="loot-items-container" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(30,41,59,0.7); border:1px solid #475569; border-radius:6px; padding:6px; margin-bottom:12px;">
+      <!-- Renglones dinámicos de ítems -->
+    </div>
+
+    <!-- Añadir ítem personalizado -->
+    <div style="display:flex; gap:4px; margin-bottom:12px;">
+      <input type="text" id="loot-nuevo-nombre" placeholder="Nombre de nuevo ítem..." style="flex:2; font-size:11px; padding:4px;">
+      <select id="loot-nuevo-cat" style="flex:1; font-size:10px;">
+        <option value="armas">Armas</option>
+        <option value="armaduras">Armaduras</option>
+        <option value="pociones">Pociones</option>
+        <option value="gemas">Gemas</option>
+        <option value="pergaminos">Pergaminos</option>
+        <option value="reliquias">Reliquias</option>
+      </select>
+      <input type="number" id="loot-nuevo-prob" min="1" max="100" value="25" style="width:48px; font-size:11px; padding:4px;" title="Probabilidad %">
+      <button id="btn-loot-agregar-item" class="btn alt" style="padding:4px 8px; font-size:11px; font-weight:bold;">+</button>
+    </div>
+
+    <!-- Acciones -->
+    <div style="display:flex; gap:8px;">
+      <button id="btn-loot-test-apertura" class="btn gold" style="flex:1; font-weight:700; font-size:11.5px; padding:8px;">🎲 Probar Tirada de Botín</button>
+      <button id="btn-loot-guardar" class="btn primary" style="flex:1; font-weight:700; font-size:11.5px; padding:8px;">✓ Guardar Botín</button>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script src="js/dungeon-generator.js"></script>
@@ -675,6 +978,8 @@
 
     // Exponer THREE y extensiones en window para que módulos y scripts tradicionales lo compartan
     window.THREE = Object.assign({}, THREE, { OrbitControls, GLTFLoader });
+
+    const $ = id => document.getElementById(id);
 
     // --- ESTADO Y CONFIGURACIÓN ---
     let dungeonConfig = {
@@ -692,6 +997,12 @@
       ramificacion: 0.5,
       alturaTechos: 5.2,
       anchoPasillos: 6.8,
+      modoLuz: 'antorchas',
+      luzAzimut: 135,
+      luzElev: 55,
+      luzIntensidad: 1.5,
+      luzColor: '#ffffff',
+      sombrasActivas: true,
       salasPersonalizadas: [],
       props: {
         fuentes: true,
@@ -776,6 +1087,10 @@
 
     let selectedRoomId = null;
     let selectionBoxHelper = null;
+    let selectedPropId = null;
+    let selectedPropMarker = null;
+    let activeChestLootConfig = null;
+    let activeChestPropRef = null;
 
     // --- RECONSTRUCCIÓN DE LA MAZMORRA 3D ---
     function rebuildDungeon() {
@@ -1022,8 +1337,26 @@
       $('insp-titulo-sala').textContent = `${def.icono || '🏛️'} ${sala.nombre}`;
       $('insp-nombre').value = sala.nombre;
       $('insp-tipo').value = sala.tipo || 'armeria';
-      $('insp-estilo').value = sala.estilo || '';
+
+      // Materiales y texturas individuales
+      $('insp-estilo').value = sala.estiloPared || sala.estilo || '';
       $('insp-color-pared').value = sala.colorPared && sala.colorPared !== 'default' ? sala.colorPared : '#706860';
+
+      $('insp-estilo-suelo').value = sala.estiloSuelo || '';
+      $('insp-color-suelo').value = sala.colorSuelo && sala.colorSuelo !== 'default' ? sala.colorSuelo : '#4a423b';
+
+      $('insp-estilo-techo').value = sala.estiloTecho || '';
+      $('insp-color-techo').value = sala.colorTecho && sala.colorTecho !== 'default' ? sala.colorTecho : '#38302b';
+
+      $('insp-estilo-fuente').value = sala.estiloFuente || '';
+      $('insp-color-agua').value = sala.colorAgua || '#38bdf8';
+
+      // Luz propia de la estancia
+      $('insp-color-luz').value = sala.colorLuz || '#f59e0b';
+      const intensLuz = sala.intensidadLuz !== undefined ? sala.intensidadLuz : 0;
+      $('insp-intensidad-luz').value = intensLuz;
+      $('lbl-insp-luz').textContent = intensLuz.toFixed(1);
+
       $('insp-w').value = sala.w;
       $('insp-d').value = sala.d;
       $('insp-h').value = sala.h || dungeonConfig.alturaTechos || 5.2;
@@ -1038,6 +1371,7 @@
       });
 
       actualizarCajaSeleccion();
+      deseleccionarProp();
       renderInspPropsLista(sala);
 
       if (enfocarCamara) {
@@ -1056,6 +1390,119 @@
         selectionBoxHelper = null;
       }
       document.querySelectorAll('.sala-item-row').forEach(r => r.classList.remove('selected'));
+    }
+
+
+    function actualizarIluminacionEscena() {
+      const modo = dungeonConfig.modoLuz || 'antorchas';
+      const sombras = dungeonConfig.sombrasActivas !== false;
+      renderer.shadowMap.enabled = sombras;
+
+      if (modo === 'antorchas') {
+        hemiLight.intensity = 0.35;
+        hemiLight.color.setHex(0x334155);
+        hemiLight.groundColor.setHex(0x0f172a);
+        dirLight.intensity = 0.25;
+        dirLight.color.setHex(0xffedd5);
+        dirLight.castShadow = false;
+      } else if (modo === 'foco_personalizado') {
+        hemiLight.intensity = 0.5;
+        hemiLight.color.setHex(0x64748b);
+        hemiLight.groundColor.setHex(0x1e293b);
+        dirLight.intensity = dungeonConfig.luzIntensidad || 1.5;
+        dirLight.color.setStyle(dungeonConfig.luzColor || '#ffffff');
+        dirLight.castShadow = sombras;
+
+        const radAz = ((dungeonConfig.luzAzimut || 135) * Math.PI) / 180;
+        const radEl = ((dungeonConfig.luzElev || 55) * Math.PI) / 180;
+        const R = 75;
+        dirLight.position.set(
+          Math.cos(radAz) * Math.cos(radEl) * R,
+          Math.sin(radEl) * R,
+          Math.sin(radAz) * Math.cos(radEl) * R
+        );
+      } else {
+        // ambiente_claro
+        hemiLight.intensity = 1.3;
+        hemiLight.color.setHex(0xffffff);
+        hemiLight.groundColor.setHex(0x475569);
+        dirLight.intensity = 1.2;
+        dirLight.color.setHex(0xffffff);
+        dirLight.castShadow = sombras;
+        dirLight.position.set(30, 60, 40);
+      }
+    }
+
+
+    function deseleccionarProp() {
+      selectedPropId = null;
+      $('panel-prop-movimiento').style.display = 'none';
+      actualizarMarcadorProp();
+      document.querySelectorAll('.prop-item-row').forEach(r => r.classList.remove('selected'));
+    }
+
+    function seleccionarProp(propId) {
+      if (!selectedRoomId) return;
+      const sala = (dungeonConfig.salas || dungeonInstance.salas).find(s => s.id === selectedRoomId);
+      if (!sala || !sala.propsPersonalizados) return;
+      const p = sala.propsPersonalizados.find(pr => pr.id === propId);
+      if (!p) return;
+
+      selectedPropId = p.id;
+      const dg = window.DungeonGenerator;
+      const cat = (dg && dg.CATALOGO_PROPS_DECORATIVOS) || {};
+      const def = cat[p.tipo] || { icono: '📦', nombre: p.tipo };
+
+      $('prop-sel-titulo').textContent = `${def.icono || '📦'} ${def.nombre || p.tipo}`;
+      $('prop-sel-x').value = p.x || 0;
+      $('lbl-prop-x').textContent = (p.x || 0).toFixed(1) + ' m';
+
+      $('prop-sel-z').value = p.z || 0;
+      $('lbl-prop-z').textContent = (p.z || 0).toFixed(1) + ' m';
+
+      const rotDeg = Math.round(((p.rotY || 0) * 180 / Math.PI) % 360);
+      $('prop-sel-rot').value = rotDeg >= 0 ? rotDeg : (rotDeg + 360);
+      $('lbl-prop-rot').textContent = $('prop-sel-rot').value + '°';
+
+      const escala = p.escala !== undefined ? p.escala : 1.0;
+      $('prop-sel-escala').value = escala;
+      $('lbl-prop-escala').textContent = escala.toFixed(2) + 'x';
+
+      // Mostrar u ocultar botón de configurar botín de cofre
+      if (p.tipo === 'cofre') {
+        $('btn-prop-config-loot').style.display = 'block';
+        activeChestPropRef = p;
+      } else {
+        $('btn-prop-config-loot').style.display = 'none';
+        activeChestPropRef = null;
+      }
+
+      $('panel-prop-movimiento').style.display = 'block';
+      actualizarMarcadorProp();
+
+      document.querySelectorAll('.prop-item-row').forEach(r => {
+        if (r.dataset.propId === selectedPropId) r.classList.add('selected');
+        else r.classList.remove('selected');
+      });
+    }
+
+    function actualizarMarcadorProp() {
+      if (selectedPropMarker) {
+        scene.remove(selectedPropMarker);
+        selectedPropMarker = null;
+      }
+      if (!selectedPropId || !selectedRoomId || !dungeonInstance || !dungeonInstance.salas) return;
+      const sala = (dungeonConfig.salas || dungeonInstance.salas).find(s => s.id === selectedRoomId);
+      if (!sala || !sala.propsPersonalizados) return;
+      const p = sala.propsPersonalizados.find(pr => pr.id === selectedPropId);
+      if (!p) return;
+
+      const ringGeo = new THREE.RingGeometry(0.7, 0.95, 32);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+      selectedPropMarker = new THREE.Mesh(ringGeo, ringMat);
+      selectedPropMarker.position.set(sala.x + p.x, (p.y || 0) + 0.05, sala.z + p.z);
+      scene.add(selectedPropMarker);
     }
 
     function actualizarCajaSeleccion() {
@@ -1091,19 +1538,28 @@
       }
 
       props.forEach((p, idx) => {
-        const itemInfo = cat[p.tipo] || { icono: '🏺', nombre: p.tipo };
+        const itemInfo = cat[p.tipo] || { icono: '📦', nombre: p.tipo };
         const row = document.createElement('div');
-        row.className = 'prop-item-row';
+        row.className = 'prop-item-row' + (p.id === selectedPropId ? ' selected' : '');
+        row.dataset.propId = p.id;
+        row.style.cursor = 'pointer';
         row.innerHTML = `
           <div class="prop-item-info">
             <span>${itemInfo.icono}</span>
             <span title="${itemInfo.nombre}">${itemInfo.nombre}</span>
+            ${p.tipo === 'cofre' ? '<span style="font-size:9px; background:#d97706; color:#fff; padding:0 3px; border-radius:3px;">Loot</span>' : ''}
           </div>
-          <div style="display:flex; align-items:center;">
+          <div style="display:flex; align-items:center; gap:4px;">
             <span class="prop-item-coords">(${p.x.toFixed(1)}, ${p.z.toFixed(1)})</span>
             <button class="sala-item-btn del" data-del-prop="${idx}" style="padding:1px 5px; font-size:9px;" title="Eliminar objeto">✕</button>
           </div>
         `;
+
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('button')) return;
+          seleccionarProp(p.id);
+        });
+
         container.appendChild(row);
       });
 
@@ -1142,18 +1598,237 @@
       const intersects = raycaster.intersectObjects(dungeonInstance.group.children, true);
       for (let i = 0; i < intersects.length; i++) {
         let obj = intersects[i].object;
+        let detectedPropId = null;
+        let detectedRoomId = null;
+        let isChest = false;
+
         while (obj && obj !== dungeonInstance.group) {
+          if (obj.userData && obj.userData.propId) {
+            detectedPropId = obj.userData.propId;
+            if (obj.userData.tipo === 'cofre') isChest = true;
+          }
           if (obj.userData && obj.userData.idSala) {
-            seleccionarEstancia(obj.userData.idSala, false);
-            return;
+            detectedRoomId = obj.userData.idSala;
           }
           obj = obj.parent;
+        }
+
+        if (detectedRoomId) {
+          seleccionarEstancia(detectedRoomId, false);
+          if (detectedPropId) {
+            seleccionarProp(detectedPropId);
+            if (isChest) {
+              showToast('Cofre seleccionado. Pulsa "Configurar Botín" para ajustar sus drops');
+            }
+          }
+          return;
         }
       }
     });
 
+
+    // --- LÓGICA DE BOTÍN DE COFRES ---
+    function abrirModalLootCofre(propRef) {
+      if (!propRef) return;
+      activeChestPropRef = propRef;
+      const dg = window.DungeonGenerator;
+      const defConfig = (dg && dg.DEFAULT_LOOT_CONFIG) ? dg.DEFAULT_LOOT_CONFIG : {
+        probabilidadExito: 0.9,
+        oroMin: 50,
+        oroMax: 250,
+        arenaMin: 2,
+        arenaMax: 10,
+        items: []
+      };
+
+      activeChestLootConfig = JSON.parse(JSON.stringify(propRef.lootConfig || defConfig));
+
+      $('loot-prob-exito').value = Math.round((activeChestLootConfig.probabilidadExito || 0.9) * 100);
+      $('lbl-loot-exito').textContent = $('loot-prob-exito').value + '%';
+
+      $('loot-oro-min').value = activeChestLootConfig.oroMin || 50;
+      $('loot-oro-max').value = activeChestLootConfig.oroMax || 250;
+      $('loot-arena-min').value = activeChestLootConfig.arenaMin || 2;
+      $('loot-arena-max').value = activeChestLootConfig.arenaMax || 10;
+
+      renderLootItems();
+      $('modal-cofre-loot').style.display = 'block';
+    }
+
+    function cerrarModalLootCofre() {
+      $('modal-cofre-loot').style.display = 'none';
+      activeChestLootConfig = null;
+    }
+
+    function renderLootItems() {
+      const container = $('loot-items-container');
+      if (!container || !activeChestLootConfig) return;
+      container.innerHTML = '';
+
+      const items = activeChestLootConfig.items || [];
+      if (items.length === 0) {
+        container.innerHTML = '<div style="color:#94a3b8; font-size:10px; font-style:italic;">Sin ítems configurados. Añade uno debajo.</div>';
+        return;
+      }
+
+      items.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:6px; background:rgba(15,23,42,0.6); padding:4px 6px; border-radius:4px; font-size:11px;';
+        row.innerHTML = `
+          <div style="flex:2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <b>${it.nombre}</b> <span style="font-size:9px; color:#94a3b8;">(${it.tipo})</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px; flex:1;">
+            <input type="range" min="1" max="100" step="1" value="${Math.round((it.probabilidad || 0.1) * 100)}" data-item-prob="${idx}" style="flex:1;">
+            <span style="font-size:10px; color:#fbbf24; width:30px; text-align:right;">${Math.round((it.probabilidad || 0.1) * 100)}%</span>
+          </div>
+          <button class="sala-item-btn del" data-del-item="${idx}" style="padding:1px 5px; font-size:9px;">✕</button>
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll('[data-item-prob]').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.itemProb, 10);
+          const val = parseInt(e.target.value, 10);
+          activeChestLootConfig.items[idx].probabilidad = val / 100;
+          e.target.nextElementSibling.textContent = val + '%';
+        });
+      });
+
+      container.querySelectorAll('[data-del-item]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.target.dataset.delItem, 10);
+          activeChestLootConfig.items.splice(idx, 1);
+          renderLootItems();
+        });
+      });
+    }
+
+    $('btn-prop-config-loot').addEventListener('click', () => {
+      if (activeChestPropRef) abrirModalLootCofre(activeChestPropRef);
+    });
+
+    $('btn-cerrar-modal-loot').addEventListener('click', cerrarModalLootCofre);
+
+    $('loot-prob-exito').addEventListener('input', e => {
+      $('lbl-loot-exito').textContent = e.target.value + '%';
+      if (activeChestLootConfig) activeChestLootConfig.probabilidadExito = parseInt(e.target.value, 10) / 100;
+    });
+
+    $('btn-loot-agregar-item').addEventListener('click', () => {
+      const nombre = ($('loot-nuevo-nombre').value || '').trim();
+      if (!nombre) return;
+      const tipo = $('loot-nuevo-cat').value;
+      const prob = parseInt($('loot-nuevo-prob').value, 10) || 20;
+
+      activeChestLootConfig.items = activeChestLootConfig.items || [];
+      activeChestLootConfig.items.push({
+        id: 'item_' + Date.now().toString(36),
+        nombre,
+        tipo,
+        probabilidad: prob / 100
+      });
+
+      $('loot-nuevo-nombre').value = '';
+      renderLootItems();
+      showToast(`Ítem "${nombre}" añadido al botín`);
+    });
+
+    $('btn-loot-test-apertura').addEventListener('click', () => {
+      if (!activeChestLootConfig) return;
+      const dg = window.DungeonGenerator;
+      if (!dg || typeof dg.simularAperturaCofre !== 'function') {
+        showToast('Generador no disponible para tirada');
+        return;
+      }
+      const resultado = dg.simularAperturaCofre(activeChestLootConfig);
+      if (!resultado.exito) {
+        showToast('🔒 ¡Cerradura trabada! Falló la tirada de apertura.');
+      } else {
+        const nombresItems = (resultado.items || []).map(i => i.nombre).join(', ') || 'Sin ítems adicionales';
+        showToast(`🎉 ¡Cofre abierto! +💰${resultado.oro} Oro, +✨${resultado.arena} Arena. Botín: ${nombresItems}`);
+      }
+    });
+
+    $('btn-loot-guardar').addEventListener('click', () => {
+      if (activeChestPropRef && activeChestLootConfig) {
+        activeChestLootConfig.oroMin = parseInt($('loot-oro-min').value, 10) || 50;
+        activeChestLootConfig.oroMax = parseInt($('loot-oro-max').value, 10) || 250;
+        activeChestLootConfig.arenaMin = parseInt($('loot-arena-min').value, 10) || 2;
+        activeChestLootConfig.arenaMax = parseInt($('loot-arena-max').value, 10) || 10;
+        activeChestPropRef.lootConfig = JSON.parse(JSON.stringify(activeChestLootConfig));
+        showToast('✓ Configuración de botín guardada para este cofre');
+        cerrarModalLootCofre();
+        rebuildDungeon();
+      }
+    });
+
+    // --- CONTROLES DE MOVIMIENTO DE PROPS ---
+    $('btn-prop-deseleccionar').addEventListener('click', deseleccionarProp);
+
+    function actualizarPropSeleccionado(mutator) {
+      if (!selectedPropId || !selectedRoomId) return;
+      actualizarSalaSeleccionada(sala => {
+        const p = (sala.propsPersonalizados || []).find(pr => pr.id === selectedPropId);
+        if (!p) return;
+        mutator(p);
+      });
+      actualizarMarcadorProp();
+    }
+
+    $('prop-sel-x').addEventListener('input', e => {
+      const val = parseFloat(e.target.value) || 0;
+      $('lbl-prop-x').textContent = val.toFixed(1) + ' m';
+      actualizarPropSeleccionado(p => { p.x = val; });
+    });
+
+    $('prop-sel-z').addEventListener('input', e => {
+      const val = parseFloat(e.target.value) || 0;
+      $('lbl-prop-z').textContent = val.toFixed(1) + ' m';
+      actualizarPropSeleccionado(p => { p.z = val; });
+    });
+
+    $('prop-sel-rot').addEventListener('input', e => {
+      const deg = parseInt(e.target.value, 10) || 0;
+      $('lbl-prop-rot').textContent = deg + '°';
+      const rad = (deg * Math.PI) / 180;
+      actualizarPropSeleccionado(p => { p.rotY = rad; });
+    });
+
+    $('prop-sel-escala').addEventListener('input', e => {
+      const esc = parseFloat(e.target.value) || 1.0;
+      $('lbl-prop-escala').textContent = esc.toFixed(2) + 'x';
+      actualizarPropSeleccionado(p => { p.escala = esc; });
+    });
+
+    $('btn-prop-duplicar').addEventListener('click', () => {
+      if (!selectedPropId || !selectedRoomId) return;
+      actualizarSalaSeleccionada(sala => {
+        const p = (sala.propsPersonalizados || []).find(pr => pr.id === selectedPropId);
+        if (!p) return;
+        const dup = JSON.parse(JSON.stringify(p));
+        dup.id = 'prop_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+        dup.x += 1.2;
+        dup.z += 1.2;
+        sala.propsPersonalizados.push(dup);
+        selectedPropId = dup.id;
+        showToast('Objeto decorativo duplicado');
+      });
+      if (selectedPropId) seleccionarProp(selectedPropId);
+    });
+
+    $('btn-prop-borrar').addEventListener('click', () => {
+      if (!selectedPropId || !selectedRoomId) return;
+      actualizarSalaSeleccionada(sala => {
+        sala.propsPersonalizados = (sala.propsPersonalizados || []).filter(pr => pr.id !== selectedPropId);
+        showToast('Objeto decorativo eliminado');
+      });
+      deseleccionarProp();
+    });
+
     // --- UI EVENT BINDINGS ---
-    const $ = id => document.getElementById(id);
+    // const $ moved to top
 
     function syncUIFromConfig() {
       $('cfg-name').value = dungeonConfig.name;
@@ -1203,6 +1878,17 @@
       $('boss-oro').value = b.recompensaOro || 3000;
       $('boss-arena').value = b.recompensaArena || 60;
       $('boss-equipo').value = b.recompensaEquipo || 'Armadura del Soberano Caído';
+
+      if ($('cfg-modo-luz')) $('cfg-modo-luz').value = dungeonConfig.modoLuz || 'antorchas';
+      if ($('panel-controles-foco')) $('panel-controles-foco').style.display = (dungeonConfig.modoLuz === 'foco_personalizado') ? 'block' : 'none';
+      if ($('cfg-luz-azimut')) $('cfg-luz-azimut').value = dungeonConfig.luzAzimut || 135;
+      if ($('lbl-luz-azimut')) $('lbl-luz-azimut').textContent = (dungeonConfig.luzAzimut || 135) + '°';
+      if ($('cfg-luz-elev')) $('cfg-luz-elev').value = dungeonConfig.luzElev || 55;
+      if ($('lbl-luz-elev')) $('lbl-luz-elev').textContent = (dungeonConfig.luzElev || 55) + '°';
+      if ($('cfg-luz-intensidad')) $('cfg-luz-intensidad').value = dungeonConfig.luzIntensidad || 1.5;
+      if ($('cfg-luz-color')) $('cfg-luz-color').value = dungeonConfig.luzColor || '#ffffff';
+      if ($('cfg-sombras-activas')) $('cfg-sombras-activas').checked = dungeonConfig.sombrasActivas !== false;
+      actualizarIluminacionEscena();
 
       renderElitesTable();
     }
@@ -1322,6 +2008,94 @@
     // --- BINDINGS DEL INSPECTOR DE ESTANCIA SELECCIONADA ---
     $('btn-insp-cerrar').addEventListener('click', deseleccionarEstancia);
 
+    // Listeners de texturas individuales de sala
+    $('insp-estilo').addEventListener('change', e => {
+      actualizarSalaSeleccionada(s => { s.estiloPared = e.target.value || null; s.estilo = e.target.value || null; });
+    });
+    $('btn-insp-color-pared-reset').addEventListener('click', () => {
+      $('insp-color-pared').value = '#706860';
+      actualizarSalaSeleccionada(s => { s.colorPared = null; });
+      showToast('Color de pared restaurado por defecto');
+    });
+
+    $('insp-estilo-suelo').addEventListener('change', e => {
+      actualizarSalaSeleccionada(s => { s.estiloSuelo = e.target.value || null; });
+    });
+    $('insp-color-suelo').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.colorSuelo = e.target.value; });
+    });
+    $('btn-insp-color-suelo-reset').addEventListener('click', () => {
+      $('insp-color-suelo').value = '#4a423b';
+      actualizarSalaSeleccionada(s => { s.colorSuelo = null; });
+      showToast('Color de suelo restaurado por defecto');
+    });
+
+    $('insp-estilo-techo').addEventListener('change', e => {
+      actualizarSalaSeleccionada(s => { s.estiloTecho = e.target.value || null; });
+    });
+    $('insp-color-techo').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.colorTecho = e.target.value; });
+    });
+    $('btn-insp-color-techo-reset').addEventListener('click', () => {
+      $('insp-color-techo').value = '#38302b';
+      actualizarSalaSeleccionada(s => { s.colorTecho = null; });
+      showToast('Color de techo restaurado por defecto');
+    });
+
+    $('insp-estilo-fuente').addEventListener('change', e => {
+      actualizarSalaSeleccionada(s => { s.estiloFuente = e.target.value || null; });
+    });
+    $('insp-color-agua').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.colorAgua = e.target.value; });
+    });
+    $('btn-insp-color-agua-reset').addEventListener('click', () => {
+      $('insp-color-agua').value = '#38bdf8';
+      actualizarSalaSeleccionada(s => { s.colorAgua = null; });
+      showToast('Color de agua restaurado a azul');
+    });
+
+    // Luz propia de la estancia
+    $('insp-color-luz').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.colorLuz = e.target.value; });
+    });
+    $('insp-intensidad-luz').addEventListener('input', e => {
+      const val = parseFloat(e.target.value) || 0;
+      $('lbl-insp-luz').textContent = val.toFixed(1);
+      actualizarSalaSeleccionada(s => { s.intensidadLuz = val; });
+    });
+
+    // Listeners de iluminación global y sombras dinámicas
+    $('cfg-modo-luz').addEventListener('change', e => {
+      dungeonConfig.modoLuz = e.target.value;
+      $('panel-controles-foco').style.display = e.target.value === 'foco_personalizado' ? 'block' : 'none';
+      actualizarIluminacionEscena();
+      rebuildDungeon();
+    });
+    $('cfg-luz-azimut').addEventListener('input', e => {
+      dungeonConfig.luzAzimut = parseInt(e.target.value, 10) || 135;
+      $('lbl-luz-azimut').textContent = dungeonConfig.luzAzimut + '°';
+      actualizarIluminacionEscena();
+    });
+    $('cfg-luz-elev').addEventListener('input', e => {
+      dungeonConfig.luzElev = parseInt(e.target.value, 10) || 55;
+      $('lbl-luz-elev').textContent = dungeonConfig.luzElev + '°';
+      actualizarIluminacionEscena();
+    });
+    $('cfg-luz-intensidad').addEventListener('input', e => {
+      dungeonConfig.luzIntensidad = parseFloat(e.target.value) || 1.5;
+      actualizarIluminacionEscena();
+    });
+    $('cfg-luz-color').addEventListener('input', e => {
+      dungeonConfig.luzColor = e.target.value;
+      actualizarIluminacionEscena();
+    });
+    $('cfg-sombras-activas').addEventListener('change', e => {
+      dungeonConfig.sombrasActivas = e.target.checked;
+      actualizarIluminacionEscena();
+      rebuildDungeon();
+    });
+
+
     function actualizarSalaSeleccionada(mutator) {
       if (!selectedRoomId) return;
       if (!dungeonConfig.salas || dungeonConfig.salas.length === 0) {
@@ -1355,7 +2129,12 @@
     $('insp-color-pared').addEventListener('input', e => {
       actualizarSalaSeleccionada(s => { s.colorPared = e.target.value; });
     });
-    $('btn-insp-color-reset').addEventListener('click', () => {
+    if ($('btn-insp-color-reset')) $('btn-insp-color-reset').addEventListener('click', () => {
+  $('insp-color-pared').value = '#706860';
+  actualizarSalaSeleccionada(s => { s.colorPared = null; });
+  showToast('Color de pared restaurado por defecto');
+});
+if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventListener('click', () => {
       $('insp-color-pared').value = '#706860';
       actualizarSalaSeleccionada(s => { s.colorPared = null; });
       showToast('Color de pared restaurado por defecto');
@@ -1471,7 +2250,8 @@
       rebuildDungeon();
     });
     $('btn-reroll').addEventListener('click', () => {
-      const estilos = ['cripta_gotica', 'ruinas_musgosas', 'catacumbas_caliza', 'fortaleza_basalto'];
+      const dg = window.DungeonGenerator;
+      const estilos = (dg && dg.ESTILOS_PIEDRA) ? Object.keys(dg.ESTILOS_PIEDRA) : ['cripta_gotica', 'ruinas_musgosas', 'catacumbas_caliza', 'fortaleza_basalto'];
       dungeonConfig.estilo = estilos[Math.floor(Math.random() * estilos.length)];
       dungeonConfig.seed = Math.floor(Math.random() * 99999) + 1;
       dungeonConfig.salas = null;
@@ -1606,6 +2386,11 @@
 
     // Inicialización
     window.dungeonConfig = dungeonConfig;
+    window.seleccionarEstancia = seleccionarEstancia;
+    window.deseleccionarEstancia = deseleccionarEstancia;
+    window.seleccionarProp = seleccionarProp;
+    window.deseleccionarProp = deseleccionarProp;
+    window.abrirModalLootCofre = abrirModalLootCofre;
     window.rebuildDungeon = rebuildDungeon;
     window.syncUIFromConfig = syncUIFromConfig;
     window.TIPOS_ESTANCIA = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator.TIPOS_ESTANCIA : null;

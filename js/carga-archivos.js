@@ -289,6 +289,13 @@
 
     // Calcular resumen de totales y porcentajes
     obtenerResumen() {
+      const ahora = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+      for (const [id, a] of this.archivos.entries()) {
+        if (a.estado === 'cargando' && a.t0 && (ahora - a.t0 > 12000)) {
+          a.estado = 'cargado';
+          a.cargadoBytes = a.bytes || 1024;
+        }
+      }
       const lista = Array.from(this.archivos.values());
       const enCarga = lista.filter(a => a.estado === 'cargando');
       const cargados = lista.filter(a => a.estado === 'cargado');

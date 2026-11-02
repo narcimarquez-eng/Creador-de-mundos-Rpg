@@ -44,7 +44,7 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('js/dungeon-generator.js'), 'Debe importar el generador procedural de mazmorras');
   assert.ok(html.includes('rpgMundo.retornoMazmorra'), 'Debe sincronizar mediante retorno de almacenamiento');
 
-  // Nuevos controles de variedad, dimensiones y creación de estancias
+  // Controles de variedad, dimensiones y creación de estancias
   assert.ok(html.includes('id="cfg-radio"'), 'Debe incluir slider para radio de la mazmorra');
   assert.ok(html.includes('id="cfg-tamano-medio"'), 'Debe incluir slider para tamaño medio de las salas');
   assert.ok(html.includes('id="cfg-varianza"'), 'Debe incluir slider de varianza / aleatoriedad de tamaño');
@@ -71,6 +71,33 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('seleccionarEstancia'), 'Debe implementar seleccionarEstancia');
   assert.ok(html.includes('THREE.Box3Helper'), 'Debe mostrar caja 3D visual de selección de estancia');
   assert.ok(html.includes('Raycaster'), 'Debe permitir seleccionar estancias haciendo clic en la vista 3D');
+
+  // Nuevas capacidades avanzadas
+  assert.ok(html.includes('id="insp-estilo-suelo"'), 'Debe incluir selector de textura de suelo individual');
+  assert.ok(html.includes('id="insp-estilo-techo"'), 'Debe incluir selector de textura de techo individual');
+  assert.ok(html.includes('id="insp-estilo-fuente"'), 'Debe incluir selector de textura de fuente individual');
+  assert.ok(html.includes('id="insp-color-suelo"'), 'Debe incluir selector de color de suelo individual');
+  assert.ok(html.includes('id="insp-color-techo"'), 'Debe incluir selector de color de techo individual');
+  assert.ok(html.includes('id="insp-color-agua"'), 'Debe incluir selector de color de agua individual');
+  assert.ok(html.includes('id="insp-color-luz"'), 'Debe incluir control de color de luz de estancia');
+  assert.ok(html.includes('id="insp-intensidad-luz"'), 'Debe incluir slider de intensidad de luz de estancia');
+
+  // Subpanel de movimiento de objeto decorativo
+  assert.ok(html.includes('id="panel-prop-movimiento"'), 'Debe incluir panel de movimiento del objeto seleccionado');
+  assert.ok(html.includes('id="prop-sel-x"') && html.includes('id="prop-sel-z"'), 'Debe permitir mover props en X y Z');
+  assert.ok(html.includes('id="prop-sel-rot"'), 'Debe permitir rotar props en Y');
+  assert.ok(html.includes('id="prop-sel-escala"'), 'Debe permitir escalar props');
+  assert.ok(html.includes('id="btn-prop-config-loot"'), 'Debe incluir botón para configurar botín de cofres');
+
+  // Modal de botín de cofre
+  assert.ok(html.includes('id="modal-cofre-loot"'), 'Debe incluir modal flotante de botín de cofre');
+  assert.ok(html.includes('id="loot-prob-exito"'), 'Debe permitir configurar probabilidad de apertura exitosa');
+  assert.ok(html.includes('id="btn-loot-test-apertura"'), 'Debe incluir botón para simular tirada de botín');
+
+  // Iluminación y sombras dinámicas
+  assert.ok(html.includes('id="cfg-modo-luz"'), 'Debe incluir selector de modo de iluminación');
+  assert.ok(html.includes('id="cfg-sombras-activas"'), 'Debe incluir toggle de sombras dinámicas');
+  assert.ok(html.includes('id="cfg-luz-azimut"'), 'Debe permitir orientar la luz direccional por azimut y elevación');
 });
 
 test('index.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {
