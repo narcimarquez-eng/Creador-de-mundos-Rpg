@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Creador de Mazmorras 3D - Procedural & Modular HD</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #0b0f19;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+      user-select: none;
+      touch-action: none;
+    }
+
+    #btn-toggle-ui {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 30;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(168, 85, 247, 0.6);
+      color: #c084fc;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #top-bar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 30;
+      display: flex;
+      gap: 8px;
+    }
+
+    .top-btn {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.15s;
+    }
+    .top-btn:hover { background: #1e293b; border-color: #38bdf8; }
+    .top-btn.primary { background: #7e22ce; border-color: #c084fc; color: #fff; }
+    .top-btn.primary:hover { background: #9333ea; }
+    .top-btn.gold { background: #b45309; border-color: #facc15; }
+    .top-btn.gold:hover { background: #d97706; }
+
+    #ui-panel {
+      position: absolute;
+      top: 54px;
+      left: 12px;
+      width: 360px;
+      max-width: calc(100vw - 24px);
+      max-height: calc(100vh - 70px);
+      overflow-y: auto;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85);
+      z-index: 25;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      scrollbar-width: thin;
+      scrollbar-color: #475569 transparent;
+    }
+    #ui-panel.collapsed {
+      transform: translateX(-400px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #ui-panel h2 {
+      margin: 12px 0 8px 0;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #c084fc;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-bottom: 1px solid rgba(192, 132, 252, 0.25);
+      padding-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #ui-panel h2:first-child { margin-top: 0; }
+
+    .control-row { margin-bottom: 8px; }
+    .control-row label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+    .control-row label span {
+      color: #facc15;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    input[type="range"], select, input[type="text"], input[type="number"] {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 5px;
+      color: #f8fafc;
+      accent-color: #a855f7;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #c084fc;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin: 8px 0;
+      padding: 8px;
+      background: rgba(30, 41, 59, 0.65);
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #e2e8f0;
+      cursor: pointer;
+    }
+    .checkbox-item input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #a855f7;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    button.btn {
+      flex: 1;
+      background: #7e22ce;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    button.btn:hover { background: #9333ea; }
+    button.btn.alt { background: #334155; }
+    button.btn.alt:hover { background: #475569; }
+    button.btn.gold { background: #b45309; }
+    button.btn.gold:hover { background: #d97706; }
+    button.btn.danger { background: #991b1b; }
+    button.btn.danger:hover { background: #b91c1c; }
+
+    table.elites-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    table.elites-table th {
+      color: #94a3b8;
+      font-weight: 600;
+      text-align: left;
+      padding: 3px 2px;
+      border-bottom: 1px solid #334155;
+    }
+    table.elites-table td {
+      padding: 4px 2px;
+    }
+    table.elites-table input, table.elites-table select {
+      font-size: 10.5px;
+      padding: 3px 4px;
+    }
+
+    #info-hud {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 11px;
+      color: #94a3b8;
+      z-index: 20;
+      pointer-events: none;
+      display: flex;
+      gap: 12px;
+    }
+    #info-hud span b { color: #f8fafc; }
+
+    #toast {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #c084fc;
+      color: #f3e8ff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 50;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <button id="btn-toggle-ui">🗝️ Menú Mazmorra</button>
+
+  <div id="top-bar">
+    <button class="top-btn" id="btn-view-top" title="Vista de pájaro">👁️ Cenital</button>
+    <button class="top-btn" id="btn-view-reset" title="Vista isométrica de entrada">🔄 Vista 3D</button>
+    <button class="top-btn gold" id="btn-reroll">🎲 Al azar</button>
+    <button class="top-btn primary" id="btn-save-world">💾 Guardar y Volver</button>
+  </div>
+
+  <div id="ui-panel">
+    <h2>🏰 Identidad de la Mazmorra</h2>
+    <div class="control-row">
+      <label>Nombre de la Mazmorra</label>
+      <input type="text" id="cfg-name" value="Cripta del Trono Caído">
+    </div>
+    <div class="grid2">
+      <div class="control-row">
+        <label>Nivel Recomendado</label>
+        <input type="number" id="cfg-level" min="1" max="99" value="15">
+      </div>
+      <div class="control-row">
+        <label>Modo de Generación</label>
+        <select id="cfg-tipo-gen">
+          <option value="procedural">Procedural HD</option>
+          <option value="glb">Modelo GLB 3D</option>
+        </select>
+      </div>
+    </div>
+
+    <h2>🏛️ Arquitectura y Piedra</h2>
+    <div class="control-row">
+      <label>Estilo de Piedra</label>
+      <select id="cfg-estilo">
+        <option value="cripta_gotica">Cripta Gótica Oscura</option>
+        <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+        <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+        <option value="fortaleza_basalto">Fortaleza de Basalto Volcánico</option>
+      </select>
+    </div>
+    <div class="control-row">
+      <label>Semilla Procedural</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" id="cfg-seed" min="1" max="99999" value="48291">
+        <button class="btn gold" id="btn-seed-dice" style="flex:0 0 42px">🎲</button>
+      </div>
+    </div>
+
+    <h2>🏺 Elementos & Decoración Subterránea</h2>
+    <div class="checkbox-grid">
+      <label class="checkbox-item"><input type="checkbox" id="prop-fuentes" checked> ⛲ Fuentes</label>
+      <label class="checkbox-item"><input type="checkbox" id="prop-antorchas" checked> 🔥 Antorchas</label>
+      <label class="checkbox-item"><input type="checkbox" id="prop-cofres" checked> 🪙 Cofres</label>
+      <label class="checkbox-item"><input type="checkbox" id="prop-jarrones" checked> 🏺 Jarrones</label>
+      <label class="checkbox-item"><input type="checkbox" id="prop-musgo" checked> 🌿 Musgo/Yerbas</label>
+      <label class="checkbox-item"><input type="checkbox" id="prop-sarcofagos" checked> 🪦 Sarcófagos</label>
+      <label class="checkbox-item"><input type="checkbox" id="prop-hongos" checked> 🍄 Bioluminiscentes</label>
+    </div>
+
+    <h2>👑 Jefe de Mazmorra</h2>
+    <div class="control-row">
+      <label>Nombre del Jefe</label>
+      <input type="text" id="boss-name" value="Señor del Trono Caído">
+    </div>
+    <div class="grid2">
+      <div class="control-row">
+        <label>Nivel del Jefe</label>
+        <input type="number" id="boss-level" min="1" max="120" value="17">
+      </div>
+      <div class="control-row">
+        <label>Multiplicador de Vida</label>
+        <select id="boss-elite">
+          <option value="4">×4 Élite Mayor</option>
+          <option value="8">×8 Élite Supremo</option>
+          <option value="10" selected>×10 Jefe Titánico</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="control-row">
+        <label>Recompensa Oro</label>
+        <input type="number" id="boss-oro" min="100" max="50000" value="3000">
+      </div>
+      <div class="control-row">
+        <label>Arena Arcana</label>
+        <input type="number" id="boss-arena" min="5" max="500" value="60">
+      </div>
+    </div>
+    <div class="control-row">
+      <label>Pieza Legendaria de Botín</label>
+      <input type="text" id="boss-equipo" value="Armadura del Soberano Caído">
+    </div>
+
+    <h2>⚔️ Luchadores de Élite (×4 y ×8)</h2>
+    <table class="elites-table">
+      <thead>
+        <tr>
+          <th>Nombre Élite</th>
+          <th style="width:40px">Nv</th>
+          <th style="width:68px">Rango</th>
+          <th style="width:36px">Cant</th>
+          <th style="width:24px"></th>
+        </tr>
+      </thead>
+      <tbody id="elites-tbody"></tbody>
+    </table>
+    <div class="btn-group">
+      <button class="btn alt" id="btn-add-elite">➕ Añadir Grupo Élite</button>
+    </div>
+
+    <h2>📁 Acciones & Exportación</h2>
+    <div class="btn-group">
+      <button class="btn alt" id="btn-export-json">⬇ Exportar JSON</button>
+      <label class="btn alt" style="cursor:pointer">⬆ Importar JSON<input type="file" id="file-import" accept=".json" style="display:none"></label>
+    </div>
+  </div>
+
+  <div id="info-hud">
+    <span>📐 Superficie: <b id="hud-area">~2450 m²</b></span>
+    <span>🏛️ Salas: <b id="hud-salas">6 cámaras</b></span>
+    <span>🔥 Antorchas: <b id="hud-antorchas">14 activas</b></span>
+    <span>👑 Jefe: <b id="hud-boss">Señor del Trono Caído (Nv 17)</b></span>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="js/dungeon-generator.js"></script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    // --- ESTADO Y CONFIGURACIÓN ---
+    let dungeonConfig = {
+      name: 'Cripta del Trono Caído',
+      level: 15,
+      tipoGeneracion: 'procedural',
+      estilo: 'cripta_gotica',
+      seed: 48291,
+      glb: 'glb/mazmorras/mazmorra1.glb',
+      props: {
+        fuentes: true,
+        antorchas: true,
+        cofres: true,
+        jarrones: true,
+        musgo: true,
+        sarcofagos: true,
+        hongos: true
+      },
+      boss: {
+        name: 'Señor del Trono Caído',
+        level: 17,
+        rangoElite: 10,
+        recompensaOro: 3000,
+        recompensaArena: 60,
+        recompensaEquipo: 'Armadura del Soberano Caído'
+      },
+      elites: [
+        { name: 'Guardián del Trono (Élite)', level: 15, multiplicador: 8, cantidad: 4, modelo: 'caballero_oscuro' },
+        { name: 'Centinela de Piedra (Élite)', level: 14, multiplicador: 4, cantidad: 6, modelo: 'golem_ancestral' }
+      ]
+    };
+
+    // Soporte para enlace desde index.html (#mundo={sessionId, dungeonId, dungeon})
+    let worldLink = null;
+    try {
+      const m = location.hash.match(/mundo=([^&]+)/);
+      if (m) {
+        worldLink = JSON.parse(decodeURIComponent(m[1]));
+        if (worldLink && worldLink.dungeon) {
+          dungeonConfig = Object.assign({}, dungeonConfig, worldLink.dungeon);
+          if (worldLink.dungeon.boss) dungeonConfig.boss = Object.assign({}, dungeonConfig.boss, worldLink.dungeon.boss);
+          if (worldLink.dungeon.props) dungeonConfig.props = Object.assign({}, dungeonConfig.props, worldLink.dungeon.props);
+          if (Array.isArray(worldLink.dungeon.elites)) dungeonConfig.elites = JSON.parse(JSON.stringify(worldLink.dungeon.elites));
+        }
+      }
+    } catch (e) {
+      console.warn('Error leyendo enlace del mundo:', e);
+    }
+
+    // --- ESCENA THREE.JS ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x070b14);
+    scene.fog = new THREE.FogExp2(0x070b14, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 32, 68);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.maxPolarAngle = Math.PI / 2 + 0.05;
+    controls.minDistance = 3;
+    controls.maxDistance = 220;
+    controls.target.set(0, 2, 0);
+
+    let dungeonInstance = null;
+    let markersGroup = new THREE.Group();
+    scene.add(markersGroup);
+
+    // --- RECONSTRUCCIÓN DE LA MAZMORRA 3D ---
+    function rebuildDungeon() {
+      if (dungeonInstance && dungeonInstance.group) {
+        scene.remove(dungeonInstance.group);
+      }
+      while (markersGroup.children.length > 0) {
+        markersGroup.remove(markersGroup.children[0]);
+      }
+
+      if (dungeonConfig.tipoGeneracion === 'glb' && dungeonConfig.glb) {
+        cargarGlbDungeon();
+      } else {
+        generarProceduralDungeon();
+      }
+    }
+
+    function generarProceduralDungeon() {
+      const dg = window.DungeonGenerator;
+      if (!dg) return;
+
+      dungeonInstance = dg.generarMazmorra({
+        estilo: dungeonConfig.estilo,
+        seed: dungeonConfig.seed,
+        props: dungeonConfig.props
+      });
+
+      scene.add(dungeonInstance.group);
+
+      // Crear marcadores visuales de puntos de aparición (spawns)
+      crearMarcadorHeroe(dungeonInstance.spawns.hero);
+      dungeonInstance.spawns.elites.forEach(sp => crearMarcadorElite(sp));
+      crearMarcadorJefe(dungeonInstance.spawns.boss);
+
+      actualizarHUD(dungeonInstance);
+    }
+
+    function cargarGlbDungeon() {
+      const loader = new GLTFLoader();
+      loader.load(dungeonConfig.glb, (gltf) => {
+        const m = gltf.scene;
+        m.traverse(o => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+        const grp = new THREE.Group();
+        grp.add(m);
+        grp.add(new THREE.AmbientLight(0xffffff, 1.2));
+        dungeonInstance = {
+          group: grp,
+          salas: [{ nombre: 'Modelo GLB', x: 0, z: 0 }],
+          update: () => {}
+        };
+        scene.add(grp);
+        showToast('Modelo GLB cargado correctamente');
+      }, undefined, (err) => {
+        showToast('Error al cargar GLB, volviendo a Procedural');
+        dungeonConfig.tipoGeneracion = 'procedural';
+        $('cfg-tipo-gen').value = 'procedural';
+        generarProceduralDungeon();
+      });
+    }
+
+    function crearMarcadorHeroe(pos) {
+      const grp = new THREE.Group();
+      grp.position.set(pos.x, pos.y + 0.1, pos.z);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.2, 16), new THREE.MeshStandardMaterial({
+        color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.0
+      }));
+      grp.add(base);
+      const cono = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.9, 12), new THREE.MeshStandardMaterial({
+        color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.5
+      }));
+      cono.position.y = 1.2;
+      cono.rotation.x = Math.PI;
+      grp.add(cono);
+      markersGroup.add(grp);
+    }
+
+    function crearMarcadorElite(sp) {
+      const grp = new THREE.Group();
+      grp.position.set(sp.x, 0.1, sp.z);
+      const color = sp.multiplicador === 8 ? 0xa855f7 : 0xec4899;
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.2, 16), new THREE.MeshStandardMaterial({
+        color, emissive: color, emissiveIntensity: 0.9
+      }));
+      grp.add(base);
+      const rombo = new THREE.Mesh(new THREE.OctahedronGeometry(0.45), new THREE.MeshStandardMaterial({
+        color, emissive: color, emissiveIntensity: 1.2
+      }));
+      rombo.position.y = 1.1;
+      grp.add(rombo);
+      markersGroup.add(grp);
+    }
+
+    function crearMarcadorJefe(sp) {
+      const grp = new THREE.Group();
+      grp.position.set(sp.x, sp.y || 0.6, sp.z);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.3, 24), new THREE.MeshStandardMaterial({
+        color: 0xfacc15, emissive: 0xb45309, emissiveIntensity: 1.2
+      }));
+      grp.add(base);
+      const corona = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.18, 8, 16), new THREE.MeshStandardMaterial({
+        color: 0xfacc15, emissive: 0xd97706, emissiveIntensity: 1.6
+      }));
+      corona.rotation.x = Math.PI / 2;
+      corona.position.y = 2.4;
+      grp.add(corona);
+      markersGroup.add(grp);
+    }
+
+    function actualizarHUD(inst) {
+      $('hud-area').textContent = '~2650 m²';
+      $('hud-salas').textContent = (inst.salas ? inst.salas.length : 6) + ' cámaras';
+      $('hud-antorchas').textContent = (inst.props && inst.props.antorchas ? inst.props.antorchas.length : 14) + ' activas';
+      $('hud-boss').textContent = dungeonConfig.boss.name + ' (Nv ' + dungeonConfig.boss.level + ')';
+    }
+
+    // --- UI EVENT BINDINGS ---
+    const $ = id => document.getElementById(id);
+
+    function syncUIFromConfig() {
+      $('cfg-name').value = dungeonConfig.name;
+      $('cfg-level').value = dungeonConfig.level;
+      $('cfg-tipo-gen').value = dungeonConfig.tipoGeneracion || 'procedural';
+      $('cfg-estilo').value = dungeonConfig.estilo || 'cripta_gotica';
+      $('cfg-seed').value = dungeonConfig.seed || 12345;
+
+      const p = dungeonConfig.props || {};
+      $('prop-fuentes').checked = p.fuentes !== false;
+      $('prop-antorchas').checked = p.antorchas !== false;
+      $('prop-cofres').checked = p.cofres !== false;
+      $('prop-jarrones').checked = p.jarrones !== false;
+      $('prop-musgo').checked = p.musgo !== false;
+      $('prop-sarcofagos').checked = p.sarcofagos !== false;
+      $('prop-hongos').checked = p.hongos !== false;
+
+      const b = dungeonConfig.boss || {};
+      $('boss-name').value = b.name || 'Señor del Trono Caído';
+      $('boss-level').value = b.level || 17;
+      $('boss-elite').value = b.rangoElite || 10;
+      $('boss-oro').value = b.recompensaOro || 3000;
+      $('boss-arena').value = b.recompensaArena || 60;
+      $('boss-equipo').value = b.recompensaEquipo || 'Armadura del Soberano Caído';
+
+      renderElitesTable();
+    }
+
+    function renderElitesTable() {
+      const tbody = $('elites-tbody');
+      tbody.innerHTML = '';
+      (dungeonConfig.elites || []).forEach((el, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="text" data-idx="${idx}" data-field="name" value="${el.name}"></td>
+          <td><input type="number" min="1" max="120" data-idx="${idx}" data-field="level" value="${el.level}"></td>
+          <td>
+            <select data-idx="${idx}" data-field="multiplicador">
+              <option value="4" ${el.multiplicador === 4 ? 'selected' : ''}>×4 Élite</option>
+              <option value="8" ${el.multiplicador === 8 ? 'selected' : ''}>×8 Élite</option>
+            </select>
+          </td>
+          <td><input type="number" min="1" max="16" data-idx="${idx}" data-field="cantidad" value="${el.cantidad || 1}"></td>
+          <td><button class="btn danger" style="padding:2px 5px;font-size:10px" data-del-elite="${idx}">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('change', () => {
+          const idx = parseInt(el.dataset.idx, 10);
+          const f = el.dataset.field;
+          let val = el.value;
+          if (f === 'level' || f === 'cantidad') val = Math.max(1, parseInt(val, 10) || 1);
+          if (f === 'multiplicador') val = parseInt(val, 10) || 4;
+          dungeonConfig.elites[idx][f] = val;
+        });
+      });
+
+      tbody.querySelectorAll('[data-del-elite]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.delElite, 10);
+          dungeonConfig.elites.splice(idx, 1);
+          renderElitesTable();
+        });
+      });
+    }
+
+    $('btn-toggle-ui').addEventListener('click', () => {
+      $('ui-panel').classList.toggle('collapsed');
+    });
+
+    $('cfg-name').addEventListener('input', e => { dungeonConfig.name = e.target.value.trim() || 'Mazmorra'; });
+    $('cfg-level').addEventListener('change', e => { dungeonConfig.level = Math.max(1, parseInt(e.target.value, 10) || 1); });
+    $('cfg-tipo-gen').addEventListener('change', e => {
+      dungeonConfig.tipoGeneracion = e.target.value;
+      rebuildDungeon();
+    });
+    $('cfg-estilo').addEventListener('change', e => {
+      dungeonConfig.estilo = e.target.value;
+      rebuildDungeon();
+    });
+    $('cfg-seed').addEventListener('change', e => {
+      dungeonConfig.seed = parseInt(e.target.value, 10) || 1;
+      rebuildDungeon();
+    });
+    $('btn-seed-dice').addEventListener('click', () => {
+      dungeonConfig.seed = Math.floor(Math.random() * 99999) + 1;
+      $('cfg-seed').value = dungeonConfig.seed;
+      rebuildDungeon();
+    });
+    $('btn-reroll').addEventListener('click', () => {
+      const estilos = ['cripta_gotica', 'ruinas_musgosas', 'catacumbas_caliza', 'fortaleza_basalto'];
+      dungeonConfig.estilo = estilos[Math.floor(Math.random() * estilos.length)];
+      dungeonConfig.seed = Math.floor(Math.random() * 99999) + 1;
+      syncUIFromConfig();
+      rebuildDungeon();
+      showToast('Mazmorra procedural regenerada al azar');
+    });
+
+    ['fuentes', 'antorchas', 'cofres', 'jarrones', 'musgo', 'sarcofagos', 'hongos'].forEach(p => {
+      $('prop-' + p).addEventListener('change', e => {
+        dungeonConfig.props[p] = e.target.checked;
+        rebuildDungeon();
+      });
+    });
+
+    $('boss-name').addEventListener('change', e => { dungeonConfig.boss.name = e.target.value; });
+    $('boss-level').addEventListener('change', e => { dungeonConfig.boss.level = parseInt(e.target.value, 10) || 1; });
+    $('boss-elite').addEventListener('change', e => { dungeonConfig.boss.rangoElite = parseInt(e.target.value, 10) || 10; });
+    $('boss-oro').addEventListener('change', e => { dungeonConfig.boss.recompensaOro = parseInt(e.target.value, 10) || 1000; });
+    $('boss-arena').addEventListener('change', e => { dungeonConfig.boss.recompensaArena = parseInt(e.target.value, 10) || 50; });
+    $('boss-equipo').addEventListener('change', e => { dungeonConfig.boss.recompensaEquipo = e.target.value; });
+
+    $('btn-add-elite').addEventListener('click', () => {
+      dungeonConfig.elites.push({
+        name: 'Guardián Élite',
+        level: dungeonConfig.level,
+        multiplicador: 4,
+        cantidad: 2,
+        modelo: 'caballero_oscuro'
+      });
+      renderElitesTable();
+    });
+
+    // Vistas de cámara
+    $('btn-view-top').addEventListener('click', () => {
+      controls.target.set(0, 0, -6);
+      camera.position.set(0, 110, 0);
+      controls.update();
+      showToast('Vista Cenital activada');
+    });
+    $('btn-view-reset').addEventListener('click', () => {
+      controls.target.set(0, 2, 0);
+      camera.position.set(0, 32, 68);
+      controls.update();
+      showToast('Vista Isométrica restaurada');
+    });
+
+    // Guardado y retorno al creador de mundos
+    $('btn-save-world').addEventListener('click', () => {
+      if (worldLink) {
+        try {
+          localStorage.setItem('rpgMundo.retornoMazmorra', JSON.stringify({
+            sessionId: worldLink.sessionId,
+            dungeonId: worldLink.dungeonId,
+            dungeon: dungeonConfig
+          }));
+        } catch (e) {
+          console.warn('Error en retorno de mazmorra:', e);
+        }
+        location.href = 'index.html';
+      } else {
+        exportJSON();
+      }
+    });
+
+    $('btn-export-json').addEventListener('click', exportJSON);
+
+    function exportJSON() {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dungeonConfig, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute('href', dataStr);
+      a.setAttribute('download', (dungeonConfig.name.toLowerCase().replace(/\s+/g, '_')) + '.dungeon.json');
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast('Archivo JSON de mazmorra exportado');
+    }
+
+    $('file-import').addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = ev => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          dungeonConfig = Object.assign(dungeonConfig, parsed);
+          syncUIFromConfig();
+          rebuildDungeon();
+          showToast('Mazmorra importada con éxito');
+        } catch (err) {
+          alert('Error al leer el JSON: ' + err.message);
+        }
+      };
+      r.readAsText(f);
+    });
+
+    function showToast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- BUCLE DE ANIMACIÓN ---
+    let lastTime = performance.now();
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      controls.update();
+
+      if (dungeonInstance && typeof dungeonInstance.update === 'function') {
+        dungeonInstance.update(dt, now / 1000);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Inicialización
+    syncUIFromConfig();
+    rebuildDungeon();
+    animate();
+  </script>
+</body>
+</html>

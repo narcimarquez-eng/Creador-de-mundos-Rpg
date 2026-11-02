@@ -323,6 +323,7 @@
     data: id => 'rpgMundo.sesion.' + id,
     current: 'rpgMundo.actual',
     townReturn: 'rpgMundo.retornoPueblo',
+    dungeonReturn: 'rpgMundo.retornoMazmorra',
     prefs: 'rpgMundo.prefs'
   };
 
@@ -1018,9 +1019,16 @@
         break;
       }
       case 'dungeon': {
+        const tipoGen = $('to-dgen') ? $('to-dgen').value : 'procedural';
+        const estiloSel = $('to-destilo') ? $('to-destilo').value : 'cripta_gotica';
         const glbSel = $('to-dglb') ? $('to-dglb').value : 'glb/mazmorras/mazmorra1.glb';
         const lvlSel = $('to-dlvl') ? (parseInt($('to-dlvl').value, 10) || 15) : 15;
-        const dungeon = W.createDungeon(world, p.x, p.y, { glb: glbSel, level: lvlSel });
+        const dungeon = W.createDungeon(world, p.x, p.y, {
+          tipoGeneracion: tipoGen,
+          estilo: estiloSel,
+          glb: glbSel,
+          level: lvlSel
+        });
         selectedId = dungeon.id; activeTab = 'sel';
         commit('Mazmorra «' + dungeon.name + '» creada');
         break;
@@ -1089,6 +1097,17 @@
     roadStart = null;
     document.querySelectorAll('.tool[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
     canvas.style.cursor = t === 'select' ? 'grab' : t === 'delete' ? 'not-allowed' : 'crosshair';
+    if (t === 'dungeon') {
+      $('panel').classList.remove('collapsed');
+      if (world.dungeons && world.dungeons.length > 0) {
+        if (!selectedId || W.kindOf(world, selectedId) !== 'dungeon') {
+          select(world.dungeons[0].id);
+        }
+      } else {
+        activeTab = 'sel';
+        renderPanel();
+      }
+    }
     renderToolOptions();
     requestDraw();
   }
@@ -1106,8 +1125,16 @@
       html = `<div class="row"><b>Tipo:</b> <select id="to-ptype">${Object.entries(W.POI_TYPES).map(([k, v]) => `<option value="${k}" ${k === poiType ? 'selected' : ''}>${v.icon} ${v.name}</option>`).join('')}</select></div>`;
     } else if (tool === 'dungeon') {
       html = `<div class="row"><b>Toca el mapa para situar una Mazmorra Ancestral.</b></div>
-        <div class="row"><label>Modelo GLB: <select id="to-dglb"><option value="glb/mazmorras/mazmorra1.glb">mazmorra1.glb (Cripta del Trono)</option></select></label>
-        <label>Nivel: <input type="number" id="to-dlvl" value="15" min="1" max="99" style="width:60px"></label></div>`;
+        <div class="row">
+          <label>Modo: <select id="to-dgen"><option value="procedural">Procedural HD</option><option value="glb">Modelo GLB</option></select></label>
+          <label>Estilo: <select id="to-destilo">
+            <option value="cripta_gotica">Cripta Gótica</option>
+            <option value="ruinas_musgosas">Ruinas y Musgo</option>
+            <option value="catacumbas_caliza">Caliza Antigua</option>
+            <option value="fortaleza_basalto">Basalto Volcánico</option>
+          </select></label>
+          <label>Nivel: <input type="number" id="to-dlvl" value="15" min="1" max="99" style="width:55px"></label>
+        </div>`;
     } else if (tool === 'road') {
       const a = roadStart && W.findTown(world, roadStart);
       html = `<div class="row"><b>${a ? 'Ahora toca el pueblo destino (desde «' + esc(a.name) + '»)' : 'Toca el primer pueblo'}</b></div>
@@ -1149,9 +1176,20 @@
         <div>🛤 Caminos: <b>${st.roads}</b></div>
         <div>⚔ Zonas: <b>${st.zones}</b></div>
         <div>✦ Lugares: <b>${st.pois}</b></div>
+        <div>🗝 Mazmorras: <b>${st.dungeons || 0}</b></div>
         <div>📏 ${st.roadKm} km</div>
         <div>📈 Nivel máx: <b>${st.maxLevel}</b></div>
       </div>
+      <h3>🗝 Mazmorras Ancestrales (${(world.dungeons || []).length})</h3>
+      <div class="btns">
+        <button class="primary" data-act="quick-add-dungeon" style="background:#7e22ce;border-color:#c084fc">➕ Añadir Mazmorra</button>
+        <button class="gold" data-act="open-new-dungeon-3d">🏗 Diseñar en 3D</button>
+      </div>
+      ${(world.dungeons && world.dungeons.length) ? `
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+          ${world.dungeons.map(d => `<span class="chip" data-goto="${d.id}" style="background:#3b0764;border-color:#a855f7;color:#f3e8ff;cursor:pointer">🗝 ${esc(d.name)} (Nv ${d.level})</span>`).join('')}
+        </div>
+      ` : '<p class="muted" style="margin-top:4px">Sin mazmorras aún. Añade una para crear un desafío subterráneo épico con Jefe y esbirros élites.</p>'}
       <h3>Hacer crecer el mundo</h3>
       <div class="btns">
         <button class="gold" data-act="expand1">➕ Añadir pueblo</button>
@@ -1200,6 +1238,7 @@
   function selectionPanelHTML() {
     const ent = selectedId && W.findAny(world, selectedId);
     if (!ent) {
+      if (tool === 'dungeon') return newDungeonHTML();
       return `<div class="empty">Nada seleccionado.<br>Usa ✋ y toca un pueblo, camino, zona o lugar del mapa para editarlo.</div>`;
     }
     const kind = W.kindOf(world, selectedId);
@@ -1208,6 +1247,32 @@
     if (kind === 'zone') return zoneHTML(ent);
     if (kind === 'dungeon') return dungeonHTML(ent);
     return poiHTML(ent);
+  }
+
+  function newDungeonHTML() {
+    return `
+      <span class="kind-badge" style="background:#581c87;color:#f3e8ff">🗝 Nueva Mazmorra Ancestral</span>
+      <p class="muted" style="margin:6px 0 10px 0">Toca cualquier punto del mapa para colocar la mazmorra con esta configuración, o usa los botones de abajo.</p>
+      <label>Estilo de Piedra y Arquitectura</label>
+      <select id="to-destilo-panel">
+        <option value="cripta_gotica">🏰 Cripta Gótica Oscura</option>
+        <option value="ruinas_musgosas">🌿 Ruinas de Granito y Musgo</option>
+        <option value="catacumbas_caliza">🏛️ Catacumbas de Caliza Antigua</option>
+        <option value="fortaleza_basalto">🌋 Fortaleza de Basalto Volcánico</option>
+      </select>
+      <div class="grid2" style="margin-top:6px">
+        <div><label>Nivel recomendado</label><input type="number" id="to-dlvl-panel" min="1" max="99" value="15"></div>
+        <div><label>Modo</label>
+          <select id="to-dgen-panel">
+            <option value="procedural">Procedural HD</option>
+            <option value="glb">Modelo GLB</option>
+          </select>
+        </div>
+      </div>
+      <div class="btns" style="margin-top:12px">
+        <button class="primary" data-act="quick-add-dungeon" style="background:#7e22ce;border-color:#c084fc">➕ Colocar Mazmorra en el Mapa</button>
+        <button class="gold" data-act="open-new-dungeon-3d">🏗 Abrir Creador de Mazmorras 3D</button>
+      </div>`;
   }
 
   const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${k}" ${String(k) === String(cur) ? 'selected' : ''}>${esc(typeof v === 'string' ? v : v.name)}</option>`).join('');
@@ -1335,7 +1400,12 @@
   function dungeonHTML(d) {
     const b = d.boss || {};
     const elites = d.elites || [];
+    const props = d.props || { fuentes: true, antorchas: true, cofres: true, jarrones: true, musgo: true, sarcofagos: true, hongos: true };
     const deg = Math.round(((d.rotacion || 0) * 180 / Math.PI) % 360);
+    const tipoGen = d.tipoGeneracion || 'procedural';
+    const estilo = d.estilo || 'cripta_gotica';
+    const seed = d.seed || 12345;
+
     return `
       <span class="kind-badge" style="background:#581c87;color:#f3e8ff">🗝 Mazmorra Ancestral ${d.completada ? '· ✓ Superada' : ''}</span>
       <label>Nombre de la Mazmorra</label><input type="text" data-df="name" value="${esc(d.name)}">
@@ -1343,10 +1413,53 @@
         <div><label>Nivel recomendado</label><input type="number" min="1" max="99" data-df="level" data-num="1" value="${d.level}"></div>
         <div><label>Orientación entrada: <b>${deg}°</b></label><input type="range" min="0" max="360" step="15" data-df="rotacionDeg" value="${deg}"></div>
       </div>
+
+      <h3>Diseño de la Mazmorra (Creador de Mazmorras)</h3>
+      <div class="grid2">
+        <div>
+          <label>Modo de Generación</label>
+          <select data-df="tipoGeneracion">
+            <option value="procedural" ${tipoGen === 'procedural' ? 'selected' : ''}>Procedural HD</option>
+            <option value="glb" ${tipoGen === 'glb' ? 'selected' : ''}>Modelo GLB</option>
+          </select>
+        </div>
+        <div>
+          <label>Estilo de Piedra</label>
+          <select data-df="estilo">
+            <option value="cripta_gotica" ${estilo === 'cripta_gotica' ? 'selected' : ''}>Cripta Gótica</option>
+            <option value="ruinas_musgosas" ${estilo === 'ruinas_musgosas' ? 'selected' : ''}>Ruinas y Musgo</option>
+            <option value="catacumbas_caliza" ${estilo === 'catacumbas_caliza' ? 'selected' : ''}>Caliza Antigua</option>
+            <option value="fortaleza_basalto" ${estilo === 'fortaleza_basalto' ? 'selected' : ''}>Basalto Volcánico</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Semilla de la Mazmorra</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" min="1" max="99999" data-df="seed" data-num="1" value="${seed}">
+        <button data-act="dungeon-dice">🎲</button>
+      </div>
+
+      ${tipoGen === 'glb' ? `
       <label>Archivo 3D (glb/mazmorras/)</label>
       <select data-df="glb">
         <option value="glb/mazmorras/mazmorra1.glb" ${d.glb === 'glb/mazmorras/mazmorra1.glb' ? 'selected' : ''}>mazmorra1.glb (Cripta del Trono Real)</option>
       </select>
+      ` : ''}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:8px 0;padding:6px;background:rgba(30,41,59,0.5);border-radius:6px;font-size:11px">
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" data-dprop="fuentes" ${props.fuentes !== false ? 'checked' : ''}> ⛲ Fuentes</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" data-dprop="antorchas" ${props.antorchas !== false ? 'checked' : ''}> 🔥 Antorchas</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" data-dprop="cofres" ${props.cofres !== false ? 'checked' : ''}> 🪙 Cofres</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" data-dprop="jarrones" ${props.jarrones !== false ? 'checked' : ''}> 🏺 Jarrones</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" data-dprop="musgo" ${props.musgo !== false ? 'checked' : ''}> 🌿 Musgo/Yerba</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" data-dprop="sarcofagos" ${props.sarcofagos !== false ? 'checked' : ''}> 🪦 Sarcófagos</label>
+        <label style="display:flex;align-items:center;gap:4px"><input type="checkbox" data-dprop="hongos" ${props.hongos !== false ? 'checked' : ''}> 🍄 Bioluminiscencia</label>
+      </div>
+
+      <div class="btns">
+        <button class="primary" data-act="open-dungeon" style="background:#7e22ce;border-color:#c084fc">🏰 Abrir en el Creador de Mazmorras 3D</button>
+      </div>
       <div class="muted" style="margin-top:4px">Entrada: arco de piedra penetrable + pasillo de 30 metros entre altos muros con antorchas + portal arcano.</div>
 
       <h3>👑 Jefe de la Mazmorra</h3>
@@ -1478,11 +1591,22 @@
         } else {
           ent[f] = v;
         }
-        if (final) commit(); else requestDraw();
+        if (final) {
+          commit();
+          if (f === 'tipoGeneracion') renderPanel();
+        } else {
+          requestDraw();
+        }
       };
       if (el.type === 'range') el.addEventListener('input', () => apply(false));
       el.addEventListener('change', () => apply(true));
     });
+
+    body.querySelectorAll('[data-dprop]').forEach(el => el.addEventListener('change', () => {
+      ent.props = ent.props || {};
+      ent.props[el.dataset.dprop] = el.checked;
+      commit();
+    }));
 
     // Jefe de la mazmorra
     body.querySelectorAll('[data-boss]').forEach(el => el.addEventListener('change', () => {
@@ -1552,6 +1676,27 @@
       case 'new': openNewWorld(); break;
       case 'delete': deleteEntity(ent.id); break;
       case 'center': centerOn(ent.x, ent.y); break;
+      case 'quick-add-dungeon': {
+        const est = $('to-destilo-panel') ? $('to-destilo-panel').value : ($('to-destilo') ? $('to-destilo').value : 'cripta_gotica');
+        const lvl = $('to-dlvl-panel') ? (parseInt($('to-dlvl-panel').value, 10) || 15) : ($('to-dlvl') ? (parseInt($('to-dlvl').value, 10) || 15) : 15);
+        const gen = $('to-dgen-panel') ? $('to-dgen-panel').value : ($('to-dgen') ? $('to-dgen').value : 'procedural');
+        const wp = toWorld(canvas.width / 2, canvas.height / 2);
+        const d = W.createDungeon(world, wp.x, wp.y, { tipoGeneracion: gen, estilo: est, level: lvl });
+        selectedId = d.id; activeTab = 'sel';
+        commit('Mazmorra «' + d.name + '» creada');
+        centerOn(d.x, d.y);
+        break;
+      }
+      case 'open-new-dungeon-3d': {
+        const est = $('to-destilo-panel') ? $('to-destilo-panel').value : 'cripta_gotica';
+        const lvl = $('to-dlvl-panel') ? (parseInt($('to-dlvl-panel').value, 10) || 15) : 15;
+        const gen = $('to-dgen-panel') ? $('to-dgen-panel').value : 'procedural';
+        const wp = toWorld(canvas.width / 2, canvas.height / 2);
+        const d = W.createDungeon(world, wp.x, wp.y, { tipoGeneracion: gen, estilo: est, level: lvl });
+        selectedId = d.id;
+        openDungeonEditor(d);
+        break;
+      }
       case 'add-elite':
         ent.elites = ent.elites || [];
         ent.elites.push({
@@ -1573,7 +1718,9 @@
         break;
       }
       case 'town-dice': ent.cfg.seed = Math.floor(Math.random() * 99999) + 1; commit(); break;
+      case 'dungeon-dice': ent.seed = Math.floor(Math.random() * 99999) + 1; commit(); renderPanel(); break;
       case 'open-town': openTownEditor(ent); break;
+      case 'open-dungeon': openDungeonEditor(ent); break;
       case 'populate': {
         const made = W.populateRoad(world, ent, 2);
         made.forEach(z => W.autoLevelZone(world, z));
@@ -1630,6 +1777,31 @@
       commit('Diseño de «' + t.name + '» actualizado');
       centerOn(t.x, t.y);
     } catch (e) { console.error(e); }
+  }
+
+  // ===========================================================================
+  // Integración con el Creador de Mazmorras 3D
+  // ===========================================================================
+  function openDungeonEditor(d) {
+    saveSession();
+    const payload = { sessionId, dungeonId: d.id, dungeon: d };
+    location.href = 'creador-de-mazmorras.html#mundo=' + encodeURIComponent(JSON.stringify(payload));
+  }
+
+  function consumeDungeonReturn() {
+    const raw = lsGet(STORE.dungeonReturn);
+    if (!raw) return;
+    lsDel(STORE.dungeonReturn);
+    try {
+      const data = JSON.parse(raw);
+      if (data.sessionId !== sessionId) return;
+      const d = W.findDungeon(world, data.dungeonId);
+      if (!d || !data.dungeon) return;
+      Object.assign(d, data.dungeon);
+      selectedId = d.id; activeTab = 'sel';
+      commit('Diseño de «' + d.name + '» actualizado');
+      centerOn(d.x, d.y);
+    } catch (e) { console.error('Error al retornar de mazmorra', e); }
   }
 
   // ===========================================================================
@@ -1855,6 +2027,7 @@
       toast('Se ha generado un mundo inicial. ✨ Nuevo mundo para crear otro.', 3500);
     }
     consumeTownReturn();
+    consumeDungeonReturn();
     setTool('select');
   })();
   </script>

@@ -456,12 +456,49 @@
           const nodosTerreno = [];
           modelo.traverse(o => {
             const nm = (o.name || '').toLowerCase();
-            if (nm.includes('hierba') || nm.includes('camino') || nm.includes('agua') ||
-                nm.includes('grass') || nm.includes('ground') || nm.includes('terrain') ||
-                nm.includes('water') || nm.startsWith('arbol') || nm.includes('tree')) {
-              nodosTerreno.push(o);
+            const esMuroOTecho = nm.includes('muro') || nm.includes('techo') || nm.includes('fronton') ||
+                                 nm.includes('cristal') || nm.includes('marco') || nm.includes('puerta') ||
+                                 nm.includes('cumbrera') || nm.includes('porche') || nm.includes('chimenea') ||
+                                 nm.includes('mesa') || nm.includes('silla') || nm.includes('cama') ||
+                                 nm.includes('cofre') || nm.includes('barril') || nm.includes('farol') ||
+                                 nm.includes('poste') || nm.includes('escalon') || nm.includes('hogar') ||
+                                 nm.includes('fuego') || nm.includes('dintel') || nm.includes('entramado') ||
+                                 nm.includes('tejado') || nm.includes('colchon') || nm.includes('almohada') ||
+                                 nm.includes('manta') || nm.includes('cajon') || nm.includes('barca') ||
+                                 nm.includes('asiento') || nm.includes('muelle') || nm.includes('pilote');
+
+            if (!esMuroOTecho) {
+              if (nm.includes('hierba') || nm.includes('camino') || nm.includes('suelo') ||
+                  nm.includes('agua') || nm.includes('grass') || nm.includes('ground') ||
+                  nm.includes('terrain') || nm.includes('water') || nm.includes('arbol') ||
+                  nm.includes('tree') || nm.includes('tronco') || nm.includes('copa') ||
+                  nm.includes('plane') || nm.includes('floor')) {
+                if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
+                  nodosTerreno.push(o);
+                }
+              }
             }
           });
+
+          // Detectar además mallas que sean planos horizontales de suelo exterior sin nombre
+          modelo.traverse(o => {
+            if (o.isMesh && o.geometry && !nodosTerreno.includes(o)) {
+              if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+              const bb = o.geometry.boundingBox;
+              if (bb) {
+                const dy = bb.max.y - bb.min.y;
+                const dx = bb.max.x - bb.min.x;
+                const dz = bb.max.z - bb.min.z;
+                if (dy < 0.45 && (dx > 8.0 || dz > 8.0)) {
+                  const nm = (o.name || '').toLowerCase();
+                  if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
+                    nodosTerreno.push(o);
+                  }
+                }
+              }
+            }
+          });
+
           nodosTerreno.forEach(o => {
             if (o.parent) o.parent.remove(o);
             o.visible = false;
@@ -470,24 +507,24 @@
             }
           });
 
-          // 2. Calcular el bounding box de la estructura real del edificio
+          // 2. Calcular el bounding box de la estructura real del edificio limpio
           const bboxEdificio = new THREE.Box3().setFromObject(modelo);
           const sizeEdificio = new THREE.Vector3();
           bboxEdificio.getSize(sizeEdificio);
           const maxHoriz = Math.max(sizeEdificio.x, sizeEdificio.z, 0.1);
 
-          // Escala real proporcionada para un ancho de 21 metros reales (+30% adicional para gran presencia)
-          const escala = 21.0 / maxHoriz;
+          // Escala real proporcionada para un ancho de 27.5 metros reales (+30% adicional para gran presencia)
+          const escala = 27.5 / maxHoriz;
           modelo.scale.setScalar(escala);
 
           // 3. Centrar el edificio y apoyar la base sobre la solera de piedra
           const bboxEscalado = new THREE.Box3().setFromObject(modelo);
-          const anchoX = Math.max(15.6, bboxEscalado.max.x - bboxEscalado.min.x);
-          const profZ = Math.max(13.0, bboxEscalado.max.z - bboxEscalado.min.z);
+          const anchoX = Math.max(19.0, bboxEscalado.max.x - bboxEscalado.min.x);
+          const profZ = Math.max(16.0, bboxEscalado.max.z - bboxEscalado.min.z);
           const centroX = (bboxEscalado.max.x + bboxEscalado.min.x) / 2;
           const centroZ = (bboxEscalado.max.z + bboxEscalado.min.z) / 2;
 
-          modelo.position.set(-centroX, -bboxEscalado.min.y + 0.15, -centroZ);
+          modelo.position.set(-centroX, -bboxEscalado.min.y + 0.20, -centroZ);
 
           modelo.traverse(o => {
             if (o.isMesh) {
@@ -507,25 +544,25 @@
           grupo.add(modelo);
 
           if (!lugar.esMar) {
-            // 4. Zócalo de piedra rústica para asentar la cabaña y absorber desniveles en pendiente
-            const altoZocalo = 3.6;
+            // 4. Zócalo de piedra rústica robusto para asentar la cabaña y absorber desniveles en pendiente
+            const altoZocalo = 6.0;
             const zocalo = new THREE.Mesh(
-              new THREE.BoxGeometry(anchoX * 1.05, altoZocalo, profZ * 1.05),
+              new THREE.BoxGeometry(anchoX * 1.06, altoZocalo, profZ * 1.06),
               matPiedra
             );
-            // Sobresale 0.15m en la cota superior y se entierra 3.45m en el terreno
-            zocalo.position.set(0, -altoZocalo / 2 + 0.15, 0);
+            // Sobresale 0.20m en la cota superior y se entierra 5.8m en el terreno
+            zocalo.position.set(0, -altoZocalo / 2 + 0.20, 0);
             zocalo.castShadow = true;
             zocalo.receiveShadow = true;
             grupo.add(zocalo);
 
             // Escalón de acceso al frente de la cabaña
-            const frenteZ = (profZ / 2) + 0.6;
+            const frenteZ = (profZ / 2) + 0.8;
             const escalonEntrada = new THREE.Mesh(
-              new THREE.BoxGeometry(4.6, 0.25, 1.6),
+              new THREE.BoxGeometry(5.6, 0.30, 2.0),
               matPiedraClara
             );
-            escalonEntrada.position.set(0, 0.08, frenteZ);
+            escalonEntrada.position.set(0, 0.10, frenteZ);
             escalonEntrada.castShadow = true;
             escalonEntrada.receiveShadow = true;
             grupo.add(escalonEntrada);

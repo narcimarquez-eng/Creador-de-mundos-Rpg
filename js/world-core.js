@@ -662,6 +662,18 @@
       glb,
       level,
       rotacion: typeof opts.rotacion === 'number' ? opts.rotacion : 0,
+      tipoGeneracion: opts.tipoGeneracion || 'procedural',
+      estilo: opts.estilo || 'cripta_gotica',
+      seed: typeof opts.seed === 'number' ? opts.seed : (Math.floor(Math.random() * 99999) + 1),
+      props: Object.assign({
+        fuentes: true,
+        antorchas: true,
+        cofres: true,
+        jarrones: true,
+        musgo: true,
+        sarcofagos: true,
+        hongos: true
+      }, opts.props || {}),
       boss: Object.assign({
         name: 'Señor del Trono Caído',
         level: level + 2,
