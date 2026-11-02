@@ -812,3 +812,64 @@ test('DungeonGenerator: texturas independientes por partes para la mazmorra comp
   const matsS1 = DungeonGenerator.resolverMaterialesSala(mockTHREE, res.kit, {}, res.salas[0], configGlobal);
   assert.strictEqual(matsS1.colorAgua, '#10b981', 'Debe aplicar color de agua global configurado');
 });
+
+test('DungeonGenerator: integración procedural con la aplicación de enemigos (EnemyLib)', () => {
+  // 1. Catálogo de monstruos
+  const cat = DungeonGenerator.obtenerCatalogoMonstruos();
+  assert.ok(cat, 'Debe devolver catálogo de monstruos');
+  assert.ok(cat.jefe_caballero_titan, 'Debe incluir arquetipos base');
+
+  // 2. Mock de EnemyLib para simular criaturas procedurales de la app de enemigos
+  let buildCount = 0;
+  const mockEnemyLib = {
+    ARCHETYPE_PRESETS: {
+      elder_dragon: {
+        id: 'enemy_elder_dragon_ignis',
+        name: 'Ignisaurio el Primordial',
+        title: 'Dragón Ancestral',
+        raceCategory: 'dragons',
+        stats: { tier: 'Raid Boss', level: 25 }
+      },
+      dire_wolf: {
+        id: 'enemy_dire_wolf_fenrir',
+        name: 'Fenrir Colmillo-Gris',
+        title: 'Bestia Élite',
+        raceCategory: 'beasts',
+        stats: { tier: 'Elite', level: 14 }
+      }
+    },
+    createProceduralTextureSet: () => ({ diffuse: {}, bump: {} }),
+    buildProceduralEnemy: (cfg) => {
+      buildCount++;
+      const rootGroup = new mockTHREE.Group();
+      rootGroup.name = cfg.id + '_root';
+      const m = new mockTHREE.Mesh(new mockTHREE.BoxGeometry(2, 3.5, 2), new mockTHREE.MeshStandardMaterial());
+      rootGroup.add(m);
+      return { rootGroup, animations: [] };
+    },
+    updateEnemyAnimation: (rig, state, t) => {}
+  };
+
+  // 3. Crear monstruo jefe procedural usando el arquetipo de EnemyLib
+  const dragon = DungeonGenerator.crearMonstruoProcedural(mockTHREE, 'elder_dragon', {
+    EnemyLib: mockEnemyLib,
+    esJefe: true,
+    nivel: 25
+  });
+
+  assert.strictEqual(buildCount, 1, 'Debe haber invocado buildProceduralEnemy de EnemyLib');
+  assert.strictEqual(dragon.userData.tipo, 'monstruo');
+  assert.strictEqual(dragon.userData.arquetipo, 'elder_dragon');
+  assert.strictEqual(dragon.userData.nombre, 'Ignisaurio el Primordial');
+  assert.strictEqual(dragon.userData.esJefe, true);
+  assert.strictEqual(dragon.userData.nivel, 25);
+  assert.strictEqual(typeof dragon.userData.animar, 'function', 'Debe tener función de animación procedural');
+
+  // 4. Crear monstruo con fallback si EnemyLib no tiene el arquetipo
+  const golem = DungeonGenerator.crearMonstruoProcedural(mockTHREE, 'jefe_golem_magma', {
+    EnemyLib: mockEnemyLib,
+    esJefe: true
+  });
+  assert.strictEqual(golem.userData.arquetipo, 'jefe_golem_magma');
+  assert.ok(golem.children.length > 0, 'Debe construir malla geométrica fallback');
+});

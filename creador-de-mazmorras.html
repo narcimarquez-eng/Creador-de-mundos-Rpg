@@ -1465,6 +1465,15 @@
     // Exponer THREE y extensiones en window para que módulos y scripts tradicionales lo compartan
     window.THREE = Object.assign({}, THREE, { OrbitControls, GLTFLoader });
 
+    // Cargar la biblioteca procedural de criaturas de AetherForge RPG (EnemyLib y optimizador)
+    try {
+      await import('./js/enemigos.js');
+      try { await import('./js/enemigos-optimizar.js'); } catch (e) {}
+      console.log('👾 EnemyLib procedural disponible en el Creador de Mazmorras');
+    } catch (errEnemy) {
+      console.warn('EnemyLib no cargó:', errEnemy);
+    }
+
     const $ = id => document.getElementById(id);
 
     // --- ESTADO Y CONFIGURACIÓN ---
@@ -3991,6 +4000,68 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
       renderer.render(scene, camera);
     }
 
+    function poblarSelectoresMonstruosEnemyLib() {
+      const eLib = window.EnemyLib;
+      if (!eLib || !eLib.ARCHETYPE_PRESETS) return;
+
+      const categorias = {
+        dragons: '🐉 Dragones y Sierpes',
+        undead: '💀 No Muertos y Osarios',
+        mythological: '🏛️ Mitológicos y Colosos',
+        magical: '🔮 Mágicos y Demonios',
+        beasts: '🐺 Bestias y Fieras Élite',
+        warcraft_legends: '⚔️ Jefes Legendarios',
+        starter_animals: '🐾 Alimañas y Bestias Menores',
+        low_level: '🛡️ Guardianes de Mazmorra',
+        elite_low_level: '⚡ Élites de Mazmorra'
+      };
+
+      const agrupados = {};
+      for (const [key, preset] of Object.entries(eLib.ARCHETYPE_PRESETS)) {
+        const cat = preset.raceCategory || 'varios';
+        if (!agrupados[cat]) agrupados[cat] = [];
+        agrupados[cat].push({ key, preset });
+      }
+
+      const selects = [
+        $('boss-arquetipo-3d'),
+        $('guards-arquetipo-3d'),
+        $('insp-monstruo-arquetipo')
+      ].filter(Boolean);
+
+      selects.forEach(sel => {
+        if (sel.dataset.enemylibPoblado === '1') return;
+        sel.dataset.enemylibPoblado = '1';
+
+        const valorActual = sel.value;
+        const optgroupClasico = document.createElement('optgroup');
+        optgroupClasico.label = '🏰 Arquetipos Clásicos de Mazmorra';
+
+        const optsActuales = Array.from(sel.children);
+        sel.innerHTML = '';
+        optsActuales.forEach(o => optgroupClasico.appendChild(o));
+        sel.appendChild(optgroupClasico);
+
+        for (const [catKey, catLabel] of Object.entries(categorias)) {
+          const lista = agrupados[catKey];
+          if (!lista || lista.length === 0) continue;
+          const og = document.createElement('optgroup');
+          og.label = catLabel;
+          lista.forEach(({ key, preset }) => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            const esBoss = preset.stats && (preset.stats.tier === 'Mini-Boss' || preset.stats.tier === 'Raid Boss');
+            const ico = esBoss ? '👑' : '👾';
+            opt.textContent = `${ico} ${preset.name || key} (${preset.title || preset.raceCategory || ''})`;
+            og.appendChild(opt);
+          });
+          sel.appendChild(og);
+        }
+
+        if (valorActual) sel.value = valorActual;
+      });
+    }
+
     // Inicialización
     window.dungeonConfig = dungeonConfig;
     window.seleccionarEstancia = seleccionarEstancia;
@@ -4004,6 +4075,7 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
     window.syncUIFromConfig = syncUIFromConfig;
     window.TIPOS_ESTANCIA = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator.TIPOS_ESTANCIA : null;
 
+    poblarSelectoresMonstruosEnemyLib();
     syncUIFromConfig();
     rebuildDungeon();
     animate();
