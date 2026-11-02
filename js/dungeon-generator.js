@@ -874,11 +874,12 @@
     return g;
   }
 
-  // --- 6. ARQUITECTURA DE SALAS Y CORREDORES ---
+  // --- 6. ARQUITECTURA DE SALAS Y CORREDORES (HERMÉTICA SIN HUECOS) ---
 
   function construirCajaHabitacion(ThreeLib, kit, sala, opciones = {}) {
     const g = new ThreeLib.Group();
     g.position.set(sala.x, sala.y || 0, sala.z);
+    g.userData = { idSala: sala.id, salaRef: sala };
 
     const W = sala.w, H = sala.h, D = sala.d;
 
@@ -887,6 +888,7 @@
     const suelo = new ThreeLib.Mesh(sueloGeo, kit.sueloLosas);
     suelo.rotation.x = -Math.PI / 2;
     suelo.receiveShadow = true;
+    suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
     g.add(suelo);
 
     // Techo: si se especifica sinTecho (o techo: false), se omite para vista cenital e isométrica de editor
@@ -896,38 +898,171 @@
       techo.rotation.x = Math.PI / 2;
       techo.position.y = H;
       techo.name = 'techo_' + sala.id;
+      techo.userData = { tipo: 'techo', idSala: sala.id };
       g.add(techo);
     }
 
-    // Muros (Norte, Sur, Este, Oeste con aperturas para puertas si corresponde)
+    // Muros herméticos con hombros completos (para que NUNCA queden huecos al conectar con pasillos más estrechos)
     const grosorMuro = 0.6;
+    const ap = sala.aperturas || {};
 
-    // Muro Oeste (-X)
-    if (!sala.abiertoOeste) {
-      const muroO = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), kit.piedraMuro);
-      muroO.position.set(-W / 2 + grosorMuro / 2, H / 2, 0);
-      g.add(muroO);
-    }
-
-    // Muro Este (+X)
-    if (!sala.abiertoEste) {
-      const muroE = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), kit.piedraMuro);
-      muroE.position.set(W / 2 - grosorMuro / 2, H / 2, 0);
-      g.add(muroE);
-    }
-
-    // Muro Norte (-Z)
-    if (!sala.abiertoNorte) {
+    // 1. Muro Norte (-Z)
+    const apN = sala.abiertoNorte ? (ap.norte || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
+    if (!apN) {
       const muroN = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), kit.piedraMuro);
       muroN.position.set(0, H / 2, -D / 2 + grosorMuro / 2);
+      muroN.castShadow = true; muroN.receiveShadow = true;
+      muroN.userData = { tipo: 'muro', lado: 'norte', idSala: sala.id };
       g.add(muroN);
+    } else {
+      const pw = Math.min(W - 0.2, apN.w || 6.8);
+      const cx = apN.cx || 0;
+      const pH = apN.puertaH || Math.min(H, 3.8);
+
+      // Hombro izquierdo (-X / Oeste)
+      const wIzq = (cx - pw / 2) - (-W / 2);
+      if (wIzq > 0.05) {
+        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), kit.piedraMuro);
+        mIzq.position.set(-W / 2 + wIzq / 2, H / 2, -D / 2 + grosorMuro / 2);
+        mIzq.castShadow = true; mIzq.receiveShadow = true;
+        mIzq.userData = { tipo: 'muro_hombro', lado: 'norte_oeste', idSala: sala.id };
+        g.add(mIzq);
+      }
+      // Hombro derecho (+X / Este)
+      const wDer = (W / 2) - (cx + pw / 2);
+      if (wDer > 0.05) {
+        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), kit.piedraMuro);
+        mDer.position.set(cx + pw / 2 + wDer / 2, H / 2, -D / 2 + grosorMuro / 2);
+        mDer.castShadow = true; mDer.receiveShadow = true;
+        mDer.userData = { tipo: 'muro_hombro', lado: 'norte_este', idSala: sala.id };
+        g.add(mDer);
+      }
+      // Dintel superior sobre la puerta
+      if (H > pH + 0.2) {
+        const dH = H - pH;
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), kit.piedraMuro);
+        dintel.position.set(cx, H - dH / 2, -D / 2 + grosorMuro / 2);
+        dintel.castShadow = true; dintel.receiveShadow = true;
+        dintel.userData = { tipo: 'dintel', lado: 'norte', idSala: sala.id };
+        g.add(dintel);
+      }
     }
 
-    // Muro Sur (+Z)
-    if (!sala.abiertoSur) {
+    // 2. Muro Sur (+Z)
+    const apS = sala.abiertoSur ? (ap.sur || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
+    if (!apS) {
       const muroS = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(W, H, grosorMuro), kit.piedraMuro);
       muroS.position.set(0, H / 2, D / 2 - grosorMuro / 2);
+      muroS.castShadow = true; muroS.receiveShadow = true;
+      muroS.userData = { tipo: 'muro', lado: 'sur', idSala: sala.id };
       g.add(muroS);
+    } else {
+      const pw = Math.min(W - 0.2, apS.w || 6.8);
+      const cx = apS.cx || 0;
+      const pH = apS.puertaH || Math.min(H, 3.8);
+
+      const wIzq = (cx - pw / 2) - (-W / 2);
+      if (wIzq > 0.05) {
+        const mIzq = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wIzq, H, grosorMuro), kit.piedraMuro);
+        mIzq.position.set(-W / 2 + wIzq / 2, H / 2, D / 2 - grosorMuro / 2);
+        mIzq.castShadow = true; mIzq.receiveShadow = true;
+        mIzq.userData = { tipo: 'muro_hombro', lado: 'sur_oeste', idSala: sala.id };
+        g.add(mIzq);
+      }
+      const wDer = (W / 2) - (cx + pw / 2);
+      if (wDer > 0.05) {
+        const mDer = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(wDer, H, grosorMuro), kit.piedraMuro);
+        mDer.position.set(cx + pw / 2 + wDer / 2, H / 2, D / 2 - grosorMuro / 2);
+        mDer.castShadow = true; mDer.receiveShadow = true;
+        mDer.userData = { tipo: 'muro_hombro', lado: 'sur_este', idSala: sala.id };
+        g.add(mDer);
+      }
+      if (H > pH + 0.2) {
+        const dH = H - pH;
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), kit.piedraMuro);
+        dintel.position.set(cx, H - dH / 2, D / 2 - grosorMuro / 2);
+        dintel.castShadow = true; dintel.receiveShadow = true;
+        dintel.userData = { tipo: 'dintel', lado: 'sur', idSala: sala.id };
+        g.add(dintel);
+      }
+    }
+
+    // 3. Muro Oeste (-X)
+    const apO = sala.abiertoOeste ? (ap.oeste || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
+    if (!apO) {
+      const muroO = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), kit.piedraMuro);
+      muroO.position.set(-W / 2 + grosorMuro / 2, H / 2, 0);
+      muroO.castShadow = true; muroO.receiveShadow = true;
+      muroO.userData = { tipo: 'muro', lado: 'oeste', idSala: sala.id };
+      g.add(muroO);
+    } else {
+      const pd = Math.min(D - 0.2, apO.d || 6.0);
+      const cz = apO.cz || 0;
+      const pH = apO.puertaH || Math.min(H, 3.8);
+
+      const dNorte = (cz - pd / 2) - (-D / 2);
+      if (dNorte > 0.05) {
+        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), kit.piedraMuro);
+        mNorte.position.set(-W / 2 + grosorMuro / 2, H / 2, -D / 2 + dNorte / 2);
+        mNorte.castShadow = true; mNorte.receiveShadow = true;
+        mNorte.userData = { tipo: 'muro_hombro', lado: 'oeste_norte', idSala: sala.id };
+        g.add(mNorte);
+      }
+      const dSur = (D / 2) - (cz + pd / 2);
+      if (dSur > 0.05) {
+        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), kit.piedraMuro);
+        mSur.position.set(-W / 2 + grosorMuro / 2, H / 2, cz + pd / 2 + dSur / 2);
+        mSur.castShadow = true; mSur.receiveShadow = true;
+        mSur.userData = { tipo: 'muro_hombro', lado: 'oeste_sur', idSala: sala.id };
+        g.add(mSur);
+      }
+      if (H > pH + 0.2) {
+        const dH = H - pH;
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), kit.piedraMuro);
+        dintel.position.set(-W / 2 + grosorMuro / 2, H - dH / 2, cz);
+        dintel.castShadow = true; dintel.receiveShadow = true;
+        dintel.userData = { tipo: 'dintel', lado: 'oeste', idSala: sala.id };
+        g.add(dintel);
+      }
+    }
+
+    // 4. Muro Este (+X)
+    const apE = sala.abiertoEste ? (ap.este || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
+    if (!apE) {
+      const muroE = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, D), kit.piedraMuro);
+      muroE.position.set(W / 2 - grosorMuro / 2, H / 2, 0);
+      muroE.castShadow = true; muroE.receiveShadow = true;
+      muroE.userData = { tipo: 'muro', lado: 'este', idSala: sala.id };
+      g.add(muroE);
+    } else {
+      const pd = Math.min(D - 0.2, apE.d || 6.0);
+      const cz = apE.cz || 0;
+      const pH = apE.puertaH || Math.min(H, 3.8);
+
+      const dNorte = (cz - pd / 2) - (-D / 2);
+      if (dNorte > 0.05) {
+        const mNorte = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dNorte), kit.piedraMuro);
+        mNorte.position.set(W / 2 - grosorMuro / 2, H / 2, -D / 2 + dNorte / 2);
+        mNorte.castShadow = true; mNorte.receiveShadow = true;
+        mNorte.userData = { tipo: 'muro_hombro', lado: 'este_norte', idSala: sala.id };
+        g.add(mNorte);
+      }
+      const dSur = (D / 2) - (cz + pd / 2);
+      if (dSur > 0.05) {
+        const mSur = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, H, dSur), kit.piedraMuro);
+        mSur.position.set(W / 2 - grosorMuro / 2, H / 2, cz + pd / 2 + dSur / 2);
+        mSur.castShadow = true; mSur.receiveShadow = true;
+        mSur.userData = { tipo: 'muro_hombro', lado: 'este_sur', idSala: sala.id };
+        g.add(mSur);
+      }
+      if (H > pH + 0.2) {
+        const dH = H - pH;
+        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), kit.piedraMuro);
+        dintel.position.set(W / 2 - grosorMuro / 2, H - dH / 2, cz);
+        dintel.castShadow = true; dintel.receiveShadow = true;
+        dintel.userData = { tipo: 'dintel', lado: 'este', idSala: sala.id };
+        g.add(dintel);
+      }
     }
 
     return g;
@@ -1159,7 +1294,191 @@
       }
     }
 
+    // Props decorativos introducidos individualmente en esta estancia
+    if (Array.isArray(sala.propsPersonalizados)) {
+      sala.propsPersonalizados.forEach(pDef => {
+        try {
+          const pMesh = crearObjetoDecorativo(ThreeLib, kit, pDef.tipo, estilo, rng, animables, props, pDef);
+          if (pMesh) {
+            pMesh.position.set(pDef.x || 0, pDef.y || 0, pDef.z || 0);
+            if (typeof pDef.rotY === 'number') pMesh.rotation.y = pDef.rotY;
+            if (typeof pDef.escala === 'number') pMesh.scale.setScalar(pDef.escala);
+            pMesh.userData = pMesh.userData || {};
+            pMesh.userData.idProp = pDef.id;
+            pMesh.userData.tipoProp = pDef.tipo;
+            pMesh.userData.idSala = sala.id;
+            g.add(pMesh);
+          }
+        } catch (e) {
+          console.warn('Error instanciando prop personalizado en estancia:', pDef, e);
+        }
+      });
+    }
+
     return g;
+  }
+
+  // --- 7.1 CATÁLOGO Y CREADOR DE PROPS DECORATIVOS ---
+
+  const CATALOGO_PROPS_DECORATIVOS = {
+    armero: { id: 'armero', nombre: 'Armero y Barriles', icono: '⚔️' },
+    biblioteca: { id: 'biblioteca', nombre: 'Atril Arcano con Orbe', icono: '📜' },
+    celda: { id: 'celda', nombre: 'Rejas de Celda y Cadenas', icono: '⛓️' },
+    caldero: { id: 'caldero', nombre: 'Caldero de Alquimia y Pociones', icono: '⚗️' },
+    hongos: { id: 'hongos', nombre: 'Colonia de Hongos Luminosos', icono: '🍄' },
+    fuente: { id: 'fuente', nombre: 'Fuente de Agua Tallada', icono: '⛲' },
+    cofre: { id: 'cofre', nombre: 'Cofre de Hierro', icono: '📦' },
+    cofre_oro: { id: 'cofre_oro', nombre: 'Cofre Dorado del Tesoro', icono: '🪙' },
+    jarron: { id: 'jarron', nombre: 'Jarrones de Cerámica', icono: '🏺' },
+    sarcofago: { id: 'sarcofago', nombre: 'Sarcófago de Piedra Labrada', icono: '🪦' },
+    antorcha: { id: 'antorcha', nombre: 'Antorcha Mágica de Pared', icono: '🔥' },
+    pebetero: { id: 'pebetero', nombre: 'Pebetero de Suelo con Fuego', icono: '🪔' },
+    musgo: { id: 'musgo', nombre: 'Parche de Vegetación y Musgo', icono: '🌿' },
+    columna: { id: 'columna', nombre: 'Columna / Pilar Monumental', icono: '🏛️' }
+  };
+
+  function crearObjetoDecorativo(ThreeLib, kit, tipo, estilo, rng, animables, props, opciones = {}) {
+    if (!rng) rng = new PRNG(12345);
+    const tipoNorm = (tipo || 'antorcha').toLowerCase();
+
+    switch (tipoNorm) {
+      case 'armero':
+        return crearArmeriaProps(ThreeLib, kit, rng);
+      case 'biblioteca':
+      case 'atril':
+        return crearBibliotecaProps(ThreeLib, kit, rng);
+      case 'celda':
+      case 'prision':
+        return crearPrisionProps(ThreeLib, kit, rng, opciones.h || 5.0);
+      case 'caldero':
+      case 'laboratorio':
+        return crearLaboratorioProps(ThreeLib, kit, rng);
+      case 'hongos':
+      case 'esporas':
+        return crearHongosLuminosos(ThreeLib, kit, rng);
+      case 'fuente': {
+        const f = crearFuente(ThreeLib, kit, 2.5, 1.2);
+        if (animables) animables.push(f);
+        if (props && props.fuentes) props.fuentes.push(f);
+        return f;
+      }
+      case 'cofre': {
+        const c = crearCofre(ThreeLib, kit, false);
+        if (props && props.cofres) props.cofres.push(c);
+        return c;
+      }
+      case 'cofre_oro': {
+        const c = crearCofre(ThreeLib, kit, true);
+        if (props && props.cofres) props.cofres.push(c);
+        return c;
+      }
+      case 'jarron':
+        return crearJarron(ThreeLib, kit, 1.0, false);
+      case 'sarcofago':
+        return crearSarcofago(ThreeLib, kit);
+      case 'antorcha': {
+        const a = crearAntorcha(ThreeLib, kit, (estilo && estilo.luzAntorchas) || 0xf59e0b, 2.5);
+        if (animables) animables.push(a);
+        if (props && props.antorchas) props.antorchas.push(a);
+        return a;
+      }
+      case 'pebetero': {
+        const p = new ThreeLib.Group();
+        p.userData = { tipo: 'pebetero' };
+        const base = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.7, 0.9, 0.7, 8), kit.piedraMuro);
+        base.position.y = 0.35;
+        p.add(base);
+        const fuego = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.35, 0.75, 6), kit.llama);
+        fuego.position.y = 0.85;
+        p.add(fuego);
+        const colLuz = (estilo && estilo.luzAntorchas) || 0xf59e0b;
+        const luz = new ThreeLib.PointLight(colLuz, 2.8, 16, 1.4);
+        luz.position.y = 1.0;
+        p.add(luz);
+        p.userData.flicker = t => {
+          fuego.scale.y = 0.9 + Math.sin(t * 12.0) * 0.18;
+          luz.intensity = 2.8 * (0.85 + Math.sin(t * 10.0) * 0.15);
+        };
+        if (animables) animables.push(p);
+        return p;
+      }
+      case 'musgo':
+        return crearManchaVegetacion(ThreeLib, kit, rng, opciones.radio || 1.6);
+      case 'columna':
+        return crearColumna(ThreeLib, kit, opciones.h || 5.0, opciones.radio || 0.6);
+      default:
+        return crearJarron(ThreeLib, kit, 1.0, false);
+    }
+  }
+
+  // --- 7.2 CÁLCULO DE APERTURAS Y HOMBROS HERMÉTICOS ENTRE ESTANCIAS ---
+
+  function calcularAperturasEntreSalas(salas, config = {}) {
+    if (!Array.isArray(salas)) return;
+    const anchoPasillos = typeof config.anchoPasillos === 'number' ? config.anchoPasillos : 6.8;
+
+    salas.forEach(s => {
+      s.aperturas = s.aperturas || { norte: null, sur: null, este: null, oeste: null };
+    });
+
+    for (let i = 0; i < salas.length; i++) {
+      const a = salas[i];
+      for (let j = i + 1; j < salas.length; j++) {
+        const b = salas[j];
+
+        // 1. Conexión Norte-Sur: a está al sur de b (a.z > b.z)
+        const gapZ = (a.z - a.d / 2) - (b.z + b.d / 2);
+        if (Math.abs(gapZ) <= 3.0 || (a.z > b.z && gapZ < 6.0 && (a.abiertoNorte || a.tipo === 'pasillo' || b.tipo === 'pasillo'))) {
+          const minX = Math.max(a.x - a.w / 2, b.x - b.w / 2);
+          const maxX = Math.min(a.x + a.w / 2, b.x + b.w / 2);
+          const overlapX = maxX - minX;
+
+          if (overlapX > 1.2 && a.z > b.z) {
+            const pw = Math.max(2.5, Math.min(overlapX, a.w - 0.2, b.w - 0.2, anchoPasillos));
+            const cxMundo = (minX + maxX) / 2;
+            const pH = Math.min(a.h, b.h, 3.8);
+
+            a.abiertoNorte = true;
+            a.aperturas.norte = { w: pw, cx: cxMundo - a.x, puertaH: pH };
+
+            b.abiertoSur = true;
+            b.aperturas.sur = { w: pw, cx: cxMundo - b.x, puertaH: pH };
+          }
+        }
+
+        // 2. Conexión Este-Oeste: a está al oeste de b (a.x < b.x)
+        const gapX = (b.x - b.w / 2) - (a.x + a.w / 2);
+        if (Math.abs(gapX) <= 6.0 || (a.abiertoEste && b.abiertoOeste)) {
+          const minZ = Math.max(a.z - a.d / 2, b.z - b.d / 2);
+          const maxZ = Math.min(a.z + a.d / 2, b.z + b.d / 2);
+          const overlapZ = maxZ - minZ;
+
+          if (overlapZ > 1.2 && a.x < b.x) {
+            const pd = Math.max(2.5, Math.min(overlapZ, a.d - 0.2, b.d - 0.2, 6.0));
+            const czMundo = (minZ + maxZ) / 2;
+            const pH = Math.min(a.h, b.h, 3.8);
+
+            a.abiertoEste = true;
+            a.aperturas.este = { d: pd, cz: czMundo - a.z, puertaH: pH };
+
+            b.abiertoOeste = true;
+            b.aperturas.oeste = { d: pd, cz: czMundo - b.z, puertaH: pH };
+          }
+        }
+      }
+    }
+
+    // Asegurar aperturas herméticas por defecto si una sala tiene abierta una dirección
+    salas.forEach(s => {
+      const defW = Math.min(s.w - 0.4, anchoPasillos);
+      const defD = Math.min(s.d - 0.4, 6.0);
+      const pH = Math.min(s.h, 3.8);
+
+      if (s.abiertoNorte && !s.aperturas.norte) s.aperturas.norte = { w: defW, cx: 0, puertaH: pH };
+      if (s.abiertoSur && !s.aperturas.sur) s.aperturas.sur = { w: defW, cx: 0, puertaH: pH };
+      if (s.abiertoEste && !s.aperturas.este) s.aperturas.este = { d: defD, cz: 0, puertaH: pH };
+      if (s.abiertoOeste && !s.aperturas.oeste) s.aperturas.oeste = { d: defD, cz: 0, puertaH: pH };
+    });
   }
 
   // --- 8. PLANIFICADOR DE PLANTA PROCEDURAL Y ESTANCIAS ---
@@ -1375,6 +1694,11 @@
     const estilo = ESTILOS_PIEDRA[estiloKey] || ESTILOS_PIEDRA.cripta_gotica;
     const kit = crearKitMateriales(estilo, THREE_REF);
 
+    const kitsPorEstilo = {};
+    Object.keys(ESTILOS_PIEDRA).forEach(k => {
+      kitsPorEstilo[k] = crearKitMateriales(ESTILOS_PIEDRA[k], THREE_REF);
+    });
+
     const dungeonGroup = new THREE_REF.Group();
     dungeonGroup.name = 'DungeonProcedural_' + (config.id || 'seed_' + rng.s);
 
@@ -1386,15 +1710,43 @@
       animables
     };
 
-    // 1. Obtener el plan de salas y pasillos (dinámico o por defecto)
-    const salas = generarPlanEstancias(config, rng);
+    // 1. Obtener el plan de salas y pasillos (desde config si se editan individualmente, o dinámico)
+    let salas = [];
+    if (Array.isArray(config.salas) && config.salas.length > 0) {
+      salas = config.salas;
+    } else if (Array.isArray(config.salasPersonalizadas) && config.salasPersonalizadas.length > 0) {
+      salas = config.salasPersonalizadas;
+    } else {
+      salas = generarPlanEstancias(config, rng);
+    }
 
-    // 2. Construir geometría estructural y decorar cada sala
+    // Calcular aperturas herméticas exactas entre salas y pasillos contiguos (evita huecos al vacío)
+    calcularAperturasEntreSalas(salas, config);
+
+    // 2. Construir geometría estructural y decorar cada sala (respetando textura/estilo y color de pared individual)
     salas.forEach(s => {
-      const meshSala = construirCajaHabitacion(THREE_REF, kit, s, config);
+      const estiloKeySala = s.estilo || estiloKey;
+      const estiloSala = ESTILOS_PIEDRA[estiloKeySala] || estilo;
+      let kitSala = kitsPorEstilo[estiloKeySala] || kit;
+
+      if (s.colorPared && s.colorPared !== 'default') {
+        const matPared = (kitSala.piedraMuro && typeof kitSala.piedraMuro.clone === 'function')
+          ? kitSala.piedraMuro.clone()
+          : Object.assign({}, kitSala.piedraMuro);
+        try {
+          if (matPared.color && typeof matPared.color.set === 'function') {
+            matPared.color.set(s.colorPared);
+          } else {
+            matPared.color = s.colorPared;
+          }
+        } catch (_) {}
+        kitSala = Object.assign({}, kitSala, { piedraMuro: matPared });
+      }
+
+      const meshSala = construirCajaHabitacion(THREE_REF, kitSala, s, config);
       dungeonGroup.add(meshSala);
 
-      const decMesh = decorarHabitacion(THREE_REF, kit, s, estilo, rng, animables, props, config);
+      const decMesh = decorarHabitacion(THREE_REF, kitSala, s, estiloSala, rng, animables, props, config);
       dungeonGroup.add(decMesh);
     });
 
@@ -1483,6 +1835,7 @@
   return {
     TIPOS_ESTANCIA,
     ESTILOS_PIEDRA,
+    CATALOGO_PROPS_DECORATIVOS,
     PRNG,
     crearAtlasMazmorra,
     crearKitMateriales,
@@ -1498,6 +1851,8 @@
     crearBibliotecaProps,
     crearPrisionProps,
     crearLaboratorioProps,
+    crearObjetoDecorativo,
+    calcularAperturasEntreSalas,
     construirCajaHabitacion,
     decorarHabitacion,
     generarPlanEstancias,

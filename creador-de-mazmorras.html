@@ -266,6 +266,44 @@
       background: #dc2626;
       border-color: #ef4444;
     }
+    .sala-item-row.selected {
+      background: rgba(126, 34, 206, 0.45);
+      border-color: #c084fc;
+      box-shadow: 0 0 8px rgba(192, 132, 252, 0.35);
+    }
+    .btn-add-prop {
+      font-size: 10px;
+      padding: 4px 2px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .prop-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3px 6px;
+      margin-bottom: 2px;
+      background: rgba(30, 41, 59, 0.85);
+      border-radius: 4px;
+      font-size: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .prop-item-info {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .prop-item-coords {
+      color: #94a3b8;
+      font-size: 9px;
+      font-family: monospace;
+      margin-right: 4px;
+    }
 
     #info-hud {
       position: absolute;
@@ -435,6 +473,118 @@
         </div>
       </div>
       <button class="btn alt" id="btn-insertar-sala" style="width: 100%; margin-top: 4px; font-weight: 700; background: #6b21a8; color: #fff;">➕ Insertar Estancia en la Mazmorra</button>
+    </div>
+
+    <!-- PANEL INSPECTOR DE ESTANCIA INDIVIDUAL -->
+    <div id="panel-inspector-sala" style="display: none; background: rgba(24, 24, 37, 0.95); border: 2px solid #a855f7; border-radius: 8px; padding: 10px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="font-weight: 700; font-size: 12px; color: #e9d5ff; display: flex; align-items: center; gap: 6px;">
+          <span>🔍</span> <span id="insp-titulo-sala">Inspector de Estancia</span>
+        </div>
+        <button id="btn-insp-cerrar" class="sala-item-btn" style="padding: 2px 7px;" title="Cerrar inspector">✕</button>
+      </div>
+
+      <div class="control-row">
+        <label>Nombre de la Estancia</label>
+        <input type="text" id="insp-nombre" placeholder="Nombre de la estancia">
+      </div>
+
+      <div class="control-row">
+        <label>Tipo de Estancia</label>
+        <select id="insp-tipo">
+          <option value="armeria">⚔️ Armería de la Guardia</option>
+          <option value="biblioteca">📜 Biblioteca Arcana</option>
+          <option value="prision">⛓️ Mazmorra de Celdas</option>
+          <option value="laboratorio">⚗️ Laboratorio de Alquimia</option>
+          <option value="jardin_subterraneo">🍄 Jardín Fúngico de Esporas</option>
+          <option value="fuente">⛲ Santuario de la Fuente</option>
+          <option value="tesoro">🪙 Cámara del Tesoro</option>
+          <option value="cripta_columnas">🏛️ Gran Cripta de Columnas</option>
+          <option value="pasillo">🧱 Pasillo Arqueado</option>
+          <option value="entrada">🚪 Entrada / Vestíbulo</option>
+          <option value="sala_jefe">👑 Trono del Jefe</option>
+        </select>
+      </div>
+
+      <!-- TEXTURA Y COLOR DE PAREDES INDIVIDUAL -->
+      <div class="control-row">
+        <label>Textura de Paredes Individual</label>
+        <select id="insp-estilo">
+          <option value="">(Heredar estilo de mazmorra)</option>
+          <option value="cripta_gotica">Cripta Gótica Oscura</option>
+          <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+          <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+          <option value="fortaleza_basalto">Fortaleza de Basalto Volcánico</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label>Color / Tinte de Pared</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="color" id="insp-color-pared" value="#706860" style="width: 44px; height: 28px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+          <button id="btn-insp-color-reset" class="sala-item-btn" style="flex: 1;" title="Restablecer color por defecto">↺ Color Normal</button>
+        </div>
+      </div>
+
+      <!-- DIMENSIONES Y POSICIÓN -->
+      <div class="grid2">
+        <div class="control-row">
+          <label>Ancho W (m)</label>
+          <input type="number" id="insp-w" min="4" max="60" step="1" value="16">
+        </div>
+        <div class="control-row">
+          <label>Profundidad D (m)</label>
+          <input type="number" id="insp-d" min="4" max="60" step="1" value="16">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="control-row">
+          <label>Altura H (m)</label>
+          <input type="number" id="insp-h" min="3" max="15" step="0.5" value="5.2">
+        </div>
+        <div class="control-row">
+          <label>Posición X (m)</label>
+          <input type="number" id="insp-x" step="1" value="0">
+        </div>
+      </div>
+      <div class="control-row">
+        <label>Posición Z (m)</label>
+        <input type="number" id="insp-z" step="1" value="0">
+      </div>
+
+      <!-- CATÁLOGO DE OBJETOS DECORATIVOS -->
+      <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+        <div style="font-weight: 700; font-size: 11px; color: #e9d5ff; margin-bottom: 6px;">
+          🏺 Introducir Objetos Decorativos
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px;">
+          <button class="btn-add-prop sala-item-btn" data-prop="armero" title="Armero y Barriles">⚔️ Armas</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="biblioteca" title="Atril Arcano con Orbe">📜 Atril</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="celda" title="Rejas de Celda y Cadenas">⛓️ Celda</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="caldero" title="Caldero de Alquimia">⚗️ Caldero</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="hongos" title="Hongos Bioluminiscentes">🍄 Hongos</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="fuente" title="Fuente de Agua">⛲ Fuente</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="cofre" title="Cofre del Tesoro">🪙 Cofre</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="jarron" title="Jarrón de Cerámica">🏺 Jarrón</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="sarcofago" title="Sarcófago de Piedra">🪦 Sarcófago</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="antorcha" title="Antorcha de Pared">🔥 Antorcha</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="brasero" title="Pebetero con Fuego">🪵 Pebetero</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="musgo" title="Mancha de Musgo">🌿 Musgo</button>
+          <button class="btn-add-prop sala-item-btn" data-prop="columna" title="Columna de Piedra" style="grid-column: span 2;">🏛️ Columna</button>
+        </div>
+
+        <div style="font-weight: 600; font-size: 10px; color: #94a3b8; margin-bottom: 4px;">Objetos en esta estancia:</div>
+        <div id="insp-props-lista" style="max-height: 110px; overflow-y: auto; background: rgba(15,23,42,0.7); border: 1px solid #334155; border-radius: 4px; padding: 4px; margin-bottom: 8px;">
+          <!-- Lista dinámica de props de la sala seleccionada -->
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN SOBRE LA SALA -->
+      <div style="display: flex; gap: 4px; margin-top: 8px;">
+        <button id="btn-insp-focus" class="btn alt" style="flex: 1; padding: 5px;" title="Enfocar cámara">🎯 Enfocar</button>
+        <button id="btn-insp-duplicar" class="btn alt" style="flex: 1; padding: 5px;" title="Duplicar esta estancia">📑 Duplicar</button>
+        <button id="btn-insp-eliminar" class="btn danger" style="flex: 1; padding: 5px;" title="Eliminar estancia">🗑️ Borrar</button>
+      </div>
     </div>
 
     <h2>🏺 Elementos & Decoración Subterránea</h2>
@@ -624,6 +774,9 @@
     let markersGroup = new THREE.Group();
     scene.add(markersGroup);
 
+    let selectedRoomId = null;
+    let selectionBoxHelper = null;
+
     // --- RECONSTRUCCIÓN DE LA MAZMORRA 3D ---
     function rebuildDungeon() {
       try {
@@ -633,12 +786,18 @@
         while (markersGroup.children.length > 0) {
           markersGroup.remove(markersGroup.children[0]);
         }
+        if (selectionBoxHelper) {
+          scene.remove(selectionBoxHelper);
+          selectionBoxHelper = null;
+        }
 
         if (dungeonConfig.tipoGeneracion === 'glb' && dungeonConfig.glb) {
           cargarGlbDungeon();
         } else {
           generarProceduralDungeon();
         }
+
+        actualizarCajaSeleccion();
       } catch (err) {
         console.error('Error al reconstruir mazmorra:', err);
         showToast('Aviso: ' + err.message);
@@ -662,10 +821,15 @@
         ramificacion: dungeonConfig.ramificacion,
         alturaTechos: dungeonConfig.alturaTechos,
         anchoPasillos: dungeonConfig.anchoPasillos,
+        salas: dungeonConfig.salas,
         salasPersonalizadas: dungeonConfig.salasPersonalizadas,
         props: dungeonConfig.props,
         sinTecho: !dungeonConfig.mostrarTechos
       });
+
+      if (!dungeonConfig.salas && dungeonInstance && dungeonInstance.salas) {
+        dungeonConfig.salas = dungeonInstance.salas;
+      }
 
       scene.add(dungeonInstance.group);
 
@@ -779,21 +943,37 @@
       (salas || []).forEach((s, idx) => {
         const def = tiposDef[s.tipo] || { icono: '🏛️', nombre: s.nombre };
         const row = document.createElement('div');
-        row.className = 'sala-item-row';
+        row.className = 'sala-item-row' + (s.id === selectedRoomId ? ' selected' : '');
+        row.dataset.idSala = s.id;
         row.innerHTML = `
-          <div class="sala-item-title">
+          <div class="sala-item-title" style="cursor: pointer;" title="Haz clic para seleccionar e inspeccionar esta estancia">
             <span>${def.icono || '🏛️'}</span>
             <span title="${s.nombre}">${s.nombre}</span>
           </div>
           <div class="sala-item-dims">${s.w}×${s.d}m (${Math.round(s.x)}, ${Math.round(s.z)})</div>
+          <button class="sala-item-btn" data-select="${s.id}" title="Editar estancia">✏️</button>
           <button class="sala-item-btn" data-focus="${idx}" title="Centrar cámara">🎯</button>
-          ${s.esPersonalizada ? `<button class="sala-item-btn del" data-del-custom="${s.id}" title="Eliminar estancia">✕</button>` : ''}
+          <button class="sala-item-btn del" data-del-room="${s.id}" title="Eliminar estancia">✕</button>
         `;
+
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('button')) return;
+          seleccionarEstancia(s.id, true);
+        });
+
         container.appendChild(row);
       });
 
+      container.querySelectorAll('[data-select]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          seleccionarEstancia(btn.dataset.select, true);
+        });
+      });
+
       container.querySelectorAll('[data-focus]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           const idx = parseInt(btn.dataset.focus, 10);
           const sala = (salas || [])[idx];
           if (!sala) return;
@@ -805,15 +985,172 @@
         });
       });
 
-      container.querySelectorAll('[data-del-custom]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.dataset.delCustom;
-          dungeonConfig.salasPersonalizadas = (dungeonConfig.salasPersonalizadas || []).filter(cs => cs.id !== id);
+      container.querySelectorAll('[data-del-room]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.delRoom;
+          if (dungeonConfig.salas) {
+            dungeonConfig.salas = dungeonConfig.salas.filter(s => s.id !== id);
+          }
+          if (dungeonConfig.salasPersonalizadas) {
+            dungeonConfig.salasPersonalizadas = dungeonConfig.salasPersonalizadas.filter(s => s.id !== id);
+          }
+          if (selectedRoomId === id) {
+            deseleccionarEstancia();
+          }
           rebuildDungeon();
-          showToast('Estancia personalizada eliminada');
+          showToast('Estancia eliminada');
         });
       });
     }
+
+    // --- SELECCIÓN Y EDICIÓN INDIVIDUAL DE ESTANCIAS ---
+    function seleccionarEstancia(idSala, enfocarCamara = false) {
+      if (!dungeonInstance || !dungeonInstance.salas) return;
+      if (!dungeonConfig.salas || dungeonConfig.salas.length === 0) {
+        dungeonConfig.salas = JSON.parse(JSON.stringify(dungeonInstance.salas));
+      }
+      const sala = dungeonConfig.salas.find(s => s.id === idSala) || dungeonInstance.salas.find(s => s.id === idSala);
+      if (!sala) return;
+
+      selectedRoomId = sala.id;
+
+      const dg = window.DungeonGenerator;
+      const tiposDef = (dg && dg.TIPOS_ESTANCIA) || {};
+      const def = tiposDef[sala.tipo] || { icono: '🏛️', nombre: sala.nombre };
+
+      $('insp-titulo-sala').textContent = `${def.icono || '🏛️'} ${sala.nombre}`;
+      $('insp-nombre').value = sala.nombre;
+      $('insp-tipo').value = sala.tipo || 'armeria';
+      $('insp-estilo').value = sala.estilo || '';
+      $('insp-color-pared').value = sala.colorPared && sala.colorPared !== 'default' ? sala.colorPared : '#706860';
+      $('insp-w').value = sala.w;
+      $('insp-d').value = sala.d;
+      $('insp-h').value = sala.h || dungeonConfig.alturaTechos || 5.2;
+      $('insp-x').value = Math.round(sala.x);
+      $('insp-z').value = Math.round(sala.z);
+
+      $('panel-inspector-sala').style.display = 'block';
+
+      document.querySelectorAll('.sala-item-row').forEach(r => {
+        if (r.dataset.idSala === selectedRoomId) r.classList.add('selected');
+        else r.classList.remove('selected');
+      });
+
+      actualizarCajaSeleccion();
+      renderInspPropsLista(sala);
+
+      if (enfocarCamara) {
+        controls.target.set(sala.x, 1.2, sala.z);
+        const elev = Math.max(sala.w, sala.d) * 1.5;
+        camera.position.set(sala.x, elev, sala.z + elev * 0.8);
+        controls.update();
+      }
+    }
+
+    function deseleccionarEstancia() {
+      selectedRoomId = null;
+      $('panel-inspector-sala').style.display = 'none';
+      if (selectionBoxHelper) {
+        scene.remove(selectionBoxHelper);
+        selectionBoxHelper = null;
+      }
+      document.querySelectorAll('.sala-item-row').forEach(r => r.classList.remove('selected'));
+    }
+
+    function actualizarCajaSeleccion() {
+      if (selectionBoxHelper) {
+        scene.remove(selectionBoxHelper);
+        selectionBoxHelper = null;
+      }
+      if (!selectedRoomId || !dungeonInstance || !dungeonInstance.salas) return;
+      const sala = (dungeonConfig.salas || dungeonInstance.salas).find(s => s.id === selectedRoomId);
+      if (!sala) return;
+
+      const box = new THREE.Box3(
+        new THREE.Vector3(sala.x - sala.w / 2, 0, sala.z - sala.d / 2),
+        new THREE.Vector3(sala.x + sala.w / 2, sala.h || dungeonConfig.alturaTechos || 5.2, sala.z + sala.d / 2)
+      );
+      selectionBoxHelper = new THREE.Box3Helper(box, 0xa855f7);
+      selectionBoxHelper.renderOrder = 999;
+      scene.add(selectionBoxHelper);
+    }
+
+    function renderInspPropsLista(sala) {
+      const container = $('insp-props-lista');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const dg = window.DungeonGenerator;
+      const cat = (dg && dg.CATALOGO_PROPS_DECORATIVOS) || {};
+      const props = sala.propsPersonalizados || [];
+
+      if (props.length === 0) {
+        container.innerHTML = '<div style="color: #64748b; font-size: 10px; font-style: italic; padding: 4px;">Sin objetos decorativos añadidos. Usa los botones superiores.</div>';
+        return;
+      }
+
+      props.forEach((p, idx) => {
+        const itemInfo = cat[p.tipo] || { icono: '🏺', nombre: p.tipo };
+        const row = document.createElement('div');
+        row.className = 'prop-item-row';
+        row.innerHTML = `
+          <div class="prop-item-info">
+            <span>${itemInfo.icono}</span>
+            <span title="${itemInfo.nombre}">${itemInfo.nombre}</span>
+          </div>
+          <div style="display:flex; align-items:center;">
+            <span class="prop-item-coords">(${p.x.toFixed(1)}, ${p.z.toFixed(1)})</span>
+            <button class="sala-item-btn del" data-del-prop="${idx}" style="padding:1px 5px; font-size:9px;" title="Eliminar objeto">✕</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll('[data-del-prop]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.delProp, 10);
+          sala.propsPersonalizados.splice(idx, 1);
+          rebuildDungeon();
+          renderInspPropsLista(sala);
+          showToast('Objeto decorativo eliminado');
+        });
+      });
+    }
+
+    // --- RAYCASTER PARA SELECCIÓN EN 3D ---
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let pointerDownPos = { x: 0, y: 0 };
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      pointerDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    renderer.domElement.addEventListener('pointerup', (e) => {
+      const dx = Math.abs(e.clientX - pointerDownPos.x);
+      const dy = Math.abs(e.clientY - pointerDownPos.y);
+      if (dx > 6 || dy > 6) return;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      if (!dungeonInstance || !dungeonInstance.group) return;
+
+      const intersects = raycaster.intersectObjects(dungeonInstance.group.children, true);
+      for (let i = 0; i < intersects.length; i++) {
+        let obj = intersects[i].object;
+        while (obj && obj !== dungeonInstance.group) {
+          if (obj.userData && obj.userData.idSala) {
+            seleccionarEstancia(obj.userData.idSala, false);
+            return;
+          }
+          obj = obj.parent;
+        }
+      }
+    });
 
     // --- UI EVENT BINDINGS ---
     const $ = id => document.getElementById(id);
@@ -922,10 +1259,14 @@
     });
     $('cfg-estilo').addEventListener('change', e => {
       dungeonConfig.estilo = e.target.value;
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       rebuildDungeon();
     });
     $('cfg-seed').addEventListener('change', e => {
       dungeonConfig.seed = parseInt(e.target.value, 10) || 1;
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       rebuildDungeon();
     });
 
@@ -933,28 +1274,38 @@
     $('cfg-radio').addEventListener('input', e => {
       dungeonConfig.radio = parseFloat(e.target.value) || 60;
       $('lbl-radio').textContent = dungeonConfig.radio + ' m';
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       rebuildDungeon();
     });
     $('cfg-tamano-medio').addEventListener('input', e => {
       dungeonConfig.tamanoMedio = parseFloat(e.target.value) || 16;
       $('lbl-tamano-medio').textContent = dungeonConfig.tamanoMedio + ' m';
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       rebuildDungeon();
     });
     $('cfg-varianza').addEventListener('input', e => {
       const val = parseInt(e.target.value, 10) || 0;
       dungeonConfig.varianzaTamano = val / 100;
       $('lbl-varianza').textContent = val + '%';
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       rebuildDungeon();
     });
     $('cfg-num-salas').addEventListener('input', e => {
       dungeonConfig.numeroSalas = parseInt(e.target.value, 10) || 6;
       $('lbl-num-salas').textContent = dungeonConfig.numeroSalas + ' salas';
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       rebuildDungeon();
     });
     $('cfg-ramificacion').addEventListener('input', e => {
       const val = parseInt(e.target.value, 10) || 0;
       dungeonConfig.ramificacion = val / 100;
       $('lbl-ramificacion').textContent = val + '%';
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       rebuildDungeon();
     });
     $('cfg-altura').addEventListener('input', e => {
@@ -966,6 +1317,124 @@
       dungeonConfig.anchoPasillos = parseFloat(e.target.value) || 6.8;
       $('lbl-ancho-pasillo').textContent = dungeonConfig.anchoPasillos.toFixed(1) + ' m';
       rebuildDungeon();
+    });
+
+    // --- BINDINGS DEL INSPECTOR DE ESTANCIA SELECCIONADA ---
+    $('btn-insp-cerrar').addEventListener('click', deseleccionarEstancia);
+
+    function actualizarSalaSeleccionada(mutator) {
+      if (!selectedRoomId) return;
+      if (!dungeonConfig.salas || dungeonConfig.salas.length === 0) {
+        dungeonConfig.salas = JSON.parse(JSON.stringify(dungeonInstance.salas));
+      }
+      const sala = dungeonConfig.salas.find(s => s.id === selectedRoomId);
+      if (!sala) return;
+      mutator(sala);
+      rebuildDungeon();
+      if (selectedRoomId) {
+        const salaRefrescada = dungeonConfig.salas.find(s => s.id === selectedRoomId);
+        if (salaRefrescada) {
+          const dg = window.DungeonGenerator;
+          const tiposDef = (dg && dg.TIPOS_ESTANCIA) || {};
+          const def = tiposDef[salaRefrescada.tipo] || { icono: '🏛️', nombre: salaRefrescada.nombre };
+          $('insp-titulo-sala').textContent = `${def.icono || '🏛️'} ${salaRefrescada.nombre}`;
+          renderInspPropsLista(salaRefrescada);
+        }
+      }
+    }
+
+    $('insp-nombre').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.nombre = e.target.value.trim() || 'Estancia'; });
+    });
+    $('insp-tipo').addEventListener('change', e => {
+      actualizarSalaSeleccionada(s => { s.tipo = e.target.value; });
+    });
+    $('insp-estilo').addEventListener('change', e => {
+      actualizarSalaSeleccionada(s => { s.estilo = e.target.value || null; });
+    });
+    $('insp-color-pared').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.colorPared = e.target.value; });
+    });
+    $('btn-insp-color-reset').addEventListener('click', () => {
+      $('insp-color-pared').value = '#706860';
+      actualizarSalaSeleccionada(s => { s.colorPared = null; });
+      showToast('Color de pared restaurado por defecto');
+    });
+
+    $('insp-w').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.w = Math.max(4, parseFloat(e.target.value) || 16); });
+    });
+    $('insp-d').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.d = Math.max(4, parseFloat(e.target.value) || 16); });
+    });
+    $('insp-h').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.h = Math.max(3, parseFloat(e.target.value) || 5.2); });
+    });
+    $('insp-x').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.x = parseFloat(e.target.value) || 0; });
+    });
+    $('insp-z').addEventListener('input', e => {
+      actualizarSalaSeleccionada(s => { s.z = parseFloat(e.target.value) || 0; });
+    });
+
+    // Inserción de props decorativos individuales
+    document.querySelectorAll('.btn-add-prop').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!selectedRoomId) return;
+        actualizarSalaSeleccionada(sala => {
+          const propTipo = btn.dataset.prop;
+          sala.propsPersonalizados = sala.propsPersonalizados || [];
+          const offX = Math.round(((Math.random() - 0.5) * (sala.w * 0.6)) * 10) / 10;
+          const offZ = Math.round(((Math.random() - 0.5) * (sala.d * 0.6)) * 10) / 10;
+          sala.propsPersonalizados.push({
+            id: 'prop_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+            tipo: propTipo,
+            x: offX,
+            y: 0,
+            z: offZ,
+            rotY: Math.round((Math.floor(Math.random() * 4) * Math.PI / 2) * 100) / 100
+          });
+          showToast(`✨ Objeto decorativo añadido: ${propTipo}`);
+        });
+      });
+    });
+
+    $('btn-insp-focus').addEventListener('click', () => {
+      if (selectedRoomId) seleccionarEstancia(selectedRoomId, true);
+    });
+
+    $('btn-insp-duplicar').addEventListener('click', () => {
+      if (!selectedRoomId) return;
+      if (!dungeonConfig.salas || dungeonConfig.salas.length === 0) {
+        dungeonConfig.salas = JSON.parse(JSON.stringify(dungeonInstance.salas));
+      }
+      const original = dungeonConfig.salas.find(s => s.id === selectedRoomId);
+      if (!original) return;
+
+      const dup = JSON.parse(JSON.stringify(original));
+      dup.id = 'sala_dup_' + Date.now().toString(36);
+      dup.nombre = original.nombre + ' (Copia)';
+      dup.x += Math.round(original.w + 4);
+      dup.esPersonalizada = true;
+
+      dungeonConfig.salas.push(dup);
+      rebuildDungeon();
+      seleccionarEstancia(dup.id, true);
+      showToast('Estancia duplicada con éxito');
+    });
+
+    $('btn-insp-eliminar').addEventListener('click', () => {
+      if (!selectedRoomId) return;
+      const idParaBorrar = selectedRoomId;
+      if (dungeonConfig.salas) {
+        dungeonConfig.salas = dungeonConfig.salas.filter(s => s.id !== idParaBorrar);
+      }
+      if (dungeonConfig.salasPersonalizadas) {
+        dungeonConfig.salasPersonalizadas = dungeonConfig.salasPersonalizadas.filter(s => s.id !== idParaBorrar);
+      }
+      deseleccionarEstancia();
+      rebuildDungeon();
+      showToast('Estancia eliminada');
     });
 
     // Añadir estancia manual personalizada
@@ -996,6 +1465,8 @@
     });
     $('btn-seed-dice').addEventListener('click', () => {
       dungeonConfig.seed = Math.floor(Math.random() * 99999) + 1;
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       $('cfg-seed').value = dungeonConfig.seed;
       rebuildDungeon();
     });
@@ -1003,6 +1474,8 @@
       const estilos = ['cripta_gotica', 'ruinas_musgosas', 'catacumbas_caliza', 'fortaleza_basalto'];
       dungeonConfig.estilo = estilos[Math.floor(Math.random() * estilos.length)];
       dungeonConfig.seed = Math.floor(Math.random() * 99999) + 1;
+      dungeonConfig.salas = null;
+      deseleccionarEstancia();
       syncUIFromConfig();
       rebuildDungeon();
       showToast('Mazmorra procedural regenerada al azar');

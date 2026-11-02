@@ -55,6 +55,22 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('id="new-sala-tipo"'), 'Debe incluir selector de tipo de estancia');
   assert.ok(html.includes('id="btn-insertar-sala"'), 'Debe incluir botón para insertar nueva estancia manual');
   assert.ok(html.includes('id="salas-list"'), 'Debe incluir lista de gestión de estancias');
+
+  // Inspector de estancia individual, cambio de texturas y props decorativos
+  assert.ok(html.includes('id="panel-inspector-sala"'), 'Debe incluir panel inspector de estancia seleccionada');
+  assert.ok(html.includes('id="insp-nombre"'), 'Debe incluir input de nombre en inspector');
+  assert.ok(html.includes('id="insp-tipo"'), 'Debe incluir selector de tipo de estancia en inspector');
+  assert.ok(html.includes('id="insp-estilo"'), 'Debe permitir cambiar textura/estilo de piedra individualmente');
+  assert.ok(html.includes('id="insp-color-pared"'), 'Debe permitir cambiar color/tinte de pared individualmente');
+  assert.ok(html.includes('id="insp-w"') && html.includes('id="insp-d"'), 'Debe permitir editar dimensiones individuales');
+  assert.ok(html.includes('id="insp-x"') && html.includes('id="insp-z"'), 'Debe permitir editar coordenadas individuales');
+  assert.ok(html.includes('data-prop="armero"') && html.includes('data-prop="caldero"'), 'Debe ofrecer catálogo de objetos decorativos');
+  assert.ok(html.includes('id="insp-props-lista"'), 'Debe listar los objetos decorativos de la estancia');
+  assert.ok(html.includes('id="btn-insp-duplicar"'), 'Debe permitir duplicar estancia');
+  assert.ok(html.includes('id="btn-insp-eliminar"'), 'Debe permitir borrar estancia');
+  assert.ok(html.includes('seleccionarEstancia'), 'Debe implementar seleccionarEstancia');
+  assert.ok(html.includes('THREE.Box3Helper'), 'Debe mostrar caja 3D visual de selección de estancia');
+  assert.ok(html.includes('Raycaster'), 'Debe permitir seleccionar estancias haciendo clic en la vista 3D');
 });
 
 test('index.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {

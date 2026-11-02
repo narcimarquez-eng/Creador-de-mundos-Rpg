@@ -25,15 +25,29 @@ const mockTHREE = {
   Mesh: MockMesh,
   PointLight: MockLight,
   AmbientLight: MockLight,
-  BoxGeometry: function () {},
-  PlaneGeometry: function () {},
-  CylinderGeometry: function () {},
-  ConeGeometry: function () {},
-  SphereGeometry: function () {},
-  TorusGeometry: function () {},
-  CircleGeometry: function () {},
-  MeshStandardMaterial: function (opts) { Object.assign(this, opts); },
-  MeshBasicMaterial: function (opts) { Object.assign(this, opts); },
+  BoxGeometry: function (...args) { this.args = args; },
+  PlaneGeometry: function (...args) { this.args = args; },
+  CylinderGeometry: function (...args) { this.args = args; },
+  ConeGeometry: function (...args) { this.args = args; },
+  SphereGeometry: function (...args) { this.args = args; },
+  TorusGeometry: function (...args) { this.args = args; },
+  CircleGeometry: function (...args) { this.args = args; },
+  MeshStandardMaterial: function (opts) {
+    this.color = { hex: '#ffffff', set(v) { this.hex = v; } };
+    Object.assign(this, opts);
+    this.clone = function () {
+      const c = new mockTHREE.MeshStandardMaterial(this);
+      return c;
+    };
+  },
+  MeshBasicMaterial: function (opts) {
+    this.color = { hex: '#ffffff', set(v) { this.hex = v; } };
+    Object.assign(this, opts);
+    this.clone = function () {
+      const c = new mockTHREE.MeshBasicMaterial(this);
+      return c;
+    };
+  },
   CanvasTexture: function () { this.wrapS = 1000; this.wrapT = 1000; },
   RepeatWrapping: 1000,
   SRGBColorSpace: 'srgb'
@@ -244,3 +258,98 @@ test('DungeonGenerator: creación de nuevas estancias personalizadas manuales', 
   assert.ok(encontradaPris, 'Debe incluir la estancia personalizada de prisión');
   assert.strictEqual(encontradaPris.w, 16);
 });
+
+test('DungeonGenerator: paredes herméticas con hombros y dinteles sin huecos al vacío', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  
+  // Estancia ancha (24m) con apertura norte estrecha (6.8m)
+  const sala = {
+    id: 'sala_ancha_test',
+    w: 24, d: 20, h: 5.0,
+    x: 0, y: 0, z: 0,
+    abiertoNorte: true,
+    aperturas: {
+      norte: { w: 6.8, cx: 0, puertaH: 3.8 }
+    }
+  };
+
+  const meshGroup = DungeonGenerator.construirCajaHabitacion(mockTHREE, kit, sala, { anchoPasillos: 6.8 });
+  assert.ok(meshGroup, 'Debe construir la malla de la habitación');
+
+  const hombrosIzq = meshGroup.children.filter(c => c.userData && c.userData.lado === 'norte_oeste');
+  const hombrosDer = meshGroup.children.filter(c => c.userData && c.userData.lado === 'norte_este');
+  const dintel = meshGroup.children.filter(c => c.userData && c.userData.lado === 'norte' && c.userData.tipo === 'dintel');
+
+  assert.strictEqual(hombrosIzq.length, 1, 'Debe generar el muro de hombro izquierdo que sella el hueco lateral');
+  assert.strictEqual(hombrosDer.length, 1, 'Debe generar el muro de hombro derecho que sella el hueco lateral');
+  assert.strictEqual(dintel.length, 1, 'Debe generar el dintel superior para cerrar el muro sobre la apertura');
+
+  // El hombro izquierdo debe cubrir desde -12 hasta -3.4 (ancho = 8.6m)
+  const geomIzq = hombrosIzq[0].geometry;
+  assert.ok(geomIzq.args[0] > 8.0, 'El hombro izquierdo debe cubrir la diferencia de anchura');
+});
+
+test('DungeonGenerator: catálogo de props decorativos e inserción individual en estancia', () => {
+  assert.ok(DungeonGenerator.CATALOGO_PROPS_DECORATIVOS, 'Debe existir el catálogo de props decorativos');
+  assert.ok(DungeonGenerator.CATALOGO_PROPS_DECORATIVOS.armero, 'Debe incluir armero');
+  assert.ok(DungeonGenerator.CATALOGO_PROPS_DECORATIVOS.caldero, 'Debe incluir caldero de pociones');
+  assert.ok(DungeonGenerator.CATALOGO_PROPS_DECORATIVOS.celda, 'Debe incluir celda');
+
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const animables = [];
+  const props = { antorchas: [], cofres: [], fuentes: [], animables };
+
+  const propArmero = DungeonGenerator.crearObjetoDecorativo(mockTHREE, kit, 'armero', DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, new DungeonGenerator.PRNG(123), animables, props);
+  assert.ok(propArmero, 'Debe instanciar el prop de armero');
+
+  const propCaldero = DungeonGenerator.crearObjetoDecorativo(mockTHREE, kit, 'caldero', DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, new DungeonGenerator.PRNG(123), animables, props);
+  assert.ok(propCaldero, 'Debe instanciar el prop de caldero de pociones');
+
+  // Estancia con props decorativos personalizados
+  const salaConProps = {
+    id: 'sala_alquimista',
+    tipo: 'laboratorio',
+    w: 16, d: 16, h: 5.0,
+    x: 10, y: 0, z: -10,
+    propsPersonalizados: [
+      { id: 'prop_1', tipo: 'caldero', x: 2, y: 0, z: 2 },
+      { id: 'prop_2', tipo: 'armero', x: -4, y: 0, z: -4 },
+      { id: 'prop_3', tipo: 'hongos', x: 0, y: 0, z: 3 }
+    ]
+  };
+
+  const decMesh = DungeonGenerator.decorarHabitacion(mockTHREE, kit, salaConProps, DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, new DungeonGenerator.PRNG(123), animables, props);
+  assert.ok(decMesh, 'Debe decorar la habitación');
+
+  const propsInstanciados = decMesh.children.filter(c => c.userData && c.userData.idProp);
+  assert.strictEqual(propsInstanciados.length, 3, 'Debe haber instanciado los 3 props personalizados definidos');
+});
+
+test('DungeonGenerator: personalización individual de textura de piedra y color de pared por sala', () => {
+  const salas = [
+    {
+      id: 'sala_normal',
+      tipo: 'entrada',
+      w: 14, d: 14, h: 5,
+      x: 0, y: 0, z: 30
+    },
+    {
+      id: 'sala_basalto_custom',
+      tipo: 'armeria',
+      w: 18, d: 18, h: 5.5,
+      x: 0, y: 0, z: 0,
+      estilo: 'fortaleza_basalto',
+      colorPared: '#3d1c1c'
+    }
+  ];
+
+  const res = DungeonGenerator.generarMazmorra(mockTHREE, {
+    estilo: 'cripta_gotica',
+    salas: salas
+  });
+
+  assert.strictEqual(res.salas.length, 2, 'Debe generar exactamente las 2 salas pasadas en config');
+  assert.strictEqual(res.salas[1].estilo, 'fortaleza_basalto', 'Debe conservar el estilo individual de la sala');
+  assert.strictEqual(res.salas[1].colorPared, '#3d1c1c', 'Debe conservar el color de pared individual');
+});
+
