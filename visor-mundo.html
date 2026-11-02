@@ -926,10 +926,11 @@
   <div id="load">
     <div class="box">
       <h2>No hay ningún mundo abierto</h2>
-      <div id="load-msg">Abre el editor para crear un mundo, o carga un archivo <b>.mundo.json</b> que hayas exportado.</div>
+      <div id="load-msg">Abre el editor para crear un mundo, carga un archivo <b>.mundo.json</b>, o genera un mundo nuevo al instante para explorar.</div>
       <div class="btns">
         <a class="btn" href="index.html">← Ir al editor</a>
         <button class="gold" id="btn-load-file">⬆ Cargar .mundo.json</button>
+        <button class="gold" id="btn-auto-world" style="background:linear-gradient(135deg,#16a34a,#15803d);border-color:#22c55e;color:#ffffff;font-weight:700;">✨ Generar y Entrar al Mundo</button>
         <input type="file" id="file-world" accept=".json,application/json" hidden>
       </div>
     </div>
@@ -7323,8 +7324,53 @@
   // Carga de datos
   // ===========================================================================
   function readSession(id) {
-    try { return localStorage.getItem('rpgMundo.sesion.' + id); } catch (e) { return null; }
+    if (!id) return null;
+    try {
+      const fromLs = localStorage.getItem('rpgMundo.sesion.' + id);
+      if (fromLs) return fromLs;
+    } catch (e) {}
+    try {
+      const fromSs = sessionStorage.getItem('rpgMundo.sesion.' + id);
+      if (fromSs) return fromSs;
+    } catch (e) {}
+    return null;
   }
+
+  function generarMundoInicialYEntrar() {
+    try {
+      if (W && typeof W.generateWorld === 'function') {
+        const wInit = W.generateWorld({ name: 'Reino de Aden' });
+        const newId = 's_' + Date.now().toString(36);
+        const serialized = W.serialize(wInit);
+        worldId = newId;
+        try {
+          localStorage.setItem('rpgMundo.sesion.' + newId, serialized);
+          localStorage.setItem('rpgMundo.actual', newId);
+          localStorage.setItem('rpgMundo.sesiones', JSON.stringify([{
+            id: newId,
+            name: wInit.name,
+            updated: Date.now(),
+            towns: wInit.towns ? wInit.towns.length : 0,
+            zones: wInit.zones ? wInit.zones.length : 0
+          }]));
+        } catch (e) {}
+        try {
+          sessionStorage.setItem('rpgMundo.sesion.' + newId, serialized);
+          sessionStorage.setItem('rpgMundo.actual', newId);
+        } catch (e) {}
+        if ($('load')) $('load').classList.remove('show');
+        loadText(serialized, false);
+        bootPartida();
+        toast('✨ Mundo «' + wInit.name + '» generado y cargado con éxito');
+        return true;
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error generando mundo: ' + e.message);
+    }
+    return false;
+  }
+
   function loadText(text, label) {
     try {
       const w = W.deserialize(text);
@@ -7345,6 +7391,9 @@
   }
 
   $('btn-load-file').onclick = () => $('file-world').click();
+  if ($('btn-auto-world')) {
+    $('btn-auto-world').onclick = () => generarMundoInicialYEntrar();
+  }
   $('file-world').onchange = e => {
     const f = e.target.files[0];
     if (!f) return;
@@ -7367,11 +7416,80 @@
     const params = new URLSearchParams(location.search);
     let id = params.get('s');
     if (!id) { try { id = localStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }
-    const text = id ? readSession(id) : null;
+    if (!id) { try { id = sessionStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }
+
+    let text = id ? readSession(id) : null;
+
+    // Recuperación 1: si no hay texto para el id actual, buscar en la lista de sesiones
+    if (!text) {
+      try {
+        const sesList = JSON.parse(localStorage.getItem('rpgMundo.sesiones') || '[]');
+        for (const s of sesList) {
+          if (s && s.id) {
+            const candidate = readSession(s.id);
+            if (candidate) {
+              id = s.id;
+              text = candidate;
+              try { localStorage.setItem('rpgMundo.actual', id); } catch (e) {}
+              break;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Recuperación 2: buscar cualquier clave de sesión existente
+    if (!text) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('rpgMundo.sesion.')) {
+            const candidate = localStorage.getItem(key);
+            if (candidate) {
+              id = key.replace('rpgMundo.sesion.', '');
+              text = candidate;
+              try { localStorage.setItem('rpgMundo.actual', id); } catch (e) {}
+              break;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Recuperación 3: si no existe ningún mundo en el almacenamiento, auto-generar uno inicial
+    if (!text) {
+      try {
+        if (W && typeof W.generateWorld === 'function') {
+          console.info('No se encontró ningún mundo previo en almacenamiento. Generando mundo inicial automático...');
+          const wInit = W.generateWorld({ name: 'Reino de Aden' });
+          id = 's_init_' + Date.now().toString(36);
+          text = W.serialize(wInit);
+          try {
+            localStorage.setItem('rpgMundo.sesion.' + id, text);
+            localStorage.setItem('rpgMundo.actual', id);
+            localStorage.setItem('rpgMundo.sesiones', JSON.stringify([{
+              id: id,
+              name: wInit.name,
+              updated: Date.now(),
+              towns: wInit.towns ? wInit.towns.length : 0,
+              zones: wInit.zones ? wInit.zones.length : 0
+            }]));
+          } catch (e) {}
+          try {
+            sessionStorage.setItem('rpgMundo.sesion.' + id, text);
+            sessionStorage.setItem('rpgMundo.actual', id);
+          } catch (e) {}
+        }
+      } catch (errGen) {
+        console.error('Error generando mundo automático:', errGen);
+      }
+    }
+
     if (text) {
       worldId = id;
       loadText(text, false);
       bootPartida();
+      if ($('load')) $('load').classList.remove('show');
     } else {
       ensureScene();
       $('load').classList.add('show');
