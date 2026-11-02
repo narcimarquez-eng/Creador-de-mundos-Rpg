@@ -1296,8 +1296,9 @@
       llamaObj = llama;
     }
 
-    // Configuración de sombras
-    if (opciones.sombrasAntorchas !== false && !opciones.sinSombras && luz) {
+    // Configuración de sombras (optimizada: por defecto desactivadas en luces secundarias puntuales para 60 FPS)
+    const habilitarSombras = (opciones.sombrasAntorchas === true || opciones.sombrasPuntuales === true) && !opciones.sinSombras;
+    if (habilitarSombras && luz) {
       luz.castShadow = true;
       if (luz.shadow) {
         luz.shadow.bias = -0.002;
@@ -1793,6 +1794,426 @@
     return g;
   }
 
+  // --- 5.1 GENERADOR DE MONSTRUOS PROCEDURALES DE MAZMORRA ---
+
+  const ARQUETIPOS_MONSTRUOS = {
+    jefe_caballero_titan: {
+      id: 'jefe_caballero_titan',
+      nombre: 'Caballero del Trono Titánico',
+      categoria: 'jefe',
+      descripcion: 'Titán acorazado con mandoble rúnico, yelmo con cuernos y capa real.',
+      esJefe: true,
+      icono: '👑'
+    },
+    jefe_nigromante_arcano: {
+      id: 'jefe_nigromante_arcano',
+      nombre: 'Archimago Nigromante Espectral',
+      categoria: 'jefe',
+      descripcion: 'Señor no-muerto levitante con túnica andrajosa, orbes arcanos y báculo de almas.',
+      esJefe: true,
+      icono: '💀'
+    },
+    jefe_golem_magma: {
+      id: 'jefe_golem_magma',
+      nombre: 'Coloso Ciclópeo de Magma y Roca',
+      categoria: 'jefe',
+      descripcion: 'Gigante de basalto con corazón de lava ardiente y puños demoledores.',
+      esJefe: true,
+      icono: '🗿'
+    },
+    elite_centinela_esqueleto: {
+      id: 'elite_centinela_esqueleto',
+      nombre: 'Centinela Esqueleto de la Cripta',
+      categoria: 'elite',
+      descripcion: 'Esqueleto guerrero de élite con armadura de placas, escudo y espada recta.',
+      esJefe: false,
+      icono: '⚔️'
+    },
+    elite_espectro_sombra: {
+      id: 'elite_espectro_sombra',
+      nombre: 'Aparición Espectral de las Sombras',
+      categoria: 'elite',
+      descripcion: 'Ente incorpóreo levitante con manto etéreo y ojos fulgurantes.',
+      esJefe: false,
+      icono: '🔮'
+    },
+    elite_gargola_canteria: {
+      id: 'elite_gargola_canteria',
+      nombre: 'Gárgola Guardiana de Cantería',
+      categoria: 'elite',
+      descripcion: 'Estatua alada de piedra tallada con garras y ojos de rubí.',
+      esJefe: false,
+      icono: '🗿'
+    },
+    elite_brujo_abismal: {
+      id: 'elite_brujo_abismal',
+      nombre: 'Cultista del Abismo',
+      categoria: 'elite',
+      descripcion: 'Hechicero sombrío con toga ceremonial y cetro de energía oscura.',
+      esJefe: false,
+      icono: '🦹'
+    }
+  };
+
+  function crearMonstruoProcedural(ThreeLib, arquetipoId, opciones = {}) {
+    const g = new ThreeLib.Group();
+    const def = ARQUETIPOS_MONSTRUOS[arquetipoId] || ARQUETIPOS_MONSTRUOS.jefe_caballero_titan;
+    const esJefe = opciones.esJefe !== undefined ? opciones.esJefe : def.esJefe;
+    const escala = opciones.escala || (esJefe ? 1.25 : 0.95);
+    const nivel = opciones.nivel || (esJefe ? 17 : 14);
+    const rangoElite = opciones.rangoElite || (esJefe ? 10 : 4);
+    const nombre = opciones.nombre || def.nombre;
+
+    let animarFn = null;
+
+    if (arquetipoId === 'jefe_nigromante_arcano') {
+      // 1. Archimago Nigromante Espectral (levitante)
+      const matToga = new ThreeLib.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.6 });
+      const matMagia = new ThreeLib.MeshBasicMaterial({ color: 0x22d3ee });
+      const matBaculo = new ThreeLib.MeshStandardMaterial({ color: 0x292524, roughness: 0.8 });
+
+      const toga = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.65, 1.6, 8), matToga);
+      toga.position.y = 0.8;
+      g.add(toga);
+
+      const torso = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.3, 0.4, 0.75, 8), matToga);
+      torso.position.y = 1.75;
+      g.add(torso);
+
+      const capucha = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.32, 0.52, 8), matToga);
+      capucha.position.y = 2.38;
+      g.add(capucha);
+
+      const ojoI = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.045, 6, 6), matMagia);
+      ojoI.position.set(-0.09, 2.32, 0.22);
+      g.add(ojoI);
+      const ojoD = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.045, 6, 6), matMagia);
+      ojoD.position.set(0.09, 2.32, 0.22);
+      g.add(ojoD);
+
+      const vara = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.035, 0.035, 2.3, 8), matBaculo);
+      vara.position.set(0.65, 1.25, 0.25);
+      g.add(vara);
+
+      const orbeBaculo = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.14, 8, 8), matMagia);
+      orbeBaculo.position.set(0.65, 2.45, 0.25);
+      g.add(orbeBaculo);
+
+      const orbes = [];
+      for (let i = 0; i < 3; i++) {
+        const o = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.09, 6, 6), matMagia);
+        g.add(o);
+        orbes.push(o);
+      }
+
+      animarFn = (t) => {
+        g.position.y = (opciones.baseY || 0.0) + 0.35 + Math.sin(t * 1.8) * 0.12;
+        for (let i = 0; i < orbes.length; i++) {
+          const ang = t * 1.6 + (i * Math.PI * 2 / 3);
+          const r = 0.9 + i * 0.15;
+          orbes[i].position.set(
+            Math.cos(ang) * r,
+            1.65 + Math.sin(t * 2.8 + i) * 0.18,
+            Math.sin(ang) * r
+          );
+        }
+      };
+
+    } else if (arquetipoId === 'jefe_golem_magma') {
+      // 2. Coloso Ciclópeo de Magma y Roca
+      const matRoca = new ThreeLib.MeshStandardMaterial({ color: 0x18181b, roughness: 0.9 });
+      const matMagma = new ThreeLib.MeshBasicMaterial({ color: 0xf97316 });
+      const matOjo = new ThreeLib.MeshBasicMaterial({ color: 0xfef08a });
+
+      [-0.48, 0.48].forEach(px => {
+        const pierna = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.48, 1.1, 0.55), matRoca);
+        pierna.position.set(px, 0.55, 0);
+        g.add(pierna);
+      });
+
+      const torso = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(1.6, 1.15, 0.95), matRoca);
+      torso.position.y = 1.7;
+      g.add(torso);
+
+      const magmaCore = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.55, 0.75, 1.0), matMagma);
+      magmaCore.position.set(0, 1.7, 0);
+      g.add(magmaCore);
+
+      [-1.1, 1.1].forEach(px => {
+        const hombro = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.68, 0.65, 0.72), matRoca);
+        hombro.position.set(px, 2.1, 0);
+        g.add(hombro);
+
+        const brazo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.46, 1.35, 0.52), matRoca);
+        brazo.position.set(px, 1.35, 0.1);
+        g.add(brazo);
+      });
+
+      const cabeza = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.65, 0.5, 0.6), matRoca);
+      cabeza.position.set(0, 2.35, 0.15);
+      g.add(cabeza);
+
+      const ojo = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.12, 8, 8), matOjo);
+      ojo.position.set(0, 2.35, 0.48);
+      g.add(ojo);
+
+      animarFn = (t) => {
+        g.position.y = (opciones.baseY || 0.0) + Math.sin(t * 1.5) * 0.03;
+        torso.scale.x = 1.0 + Math.sin(t * 1.5) * 0.02;
+      };
+
+    } else if (arquetipoId === 'elite_espectro_sombra') {
+      // 3. Aparición Espectral de las Sombras
+      const matManto = new ThreeLib.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+      const matFulgor = new ThreeLib.MeshBasicMaterial({ color: 0xa855f7 });
+
+      const velo = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.48, 1.5, 8), matManto);
+      velo.position.y = 0.85;
+      g.add(velo);
+
+      const capucha = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.26, 8, 8), matManto);
+      capucha.position.y = 1.75;
+      g.add(capucha);
+
+      [-0.08, 0.08].forEach(ox => {
+        const ojo = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.04, 6, 6), matFulgor);
+        ojo.position.set(ox, 1.75, 0.22);
+        g.add(ojo);
+      });
+
+      [-0.42, 0.42].forEach(gx => {
+        const garra = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.06, 0.45, 4), matFulgor);
+        garra.position.set(gx, 1.35, 0.2);
+        garra.rotation.x = Math.PI * 0.4;
+        g.add(garra);
+      });
+
+      animarFn = (t) => {
+        g.position.y = (opciones.baseY || 0.0) + 0.3 + Math.sin(t * 2.2) * 0.1;
+      };
+
+    } else if (arquetipoId === 'elite_gargola_canteria') {
+      // 4. Gárgola Guardiana de Cantería
+      const matPiedra = new ThreeLib.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 });
+      const matOjosRojos = new ThreeLib.MeshBasicMaterial({ color: 0xef4444 });
+
+      const cuerpo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.65, 0.75, 0.55), matPiedra);
+      cuerpo.position.y = 0.75;
+      g.add(cuerpo);
+
+      const cabeza = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.4, 0.38, 0.42), matPiedra);
+      cabeza.position.set(0, 1.25, 0.15);
+      g.add(cabeza);
+
+      [-0.5, 0.5].forEach(ax => {
+        const ala = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.55, 0.9, 0.06), matPiedra);
+        ala.position.set(ax, 1.25, -0.25);
+        ala.rotation.y = ax < 0 ? -0.4 : 0.4;
+        ala.rotation.z = ax < 0 ? 0.3 : -0.3;
+        g.add(ala);
+      });
+
+      [-0.09, 0.09].forEach(ox => {
+        const ojo = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.04, 6, 6), matOjosRojos);
+        ojo.position.set(ox, 1.26, 0.38);
+        g.add(ojo);
+      });
+
+      animarFn = (t) => {
+        cuerpo.position.y = 0.75 + Math.sin(t * 2.0) * 0.02;
+      };
+
+    } else if (arquetipoId === 'elite_brujo_abismal') {
+      // 5. Cultista del Abismo
+      const matToga = new ThreeLib.MeshStandardMaterial({ color: 0x312e81, roughness: 0.55 });
+      const matOro = new ThreeLib.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.3, metalness: 0.8 });
+      const matMagia = new ThreeLib.MeshBasicMaterial({ color: 0x10b981 });
+
+      const toga = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.3, 0.5, 1.4, 8), matToga);
+      toga.position.y = 0.7;
+      g.add(toga);
+
+      const pecho = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.6, 0.6, 0.42), matToga);
+      pecho.position.y = 1.45;
+      g.add(pecho);
+
+      const mascara = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.32, 0.38, 0.34), matOro);
+      mascara.position.set(0, 1.88, 0.05);
+      g.add(mascara);
+
+      const cetro = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.03, 0.03, 1.8, 6), matOro);
+      cetro.position.set(0.48, 1.1, 0.25);
+      g.add(cetro);
+
+      const gema = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.1, 6, 6), matMagia);
+      gema.position.set(0.48, 2.05, 0.25);
+      g.add(gema);
+
+      animarFn = (t) => {
+        g.position.y = (opciones.baseY || 0.0) + Math.sin(t * 2.0) * 0.03;
+      };
+
+    } else if (arquetipoId === 'elite_centinela_esqueleto') {
+      // 6. Centinela Esqueleto de la Cripta
+      const matHueso = new ThreeLib.MeshStandardMaterial({ color: 0xd4d4d8, roughness: 0.6 });
+      const matMetal = new ThreeLib.MeshStandardMaterial({ color: 0x334155, roughness: 0.45, metalness: 0.8 });
+      const matOjos = new ThreeLib.MeshBasicMaterial({ color: 0x38bdf8 });
+
+      [-0.22, 0.22].forEach(px => {
+        const pierna = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.08, 0.07, 1.0, 6), matHueso);
+        pierna.position.set(px, 0.5, 0);
+        g.add(pierna);
+      });
+
+      const torso = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.55, 0.65, 0.32), matMetal);
+      torso.position.y = 1.35;
+      g.add(torso);
+
+      const yelmo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.34, 0.36, 0.36), matMetal);
+      yelmo.position.set(0, 1.85, 0);
+      g.add(yelmo);
+
+      const ojos = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.2, 0.06, 0.38), matOjos);
+      ojos.position.set(0, 1.84, 0.02);
+      g.add(ojos);
+
+      const escudo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.45, 0.85, 0.06), matMetal);
+      escudo.position.set(-0.45, 1.25, 0.25);
+      g.add(escudo);
+
+      const espada = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.08, 1.2, 0.04), matMetal);
+      espada.position.set(0.45, 1.15, 0.25);
+      g.add(espada);
+
+      animarFn = (t) => {
+        g.position.y = (opciones.baseY || 0.0) + Math.sin(t * 2.2) * 0.03;
+      };
+
+    } else {
+      // 7. Default: jefe_caballero_titan
+      const matArmadura = new ThreeLib.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.35, metalness: 0.85 });
+      const matOro = new ThreeLib.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.9 });
+      const matCapa = new ThreeLib.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.7, side: 2 });
+      const matOjos = new ThreeLib.MeshBasicMaterial({ color: 0xef4444 });
+      const matEspada = new ThreeLib.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+      const matRuna = new ThreeLib.MeshBasicMaterial({ color: 0xf59e0b });
+
+      [-0.32, 0.32].forEach(px => {
+        const pierna = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.18, 0.15, 1.15, 8), matArmadura);
+        pierna.position.set(px, 0.58, 0);
+        g.add(pierna);
+
+        const bota = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.28, 0.26, 0.42), matArmadura);
+        bota.position.set(px, 0.13, 0.08);
+        g.add(bota);
+      });
+
+      const faldon = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.46, 0.56, 0.38, 8), matArmadura);
+      faldon.position.y = 1.3;
+      g.add(faldon);
+
+      const torso = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.85, 0.82, 0.52), matArmadura);
+      torso.position.y = 1.85;
+      g.add(torso);
+
+      const blasón = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.38, 0.38, 0.55), matOro);
+      blasón.position.set(0, 1.88, 0);
+      g.add(blasón);
+
+      [-0.62, 0.62].forEach(px => {
+        const hombrera = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.3, 0.46, 4), matOro);
+        hombrera.position.set(px, 2.32, 0);
+        hombrera.rotation.z = px < 0 ? 0.35 : -0.35;
+        g.add(hombrera);
+      });
+
+      const yelmo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.38, 0.42, 0.4), matArmadura);
+      yelmo.position.set(0, 2.55, 0.05);
+      g.add(yelmo);
+
+      const ojos = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.24, 0.08, 0.42), matOjos);
+      ojos.position.set(0, 2.54, 0.06);
+      g.add(ojos);
+
+      [-0.22, 0.22].forEach(cx => {
+        const cuerno = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.07, 0.6, 6), matOro);
+        cuerno.position.set(cx, 2.85, 0);
+        cuerno.rotation.z = cx < 0 ? -0.45 : 0.45;
+        cuerno.rotation.x = -0.2;
+        g.add(cuerno);
+      });
+
+      const capa = new ThreeLib.Mesh(new ThreeLib.PlaneGeometry(0.85, 1.6), matCapa);
+      capa.position.set(0, 1.45, -0.28);
+      capa.rotation.x = 0.12;
+      g.add(capa);
+
+      const espada = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.15, 2.1, 0.05), matEspada);
+      espada.position.set(0.55, 1.35, 0.35);
+      g.add(espada);
+
+      const cruz = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.65, 0.08, 0.1), matOro);
+      cruz.position.set(0.55, 2.2, 0.35);
+      g.add(cruz);
+
+      const runa = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.04, 1.2, 0.06), matRuna);
+      runa.position.set(0.55, 1.35, 0.35);
+      g.add(runa);
+
+      animarFn = (t) => {
+        g.position.y = (opciones.baseY || 0.0) + Math.sin(t * 2.0) * 0.035;
+        capa.rotation.x = 0.12 + Math.sin(t * 2.4) * 0.05;
+        if (matRuna && matRuna.color && matRuna.color.setHex) {
+          matRuna.color.setHex(Math.sin(t * 3.0) > 0 ? 0xf59e0b : 0xd97706);
+        }
+      };
+    }
+
+    if (g.scale && g.scale.set) {
+      g.scale.set(escala, escala, escala);
+    } else if (g.scale && g.scale.setScalar) {
+      g.scale.setScalar(escala);
+    }
+
+    const monsterData = {
+      tipo: 'monstruo',
+      esMonstruo: true,
+      arquetipo: arquetipoId,
+      idMonstruo: opciones.idMonstruo || ('monstruo_' + Math.random().toString(36).slice(2, 9)),
+      nombre,
+      nivel,
+      rangoElite,
+      esJefe,
+      escalaBase: escala,
+      animar: animarFn
+    };
+
+    g.userData = monsterData;
+    if (typeof g.traverse === 'function') {
+      g.traverse(child => {
+        if (child && child !== g) {
+          child.userData = Object.assign({}, child.userData || {}, {
+            esSubmallaMonstruo: true,
+            idMonstruo: monsterData.idMonstruo,
+            padreMonstruo: g
+          });
+        }
+      });
+    } else if (g.children) {
+      g.children.forEach(c => {
+        if (c) {
+          c.userData = Object.assign({}, c.userData || {}, {
+            esSubmallaMonstruo: true,
+            idMonstruo: monsterData.idMonstruo,
+            padreMonstruo: g
+          });
+        }
+      });
+    }
+
+    return g;
+  }
+
   // --- 6. ARQUITECTURA DE SALAS Y CORREDORES (HERMÉTICA SIN HUECOS) ---
 
   function construirCajaHabitacion(ThreeLib, kit, sala, opciones = {}) {
@@ -1980,7 +2401,7 @@
       const distLuz = Math.max(W, D) * 1.8;
       const luzSala = new ThreeLib.PointLight(sala.colorLuz, intLuz, distLuz, 1.5);
       luzSala.position.set(0, H - 0.5, 0);
-      if (config.sombrasAntorchas !== false) {
+      if (config.sombrasPuntuales === true || config.sombrasAntorchas === true) {
         luzSala.castShadow = true;
         if (luzSala.shadow) {
           luzSala.shadow.bias = -0.002;
@@ -2413,7 +2834,8 @@
         const colLuz = (estilo && estilo.luzAntorchas) || 0xf59e0b;
         const luz = new ThreeLib.PointLight(colLuz, 2.8, 16, 1.4);
         luz.position.y = 1.0;
-        if (opciones.sombrasAntorchas !== false && !opciones.sinSombras) {
+        const habilitarSombras = (opciones.sombrasAntorchas === true || opciones.sombrasPuntuales === true) && !opciones.sinSombras;
+        if (habilitarSombras) {
           luz.castShadow = true;
           if (luz.shadow) {
             luz.shadow.bias = -0.002;
@@ -2842,6 +3264,62 @@
 
     const areaTotal = Math.round(salas.reduce((acc, s) => acc + (s.w * s.d), 0));
 
+    // --- GENERACIÓN DE MONSTRUOS PROCEDURALES (JEFE Y GUARDIANES ÉLITE) ---
+    const monstruos = [];
+    const cfgMonstruos = config.monstruos !== undefined ? config.monstruos : { habilitados: true };
+
+    if (cfgMonstruos && cfgMonstruos.habilitados !== false) {
+      // 1. Jefe de Mazmorra Procedural en la sala de trono / boss
+      if (spawns.boss) {
+        const arquetipoJefe = (cfgMonstruos.jefe && cfgMonstruos.jefe.tipo) || (config.boss && config.boss.modelo) || 'jefe_caballero_titan';
+        const bossName = (config.boss && config.boss.name) || spawns.boss.name || 'Señor del Trono Caído';
+        const bossLvl = (config.boss && config.boss.level) || 17;
+        const bossElite = (config.boss && config.boss.rangoElite) || spawns.boss.rangoElite || 10;
+        const mBoss = crearMonstruoProcedural(ThreeLib, arquetipoJefe, {
+          esJefe: true,
+          nombre: bossName,
+          nivel: bossLvl,
+          rangoElite: bossElite,
+          escala: (cfgMonstruos.jefe && cfgMonstruos.jefe.escala) || 1.3,
+          colorAura: estilo.luzJefe || 0xa855f7
+        });
+        mBoss.position.set(spawns.boss.x, spawns.boss.y || 0.0, spawns.boss.z);
+        mBoss.rotation.y = 0; // Mirando hacia el frente / entrada
+        mBoss.userData.idMonstruo = 'boss_principal';
+        mBoss.userData.salaId = roomBoss.id;
+        dungeonGroup.add(mBoss);
+        monstruos.push(mBoss);
+        animables.push(mBoss);
+      }
+
+      // 2. Guardianes y Luchadores de Élite Procedurales en las estancias
+      const arquetipoGuard = (cfgMonstruos.guardianes && cfgMonstruos.guardianes.tipo) || 'elite_centinela_esqueleto';
+      const densidad = (cfgMonstruos.guardianes && cfgMonstruos.guardianes.densidad) || 'media';
+      const listaElites = spawns.elites || [];
+      const seleccionados = densidad === 'baja' ? listaElites.filter((_, i) => i % 2 === 0) : listaElites;
+
+      seleccionados.forEach((sp, idx) => {
+        let arq = arquetipoGuard;
+        if (arq === 'mixto') {
+          const pool = ['elite_centinela_esqueleto', 'elite_espectro_sombra', 'elite_gargola_canteria', 'elite_brujo_abismal'];
+          arq = pool[idx % pool.length];
+        }
+        const mGuard = crearMonstruoProcedural(ThreeLib, arq, {
+          esJefe: false,
+          nombre: sp.name || `Guardián Élite ${idx + 1}`,
+          nivel: sp.level || (config.level || 15),
+          rangoElite: sp.multiplicador || 4,
+          escala: 0.95 + (idx % 3) * 0.08
+        });
+        mGuard.position.set(sp.x, sp.y || 0.0, sp.z);
+        mGuard.rotation.y = sp.x < 0 ? Math.PI * 0.25 : -Math.PI * 0.25;
+        mGuard.userData.idMonstruo = `guard_elite_${idx + 1}`;
+        dungeonGroup.add(mGuard);
+        monstruos.push(mGuard);
+        animables.push(mGuard);
+      });
+    }
+
     return {
       group: dungeonGroup,
       salas,
@@ -2849,14 +3327,17 @@
       kit,
       props,
       spawns,
+      monstruos,
       areaTotal,
       update: (dt, nowSec) => {
         const t = nowSec || (performance.now() / 1000);
         for (let i = 0; i < animables.length; i++) {
           const item = animables[i];
-          if (item.userData && item.userData.flicker) {
+          if (item.userData && typeof item.userData.animar === 'function') {
+            item.userData.animar(t);
+          } else if (item.userData && typeof item.userData.flicker === 'function') {
             item.userData.flicker(t);
-          } else if (item.userData && item.userData.update) {
+          } else if (item.userData && typeof item.userData.update === 'function') {
             item.userData.update(t);
           } else if (typeof item.flicker === 'function') {
             item.flicker(t);
@@ -3062,6 +3543,8 @@
     calcularAperturasEntreSalas,
     construirCajaHabitacion,
     decorarHabitacion,
+    ARQUETIPOS_MONSTRUOS,
+    crearMonstruoProcedural,
     generarPlanEstancias,
     generarMazmorra
   };

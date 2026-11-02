@@ -123,6 +123,14 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('id="cfg-antorchas-color"'), 'Debe incluir picker de color de luz de antorchas');
   assert.ok(html.includes('id="cfg-antorchas-intensidad"'), 'Debe incluir slider de intensidad lumínica');
   assert.ok(html.includes('id="btn-aplicar-antorchas-auto"'), 'Debe incluir botón para aplicar antorchas en paredes');
+
+  // Monstruos Procedurales e Inspector 3D y Optimización de Rendimiento
+  assert.ok(html.includes('id="panel-inspector-monstruo"'), 'Debe incluir panel inspector de monstruos procedurales');
+  assert.ok(html.includes('id="boss-arquetipo-3d"'), 'Debe incluir selector de arquetipo 3D para el Jefe');
+  assert.ok(html.includes('id="guards-arquetipo-3d"'), 'Debe incluir selector de arquetipo 3D para guardianes');
+  assert.ok(html.includes('id="cfg-sombras-antorchas"'), 'Debe incluir control para optimizar sombras en antorchas');
+  assert.ok(html.includes('seleccionarMonstruo') && html.includes('deseleccionarMonstruo'), 'Debe implementar funciones de selección de monstruos');
+  assert.ok(html.includes('isDraggingMonster'), 'Debe soportar arrastre interactivo de monstruos con el ratón');
 });
 
 test('index.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {

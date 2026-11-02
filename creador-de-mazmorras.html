@@ -545,6 +545,66 @@
       <button class="btn alt" id="btn-insertar-sala" style="width: 100%; margin-top: 4px; font-weight: 700; background: #6b21a8; color: #fff;">➕ Insertar Estancia en la Mazmorra</button>
     </div>
 
+    <!-- PANEL INSPECTOR DE MONSTRUO PROCEDURAL -->
+    <div id="panel-inspector-monstruo" style="display:none; background: rgba(24, 24, 37, 0.95); border: 2px solid #ec4899; border-radius: 8px; padding: 10px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+        <div style="font-weight:700; font-size:12px; color:#fbcfe8; display:flex; align-items:center; gap:6px;">
+          <span>👾</span> <span id="insp-monstruo-titulo">Inspector de Monstruo</span>
+        </div>
+        <button id="btn-monstruo-deseleccionar" class="sala-item-btn" style="padding:2px 7px;" title="Cerrar inspector">✕</button>
+      </div>
+      <div style="font-size:9.5px; color:#f472b6; margin-bottom:6px; display:flex; align-items:center; gap:4px;">
+        <span>🖱️</span> <span>Puedes <b>arrastrarlo directamente con el ratón</b> en el visor 3D</span>
+      </div>
+      <div class="control-row">
+        <label>Nombre del Monstruo</label>
+        <input type="text" id="insp-monstruo-nombre" placeholder="Nombre">
+      </div>
+      <div class="control-row">
+        <label>Arquetipo 3D</label>
+        <select id="insp-monstruo-arquetipo">
+          <option value="jefe_caballero_titan">👑 Caballero del Trono Titánico</option>
+          <option value="jefe_nigromante_arcano">💀 Archimago Nigromante Espectral</option>
+          <option value="jefe_golem_magma">🗿 Coloso Ciclópeo de Magma y Roca</option>
+          <option value="elite_centinela_esqueleto">⚔️ Centinela Esqueleto de la Cripta</option>
+          <option value="elite_espectro_sombra">🔮 Aparición Espectral de las Sombras</option>
+          <option value="elite_gargola_canteria">🗿 Gárgola Guardiana de Cantería</option>
+          <option value="elite_brujo_abismal">🦹 Cultista del Abismo</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="control-row">
+          <label>Nivel</label>
+          <input type="number" id="insp-monstruo-nivel" min="1" max="150" value="15">
+        </div>
+        <div class="control-row">
+          <label>Rango Élite</label>
+          <select id="insp-monstruo-elite">
+            <option value="4">×4 Élite</option>
+            <option value="8">×8 Supremo</option>
+            <option value="10">×10 Jefe</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2" style="gap:4px; margin-bottom:6px;">
+        <div class="control-row" style="margin:0;">
+          <label style="font-size:9.5px;">Posición X: <span id="lbl-monstruo-x">0 m</span></label>
+          <input type="range" id="insp-monstruo-x" min="-100" max="100" step="0.5" value="0">
+        </div>
+        <div class="control-row" style="margin:0;">
+          <label style="font-size:9.5px;">Posición Z: <span id="lbl-monstruo-z">0 m</span></label>
+          <input type="range" id="insp-monstruo-z" min="-100" max="100" step="0.5" value="0">
+        </div>
+      </div>
+      <div class="control-row" style="margin:0 0 6px 0;">
+        <label style="font-size:9.5px;">Rotación Y: <span id="lbl-monstruo-rot">0°</span></label>
+        <input type="range" id="insp-monstruo-rot" min="0" max="360" step="5" value="0">
+      </div>
+      <div style="display:flex; gap:4px; margin-top:4px;">
+        <button id="btn-monstruo-eliminar" class="btn danger" style="width:100%; padding:5px; font-size:10px;">🗑️ Eliminar este Monstruo</button>
+      </div>
+    </div>
+
     <!-- PANEL INSPECTOR DE ESTANCIA INDIVIDUAL -->
     <div id="panel-inspector-sala" style="display: none; background: rgba(24, 24, 37, 0.95); border: 2px solid #a855f7; border-radius: 8px; padding: 10px; margin-bottom: 12px; box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -980,7 +1040,8 @@
       </div>
     </div>
     <div class="checkbox-grid" style="margin-bottom:8px;">
-      <label class="checkbox-item"><input type="checkbox" id="cfg-sombras-activas" checked> 🌑 Sombras Dinámicas 3D</label>
+      <label class="checkbox-item"><input type="checkbox" id="cfg-sombras-activas" checked> 🌑 Sombras Cenitales 3D</label>
+      <label class="checkbox-item" style="color:#94a3b8; font-size:10px;"><input type="checkbox" id="cfg-sombras-antorchas"> ⚡ Sombras en Antorchas (GPU intensivo)</label>
     </div>
 
     <h2>👑 Jefe de Mazmorra</h2>
@@ -1032,6 +1093,42 @@
     </table>
     <div class="btn-group">
       <button class="btn alt" id="btn-add-elite">➕ Añadir Grupo Élite</button>
+    </div>
+
+    <h2>👾 Monstruos y Jefe Procedurales 3D</h2>
+    <div style="background: rgba(15,23,42,0.7); border: 1.5px solid #a855f7; border-radius: 8px; padding: 10px; margin-bottom: 12px; box-shadow: 0 0 16px rgba(168,85,247,0.12);">
+      <div class="checkbox-grid" style="margin-bottom:8px;">
+        <label class="checkbox-item" style="font-weight:700; color:#e9d5ff;"><input type="checkbox" id="cfg-monstruos-activos" checked> 👾 Mostrar Monstruos en Salas</label>
+      </div>
+      <div class="control-row">
+        <label>👑 Arquetipo 3D del Jefe:</label>
+        <select id="boss-arquetipo-3d" style="width:100%;">
+          <option value="jefe_caballero_titan" selected>👑 Caballero del Trono Titánico</option>
+          <option value="jefe_nigromante_arcano">💀 Archimago Nigromante Espectral</option>
+          <option value="jefe_golem_magma">🗿 Coloso Ciclópeo de Magma y Roca</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>⚔️ Arquetipo 3D de Guardianes:</label>
+        <select id="guards-arquetipo-3d" style="width:100%;">
+          <option value="mixto" selected>🎲 Variedad Mezclada (Todos los tipos)</option>
+          <option value="elite_centinela_esqueleto">⚔️ Centinelas Esqueletos Acorazados</option>
+          <option value="elite_espectro_sombra">🔮 Apariciones y Espectros Arcanos</option>
+          <option value="elite_gargola_canteria">🗿 Gárgolas de Cantería</option>
+          <option value="elite_brujo_abismal">🦹 Cultistas del Abismo</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>🛡️ Densidad de Monstruos en Salas:</label>
+        <select id="guards-densidad" style="width:100%;">
+          <option value="baja">Baja (1 guardián por sala clave)</option>
+          <option value="media" selected>Media (Recomendado: 2 por sala)</option>
+          <option value="alta">Alta (Guarnición pesada)</option>
+        </select>
+      </div>
+      <button id="btn-regenerar-monstruos" class="sala-item-btn" style="width:100%; margin-top:6px; background:#6b21a8; border-color:#a855f7; color:#fff; font-weight:700; padding:6px; cursor:pointer;" title="Regenerar los modelos 3D de los monstruos con estos ajustes">
+        ⚡ Aplicar y Regenerar Monstruos
+      </button>
     </div>
 
     <h2>📁 Acciones & Exportación</h2>
@@ -1176,11 +1273,17 @@
       luzIntensidad: 1.5,
       luzColor: '#ffffff',
       sombrasActivas: true,
+      sombrasPuntuales: false,
       distanciaAntorchas: 8.0,
       formaAntorcha: 'antorcha_hierro',
       colorLuzAntorcha: '#f59e0b',
       intensidadAntorchas: 2.4,
       antorchasAutomaticas: true,
+      monstruos: {
+        habilitados: true,
+        jefe: { tipo: 'jefe_caballero_titan', escala: 1.3 },
+        guardianes: { tipo: 'mixto', densidad: 'media' }
+      },
       salasPersonalizadas: [],
       props: {
         fuentes: true,
@@ -1319,12 +1422,14 @@
         props: dungeonConfig.props,
         sinTecho: !dungeonConfig.mostrarTechos,
         modoLuz: dungeonConfig.modoLuz,
-        sombrasAntorchas: dungeonConfig.sombrasActivas !== false,
+        sombrasPuntuales: dungeonConfig.sombrasPuntuales === true,
+        sombrasAntorchas: dungeonConfig.sombrasPuntuales === true,
         distanciaAntorchas: dungeonConfig.distanciaAntorchas || 8.0,
         formaAntorcha: dungeonConfig.formaAntorcha || 'antorcha_hierro',
         colorLuzAntorcha: dungeonConfig.colorLuzAntorcha || '#f59e0b',
         intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4,
-        antorchasAutomaticas: dungeonConfig.antorchasAutomaticas !== false
+        antorchasAutomaticas: dungeonConfig.antorchasAutomaticas !== false,
+        monstruos: dungeonConfig.monstruos
       });
 
       if (!dungeonConfig.salas && dungeonInstance && dungeonInstance.salas) {
@@ -1391,33 +1496,51 @@
 
     function crearMarcadorElite(sp) {
       const grp = new THREE.Group();
-      grp.position.set(sp.x, 0.1, sp.z);
+      grp.position.set(sp.x, 0.04, sp.z);
       const color = sp.multiplicador === 8 ? 0xa855f7 : 0xec4899;
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.2, 16), new THREE.MeshStandardMaterial({
-        color, emissive: color, emissiveIntensity: 0.9
-      }));
-      grp.add(base);
-      const rombo = new THREE.Mesh(new THREE.OctahedronGeometry(0.45), new THREE.MeshStandardMaterial({
-        color, emissive: color, emissiveIntensity: 1.2
-      }));
-      rombo.position.y = 1.1;
-      grp.add(rombo);
+      if (dungeonConfig.monstruos && dungeonConfig.monstruos.habilitados !== false) {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.88, 24), new THREE.MeshBasicMaterial({
+          color, side: THREE.DoubleSide
+        }));
+        ring.rotation.x = -Math.PI / 2;
+        grp.add(ring);
+      } else {
+        grp.position.y = 0.1;
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.2, 16), new THREE.MeshStandardMaterial({
+          color, emissive: color, emissiveIntensity: 0.9
+        }));
+        grp.add(base);
+        const rombo = new THREE.Mesh(new THREE.OctahedronGeometry(0.45), new THREE.MeshStandardMaterial({
+          color, emissive: color, emissiveIntensity: 1.2
+        }));
+        rombo.position.y = 1.1;
+        grp.add(rombo);
+      }
       markersGroup.add(grp);
     }
 
     function crearMarcadorJefe(sp) {
       const grp = new THREE.Group();
-      grp.position.set(sp.x, sp.y || 0.6, sp.z);
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.3, 24), new THREE.MeshStandardMaterial({
-        color: 0xfacc15, emissive: 0xb45309, emissiveIntensity: 1.2
-      }));
-      grp.add(base);
-      const corona = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.18, 8, 16), new THREE.MeshStandardMaterial({
-        color: 0xfacc15, emissive: 0xd97706, emissiveIntensity: 1.6
-      }));
-      corona.rotation.x = Math.PI / 2;
-      corona.position.y = 2.4;
-      grp.add(corona);
+      grp.position.set(sp.x, 0.04, sp.z);
+      if (dungeonConfig.monstruos && dungeonConfig.monstruos.habilitados !== false) {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(1.3, 1.55, 32), new THREE.MeshBasicMaterial({
+          color: 0xfacc15, side: THREE.DoubleSide
+        }));
+        ring.rotation.x = -Math.PI / 2;
+        grp.add(ring);
+      } else {
+        grp.position.y = sp.y || 0.6;
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.3, 24), new THREE.MeshStandardMaterial({
+          color: 0xfacc15, emissive: 0xb45309, emissiveIntensity: 1.2
+        }));
+        grp.add(base);
+        const corona = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.18, 8, 16), new THREE.MeshStandardMaterial({
+          color: 0xfacc15, emissive: 0xd97706, emissiveIntensity: 1.6
+        }));
+        corona.rotation.x = Math.PI / 2;
+        corona.position.y = 2.4;
+        grp.add(corona);
+      }
       markersGroup.add(grp);
     }
 
@@ -1771,6 +1894,73 @@
       }
     }
 
+    // --- GESTIÓN DE MONSTRUOS PROCEDURALES (SELECCIÓN Y CONTROL) ---
+    let selectedMonsterId = null;
+    let monsterSelectionRing = null;
+    let isDraggingMonster = false;
+    let dragMonsterRef = null;
+
+    function deseleccionarMonstruo() {
+      selectedMonsterId = null;
+      if ($('panel-inspector-monstruo')) $('panel-inspector-monstruo').style.display = 'none';
+      if (monsterSelectionRing && monsterSelectionRing.parent) {
+        monsterSelectionRing.parent.remove(monsterSelectionRing);
+      }
+    }
+
+    function seleccionarMonstruo(id) {
+      if (!dungeonInstance || !dungeonInstance.monstruos) return;
+      const mObj = dungeonInstance.monstruos.find(m => m.userData && m.userData.idMonstruo === id);
+      if (!mObj) return;
+
+      deseleccionarProp();
+      deseleccionarEstancia();
+      selectedMonsterId = id;
+
+      if (!monsterSelectionRing) {
+        const rGeo = new THREE.RingGeometry(1.0, 1.25, 32);
+        rGeo.rotateX(-Math.PI / 2);
+        monsterSelectionRing = new THREE.Mesh(
+          rGeo,
+          new THREE.MeshBasicMaterial({ color: 0xec4899, side: THREE.DoubleSide })
+        );
+      }
+      monsterSelectionRing.position.set(mObj.position.x, 0.05, mObj.position.z);
+      if (monsterSelectionRing.parent) monsterSelectionRing.parent.remove(monsterSelectionRing);
+      scene.add(monsterSelectionRing);
+
+      const uData = mObj.userData || {};
+      if ($('panel-inspector-monstruo')) {
+        $('panel-inspector-monstruo').style.display = 'block';
+        $('insp-monstruo-titulo').textContent = uData.esJefe ? `👑 Jefe: ${uData.nombre}` : `👾 Guardián: ${uData.nombre}`;
+        $('insp-monstruo-nombre').value = uData.nombre || 'Monstruo';
+        $('insp-monstruo-arquetipo').value = uData.arquetipo || 'jefe_caballero_titan';
+        $('insp-monstruo-nivel').value = uData.nivel || 15;
+        $('insp-monstruo-elite').value = uData.rangoElite || 4;
+        $('insp-monstruo-x').value = Math.round(mObj.position.x * 10) / 10;
+        $('lbl-monstruo-x').textContent = (Math.round(mObj.position.x * 10) / 10).toFixed(1) + ' m';
+        $('insp-monstruo-z').value = Math.round(mObj.position.z * 10) / 10;
+        $('lbl-monstruo-z').textContent = (Math.round(mObj.position.z * 10) / 10).toFixed(1) + ' m';
+        const rotDeg = Math.round((mObj.rotation.y * 180 / Math.PI) % 360);
+        $('insp-monstruo-rot').value = rotDeg < 0 ? rotDeg + 360 : rotDeg;
+        $('lbl-monstruo-rot').textContent = (rotDeg < 0 ? rotDeg + 360 : rotDeg) + '°';
+      }
+    }
+
+    function actualizarUIInspectorMonstruo(mObj) {
+      if (!mObj || !mObj.userData) return;
+      if (monsterSelectionRing) {
+        monsterSelectionRing.position.set(mObj.position.x, 0.05, mObj.position.z);
+      }
+      if ($('insp-monstruo-x')) {
+        $('insp-monstruo-x').value = Math.round(mObj.position.x * 10) / 10;
+        $('lbl-monstruo-x').textContent = (Math.round(mObj.position.x * 10) / 10).toFixed(1) + ' m';
+      }
+      if ($('insp-monstruo-z')) {
+        $('insp-monstruo-z').value = Math.round(mObj.position.z * 10) / 10;
+        $('lbl-monstruo-z').textContent = (Math.round(mObj.position.z * 10) / 10).toFixed(1) + ' m';
+      }
+    }
 
     function deseleccionarProp() {
       selectedPropId = null;
@@ -1949,6 +2139,33 @@
         let detectedPropId = null;
         let detectedRoomId = null;
 
+        // 1. Detectar monstruo procedural
+        let detectedMonsterId = null;
+        let monsterRoot = null;
+        let scanM = obj;
+        while (scanM && scanM !== dungeonInstance.group && scanM !== scene) {
+          if (scanM.userData && (scanM.userData.esMonstruo || scanM.userData.idMonstruo)) {
+            detectedMonsterId = scanM.userData.idMonstruo;
+            monsterRoot = scanM;
+          }
+          scanM = scanM.parent;
+        }
+
+        if (detectedMonsterId && monsterRoot) {
+          seleccionarMonstruo(detectedMonsterId);
+          isDraggingMonster = true;
+          dragMonsterRef = monsterRoot;
+          controls.enabled = false;
+          dragPlane.set(new THREE.Vector3(0, 1, 0), -(monsterRoot.position.y || 0));
+          const hitPoint = intersects[i].point;
+          dragOffset.set(
+            hitPoint.x - monsterRoot.position.x,
+            0,
+            hitPoint.z - monsterRoot.position.z
+          );
+          break;
+        }
+
         while (obj && obj !== dungeonInstance.group) {
           if (obj.userData && (obj.userData.propId || obj.userData.idProp)) {
             detectedPropId = obj.userData.propId || obj.userData.idProp;
@@ -1998,6 +2215,21 @@
     });
 
     renderer.domElement.addEventListener('pointermove', (e) => {
+      if (isDraggingMonster && dragMonsterRef) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        if (raycaster.ray.intersectPlane(dragPlane, dragIntersectPoint)) {
+          dragHaMovido = true;
+          dragMonsterRef.position.x = Math.round((dragIntersectPoint.x - dragOffset.x) * 10) / 10;
+          dragMonsterRef.position.z = Math.round((dragIntersectPoint.z - dragOffset.z) * 10) / 10;
+          actualizarUIInspectorMonstruo(dragMonsterRef);
+        }
+        return;
+      }
+
       if (!isDraggingProp || !dragPropRef || !dragSalaRef) return;
 
       const rect = renderer.domElement.getBoundingClientRect();
@@ -2038,6 +2270,20 @@
     });
 
     renderer.domElement.addEventListener('pointerup', (e) => {
+      if (isDraggingMonster) {
+        isDraggingMonster = false;
+        controls.enabled = true;
+        if (dragHaMovido && dragMonsterRef) {
+          showToast(`👾 Monstruo posicionado en X: ${dragMonsterRef.position.x}m, Z: ${dragMonsterRef.position.z}m`);
+          if (dragMonsterRef.userData && dragMonsterRef.userData.esJefe && dungeonInstance.spawns && dungeonInstance.spawns.boss) {
+            dungeonInstance.spawns.boss.x = dragMonsterRef.position.x;
+            dungeonInstance.spawns.boss.z = dragMonsterRef.position.z;
+          }
+        }
+        dragMonsterRef = null;
+        return;
+      }
+
       if (isDraggingProp) {
         isDraggingProp = false;
         controls.enabled = true;
@@ -2069,6 +2315,21 @@
         let detectedPropId = null;
         let detectedRoomId = null;
         let isChest = false;
+
+        // Comprobar clic en monstruo procedural
+        let detectedMonsterId = null;
+        let scanM = obj;
+        while (scanM && scanM !== dungeonInstance.group && scanM !== scene) {
+          if (scanM.userData && (scanM.userData.esMonstruo || scanM.userData.idMonstruo)) {
+            detectedMonsterId = scanM.userData.idMonstruo;
+          }
+          scanM = scanM.parent;
+        }
+
+        if (detectedMonsterId) {
+          seleccionarMonstruo(detectedMonsterId);
+          return;
+        }
 
         while (obj && obj !== dungeonInstance.group) {
           if (obj.userData && (obj.userData.propId || obj.userData.idProp)) {
@@ -2375,6 +2636,22 @@
       if ($('cfg-antorchas-intensidad')) {
         $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4;
         if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4).toFixed(1);
+      }
+
+      // Sincronización de monstruos procedurales y optimización de sombras
+      if ($('cfg-sombras-antorchas')) $('cfg-sombras-antorchas').checked = dungeonConfig.sombrasPuntuales === true;
+      if ($('cfg-monstruos-activos')) {
+        const mActivo = !(dungeonConfig.monstruos && dungeonConfig.monstruos.habilitados === false);
+        $('cfg-monstruos-activos').checked = mActivo;
+      }
+      if ($('boss-arquetipo-3d') && dungeonConfig.monstruos && dungeonConfig.monstruos.jefe) {
+        $('boss-arquetipo-3d').value = dungeonConfig.monstruos.jefe.tipo || 'jefe_caballero_titan';
+      }
+      if ($('guards-arquetipo-3d') && dungeonConfig.monstruos && dungeonConfig.monstruos.guardianes) {
+        $('guards-arquetipo-3d').value = dungeonConfig.monstruos.guardianes.tipo || 'mixto';
+      }
+      if ($('guards-densidad') && dungeonConfig.monstruos && dungeonConfig.monstruos.guardianes) {
+        $('guards-densidad').value = dungeonConfig.monstruos.guardianes.densidad || 'media';
       }
 
       actualizarIluminacionEscena();
@@ -2956,6 +3233,160 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
       renderElitesTable();
     });
 
+    // Eventos de configuración de monstruos procedurales y optimización GPU
+    if ($('cfg-monstruos-activos')) {
+      $('cfg-monstruos-activos').addEventListener('change', e => {
+        dungeonConfig.monstruos = dungeonConfig.monstruos || {};
+        dungeonConfig.monstruos.habilitados = e.target.checked;
+        rebuildDungeon();
+        showToast(e.target.checked ? '👾 Monstruos procedurales activados en salas' : 'Monstruos procedurales desactivados');
+      });
+    }
+
+    if ($('boss-arquetipo-3d')) {
+      $('boss-arquetipo-3d').addEventListener('change', e => {
+        dungeonConfig.monstruos = dungeonConfig.monstruos || {};
+        dungeonConfig.monstruos.jefe = dungeonConfig.monstruos.jefe || {};
+        dungeonConfig.monstruos.jefe.tipo = e.target.value;
+        rebuildDungeon();
+        showToast('👑 Modelo 3D del Jefe actualizado');
+      });
+    }
+
+    if ($('guards-arquetipo-3d')) {
+      $('guards-arquetipo-3d').addEventListener('change', e => {
+        dungeonConfig.monstruos = dungeonConfig.monstruos || {};
+        dungeonConfig.monstruos.guardianes = dungeonConfig.monstruos.guardianes || {};
+        dungeonConfig.monstruos.guardianes.tipo = e.target.value;
+        rebuildDungeon();
+        showToast('⚔️ Modelo 3D de Guardianes actualizado');
+      });
+    }
+
+    if ($('guards-densidad')) {
+      $('guards-densidad').addEventListener('change', e => {
+        dungeonConfig.monstruos = dungeonConfig.monstruos || {};
+        dungeonConfig.monstruos.guardianes = dungeonConfig.monstruos.guardianes || {};
+        dungeonConfig.monstruos.guardianes.densidad = e.target.value;
+        rebuildDungeon();
+        showToast(`🛡️ Densidad de guarnición: ${e.target.value}`);
+      });
+    }
+
+    if ($('btn-regenerar-monstruos')) {
+      $('btn-regenerar-monstruos').addEventListener('click', () => {
+        rebuildDungeon();
+        showToast('⚡ Monstruos procedurales regenerados con éxito');
+      });
+    }
+
+    if ($('cfg-sombras-antorchas')) {
+      $('cfg-sombras-antorchas').addEventListener('change', e => {
+        dungeonConfig.sombrasPuntuales = e.target.checked;
+        rebuildDungeon();
+        showToast(e.target.checked ? '⚡ Sombras en antorchas activadas (GPU Alto)' : '⚡ Sombras en antorchas desactivadas (60 FPS óptimo)');
+      });
+    }
+
+    // Eventos del inspector de monstruo individual
+    if ($('btn-monstruo-deseleccionar')) {
+      $('btn-monstruo-deseleccionar').addEventListener('click', deseleccionarMonstruo);
+    }
+
+    if ($('insp-monstruo-nombre')) {
+      $('insp-monstruo-nombre').addEventListener('input', e => {
+        if (!selectedMonsterId || !dungeonInstance || !dungeonInstance.monstruos) return;
+        const m = dungeonInstance.monstruos.find(o => o.userData && o.userData.idMonstruo === selectedMonsterId);
+        if (m) {
+          m.userData.nombre = e.target.value;
+          if (m.userData.esJefe) {
+            dungeonConfig.boss.name = e.target.value;
+            if ($('boss-name')) $('boss-name').value = e.target.value;
+            $('hud-boss').textContent = `${e.target.value} (Nv ${m.userData.nivel})`;
+          }
+        }
+      });
+    }
+
+    if ($('insp-monstruo-arquetipo')) {
+      $('insp-monstruo-arquetipo').addEventListener('change', e => {
+        if (!selectedMonsterId || !dungeonInstance || !dungeonInstance.monstruos) return;
+        const idx = dungeonInstance.monstruos.findIndex(o => o.userData && o.userData.idMonstruo === selectedMonsterId);
+        if (idx !== -1) {
+          const oldM = dungeonInstance.monstruos[idx];
+          const px = oldM.position.x, pz = oldM.position.z, ry = oldM.rotation.y;
+          const uData = oldM.userData;
+          const newM = window.DungeonGenerator.crearMonstruoProcedural(THREE, e.target.value, {
+            esJefe: uData.esJefe,
+            nombre: uData.nombre,
+            nivel: uData.nivel,
+            rangoElite: uData.rangoElite,
+            idMonstruo: uData.idMonstruo,
+            escala: uData.escalaBase
+          });
+          newM.position.set(px, 0, pz);
+          newM.rotation.y = ry;
+          dungeonInstance.group.remove(oldM);
+          dungeonInstance.group.add(newM);
+          dungeonInstance.monstruos[idx] = newM;
+          seleccionarMonstruo(uData.idMonstruo);
+          showToast(`👾 Arquetipo de monstruo cambiado a: ${e.target.value}`);
+        }
+      });
+    }
+
+    if ($('insp-monstruo-x')) {
+      $('insp-monstruo-x').addEventListener('input', e => {
+        if (!selectedMonsterId || !dungeonInstance || !dungeonInstance.monstruos) return;
+        const m = dungeonInstance.monstruos.find(o => o.userData && o.userData.idMonstruo === selectedMonsterId);
+        if (m) {
+          const val = parseFloat(e.target.value) || 0;
+          m.position.x = val;
+          $('lbl-monstruo-x').textContent = val.toFixed(1) + ' m';
+          if (monsterSelectionRing) monsterSelectionRing.position.x = val;
+        }
+      });
+    }
+
+    if ($('insp-monstruo-z')) {
+      $('insp-monstruo-z').addEventListener('input', e => {
+        if (!selectedMonsterId || !dungeonInstance || !dungeonInstance.monstruos) return;
+        const m = dungeonInstance.monstruos.find(o => o.userData && o.userData.idMonstruo === selectedMonsterId);
+        if (m) {
+          const val = parseFloat(e.target.value) || 0;
+          m.position.z = val;
+          $('lbl-monstruo-z').textContent = val.toFixed(1) + ' m';
+          if (monsterSelectionRing) monsterSelectionRing.position.z = val;
+        }
+      });
+    }
+
+    if ($('insp-monstruo-rot')) {
+      $('insp-monstruo-rot').addEventListener('input', e => {
+        if (!selectedMonsterId || !dungeonInstance || !dungeonInstance.monstruos) return;
+        const m = dungeonInstance.monstruos.find(o => o.userData && o.userData.idMonstruo === selectedMonsterId);
+        if (m) {
+          const deg = parseFloat(e.target.value) || 0;
+          m.rotation.y = (deg * Math.PI) / 180;
+          $('lbl-monstruo-rot').textContent = deg + '°';
+        }
+      });
+    }
+
+    if ($('btn-monstruo-eliminar')) {
+      $('btn-monstruo-eliminar').addEventListener('click', () => {
+        if (!selectedMonsterId || !dungeonInstance || !dungeonInstance.monstruos) return;
+        const idx = dungeonInstance.monstruos.findIndex(o => o.userData && o.userData.idMonstruo === selectedMonsterId);
+        if (idx !== -1) {
+          const m = dungeonInstance.monstruos[idx];
+          dungeonInstance.group.remove(m);
+          dungeonInstance.monstruos.splice(idx, 1);
+          deseleccionarMonstruo();
+          showToast('Monstruo eliminado de la estancia');
+        }
+      });
+    }
+
     // Vistas de cámara
     $('btn-view-top').addEventListener('click', () => {
       controls.target.set(0, 0, -6);
@@ -3055,6 +3486,8 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
     window.deseleccionarEstancia = deseleccionarEstancia;
     window.seleccionarProp = seleccionarProp;
     window.deseleccionarProp = deseleccionarProp;
+    window.seleccionarMonstruo = seleccionarMonstruo;
+    window.deseleccionarMonstruo = deseleccionarMonstruo;
     window.abrirModalLootCofre = abrirModalLootCofre;
     window.rebuildDungeon = rebuildDungeon;
     window.syncUIFromConfig = syncUIFromConfig;

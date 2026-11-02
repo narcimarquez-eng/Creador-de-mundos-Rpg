@@ -460,29 +460,31 @@
       this.grupoInstancia.add(luzDirPasillo);
       this.grupoInstancia.add(luzDirPasillo.target);
 
-      // Antorchas con luz dorada a lo largo del pasillo monumental de la mazmorra
-      const matLlama = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
-      const geoLlama = new THREE.ConeGeometry(0.24, 0.65, 6);
-      [-28.0, -16.0, -4.0, 8.0, 20.0, 32.0].forEach(zAnt => {
-        [-3.1, 3.1].forEach(xAnt => {
-          const pLuz = new THREE.PointLight(0xf59e0b, 2.6, 22, 1.4);
-          pLuz.position.set(xAnt, 4.8, zAnt);
-          this.grupoInstancia.add(pLuz);
-
-          const llama = new THREE.Mesh(geoLlama, matLlama);
-          llama.position.set(xAnt, 4.7, zAnt);
-          this.grupoInstancia.add(llama);
-        });
-      });
-
-      const luzTrono = new THREE.PointLight(0xa855f7, 4.5, 48, 1.2);
-      luzTrono.position.set(0, 8.0, -36.0);
-      this.grupoInstancia.add(luzTrono);
-
-      // 3. Cargar el modelo 3D de la mazmorra (Procedural estilo creador de pueblos o GLB)
       const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
       const esProcedural = Gen && (dungeon.tipoGeneracion === 'procedural' || dungeon.tipo === 'procedural' || dungeon.procedural || !dungeon.glb);
 
+      // Antorchas fijas solo para el modelo GLB clásico; las mazmorras procedurales usan sus propias antorchas optimizadas
+      if (!esProcedural) {
+        const matLlama = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+        const geoLlama = new THREE.ConeGeometry(0.24, 0.65, 6);
+        [-28.0, -16.0, -4.0, 8.0, 20.0, 32.0].forEach(zAnt => {
+          [-3.1, 3.1].forEach(xAnt => {
+            const pLuz = new THREE.PointLight(0xf59e0b, 2.6, 22, 1.4);
+            pLuz.position.set(xAnt, 4.8, zAnt);
+            this.grupoInstancia.add(pLuz);
+
+            const llama = new THREE.Mesh(geoLlama, matLlama);
+            llama.position.set(xAnt, 4.7, zAnt);
+            this.grupoInstancia.add(llama);
+          });
+        });
+
+        const luzTrono = new THREE.PointLight(0xa855f7, 4.5, 48, 1.2);
+        luzTrono.position.set(0, 8.0, -36.0);
+        this.grupoInstancia.add(luzTrono);
+      }
+
+      // 3. Cargar el modelo 3D de la mazmorra (Procedural estilo creador de pueblos o GLB)
       let proc = null;
       let SPAWN_X = 0.0;
       let SPAWN_Y = 0.0;

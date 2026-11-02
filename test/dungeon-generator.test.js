@@ -589,3 +589,57 @@ test('DungeonGenerator: distribución automática paramétrica de antorchas en p
   assert.ok(antorchasAuto.length >= 8, 'Debe generar al menos 8 antorchas automáticas en las 4 paredes');
   assert.strictEqual(antorchasAuto[0].userData.forma, 'farol_jaula', 'Debe aplicar la forma seleccionada en el menú');
 });
+
+test('DungeonGenerator: catálogo de arquetipos y creación de monstruos procedurales', () => {
+  assert.ok(DungeonGenerator.ARQUETIPOS_MONSTRUOS, 'Debe existir ARQUETIPOS_MONSTRUOS');
+  assert.ok(DungeonGenerator.ARQUETIPOS_MONSTRUOS.jefe_caballero_titan, 'Debe existir caballero titánico');
+  assert.ok(DungeonGenerator.ARQUETIPOS_MONSTRUOS.jefe_nigromante_arcano, 'Debe existir nigromante espectral');
+  assert.ok(DungeonGenerator.ARQUETIPOS_MONSTRUOS.jefe_golem_magma, 'Debe existir gólem de magma');
+  assert.ok(DungeonGenerator.ARQUETIPOS_MONSTRUOS.elite_centinela_esqueleto, 'Debe existir centinela esqueleto');
+  assert.ok(DungeonGenerator.ARQUETIPOS_MONSTRUOS.elite_espectro_sombra, 'Debe existir espectro');
+  assert.ok(DungeonGenerator.ARQUETIPOS_MONSTRUOS.elite_gargola_canteria, 'Debe existir gárgola');
+
+  const mBoss = DungeonGenerator.crearMonstruoProcedural(mockTHREE, 'jefe_caballero_titan', {
+    esJefe: true,
+    nombre: 'Titán de las Sombras',
+    nivel: 20,
+    rangoElite: 10
+  });
+
+  assert.ok(mBoss, 'Debe crear la instancia del monstruo');
+  assert.strictEqual(mBoss.userData.esMonstruo, true, 'userData.esMonstruo debe ser true');
+  assert.strictEqual(mBoss.userData.esJefe, true, 'userData.esJefe debe ser true');
+  assert.strictEqual(mBoss.userData.nombre, 'Titán de las Sombras', 'Nombre debe coincidir');
+  assert.strictEqual(typeof mBoss.userData.animar, 'function', 'Debe tener función animar');
+
+  const mGuard = DungeonGenerator.crearMonstruoProcedural(mockTHREE, 'elite_espectro_sombra', {
+    esJefe: false,
+    nombre: 'Aparición Maldita'
+  });
+  assert.ok(mGuard, 'Debe crear guardián espectral');
+  assert.strictEqual(mGuard.userData.esJefe, false, 'No debe ser jefe');
+});
+
+test('DungeonGenerator: generación de monstruos y optimización de sombras en generarMazmorra', () => {
+  // 1. Por defecto: sombras puntuales desactivadas para rendimiento 60 FPS
+  const instRendimiento = DungeonGenerator.generarMazmorra(mockTHREE, {
+    seed: 55443,
+    radio: 50,
+    monstruos: { habilitados: true, jefe: { tipo: 'jefe_golem_magma' }, guardianes: { tipo: 'mixto' } }
+  });
+
+  assert.ok(instRendimiento.monstruos, 'Debe retornar array de monstruos');
+  assert.ok(instRendimiento.monstruos.length >= 3, `Debe generar al menos Jefe + 2 guardianes (generó ${instRendimiento.monstruos.length})`);
+  
+  const jefe = instRendimiento.monstruos.find(m => m.userData.esJefe);
+  assert.ok(jefe, 'Debe haber un jefe generado');
+  assert.strictEqual(jefe.userData.arquetipo, 'jefe_golem_magma', 'Arquetipo del jefe debe ser jefe_golem_magma');
+
+  // Verificar que antorchas por defecto no tienen castShadow = true (optimización GPU)
+  const antorchaSinSombra = DungeonGenerator.crearAntorcha(mockTHREE, instRendimiento.kit, 0xf59e0b, 2.0, {});
+  assert.strictEqual(!!(antorchaSinSombra.userData.luz && antorchaSinSombra.userData.luz.castShadow), false, 'Por defecto la luz puntual de antorcha no debe proyectar sombra cubemap');
+
+  // 2. Con sombrasPuntuales: true explícito
+  const antorchaConSombra = DungeonGenerator.crearAntorcha(mockTHREE, instRendimiento.kit, 0xf59e0b, 2.0, { sombrasPuntuales: true });
+  assert.strictEqual(antorchaConSombra.userData.luz.castShadow, true, 'Con sombrasPuntuales: true la luz puntual debe proyectar sombra');
+});
