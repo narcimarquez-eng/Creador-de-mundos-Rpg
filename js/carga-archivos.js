@@ -200,7 +200,7 @@
 
     // Registrar inicio de carga de un archivo
     registrarInicio(url) {
-      if (!url || typeof url !== 'string') return null;
+      if (!url || typeof url !== 'string' || url.startsWith('blob:') || url.startsWith('data:')) return null;
       const parsed = parsearRuta(url);
       const id = parsed.nombre;
       let rec = this.archivos.get(id);
@@ -280,7 +280,7 @@
       const dungeonUrl = (urlDungeon || 'mazmorra').toLowerCase();
       for (const [id, rec] of this.archivos.entries()) {
         const u = (rec.url || id || '').toLowerCase();
-        if (!u.includes('mazmorra') && !u.includes(dungeonUrl)) {
+        if (u.startsWith('blob:') || u.startsWith('data:') || (!u.includes('mazmorra') && !u.includes(dungeonUrl))) {
           this.archivos.delete(id);
         }
       }
@@ -347,6 +347,7 @@
       const origError = g.itemError ? g.itemError.bind(g) : null;
 
       g.itemStart = url => {
+        if (!url || typeof url !== 'string' || url.startsWith('blob:') || url.startsWith('data:')) return;
         this.registrarInicio(url);
         if (origStart) origStart(url);
       };

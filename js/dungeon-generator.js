@@ -131,6 +131,20 @@
     }
   };
 
+  // --- 2.1 CATÁLOGO DE TIPOS DE ESTANCIA ---
+  const TIPOS_ESTANCIA = {
+    entrada: { id: 'entrada', nombre: 'Vestíbulo de Entrada', icono: '🚪', desc: 'Pórtico monumental y acceso a la mazmorra', w: 12, d: 14, h: 4.8 },
+    fuente: { id: 'fuente', nombre: 'Santuario de la Fuente', icono: '⛲', desc: 'Pileta central, agua arcana y flora fúngica', w: 18, d: 16, h: 5.6 },
+    tesoro: { id: 'tesoro', nombre: 'Cámara del Tesoro', icono: '🪙', desc: 'Cofres dorados con botín, gemas y vasijas antiguas', w: 14, d: 14, h: 4.6 },
+    cripta_columnas: { id: 'cripta_columnas', nombre: 'Gran Cripta de Columnas', icono: '🏛️', desc: 'Columnatas monumentales y sarcófagos de piedra labrada', w: 22, d: 20, h: 6.2 },
+    armeria: { id: 'armeria', nombre: 'Armería de la Guardia', icono: '⚔️', desc: 'Percheros de armas, escudos de hierro y barriles', w: 16, d: 14, h: 4.8 },
+    biblioteca: { id: 'biblioteca', nombre: 'Biblioteca Arcana', icono: '📜', desc: 'Atriles de piedra, grimorios y monolitos con orbe flotante', w: 16, d: 16, h: 5.4 },
+    prision: { id: 'prision', nombre: 'Mazmorra de Celdas', icono: '⛓️', desc: 'Celdas con rejas de hierro, cadenas y bancos rústicos', w: 15, d: 15, h: 4.8 },
+    laboratorio: { id: 'laboratorio', nombre: 'Laboratorio de Alquimia', icono: '⚗️', desc: 'Caldero con poción resplandeciente, mesa y redomas', w: 16, d: 15, h: 5.0 },
+    jardin_subterraneo: { id: 'jardin_subterraneo', nombre: 'Jardín Fúngico de Esporas', icono: '🍄', desc: 'Densa maleza, musgo y colonias de hongos bioluminiscentes', w: 18, d: 18, h: 5.8 },
+    sala_jefe: { id: 'sala_jefe', nombre: 'Cámara del Trono del Jefe', icono: '👑', desc: 'Estrado elevado, trono de piedra y braseros mágicos', w: 24, d: 24, h: 7.5 }
+  };
+
   // --- 3. GENERADOR DE TEXTURAS ATLAS PROCEDURALES PBR ---
   const _atlasCache = new Map();
 
@@ -670,6 +684,196 @@
     return g;
   }
 
+  // I) Armería: soportes de armas, percheros y barriles
+  function crearArmeriaProps(ThreeLib, kit, rng) {
+    const g = new ThreeLib.Group();
+
+    // Perchero de madera y hierro para armas
+    const baseArmero = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(2.4, 0.25, 0.8), kit.madera);
+    baseArmero.position.y = 0.125;
+    g.add(baseArmero);
+
+    const posteL = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.14, 1.8, 0.14), kit.madera);
+    posteL.position.set(-1.0, 1.0, 0);
+    g.add(posteL);
+
+    const posteR = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.14, 1.8, 0.14), kit.madera);
+    posteR.position.set(1.0, 1.0, 0);
+    g.add(posteR);
+
+    const barra = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(2.2, 0.12, 0.12), kit.hierro);
+    barra.position.set(0, 1.7, 0);
+    g.add(barra);
+
+    // Lanzas y alabardas apoyadas
+    [-0.6, -0.2, 0.2, 0.6].forEach((xOff, i) => {
+      const lanza = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.03, 0.04, 2.1, 6), kit.hierro);
+      lanza.position.set(xOff, 1.05, 0.05);
+      lanza.rotation.z = (i % 2 === 0 ? 0.08 : -0.08);
+      g.add(lanza);
+    });
+
+    // Barril de suministros
+    const barril = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.45, 0.42, 1.1, 10), kit.madera);
+    barril.position.set(1.8, 0.55, 0.2);
+    g.add(barril);
+
+    [-0.35, 0.35].forEach(yRing => {
+      const aro = new ThreeLib.Mesh(new ThreeLib.TorusGeometry(0.46, 0.04, 4, 10), kit.hierro);
+      aro.rotation.x = Math.PI / 2;
+      aro.position.set(1.8, 0.55 + yRing, 0.2);
+      g.add(aro);
+    });
+
+    g.userData = { tipo: 'armeria' };
+    return g;
+  }
+
+  // J) Biblioteca arcana: atril de lectura, grimorio y monolito con orbe
+  function crearBibliotecaProps(ThreeLib, kit, rng) {
+    const g = new ThreeLib.Group();
+
+    // Atril de lectura monumental
+    const baseAtril = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.8, 0.9, 0.7), kit.piedraMuro);
+    baseAtril.position.y = 0.45;
+    g.add(baseAtril);
+
+    const tablaAtril = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(1.0, 0.1, 0.8), kit.madera);
+    tablaAtril.position.set(0, 0.95, 0);
+    tablaAtril.rotation.x = -0.35;
+    g.add(tablaAtril);
+
+    const libro = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.7, 0.08, 0.5), kit.hierro);
+    libro.position.set(0, 1.02, -0.04);
+    libro.rotation.x = -0.35;
+    g.add(libro);
+
+    // Monolito rúnico con orbe arcano flotante
+    const monolito = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.35, 0.55, 1.6, 6), kit.sueloLosas);
+    monolito.position.set(0, 0.8, 2.5);
+    g.add(monolito);
+
+    const orbe = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.32, 12, 12), new ThreeLib.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x0284c7,
+      emissiveIntensity: 1.4,
+      roughness: 0.2
+    }));
+    orbe.position.set(0, 1.95, 2.5);
+    g.add(orbe);
+
+    const luzOrbe = new ThreeLib.PointLight(0x38bdf8, 2.4, 18, 1.5);
+    luzOrbe.position.set(0, 2.0, 2.5);
+    g.add(luzOrbe);
+
+    g.userData = {
+      tipo: 'biblioteca',
+      update: (t) => {
+        orbe.position.y = 1.95 + Math.sin(t * 2.2) * 0.08;
+        luzOrbe.intensity = 2.4 * (0.9 + Math.sin(t * 3.5) * 0.1);
+      }
+    };
+    return g;
+  }
+
+  // K) Prisión / Mazmorra de celdas: rejas de hierro y banco
+  function crearPrisionProps(ThreeLib, kit, rng, H = 4.8) {
+    const g = new ThreeLib.Group();
+
+    // Rejas de celda verticales
+    const cantBarrotes = 8;
+    const anchoReja = 3.6;
+    for (let i = 0; i <= cantBarrotes; i++) {
+      const x = -anchoReja / 2 + (i / cantBarrotes) * anchoReja;
+      const barrote = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.04, 0.04, H * 0.85, 6), kit.hierro);
+      barrote.position.set(x, (H * 0.85) / 2, 0);
+      g.add(barrote);
+    }
+
+    [H * 0.2, H * 0.5, H * 0.8].forEach(y => {
+      const trav = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(anchoReja + 0.2, 0.08, 0.08), kit.hierro);
+      trav.position.set(0, y, 0);
+      g.add(trav);
+    });
+
+    // Banco de madera
+    const banco = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(2.0, 0.45, 0.6), kit.madera);
+    banco.position.set(0, 0.225, -1.4);
+    g.add(banco);
+
+    // Argolla en muro
+    const argolla = new ThreeLib.Mesh(new ThreeLib.TorusGeometry(0.12, 0.03, 4, 8), kit.hierro);
+    argolla.position.set(-1.0, 1.2, -2.0);
+    g.add(argolla);
+
+    g.userData = { tipo: 'prision' };
+    return g;
+  }
+
+  // L) Laboratorio de alquimia: caldero burbujeante y mesa de pociones
+  function crearLaboratorioProps(ThreeLib, kit, rng) {
+    const g = new ThreeLib.Group();
+
+    // Caldero de hierro
+    const caldero = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.85, 12, 10), kit.hierro);
+    caldero.scale.set(1, 0.75, 1);
+    caldero.position.y = 0.8;
+    g.add(caldero);
+
+    const boca = new ThreeLib.Mesh(new ThreeLib.TorusGeometry(0.72, 0.09, 6, 12), kit.hierro);
+    boca.rotation.x = Math.PI / 2;
+    boca.position.y = 1.15;
+    g.add(boca);
+
+    // Líquido mágico verde
+    const liquido = new ThreeLib.Mesh(new ThreeLib.CircleGeometry(0.68, 12), new ThreeLib.MeshStandardMaterial({
+      color: 0x10b981,
+      emissive: 0x059669,
+      emissiveIntensity: 1.6,
+      roughness: 0.1
+    }));
+    liquido.rotation.x = -Math.PI / 2;
+    liquido.position.y = 1.14;
+    g.add(liquido);
+
+    const luzCaldero = new ThreeLib.PointLight(0x10b981, 2.5, 16, 1.4);
+    luzCaldero.position.set(0, 1.4, 0);
+    g.add(luzCaldero);
+
+    // Patas del caldero
+    for (let i = 0; i < 3; i++) {
+      const ang = (i * Math.PI * 2) / 3;
+      const pata = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.06, 0.08, 0.65, 6), kit.hierro);
+      pata.position.set(Math.cos(ang) * 0.65, 0.32, Math.sin(ang) * 0.65);
+      pata.rotation.z = Math.cos(ang) * 0.25;
+      pata.rotation.x = -Math.sin(ang) * 0.25;
+      g.add(pata);
+    }
+
+    // Mesa de viales
+    const mesa = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(1.6, 0.85, 0.8), kit.madera);
+    mesa.position.set(2.4, 0.425, 0);
+    g.add(mesa);
+
+    [0xef4444, 0x8b5cf6, 0x06b6d4].forEach((col, i) => {
+      const vial = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.08, 0.12, 0.32, 6), new ThreeLib.MeshStandardMaterial({
+        color: col,
+        emissive: col,
+        emissiveIntensity: 1.2
+      }));
+      vial.position.set(2.0 + i * 0.4, 0.85 + 0.16, 0);
+      g.add(vial);
+    });
+
+    g.userData = {
+      tipo: 'laboratorio',
+      update: (t) => {
+        luzCaldero.intensity = 2.5 * (0.85 + Math.sin(t * 5.0) * 0.15);
+      }
+    };
+    return g;
+  }
+
   // --- 6. ARQUITECTURA DE SALAS Y CORREDORES ---
 
   function construirCajaHabitacion(ThreeLib, kit, sala, opciones = {}) {
@@ -729,7 +933,418 @@
     return g;
   }
 
-  // --- 7. GENERADOR PRINCIPAL PROCEDURAL ---
+  // --- 7. DECORACIÓN MODULAR DE HABITACIONES Y CORREDORES ---
+
+  function decorarHabitacion(ThreeLib, kit, sala, estilo, rng, animables, props, config = {}) {
+    const g = new ThreeLib.Group();
+    g.position.set(sala.x, sala.y || 0, sala.z);
+
+    const cfgProps = config.props || {};
+    const W = sala.w;
+    const D = sala.d;
+    const H = sala.h;
+
+    switch (sala.tipo) {
+      case 'entrada': {
+        if (cfgProps.antorchas !== false) {
+          const aL = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+          aL.position.set(-2.8, 2.2, D / 2 - 0.4);
+          aL.rotation.y = Math.PI / 2;
+          g.add(aL);
+          animables.push(aL);
+          props.antorchas.push(aL);
+
+          const aR = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+          aR.position.set(2.8, 2.2, D / 2 - 0.4);
+          aR.rotation.y = -Math.PI / 2;
+          g.add(aR);
+          animables.push(aR);
+          props.antorchas.push(aR);
+        }
+        break;
+      }
+
+      case 'fuente': {
+        if (cfgProps.fuentes !== false) {
+          const radioF = Math.max(1.8, Math.min(3.6, W * 0.18));
+          const fuente = crearFuente(ThreeLib, kit, radioF, 1.4);
+          fuente.position.set(0, 0, 0);
+          g.add(fuente);
+          animables.push(fuente);
+          props.fuentes.push(fuente);
+        }
+        if (cfgProps.musgo !== false) {
+          [-W * 0.32, W * 0.32].forEach(vx => {
+            [-D * 0.32, D * 0.32].forEach(vz => {
+              const veg = crearManchaVegetacion(ThreeLib, kit, rng, rng.range(1.2, 2.0));
+              veg.position.set(vx, 0, vz);
+              g.add(veg);
+            });
+          });
+        }
+        if (cfgProps.hongos !== false) {
+          const h1 = crearHongosLuminosos(ThreeLib, kit, rng);
+          h1.position.set(-2.2, 0, -1.8);
+          g.add(h1);
+          const h2 = crearHongosLuminosos(ThreeLib, kit, rng);
+          h2.position.set(2.2, 0, 1.8);
+          g.add(h2);
+        }
+        break;
+      }
+
+      case 'tesoro': {
+        if (cfgProps.cofres !== false) {
+          const c1 = crearCofre(ThreeLib, kit, false);
+          c1.position.set(0, 0, 0);
+          g.add(c1);
+          props.cofres.push(c1);
+
+          if (W >= 11) {
+            const c2 = crearCofre(ThreeLib, kit, rng.chance(0.5));
+            c2.position.set(W * 0.28, 0, -D * 0.18);
+            c2.rotation.y = -Math.PI / 4;
+            g.add(c2);
+            props.cofres.push(c2);
+          }
+        }
+        if (cfgProps.jarrones !== false) {
+          [-W * 0.28, W * 0.28].forEach(jx => {
+            const jarron = crearJarron(ThreeLib, kit, rng.range(0.9, 1.25), rng.chance(0.25));
+            jarron.position.set(jx, 0, D * 0.22);
+            g.add(jarron);
+          });
+        }
+        break;
+      }
+
+      case 'cripta_columnas': {
+        const spanX = Math.max(3.5, W * 0.28);
+        const spanZ = Math.max(3.5, D * 0.28);
+        [-spanX, spanX].forEach(cx => {
+          [-spanZ, spanZ].forEach(cz => {
+            const col = crearColumna(ThreeLib, kit, H, Math.min(0.65, W * 0.035));
+            col.position.set(cx, 0, cz);
+            g.add(col);
+          });
+        });
+        if (cfgProps.sarcofagos !== false) {
+          const sarc1 = crearSarcofago(ThreeLib, kit);
+          sarc1.position.set(-W * 0.36, 0, 0);
+          sarc1.rotation.y = Math.PI / 2;
+          g.add(sarc1);
+
+          const sarc2 = crearSarcofago(ThreeLib, kit);
+          sarc2.position.set(W * 0.36, 0, 0);
+          sarc2.rotation.y = -Math.PI / 2;
+          g.add(sarc2);
+        }
+        break;
+      }
+
+      case 'armeria': {
+        const arm = crearArmeriaProps(ThreeLib, kit, rng);
+        arm.position.set(0, 0, -D * 0.22);
+        g.add(arm);
+
+        if (cfgProps.cofres !== false) {
+          const cofreArmas = crearCofre(ThreeLib, kit, false);
+          cofreArmas.position.set(-W * 0.28, 0, D * 0.2);
+          g.add(cofreArmas);
+          props.cofres.push(cofreArmas);
+        }
+        break;
+      }
+
+      case 'biblioteca': {
+        const bib = crearBibliotecaProps(ThreeLib, kit, rng);
+        bib.position.set(0, 0, 0);
+        g.add(bib);
+        animables.push(bib);
+        break;
+      }
+
+      case 'prision': {
+        const pris = crearPrisionProps(ThreeLib, kit, rng, H);
+        pris.position.set(0, 0, 0);
+        g.add(pris);
+        break;
+      }
+
+      case 'laboratorio': {
+        const lab = crearLaboratorioProps(ThreeLib, kit, rng);
+        lab.position.set(0, 0, 0);
+        g.add(lab);
+        animables.push(lab);
+        break;
+      }
+
+      case 'jardin_subterraneo': {
+        [-W * 0.25, 0, W * 0.25].forEach((vx, idx) => {
+          [-D * 0.25, D * 0.25].forEach((vz, idz) => {
+            const veg = crearManchaVegetacion(ThreeLib, kit, rng, rng.range(1.3, 2.2));
+            veg.position.set(vx + (idz % 2 ? 0.6 : -0.6), 0, vz);
+            g.add(veg);
+          });
+        });
+        if (cfgProps.hongos !== false) {
+          [-W * 0.22, W * 0.22].forEach(hx => {
+            const h = crearHongosLuminosos(ThreeLib, kit, rng);
+            h.position.set(hx, 0, 0);
+            g.add(h);
+          });
+        }
+        break;
+      }
+
+      case 'sala_jefe': {
+        const estradoW = Math.min(W * 0.55, 12);
+        const estradoD = Math.min(D * 0.45, 9);
+        const estrado = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(estradoW, 0.6, estradoD), kit.piedraMuro);
+        estrado.position.set(0, 0.3, -D * 0.15);
+        g.add(estrado);
+
+        const tronoBase = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(2.4, 0.9, 1.8), kit.sueloLosas);
+        tronoBase.position.set(0, 0.6 + 0.45, -D * 0.15 - 1.0);
+        g.add(tronoBase);
+
+        const tronoRespaldo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(2.2, 3.2, 0.4), kit.piedraMuro);
+        tronoRespaldo.position.set(0, 0.6 + 1.6, -D * 0.15 - 1.8);
+        g.add(tronoRespaldo);
+
+        const bxOff = Math.min(estradoW * 0.35, 3.4);
+        [-bxOff, bxOff].forEach(bx => {
+          const brasero = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.65, 0.35, 1.2, 8), kit.hierro);
+          brasero.position.set(bx, 0.6, -D * 0.15 + 1.8);
+          g.add(brasero);
+
+          const llamaBoss = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.35, 0.8, 6), new ThreeLib.MeshBasicMaterial({ color: estilo.luzJefe }));
+          llamaBoss.position.set(bx, 1.45, -D * 0.15 + 1.8);
+          g.add(llamaBoss);
+
+          const luzBoss = new ThreeLib.PointLight(estilo.luzJefe, 3.6, 26, 1.4);
+          luzBoss.position.set(bx, 1.8, -D * 0.15 + 1.8);
+          g.add(luzBoss);
+
+          animables.push({
+            flicker: (t) => {
+              luzBoss.intensity = 3.6 * (0.85 + Math.sin(t * 8.0 + bx) * 0.12);
+            }
+          });
+        });
+        break;
+      }
+
+      case 'pasillo': {
+        if (cfgProps.antorchas !== false && D >= 8) {
+          const cantPares = Math.max(1, Math.floor(D / 10));
+          for (let p = 0; p < cantPares; p++) {
+            const zRel = -D / 2 + (p + 0.5) * (D / cantPares);
+            const aL = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+            aL.position.set(-W / 2 + 0.25, 2.2, zRel);
+            aL.rotation.y = Math.PI / 2;
+            g.add(aL);
+            animables.push(aL);
+            props.antorchas.push(aL);
+
+            const aR = crearAntorcha(ThreeLib, kit, estilo.luzAntorchas);
+            aR.position.set(W / 2 - 0.25, 2.2, zRel);
+            aR.rotation.y = -Math.PI / 2;
+            g.add(aR);
+            animables.push(aR);
+            props.antorchas.push(aR);
+          }
+        }
+        break;
+      }
+    }
+
+    return g;
+  }
+
+  // --- 8. PLANIFICADOR DE PLANTA PROCEDURAL Y ESTANCIAS ---
+
+  function generarPlanEstancias(config, rng) {
+    const radio = typeof config.radio === 'number' ? Math.max(35, config.radio) : (typeof config.radioMazmorra === 'number' ? Math.max(35, config.radioMazmorra) : 60);
+    const tamanoMedio = typeof config.tamanoMedio === 'number' ? Math.max(8, config.tamanoMedio) : (typeof config.tamanoSalasMedio === 'number' ? Math.max(8, config.tamanoSalasMedio) : 16);
+    const varianzaTamano = typeof config.varianzaTamano === 'number' ? Math.min(1.0, Math.max(0, config.varianzaTamano)) : (typeof config.varianzaTamanoSalas === 'number' ? Math.min(1.0, Math.max(0, config.varianzaTamanoSalas)) : 0.35);
+    const numeroSalas = typeof config.numeroSalas === 'number' ? Math.max(4, Math.min(25, config.numeroSalas)) : 6;
+    const ramificacion = typeof config.ramificacion === 'number' ? Math.min(1.0, Math.max(0, config.ramificacion)) : 0.5;
+    const anchoPasillos = typeof config.anchoPasillos === 'number' ? Math.max(3.5, config.anchoPasillos) : 6.8;
+    const alturaTechos = typeof config.alturaTechos === 'number' ? Math.max(3.5, config.alturaTechos) : 5.2;
+
+    const salasPersonalizadas = Array.isArray(config.salasPersonalizadas) ? config.salasPersonalizadas : (Array.isArray(config.estanciasAdicionales) ? config.estanciasAdicionales : []);
+
+    const esDefault = (radio === 60 && numeroSalas === 6 && tamanoMedio === 16 && varianzaTamano === 0.35 && salasPersonalizadas.length === 0 && (!config.customLayout));
+
+    if (esDefault) {
+      return [
+        { id: 'room_entrada', tipo: 'entrada', nombre: 'Vestíbulo de Entrada', x: 0, y: 0, z: 42, w: 12, d: 14, h: 4.8, abiertoNorte: true },
+        { id: 'corridor_1', tipo: 'pasillo', nombre: 'Corredor de los Guardias', x: 0, y: 0, z: 27, w: 6.8, d: 16, h: 4.2, abiertoSur: true, abiertoNorte: true },
+        { id: 'room_fuente', tipo: 'fuente', nombre: 'Santuario de la Fuente', x: 0, y: 0, z: 11, w: 18, d: 16, h: 5.6, abiertoSur: true, abiertoNorte: true, abiertoEste: true },
+        { id: 'room_tesoro', tipo: 'tesoro', nombre: 'Cámara Secreta del Tesoro', x: 17, y: 0, z: 11, w: 12, d: 12, h: 4.4, abiertoOeste: true },
+        { id: 'corridor_2', tipo: 'pasillo', nombre: 'Galería de Arcos', x: 0, y: 0, z: -5, w: 7.2, d: 16, h: 4.5, abiertoSur: true, abiertoNorte: true },
+        { id: 'room_columnas', tipo: 'cripta_columnas', nombre: 'Gran Cripta de Columnas', x: 0, y: 0, z: -23, w: 22, d: 20, h: 6.2, abiertoSur: true, abiertoNorte: true },
+        { id: 'corridor_3', tipo: 'pasillo', nombre: 'Pasaje del Trono', x: 0, y: 0, z: -38, w: 7.2, d: 10, h: 4.5, abiertoSur: true, abiertoNorte: true },
+        { id: 'room_boss', tipo: 'sala_jefe', nombre: 'Cámara del Trono del Caído', x: 0, y: 0, z: -55, w: 24, d: 24, h: 7.5, abiertoSur: true }
+      ];
+    }
+
+    // --- GENERACIÓN DINÁMICA DE LA RED DE ESTANCIAS ---
+    const salas = [];
+    const poolTiposIntermedios = ['fuente', 'cripta_columnas', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
+    const poolTiposLaterales = ['tesoro', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
+
+    const zEntrada = Math.round(radio - (tamanoMedio * 0.7));
+    const zBoss = Math.round(-radio + (tamanoMedio * 0.7));
+    const spanZ = zEntrada - zBoss;
+
+    const cantIntermedias = Math.max(2, numeroSalas - 2);
+    const pasoZ = spanZ / (cantIntermedias + 1);
+
+    // 1. Vestíbulo de entrada
+    const varEntrada = 1 + (rng.range(-1, 1) * varianzaTamano * 0.5);
+    const entradaW = Math.round(Math.max(10, tamanoMedio * 0.85 * varEntrada));
+    const entradaD = Math.round(Math.max(10, tamanoMedio * 0.95 * varEntrada));
+    const roomEntrada = {
+      id: 'room_entrada',
+      tipo: 'entrada',
+      nombre: 'Vestíbulo de Entrada',
+      x: 0, y: 0, z: zEntrada,
+      w: entradaW, d: entradaD, h: Math.round(alturaTechos * 0.95),
+      abiertoNorte: true
+    };
+    salas.push(roomEntrada);
+
+    let zAnterior = zEntrada;
+    let dAnterior = entradaD;
+
+    // 2. Cámaras intermedias a lo largo de la columna vertebral
+    let tiposDisponibles = [...poolTiposIntermedios];
+    let branchCounter = 0;
+
+    for (let i = 1; i <= cantIntermedias; i++) {
+      const zCamara = Math.round(zEntrada - i * pasoZ);
+
+      // Conector / pasillo intermedio
+      const gap = (zAnterior - dAnterior / 2) - (zCamara + (tamanoMedio / 2));
+      const distCorredor = Math.max(8, gap);
+      const zCorredor = Math.round((zAnterior - dAnterior / 2 + zCamara + tamanoMedio / 2) / 2);
+      const varPasillo = 1 + (rng.range(-0.5, 0.5) * varianzaTamano * 0.3);
+      const wPasillo = Math.round(anchoPasillos * varPasillo);
+
+      salas.push({
+        id: `corridor_${i}`,
+        tipo: 'pasillo',
+        nombre: `Galería del Sector ${i}`,
+        x: 0, y: 0, z: zCorredor,
+        w: wPasillo, d: distCorredor, h: Math.round(alturaTechos * 0.85),
+        abiertoSur: true, abiertoNorte: true
+      });
+
+      // Dimensiones con varianza aleatoria
+      const factorVarW = 1 + (rng.range(-1, 1) * varianzaTamano);
+      const factorVarD = 1 + (rng.range(-1, 1) * varianzaTamano);
+      const wCamara = Math.round(Math.max(10, tamanoMedio * factorVarW));
+      const dCamara = Math.round(Math.max(10, tamanoMedio * factorVarD));
+      const hCamara = Math.round(Math.max(4.2, alturaTechos * (1 + rng.range(-0.3, 0.3) * varianzaTamano)));
+
+      if (tiposDisponibles.length === 0) tiposDisponibles = [...poolTiposIntermedios];
+      const tipoIdx = rng.int(0, tiposDisponibles.length - 1);
+      const tipoCamara = tiposDisponibles.splice(tipoIdx, 1)[0];
+      const tipoDef = TIPOS_ESTANCIA[tipoCamara] || { nombre: 'Cripta Subterránea' };
+
+      const camaraObj = {
+        id: `room_${tipoCamara}_${i}`,
+        tipo: tipoCamara,
+        nombre: `${tipoDef.nombre} (${i})`,
+        x: 0, y: 0, z: zCamara,
+        w: wCamara, d: dCamara, h: hCamara,
+        abiertoSur: true, abiertoNorte: true
+      };
+
+      // 3. Ramificaciones laterales (alas Este / Oeste)
+      if (rng.chance(ramificacion)) {
+        branchCounter++;
+        const ladoEste = (branchCounter % 2 === 1);
+        if (ladoEste) camaraObj.abiertoEste = true; else camaraObj.abiertoOeste = true;
+
+        const tipoLateral = poolTiposLaterales[rng.int(0, poolTiposLaterales.length - 1)];
+        const latDef = TIPOS_ESTANCIA[tipoLateral] || { nombre: 'Cámara Lateral' };
+        const latW = Math.round(Math.max(9, tamanoMedio * 0.85 * (1 + rng.range(-1, 1) * varianzaTamano)));
+        const latD = Math.round(Math.max(9, tamanoMedio * 0.85 * (1 + rng.range(-1, 1) * varianzaTamano)));
+        const distSep = (wCamara / 2 + latW / 2 + 5.0);
+        const latX = Math.round(ladoEste ? distSep : -distSep);
+
+        salas.push({
+          id: `room_lateral_${branchCounter}`,
+          tipo: tipoLateral,
+          nombre: `${latDef.nombre} Lateral`,
+          x: latX, y: 0, z: zCamara,
+          w: latW, d: latD, h: Math.round(hCamara * 0.9),
+          abiertoEste: !ladoEste,
+          abiertoOeste: ladoEste
+        });
+      }
+
+      salas.push(camaraObj);
+      zAnterior = zCamara;
+      dAnterior = dCamara;
+    }
+
+    // 4. Último pasillo procesional hacia la sala del jefe
+    const distCorredorFinal = Math.max(8, (zAnterior - dAnterior / 2) - (zBoss + tamanoMedio * 0.6));
+    const zCorredorFinal = Math.round((zAnterior - dAnterior / 2 + zBoss + tamanoMedio * 0.6) / 2);
+    salas.push({
+      id: 'corridor_final',
+      tipo: 'pasillo',
+      nombre: 'Avenida Procesional del Caído',
+      x: 0, y: 0, z: zCorredorFinal,
+      w: Math.round(anchoPasillos * 1.15), d: distCorredorFinal, h: Math.round(alturaTechos * 0.9),
+      abiertoSur: true, abiertoNorte: true
+    });
+
+    // 5. Salón del trono del Jefe
+    const varBoss = 1 + (rng.range(-0.5, 0.5) * varianzaTamano * 0.4);
+    const bossW = Math.round(Math.max(18, tamanoMedio * 1.45 * varBoss));
+    const bossD = Math.round(Math.max(18, tamanoMedio * 1.45 * varBoss));
+    const bossH = Math.round(alturaTechos * 1.35);
+
+    const roomBoss = {
+      id: 'room_boss',
+      tipo: 'sala_jefe',
+      nombre: 'Cámara del Trono del Caído',
+      x: 0, y: 0, z: zBoss,
+      w: bossW, d: bossD, h: bossH,
+      abiertoSur: true
+    };
+    salas.push(roomBoss);
+
+    // 6. Añadir cualquier estancia manual personalizada añadida por el usuario
+    salasPersonalizadas.forEach((custom, cIdx) => {
+      const defT = TIPOS_ESTANCIA[custom.tipo] || { nombre: 'Estancia Personalizada', icono: '🏛️' };
+      salas.push({
+        id: custom.id || `custom_room_${cIdx + 1}`,
+        tipo: custom.tipo || 'cripta_columnas',
+        nombre: custom.nombre || `${defT.nombre} ${cIdx + 1}`,
+        x: typeof custom.x === 'number' ? custom.x : 0,
+        y: typeof custom.y === 'number' ? custom.y : 0,
+        z: typeof custom.z === 'number' ? custom.z : 0,
+        w: typeof custom.w === 'number' ? custom.w : tamanoMedio,
+        d: typeof custom.d === 'number' ? custom.d : tamanoMedio,
+        h: typeof custom.h === 'number' ? custom.h : alturaTechos,
+        abiertoSur: custom.abiertoSur !== false,
+        abiertoNorte: custom.abiertoNorte !== false,
+        abiertoEste: !!custom.abiertoEste,
+        abiertoOeste: !!custom.abiertoOeste,
+        esPersonalizada: true
+      });
+    });
+
+    return salas;
+  }
+
+  // --- 9. GENERADOR PRINCIPAL PROCEDURAL ---
 
   function generarMazmorra(arg1, arg2) {
     let ThreeLib = null;
@@ -764,260 +1379,91 @@
     dungeonGroup.name = 'DungeonProcedural_' + (config.id || 'seed_' + rng.s);
 
     const animables = [];
-    const antorchas = [];
-    const cofres = [];
-    const fuentes = [];
+    const props = {
+      antorchas: [],
+      cofres: [],
+      fuentes: [],
+      animables
+    };
 
-    // --- DISEÑO DE PLANTA DE LA MAZMORRA (ROOM & CORRIDOR PROGRESSION) ---
-    // Estructura lineal y ramificada garantizada con progresión clara:
-    // Sala 1: Entrada / Vestíbulo inicial (Spawn Héroe)
-    // Pasillo 1 (con antorchas y primer encuentro de esbirros)
-    // Sala 2: Santuario / Fuente Arcana (con agua y vegetación)
-    // Pasillo 2 (con bifurcación hacia Armería / Tesoro lateral)
-    // Sala 3 (Lateral): Cámara del Tesoro (cofres, jarrones, oro)
-    // Sala 4: Gran Sala de Columnas y Cripta (sarcófagos y élites x8)
-    // Pasillo 3 (Gran Galería procesional hacia el trono)
-    // Sala 5: Sala del Trono del Jefe de Mazmorra (Altar del Boss)
+    // 1. Obtener el plan de salas y pasillos (dinámico o por defecto)
+    const salas = generarPlanEstancias(config, rng);
 
-    const salas = [
-      {
-        id: 'room_entrada',
-        tipo: 'entrada',
-        nombre: 'Vestíbulo de Entrada',
-        x: 0, y: 0, z: 42,
-        w: 12, d: 14, h: 4.8,
-        abiertoNorte: true
-      },
-      {
-        id: 'corridor_1',
-        tipo: 'pasillo',
-        nombre: 'Corredor de los Guardias',
-        x: 0, y: 0, z: 27,
-        w: 6.8, d: 16, h: 4.2,
-        abiertoSur: true, abiertoNorte: true
-      },
-      {
-        id: 'room_fuente',
-        tipo: 'fuente',
-        nombre: 'Santuario de la Fuente',
-        x: 0, y: 0, z: 11,
-        w: 18, d: 16, h: 5.6,
-        abiertoSur: true, abiertoNorte: true, abiertoEste: true
-      },
-      {
-        id: 'room_tesoro',
-        tipo: 'tesoro',
-        nombre: 'Cámara Secreta del Tesoro',
-        x: 17, y: 0, z: 11,
-        w: 12, d: 12, h: 4.4,
-        abiertoOeste: true
-      },
-      {
-        id: 'corridor_2',
-        tipo: 'pasillo',
-        nombre: 'Galería de Arcos',
-        x: 0, y: 0, z: -5,
-        w: 7.2, d: 16, h: 4.5,
-        abiertoSur: true, abiertoNorte: true
-      },
-      {
-        id: 'room_columnas',
-        tipo: 'cripta_columnas',
-        nombre: 'Gran Cripta de Columnas',
-        x: 0, y: 0, z: -23,
-        w: 22, d: 20, h: 6.2,
-        abiertoSur: true, abiertoNorte: true
-      },
-      {
-        id: 'corridor_3',
-        tipo: 'pasillo',
-        nombre: 'Pasaje del Trono',
-        x: 0, y: 0, z: -38,
-        w: 7.2, d: 10, h: 4.5,
-        abiertoSur: true, abiertoNorte: true
-      },
-      {
-        id: 'room_boss',
-        tipo: 'sala_jefe',
-        nombre: 'Cámara del Trono del Caído',
-        x: 0, y: 0, z: -55,
-        w: 24, d: 24, h: 7.5,
-        abiertoSur: true
-      }
-    ];
-
-    // Construir geometría estructural de cada sala
+    // 2. Construir geometría estructural y decorar cada sala
     salas.forEach(s => {
       const meshSala = construirCajaHabitacion(THREE_REF, kit, s, config);
       dungeonGroup.add(meshSala);
+
+      const decMesh = decorarHabitacion(THREE_REF, kit, s, estilo, rng, animables, props, config);
+      dungeonGroup.add(decMesh);
     });
 
-    // --- DECORACIÓN Y PROPS POR TIPO DE SALA ---
-
-    // 1. Entrada: antorchas gemelas a los lados del portal
-    const aEntradaL = crearAntorcha(THREE_REF, kit, estilo.luzAntorchas);
-    aEntradaL.position.set(-2.8, 2.2, 47.0);
-    aEntradaL.rotation.y = Math.PI / 2;
-    dungeonGroup.add(aEntradaL);
-    animables.push(aEntradaL);
-    antorchas.push(aEntradaL);
-
-    const aEntradaR = crearAntorcha(THREE_REF, kit, estilo.luzAntorchas);
-    aEntradaR.position.set(2.8, 2.2, 47.0);
-    aEntradaR.rotation.y = -Math.PI / 2;
-    dungeonGroup.add(aEntradaR);
-    animables.push(aEntradaR);
-    antorchas.push(aEntradaR);
-
-    // 2. Corredores: antorchas rítmicas a lo largo de los muros
-    [32, 22, -1, -9, -35, -41].forEach(zPos => {
-      const aL = crearAntorcha(THREE_REF, kit, estilo.luzAntorchas);
-      aL.position.set(-3.2, 2.2, zPos);
-      aL.rotation.y = Math.PI / 2;
-      dungeonGroup.add(aL);
-      animables.push(aL);
-      antorchas.push(aL);
-
-      const aR = crearAntorcha(THREE_REF, kit, estilo.luzAntorchas);
-      aR.position.set(3.2, 2.2, zPos);
-      aR.rotation.y = -Math.PI / 2;
-      dungeonGroup.add(aR);
-      animables.push(aR);
-      antorchas.push(aR);
-    });
-
-    // 3. Santuario: Fuente central ornamental con agua y vegetación
-    const fuente = crearFuente(THREE_REF, kit, 2.8, 1.4);
-    fuente.position.set(0, 0, 11);
-    dungeonGroup.add(fuente);
-    animables.push(fuente);
-    fuentes.push(fuente);
-
-    // Manchas de musgo y yerbas en las esquinas de la sala de la fuente
-    [-6, 6].forEach(vx => {
-      [-5, 5].forEach(vz => {
-        const veg = crearManchaVegetacion(THREE_REF, kit, rng, rng.range(1.1, 1.8));
-        veg.position.set(vx, 0, 11 + vz);
-        dungeonGroup.add(veg);
-      });
-    });
-
-    // Hongos luminiscentes cerca del agua
-    const hongos1 = crearHongosLuminosos(THREE_REF, kit, rng);
-    hongos1.position.set(-2.2, 0, 8.5);
-    dungeonGroup.add(hongos1);
-
-    const hongos2 = crearHongosLuminosos(THREE_REF, kit, rng);
-    hongos2.position.set(2.4, 0, 13.2);
-    dungeonGroup.add(hongos2);
-
-    // 4. Cámara del Tesoro: Cofres con oro, jarrones y botín
-    const cofrePrincipal = crearCofre(THREE_REF, kit, false);
-    cofrePrincipal.position.set(17, 0, 15);
-    cofrePrincipal.rotation.y = Math.PI;
-    dungeonGroup.add(cofrePrincipal);
-    cofres.push(cofrePrincipal);
-
-    const cofreSecundario = crearCofre(THREE_REF, kit, rng.chance(0.4));
-    cofreSecundario.position.set(21, 0, 11);
-    cofreSecundario.rotation.y = -Math.PI / 2;
-    dungeonGroup.add(cofreSecundario);
-    cofres.push(cofreSecundario);
-
-    // Jarrones en la sala del tesoro
-    [-1, 1].forEach(side => {
-      const jarron = crearJarron(THREE_REF, kit, rng.range(0.85, 1.2), rng.chance(0.2));
-      jarron.position.set(17 + side * 1.8, 0, 14.8);
-      dungeonGroup.add(jarron);
-    });
-
-    // 5. Gran Cripta de Columnas: 4 columnas monumentales y sarcófagos
-    [-5.5, 5.5].forEach(cx => {
-      [-4.5, 4.5].forEach(cz => {
-        const col = crearColumna(THREE_REF, kit, 6.2, 0.55);
-        col.position.set(cx, 0, -23 + cz);
-        dungeonGroup.add(col);
-      });
-    });
-
-    // Sarcófagos gemelos a los costados
-    const sarc1 = crearSarcofago(THREE_REF, kit);
-    sarc1.position.set(-8.2, 0, -23);
-    sarc1.rotation.y = Math.PI / 2;
-    dungeonGroup.add(sarc1);
-
-    const sarc2 = crearSarcofago(THREE_REF, kit);
-    sarc2.position.set(8.2, 0, -23);
-    sarc2.rotation.y = -Math.PI / 2;
-    dungeonGroup.add(sarc2);
-
-    // 6. Sala del Trono del Jefe: Estrado elevado, Trono y Braseros Púrpuras/Carmesí
-    const estrado = new THREE_REF.Mesh(new THREE_REF.BoxGeometry(10, 0.6, 8), kit.piedraMuro);
-    estrado.position.set(0, 0.3, -61);
-    dungeonGroup.add(estrado);
-
-    // Trono monumental de piedra
-    const tronoBase = new THREE_REF.Mesh(new THREE_REF.BoxGeometry(2.4, 0.9, 1.8), kit.sueloLosas);
-    tronoBase.position.set(0, 0.6 + 0.45, -62);
-    dungeonGroup.add(tronoBase);
-
-    const tronoRespaldo = new THREE_REF.Mesh(new THREE_REF.BoxGeometry(2.2, 3.2, 0.4), kit.piedraMuro);
-    tronoRespaldo.position.set(0, 0.6 + 1.6, -62.8);
-    dungeonGroup.add(tronoRespaldo);
-
-    // Braseros mágicos ante el trono
-    [-3.2, 3.2].forEach(bx => {
-      const brasero = new THREE_REF.Mesh(new THREE_REF.CylinderGeometry(0.65, 0.35, 1.2, 8), kit.hierro);
-      brasero.position.set(bx, 0.6, -58.5);
-      dungeonGroup.add(brasero);
-
-      const llamaBoss = new THREE_REF.Mesh(new THREE_REF.ConeGeometry(0.35, 0.8, 6), new THREE_REF.MeshBasicMaterial({ color: estilo.luzJefe }));
-      llamaBoss.position.set(bx, 1.45, -58.5);
-      dungeonGroup.add(llamaBoss);
-
-      const luzBoss = new THREE_REF.PointLight(estilo.luzJefe, 3.6, 26, 1.4);
-      luzBoss.position.set(bx, 1.8, -58.5);
-      dungeonGroup.add(luzBoss);
-
-      animables.push({
-        flicker: (t) => {
-          luzBoss.intensity = 3.6 * (0.85 + Math.sin(t * 8.0 + bx) * 0.12);
-        }
-      });
-    });
-
-    // Luz ambiental cenital suave
+    // 3. Luz ambiental cenital
     const luzAmbiente = new THREE_REF.AmbientLight(0xffffff, 1.4);
     dungeonGroup.add(luzAmbiente);
 
-    // Spawn points recomendados y estructurados
+    // 4. Calcular Puntos de Aparición (Spawns)
+    const roomEntrada = salas.find(s => s.tipo === 'entrada') || salas[0];
+    const radioVal = typeof config.radio === 'number' ? config.radio : 60;
+    const esDefault = (radioVal === 60 && (!config.numeroSalas || config.numeroSalas === 6) && (!config.customLayout) && (!config.salasPersonalizadas || config.salasPersonalizadas.length === 0));
+
+    const heroZ = esDefault ? 46.0 : (roomEntrada.z + roomEntrada.d / 2 - 1.2);
     const spawns = {
-      hero: { x: 0.0, y: 0.0, z: 46.0, rotY: Math.PI },
-      acompanante: { x: -1.2, y: 0.0, z: 48.0, rotY: Math.PI },
-      elites: [
+      hero: { x: roomEntrada.x, y: 0.0, z: heroZ, rotY: Math.PI },
+      acompanante: { x: roomEntrada.x - 1.2, y: 0.0, z: heroZ + 2.0, rotY: Math.PI },
+      elites: [],
+      boss: null
+    };
+
+    const roomBoss = salas.find(s => s.tipo === 'sala_jefe') || salas[salas.length - 1];
+    const bossZ = esDefault ? -58.0 : (roomBoss.z - roomBoss.d * 0.15);
+    spawns.boss = {
+      x: roomBoss.x,
+      y: 0.6,
+      z: bossZ,
+      name: config.boss && config.boss.name ? config.boss.name : 'Señor del Trono Caído',
+      rangoElite: config.boss && config.boss.rangoElite ? config.boss.rangoElite : 10
+    };
+
+    if (esDefault) {
+      spawns.elites = [
         { x: -1.4, z: 27.0, multiplicador: 4, name: 'Centinela de la Cripta' },
         { x: 1.4, z: 27.0, multiplicador: 4, name: 'Centinela de la Cripta' },
         { x: -1.8, z: -5.0, multiplicador: 4, name: 'Guardián del Santuario' },
         { x: 1.8, z: -5.0, multiplicador: 4, name: 'Guardián del Santuario' },
         { x: -2.8, z: -23.0, multiplicador: 8, name: 'Campeón Esqueleto Élite' },
         { x: 2.8, z: -23.0, multiplicador: 8, name: 'Campeón Esqueleto Élite' }
-      ],
-      boss: {
-        x: 0.0,
-        y: 0.6,
-        z: -58.0,
-        name: 'Señor del Trono Caído',
-        rangoElite: 10
-      }
-    };
+      ];
+    } else {
+      const salasIntermedias = salas.filter(s => s.tipo !== 'entrada' && s.tipo !== 'sala_jefe');
+      salasIntermedias.forEach((s, idx) => {
+        const mult = (idx % 2 === 0) ? 4 : 8;
+        const offX = Math.min(s.w * 0.22, 2.4);
+        spawns.elites.push({
+          x: Math.round(s.x - offX),
+          z: Math.round(s.z),
+          multiplicador: mult,
+          name: `Guardián de ${s.nombre}`
+        });
+        spawns.elites.push({
+          x: Math.round(s.x + offX),
+          z: Math.round(s.z),
+          multiplicador: mult,
+          name: `Guardián de ${s.nombre}`
+        });
+      });
+    }
+
+    const areaTotal = Math.round(salas.reduce((acc, s) => acc + (s.w * s.d), 0));
 
     return {
       group: dungeonGroup,
       salas,
       estilo,
       kit,
-      props: { antorchas, cofres, fuentes, animables },
+      props,
       spawns,
+      areaTotal,
       update: (dt, nowSec) => {
         const t = nowSec || (performance.now() / 1000);
         for (let i = 0; i < animables.length; i++) {
@@ -1035,6 +1481,7 @@
   }
 
   return {
+    TIPOS_ESTANCIA,
     ESTILOS_PIEDRA,
     PRNG,
     crearAtlasMazmorra,
@@ -1047,6 +1494,13 @@
     crearColumna,
     crearManchaVegetacion,
     crearHongosLuminosos,
+    crearArmeriaProps,
+    crearBibliotecaProps,
+    crearPrisionProps,
+    crearLaboratorioProps,
+    construirCajaHabitacion,
+    decorarHabitacion,
+    generarPlanEstancias,
     generarMazmorra
   };
 }));

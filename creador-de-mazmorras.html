@@ -213,6 +213,60 @@
       padding: 3px 4px;
     }
 
+    .sala-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      margin-bottom: 4px;
+      background: rgba(30, 41, 59, 0.75);
+      border-radius: 6px;
+      font-size: 11px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .sala-item-row:hover {
+      background: rgba(51, 65, 85, 0.85);
+      border-color: rgba(192, 132, 252, 0.4);
+    }
+    .sala-item-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      font-weight: 500;
+    }
+    .sala-item-dims {
+      color: #94a3b8;
+      font-size: 10px;
+      margin-right: 8px;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+    .sala-item-btn {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 10px;
+      cursor: pointer;
+      margin-left: 4px;
+      transition: all 0.12s;
+    }
+    .sala-item-btn:hover {
+      background: #7e22ce;
+      color: #fff;
+      border-color: #c084fc;
+    }
+    .sala-item-btn.del:hover {
+      background: #dc2626;
+      border-color: #ef4444;
+    }
+
     #info-hud {
       position: absolute;
       bottom: 12px;
@@ -298,6 +352,89 @@
         <input type="number" id="cfg-seed" min="1" max="99999" value="48291">
         <button class="btn gold" id="btn-seed-dice" style="flex:0 0 42px">🎲</button>
       </div>
+    </div>
+
+    <h2>📐 Escala y Variedad Procedural</h2>
+    <div class="control-row">
+      <label>Radio Total de la Mazmorra: <span id="lbl-radio">60 m</span></label>
+      <input type="range" id="cfg-radio" min="40" max="250" step="5" value="60">
+    </div>
+    <div class="grid2">
+      <div class="control-row">
+        <label>Tamaño Medio: <span id="lbl-tamano-medio">16 m</span></label>
+        <input type="range" id="cfg-tamano-medio" min="10" max="35" step="1" value="16">
+      </div>
+      <div class="control-row">
+        <label>Varianza / Aleatoriedad: <span id="lbl-varianza">35%</span></label>
+        <input type="range" id="cfg-varianza" min="0" max="100" step="5" value="35">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="control-row">
+        <label>Estancias Principales: <span id="lbl-num-salas">6</span></label>
+        <input type="range" id="cfg-num-salas" min="4" max="18" step="1" value="6">
+      </div>
+      <div class="control-row">
+        <label>Alas y Ramificaciones: <span id="lbl-ramificacion">50%</span></label>
+        <input type="range" id="cfg-ramificacion" min="0" max="100" step="5" value="50">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="control-row">
+        <label>Altura Techos: <span id="lbl-altura">5.2 m</span></label>
+        <input type="range" id="cfg-altura" min="4.0" max="10.0" step="0.2" value="5.2">
+      </div>
+      <div class="control-row">
+        <label>Ancho Pasillos: <span id="lbl-ancho-pasillo">6.8 m</span></label>
+        <input type="range" id="cfg-ancho-pasillo" min="4.0" max="12.0" step="0.4" value="6.8">
+      </div>
+    </div>
+
+    <h2>🏛️ Estancias de la Mazmorra (<span id="salas-count-badge">8</span>)</h2>
+    <div id="salas-list-container" style="max-height: 180px; overflow-y: auto; background: rgba(15,23,42,0.6); border: 1px solid #334155; border-radius: 6px; padding: 6px; margin-bottom: 8px;">
+      <div id="salas-list"></div>
+    </div>
+
+    <div id="panel-add-sala" style="background: rgba(30,41,59,0.7); border: 1px dashed rgba(192,132,252,0.4); border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+      <div style="font-weight: 700; font-size: 11px; color: #c084fc; margin-bottom: 6px;">➕ Crear Nueva Estancia</div>
+      <div class="control-row">
+        <label>Nombre de la Estancia</label>
+        <input type="text" id="new-sala-nombre" placeholder="ej. Armería Real de los Caídos">
+      </div>
+      <div class="control-row">
+        <label>Tipo de Estancia</label>
+        <select id="new-sala-tipo">
+          <option value="armeria">⚔️ Armería de la Guardia</option>
+          <option value="biblioteca">📜 Biblioteca Arcana</option>
+          <option value="prision">⛓️ Mazmorra de Celdas</option>
+          <option value="laboratorio">⚗️ Laboratorio de Alquimia</option>
+          <option value="jardin_subterraneo">🍄 Jardín Fúngico de Esporas</option>
+          <option value="fuente">⛲ Santuario de la Fuente</option>
+          <option value="tesoro">🪙 Cámara del Tesoro</option>
+          <option value="cripta_columnas">🏛️ Gran Cripta de Columnas</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="control-row">
+          <label>Ancho W (m)</label>
+          <input type="number" id="new-sala-w" min="8" max="45" value="16">
+        </div>
+        <div class="control-row">
+          <label>Profundidad D (m)</label>
+          <input type="number" id="new-sala-d" min="8" max="45" value="16">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="control-row">
+          <label>Posición X (m)</label>
+          <input type="number" id="new-sala-x" value="22">
+        </div>
+        <div class="control-row">
+          <label>Posición Z (m)</label>
+          <input type="number" id="new-sala-z" value="0">
+        </div>
+      </div>
+      <button class="btn alt" id="btn-insertar-sala" style="width: 100%; margin-top: 4px; font-weight: 700; background: #6b21a8; color: #fff;">➕ Insertar Estancia en la Mazmorra</button>
     </div>
 
     <h2>🏺 Elementos & Decoración Subterránea</h2>
@@ -398,6 +535,14 @@
       seed: 48291,
       glb: 'glb/mazmorras/mazmorra1.glb',
       mostrarTechos: false,
+      radio: 60,
+      tamanoMedio: 16,
+      varianzaTamano: 0.35,
+      numeroSalas: 6,
+      ramificacion: 0.5,
+      alturaTechos: 5.2,
+      anchoPasillos: 6.8,
+      salasPersonalizadas: [],
       props: {
         fuentes: true,
         antorchas: true,
@@ -510,6 +655,14 @@
       dungeonInstance = dg.generarMazmorra(THREE, {
         estilo: dungeonConfig.estilo,
         seed: dungeonConfig.seed,
+        radio: dungeonConfig.radio,
+        tamanoMedio: dungeonConfig.tamanoMedio,
+        varianzaTamano: dungeonConfig.varianzaTamano,
+        numeroSalas: dungeonConfig.numeroSalas,
+        ramificacion: dungeonConfig.ramificacion,
+        alturaTechos: dungeonConfig.alturaTechos,
+        anchoPasillos: dungeonConfig.anchoPasillos,
+        salasPersonalizadas: dungeonConfig.salasPersonalizadas,
         props: dungeonConfig.props,
         sinTecho: !dungeonConfig.mostrarTechos
       });
@@ -605,10 +758,61 @@
     }
 
     function actualizarHUD(inst) {
-      $('hud-area').textContent = '~2650 m²';
+      const area = inst.areaTotal || Math.round((inst.salas || []).reduce((acc, s) => acc + (s.w * s.d), 0));
+      $('hud-area').textContent = '~' + area + ' m²';
       $('hud-salas').textContent = (inst.salas ? inst.salas.length : 6) + ' cámaras';
       $('hud-antorchas').textContent = (inst.props && inst.props.antorchas ? inst.props.antorchas.length : 14) + ' activas';
       $('hud-boss').textContent = dungeonConfig.boss.name + ' (Nv ' + dungeonConfig.boss.level + ')';
+      if ($('salas-count-badge')) $('salas-count-badge').textContent = inst.salas ? inst.salas.length : 8;
+
+      renderSalasList(inst.salas);
+    }
+
+    function renderSalasList(salas) {
+      const container = $('salas-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const dg = window.DungeonGenerator;
+      const tiposDef = (dg && dg.TIPOS_ESTANCIA) || {};
+
+      (salas || []).forEach((s, idx) => {
+        const def = tiposDef[s.tipo] || { icono: '🏛️', nombre: s.nombre };
+        const row = document.createElement('div');
+        row.className = 'sala-item-row';
+        row.innerHTML = `
+          <div class="sala-item-title">
+            <span>${def.icono || '🏛️'}</span>
+            <span title="${s.nombre}">${s.nombre}</span>
+          </div>
+          <div class="sala-item-dims">${s.w}×${s.d}m (${Math.round(s.x)}, ${Math.round(s.z)})</div>
+          <button class="sala-item-btn" data-focus="${idx}" title="Centrar cámara">🎯</button>
+          ${s.esPersonalizada ? `<button class="sala-item-btn del" data-del-custom="${s.id}" title="Eliminar estancia">✕</button>` : ''}
+        `;
+        container.appendChild(row);
+      });
+
+      container.querySelectorAll('[data-focus]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.focus, 10);
+          const sala = (salas || [])[idx];
+          if (!sala) return;
+          controls.target.set(sala.x, 1.2, sala.z);
+          const elev = Math.max(sala.w, sala.d) * 1.5;
+          camera.position.set(sala.x, elev, sala.z + elev * 0.8);
+          controls.update();
+          showToast(`Cámara centrada en: ${sala.nombre}`);
+        });
+      });
+
+      container.querySelectorAll('[data-del-custom]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.delCustom;
+          dungeonConfig.salasPersonalizadas = (dungeonConfig.salasPersonalizadas || []).filter(cs => cs.id !== id);
+          rebuildDungeon();
+          showToast('Estancia personalizada eliminada');
+        });
+      });
     }
 
     // --- UI EVENT BINDINGS ---
@@ -630,6 +834,30 @@
       $('prop-sarcofagos').checked = p.sarcofagos !== false;
       $('prop-hongos').checked = p.hongos !== false;
       $('prop-techos').checked = !!dungeonConfig.mostrarTechos;
+
+      // Sliders de escala, variedad y dimensiones
+      if ($('cfg-radio')) $('cfg-radio').value = dungeonConfig.radio || 60;
+      if ($('lbl-radio')) $('lbl-radio').textContent = (dungeonConfig.radio || 60) + ' m';
+
+      if ($('cfg-tamano-medio')) $('cfg-tamano-medio').value = dungeonConfig.tamanoMedio || 16;
+      if ($('lbl-tamano-medio')) $('lbl-tamano-medio').textContent = (dungeonConfig.tamanoMedio || 16) + ' m';
+
+      const varPct = Math.round((dungeonConfig.varianzaTamano !== undefined ? dungeonConfig.varianzaTamano : 0.35) * 100);
+      if ($('cfg-varianza')) $('cfg-varianza').value = varPct;
+      if ($('lbl-varianza')) $('lbl-varianza').textContent = varPct + '%';
+
+      if ($('cfg-num-salas')) $('cfg-num-salas').value = dungeonConfig.numeroSalas || 6;
+      if ($('lbl-num-salas')) $('lbl-num-salas').textContent = (dungeonConfig.numeroSalas || 6) + ' salas';
+
+      const ramPct = Math.round((dungeonConfig.ramificacion !== undefined ? dungeonConfig.ramificacion : 0.5) * 100);
+      if ($('cfg-ramificacion')) $('cfg-ramificacion').value = ramPct;
+      if ($('lbl-ramificacion')) $('lbl-ramificacion').textContent = ramPct + '%';
+
+      if ($('cfg-altura')) $('cfg-altura').value = dungeonConfig.alturaTechos || 5.2;
+      if ($('lbl-altura')) $('lbl-altura').textContent = (dungeonConfig.alturaTechos || 5.2).toFixed(1) + ' m';
+
+      if ($('cfg-ancho-pasillo')) $('cfg-ancho-pasillo').value = dungeonConfig.anchoPasillos || 6.8;
+      if ($('lbl-ancho-pasillo')) $('lbl-ancho-pasillo').textContent = (dungeonConfig.anchoPasillos || 6.8).toFixed(1) + ' m';
 
       const b = dungeonConfig.boss || {};
       $('boss-name').value = b.name || 'Señor del Trono Caído';
@@ -699,6 +927,72 @@
     $('cfg-seed').addEventListener('change', e => {
       dungeonConfig.seed = parseInt(e.target.value, 10) || 1;
       rebuildDungeon();
+    });
+
+    // Controles de dimensiones, estancias y variedad procedural
+    $('cfg-radio').addEventListener('input', e => {
+      dungeonConfig.radio = parseFloat(e.target.value) || 60;
+      $('lbl-radio').textContent = dungeonConfig.radio + ' m';
+      rebuildDungeon();
+    });
+    $('cfg-tamano-medio').addEventListener('input', e => {
+      dungeonConfig.tamanoMedio = parseFloat(e.target.value) || 16;
+      $('lbl-tamano-medio').textContent = dungeonConfig.tamanoMedio + ' m';
+      rebuildDungeon();
+    });
+    $('cfg-varianza').addEventListener('input', e => {
+      const val = parseInt(e.target.value, 10) || 0;
+      dungeonConfig.varianzaTamano = val / 100;
+      $('lbl-varianza').textContent = val + '%';
+      rebuildDungeon();
+    });
+    $('cfg-num-salas').addEventListener('input', e => {
+      dungeonConfig.numeroSalas = parseInt(e.target.value, 10) || 6;
+      $('lbl-num-salas').textContent = dungeonConfig.numeroSalas + ' salas';
+      rebuildDungeon();
+    });
+    $('cfg-ramificacion').addEventListener('input', e => {
+      const val = parseInt(e.target.value, 10) || 0;
+      dungeonConfig.ramificacion = val / 100;
+      $('lbl-ramificacion').textContent = val + '%';
+      rebuildDungeon();
+    });
+    $('cfg-altura').addEventListener('input', e => {
+      dungeonConfig.alturaTechos = parseFloat(e.target.value) || 5.2;
+      $('lbl-altura').textContent = dungeonConfig.alturaTechos.toFixed(1) + ' m';
+      rebuildDungeon();
+    });
+    $('cfg-ancho-pasillo').addEventListener('input', e => {
+      dungeonConfig.anchoPasillos = parseFloat(e.target.value) || 6.8;
+      $('lbl-ancho-pasillo').textContent = dungeonConfig.anchoPasillos.toFixed(1) + ' m';
+      rebuildDungeon();
+    });
+
+    // Añadir estancia manual personalizada
+    $('btn-insertar-sala').addEventListener('click', () => {
+      const tipo = $('new-sala-tipo').value || 'armeria';
+      const defInfo = (typeof DungeonGenerator !== 'undefined' && DungeonGenerator.TIPOS_ESTANCIA && DungeonGenerator.TIPOS_ESTANCIA[tipo]) || {};
+      const nombre = ($('new-sala-nombre').value || '').trim() || defInfo.nombre || 'Nueva Estancia';
+      const w = parseInt($('new-sala-w').value, 10) || (defInfo.baseW || 16);
+      const d = parseInt($('new-sala-d').value, 10) || (defInfo.baseD || 16);
+      const x = parseInt($('new-sala-x').value, 10) || 0;
+      const z = parseInt($('new-sala-z').value, 10) || 0;
+
+      dungeonConfig.salasPersonalizadas = dungeonConfig.salasPersonalizadas || [];
+      dungeonConfig.salasPersonalizadas.push({
+        id: 'custom_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+        nombre,
+        tipo,
+        w,
+        d,
+        h: dungeonConfig.alturaTechos || 5.2,
+        x,
+        z
+      });
+
+      rebuildDungeon();
+      showToast(`✨ Estancia «${nombre}» añadida`);
+      $('new-sala-nombre').value = '';
     });
     $('btn-seed-dice').addEventListener('click', () => {
       dungeonConfig.seed = Math.floor(Math.random() * 99999) + 1;
@@ -838,6 +1132,11 @@
     }
 
     // Inicialización
+    window.dungeonConfig = dungeonConfig;
+    window.rebuildDungeon = rebuildDungeon;
+    window.syncUIFromConfig = syncUIFromConfig;
+    window.TIPOS_ESTANCIA = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator.TIPOS_ESTANCIA : null;
+
     syncUIFromConfig();
     rebuildDungeon();
     animate();

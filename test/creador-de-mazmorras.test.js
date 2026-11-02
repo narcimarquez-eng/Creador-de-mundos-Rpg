@@ -43,6 +43,18 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('id="btn-save-world"'), 'Debe incluir botón para guardar y volver al mundo');
   assert.ok(html.includes('js/dungeon-generator.js'), 'Debe importar el generador procedural de mazmorras');
   assert.ok(html.includes('rpgMundo.retornoMazmorra'), 'Debe sincronizar mediante retorno de almacenamiento');
+
+  // Nuevos controles de variedad, dimensiones y creación de estancias
+  assert.ok(html.includes('id="cfg-radio"'), 'Debe incluir slider para radio de la mazmorra');
+  assert.ok(html.includes('id="cfg-tamano-medio"'), 'Debe incluir slider para tamaño medio de las salas');
+  assert.ok(html.includes('id="cfg-varianza"'), 'Debe incluir slider de varianza / aleatoriedad de tamaño');
+  assert.ok(html.includes('id="cfg-num-salas"'), 'Debe incluir selector de número de salas');
+  assert.ok(html.includes('id="cfg-ramificacion"'), 'Debe incluir selector de ramificación');
+  assert.ok(html.includes('id="cfg-altura"'), 'Debe incluir control de altura de techos');
+  assert.ok(html.includes('id="cfg-ancho-pasillo"'), 'Debe incluir control de anchura de pasillos');
+  assert.ok(html.includes('id="new-sala-tipo"'), 'Debe incluir selector de tipo de estancia');
+  assert.ok(html.includes('id="btn-insertar-sala"'), 'Debe incluir botón para insertar nueva estancia manual');
+  assert.ok(html.includes('id="salas-list"'), 'Debe incluir lista de gestión de estancias');
 });
 
 test('index.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {

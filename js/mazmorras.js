@@ -31,7 +31,28 @@
       name: opts.name || ('Mazmorra Ancestral ' + nro),
       x: Math.round(x || 0),
       y: Math.round(y || 0),
+      tipoGeneracion: opts.tipoGeneracion || 'procedural',
+      procedural: opts.procedural !== undefined ? opts.procedural : true,
       glb: opts.glb || 'glb/mazmorras/mazmorra1.glb',
+      estilo: opts.estilo || 'cripta_gotica',
+      seed: opts.seed || (Math.abs(Math.round(x || 0)) * 1000 + Math.abs(Math.round(y || 0))) || 48291,
+      radio: opts.radio || 75,
+      tamanoMedio: opts.tamanoMedio || 20,
+      varianzaTamano: opts.varianzaTamano !== undefined ? opts.varianzaTamano : 0.4,
+      numeroSalas: opts.numeroSalas || 7,
+      ramificacion: opts.ramificacion !== undefined ? opts.ramificacion : 0.6,
+      alturaTechos: opts.alturaTechos || 6.0,
+      anchoPasillos: opts.anchoPasillos || 8.0,
+      props: opts.props || {
+        fuentes: true,
+        antorchas: true,
+        cofres: true,
+        jarrones: true,
+        musgo: true,
+        sarcofagos: true,
+        hongos: true
+      },
+      salasPersonalizadas: opts.salasPersonalizadas || [],
       level: lvl,
       rotacion: typeof opts.rotacion === 'number' ? opts.rotacion : 0,
       boss: {
@@ -460,7 +481,7 @@
 
       // 3. Cargar el modelo 3D de la mazmorra (Procedural estilo creador de pueblos o GLB)
       const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
-      const esProcedural = dungeon.tipoGeneracion === 'procedural' || dungeon.tipo === 'procedural' || dungeon.procedural || (!dungeon.glb && Gen);
+      const esProcedural = Gen && (dungeon.tipoGeneracion === 'procedural' || dungeon.tipo === 'procedural' || dungeon.procedural || !dungeon.glb);
 
       let proc = null;
       let SPAWN_X = 0.0;
@@ -469,9 +490,17 @@
 
       if (esProcedural && Gen) {
         proc = Gen.generarMazmorra(THREE, {
-          seed: dungeon.seed || (dungeon.x * 1000 + dungeon.y) || 48291,
+          seed: dungeon.seed || (Math.abs(dungeon.x || 0) * 1000 + Math.abs(dungeon.y || 0)) || 48291,
           estilo: dungeon.estilo || 'cripta_gotica',
           id: dungeon.id,
+          radio: dungeon.radio || 75,
+          tamanoMedio: dungeon.tamanoMedio || 20,
+          varianzaTamano: dungeon.varianzaTamano !== undefined ? dungeon.varianzaTamano : 0.4,
+          numeroSalas: dungeon.numeroSalas || 7,
+          ramificacion: dungeon.ramificacion !== undefined ? dungeon.ramificacion : 0.6,
+          alturaTechos: dungeon.alturaTechos || 6.0,
+          anchoPasillos: dungeon.anchoPasillos || 8.0,
+          salasPersonalizadas: dungeon.salasPersonalizadas || [],
           props: dungeon.props
         });
         this.instanciaProcedural = proc;
@@ -494,7 +523,16 @@
             const fallbackProc = Gen.generarMazmorra(THREE, {
               seed: dungeon.seed || 48291,
               estilo: dungeon.estilo || 'cripta_gotica',
-              id: dungeon.id
+              id: dungeon.id,
+              radio: dungeon.radio || 75,
+              tamanoMedio: dungeon.tamanoMedio || 20,
+              varianzaTamano: dungeon.varianzaTamano !== undefined ? dungeon.varianzaTamano : 0.4,
+              numeroSalas: dungeon.numeroSalas || 7,
+              ramificacion: dungeon.ramificacion !== undefined ? dungeon.ramificacion : 0.6,
+              alturaTechos: dungeon.alturaTechos || 6.0,
+              anchoPasillos: dungeon.anchoPasillos || 8.0,
+              salasPersonalizadas: dungeon.salasPersonalizadas || [],
+              props: dungeon.props
             });
             this.instanciaProcedural = fallbackProc;
             if (this.grupoInstancia) this.grupoInstancia.add(fallbackProc.group);
@@ -519,8 +557,8 @@
       }
 
       // Teletransportar la cámara con encuadre amplio detrás del héroe (visión majestuosa y despejada)
-      const CAM_OFFSET_Y = 3.2;
-      const CAM_OFFSET_Z = 7.5;
+      const CAM_OFFSET_Y = 3.6;
+      const CAM_OFFSET_Z = 8.5;
       if (controls) {
         controls.target.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z);
         if (camera) {

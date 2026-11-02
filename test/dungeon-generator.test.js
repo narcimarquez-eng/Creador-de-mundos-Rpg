@@ -141,3 +141,106 @@ test('DungeonGenerator: generarMazmorra completa procedural', () => {
   assert.strictEqual(typeof res.update, 'function');
   res.update(0.016, 1.0);
 });
+
+test('DungeonGenerator: catálogo de estancias y nuevos props especializados', () => {
+  const tipos = DungeonGenerator.TIPOS_ESTANCIA;
+  assert.ok(tipos, 'Debe exportar TIPOS_ESTANCIA');
+  assert.ok(tipos.entrada && tipos.fuente && tipos.tesoro && tipos.cripta_columnas);
+  assert.ok(tipos.armeria && tipos.biblioteca && tipos.prision && tipos.laboratorio && tipos.jardin_subterraneo);
+  assert.ok(tipos.sala_jefe);
+
+  const estilo = DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica;
+  const kit = DungeonGenerator.crearKitMateriales(estilo, mockTHREE);
+  const rng = new DungeonGenerator.PRNG(777);
+
+  // Armería
+  const arm = DungeonGenerator.crearArmeriaProps(mockTHREE, kit, rng);
+  assert.strictEqual(arm.userData.tipo, 'armeria');
+
+  // Biblioteca
+  const bib = DungeonGenerator.crearBibliotecaProps(mockTHREE, kit, rng);
+  assert.strictEqual(bib.userData.tipo, 'biblioteca');
+
+  // Prisión
+  const pris = DungeonGenerator.crearPrisionProps(mockTHREE, kit, rng, 5.0);
+  assert.strictEqual(pris.userData.tipo, 'prision');
+
+  // Laboratorio
+  const lab = DungeonGenerator.crearLaboratorioProps(mockTHREE, kit, rng);
+  assert.strictEqual(lab.userData.tipo, 'laboratorio');
+});
+
+test('DungeonGenerator: incremento de radio y escalado de superficie', () => {
+  const resPequena = DungeonGenerator.generarMazmorra(mockTHREE, {
+    radio: 50,
+    numeroSalas: 5,
+    seed: 123
+  });
+  const resGrande = DungeonGenerator.generarMazmorra(mockTHREE, {
+    radio: 150,
+    numeroSalas: 10,
+    seed: 123
+  });
+
+  assert.ok(resGrande.areaTotal > resPequena.areaTotal, 'Radio mayor debe generar mayor superficie total');
+  const spanPequena = Math.abs(resPequena.spawns.hero.z - resPequena.spawns.boss.z);
+  const spanGrande = Math.abs(resGrande.spawns.hero.z - resGrande.spawns.boss.z);
+  assert.ok(spanGrande > spanPequena, 'La distancia entre la entrada y el jefe debe aumentar con el radio');
+});
+
+test('DungeonGenerator: varianza y tamaño medio de salas', () => {
+  const resMedio12 = DungeonGenerator.generarMazmorra(mockTHREE, {
+    tamanoMedio: 12,
+    varianzaTamano: 0.0,
+    seed: 321
+  });
+  const resMedio28 = DungeonGenerator.generarMazmorra(mockTHREE, {
+    tamanoMedio: 28,
+    varianzaTamano: 0.0,
+    seed: 321
+  });
+
+  assert.ok(resMedio28.areaTotal > resMedio12.areaTotal * 2, 'Salas de 28m deben tener mucha mayor superficie que de 12m');
+
+  const resConVarianza = DungeonGenerator.generarMazmorra(mockTHREE, {
+    tamanoMedio: 20,
+    varianzaTamano: 0.8,
+    seed: 888
+  });
+  const anchos = resConVarianza.salas.map(s => s.w);
+  const minAncho = Math.min(...anchos);
+  const maxAncho = Math.max(...anchos);
+  assert.ok(maxAncho > minAncho, 'La varianza alta debe generar tamaños diversos entre salas');
+});
+
+test('DungeonGenerator: creación de nuevas estancias personalizadas manuales', () => {
+  const salasCustom = [
+    {
+      id: 'sala_custom_alquimia',
+      tipo: 'laboratorio',
+      nombre: 'Cámara Prohibida del Nigromante',
+      x: 25, y: 0, z: -10,
+      w: 18, d: 18, h: 6.0
+    },
+    {
+      id: 'sala_custom_prision',
+      tipo: 'prision',
+      nombre: 'Calabozo de los Traidores',
+      x: -25, y: 0, z: -10,
+      w: 16, d: 14, h: 5.0
+    }
+  ];
+
+  const res = DungeonGenerator.generarMazmorra(mockTHREE, {
+    seed: 999,
+    salasPersonalizadas: salasCustom
+  });
+
+  const encontradaLab = res.salas.find(s => s.id === 'sala_custom_alquimia');
+  assert.ok(encontradaLab, 'Debe incluir la estancia personalizada de laboratorio');
+  assert.strictEqual(encontradaLab.nombre, 'Cámara Prohibida del Nigromante');
+
+  const encontradaPris = res.salas.find(s => s.id === 'sala_custom_prision');
+  assert.ok(encontradaPris, 'Debe incluir la estancia personalizada de prisión');
+  assert.strictEqual(encontradaPris.w, 16);
+});
