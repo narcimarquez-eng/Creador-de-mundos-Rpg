@@ -775,3 +775,40 @@ test('DungeonGenerator: generación automática de pasillos laterales al colocar
   const nuevoPasilloDer = res3.salas.find(s => s.id.includes('room_armeria_derecha'));
   assert.ok(nuevoPasilloDer.w >= 8.8, `El nuevo pasillo debe expandirse para cubrir la nueva distancia (w = ${nuevoPasilloDer.w})`);
 });
+
+test('DungeonGenerator: texturas independientes por partes para la mazmorra completa y pasillos con tamaño exacto de separación', () => {
+  // 1. Texturas individuales a nivel de mazmorra completa
+  const configGlobal = {
+    estilo: 'cripta_gotica',
+    estiloPared: 'fortaleza_basalto',
+    estiloSuelo: 'marmol_imperial',
+    estiloZocalo: 'catacumbas_caliza',
+    estiloTecho: 'ruinas_musgosas',
+    estiloFuente: 'santuario_jade',
+    colorPared: '#5c2d2d',
+    colorSuelo: '#ffffff',
+    colorZocalo: '#888888',
+    colorTecho: '#112211',
+    colorAgua: '#10b981',
+    salas: [
+      { id: 's1', tipo: 'entrada', x: 0, z: 0, w: 20, d: 20, h: 5 },
+      { id: 's2', tipo: 'fuente', x: 28, z: 0, w: 12, d: 12, h: 5 }
+    ]
+  };
+
+  const res = DungeonGenerator.generarMazmorra(mockTHREE, configGlobal);
+  assert.strictEqual(res.salas.length, 3, 'Debe haber s1, s2 y el pasillo lateral conector');
+
+  const pasillo = res.salas.find(s => s.tipo === 'pasillo' && s.esConectorAutomatico);
+  assert.ok(pasillo, 'Debe existir el pasillo conector');
+
+  // Separación exacta en X: s1 termina en 10, s2 empieza en 28 - 6 = 22. Distancia = 12.0
+  const distExacta = (28 - 6) - (0 + 10);
+  assert.strictEqual(distExacta, 12, 'La distancia entre las dos salas debe ser exactamente 12m');
+  assert.strictEqual(pasillo.w, distExacta, 'El pasillo debe tener exactamente el tamaño de la distancia entre salas sin meterse dentro');
+  assert.strictEqual(pasillo.x, 16, 'El pasillo debe estar centrado exactamente entre los dos bordes (10 y 22)');
+
+  // 2. Comprobar que resolverMaterialesSala respeta los estilos por partes de la mazmorra completa
+  const matsS1 = DungeonGenerator.resolverMaterialesSala(mockTHREE, res.kit, {}, res.salas[0], configGlobal);
+  assert.strictEqual(matsS1.colorAgua, '#10b981', 'Debe aplicar color de agua global configurado');
+});
