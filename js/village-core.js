@@ -2577,6 +2577,59 @@
           iStall.setColorAt(idx, new THREE.Color(s.color));
         });
 
+        // Puestos de mercado GLB personalizados en el anillo cerca de los gurús
+        if (typeof THREE !== 'undefined' && typeof THREE.GLTFLoader !== 'undefined' && stalls.length > 0) {
+          const MODELOS_PUESTOS = [
+            'glb/puestos/puesto_armas.glb',
+            'glb/puestos/puesto_frutas.glb',
+            'glb/puestos/puesto_libros.glb',
+            'glb/puestos/puesto_pescado.glb'
+          ];
+          const puestosGrupo = new THREE.Group();
+          puestosGrupo.name = 'PuestosMercadoGLB';
+          this.group.add(puestosGrupo);
+
+          if (!VillageGenerator._cachePuestosGLB) VillageGenerator._cachePuestosGLB = {};
+          const cacheGLB = VillageGenerator._cachePuestosGLB;
+
+          stalls.forEach((s, idx) => {
+            const ruta = MODELOS_PUESTOS[idx % MODELOS_PUESTOS.length];
+            const cargarProto = cacheGLB[ruta]
+              ? Promise.resolve(cacheGLB[ruta])
+              : new Promise(res => {
+                  const loader = new THREE.GLTFLoader();
+                  loader.load(ruta, gltf => {
+                    if (gltf && gltf.scene) {
+                      cacheGLB[ruta] = gltf.scene;
+                      res(gltf.scene);
+                    } else res(null);
+                  }, undefined, () => res(null));
+                });
+
+            cargarProto.then(proto => {
+              if (!proto) return;
+              const clon = proto.clone(true);
+              const bbox = new THREE.Box3().setFromObject(clon);
+              const sz = new THREE.Vector3();
+              bbox.getSize(sz);
+              if (sz.y > 0.05 && (sz.y < 1.0 || sz.y > 3.5)) {
+                const escalaH = 2.2 / sz.y;
+                clon.scale.set(escalaH, escalaH, escalaH);
+              }
+              clon.position.set(s.x, s.y, s.z);
+              clon.rotation.y = s.rot;
+              clon.traverse(child => {
+                if (child.isMesh) {
+                  child.castShadow = true;
+                  child.receiveShadow = true;
+                }
+              });
+              puestosGrupo.add(clon);
+              if (iStall) iStall.visible = false;
+            });
+          });
+        }
+
         barrels.forEach((b, idx) => {
           dPos.set(b.x, b.y, b.z);
           dQuat.identity();

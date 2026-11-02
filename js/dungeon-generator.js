@@ -482,46 +482,58 @@
   }
 
   // --- 2.3 RESOLUTOR DE MATERIALES INDIVIDUALES POR ESTANCIA ---
-  function resolverMaterialesSala(ThreeLib, kitBase, kitsPorEstilo, sala) {
-    const kPared = (kitsPorEstilo && (kitsPorEstilo[sala.estiloPared || sala.estilo])) || kitBase;
-    const kSuelo = (kitsPorEstilo && (kitsPorEstilo[sala.estiloSuelo])) || (kitsPorEstilo && kitsPorEstilo[sala.estilo]) || kitBase;
-    const kZocalo = (kitsPorEstilo && (kitsPorEstilo[sala.estiloZocalo])) || (kitsPorEstilo && kitsPorEstilo[sala.estiloPared || sala.estilo]) || kitBase;
-    const kTecho = (kitsPorEstilo && (kitsPorEstilo[sala.estiloTecho])) || (kitsPorEstilo && kitsPorEstilo[sala.estiloPared || sala.estilo]) || kPared;
-    const kFuente = (kitsPorEstilo && (kitsPorEstilo[sala.estiloFuente])) || (kitsPorEstilo && kitsPorEstilo[sala.estilo]) || kitBase;
+  function resolverMaterialesSala(ThreeLib, kitBase, kitsPorEstilo, sala, config = {}) {
+    const cfg = config || {};
+    const estiloPared = sala.estiloPared || sala.estilo || cfg.estiloPared || cfg.estilo;
+    const estiloSuelo = sala.estiloSuelo || sala.estilo || cfg.estiloSuelo || cfg.estilo;
+    const estiloZocalo = sala.estiloZocalo || sala.estiloPared || sala.estilo || cfg.estiloZocalo || cfg.estiloPared || cfg.estilo;
+    const estiloTecho = sala.estiloTecho || sala.estiloPared || sala.estilo || cfg.estiloTecho || cfg.estiloPared || cfg.estilo;
+    const estiloFuente = sala.estiloFuente || sala.estilo || cfg.estiloFuente || cfg.estilo;
+
+    const kPared = (kitsPorEstilo && (kitsPorEstilo[estiloPared])) || kitBase;
+    const kSuelo = (kitsPorEstilo && (kitsPorEstilo[estiloSuelo])) || (kitsPorEstilo && kitsPorEstilo[sala.estilo]) || kitBase;
+    const kZocalo = (kitsPorEstilo && (kitsPorEstilo[estiloZocalo])) || kitBase;
+    const kTecho = (kitsPorEstilo && (kitsPorEstilo[estiloTecho])) || kPared;
+    const kFuente = (kitsPorEstilo && (kitsPorEstilo[estiloFuente])) || kitBase;
 
     let matPared = kPared.piedraMuro;
-    if (sala.colorPared && sala.colorPared !== 'default') {
+    const colPared = (sala.colorPared && sala.colorPared !== 'default') ? sala.colorPared : (cfg.colorPared && cfg.colorPared !== 'default' ? cfg.colorPared : null);
+    if (colPared) {
       matPared = (matPared && typeof matPared.clone === 'function') ? matPared.clone() : Object.assign({}, matPared);
-      if (matPared.color && typeof matPared.color.set === 'function') matPared.color.set(sala.colorPared);
-      else matPared.color = sala.colorPared;
+      if (matPared.color && typeof matPared.color.set === 'function') matPared.color.set(colPared);
+      else matPared.color = colPared;
     }
 
     let matSuelo = kSuelo.sueloLosas;
-    if (sala.colorSuelo && sala.colorSuelo !== 'default') {
+    const colSuelo = (sala.colorSuelo && sala.colorSuelo !== 'default') ? sala.colorSuelo : (cfg.colorSuelo && cfg.colorSuelo !== 'default' ? cfg.colorSuelo : null);
+    if (colSuelo) {
       matSuelo = (matSuelo && typeof matSuelo.clone === 'function') ? matSuelo.clone() : Object.assign({}, matSuelo);
-      if (matSuelo.color && typeof matSuelo.color.set === 'function') matSuelo.color.set(sala.colorSuelo);
-      else matSuelo.color = sala.colorSuelo;
+      if (matSuelo.color && typeof matSuelo.color.set === 'function') matSuelo.color.set(colSuelo);
+      else matSuelo.color = colSuelo;
     }
 
     let matZocalo = kZocalo.zocalo || kZocalo.piedraMuro;
-    if (sala.colorZocalo && sala.colorZocalo !== 'default') {
+    const colZocalo = (sala.colorZocalo && sala.colorZocalo !== 'default') ? sala.colorZocalo : (cfg.colorZocalo && cfg.colorZocalo !== 'default' ? cfg.colorZocalo : null);
+    if (colZocalo) {
       matZocalo = (matZocalo && typeof matZocalo.clone === 'function') ? matZocalo.clone() : Object.assign({}, matZocalo);
-      if (matZocalo.color && typeof matZocalo.color.set === 'function') matZocalo.color.set(sala.colorZocalo);
-      else matZocalo.color = sala.colorZocalo;
+      if (matZocalo.color && typeof matZocalo.color.set === 'function') matZocalo.color.set(colZocalo);
+      else matZocalo.color = colZocalo;
     }
 
     let matTecho = kTecho.techo || kTecho.piedraMuro;
-    if (sala.colorTecho && sala.colorTecho !== 'default') {
+    const colTecho = (sala.colorTecho && sala.colorTecho !== 'default') ? sala.colorTecho : (cfg.colorTecho && cfg.colorTecho !== 'default' ? cfg.colorTecho : null);
+    if (colTecho) {
       matTecho = (matTecho && typeof matTecho.clone === 'function') ? matTecho.clone() : Object.assign({}, matTecho);
-      if (matTecho.color && typeof matTecho.color.set === 'function') matTecho.color.set(sala.colorTecho);
-      else matTecho.color = sala.colorTecho;
+      if (matTecho.color && typeof matTecho.color.set === 'function') matTecho.color.set(colTecho);
+      else matTecho.color = colTecho;
     }
 
     let matAgua = kFuente.agua;
-    if (sala.colorAgua && sala.colorAgua !== 'default') {
+    const colAgua = (sala.colorAgua && sala.colorAgua !== 'default') ? sala.colorAgua : (cfg.colorAgua && cfg.colorAgua !== 'default' ? cfg.colorAgua : null);
+    if (colAgua) {
       matAgua = (matAgua && typeof matAgua.clone === 'function') ? matAgua.clone() : Object.assign({}, matAgua);
-      if (matAgua.color && typeof matAgua.color.set === 'function') matAgua.color.set(sala.colorAgua);
-      else matAgua.color = sala.colorAgua;
+      if (matAgua.color && typeof matAgua.color.set === 'function') matAgua.color.set(colAgua);
+      else matAgua.color = colAgua;
     }
 
     return {
@@ -535,7 +547,7 @@
       matZocalo,
       matTecho,
       matAgua,
-      colorAgua: (sala.colorAgua && sala.colorAgua !== "default") ? sala.colorAgua : "#38bdf8",
+      colorAgua: colAgua || "#38bdf8",
       kitCompleto: Object.assign({}, kitBase, {
         piedraMuro: matPared,
         sueloLosas: matSuelo,
@@ -2227,7 +2239,7 @@
 
     const W = sala.w, H = sala.h, D = sala.d;
 
-    const mats = resolverMaterialesSala(ThreeLib, kit, opciones.kitsPorEstilo, sala);
+    const mats = resolverMaterialesSala(ThreeLib, kit, opciones.kitsPorEstilo, sala, opciones);
 
     // Suelo
     const sueloGeo = new ThreeLib.PlaneGeometry(W, D);
@@ -3056,7 +3068,7 @@
             const anchoD = Math.max(3.5, Math.min(mejorOverlapZ, anchoPasillos, 7.5));
             const altoH = Math.min(oeste.h || alturaTechos, mejorEste.h || alturaTechos, 4.2);
             const centroX = (bordeDerOeste + bordeIzqEste) / 2;
-            const anchoW = menorGapX + 0.2; // Solapamiento de 0.1 a cada extremo para unión hermética
+            const anchoW = menorGapX; // Tamaño exacto de la distancia entre estancias sin meterse dentro de la sala
 
             const pasilloId = `corridor_lat_${oeste.id}_${mejorEste.id}`;
             const pasilloConector = {
@@ -3139,7 +3151,7 @@
               const anchoW = Math.max(3.5, Math.min(mejorOverlapX, anchoPasillos, 7.5));
               const altoH = Math.min(sur.h || alturaTechos, mejorNorte.h || alturaTechos, 4.2);
               const centroZ = (bordeNorteSur + bordeSurNorte) / 2;
-              const profD = menorGapZ + 0.2;
+              const profD = menorGapZ; // Tamaño exacto de la distancia entre estancias sin meterse dentro de la sala
 
               const pasilloId = `corridor_ns_${sur.id}_${mejorNorte.id}`;
               const pasilloConector = {
@@ -3199,7 +3211,7 @@
     if (esDefault) {
       const salasDef = [
         { id: 'room_entrada', tipo: 'entrada', nombre: 'Gran Salón de Entrada', x: 0, y: 0, z: 42, w: 26, d: 24, h: 6.5, abiertoNorte: true },
-        { id: 'corridor_1', tipo: 'pasillo', nombre: 'Corredor de los Guardias', x: 0, y: 0, z: 27, w: 6.8, d: 16, h: 4.2, abiertoSur: true, abiertoNorte: true },
+        { id: 'corridor_1', tipo: 'pasillo', nombre: 'Corredor de los Guardias', x: 0, y: 0, z: 24.5, w: 6.8, d: 11, h: 4.2, abiertoSur: true, abiertoNorte: true },
         { id: 'room_fuente', tipo: 'fuente', nombre: 'Santuario de la Fuente', x: 0, y: 0, z: 11, w: 18, d: 16, h: 5.6, abiertoSur: true, abiertoNorte: true, abiertoEste: true },
         { id: 'room_tesoro', tipo: 'tesoro', nombre: 'Cámara Secreta del Tesoro', x: 17, y: 0, z: 11, w: 12, d: 12, h: 4.4, abiertoOeste: true },
         { id: 'corridor_2', tipo: 'pasillo', nombre: 'Galería de Arcos', x: 0, y: 0, z: -5, w: 7.2, d: 16, h: 4.5, abiertoSur: true, abiertoNorte: true },
@@ -3247,28 +3259,31 @@
     for (let i = 1; i <= cantIntermedias; i++) {
       const zCamara = Math.round(zEntrada - i * pasoZ);
 
-      // Conector / pasillo intermedio
-      const gap = (zAnterior - dAnterior / 2) - (zCamara + (tamanoMedio / 2));
-      const distCorredor = Math.max(8, gap);
-      const zCorredor = Math.round((zAnterior - dAnterior / 2 + zCamara + tamanoMedio / 2) / 2);
-      const varPasillo = 1 + (rng.range(-0.5, 0.5) * varianzaTamano * 0.3);
-      const wPasillo = Math.round(anchoPasillos * varPasillo);
-
-      salas.push({
-        id: `corridor_${i}`,
-        tipo: 'pasillo',
-        nombre: `Galería del Sector ${i}`,
-        x: 0, y: 0, z: zCorredor,
-        w: wPasillo, d: distCorredor, h: Math.round(alturaTechos * 0.85),
-        abiertoSur: true, abiertoNorte: true
-      });
-
-      // Dimensiones con varianza aleatoria
+      // Dimensiones con varianza aleatoria calculadas primero para tener la distancia exacta
       const factorVarW = 1 + (rng.range(-1, 1) * varianzaTamano);
       const factorVarD = 1 + (rng.range(-1, 1) * varianzaTamano);
       const wCamara = Math.round(Math.max(10, tamanoMedio * factorVarW));
       const dCamara = Math.round(Math.max(10, tamanoMedio * factorVarD));
       const hCamara = Math.round(Math.max(4.2, alturaTechos * (1 + rng.range(-0.3, 0.3) * varianzaTamano)));
+
+      // Conector / pasillo intermedio: tamaño exacto de la distancia entre las dos salas sin meterse dentro
+      const bordeSurAnterior = zAnterior - (dAnterior / 2);
+      const bordeNorteCamara = zCamara + (dCamara / 2);
+      const distCorredor = Math.max(0.5, bordeSurAnterior - bordeNorteCamara);
+      const zCorredor = (bordeSurAnterior + bordeNorteCamara) / 2;
+      const varPasillo = 1 + (rng.range(-0.5, 0.5) * varianzaTamano * 0.3);
+      const wPasillo = Math.round(anchoPasillos * varPasillo);
+
+      if (distCorredor > 0.8) {
+        salas.push({
+          id: `corridor_${i}`,
+          tipo: 'pasillo',
+          nombre: `Galería del Sector ${i}`,
+          x: 0, y: 0, z: zCorredor,
+          w: wPasillo, d: distCorredor, h: Math.round(alturaTechos * 0.85),
+          abiertoSur: true, abiertoNorte: true
+        });
+      }
 
       if (tiposDisponibles.length === 0) tiposDisponibles = [...poolTiposIntermedios];
       const tipoIdx = rng.int(0, tiposDisponibles.length - 1);
@@ -3313,23 +3328,28 @@
       dAnterior = dCamara;
     }
 
-    // 4. Último pasillo procesional hacia la sala del jefe
-    const distCorredorFinal = Math.max(8, (zAnterior - dAnterior / 2) - (zBoss + tamanoMedio * 0.6));
-    const zCorredorFinal = Math.round((zAnterior - dAnterior / 2 + zBoss + tamanoMedio * 0.6) / 2);
-    salas.push({
-      id: 'corridor_final',
-      tipo: 'pasillo',
-      nombre: 'Avenida Procesional del Caído',
-      x: 0, y: 0, z: zCorredorFinal,
-      w: Math.round(anchoPasillos * 1.15), d: distCorredorFinal, h: Math.round(alturaTechos * 0.9),
-      abiertoSur: true, abiertoNorte: true
-    });
-
-    // 5. Salón del trono del Jefe
+    // 4. Salón del trono del Jefe (dimensiones calculadas primero)
     const varBoss = 1 + (rng.range(-0.5, 0.5) * varianzaTamano * 0.4);
     const bossW = Math.round(Math.max(18, tamanoMedio * 1.45 * varBoss));
     const bossD = Math.round(Math.max(18, tamanoMedio * 1.45 * varBoss));
     const bossH = Math.round(alturaTechos * 1.35);
+
+    // Último pasillo procesional hacia la sala del jefe: tamaño exacto de la distancia sin meterse en las salas
+    const bordeSurUltimo = zAnterior - (dAnterior / 2);
+    const bordeNorteBoss = zBoss + (bossD / 2);
+    const distCorredorFinal = Math.max(0.5, bordeSurUltimo - bordeNorteBoss);
+    const zCorredorFinal = (bordeSurUltimo + bordeNorteBoss) / 2;
+
+    if (distCorredorFinal > 0.8) {
+      salas.push({
+        id: 'corridor_final',
+        tipo: 'pasillo',
+        nombre: 'Avenida Procesional del Caído',
+        x: 0, y: 0, z: zCorredorFinal,
+        w: Math.round(anchoPasillos * 1.15), d: distCorredorFinal, h: Math.round(alturaTechos * 0.9),
+        abiertoSur: true, abiertoNorte: true
+      });
+    }
 
     const roomBoss = {
       id: 'room_boss',

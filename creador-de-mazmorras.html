@@ -422,9 +422,9 @@
       </div>
     </div>
 
-    <h2>🏛️ Arquitectura y Piedra</h2>
+    <h2>🏛️ Arquitectura y Piedra de la Mazmorra</h2>
     <div class="control-row">
-      <label>Estilo de Piedra de la Mazmorra</label>
+      <label>Estilo Base General</label>
       <div style="display:flex; gap:6px; align-items:center;">
         <img id="preview-thumb-global" class="textura-swatch-mini" title="Vista previa del estilo general" alt="Preview">
         <select id="cfg-estilo" style="flex:1;">
@@ -454,6 +454,212 @@
       <button type="button" class="btn-muestrario sala-item-btn" data-target="global" title="Abrir catálogo visual con vista previa" style="padding: 4px 6px; font-size:10px;">👁️ Muestrario</button>
       </div>
     </div>
+
+    <!-- TEXTURAS INDIVIDUALES POR PARTES PARA LA MAZMORRA COMPLETA -->
+    <details open style="background: rgba(15, 23, 42, 0.55); border: 1px solid #4338ca; border-radius: 6px; padding: 6px; margin-bottom: 8px;">
+      <summary style="font-weight: 700; font-size: 11px; color: #c7d2fe; cursor: pointer; user-select: none;">
+        🧱 Texturas por Partes (Toda la Mazmorra)
+      </summary>
+
+      <!-- Paredes de la Mazmorra -->
+      <div class="control-row" style="margin-top: 6px; margin-bottom: 2px;">
+        <label style="font-size:10px;">🧱 Textura de Paredes</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <img id="preview-thumb-cfg-pared" class="textura-swatch-mini" title="Vista previa paredes de la mazmorra" alt="Pared">
+          <select id="cfg-estilo-pared" style="font-size:11px; flex:1;">
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+          <button type="button" class="btn-muestrario sala-item-btn" data-target="cfg-pared" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+        </div>
+      </div>
+      <div class="control-row" style="margin-bottom: 5px;">
+        <label style="font-size:10px;">Color de Paredes</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="color" id="cfg-color-pared" value="#706860" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+          <button id="btn-cfg-color-pared-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+        </div>
+      </div>
+
+      <!-- Suelos de la Mazmorra -->
+      <div class="control-row" style="margin-bottom: 2px;">
+        <label style="font-size:10px;">⬛ Textura de Suelos / Losas</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <img id="preview-thumb-cfg-suelo" class="textura-swatch-mini" title="Vista previa suelo de la mazmorra" alt="Suelo">
+          <select id="cfg-estilo-suelo" style="font-size:11px; flex:1;">
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+          <button type="button" class="btn-muestrario sala-item-btn" data-target="cfg-suelo" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+        </div>
+      </div>
+      <div class="control-row" style="margin-bottom: 5px;">
+        <label style="font-size:10px;">Color de Suelos</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="color" id="cfg-color-suelo" value="#4a423b" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+          <button id="btn-cfg-color-suelo-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+        </div>
+      </div>
+
+      <!-- Zócalos de la Mazmorra -->
+      <div class="control-row" style="margin-bottom: 2px;">
+        <label style="font-size:10px;">🏛️ Textura de Zócalo Inferior</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <img id="preview-thumb-cfg-zocalo" class="textura-swatch-mini" title="Vista previa zócalo de la mazmorra" alt="Zócalo">
+          <select id="cfg-estilo-zocalo" style="font-size:11px; flex:1;">
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+          <button type="button" class="btn-muestrario sala-item-btn" data-target="cfg-zocalo" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+        </div>
+      </div>
+      <div class="control-row" style="margin-bottom: 5px;">
+        <label style="font-size:10px;">Color de Zócalos</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="color" id="cfg-color-zocalo" value="#57534e" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+          <button id="btn-cfg-color-zocalo-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+        </div>
+      </div>
+
+      <!-- Techos de la Mazmorra -->
+      <div class="control-row" style="margin-bottom: 2px;">
+        <label style="font-size:10px;">🏰 Textura de Techos / Bóveda</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <img id="preview-thumb-cfg-techo" class="textura-swatch-mini" title="Vista previa techos de la mazmorra" alt="Techo">
+          <select id="cfg-estilo-techo" style="font-size:11px; flex:1;">
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+          <button type="button" class="btn-muestrario sala-item-btn" data-target="cfg-techo" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+        </div>
+      </div>
+      <div class="control-row" style="margin-bottom: 5px;">
+        <label style="font-size:10px;">Color de Techos</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="color" id="cfg-color-techo" value="#38302b" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+          <button id="btn-cfg-color-techo-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
+        </div>
+      </div>
+
+      <!-- Fuentes y Pilares de la Mazmorra -->
+      <div class="control-row" style="margin-bottom: 2px;">
+        <label style="font-size:10px;">⛲ Textura de Fuentes / Pilares</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <img id="preview-thumb-cfg-fuente" class="textura-swatch-mini" title="Vista previa fuentes de la mazmorra" alt="Fuente">
+          <select id="cfg-estilo-fuente" style="font-size:11px; flex:1;">
+            <option value="cripta_gotica">Cripta Gótica Oscura</option>
+            <option value="ruinas_musgosas">Ruinas de Granito y Musgo</option>
+            <option value="catacumbas_caliza">Catacumbas de Caliza Antigua</option>
+            <option value="fortaleza_basalto">Fortaleza de Basalto y Obsidiana</option>
+            <option value="marmol_imperial">Templo de Mármol Blanco Imperial</option>
+            <option value="caverna_obsidiana">Caverna de Obsidiana Abisal</option>
+            <option value="ladrillo_medieval">Mazmorra de Ladrillo Medieval Rojizo</option>
+            <option value="minas_amatista">Minas de Cuarzo y Amatista</option>
+            <option value="santuario_jade">Santuario de Jade y Esmeralda</option>
+            <option value="bastion_hierro">Bastión de Hierro Oxidado</option>
+            <option value="cripta_glaciar">Cripta de Hielo y Glaciar Azul</option>
+            <option value="arenisca_desierto">Necrópolis de Arenisca del Desierto</option>
+            <option value="huesos_calcinados">Catacumbas de Calaveras y Huesos</option>
+            <option value="alquimia_azufre">Laboratorio de Azufre y Alquimia</option>
+            <option value="cloacas_pizarra">Cloacas de Pizarra Subterránea</option>
+            <option value="cripta_sangrienta">Cripta Sangrienta de Pórfido Rojo</option>
+            <option value="lapislazuli_oro">Salón Regio de Lapislázuli y Oro</option>
+            <option value="ruinas_celestiales">Ruinas Celestiales de Cuarzo Blanco</option>
+            <option value="forja_magma">Forja Titánica de Magma y Carbón</option>
+            <option value="vacio_umbrio">Mazmorra Umbría del Vacío Estelar</option>
+            <option value="madera_petrificada">Cripta de Madera Petrificada</option>
+            <option value="coral_abisal">Capilla Sumergida de Coral Abisal</option>
+          </select>
+          <button type="button" class="btn-muestrario sala-item-btn" data-target="cfg-fuente" style="padding: 3px 6px; font-size:10px;">👁️ Ver</button>
+        </div>
+      </div>
+      <div class="control-row" style="margin-bottom: 2px;">
+        <label style="font-size:10px;">Color del Agua</label>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <input type="color" id="cfg-color-agua" value="#38bdf8" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
+        </div>
+      </div>
+    </details>
     <div class="control-row">
       <label>Semilla Procedural</label>
       <div style="display:flex;gap:6px">
@@ -1249,7 +1455,7 @@
 
   <div id="toast"></div>
 
-  <script src="js/dungeon-generator.js"></script>
+  <script src="js/dungeon-generator.js?v=2.2"></script>
 
   <script type="module">
     import * as THREE from 'three';
@@ -1267,6 +1473,16 @@
       level: 15,
       tipoGeneracion: 'procedural',
       estilo: 'cripta_gotica',
+      estiloPared: 'cripta_gotica',
+      colorPared: null,
+      estiloSuelo: 'cripta_gotica',
+      colorSuelo: null,
+      estiloZocalo: 'cripta_gotica',
+      colorZocalo: null,
+      estiloTecho: 'cripta_gotica',
+      colorTecho: null,
+      estiloFuente: 'cripta_gotica',
+      colorAgua: '#38bdf8',
       seed: 48291,
       glb: 'glb/mazmorras/mazmorra1.glb',
       mostrarTechos: false,
@@ -1436,6 +1652,16 @@
 
       dungeonInstance = dg.generarMazmorra(THREE, {
         estilo: dungeonConfig.estilo,
+        estiloPared: dungeonConfig.estiloPared,
+        colorPared: dungeonConfig.colorPared,
+        estiloSuelo: dungeonConfig.estiloSuelo,
+        colorSuelo: dungeonConfig.colorSuelo,
+        estiloZocalo: dungeonConfig.estiloZocalo,
+        colorZocalo: dungeonConfig.colorZocalo,
+        estiloTecho: dungeonConfig.estiloTecho,
+        colorTecho: dungeonConfig.colorTecho,
+        estiloFuente: dungeonConfig.estiloFuente,
+        colorAgua: dungeonConfig.colorAgua,
         seed: dungeonConfig.seed,
         radio: dungeonConfig.radio,
         tamanoMedio: dungeonConfig.tamanoMedio,
@@ -1747,11 +1973,11 @@
 
       const s = sala || (selectedRoomId ? ((dungeonConfig.salas || dungeonInstance.salas).find(x => x.id === selectedRoomId)) : null);
 
-      const ePared = (s && (s.estiloPared || s.estilo)) || estiloBase;
-      const eSuelo = (s && s.estiloSuelo) || estiloBase;
-      const eZocalo = (s && (s.estiloZocalo || s.estiloPared || s.estilo)) || estiloBase;
-      const eTecho = (s && s.estiloTecho) || estiloBase;
-      const eFuente = (s && s.estiloFuente) || estiloBase;
+      const ePared = (s && (s.estiloPared || s.estilo)) || dungeonConfig.estiloPared || estiloBase;
+      const eSuelo = (s && s.estiloSuelo) || dungeonConfig.estiloSuelo || estiloBase;
+      const eZocalo = (s && (s.estiloZocalo || s.estiloPared || s.estilo)) || dungeonConfig.estiloZocalo || estiloBase;
+      const eTecho = (s && s.estiloTecho) || dungeonConfig.estiloTecho || estiloBase;
+      const eFuente = (s && s.estiloFuente) || dungeonConfig.estiloFuente || estiloBase;
 
       if ($('preview-thumb-pared')) $('preview-thumb-pared').src = dg.generarDataURLThumbnail(ePared, 'pared', 64);
       if ($('preview-thumb-suelo')) $('preview-thumb-suelo').src = dg.generarDataURLThumbnail(eSuelo, 'suelo', 64);
@@ -1759,6 +1985,13 @@
       if ($('preview-thumb-techo')) $('preview-thumb-techo').src = dg.generarDataURLThumbnail(eTecho, 'techo', 64);
       if ($('preview-thumb-fuente')) $('preview-thumb-fuente').src = dg.generarDataURLThumbnail(eFuente, 'fuente', 64);
       if ($('preview-thumb-global')) $('preview-thumb-global').src = dg.generarDataURLThumbnail(estiloBase, 'pared', 64);
+
+      // Previews para la configuración global de la mazmorra completa
+      if ($('preview-thumb-cfg-pared')) $('preview-thumb-cfg-pared').src = dg.generarDataURLThumbnail(dungeonConfig.estiloPared || estiloBase, 'pared', 64);
+      if ($('preview-thumb-cfg-suelo')) $('preview-thumb-cfg-suelo').src = dg.generarDataURLThumbnail(dungeonConfig.estiloSuelo || estiloBase, 'suelo', 64);
+      if ($('preview-thumb-cfg-zocalo')) $('preview-thumb-cfg-zocalo').src = dg.generarDataURLThumbnail(dungeonConfig.estiloZocalo || estiloBase, 'zocalo', 64);
+      if ($('preview-thumb-cfg-techo')) $('preview-thumb-cfg-techo').src = dg.generarDataURLThumbnail(dungeonConfig.estiloTecho || estiloBase, 'techo', 64);
+      if ($('preview-thumb-cfg-fuente')) $('preview-thumb-cfg-fuente').src = dg.generarDataURLThumbnail(dungeonConfig.estiloFuente || estiloBase, 'fuente', 64);
     }
 
     function abrirMuestrarioTexturas(target) {
@@ -1773,25 +2006,45 @@
 
       let actualKey = '';
       if (texturaTargetActivo === 'pared') {
-        actualKey = (sala && (sala.estiloPared || sala.estilo)) || dungeonConfig.estilo || 'cripta_gotica';
+        actualKey = (sala && (sala.estiloPared || sala.estilo)) || dungeonConfig.estiloPared || dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '🎨 Muestrario de Texturas para PAREDES';
         $('mgt-subtitulo').textContent = 'Selecciona la textura que vestirá todas las paredes de esta estancia';
       } else if (texturaTargetActivo === 'suelo') {
-        actualKey = (sala && sala.estiloSuelo) || dungeonConfig.estilo || 'cripta_gotica';
+        actualKey = (sala && sala.estiloSuelo) || dungeonConfig.estiloSuelo || dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '🏛️ Muestrario de Texturas para SUELO / LOSAS';
         $('mgt-subtitulo').textContent = 'Selecciona el grabado y tipo de losas para todo el suelo de la estancia';
       } else if (texturaTargetActivo === 'zocalo') {
-        actualKey = (sala && (sala.estiloZocalo || sala.estiloPared || sala.estilo)) || dungeonConfig.estilo || 'cripta_gotica';
+        actualKey = (sala && (sala.estiloZocalo || sala.estiloPared || sala.estilo)) || dungeonConfig.estiloZocalo || dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '🏛️ Muestrario de Texturas para ZÓCALO / MOLDURA';
         $('mgt-subtitulo').textContent = 'Selecciona el zócalo ciclópeo y moldura de base para el perímetro de la estancia';
       } else if (texturaTargetActivo === 'techo') {
-        actualKey = (sala && sala.estiloTecho) || dungeonConfig.estilo || 'cripta_gotica';
+        actualKey = (sala && sala.estiloTecho) || dungeonConfig.estiloTecho || dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '🏰 Muestrario de Texturas para TECHOS / BÓVEDAS';
         $('mgt-subtitulo').textContent = 'Selecciona la arquitectura de bóveda para el techo de la estancia';
       } else if (texturaTargetActivo === 'fuente') {
-        actualKey = (sala && sala.estiloFuente) || dungeonConfig.estilo || 'cripta_gotica';
+        actualKey = (sala && sala.estiloFuente) || dungeonConfig.estiloFuente || dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '⛲ Muestrario de Texturas para FUENTES Y PILARES';
         $('mgt-subtitulo').textContent = 'Selecciona la piedra tallada para las fuentes ornamentales de la estancia';
+      } else if (texturaTargetActivo === 'cfg-pared') {
+        actualKey = dungeonConfig.estiloPared || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🧱 Textura de Paredes para TODA la Mazmorra';
+        $('mgt-subtitulo').textContent = 'Selecciona la textura de piedra para las paredes de todas las estancias y pasillos';
+      } else if (texturaTargetActivo === 'cfg-suelo') {
+        actualKey = dungeonConfig.estiloSuelo || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '⬛ Textura de Suelo / Losas para TODA la Mazmorra';
+        $('mgt-subtitulo').textContent = 'Selecciona el enlosado de piedra para el suelo de toda la mazmorra';
+      } else if (texturaTargetActivo === 'cfg-zocalo') {
+        actualKey = dungeonConfig.estiloZocalo || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🏛️ Textura de Zócalo Inferior para TODA la Mazmorra';
+        $('mgt-subtitulo').textContent = 'Selecciona la moldura de zócalo perimetral para toda la mazmorra';
+      } else if (texturaTargetActivo === 'cfg-techo') {
+        actualKey = dungeonConfig.estiloTecho || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '🏰 Textura de Techos / Bóvedas para TODA la Mazmorra';
+        $('mgt-subtitulo').textContent = 'Selecciona la textura de techos y arcos superiores para toda la mazmorra';
+      } else if (texturaTargetActivo === 'cfg-fuente') {
+        actualKey = dungeonConfig.estiloFuente || dungeonConfig.estilo || 'cripta_gotica';
+        $('mgt-titulo').textContent = '⛲ Textura de Fuentes / Pilares para TODA la Mazmorra';
+        $('mgt-subtitulo').textContent = 'Selecciona la piedra esculpida de fuentes y pilares de toda la mazmorra';
       } else {
         actualKey = dungeonConfig.estilo || 'cripta_gotica';
         $('mgt-titulo').textContent = '🏰 Estilo General de la Mazmorra';
@@ -1806,7 +2059,12 @@
         card.className = 'tarjeta-textura-preview' + (k === actualKey ? ' selected' : '');
         card.dataset.estiloKey = k;
 
-        const tipoVista = (texturaTargetActivo === 'global') ? 'pared' : texturaTargetActivo;
+        let tipoVista = 'pared';
+        if (texturaTargetActivo.includes('suelo')) tipoVista = 'suelo';
+        else if (texturaTargetActivo.includes('zocalo')) tipoVista = 'zocalo';
+        else if (texturaTargetActivo.includes('techo')) tipoVista = 'techo';
+        else if (texturaTargetActivo.includes('fuente')) tipoVista = 'fuente';
+
         const thumbUrl = (dg && dg.generarDataURLThumbnail) ? dg.generarDataURLThumbnail(k, tipoVista, 80) : '';
 
         card.innerHTML = `
@@ -1837,10 +2095,61 @@
 
       if (texturaTargetActivo === 'global') {
         dungeonConfig.estilo = estiloKey;
+        dungeonConfig.estiloPared = estiloKey;
+        dungeonConfig.estiloSuelo = estiloKey;
+        dungeonConfig.estiloZocalo = estiloKey;
+        dungeonConfig.estiloTecho = estiloKey;
+        dungeonConfig.estiloFuente = estiloKey;
         $('cfg-estilo').value = estiloKey;
+        if ($('cfg-estilo-pared')) $('cfg-estilo-pared').value = estiloKey;
+        if ($('cfg-estilo-suelo')) $('cfg-estilo-suelo').value = estiloKey;
+        if ($('cfg-estilo-zocalo')) $('cfg-estilo-zocalo').value = estiloKey;
+        if ($('cfg-estilo-techo')) $('cfg-estilo-techo').value = estiloKey;
+        if ($('cfg-estilo-fuente')) $('cfg-estilo-fuente').value = estiloKey;
         rebuildDungeon();
         actualizarPreviewsTexturas(null);
         showToast(`✨ Estilo general cambiado: ${def.nombre || estiloKey}`);
+        return;
+      }
+
+      if (texturaTargetActivo === 'cfg-pared') {
+        dungeonConfig.estiloPared = estiloKey;
+        if ($('cfg-estilo-pared')) $('cfg-estilo-pared').value = estiloKey;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+        showToast(`🧱 Paredes de la mazmorra: ${def.nombre || estiloKey}`);
+        return;
+      }
+      if (texturaTargetActivo === 'cfg-suelo') {
+        dungeonConfig.estiloSuelo = estiloKey;
+        if ($('cfg-estilo-suelo')) $('cfg-estilo-suelo').value = estiloKey;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+        showToast(`⬛ Suelos de la mazmorra: ${def.nombre || estiloKey}`);
+        return;
+      }
+      if (texturaTargetActivo === 'cfg-zocalo') {
+        dungeonConfig.estiloZocalo = estiloKey;
+        if ($('cfg-estilo-zocalo')) $('cfg-estilo-zocalo').value = estiloKey;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+        showToast(`🏛️ Zócalos de la mazmorra: ${def.nombre || estiloKey}`);
+        return;
+      }
+      if (texturaTargetActivo === 'cfg-techo') {
+        dungeonConfig.estiloTecho = estiloKey;
+        if ($('cfg-estilo-techo')) $('cfg-estilo-techo').value = estiloKey;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+        showToast(`🏰 Techos de la mazmorra: ${def.nombre || estiloKey}`);
+        return;
+      }
+      if (texturaTargetActivo === 'cfg-fuente') {
+        dungeonConfig.estiloFuente = estiloKey;
+        if ($('cfg-estilo-fuente')) $('cfg-estilo-fuente').value = estiloKey;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+        showToast(`⛲ Fuentes de la mazmorra: ${def.nombre || estiloKey}`);
         return;
       }
 
@@ -2772,12 +3081,126 @@
       rebuildDungeon();
     });
     $('cfg-estilo').addEventListener('change', e => {
-      dungeonConfig.estilo = e.target.value;
+      const nuevoEstilo = e.target.value;
+      dungeonConfig.estilo = nuevoEstilo;
+      dungeonConfig.estiloPared = nuevoEstilo;
+      dungeonConfig.estiloSuelo = nuevoEstilo;
+      dungeonConfig.estiloZocalo = nuevoEstilo;
+      dungeonConfig.estiloTecho = nuevoEstilo;
+      dungeonConfig.estiloFuente = nuevoEstilo;
+      if ($('cfg-estilo-pared')) $('cfg-estilo-pared').value = nuevoEstilo;
+      if ($('cfg-estilo-suelo')) $('cfg-estilo-suelo').value = nuevoEstilo;
+      if ($('cfg-estilo-zocalo')) $('cfg-estilo-zocalo').value = nuevoEstilo;
+      if ($('cfg-estilo-techo')) $('cfg-estilo-techo').value = nuevoEstilo;
+      if ($('cfg-estilo-fuente')) $('cfg-estilo-fuente').value = nuevoEstilo;
       dungeonConfig.salas = null;
       deseleccionarEstancia();
       rebuildDungeon();
       actualizarPreviewsTexturas(null);
     });
+
+    // Listeners para arquitectura y texturas globales independientes
+    if ($('cfg-estilo-pared')) {
+      $('cfg-estilo-pared').addEventListener('change', e => {
+        dungeonConfig.estiloPared = e.target.value;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+      });
+    }
+    if ($('cfg-color-pared')) {
+      $('cfg-color-pared').addEventListener('input', e => {
+        dungeonConfig.colorPared = e.target.value;
+        rebuildDungeon();
+      });
+    }
+    if ($('btn-cfg-color-pared-reset')) {
+      $('btn-cfg-color-pared-reset').addEventListener('click', () => {
+        dungeonConfig.colorPared = null;
+        if ($('cfg-color-pared')) $('cfg-color-pared').value = '#706860';
+        rebuildDungeon();
+        showToast('Color de paredes de la mazmorra restaurado por defecto');
+      });
+    }
+
+    if ($('cfg-estilo-suelo')) {
+      $('cfg-estilo-suelo').addEventListener('change', e => {
+        dungeonConfig.estiloSuelo = e.target.value;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+      });
+    }
+    if ($('cfg-color-suelo')) {
+      $('cfg-color-suelo').addEventListener('input', e => {
+        dungeonConfig.colorSuelo = e.target.value;
+        rebuildDungeon();
+      });
+    }
+    if ($('btn-cfg-color-suelo-reset')) {
+      $('btn-cfg-color-suelo-reset').addEventListener('click', () => {
+        dungeonConfig.colorSuelo = null;
+        if ($('cfg-color-suelo')) $('cfg-color-suelo').value = '#504840';
+        rebuildDungeon();
+        showToast('Color de suelo de la mazmorra restaurado por defecto');
+      });
+    }
+
+    if ($('cfg-estilo-zocalo')) {
+      $('cfg-estilo-zocalo').addEventListener('change', e => {
+        dungeonConfig.estiloZocalo = e.target.value;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+      });
+    }
+    if ($('cfg-color-zocalo')) {
+      $('cfg-color-zocalo').addEventListener('input', e => {
+        dungeonConfig.colorZocalo = e.target.value;
+        rebuildDungeon();
+      });
+    }
+    if ($('btn-cfg-color-zocalo-reset')) {
+      $('btn-cfg-color-zocalo-reset').addEventListener('click', () => {
+        dungeonConfig.colorZocalo = null;
+        if ($('cfg-color-zocalo')) $('cfg-color-zocalo').value = '#383028';
+        rebuildDungeon();
+        showToast('Color de zócalo de la mazmorra restaurado por defecto');
+      });
+    }
+
+    if ($('cfg-estilo-techo')) {
+      $('cfg-estilo-techo').addEventListener('change', e => {
+        dungeonConfig.estiloTecho = e.target.value;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+      });
+    }
+    if ($('cfg-color-techo')) {
+      $('cfg-color-techo').addEventListener('input', e => {
+        dungeonConfig.colorTecho = e.target.value;
+        rebuildDungeon();
+      });
+    }
+    if ($('btn-cfg-color-techo-reset')) {
+      $('btn-cfg-color-techo-reset').addEventListener('click', () => {
+        dungeonConfig.colorTecho = null;
+        if ($('cfg-color-techo')) $('cfg-color-techo').value = '#282420';
+        rebuildDungeon();
+        showToast('Color de techo de la mazmorra restaurado por defecto');
+      });
+    }
+
+    if ($('cfg-estilo-fuente')) {
+      $('cfg-estilo-fuente').addEventListener('change', e => {
+        dungeonConfig.estiloFuente = e.target.value;
+        rebuildDungeon();
+        actualizarPreviewsTexturas(null);
+      });
+    }
+    if ($('cfg-color-agua')) {
+      $('cfg-color-agua').addEventListener('input', e => {
+        dungeonConfig.colorAgua = e.target.value;
+        rebuildDungeon();
+      });
+    }
     $('cfg-seed').addEventListener('change', e => {
       dungeonConfig.seed = parseInt(e.target.value, 10) || 1;
       dungeonConfig.salas = null;
