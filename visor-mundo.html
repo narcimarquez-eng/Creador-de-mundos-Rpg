@@ -3343,6 +3343,7 @@
   }
 
   function construirModeloEnemigo(m, d) {
+    if (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) return true;
     if (!window.EnemyLib || !m.enemigo) return false;
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
@@ -3703,6 +3704,7 @@
   }   // más lejos se liberan sus modelos (con margen sobre los 120 m para no cargar y descargar sin parar)
 
   function descargarModelosEnemigo(m) {
+    if (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) return;
     if (m.rig) m.group.remove(m.rig.rootGroup);
     // Las geometrías y materiales de las mallas pertenecen a protoEnemigoCache y se reutilizan entre instancias;
     // aquí solo se liberan los pequeños buffers propios de cada clon (partículas y proyectil mágico).
@@ -3780,26 +3782,32 @@
           if (r.attack && !hero.dead) monsterHitsHero(m);
         }
         if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && performance.now() < m.muriendo)) descargarModelosEnemigo(m);
-        const near = d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d);
+        const near = (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) ? (d < MONSTRUO_VISIBLE) : (d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d));
         m.group.visible = near;
         if (near) {
-          aplicarDetalle(m, d);
-          const my = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? (m.y || 2.92) : H(m.x, m.z);
+          if (!m.meshProcedural && (!m.dungeonInfoRef || !m.dungeonInfoRef.meshProcedural)) {
+            aplicarDetalle(m, d);
+          }
+          const my = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef)
+            ? ((typeof m.y === 'number') ? m.y : ((typeof m.dungeonInfoRef.y === 'number') ? m.dungeonInfoRef.y : 0.0))
+            : H(m.x, m.z);
           m.group.position.set(m.x, my, m.z);
           if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
           const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
           // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
           const cada = d < MONSTRUO_ANIMA ? 1 : d < MONSTRUO_ANIMA_LENTO ? 4 : 0;
           m.dtAnim = (m.dtAnim || 0) + dt;
-          if ((cada && (fotogramaCombate + m.turno) % cada === 0) || !m.posado) { EnemyFx.actualizar(m.fx, estado, now / 1000, m.dtAnim, now / 1000); m.dtAnim = 0; m.posado = true; }
+          if (m.fx && ((cada && (fotogramaCombate + m.turno) % cada === 0) || !m.posado)) { EnemyFx.actualizar(m.fx, estado, now / 1000, m.dtAnim, now / 1000); m.dtAnim = 0; m.posado = true; }
           // Solo los cercanos dibujan su sombra (fuera de la caja de sombras no se vería)
           const sombra = d < MONSTRUO_ANIMA && QUALITY[quality].shadows > 0;
-          if (sombra !== m.sombra) { m.sombra = sombra; m.rig.rootGroup.traverse(o => { if (o.isMesh) o.castShadow = sombra; }); }
+          if (sombra !== m.sombra) { m.sombra = sombra; if (m.rig && m.rig.rootGroup) { m.rig.rootGroup.traverse(o => { if (o.isMesh) o.castShadow = sombra; }); } }
         }
         const showBar = near && (m.hp < m.maxHp || d < 12);
         m.bar.visible = showBar;
         if (showBar) {
-          const myBar = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef) ? (m.y || 2.92) : H(m.x, m.z);
+          const myBar = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef)
+            ? ((typeof m.y === 'number') ? m.y : ((typeof m.dungeonInfoRef.y === 'number') ? m.dungeonInfoRef.y : 0.0))
+            : H(m.x, m.z);
           m.bar.position.set(m.x, myBar + m.barHeight, m.z);
           m.bar.quaternion.copy(camera.quaternion);
           const f = Math.max(0.001, m.hp / m.maxHp);
@@ -6340,11 +6348,19 @@
           respawnSec: 999999,
           esMazmorra: true
         };
+        const sueloY = (typeof info.y === 'number') ? info.y : 0.0;
         m.group = new THREE.Group();
-        m.group.position.set(info.x, info.y || 2.92, info.z);
+        m.group.position.set(info.x, sueloY, info.z);
         m.group.visible = true;
 
-        if (window.EnemyLib) {
+        if (info.meshProcedural) {
+          m.meshProcedural = info.meshProcedural;
+          if (info.meshProcedural.parent) {
+            info.meshProcedural.parent.remove(info.meshProcedural);
+          }
+          info.meshProcedural.position.set(0, 0, 0);
+          m.group.add(info.meshProcedural);
+        } else if (!info.esMazmorraProcedural && window.EnemyLib) {
           const seedOffset = (info.id ? (info.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0)*31) : (monsters.length * 7919 + Math.floor((info.x||0)*13)));
           const rngTemp = (typeof W !== 'undefined' && W.PRNG) ? new W.PRNG((info.level * 101) ^ (isBoss ? 9999 : (1234 + seedOffset))) : { range: (a, b) => a + Math.random() * (b - a) };
           m.enemigo = enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp);
@@ -6361,8 +6377,8 @@
         m.fg = new THREE.Mesh(new THREE.PlaneGeometry(isBoss ? 4.1 : 2.3, isBoss ? 0.4 : 0.24), new THREE.MeshBasicMaterial({ color: colBar, depthTest: false }));
         m.fg.position.z = 0.01;
         m.bar.add(bg, m.fg);
-        m.barHeight = isBoss ? 5.2 : 3.2;
-        m.bar.position.set(info.x, (info.y || 2.92) + m.barHeight, info.z);
+        m.barHeight = isBoss ? 2.5 : 1.8;
+        m.bar.position.set(info.x, sueloY + m.barHeight, info.z);
         if (parentGroup) parentGroup.add(m.bar); else scene.add(m.bar);
 
         info.combatRef = m;

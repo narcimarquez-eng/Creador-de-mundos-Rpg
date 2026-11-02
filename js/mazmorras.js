@@ -407,6 +407,9 @@
         charRot: charCtrl && charCtrl.root ? charCtrl.root.rotation.clone() : null,
         camPos: camera ? camera.position.clone() : null,
         ctrlTarget: controls ? controls.target.clone() : null,
+        controlsMinDistance: controls ? controls.minDistance : 1.0,
+        controlsMaxDistance: controls ? controls.maxDistance : 500,
+        charOffsetCamara: (charCtrl && charCtrl.offsetCamara && typeof charCtrl.offsetCamara.clone === 'function') ? charCtrl.offsetCamara.clone() : (charCtrl && charCtrl.offsetCamara ? Object.assign({}, charCtrl.offsetCamara) : null),
         origGetWalkableHeight: (charCtrl && charCtrl.world) ? charCtrl.world.getWalkableHeight : null,
         origIsWaterHazard: (charCtrl && charCtrl.world) ? charCtrl.world.isWaterHazard : null,
         origGetColliders: (charCtrl && charCtrl.world) ? charCtrl.world.getColliders : null,
@@ -461,7 +464,7 @@
       this.grupoInstancia.add(luzDirPasillo.target);
 
       const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
-      const esProcedural = Gen && (dungeon.tipoGeneracion === 'procedural' || dungeon.tipo === 'procedural' || dungeon.procedural || !dungeon.glb);
+      const esProcedural = !!Gen && dungeon.tipoGeneracion !== 'glb';
 
       // Antorchas fijas solo para el modelo GLB clásico; las mazmorras procedurales usan sus propias antorchas optimizadas
       if (!esProcedural) {
@@ -558,11 +561,13 @@
         charCtrl.sinAvance = 0;
       }
 
-      // Teletransportar la cámara con encuadre amplio detrás del héroe (visión majestuosa y despejada)
-      const CAM_OFFSET_Y = 3.6;
-      const CAM_OFFSET_Z = 8.5;
+      // Teletransportar la cámara con encuadre interior cercano e inmersivo (siempre dentro de la mazmorra)
+      const CAM_OFFSET_Y = 2.4;
+      const CAM_OFFSET_Z = 5.2;
       if (controls) {
         controls.target.set(SPAWN_X, SPAWN_Y + 1.2, SPAWN_Z);
+        controls.minDistance = 2.0;
+        controls.maxDistance = 14.0;
         if (camera) {
           camera.position.set(SPAWN_X, SPAWN_Y + CAM_OFFSET_Y, SPAWN_Z + CAM_OFFSET_Z);
           controls.update();
@@ -574,11 +579,16 @@
         charCtrl.modoCamaraAnterior = 'follow';
       }
 
-      // Conectar física de suelo plana de la mazmorra y despejar colisionadores del supramundo
+      // Conectar física de suelo plana de la mazmorra y colisionadores de muros/props
       if (charCtrl && charCtrl.world) {
         charCtrl.world.getWalkableHeight = () => SPAWN_Y;
         charCtrl.world.isWaterHazard = () => false;
-        charCtrl.world.getColliders = () => [];
+        const colisionadoresMazmorra = (proc && proc.colliders) || [];
+        charCtrl.world.getColliders = (x, z) => {
+          if (proc && typeof proc.getColliders === 'function') return proc.getColliders(x, z, 28);
+          return colisionadoresMazmorra;
+        };
+        charCtrl.world.colliders = colisionadoresMazmorra;
       }
 
       // Posicionar al acompañante inmediatamente detrás del héroe en el pasillo
@@ -613,6 +623,7 @@
         for (let c = 0; c < cant; c++) {
           const pt = posicionesElites[posIdx % posicionesElites.length];
           posIdx++;
+          const procMesh = (proc && proc.monstruos) ? (proc.monstruos.find(m => m.userData && m.userData.idMonstruo === ('guard_elite_' + posIdx)) || proc.monstruos[posIdx % proc.monstruos.length]) : null;
           const eliteObj = {
             id: 'elite-dungeon-' + posIdx,
             name: elDef.name || 'Luchador Élite de Mazmorra',
@@ -623,6 +634,8 @@
             x: pt.x,
             z: pt.z,
             y: SPAWN_Y,
+            esMazmorraProcedural: esProcedural,
+            meshProcedural: procMesh,
             modelo: elDef.modelo || ['caballero_oscuro', 'golem_ancestral', 'brujo_arcano', 'ogro_acorazado', 'asesino_sombras'][posIdx % 5],
             hp: 1, maxHp: 1 // Inicializado por combat.js
           };
@@ -638,6 +651,7 @@
       const bossX = (proc && proc.spawns && proc.spawns.boss) ? proc.spawns.boss.x : 0.0;
       const bossZ = (proc && proc.spawns && proc.spawns.boss) ? proc.spawns.boss.z : -38.0;
       const bossY = (proc && proc.spawns && proc.spawns.boss) ? (SPAWN_Y + (proc.spawns.boss.y || 0.6)) : (SPAWN_Y + 0.1);
+      const procBossMesh = (proc && proc.monstruos) ? proc.monstruos.find(m => m.userData && m.userData.idMonstruo === 'boss_principal') : null;
 
       this.bossInstancia = {
         id: 'boss-dungeon-' + dungeon.id,
@@ -648,6 +662,8 @@
         x: bossX,
         z: bossZ,
         y: bossY,
+        esMazmorraProcedural: esProcedural,
+        meshProcedural: procBossMesh,
         recompensas: {
           oro: bDef.recompensaOro || 3000,
           arena: bDef.recompensaArena || 60,
@@ -776,13 +792,20 @@
           charCtrl.sinAvance = 0;
         }
 
-        // Teletransportar cámara y controles al exterior
+        // Teletransportar cámara y controles al exterior y restaurar límites de zoom
         if (controls) {
           controls.target.set(wx, hero.y + 1.2, wz);
+          if (this.estadoPrevio) {
+            controls.minDistance = this.estadoPrevio.controlsMinDistance !== undefined ? this.estadoPrevio.controlsMinDistance : 1.0;
+            controls.maxDistance = this.estadoPrevio.controlsMaxDistance !== undefined ? this.estadoPrevio.controlsMaxDistance : 500;
+          }
           if (camera) {
             camera.position.set(wx - Math.sin(rot) * 9.0, hero.y + 4.5, wz - Math.cos(rot) * 9.0);
             controls.update();
           }
+        }
+        if (charCtrl && this.estadoPrevio && this.estadoPrevio.charOffsetCamara) {
+          charCtrl.offsetCamara = this.estadoPrevio.charOffsetCamara;
         }
 
         if (this.ctx.acompanante) {

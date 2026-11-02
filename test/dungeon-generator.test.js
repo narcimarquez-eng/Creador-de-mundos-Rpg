@@ -4,6 +4,7 @@ const assert = require('node:assert');
 // Mock Three.js mínimo para pruebas unitarias sin WebGL
 function MockObj3D() {
   this.children = [];
+  this.userData = {};
   this.position = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
   this.rotation = { x: 0, y: 0, z: 0 };
   this.scale = { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, setScalar(s) { this.x = s; this.y = s; this.z = s; } };
@@ -669,4 +670,35 @@ test('DungeonGenerator: iluminación de bóveda garantizada por estancia y antor
   const antorcha = DungeonGenerator.crearAntorcha(mockTHREE, kit, 0xf59e0b, 3.4, {});
   assert.ok(antorcha.userData.luz.distance >= 35, 'Antorchas deben tener alcance extendido');
   assert.ok(antorcha.userData.luz.decay <= 1.2, 'Antorchas deben tener caída suave');
+});
+
+test('DungeonGenerator: entrada monumental y sistema de colisiones herméticas', () => {
+  const d = DungeonGenerator.generarMazmorra(mockTHREE, {
+    seed: 54321,
+    estilo: 'cripta_gotica',
+    tamanoMedio: 20
+  });
+
+  // 1. Entrada monumental de dimensiones amplias
+  const salaEntrada = d.salas.find(s => s.tipo === 'entrada');
+  assert.ok(salaEntrada, 'Debe haber una sala de entrada');
+  assert.ok(salaEntrada.w >= 24, `Ancho de entrada debe ser majestuoso (w = ${salaEntrada.w})`);
+  assert.ok(salaEntrada.d >= 22, `Profundidad de entrada debe ser majestuosa (d = ${salaEntrada.d})`);
+  assert.ok(salaEntrada.h >= 6.0, `Altura de entrada monumental (h = ${salaEntrada.h})`);
+
+  // 2. Sistema de colisionadores registrados
+  assert.ok(Array.isArray(d.colliders), 'd.colliders debe ser una lista de colisionadores');
+  assert.ok(d.colliders.length > 0, `Deben existir colisionadores para muros y props (encontrados: ${d.colliders.length})`);
+  const cajasMuro = d.colliders.filter(c => c.type === 'box');
+  assert.ok(cajasMuro.length >= 4, 'Deben registrarse cajas colisionadoras tipo box para los muros');
+  assert.ok(cajasMuro.every(c => typeof c.minX === 'number' && typeof c.maxX === 'number' && typeof c.minZ === 'number' && typeof c.maxZ === 'number'), 'Los colisionadores box deben definir sus límites AABB');
+
+  // 3. Método getColliders(x, z, radius)
+  assert.strictEqual(typeof d.getColliders, 'function', 'Debe exponer getColliders para character.js');
+  const cercanos = d.getColliders(0, 0, 30);
+  assert.ok(Array.isArray(cercanos), 'getColliders debe retornar un array');
+  assert.ok(cercanos.length <= d.colliders.length, 'getColliders debe filtrar colisionadores por proximidad');
+
+  // 4. userData.colliders en el grupo raíz
+  assert.strictEqual(d.group.userData.colliders, d.colliders, 'group.userData.colliders debe enlazar a colliders');
 });

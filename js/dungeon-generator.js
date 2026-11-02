@@ -403,7 +403,7 @@
 
   // --- 2.1 CATÁLOGO DE TIPOS DE ESTANCIA ---
   const TIPOS_ESTANCIA = {
-    entrada: { id: 'entrada', nombre: 'Vestíbulo de Entrada', icono: '🚪', desc: 'Pórtico monumental y acceso a la mazmorra', w: 12, d: 14, h: 4.8 },
+    entrada: { id: 'entrada', nombre: 'Gran Salón de Entrada', icono: '🚪', desc: 'Pórtico monumental, espacioso y acceso principal a la mazmorra', w: 26, d: 24, h: 6.5 },
     fuente: { id: 'fuente', nombre: 'Santuario de la Fuente', icono: '⛲', desc: 'Pileta central, agua arcana y flora fúngica', w: 18, d: 16, h: 5.6 },
     tesoro: { id: 'tesoro', nombre: 'Cámara del Tesoro', icono: '🪙', desc: 'Cofres dorados con botín, gemas y vasijas antiguas', w: 14, d: 14, h: 4.6 },
     cripta_columnas: { id: 'cripta_columnas', nombre: 'Gran Cripta de Columnas', icono: '🏛️', desc: 'Columnatas monumentales y sarcófagos de piedra labrada', w: 22, d: 20, h: 6.2 },
@@ -2272,6 +2272,22 @@
       murMesh.castShadow = true; murMesh.receiveShadow = true;
       murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id };
       g.add(murMesh);
+
+      // 3. Registrar colisionador físico para CharacterController y motor de físicas
+      if (Array.isArray(opciones.colliders)) {
+        const cx = sala.x + px;
+        const cz = sala.z + pz;
+        opciones.colliders.push({
+          type: 'box',
+          minX: cx - (w / 2),
+          maxX: cx + (w / 2),
+          minZ: cz - (d / 2),
+          maxZ: cz + (d / 2),
+          salaId: sala.id,
+          tipo: tipoMuro,
+          lado: tipoLado
+        });
+      }
     }
 
     // 1. Muro Norte (-Z)
@@ -2429,16 +2445,30 @@
 
     switch (sala.tipo) {
       case 'entrada': {
+        // Para vestíbulos y grandes salas de entrada monumentales
+        if (W >= 18 && D >= 16) {
+          // Columnata imperial lateral dejando pasillo central despejado
+          [-5.5, 5.5].forEach(colX => {
+            [-D * 0.22, D * 0.22].forEach(colZ => {
+              const col = crearColumna(ThreeLib, kit, H, 0.65);
+              col.position.set(colX, 0, colZ);
+              g.add(col);
+              if (Array.isArray(config.colliders)) {
+                config.colliders.push({ type: 'circle', x: sala.x + colX, z: sala.z + colZ, r: 0.75, tipo: 'columna' });
+              }
+            });
+          });
+        }
         if (cfgProps.antorchas !== false) {
           const aL = crearAntorcha(ThreeLib, kit, colorLuzDefinido, intLuzDefinida, Object.assign({}, config, { forma: formaAntorchaDef }));
-          aL.position.set(-2.8, 2.2, D / 2 - 0.4);
+          aL.position.set(-Math.min(W * 0.42, 4.5), 2.2, D / 2 - 0.4);
           aL.rotation.y = Math.PI / 2;
           g.add(aL);
           animables.push(aL);
           props.antorchas.push(aL);
 
           const aR = crearAntorcha(ThreeLib, kit, colorLuzDefinido, intLuzDefinida, Object.assign({}, config, { forma: formaAntorchaDef }));
-          aR.position.set(2.8, 2.2, D / 2 - 0.4);
+          aR.position.set(Math.min(W * 0.42, 4.5), 2.2, D / 2 - 0.4);
           aR.rotation.y = -Math.PI / 2;
           g.add(aR);
           animables.push(aR);
@@ -2456,6 +2486,9 @@
           g.add(fuente);
           animables.push(fuente);
           props.fuentes.push(fuente);
+          if (Array.isArray(config.colliders)) {
+            config.colliders.push({ type: 'circle', x: sala.x, z: sala.z, r: radioF * 0.95, tipo: 'fuente' });
+          }
         }
         if (cfgProps.musgo !== false) {
           [-W * 0.32, W * 0.32].forEach(vx => {
@@ -2972,7 +3005,7 @@
 
     if (esDefault) {
       return [
-        { id: 'room_entrada', tipo: 'entrada', nombre: 'Vestíbulo de Entrada', x: 0, y: 0, z: 42, w: 12, d: 14, h: 4.8, abiertoNorte: true },
+        { id: 'room_entrada', tipo: 'entrada', nombre: 'Gran Salón de Entrada', x: 0, y: 0, z: 42, w: 26, d: 24, h: 6.5, abiertoNorte: true },
         { id: 'corridor_1', tipo: 'pasillo', nombre: 'Corredor de los Guardias', x: 0, y: 0, z: 27, w: 6.8, d: 16, h: 4.2, abiertoSur: true, abiertoNorte: true },
         { id: 'room_fuente', tipo: 'fuente', nombre: 'Santuario de la Fuente', x: 0, y: 0, z: 11, w: 18, d: 16, h: 5.6, abiertoSur: true, abiertoNorte: true, abiertoEste: true },
         { id: 'room_tesoro', tipo: 'tesoro', nombre: 'Cámara Secreta del Tesoro', x: 17, y: 0, z: 11, w: 12, d: 12, h: 4.4, abiertoOeste: true },
@@ -2995,16 +3028,17 @@
     const cantIntermedias = Math.max(2, numeroSalas - 2);
     const pasoZ = spanZ / (cantIntermedias + 1);
 
-    // 1. Vestíbulo de entrada
-    const varEntrada = 1 + (rng.range(-1, 1) * varianzaTamano * 0.5);
-    const entradaW = Math.round(Math.max(10, tamanoMedio * 0.85 * varEntrada));
-    const entradaD = Math.round(Math.max(10, tamanoMedio * 0.95 * varEntrada));
+    // 1. Vestíbulo monumental de entrada (espacioso y diáfano)
+    const varEntrada = 1 + (rng.range(-0.5, 0.5) * varianzaTamano * 0.4);
+    const entradaW = Math.round(Math.max(24, tamanoMedio * 1.5 * varEntrada));
+    const entradaD = Math.round(Math.max(22, tamanoMedio * 1.35 * varEntrada));
+    const entradaH = Math.round(Math.max(6.2, alturaTechos * 1.15));
     const roomEntrada = {
       id: 'room_entrada',
       tipo: 'entrada',
-      nombre: 'Vestíbulo de Entrada',
+      nombre: 'Gran Salón de Entrada',
       x: 0, y: 0, z: zEntrada,
-      w: entradaW, d: entradaD, h: Math.round(alturaTechos * 0.95),
+      w: entradaW, d: entradaD, h: entradaH,
       abiertoNorte: true
     };
     salas.push(roomEntrada);
@@ -3197,8 +3231,11 @@
     // Calcular aperturas herméticas exactas entre salas y pasillos contiguos (evita huecos al vacío)
     calcularAperturasEntreSalas(salas, config);
 
+    // Sistema de Colisiones Físicas de la Mazmorra (para CharacterController)
+    const colliders = [];
+
     // 2. Construir geometría estructural y decorar cada sala (respetando textura/estilo y color individual de paredes, suelos, techos y fuentes)
-    const configCompleta = Object.assign({}, config, { kitsPorEstilo });
+    const configCompleta = Object.assign({}, config, { kitsPorEstilo, colliders });
 
     salas.forEach(s => {
       const estiloKeySala = s.estilo || estiloKey;
@@ -3211,6 +3248,9 @@
       const decMesh = decorarHabitacion(THREE_REF, kitSala, s, estiloSala, rng, animables, props, configCompleta);
       dungeonGroup.add(decMesh);
     });
+
+    if (!dungeonGroup.userData) dungeonGroup.userData = {};
+    dungeonGroup.userData.colliders = colliders;
 
     // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni penumbras excesivas)
     const intAmbiente = (typeof config.luzAmbienteIntensidad === 'number')
@@ -3338,6 +3378,17 @@
       props,
       spawns,
       monstruos,
+      colliders,
+      getColliders: (x, z, radius = 25) => {
+        if (typeof x !== 'number' || typeof z !== 'number') return colliders;
+        const rSq = radius * radius;
+        return colliders.filter(c => {
+          const cx = (c.type === 'box') ? (c.minX + c.maxX) * 0.5 : c.x;
+          const cz = (c.type === 'box') ? (c.minZ + c.maxZ) * 0.5 : c.z;
+          const dx = cx - x, dz = cz - z;
+          return (dx * dx + dz * dz) <= rSq;
+        });
+      },
       areaTotal,
       update: (dt, nowSec) => {
         const t = nowSec || (performance.now() / 1000);

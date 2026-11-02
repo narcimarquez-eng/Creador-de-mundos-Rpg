@@ -329,3 +329,146 @@ test('modo automático en mazmorra: activación, selección progresiva de objeti
   const fin = atacarAutoSim();
   assert.strictEqual(fin, null, 'No quedan más objetivos tras derrotar al Jefe');
 });
+
+test('instancia procedural de mazmorra: colisiones de muros activas, cámara confinada y monstruos en suelo', () => {
+  const DungeonGenerator = require('../js/dungeon-generator.js');
+  global.DungeonGenerator = DungeonGenerator;
+
+  function MockObj3D() {
+    this.children = [];
+    this.userData = {};
+    this.position = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
+    this.rotation = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
+    this.scale = { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, setScalar(s) { this.x = s; this.y = s; this.z = s; } };
+    this.add = function (c) { this.children.push(c); };
+    this.remove = function (c) {
+      const idx = this.children.indexOf(c);
+      if (idx >= 0) this.children.splice(idx, 1);
+    };
+  }
+
+  const mockTHREE = {
+    Group: MockObj3D,
+    Mesh: MockObj3D,
+    PointLight: function () { MockObj3D.call(this); this.color = {}; this.intensity = 1; },
+    AmbientLight: MockObj3D,
+    HemisphereLight: MockObj3D,
+    DirectionalLight: function () { MockObj3D.call(this); this.target = new MockObj3D(); },
+    BoxGeometry: function () {},
+    PlaneGeometry: function () {},
+    CylinderGeometry: function () {},
+    ConeGeometry: function () {},
+    SphereGeometry: function () {},
+    TorusGeometry: function () {},
+    CircleGeometry: function () {},
+    OctahedronGeometry: function () {},
+    MeshStandardMaterial: function (opts) {
+      this.color = { hex: '#ffffff', set(v) { this.hex = v; } };
+      Object.assign(this, opts);
+      this.clone = function () { return Object.assign({}, this); };
+    },
+    MeshBasicMaterial: function () {},
+    Vector3: function (x, y, z) { this.x = x || 0; this.y = y || 0; this.z = z || 0; this.clone = function () { return { x: this.x, y: this.y, z: this.z }; }; },
+    Color: function () {},
+    FogExp2: function () {}
+  };
+
+  const mockScene = {
+    children: [],
+    background: null,
+    fog: null,
+    add(obj) { this.children.push(obj); },
+    remove(obj) {
+      const idx = this.children.indexOf(obj);
+      if (idx !== -1) this.children.splice(idx, 1);
+    }
+  };
+
+  function createPos() {
+    const p = { x: 0, y: 0, z: 0 };
+    p.set = function (x, y, z) { p.x = x; p.y = y; p.z = z; };
+    p.clone = function () { return { x: p.x, y: p.y, z: p.z }; };
+    return p;
+  }
+
+  const mockCharacter = {
+    root: {
+      position: createPos(),
+      rotation: createPos()
+    },
+    world: {
+      getWalkableHeight: () => 19,
+      isWaterHazard: () => false,
+      getColliders: () => [{ type: 'box', minX: 10, maxX: 20, minZ: 10, maxZ: 20 }]
+    },
+    offsetCamara: { x: 0, y: 3.6, z: 8.5 }
+  };
+
+  const mockControls = {
+    target: { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, clone() { return { x: this.x, y: this.y, z: this.z }; } },
+    minDistance: 1.0,
+    maxDistance: 500,
+    update() {}
+  };
+
+  const mockCamera = {
+    position: { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, clone() { return { x: this.x, y: this.y, z: this.z }; } }
+  };
+
+  const creadosCombate = [];
+  const mockCtx = {
+    THREE: mockTHREE,
+    scene: mockScene,
+    hero: { x: 50, y: 19, z: 50 },
+    character: mockCharacter,
+    camera: mockCamera,
+    controls: mockControls,
+    crearMonstruoCombate: (m, parentGroup, isBoss) => {
+      creadosCombate.push({ m, isBoss });
+    }
+  };
+
+  const gestor = new MazmorrasLib.GestorMazmorras(mockCtx);
+  const dungeon = {
+    id: 'dungeon-proc-test',
+    name: 'Mazmorra Colisiones Test',
+    x: 100,
+    y: 100,
+    tipoGeneracion: 'procedural',
+    tamanoMedio: 20,
+    elites: [
+      { name: 'Guardián Élite', level: 15, multiplicador: 4, cantidad: 2 }
+    ],
+    boss: { name: 'Jefe Test', level: 17, rangoElite: 10 }
+  };
+
+  gestor.iniciarInstancia(dungeon);
+
+  // 1. Debe haber generado proceduralmente
+  assert.ok(gestor.instanciaProcedural, 'Debe haber creado instancia procedural');
+  assert.ok(Array.isArray(gestor.instanciaProcedural.colliders), 'Instancia debe tener colliders');
+
+  // 2. Colisionadores conectados al CharacterController
+  assert.strictEqual(typeof mockCharacter.world.getColliders, 'function', 'getColliders debe ser una función');
+  const cols = mockCharacter.world.getColliders(0, 0);
+  assert.ok(Array.isArray(cols), 'getColliders debe retornar colisionadores de mazmorra');
+  assert.ok(cols.length > 0, 'No deben quedar colisionadores vacíos en la mazmorra');
+
+  // 3. Cámara confinada dentro de la estancia
+  assert.strictEqual(mockControls.maxDistance, 14.0, 'Distancia máxima de cámara debe estar limitada a 14m');
+  assert.strictEqual(mockControls.minDistance, 2.0, 'Distancia mínima de cámara debe ser 2m');
+  assert.strictEqual(mockCharacter.offsetCamara.y, 2.4, 'Offset Y de cámara interior debe ser 2.4m');
+  assert.strictEqual(mockCharacter.offsetCamara.z, 5.2, 'Offset Z de cámara interior debe ser 5.2m');
+
+  // 4. Monstruos generados a ras de suelo y marcados como procedurales
+  assert.ok(creadosCombate.length >= 2, 'Debe haber creado monstruos de combate');
+  creadosCombate.forEach(c => {
+    assert.strictEqual(c.m.esMazmorraProcedural, true, 'Monstruo debe ser procedural');
+    assert.ok(c.m.y <= 0.6, `Monstruo debe estar a cota de suelo o tarima (y = ${c.m.y} <= 0.6)`);
+  });
+
+  // 5. Al salir de la mazmorra, restaura límites de cámara originales
+  gestor.salirInstancia(true);
+  assert.strictEqual(mockControls.maxDistance, 500, 'Al salir debe restaurar maxDistance a 500');
+  assert.strictEqual(mockControls.minDistance, 1.0, 'Al salir debe restaurar minDistance a 1.0');
+});
