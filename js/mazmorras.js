@@ -431,10 +431,21 @@
       luzTrono.position.set(0, 8.0, -36.0);
       this.grupoInstancia.add(luzTrono);
 
-      // 3. Cargar el modelo 3D de la mazmorra (mazmorra1.glb)
-      cargarModeloMazmorra(THREE, dungeon.glb || 'glb/mazmorras/mazmorra1.glb', modelo => {
-        if (this.grupoInstancia) this.grupoInstancia.add(modelo);
-      });
+      // 3. Cargar el modelo 3D de la mazmorra (GLB predeterminado o Procedural estilo creador de pueblos)
+      const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
+      if ((dungeon.tipo === 'procedural' || dungeon.procedural) && Gen) {
+        const proc = Gen.generarMazmorra(THREE, {
+          seed: dungeon.seed || (dungeon.x * 1000 + dungeon.y),
+          estilo: dungeon.estilo || 'cripta_gotica',
+          id: dungeon.id
+        });
+        this.instanciaProcedural = proc;
+        if (this.grupoInstancia) this.grupoInstancia.add(proc.group);
+      } else {
+        cargarModeloMazmorra(THREE, dungeon.glb || 'glb/mazmorras/mazmorra1.glb', modelo => {
+          if (this.grupoInstancia) this.grupoInstancia.add(modelo);
+        });
+      }
 
       // 4. Posicionar al Héroe y al Acompañante AL INICIO DEL ARCHIVO EN LOS PASILLOS MÁS ESTRECHOS
       // Dimensiones a escala 36x (>2000m² habitables):
@@ -562,6 +573,10 @@
     actualizarInstancia(dt, hero, callbacks) {
       if (!this.enMazmorra || !this.dungeonActiva) return;
       callbacks = callbacks || {};
+
+      if (this.instanciaProcedural && typeof this.instanciaProcedural.update === 'function') {
+        this.instanciaProcedural.update(dt, (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000);
+      }
 
       // 1. Condición de fin: Victoria por muerte del Jefe de Mazmorra
       if (this.bossInstancia && this.bossInstancia.hp <= 0) {
@@ -695,6 +710,7 @@
 
       this.enMazmorra = false;
       this.dungeonActiva = null;
+      this.instanciaProcedural = null;
 
       if (callbacks && typeof callbacks.onSalirHUD === 'function') {
         callbacks.onSalirHUD();
