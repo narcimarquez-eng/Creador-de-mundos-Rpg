@@ -6,6 +6,12 @@
   "abyssal_hydra": {
     "low": "glb/low/dragones/enemy_abyssal_hydra_tiamat_low.glb"
   },
+  "abyssal_knight": {
+    "low": "glb/low/campeones-y-arqueros/enemy_abyssal_dreadknight_low.glb"
+  },
+  "anubis_jackal_guard": {
+    "low": "glb/low/campeones-y-arqueros/enemy_anubis_jackal_anpu_low.glb"
+  },
   "arcane_beholder": {
     "low": "glb/low/magicos-y-demonios/enemy_arcane_beholder_low.glb"
   },
@@ -57,11 +63,26 @@
   "archer_species_9_orc_wolf_master_bowman": {
     "low": "glb/low/campeones-y-arqueros/enemy-archer-species-9-orc-wolf-master-bowman_low.glb"
   },
+  "arctic_iceberg_golem": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_arctic_golem_low.glb"
+  },
   "astral_centaur": {
     "low": "glb/low/mitologicos/enemy_astral_centaur_low.glb"
   },
+  "astral_frost_phoenix": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_frost_phoenix_low.glb"
+  },
+  "aurora_ice_centaur": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_aurora_centaur_low.glb"
+  },
   "balrog_archdemon": {
     "low": "glb/low/magicos-y-demonios/enemy_balrog_archdemon_low.glb"
+  },
+  "bloodclaw_raptor_hawk": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_bloodclaw_hawk_low.glb"
+  },
+  "boreal_blizzard_griffin": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_boreal_griffin_low.glb"
   },
   "briar_wood_spriggan": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-briar-wood-spriggan_low.glb"
@@ -78,14 +99,23 @@
   "chitin_stalker": {
     "low": "glb/low/bestias-elite/enemy_chitin_stalker_low.glb"
   },
+  "coral_sea_serpent": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_coral_serpent_low.glb"
+  },
   "crowned_catacomb_pharaoh": {
     "low": "glb/low/no-muertos/enemy-crowned-catacomb-pharaoh_low.glb"
   },
   "crowned_crypt_inquisitor": {
     "low": "glb/low/no-muertos/enemy-crowned-crypt-inquisitor_low.glb"
   },
+  "cryo_hydra_trident": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_cryo_hydra_low.glb"
+  },
   "cursed_diadem_valkyrie_skeleton": {
     "low": "glb/low/no-muertos/enemy-cursed-diadem-valkyrie-skeleton_low.glb"
+  },
+  "cyclone_air_archon": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_cyclone_archon_low.glb"
   },
   "dire_wolf": {
     "low": "glb/low/bestias-elite/enemy_dire_wolf_fenrir_low.glb"
@@ -258,20 +288,41 @@
   "emerald_crown_necromancer_lord": {
     "low": "glb/low/no-muertos/enemy-emerald-crown-necromancer-lord_low.glb"
   },
+  "feral_shadow_panther": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_shadow_panther_low.glb"
+  },
   "forest_goblin_scavenger": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-forest-goblin-scavenger_low.glb"
+  },
+  "forest_hunter_spider": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_forest_spider_low.glb"
+  },
+  "frost_crystal_scorpion": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_frost_scorpion_low.glb"
   },
   "frost_wyrm": {
     "low": "glb/low/dragones/enemy_frost_wyrm_vorthrax_low.glb"
   },
+  "furious_antler_stag": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_antler_stag_low.glb"
+  },
+  "furious_grizzly_bear": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_furious_grizzly_low.glb"
+  },
   "furious_keltir": {
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_furious_keltir_low.glb"
+  },
+  "gale_wind_manticore": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_gale_manticore_low.glb"
   },
   "gilded_skull_praetorian": {
     "low": "glb/low/no-muertos/enemy-gilded-skull-praetorian_low.glb"
   },
   "glacial_crown_revenant_king": {
     "low": "glb/low/no-muertos/enemy-glacial-crown-revenant-king_low.glb"
+  },
+  "glacier_wyrm_ancient": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_glacier_wyrm_low.glb"
   },
   "gorgon_medusa": {
     "low": "glb/low/mitologicos/enemy_gorgon_medusa_euryale_low.glb"
@@ -282,14 +333,23 @@
   "griffin_skyhunter": {
     "low": "glb/low/mitologicos/enemy_griffin_skyhunter_low.glb"
   },
+  "hailstorm_stag_spirit": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_hailstorm_stag_low.glb"
+  },
   "highland_lynx_stalker": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-highland-lynx-stalker_low.glb"
   },
   "horned_field_viper": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-horned-field-viper_low.glb"
   },
+  "iron_boar_juggernaut": {
+    "low": "glb/low/bestias-elite/enemy_iron_boar_gorgrond_low.glb"
+  },
   "iron_crown_cataphract_skeleton": {
     "low": "glb/low/no-muertos/enemy-iron-crown-cataphract-skeleton_low.glb"
+  },
+  "kraken_deep_watcher": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_kraken_watcher_low.glb"
   },
   "labyrinth_minotaur": {
     "low": "glb/low/mitologicos/enemy_labyrinth_minotaur_low.glb"
@@ -321,20 +381,41 @@
   "obsidian_crown_dread_skeleton": {
     "low": "glb/low/no-muertos/enemy-obsidian-crown-dread-skeleton_low.glb"
   },
+  "obsidian_golem": {
+    "low": "glb/low/magicos-y-demonios/enemy_obsidian_colossus_low.glb"
+  },
   "ossuary_king_leoric": {
     "low": "glb/low/no-muertos/enemy-ossuary-king-leoric_low.glb"
   },
   "outlaw_bandit_cutthroat": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-outlaw-bandit-cutthroat_low.glb"
   },
+  "permafrost_warg_alpha": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_permafrost_warg_low.glb"
+  },
+  "polar_glacier_bear": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_polar_bear_low.glb"
+  },
   "prairie_red_fox": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-prairie-red-fox_low.glb"
+  },
+  "rabid_fang_bat": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_rabid_bat_low.glb"
+  },
+  "rabid_grey_wolf": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_rabid_wolf_low.glb"
+  },
+  "rabid_razorback_boar": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_razorback_boar_low.glb"
   },
   "ruins_skeleton_pawn": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-ruins-skeleton-pawn_low.glb"
   },
   "runic_warbear": {
     "low": "glb/low/bestias-elite/enemy_runic_warbear_low.glb"
+  },
+  "sabertooth_tiger": {
+    "low": "glb/low/bestias-elite/enemy_sabertooth_raksha_low.glb"
   },
   "samurai_oni": {
     "low": "glb/low/campeones-y-arqueros/enemy_samurai_oni_kensei_low.glb"
@@ -372,8 +453,20 @@
   "swamp_poison_newt": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-swamp-poison-newt_low.glb"
   },
+  "tempest_sky_djinn": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_tempest_djinn_low.glb"
+  },
   "thicket_razor_badger": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-thicket-razor-badger_low.glb"
+  },
+  "tidal_naiad_queen": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_tidal_naiad_low.glb"
+  },
+  "treant_ancient": {
+    "low": "glb/low/magicos-y-demonios/enemy_treant_yggdrakor_low.glb"
+  },
+  "triton_abyss_warden": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_triton_warden_low.glb"
   },
   "tunnel_giant_rat": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-tunnel-giant-rat_low.glb"
@@ -408,11 +501,20 @@
   "undead_archer_9_royal_ossuary_greatbow": {
     "low": "glb/low/no-muertos/enemy-undead-archer-9-royal-ossuary-greatbow_low.glb"
   },
+  "valkyrie_of_the_gale": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_valkyrie_gale_low.glb"
+  },
   "vampire_lord": {
     "low": "glb/low/campeones-y-arqueros/enemy_vampire_lord_valerius_low.glb"
   },
+  "venom_marsh_toad": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_venom_toad_low.glb"
+  },
   "void_djinn": {
     "low": "glb/low/magicos-y-demonios/enemy_void_djinn_alzahir_low.glb"
+  },
+  "wow_Frostsaber_winterspring_alpha": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-frostsaber-winterspring-alpha_low.glb"
   },
   "wow_abomination_patchwerk": {
     "low": "glb/low/world-of-warcraft/enemy-wow-abomination-patchwerk_low.glb"
@@ -593,6 +695,9 @@
   },
   "young_green_drake": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-young-green-drake_low.glb"
+  },
+  "zephyr_storm_elemental": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_zephyr_storm_low.glb"
   }
 };
 })(typeof window !== 'undefined' ? window : globalThis);
