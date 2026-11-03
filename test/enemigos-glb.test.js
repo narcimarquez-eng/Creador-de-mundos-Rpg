@@ -45,9 +45,16 @@ function threeFalso() {
     assert.strictEqual(EnemyGlb.rutaModeloEnemigo('frost_wyrm', 'lejos'), 'glb/low/dragones/enemy_frost_wyrm_vorthrax_low.glb');
   });
 
-  await prueba('sin versión medium en el índice, cerca cae al procedural (null)', () => {
-    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('elder_dragon', 'cerca'), null);
+  await prueba('sin medium en el índice, cerca usa el low; lejos siempre el low', () => {
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('elder_dragon', 'cerca'), 'glb/low/dragones/enemy_elder_dragon_ignis_low.glb');
     assert.strictEqual(EnemyGlb.rutaModeloEnemigo('elder_dragon', 'lejos'), 'glb/low/dragones/enemy_elder_dragon_ignis_low.glb');
+  });
+
+  await prueba('sin ninguna versión en el índice, cerca y lejos caen al procedural (null)', () => {
+    globalThis.ENEMY_GLB_INDEX.solo_procedural = {};
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('solo_procedural', 'cerca'), null);
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('solo_procedural', 'lejos'), null);
+    delete globalThis.ENEMY_GLB_INDEX.solo_procedural;
   });
 
   await prueba('arquetipos no indexados, sin arquetipo o con tipo desconocido dan null', () => {
