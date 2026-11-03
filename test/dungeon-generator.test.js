@@ -971,3 +971,66 @@ test('DungeonGenerator: relieves arquitectonicos, plintos sobresalientes, cenefa
   const pilastras = caja.children.filter(c => c.userData && c.userData.tipo === 'pilastra_muro');
   assert.ok(pilastras.length >= 2, 'Debe haber pilastras adosadas de cantería en muros largos');
 });
+
+test('DungeonGenerator: arcos de pasillos, columnas con molduras, techos hasta 25m y columnas por instancia', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const rng = new DungeonGenerator.PRNG(777);
+
+  // 1. Columnas con molduras diferenciadas (gotica, romanica, ciclopea, clasica)
+  ['gotica', 'romanica', 'ciclopea', 'clasica'].forEach(estilo => {
+    const col = DungeonGenerator.crearColumna(mockTHREE, kit, 12.0, 0.8, estilo);
+    assert.ok(col, `Debe instanciar columna de estilo ${estilo}`);
+    assert.strictEqual(col.userData.tipo, 'columna');
+    assert.strictEqual(col.userData.estiloMoldura, estilo);
+    assert.ok(col.children.length >= 3, `Columna ${estilo} debe contar con basa, fuste y capitel moldurados`);
+  });
+
+  // 2. Arcos arquitectónicos en puertas adaptados dinámicamente a la altura del techo H (hasta 25m)
+  const salaCatedral = {
+    id: 'sala_catedral_25m',
+    tipo: 'comun',
+    w: 30, d: 25, h: 25.0,
+    x: 0, y: 0, z: 0,
+    abiertoNorte: true,
+    aperturas: {
+      norte: { w: 8.0, cx: 0 }
+    }
+  };
+  const caja25m = DungeonGenerator.construirCajaHabitacion(mockTHREE, kit, salaCatedral);
+
+  // Debe contener columnas flanqueantes en jambas de la puerta
+  const jambas = caja25m.children.filter(c => c.userData && c.userData.tipo === 'columna_jamba');
+  assert.strictEqual(jambas.length, 2, 'El portal debe tener 2 columnas flanqueantes con molduras');
+
+  // La altura de las jambas debe ser armónica con los 25m de techo (mucho más alta que 3.8m)
+  assert.ok(jambas[0].userData.altura > 10.0, `La columna de jamba debe escalar con el techo (${jambas[0].userData.altura}m)`);
+
+  // Debe contener dovelas del arco y dintel superior
+  const dovelas = caja25m.children.filter(c => c.userData && c.userData.tipo === 'dovela_arco');
+  assert.strictEqual(dovelas.length, 7, 'Debe construir las dovelas del arco de paso');
+
+  const dintel = caja25m.children.find(c => c.userData && c.userData.tipo === 'dintel');
+  assert.ok(dintel, 'Debe sellar con dintel superior hermético');
+
+  // 3. Configuración nativa de base de columnas por instancia y tamaño
+  const salaConColumnas = {
+    id: 'sala_columnas_custom',
+    tipo: 'comun',
+    w: 24, d: 20, h: 14.0,
+    x: 0, y: 0, z: 0,
+    columnas: {
+      habilitadas: true,
+      disposicion: 'nave_central',
+      tamano: 0.9,
+      estilo: 'romanica'
+    }
+  };
+  const animables = [];
+  const props = { antorchas: [], cofres: [], fuentes: [], animables };
+  const decGroup = DungeonGenerator.decorarHabitacion(mockTHREE, kit, salaConColumnas, DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, rng, animables, props);
+
+  const colsInstancia = decGroup.children.filter(c => c.userData && c.userData.tipo === 'columna');
+  assert.strictEqual(colsInstancia.length, 4, 'Debe instanciar las 4 columnas de la nave central');
+  assert.strictEqual(colsInstancia[0].userData.radio, 0.9, 'El radio de columna debe ser 0.9m');
+  assert.strictEqual(colsInstancia[0].userData.estiloMoldura, 'romanica', 'El estilo de moldura debe ser romanica');
+});

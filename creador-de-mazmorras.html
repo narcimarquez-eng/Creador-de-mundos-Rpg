@@ -696,7 +696,7 @@
     <div class="grid2">
       <div class="control-row">
         <label>Altura Techos: <span id="lbl-altura">5.2 m</span></label>
-        <input type="range" id="cfg-altura" min="4.0" max="10.0" step="0.2" value="5.2">
+        <input type="range" id="cfg-altura" min="4.0" max="25.0" step="0.5" value="5.2">
       </div>
       <div class="control-row">
         <label>Ancho Pasillos: <span id="lbl-ancho-pasillo">6.8 m</span></label>
@@ -1076,7 +1076,7 @@
       <div class="grid2">
         <div class="control-row">
           <label>Altura H (m)</label>
-          <input type="number" id="insp-h" min="3" max="15" step="0.5" value="5.2">
+          <input type="number" id="insp-h" min="3" max="25" step="0.5" value="5.2">
         </div>
         <div class="control-row">
           <label>Posición X (m)</label>
@@ -1086,6 +1086,43 @@
       <div class="control-row">
         <label>Posición Z (m)</label>
         <input type="number" id="insp-z" step="1" value="0">
+      </div>
+
+      <!-- CONFIGURACIÓN DE BASE: COLUMNAS Y MOLDURAS POR ESTANCIA -->
+      <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 8px; background: rgba(30,41,59,0.35); border-radius: 6px; padding: 8px; border: 1px solid rgba(148,163,184,0.15);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+          <span style="font-weight: 700; font-size: 11px; color: #38bdf8;">🏛️ Columnas de la Estancia</span>
+          <label style="display:inline-flex; align-items:center; gap:4px; font-size:10px; cursor:pointer; color:#e2e8f0;">
+            <input type="checkbox" id="insp-cols-habilitadas"> Habilitar
+          </label>
+        </div>
+        <div id="insp-cols-panel" style="display: none; flex-direction: column; gap: 6px;">
+          <div class="control-row">
+            <label style="font-size: 10px;">Disposición de Columnas</label>
+            <select id="insp-cols-disposicion" style="font-size: 11px;">
+              <option value="nave_central">4 Columnas Nave Central</option>
+              <option value="doble_hilera">Doble Hilera Lateral</option>
+              <option value="monumental">2 Grandes Monumentales</option>
+              <option value="cuadricula">Cuadrícula Completa</option>
+              <option value="perimetral">Alineadas Perimetrales</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="control-row">
+              <label style="font-size: 10px;">Grosor / Radio: <span id="lbl-insp-cols-tamano" style="color:#facc15;">0.6 m</span></label>
+              <input type="range" id="insp-cols-tamano" min="0.3" max="2.5" step="0.1" value="0.6">
+            </div>
+            <div class="control-row">
+              <label style="font-size: 10px;">Estilo de Molduras</label>
+              <select id="insp-cols-estilo" style="font-size: 11px;">
+                <option value="gotica">Gótica (Fasciculada)</option>
+                <option value="romanica">Románica (Robusta)</option>
+                <option value="ciclopea">Ciclópea (Almohadillada)</option>
+                <option value="clasica">Clásica (Con Anillos)</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- CATÁLOGO DE OBJETOS DECORATIVOS -->
@@ -1930,6 +1967,27 @@
       $('insp-h').value = sala.h || dungeonConfig.alturaTechos || 5.2;
       $('insp-x').value = Math.round(sala.x);
       $('insp-z').value = Math.round(sala.z);
+
+      // Cargar configuración de columnas de base de la estancia
+      const colCfg = sala.columnas || {};
+      const tieneCols = (colCfg.habilitadas !== undefined)
+        ? !!colCfg.habilitadas
+        : (sala.columnasHabilitadas !== undefined ? !!sala.columnasHabilitadas : (sala.tipo === 'cripta_columnas'));
+
+      if ($('insp-cols-habilitadas')) $('insp-cols-habilitadas').checked = tieneCols;
+      if ($('insp-cols-panel')) $('insp-cols-panel').style.display = tieneCols ? 'flex' : 'none';
+
+      const dispCol = colCfg.disposicion || sala.columnasDisposicion || (sala.tipo === 'cripta_columnas' ? 'cuadricula' : 'nave_central');
+      if ($('insp-cols-disposicion')) $('insp-cols-disposicion').value = dispCol;
+
+      const tamCol = typeof colCfg.tamano === 'number'
+        ? colCfg.tamano
+        : (typeof sala.columnasTamano === 'number' ? sala.columnasTamano : 0.6);
+      if ($('insp-cols-tamano')) $('insp-cols-tamano').value = tamCol;
+      if ($('lbl-insp-cols-tamano')) $('lbl-insp-cols-tamano').textContent = tamCol.toFixed(1) + ' m';
+
+      const estCol = colCfg.estilo || sala.columnasEstilo || 'gotica';
+      if ($('insp-cols-estilo')) $('insp-cols-estilo').value = estCol;
 
       $('panel-inspector-sala').style.display = 'block';
 
@@ -3348,6 +3406,53 @@
       $('lbl-insp-luz').textContent = val.toFixed(1);
       actualizarSalaSeleccionada(s => { s.intensidadLuz = val; });
     });
+
+    // Columnas de base de la estancia y tamaño
+    if ($('insp-cols-habilitadas')) {
+      $('insp-cols-habilitadas').addEventListener('change', e => {
+        const val = e.target.checked;
+        if ($('insp-cols-panel')) $('insp-cols-panel').style.display = val ? 'flex' : 'none';
+        actualizarSalaSeleccionada(s => {
+          if (!s.columnas) s.columnas = {};
+          s.columnas.habilitadas = val;
+          s.columnasHabilitadas = val;
+        });
+      });
+    }
+
+    if ($('insp-cols-disposicion')) {
+      $('insp-cols-disposicion').addEventListener('change', e => {
+        const val = e.target.value;
+        actualizarSalaSeleccionada(s => {
+          if (!s.columnas) s.columnas = {};
+          s.columnas.disposicion = val;
+          s.columnasDisposicion = val;
+        });
+      });
+    }
+
+    if ($('insp-cols-tamano')) {
+      $('insp-cols-tamano').addEventListener('input', e => {
+        const rad = parseFloat(e.target.value) || 0.6;
+        if ($('lbl-insp-cols-tamano')) $('lbl-insp-cols-tamano').textContent = rad.toFixed(1) + ' m';
+        actualizarSalaSeleccionada(s => {
+          if (!s.columnas) s.columnas = {};
+          s.columnas.tamano = rad;
+          s.columnasTamano = rad;
+        });
+      });
+    }
+
+    if ($('insp-cols-estilo')) {
+      $('insp-cols-estilo').addEventListener('change', e => {
+        const val = e.target.value;
+        actualizarSalaSeleccionada(s => {
+          if (!s.columnas) s.columnas = {};
+          s.columnas.estilo = val;
+          s.columnasEstilo = val;
+        });
+      });
+    }
 
     // Listeners de iluminación global y sombras dinámicas
     $('cfg-modo-luz').addEventListener('change', e => {

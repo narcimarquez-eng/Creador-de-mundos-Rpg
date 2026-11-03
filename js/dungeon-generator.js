@@ -1793,26 +1793,129 @@
     return g;
   }
 
-  // F) Columna monumental con capitel y basa
-  function crearColumna(ThreeLib, kit, altura = 4.2, radio = 0.5) {
+  // F) Columna monumental con capitel y basa con diferentes estilos de molduras
+  function crearColumna(ThreeLib, kit, altura = 4.2, radio = 0.5, estiloMoldura = 'gotica') {
     const g = new ThreeLib.Group();
+    const hBasa = Math.min(1.2, Math.max(0.35, altura * 0.08));
+    const hCapitel = Math.min(1.2, Math.max(0.35, altura * 0.08));
+    const hFuste = Math.max(0.6, altura - hBasa - hCapitel);
 
-    // Basa cuadrada
-    const basa = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.5, 0.45, radio * 2.5), kit.piedraMuro);
-    basa.position.y = 0.225;
-    g.add(basa);
+    const matPiedra = kit.piedraMuro || kit.pared;
+    const matZoc = kit.zocalo || matPiedra;
 
-    // Fuste estriado octogonal
-    const fuste = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 0.9, radio, altura - 0.9, 8), kit.piedraMuro);
-    fuste.position.y = 0.45 + (altura - 0.9) / 2;
-    g.add(fuste);
+    if (estiloMoldura === 'romanica') {
+      // 1. Estilo Románico: Plinto cuadrado + Toro cilíndrico, fuste robusto con collarino y capitel cúbico
+      const plinto = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.6, hBasa * 0.55, radio * 2.6), matZoc);
+      plinto.position.y = (hBasa * 0.55) / 2;
+      plinto.castShadow = true; plinto.receiveShadow = true;
+      g.add(plinto);
 
-    // Capitel superior
-    const capitel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.6, 0.45, radio * 2.6), kit.piedraMuro);
-    capitel.position.y = altura - 0.225;
-    g.add(capitel);
+      const toro = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 1.25, radio * 1.35, hBasa * 0.45, 16), matZoc);
+      toro.position.y = hBasa * 0.55 + (hBasa * 0.45) / 2;
+      toro.castShadow = true; toro.receiveShadow = true;
+      g.add(toro);
 
-    g.userData = { tipo: 'columna' };
+      const fuste = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio, radio, hFuste, 16), matPiedra);
+      fuste.position.y = hBasa + hFuste / 2;
+      fuste.castShadow = true; fuste.receiveShadow = true;
+      g.add(fuste);
+
+      // Collarino central de piedra
+      const collarino = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 1.15, radio * 1.15, 0.12, 16), matZoc);
+      collarino.position.y = hBasa + hFuste * 0.5;
+      g.add(collarino);
+
+      // Capitel cúbico románico biselado
+      const cap = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.5, hCapitel, radio * 2.5), matZoc);
+      cap.position.y = altura - hCapitel / 2;
+      cap.castShadow = true; cap.receiveShadow = true;
+      g.add(cap);
+
+    } else if (estiloMoldura === 'ciclopea') {
+      // 2. Estilo Ciclópeo: Sillares almohadillados gigantes apilados con molduras toscas macizas
+      const basaC = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.8, hBasa, radio * 2.8), matZoc);
+      basaC.position.y = hBasa / 2;
+      basaC.castShadow = true; basaC.receiveShadow = true;
+      g.add(basaC);
+
+      const numTambores = Math.max(3, Math.floor(hFuste / 1.4));
+      const hTambor = hFuste / numTambores;
+      for (let t = 0; t < numTambores; t++) {
+        const radT = radio * (t % 2 === 0 ? 1.05 : 0.95);
+        const tambor = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radT, radT, hTambor * 0.92, 8), matPiedra);
+        tambor.position.y = hBasa + t * hTambor + (hTambor * 0.92) / 2;
+        tambor.castShadow = true; tambor.receiveShadow = true;
+        g.add(tambor);
+      }
+
+      const capC = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.9, hCapitel, radio * 2.9), matZoc);
+      capC.position.y = altura - hCapitel / 2;
+      capC.castShadow = true; capC.receiveShadow = true;
+      g.add(capC);
+
+    } else if (estiloMoldura === 'clasica') {
+      // 3. Estilo Clásico Imperial: Basa ática con doble toro, fuste estriado y capitel con voladizo
+      const plinto = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.5, hBasa * 0.45, radio * 2.5), matZoc);
+      plinto.position.y = (hBasa * 0.45) / 2;
+      g.add(plinto);
+
+      const toro1 = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 1.25, radio * 1.35, hBasa * 0.35, 16), matZoc);
+      toro1.position.y = hBasa * 0.45 + (hBasa * 0.35) / 2;
+      g.add(toro1);
+
+      const fuste = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 0.92, radio, hFuste, 20), matPiedra);
+      fuste.position.y = hBasa + hFuste / 2;
+      fuste.castShadow = true; fuste.receiveShadow = true;
+      g.add(fuste);
+
+      // Anillos decorativos
+      [0.3, 0.7].forEach(frac => {
+        const anillo = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 1.08, radio * 1.08, 0.08, 16), kit.hierro || matZoc);
+        anillo.position.y = hBasa + hFuste * frac;
+        g.add(anillo);
+      });
+
+      const cap = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.7, hCapitel, radio * 2.7), matZoc);
+      cap.position.y = altura - hCapitel / 2;
+      cap.castShadow = true; cap.receiveShadow = true;
+      g.add(cap);
+
+    } else {
+      // 4. Estilo Gótico (por defecto): Basa octogonal escalonada, fuste fasciculado con baquetones y capitel tallado
+      const basaOct = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 1.45, radio * 1.6, hBasa, 8), matZoc);
+      basaOct.position.y = hBasa / 2;
+      basaOct.castShadow = true; basaOct.receiveShadow = true;
+      g.add(basaOct);
+
+      const fuste = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 0.88, radio * 0.95, hFuste, 12), matPiedra);
+      fuste.position.y = hBasa + hFuste / 2;
+      fuste.castShadow = true; fuste.receiveShadow = true;
+      g.add(fuste);
+
+      // Baquetones fasciculados (4 varillas de cantería gótica adosadas al fuste)
+      const distBaq = radio * 0.85;
+      [
+        [distBaq, 0], [-distBaq, 0], [0, distBaq], [0, -distBaq]
+      ].forEach(([bx, bz]) => {
+        const baq = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 0.16, radio * 0.16, hFuste, 6), matZoc);
+        baq.position.set(bx, hBasa + hFuste / 2, bz);
+        baq.castShadow = true;
+        g.add(baq);
+      });
+
+      // Capitel gótico escalonado
+      const capOct = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(radio * 1.6, radio * 1.1, hCapitel * 0.65, 8), matZoc);
+      capOct.position.y = altura - hCapitel + (hCapitel * 0.65) / 2;
+      capOct.castShadow = true; capOct.receiveShadow = true;
+      g.add(capOct);
+
+      const abaco = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(radio * 2.6, hCapitel * 0.35, radio * 2.6), matZoc);
+      abaco.position.y = altura - (hCapitel * 0.35) / 2;
+      abaco.castShadow = true; abaco.receiveShadow = true;
+      g.add(abaco);
+    }
+
+    g.userData = { tipo: 'columna', estiloMoldura, altura, radio };
     return g;
   }
 
@@ -2739,6 +2842,86 @@
       }
     }
 
+    // Constructor de Arcos arquitectónicos con columnas de molduras para las puertas de pasillos
+    function agregarPortalConArco(anchoVano, cx, pz, tipoLado, orientacion, pHCustom) {
+      const esHorizontal = (orientacion === 'horizontal');
+      const altoArco = typeof pHCustom === 'number'
+        ? Math.min(H - 0.4, Math.max(3.6, pHCustom))
+        : Math.min(H - 0.4, Math.max(3.8, Math.round(H * 0.70 * 10) / 10));
+
+      const hColumna = Math.max(2.4, altoArco * 0.72);
+      const radioCol = Math.max(0.24, Math.min(0.70, altoArco * 0.055));
+      const estiloCol = sala.columnasEstilo || (sala.columnas && sala.columnas.estilo) || opciones.estiloColumna || (opciones.estilo && opciones.estilo.id && opciones.estilo.id.includes('roman') ? 'romanica' : 'gotica');
+
+      // 1. Columnas flanqueantes con molduras a los lados del vano
+      const colL = crearColumna(ThreeLib, kit, hColumna, radioCol, estiloCol);
+      const colR = crearColumna(ThreeLib, kit, hColumna, radioCol, estiloCol);
+
+      const offSpan = Math.max(0.2, (anchoVano / 2) - radioCol);
+      if (esHorizontal) {
+        colL.position.set(cx - offSpan, 0, pz);
+        colR.position.set(cx + offSpan, 0, pz);
+      } else {
+        colL.position.set(cx, 0, pz - offSpan);
+        colR.position.set(cx, 0, pz + offSpan);
+      }
+      colL.userData = Object.assign(colL.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, altura: hColumna, radio: radioCol });
+      colR.userData = Object.assign(colR.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, altura: hColumna, radio: radioCol });
+      g.add(colL);
+      g.add(colR);
+
+      // 2. Arco adovelado / arquivolta con clave central en resalte (keystone)
+      const spanCurva = Math.max(0.5, anchoVano - radioCol * 2);
+      const hCurva = altoArco - hColumna;
+      const numDovelas = 7;
+      for (let d = 0; d < numDovelas; d++) {
+        const frac = (d + 0.5) / numDovelas;
+        const ang = Math.PI * (1 - frac);
+        const dxDov = Math.cos(ang) * (spanCurva / 2);
+        const dyDov = Math.sin(ang) * hCurva;
+        const yDov = hColumna + dyDov;
+        const esClave = (d === Math.floor(numDovelas / 2));
+
+        const wDov = (spanCurva / numDovelas) * 1.15;
+        const hDov = esClave ? (hCurva * 0.45) : (hCurva * 0.35);
+        const grosorDov = esClave ? (grosorMuro + 0.16) : (grosorMuro + 0.08);
+
+        const geoDov = esHorizontal
+          ? new ThreeLib.BoxGeometry(wDov, hDov, grosorDov)
+          : new ThreeLib.BoxGeometry(grosorDov, hDov, wDov);
+        const matDov = esClave ? mats.matZocalo : mats.matPared;
+        const meshDov = new ThreeLib.Mesh(geoDov, matDov);
+
+        if (esHorizontal) {
+          meshDov.position.set(cx + dxDov, yDov, pz);
+          meshDov.rotation.z = -(ang - Math.PI / 2) * 0.6;
+        } else {
+          meshDov.position.set(cx, yDov, pz + dxDov);
+          meshDov.rotation.x = (ang - Math.PI / 2) * 0.6;
+        }
+        meshDov.castShadow = true; meshDov.receiveShadow = true;
+        meshDov.userData = { tipo: 'dovela_arco', lado: 'arco_' + tipoLado, idSala: sala.id };
+        g.add(meshDov);
+      }
+
+      // 3. Dintel y tímpano superior hermético que sella la pared hasta el techo H
+      if (H > altoArco + 0.1) {
+        const dH = H - altoArco;
+        const dintelGeo = esHorizontal
+          ? new ThreeLib.BoxGeometry(anchoVano, dH, grosorMuro)
+          : new ThreeLib.BoxGeometry(grosorMuro, dH, anchoVano);
+        if (typeof aplicarUVsMetricasBox === 'function') {
+          if (esHorizontal) aplicarUVsMetricasBox(dintelGeo, anchoVano, dH, grosorMuro, 2.5, 2.5);
+          else aplicarUVsMetricasBox(dintelGeo, grosorMuro, dH, anchoVano, 2.5, 2.5);
+        }
+        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
+        dintel.position.set(cx, altoArco + dH / 2, pz);
+        dintel.castShadow = true; dintel.receiveShadow = true;
+        dintel.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
+        g.add(dintel);
+      }
+    }
+
     // 1. Muro Norte (-Z)
     const apN = sala.abiertoNorte ? (ap.norte || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apN) {
@@ -2746,7 +2929,6 @@
     } else {
       const pw = Math.min(W - 0.2, apN.w || 6.8);
       const cx = apN.cx || 0;
-      const pH = apN.puertaH || Math.min(H, 3.8);
 
       // Hombro izquierdo (-X / Oeste)
       const wIzq = (cx - pw / 2) - (-W / 2);
@@ -2758,17 +2940,8 @@
       if (wDer > 0.05) {
         agregarMuroConZocalo(wDer, grosorMuro, cx + pw / 2 + wDer / 2, -D / 2 + grosorMuro / 2, 'norte_este', true);
       }
-      // Dintel superior sobre la puerta
-      if (H > pH + 0.2) {
-        const dH = H - pH;
-        const dintelGeo = new ThreeLib.BoxGeometry(pw, dH, grosorMuro);
-        aplicarUVsMetricasBox(dintelGeo, pw, dH, grosorMuro, 2.5, 2.5);
-        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
-        dintel.position.set(cx, H - dH / 2, -D / 2 + grosorMuro / 2);
-        dintel.castShadow = true; dintel.receiveShadow = true;
-        dintel.userData = { tipo: 'dintel', lado: 'norte', idSala: sala.id };
-        g.add(dintel);
-      }
+      // Portal con arco adovelado, columnas de molduras y dintel hermético
+      agregarPortalConArco(pw, cx, -D / 2 + grosorMuro / 2, 'norte', 'horizontal', apN.puertaH);
     }
 
     // 2. Muro Sur (+Z)
@@ -2778,7 +2951,6 @@
     } else {
       const pw = Math.min(W - 0.2, apS.w || 6.8);
       const cx = apS.cx || 0;
-      const pH = apS.puertaH || Math.min(H, 3.8);
 
       const wIzq = (cx - pw / 2) - (-W / 2);
       if (wIzq > 0.05) {
@@ -2788,16 +2960,8 @@
       if (wDer > 0.05) {
         agregarMuroConZocalo(wDer, grosorMuro, cx + pw / 2 + wDer / 2, D / 2 - grosorMuro / 2, 'sur_este', true);
       }
-      if (H > pH + 0.2) {
-        const dH = H - pH;
-        const dintelGeo = new ThreeLib.BoxGeometry(pw, dH, grosorMuro);
-        aplicarUVsMetricasBox(dintelGeo, pw, dH, grosorMuro, 2.5, 2.5);
-        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
-        dintel.position.set(cx, H - dH / 2, D / 2 - grosorMuro / 2);
-        dintel.castShadow = true; dintel.receiveShadow = true;
-        dintel.userData = { tipo: 'dintel', lado: 'sur', idSala: sala.id };
-        g.add(dintel);
-      }
+      // Portal con arco adovelado, columnas de molduras y dintel hermético
+      agregarPortalConArco(pw, cx, D / 2 - grosorMuro / 2, 'sur', 'horizontal', apS.puertaH);
     }
 
     // 3. Muro Oeste (-X)
@@ -2807,7 +2971,6 @@
     } else {
       const pd = Math.min(D - 0.2, apO.d || 6.0);
       const cz = apO.cz || 0;
-      const pH = apO.puertaH || Math.min(H, 3.8);
 
       const dNorte = (cz - pd / 2) - (-D / 2);
       if (dNorte > 0.05) {
@@ -2817,16 +2980,8 @@
       if (dSur > 0.05) {
         agregarMuroConZocalo(grosorMuro, dSur, -W / 2 + grosorMuro / 2, cz + pd / 2 + dSur / 2, 'oeste_sur', true);
       }
-      if (H > pH + 0.2) {
-        const dH = H - pH;
-        const dintelGeo = new ThreeLib.BoxGeometry(grosorMuro, dH, pd);
-        aplicarUVsMetricasBox(dintelGeo, grosorMuro, dH, pd, 2.5, 2.5);
-        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
-        dintel.position.set(-W / 2 + grosorMuro / 2, H - dH / 2, cz);
-        dintel.castShadow = true; dintel.receiveShadow = true;
-        dintel.userData = { tipo: 'dintel', lado: 'oeste', idSala: sala.id };
-        g.add(dintel);
-      }
+      // Portal con arco adovelado, columnas de molduras y dintel hermético
+      agregarPortalConArco(pd, -W / 2 + grosorMuro / 2, cz, 'oeste', 'vertical', apO.puertaH);
     }
 
     // 4. Muro Este (+X)
@@ -2836,7 +2991,6 @@
     } else {
       const pd = Math.min(D - 0.2, apE.d || 6.0);
       const cz = apE.cz || 0;
-      const pH = apE.puertaH || Math.min(H, 3.8);
 
       const dNorte = (cz - pd / 2) - (-D / 2);
       if (dNorte > 0.05) {
@@ -2846,16 +3000,8 @@
       if (dSur > 0.05) {
         agregarMuroConZocalo(grosorMuro, dSur, W / 2 - grosorMuro / 2, cz + pd / 2 + dSur / 2, 'este_sur', true);
       }
-      if (H > pH + 0.2) {
-        const dH = H - pH;
-        const dintelGeo = new ThreeLib.BoxGeometry(grosorMuro, dH, pd);
-        aplicarUVsMetricasBox(dintelGeo, grosorMuro, dH, pd, 2.5, 2.5);
-        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
-        dintel.position.set(W / 2 - grosorMuro / 2, H - dH / 2, cz);
-        dintel.castShadow = true; dintel.receiveShadow = true;
-        dintel.userData = { tipo: 'dintel', lado: 'este', idSala: sala.id };
-        g.add(dintel);
-      }
+      // Portal con arco adovelado, columnas de molduras y dintel hermético
+      agregarPortalConArco(pd, W / 2 - grosorMuro / 2, cz, 'este', 'vertical', apE.puertaH);
     }
 
     return g;
@@ -2900,10 +3046,72 @@
     const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 3.4;
     const formaAntorchaDef = (config && (config.formaAntorcha || config.forma)) || 'antorcha_hierro';
 
+    // --- COLUMNAS DE BASE POR INSTANCIA Y TAMAÑO ---
+    const colConfig = sala.columnas || {};
+    const columnasActivas = (colConfig.habilitadas !== undefined)
+      ? !!colConfig.habilitadas
+      : (sala.columnasHabilitadas !== undefined ? !!sala.columnasHabilitadas : (sala.tipo === 'cripta_columnas'));
+
+    let columnasGeneradasEnSala = false;
+    if (columnasActivas) {
+      columnasGeneradasEnSala = true;
+      const disposicion = colConfig.disposicion || sala.columnasDisposicion || (sala.tipo === 'cripta_columnas' ? 'cuadricula' : (W >= 16 && D >= 16 ? 'nave_central' : 'doble_hilera'));
+      const radioCol = typeof colConfig.tamano === 'number'
+        ? colConfig.tamano
+        : (typeof sala.columnasTamano === 'number' ? sala.columnasTamano : Math.max(0.35, Math.min(2.0, Math.round(H * 0.075 * 10) / 10)));
+      const estiloCol = colConfig.estilo || sala.columnasEstilo || (estilo && estilo.id && estilo.id.includes('roman') ? 'romanica' : 'gotica');
+
+      const posicionesCols = [];
+
+      if (disposicion === 'doble_hilera') {
+        const offX = Math.min(W * 0.35, Math.max(2.5, W * 0.28));
+        const numPares = Math.max(2, Math.floor(D / 5.5));
+        const pasoZ = (D * 0.65) / (numPares - 1 || 1);
+        for (let p = 0; p < numPares; p++) {
+          const zPos = -D * 0.325 + p * pasoZ;
+          posicionesCols.push([-offX, zPos], [offX, zPos]);
+        }
+      } else if (disposicion === 'monumental') {
+        const offX = Math.min(W * 0.28, 4.5);
+        posicionesCols.push([-offX, 0], [offX, 0]);
+      } else if (disposicion === 'cuadricula') {
+        const colsX = Math.max(2, Math.floor(W / 7.5));
+        const colsZ = Math.max(2, Math.floor(D / 7.5));
+        const pasoX = (W * 0.65) / (colsX - 1 || 1);
+        const pasoZ = (D * 0.65) / (colsZ - 1 || 1);
+        for (let ix = 0; ix < colsX; ix++) {
+          for (let iz = 0; iz < colsZ; iz++) {
+            posicionesCols.push([-W * 0.325 + ix * pasoX, -D * 0.325 + iz * pasoZ]);
+          }
+        }
+      } else if (disposicion === 'perimetral') {
+        const margX = Math.min(3.5, W * 0.32);
+        const margZ = Math.min(3.5, D * 0.32);
+        posicionesCols.push(
+          [-margX, -margZ], [margX, -margZ],
+          [-margX, margZ], [margX, margZ]
+        );
+      } else {
+        // 'nave_central' (4 columnas delimitando la nave central)
+        const spanX = Math.max(2.5, Math.min(W * 0.28, 5.5));
+        const spanZ = Math.max(2.5, Math.min(D * 0.28, 5.5));
+        posicionesCols.push([-spanX, -spanZ], [spanX, -spanZ], [-spanX, spanZ], [spanX, spanZ]);
+      }
+
+      posicionesCols.forEach(([cx, cz]) => {
+        const col = crearColumna(ThreeLib, kit, H, radioCol, estiloCol);
+        col.position.set(cx, 0, cz);
+        g.add(col);
+        if (Array.isArray(config.colliders)) {
+          config.colliders.push({ type: 'circle', x: sala.x + cx, z: sala.z + cz, r: radioCol + 0.15, tipo: 'columna' });
+        }
+      });
+    }
+
     switch (sala.tipo) {
       case 'entrada': {
-        // Para vestíbulos y grandes salas de entrada monumentales
-        if (W >= 18 && D >= 16) {
+        // Para vestíbulos y grandes salas de entrada monumentales (si no se configuraron columnas personalizadas)
+        if (!columnasGeneradasEnSala && W >= 18 && D >= 16) {
           // Columnata imperial lateral dejando pasillo central despejado
           [-5.5, 5.5].forEach(colX => {
             [-D * 0.22, D * 0.22].forEach(colZ => {
@@ -2999,15 +3207,17 @@
       }
 
       case 'cripta_columnas': {
-        const spanX = Math.max(3.5, W * 0.28);
-        const spanZ = Math.max(3.5, D * 0.28);
-        [-spanX, spanX].forEach(cx => {
-          [-spanZ, spanZ].forEach(cz => {
-            const col = crearColumna(ThreeLib, kit, H, Math.min(0.65, W * 0.035));
-            col.position.set(cx, 0, cz);
-            g.add(col);
+        if (!columnasGeneradasEnSala) {
+          const spanX = Math.max(3.5, W * 0.28);
+          const spanZ = Math.max(3.5, D * 0.28);
+          [-spanX, spanX].forEach(cx => {
+            [-spanZ, spanZ].forEach(cz => {
+              const col = crearColumna(ThreeLib, kit, H, Math.min(0.65, W * 0.035));
+              col.position.set(cx, 0, cz);
+              g.add(col);
+            });
           });
-        });
+        }
         if (cfgProps.sarcofagos !== false) {
           const sarc1 = crearSarcofago(ThreeLib, kit);
           sarc1.position.set(-W * 0.36, 0, 0);
@@ -3511,7 +3721,7 @@
           if (!yaExiste) {
             const czMundo = (mejorMinZ + mejorMaxZ) / 2;
             const anchoD = Math.max(3.5, Math.min(mejorOverlapZ, anchoPasillos, 7.5));
-            const altoH = Math.min(oeste.h || alturaTechos, mejorEste.h || alturaTechos, 4.2);
+            const altoH = Math.min(oeste.h || alturaTechos, mejorEste.h || alturaTechos, Math.max(4.2, Math.round(alturaTechos * 0.85 * 10) / 10));
             const centroX = (bordeDerOeste + bordeIzqEste) / 2;
             const anchoW = menorGapX; // Tamaño exacto de la distancia entre estancias sin meterse dentro de la sala
 
@@ -3594,7 +3804,7 @@
             if (!yaExiste) {
               const cxMundo = (mejorMinX + mejorMaxX) / 2;
               const anchoW = Math.max(3.5, Math.min(mejorOverlapX, anchoPasillos, 7.5));
-              const altoH = Math.min(sur.h || alturaTechos, mejorNorte.h || alturaTechos, 4.2);
+              const altoH = Math.min(sur.h || alturaTechos, mejorNorte.h || alturaTechos, Math.max(4.2, Math.round(alturaTechos * 0.85 * 10) / 10));
               const centroZ = (bordeNorteSur + bordeSurNorte) / 2;
               const profD = menorGapZ; // Tamaño exacto de la distancia entre estancias sin meterse dentro de la sala
 
@@ -3647,11 +3857,11 @@
     const numeroSalas = typeof config.numeroSalas === 'number' ? Math.max(4, Math.min(25, config.numeroSalas)) : 6;
     const ramificacion = typeof config.ramificacion === 'number' ? Math.min(1.0, Math.max(0, config.ramificacion)) : 0.5;
     const anchoPasillos = typeof config.anchoPasillos === 'number' ? Math.max(3.5, config.anchoPasillos) : 6.8;
-    const alturaTechos = typeof config.alturaTechos === 'number' ? Math.max(3.5, config.alturaTechos) : 5.2;
+    const alturaTechos = typeof config.alturaTechos === 'number' ? Math.max(3.5, Math.min(25.0, config.alturaTechos)) : 5.2;
 
     const salasPersonalizadas = Array.isArray(config.salasPersonalizadas) ? config.salasPersonalizadas : (Array.isArray(config.estanciasAdicionales) ? config.estanciasAdicionales : []);
 
-    const esDefault = (radio === 60 && numeroSalas === 6 && tamanoMedio === 16 && varianzaTamano === 0.35 && salasPersonalizadas.length === 0 && (!config.customLayout));
+    const esDefault = (radio === 60 && numeroSalas === 6 && tamanoMedio === 16 && varianzaTamano === 0.35 && salasPersonalizadas.length === 0 && (!config.customLayout) && (!config.alturaTechos || config.alturaTechos === 5.2));
 
     if (esDefault) {
       const salasDef = [
