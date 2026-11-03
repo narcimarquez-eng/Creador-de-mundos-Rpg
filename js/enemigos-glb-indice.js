@@ -79,6 +79,7 @@
     "low": "glb/low/magicos-y-demonios/enemy_balrog_archdemon_low.glb"
   },
   "bloodclaw_raptor_hawk": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_bloodclaw_hawk_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_bloodclaw_hawk_low.glb"
   },
   "boreal_blizzard_griffin": {
@@ -289,12 +290,14 @@
     "low": "glb/low/no-muertos/enemy-emerald-crown-necromancer-lord_low.glb"
   },
   "feral_shadow_panther": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_shadow_panther_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_shadow_panther_low.glb"
   },
   "forest_goblin_scavenger": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-forest-goblin-scavenger_low.glb"
   },
   "forest_hunter_spider": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_forest_spider_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_forest_spider_low.glb"
   },
   "frost_crystal_scorpion": {
@@ -304,12 +307,15 @@
     "low": "glb/low/dragones/enemy_frost_wyrm_vorthrax_low.glb"
   },
   "furious_antler_stag": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_antler_stag_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_antler_stag_low.glb"
   },
   "furious_grizzly_bear": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_furious_grizzly_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_furious_grizzly_low.glb"
   },
   "furious_keltir": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_furious_keltir_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_furious_keltir_low.glb"
   },
   "gale_wind_manticore": {
@@ -400,12 +406,15 @@
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-prairie-red-fox_low.glb"
   },
   "rabid_fang_bat": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_rabid_bat_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_rabid_bat_low.glb"
   },
   "rabid_grey_wolf": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_rabid_wolf_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_rabid_wolf_low.glb"
   },
   "rabid_razorback_boar": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_razorback_boar_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_razorback_boar_low.glb"
   },
   "ruins_skeleton_pawn": {
@@ -508,6 +517,7 @@
     "low": "glb/low/campeones-y-arqueros/enemy_vampire_lord_valerius_low.glb"
   },
   "venom_marsh_toad": {
+    "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_venom_toad_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_venom_toad_low.glb"
   },
   "void_djinn": {
