@@ -568,6 +568,88 @@
   let _texMaderaCache = null;
   let _texHierroCache = null;
 
+  // --- HELPERS PROCEDURALES DE PIEDRA REALISTA Y RUINAS (SIN CÍRCULOS) ---
+
+  function pseudoRnd(seed) {
+    let s = (seed % 2147483647);
+    if (s <= 0) s += 2147483646;
+    return function () {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
+    };
+  }
+
+  // Aplica micro-textura granular de piedra caliza/granito (porosidad, aspereza y mineralidad)
+  function aplicarMicroTexturaPiedra(ctxD, ctxB, size, seed = 42, intensidad = 16) {
+    try {
+      const imgD = ctxD.getImageData(0, 0, size, size);
+      const dataD = imgD.data;
+      const imgB = ctxB ? ctxB.getImageData(0, 0, size, size) : null;
+      const dataB = imgB ? imgB.data : null;
+      const rnd = pseudoRnd(seed);
+
+      for (let i = 0; i < dataD.length; i += 4) {
+        const n = (rnd() - 0.5) * intensidad;
+        dataD[i]     = Math.min(255, Math.max(0, dataD[i] + n));
+        dataD[i + 1] = Math.min(255, Math.max(0, dataD[i + 1] + n * 0.95));
+        dataD[i + 2] = Math.min(255, Math.max(0, dataD[i + 2] + n * 0.90));
+
+        if (dataB) {
+          dataB[i]     = Math.min(255, Math.max(0, dataB[i] + n * 0.85));
+          dataB[i + 1] = Math.min(255, Math.max(0, dataB[i + 1] + n * 0.85));
+          dataB[i + 2] = Math.min(255, Math.max(0, dataB[i + 2] + n * 0.85));
+        }
+      }
+      ctxD.putImageData(imgD, 0, 0);
+      if (ctxB && imgB) ctxB.putImageData(imgB, 0, 0);
+    } catch (e) {
+      // Entornos sin soporte getImageData (test mocks o canvas restringido)
+    }
+  }
+
+  // Traza fracturas y grietas angulares en zigzag de ruina de cantería (sin círculos ni curvas artificiales)
+  function trazarGrietaAngular(ctxD, ctxB, x0, y0, len, ang, rnd) {
+    let cx = x0, cy = y0;
+    const pasos = 3 + Math.floor(rnd() * 3);
+    const pasoLen = len / pasos;
+
+    ctxD.strokeStyle = 'rgba(10,12,18,0.78)';
+    ctxD.lineWidth = 1.4;
+    ctxD.beginPath();
+    ctxD.moveTo(cx, cy);
+
+    if (ctxB) {
+      ctxB.strokeStyle = '#050505';
+      ctxB.lineWidth = 2.4;
+      ctxB.beginPath();
+      ctxB.moveTo(cx, cy);
+    }
+
+    for (let p = 0; p < pasos; p++) {
+      const desv = (rnd() - 0.5) * 0.85;
+      const a = ang + desv;
+      cx += Math.cos(a) * pasoLen;
+      cy += Math.sin(a) * pasoLen;
+      ctxD.lineTo(cx, cy);
+      if (ctxB) ctxB.lineTo(cx, cy);
+
+      if (rnd() > 0.6) {
+        const aRam = a + (rnd() > 0.5 ? 0.75 : -0.75);
+        const rx = cx + Math.cos(aRam) * (pasoLen * 0.6);
+        const ry = cy + Math.sin(aRam) * (pasoLen * 0.6);
+        ctxD.moveTo(cx, cy); ctxD.lineTo(rx, ry); ctxD.moveTo(cx, cy);
+        if (ctxB) { ctxB.moveTo(cx, cy); ctxB.lineTo(rx, ry); ctxB.moveTo(cx, cy); }
+      }
+    }
+    ctxD.stroke();
+    if (ctxB) ctxB.stroke();
+
+    // Resalte sutil en el borde inferior iluminado de la grieta
+    ctxD.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctxD.lineWidth = 0.8;
+    ctxD.stroke();
+  }
+
   function crearTexturaPared(estilo, ThreeLib) {
     const key = estilo.id;
     if (_texParedCache.has(key)) return _texParedCache.get(key);
@@ -580,15 +662,16 @@
     canvasB.width = canvasB.height = size;
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
+    const rnd = pseudoRnd((estilo.id ? estilo.id.length * 17 : 42) + 101);
 
-    // Fondo: mortero entre juntas
+    // Fondo: mortero antiguo oscuro entre juntas de cantería
     ctxD.fillStyle = estilo.colorMortero || '#1e293b';
     ctxD.fillRect(0, 0, size, size);
-    ctxB.fillStyle = '#111111';
+    ctxB.fillStyle = '#0a0a0a';
     ctxB.fillRect(0, 0, size, size);
 
-    // Sillares de piedra biselados en hiladas regulares (8 filas trabadas)
-    const filas = 8;
+    // Sillares de piedra biselados en hiladas irregulares de cantería medieval (6 filas)
+    const filas = 6;
     const altoFila = size / filas;
     for (let f = 0; f < filas; f++) {
       const y = f * altoFila;
@@ -599,41 +682,87 @@
       for (let c = -1; c <= cols; c++) {
         const x = c * anchoCol + shift;
         const pad = 4;
+        const wBloque = anchoCol - pad * 2;
+        const hBloque = altoFila - pad * 2;
+
+        // Tono individual variado para cada sillar de piedra
+        const varTono = (rnd() - 0.5) * 0.22;
         const gradD = ctxD.createLinearGradient(x, y, x + anchoCol, y + altoFila);
         gradD.addColorStop(0.0, estilo.colorBase);
-        gradD.addColorStop(0.7, estilo.colorSecundario);
+        gradD.addColorStop(0.5, estilo.colorSecundario);
         gradD.addColorStop(1.0, estilo.colorBase);
         ctxD.fillStyle = gradD;
-        ctxD.fillRect(x + pad, y + pad, anchoCol - pad * 2, altoFila - pad * 2);
+        ctxD.fillRect(x + pad, y + pad, wBloque, hBloque);
 
-        // Bump map biselado
-        const gradB = ctxB.createRadialGradient(x + anchoCol / 2, y + altoFila / 2, 4, x + anchoCol / 2, y + altoFila / 2, anchoCol / 2);
-        gradB.addColorStop(0.0, '#ffffff');
-        gradB.addColorStop(0.85, '#aaaaaa');
-        gradB.addColorStop(1.0, '#1a1a1a');
-        ctxB.fillStyle = gradB;
-        ctxB.fillRect(x + pad, y + pad, anchoCol - pad * 2, altoFila - pad * 2);
+        // Bisel plano rectangular en bordes de sillar (Luz cenital arriba, sombra abajo - SIN CÍRCULOS)
+        ctxD.fillStyle = 'rgba(255,255,255,0.08)';
+        ctxD.fillRect(x + pad, y + pad, wBloque, 3); // Borde superior claro
+        ctxD.fillStyle = 'rgba(0,0,0,0.30)';
+        ctxD.fillRect(x + pad, y + pad + hBloque - 3, wBloque, 3); // Borde inferior con sombra
+        ctxD.fillRect(x + pad, y + pad, 3, hBloque); // Lateral izquierdo
+        ctxD.fillRect(x + pad + wBloque - 3, y + pad, 3, hBloque); // Lateral derecho
 
-        // Grietas orgánicas de cantería
-        if ((f + c) % 3 === 0) {
-          ctxD.strokeStyle = 'rgba(0,0,0,0.38)';
-          ctxD.lineWidth = 1.5;
-          ctxD.beginPath();
-          ctxD.moveTo(x + pad + 10, y + pad + 8);
-          ctxD.lineTo(x + pad + 24, y + pad + 18);
-          ctxD.lineTo(x + pad + 18, y + altoFila - pad - 6);
-          ctxD.stroke();
+        // Bump map biselado plano y angular (mortero hundido y sillar en relieve plano)
+        ctxB.fillStyle = '#b8b8b8';
+        ctxB.fillRect(x + pad, y + pad, wBloque, hBloque);
+        // Resalte de relieve en bordes rectos
+        ctxB.fillStyle = '#ffffff';
+        ctxB.fillRect(x + pad, y + pad, wBloque, 3);
+        ctxB.fillStyle = '#444444';
+        ctxB.fillRect(x + pad, y + pad + hBloque - 3, wBloque, 3);
+        ctxB.strokeStyle = '#181818';
+        ctxB.lineWidth = 3;
+        ctxB.strokeRect(x + pad, y + pad, wBloque, hBloque);
+
+        // Grietas y fracturas angulares de ruina medieval
+        if ((f + c) % 2 === 0 && rnd() > 0.3) {
+          const gx = x + pad + 12 + rnd() * (wBloque - 24);
+          const gy = y + pad + 8 + rnd() * (hBloque - 16);
+          const glen = 18 + rnd() * 26;
+          const gang = (rnd() - 0.5) * Math.PI * 0.7 + (rnd() > 0.5 ? 0.3 : -0.3);
+          trazarGrietaAngular(ctxD, ctxB, gx, gy, glen, gang, rnd);
         }
 
-        // Pátina de musgo en juntas si el estilo lo tiene
-        if (estilo.densidadMusgo > 0.18 && (f + c) % 4 === 0) {
-          ctxD.fillStyle = estilo.colorMusgo || 'rgba(34,197,94,0.35)';
+        // Desportillados angulares en esquinas de sillares de ruina
+        if ((f + c) % 3 === 0) {
+          const corner = Math.floor(rnd() * 4);
+          const csize = 4 + rnd() * 6;
+          ctxD.fillStyle = 'rgba(10,12,18,0.65)';
           ctxD.beginPath();
-          ctxD.arc(x + pad + 8, y + altoFila - pad - 4, 9, 0, Math.PI * 2);
+          if (corner === 0) {
+            ctxD.moveTo(x + pad, y + pad);
+            ctxD.lineTo(x + pad + csize, y + pad);
+            ctxD.lineTo(x + pad, y + pad + csize);
+          } else if (corner === 1) {
+            ctxD.moveTo(x + pad + wBloque, y + pad);
+            ctxD.lineTo(x + pad + wBloque - csize, y + pad);
+            ctxD.lineTo(x + pad + wBloque, y + pad + csize);
+          } else {
+            ctxD.moveTo(x + pad, y + pad + hBloque);
+            ctxD.lineTo(x + pad + csize, y + pad + hBloque);
+            ctxD.lineTo(x + pad, y + pad + hBloque - csize);
+          }
+          ctxD.closePath();
           ctxD.fill();
+        }
+
+        // Filtraciones verticales de humedad y pátina que escurren desde las juntas (lineales, sin círculos)
+        if (estilo.densidadMusgo > 0.15 && (f + c) % 3 === 1) {
+          const mx = x + pad + 8 + rnd() * (wBloque - 16);
+          const mw = 3 + rnd() * 6;
+          const mh = hBloque * (0.4 + rnd() * 0.5);
+          const gradM = ctxD.createLinearGradient(mx, y + pad, mx, y + pad + mh);
+          gradM.addColorStop(0.0, estilo.colorMusgo || 'rgba(34,197,94,0.40)');
+          gradM.addColorStop(0.7, estilo.colorMortero || 'rgba(15,23,42,0.35)');
+          gradM.addColorStop(1.0, 'transparent');
+          ctxD.fillStyle = gradM;
+          ctxD.fillRect(mx, y + pad, mw, mh);
         }
       }
     }
+
+    // Micro-textura de grano pétreo natural
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 108, 18);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
     texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
@@ -659,14 +788,15 @@
     canvasB.width = canvasB.height = size;
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
+    const rnd = pseudoRnd((estilo.id ? estilo.id.length * 29 : 77) + 203);
 
-    // Fondo: mortero oscuro de junta de losa
+    // Fondo: mortero oscuro profundo entre losas
     ctxD.fillStyle = estilo.colorMortero || '#0f172a';
     ctxD.fillRect(0, 0, size, size);
-    ctxB.fillStyle = '#0a0a0a';
+    ctxB.fillStyle = '#080808';
     ctxB.fillRect(0, 0, size, size);
 
-    // Cuadrícula limpia y uniforme de losas grandes de pavimento (4x4)
+    // Cuadrícula de 4x4 grandes losas de abadía / templo antiguo desgastadas
     const losasX = 4;
     const losasY = 4;
     const pasoLosa = size / losasX;
@@ -674,36 +804,55 @@
       for (let lx = 0; lx < losasX; lx++) {
         const px = lx * pasoLosa;
         const py = ly * pasoLosa;
-        const pad = 5;
+        const pad = 4;
+        const wLosa = pasoLosa - pad * 2;
+        const hLosa = pasoLosa - pad * 2;
 
+        // Gradiente sutil y variación por losa
         const gradLosa = ctxD.createLinearGradient(px, py, px + pasoLosa, py + pasoLosa);
         gradLosa.addColorStop(0.0, estilo.colorLosa || estilo.colorBase);
-        gradLosa.addColorStop(0.5, estilo.colorBase);
+        gradLosa.addColorStop(0.6, estilo.colorBase);
         gradLosa.addColorStop(1.0, estilo.colorSecundario);
         ctxD.fillStyle = gradLosa;
-        ctxD.fillRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
+        ctxD.fillRect(px + pad, py + pad, wLosa, hLosa);
 
-        // Bisel y relieve de losa
-        ctxB.fillStyle = '#d4d4d4';
-        ctxB.fillRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
-        ctxB.strokeStyle = '#222222';
-        ctxB.lineWidth = 4;
-        ctxB.strokeRect(px + pad, py + pad, pasoLosa - pad * 2, pasoLosa - pad * 2);
+        // Bisel plano perimetral de losa desgastada
+        ctxD.fillStyle = 'rgba(255,255,255,0.09)';
+        ctxD.fillRect(px + pad, py + pad, wLosa, 2); // Resalte superior
+        ctxD.fillRect(px + pad, py + pad, 2, hLosa); // Resalte izquierdo
+        ctxD.fillStyle = 'rgba(0,0,0,0.28)';
+        ctxD.fillRect(px + pad, py + pad + hLosa - 2, wLosa, 2); // Sombra inferior
+        ctxD.fillRect(px + pad + wLosa - 2, py + pad, 2, hLosa); // Sombra derecha
 
-        // Resalte sutil en el borde de la losa
-        ctxD.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctxD.lineWidth = 1;
-        ctxD.strokeRect(px + pad + 1, py + pad + 1, pasoLosa - pad * 2 - 2, pasoLosa - pad * 2 - 2);
+        // Relieve de losa en bump map con junta limpia y hendida
+        ctxB.fillStyle = '#c4c4c4';
+        ctxB.fillRect(px + pad, py + pad, wLosa, hLosa);
+        ctxB.fillStyle = '#ffffff';
+        ctxB.fillRect(px + pad, py + pad, wLosa, 2);
+        ctxB.fillStyle = '#555555';
+        ctxB.fillRect(px + pad, py + pad + hLosa - 2, wLosa, 2);
+        ctxB.strokeStyle = '#141414';
+        ctxB.lineWidth = 3;
+        ctxB.strokeRect(px + pad, py + pad, wLosa, hLosa);
 
-        // Manchas de humedad o musgo sutil en esquinas de losa
-        if (estilo.densidadMusgo > 0.2 && (lx + ly) % 2 === 0) {
-          ctxD.fillStyle = estilo.colorMusgo || 'rgba(34,197,94,0.3)';
-          ctxD.beginPath();
-          ctxD.arc(px + pad + 14, py + pad + 14, 16, 0, Math.PI * 2);
-          ctxD.fill();
+        // Fracturas y fisuras angulares en losas partidas
+        if ((lx + ly) % 2 === 1 && rnd() > 0.35) {
+          const gx = px + pad + 14 + rnd() * (wLosa - 28);
+          const gy = py + pad + 14 + rnd() * (hLosa - 28);
+          const glen = 22 + rnd() * 32;
+          const gang = (rnd() - 0.5) * Math.PI * 0.9;
+          trazarGrietaAngular(ctxD, ctxB, gx, gy, glen, gang, rnd);
         }
+
+        // Pátina lineal de suciedad y polvo en las esquinas de junta (sin círculos)
+        ctxD.fillStyle = 'rgba(0,0,0,0.18)';
+        ctxD.fillRect(px + pad, py + pad, 8, 8);
+        ctxD.fillRect(px + pad + wLosa - 8, py + pad + hLosa - 8, 8, 8);
       }
     }
+
+    // Micro-textura de grano de roca
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 219, 14);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
     texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
@@ -729,44 +878,93 @@
     canvasB.width = canvasB.height = size;
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
+    const rnd = pseudoRnd((estilo.id ? estilo.id.length * 37 : 91) + 307);
 
     // Fondo mortero
     ctxD.fillStyle = estilo.colorMortero || '#090d16';
     ctxD.fillRect(0, 0, size, size);
-    ctxB.fillStyle = '#141414';
+    ctxB.fillStyle = '#080808';
     ctxB.fillRect(0, 0, size, size);
 
-    // Moldura superior del zócalo (cincelada y biselada)
-    const gradMoldura = ctxD.createLinearGradient(0, 0, 0, 96);
+    // 1. Moldura superior corrida labrada en piedra (0 a 110px)
+    const hMoldura = 110;
+    const gradMoldura = ctxD.createLinearGradient(0, 0, 0, hMoldura);
     gradMoldura.addColorStop(0.0, estilo.colorSecundario);
-    gradMoldura.addColorStop(0.5, estilo.colorBase);
+    gradMoldura.addColorStop(0.3, estilo.colorBase);
+    gradMoldura.addColorStop(0.7, estilo.colorSecundario);
     gradMoldura.addColorStop(1.0, estilo.colorMortero);
     ctxD.fillStyle = gradMoldura;
-    ctxD.fillRect(0, 0, size, 96);
+    ctxD.fillRect(0, 0, size, hMoldura);
+
+    // Bisel angular de moldura (chaflán recto a 45º)
+    ctxD.fillStyle = 'rgba(255,255,255,0.18)';
+    ctxD.fillRect(0, 0, size, 4); // Arista superior brillante
+    ctxD.fillStyle = 'rgba(255,255,255,0.08)';
+    ctxD.fillRect(0, 36, size, 3); // Resalte intermedio
+    ctxD.fillStyle = 'rgba(0,0,0,0.45)';
+    ctxD.fillRect(0, hMoldura - 8, size, 8); // Sombra profunda de goteo
 
     ctxB.fillStyle = '#ffffff';
-    ctxB.fillRect(0, 0, size, 48);
+    ctxB.fillRect(0, 0, size, 36);
     ctxB.fillStyle = '#888888';
-    ctxB.fillRect(0, 48, size, 48);
+    ctxB.fillRect(0, 36, size, hMoldura - 36);
+    ctxB.fillStyle = '#111111';
+    ctxB.fillRect(0, hMoldura - 6, size, 6);
 
-    // Sillares ciclópeos de base (3 grandes bloques pesados horizontales)
+    // 2. Sillares ciclópeos macizos de cimentación inferior (110 a 512px, 3 bloques)
     const bloques = 3;
     const anchoB = size / bloques;
+    const yBloques = hMoldura + 4;
+    const hBloques = size - yBloques;
+
     for (let b = 0; b < bloques; b++) {
       const bx = b * anchoB;
       const pad = 4;
-      const gradB = ctxD.createLinearGradient(bx, 102, bx + anchoB, size);
-      gradB.addColorStop(0.0, estilo.colorBase);
-      gradB.addColorStop(0.8, estilo.colorSecundario);
-      ctxD.fillStyle = gradB;
-      ctxD.fillRect(bx + pad, 102 + pad, anchoB - pad * 2, size - 102 - pad * 2);
+      const wB = anchoB - pad * 2;
+      const hB = hBloques - pad * 2;
 
-      ctxB.fillStyle = '#cccccc';
-      ctxB.fillRect(bx + pad, 102 + pad, anchoB - pad * 2, size - 102 - pad * 2);
-      ctxB.strokeStyle = '#1a1a1a';
+      const gradB = ctxD.createLinearGradient(bx, yBloques, bx + anchoB, size);
+      gradB.addColorStop(0.0, estilo.colorBase);
+      gradB.addColorStop(0.7, estilo.colorSecundario);
+      ctxD.fillStyle = gradB;
+      ctxD.fillRect(bx + pad, yBloques + pad, wB, hB);
+
+      // Bisel de bloque ciclópeo
+      ctxD.fillStyle = 'rgba(255,255,255,0.08)';
+      ctxD.fillRect(bx + pad, yBloques + pad, wB, 2);
+      ctxD.fillStyle = 'rgba(0,0,0,0.35)';
+      ctxD.fillRect(bx + pad, yBloques + pad + hB - 4, wB, 4); // Sombra en base de contacto con el suelo
+
+      ctxB.fillStyle = '#c0c0c0';
+      ctxB.fillRect(bx + pad, yBloques + pad, wB, hB);
+      ctxB.strokeStyle = '#181818';
       ctxB.lineWidth = 3;
-      ctxB.strokeRect(bx + pad, 102 + pad, anchoB - pad * 2, size - 102 - pad * 2);
+      ctxB.strokeRect(bx + pad, yBloques + pad, wB, hB);
+
+      // Marcas verticales finas de cantería (rayas de escoplo/cincel, 0 curvas)
+      ctxD.strokeStyle = 'rgba(0,0,0,0.10)';
+      ctxD.lineWidth = 1;
+      for (let rx = bx + pad + 12; rx < bx + pad + wB - 12; rx += 14) {
+        ctxD.beginPath();
+        ctxD.moveTo(rx, yBloques + pad + 6);
+        ctxD.lineTo(rx, yBloques + pad + hB - 6);
+        ctxD.stroke();
+      }
+
+      // Desportillados angulares de la base
+      if (rnd() > 0.4) {
+        const csize = 5 + rnd() * 8;
+        ctxD.fillStyle = 'rgba(10,12,18,0.7)';
+        ctxD.beginPath();
+        ctxD.moveTo(bx + pad, yBloques + pad + hB);
+        ctxD.lineTo(bx + pad + csize, yBloques + pad + hB);
+        ctxD.lineTo(bx + pad, yBloques + pad + hB - csize);
+        ctxD.closePath();
+        ctxD.fill();
+      }
     }
+
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 333, 16);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
     texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
@@ -792,34 +990,66 @@
     canvasB.width = canvasB.height = size;
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
+    const rnd = pseudoRnd((estilo.id ? estilo.id.length * 43 : 113) + 401);
 
-    // Bóveda abovedada oscura con aristas de crucería
-    ctxD.fillStyle = '#05070e';
+    // Fondo de bóveda tosca oscuro
+    ctxD.fillStyle = '#060810';
     ctxD.fillRect(0, 0, size, size);
+    ctxB.fillStyle = '#101010';
+    ctxB.fillRect(0, 0, size, size);
 
-    const gradT = ctxD.createRadialGradient(size / 2, size / 2, 8, size / 2, size / 2, size * 0.75);
-    gradT.addColorStop(0.0, estilo.colorBase);
-    gradT.addColorStop(0.65, estilo.colorSecundario);
-    gradT.addColorStop(1.0, '#040508');
-    ctxD.fillStyle = gradT;
-    ctxD.fillRect(0, 0, size, size);
+    // Hileras de dovelas de piedra de bóveda de cañón (8 filas con juntas horizontales y verticales)
+    const filas = 8;
+    const altoFila = size / filas;
+    for (let f = 0; f < filas; f++) {
+      const y = f * altoFila;
+      const cols = (f % 2 === 0) ? 5 : 6;
+      const anchoCol = size / cols;
+      const shift = (f % 2) * (anchoCol * 0.5);
 
-    // Aristas de cantería cruzadas
+      for (let c = -1; c <= cols; c++) {
+        const x = c * anchoCol + shift;
+        const pad = 3;
+        const wBloque = anchoCol - pad * 2;
+        const hBloque = altoFila - pad * 2;
+
+        const gradD = ctxD.createLinearGradient(x, y, x, y + altoFila);
+        gradD.addColorStop(0.0, estilo.colorBase);
+        gradD.addColorStop(0.7, estilo.colorSecundario);
+        gradD.addColorStop(1.0, '#060810');
+        ctxD.fillStyle = gradD;
+        ctxD.fillRect(x + pad, y + pad, wBloque, hBloque);
+
+        // Bisel plano
+        ctxD.fillStyle = 'rgba(255,255,255,0.06)';
+        ctxD.fillRect(x + pad, y + pad, wBloque, 2);
+        ctxD.fillStyle = 'rgba(0,0,0,0.30)';
+        ctxD.fillRect(x + pad, y + pad + hBloque - 2, wBloque, 2);
+
+        ctxB.fillStyle = '#909090';
+        ctxB.fillRect(x + pad, y + pad, wBloque, hBloque);
+        ctxB.strokeStyle = '#101010';
+        ctxB.lineWidth = 2.5;
+        ctxB.strokeRect(x + pad, y + pad, wBloque, hBloque);
+      }
+    }
+
+    // Aristas de cantería y nervaduras de crucería rectas góticas
     ctxD.strokeStyle = estilo.colorMortero || '#1e293b';
-    ctxD.lineWidth = 6;
+    ctxD.lineWidth = 5;
     ctxD.beginPath();
     ctxD.moveTo(0, 0); ctxD.lineTo(size, size);
     ctxD.moveTo(size, 0); ctxD.lineTo(0, size);
     ctxD.stroke();
 
-    ctxB.fillStyle = '#222222';
-    ctxB.fillRect(0, 0, size, size);
-    ctxB.strokeStyle = '#aaaaaa';
-    ctxB.lineWidth = 6;
+    ctxB.strokeStyle = '#cccccc';
+    ctxB.lineWidth = 5;
     ctxB.beginPath();
     ctxB.moveTo(0, 0); ctxB.lineTo(size, size);
     ctxB.moveTo(size, 0); ctxB.lineTo(0, size);
     ctxB.stroke();
+
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 404, 18);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
     texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
@@ -2283,6 +2513,39 @@
     return g;
   }
 
+  // Helpers para escalado UV métrico homogéneo (evita estiramiento y círculos gigantes)
+  function escalarUVsPlane(geometry, escalaU, escalaV) {
+    if (!geometry || !geometry.attributes || !geometry.attributes.uv) return geometry;
+    const uv = geometry.attributes.uv;
+    for (let i = 0; i < uv.count; i++) {
+      uv.setXY(i, uv.getX(i) * escalaU, uv.getY(i) * escalaV);
+    }
+    uv.needsUpdate = true;
+    return geometry;
+  }
+
+  function aplicarUVsMetricasBox(geometry, w, h, d, metrosX = 2.5, metrosY = 2.5) {
+    if (!geometry || !geometry.attributes || !geometry.attributes.uv) return geometry;
+    const uv = geometry.attributes.uv;
+    const carasEscalas = [
+      [d / metrosX, h / metrosY],
+      [d / metrosX, h / metrosY],
+      [w / metrosX, d / metrosX],
+      [w / metrosX, d / metrosX],
+      [w / metrosX, h / metrosY],
+      [w / metrosX, h / metrosY]
+    ];
+    for (let cara = 0; cara < 6; cara++) {
+      const [su, sv] = carasEscalas[cara];
+      for (let v = 0; v < 4; v++) {
+        const idx = cara * 4 + v;
+        uv.setXY(idx, uv.getX(idx) * su, uv.getY(idx) * sv);
+      }
+    }
+    uv.needsUpdate = true;
+    return geometry;
+  }
+
   // --- 6. ARQUITECTURA DE SALAS Y CORREDORES (HERMÉTICA SIN HUECOS) ---
 
   function construirCajaHabitacion(ThreeLib, kit, sala, opciones = {}) {
@@ -2294,17 +2557,19 @@
 
     const mats = resolverMaterialesSala(ThreeLib, kit, opciones.kitsPorEstilo, sala, opciones);
 
-    // Suelo
+    // Suelo con mapeo métrico (1 repetición cada 3m, ~75cm por losa)
     const sueloGeo = new ThreeLib.PlaneGeometry(W, D);
+    escalarUVsPlane(sueloGeo, W / 3.0, D / 3.0);
     const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
     suelo.rotation.x = -Math.PI / 2;
     suelo.receiveShadow = true;
     suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
     g.add(suelo);
 
-    // Techo: si se especifica sinTecho (o techo: false), se omite para vista cenital e isométrica de editor
+    // Techo con mapeo métrico (1 repetición cada 3.5m)
     if (opciones.techo !== false && !opciones.sinTecho) {
       const techoGeo = new ThreeLib.PlaneGeometry(W, D);
+      escalarUVsPlane(techoGeo, W / 3.5, D / 3.5);
       const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
       techo.rotation.x = Math.PI / 2;
       techo.position.y = H;
@@ -2324,15 +2589,19 @@
       const hMur = H - hZoc;
       const tipoMuro = isHombro ? 'muro_hombro' : 'muro';
 
-      // 1. Zócalo inferior
-      const zocMesh = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w, hZoc, d), mats.matZocalo);
+      // 1. Zócalo inferior con mapeo métrico
+      const zocGeo = new ThreeLib.BoxGeometry(w, hZoc, d);
+      aplicarUVsMetricasBox(zocGeo, w, hZoc, d, 2.5, 0.7);
+      const zocMesh = new ThreeLib.Mesh(zocGeo, mats.matZocalo);
       zocMesh.position.set(px, hZoc / 2, pz);
       zocMesh.castShadow = true; zocMesh.receiveShadow = true;
       zocMesh.userData = { tipo: 'zocalo', lado: 'zocalo_' + tipoLado, idSala: sala.id };
       g.add(zocMesh);
 
-      // 2. Muro superior
-      const murMesh = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w, hMur, d), mats.matPared);
+      // 2. Muro superior con mapeo métrico
+      const murGeo = new ThreeLib.BoxGeometry(w, hMur, d);
+      aplicarUVsMetricasBox(murGeo, w, hMur, d, 2.5, 2.5);
+      const murMesh = new ThreeLib.Mesh(murGeo, mats.matPared);
       murMesh.position.set(px, hZoc + hMur / 2, pz);
       murMesh.castShadow = true; murMesh.receiveShadow = true;
       murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id };
@@ -2377,7 +2646,9 @@
       // Dintel superior sobre la puerta
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), mats.matPared);
+        const dintelGeo = new ThreeLib.BoxGeometry(pw, dH, grosorMuro);
+        aplicarUVsMetricasBox(dintelGeo, pw, dH, grosorMuro, 2.5, 2.5);
+        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
         dintel.position.set(cx, H - dH / 2, -D / 2 + grosorMuro / 2);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'norte', idSala: sala.id };
@@ -2404,7 +2675,9 @@
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(pw, dH, grosorMuro), mats.matPared);
+        const dintelGeo = new ThreeLib.BoxGeometry(pw, dH, grosorMuro);
+        aplicarUVsMetricasBox(dintelGeo, pw, dH, grosorMuro, 2.5, 2.5);
+        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
         dintel.position.set(cx, H - dH / 2, D / 2 - grosorMuro / 2);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'sur', idSala: sala.id };
@@ -2431,7 +2704,9 @@
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), mats.matPared);
+        const dintelGeo = new ThreeLib.BoxGeometry(grosorMuro, dH, pd);
+        aplicarUVsMetricasBox(dintelGeo, grosorMuro, dH, pd, 2.5, 2.5);
+        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
         dintel.position.set(-W / 2 + grosorMuro / 2, H - dH / 2, cz);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'oeste', idSala: sala.id };
@@ -2458,7 +2733,9 @@
       }
       if (H > pH + 0.2) {
         const dH = H - pH;
-        const dintel = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(grosorMuro, dH, pd), mats.matPared);
+        const dintelGeo = new ThreeLib.BoxGeometry(grosorMuro, dH, pd);
+        aplicarUVsMetricasBox(dintelGeo, grosorMuro, dH, pd, 2.5, 2.5);
+        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
         dintel.position.set(W / 2 - grosorMuro / 2, H - dH / 2, cz);
         dintel.castShadow = true; dintel.receiveShadow = true;
         dintel.userData = { tipo: 'dintel', lado: 'este', idSala: sala.id };
@@ -3764,17 +4041,32 @@
       ctx.fillStyle = gradAgua;
       ctx.fill();
     } else if (tipo === 'techo') {
-      ctx.fillStyle = estilo.colorSecundario || '#0f172a';
+      ctx.fillStyle = estilo.colorMortero || '#090d16';
       ctx.fillRect(0, 0, tam, tam);
 
-      const gradT = ctx.createRadialGradient(tam / 2, tam / 2, 4, tam / 2, tam / 2, tam * 0.7);
-      gradT.addColorStop(0, estilo.colorBase);
-      gradT.addColorStop(1, '#050508');
-      ctx.fillStyle = gradT;
-      ctx.fillRect(0, 0, tam, tam);
+      // Bóveda de sillarejo con franjas lineales horizontales
+      const numBandas = 4;
+      const hBanda = tam / numBandas;
+      for (let b = 0; b < numBandas; b++) {
+        const by = b * hBanda;
+        const gradT = ctx.createLinearGradient(0, by, 0, by + hBanda);
+        gradT.addColorStop(0, estilo.colorBase);
+        gradT.addColorStop(0.5, estilo.colorSecundario);
+        gradT.addColorStop(1, '#050508');
+        ctx.fillStyle = gradT;
+        ctx.fillRect(0, by + 1, tam, hBanda - 2);
+      }
 
+      // Nervios de crucería rectos
       ctx.strokeStyle = estilo.colorMortero || '#1e293b';
       ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(tam, tam);
+      ctx.moveTo(tam, 0); ctx.lineTo(0, tam);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, 0); ctx.lineTo(tam, tam);
       ctx.moveTo(tam, 0); ctx.lineTo(0, tam);

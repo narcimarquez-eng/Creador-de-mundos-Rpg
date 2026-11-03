@@ -28,8 +28,36 @@ const mockTHREE = {
   Mesh: MockMesh,
   PointLight: MockLight,
   AmbientLight: MockLight,
-  BoxGeometry: function (...args) { this.args = args; },
-  PlaneGeometry: function (...args) { this.args = args; },
+  BoxGeometry: function (...args) {
+    this.type = 'BoxGeometry';
+    this.args = args;
+    const uvs = new Float32Array(24 * 2);
+    this.attributes = {
+      uv: {
+        array: uvs,
+        count: 24,
+        getX: (i) => uvs[i * 2],
+        getY: (i) => uvs[i * 2 + 1],
+        setXY: (i, x, y) => { uvs[i * 2] = x; uvs[i * 2 + 1] = y; }
+      }
+    };
+    this.getAttribute = (name) => this.attributes[name];
+  },
+  PlaneGeometry: function (...args) {
+    this.type = 'PlaneGeometry';
+    this.args = args;
+    const uvs = new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]);
+    this.attributes = {
+      uv: {
+        array: uvs,
+        count: 4,
+        getX: (i) => uvs[i * 2],
+        getY: (i) => uvs[i * 2 + 1],
+        setXY: (i, x, y) => { uvs[i * 2] = x; uvs[i * 2 + 1] = y; }
+      }
+    };
+    this.getAttribute = (name) => this.attributes[name];
+  },
   CylinderGeometry: function (...args) { this.args = args; },
   ConeGeometry: function (...args) { this.args = args; },
   SphereGeometry: function (...args) { this.args = args; },
@@ -872,4 +900,36 @@ test('DungeonGenerator: integración procedural con la aplicación de enemigos (
   });
   assert.strictEqual(golem.userData.arquetipo, 'jefe_golem_magma');
   assert.ok(golem.children.length > 0, 'Debe construir malla geométrica fallback');
+});
+
+test('DungeonGenerator: texturas ruinosas sin circulos y mapeo UV metrico proporcional', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  assert.ok(kit.piedraMuro, 'Debe crear material piedraMuro');
+  assert.ok(kit.sueloLosas, 'Debe crear material sueloLosas');
+  assert.ok(kit.zocalo, 'Debe crear material zocalo');
+  assert.ok(kit.techo, 'Debe crear material techo');
+
+  // Verificar construcción de caja de habitación con UVs métricas
+  const sala = {
+    id: 'sala_test_uv',
+    tipo: 'comun',
+    w: 20, d: 30, h: 6,
+    x: 0, y: 0, z: 0,
+    huecos: {}
+  };
+  const caja = DungeonGenerator.construirCajaHabitacion(mockTHREE, kit, sala, DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica);
+  assert.ok(caja.children.length >= 3, 'Debe contener suelo, techo y muros perimetrales');
+
+  const suelo = caja.children.find(c => c.geometry && c.geometry.type === 'PlaneGeometry');
+  assert.ok(suelo, 'Debe existir la malla del suelo');
+  const uvAttr = suelo.geometry.getAttribute('uv');
+  assert.ok(uvAttr, 'El suelo debe tener atributo uv');
+  // Las UVs deben haber sido escaladas proporcionalmente a W/3.0 y D/3.0 en vez de 0..1
+  let maxU = 0, maxV = 0;
+  for (let i = 0; i < uvAttr.count; i++) {
+    maxU = Math.max(maxU, uvAttr.getX(i));
+    maxV = Math.max(maxV, uvAttr.getY(i));
+  }
+  assert.ok(maxU > 5.0, `U max debe ser métrico (~6.66) pero fue ${maxU}`);
+  assert.ok(maxV > 8.0, `V max debe ser métrico (~10.0) pero fue ${maxV}`);
 });
