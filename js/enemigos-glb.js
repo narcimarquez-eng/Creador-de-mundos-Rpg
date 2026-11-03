@@ -1,13 +1,13 @@
-// Modelos GLB de los enemigos, exportados desde el editor «Enemigo-rpg»: glb/enemigos/<arquetipo>/medium.glb y low.glb.
+// Modelos GLB de los enemigos, exportados desde el editor «Enemigo-rpg» y guardados en glb/low y glb/medium.
+// El índice (js/enemigos-glb-indice.js, generado por tools/generar-indice-enemigos.mjs) dice qué archivo es de cada enemigo.
 //  - medium → versión «cerca» (monstruos a menos de 10 m); low → versión «lejos».
-//  - Si falta el archivo de una versión, esa versión la genera el módulo procedural (js/enemigos.js), como antes.
+//  - Si el enemigo no está en el índice, o falta el archivo de una versión, la genera el módulo procedural (js/enemigos.js).
 //  - El GLB trae sus clips de animación (Idle, Walk, Attack, Hit, Death…); aquí se reproducen con un AnimationMixer.
 // Expone window.EnemyGlb (o module.exports en Node para las pruebas). Carga los archivos con GLTFPool del visor.
 (function (root) {
   'use strict';
 
-  const CARPETA = 'glb/enemigos/';
-  const ARCHIVO_POR_VERSION = { cerca: 'medium', lejos: 'low' };
+  const VERSION_POR_TIPO = { cerca: 'medium', lejos: 'low' };
   const ESTADOS_ANIMACION = ['idle', 'walk', 'attack', 'hit', 'death'];
   const UNA_VEZ = { hit: true, death: true };     // estos clips se reproducen una vez y se quedan en el último fotograma
   const FUNDIDO_S = 0.2;
@@ -21,11 +21,12 @@
     death: ['death', 'die', 'muerte']
   };
 
-  // Ruta del GLB de un arquetipo para una versión ('cerca' | 'lejos'); null si no hay arquetipo o versión
+  // Ruta del GLB de un arquetipo para una versión ('cerca' | 'lejos'), según el índice; null si no está indexado
   function rutaModeloEnemigo(arquetipo, tipo) {
-    const archivo = ARCHIVO_POR_VERSION[tipo];
-    if (!arquetipo || !archivo) return null;
-    return CARPETA + encodeURIComponent(arquetipo) + '/' + archivo + '.glb';
+    const version = VERSION_POR_TIPO[tipo];
+    const indice = root.ENEMY_GLB_INDEX || {};
+    if (!arquetipo || !version || !Object.prototype.hasOwnProperty.call(indice, arquetipo)) return null;
+    return (indice[arquetipo] && indice[arquetipo][version]) || null;
   }
 
   // Clip del GLB que corresponde a un estado del visor; null si el modelo no lo trae

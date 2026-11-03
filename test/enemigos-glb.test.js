@@ -1,6 +1,12 @@
-// Pruebas de los modelos GLB de enemigos (js/enemigos-glb.js): rutas, clips, carga y fallback.
+// Pruebas de los modelos GLB de enemigos (js/enemigos-glb.js): índice, rutas, clips, carga y fallback.
 // Ejecutar: node test/enemigos-glb.test.js
 const assert = require('assert');
+
+// Índice de prueba: un enemigo con las dos versiones y otro solo con low
+globalThis.ENEMY_GLB_INDEX = {
+  frost_wyrm: { medium: 'glb/medium/dragones/frost_wyrm_medium.glb', low: 'glb/low/dragones/enemy_frost_wyrm_vorthrax_low.glb' },
+  elder_dragon: { low: 'glb/low/dragones/enemy_elder_dragon_ignis_low.glb' }
+};
 const EnemyGlb = require('../js/enemigos-glb.js');
 
 let pasadas = 0;
@@ -34,12 +40,27 @@ function threeFalso() {
 }
 
 (async () => {
-  await prueba('ruta medium para cerca y low para lejos, en glb/enemigos/<arquetipo>/', () => {
-    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('dune_yellow_scorpion', 'cerca'), 'glb/enemigos/dune_yellow_scorpion/medium.glb');
-    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('dune_yellow_scorpion', 'lejos'), 'glb/enemigos/dune_yellow_scorpion/low.glb');
+  await prueba('la ruta sale del índice: medium para cerca, low para lejos', () => {
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('frost_wyrm', 'cerca'), 'glb/medium/dragones/frost_wyrm_medium.glb');
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('frost_wyrm', 'lejos'), 'glb/low/dragones/enemy_frost_wyrm_vorthrax_low.glb');
+  });
+
+  await prueba('sin versión medium en el índice, cerca cae al procedural (null)', () => {
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('elder_dragon', 'cerca'), null);
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('elder_dragon', 'lejos'), 'glb/low/dragones/enemy_elder_dragon_ignis_low.glb');
+  });
+
+  await prueba('arquetipos no indexados, sin arquetipo o con tipo desconocido dan null', () => {
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('dragon_inventado', 'cerca'), null);
     assert.strictEqual(EnemyGlb.rutaModeloEnemigo('', 'cerca'), null);
     assert.strictEqual(EnemyGlb.rutaModeloEnemigo(undefined, 'lejos'), null);
-    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('elder_dragon', 'otra'), null);
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('frost_wyrm', 'otra'), null);
+    assert.strictEqual(EnemyGlb.rutaModeloEnemigo('constructor', 'cerca'), null, 'no cuenta propiedades heredadas');
+  });
+
+  await prueba('pedir sin índice para el arquetipo devuelve null (fallback procedural)', () => {
+    EnemyGlb._vaciarCache();
+    assert.strictEqual(EnemyGlb.pedir('dragon_inventado', 'cerca'), null);
   });
 
   await prueba('buscarClip empareja los clips del editor con cada estado', () => {
@@ -53,11 +74,11 @@ function threeFalso() {
     assert.strictEqual(EnemyGlb.buscarClip(undefined, 'idle'), null);
   });
 
-  await prueba('sin GLTFPool el arquetipo queda en "falta" (fallback procedural)', () => {
+  await prueba('sin GLTFPool el enemigo indexado queda en "falta" (fallback procedural)', () => {
     EnemyGlb._vaciarCache();
     const savedPool = globalThis.GLTFPool;
     delete globalThis.GLTFPool;
-    const e = EnemyGlb.pedir('elder_dragon', 'cerca');
+    const e = EnemyGlb.pedir('frost_wyrm', 'cerca');
     assert.strictEqual(e.estado, 'falta');
     globalThis.GLTFPool = savedPool;
   });
@@ -70,7 +91,7 @@ function threeFalso() {
     globalThis.GLTFPool = {
       cargar(loader, ruta) {
         llamadas++;
-        assert.strictEqual(ruta, 'glb/enemigos/frost_wyrm/medium.glb');
+        assert.strictEqual(ruta, 'glb/medium/dragones/frost_wyrm_medium.glb');
         return Promise.resolve({ scene: escena, animations: clips });
       }
     };
@@ -91,10 +112,10 @@ function threeFalso() {
     globalThis.GLTFPool = {
       cargar() { llamadas++; return Promise.reject(new Error('404')); }
     };
-    const e = EnemyGlb.pedir('abyssal_hydra', 'lejos');
+    const e = EnemyGlb.pedir('elder_dragon', 'lejos');
     await new Promise(r => setTimeout(r, 0));
     assert.strictEqual(e.estado, 'falta');
-    EnemyGlb.pedir('abyssal_hydra', 'lejos');
+    EnemyGlb.pedir('elder_dragon', 'lejos');
     assert.strictEqual(llamadas, 1);
   });
 

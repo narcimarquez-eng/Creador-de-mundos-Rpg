@@ -1,0 +1,427 @@
+// Generado por tools/generar-indice-enemigos.mjs. No editar a mano: vuelve a ejecutar el script al subir archivos.
+// Clave del enemigo → GLB de cada versión (medium: cerca, low: lejos). Las claves que no están aquí usan el procedural.
+(function (root) {
+  'use strict';
+  root.ENEMY_GLB_INDEX = {
+  "abyssal_hydra": {
+    "low": "glb/low/dragones/enemy_abyssal_hydra_tiamat_low.glb"
+  },
+  "arcane_beholder": {
+    "low": "glb/low/magicos-y-demonios/enemy_arcane_beholder_low.glb"
+  },
+  "arch_lich": {
+    "low": "glb/low/magicos-y-demonios/enemy_arch_lich_velkan_low.glb"
+  },
+  "archer_species_10_worgen_bloodhound_ranger": {
+    "low": "glb/low/campeones-y-arqueros/enemy-archer-species-10-worgen-bloodhound-ranger_low.glb"
+  },
+  "archer_species_11_naga_siren_coralbow": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy-archer-species-11-naga-siren-coralbow_low.glb"
+  },
+  "archer_species_12_mantid_amber_wingbow": {
+    "low": "glb/low/mitologicos/enemy-archer-species-12-mantid-amber-wingbow_low.glb"
+  },
+  "archer_species_13_minotaur_greatbow_titan": {
+    "low": "glb/low/mitologicos/enemy-archer-species-13-minotaur-greatbow-titan_low.glb"
+  },
+  "archer_species_14_draenei_crystal_vindicator_bow": {
+    "low": "glb/low/magicos-y-demonios/enemy-archer-species-14-draenei-crystal-vindicator-bow_low.glb"
+  },
+  "archer_species_15_astral_djinn_starbow": {
+    "low": "glb/low/magicos-y-demonios/enemy-archer-species-15-astral-djinn-starbow_low.glb"
+  },
+  "archer_species_1_wood_elf_ranger": {
+    "low": "glb/low/campeones-y-arqueros/enemy-archer-species-1-wood-elf-ranger_low.glb"
+  },
+  "archer_species_4_gnoll_poacher_archer": {
+    "low": "glb/low/elite-nv-1-20/enemy-archer-species-4-gnoll-poacher-archer_low.glb"
+  },
+  "archer_species_5_troll_headhunter_bow": {
+    "low": "glb/low/campeones-y-arqueros/enemy-archer-species-5-troll-headhunter-bow_low.glb"
+  },
+  "archer_species_6_satyr_felbow_trickster": {
+    "low": "glb/low/mitologicos/enemy-archer-species-6-satyr-felbow-trickster_low.glb"
+  },
+  "archer_species_7_centaur_khan_horsebow": {
+    "low": "glb/low/mitologicos/enemy-archer-species-7-centaur-khan-horsebow_low.glb"
+  },
+  "archer_species_8_lizardfolk_scale_sniper": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy-archer-species-8-lizardfolk-scale-sniper_low.glb"
+  },
+  "archer_species_9_orc_wolf_master_bowman": {
+    "low": "glb/low/campeones-y-arqueros/enemy-archer-species-9-orc-wolf-master-bowman_low.glb"
+  },
+  "astral_centaur": {
+    "low": "glb/low/mitologicos/enemy_astral_centaur_low.glb"
+  },
+  "balrog_archdemon": {
+    "low": "glb/low/magicos-y-demonios/enemy_balrog_archdemon_low.glb"
+  },
+  "brood_spider_queen": {
+    "low": "glb/low/bestias-elite/enemy_brood_spider_queen_low.glb"
+  },
+  "cerberus_hellhound": {
+    "low": "glb/low/mitologicos/enemy_cerberus_hellhound_low.glb"
+  },
+  "chitin_stalker": {
+    "low": "glb/low/bestias-elite/enemy_chitin_stalker_low.glb"
+  },
+  "crowned_catacomb_pharaoh": {
+    "low": "glb/low/no-muertos/enemy-crowned-catacomb-pharaoh_low.glb"
+  },
+  "crowned_crypt_inquisitor": {
+    "low": "glb/low/no-muertos/enemy-crowned-crypt-inquisitor_low.glb"
+  },
+  "cursed_diadem_valkyrie_skeleton": {
+    "low": "glb/low/no-muertos/enemy-cursed-diadem-valkyrie-skeleton_low.glb"
+  },
+  "dire_wolf": {
+    "low": "glb/low/bestias-elite/enemy_dire_wolf_fenrir_low.glb"
+  },
+  "drake_berserker": {
+    "low": "glb/low/campeones-y-arqueros/enemy_drake_berserker_low.glb"
+  },
+  "elder_dragon": {
+    "low": "glb/low/dragones/enemy_elder_dragon_ignis_low.glb"
+  },
+  "elite_abyssal_angler_lurker": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-abyssal-angler-lurker_low.glb"
+  },
+  "elite_ancient_raptor_skeleton": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-ancient-raptor-skeleton_low.glb"
+  },
+  "elite_armored_pangolin_roller": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-armored-pangolin-roller_low.glb"
+  },
+  "elite_bloodmane_mandrill": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-bloodmane-mandrill_low.glb"
+  },
+  "elite_bog_troll_regenerator": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-bog-troll-regenerator_low.glb"
+  },
+  "elite_bone_scorpion_construct": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-bone-scorpion-construct_low.glb"
+  },
+  "elite_caged_rib_jailer_skeleton": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-caged-rib-jailer-skeleton_low.glb"
+  },
+  "elite_casqued_chameleon_stalker": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-casqued-chameleon-stalker_low.glb"
+  },
+  "elite_centaur_steppe_khan": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-centaur-steppe-khan_low.glb"
+  },
+  "elite_clubtail_ankylo_drake": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-clubtail-ankylo-drake_low.glb"
+  },
+  "elite_crest_pterosaur_skydrake": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-crest-pterosaur-skydrake_low.glb"
+  },
+  "elite_crimson_wyvern_matriarch": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-crimson-wyvern-matriarch_low.glb"
+  },
+  "elite_crypt_stalker_bone_spider": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-crypt-stalker-bone-spider_low.glb"
+  },
+  "elite_dire_wolf_bone_alpha": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-dire-wolf-bone-alpha_low.glb"
+  },
+  "elite_four_armed_bone_reaver": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-four-armed-bone-reaver_low.glb"
+  },
+  "elite_frilled_venom_basilisk": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-frilled-venom-basilisk_low.glb"
+  },
+  "elite_fungal_myconid_colossus": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-fungal-myconid-colossus_low.glb"
+  },
+  "elite_glacial_plesio_drake": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-glacial-plesio-drake_low.glb"
+  },
+  "elite_glacier_wolverine_fiend": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-glacier-wolverine-fiend_low.glb"
+  },
+  "elite_goblin_wolf_rider_boss": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-goblin-wolf-rider-boss_low.glb"
+  },
+  "elite_great_antler_moose": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-great-antler-moose_low.glb"
+  },
+  "elite_harpy_storm_matriarch": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-harpy-storm-matriarch_low.glb"
+  },
+  "elite_hobgoblin_iron_warmonger": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-hobgoblin-iron-warmonger_low.glb"
+  },
+  "elite_hooded_king_cobra": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-hooded-king-cobra_low.glb"
+  },
+  "elite_horned_minotaur_skeleton": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-horned-minotaur-skeleton_low.glb"
+  },
+  "elite_ironhorn_rhino_beast": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-ironhorn-rhino-beast_low.glb"
+  },
+  "elite_komodo_monitor_ravager": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-komodo-monitor-ravager_low.glb"
+  },
+  "elite_mammoth_ossuary_behemoth": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-mammoth-ossuary-behemoth_low.glb"
+  },
+  "elite_marsupial_claw_ripper": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-marsupial-claw-ripper_low.glb"
+  },
+  "elite_ogre_two_headed_mauler": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-ogre-two-headed-mauler_low.glb"
+  },
+  "elite_pirate_captain_skeleton": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-pirate-captain-skeleton_low.glb"
+  },
+  "elite_plague_doctor_lich_skeleton": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-plague-doctor-lich-skeleton_low.glb"
+  },
+  "elite_quillback_porcupine": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-quillback-porcupine_low.glb"
+  },
+  "elite_saber_prowler_leopard": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-saber-prowler-leopard_low.glb"
+  },
+  "elite_sabertooth_skull_stalker": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-sabertooth-skull-stalker_low.glb"
+  },
+  "elite_salamander_magma_spearman": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-salamander-magma-spearman_low.glb"
+  },
+  "elite_satyr_bloodhorn_shaman": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-satyr-bloodhorn-shaman_low.glb"
+  },
+  "elite_shadow_maned_lion": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-shadow-maned-lion_low.glb"
+  },
+  "elite_silverback_ape": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-silverback-ape_low.glb"
+  },
+  "elite_snapping_chelonian_tortoise": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-snapping-chelonian-tortoise_low.glb"
+  },
+  "elite_spiked_wheel_bone_martyr": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-spiked-wheel-bone-martyr_low.glb"
+  },
+  "elite_spitting_salamander_drake": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-spitting-salamander-drake_low.glb"
+  },
+  "elite_steppe_dire_jackal": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-steppe-dire-jackal_low.glb"
+  },
+  "elite_swamp_alligator_snapper": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-swamp-alligator-snapper_low.glb"
+  },
+  "elite_thorny_devil_moloch": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-thorny-devil-moloch_low.glb"
+  },
+  "elite_three_tailed_kitsune_fox": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-three-tailed-kitsune-fox_low.glb"
+  },
+  "elite_thunderhoof_bison": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-thunderhoof-bison_low.glb"
+  },
+  "elite_twin_head_amphisbaena": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-twin-head-amphisbaena_low.glb"
+  },
+  "elite_twin_skull_ettin_skeleton": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-twin-skull-ettin-skeleton_low.glb"
+  },
+  "elite_wendigo_antler_fiend": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-wendigo-antler-fiend_low.glb"
+  },
+  "elite_winged_gargoyle_skeleton": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-winged-gargoyle-skeleton_low.glb"
+  },
+  "elite_woolly_mammoth_calf": {
+    "low": "glb/low/elite-nv-1-20/enemy-elite-woolly-mammoth-calf_low.glb"
+  },
+  "emerald_crown_necromancer_lord": {
+    "low": "glb/low/no-muertos/enemy-emerald-crown-necromancer-lord_low.glb"
+  },
+  "frost_wyrm": {
+    "low": "glb/low/dragones/enemy_frost_wyrm_vorthrax_low.glb"
+  },
+  "furious_keltir": {
+    "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_furious_keltir_low.glb"
+  },
+  "gilded_skull_praetorian": {
+    "low": "glb/low/no-muertos/enemy-gilded-skull-praetorian_low.glb"
+  },
+  "glacial_crown_revenant_king": {
+    "low": "glb/low/no-muertos/enemy-glacial-crown-revenant-king_low.glb"
+  },
+  "gorgon_medusa": {
+    "low": "glb/low/mitologicos/enemy_gorgon_medusa_euryale_low.glb"
+  },
+  "griffin_skyhunter": {
+    "low": "glb/low/mitologicos/enemy_griffin_skyhunter_low.glb"
+  },
+  "iron_crown_cataphract_skeleton": {
+    "low": "glb/low/no-muertos/enemy-iron-crown-cataphract-skeleton_low.glb"
+  },
+  "labyrinth_minotaur": {
+    "low": "glb/low/mitologicos/enemy_labyrinth_minotaur_low.glb"
+  },
+  "leviathan_abyssal": {
+    "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_leviathan_abyssal_low.glb"
+  },
+  "manticore_chimera": {
+    "low": "glb/low/mitologicos/enemy_manticore_chimera_low.glb"
+  },
+  "necrotic_archdragon": {
+    "low": "glb/low/dragones/enemy_necrotic_archdragon_low.glb"
+  },
+  "obsidian_crown_dread_skeleton": {
+    "low": "glb/low/no-muertos/enemy-obsidian-crown-dread-skeleton_low.glb"
+  },
+  "ossuary_king_leoric": {
+    "low": "glb/low/no-muertos/enemy-ossuary-king-leoric_low.glb"
+  },
+  "runic_warbear": {
+    "low": "glb/low/bestias-elite/enemy_runic_warbear_low.glb"
+  },
+  "samurai_oni": {
+    "low": "glb/low/campeones-y-arqueros/enemy_samurai_oni_kensei_low.glb"
+  },
+  "skeletal_archbishop_pontiff": {
+    "low": "glb/low/no-muertos/enemy-skeletal-archbishop-pontiff_low.glb"
+  },
+  "skeletal_dragonbone_jarl": {
+    "low": "glb/low/no-muertos/enemy-skeletal-dragonbone-jarl_low.glb"
+  },
+  "skeletal_royal_halberdier": {
+    "low": "glb/low/no-muertos/enemy-skeletal-royal-halberdier_low.glb"
+  },
+  "skeleton_emperor_goldcrown": {
+    "low": "glb/low/no-muertos/enemy-skeleton-emperor-goldcrown_low.glb"
+  },
+  "skeleton_warlord_chariot_knight": {
+    "low": "glb/low/no-muertos/enemy-skeleton-warlord-chariot-knight_low.glb"
+  },
+  "solar_phoenix": {
+    "low": "glb/low/magicos-y-demonios/enemy_solar_phoenix_low.glb"
+  },
+  "solar_valkyrie": {
+    "low": "glb/low/campeones-y-arqueros/enemy_solar_valkyrie_low.glb"
+  },
+  "star_crown_astral_lich": {
+    "low": "glb/low/no-muertos/enemy-star-crown-astral-lich_low.glb"
+  },
+  "storm_drake": {
+    "low": "glb/low/dragones/enemy_storm_drake_voltaris_low.glb"
+  },
+  "undead_archer_10_lich_deadeye_sovereign": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-10-lich-deadeye-sovereign_low.glb"
+  },
+  "undead_archer_1_bone_scout": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-1-bone-scout_low.glb"
+  },
+  "undead_archer_2_barrow_bowman": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-2-barrow-bowman_low.glb"
+  },
+  "undead_archer_3_poison_rib_hunter": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-3-poison-rib-hunter_low.glb"
+  },
+  "undead_archer_4_watchtower_longbow": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-4-watchtower-longbow_low.glb"
+  },
+  "undead_archer_5_frostbone_ranger": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-5-frostbone-ranger_low.glb"
+  },
+  "undead_archer_6_hellfire_ash_marksman": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-6-hellfire-ash-marksman_low.glb"
+  },
+  "undead_archer_7_catacomb_sniper_captain": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-7-catacomb-sniper-captain_low.glb"
+  },
+  "undead_archer_8_abyssal_soul_bowman": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-8-abyssal-soul-bowman_low.glb"
+  },
+  "undead_archer_9_royal_ossuary_greatbow": {
+    "low": "glb/low/no-muertos/enemy-undead-archer-9-royal-ossuary-greatbow_low.glb"
+  },
+  "vampire_lord": {
+    "low": "glb/low/campeones-y-arqueros/enemy_vampire_lord_valerius_low.glb"
+  },
+  "void_djinn": {
+    "low": "glb/low/magicos-y-demonios/enemy_void_djinn_alzahir_low.glb"
+  },
+  "wow_abomination_patchwerk": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-abomination-patchwerk_low.glb"
+  },
+  "wow_alakir_windlord": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-alakir-windlord_low.glb"
+  },
+  "wow_alalor_void_walker": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-alalor-void-walker_low.glb"
+  },
+  "wow_anubarak_crypt_lord": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-anubarak-crypt-lord_low.glb"
+  },
+  "wow_archimonde_eredar_warlock": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-archimonde-eredar-warlock_low.glb"
+  },
+  "wow_arthas_lich_king": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-arthas-lich-king_low.glb"
+  },
+  "wow_banshee_dark_ranger_queen": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-banshee-dark-ranger-queen_low.glb"
+  },
+  "wow_blood_elf_spellbreaker": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-blood-elf-spellbreaker_low.glb"
+  },
+  "wow_centaur_kolkar_marauder": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-centaur-kolkar-marauder_low.glb"
+  },
+  "wow_chromaggus_chromatic_drake": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-chromaggus-chromatic-drake_low.glb"
+  },
+  "wow_core_hound_magmadar": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-core-hound-magmadar_low.glb"
+  },
+  "wow_cthun_old_god_eye": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-cthun-old-god-eye_low.glb"
+  },
+  "wow_death_knight_ebon_blade": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-death-knight-ebon-blade_low.glb"
+  },
+  "wow_deathwing_cataclysm_aspect": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-deathwing-cataclysm-aspect_low.glb"
+  },
+  "wow_defias_pillager_bandit": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-defias-pillager-bandit_low.glb"
+  },
+  "wow_devilsaur_king_mosh": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-devilsaur-king-mosh_low.glb"
+  },
+  "wow_doomguard_fel_enforcer": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-doomguard-fel-enforcer_low.glb"
+  },
+  "wow_draenei_vindicator_paladin": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-draenei-vindicator-paladin_low.glb"
+  },
+  "wow_dwarven_mountain_king": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-dwarven-mountain-king_low.glb"
+  },
+  "wow_faceless_kthir_general": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-faceless-kthir-general_low.glb"
+  },
+  "wow_fel_reaver_construct": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-fel-reaver-construct_low.glb"
+  },
+  "wow_felguard_legion_axeman": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-felguard-legion-axeman_low.glb"
+  },
+  "wow_felhound_mana_stalker": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-felhound-mana-stalker_low.glb"
+  },
+  "wow_forsaken_royal_apothecary": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-forsaken-royal-apothecary_low.glb"
+  }
+};
+})(typeof window !== 'undefined' ? window : globalThis);
