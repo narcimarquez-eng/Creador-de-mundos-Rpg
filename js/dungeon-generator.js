@@ -2845,19 +2845,25 @@
     // Constructor de Arcos arquitectónicos con columnas de molduras para las puertas de pasillos
     function agregarPortalConArco(anchoVano, cx, pz, tipoLado, orientacion, pHCustom) {
       const esHorizontal = (orientacion === 'horizontal');
-      const altoArco = typeof pHCustom === 'number'
-        ? Math.min(H - 0.4, Math.max(3.6, pHCustom))
+      const altoArco = (typeof pHCustom === 'number' && pHCustom > 3.8)
+        ? Math.min(H - 0.4, pHCustom)
         : Math.min(H - 0.4, Math.max(3.8, Math.round(H * 0.70 * 10) / 10));
 
-      const hColumna = Math.max(2.4, altoArco * 0.72);
-      const radioCol = Math.max(0.24, Math.min(0.70, altoArco * 0.055));
+      const radioCol = Math.max(0.24, Math.min(0.65, altoArco * 0.052));
+      const offSpan = Math.max(0.2, (anchoVano / 2) - radioCol);
+      const spanCurva = Math.max(1.2, anchoVano - radioCol * 2);
+      const Rx = spanCurva / 2;
+
+      // Altura armónica de curva y fuste de columna según la altura del techo
+      const maxCurva = Math.min(Rx, Math.max(1.1, altoArco * 0.35));
+      const hCurva = Math.min(maxCurva, altoArco - 2.5);
+      const hColumna = altoArco - hCurva;
       const estiloCol = sala.columnasEstilo || (sala.columnas && sala.columnas.estilo) || opciones.estiloColumna || (opciones.estilo && opciones.estilo.id && opciones.estilo.id.includes('roman') ? 'romanica' : 'gotica');
 
       // 1. Columnas flanqueantes con molduras a los lados del vano
       const colL = crearColumna(ThreeLib, kit, hColumna, radioCol, estiloCol);
       const colR = crearColumna(ThreeLib, kit, hColumna, radioCol, estiloCol);
 
-      const offSpan = Math.max(0.2, (anchoVano / 2) - radioCol);
       if (esHorizontal) {
         colL.position.set(cx - offSpan, 0, pz);
         colR.position.set(cx + offSpan, 0, pz);
@@ -2870,20 +2876,89 @@
       g.add(colL);
       g.add(colR);
 
-      // 2. Arco adovelado / arquivolta con clave central en resalte (keystone)
-      const spanCurva = Math.max(0.5, anchoVano - radioCol * 2);
-      const hCurva = altoArco - hColumna;
+      // Bloques de imposta arquitectónica (ábaco de transición entre capitel y arranque del arco)
+      const wImp = radioCol * 2.3;
+      const hImp = Math.max(0.18, Math.min(0.36, hColumna * 0.045));
+      const dImp = grosorMuro + 0.12;
+      const impGeo = esHorizontal
+        ? new ThreeLib.BoxGeometry(wImp, hImp, dImp)
+        : new ThreeLib.BoxGeometry(dImp, hImp, wImp);
+      const impL = new ThreeLib.Mesh(impGeo, mats.matZocalo || mats.matPared);
+      const impR = new ThreeLib.Mesh(impGeo, mats.matZocalo || mats.matPared);
+      if (esHorizontal) {
+        impL.position.set(cx - offSpan, hColumna - hImp / 2, pz);
+        impR.position.set(cx + offSpan, hColumna - hImp / 2, pz);
+      } else {
+        impL.position.set(cx, hColumna - hImp / 2, pz - offSpan);
+        impR.position.set(cx, hColumna - hImp / 2, pz + offSpan);
+      }
+      impL.castShadow = true; impL.receiveShadow = true;
+      impR.castShadow = true; impR.receiveShadow = true;
+      g.add(impL);
+      g.add(impR);
+
+      // 2. Muro macizo hermético (Tímpano y Enjutas sin huecos al vacío)
+      if (H > hColumna + 0.05) {
+        const dH = H - hColumna;
+        if (typeof ThreeLib.Shape === 'function' && typeof ThreeLib.ExtrudeGeometry === 'function' && typeof ThreeLib.Path === 'function') {
+          const shape = new ThreeLib.Shape();
+          shape.moveTo(-anchoVano / 2, 0);
+          shape.lineTo(-anchoVano / 2, dH);
+          shape.lineTo(anchoVano / 2, dH);
+          shape.lineTo(anchoVano / 2, 0);
+
+          const hole = new ThreeLib.Path();
+          const nSegs = 20;
+          hole.moveTo(-Rx, 0);
+          for (let s = 0; s <= nSegs; s++) {
+            const th = Math.PI * (1 - s / nSegs);
+            hole.lineTo(Math.cos(th) * Rx, Math.sin(th) * hCurva);
+          }
+          hole.lineTo(-Rx, 0);
+          shape.holes.push(hole);
+
+          const geoTimpano = new ThreeLib.ExtrudeGeometry(shape, { depth: grosorMuro, bevelEnabled: false });
+          geoTimpano.translate(0, 0, -grosorMuro / 2);
+          const meshTimpano = new ThreeLib.Mesh(geoTimpano, mats.matPared);
+          if (esHorizontal) {
+            meshTimpano.position.set(cx, hColumna, pz);
+          } else {
+            meshTimpano.position.set(cx, hColumna, pz);
+            meshTimpano.rotation.y = Math.PI / 2;
+          }
+          meshTimpano.castShadow = true; meshTimpano.receiveShadow = true;
+          meshTimpano.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
+          g.add(meshTimpano);
+        } else {
+          // Fallback para entornos de testing sin Shape/ExtrudeGeometry
+          const dintelGeo = esHorizontal
+            ? new ThreeLib.BoxGeometry(anchoVano, H - altoArco, grosorMuro)
+            : new ThreeLib.BoxGeometry(grosorMuro, H - altoArco, anchoVano);
+          const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
+          dintel.position.set(cx, altoArco + (H - altoArco) / 2, pz);
+          dintel.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
+          g.add(dintel);
+        }
+      }
+
+      // 3. Rosca adovelada (Arquivolta) continua con dovelas tangentes y clave central (keystone) en resalte
       const numDovelas = 7;
+      const Trad = Math.max(0.32, Math.min(0.55, hCurva * 0.26));
+      const RmidX = Rx + Trad * 0.42;
+      const RmidY = hCurva + Trad * 0.42;
+      const chord = 2 * Math.sqrt((RmidX * RmidX + RmidY * RmidY) / 2) * Math.sin(Math.PI / (numDovelas * 2)) * 1.05;
+
       for (let d = 0; d < numDovelas; d++) {
         const frac = (d + 0.5) / numDovelas;
-        const ang = Math.PI * (1 - frac);
-        const dxDov = Math.cos(ang) * (spanCurva / 2);
-        const dyDov = Math.sin(ang) * hCurva;
-        const yDov = hColumna + dyDov;
+        const th = Math.PI * (1 - frac);
+        const cosT = Math.cos(th);
+        const sinT = Math.sin(th);
+        const xd = cosT * RmidX;
+        const yd = hColumna + sinT * RmidY;
         const esClave = (d === Math.floor(numDovelas / 2));
 
-        const wDov = (spanCurva / numDovelas) * 1.15;
-        const hDov = esClave ? (hCurva * 0.45) : (hCurva * 0.35);
+        const wDov = esClave ? (chord * 1.20) : chord;
+        const hDov = esClave ? (Trad * 1.25) : Trad;
         const grosorDov = esClave ? (grosorMuro + 0.16) : (grosorMuro + 0.08);
 
         const geoDov = esHorizontal
@@ -2893,32 +2968,17 @@
         const meshDov = new ThreeLib.Mesh(geoDov, matDov);
 
         if (esHorizontal) {
-          meshDov.position.set(cx + dxDov, yDov, pz);
-          meshDov.rotation.z = -(ang - Math.PI / 2) * 0.6;
+          const phi = Math.atan2(hCurva * cosT, -Rx * sinT);
+          meshDov.position.set(cx + xd, yd, pz);
+          meshDov.rotation.z = phi;
         } else {
-          meshDov.position.set(cx, yDov, pz + dxDov);
-          meshDov.rotation.x = (ang - Math.PI / 2) * 0.6;
+          const alpha = Math.atan2(-hCurva * cosT, -Rx * sinT);
+          meshDov.position.set(cx, yd, pz + xd);
+          meshDov.rotation.x = alpha;
         }
         meshDov.castShadow = true; meshDov.receiveShadow = true;
-        meshDov.userData = { tipo: 'dovela_arco', lado: 'arco_' + tipoLado, idSala: sala.id };
+        meshDov.userData = { tipo: 'dovela_arco', lado: 'arco_' + tipoLado, idSala: sala.id, esClave };
         g.add(meshDov);
-      }
-
-      // 3. Dintel y tímpano superior hermético que sella la pared hasta el techo H
-      if (H > altoArco + 0.1) {
-        const dH = H - altoArco;
-        const dintelGeo = esHorizontal
-          ? new ThreeLib.BoxGeometry(anchoVano, dH, grosorMuro)
-          : new ThreeLib.BoxGeometry(grosorMuro, dH, anchoVano);
-        if (typeof aplicarUVsMetricasBox === 'function') {
-          if (esHorizontal) aplicarUVsMetricasBox(dintelGeo, anchoVano, dH, grosorMuro, 2.5, 2.5);
-          else aplicarUVsMetricasBox(dintelGeo, grosorMuro, dH, anchoVano, 2.5, 2.5);
-        }
-        const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
-        dintel.position.set(cx, altoArco + dH / 2, pz);
-        dintel.castShadow = true; dintel.receiveShadow = true;
-        dintel.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
-        g.add(dintel);
       }
     }
 
