@@ -1011,6 +1011,7 @@
   <script type="module" src="js/character.js?v=20261030d"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
+  <script type="module" src="js/enemigos-glb.js?v=20261103"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js";
@@ -3382,19 +3383,40 @@
     return d < MONSTRUO_DETALLE + (m.activa === 'cerca' ? 2 : -2) ? 'cerca' : 'lejos';
   }
 
+  // Versión con el GLB exportado del editor (glb/enemigos/<arquetipo>/medium|low.glb). Sus clips se reproducen con
+  // un AnimationMixer; no tiene piezas de rig, así que no lleva efectos de combate (se usa el golpe sin ellos).
+  function instanciarVersionGlb(m, tipo, entrada) {
+    const raiz = SkeletonUtils.clone(entrada.escena);
+    raiz.scale.setScalar(escalaEnemigos());
+    aplicarEntorno(raiz);
+    const caja = new THREE.Box3().setFromObject(raiz);
+    const glb = EnemyGlb.crearReproductor(THREE, raiz, entrada.clips);
+    return { rig: { rootGroup: raiz, glb }, fx: null, detalle: [], barHeight: caja.max.y + 0.9 };
+  }
+
   function construirModeloEnemigo(m, d) {
     if (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) return true;
     if (!window.EnemyLib || !m.enemigo) return false;
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
-      // Se espera al simplificador (unos milisegundos al abrir): sin él, la versión saldría con todos sus triángulos
-      if (esperandoSimplificador) return !!m.rig;
-      // Solo se limita a 1 por fotograma la generación inicial del prototipo; clonar uno ya cacheado cuesta ~0.2 ms
-      if (!protoEnemigoCache.has(claveCacheEnemigo(m, tipo))) {
-        if (presupuestoModelos <= 0) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
+      // Primero el GLB de esta versión (medium para cerca, low para lejos). Si el archivo no está, se genera el
+      // modelo procedural como antes: cada versión decide por su cuenta.
+      const glb = EnemyGlb.pedir(m.enemigo.archetype, tipo);
+      if (glb && glb.estado === 'cargando') return !!m.rig;   // se espera a la descarga (unos milisegundos)
+      if (glb && glb.estado === 'listo') {
+        if (presupuestoModelos <= 0) return !!m.rig;   // un modelo por fotograma, como los procedurales
         presupuestoModelos--;
+        m.versiones[tipo] = instanciarVersionGlb(m, tipo, glb);
+      } else {
+        // Se espera al simplificador (unos milisegundos al abrir): sin él, la versión saldría con todos sus triángulos
+        if (esperandoSimplificador) return !!m.rig;
+        // Solo se limita a 1 por fotograma la generación inicial del prototipo; clonar uno ya cacheado cuesta ~0.2 ms
+        if (!protoEnemigoCache.has(claveCacheEnemigo(m, tipo))) {
+          if (presupuestoModelos <= 0) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
+          presupuestoModelos--;
+        }
+        m.versiones[tipo] = instanciarVersionEnemigo(m, tipo);
       }
-      m.versiones[tipo] = instanciarVersionEnemigo(m, tipo);
     }
     if (m.activa !== tipo) {
       const v = m.versiones[tipo];
@@ -3749,6 +3771,7 @@
     // Las geometrías y materiales de las mallas pertenecen a protoEnemigoCache y se reutilizan entre instancias;
     // aquí solo se liberan los pequeños buffers propios de cada clon (partículas y proyectil mágico).
     Object.values(m.versiones || {}).forEach(v => {
+      if (v.rig && v.rig.glb) EnemyGlb.detener(v.rig.glb);
       if (v.rig) {
         if (v.rig.auraParticleSystem && v.rig.auraParticleSystem.points && v.rig.auraParticleSystem.points.geometry) {
           v.rig.auraParticleSystem.points.geometry.dispose();
@@ -3805,6 +3828,11 @@
             EnemyFx.actualizar(m.fx, 'death', now / 1000, dt, now / 1000);
             return;
           }
+          if (m.rig && m.rig.glb && performance.now() < m.muriendo) {
+            m.group.visible = true;
+            EnemyGlb.actualizar(m.rig.glb, 'death', dt);
+            return;
+          }
           if (performance.now() >= m.respawnAt) respawnMonster(m);
           else { m.group.visible = false; m.bar.visible = false; return; }
         }
@@ -3834,6 +3862,8 @@
           m.group.position.set(m.x, my, m.z);
           if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
           const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
+          // Modelos GLB: sus clips avanzan solo a distancia de animación (de lejos se quedan en la última pose)
+          if (m.rig && m.rig.glb && d < MONSTRUO_ANIMA) EnemyGlb.actualizar(m.rig.glb, estado, dt);
           // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
           const cada = d < MONSTRUO_ANIMA ? 1 : d < MONSTRUO_ANIMA_LENTO ? 4 : 0;
           m.dtAnim = (m.dtAnim || 0) + dt;
