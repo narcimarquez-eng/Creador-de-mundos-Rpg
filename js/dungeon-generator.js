@@ -702,17 +702,39 @@
         ctxD.fillRect(x + pad, y + pad, 3, hBloque); // Lateral izquierdo
         ctxD.fillRect(x + pad + wBloque - 3, y + pad, 3, hBloque); // Lateral derecho
 
-        // Bump map biselado plano y angular (mortero hundido y sillar en relieve plano)
-        ctxB.fillStyle = '#b8b8b8';
+        // Bump map con abombamiento almohadillado de cantería (bossage rústico sin círculos)
+        const esAlmohadillado = (f + c) % 2 === 0;
+        const baseBump = esAlmohadillado ? '#c8c8c8' : '#a8a8a8';
+        ctxB.fillStyle = baseBump;
         ctxB.fillRect(x + pad, y + pad, wBloque, hBloque);
-        // Resalte de relieve en bordes rectos
+
+        // Capas concéntricas rectangulares de almohadillado abombado hacia el centro del sillar
+        const capasAbombado = 3;
+        for (let cap = 1; cap <= capasAbombado; cap++) {
+          const mIn = cap * 3;
+          if (wBloque > mIn * 2 && hBloque > mIn * 2) {
+            const nivelGris = Math.min(255, 175 + cap * 24 + (esAlmohadillado ? 20 : 0));
+            ctxB.fillStyle = `rgb(${nivelGris},${nivelGris},${nivelGris})`;
+            ctxB.fillRect(x + pad + mIn, y + pad + mIn, wBloque - mIn * 2, hBloque - mIn * 2);
+          }
+        }
+
+        // Resalte de relieve en bordes rectos (Luz arriba, sombra abajo)
         ctxB.fillStyle = '#ffffff';
         ctxB.fillRect(x + pad, y + pad, wBloque, 3);
-        ctxB.fillStyle = '#444444';
+        ctxB.fillStyle = '#333333';
         ctxB.fillRect(x + pad, y + pad + hBloque - 3, wBloque, 3);
-        ctxB.strokeStyle = '#181818';
+        ctxB.strokeStyle = '#121212';
         ctxB.lineWidth = 3;
         ctxB.strokeRect(x + pad, y + pad, wBloque, hBloque);
+
+        // Brillo y sombra de abombamiento en diffuse
+        if (esAlmohadillado) {
+          ctxD.fillStyle = 'rgba(255,255,255,0.06)';
+          ctxD.fillRect(x + pad + 6, y + pad + 5, wBloque - 12, Math.max(4, Math.floor(hBloque * 0.4)));
+          ctxD.fillStyle = 'rgba(0,0,0,0.18)';
+          ctxD.fillRect(x + pad + 6, y + pad + Math.floor(hBloque * 0.55), wBloque - 12, Math.max(4, Math.floor(hBloque * 0.35)));
+        }
 
         // Grietas y fracturas angulares de ruina medieval
         if ((f + c) % 2 === 0 && rnd() > 0.3) {
@@ -1794,24 +1816,17 @@
     return g;
   }
 
-  // G) Vegetación subterránea: musgo y yerbas entre losas
+  // G) Vegetación subterránea: briznas de yerbas orgánicas entre las juntas de losas (sin manchas redondas)
   function crearManchaVegetacion(ThreeLib, kit, rng, radio = 1.2) {
     const g = new ThreeLib.Group();
 
-    // Capa de musgo pegada al suelo
-    const geoMusgo = new ThreeLib.CircleGeometry(radio, 7);
-    const mallaMusgo = new ThreeLib.Mesh(geoMusgo, kit.musgo);
-    mallaMusgo.rotation.x = -Math.PI / 2;
-    mallaMusgo.position.y = 0.015;
-    g.add(mallaMusgo);
-
-    // Briznas de yerbas (planos cruzados)
-    const cantHierba = rng.int(3, 7);
+    // Briznas de yerbas (planos cruzados verticales, sin círculos en el suelo)
+    const cantHierba = rng.int(4, 8);
     const geoHierba = new ThreeLib.PlaneGeometry(0.35, 0.45);
     for (let i = 0; i < cantHierba; i++) {
       const hMesh = new ThreeLib.Mesh(geoHierba, kit.musgo);
       const ang = rng.range(0, Math.PI * 2);
-      const dist = rng.range(0.1, radio * 0.7);
+      const dist = rng.range(0.05, radio * 0.75);
       hMesh.position.set(Math.cos(ang) * dist, 0.22, Math.sin(ang) * dist);
       hMesh.rotation.y = rng.range(0, Math.PI);
       g.add(hMesh);
@@ -2589,14 +2604,41 @@
       const hMur = H - hZoc;
       const tipoMuro = isHombro ? 'muro_hombro' : 'muro';
 
-      // 1. Zócalo inferior con mapeo métrico
-      const zocGeo = new ThreeLib.BoxGeometry(w, hZoc, d);
-      aplicarUVsMetricasBox(zocGeo, w, hZoc, d, 2.5, 0.7);
+      // Vector normal hacia el interior de la sala para orientar plintos y molduras sobresalientes
+      let normX = 0, normZ = 0;
+      if (tipoLado.includes('norte')) normZ = 1;
+      else if (tipoLado.includes('sur')) normZ = -1;
+      else if (tipoLado.includes('oeste')) normX = 1;
+      else if (tipoLado.includes('este')) normX = -1;
+
+      const salientePlinto = 0.08;
+      const esHorizontal = w >= d;
+
+      // 1. Zócalo / Plinto inferior sobresaliente con mapeo métrico
+      const zocW = esHorizontal ? w : (w + salientePlinto);
+      const zocD = esHorizontal ? (d + salientePlinto) : d;
+      const zocPX = px + (normX * salientePlinto * 0.5);
+      const zocPZ = pz + (normZ * salientePlinto * 0.5);
+
+      const zocGeo = new ThreeLib.BoxGeometry(zocW, hZoc, zocD);
+      aplicarUVsMetricasBox(zocGeo, zocW, hZoc, zocD, 2.5, 0.7);
       const zocMesh = new ThreeLib.Mesh(zocGeo, mats.matZocalo);
-      zocMesh.position.set(px, hZoc / 2, pz);
+      zocMesh.position.set(zocPX, hZoc / 2, zocPZ);
       zocMesh.castShadow = true; zocMesh.receiveShadow = true;
       zocMesh.userData = { tipo: 'zocalo', lado: 'zocalo_' + tipoLado, idSala: sala.id };
       g.add(zocMesh);
+
+      // 1.1 Moldura biselada de remate superior del plinto
+      const salRemate = salientePlinto + 0.03;
+      const remW = esHorizontal ? w : (w + salRemate);
+      const remD = esHorizontal ? (d + salRemate) : d;
+      const remGeo = new ThreeLib.BoxGeometry(remW, 0.06, remD);
+      aplicarUVsMetricasBox(remGeo, remW, 0.06, remD, 2.0, 0.5);
+      const remMesh = new ThreeLib.Mesh(remGeo, mats.matZocalo);
+      remMesh.position.set(px + (normX * salRemate * 0.5), hZoc + 0.03, pz + (normZ * salRemate * 0.5));
+      remMesh.castShadow = true; remMesh.receiveShadow = true;
+      remMesh.userData = { tipo: 'moldura_plinto', lado: 'moldura_plinto_' + tipoLado, idSala: sala.id };
+      g.add(remMesh);
 
       // 2. Muro superior con mapeo métrico
       const murGeo = new ThreeLib.BoxGeometry(w, hMur, d);
@@ -2606,6 +2648,79 @@
       murMesh.castShadow = true; murMesh.receiveShadow = true;
       murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id };
       g.add(murMesh);
+
+      // 2.1 Cenefa / Moldura corrida sobresaliente a media altura (imposta medieval)
+      if (hMur > 1.8) {
+        const yCenefa = hZoc + Math.min(2.4, hMur * 0.44);
+        const salCenefa = 0.06;
+        const cenW = esHorizontal ? w : (w + salCenefa);
+        const cenD = esHorizontal ? (d + salCenefa) : d;
+        const cenGeo = new ThreeLib.BoxGeometry(cenW, 0.12, cenD);
+        aplicarUVsMetricasBox(cenGeo, cenW, 0.12, cenD, 2.0, 0.5);
+        const cenMesh = new ThreeLib.Mesh(cenGeo, mats.matZocalo);
+        cenMesh.position.set(px + (normX * salCenefa * 0.5), yCenefa, pz + (normZ * salCenefa * 0.5));
+        cenMesh.castShadow = true; cenMesh.receiveShadow = true;
+        cenMesh.userData = { tipo: 'cenefa_muro', lado: 'cenefa_' + tipoLado, idSala: sala.id };
+        g.add(cenMesh);
+      }
+
+      // 2.2 Cornisa superior corrida sobresaliente bajo el techo
+      if (H > 2.8) {
+        const yCornisa = H - 0.08;
+        const salCornisa = 0.09;
+        const corW = esHorizontal ? w : (w + salCornisa);
+        const corD = esHorizontal ? (d + salCornisa) : d;
+        const corGeo = new ThreeLib.BoxGeometry(corW, 0.15, corD);
+        aplicarUVsMetricasBox(corGeo, corW, 0.15, corD, 2.0, 0.5);
+        const corMesh = new ThreeLib.Mesh(corGeo, mats.matZocalo);
+        corMesh.position.set(px + (normX * salCornisa * 0.5), yCornisa, pz + (normZ * salCornisa * 0.5));
+        corMesh.castShadow = true; corMesh.receiveShadow = true;
+        corMesh.userData = { tipo: 'cornisa_muro', lado: 'cornisa_' + tipoLado, idSala: sala.id };
+        g.add(corMesh);
+      }
+
+      // 2.3 Pilastras adosadas de cantería en tramos de muro largos
+      const longitudTrama = esHorizontal ? w : d;
+      if (longitudTrama >= 5.0 && !isHombro) {
+        const numPilastras = Math.max(1, Math.floor(longitudTrama / 4.2));
+        const pasoPil = longitudTrama / (numPilastras + 1);
+        const salPil = 0.13;
+        const hPil = H - hZoc - 0.15;
+        const yPil = hZoc + 0.06 + hPil / 2;
+
+        for (let ip = 1; ip <= numPilastras; ip++) {
+          const offL = -longitudTrama / 2 + ip * pasoPil;
+          let pilPX = px + (normX * salPil * 0.5);
+          let pilPZ = pz + (normZ * salPil * 0.5);
+          let pilW = 0.44;
+          let pilD = 0.44;
+
+          if (esHorizontal) {
+            pilPX += offL;
+            pilD = d + salPil;
+          } else {
+            pilPZ += offL;
+            pilW = w + salPil;
+          }
+
+          const pilGeo = new ThreeLib.BoxGeometry(pilW, hPil, pilD);
+          aplicarUVsMetricasBox(pilGeo, pilW, hPil, pilD, 1.5, 2.5);
+          const pilMesh = new ThreeLib.Mesh(pilGeo, mats.matPared);
+          pilMesh.position.set(pilPX, yPil, pilPZ);
+          pilMesh.castShadow = true; pilMesh.receiveShadow = true;
+          pilMesh.userData = { tipo: 'pilastra_muro', lado: 'pilastra_' + tipoLado, idSala: sala.id };
+          g.add(pilMesh);
+
+          // Capitel de la pilastra
+          const capW = pilW + 0.05;
+          const capD = pilD + 0.05;
+          const capGeo = new ThreeLib.BoxGeometry(capW, 0.14, capD);
+          const capMesh = new ThreeLib.Mesh(capGeo, mats.matZocalo);
+          capMesh.position.set(pilPX, hZoc + 0.06 + hPil - 0.07, pilPZ);
+          capMesh.castShadow = true; capMesh.receiveShadow = true;
+          g.add(capMesh);
+        }
+      }
 
       // 3. Registrar colisionador físico para CharacterController y motor de físicas
       if (Array.isArray(opciones.colliders)) {
