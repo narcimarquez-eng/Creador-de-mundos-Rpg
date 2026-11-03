@@ -3,6 +3,9 @@
 (function (root) {
   'use strict';
   root.ENEMY_GLB_INDEX = {
+  "abyssal_crown_ossuary_titan": {
+    "low": "glb/low/no-muertos/enemy-abyssal-crown-ossuary-titan_low.glb"
+  },
   "abyssal_hydra": {
     "low": "glb/low/dragones/enemy_abyssal_hydra_tiamat_low.glb"
   },
@@ -66,6 +69,12 @@
   "arctic_iceberg_golem": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_arctic_golem_low.glb"
   },
+  "ash_bone_naga_siren": {
+    "low": "glb/low/no-muertos/enemy_undead_ash_naga_low.glb"
+  },
+  "ashen_crown_executioner_skeleton": {
+    "low": "glb/low/no-muertos/enemy-ashen-crown-executioner-skeleton_low.glb"
+  },
   "astral_centaur": {
     "low": "glb/low/mitologicos/enemy_astral_centaur_low.glb"
   },
@@ -78,9 +87,24 @@
   "balrog_archdemon": {
     "low": "glb/low/magicos-y-demonios/enemy_balrog_archdemon_low.glb"
   },
+  "banshee_frozen_throne": {
+    "low": "glb/low/no-muertos/enemy_undead_banshee_queen_low.glb"
+  },
+  "blood_crown_reaper_marquis": {
+    "low": "glb/low/no-muertos/enemy-blood-crown-reaper-marquis_low.glb"
+  },
   "bloodclaw_raptor_hawk": {
     "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_bloodclaw_hawk_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_bloodclaw_hawk_low.glb"
+  },
+  "bone_crown_lich_king": {
+    "low": "glb/low/no-muertos/enemy_undead_lich_king_low.glb"
+  },
+  "bone_tiara_oracle_siren": {
+    "low": "glb/low/no-muertos/enemy-bone-tiara-oracle-siren_low.glb"
+  },
+  "bone_viscount_duelist": {
+    "low": "glb/low/no-muertos/enemy-bone-viscount-duelist_low.glb"
   },
   "boreal_blizzard_griffin": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_boreal_griffin_low.glb"
@@ -90,6 +114,9 @@
   },
   "brood_spider_queen": {
     "low": "glb/low/bestias-elite/enemy_brood_spider_queen_low.glb"
+  },
+  "catacomb_necro_arachnid": {
+    "low": "glb/low/no-muertos/enemy_undead_necro_arachnid_low.glb"
   },
   "cave_vampire_wingbat": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-cave-vampire-wingbat_low.glb"
@@ -103,6 +130,9 @@
   "coral_sea_serpent": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_coral_serpent_low.glb"
   },
+  "crimson_nosferatu_elder": {
+    "low": "glb/low/no-muertos/enemy_undead_nosferatu_elder_low.glb"
+  },
   "crowned_catacomb_pharaoh": {
     "low": "glb/low/no-muertos/enemy-crowned-catacomb-pharaoh_low.glb"
   },
@@ -112,11 +142,20 @@
   "cryo_hydra_trident": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_cryo_hydra_low.glb"
   },
+  "crypt_cerberus_hound": {
+    "low": "glb/low/no-muertos/enemy_undead_crypt_cerberus_low.glb"
+  },
   "cursed_diadem_valkyrie_skeleton": {
     "low": "glb/low/no-muertos/enemy-cursed-diadem-valkyrie-skeleton_low.glb"
   },
+  "cursed_skeleton_berserker": {
+    "low": "glb/low/no-muertos/enemy_undead_skeleton_berserker_low.glb"
+  },
   "cyclone_air_archon": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_cyclone_archon_low.glb"
+  },
+  "death_knight_colossus": {
+    "low": "glb/low/no-muertos/enemy_undead_death_knight_low.glb"
   },
   "dire_wolf": {
     "low": "glb/low/bestias-elite/enemy_dire_wolf_fenrir_low.glb"
@@ -286,12 +325,21 @@
   "elite_woolly_mammoth_calf": {
     "low": "glb/low/elite-nv-1-20/enemy-elite-woolly-mammoth-calf_low.glb"
   },
+  "embalmed_anubis_sentinel": {
+    "low": "glb/low/no-muertos/enemy_undead_embalmed_sentinel_low.glb"
+  },
   "emerald_crown_necromancer_lord": {
     "low": "glb/low/no-muertos/enemy-emerald-crown-necromancer-lord_low.glb"
   },
   "feral_shadow_panther": {
     "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_shadow_panther_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_shadow_panther_low.glb"
+  },
+  "flayed_underworld_centaur": {
+    "low": "glb/low/no-muertos/enemy_undead_flayed_centaur_low.glb"
+  },
+  "flesh_bone_abomination": {
+    "low": "glb/low/no-muertos/enemy_undead_flesh_abomination_low.glb"
   },
   "forest_goblin_scavenger": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-forest-goblin-scavenger_low.glb"
@@ -332,6 +380,9 @@
   },
   "gorgon_medusa": {
     "low": "glb/low/mitologicos/enemy_gorgon_medusa_euryale_low.glb"
+  },
+  "grave_fallen_valkyrie": {
+    "low": "glb/low/no-muertos/enemy_undead_fallen_valkyrie_low.glb"
   },
   "graveyard_zombie_hound": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-graveyard-zombie-hound_low.glb"
@@ -393,17 +444,29 @@
   "ossuary_king_leoric": {
     "low": "glb/low/no-muertos/enemy-ossuary-king-leoric_low.glb"
   },
+  "ossuary_minotaur_jugger": {
+    "low": "glb/low/no-muertos/enemy_undead_ossuary_minotaur_low.glb"
+  },
   "outlaw_bandit_cutthroat": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-outlaw-bandit-cutthroat_low.glb"
   },
   "permafrost_warg_alpha": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_permafrost_warg_low.glb"
   },
+  "phantom_armored_boar": {
+    "low": "glb/low/no-muertos/enemy_undead_phantom_boar_low.glb"
+  },
+  "plague_hierophant_mummy": {
+    "low": "glb/low/no-muertos/enemy_undead_plague_mummy_low.glb"
+  },
   "polar_glacier_bear": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_polar_bear_low.glb"
   },
   "prairie_red_fox": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-prairie-red-fox_low.glb"
+  },
+  "putrid_bog_hydra": {
+    "low": "glb/low/no-muertos/enemy_undead_putrid_hydra_low.glb"
   },
   "rabid_fang_bat": {
     "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_rabid_bat_medium.glb",
@@ -435,6 +498,9 @@
   "skeletal_dragonbone_jarl": {
     "low": "glb/low/no-muertos/enemy-skeletal-dragonbone-jarl_low.glb"
   },
+  "skeletal_plague_dragon": {
+    "low": "glb/low/no-muertos/enemy_undead_plague_dragon_low.glb"
+  },
   "skeletal_royal_halberdier": {
     "low": "glb/low/no-muertos/enemy-skeletal-royal-halberdier_low.glb"
   },
@@ -443,6 +509,9 @@
   },
   "skeleton_warlord_chariot_knight": {
     "low": "glb/low/no-muertos/enemy-skeleton-warlord-chariot-knight_low.glb"
+  },
+  "skull_tyrant_overlord": {
+    "low": "glb/low/no-muertos/enemy_undead_skull_tyrant_low.glb"
   },
   "solar_phoenix": {
     "low": "glb/low/magicos-y-demonios/enemy_solar_phoenix_low.glb"
@@ -455,6 +524,9 @@
   },
   "steppe_spotted_hyena": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-steppe-spotted-hyena_low.glb"
+  },
+  "stitched_necromancy_chimera": {
+    "low": "glb/low/no-muertos/enemy_undead_stitched_chimera_low.glb"
   },
   "storm_drake": {
     "low": "glb/low/dragones/enemy_storm_drake_voltaris_low.glb"
@@ -702,6 +774,9 @@
   },
   "wow_worgen_gilneas_stalker": {
     "low": "glb/low/world-of-warcraft/enemy-wow-worgen-gilneas-stalker_low.glb"
+  },
+  "wraith_soul_reaper": {
+    "low": "glb/low/no-muertos/enemy_undead_wraith_reaper_low.glb"
   },
   "young_green_drake": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-young-green-drake_low.glb"
