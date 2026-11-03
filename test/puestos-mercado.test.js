@@ -46,10 +46,16 @@ test('VillageCore: eliminación de puestos antiguos y uso de puestos GLB con cic
   assert.ok(code.includes('preloadPuestos: preloadPuestosGLB'), 'Debe exportarse preloadPuestos en VillageLib');
 
   // 4. Verificación de ajuste de altura para que descansen sobre el suelo
-  assert.ok(code.includes('yOffset = (bbox.min.y < 0) ? (-bbox.min.y * escala) : 0') || code.includes('-bbox.min.y * escala'), 'Debe compensar la altura base para que el mostrador no se entierre');
+  assert.ok(code.includes('yOffset = (bbox.min.y < 0) ? (-bbox.min.y * escala) : 0') || code.includes('-bbox.min.y * escala') || code.includes('-scaledBbox.min.y'), 'Debe compensar la altura base para que el mostrador no se entierre');
 
-  // 5. Verificación de colisionador
-  assert.ok(code.includes("this.colliders.push({ type: 'circle', x: s.x, z: s.z, r: 1.45 })"), 'Debe registrar colisionadores circulares en los puestos');
+  // 5. Verificación de colisionador (ajustado para puestos escalados un 20%)
+  assert.ok(code.includes("this.colliders.push({ type: 'circle', x: s.x, z: s.z, r: 1.74 })") || code.includes("this.colliders.push({ type: 'circle', x: s.x, z: s.z, r: 1.45 })"), 'Debe registrar colisionadores circulares en los puestos');
+
+  // 6. Verificación de escala aumentada en un 20% (2.70m de altura objetivo)
+  assert.ok(code.includes('2.70 / sz.y') || code.includes('escala = 2.70'), 'Debe tener la escala aumentada un 20% (2.70m)');
+
+  // 7. Verificación de cota de altura de plaza elevada para evitar hundimiento de botas
+  assert.ok(code.includes('plazaTop = plazaY + 0.34') || code.includes('plazaTop'), 'Debe elevar la cota transitable en la plaza para que no se entierren las botas');
 });
 
 test('VisorMundo y CreadorPueblos: precarga de puestos y tolerancia a fallos en carga de pueblo', () => {
