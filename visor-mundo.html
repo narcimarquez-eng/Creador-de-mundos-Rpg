@@ -3434,13 +3434,31 @@
     }
     return p;
   }
+  // Clones libres por GLB: al descargar un monstruo lejano, su clon vuelve aquí en vez de destruirse, y el siguiente
+  // monstruo del mismo tipo que se acerque lo reutiliza (sin clonar ni recorrer la escena otra vez).
+  const poolGlb = new Map();          // ruta -> [rig libres]
+  const POOL_GLB_MAX = 24;            // por GLB
+  function devolverRigGlb(rig) {
+    if (!rig || !rig.glb || !rig.ruta) return;
+    let lista = poolGlb.get(rig.ruta);
+    if (!lista) { lista = []; poolGlb.set(rig.ruta, lista); }
+    if (lista.length >= POOL_GLB_MAX) return;   // lleno: el clon se libera con el resto
+    EnemyGlb.detener(rig.glb);
+    lista.push(rig);
+  }
   function instanciarVersionGlb(m, tipo, entrada) {
     const p = prototipoGlb(entrada);
     const e = escalaEnemigos();
-    const raiz = SkeletonUtils.clone(entrada.escena);
-    raiz.scale.setScalar(e);
-    const glb = EnemyGlb.crearReproductor(THREE, raiz, entrada.clips);
-    return { rig: { rootGroup: raiz, glb }, fx: null, detalle: [], barHeight: p.altura * e + 0.9 };
+    let rig = (poolGlb.get(entrada.ruta) || []).pop();
+    if (rig) {
+      EnemyGlb.reiniciar(rig.glb);
+      rig.rootGroup.scale.setScalar(e);
+    } else {
+      const raiz = SkeletonUtils.clone(entrada.escena);
+      raiz.scale.setScalar(e);
+      rig = { rootGroup: raiz, glb: EnemyGlb.crearReproductor(THREE, raiz, entrada.clips), ruta: entrada.ruta };
+    }
+    return { rig, fx: null, detalle: [], barHeight: p.altura * e + 0.9 };
   }
 
   function construirModeloEnemigo(m, d) {
@@ -3820,7 +3838,7 @@
     // Las geometrías y materiales de las mallas pertenecen a protoEnemigoCache y se reutilizan entre instancias;
     // aquí solo se liberan los pequeños buffers propios de cada clon (partículas y proyectil mágico).
     Object.values(m.versiones || {}).forEach(v => {
-      if (v.rig && v.rig.glb) EnemyGlb.detener(v.rig.glb);
+      if (v.rig && v.rig.glb) devolverRigGlb(v.rig);
       if (v.rig) {
         if (v.rig.auraParticleSystem && v.rig.auraParticleSystem.points && v.rig.auraParticleSystem.points.geometry) {
           v.rig.auraParticleSystem.points.geometry.dispose();

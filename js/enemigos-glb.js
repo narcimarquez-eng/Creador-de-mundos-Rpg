@@ -88,10 +88,17 @@
     if (rep && rep.mixer) rep.mixer.stopAllAction();
   }
 
+  // Deja un reproductor como recién creado, para reutilizar su clon: sin clip activo y con la pose de reposo
+  function reiniciar(rep) {
+    if (!rep || !rep.mixer) return;
+    rep.mixer.stopAllAction();
+    rep.actual = null;
+  }
+
   // Solo para las pruebas: olvida los GLB ya pedidos
   function _vaciarCache() { entradas.clear(); }
 
-  const api = { rutaModeloEnemigo, buscarClip, pedir, crearReproductor, actualizar, detener, _vaciarCache };
+  const api = { rutaModeloEnemigo, buscarClip, pedir, crearReproductor, actualizar, detener, reiniciar, _vaciarCache };
   root.EnemyGlb = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

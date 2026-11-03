@@ -148,6 +148,18 @@ function threeFalso() {
     assert.strictEqual(rep.mixer.parado, true);
   });
 
+  await prueba('reiniciar deja el reproductor sin clip activo, para reutilizar el clon', () => {
+    const THREE = threeFalso();
+    const rep = EnemyGlb.crearReproductor(THREE, {}, [{ name: 'Idle' }, { name: 'Walk' }]);
+    EnemyGlb.actualizar(rep, 'walk', 0.1);
+    assert.ok(rep.actual);
+    EnemyGlb.reiniciar(rep);
+    assert.strictEqual(rep.actual, null);
+    assert.strictEqual(rep.mixer.parado, true);
+    EnemyGlb.actualizar(rep, 'idle', 0.1);
+    assert.strictEqual(rep.actual, rep.acciones.idle, 'tras reiniciar vuelve a poner un clip');
+  });
+
   console.log(`\n${pasadas} pruebas de enemigos GLB pasadas`);
 })().catch(err => {
   console.error(err);
