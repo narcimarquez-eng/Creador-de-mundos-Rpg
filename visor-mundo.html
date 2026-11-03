@@ -1425,7 +1425,7 @@
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color('#7dd3fc');
-    scene.fog = new THREE.FogExp2('#9bd9f5', 0.00011);
+    scene.fog = new THREE.FogExp2('#9bd9f5', 0.0009);
     cielo = new THREE.Mesh(new THREE.SphereGeometry(30000, 32, 16), new THREE.ShaderMaterial({
       uniforms: { uCenit: { value: new THREE.Color('#2b6cb0') }, uHorizonte: { value: new THREE.Color('#bfe6f7') } },
       vertexShader: CIELO_VS, fragmentShader: CIELO_FS.replace('#include <colorspace_fragment>', THREE.ShaderChunk.colorspace_fragment), side: THREE.BackSide, depthWrite: false, fog: false
@@ -1844,21 +1844,55 @@
     return m;
   }
 
+  // Malla lejana por teselas de 32 celdas (640 m): cada tesela es una malla aparte, y las que quedan más allá de
+  // la niebla espesa se ocultan (no se dibujan). La distancia sale de la densidad de niebla actual.
+  const TESELA_CELDAS = CHUNK * 2;
+  function distanciaOcultaLejos() {
+    const dens = scene && scene.fog && scene.fog.density > 0 ? scene.fog.density : 0.0009;
+    // Donde la niebla ya cubre ~90 %: (densidad · d)² ≈ 2,3, así que d ≈ 1,52 / densidad. Nunca antes de la zona de detalle.
+    return Math.min(8000, Math.max(QUALITY[quality].radius + 400, 1.52 / dens));
+  }
+  function quitarLejania() {
+    if (!farMesh) return;
+    scene.remove(farMesh);
+    farMesh.children.forEach(t => t.geometry.dispose());
+    farMesh = null;
+  }
+  // Oculta las teselas lejanas según la distancia a la cámara (al reconstruir y en cada actualización de trozos)
+  function actualizarTeselasLejanas() {
+    if (!farMesh) return;
+    const lim = distanciaOcultaLejos();
+    const cx = camera.position.x, cz = camera.position.z;
+    farMesh.children.forEach(t => { t.visible = Math.hypot(t.userData.x - cx, t.userData.z - cz) - t.userData.radio < lim; });
+  }
   function buildFar() {
     const g = terrainGrid;
-    if (farMesh) { scene.remove(farMesh); farMesh.geometry.dispose(); farMesh = null; }
+    quitarLejania();
     const st = QUALITY[quality].far;
-    const cells = Math.ceil(g.n / st);
-    const geom = TerrainLib.buildGridGeometry(THREE, g, {
-      gi0: 0, gj0: 0, cellsI: cells, cellsJ: cells, stride: st, skirt: true,
-      skipCell: (gx, gz, s) => {
-        if (townCoversCell(gx, gz, s)) return true;
-        return nearChunks.has(Math.floor(gx / CHUNK) + ',' + Math.floor(gz / CHUNK));
-      }
-    });
-    farMesh = new THREE.Mesh(geom, terrainMat);
-    farMesh.receiveShadow = true;
+    const grupo = new THREE.Group();
+    grupo.name = 'lejania';
+    for (let gj0 = 0; gj0 < g.n; gj0 += TESELA_CELDAS) for (let gi0 = 0; gi0 < g.n; gi0 += TESELA_CELDAS) {
+      const cellsI = Math.min(TESELA_CELDAS / st, Math.ceil((g.n - gi0) / st));
+      const cellsJ = Math.min(TESELA_CELDAS / st, Math.ceil((g.n - gj0) / st));
+      const geom = TerrainLib.buildGridGeometry(THREE, g, {
+        gi0, gj0, cellsI, cellsJ, stride: st, skirt: true,
+        skipCell: (gx, gz, s) => {
+          if (townCoversCell(gx, gz, s)) return true;
+          return nearChunks.has(Math.floor(gx / CHUNK) + ',' + Math.floor(gz / CHUNK));
+        }
+      });
+      if (!geom.index || geom.index.count === 0) { geom.dispose(); continue; }   // tesela sin nada que dibujar
+      const t = new THREE.Mesh(geom, terrainMat);
+      t.receiveShadow = true;
+      const ancho = cellsI * st, alto = cellsJ * st;   // en celdas de la rejilla
+      t.userData.x = g.x0 + (gi0 + ancho / 2) * g.step;
+      t.userData.z = g.z0 + (gj0 + alto / 2) * g.step;
+      t.userData.radio = Math.hypot(ancho, alto) / 2 * g.step;
+      grupo.add(t);
+    }
+    farMesh = grupo;
     scene.add(farMesh);
+    actualizarTeselasLejanas();
   }
 
   // Decide qué trozos tienen detalle completo: los que están cerca del personaje o de la cámara
@@ -1882,12 +1916,13 @@
       if (!nearChunks.has(k)) { nearChunks.set(k, buildNear(cx, cz)); changed = true; }
     });
     if (changed || !farMesh) buildFar();
+    else actualizarTeselasLejanas();
   }
 
   function clearTerrainRender() {
     nearChunks.forEach(m => { scene.remove(m); m.geometry.dispose(); });
     nearChunks.clear();
-    if (farMesh) { scene.remove(farMesh); farMesh.geometry.dispose(); farMesh = null; }
+    quitarLejania();
   }
 
   // Calidad: sombras del sol, píxeles por pantalla y radio de detalle
@@ -3052,7 +3087,7 @@
   // Ambiente: día, atardecer y noche (valores del Creador de Pueblos, con transición)
   // ===========================================================================
   const ATMO = {
-    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.00011, hemi: '#ffffff', ground: '#3a5a40', hemiI: 0.8,  sun: '#fffbeb', sunI: 1.1,  sunPos: [900, 1400, 700],  glow: 0.5, window: 0.15, pool: 0,    plaza: 1.2, forge: 2.0 },
+    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.0009, hemi: '#ffffff', ground: '#3a5a40', hemiI: 0.8,  sun: '#fffbeb', sunI: 1.1,  sunPos: [900, 1400, 700],  glow: 0.5, window: 0.15, pool: 0,    plaza: 1.2, forge: 2.0 },
     golden: { bg: '#1e1b4b', fog: '#1e1b4b', fogD: 0.00018, hemi: '#fb923c', ground: '#0f172a', hemiI: 0.48, sun: '#f97316', sunI: 1.15, sunPos: [1100, 380, 500],  glow: 3.2, window: 1.4,  pool: 0.85, plaza: 2.5, forge: 3.0 },
     night:  { bg: '#030712', fog: '#030712', fogD: 0.00022, hemi: '#38bdf8', ground: '#020617', hemiI: 0.2,  sun: '#60a5fa', sunI: 0.28, sunPos: [-600, 850, -500], glow: 5.0, window: 2.5,  pool: 1.0,  plaza: 3.8, forge: 4.0 }
   };
@@ -7119,7 +7154,7 @@
     const rect = renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(mouse, camera);
-    const objs = [...nearChunks.values(), farMesh, ...towns.filter(o => o.patch).map(o => o.patch)].filter(Boolean);
+    const objs = [...nearChunks.values(), ...(farMesh ? farMesh.children : []), ...towns.filter(o => o.patch).map(o => o.patch)].filter(Boolean);
     const cuerpos = gurus.filter(g => g.raiz.visible).map(g => g.raiz);
     const toque = raycaster.intersectObjects(cuerpos, true)[0];
     if (toque) {
