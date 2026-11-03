@@ -1034,3 +1034,44 @@ test('DungeonGenerator: arcos de pasillos, columnas con molduras, techos hasta 2
   assert.strictEqual(colsInstancia[0].userData.radio, 0.9, 'El radio de columna debe ser 0.9m');
   assert.strictEqual(colsInstancia[0].userData.estiloMoldura, 'romanica', 'El estilo de moldura debe ser romanica');
 });
+
+test('DungeonGenerator: los pasillos tienen la altura de las instancias que unen', () => {
+  // 1. Verificación en el layout de estancias base
+  const planBase = DungeonGenerator.generarPlanEstancias({});
+  const corr1 = planBase.find(s => s.id === 'corridor_1');
+  const corr2 = planBase.find(s => s.id === 'corridor_2');
+  const corr3 = planBase.find(s => s.id === 'corridor_3');
+  assert.ok(corr1, 'Debe existir corridor_1');
+  assert.ok(corr1.h >= 5.6, `corridor_1 debe tener la altura de las estancias que une (5.6m, actual: ${corr1.h})`);
+  assert.ok(corr2.h >= 5.6, `corridor_2 debe tener la altura de las estancias que une (5.6m, actual: ${corr2.h})`);
+  assert.ok(corr3.h >= 6.2, `corridor_3 debe tener la altura de las estancias que une (6.2m, actual: ${corr3.h})`);
+
+  // 2. Verificación en pasillo lateral conector uniendo dos estancias de 25m de altura
+  const salaA = {
+    id: 'sala_catedral_A',
+    tipo: 'entrada',
+    x: 0, y: 0, z: 0,
+    w: 24, d: 24, h: 25.0
+  };
+  const salaB = {
+    id: 'sala_catedral_B',
+    tipo: 'armeria',
+    x: 24, y: 0, z: 0,
+    w: 16, d: 16, h: 25.0
+  };
+
+  const res25m = DungeonGenerator.generarMazmorra(mockTHREE, {
+    estilo: 'cripta_gotica',
+    salas: [salaA, salaB]
+  });
+
+  const pasillo25m = res25m.salas.find(s => s.tipo === 'pasillo' && s.esConectorAutomatico);
+  assert.ok(pasillo25m, 'Debe generar el pasillo conector automático');
+  assert.strictEqual(pasillo25m.h, 25.0, 'El pasillo conector debe adoptar exactamente los 25 metros de altura de las estancias que une');
+
+  // 3. Verificación de sincronización reactiva al cambiar la altura de una estancia
+  salaA.h = 18.0;
+  salaB.h = 18.0;
+  DungeonGenerator.sincronizarAlturasDePasillos(res25m.salas, { alturaTechos: 18.0 });
+  assert.strictEqual(pasillo25m.h, 18.0, 'El pasillo debe sincronizar su altura a 18m al actualizar las estancias que une');
+});
