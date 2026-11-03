@@ -3421,13 +3421,26 @@
 
   // Versión con el GLB exportado del editor (glb/enemigos/<arquetipo>/medium|low.glb). Sus clips se reproducen con
   // un AnimationMixer; no tiene piezas de rig, así que no lleva efectos de combate (se usa el golpe sin ellos).
+  // Prototipo de cada GLB (por ruta): el entorno de reflejos y la altura de la barra se calculan una sola vez.
+  // Los monstruos clonan la escena: los clones comparten geometrías y materiales con el prototipo, pero cada uno
+  // tiene su propio esqueleto y su propio AnimationMixer (no se pueden compartir).
+  const protoGlbCache = new Map();   // ruta del GLB -> { altura } (altura a escala 1)
+  function prototipoGlb(entrada) {
+    let p = protoGlbCache.get(entrada.ruta);
+    if (!p) {
+      aplicarEntorno(entrada.escena);   // materiales compartidos: se aplica una vez
+      p = { altura: new THREE.Box3().setFromObject(entrada.escena).max.y };
+      protoGlbCache.set(entrada.ruta, p);
+    }
+    return p;
+  }
   function instanciarVersionGlb(m, tipo, entrada) {
+    const p = prototipoGlb(entrada);
+    const e = escalaEnemigos();
     const raiz = SkeletonUtils.clone(entrada.escena);
-    raiz.scale.setScalar(escalaEnemigos());
-    aplicarEntorno(raiz);
-    const caja = new THREE.Box3().setFromObject(raiz);
+    raiz.scale.setScalar(e);
     const glb = EnemyGlb.crearReproductor(THREE, raiz, entrada.clips);
-    return { rig: { rootGroup: raiz, glb }, fx: null, detalle: [], barHeight: caja.max.y + 0.9 };
+    return { rig: { rootGroup: raiz, glb }, fx: null, detalle: [], barHeight: p.altura * e + 0.9 };
   }
 
   function construirModeloEnemigo(m, d) {
