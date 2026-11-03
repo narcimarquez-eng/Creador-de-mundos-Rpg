@@ -33,6 +33,12 @@
   "archer_species_1_wood_elf_ranger": {
     "low": "glb/low/campeones-y-arqueros/enemy-archer-species-1-wood-elf-ranger_low.glb"
   },
+  "archer_species_2_forest_goblin_bowman": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-archer-species-2-forest-goblin-bowman_low.glb"
+  },
+  "archer_species_3_kobold_tunnel_snipe": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-archer-species-3-kobold-tunnel-snipe_low.glb"
+  },
   "archer_species_4_gnoll_poacher_archer": {
     "low": "glb/low/elite-nv-1-20/enemy-archer-species-4-gnoll-poacher-archer_low.glb"
   },
@@ -57,8 +63,14 @@
   "balrog_archdemon": {
     "low": "glb/low/magicos-y-demonios/enemy_balrog_archdemon_low.glb"
   },
+  "briar_wood_spriggan": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-briar-wood-spriggan_low.glb"
+  },
   "brood_spider_queen": {
     "low": "glb/low/bestias-elite/enemy_brood_spider_queen_low.glb"
+  },
+  "cave_vampire_wingbat": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-cave-vampire-wingbat_low.glb"
   },
   "cerberus_hellhound": {
     "low": "glb/low/mitologicos/enemy_cerberus_hellhound_low.glb"
@@ -80,6 +92,9 @@
   },
   "drake_berserker": {
     "low": "glb/low/campeones-y-arqueros/enemy_drake_berserker_low.glb"
+  },
+  "dune_yellow_scorpion": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-dune-yellow-scorpion_low.glb"
   },
   "elder_dragon": {
     "low": "glb/low/dragones/enemy_elder_dragon_ignis_low.glb"
@@ -243,6 +258,9 @@
   "emerald_crown_necromancer_lord": {
     "low": "glb/low/no-muertos/enemy-emerald-crown-necromancer-lord_low.glb"
   },
+  "forest_goblin_scavenger": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-forest-goblin-scavenger_low.glb"
+  },
   "frost_wyrm": {
     "low": "glb/low/dragones/enemy_frost_wyrm_vorthrax_low.glb"
   },
@@ -258,8 +276,17 @@
   "gorgon_medusa": {
     "low": "glb/low/mitologicos/enemy_gorgon_medusa_euryale_low.glb"
   },
+  "graveyard_zombie_hound": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-graveyard-zombie-hound_low.glb"
+  },
   "griffin_skyhunter": {
     "low": "glb/low/mitologicos/enemy_griffin_skyhunter_low.glb"
+  },
+  "highland_lynx_stalker": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-highland-lynx-stalker_low.glb"
+  },
+  "horned_field_viper": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-horned-field-viper_low.glb"
   },
   "iron_crown_cataphract_skeleton": {
     "low": "glb/low/no-muertos/enemy-iron-crown-cataphract-skeleton_low.glb"
@@ -267,11 +294,26 @@
   "labyrinth_minotaur": {
     "low": "glb/low/mitologicos/enemy_labyrinth_minotaur_low.glb"
   },
+  "lesser_fire_imp": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-lesser-fire-imp_low.glb"
+  },
   "leviathan_abyssal": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_leviathan_abyssal_low.glb"
   },
   "manticore_chimera": {
     "low": "glb/low/mitologicos/enemy_manticore_chimera_low.glb"
+  },
+  "marsh_leech_worm": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-marsh-leech-worm_low.glb"
+  },
+  "mine_kobold_pickaxe": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-mine-kobold-pickaxe_low.glb"
+  },
+  "mountain_bighorn_ram": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-mountain-bighorn-ram_low.glb"
+  },
+  "mud_shell_crab_beetle": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-mud-shell-crab-beetle_low.glb"
   },
   "necrotic_archdragon": {
     "low": "glb/low/dragones/enemy_necrotic_archdragon_low.glb"
@@ -281,6 +323,15 @@
   },
   "ossuary_king_leoric": {
     "low": "glb/low/no-muertos/enemy-ossuary-king-leoric_low.glb"
+  },
+  "outlaw_bandit_cutthroat": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-outlaw-bandit-cutthroat_low.glb"
+  },
+  "prairie_red_fox": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-prairie-red-fox_low.glb"
+  },
+  "ruins_skeleton_pawn": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-ruins-skeleton-pawn_low.glb"
   },
   "runic_warbear": {
     "low": "glb/low/bestias-elite/enemy_runic_warbear_low.glb"
@@ -312,8 +363,20 @@
   "star_crown_astral_lich": {
     "low": "glb/low/no-muertos/enemy-star-crown-astral-lich_low.glb"
   },
+  "steppe_spotted_hyena": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-steppe-spotted-hyena_low.glb"
+  },
   "storm_drake": {
     "low": "glb/low/dragones/enemy_storm_drake_voltaris_low.glb"
+  },
+  "swamp_poison_newt": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-swamp-poison-newt_low.glb"
+  },
+  "thicket_razor_badger": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-thicket-razor-badger_low.glb"
+  },
+  "tunnel_giant_rat": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-tunnel-giant-rat_low.glb"
   },
   "undead_archer_10_lich_deadeye_sovereign": {
     "low": "glb/low/no-muertos/enemy-undead-archer-10-lich-deadeye-sovereign_low.glb"
@@ -422,6 +485,114 @@
   },
   "wow_forsaken_royal_apothecary": {
     "low": "glb/low/world-of-warcraft/enemy-wow-forsaken-royal-apothecary_low.glb"
+  },
+  "wow_furbolg_timbermaw_ursa": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-furbolg-timbermaw-ursa_low.glb"
+  },
+  "wow_goblin_steamwheedle_shredder": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-goblin-steamwheedle-shredder_low.glb"
+  },
+  "wow_hakkar_soulflayer_loa": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-hakkar-soulflayer-loa_low.glb"
+  },
+  "wow_harpy_witchwing_slayer": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-harpy-witchwing-slayer_low.glb"
+  },
+  "wow_hogger_gnoll_chieftain": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-hogger-gnoll-chieftain_low.glb"
+  },
+  "wow_illidan_betrayer_demonhunter": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-illidan-betrayer-demonhunter_low.glb"
+  },
+  "wow_infernal_abyssal_golem": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-infernal-abyssal-golem_low.glb"
+  },
+  "wow_kelthuzad_archlich": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-kelthuzad-archlich_low.glb"
+  },
+  "wow_kobold_candle_geomancer": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-kobold-candle-geomancer_low.glb"
+  },
+  "wow_kodo_ancient_warbeast": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-kodo-ancient-warbeast_low.glb"
+  },
+  "wow_lady_vashj_coilfang_matron": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-lady-vashj-coilfang-matron_low.glb"
+  },
+  "wow_lord_marrowgar_bonestorm": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-lord-marrowgar-bonestorm_low.glb"
+  },
+  "wow_magnataur_northrend_behemoth": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-magnataur-northrend-behemoth_low.glb"
+  },
+  "wow_mannoroth_pit_lord": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-mannoroth-pit-lord_low.glb"
+  },
+  "wow_murloc_tidehunter": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-murloc-tidehunter_low.glb"
+  },
+  "wow_naga_myrmidon_royal_guard": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-naga-myrmidon-royal-guard_low.glb"
+  },
+  "wow_nathrezim_dreadlord": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-nathrezim-dreadlord_low.glb"
+  },
+  "wow_neptulon_tidehunter": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-neptulon-tidehunter_low.glb"
+  },
+  "wow_night_elf_warden_avatar": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-night-elf-warden-avatar_low.glb"
+  },
+  "wow_ogre_gordok_magi": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-ogre-gordok-magi_low.glb"
+  },
+  "wow_orc_warsong_blademaster": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-orc-warsong-blademaster_low.glb"
+  },
+  "wow_pandaren_shado_master": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-pandaren-shado-master_low.glb"
+  },
+  "wow_qiraji_prophet_skeram": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-qiraji-prophet-skeram_low.glb"
+  },
+  "wow_quillboar_thornweaver": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-quillboar-thornweaver_low.glb"
+  },
+  "wow_ragnaros_firelord": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-ragnaros-firelord_low.glb"
+  },
+  "wow_shivarra_sixblade_priestess": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-shivarra-sixblade-priestess_low.glb"
+  },
+  "wow_silithid_colossus_reaver": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-silithid-colossus-reaver_low.glb"
+  },
+  "wow_sindragosa_frostbrood_queen": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-sindragosa-frostbrood-queen_low.glb"
+  },
+  "wow_tauren_cairne_chieftain": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-tauren-cairne-chieftain_low.glb"
+  },
+  "wow_therazane_stonemother": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-therazane-stonemother_low.glb"
+  },
+  "wow_trogg_stonevault_mauler": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-trogg-stonevault-mauler_low.glb"
+  },
+  "wow_troll_gurubashi_berserker": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-troll-gurubashi-berserker_low.glb"
+  },
+  "wow_valkyr_shadowguard": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-valkyr-shadowguard_low.glb"
+  },
+  "wow_void_lord_dimensius": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-void-lord-dimensius_low.glb"
+  },
+  "wow_worgen_gilneas_stalker": {
+    "low": "glb/low/world-of-warcraft/enemy-wow-worgen-gilneas-stalker_low.glb"
+  },
+  "young_green_drake": {
+    "low": "glb/low/zonas-iniciales-nv-1-20/enemy-young-green-drake_low.glb"
   }
 };
 })(typeof window !== 'undefined' ? window : globalThis);
