@@ -1267,7 +1267,19 @@
             return borde + (ground - borde) * t;
           }
         }
-        return this.getTerrainHeight(x, z) + 0.18;
+        const ground = this.getTerrainHeight(x, z) + 0.18;
+        const rDist = Math.hypot(x, z);
+        if (rDist <= 18.0) {
+          const plazaY = this.getTerrainHeight(0, 0);
+          const plazaTop = plazaY + 0.34;
+          if (rDist <= 15.5) {
+            return plazaTop;
+          } else {
+            const t = (rDist - 15.5) / 2.5;
+            return plazaTop * (1 - t) + ground * t;
+          }
+        }
+        return ground;
       }
 
       isWaterHazard(x, z, radius) {
@@ -2264,7 +2276,7 @@
             const ang = (i / 6) * Math.PI * 2 + 0.4;
             const sx = Math.cos(ang) * 12.2;
             const sz = Math.sin(ang) * 12.2;
-            const sy = this.getTerrainHeight(sx, sz);
+            const sy = this.getTerrainHeight(0, 0) + 0.32;
             stalls.push({ x: sx, y: sy, z: sz, rot: -ang + Math.PI / 2, color: i % 2 === 0 ? 0x8b5a2b : 0xa16207 });
             barrels.push({ x: sx + 1.6, y: sy, z: sz + 0.8 });
           }
@@ -2671,8 +2683,8 @@
           this.objects.push(puestosGrupo);
 
           stalls.forEach((s, idx) => {
-            // Colisionador circular en el puesto para que el jugador no lo atraviese
-            this.colliders.push({ type: 'circle', x: s.x, z: s.z, r: 1.45 });
+            // Colisionador circular en el puesto aumentado un 20% (de 1.45 a 1.74)
+            this.colliders.push({ type: 'circle', x: s.x, z: s.z, r: 1.74 });
 
             const ruta = MODELOS_PUESTOS[idx % MODELOS_PUESTOS.length];
             const instanciarClon = (proto) => {
@@ -2684,10 +2696,11 @@
                 bbox.getSize(sz);
                 let escala = 1.0;
                 if (sz.y > 0.05) {
-                  escala = 2.25 / sz.y;
+                  escala = 2.70 / sz.y;
                   clon.scale.set(escala, escala, escala);
                 }
-                const yOffset = (bbox.min.y < 0) ? (-bbox.min.y * escala) : 0;
+                const scaledBbox = new THREE.Box3().setFromObject(clon);
+                const yOffset = -scaledBbox.min.y;
                 const sy = Number.isFinite(s.y) ? s.y : 0;
                 clon.position.set(s.x, sy + yOffset, s.z);
                 clon.rotation.y = s.rot;
