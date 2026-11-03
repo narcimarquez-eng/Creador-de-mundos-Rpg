@@ -933,3 +933,41 @@ test('DungeonGenerator: texturas ruinosas sin circulos y mapeo UV metrico propor
   assert.ok(maxU > 5.0, `U max debe ser métrico (~6.66) pero fue ${maxU}`);
   assert.ok(maxV > 8.0, `V max debe ser métrico (~10.0) pero fue ${maxV}`);
 });
+
+test('DungeonGenerator: relieves arquitectonicos, plintos sobresalientes, cenefas y ausencia de circulos en suelo', () => {
+  const kit = DungeonGenerator.crearKitMateriales(DungeonGenerator.ESTILOS_PIEDRA.cripta_gotica, mockTHREE);
+  const rng = new DungeonGenerator.PRNG(999);
+
+  // 1. Verificar vegetación sin círculos en el suelo
+  const veg = DungeonGenerator.crearManchaVegetacion(mockTHREE, kit, rng, 1.2);
+  const circulos = veg.children.filter(c => c.geometry && (c.geometry.type === 'CircleGeometry' || c.geometry.type === 'RingGeometry'));
+  assert.strictEqual(circulos.length, 0, 'No debe haber círculos en el suelo para la vegetación');
+
+  // 2. Verificar arquitectura de relieves (plintos sobresalientes, cenefa imposta, cornisa y pilastras)
+  const sala = {
+    id: 'sala_arquitectura_relieve',
+    tipo: 'comun',
+    w: 12, d: 10, h: 5.5,
+    x: 0, y: 0, z: 0
+  };
+  const caja = DungeonGenerator.construirCajaHabitacion(mockTHREE, kit, sala);
+
+  // Debe haber plintos sobresalientes con remate
+  const plintos = caja.children.filter(c => c.userData && c.userData.tipo === 'zocalo');
+  assert.ok(plintos.length >= 4, 'Debe haber plintos de zócalo para los 4 muros');
+
+  const molduras = caja.children.filter(c => c.userData && c.userData.tipo === 'moldura_plinto');
+  assert.ok(molduras.length >= 4, 'Debe haber molduras de remate biselado del plinto');
+
+  // Debe haber cenefas intermedias corridas
+  const cenefas = caja.children.filter(c => c.userData && c.userData.tipo === 'cenefa_muro');
+  assert.ok(cenefas.length >= 4, 'Debe haber cenefas decorativas corridas a media altura');
+
+  // Debe haber cornisas superiores de coronación
+  const cornisas = caja.children.filter(c => c.userData && c.userData.tipo === 'cornisa_muro');
+  assert.ok(cornisas.length >= 4, 'Debe haber cornisas de coronación bajo el techo');
+
+  // En un muro de 12m de largo deben haberse generado pilastras adosadas
+  const pilastras = caja.children.filter(c => c.userData && c.userData.tipo === 'pilastra_muro');
+  assert.ok(pilastras.length >= 2, 'Debe haber pilastras adosadas de cantería en muros largos');
+});

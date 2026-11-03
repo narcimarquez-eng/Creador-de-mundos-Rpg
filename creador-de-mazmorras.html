@@ -1763,14 +1763,10 @@
       grp.position.set(sp.x, 0.04, sp.z);
       const color = sp.multiplicador === 8 ? 0xa855f7 : 0xec4899;
       if (dungeonConfig.monstruos && dungeonConfig.monstruos.habilitados !== false) {
-        const ring = new THREE.Mesh(new THREE.RingGeometry(0.7, 0.88, 24), new THREE.MeshBasicMaterial({
-          color, side: THREE.DoubleSide
-        }));
-        ring.rotation.x = -Math.PI / 2;
-        grp.add(ring);
+        // Sin elementos redondos en el suelo: el modelo 3D del monstruo se exhibe limpio sobre las losas
       } else {
         grp.position.y = 0.1;
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.2, 16), new THREE.MeshStandardMaterial({
+        const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.25, 0.8), new THREE.MeshStandardMaterial({
           color, emissive: color, emissiveIntensity: 0.9
         }));
         grp.add(base);
@@ -1787,21 +1783,16 @@
       const grp = new THREE.Group();
       grp.position.set(sp.x, 0.04, sp.z);
       if (dungeonConfig.monstruos && dungeonConfig.monstruos.habilitados !== false) {
-        const ring = new THREE.Mesh(new THREE.RingGeometry(1.3, 1.55, 32), new THREE.MeshBasicMaterial({
-          color: 0xfacc15, side: THREE.DoubleSide
-        }));
-        ring.rotation.x = -Math.PI / 2;
-        grp.add(ring);
+        // Sin elementos redondos en el suelo para el jefe
       } else {
         grp.position.y = sp.y || 0.6;
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 0.3, 24), new THREE.MeshStandardMaterial({
+        const base = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.35, 2.0), new THREE.MeshStandardMaterial({
           color: 0xfacc15, emissive: 0xb45309, emissiveIntensity: 1.2
         }));
         grp.add(base);
-        const corona = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.18, 8, 16), new THREE.MeshStandardMaterial({
+        const corona = new THREE.Mesh(new THREE.OctahedronGeometry(0.7), new THREE.MeshStandardMaterial({
           color: 0xfacc15, emissive: 0xd97706, emissiveIntensity: 1.6
         }));
-        corona.rotation.x = Math.PI / 2;
         corona.position.y = 2.4;
         grp.add(corona);
       }
@@ -2287,14 +2278,14 @@
       selectedMonsterId = id;
 
       if (!monsterSelectionRing) {
-        const rGeo = new THREE.RingGeometry(1.0, 1.25, 32);
-        rGeo.rotateX(-Math.PI / 2);
-        monsterSelectionRing = new THREE.Mesh(
-          rGeo,
-          new THREE.MeshBasicMaterial({ color: 0xec4899, side: THREE.DoubleSide })
+        const boxGeo = new THREE.BoxGeometry(1.6, 0.04, 1.6);
+        const edges = new THREE.EdgesGeometry(boxGeo);
+        monsterSelectionRing = new THREE.LineSegments(
+          edges,
+          new THREE.LineBasicMaterial({ color: 0xec4899, linewidth: 2 })
         );
       }
-      monsterSelectionRing.position.set(mObj.position.x, 0.05, mObj.position.z);
+      monsterSelectionRing.position.set(mObj.position.x, 0.03, mObj.position.z);
       if (monsterSelectionRing.parent) monsterSelectionRing.parent.remove(monsterSelectionRing);
       scene.add(monsterSelectionRing);
 
@@ -2401,11 +2392,10 @@
       const p = sala.propsPersonalizados.find(pr => pr.id === selectedPropId);
       if (!p) return;
 
-      const ringGeo = new THREE.RingGeometry(0.7, 0.95, 32);
-      ringGeo.rotateX(-Math.PI / 2);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
-      selectedPropMarker = new THREE.Mesh(ringGeo, ringMat);
-      selectedPropMarker.position.set(sala.x + p.x, (p.y || 0) + 0.05, sala.z + p.z);
+      const boxGeo = new THREE.BoxGeometry(1.2, 0.04, 1.2);
+      const edges = new THREE.EdgesGeometry(boxGeo);
+      selectedPropMarker = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2 }));
+      selectedPropMarker.position.set(sala.x + p.x, (p.y || 0) + 0.03, sala.z + p.z);
       scene.add(selectedPropMarker);
     }
 
