@@ -567,6 +567,34 @@
       #hint { display: none; }
       #top a.btn span.long { display: none; }
     }
+    /* Móvil (≤760 px): cada control en su sitio sin solaparse. Arriba: barra con desplazamiento, HUD a la izquierda,
+       mapa a la derecha. Abajo: joystick a la izquierda, ataque a la derecha, habilidades en una fila y pociones en
+       una tira que se desplaza. Solo cambian los estilos; el escritorio no se toca. */
+    @media (max-width: 760px) {
+      #top { overflow-x: auto; overflow-y: hidden; justify-content: flex-start; scrollbar-width: none; }
+      #top::-webkit-scrollbar { display: none; }
+      #top > * { flex: none; }
+      #minimap { top: 136px; right: 8px; bottom: auto; width: 84px; height: 84px; }
+      #hud { display: contents; }
+      #hud .hud-bars { position: absolute; top: 136px; left: 8px; width: 176px; }
+      #zona-marca { position: absolute; top: 196px; left: 8px; }
+      #banner { top: 236px; }
+      #hud-dopes { top: 226px; right: 8px; }
+      .skills { display: contents; }
+      .skills button { position: absolute; bottom: 118px; width: 44px; height: 42px; }
+      .skills button small, .util button small { display: none; }
+      #sk-q { left: 8px; }
+      #sk-e { left: 56px; }
+      #sk-z { left: 104px; }
+      #sk-v { left: 152px; }
+      #sk-jump { left: 200px; }
+      #sk-attack { right: 12px; bottom: 14px; width: 72px; height: 66px; font-size: 24px; }
+      .util { position: absolute; left: 8px; right: 8px; bottom: 170px; display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; gap: 4px; padding: 2px 0; scrollbar-width: none; }
+      .util::-webkit-scrollbar { display: none; }
+      .util button { flex: none; width: 40px; height: 36px; font-size: 15px; }
+      #joystick-zone { left: 12px; right: auto; bottom: 14px; width: 96px; height: 96px; }
+      #joystick-knob { width: 40px; height: 40px; }
+    }
   </style>
 </head>
 <body>
@@ -3203,8 +3231,15 @@
     if (!enemyPresetsCache) enemyPresetsCache = Object.values(window.EnemyLib.ARCHETYPE_PRESETS);
     return enemyPresetsCache;
   }
-  function elegirEnemigo(info, rng) {
-    const pool = obtenerPresetsEnemigos().filter(c => esJefeEnemigo(c) === !!info.boss);
+  // Arquetipo con modelo en glb/ (low o medium)
+  function tieneGlbArquetipo(c) {
+    const e = window.ENEMY_GLB_INDEX && window.ENEMY_GLB_INDEX[c.archetype];
+    return !!(e && (e.low || e.medium));
+  }
+  // soloConGlb: en mazmorras, elige solo entre arquetipos con GLB (si no hay ninguno del tipo, entre todos)
+  function elegirEnemigo(info, rng, soloConGlb = false) {
+    let pool = obtenerPresetsEnemigos().filter(c => esJefeEnemigo(c) === !!info.boss);
+    if (soloConGlb) { const conGlb = pool.filter(tieneGlbArquetipo); if (conGlb.length) pool = conGlb; }
     if (!pool.length) return null;
     if (enemyMode === 'aleatorio') return pool[Math.min(pool.length - 1, Math.floor(rng.range(0, pool.length)))];
     let cercanos = pool.filter(c => Math.abs(c.stats.level - info.level) <= 2);
@@ -6590,6 +6625,13 @@
         m.group.position.set(info.x, sueloY, info.z);
         m.group.visible = true;
 
+        // Con modelos GLB, los monstruos de mazmorra usan su GLB (low o medium) en vez de la malla procedural del generador.
+        // Esa malla se retira de la mazmorra para no duplicarla.
+        const conGlbMazmorra = !!(window.EnemyLib && window.ENEMY_GLB_INDEX);
+        if (info.meshProcedural && conGlbMazmorra) {
+          if (info.meshProcedural.parent) info.meshProcedural.parent.remove(info.meshProcedural);
+          info.meshProcedural = null;
+        }
         if (info.meshProcedural) {
           m.meshProcedural = info.meshProcedural;
           if (info.meshProcedural.parent) {
@@ -6600,7 +6642,8 @@
         } else if (window.EnemyLib) {
           const seedOffset = (info.id ? (info.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0)*31) : (monsters.length * 7919 + Math.floor((info.x||0)*13)));
           const rngTemp = (typeof W !== 'undefined' && W.PRNG) ? new W.PRNG((info.level * 101) ^ (isBoss ? 9999 : (1234 + seedOffset))) : { range: (a, b) => a + Math.random() * (b - a) };
-          m.enemigo = (info.arquetipo && window.EnemyLib.ARCHETYPE_PRESETS[info.arquetipo]) || enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp);
+          const porArquetipo = info.arquetipo && window.EnemyLib.ARCHETYPE_PRESETS[info.arquetipo];
+          m.enemigo = (porArquetipo && (!conGlbMazmorra || tieneGlbArquetipo(porArquetipo)) ? porArquetipo : null) || enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngTemp, conGlbMazmorra);
           m.versiones = {};
           m.rig = null; // Se construye progresivamente según distancia en updateCombat con control de presupuesto
         }

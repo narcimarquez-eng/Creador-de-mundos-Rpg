@@ -433,8 +433,11 @@
       if (!contenedor) return;
 
       this.contenedor = contenedor;
+      // En móvil el panel empieza plegado: no tapa la pantalla de juego
+      const movilInicio = !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
+      this.abierto = !movilInicio;
       contenedor.innerHTML = `
-        <details id="carga-desplegable" open>
+        <details id="carga-desplegable" ${movilInicio ? '' : 'open'}>
           <summary class="c-tit">
             <div class="c-tit-izq">
               <span id="carga-icono-estado" class="c-icono-spin">⏳</span>
@@ -462,7 +465,7 @@
 
           <div class="c-pie-acciones">
             <span id="carga-pie-info">Total en memoria: <b id="carga-pie-peso">0.00 MB</b></span>
-            <button id="carga-btn-toggle" type="button" class="c-btn-accion" title="Plegar o desplegar la lista">Plegar ▲</button>
+            <button id="carga-btn-toggle" type="button" class="c-btn-accion" title="Plegar o desplegar la lista">${movilInicio ? 'Desplegar ▼' : 'Plegar ▲'}</button>
           </div>
         </details>
       `;
