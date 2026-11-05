@@ -406,6 +406,9 @@
   "emerald_crown_necromancer_lord": {
     "low": "glb/low/no-muertos/enemy-emerald-crown-necromancer-lord_low.glb"
   },
+  "esqueleto_guerrero": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-esqueleto-guerrero_low.glb"
+  },
   "feral_shadow_panther": {
     "medium": "glb/medium/animales-nv-1-12-lineage/enemy_lineage_shadow_panther_medium.glb",
     "low": "glb/low/animales-nv-1-12-lineage/enemy_lineage_shadow_panther_low.glb"
