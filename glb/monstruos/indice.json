@@ -1,0 +1,352 @@
+[
+  {
+    "id": "enemy-abyssal-crown-ossuary-titan_low",
+    "nombre": "Abyssal Crown Ossuary Titan",
+    "archivo": "enemy-abyssal-crown-ossuary-titan_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 5.07
+  },
+  {
+    "id": "enemy-ashen-crown-executioner-skeleton_low",
+    "nombre": "Ashen Crown Executioner Skeleton",
+    "archivo": "enemy-ashen-crown-executioner-skeleton_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.769
+  },
+  {
+    "id": "enemy-blood-crown-reaper-marquis_low",
+    "nombre": "Blood Crown Reaper Marquis",
+    "archivo": "enemy-blood-crown-reaper-marquis_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 5.115
+  },
+  {
+    "id": "enemy-bone-tiara-oracle-siren_low",
+    "nombre": "Bone Tiara Oracle Siren",
+    "archivo": "enemy-bone-tiara-oracle-siren_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.175
+  },
+  {
+    "id": "enemy-bone-viscount-duelist_low",
+    "nombre": "Bone Viscount Duelist",
+    "archivo": "enemy-bone-viscount-duelist_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.54
+  },
+  {
+    "id": "enemy_undead_ash_naga_low",
+    "nombre": "Ash Naga",
+    "archivo": "enemy_undead_ash_naga_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.156
+  },
+  {
+    "id": "enemy_undead_banshee_queen_low",
+    "nombre": "Banshee Queen",
+    "archivo": "enemy_undead_banshee_queen_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.353
+  },
+  {
+    "id": "enemy_undead_crypt_cerberus_low",
+    "nombre": "Crypt Cerberus",
+    "archivo": "enemy_undead_crypt_cerberus_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 3.216
+  },
+  {
+    "id": "enemy_undead_death_knight_low",
+    "nombre": "Death Knight",
+    "archivo": "enemy_undead_death_knight_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.676
+  },
+  {
+    "id": "enemy_undead_embalmed_sentinel_low",
+    "nombre": "Embalmed Sentinel",
+    "archivo": "enemy_undead_embalmed_sentinel_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.453
+  },
+  {
+    "id": "enemy_undead_fallen_valkyrie_low",
+    "nombre": "Fallen Valkyrie",
+    "archivo": "enemy_undead_fallen_valkyrie_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.842
+  },
+  {
+    "id": "enemy_undead_flayed_centaur_low",
+    "nombre": "Flayed Centaur",
+    "archivo": "enemy_undead_flayed_centaur_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.779
+  },
+  {
+    "id": "enemy_undead_flesh_abomination_low",
+    "nombre": "Flesh Abomination",
+    "archivo": "enemy_undead_flesh_abomination_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.429
+  },
+  {
+    "id": "enemy_undead_lich_king_low",
+    "nombre": "Lich King",
+    "archivo": "enemy_undead_lich_king_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.848
+  },
+  {
+    "id": "enemy_undead_necro_arachnid_low",
+    "nombre": "Necro Arachnid",
+    "archivo": "enemy_undead_necro_arachnid_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 3.779
+  },
+  {
+    "id": "enemy_undead_nosferatu_elder_low",
+    "nombre": "Nosferatu Elder",
+    "archivo": "enemy_undead_nosferatu_elder_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.86
+  },
+  {
+    "id": "enemy_undead_ossuary_minotaur_low",
+    "nombre": "Ossuary Minotaur",
+    "archivo": "enemy_undead_ossuary_minotaur_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.833
+  },
+  {
+    "id": "enemy_undead_phantom_boar_low",
+    "nombre": "Phantom Boar",
+    "archivo": "enemy_undead_phantom_boar_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 3.11
+  },
+  {
+    "id": "enemy_undead_plague_dragon_low",
+    "nombre": "Plague Dragon",
+    "archivo": "enemy_undead_plague_dragon_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 3.87
+  },
+  {
+    "id": "enemy_undead_plague_mummy_low",
+    "nombre": "Plague Mummy",
+    "archivo": "enemy_undead_plague_mummy_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.982
+  },
+  {
+    "id": "enemy_undead_putrid_hydra_low",
+    "nombre": "Putrid Hydra",
+    "archivo": "enemy_undead_putrid_hydra_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.354
+  },
+  {
+    "id": "enemy_undead_skeleton_berserker_low",
+    "nombre": "Skeleton Berserker",
+    "archivo": "enemy_undead_skeleton_berserker_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.413
+  },
+  {
+    "id": "enemy_undead_skull_tyrant_low",
+    "nombre": "Skull Tyrant",
+    "archivo": "enemy_undead_skull_tyrant_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.193
+  },
+  {
+    "id": "enemy_undead_stitched_chimera_low",
+    "nombre": "Stitched Chimera",
+    "archivo": "enemy_undead_stitched_chimera_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 4.083
+  },
+  {
+    "id": "enemy_undead_wraith_reaper_low",
+    "nombre": "Wraith Reaper",
+    "archivo": "enemy_undead_wraith_reaper_low.glb",
+    "clips": [
+      "Idle",
+      "Walk",
+      "Attack",
+      "JumpBite",
+      "Hit",
+      "Death"
+    ],
+    "altura": 5.077
+  }
+]

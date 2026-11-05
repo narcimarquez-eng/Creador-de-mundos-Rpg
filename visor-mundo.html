@@ -1012,6 +1012,7 @@
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-glb.js?v=20261103"></script>
+  <script src="js/monstruos-glb.js?v=20261110"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js";
@@ -3394,8 +3395,55 @@
     return { rig: { rootGroup: raiz, glb }, fx: null, detalle: [], barHeight: caja.max.y + 0.9 };
   }
 
+  // Índice de glb/monstruos/ (se pide una vez; hasta que llega, los monstruos con GLB esperan)
+  let indiceMonstruos = null;
+  let indiceCargando = false;
+  function cargarGlbMonstruo(id) {
+    if (!indiceMonstruos) {
+      if (!indiceCargando) {
+        indiceCargando = true;
+        fetch(MonstruosGlb.CARPETA + MonstruosGlb.ARCHIVO_INDICE)
+          .then(r => r.json())
+          .then(i => { indiceMonstruos = i; })
+          .catch(() => { indiceMonstruos = []; });
+      }
+      return null;
+    }
+    const entrada = MonstruosGlb.buscarMonstruo(indiceMonstruos, id);
+    if (!entrada) return { estado: 'falta' };
+    return EnemyGlb.pedirRuta(MonstruosGlb.rutaMonstruo(entrada));
+  }
+
+  // Activa la versión ya construida del monstruo (la de cerca o la de lejos)
+  function activarVersion(m, tipo) {
+    const v = m.versiones[tipo];
+    if (m.activa !== tipo) {
+      if (m.rig) m.group.remove(m.rig.rootGroup);
+      m.rig = v.rig; m.fx = v.fx; m.barHeight = v.barHeight;
+      m.detalle = v.detalle; m.detalleOn = undefined;   // se decide en el siguiente fotograma
+      m.activa = tipo; m.sombra = undefined; m.posado = false;
+      m.group.add(v.rig.rootGroup);
+    }
+    return true;
+  }
+
+  // Monstruo con su GLB de glb/monstruos/: la misma versión (GLB) para cerca y lejos
+  function construirModeloGlb(m, d) {
+    const tipo = tipoEnemigo(m, d);
+    if (!m.versiones[tipo]) {
+      const glb = cargarGlbMonstruo(m.modeloGlb);
+      if (!glb || glb.estado === 'cargando') return !!m.rig;
+      if (glb.estado === 'falta') return false;
+      if (presupuestoModelos <= 0) return !!m.rig;   // un modelo por fotograma, como los demás
+      presupuestoModelos--;
+      m.versiones[tipo] = instanciarVersionGlb(m, tipo, glb);
+    }
+    return activarVersion(m, tipo);
+  }
+
   function construirModeloEnemigo(m, d) {
     if (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) return true;
+    if (m.modeloGlb) return construirModeloGlb(m, d);
     if (!window.EnemyLib || !m.enemigo) return false;
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
@@ -3493,6 +3541,7 @@
             m._pendEnemigo = { info, s: semillaVar };
             m.enemigo = null;
           }
+          m.modeloGlb = info.modeloGlb || null;   // GLB de glb/monstruos/ elegido en el editor de mundos
           m.rig = null;   // el modelo se construye la primera vez que el monstruo está cerca
           m.versiones = {};
           m.group.visible = false;

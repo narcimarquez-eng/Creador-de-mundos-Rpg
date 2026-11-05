@@ -2219,7 +2219,58 @@
     }
   };
 
+  // Monstruos GLB de glb/monstruos/: la opción de mazmorra 'glb:<id>' carga ese GLB (una vez por archivo) y lo
+  // escala a la altura de un monstruo normal o de jefe. Se reproduce su animación Idle con el mismo hook de
+  // animación que los procedurales (userData.animar), así que la mazmorra la trata igual.
+  const CACHE_GLB_MAZMORRA = new Map();
+  function idGlbDeArquetipo(arquetipoId) {
+    if (typeof arquetipoId !== 'string' || !arquetipoId.startsWith('glb:')) return null;
+    return arquetipoId.slice(4);
+  }
+  function crearMonstruoGlb(ThreeLib, id, opciones = {}) {
+    const g = new ThreeLib.Group();
+    const esJefe = !!opciones.esJefe;
+    const escala = opciones.escala || (esJefe ? 1.25 : 0.95);
+    const nivel = opciones.nivel || (esJefe ? 17 : 14);
+    const rangoElite = opciones.rangoElite || (esJefe ? 10 : 4);
+    const archivo = id + '.glb';
+    const nombre = opciones.nombre || (typeof window !== 'undefined' && window.MonstruosGlb ? window.MonstruosGlb.nombreDesdeArchivo(archivo) : id);
+    let mixer = null;
+    const animar = (t, dt) => { if (mixer) mixer.update(dt || 0); };
+    g.userData = {
+      tipo: 'monstruo', esMonstruo: true, arquetipo: 'glb:' + id,
+      idMonstruo: opciones.idMonstruo || ('monstruo_' + Math.random().toString(36).slice(2, 9)),
+      nombre, nivel, rangoElite, esJefe, escalaBase: escala, animar
+    };
+    const ruta = 'glb/monstruos/' + encodeURIComponent(archivo);
+    let carga = CACHE_GLB_MAZMORRA.get(ruta);
+    if (!carga && ThreeLib.GLTFLoader) {
+      carga = new ThreeLib.GLTFLoader().loadAsync(ruta);
+      CACHE_GLB_MAZMORRA.set(ruta, carga);
+    }
+    if (carga) {
+      carga.then(gltf => {
+        const clonar = (ThreeLib.SkeletonUtils && ThreeLib.SkeletonUtils.clone) ? ThreeLib.SkeletonUtils.clone : (o => o.clone(true));
+        const raiz = clonar(gltf.scene);
+        const alto = new ThreeLib.Box3().setFromObject(raiz);
+        const h = Math.max(0.01, alto.max.y - alto.min.y);
+        raiz.scale.setScalar(((esJefe ? 4.4 : 2.4) * escala) / h);
+        const pie = new ThreeLib.Box3().setFromObject(raiz);
+        raiz.position.y -= pie.min.y;   // apoyado en el suelo
+        g.add(raiz);
+        if (gltf.animations && gltf.animations.length) {
+          mixer = new ThreeLib.AnimationMixer(raiz);
+          const reposo = gltf.animations.find(c => /idle|stand|reposo/i.test(c.name || '')) || gltf.animations[0];
+          mixer.clipAction(reposo).play();
+        }
+      }).catch(err => console.warn('No se pudo cargar el monstruo GLB', archivo, err));
+    }
+    return g;
+  }
+
   function crearMonstruoProcedural(ThreeLib, arquetipoId, opciones = {}) {
+    const idGlb = idGlbDeArquetipo(arquetipoId);
+    if (idGlb) return crearMonstruoGlb(ThreeLib, idGlb, opciones);
     const g = new ThreeLib.Group();
     const enemyLib = (typeof window !== 'undefined' && window.EnemyLib) || (opciones && opciones.EnemyLib) || null;
     const def = ARQUETIPOS_MONSTRUOS[arquetipoId];

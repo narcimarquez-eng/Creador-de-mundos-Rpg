@@ -1498,9 +1498,10 @@
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
     // Exponer THREE y extensiones en window para que módulos y scripts tradicionales lo compartan
-    window.THREE = Object.assign({}, THREE, { OrbitControls, GLTFLoader });
+    window.THREE = Object.assign({}, THREE, { OrbitControls, GLTFLoader, SkeletonUtils });
 
     // Cargar la biblioteca procedural de criaturas de AetherForge RPG (EnemyLib y optimizador)
     try {
@@ -3857,6 +3858,27 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
         showToast(e.target.checked ? '👾 Monstruos procedurales activados en salas' : 'Monstruos procedurales desactivados');
       });
     }
+
+    // Monstruos GLB de glb/monstruos/ (índice generado por tools/indexar-monstruos.mjs), en los dos selectores
+    fetch('glb/monstruos/indice.json').then(r => r.json()).then(indice => {
+      ['boss-arquetipo-3d', 'guards-arquetipo-3d'].forEach(sel => {
+        const el = $(sel);
+        if (!el || !indice.length) return;
+        const grupo = document.createElement('optgroup');
+        grupo.label = 'Monstruos GLB (glb/monstruos)';
+        indice.forEach(e => {
+          const o = document.createElement('option');
+          o.value = 'glb:' + e.id;
+          o.textContent = '🧟 ' + e.nombre;
+          grupo.appendChild(o);
+        });
+        el.appendChild(grupo);
+      });
+      const jefe = dungeonConfig.monstruos && dungeonConfig.monstruos.jefe && dungeonConfig.monstruos.jefe.tipo;
+      const guardias = dungeonConfig.monstruos && dungeonConfig.monstruos.guardianes && dungeonConfig.monstruos.guardianes.tipo;
+      if ($('boss-arquetipo-3d') && jefe && jefe.startsWith('glb:')) $('boss-arquetipo-3d').value = jefe;
+      if ($('guards-arquetipo-3d') && guardias && guardias.startsWith('glb:')) $('guards-arquetipo-3d').value = guardias;
+    }).catch(() => {});
 
     if ($('boss-arquetipo-3d')) {
       $('boss-arquetipo-3d').addEventListener('change', e => {

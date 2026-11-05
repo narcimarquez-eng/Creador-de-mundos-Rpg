@@ -41,6 +41,11 @@
   const entradas = new Map();
   function pedir(arquetipo, tipo) {
     const ruta = rutaModeloEnemigo(arquetipo, tipo);
+    return ruta ? pedirRuta(ruta) : null;
+  }
+
+  // Igual que pedir, pero con la ruta del GLB (los monstruos de glb/monstruos/ no están en la carpeta de arquetipos)
+  function pedirRuta(ruta) {
     if (!ruta) return null;
     let entrada = entradas.get(ruta);
     if (entrada) return entrada;
@@ -90,7 +95,7 @@
   // Solo para las pruebas: olvida los GLB ya pedidos
   function _vaciarCache() { entradas.clear(); }
 
-  const api = { rutaModeloEnemigo, buscarClip, pedir, crearReproductor, actualizar, detener, _vaciarCache };
+  const api = { rutaModeloEnemigo, buscarClip, pedir, pedirRuta, crearReproductor, actualizar, detener, _vaciarCache };
   root.EnemyGlb = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
