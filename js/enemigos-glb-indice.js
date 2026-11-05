@@ -157,6 +157,81 @@
   "death_knight_colossus": {
     "low": "glb/low/no-muertos/enemy_undead_death_knight_low.glb"
   },
+  "df_01_abyssal_gore_chimera": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-01-abyssal-gore-chimera_low.glb"
+  },
+  "df_02_dread_manticore_scourge": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-02-dread-manticore-scourge_low.glb"
+  },
+  "df_03_ashen_gargoyle_colossus": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-03-ashen-gargoyle-colossus_low.glb"
+  },
+  "df_04_venom_chitin_arachnoraptor": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-04-venom-chitin-arachnoraptor_low.glb"
+  },
+  "df_05_frostbite_wendigo_stalker": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-05-frostbite-wendigo-stalker_low.glb"
+  },
+  "df_06_bloodhound_cerberus_prime": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-06-bloodhound-cerberus-prime_low.glb"
+  },
+  "df_07_obsidian_behemoth_juggernaut": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-07-obsidian-behemoth-juggernaut_low.glb"
+  },
+  "df_08_carrion_plague_wyvern": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-08-carrion-plague-wyvern_low.glb"
+  },
+  "df_09_bramble_horn_forest_fiend": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-09-bramble-horn-forest-fiend_low.glb"
+  },
+  "df_10_hellfire_basilisk_alpha": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-10-hellfire-basilisk-alpha_low.glb"
+  },
+  "df_11_glacier_fangs_sabertooth": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-11-glacier-fangs-sabertooth_low.glb"
+  },
+  "df_12_crypt_flayed_abomination": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-12-crypt-flayed-abomination_low.glb"
+  },
+  "df_13_void_rift_stalker_panther": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-13-void-rift-stalker-panther_low.glb"
+  },
+  "df_14_iron_spined_boar_beast": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-14-iron-spined-boar-beast_low.glb"
+  },
+  "df_15_scale_crested_wyrm_leviathan": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-15-scale-crested-wyrm-leviathan_low.glb"
+  },
+  "df_16_flesh_stitched_ghoul_titan": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-16-flesh-stitched-ghoul-titan_low.glb"
+  },
+  "df_17_storm_talon_thunder_griffin": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-17-storm-talon-thunder-griffin_low.glb"
+  },
+  "df_18_spectral_shadow_hydra": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-18-spectral-shadow-hydra_low.glb"
+  },
+  "df_19_ossuary_bone_reaver_gargant": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-19-ossuary-bone-reaver-gargant_low.glb"
+  },
+  "df_20_scythe_limbed_chitin_queen": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-20-scythe-limbed-chitin-queen_low.glb"
+  },
+  "df_21_blood_horned_minotaur_lord": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-21-blood-horned-minotaur-lord_low.glb"
+  },
+  "df_22_nether_drake_scourge_stalker": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-22-nether-drake-scourge-stalker_low.glb"
+  },
+  "df_23_corrupted_ancient_treant_horror": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-23-corrupted-ancient-treant-horror_low.glb"
+  },
+  "df_24_deep_trenches_kraken_beast": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-24-deep-trenches-kraken-beast_low.glb"
+  },
+  "df_25_celestial_eclipse_chimera_apex": {
+    "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-25-celestial-eclipse-chimera-apex_low.glb"
+  },
   "dire_wolf": {
     "low": "glb/low/bestias-elite/enemy_dire_wolf_fenrir_low.glb"
   },

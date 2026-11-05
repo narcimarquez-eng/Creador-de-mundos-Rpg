@@ -1039,6 +1039,8 @@
   <script type="module" src="js/character.js?v=20261030d"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
+  <script src="js/enemigos-carpeta.js?v=20261110"></script>
+  <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
   <script type="module" src="js/enemigos-glb.js?v=20261103"></script>
   <script src="js/sonidos.js?v=20261103"></script>
@@ -3228,7 +3230,11 @@
   const esJefeEnemigo = c => c.stats.tier === 'Mini-Boss' || c.stats.tier === 'Raid Boss';
   function obtenerPresetsEnemigos() {
     if (!window.EnemyLib) return [];
-    if (!enemyPresetsCache) enemyPresetsCache = Object.values(window.EnemyLib.ARCHETYPE_PRESETS);
+    if (!enemyPresetsCache) {
+      // Monstruos de glb/low y glb/medium sin enemigo en el editor: se añaden antes de construir la lista
+      if (window.EnemyCarpetaFusion) window.EnemyCarpetaFusion.fusionarEnPagina();
+      enemyPresetsCache = Object.values(window.EnemyLib.ARCHETYPE_PRESETS);
+    }
     return enemyPresetsCache;
   }
   // Arquetipo con modelo en glb/ (low o medium)

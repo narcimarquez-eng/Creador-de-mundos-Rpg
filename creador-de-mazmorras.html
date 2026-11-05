@@ -1494,6 +1494,8 @@
 
   <script src="js/dungeon-generator.js?v=2.2"></script>
 
+  <script src="js/enemigos-carpeta.js?v=20261110"></script>
+  <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -1505,6 +1507,7 @@
     // Cargar la biblioteca procedural de criaturas de AetherForge RPG (EnemyLib y optimizador)
     try {
       await import('./js/enemigos.js');
+      if (window.EnemyCarpetaFusion) window.EnemyCarpetaFusion.fusionarEnPagina();
       try { await import('./js/enemigos-optimizar.js'); } catch (e) {}
       console.log('👾 EnemyLib procedural disponible en el Creador de Mazmorras');
     } catch (errEnemy) {

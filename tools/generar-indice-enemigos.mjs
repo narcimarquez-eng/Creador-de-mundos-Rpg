@@ -6,10 +6,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const INDICE = path.join(raiz, 'tools', 'datos', 'indice-monstruos.json');
 const SALIDA = path.join(raiz, 'js', 'enemigos-glb-indice.js');
+const SALIDA_CARPETA = path.join(raiz, 'js', 'enemigos-carpeta.js');
+const F = createRequire(import.meta.url)('../js/enemigos-carpeta-fusion.js');
 const CALIDADES = ['low', 'medium'];
 
 // Carga el catálogo de enemigos (sin Three): deja window.ENEMY_CATALOG
@@ -55,6 +58,26 @@ for (const fila of filas) {
   indice[clave][calidad] = hallados[0];
   usados[calidad].add(hallados[0]);
 }
+
+// Monstruos de carpeta: GLB que no tienen enemigo en el catálogo. Se añaden al índice y a js/enemigos-carpeta.js
+// (nivel = centro del rango de su carpeta nv-A-B, o 15). Así las zonas y las mazmorras los pueden elegir.
+const carpeta = {};
+for (const c of CALIDADES) for (const [nombre, rutas] of enRepo[c]) for (const r of rutas) {
+  if (usados[c].has(r)) continue;
+  const key = F.claveDesdeArchivo(nombre);
+  if (claves.has(key)) continue;                       // ya está en el catálogo: si falta su fila, no se inventa
+  carpeta[key] = carpeta[key] || { key, name: F.nombreDesdeArchivo(nombre), level: F.nivelDesdeRuta(r), glb: {} };
+  if (!carpeta[key].glb[c]) { carpeta[key].glb[c] = r; usados[c].add(r); }
+}
+for (const key of Object.keys(carpeta)) if (!indice[key]) indice[key] = carpeta[key].glb;
+fs.writeFileSync(SALIDA_CARPETA, `// Generado por tools/generar-indice-enemigos.mjs. No editar a mano: vuelve a ejecutar el script al subir archivos.
+// Monstruos de glb/low y glb/medium que no están en el catálogo del editor: se unen con js/enemigos-carpeta-fusion.js.
+(function (root) {
+  'use strict';
+  root.ENEMY_CARPETA = ${JSON.stringify(carpeta, null, 2)};
+})(typeof window !== 'undefined' ? window : globalThis);
+`);
+console.log(`monstruos de carpeta (sin catálogo): ${Object.keys(carpeta).length}`);
 
 const sinFila = CALIDADES.flatMap(c => [...enRepo[c].values()].flat().filter(r => !usados[c].has(r)));
 
