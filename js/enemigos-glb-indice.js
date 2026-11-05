@@ -115,6 +115,9 @@
   "brood_spider_queen": {
     "low": "glb/low/bestias-elite/enemy_brood_spider_queen_low.glb"
   },
+  "caballero_oscuro": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-caballero-oscuro_low.glb"
+  },
   "catacomb_necro_arachnid": {
     "low": "glb/low/no-muertos/enemy_undead_necro_arachnid_low.glb"
   },
@@ -243,6 +246,9 @@
   },
   "elder_dragon": {
     "low": "glb/low/dragones/enemy_elder_dragon_ignis_low.glb"
+  },
+  "elfo_guerrero": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-elfo-guerrero_low.glb"
   },
   "elite_abyssal_angler_lurker": {
     "low": "glb/low/elite-nv-1-20/enemy-elite-abyssal-angler-lurker_low.glb"
@@ -456,6 +462,18 @@
   "glacier_wyrm_ancient": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_glacier_wyrm_low.glb"
   },
+  "goblin_55": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-55_low.glb"
+  },
+  "goblin_cuatro": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-cuatro_low.glb"
+  },
+  "goblin_tres": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-tres_low.glb"
+  },
+  "goblin_uno": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-uno_low.glb"
+  },
   "gorgon_medusa": {
     "low": "glb/low/mitologicos/enemy_gorgon_medusa_euryale_low.glb"
   },
@@ -470,6 +488,12 @@
   },
   "hailstorm_stag_spirit": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_hailstorm_stag_low.glb"
+  },
+  "heroe_espada": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-heroe-espada_low.glb"
+  },
+  "heroe_maza": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-heroe-maza_low.glb"
   },
   "highland_lynx_stalker": {
     "low": "glb/low/zonas-iniciales-nv-1-20/enemy-highland-lynx-stalker_low.glb"
@@ -494,6 +518,9 @@
   },
   "leviathan_abyssal": {
     "low": "glb/low/dragones/aire-agua-y-hielo/enemy_elem_leviathan_abyssal_low.glb"
+  },
+  "lobo_guerrero": {
+    "low": "glb/low/generados-imagenes-nv-1-12/enemy-lobo-guerrero_low.glb"
   },
   "manticore_chimera": {
     "low": "glb/low/mitologicos/enemy_manticore_chimera_low.glb"

@@ -203,12 +203,84 @@
       "low": "glb/low/bestias-fantasia-oscura-aaa-12k-18k/enemy-df-25-celestial-eclipse-chimera-apex_low.glb"
     }
   },
+  "caballero_oscuro": {
+    "key": "caballero_oscuro",
+    "name": "Caballero Oscuro",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-caballero-oscuro_low.glb"
+    }
+  },
+  "elfo_guerrero": {
+    "key": "elfo_guerrero",
+    "name": "Elfo Guerrero",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-elfo-guerrero_low.glb"
+    }
+  },
   "esqueleto_guerrero": {
     "key": "esqueleto_guerrero",
     "name": "Esqueleto Guerrero",
     "level": 7,
     "glb": {
       "low": "glb/low/generados-imagenes-nv-1-12/enemy-esqueleto-guerrero_low.glb"
+    }
+  },
+  "goblin_55": {
+    "key": "goblin_55",
+    "name": "Goblin 55",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-55_low.glb"
+    }
+  },
+  "goblin_cuatro": {
+    "key": "goblin_cuatro",
+    "name": "Goblin Cuatro",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-cuatro_low.glb"
+    }
+  },
+  "goblin_tres": {
+    "key": "goblin_tres",
+    "name": "Goblin Tres",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-tres_low.glb"
+    }
+  },
+  "goblin_uno": {
+    "key": "goblin_uno",
+    "name": "Goblin Uno",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-goblin-uno_low.glb"
+    }
+  },
+  "heroe_espada": {
+    "key": "heroe_espada",
+    "name": "Heroe Espada",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-heroe-espada_low.glb"
+    }
+  },
+  "heroe_maza": {
+    "key": "heroe_maza",
+    "name": "Heroe Maza",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-heroe-maza_low.glb"
+    }
+  },
+  "lobo_guerrero": {
+    "key": "lobo_guerrero",
+    "name": "Lobo Guerrero",
+    "level": 7,
+    "glb": {
+      "low": "glb/low/generados-imagenes-nv-1-12/enemy-lobo-guerrero_low.glb"
     }
   }
 };
