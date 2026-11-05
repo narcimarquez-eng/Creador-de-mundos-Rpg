@@ -3499,6 +3499,15 @@
     EnemyGlb.detener(rig.glb);
     lista.push(rig);
   }
+  // Los GLB de los monstruos pueden tener el origen en el centro del cuerpo: se sube el modelo para que los pies
+  // queden en el suelo del monstruo (el origen del grupo). Se calcula con la escala y la pose de reposo.
+  function apoyarEnSuelo(raiz) {
+    raiz.position.y = 0;
+    raiz.updateMatrixWorld(true);
+    const caja = new THREE.Box3().setFromObject(raiz);
+    if (isFinite(caja.min.y)) raiz.position.y = -caja.min.y;
+  }
+
   function instanciarVersionGlb(m, tipo, entrada) {
     const p = prototipoGlb(entrada);
     const e = escalaEnemigos();
@@ -3511,6 +3520,7 @@
       raiz.scale.setScalar(e);
       rig = { rootGroup: raiz, glb: EnemyGlb.crearReproductor(THREE, raiz, entrada.clips), ruta: entrada.ruta };
     }
+    apoyarEnSuelo(rig.rootGroup);
     return { rig, fx: null, detalle: [], barHeight: p.altura * e + 0.9 };
   }
 
