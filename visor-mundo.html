@@ -157,14 +157,95 @@
     #heroe .huecos { display: flex; gap: 3px; flex: none; }
     #heroe .hueco-b { padding: 2px 7px; font-size: 11px; }
     #minimap { cursor: pointer; }
-    #mision { position: absolute; top: 54px; left: 50%; transform: translateX(-50%); z-index: 19; width: min(360px, calc(100vw - 560px)); min-width: 260px; background: var(--panel); border: 1px solid #a16207; border-radius: 10px; padding: 7px 10px; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+    #mision {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 19;
+      width: min(330px, calc(100vw - 520px));
+      min-width: 220px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(217, 119, 6, 0.65);
+      border-radius: 8px;
+      padding: 5px 9px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      transition: width 0.2s ease, padding 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      user-select: none;
+    }
     #mision:hover { border-color: var(--gold); }
-    #mision .m-cap { color: var(--gold); font-weight: 600; font-size: 12px; }
-    #mision .m-obj { color: #e2e8f0; font-size: 13px; margin: 2px 0 4px; }
-    #mision .m-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
-    #mision .m-pie button { padding: 3px 8px; font-size: 12px; }
+    #mision .m-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    #mision .m-cap { color: var(--gold); font-weight: 600; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    #mision #mision-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      font-size: 11px;
+      line-height: 1;
+      padding: 2px 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    #mision #mision-toggle:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--gold);
+    }
+    #mision .m-obj { color: #cbd5e1; font-size: 11px; line-height: 1.35; margin: 3px 0 4px; }
+    #mision .m-pie { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--muted); font-size: 10px; }
+    #mision .m-pie button { padding: 2px 7px; font-size: 10.5px; border-radius: 4px; }
     #mision .m-aviso { color: #fca5a5; }
-    @media (max-width: 760px) { #mision { top: 52px; width: calc(100vw - 16px); min-width: 0; } }
+
+    /* Estado Recogido / Colapsado para tener la pantalla limpia */
+    #mision.colapsado {
+      width: auto !important;
+      min-width: 0 !important;
+      max-width: min(260px, calc(100vw - 32px));
+      padding: 3px 10px !important;
+      border-radius: 20px !important;
+      background: rgba(15, 23, 42, 0.85) !important;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4) !important;
+    }
+    #mision.colapsado #mision-cuerpo { display: none !important; }
+    #mision.colapsado .m-cap { font-size: 10.5px; }
+
+    @media (max-width: 760px) {
+      #mision {
+        top: 48px;
+        width: min(300px, calc(100vw - 16px));
+        min-width: 0;
+        padding: 4px 8px;
+        border-radius: 8px;
+      }
+      #mision.colapsado {
+        top: 48px;
+        width: auto !important;
+        max-width: calc(100vw - 36px);
+        padding: 3px 10px !important;
+        border-radius: 16px !important;
+      }
+      #mision .m-cap { font-size: 10.5px; }
+      #mision .m-obj { font-size: 10.5px; margin: 2px 0 3px; }
+      #mision .m-pie { font-size: 9.5px; }
+      #mision .m-pie button { padding: 2px 5px; font-size: 9.5px; }
+
+      /* Menús de capítulo y crónica más compactos y limpios en móvil */
+      #capitulo, #cronica { padding: 8px; }
+      #capitulo .box, #cronica .box {
+        padding: 12px 14px;
+        width: min(340px, calc(100vw - 16px));
+        max-height: 82vh;
+        border-radius: 10px;
+      }
+      #capitulo h2, #cronica h2 { font-size: 15px; margin: 0 0 4px; }
+      #capitulo p, #capitulo .muted { font-size: 11.5px; line-height: 1.4 !important; margin: 4px 0 !important; }
+      #capitulo .btns, #cronica .btns { margin-top: 8px; gap: 4px; }
+      #capitulo .btns button, #cronica .btns button { padding: 4px 8px; font-size: 11px; }
+    }
     #mapa-mundo { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 46; padding: 12px; }
     #mapa-mundo.show { display: flex; }
     #mapa-mundo .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(760px, 100%); max-height: 96vh; overflow-y: auto; }
@@ -652,10 +733,21 @@
   <div id="info"></div>
 
   <div id="banner"></div>
-  <div id="mision" title="Pulsa para ir andando a donde se cumple la misión">
-    <div class="m-cap" id="mision-cap"></div>
-    <div class="m-obj" id="mision-obj"></div>
-    <div class="m-pie"><span id="mision-prog"></span><button id="mision-ir">🧭 Llévame</button><button id="mision-guia-comp" title="Consultar a tu compañero para que te oriente y aconseje dónde ir" style="background:#0f172a;border:1px solid #f59e0b;color:#fde047;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;margin-left:6px">🗣️ Guía</button></div>
+  <div id="mision" title="Pulsa para ver detalles de la misión">
+    <div class="m-cabecera">
+      <div class="m-cap" id="mision-cap"></div>
+      <button id="mision-toggle" type="button" title="Recoger o desplegar misión" aria-label="Recoger misión">▾</button>
+    </div>
+    <div id="mision-cuerpo">
+      <div class="m-obj" id="mision-obj"></div>
+      <div class="m-pie">
+        <span id="mision-prog"></span>
+        <div style="display:flex;gap:4px">
+          <button id="mision-ir">🧭 Llévame</button>
+          <button id="mision-guia-comp" title="Consultar a tu compañero para que te oriente y aconseje dónde ir" style="background:#0f172a;border:1px solid #f59e0b;color:#fde047;border-radius:4px;padding:2px 6px;font-size:10.5px;cursor:pointer">🗣️ Guía</button>
+        </div>
+      </div>
+    </div>
   </div>
   <canvas id="minimap" width="300" height="300" title="Pulsa para ver el mapa del mundo"></canvas>
   <div id="carga" class="show" aria-live="polite">
@@ -5991,15 +6083,44 @@
     if (heroeEst.principal.paso === antes) showSelection({ kind: 'npc', ref: r.npc });
   }
 
+  function alternarColapsoMision(e) {
+    if (e) e.stopPropagation();
+    const el = $('mision');
+    if (!el) return;
+    const colapsar = !el.classList.contains('colapsado');
+    el.classList.toggle('colapsado', colapsar);
+    const btn = $('mision-toggle');
+    if (btn) btn.textContent = colapsar ? '▸' : '▾';
+    try { localStorage.setItem('mision_colapsada', colapsar ? '1' : '0'); } catch(err){}
+  }
+  if ($('mision-toggle')) $('mision-toggle').onclick = alternarColapsoMision;
+
+  try {
+    const colapGuardado = localStorage.getItem('mision_colapsada');
+    if (colapGuardado === '1' || (colapGuardado === null && window.innerWidth <= 760)) {
+      $('mision').classList.add('colapsado');
+      if ($('mision-toggle')) $('mision-toggle').textContent = '▸';
+    }
+  } catch(err) {}
+
   $('mision-ir').onclick = e => {
     e.stopPropagation();
     if (ruta) detenerRuta('Ruta parada');
     else irAMision();
   };
   $('mision').onclick = e => {
-    if (e.target.closest('#mision-ir')) return;
+    if (e.target.closest('#mision-ir') || e.target.closest('#mision-guia-comp') || e.target.closest('#mision-toggle')) return;
+    if ($('mision').classList.contains('colapsado')) {
+      alternarColapsoMision(e);
+      return;
+    }
     mostrarEncargo();
   };
+  if ($('capitulo')) {
+    $('capitulo').onclick = e => {
+      if (e.target === $('capitulo')) $('capitulo').classList.remove('show');
+    };
+  }
   $('cap-ir').onclick = () => { $('capitulo').classList.remove('show'); irAMision(); };
   $('cap-saltar').onclick = () => {
     $('capitulo').classList.remove('show');
