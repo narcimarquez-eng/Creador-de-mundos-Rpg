@@ -51,6 +51,26 @@
       '¡Por la aldea! ¡No dejaré que te rodeen!',
       '¡Saca el acero, que vienen con hambre!'
     ],
+    monstruo_duro: [
+      '¡Atento, esta criatura tiene una vitalidad y salud enormes! ¡Usa tus habilidades y combínalas con mis dopes!',
+      '¡Vaya resistencia! Su barra de vida es descomunal: ¡no bajes la guardia y esquiva sus zarpazos!',
+      '¡Es una bestia colosal! Yo potenciaré tu ataque mientras tú buscas su punto débil.'
+    ],
+    salud_baja: [
+      '¡Cuidado, camarada! Tu salud está peligrosamente baja. ¡Usa una poción o retrocede un momento!',
+      '¡Aguanta, no caigas! ¡Toma una poción de vida antes del siguiente golpe!',
+      '¡Peligro! Tu barra de vida flaquea. ¡Aléjate mientras yo entretengo al monstruo!'
+    ],
+    guia_camino: [
+      '¡Mantén el rumbo! El sabio nos indicó la dirección y los senderos de piedra nos llevarán a salvo.',
+      'Si te sientes desorientado, pregúntame en cualquier momento y te señalaré hacia dónde ir.',
+      'Caminar a tu lado me hace sentir seguro. ¿Seguimos hacia nuestro objetivo?'
+    ],
+    charla_inicial: [
+      '¡Por fin en marcha! No seremos más simples aldeanos: salvaremos las comarcas de Aden.',
+      'Los sabios nos observan desde la muralla. Demostremos de qué pasta estamos hechos.',
+      'Mi espada corta y mis dopes marciales están listos. ¡Dime a dónde vamos y te seguiré!'
+    ],
     combate_victoria: [
       '¡Bien peleado! Una bestia menos que amenace los caminos.',
       '¡Qué golpe! Vas dominando el combate a la perfección.',
@@ -66,6 +86,53 @@
   function elegirFrase(categoria) {
     const lista = FRASES[categoria] || FRASES.ambiente;
     return lista[Math.floor(Math.random() * lista.length)];
+  }
+
+  // Calcula distancia euclídea y dirección cardinal (Norte, Sur, Este, Oeste, etc.) hacia un destino
+  function calcularDireccionYDistancia(origen, destino) {
+    if (!origen || !destino) return { dist: 0, dir: 'Norte' };
+    const ox = (typeof origen.x === 'number') ? origen.x : 0;
+    const oz = (typeof origen.z === 'number') ? origen.z : ((typeof origen.y === 'number') ? origen.y : 0);
+    const dx = ((typeof destino.x === 'number') ? destino.x : 0) - ox;
+    const dz = ((typeof destino.z === 'number') ? destino.z : ((typeof destino.y === 'number') ? destino.y : 0)) - oz;
+    const dist = Math.round(Math.hypot(dx, dz));
+
+    let dir = 'Norte';
+    if (Math.abs(dx) > Math.abs(dz) * 1.5) {
+      dir = dx > 0 ? 'Este' : 'Oeste';
+    } else if (Math.abs(dz) > Math.abs(dx) * 1.5) {
+      dir = dz > 0 ? 'Sur' : 'Norte';
+    } else {
+      const ns = dz > 0 ? 'Sur' : 'Norte';
+      const eo = dx > 0 ? 'este' : 'oeste';
+      dir = `${ns}${eo}`;
+    }
+    return { dist, dir };
+  }
+
+  // Genera un consejo contextual de guía donde el acompañante te dice dónde ir y te advierte de los monstruos
+  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo) {
+    if (!acompanante) return '';
+    const nomComp = acompanante.nombre || 'Rowan';
+    if (!destino) {
+      return `${nomComp}: «Hemos cumplido con los objetivos por ahora. ¡Vayamos a la plaza del pueblo inicial a hablar con los sabios para nuevas órdenes!»`;
+    }
+
+    const { dist, dir } = calcularDireccionYDistancia(heroePos, destino);
+    const nomObj = destino.nombre || 'nuestro objetivo';
+
+    let consejo = '';
+    if (dist <= 18) {
+      consejo = `«¡Ya estamos en ${nomObj}! Desenvaina y mantén la guardia alta: las bestias de esta zona poseen una vitalidad y dureza descomunales. ¡Lucharemos espalda contra espalda!»`;
+    } else {
+      consejo = `«Camarada, debemos marchar hacia «${nomObj}». Queda hacia el ${dir}, a unos ${dist} metros. Sigamos las calzadas empedradas: yo te cubriré las espaldas con mis dopes de combate.»`;
+    }
+
+    if (heroeInfo && heroeInfo.hp && heroeInfo.maxHp && (heroeInfo.hp < heroeInfo.maxHp * 0.40)) {
+      consejo += ` ¡Por cierto, tu salud está algo baja (${Math.round(heroeInfo.hp)} / ${heroeInfo.maxHp} HP)! Bebe una poción antes de entablar combate.`;
+    }
+
+    return `${nomComp}: ${consejo}`;
   }
 
   const MAX_SLOTS_INVENTARIO = 20;
@@ -990,6 +1057,27 @@
       });
     }
 
+    // Detección de inicio de combate y aviso de monstruo endurecido
+    const ahoraMs = (typeof Date !== 'undefined' ? Date.now() : 0);
+    if (objetivoCombate && !acompanante._enCombateActivo) {
+      acompanante._enCombateActivo = true;
+      if (!acompanante.ultimoComentarioMs || ahoraMs - acompanante.ultimoComentarioMs > 10000) {
+        const esDuro = (objetivoCombate.maxHp && objetivoCombate.maxHp > 60) || objetivoCombate.boss || (objetivoCombate.rangoElite && objetivoCombate.rangoElite >= 2);
+        const cat = esDuro ? 'monstruo_duro' : 'combate_inicio';
+        decirFrase(acompanante, elegirFrase(cat), 4.5);
+      }
+    } else if (!objetivoCombate) {
+      acompanante._enCombateActivo = false;
+    }
+
+    // Aviso de salud crítica del héroe
+    if (heroeInfo && heroeInfo.hp && heroeInfo.maxHp && (heroeInfo.hp < heroeInfo.maxHp * 0.35)) {
+      if (!acompanante._ultimoAvisoSalud || ahoraMs - acompanante._ultimoAvisoSalud > 14000) {
+        acompanante._ultimoAvisoSalud = ahoraMs;
+        decirFrase(acompanante, elegirFrase('salud_baja'), 4.0);
+      }
+    }
+
     // Gestión y activación de las 3 Skills Equipadas y Dopes de Apoyo
     const heroeHpActual = (heroeInfo && typeof heroeInfo.hp === 'number') ? heroeInfo.hp : 100;
     const heroeHpMax = (heroeInfo && typeof heroeInfo.maxHp === 'number') ? heroeInfo.maxHp : 100;
@@ -1317,6 +1405,8 @@
     actualizarAcompanante,
     esMonstruoCombatible,
     decirFrase,
+    calcularDireccionYDistancia,
+    darConsejoGuia,
     comprobarLugaresSecretos,
     recibirDanoAcompanante,
     revivirAcompanante,

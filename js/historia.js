@@ -15,22 +15,22 @@
   const CAPITULOS = [
     {
       id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Pieles de caza y el primer cinturón',
-      encargo: 'La Sabia Elara te encomienda adentrarte en los campos de {lugar} y abatir a {n} criaturas de bajo nivel para conseguir pieles toscas con las que el herrero te forjará tu primer cinturón.',
-      texto: 'Regresas con las pieles toscas de las bestias. El herrero Brann toma las pieles curtidas, remacha una hebilla de bronce y te entrega tu nuevo cinturón. «Buen comienzo, recluta. Así se viste un guerrero». Has forjado tu primer cinturón básico.',
+      encargo: 'Rowan (tu leal compañero de camino) te acompaña desde la plaza y la Sabia Elara bendice vuestra alianza: «Las bestias han endurecido su piel y poseen una vitalidad colosal. Id juntos a {lugar} y abated a {n} criaturas. Tu compañero te guiará con indicaciones y te apoyará con sus habilidades para traer pieles resistentes y forjar tu primer cinturón».',
+      texto: 'Rowan y tú regresáis triunfantes tras medir vuestras fuerzas contra las resistentes bestias. Brann remacha la hebilla de bronce del cinturón: «Gran trabajo en equipo; cubriéndoos mutuamente sobreviviréis a lo que viene». Has forjado tu primer cinturón básico.',
       mision: { tipo: 'matar', cantidad: 3, nivel: 1 },
-      recompensa: { puntos: 1, forjarPieza: 'belt' }
+      recompensa: { puntos: 1, forjarPieza: 'belt', desbloquea: 'acompanante' }
     },
     {
       id: 'c2', nivel: 1, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El camino agreste y las botas de marcha',
-      encargo: 'El Maestro Oren necesita tendones y cuero grueso de {n} bestias en {lugar} para calzar a los exploradores con botas resistentes para los pedregales.',
-      texto: 'Con los tendones y el cuero reforzado recogidos en {lugar}, el herrero remata las suelas de tus nuevas botas de viaje. Tus pasos ahora son firmes y seguros en cualquier terreno.',
+      encargo: 'Rowan te señala los senderos lejanos hacia {lugar}: «El Maestro Oren necesita tendones y cuero grueso de {n} bestias endurecidas. Sígueme por las calzadas de piedra, te indicaré el camino seguro y te cubriré las espaldas con mis dopes marciales».',
+      texto: 'Con las indicaciones de tu compañero y el cuero reforzado recogido en {lugar}, el herrero remata las suelas de tus nuevas botas de viaje. Tus pasos ahora son firmes y seguros en cualquier terreno.',
       mision: { tipo: 'matar', cantidad: 4, nivel: 1 },
       recompensa: { puntos: 2, forjarPieza: 'boots' }
     },
     {
       id: 'c3', nivel: 2, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Garras de bestia y el aldeano leal',
-      encargo: 'La Hermana Ysolde detecta perturbaciones en {lugar}. Rowan, un joven aldeano con jubón de cuero y botas de viaje, empuña su espada corta y se ofrece a luchar a tu lado para abatir a {n} criaturas y obtener garras con las que reforzar brazales de combate.',
-      texto: 'Rowan y tú combatís espalda contra espalda: sus estocadas coordinadas demuestran su valía. Con las garras y escamas recogidas, el herrero forja un par de guantes y brazales de protección. Rowan el aldeano se une a tu aventura como fiel acompañante.',
+      encargo: 'La Hermana Ysolde detecta perturbaciones en {lugar}. Rowan empuña su espada corta con determinación: «¡No temas a la vitalidad de esas criaturas! Con mis habilidades de apoyo y tus estocadas abatiremos a {n} monstruos para conseguir garras con las que reforzar brazales de combate».',
+      texto: 'Rowan y tú combatís espalda contra espalda: sus estocadas coordinadas demuestran su valía. Con las garras y escamas recogidas, el herrero forja un par de guantes y brazales de protección. Rowan el aldeano reafirma su juramento como fiel acompañante.',
       mision: { tipo: 'matar', cantidad: 5, nivel: 2 },
       recompensa: { puntos: 2, forjarPieza: 'gloves', desbloquea: 'acompanante' }
     },

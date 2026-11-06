@@ -445,4 +445,32 @@ t('balance de habilidades: el tiempo de espera es estrictamente mayor que la dur
   });
 });
 
+t('orientación y consejos de guía: cálculo de rumbo y avisos de monstruos endurecidos', () => {
+  const c = A.crearAcompanante({ arquetipo: 'rowan' });
+  const heroePos = { x: 0, z: 0 };
+  const destNorte = { x: 0, z: -150, nombre: 'Prados Salvajes' };
+  const destEste = { x: 200, z: 0, nombre: 'Cabaña del Bosque' };
+
+  const rNorte = A.calcularDireccionYDistancia(heroePos, destNorte);
+  assert.strictEqual(rNorte.dir, 'Norte');
+  assert.strictEqual(rNorte.dist, 150);
+
+  const rEste = A.calcularDireccionYDistancia(heroePos, destEste);
+  assert.strictEqual(rEste.dir, 'Este');
+  assert.strictEqual(rEste.dist, 200);
+
+  const consejo = A.darConsejoGuia(c, destNorte, heroePos, { hp: 100, maxHp: 100 });
+  assert.ok(consejo.includes('Prados Salvajes'));
+  assert.ok(consejo.includes('Norte'));
+  assert.ok(consejo.includes('150'));
+
+  // Cuando está cerca del objetivo
+  const consejoCerca = A.darConsejoGuia(c, { x: 5, z: 5, nombre: 'Prados' }, heroePos, { hp: 100, maxHp: 100 });
+  assert.ok(consejoCerca.includes('¡Ya estamos en Prados!'));
+
+  // Advertencia de salud baja
+  const consejoHerido = A.darConsejoGuia(c, destNorte, heroePos, { hp: 25, maxHp: 100 });
+  assert.ok(consejoHerido.includes('tu salud está algo baja'));
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);

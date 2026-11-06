@@ -524,7 +524,7 @@
     }
     #toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #0f172a; border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none; }
     #toast.show { opacity: 1; }
-    #bocadillo-rowan { position: fixed; background: rgba(15, 23, 42, 0.94); color: #f8fafc; border: 1px solid #f59e0b; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.45); pointer-events: none; z-index: 45; opacity: 0; transition: opacity 0.25s; max-width: 260px; text-align: center; transform: translate(-50%, -100%); }
+    #bocadillo-rowan { position: fixed; background: rgba(15, 23, 42, 0.95); color: #f8fafc; border: 1.5px solid #f59e0b; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 500; line-height: 1.4; box-shadow: 0 4px 18px rgba(0,0,0,0.65); pointer-events: auto; cursor: pointer; z-index: 45; opacity: 0; transition: opacity 0.25s; max-width: 320px; text-align: center; transform: translate(-50%, -100%); }
     #bocadillo-rowan::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #f59e0b transparent transparent transparent; }
 
     @media (max-width: 760px) {
@@ -655,7 +655,7 @@
   <div id="mision" title="Pulsa para ir andando a donde se cumple la misión">
     <div class="m-cap" id="mision-cap"></div>
     <div class="m-obj" id="mision-obj"></div>
-    <div class="m-pie"><span id="mision-prog"></span><button id="mision-ir">🧭 Llévame</button></div>
+    <div class="m-pie"><span id="mision-prog"></span><button id="mision-ir">🧭 Llévame</button><button id="mision-guia-comp" title="Consultar a tu compañero para que te oriente y aconseje dónde ir" style="background:#0f172a;border:1px solid #f59e0b;color:#fde047;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;margin-left:6px">🗣️ Guía</button></div>
   </div>
   <canvas id="minimap" width="300" height="300" title="Pulsa para ver el mapa del mundo"></canvas>
   <div id="carga" class="show" aria-live="polite">
@@ -715,6 +715,7 @@
       <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
       <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
       <button id="sk-companero" title="Acompañante Rowan (O)">🛡️<small>O</small></button>
+      <button id="sk-guia-comp" title="Pedir orientación y consejo a tu compañero (Y)">🗣️<small>Y</small></button>
       <button id="sk-auto" title="Ataque automático en la zona (K)">🤖<small>K</small></button>
     </div>
   </div>
@@ -5735,6 +5736,11 @@
     $('mision-prog').innerHTML = p.progreso + ' / ' + o.cantidad + ' · <span' + (hero.level < cap.nivel ? ' class="m-aviso"' : '') + '>nivel recomendado ' + cap.nivel + '</span>';
     $('mision-ir').style.display = '';
     $('mision-ir').textContent = ruta ? '⏹ Parar' : '🧭 Llévame';
+    if ($('mision-guia-comp')) {
+      const nomC = (acompanante && acompanante.nombre) ? acompanante.nombre : 'Rowan';
+      $('mision-guia-comp').textContent = '🗣️ Guía de ' + nomC;
+      $('mision-guia-comp').onclick = e => { e.stopPropagation(); interactuarConAcompanante(); };
+    }
     if (typeof buildCabanasUI === 'function') buildCabanasUI();
   }
 
@@ -5851,6 +5857,11 @@
     const btnSaltar = $('cap-saltar');
     if (btnSaltar) btnSaltar.style.display = '';
     $('capitulo').classList.add('show');
+    setTimeout(() => {
+      if (typeof interactuarConAcompanante === 'function') {
+        interactuarConAcompanante();
+      }
+    }, 500);
   }
 
   // La crónica: capítulos contados, el actual con su encargo y los que faltan
@@ -6071,6 +6082,7 @@
     toast('Nueva partida: ' + name);
     renderPartidas();
     ruta = null;
+    asegurarAcompananteActivo();
     actualizarMision();
     mostrarEncargo();   // la historia empieza: capítulo 1
   }
@@ -6922,6 +6934,31 @@
     if (m) m.classList.remove('show');
   }
 
+  // Interacción y diálogo directo con el acompañante: orientación de misión, distancia, rumbo y advertencias
+  function interactuarConAcompanante() {
+    asegurarAcompananteActivo();
+    if (!acompanante || !character) return;
+    const d = destinoDeMision();
+    const p = character.root.position;
+    const consejo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.darConsejoGuia)
+      ? AcompananteLib.darConsejoGuia(acompanante, d, p, hero)
+      : (acompanante.nombre || 'Rowan') + ': «¡Adelante, camarada! Juntos superaremos cualquier desafío.»';
+    const textoLimpio = consejo.replace(/^[^:]+:\s*«?/, '').replace(/»?$/, '');
+    if (typeof AcompananteLib !== 'undefined' && AcompananteLib.decirFrase) {
+      AcompananteLib.decirFrase(acompanante, textoLimpio, 6.0);
+    }
+    toast('🗣️ ' + consejo, 5500);
+    actualizarBocadilloAcompanante();
+    if (acompanante.mixer && typeof AcompananteLib !== 'undefined') {
+      AcompananteLib.reproducirAnimacionGLB(acompanante, 'victory', 0.2);
+      setTimeout(() => {
+        if (acompanante && acompanante.mixer && acompanante.estado === 'idle') {
+          AcompananteLib.reproducirAnimacionGLB(acompanante, 'idle', 0.2);
+        }
+      }, 1500);
+    }
+  }
+
   function renderCompanero() {
     if (!acompanante) return;
     const nomComp = acompanante.nombre || 'Compañero';
@@ -7056,6 +7093,8 @@
 
   // Inicializar listeners del modal del compañero
   if ($('sk-companero')) $('sk-companero').onclick = abrirModalCompanero;
+  if ($('sk-guia-comp')) $('sk-guia-comp').onclick = interactuarConAcompanante;
+  if ($('bocadillo-rowan')) $('bocadillo-rowan').onclick = interactuarConAcompanante;
   if ($('comp-close')) $('comp-close').onclick = cerrarModalCompanero;
 
   // Selector de arquetipo en el modal de compañero
@@ -7227,6 +7266,7 @@
     }
     if (active) {
       applyPartida(active);
+      asegurarAcompananteActivo();
       comprobarPrologo(active);
     } else {
       openCrearPersonaje(crearPartida);
@@ -7323,6 +7363,7 @@
     if (k === 'c') { renderCronica(); $('cronica').classList.add('show'); }
     if (k === 'p') { renderHeroe(); $('heroe').classList.add('show'); }
     if (k === 'o') { if ($('modal-companero') && $('modal-companero').classList.contains('show')) cerrarModalCompanero(); else abrirModalCompanero(); }
+    if (k === 'y') interactuarConAcompanante();
     if (k === 'x') jump();
     if (k === 'k') alternarAuto();
     if (k === '1') drink('vida');
@@ -7342,6 +7383,13 @@
     const rect = renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(mouse, camera);
+    if (acompanante && acompanante.mesh && acompanante.mesh.visible) {
+      const toqueComp = raycaster.intersectObject(acompanante.mesh, true)[0];
+      if (toqueComp) {
+        interactuarConAcompanante();
+        return;
+      }
+    }
     const objs = [...nearChunks.values(), ...(farMesh ? farMesh.children : []), ...towns.filter(o => o.patch).map(o => o.patch)].filter(Boolean);
     const cuerpos = gurus.filter(g => g.raiz.visible).map(g => g.raiz);
     const toque = raycaster.intersectObjects(cuerpos, true)[0];
@@ -7490,7 +7538,7 @@
         (x, z) => visorWorld.getWalkableHeight(x, z),
         ev => avanzarHistoria(ev),
         (m, dmg) => damageMonster(m, dmg, 'acompanante'),
-        { hp: hero.hp, maxHp: hero.maxHp },
+        { hp: hero.hp, maxHp: hero.maxHp, objetivoMision: (typeof destinoDeMision === 'function') ? destinoDeMision() : null },
         (tipoSkill, infoSkill) => {
           const compNom = (acompanante && acompanante.nombre) || 'Compañero';
           if (tipoSkill === 'cura') {

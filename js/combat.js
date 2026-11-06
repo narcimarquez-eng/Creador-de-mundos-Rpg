@@ -55,10 +55,10 @@
   }
 
   const MONSTER = {
-    hpBase: 20, hpPerLevel: 8,
-    dmgBase: 3, dmgPerLevel: 1.5,
+    hpBase: 45, hpPerLevel: 18,
+    dmgBase: 4, dmgPerLevel: 2.0,
     xpPerLevel: 10,
-    bossMult: { hp: 5, dmg: 1.6, xp: 5 },
+    bossMult: { hp: 6, dmg: 1.8, xp: 6 },
     aggro: 14, bossAggro: 16,
     attackRange: 2.2, attackCd: 1.5,
     chaseSpeed: 3.5, bossChaseSpeed: 2.5,
