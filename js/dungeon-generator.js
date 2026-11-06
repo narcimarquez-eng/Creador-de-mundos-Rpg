@@ -659,11 +659,11 @@
   }
 
   // Envejecimiento: manchas nubosas de suciedad/lavado, vetas de humedad, desconchones y rozaduras (sin círculos)
-  function aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, fuerza = 1) {
+  function aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, fuerza = 1, aclarar = 0) {
     if (typeof document === 'undefined') return;
     try {
       // 1. Nubes de tono desigual: ruido de baja frecuencia ampliado con suavizado (oscurece y aclara por zonas)
-      [[10, 'rgba(0,0,0,', 0.55], [6, 'rgba(210,200,180,', 0.22]].forEach(([celdas, col, alfa]) => {
+      [[10, 'rgba(0,0,0,', 0.26], [6, 'rgba(210,200,180,', 0.24]].forEach(([celdas, col, alfa]) => {
         const mini = document.createElement('canvas');
         mini.width = mini.height = celdas;
         const mc = mini.getContext('2d');
@@ -721,6 +721,11 @@
         const l = 8 + rnd() * 26;
         ctxD.strokeStyle = rnd() > 0.5 ? 'rgba(220,210,190,0.16)' : 'rgba(0,0,0,0.30)';
         ctxD.beginPath(); ctxD.moveTo(sx, sy); ctxD.lineTo(sx + Math.cos(a) * l, sy + Math.sin(a) * l); ctxD.stroke();
+      }
+      // 5. Aclarado general (para superficies oscuras como el suelo, que debe leerse bien)
+      if (aclarar > 0) {
+        ctxD.fillStyle = 'rgba(205,195,175,' + aclarar.toFixed(3) + ')';
+        ctxD.fillRect(0, 0, size, size);
       }
     } catch (e) {
       // Entornos sin canvas completo (tests): se omite el envejecimiento
@@ -973,7 +978,7 @@
     }
 
     // Micro-textura de grano de roca
-    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 1.2);
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 0.8, 0.16);
     aplicarMicroTexturaPiedra(ctxD, ctxB, size, 219, 14);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
@@ -1320,7 +1325,7 @@
     // Suelo: usa exclusivamente textura de losas de pavimento (acabado pétreo mate sin destellos plásticos)
     const matSueloLosas = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: 0.88,
+      roughness: 0.82,
       metalness: 0.01,
       map: texSuelo.diffuse,
       bumpMap: texSuelo.bump,
@@ -1424,7 +1429,7 @@
   // --- 5. FABRICA DE PROPS PROCEDURALES ---
 
   // A) Antorcha con soporte de forja, candelabros, faroles, braseros o cristales arcanos
-  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 1.8, opciones = {}) {
+  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 2.4, opciones = {}) {
     const g = new ThreeLib.Group();
     const forma = opciones.forma || opciones.formaAntorcha || 'antorcha_hierro';
     const colorLuzVal = (luzHex !== undefined && luzHex !== null) ? luzHex : ((kit && kit.estilo && kit.estilo.luzAntorchas) || 0xf59e0b);
@@ -3266,7 +3271,7 @@
       : ((config && config.colorLuzCamara) || (estilo && estilo.luzAntorchas) || 0xffedd5);
     const intLuzBoveda = (typeof sala.intensidadLuz === 'number')
       ? sala.intensidadLuz
-      : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 1.3);
+      : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 2.0);
     const distLuzBoveda = Math.max(W, D, 16) * 2.4;
     const luzSala = new ThreeLib.PointLight(colorLuzBoveda, intLuzBoveda, distLuzBoveda, 1.12);
     luzSala.position.set(0, H - 0.45, 0);
@@ -3285,7 +3290,7 @@
 
     const distEntreAntorchas = (config && (config.distanciaAntorchas || config.distanciaEntreAntorchas)) || 16.0;
     const colorLuzDefinido = (config && (config.colorLuzAntorcha || config.colorLuz)) || (estilo && estilo.luzAntorchas) || 0xf59e0b;
-    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 1.8;
+    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 2.4;
     const formaAntorchaDef = (config && (config.formaAntorcha || config.forma)) || 'antorcha_hierro';
 
     // --- COLUMNAS DE BASE POR INSTANCIA Y TAMAÑO ---
@@ -4612,7 +4617,7 @@
     // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni destellos excesivos)
     const intAmbiente = (typeof config.luzAmbienteIntensidad === 'number')
       ? config.luzAmbienteIntensidad
-      : ((config.modoLuz === 'antorchas') ? 0.65 : (config.modoLuz === 'foco_personalizado' ? 0.65 : 0.85));
+      : ((config.modoLuz === 'antorchas') ? 0.9 : (config.modoLuz === 'foco_personalizado' ? 0.9 : 1.2));
     const luzAmbiente = new THREE_REF.AmbientLight(0xfffbeb, intAmbiente);
     luzAmbiente.name = 'dungeon_ambient_light';
     dungeonGroup.add(luzAmbiente);

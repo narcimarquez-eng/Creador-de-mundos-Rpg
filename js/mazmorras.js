@@ -459,16 +459,16 @@
       scene.add(this.grupoInstancia);
 
       // Iluminación interior clara y atmosférica de mazmorra monumental
-      const luzAmbiente = new THREE.AmbientLight(0xffffff, 0.95);
+      const luzAmbiente = new THREE.AmbientLight(0xffffff, 1.5);
       this.grupoInstancia.add(luzAmbiente);
 
       if (typeof THREE.HemisphereLight === 'function') {
-        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 0.7);
+        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 1.0);
         hemiMazmorra.position.set(0, 30.0, 0);
         this.grupoInstancia.add(hemiMazmorra);
       }
 
-      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 1.05);
+      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 1.5);
       luzDirPasillo.position.set(0, 24.0, 42.0);
       luzDirPasillo.target.position.set(0, 1.0, 16.0);
       this.grupoInstancia.add(luzDirPasillo);
