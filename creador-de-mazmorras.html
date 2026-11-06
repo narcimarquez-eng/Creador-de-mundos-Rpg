@@ -1547,14 +1547,14 @@
       luzElev: 55,
       luzIntensidad: 1.6,
       luzColor: '#ffffff',
-      luzAmbienteIntensidad: 1.35,
-      intensidadLuzCamara: 2.8,
+      luzAmbienteIntensidad: 0.85,
+      intensidadLuzCamara: 1.3,
       sombrasActivas: true,
       sombrasPuntuales: false,
       distanciaAntorchas: 16.0,
       formaAntorcha: 'antorcha_hierro',
       colorLuzAntorcha: '#f59e0b',
-      intensidadAntorchas: 3.4,
+      intensidadAntorchas: 1.8,
       antorchasAutomaticas: true,
       monstruos: {
         habilitados: true,
@@ -1724,14 +1724,14 @@
         props: dungeonConfig.props,
         sinTecho: !dungeonConfig.mostrarTechos,
         modoLuz: dungeonConfig.modoLuz,
-        luzAmbienteIntensidad: dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35,
-        intensidadLuzCamara: dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8,
+        luzAmbienteIntensidad: dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 0.85,
+        intensidadLuzCamara: dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 1.3,
         sombrasPuntuales: dungeonConfig.sombrasPuntuales === true,
         sombrasAntorchas: dungeonConfig.sombrasPuntuales === true,
         distanciaAntorchas: dungeonConfig.distanciaAntorchas || 16.0,
         formaAntorcha: dungeonConfig.formaAntorcha || 'antorcha_hierro',
         colorLuzAntorcha: dungeonConfig.colorLuzAntorcha || '#f59e0b',
-        intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4,
+        intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 1.8,
         antorchasAutomaticas: dungeonConfig.antorchasAutomaticas !== false,
         monstruos: dungeonConfig.monstruos
       });
@@ -2258,7 +2258,7 @@
     function actualizarIluminacionEscena() {
       const modo = dungeonConfig.modoLuz || 'aventura_clara';
       const sombras = dungeonConfig.sombrasActivas !== false;
-      const intAmb = typeof dungeonConfig.luzAmbienteIntensidad === 'number' ? dungeonConfig.luzAmbienteIntensidad : 1.35;
+      const intAmb = typeof dungeonConfig.luzAmbienteIntensidad === 'number' ? dungeonConfig.luzAmbienteIntensidad : 0.85;
       renderer.shadowMap.enabled = sombras;
 
       if (modo === 'aventura_clara') {
@@ -3048,12 +3048,12 @@
 
       // Sincronización de brillo ambiental general y luz de bóveda
       if ($('cfg-luz-ambiente')) {
-        $('cfg-luz-ambiente').value = dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35;
-        if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = (dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35).toFixed(2);
+        $('cfg-luz-ambiente').value = dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 0.85;
+        if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = (dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 0.85).toFixed(2);
       }
       if ($('cfg-luz-boveda')) {
-        $('cfg-luz-boveda').value = dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8;
-        if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = (dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8).toFixed(1);
+        $('cfg-luz-boveda').value = dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 1.3;
+        if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = (dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 1.3).toFixed(1);
       }
 
       // Sincronización del menú de antorchas automáticas
@@ -3064,8 +3064,8 @@
       if ($('cfg-antorchas-forma')) $('cfg-antorchas-forma').value = dungeonConfig.formaAntorcha || 'antorcha_hierro';
       if ($('cfg-antorchas-color')) $('cfg-antorchas-color').value = dungeonConfig.colorLuzAntorcha || '#f59e0b';
       if ($('cfg-antorchas-intensidad')) {
-        $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4;
-        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4).toFixed(1);
+        $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 1.8;
+        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 1.8).toFixed(1);
       }
 
       // Sincronización de monstruos procedurales y optimización de sombras
@@ -3490,7 +3490,7 @@
 
     if ($('cfg-luz-ambiente')) {
       $('cfg-luz-ambiente').addEventListener('input', e => {
-        dungeonConfig.luzAmbienteIntensidad = parseFloat(e.target.value) || 1.35;
+        dungeonConfig.luzAmbienteIntensidad = parseFloat(e.target.value) || 0.85;
         if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = dungeonConfig.luzAmbienteIntensidad.toFixed(2);
         actualizarIluminacionEscena();
       });
@@ -3501,7 +3501,7 @@
 
     if ($('cfg-luz-boveda')) {
       $('cfg-luz-boveda').addEventListener('input', e => {
-        dungeonConfig.intensidadLuzCamara = parseFloat(e.target.value) || 2.8;
+        dungeonConfig.intensidadLuzCamara = parseFloat(e.target.value) || 1.3;
         if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = dungeonConfig.intensidadLuzCamara.toFixed(1);
       });
       $('cfg-luz-boveda').addEventListener('change', () => {
@@ -3550,7 +3550,7 @@
 
     if ($('cfg-antorchas-intensidad')) {
       $('cfg-antorchas-intensidad').addEventListener('input', e => {
-        dungeonConfig.intensidadAntorchas = parseFloat(e.target.value) || 2.4;
+        dungeonConfig.intensidadAntorchas = parseFloat(e.target.value) || 1.8;
         if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = dungeonConfig.intensidadAntorchas.toFixed(1);
       });
       $('cfg-antorchas-intensidad').addEventListener('change', () => {
@@ -3563,7 +3563,7 @@
         dungeonConfig.distanciaAntorchas = parseFloat($('cfg-antorchas-distancia').value) || 16;
         dungeonConfig.formaAntorcha = $('cfg-antorchas-forma').value || 'antorcha_hierro';
         dungeonConfig.colorLuzAntorcha = $('cfg-antorchas-color').value || '#f59e0b';
-        dungeonConfig.intensidadAntorchas = parseFloat($('cfg-antorchas-intensidad').value) || 3.4;
+        dungeonConfig.intensidadAntorchas = parseFloat($('cfg-antorchas-intensidad').value) || 1.8;
         dungeonConfig.antorchasAutomaticas = true;
         rebuildDungeon();
         showToast('⚡ Antorchas redistribuidas en todas las paredes con iluminación expansiva');

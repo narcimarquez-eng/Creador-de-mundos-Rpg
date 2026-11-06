@@ -127,7 +127,7 @@
       luzJefe: 0xdc2626,
       densidadMusgo: 0.10,
       densidadHierba: 0.05,
-      rugosidad: 0.60
+      rugosidad: 0.82
     },
     marmol_imperial: {
       id: 'marmol_imperial',
@@ -142,7 +142,7 @@
       luzJefe: 0x3b82f6,
       densidadMusgo: 0.05,
       densidadHierba: 0.05,
-      rugosidad: 0.35
+      rugosidad: 0.80
     },
     caverna_obsidiana: {
       id: 'caverna_obsidiana',
@@ -157,7 +157,7 @@
       luzJefe: 0x7c3aed,
       densidadMusgo: 0.15,
       densidadHierba: 0.05,
-      rugosidad: 0.40
+      rugosidad: 0.82
     },
     ladrillo_medieval: {
       id: 'ladrillo_medieval',
@@ -187,7 +187,7 @@
       luzJefe: 0xc026d3,
       densidadMusgo: 0.20,
       densidadHierba: 0.10,
-      rugosidad: 0.50
+      rugosidad: 0.82
     },
     santuario_jade: {
       id: 'santuario_jade',
@@ -202,7 +202,7 @@
       luzJefe: 0x059669,
       densidadMusgo: 0.60,
       densidadHierba: 0.45,
-      rugosidad: 0.45
+      rugosidad: 0.82
     },
     bastion_hierro: {
       id: 'bastion_hierro',
@@ -217,7 +217,7 @@
       luzJefe: 0xe11d48,
       densidadMusgo: 0.10,
       densidadHierba: 0.05,
-      rugosidad: 0.70
+      rugosidad: 0.80
     },
     cripta_glaciar: {
       id: 'cripta_glaciar',
@@ -650,6 +650,83 @@
     ctxD.stroke();
   }
 
+  // Reparte `total` en `n` tramos de tamaño desigual (suman exactamente `total`, para que el patrón encaje)
+  function particionarIrregular(n, total, rnd, variacion = 0.45) {
+    const pesos = [];
+    let suma = 0;
+    for (let i = 0; i < n; i++) { const p = 1 + (rnd() - 0.5) * 2 * variacion; pesos.push(p); suma += p; }
+    return pesos.map(p => (p / suma) * total);
+  }
+
+  // Envejecimiento: manchas nubosas de suciedad/lavado, vetas de humedad, desconchones y rozaduras (sin círculos)
+  function aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, fuerza = 1) {
+    if (typeof document === 'undefined') return;
+    try {
+      // 1. Nubes de tono desigual: ruido de baja frecuencia ampliado con suavizado (oscurece y aclara por zonas)
+      [[10, 'rgba(0,0,0,', 0.55], [6, 'rgba(210,200,180,', 0.22]].forEach(([celdas, col, alfa]) => {
+        const mini = document.createElement('canvas');
+        mini.width = mini.height = celdas;
+        const mc = mini.getContext('2d');
+        for (let y = 0; y < celdas; y++) for (let x = 0; x < celdas; x++) {
+          mc.fillStyle = col + (rnd() * alfa * fuerza).toFixed(3) + ')';
+          mc.fillRect(x, y, 1, 1);
+        }
+        ctxD.imageSmoothingEnabled = true;
+        ctxD.drawImage(mini, 0, 0, size, size);
+      });
+
+      // 2. Vetas verticales de humedad y hollín escurriendo
+      const vetas = Math.floor(14 * fuerza);
+      for (let i = 0; i < vetas; i++) {
+        const vx = rnd() * size, vy = rnd() * size * 0.7;
+        const vw = 2 + rnd() * 9, vh = 50 + rnd() * 170;
+        const g = ctxD.createLinearGradient(0, vy, 0, vy + vh);
+        g.addColorStop(0, 'rgba(8,8,10,' + (0.28 * fuerza).toFixed(2) + ')');
+        g.addColorStop(1, 'rgba(8,8,10,0)');
+        ctxD.fillStyle = g;
+        ctxD.fillRect(vx, vy, vw, vh);
+      }
+
+      // 3. Desconchones poligonales irregulares (piedra saltada) con hondura en el bump
+      const desconchones = Math.floor(22 * fuerza);
+      for (let i = 0; i < desconchones; i++) {
+        const cx = rnd() * size, cy = rnd() * size;
+        const r = 6 + rnd() * 20;
+        const pts = 5 + Math.floor(rnd() * 3);
+        const trazar = (ctx) => {
+          ctx.beginPath();
+          for (let p = 0; p < pts; p++) {
+            const a = (p / pts) * Math.PI * 2 + rnd() * 0.5;
+            const rr = r * (0.45 + rnd() * 0.7);
+            const px = cx + Math.cos(a) * rr * (1 + rnd() * 0.6), py = cy + Math.sin(a) * rr * 0.7;
+            if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        };
+        const estado = rnd();
+        ctxD.fillStyle = 'rgba(20,18,16,0.42)';
+        trazar(ctxD); ctxD.fill();
+        ctxD.fillStyle = 'rgba(190,180,160,0.10)';
+        ctxD.fillRect(cx - 1, cy + r * 0.45, r, 1.5);
+        if (ctxB) {
+          ctxB.fillStyle = estado > 0.5 ? '#1c1c1c' : '#303030';
+          trazar(ctxB); ctxB.fill();
+        }
+      }
+
+      // 4. Rozaduras claras y arañazos finos de uso
+      ctxD.lineWidth = 1;
+      for (let i = 0; i < Math.floor(26 * fuerza); i++) {
+        const sx = rnd() * size, sy = rnd() * size, a = rnd() * Math.PI;
+        const l = 8 + rnd() * 26;
+        ctxD.strokeStyle = rnd() > 0.5 ? 'rgba(220,210,190,0.16)' : 'rgba(0,0,0,0.30)';
+        ctxD.beginPath(); ctxD.moveTo(sx, sy); ctxD.lineTo(sx + Math.cos(a) * l, sy + Math.sin(a) * l); ctxD.stroke();
+      }
+    } catch (e) {
+      // Entornos sin canvas completo (tests): se omite el envejecimiento
+    }
+  }
+
   function crearTexturaPared(estilo, ThreeLib) {
     const key = estilo.id;
     if (_texParedCache.has(key)) return _texParedCache.get(key);
@@ -672,26 +749,35 @@
 
     // Sillares de piedra biselados en hiladas irregulares de cantería medieval (6 filas)
     const filas = 6;
-    const altoFila = size / filas;
+    const alturasFila = particionarIrregular(filas, size, rnd, 0.35);
+    let yAcum = 0;
     for (let f = 0; f < filas; f++) {
-      const y = f * altoFila;
-      const cols = (f % 2 === 0) ? 4 : 5;
-      const anchoCol = size / cols;
-      const shift = (f % 2) * (anchoCol * 0.5);
+      const y = yAcum;
+      const altoFila = alturasFila[f];
+      yAcum += altoFila;
+      const cols = 3 + Math.floor(rnd() * 3);
+      const anchosCol = particionarIrregular(cols, size, rnd, 0.5);
+      const offsets = [];
+      let xAcum = rnd() * size * 0.3;
+      for (let k = 0; k < cols; k++) { offsets.push(xAcum); xAcum += anchosCol[k]; }
 
       for (let c = -1; c <= cols; c++) {
-        const x = c * anchoCol + shift;
-        const pad = 4;
+        const ci = ((c % cols) + cols) % cols;
+        const anchoCol = anchosCol[ci];
+        const x = c < 0 ? offsets[cols - 1] - size : (c >= cols ? offsets[0] + size : offsets[c]);
+        const pad = 3 + Math.floor(rnd() * 3);
         const wBloque = anchoCol - pad * 2;
         const hBloque = altoFila - pad * 2;
 
-        // Tono individual variado para cada sillar de piedra
+        // Tono individual muy desigual para cada sillar (piedra de distinta cantera / más sucia o más lavada)
         const varTono = (rnd() - 0.5) * 0.22;
         const gradD = ctxD.createLinearGradient(x, y, x + anchoCol, y + altoFila);
         gradD.addColorStop(0.0, estilo.colorBase);
         gradD.addColorStop(0.5, estilo.colorSecundario);
         gradD.addColorStop(1.0, estilo.colorBase);
         ctxD.fillStyle = gradD;
+        ctxD.fillRect(x + pad, y + pad, wBloque, hBloque);
+        ctxD.fillStyle = varTono > 0 ? 'rgba(220,210,190,' + (varTono * 0.9).toFixed(3) + ')' : 'rgba(0,0,0,' + (-varTono * 1.8).toFixed(3) + ')';
         ctxD.fillRect(x + pad, y + pad, wBloque, hBloque);
 
         // Bisel plano rectangular en bordes de sillar (Luz cenital arriba, sombra abajo - SIN CÍRCULOS)
@@ -784,6 +870,7 @@
     }
 
     // Micro-textura de grano pétreo natural
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 1.0);
     aplicarMicroTexturaPiedra(ctxD, ctxB, size, 108, 18);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
@@ -821,21 +908,33 @@
     // Cuadrícula de 4x4 grandes losas de abadía / templo antiguo desgastadas
     const losasX = 4;
     const losasY = 4;
-    const pasoLosa = size / losasX;
+    const altosLosa = particionarIrregular(losasY, size, rnd, 0.4);
+    let yAc = 0;
     for (let ly = 0; ly < losasY; ly++) {
+      const py = yAc;
+      const pasoY = altosLosa[ly];
+      yAc += pasoY;
+      const anchosLosa = particionarIrregular(losasX, size, rnd, 0.4);
+      let xAc = 0;
       for (let lx = 0; lx < losasX; lx++) {
-        const px = lx * pasoLosa;
-        const py = ly * pasoLosa;
-        const pad = 4;
+        const px = xAc;
+        const pasoLosa = anchosLosa[lx];
+        xAc += pasoLosa;
+        const pad = 3 + Math.floor(rnd() * 3);
         const wLosa = pasoLosa - pad * 2;
-        const hLosa = pasoLosa - pad * 2;
+        const hLosa = pasoY - pad * 2;
 
         // Gradiente sutil y variación por losa
-        const gradLosa = ctxD.createLinearGradient(px, py, px + pasoLosa, py + pasoLosa);
+        const gradLosa = ctxD.createLinearGradient(px, py, px + pasoLosa, py + pasoY);
         gradLosa.addColorStop(0.0, estilo.colorLosa || estilo.colorBase);
         gradLosa.addColorStop(0.6, estilo.colorBase);
         gradLosa.addColorStop(1.0, estilo.colorSecundario);
         ctxD.fillStyle = gradLosa;
+        ctxD.fillRect(px + pad, py + pad, wLosa, hLosa);
+
+        // Cada losa con su propio desgaste de tono (más gastada, más sucia o más clara)
+        const vt = (rnd() - 0.5) * 0.3;
+        ctxD.fillStyle = vt > 0 ? 'rgba(220,210,190,' + (vt * 0.8).toFixed(3) + ')' : 'rgba(0,0,0,' + (-vt * 1.8).toFixed(3) + ')';
         ctxD.fillRect(px + pad, py + pad, wLosa, hLosa);
 
         // Bisel plano perimetral de losa desgastada
@@ -874,6 +973,7 @@
     }
 
     // Micro-textura de grano de roca
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 1.2);
     aplicarMicroTexturaPiedra(ctxD, ctxB, size, 219, 14);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
@@ -986,6 +1086,7 @@
       }
     }
 
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 0.8);
     aplicarMicroTexturaPiedra(ctxD, ctxB, size, 333, 16);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
@@ -1071,6 +1172,7 @@
     ctxB.moveTo(size, 0); ctxB.lineTo(0, size);
     ctxB.stroke();
 
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 1.0);
     aplicarMicroTexturaPiedra(ctxD, ctxB, size, 404, 18);
 
     const texD = new ThreeLib.CanvasTexture(canvasD);
@@ -1208,18 +1310,18 @@
     // Muros: usa exclusivamente textura de pared preservando luminosidad natural del mapa
     const matPiedraMuro = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: Math.min(0.8, estilo.rugosidad || 0.75),
-      metalness: 0.05,
+      roughness: Math.max(0.82, Math.min(0.96, estilo.rugosidad || 0.88)),
+      metalness: 0.0,
       map: texPared.diffuse,
       bumpMap: texPared.bump,
       bumpScale: 0.08
     });
 
-    // Suelo: usa exclusivamente textura de losas de pavimento (brillo nítido y claro)
+    // Suelo: usa exclusivamente textura de losas de pavimento (acabado pétreo mate sin destellos plásticos)
     const matSueloLosas = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: 0.68,
-      metalness: 0.04,
+      roughness: 0.88,
+      metalness: 0.01,
       map: texSuelo.diffuse,
       bumpMap: texSuelo.bump,
       bumpScale: 0.06
@@ -1228,8 +1330,8 @@
     // Zócalo perimetral: moldura y sillar ciclópeo inferior
     const matZocalo = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: Math.min(0.8, (estilo.rugosidad || 0.8) * 0.95),
-      metalness: 0.08,
+      roughness: 0.86,
+      metalness: 0.01,
       map: texZocalo.diffuse,
       bumpMap: texZocalo.bump,
       bumpScale: 0.09
@@ -1238,8 +1340,8 @@
     // Techo / Bóveda
     const matTecho = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: 0.80,
-      metalness: 0.05,
+      roughness: 0.92,
+      metalness: 0.0,
       map: texTecho.diffuse,
       bumpMap: texTecho.bump,
       bumpScale: 0.06
@@ -1248,8 +1350,8 @@
     // Madera para props (cofres, mesas, puertas)
     const matMadera = new ThreeLib.MeshStandardMaterial({
       color: 0x854d0e,
-      roughness: 0.7,
-      metalness: 0.05,
+      roughness: 0.75,
+      metalness: 0.02,
       map: texMadera.diffuse,
       bumpMap: texMadera.bump,
       bumpScale: 0.05
@@ -1258,8 +1360,8 @@
     // Hierro forjado
     const matHierro = new ThreeLib.MeshStandardMaterial({
       color: 0x3f3f46,
-      roughness: 0.45,
-      metalness: 0.85,
+      roughness: 0.65,
+      metalness: 0.45,
       map: texHierro.diffuse,
       bumpMap: texHierro.bump,
       bumpScale: 0.04
@@ -1267,8 +1369,8 @@
 
     const matOro = new ThreeLib.MeshStandardMaterial({
       color: 0xf59e0b,
-      roughness: 0.3,
-      metalness: 0.95
+      roughness: 0.45,
+      metalness: 0.65
     });
 
     const matAgua = new ThreeLib.MeshStandardMaterial({
@@ -1322,7 +1424,7 @@
   // --- 5. FABRICA DE PROPS PROCEDURALES ---
 
   // A) Antorcha con soporte de forja, candelabros, faroles, braseros o cristales arcanos
-  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 3.4, opciones = {}) {
+  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 1.8, opciones = {}) {
     const g = new ThreeLib.Group();
     const forma = opciones.forma || opciones.formaAntorcha || 'antorcha_hierro';
     const colorLuzVal = (luzHex !== undefined && luzHex !== null) ? luzHex : ((kit && kit.estilo && kit.estilo.luzAntorchas) || 0xf59e0b);
@@ -2670,6 +2772,13 @@
     const g = new ThreeLib.Group();
     g.position.set(sala.x, sala.y || 0, sala.z);
     g.userData = { idSala: sala.id, salaRef: sala };
+    g._partesPorLado = {
+      norte: [],
+      sur: [],
+      este: [],
+      oeste: [],
+      techo: []
+    };
 
     const W = sala.w, H = sala.h, D = sala.d;
 
@@ -2694,8 +2803,22 @@
       techo.name = 'techo_' + sala.id;
       techo.castShadow = true;
       techo.receiveShadow = true;
-      techo.userData = { tipo: 'techo', idSala: sala.id };
+      techo.userData = { tipo: 'techo', idSala: sala.id, ladoPrincipal: 'techo', esPared: true, esTecho: true };
       g.add(techo);
+      g._partesPorLado.techo.push(techo);
+
+      if (Array.isArray(opciones.cajasOclusion)) {
+        opciones.cajasOclusion.push({
+          salaId: sala.id,
+          ladoPrincipal: 'techo',
+          minX: sala.x - W / 2,
+          maxX: sala.x + W / 2,
+          minY: (sala.y || 0) + H - 0.25,
+          maxY: (sala.y || 0) + H + 0.35,
+          minZ: sala.z - D / 2,
+          maxZ: sala.z + D / 2
+        });
+      }
     }
 
     // Muros herméticos con hombros completos y zócalo perimetral inferior
@@ -2706,6 +2829,11 @@
       const hZoc = Math.min(0.7, H * 0.22);
       const hMur = H - hZoc;
       const tipoMuro = isHombro ? 'muro_hombro' : 'muro';
+
+      let ladoBase = 'norte';
+      if (tipoLado.includes('sur')) ladoBase = 'sur';
+      else if (tipoLado.includes('oeste')) ladoBase = 'oeste';
+      else if (tipoLado.includes('este')) ladoBase = 'este';
 
       // Vector normal hacia el interior de la sala para orientar plintos y molduras sobresalientes
       let normX = 0, normZ = 0;
@@ -2728,8 +2856,9 @@
       const zocMesh = new ThreeLib.Mesh(zocGeo, mats.matZocalo);
       zocMesh.position.set(zocPX, hZoc / 2, zocPZ);
       zocMesh.castShadow = true; zocMesh.receiveShadow = true;
-      zocMesh.userData = { tipo: 'zocalo', lado: 'zocalo_' + tipoLado, idSala: sala.id };
+      zocMesh.userData = { tipo: 'zocalo', lado: 'zocalo_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(zocMesh);
+      g._partesPorLado[ladoBase].push(zocMesh);
 
       // 1.1 Moldura biselada de remate superior del plinto
       const salRemate = salientePlinto + 0.03;
@@ -2740,8 +2869,9 @@
       const remMesh = new ThreeLib.Mesh(remGeo, mats.matZocalo);
       remMesh.position.set(px + (normX * salRemate * 0.5), hZoc + 0.03, pz + (normZ * salRemate * 0.5));
       remMesh.castShadow = true; remMesh.receiveShadow = true;
-      remMesh.userData = { tipo: 'moldura_plinto', lado: 'moldura_plinto_' + tipoLado, idSala: sala.id };
+      remMesh.userData = { tipo: 'moldura_plinto', lado: 'moldura_plinto_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(remMesh);
+      g._partesPorLado[ladoBase].push(remMesh);
 
       // 2. Muro superior con mapeo métrico
       const murGeo = new ThreeLib.BoxGeometry(w, hMur, d);
@@ -2749,8 +2879,9 @@
       const murMesh = new ThreeLib.Mesh(murGeo, mats.matPared);
       murMesh.position.set(px, hZoc + hMur / 2, pz);
       murMesh.castShadow = true; murMesh.receiveShadow = true;
-      murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id };
+      murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(murMesh);
+      g._partesPorLado[ladoBase].push(murMesh);
 
       // 2.1 Cenefa / Moldura corrida sobresaliente a media altura (imposta medieval)
       if (hMur > 1.8) {
@@ -2763,8 +2894,9 @@
         const cenMesh = new ThreeLib.Mesh(cenGeo, mats.matZocalo);
         cenMesh.position.set(px + (normX * salCenefa * 0.5), yCenefa, pz + (normZ * salCenefa * 0.5));
         cenMesh.castShadow = true; cenMesh.receiveShadow = true;
-        cenMesh.userData = { tipo: 'cenefa_muro', lado: 'cenefa_' + tipoLado, idSala: sala.id };
+        cenMesh.userData = { tipo: 'cenefa_muro', lado: 'cenefa_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
         g.add(cenMesh);
+        g._partesPorLado[ladoBase].push(cenMesh);
       }
 
       // 2.2 Cornisa superior corrida sobresaliente bajo el techo
@@ -2778,8 +2910,9 @@
         const corMesh = new ThreeLib.Mesh(corGeo, mats.matZocalo);
         corMesh.position.set(px + (normX * salCornisa * 0.5), yCornisa, pz + (normZ * salCornisa * 0.5));
         corMesh.castShadow = true; corMesh.receiveShadow = true;
-        corMesh.userData = { tipo: 'cornisa_muro', lado: 'cornisa_' + tipoLado, idSala: sala.id };
+        corMesh.userData = { tipo: 'cornisa_muro', lado: 'cornisa_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
         g.add(corMesh);
+        g._partesPorLado[ladoBase].push(corMesh);
       }
 
       // 2.3 Pilastras adosadas de cantería en tramos de muro largos
@@ -2811,8 +2944,9 @@
           const pilMesh = new ThreeLib.Mesh(pilGeo, mats.matPared);
           pilMesh.position.set(pilPX, yPil, pilPZ);
           pilMesh.castShadow = true; pilMesh.receiveShadow = true;
-          pilMesh.userData = { tipo: 'pilastra_muro', lado: 'pilastra_' + tipoLado, idSala: sala.id };
+          pilMesh.userData = { tipo: 'pilastra_muro', lado: 'pilastra_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(pilMesh);
+          g._partesPorLado[ladoBase].push(pilMesh);
 
           // Capitel de la pilastra
           const capW = pilW + 0.05;
@@ -2821,23 +2955,41 @@
           const capMesh = new ThreeLib.Mesh(capGeo, mats.matZocalo);
           capMesh.position.set(pilPX, hZoc + 0.06 + hPil - 0.07, pilPZ);
           capMesh.castShadow = true; capMesh.receiveShadow = true;
+          capMesh.userData = { tipo: 'capitel_pilastra', lado: 'pilastra_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(capMesh);
+          g._partesPorLado[ladoBase].push(capMesh);
         }
       }
 
       // 3. Registrar colisionador físico para CharacterController y motor de físicas
+      const cx = sala.x + px;
+      const cz = sala.z + pz;
       if (Array.isArray(opciones.colliders)) {
-        const cx = sala.x + px;
-        const cz = sala.z + pz;
         opciones.colliders.push({
           type: 'box',
           minX: cx - (w / 2),
           maxX: cx + (w / 2),
+          minY: (sala.y || 0),
+          maxY: (sala.y || 0) + H,
           minZ: cz - (d / 2),
           maxZ: cz + (d / 2),
           salaId: sala.id,
           tipo: tipoMuro,
-          lado: tipoLado
+          lado: tipoLado,
+          ladoPrincipal: ladoBase,
+          esPared: true
+        });
+      }
+      if (Array.isArray(opciones.cajasOclusion)) {
+        opciones.cajasOclusion.push({
+          salaId: sala.id,
+          ladoPrincipal: ladoBase,
+          minX: cx - (w / 2),
+          maxX: cx + (w / 2),
+          minY: (sala.y || 0),
+          maxY: (sala.y || 0) + H,
+          minZ: cz - (d / 2),
+          maxZ: cz + (d / 2)
         });
       }
     }
@@ -2848,6 +3000,11 @@
       const altoArco = (typeof pHCustom === 'number' && pHCustom > 3.8)
         ? Math.min(H - 0.4, pHCustom)
         : Math.min(H - 0.4, Math.max(3.8, Math.round(H * 0.70 * 10) / 10));
+
+      let ladoBase = 'norte';
+      if (tipoLado.includes('sur')) ladoBase = 'sur';
+      else if (tipoLado.includes('oeste')) ladoBase = 'oeste';
+      else if (tipoLado.includes('este')) ladoBase = 'este';
 
       const radioCol = Math.max(0.24, Math.min(0.65, altoArco * 0.052));
       const offSpan = Math.max(0.2, (anchoVano / 2) - radioCol);
@@ -2871,10 +3028,12 @@
         colL.position.set(cx, 0, pz - offSpan);
         colR.position.set(cx, 0, pz + offSpan);
       }
-      colL.userData = Object.assign(colL.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, altura: hColumna, radio: radioCol });
-      colR.userData = Object.assign(colR.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, altura: hColumna, radio: radioCol });
+      colL.userData = Object.assign(colL.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true, altura: hColumna, radio: radioCol });
+      colR.userData = Object.assign(colR.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true, altura: hColumna, radio: radioCol });
       g.add(colL);
       g.add(colR);
+      g._partesPorLado[ladoBase].push(colL);
+      g._partesPorLado[ladoBase].push(colR);
 
       // Bloques de imposta arquitectónica (ábaco de transición entre capitel y arranque del arco)
       const wImp = radioCol * 2.3;
@@ -2894,8 +3053,12 @@
       }
       impL.castShadow = true; impL.receiveShadow = true;
       impR.castShadow = true; impR.receiveShadow = true;
+      impL.userData = { tipo: 'imposta_arco', lado: 'imposta_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+      impR.userData = { tipo: 'imposta_arco', lado: 'imposta_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(impL);
       g.add(impR);
+      g._partesPorLado[ladoBase].push(impL);
+      g._partesPorLado[ladoBase].push(impR);
 
       // 2. Muro macizo hermético (Tímpano y Enjutas sin huecos al vacío)
       if (H > hColumna + 0.05) {
@@ -2927,8 +3090,9 @@
             meshTimpano.rotation.y = Math.PI / 2;
           }
           meshTimpano.castShadow = true; meshTimpano.receiveShadow = true;
-          meshTimpano.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
+          meshTimpano.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(meshTimpano);
+          g._partesPorLado[ladoBase].push(meshTimpano);
         } else {
           // Fallback para entornos de testing sin Shape/ExtrudeGeometry
           const dintelGeo = esHorizontal
@@ -2936,8 +3100,25 @@
             : new ThreeLib.BoxGeometry(grosorMuro, H - altoArco, anchoVano);
           const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
           dintel.position.set(cx, altoArco + (H - altoArco) / 2, pz);
-          dintel.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
+          dintel.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(dintel);
+          g._partesPorLado[ladoBase].push(dintel);
+        }
+
+        // Registrar caja de oclusión para el dintel sobre la puerta
+        const cxMundo = sala.x + cx;
+        const czMundo = sala.z + pz;
+        if (Array.isArray(opciones.cajasOclusion)) {
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: ladoBase,
+            minX: esHorizontal ? (cxMundo - anchoVano / 2) : (cxMundo - grosorMuro / 2),
+            maxX: esHorizontal ? (cxMundo + anchoVano / 2) : (cxMundo + grosorMuro / 2),
+            minY: (sala.y || 0) + hColumna,
+            maxY: (sala.y || 0) + H,
+            minZ: esHorizontal ? (czMundo - grosorMuro / 2) : (czMundo - anchoVano / 2),
+            maxZ: esHorizontal ? (czMundo + grosorMuro / 2) : (czMundo + anchoVano / 2)
+          });
         }
       }
 
@@ -2977,8 +3158,9 @@
           meshDov.rotation.x = alpha;
         }
         meshDov.castShadow = true; meshDov.receiveShadow = true;
-        meshDov.userData = { tipo: 'dovela_arco', lado: 'arco_' + tipoLado, idSala: sala.id, esClave };
+        meshDov.userData = { tipo: 'dovela_arco', lado: 'arco_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true, esClave };
         g.add(meshDov);
+        g._partesPorLado[ladoBase].push(meshDov);
       }
     }
 
@@ -3084,7 +3266,7 @@
       : ((config && config.colorLuzCamara) || (estilo && estilo.luzAntorchas) || 0xffedd5);
     const intLuzBoveda = (typeof sala.intensidadLuz === 'number')
       ? sala.intensidadLuz
-      : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 2.8);
+      : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 1.3);
     const distLuzBoveda = Math.max(W, D, 16) * 2.4;
     const luzSala = new ThreeLib.PointLight(colorLuzBoveda, intLuzBoveda, distLuzBoveda, 1.12);
     luzSala.position.set(0, H - 0.45, 0);
@@ -3103,7 +3285,7 @@
 
     const distEntreAntorchas = (config && (config.distanciaAntorchas || config.distanciaEntreAntorchas)) || 16.0;
     const colorLuzDefinido = (config && (config.colorLuzAntorcha || config.colorLuz)) || (estilo && estilo.luzAntorchas) || 0xf59e0b;
-    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 3.4;
+    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 1.8;
     const formaAntorchaDef = (config && (config.formaAntorcha || config.forma)) || 'antorcha_hierro';
 
     // --- COLUMNAS DE BASE POR INSTANCIA Y TAMAÑO ---
@@ -3645,6 +3827,131 @@
     return res;
   }
 
+  // --- 7.15 INTERSECCIÓN RAYO / SEGMENTO CON CAJA AABB (OCLUSIÓN DE CÁMARA) ---
+  function intersectSegmentBox(p0, p1, box) {
+    if (!p0 || !p1 || !box) return false;
+    const dx = p1.x - p0.x;
+    const dy = p1.y - p0.y;
+    const dz = p1.z - p0.z;
+    let tmin = 0.0;
+    let tmax = 1.0;
+
+    // Slab X
+    if (Math.abs(dx) < 1e-7) {
+      if (p0.x < box.minX || p0.x > box.maxX) return false;
+    } else {
+      const ood = 1.0 / dx;
+      let t1 = (box.minX - p0.x) * ood;
+      let t2 = (box.maxX - p0.x) * ood;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tmin = Math.max(tmin, t1);
+      tmax = Math.min(tmax, t2);
+      if (tmin > tmax) return false;
+    }
+
+    // Slab Y
+    if (Math.abs(dy) < 1e-7) {
+      if (p0.y < box.minY || p0.y > box.maxY) return false;
+    } else {
+      const ood = 1.0 / dy;
+      let t1 = (box.minY - p0.y) * ood;
+      let t2 = (box.maxY - p0.y) * ood;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tmin = Math.max(tmin, t1);
+      tmax = Math.min(tmax, t2);
+      if (tmin > tmax) return false;
+    }
+
+    // Slab Z
+    if (Math.abs(dz) < 1e-7) {
+      if (p0.z < box.minZ || p0.z > box.maxZ) return false;
+    } else {
+      const ood = 1.0 / dz;
+      let t1 = (box.minZ - p0.z) * ood;
+      let t2 = (box.maxZ - p0.z) * ood;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tmin = Math.max(tmin, t1);
+      tmax = Math.min(tmax, t2);
+      if (tmin > tmax) return false;
+    }
+
+    // Debe cortar estrictamente entre la cámara (0.05) y el personaje (0.95)
+    return (tmin <= tmax && tmin < 0.95 && tmax > 0.05);
+  }
+
+  // --- 7.16 BÚSQUEDA DE SALA ACTUAL Y GRAFO DE ESTANCIAS COMUNICADAS ---
+
+  function encontrarSalaEnPosicion(salas, x, z) {
+    if (!Array.isArray(salas) || salas.length === 0) return null;
+    const px = (typeof x === 'number') ? x : 0;
+    const pz = (typeof z === 'number') ? z : 0;
+
+    // 1. Detección por contención en bounding box (tolerancia de 0.6m para vanos de puertas)
+    for (let i = 0; i < salas.length; i++) {
+      const s = salas[i];
+      const minX = s.x - (s.w / 2) - 0.6;
+      const maxX = s.x + (s.w / 2) + 0.6;
+      const minZ = s.z - (s.d / 2) - 0.6;
+      const maxZ = s.z + (s.d / 2) + 0.6;
+      if (px >= minX && px <= maxX && pz >= minZ && pz <= maxZ) {
+        return s;
+      }
+    }
+
+    // 2. Si el personaje está en el umbral exterior o fuera de los límites, sala más cercana
+    let masCercana = salas[0];
+    let minDistSq = Infinity;
+    for (let i = 0; i < salas.length; i++) {
+      const s = salas[i];
+      const dx = s.x - px;
+      const dz = s.z - pz;
+      const dSq = dx * dx + dz * dz;
+      if (dSq < minDistSq) {
+        minDistSq = dSq;
+        masCercana = s;
+      }
+    }
+    return masCercana;
+  }
+
+  function obtenerEstanciasComunicadas(salas, salaActualId, profundidad = 2) {
+    const resultado = new Set();
+    if (!Array.isArray(salas) || salas.length === 0) return resultado;
+
+    if (!salaActualId) {
+      salas.forEach(s => resultado.add(s.id));
+      return resultado;
+    }
+
+    const mapa = new Map();
+    salas.forEach(s => mapa.set(s.id, s));
+
+    if (!mapa.has(salaActualId)) {
+      salas.forEach(s => resultado.add(s.id));
+      return resultado;
+    }
+
+    const cola = [{ id: salaActualId, dist: 0 }];
+    resultado.add(salaActualId);
+
+    while (cola.length > 0) {
+      const { id, dist } = cola.shift();
+      if (dist >= profundidad) continue;
+
+      const s = mapa.get(id);
+      if (!s || !Array.isArray(s.conectadas)) continue;
+
+      for (const vecId of s.conectadas) {
+        if (!resultado.has(vecId)) {
+          resultado.add(vecId);
+          cola.push({ id: vecId, dist: dist + 1 });
+        }
+      }
+    }
+
+    return resultado;
+  }
+
   // --- 7.2 CÁLCULO DE APERTURAS Y HOMBROS HERMÉTICOS ENTRE ESTANCIAS ---
 
   function calcularAperturasEntreSalas(salas, config = {}) {
@@ -3653,6 +3960,7 @@
 
     salas.forEach(s => {
       s.aperturas = s.aperturas || { norte: null, sur: null, este: null, oeste: null };
+      s.conectadas = s.conectadas || [];
     });
 
     for (let i = 0; i < salas.length; i++) {
@@ -3680,6 +3988,9 @@
 
             b.abiertoSur = true;
             b.aperturas.sur = { w: pw, cx: cxMundo - b.x, puertaH: pH };
+
+            if (!a.conectadas.includes(b.id)) a.conectadas.push(b.id);
+            if (!b.conectadas.includes(a.id)) b.conectadas.push(a.id);
           }
         }
 
@@ -3703,6 +4014,9 @@
 
             b.abiertoOeste = true;
             b.aperturas.oeste = { d: pd, cz: czMundo - b.z, puertaH: pH };
+
+            if (!a.conectadas.includes(b.id)) a.conectadas.push(b.id);
+            if (!b.conectadas.includes(a.id)) b.conectadas.push(a.id);
           }
         }
       }
@@ -3808,6 +4122,7 @@
               abiertoOeste: true,
               abiertoEste: true,
               esConectorAutomatico: true,
+              conectadas: [oeste.id, mejorEste.id],
               estilo: oeste.estilo || config.estilo,
               estiloPared: oeste.estiloPared || oeste.estilo,
               estiloSuelo: oeste.estiloSuelo || oeste.estilo,
@@ -3818,11 +4133,19 @@
             nuevosPasillos.push(pasilloConector);
             oeste.abiertoEste = true;
             mejorEste.abiertoOeste = true;
+            oeste.conectadas = oeste.conectadas || [];
+            if (!oeste.conectadas.includes(pasilloId)) oeste.conectadas.push(pasilloId);
+            mejorEste.conectadas = mejorEste.conectadas || [];
+            if (!mejorEste.conectadas.includes(pasilloId)) mejorEste.conectadas.push(pasilloId);
           }
         } else {
           // Contacto directo pared con pared
           oeste.abiertoEste = true;
           mejorEste.abiertoOeste = true;
+          oeste.conectadas = oeste.conectadas || [];
+          if (!oeste.conectadas.includes(mejorEste.id)) oeste.conectadas.push(mejorEste.id);
+          mejorEste.conectadas = mejorEste.conectadas || [];
+          if (!mejorEste.conectadas.includes(oeste.id)) mejorEste.conectadas.push(oeste.id);
         }
       }
     });
@@ -3891,6 +4214,7 @@
                 abiertoSur: true,
                 abiertoNorte: true,
                 esConectorAutomatico: true,
+                conectadas: [sur.id, mejorNorte.id],
                 estilo: sur.estilo || config.estilo,
                 estiloPared: sur.estiloPared || sur.estilo,
                 estiloSuelo: sur.estiloSuelo || sur.estilo,
@@ -3901,10 +4225,18 @@
               nuevosPasillos.push(pasilloConector);
               sur.abiertoNorte = true;
               mejorNorte.abiertoSur = true;
+              sur.conectadas = sur.conectadas || [];
+              if (!sur.conectadas.includes(pasilloId)) sur.conectadas.push(pasilloId);
+              mejorNorte.conectadas = mejorNorte.conectadas || [];
+              if (!mejorNorte.conectadas.includes(pasilloId)) mejorNorte.conectadas.push(pasilloId);
             }
           } else {
             sur.abiertoNorte = true;
             mejorNorte.abiertoSur = true;
+            sur.conectadas = sur.conectadas || [];
+            if (!sur.conectadas.includes(mejorNorte.id)) sur.conectadas.push(mejorNorte.id);
+            mejorNorte.conectadas = mejorNorte.conectadas || [];
+            if (!mejorNorte.conectadas.includes(sur.id)) mejorNorte.conectadas.push(sur.id);
           }
         }
       });
@@ -3965,8 +4297,14 @@
         });
       }
 
-      // C. Si une estancias, asignar la altura armónica de las instancias que une
+      // C. Si une estancias, asignar la altura armónica de las instancias que une y registrar conexión en grafo
       if (salasConectadas.length > 0) {
+        p.conectadas = p.conectadas || [];
+        salasConectadas.forEach(e => {
+          if (!p.conectadas.includes(e.id)) p.conectadas.push(e.id);
+          e.conectadas = e.conectadas || [];
+          if (!e.conectadas.includes(p.id)) e.conectadas.push(p.id);
+        });
         const alturas = salasConectadas.map(e => (typeof e.h === 'number' ? e.h : alturaTechos));
         const nuevaH = Math.min(...alturas);
         p.h = Math.round(nuevaH * 10) / 10;
@@ -4247,11 +4585,12 @@
     // Calcular aperturas herméticas exactas entre salas y pasillos contiguos (evita huecos al vacío)
     calcularAperturasEntreSalas(salas, config);
 
-    // Sistema de Colisiones Físicas de la Mazmorra (para CharacterController)
+    // Sistema de Colisiones Físicas y Cajas de Oclusión de Paredes/Techos
     const colliders = [];
+    const cajasOclusion = [];
 
     // 2. Construir geometría estructural y decorar cada sala (respetando textura/estilo y color individual de paredes, suelos, techos y fuentes)
-    const configCompleta = Object.assign({}, config, { kitsPorEstilo, colliders });
+    const configCompleta = Object.assign({}, config, { kitsPorEstilo, colliders, cajasOclusion });
 
     salas.forEach(s => {
       const estiloKeySala = s.estilo || estiloKey;
@@ -4260,18 +4599,20 @@
 
       const meshSala = construirCajaHabitacion(THREE_REF, kitSala, s, configCompleta);
       dungeonGroup.add(meshSala);
+      s._meshSala = meshSala;
 
       const decMesh = decorarHabitacion(THREE_REF, kitSala, s, estiloSala, rng, animables, props, configCompleta);
       dungeonGroup.add(decMesh);
+      s._decMesh = decMesh;
     });
 
     if (!dungeonGroup.userData) dungeonGroup.userData = {};
     dungeonGroup.userData.colliders = colliders;
 
-    // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni penumbras excesivas)
+    // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni destellos excesivos)
     const intAmbiente = (typeof config.luzAmbienteIntensidad === 'number')
       ? config.luzAmbienteIntensidad
-      : ((config.modoLuz === 'antorchas') ? 0.95 : (config.modoLuz === 'foco_personalizado' ? 0.85 : 1.35));
+      : ((config.modoLuz === 'antorchas') ? 0.65 : (config.modoLuz === 'foco_personalizado' ? 0.65 : 0.85));
     const luzAmbiente = new THREE_REF.AmbientLight(0xfffbeb, intAmbiente);
     luzAmbiente.name = 'dungeon_ambient_light';
     dungeonGroup.add(luzAmbiente);
@@ -4395,6 +4736,63 @@
       spawns,
       monstruos,
       colliders,
+      cajasOclusion,
+      encontrarSalaEnPosicion: (x, z) => encontrarSalaEnPosicion(salas, x, z),
+      obtenerEstanciasComunicadas: (salaId, prof = 2) => obtenerEstanciasComunicadas(salas, salaId, prof),
+      actualizarVisibilidadEstancias: (idsVisibles) => {
+        if (!idsVisibles) return;
+        const setVis = (idsVisibles instanceof Set) ? idsVisibles : new Set(idsVisibles);
+        salas.forEach(s => {
+          const vis = setVis.has(s.id);
+          if (s._meshSala) s._meshSala.visible = vis;
+          if (s._decMesh) s._decMesh.visible = vis;
+        });
+        monstruos.forEach(m => {
+          if (m && m.userData) {
+            const mx = m.position ? m.position.x : (m.userData.spawnPos ? m.userData.spawnPos.x : 0);
+            const mz = m.position ? m.position.z : (m.userData.spawnPos ? m.userData.spawnPos.z : 0);
+            const sM = m.userData.salaId ? { id: m.userData.salaId } : encontrarSalaEnPosicion(salas, mx, mz);
+            const visM = sM ? setVis.has(sM.id) : true;
+            m.visible = visM;
+          }
+        });
+      },
+      actualizarOclusionCamara: (posCamara, posHeroe, idsVisibles) => {
+        if (!posCamara || !posHeroe) return new Set();
+        const pCam = { x: posCamara.x, y: posCamara.y, z: posCamara.z };
+        const hy = (typeof posHeroe.y === 'number') ? posHeroe.y : 0;
+        const pHead = { x: posHeroe.x, y: hy + 1.25, z: posHeroe.z };
+        const pChest = { x: posHeroe.x, y: hy + 0.55, z: posHeroe.z };
+
+        const setSalasVisibles = idsVisibles ? ((idsVisibles instanceof Set) ? idsVisibles : new Set(idsVisibles)) : null;
+        const ladosOcluidos = new Set();
+
+        for (let i = 0; i < cajasOclusion.length; i++) {
+          const box = cajasOclusion[i];
+          if (setSalasVisibles && !setSalasVisibles.has(box.salaId)) continue;
+          if (intersectSegmentBox(pCam, pHead, box) || intersectSegmentBox(pCam, pChest, box)) {
+            ladosOcluidos.add(`${box.salaId}_${box.ladoPrincipal}`);
+          }
+        }
+
+        salas.forEach(s => {
+          if (!s._meshSala || !s._meshSala._partesPorLado) return;
+          if (setSalasVisibles && !setSalasVisibles.has(s.id)) return;
+
+          const partes = s._meshSala._partesPorLado;
+          ['norte', 'sur', 'este', 'oeste', 'techo'].forEach(lado => {
+            const lista = partes[lado];
+            if (Array.isArray(lista)) {
+              const ocluido = ladosOcluidos.has(`${s.id}_${lado}`);
+              for (let p = 0; p < lista.length; p++) {
+                lista[p].visible = !ocluido;
+              }
+            }
+          });
+        });
+
+        return ladosOcluidos;
+      },
       getColliders: (x, z, radius = 25) => {
         if (typeof x !== 'number' || typeof z !== 'number') return colliders;
         const rSq = radius * radius;
@@ -4660,6 +5058,9 @@
     calcularAperturasEntreSalas,
     conectarEstanciasLateralesAutomaticamente,
     sincronizarAlturasDePasillos,
+    intersectSegmentBox,
+    encontrarSalaEnPosicion,
+    obtenerEstanciasComunicadas,
     construirCajaHabitacion,
     decorarHabitacion,
     ARQUETIPOS_MONSTRUOS,

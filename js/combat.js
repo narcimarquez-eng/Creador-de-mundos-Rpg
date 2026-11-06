@@ -213,8 +213,33 @@
         m.z += (m.spawnZ - m.z) * Math.min(1, sp);
         m.hp = Math.min(m.maxHp, m.hp + m.maxHp * MONSTER.regenPerSec * dt);
       }
+    } else if (m.patrulla) {
+      patrullar(m, dt);
     }
     return out;
+  }
+
+  // Patrulla opcional (m.patrulla = true): en reposo el monstruo da paseos cortos alrededor de su punto de origen,
+  // con pausas entre uno y otro. Mientras camina, m.caminando = true y m.rumbo guarda hacia dónde mira.
+  // m.puedeIr(x, z) (opcional) permite descartar destinos que caigan fuera de la estancia.
+  function patrullar(m, dt) {
+    m.caminando = false;
+    if (m.pEspera > 0) { m.pEspera -= dt; return; }
+    if (!m.pDest) {
+      const radio = m.patrullaRadio || 3;
+      for (let i = 0; i < 6 && !m.pDest; i++) {
+        const a = Math.random() * Math.PI * 2, r = radio * (0.4 + Math.random() * 0.6);
+        const x = m.spawnX + Math.cos(a) * r, z = m.spawnZ + Math.sin(a) * r;
+        if (!m.puedeIr || m.puedeIr(x, z)) m.pDest = { x, z };
+      }
+      if (!m.pDest) { m.pEspera = 2; return; }
+    }
+    const dx = m.pDest.x - m.x, dz = m.pDest.z - m.z, d = Math.hypot(dx, dz);
+    if (d < 0.25) { m.pDest = null; m.pEspera = 1.5 + Math.random() * 3; return; }
+    const paso = Math.min(d, (m.speed * 0.3) * dt);
+    m.x += dx / d * paso; m.z += dz / d * paso;
+    m.rumbo = Math.atan2(dx, dz);
+    m.caminando = true;
   }
 
   // Daño de un ataque a un monstruo: ¿está dentro del alcance y del cono frontal?

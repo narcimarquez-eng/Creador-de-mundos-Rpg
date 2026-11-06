@@ -3126,9 +3126,9 @@
   // Ambiente: día, atardecer y noche (valores del Creador de Pueblos, con transición)
   // ===========================================================================
   const ATMO = {
-    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.0009, hemi: '#ffffff', ground: '#3a5a40', hemiI: 0.8,  sun: '#fffbeb', sunI: 1.1,  sunPos: [900, 1400, 700],  glow: 0.5, window: 0.15, pool: 0,    plaza: 1.2, forge: 2.0 },
-    golden: { bg: '#1e1b4b', fog: '#1e1b4b', fogD: 0.00018, hemi: '#fb923c', ground: '#0f172a', hemiI: 0.48, sun: '#f97316', sunI: 1.15, sunPos: [1100, 380, 500],  glow: 3.2, window: 1.4,  pool: 0.85, plaza: 2.5, forge: 3.0 },
-    night:  { bg: '#030712', fog: '#030712', fogD: 0.00022, hemi: '#38bdf8', ground: '#020617', hemiI: 0.2,  sun: '#60a5fa', sunI: 0.28, sunPos: [-600, 850, -500], glow: 5.0, window: 2.5,  pool: 1.0,  plaza: 3.8, forge: 4.0 }
+    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.0009, hemi: '#ffffff', ground: '#3a5a40', hemiI: 0.8,  sun: '#fffbeb', sunI: 1.1,  sunPos: [900, 1400, 700],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5 },
+    golden: { bg: '#1e1b4b', fog: '#1e1b4b', fogD: 0.00018, hemi: '#fb923c', ground: '#0f172a', hemiI: 0.48, sun: '#f97316', sunI: 1.15, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.7,  pool: 0.85, plaza: 1.5, forge: 2.0 },
+    night:  { bg: '#030712', fog: '#030712', fogD: 0.00022, hemi: '#38bdf8', ground: '#020617', hemiI: 0.2,  sun: '#60a5fa', sunI: 0.28, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.8, forge: 2.2 }
   };
   const ATMO_ICON = { day: '☀', golden: '🌇', night: '🌙' };
   const ATMO_C = {};
@@ -3302,7 +3302,7 @@
     }).catch(err => console.warn('Sin entorno de reflejos:', err));
   }
   // Más tenue al atardecer y de noche, como la luz ambiente
-  const intensidadEntorno = () => (QUALITY[quality].reflejos ? (atmoNow ? atmoNow.hemiI * 1.25 : 1) : 0);
+  const intensidadEntorno = () => (QUALITY[quality].reflejos ? (atmoNow ? atmoNow.hemiI * 0.45 : 0.35) : 0);
   function aplicarEntorno(obj) {
     if (!entornoActores) { pendientesEntorno.push(obj); return; }
     obj.traverse(o => {
@@ -3991,7 +3991,13 @@
             : H(m.x, m.z);
           m.group.position.set(m.x, my, m.z);
           if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
-          const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' ? 'walk' : 'idle';
+          else if (m.state === 'idle' && m.caminando && typeof m.rumbo === 'number') {
+            // Patrulla de mazmorra: gira suavemente hacia donde camina
+            let dr = m.rumbo - m.group.rotation.y;
+            dr = Math.atan2(Math.sin(dr), Math.cos(dr));
+            m.group.rotation.y += dr * Math.min(1, dt * 6);
+          }
+          const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' || (m.state === 'idle' && m.caminando) ? 'walk' : 'idle';
           // Modelos GLB: sus clips avanzan solo a distancia de animación (de lejos se quedan en la última pose)
           if (m.rig && m.rig.glb && d < MONSTRUO_ANIMA) EnemyGlb.actualizar(m.rig.glb, estado, dt);
           // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
@@ -4180,11 +4186,11 @@
     compositorResplandor = new EffectComposer(renderer);
     compositorResplandor.renderToScreen = false;
     compositorResplandor.addPass(new RenderPass(scene, camera));
-    compositorResplandor.addPass(new UnrealBloomPass(new THREE.Vector2(tam.x, tam.y), 0.8, 0.5, 0.2));
+    compositorResplandor.addPass(new UnrealBloomPass(new THREE.Vector2(tam.x, tam.y), 0.28, 0.38, 0.48));
     const mezcla = new ShaderPass(new THREE.ShaderMaterial({
       uniforms: { baseTexture: { value: null }, bloomTexture: { value: compositorResplandor.renderTarget2.texture } },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'uniform sampler2D baseTexture; uniform sampler2D bloomTexture; varying vec2 vUv; void main() { gl_FragColor = texture2D(baseTexture, vUv) + texture2D(bloomTexture, vUv); }'
+      fragmentShader: 'uniform sampler2D baseTexture; uniform sampler2D bloomTexture; varying vec2 vUv; void main() { gl_FragColor = texture2D(baseTexture, vUv) + texture2D(bloomTexture, vUv) * 0.55; }'
     }), 'baseTexture');
     compositorBase = new EffectComposer(renderer);
     compositorBase.addPass(new RenderPass(scene, camera));
@@ -6160,8 +6166,8 @@
   const ESTILOS_NPC = {
     'guru-1': { // Sabia Elara (Historia del Reino)
       armadura: 0xd4af37, // Oro ceremonial envejecido
-      metalness: 0.85,
-      roughness: 0.25,
+      metalness: 0.55,
+      roughness: 0.55,
       ribete: 0x38bdf8,   // Zafiro arcano
       tela: 0x1e3a8a,     // Azul noche profundo
       faldon: 0x581c87,   // Púrpura imperial
@@ -6171,8 +6177,8 @@
     },
     'guru-2': { // Maestro Oren (Los Caminos)
       armadura: 0xb45309, // Bronce forjado y cobre de explorador
-      metalness: 0.75,
-      roughness: 0.35,
+      metalness: 0.50,
+      roughness: 0.60,
       ribete: 0xf59e0b,   // Ámbar cálido
       tela: 0x14532d,     // Verde bosque / musgo
       faldon: 0x166534,   // Verde camuflaje
@@ -6181,10 +6187,10 @@
       cabello: 0xd97706   // Castaño cobrizo
     },
     'guru-3': { // Hermana Ysolde (Las Runas y Entrenamiento)
-      armadura: 0x94a3b8, // Acero rúnico / plata pulida
-      metalness: 0.92,
-      roughness: 0.15,
-      ribete: 0xa855f7,   // Amatista brillante
+      armadura: 0x94a3b8, // Acero rúnico / plata satinada
+      metalness: 0.60,
+      roughness: 0.50,
+      ribete: 0xa855f7,   // Amatista
       tela: 0x6b21a8,     // Púrpura litúrgico
       faldon: 0x7e22ce,   // Seda amatista
       capa: 0x3b0764,     // Terciopelo morado
@@ -6193,8 +6199,8 @@
     },
     'guru-4': { // Viejo Tamsin (Los Monstruos)
       armadura: 0x334155, // Hierro oscuro pavonado
-      metalness: 0.8,
-      roughness: 0.45,
+      metalness: 0.50,
+      roughness: 0.65,
       ribete: 0x991b1b,   // Ribete carmesí
       tela: 0x78350f,     // Cuero curtido resistente
       faldon: 0x451a03,   // Faldón de piel
@@ -6203,11 +6209,11 @@
       cabello: 0x64748b   // Gris canoso curtido
     },
     'guru-5': { // Erudita Mirel (El Equipo)
-      armadura: 0xf59e0b, // Oro noble pulido
-      metalness: 0.9,
-      roughness: 0.2,
+      armadura: 0xf59e0b, // Oro noble mate
+      metalness: 0.58,
+      roughness: 0.52,
       ribete: 0xd946ef,   // Rubí engarzado
-      tela: 0x991b1b,     // Escarlata borgoña brillante
+      tela: 0x991b1b,     // Escarlata borgoña
       faldon: 0xbe123c,   // Seda carmesí
       capa: 0x831843,     // Capa granate noble
       botas: 0x78350f,    // Cuero noble
@@ -6215,8 +6221,8 @@
     },
     'serv-herrero': { // Herrero Brann (La Forja)
       armadura: 0x1f2937, // Peto de hierro pesado forjado ennegrecido
-      metalness: 0.85,
-      roughness: 0.55,
+      metalness: 0.55,
+      roughness: 0.65,
       ribete: 0xea580c,   // Reflejos incandescentes de fragua
       tela: 0x292524,     // Mandil y ropas de cuero ahumado resistente al fuego
       faldon: 0x44403c,   // Delantal de forja
@@ -6225,9 +6231,9 @@
       cabello: 0x18181b   // Pelo y barba negros de carbón
     },
     'serv-mercader': { // Mercader Tovi (El Comercio)
-      armadura: 0xfacc15, // Alhajas y adornos de oro puro brillante
-      metalness: 0.95,
-      roughness: 0.12,
+      armadura: 0xfacc15, // Alhajas y adornos de oro
+      metalness: 0.60,
+      roughness: 0.50,
       ribete: 0x10b981,   // Filigranas de jade y esmeralda
       tela: 0x047857,     // Seda verde esmeralda de mercader
       faldon: 0x065f46,   // Brocado verde oscuro
@@ -6237,8 +6243,8 @@
     },
     'cabana': { // Aldeanos de cabañas remotas
       armadura: 0x57534e, // Cuero y refuerzos rústicos
-      metalness: 0.45,
-      roughness: 0.65,
+      metalness: 0.35,
+      roughness: 0.70,
       ribete: 0x854d0e,   // Cuero ocre
       tela: 0x3f6212,     // Lona verde oliva y tierra
       faldon: 0x365314,   // Piel de bosque
@@ -6285,8 +6291,8 @@
       // 3. Ribetes / filigranas metálicas secundarias (Material_9, Material_10, MatComun_2c:brillo)
       else if (n.includes('material_9') || n.includes('material_10') || n.includes('2c:brillo')) {
         mat.color.setHex(estilo.ribete || estilo.armadura);
-        mat.metalness = 0.9;
-        mat.roughness = 0.2;
+        mat.metalness = 0.55;
+        mat.roughness = 0.45;
         mat.needsUpdate = true;
       }
       // 4. Faldón / cinturón / capas / estolas (Material_17, Material_18, Material_19, Material_11)
@@ -6636,6 +6642,15 @@
           respawnSec: 999999,
           esMazmorra: true
         };
+        // Patrulla: los monstruos de mazmorra pasean por su estancia (con animación de andar) hasta que ven al héroe.
+        // Los jefes se quedan en su sitio, y los destinos se limitan al interior de la estancia donde nacen.
+        m.patrulla = !isBoss && !info.boss;
+        m.patrullaRadio = 3;
+        const procPat = gestorMazmorras && gestorMazmorras.instanciaProcedural;
+        const salaOrigen = (procPat && typeof procPat.encontrarSalaEnPosicion === 'function') ? procPat.encontrarSalaEnPosicion(info.x, info.z) : null;
+        if (salaOrigen) {
+          m.puedeIr = (x, z) => Math.abs(x - salaOrigen.x) < salaOrigen.w / 2 - 1.5 && Math.abs(z - salaOrigen.z) < salaOrigen.d / 2 - 1.5;
+        }
         const sueloY = (typeof info.y === 'number') ? info.y : 0.0;
         m.group = new THREE.Group();
         m.group.position.set(info.x, sueloY, info.z);
@@ -7509,6 +7524,9 @@
       if (gestorMazmorras && gestorMazmorras.enMazmorra) {
         // En mazmorra: asegurar altura mínima sobre el suelo sin aprisionar al personaje
         camera.position.y = Math.max(1.8, camera.position.y);
+        if (typeof gestorMazmorras.actualizarOclusionCamara === 'function') {
+          gestorMazmorras.actualizarOclusionCamara();
+        }
         return;
       }
       CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld);

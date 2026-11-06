@@ -459,16 +459,16 @@
       scene.add(this.grupoInstancia);
 
       // Iluminación interior clara y atmosférica de mazmorra monumental
-      const luzAmbiente = new THREE.AmbientLight(0xffffff, 2.2);
+      const luzAmbiente = new THREE.AmbientLight(0xffffff, 0.95);
       this.grupoInstancia.add(luzAmbiente);
 
       if (typeof THREE.HemisphereLight === 'function') {
-        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 1.4);
+        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 0.7);
         hemiMazmorra.position.set(0, 30.0, 0);
         this.grupoInstancia.add(hemiMazmorra);
       }
 
-      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 2.2);
+      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 1.05);
       luzDirPasillo.position.set(0, 24.0, 42.0);
       luzDirPasillo.target.position.set(0, 1.0, 16.0);
       this.grupoInstancia.add(luzDirPasillo);
@@ -483,7 +483,7 @@
         const geoLlama = new THREE.ConeGeometry(0.24, 0.65, 6);
         [-28.0, -16.0, -4.0, 8.0, 20.0, 32.0].forEach(zAnt => {
           [-3.1, 3.1].forEach(xAnt => {
-            const pLuz = new THREE.PointLight(0xf59e0b, 2.6, 22, 1.4);
+            const pLuz = new THREE.PointLight(0xf59e0b, 1.6, 20, 1.4);
             pLuz.position.set(xAnt, 4.8, zAnt);
             this.grupoInstancia.add(pLuz);
 
@@ -690,6 +690,29 @@
       if (typeof callbacks.onIniciarHUD === 'function') {
         callbacks.onIniciarHUD(this.bossInstancia, dungeon);
       }
+
+      // 8. Culling inicial de estancias comunicadas
+      if (this.instanciaProcedural && typeof this.instanciaProcedural.actualizarVisibilidadEstancias === 'function') {
+        const proc = this.instanciaProcedural;
+        const salaInicio = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(SPAWN_X, SPAWN_Z) : null;
+        const idInicio = salaInicio ? salaInicio.id : null;
+        this._ultimaSalaHeroeId = idInicio;
+        this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idInicio, 2) : null;
+        if (this.estanciasVisibles) {
+          proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
+        }
+      }
+    }
+
+    // Actualización de oclusión de cámara: si una pared o techo se interpone entre la cámara y el personaje, desaparece
+    actualizarOclusionCamara() {
+      if (!this.enMazmorra || !this.instanciaProcedural) return;
+      const camera = this.ctx.camera;
+      const hero = this.ctx.hero;
+      const proc = this.instanciaProcedural;
+      if (!camera || !hero || typeof proc.actualizarOclusionCamara !== 'function') return;
+
+      proc.actualizarOclusionCamara(camera.position, hero, this.estanciasVisibles);
     }
 
     // Actualización en cada frame dentro de la mazmorra
@@ -699,6 +722,47 @@
 
       if (this.instanciaProcedural && typeof this.instanciaProcedural.update === 'function') {
         this.instanciaProcedural.update(dt, (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000);
+      }
+
+      // Culling de estancias comunicadas y desaparición de paredes ante la cámara
+      if (this.instanciaProcedural && hero) {
+        const proc = this.instanciaProcedural;
+        const hx = (typeof hero.x === 'number') ? hero.x : 0;
+        const hz = (typeof hero.z === 'number') ? hero.z : 0;
+
+        const salaActual = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(hx, hz) : null;
+        const idActual = salaActual ? salaActual.id : null;
+
+        if (idActual !== this._ultimaSalaHeroeId || !this.estanciasVisibles) {
+          this._ultimaSalaHeroeId = idActual;
+          this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idActual, 2) : null;
+          if (typeof proc.actualizarVisibilidadEstancias === 'function' && this.estanciasVisibles) {
+            proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
+          }
+        }
+
+        // Visibilidad dinámica de monstruos según pertenencia a estancias comunicadas
+        if (this.estanciasVisibles && Array.isArray(this.elitesInstancia)) {
+          this.elitesInstancia.forEach(el => {
+            const sEl = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(el.x, el.z) : null;
+            const vis = sEl ? this.estanciasVisibles.has(sEl.id) : true;
+            if (el.mesh) el.mesh.visible = vis;
+            if (el.group) el.group.visible = vis;
+            if (el.bar) el.bar.visible = vis;
+            if (el.barraHp) el.barraHp.visible = vis;
+          });
+        }
+        if (this.estanciasVisibles && this.bossInstancia) {
+          const sBoss = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(this.bossInstancia.x, this.bossInstancia.z) : null;
+          const visBoss = sBoss ? this.estanciasVisibles.has(sBoss.id) : true;
+          if (this.bossInstancia.mesh) this.bossInstancia.mesh.visible = visBoss;
+          if (this.bossInstancia.group) this.bossInstancia.group.visible = visBoss;
+          if (this.bossInstancia.bar) this.bossInstancia.bar.visible = visBoss;
+          if (this.bossInstancia.barraHp) this.bossInstancia.barraHp.visible = visBoss;
+        }
+
+        // Desaparición de paredes que se interponen entre la cámara y el personaje
+        this.actualizarOclusionCamara();
       }
 
       // 1. Condición de fin: Victoria por muerte del Jefe de Mazmorra
@@ -739,6 +803,9 @@
         scene.remove(this.grupoInstancia);
         this.grupoInstancia = null;
       }
+      this.instanciaProcedural = null;
+      this._ultimaSalaHeroeId = null;
+      this.estanciasVisibles = null;
       this.bossInstancia = null;
       this.elitesInstancia = [];
       if (typeof this.ctx.limpiarMonstruosMazmorra === 'function') {
