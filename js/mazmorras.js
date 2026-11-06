@@ -435,9 +435,29 @@
       // 2. Ocultar estrictamente el supramundo ("solo gráficamente debe estar la mazmorra")
       scene.visible = true;
       if (this.ctx.farMesh) this.ctx.farMesh.visible = false;
-      if (this.ctx.nearChunks) Object.values(this.ctx.nearChunks).forEach(c => { if (c && c.mesh) c.mesh.visible = false; });
-      if (this.ctx.lagos) Object.values(this.ctx.lagos).forEach(l => { if (l && l.mesh) l.mesh.visible = false; });
+      if (this.ctx.nearChunks) {
+        if (typeof this.ctx.nearChunks.forEach === 'function') {
+          this.ctx.nearChunks.forEach(c => {
+            const m = (c && c.mesh) ? c.mesh : c;
+            if (m && typeof m.visible === 'boolean') m.visible = false;
+          });
+        } else if (typeof this.ctx.nearChunks === 'object') {
+          Object.values(this.ctx.nearChunks).forEach(c => {
+            const m = (c && c.mesh) ? c.mesh : c;
+            if (m && typeof m.visible === 'boolean') m.visible = false;
+          });
+        }
+      }
+      if (this.ctx.lagos) {
+        if (typeof this.ctx.lagos.forEach === 'function') {
+          this.ctx.lagos.forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = false; });
+        } else if (typeof this.ctx.lagos === 'object') {
+          Object.values(this.ctx.lagos).forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = false; });
+        }
+      }
       if (this.ctx.waterMesh) this.ctx.waterMesh.visible = false;
+      if (this.ctx.decorGroup) this.ctx.decorGroup.visible = false;
+      if (Array.isArray(this.ctx.ladrillos)) this.ctx.ladrillos.forEach(t => { if (t && t.malla) t.malla.visible = false; });
       if (Array.isArray(this.ctx.towns)) this.ctx.towns.forEach(t => { if (t && t.group) t.group.visible = false; });
       if (this.ctx.terrenoGroup && this.ctx.terrenoGroup !== scene) this.ctx.terrenoGroup.visible = false;
       if (this.ctx.aguaMesh && this.ctx.aguaMesh !== scene) this.ctx.aguaMesh.visible = false;
@@ -697,7 +717,7 @@
         const salaInicio = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(SPAWN_X, SPAWN_Z) : null;
         const idInicio = salaInicio ? salaInicio.id : null;
         this._ultimaSalaHeroeId = idInicio;
-        this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idInicio, 2) : null;
+        this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idInicio, 4) : null;
         if (this.estanciasVisibles) {
           proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
         }
@@ -712,7 +732,9 @@
       const proc = this.instanciaProcedural;
       if (!camera || !hero || typeof proc.actualizarOclusionCamara !== 'function') return;
 
-      proc.actualizarOclusionCamara(camera.position, hero, this.estanciasVisibles);
+      const charCtrl = this.ctx.character;
+      const charPos = (charCtrl && charCtrl.root) ? charCtrl.root.position : hero;
+      proc.actualizarOclusionCamara(camera.position, charPos, this.estanciasVisibles);
     }
 
     // Actualización en cada frame dentro de la mazmorra
@@ -727,15 +749,19 @@
       // Culling de estancias comunicadas y desaparición de paredes ante la cámara
       if (this.instanciaProcedural && hero) {
         const proc = this.instanciaProcedural;
-        const hx = (typeof hero.x === 'number') ? hero.x : 0;
-        const hz = (typeof hero.z === 'number') ? hero.z : 0;
+        const charCtrl = this.ctx.character;
+        const charPos = (charCtrl && charCtrl.root) ? charCtrl.root.position : hero;
+        const hx = (charPos && typeof charPos.x === 'number') ? charPos.x : ((typeof hero.x === 'number') ? hero.x : 0);
+        const hz = (charPos && typeof charPos.z === 'number') ? charPos.z : ((typeof hero.z === 'number') ? hero.z : 0);
+        const hy = (charPos && typeof charPos.y === 'number') ? charPos.y : ((typeof hero.y === 'number') ? hero.y : 0);
+        hero.x = hx; hero.y = hy; hero.z = hz;
 
         const salaActual = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(hx, hz) : null;
         const idActual = salaActual ? salaActual.id : null;
 
         if (idActual !== this._ultimaSalaHeroeId || !this.estanciasVisibles) {
           this._ultimaSalaHeroeId = idActual;
-          this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idActual, 2) : null;
+          this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idActual, 4) : null;
           if (typeof proc.actualizarVisibilidadEstancias === 'function' && this.estanciasVisibles) {
             proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
           }
@@ -821,9 +847,29 @@
         scene.background = this.estadoPrevio.background;
         scene.fog = this.estadoPrevio.fog;
         if (this.ctx.farMesh) this.ctx.farMesh.visible = true;
-        if (this.ctx.nearChunks) Object.values(this.ctx.nearChunks).forEach(c => { if (c && c.mesh) c.mesh.visible = true; });
-        if (this.ctx.lagos) Object.values(this.ctx.lagos).forEach(l => { if (l && l.mesh) l.mesh.visible = true; });
+        if (this.ctx.nearChunks) {
+          if (typeof this.ctx.nearChunks.forEach === 'function') {
+            this.ctx.nearChunks.forEach(c => {
+              const m = (c && c.mesh) ? c.mesh : c;
+              if (m && typeof m.visible === 'boolean') m.visible = true;
+            });
+          } else if (typeof this.ctx.nearChunks === 'object') {
+            Object.values(this.ctx.nearChunks).forEach(c => {
+              const m = (c && c.mesh) ? c.mesh : c;
+              if (m && typeof m.visible === 'boolean') m.visible = true;
+            });
+          }
+        }
+        if (this.ctx.lagos) {
+          if (typeof this.ctx.lagos.forEach === 'function') {
+            this.ctx.lagos.forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = true; });
+          } else if (typeof this.ctx.lagos === 'object') {
+            Object.values(this.ctx.lagos).forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = true; });
+          }
+        }
         if (this.ctx.waterMesh) this.ctx.waterMesh.visible = true;
+        if (this.ctx.decorGroup) this.ctx.decorGroup.visible = true;
+        if (Array.isArray(this.ctx.ladrillos)) this.ctx.ladrillos.forEach(t => { if (t && t.malla) t.malla.visible = true; });
         if (Array.isArray(this.ctx.towns)) this.ctx.towns.forEach(t => { if (t && t.group) t.group.visible = true; });
         if (this.ctx.terrenoGroup && this.ctx.terrenoGroup !== scene) this.ctx.terrenoGroup.visible = this.estadoPrevio.terrenoVisible;
         if (this.ctx.aguaMesh && this.ctx.aguaMesh !== scene) this.ctx.aguaMesh.visible = this.estadoPrevio.aguaVisible;

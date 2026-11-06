@@ -3919,7 +3919,7 @@
     return masCercana;
   }
 
-  function obtenerEstanciasComunicadas(salas, salaActualId, profundidad = 2) {
+  function obtenerEstanciasComunicadas(salas, salaActualId, profundidad = 4) {
     const resultado = new Set();
     if (!Array.isArray(salas) || salas.length === 0) return resultado;
 
@@ -4743,10 +4743,11 @@
       colliders,
       cajasOclusion,
       encontrarSalaEnPosicion: (x, z) => encontrarSalaEnPosicion(salas, x, z),
-      obtenerEstanciasComunicadas: (salaId, prof = 2) => obtenerEstanciasComunicadas(salas, salaId, prof),
+      obtenerEstanciasComunicadas: (salaId, prof = 4) => obtenerEstanciasComunicadas(salas, salaId, prof),
       actualizarVisibilidadEstancias: (idsVisibles) => {
         if (!idsVisibles) return;
         const setVis = (idsVisibles instanceof Set) ? idsVisibles : new Set(idsVisibles);
+        if (setVis.size === 0) return;
         salas.forEach(s => {
           const vis = setVis.has(s.id);
           if (s._meshSala) s._meshSala.visible = vis;

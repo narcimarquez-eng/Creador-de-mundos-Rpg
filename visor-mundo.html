@@ -6577,6 +6577,8 @@
       get nearChunks() { return nearChunks; },
       get lagos() { return lagosMundo; },
       get waterMesh() { return waterMesh; },
+      get decorGroup() { return decorGroup; },
+      get ladrillos() { return ladrillosTramos; },
       terrenoGroup: null,
       aguaMesh: waterMesh,
       pueblosGroup: null,
@@ -6587,14 +6589,22 @@
           if (o.village) unloadTown(o);
           if (o.proxy) o.proxy.visible = false;
         });
-        // 2. Ocultar monstruos del supramundo exterior
+        // 2. Ocultar trozos de terreno nearChunks, agua, decorado y caminos del supramundo
+        if (nearChunks) {
+          nearChunks.forEach(m => { if (m) m.visible = false; });
+        }
+        if (farMesh) farMesh.visible = false;
+        if (waterMesh) waterMesh.visible = false;
+        if (decorGroup) decorGroup.visible = false;
+        if (Array.isArray(ladrillosTramos)) ladrillosTramos.forEach(t => { if (t && t.malla) t.malla.visible = false; });
+        // 3. Ocultar monstruos del supramundo exterior
         monsters.forEach(m => {
           if (!m.dungeonInfoRef) {
             if (m.group) m.group.visible = false;
             if (m.bar) m.bar.visible = false;
           }
         });
-        // 3. Aislar lista de descargas: descartar descargas pendientes del supramundo (NPCs, props ajenos)
+        // 4. Aislar lista de descargas: descartar descargas pendientes del supramundo (NPCs, props ajenos)
         if (typeof GestorCargaArchivos !== 'undefined' && GestorCargaArchivos.aislarMazmorra) {
           GestorCargaArchivos.aislarMazmorra(dungeon && dungeon.glb);
         }
@@ -6613,6 +6623,13 @@
         towns.forEach(o => {
           if (o.proxy) o.proxy.visible = true;
         });
+        if (nearChunks) {
+          nearChunks.forEach(m => { if (m) m.visible = true; });
+        }
+        if (farMesh) farMesh.visible = true;
+        if (waterMesh) waterMesh.visible = true;
+        if (decorGroup) decorGroup.visible = true;
+        if (Array.isArray(ladrillosTramos)) ladrillosTramos.forEach(t => { if (t && t.malla) t.malla.visible = true; });
         if (gurus) {
           gurus.forEach(g => { if (g.mesh) g.mesh.visible = true; });
         }
@@ -7424,18 +7441,18 @@
       return;
     }
 
+    const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
     const modalTapando = ($('crear').classList.contains('show') || $('mapa-mundo').classList.contains('show')) &&
       renderer.info.render.frame > 4 && towns.every(o => !o.village || o.rise >= 1);
     if (modalTapando) {
-      streamTowns(now);
+      if (!enDungeon) streamTowns(now);
       actualizarCarga(now);
       if (++fotogramaModal % 6 !== 0) return;
     }
 
-    streamTowns(now);
+    if (!enDungeon) streamTowns(now);
     actualizarCarga(now);
     AGUA_U.uTime.value = now / 1000;
-    const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
     if (!enDungeon) {
       if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
         lastDecor = now;
