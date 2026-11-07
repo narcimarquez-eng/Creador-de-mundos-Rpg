@@ -108,4 +108,15 @@ t('si una línea directa entre puntos atravesara un pueblo con murallas: rodea p
   assert.ok(ruta.length > 1);
 });
 
+t('distanciaRestanteRuta: calcula correctamente la suma de metros que quedan para llegar al destino', () => {
+  const puntos = [{ x: 100, y: 0 }, { x: 250, y: 0 }, { x: 250, y: 100 }];
+  // Desde (0, 0) hasta puntos[0] (distancia 100) + de puntos[0] a puntos[1] (150) + de puntos[1] a puntos[2] (100) = 350m
+  const dTotal = R.distanciaRestanteRuta({ x: 0, y: 0 }, puntos, 0);
+  assert.strictEqual(dTotal, 350);
+
+  // Estando ya en el punto 1 y avanzando hacia el punto 2
+  const dRest = R.distanciaRestanteRuta({ x: 250, y: 30 }, puntos, 2);
+  assert.strictEqual(dRest, 70); // 100 - 30 = 70m
+});
+
 console.log(`\n${n} pruebas de la ruta superadas.`);

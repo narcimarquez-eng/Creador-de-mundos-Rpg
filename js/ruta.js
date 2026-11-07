@@ -202,7 +202,21 @@
     return out;
   }
 
-  const api = { calcularRuta };
+  // Calcula la distancia restante en metros a lo largo de los puntos de una ruta
+  function distanciaRestanteRuta(posActual, puntosRuta, indicePuntoActual) {
+    if (!puntosRuta || !puntosRuta.length) return 0;
+    const idx = Math.max(0, Math.min(puntosRuta.length - 1, indicePuntoActual || 0));
+    let d = 0;
+    if (posActual) {
+      d += dist(posActual, puntosRuta[idx]);
+    }
+    for (let k = idx; k < puntosRuta.length - 1; k++) {
+      d += dist(puntosRuta[k], puntosRuta[k + 1]);
+    }
+    return Math.round(d);
+  }
+
+  const api = { calcularRuta, distanciaRestanteRuta };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RutaLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

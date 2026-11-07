@@ -748,7 +748,8 @@
       <div class="m-obj" id="mision-obj"></div>
       <div class="m-pie">
         <span id="mision-prog"></span>
-        <div style="display:flex;gap:4px">
+        <div style="display:flex;gap:4px;align-items:center">
+          <span id="mision-dist" style="display:none;font-size:10px;font-weight:600;color:#38bdf8;background:rgba(15,23,42,0.85);border:1px solid rgba(56,189,248,0.4);border-radius:4px;padding:2px 5px;white-space:nowrap"></span>
           <button id="mision-ir">🧭 Llévame</button>
           <button id="mision-guia-comp" title="Consultar a tu compañero para que te oriente y aconseje dónde ir" style="background:#0f172a;border:1px solid #f59e0b;color:#fde047;border-radius:4px;padding:2px 6px;font-size:10.5px;cursor:pointer">🗣️ Guía</button>
         </div>
@@ -3062,7 +3063,9 @@
     character.cancelado = false;
     character.atascado = false;
     if (!follow) setFollow(true);
-    toast('🧭 En camino a ' + nombreDestino + ' (muévete para parar)');
+    const mPto = typeof metrosRestantesRuta === 'function' ? metrosRestantesRuta() : Math.round(Math.hypot(p.x - targetX, p.z - targetZ));
+    const txtMPto = mPto >= 1000 ? (mPto / 1000).toFixed(1) + ' km' : mPto + ' m';
+    toast('🧭 En camino a ' + nombreDestino + ' (' + txtMPto + ' restantes · muévete para parar)');
     actualizarMision();
   }
 
@@ -6312,6 +6315,42 @@
   // ===========================================================================
   let ruta = null;   // ruta a pie en curso: { puntos, i, parar, nombre, npc, intentos }
 
+  function metrosRestantesRuta() {
+    if (!ruta || !ruta.puntos || !character || !character.root) return 0;
+    const p = character.root.position;
+    const posActual = { x: p.x, y: p.z };
+    if (typeof RutaLib !== 'undefined' && typeof RutaLib.distanciaRestanteRuta === 'function') {
+      return RutaLib.distanciaRestanteRuta(posActual, ruta.puntos, ruta.i);
+    }
+    const idx = Math.max(0, Math.min(ruta.puntos.length - 1, ruta.i || 0));
+    let d = Math.hypot(p.x - ruta.puntos[idx].x, p.z - ruta.puntos[idx].y);
+    for (let k = idx; k < ruta.puntos.length - 1; k++) {
+      d += Math.hypot(ruta.puntos[k + 1].x - ruta.puntos[k].x, ruta.puntos[k + 1].y - ruta.puntos[k].y);
+    }
+    return Math.round(d);
+  }
+
+  function actualizarContadorRuta() {
+    const elDist = $('mision-dist');
+    const btnIr = $('mision-ir');
+    if (!elDist && !btnIr) return;
+    if (!ruta) {
+      if (elDist) elDist.style.display = 'none';
+      return;
+    }
+    const m = metrosRestantesRuta();
+    const textoM = m >= 1000 ? (m / 1000).toFixed(1) + ' km' : m + ' m';
+    if (elDist) {
+      elDist.textContent = '📍 ' + textoM;
+      elDist.style.display = '';
+      elDist.title = 'Distancia restante a pie hasta el objetivo: ' + m + ' metros';
+    }
+    if (btnIr) {
+      btnIr.textContent = `⏹ Parar (${textoM})`;
+      btnIr.title = 'Detener el avance automático a la misión (' + m + ' m restantes)';
+    }
+  }
+
   function actualizarMision() {
     if (!world) return;
     const p = heroeEst.principal;
@@ -6321,6 +6360,7 @@
       $('mision-obj').textContent = 'Has vivido los ' + HistoriaLib.CAPITULOS.length + ' capítulos de la historia.';
       $('mision-prog').textContent = '';
       $('mision-ir').style.display = 'none';
+      if ($('mision-dist')) $('mision-dist').style.display = 'none';
       return;
     }
     if (heroeEst && heroeEst.forjaPendiente) {
@@ -6334,7 +6374,12 @@
       $('mision-obj').textContent = '🔨 ¡Materiales reunidos! Vuelve a la forja del pueblo y habla con el Herrero Brann para forjar tu ' + nPieza + '.';
       $('mision-prog').innerHTML = '<span style="color:#facc15;font-weight:bold">Materiales listos (100%)</span> · Habla con el Herrero Brann';
       $('mision-ir').style.display = '';
-      $('mision-ir').textContent = ruta ? '⏹ Parar' : '🧭 Ir al Herrero';
+      if (ruta) {
+        actualizarContadorRuta();
+      } else {
+        $('mision-ir').textContent = '🧭 Ir al Herrero';
+        if ($('mision-dist')) $('mision-dist').style.display = 'none';
+      }
       return;
     }
     const o = HistoriaLib.asegurarObjetivo(p, world);
@@ -6359,7 +6404,12 @@
     $('mision-obj').innerHTML = esc(o.texto) + avisoCabana;
     $('mision-prog').innerHTML = p.progreso + ' / ' + o.cantidad + ' · <span' + (hero.level < cap.nivel ? ' class="m-aviso"' : '') + '>nivel recomendado ' + cap.nivel + '</span>';
     $('mision-ir').style.display = '';
-    $('mision-ir').textContent = ruta ? '⏹ Parar' : '🧭 Llévame';
+    if (ruta) {
+      actualizarContadorRuta();
+    } else {
+      $('mision-ir').textContent = '🧭 Llévame';
+      if ($('mision-dist')) $('mision-dist').style.display = 'none';
+    }
     if ($('mision-guia-comp')) {
       const nomC = (acompanante && acompanante.nombre) ? acompanante.nombre : 'Rowan';
       $('mision-guia-comp').textContent = '🗣️ Guía de ' + nomC;
@@ -6606,7 +6656,9 @@
     character.cancelado = false;
     character.atascado = false;
     if (!follow) setFollow(true);
-    toast('🧭 En camino a ' + d.nombre + ' (muévete para parar)');
+    const mIniciales = metrosRestantesRuta();
+    const txtMIni = mIniciales >= 1000 ? (mIniciales / 1000).toFixed(1) + ' km' : mIniciales + ' m';
+    toast('🧭 En camino a ' + d.nombre + ' (' + txtMIni + ' restantes · muévete para parar)');
     actualizarMision();
   }
 
@@ -6614,12 +6666,14 @@
     if (!ruta) return;
     ruta = null;
     character.destino = null;
+    if ($('mision-dist')) $('mision-dist').style.display = 'none';
     if (aviso) toast(aviso);
     actualizarMision();
   }
 
   // Cada fotograma: va de punto en punto (la plaza se da por alcanzada a 8 m, por si hay una fuente en su centro);
   // si algo lo bloquea, rodea por un lado (hasta 3 veces)
+  let _lastContadorRuta = 0;
   function seguirRuta() {
     if (!ruta) return;
     if (character.cancelado) { character.cancelado = false; detenerRuta('Ruta parada: has tomado el control'); return; }
@@ -6640,6 +6694,13 @@
       ultimo = false;
     }
     character.destino = { x: w.x, z: w.y, parar: ultimo ? ruta.parar : 0.5 };
+
+    // Actualiza el contador de metros restantes de forma fluida (cada 150 ms)
+    const ahora = performance.now();
+    if (ahora - _lastContadorRuta > 150) {
+      _lastContadorRuta = ahora;
+      actualizarContadorRuta();
+    }
   }
 
   // Al llegar a un NPC por la misión se habla con él (cuenta si el capítulo pide hablarle)
