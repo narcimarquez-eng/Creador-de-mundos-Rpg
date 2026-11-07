@@ -562,6 +562,7 @@
           ramificacion: dungeon.ramificacion !== undefined ? dungeon.ramificacion : 0.6,
           alturaTechos: dungeon.alturaTechos || 6.0,
           anchoPasillos: dungeon.anchoPasillos || 8.0,
+          salas: (Array.isArray(dungeon.salas) && dungeon.salas.length > 0) ? dungeon.salas : undefined,
           salasPersonalizadas: dungeon.salasPersonalizadas || [],
           props: dungeon.props,
           modoJuegoRapido: true,
@@ -946,7 +947,82 @@
       this.bossInstancia = null;
       this.elitesInstancia = [];
 
-      // 2. Restaurar supramundo exterior
+      // 2. Restaurar física del mundo exterior y teletransportar al héroe frente a la puerta exterior de la mazmorra
+      const charCtrl = this.ctx.character;
+      const camera = this.ctx.camera;
+      const controls = this.ctx.controls;
+
+      if (charCtrl && charCtrl.world && this.estadoPrevio) {
+        if (this.estadoPrevio.origGetWalkableHeight) {
+          charCtrl.world.getWalkableHeight = this.estadoPrevio.origGetWalkableHeight;
+        }
+        if (this.estadoPrevio.origIsWaterHazard) {
+          charCtrl.world.isWaterHazard = this.estadoPrevio.origIsWaterHazard;
+        }
+        if (this.estadoPrevio.origGetColliders) {
+          charCtrl.world.getColliders = this.estadoPrevio.origGetColliders;
+        }
+      }
+
+      if (d && hero) {
+        const rot = d.rotacion || 0;
+        // Frente a la puerta/arco exterior de la mazmorra (z = -4.5m en coords locales)
+        const offsetLocalZ = -4.5;
+        const wx = d.x + Math.sin(rot) * offsetLocalZ;
+        const wz = d.y + Math.cos(rot) * offsetLocalZ;
+        hero.x = wx;
+        hero.z = wz;
+        if (typeof this.ctx.getWalkableHeight === 'function') {
+          hero.y = this.ctx.getWalkableHeight(hero.x, hero.z);
+        }
+
+        // Teletransportar físicamente la malla 3D del personaje y desbloquear controles
+        if (charCtrl && charCtrl.root) {
+          charCtrl.root.position.set(wx, hero.y, wz);
+          charCtrl.root.rotation.set(0, rot, 0);
+          if (typeof charCtrl.mirarAngulo === 'function') {
+            charCtrl.mirarAngulo(rot);
+          }
+          if (charCtrl.target) charCtrl.target.set(wx, hero.y, wz);
+          charCtrl.destino = null;
+          charCtrl.sinAvance = 0;
+          charCtrl.lockUntil = 0;
+        }
+
+        if (charCtrl && this.estadoPrevio && this.estadoPrevio.charOffsetCamara) {
+          charCtrl.offsetCamara = this.estadoPrevio.charOffsetCamara;
+        }
+
+        // Teletransportar cámara y controles al exterior frente a la puerta y restaurar límites de zoom
+        if (controls) {
+          controls.target.set(wx, hero.y + 1.2, wz);
+          if (this.estadoPrevio) {
+            controls.minDistance = this.estadoPrevio.controlsMinDistance !== undefined ? this.estadoPrevio.controlsMinDistance : 1.0;
+            controls.maxDistance = this.estadoPrevio.controlsMaxDistance !== undefined ? this.estadoPrevio.controlsMaxDistance : 500;
+          }
+          if (camera) {
+            camera.position.set(wx - Math.sin(rot) * 9.0, hero.y + 4.5, wz - Math.cos(rot) * 9.0);
+            controls.update();
+            if (charCtrl && typeof camera.position.clone === 'function') {
+              charCtrl.camaraFinal = camera.position.clone();
+            }
+          }
+        }
+
+        if (this.ctx.acompanante) {
+          this.ctx.acompanante.x = hero.x + 1.6;
+          this.ctx.acompanante.z = hero.z - 1.2;
+          if (typeof this.ctx.getWalkableHeight === 'function') {
+            this.ctx.acompanante.y = this.ctx.getWalkableHeight(this.ctx.acompanante.x, this.ctx.acompanante.z);
+          }
+          if (this.ctx.acompanante.mesh) {
+            this.ctx.acompanante.mesh.position.set(this.ctx.acompanante.x, this.ctx.acompanante.y, this.ctx.acompanante.z);
+            this.ctx.acompanante.mesh.rotation.set(0, rot, 0);
+          }
+        }
+      }
+
+      // 3. Restaurar supramundo exterior (ya con el héroe y cámara situados ante la puerta exterior)
       if (scene) scene.visible = true;
       if (typeof this.ctx.restaurarDeMazmorra === 'function') {
         this.ctx.restaurarDeMazmorra();
@@ -985,78 +1061,16 @@
         if (this.ctx.cielo) this.ctx.cielo.visible = this.estadoPrevio.cieloVisible;
       }
 
-      // 3. Teletransportar al héroe frente al arco exterior penetrable (z = -4m en coords locales)
-      const charCtrl = this.ctx.character;
-      const camera = this.ctx.camera;
-      const controls = this.ctx.controls;
-
-      if (d && hero) {
-        const rot = d.rotacion || 0;
-        // Frente al arco de entrada mirando hacia afuera (alejándose de la entrada)
-        const offsetLocalZ = -4.5;
-        const wx = d.x + Math.sin(rot) * offsetLocalZ;
-        const wz = d.y + Math.cos(rot) * offsetLocalZ;
-        hero.x = wx;
-        hero.z = wz;
-        if (typeof this.ctx.getWalkableHeight === 'function') {
-          hero.y = this.ctx.getWalkableHeight(hero.x, hero.z);
-        }
-
-        // Restaurar física del mundo exterior para el personaje
-        if (charCtrl && charCtrl.world && this.estadoPrevio) {
-          if (this.estadoPrevio.origGetWalkableHeight) {
-            charCtrl.world.getWalkableHeight = this.estadoPrevio.origGetWalkableHeight;
-          }
-          if (this.estadoPrevio.origIsWaterHazard) {
-            charCtrl.world.isWaterHazard = this.estadoPrevio.origIsWaterHazard;
-          }
-          if (this.estadoPrevio.origGetColliders) {
-            charCtrl.world.getColliders = this.estadoPrevio.origGetColliders;
-          }
-        }
-
-        // Teletransportar físicamente la malla 3D del personaje
-        if (charCtrl && charCtrl.root) {
-          charCtrl.root.position.set(wx, hero.y, wz);
-          charCtrl.root.rotation.set(0, rot, 0);
-          if (charCtrl.target) charCtrl.target.set(wx, hero.y, wz);
-          charCtrl.destino = null;
-          charCtrl.sinAvance = 0;
-        }
-
-        // Teletransportar cámara y controles al exterior y restaurar límites de zoom
-        if (controls) {
-          controls.target.set(wx, hero.y + 1.2, wz);
-          if (this.estadoPrevio) {
-            controls.minDistance = this.estadoPrevio.controlsMinDistance !== undefined ? this.estadoPrevio.controlsMinDistance : 1.0;
-            controls.maxDistance = this.estadoPrevio.controlsMaxDistance !== undefined ? this.estadoPrevio.controlsMaxDistance : 500;
-          }
-          if (camera) {
-            camera.position.set(wx - Math.sin(rot) * 9.0, hero.y + 4.5, wz - Math.cos(rot) * 9.0);
-            controls.update();
-          }
-        }
-        if (charCtrl && this.estadoPrevio && this.estadoPrevio.charOffsetCamara) {
-          charCtrl.offsetCamara = this.estadoPrevio.charOffsetCamara;
-        }
-
-        if (this.ctx.acompanante) {
-          this.ctx.acompanante.x = hero.x + 1.6;
-          this.ctx.acompanante.z = hero.z - 1.2;
-          if (typeof this.ctx.getWalkableHeight === 'function') {
-            this.ctx.acompanante.y = this.ctx.getWalkableHeight(this.ctx.acompanante.x, this.ctx.acompanante.z);
-          }
-          if (this.ctx.acompanante.mesh) {
-            this.ctx.acompanante.mesh.position.set(this.ctx.acompanante.x, this.ctx.acompanante.y, this.ctx.acompanante.z);
-            this.ctx.acompanante.mesh.rotation.set(0, rot, 0);
-          }
-        }
-      }
-
-      // Si fue derrota, restaurar la salud completa del personaje
+      // Si fue derrota, restaurar la salud completa del personaje y del acompañante
       if (!victoria && hero) {
         hero.dead = false;
+        hero.deadUntil = 0;
         hero.hp = hero.maxHp || 250;
+        if (typeof hero.maxMp === 'number') hero.mp = hero.maxMp;
+        if (this.ctx.acompanante && this.ctx.acompanante.debilitado) {
+          this.ctx.acompanante.debilitado = false;
+          this.ctx.acompanante.hp = this.ctx.acompanante.maxHp || 180;
+        }
       }
 
       this.enMazmorra = false;

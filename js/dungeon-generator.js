@@ -4085,6 +4085,27 @@
       }
     }
 
+    // Clausura de destino de pasillos: todo pasillo visible incluye siempre las salas a las que conduce
+    const colaPasillos = [];
+    resultado.forEach(id => {
+      const est = mapa.get(id);
+      if (est && est.tipo === 'pasillo') colaPasillos.push(id);
+    });
+    while (colaPasillos.length > 0) {
+      const pid = colaPasillos.shift();
+      const pEst = mapa.get(pid);
+      if (!pEst || !Array.isArray(pEst.conectadas)) continue;
+      for (const vecId of pEst.conectadas) {
+        if (!resultado.has(vecId)) {
+          resultado.add(vecId);
+          const vecEst = mapa.get(vecId);
+          if (vecEst && vecEst.tipo === 'pasillo') {
+            colaPasillos.push(vecId);
+          }
+        }
+      }
+    }
+
     return resultado;
   }
 
@@ -4106,7 +4127,7 @@
 
         // 1. Conexión Norte-Sur: a está al sur de b (a.z > b.z)
         const gapZ = (a.z - a.d / 2) - (b.z + b.d / 2);
-        if (Math.abs(gapZ) <= 0.8 || (a.abiertoNorte && b.abiertoSur && Math.abs(gapZ) <= 1.2)) {
+        if ((gapZ >= -4.5 && gapZ <= 0.8) || (a.abiertoNorte && b.abiertoSur && gapZ >= -5.5 && gapZ <= 1.2)) {
           const minX = Math.max(a.x - a.w / 2, b.x - b.w / 2);
           const maxX = Math.min(a.x + a.w / 2, b.x + b.w / 2);
           const overlapX = maxX - minX;
@@ -4132,7 +4153,7 @@
 
         // 2. Conexión Este-Oeste: a está al oeste de b (a.x < b.x)
         const gapX = (b.x - b.w / 2) - (a.x + a.w / 2);
-        if (Math.abs(gapX) <= 0.8 || (a.abiertoEste && b.abiertoOeste && Math.abs(gapX) <= 1.2)) {
+        if ((gapX >= -4.5 && gapX <= 0.8) || (a.abiertoEste && b.abiertoOeste && gapX >= -5.5 && gapX <= 1.2)) {
           const minZ = Math.max(a.z - a.d / 2, b.z - b.d / 2);
           const maxZ = Math.min(a.z + a.d / 2, b.z + b.d / 2);
           const overlapZ = maxZ - minZ;
@@ -4228,12 +4249,13 @@
       if (mejorEste) {
         if (menorGapX > 0.2) {
           const bordeIzqEste = mejorEste.x - (mejorEste.w / 2);
-          // Comprobar si ya existe alguna sala o corredor base intermedio
+          const anchoCorD = Math.max(3.5, Math.min(mejorOverlapZ, anchoPasillos, 7.5));
+          // Comprobar si ya existe alguna sala o corredor base ocupando realmente la franja entre ambas estancias
           const yaExiste = salasBase.some(s => {
             if (s.id === oeste.id || s.id === mejorEste.id) return false;
             const centroZ = (mejorMinZ + mejorMaxZ) / 2;
-            const zOk = Math.abs(s.z - centroZ) < ((mejorOverlapZ + s.d) / 2);
-            const xOk = (s.x - s.w / 2 < bordeDerOeste + 0.4) && (s.x + s.w / 2 > bordeIzqEste - 0.4);
+            const zOk = (s.z + s.d / 2 > centroZ - anchoCorD * 0.5 + 0.25) && (s.z - s.d / 2 < centroZ + anchoCorD * 0.5 - 0.25);
+            const xOk = (s.x + s.w / 2 > bordeDerOeste + 0.35) && (s.x - s.w / 2 < bordeIzqEste - 0.35);
             return zOk && xOk;
           });
 
@@ -4321,11 +4343,12 @@
         if (mejorNorte) {
           if (menorGapZ > 0.2) {
             const bordeSurNorte = mejorNorte.z + (mejorNorte.d / 2);
+            const anchoCorW = Math.max(3.5, Math.min(mejorOverlapX, anchoPasillos, 7.5));
             const yaExiste = salasBase.some(s => {
               if (s.id === sur.id || s.id === mejorNorte.id) return false;
               const centroX = (mejorMinX + mejorMaxX) / 2;
-              const xOk = Math.abs(s.x - centroX) < ((mejorOverlapX + s.w) / 2);
-              const zOk = (s.z + s.d / 2 > bordeNorteSur - 0.4) && (s.z - s.d / 2 < bordeSurNorte + 0.4);
+              const xOk = (s.x + s.w / 2 > centroX - anchoCorW * 0.5 + 0.25) && (s.x - s.w / 2 < centroX + anchoCorW * 0.5 - 0.25);
+              const zOk = (s.z + s.d / 2 > bordeSurNorte + 0.35) && (s.z - s.d / 2 < bordeNorteSur - 0.35);
               return zOk && xOk;
             });
 
@@ -4514,7 +4537,7 @@
     let branchCounter = 0;
 
     for (let i = 1; i <= cantIntermedias; i++) {
-      const zCamara = Math.round(zEntrada - i * pasoZ);
+      const zCamaraIdeal = Math.round(zEntrada - i * pasoZ);
 
       // Dimensiones con varianza aleatoria calculadas primero para tener la distancia exacta
       const factorVarW = 1 + (rng.range(-1, 1) * varianzaTamano);
@@ -4522,6 +4545,10 @@
       const wCamara = Math.round(Math.max(10, tamanoMedio * factorVarW));
       const dCamara = Math.round(Math.max(10, tamanoMedio * factorVarD));
       const hCamara = Math.round(Math.max(4.2, alturaTechos * (1 + rng.range(-0.3, 0.3) * varianzaTamano)));
+
+      // Garantizar espacio real de pasillo entre salas consecutivas para evitar solapamientos
+      const minGapPasillo = 5.5;
+      const zCamara = Math.min(zCamaraIdeal, Math.round(zAnterior - (dAnterior / 2) - minGapPasillo - (dCamara / 2)));
 
       // Conector / pasillo intermedio: tamaño exacto de la distancia entre las dos salas sin meterse dentro
       const bordeSurAnterior = zAnterior - (dAnterior / 2);
@@ -4595,7 +4622,8 @@
 
     // Último pasillo procesional hacia la sala del jefe: tamaño exacto de la distancia sin meterse en las salas
     const bordeSurUltimo = zAnterior - (dAnterior / 2);
-    const bordeNorteBoss = zBoss + (bossD / 2);
+    const zBossFinal = Math.min(zBoss, Math.round(bordeSurUltimo - 6.5 - (bossD / 2)));
+    const bordeNorteBoss = zBossFinal + (bossD / 2);
     const distCorredorFinal = Math.max(0.5, bordeSurUltimo - bordeNorteBoss);
     const zCorredorFinal = (bordeSurUltimo + bordeNorteBoss) / 2;
 
@@ -4616,7 +4644,7 @@
       id: 'room_boss',
       tipo: 'sala_jefe',
       nombre: 'Cámara del Trono del Caído',
-      x: 0, y: 0, z: zBoss,
+      x: 0, y: 0, z: zBossFinal,
       w: bossW, d: bossD, h: bossH,
       abiertoSur: true
     };
@@ -4781,6 +4809,8 @@
 
       let mejorBoveda = null;
       let mejorDistBoveda = Infinity;
+      let segundaBoveda = null;
+      let segundaDistBoveda = Infinity;
       for (let i = 0; i < focosVirtuales.length; i++) {
         const f = focosVirtuales[i];
         if (!f.esBoveda) continue;
@@ -4788,17 +4818,22 @@
         const dx = f.x - hx, dz = f.z - hz;
         const d2 = dx * dx + dz * dz;
         if (d2 < mejorDistBoveda) {
+          segundaDistBoveda = mejorDistBoveda;
+          segundaBoveda = mejorBoveda;
           mejorDistBoveda = d2;
           mejorBoveda = f;
+        } else if (d2 < segundaDistBoveda) {
+          segundaDistBoveda = d2;
+          segundaBoveda = f;
         }
       }
 
-      // 3 focos locales más cercanos (antorchas, fuentes, cofres, braseros u otra bóveda cercana)
+      // Focos locales más cercanos (antorchas, fuentes, cofres, braseros) además de la sala actual y la contigua
       let f1 = null, f2 = null, f3 = null;
       let d1 = Infinity, d2 = Infinity, d3 = Infinity;
       for (let i = 0; i < focosVirtuales.length; i++) {
         const f = focosVirtuales[i];
-        if (f === mejorBoveda) continue;
+        if (f === mejorBoveda || f === segundaBoveda) continue;
         if (setVis && !setVis.has(f.salaId)) continue;
         const dx = f.x - hx, dz = f.z - hz;
         const distSq = dx * dx + dz * dz;
@@ -4814,7 +4849,7 @@
         }
       }
 
-      const elegidos = [mejorBoveda, f1, f2, f3];
+      const elegidos = segundaBoveda ? [mejorBoveda, segundaBoveda, f1, f2] : [mejorBoveda, f1, f2, f3];
       for (let p = 0; p < poolLuces.length; p++) {
         const pLuz = poolLuces[p];
         const foco = elegidos[p];

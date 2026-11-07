@@ -4002,7 +4002,36 @@
     }
   }
 
+  function reaparecerEnPuertaMazmorra() {
+    const dNom = (gestorMazmorras && gestorMazmorras.dungeonActiva && gestorMazmorras.dungeonActiva.name) || 'la mazmorra';
+    const hud = $('dungeon-boss-hud');
+    if (hud) hud.style.display = 'none';
+    const dModal = $('modal-dungeon-defeat');
+    if (dModal) dModal.style.display = 'none';
+    const deadEl = $('deadmsg');
+    if (deadEl) deadEl.classList.remove('show');
+    deadTimerShown = false;
+    CombatLib.respawn(hero);
+    if (acompanante && acompanante.debilitado) {
+      acompanante.debilitado = false;
+      acompanante.hp = acompanante.maxHp || 180;
+    }
+    if (character) {
+      character.lockUntil = 0;
+      character.destino = null;
+    }
+    objetivo = null;
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+      gestorMazmorras.salirInstancia(false);
+    }
+    announce('💀 Has caído en ' + dNom, 'Has vuelto a la puerta de la mazmorra');
+  }
+
   function onHeroDeath(now) {
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+      reaparecerEnPuertaMazmorra();
+      return;
+    }
     CombatLib.die(hero, now);
     character.lockUntil = Infinity;
     $('deadmsg').classList.add('show');
@@ -4010,6 +4039,10 @@
   }
 
   function respawnHero() {
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+      reaparecerEnPuertaMazmorra();
+      return;
+    }
     const p = character.root.position;
     let best = null, bd = Infinity;
     towns.forEach(o => { const d = Math.hypot(p.x - o.t.x, p.z - o.t.y); if (d < bd) { bd = d; best = o; } });
@@ -4641,15 +4674,23 @@
     g.fillStyle = enMazmorra ? '#090d16' : '#1e3a5f'; g.fillRect(0, 0, S, S);
     if (enMazmorra) {
       const procM = gestorMazmorras && gestorMazmorras.instanciaProcedural;
+      const visSet = gestorMazmorras && gestorMazmorras.estanciasVisibles;
+      const salaActId = gestorMazmorras && gestorMazmorras._ultimaSalaHeroeId;
       if (procM && Array.isArray(procM.salas)) {
         for (let i = 0; i < procM.salas.length; i++) {
           const s = procM.salas[i];
+          if (visSet && visSet.size > 0 && !visSet.has(s.id)) continue;
+          const esActual = salaActId && s.id === salaActId;
           const sx = V.px(s.x - s.w / 2), sy = V.py(s.z - s.d / 2);
           const sw = s.w * V.escala, sh = s.d * V.escala;
-          g.fillStyle = s.tipo === 'sala_jefe' ? 'rgba(88,28,135,.55)' : (s.tipo === 'pasillo' ? 'rgba(30,41,59,.75)' : 'rgba(51,65,85,.78)');
+          g.fillStyle = s.tipo === 'sala_jefe'
+            ? 'rgba(88,28,135,.65)'
+            : (s.tipo === 'pasillo' ? 'rgba(30,41,59,.8)' : (esActual ? 'rgba(71,85,105,.9)' : 'rgba(51,65,85,.78)'));
           g.fillRect(sx, sy, sw, sh);
-          g.strokeStyle = s.tipo === 'sala_jefe' ? 'rgba(192,132,252,.65)' : 'rgba(148,163,184,.45)';
-          g.lineWidth = 1.5;
+          g.strokeStyle = s.tipo === 'sala_jefe'
+            ? 'rgba(192,132,252,.75)'
+            : (esActual ? 'rgba(250,204,21,.7)' : 'rgba(148,163,184,.5)');
+          g.lineWidth = esActual ? 1.8 : 1.4;
           g.strokeRect(sx, sy, sw, sh);
         }
       }
@@ -7275,9 +7316,7 @@
 
     const btnRespawn = $('btn-dungeon-respawn');
     if (btnRespawn) btnRespawn.onclick = () => {
-      $('modal-dungeon-defeat').style.display = 'none';
-      if (gestorMazmorras) gestorMazmorras.salirInstancia(false);
-      toast('Has reaparecido ante el arco exterior');
+      reaparecerEnPuertaMazmorra();
     };
 
     const promptEl = $('dungeon-prompt');
@@ -7409,12 +7448,8 @@
             vModal.style.display = 'flex';
           }
         },
-        onDerrota: res => {
-          const hud = $('dungeon-boss-hud');
-          if (hud) hud.style.display = 'none';
-
-          const dModal = $('modal-dungeon-defeat');
-          if (dModal) dModal.style.display = 'flex';
+        onDerrota: () => {
+          reaparecerEnPuertaMazmorra();
         }
       });
     } else {
