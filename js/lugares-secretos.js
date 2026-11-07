@@ -383,6 +383,231 @@
     return clon;
   }
 
+  let _kitSecretosRef = null;
+  let _kitSecretosCache = null;
+
+  function aplicarUVBoxSecreto(geo, w, h, d, metrosPorTile) {
+    if (!geo || !geo.attributes || !geo.attributes.uv || typeof geo.attributes.uv.setXY !== 'function') return geo;
+    const uv = geo.attributes.uv;
+    if (uv.count < 24) return geo;
+    const esc = metrosPorTile || 3.0;
+    const dims = [
+      [d, h], [d, h],
+      [w, d], [w, d],
+      [w, h], [w, h]
+    ];
+    for (let cara = 0; cara < 6; cara++) {
+      const uMax = dims[cara][0] / esc;
+      const vMax = dims[cara][1] / esc;
+      const base = cara * 4;
+      uv.setXY(base + 0, 0, vMax);
+      uv.setXY(base + 1, uMax, vMax);
+      uv.setXY(base + 2, 0, 0);
+      uv.setXY(base + 3, uMax, 0);
+    }
+    uv.needsUpdate = true;
+    return geo;
+  }
+
+  function obtenerMaterialesSecretos(THREE) {
+    if (_kitSecretosCache && _kitSecretosRef === THREE) return _kitSecretosCache;
+    let silleria = { map: null, bump: null };
+    let mosaico = { map: null, bump: null };
+    let madera = { map: null, bump: null };
+
+    if (typeof document !== 'undefined' && THREE && THREE.CanvasTexture) {
+      const prng = seed => {
+        let s = (seed >>> 0) || 1;
+        return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+      };
+      const crearPar = (tam, pintar) => {
+        const c = document.createElement('canvas'); c.width = c.height = tam;
+        const b = document.createElement('canvas'); b.width = b.height = tam;
+        pintar(c.getContext('2d'), b.getContext('2d'), tam);
+        const map = new THREE.CanvasTexture(c);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) map.colorSpace = THREE.SRGBColorSpace;
+        map.anisotropy = 8;
+        const bump = new THREE.CanvasTexture(b);
+        bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+        bump.anisotropy = 8;
+        return { map, bump };
+      };
+
+      // 1. Sillería arcana / rústica tallada (512x512): hileras pseudo-isódomas, márgenes cincelados y musgo
+      silleria = crearPar(512, (ctx, bctx, S) => {
+        const rnd = prng(3317);
+        ctx.fillStyle = '#3b4452'; ctx.fillRect(0, 0, S, S);
+        bctx.fillStyle = '#1e1e1e'; bctx.fillRect(0, 0, S, S);
+        const hileras = [72, 42, 76, 64, 42, 78, 68, 70];
+        let y = 0;
+        for (let f = 0; f < hileras.length; f++) {
+          const hF = f === hileras.length - 1 ? (S - y) : hileras[f];
+          const esListel = hF <= 44;
+          let x = -((f % 2) * 38);
+          while (x < S) {
+            const wB = esListel ? 64 : (84 + ((rnd() * 56) | 0));
+            const x0 = Math.max(0, x + 2), x1 = Math.min(S, x + wB - 2);
+            const y0 = y + 2, y1 = y + hF - 2;
+            if (x1 - x0 > 8 && y1 - y0 > 8) {
+              const lum = 152 + ((rnd() * 44) | 0);
+              ctx.fillStyle = `rgb(${(lum * 0.94) | 0},${(lum * 0.98) | 0},${Math.min(240, (lum * 1.05) | 0)})`;
+              ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+              ctx.strokeStyle = 'rgba(226,236,248,0.28)'; ctx.lineWidth = 1.6;
+              ctx.strokeRect(x0 + 3, y0 + 3, Math.max(2, x1 - x0 - 6), Math.max(2, y1 - y0 - 6));
+
+              bctx.fillStyle = '#a6a6a6'; bctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+              bctx.fillStyle = '#dcdcdc'; bctx.fillRect(x0 + 5, y0 + 5, Math.max(2, x1 - x0 - 10), Math.max(2, y1 - y0 - 10));
+
+              if (esListel) {
+                const xm = (x0 + x1) * 0.5, ym = (y0 + y1) * 0.5;
+                ctx.fillStyle = 'rgba(210,225,245,0.34)';
+                ctx.beginPath();
+                ctx.moveTo(xm, y0 + 5); ctx.lineTo(x1 - 8, ym); ctx.lineTo(xm, y1 - 5); ctx.lineTo(x0 + 8, ym);
+                ctx.closePath(); ctx.fill();
+                bctx.fillStyle = '#f2f2f2';
+                bctx.beginPath();
+                bctx.moveTo(xm, y0 + 5); bctx.lineTo(x1 - 8, ym); bctx.lineTo(xm, y1 - 5); bctx.lineTo(x0 + 8, ym);
+                bctx.closePath(); bctx.fill();
+              } else if (rnd() < 0.28) {
+                ctx.fillStyle = 'rgba(66,104,62,0.36)';
+                ctx.fillRect(x0 + 4 + rnd() * 20, y1 - 9, 14 + rnd() * 18, 6);
+              }
+            }
+            x += wB;
+          }
+          y += hF;
+        }
+      });
+
+      // 2. Mosaico ceremonial de losas octogonales y azulejos en rombo (512x512, sin círculos)
+      mosaico = crearPar(512, (ctx, bctx, S) => {
+        const rnd = prng(9043);
+        ctx.fillStyle = '#334155'; ctx.fillRect(0, 0, S, S);
+        bctx.fillStyle = '#242424'; bctx.fillRect(0, 0, S, S);
+        const N = 4, paso = S / N, ch = paso * 0.24;
+        for (let gy = 0; gy < N; gy++) {
+          for (let gx = 0; gx < N; gx++) {
+            const x0 = gx * paso + 2, y0 = gy * paso + 2, L = paso - 4;
+            const par = (gx + gy) % 2 === 0;
+            ctx.fillStyle = par ? '#cbd5e1' : '#94a3b8';
+            ctx.beginPath();
+            ctx.moveTo(x0 + ch, y0); ctx.lineTo(x0 + L - ch, y0);
+            ctx.lineTo(x0 + L, y0 + ch); ctx.lineTo(x0 + L, y0 + L - ch);
+            ctx.lineTo(x0 + L - ch, y0 + L); ctx.lineTo(x0 + ch, y0 + L);
+            ctx.lineTo(x0, y0 + L - ch); ctx.lineTo(x0, y0 + ch);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = 'rgba(248,250,252,0.55)'; ctx.lineWidth = 1.6; ctx.stroke();
+
+            // Estrella/rombo interior tallado
+            const cx = x0 + L * 0.5, cy = y0 + L * 0.5, rIn = L * 0.22;
+            ctx.strokeStyle = par ? '#64748b' : '#e2e8f0'; ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - rIn); ctx.lineTo(cx + rIn, cy);
+            ctx.lineTo(cx, cy + rIn); ctx.lineTo(cx - rIn, cy);
+            ctx.closePath(); ctx.stroke();
+
+            bctx.fillStyle = '#d4d4d4';
+            bctx.beginPath();
+            bctx.moveTo(x0 + ch, y0); bctx.lineTo(x0 + L - ch, y0);
+            bctx.lineTo(x0 + L, y0 + ch); bctx.lineTo(x0 + L, y0 + L - ch);
+            bctx.lineTo(x0 + L - ch, y0 + L); bctx.lineTo(x0 + ch, y0 + L);
+            bctx.lineTo(x0, y0 + L - ch); bctx.lineTo(x0, y0 + ch);
+            bctx.closePath(); bctx.fill();
+          }
+        }
+        // Azulejos esmaltados en rombo en cada vértice de encuentro
+        for (let vy = 0; vy <= N; vy++) {
+          for (let vx = 0; vx <= N; vx++) {
+            const px = vx * paso, py = vy * paso, d = ch - 1;
+            ctx.fillStyle = ((vx + vy) % 2 === 0) ? '#0ea5e9' : '#d97706';
+            ctx.beginPath();
+            ctx.moveTo(px, py - d); ctx.lineTo(px + d, py);
+            ctx.lineTo(px, py + d); ctx.lineTo(px - d, py);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 1.2; ctx.stroke();
+
+            bctx.fillStyle = '#eeeeee';
+            bctx.beginPath();
+            bctx.moveTo(px, py - d); bctx.lineTo(px + d, py);
+            bctx.lineTo(px, py + d); bctx.lineTo(px - d, py);
+            bctx.closePath(); bctx.fill();
+          }
+        }
+        // Pátina sutil de grano pétreo
+        for (let i = 0; i < 900; i++) {
+          const x = rnd() * S, y = rnd() * S;
+          ctx.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.09)';
+          ctx.fillRect(x, y, 2 + rnd() * 3, 2 + rnd() * 3);
+        }
+      });
+
+      // 3. Madera labrada a azuela para pilotes y cabañas de respaldo (512x512)
+      madera = crearPar(512, (ctx, bctx, S) => {
+        const rnd = prng(5521), filas = 12, al = S / filas;
+        bctx.fillStyle = '#a0a0a0'; bctx.fillRect(0, 0, S, S);
+        for (let i = 0; i < filas; i++) {
+          const y0 = i * al;
+          const v = 165 + ((rnd() * 38) | 0);
+          ctx.fillStyle = `rgb(${v},${(v * 0.78) | 0},${(v * 0.56) | 0})`;
+          ctx.fillRect(0, y0, S, al);
+          bctx.fillStyle = '#c8c8c8'; bctx.fillRect(0, y0 + 2, S, al - 3);
+          for (let k = 0; k < 7; k++) {
+            const yv = y0 + 3 + rnd() * (al - 6);
+            ctx.strokeStyle = 'rgba(48,28,14,0.42)'; ctx.lineWidth = 1.1;
+            ctx.beginPath(); ctx.moveTo(0, yv);
+            for (let x = 16; x <= S; x += 16) ctx.lineTo(x, yv + Math.sin(x * 0.03 + k) * 1.8);
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(24,14,8,0.86)'; ctx.fillRect(0, y0, S, 3);
+          bctx.fillStyle = '#242424'; bctx.fillRect(0, y0, S, 3);
+        }
+      });
+    }
+
+    _kitSecretosRef = THREE;
+    _kitSecretosCache = {
+      matPiedra: new THREE.MeshStandardMaterial({
+        color: silleria.map ? 0x8ea0b5 : 0x475569,
+        map: silleria.map, bumpMap: silleria.bump, bumpScale: 0.16,
+        roughness: 0.84, metalness: 0.12
+      }),
+      matPiedraClara: new THREE.MeshStandardMaterial({
+        color: silleria.map ? 0xdbe4ef : 0x94a3b8,
+        map: silleria.map, bumpMap: silleria.bump, bumpScale: 0.12,
+        roughness: 0.68, metalness: 0.16
+      }),
+      matMosaico: new THREE.MeshStandardMaterial({
+        color: mosaico.map ? 0xe2e8f0 : 0x94a3b8,
+        map: mosaico.map, bumpMap: mosaico.bump, bumpScale: 0.14,
+        roughness: 0.58, metalness: 0.18
+      }),
+      matMadera: new THREE.MeshStandardMaterial({
+        color: madera.map ? 0x9c6b43 : 0x5c3a21,
+        map: madera.map, bumpMap: madera.bump, bumpScale: 0.14,
+        roughness: 0.88, metalness: 0.05
+      }),
+      matMaderaOscura: new THREE.MeshStandardMaterial({
+        color: madera.map ? 0x5c3c24 : 0x331e11,
+        map: madera.map, bumpMap: madera.bump, bumpScale: 0.15,
+        roughness: 0.91, metalness: 0.03
+      }),
+      matRuna: new THREE.MeshStandardMaterial({
+        color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.8, roughness: 0.1, metalness: 0.5
+      }),
+      matOro: new THREE.MeshStandardMaterial({
+        color: 0xf59e0b, roughness: 0.35, metalness: 0.85
+      }),
+      matAguaArcana: new THREE.MeshStandardMaterial({
+        color: 0x06b6d4, emissive: 0x0891b2, emissiveIntensity: 1.2, roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.85
+      }),
+      matLlama: new THREE.MeshStandardMaterial({
+        color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 2.2
+      })
+    };
+    return _kitSecretosCache;
+  }
+
   // Geometría 3D procedimental para cada tipo de lugar secreto con Three.js
   function construirModeloSecreto(THREE, lugar, getAlturaFn, opciones) {
     const sinLuces = !!(opciones && opciones.sinLucesPuntuales);
@@ -402,33 +627,21 @@
       lugarRef: lugar
     };
 
-    const matPiedra = new THREE.MeshStandardMaterial({
-      color: 0x475569, roughness: 0.85, metalness: 0.15
-    });
-    const matPiedraClara = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8, roughness: 0.70, metalness: 0.20
-    });
-    const matMadera = new THREE.MeshStandardMaterial({
-      color: 0x5c3a21, roughness: 0.90, metalness: 0.05
-    });
-    const matMaderaOscura = new THREE.MeshStandardMaterial({
-      color: 0x331e11, roughness: 0.92, metalness: 0.02
-    });
-    const matRuna = new THREE.MeshStandardMaterial({
-      color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.8, roughness: 0.1, metalness: 0.5
-    });
-    const matOro = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b, roughness: 0.35, metalness: 0.85
-    });
-    const matAguaArcana = new THREE.MeshStandardMaterial({
-      color: 0x06b6d4, emissive: 0x0891b2, emissiveIntensity: 1.2, roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.85
-    });
+    const kitSec = obtenerMaterialesSecretos(THREE);
+    const matPiedra = kitSec.matPiedra;
+    const matPiedraClara = kitSec.matPiedraClara;
+    const matMosaico = kitSec.matMosaico;
+    const matMadera = kitSec.matMadera;
+    const matMaderaOscura = kitSec.matMaderaOscura;
+    const matRuna = kitSec.matRuna;
+    const matOro = kitSec.matOro;
+    const matAguaArcana = kitSec.matAguaArcana;
 
     if (lugar.tipo === 'fuente') {
       // 1. FUENTE ARCANA
-      // Base octogonal escalonada
+      // Base octogonal escalonada con pavimento de mosaico
       const baseGeo = new THREE.CylinderGeometry(4.2, 4.6, 0.45, 8);
-      const base = new THREE.Mesh(baseGeo, matPiedra);
+      const base = new THREE.Mesh(baseGeo, matMosaico);
       base.position.y = 0.22;
       base.castShadow = true; base.receiveShadow = true;
       grupo.add(base);
@@ -486,22 +699,24 @@
           if (!lugar.esMar) {
             // 4. Zócalo de piedra rústica integrado a ras de suelo para absorber desniveles en pendiente
             const altoZocalo = 5.0;
-            const zocalo = new THREE.Mesh(
+            const zocaloGeo = aplicarUVBoxSecreto(
               new THREE.BoxGeometry(anchoX * 1.04, altoZocalo, profZ * 1.04),
-              matPiedra
+              anchoX * 1.04, altoZocalo, profZ * 1.04, 3.2
             );
+            const zocalo = new THREE.Mesh(zocaloGeo, matPiedra);
             // Queda a ras de suelo (+0.02m) y se entierra en el terreno para no dar aspecto elevado
             zocalo.position.set(0, -altoZocalo / 2 + 0.02, 0);
             zocalo.castShadow = true;
             zocalo.receiveShadow = true;
             grupo.add(zocalo);
 
-            // Escalón de acceso al frente de la cabaña asentado en el suelo
+            // Escalón de acceso labrado al frente de la cabaña asentado en el suelo
             const frenteZ = (profZ / 2) + 0.6;
-            const escalonEntrada = new THREE.Mesh(
+            const escalonGeo = aplicarUVBoxSecreto(
               new THREE.BoxGeometry(4.2, 0.15, 1.4),
-              matPiedraClara
+              4.2, 0.15, 1.4, 2.0
             );
+            const escalonEntrada = new THREE.Mesh(escalonGeo, matMosaico);
             escalonEntrada.position.set(0, 0.02, frenteZ);
             escalonEntrada.castShadow = true;
             escalonEntrada.receiveShadow = true;
@@ -515,9 +730,7 @@
             fuegoBase.receiveShadow = true;
             grupo.add(fuegoBase);
 
-            const llama = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 6), new THREE.MeshStandardMaterial({
-              color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 2.2
-            }));
+            const llama = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 6), kitSec.matLlama);
             llama.position.set(-3.8, 0.50, hogueraZ);
             grupo.add(llama);
 
@@ -660,18 +873,19 @@
       }
     } else if (lugar.tipo === 'altar') {
       // 3. ALTAR RÚNICO
-      // Plataforma cuadrada de piedra
-      const losaBase = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.35, 5.2), matPiedra);
+      // Plataforma cuadrada escalonada de piedra labrada y mosaico ceremonial
+      const losaBase = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(5.2, 0.35, 5.2), 5.2, 0.35, 5.2, 2.6), matPiedra);
       losaBase.position.y = 0.18;
       losaBase.castShadow = true; losaBase.receiveShadow = true;
       grupo.add(losaBase);
 
-      const losaSup = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.3, 3.6), matPiedraClara);
+      const losaSup = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(3.6, 0.3, 3.6), 3.6, 0.3, 3.6, 1.8), matMosaico);
       losaSup.position.y = 0.48;
+      losaSup.receiveShadow = true;
       grupo.add(losaSup);
 
       // Mesa de ofrendas central
-      const mesa = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.9, 1.2), matPiedra);
+      const mesa = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(2.0, 0.9, 1.2), 2.0, 0.9, 1.2, 1.8), matPiedraClara);
       mesa.position.y = 1.05;
       mesa.castShadow = true;
       grupo.add(mesa);
@@ -682,7 +896,7 @@
       grupo.add(runaPlaca);
 
       // Cuatro monolitos en las esquinas con runas (geometrías compartidas)
-      const geoPilarAltar = new THREE.BoxGeometry(0.55, 2.8, 0.55);
+      const geoPilarAltar = aplicarUVBoxSecreto(new THREE.BoxGeometry(0.55, 2.8, 0.55), 0.55, 2.8, 0.55, 1.8);
       const geoRunaPilar = new THREE.BoxGeometry(0.3, 1.4, 0.58);
       [[-2.0, -2.0], [2.0, -2.0], [-2.0, 2.0], [2.0, 2.0]].forEach(([px, pz]) => {
         const pilar = new THREE.Mesh(geoPilarAltar, matPiedra);
@@ -703,16 +917,16 @@
       }
 
     } else {
-      // 4. SANTUARIO DE PIEDRA Y LUZ (Círculo ceremonial de monolitos de estilo Stonehenge)
-      const baseCirculo = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 0.3, 24), matPiedra);
+      // 4. SANTUARIO DE PIEDRA Y LUZ (Círculo ceremonial de monolitos con pavimento de mosaico)
+      const baseCirculo = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 0.3, 16), matMosaico);
       baseCirculo.position.y = 0.15;
       baseCirculo.receiveShadow = true;
       grupo.add(baseCirculo);
 
       // 6 Monolitos en círculo con dintel (geometrías compartidas)
       const numPilares = 6;
-      const geoColSan = new THREE.BoxGeometry(0.7, 3.4, 0.5);
-      const geoDintelSan = new THREE.BoxGeometry(1.6, 0.35, 0.6);
+      const geoColSan = aplicarUVBoxSecreto(new THREE.BoxGeometry(0.7, 3.4, 0.5), 0.7, 3.4, 0.5, 2.0);
+      const geoDintelSan = aplicarUVBoxSecreto(new THREE.BoxGeometry(1.6, 0.35, 0.6), 1.6, 0.35, 0.6, 2.0);
       for (let i = 0; i < numPilares; i++) {
         const a = (i / numPilares) * Math.PI * 2;
         const px = Math.cos(a) * 4.4, pz = Math.sin(a) * 4.4;
@@ -722,7 +936,7 @@
         col.castShadow = true;
         grupo.add(col);
 
-        // Banda dorada superior
+        // Banda superior de sillería clara
         const dintel = new THREE.Mesh(geoDintelSan, matPiedraClara);
         dintel.position.set(px, 3.65, pz);
         dintel.lookAt(0, 3.65, 0);
@@ -755,13 +969,13 @@
 
     // Muros proporcionados de madera rústica integrados a ras de suelo (15.6m ancho x 6.4m alto x 12.0m profundidad)
     const ancho = 15.6, alto = 6.4, prof = 12.0;
-    const muroP = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, prof), matMadera);
+    const muroP = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(ancho, alto, prof), ancho, alto, prof, 3.2), matMadera);
     muroP.position.y = alto / 2 + 0.02;
     muroP.castShadow = true; muroP.receiveShadow = true;
     grupo.add(muroP);
 
     // Puerta robusta de madera
-    const puerta = new THREE.Mesh(new THREE.BoxGeometry(2.4, 4.0, 0.3), matMaderaOscura);
+    const puerta = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(2.4, 4.0, 0.3), 2.4, 4.0, 0.3, 2.0), matMaderaOscura);
     puerta.position.set(0, 2.0 + 0.02, (prof / 2) + 0.1);
     grupo.add(puerta);
 
@@ -781,19 +995,19 @@
       poste.castShadow = true;
       grupo.add(poste);
     });
-    const aleroPorche = new THREE.Mesh(new THREE.BoxGeometry(14.6, 0.35, 3.2), matMaderaOscura);
+    const aleroPorche = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(14.6, 0.35, 3.2), 14.6, 0.35, 3.2, 3.0), matMaderaOscura);
     aleroPorche.position.set(0, 6.0 + 0.02, (prof / 2) + 1.1);
     grupo.add(aleroPorche);
 
     // Zócalo de piedra rústica para absorción de desniveles a ras de suelo
     const altoZocalo = 4.0;
-    const zocaloProc = new THREE.Mesh(new THREE.BoxGeometry(ancho * 1.04, altoZocalo, prof * 1.04), matPiedra);
+    const zocaloProc = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(ancho * 1.04, altoZocalo, prof * 1.04), ancho * 1.04, altoZocalo, prof * 1.04, 3.2), matPiedra);
     zocaloProc.position.set(0, -altoZocalo / 2 + 0.02, 0);
     zocaloProc.castShadow = true; zocaloProc.receiveShadow = true;
     grupo.add(zocaloProc);
 
     // Chimenea de piedra
-    const chimenea = new THREE.Mesh(new THREE.BoxGeometry(1.8, 9.0, 1.8), matPiedra);
+    const chimenea = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(1.8, 9.0, 1.8), 1.8, 9.0, 1.8, 2.4), matPiedra);
     chimenea.position.set(5.4, 4.8 + 0.02, -3.2);
     chimenea.castShadow = true;
     grupo.add(chimenea);

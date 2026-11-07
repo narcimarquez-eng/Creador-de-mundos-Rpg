@@ -1111,13 +1111,13 @@
   <div id="bocadillo-rowan"></div>
 
   <script src="js/carga-archivos.js?v=20261101"></script>
-  <script defer src="js/casa-madera.js?v=20251029"></script>
+  <script defer src="js/casa-madera.js?v=20261107"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
-  <script defer src="js/lugares-secretos.js?v=20261101b"></script>
-  <script defer src="js/dungeon-generator.js?v=20261102"></script>
-  <script defer src="js/mazmorras.js?v=20261101"></script>
+  <script defer src="js/lugares-secretos.js?v=20261107"></script>
+  <script defer src="js/dungeon-generator.js?v=20261107"></script>
+  <script defer src="js/mazmorras.js?v=20261107"></script>
   <script defer src="js/acompanante.js?v=20261031"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
@@ -1129,12 +1129,12 @@
   <script type="module" src="js/world-core.js?v=20261030c"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
   <script type="module" src="js/pueblo-edits.js?v=20251029"></script>
-  <script type="module" src="js/village-core.js?v=20251029"></script>
+  <script type="module" src="js/village-core.js?v=20261107"></script>
   <script type="module" src="js/combat.js?v=20251029"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
-  <script type="module" src="js/terreno.js?v=20251029"></script>
-  <script type="module" src="js/decorado.js?v=20251029"></script>
+  <script type="module" src="js/terreno.js?v=20261107"></script>
+  <script type="module" src="js/decorado.js?v=20261107"></script>
   <script type="module" src="js/character.js?v=20261030d"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
@@ -1441,16 +1441,29 @@
   }
 
   // ===========================================================================
-  // Constructor de mallas con colores por vértice
+  // Constructor de mallas con colores por vértice y coordenadas UV
   // ===========================================================================
-  function MB() { this.p = []; this.c = []; }
-  MB.prototype.tri = function (a, b, c, col) {
-    [a, b, c].forEach(v => { this.p.push(v[0], v[1], v[2]); this.c.push(col[0], col[1], col[2]); });
+  function MB() { this.p = []; this.c = []; this.u = []; }
+  MB.prototype.tri = function (a, b, c, col, ua, ub, uc) {
+    const uvs = ua ? [ua, ub, uc] : [[a[0] * 0.35, a[2] * 0.35], [b[0] * 0.35, b[2] * 0.35], [c[0] * 0.35, c[2] * 0.35]];
+    [a, b, c].forEach((v, idx) => {
+      this.p.push(v[0], v[1], v[2]);
+      this.c.push(col[0], col[1], col[2]);
+      this.u.push(uvs[idx][0], uvs[idx][1]);
+    });
   };
   MB.prototype.quad = function (a, b, c, d, col) { this.tri(a, b, c, col); this.tri(a, c, d, col); };
+  MB.prototype.quadUV = function (a, b, c, d, col, ua, ub, uc, ud) {
+    this.tri(a, b, c, col, ua, ub, uc);
+    this.tri(a, c, d, col, ua, uc, ud);
+  };
   // Igual que tri/quad, pero con un color por vértice (la espuma de las orillas va en el rojo)
   MB.prototype.triC = function (a, b, c, ca, cb, cc) {
-    [[a, ca], [b, cb], [c, cc]].forEach(([v, col]) => { this.p.push(v[0], v[1], v[2]); this.c.push(col[0], col[1], col[2]); });
+    [[a, ca], [b, cb], [c, cc]].forEach(([v, col]) => {
+      this.p.push(v[0], v[1], v[2]);
+      this.c.push(col[0], col[1], col[2]);
+      this.u.push(v[0] * 0.35, v[2] * 0.35);
+    });
   };
   MB.prototype.quadC = function (a, b, c, d, ca, cb, cc, cd) { this.triC(a, b, c, ca, cb, cc); this.triC(a, c, d, ca, cc, cd); };
   MB.prototype.fan = function (center, ring, col) {
@@ -1472,11 +1485,12 @@
       this.quad(C[f[0]], C[f[1]], C[f[2]], C[f[3]], cc);
     });
   };
-  // Cinta de calle que sigue el terreno
+  // Cinta de calle que sigue el terreno con UV continuas a lo ancho (0..1) y a lo largo (cada 6 m)
   MB.prototype.ribbon = function (pts, w, col, offset, alt) {
     const altura = alt || H;
-    const L = [], R = [];
+    const L = [], R = [], D = [0];
     for (let i = 0; i < pts.length; i++) {
+      if (i > 0) D.push(D[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
       const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
       let tx = b.x - a.x, tz = b.z - a.z;
       const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
@@ -1485,12 +1499,16 @@
       L.push([p.x + nx, altura(p.x + nx, p.z + nz) + offset, p.z + nz]);
       R.push([p.x - nx, altura(p.x - nx, p.z - nz) + offset, p.z - nz]);
     }
-    for (let i = 0; i < pts.length - 1; i++) this.quad(L[i], R[i], R[i + 1], L[i + 1], col);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const v0 = D[i] / 6.0, v1 = D[i + 1] / 6.0;
+      this.quadUV(L[i], R[i], R[i + 1], L[i + 1], col, [0, v0], [1, v0], [1, v1], [0, v1]);
+    }
   };
   MB.prototype.geom = function () {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.u, 2));
     g.computeVertexNormals();
     return g;
   };
@@ -2399,19 +2417,199 @@
     });
   }
 
+  // Texturas y materiales compartidos de caminos de tierra, calzadas romanas y sillería de calzada
+  let _materialesCaminosCache = null;
+  function obtenerMaterialesCaminos() {
+    if (_materialesCaminosCache) return _materialesCaminosCache;
+    const maxAniso = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 8;
+    const prng = seed => {
+      let s = (seed >>> 0) || 1;
+      return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+    };
+    const crearParTexturas = (tam, pintar) => {
+      const c = document.createElement('canvas'); c.width = c.height = tam;
+      const b = document.createElement('canvas'); b.width = b.height = tam;
+      pintar(c.getContext('2d'), b.getContext('2d'), tam);
+      const map = new THREE.CanvasTexture(c);
+      map.wrapS = map.wrapT = THREE.RepeatWrapping;
+      map.colorSpace = THREE.SRGBColorSpace;
+      map.anisotropy = maxAniso;
+      const bump = new THREE.CanvasTexture(b);
+      bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+      bump.anisotropy = maxAniso;
+      return { map, bump };
+    };
+
+    // 1. Camino de tierra / sendero (512x512): tierra compactada, rodadas de carro, gravilla angular y bordes herbosos
+    const texTierra = crearParTexturas(512, (ctx, bctx, S) => {
+      const rnd = prng(4109);
+      ctx.fillStyle = '#e6dfd3'; ctx.fillRect(0, 0, S, S);
+      bctx.fillStyle = '#808080'; bctx.fillRect(0, 0, S, S);
+
+      // Bordes exteriores húmedos / herbosos (u cercano a 0 y 1)
+      const gIzq = ctx.createLinearGradient(0, 0, S * 0.16, 0);
+      gIzq.addColorStop(0, 'rgba(92,106,68,0.42)'); gIzq.addColorStop(1, 'rgba(92,106,68,0)');
+      ctx.fillStyle = gIzq; ctx.fillRect(0, 0, S * 0.16, S);
+      const gDer = ctx.createLinearGradient(S * 0.84, 0, S, 0);
+      gDer.addColorStop(0, 'rgba(92,106,68,0)'); gDer.addColorStop(1, 'rgba(92,106,68,0.42)');
+      ctx.fillStyle = gDer; ctx.fillRect(S * 0.84, 0, S * 0.16, S);
+
+      // Dos rodadas longitudinales de carro con ligero hundimiento en relieve
+      [0.29, 0.71].forEach(uRut => {
+        const rx = uRut * S, rw = S * 0.11;
+        const gr = ctx.createLinearGradient(rx - rw / 2, 0, rx + rw / 2, 0);
+        gr.addColorStop(0, 'rgba(95,78,58,0)');
+        gr.addColorStop(0.5, 'rgba(95,78,58,0.24)');
+        gr.addColorStop(1, 'rgba(95,78,58,0)');
+        ctx.fillStyle = gr; ctx.fillRect(rx - rw / 2, 0, rw, S);
+        bctx.fillStyle = '#5a5a5a'; bctx.fillRect(rx - rw * 0.32, 0, rw * 0.64, S);
+        // Marcas transversales sutiles de llanta y cascos
+        for (let y = 4; y < S; y += 14) {
+          ctx.fillStyle = 'rgba(72,58,42,0.14)';
+          ctx.fillRect(rx - rw * 0.28 + (rnd() - 0.5) * 6, y, rw * 0.56, 3);
+          bctx.fillStyle = '#484848';
+          bctx.fillRect(rx - rw * 0.26, y, rw * 0.52, 2);
+        }
+      });
+
+      // Grano fino de arena y tierra apisonada
+      for (let i = 0; i < 2400; i++) {
+        const x = rnd() * S, y = rnd() * S, w = 2 + rnd() * 5, h = 1 + rnd() * 4;
+        const v = 205 + ((rnd() * 42) | 0);
+        ctx.fillStyle = `rgba(${v},${(v * 0.96) | 0},${(v * 0.89) | 0},0.35)`;
+        ctx.fillRect(x, y, w, h);
+      }
+
+      // Gravilla facetada / cantos poligonales (sin redondeles circulares)
+      for (let i = 0; i < 420; i++) {
+        const x = rnd() * S, y = rnd() * S;
+        const rx = 2.2 + rnd() * 4.5, ry = 1.6 + rnd() * 3.4, ang = rnd() * Math.PI;
+        const lum = 155 + ((rnd() * 80) | 0);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+        ctx.fillStyle = `rgb(${lum},${(lum * 0.96) | 0},${(lum * 0.90) | 0})`;
+        ctx.beginPath();
+        ctx.moveTo(-rx, -ry * 0.4); ctx.lineTo(-rx * 0.3, -ry); ctx.lineTo(rx * 0.8, -ry * 0.6);
+        ctx.lineTo(rx, ry * 0.5); ctx.lineTo(rx * 0.2, ry); ctx.lineTo(-rx * 0.7, ry * 0.7);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(60,50,38,0.35)'; ctx.lineWidth = 0.8; ctx.stroke();
+        ctx.restore();
+
+        bctx.save(); bctx.translate(x, y); bctx.rotate(ang);
+        bctx.fillStyle = '#c4c4c4';
+        bctx.fillRect(-rx * 0.7, -ry * 0.7, rx * 1.4, ry * 1.4);
+        bctx.restore();
+      }
+    });
+
+    // 2. Base de calzada romana (512x512): losas aparejadas, espina central con rombos y bordillos labrados
+    const texCalzada = crearParTexturas(512, (ctx, bctx, S) => {
+      const rnd = prng(8821);
+      ctx.fillStyle = '#5c574f'; ctx.fillRect(0, 0, S, S);
+      bctx.fillStyle = '#262626'; bctx.fillRect(0, 0, S, S);
+
+      const filas = 8, altoF = S / filas;
+      for (let f = 0; f < filas; f++) {
+        const y0 = f * altoF;
+        // Hileras laterales de losas de calzada (entre bordillos y espina central)
+        const tramosX = [[8, S * 0.43], [S * 0.57, S - 8]];
+        tramosX.forEach(([xa, xb], idxLado) => {
+          let x = xa;
+          const cols = 3 + ((f + idxLado) % 2);
+          const paso = (xb - xa) / cols;
+          for (let c = 0; c < cols; c++) {
+            const w = c === cols - 1 ? (xb - x) : paso * (0.82 + rnd() * 0.34);
+            const x1 = Math.min(xb, x + w);
+            if (x1 - x > 8) {
+              const base = 206 + ((rnd() * 38) | 0);
+              const cal = rnd() < 0.45 ? 8 : -4;
+              ctx.fillStyle = `rgb(${Math.min(252, base + cal)},${base},${Math.max(175, base - 10)})`;
+              ctx.fillRect(x + 2, y0 + 2, x1 - x - 4, altoF - 4);
+              ctx.strokeStyle = 'rgba(255,252,244,0.38)'; ctx.lineWidth = 1.5;
+              ctx.strokeRect(x + 4, y0 + 4, x1 - x - 8, altoF - 8);
+              bctx.fillStyle = '#bcbcbc';
+              bctx.fillRect(x + 2, y0 + 2, x1 - x - 4, altoF - 4);
+              bctx.fillStyle = '#dcdcdc';
+              bctx.fillRect(x + 6, y0 + 6, Math.max(2, x1 - x - 12), Math.max(2, altoF - 12));
+            }
+            x = x1;
+          }
+        });
+
+        // Espina central romana (S*0.43 .. S*0.57) con losa tallada y azulejo/incrustación en rombo
+        const cx0 = S * 0.43 + 2, cw = S * 0.14 - 4, cxMid = S * 0.5, cyMid = y0 + altoF * 0.5;
+        ctx.fillStyle = f % 2 === 0 ? '#dfd5c3' : '#cfc5b4';
+        ctx.fillRect(cx0, y0 + 2, cw, altoF - 4);
+        ctx.fillStyle = '#8b7355';
+        ctx.beginPath();
+        ctx.moveTo(cxMid, y0 + 9); ctx.lineTo(cxMid + cw * 0.34, cyMid);
+        ctx.lineTo(cxMid, y0 + altoF - 9); ctx.lineTo(cxMid - cw * 0.34, cyMid);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#f5efe4'; ctx.lineWidth = 1.4; ctx.stroke();
+
+        bctx.fillStyle = '#c8c8c8'; bctx.fillRect(cx0, y0 + 2, cw, altoF - 4);
+        bctx.fillStyle = '#ececec';
+        bctx.beginPath();
+        ctx.moveTo(cxMid, y0 + 9);
+        bctx.moveTo(cxMid, y0 + 9); bctx.lineTo(cxMid + cw * 0.34, cyMid);
+        bctx.lineTo(cxMid, y0 + altoF - 9); bctx.lineTo(cxMid - cw * 0.34, cyMid);
+        bctx.closePath(); bctx.fill();
+      }
+    });
+
+    // 3. Micro-grano cincelado para las losas 3D cercanas de las calzadas (256x256, proyección mundial)
+    const texLosa3D = crearParTexturas(256, (ctx, bctx, S) => {
+      const rnd = prng(6151);
+      ctx.fillStyle = '#ebe6dc'; ctx.fillRect(0, 0, S, S);
+      bctx.fillStyle = '#909090'; bctx.fillRect(0, 0, S, S);
+      for (let i = 0; i < 1100; i++) {
+        const x = rnd() * S, y = rnd() * S, w = 2 + rnd() * 8, h = 1 + rnd() * 3;
+        const v = 212 + ((rnd() * 40) | 0);
+        ctx.fillStyle = `rgb(${v},${(v * 0.98) | 0},${(v * 0.95) | 0})`;
+        ctx.fillRect(x, y, w, h);
+        bctx.fillStyle = rnd() < 0.5 ? '#b4b4b4' : '#707070';
+        bctx.fillRect(x, y, w, h);
+      }
+      // Vetas minerales poligonales
+      ctx.strokeStyle = 'rgba(120,112,98,0.28)'; ctx.lineWidth = 1.2;
+      for (let v = 0; v < 9; v++) {
+        let vx = rnd() * S, vy = rnd() * S;
+        ctx.beginPath(); ctx.moveTo(vx, vy);
+        for (let k = 0; k < 4; k++) { vx += 14 + rnd() * 24; vy += (rnd() - 0.5) * 22; ctx.lineTo(vx, vy); }
+        ctx.stroke();
+      }
+    });
+
+    _materialesCaminosCache = {
+      tierra: new THREE.MeshLambertMaterial({
+        map: texTierra.map, bumpMap: texTierra.bump, bumpScale: 0.15,
+        vertexColors: true, side: THREE.DoubleSide
+      }),
+      calzada: new THREE.MeshLambertMaterial({
+        map: texCalzada.map, bumpMap: texCalzada.bump, bumpScale: 0.20,
+        vertexColors: true, side: THREE.DoubleSide
+      }),
+      ladrillos: new THREE.MeshLambertMaterial({
+        map: texLosa3D.map, bumpMap: texLosa3D.bump, bumpScale: 0.16,
+        vertexColors: true, side: THREE.DoubleSide
+      })
+    };
+    return _materialesCaminosCache;
+  }
+
   // Calzada romana: losas irregulares con juntas (sombreado en el material) y bordillos a los dos lados
   function pintarCalzada(mb, linea, alt) {
     const w = roadWidth('calzada');
-    mb.ribbon(linea, w, rgb('#8c867d'), 0.35, alt);
-    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#a8a29e'), 0.5, alt));
+    mb.ribbon(linea, w, rgb('#989186'), 0.35, alt);
+    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#b5afa6'), 0.5, alt));
   }
 
   // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su altura y su tono.
   // Se reparte en tramos de TRAMO_PIEDRA metros; solo se dibujan los que están a menos de PIEDRA_VISIBLE_M
-  // de la cámara (ver actualizarPiedras). Lejos, la calzada es lisa: solo la junta oscura de la base.
+  // de la cámara (ver actualizarPiedras). Lejos, la calzada conserva la textura labrada de su base.
   const TRAMO_PIEDRA = 20, PIEDRA_VISIBLE_M = 80;
   function pintarLadrillos(linea, alt, w) {
     const PASO = 0.2, desdeCalzada = 0.35, JUNTA = 0.05;
+    const matLosa = obtenerMaterialesCaminos().ladrillos;
     // Muestras de la línea cada PASO metros: posición, normal hacia la izquierda y distancia recorrida
     const m = [];
     let s = 0;
@@ -2448,12 +2646,24 @@
       const ancho = Math.min(mitad - t, 0.6 + azar() * 0.4);
       const ta = t + JUNTA, tb = t + ancho - JUNTA;
       if (tb - ta > 0.15) {
+        const esEjeCentral = Math.abs((ta + tb) * 0.5) < 0.48;
         // Piedras de largo variable en la hilera, con un desfase inicial al azar
         let sv = -azar() * 1.2;
+        let idxP = 0;
         while (sv < total) {
-          const largo = 0.8 + azar() * 0.8;
+          const largo = esEjeCentral ? 0.95 : (0.8 + azar() * 0.8);
           const sa = Math.max(0, sv + JUNTA), sb = Math.min(total, sv + largo - JUNTA);
-          if (sb - sa > 0.3) piedras.push({ sa, sb, ta, tb, h: azar() * 0.06, gris: 0.52 + azar() * 0.28 });  // 0–6 cm: unas sobresalen más
+          if (sb - sa > 0.3) {
+            const fam = azar();
+            piedras.push({
+              sa, sb, ta, tb,
+              h: (esEjeCentral ? 0.032 : 0.008) + azar() * 0.048,
+              gris: 0.56 + azar() * 0.26,
+              fam,
+              esEje: esEjeCentral,
+              par: (idxP++ % 2) === 0
+            });
+          }
           sv += largo;
         }
       }
@@ -2469,7 +2679,17 @@
     tramos.forEach((lista, k) => {
       const mb = new MB();
       lista.forEach(p => {
-        const color = [p.gris, p.gris * 0.98, p.gris * 0.94], pared = [p.gris * 0.7, p.gris * 0.68, p.gris * 0.64];
+        let color;
+        if (p.esEje) {
+          color = p.par ? [0.84, 0.78, 0.67] : [0.50, 0.49, 0.47];
+        } else if (p.fam < 0.32) {
+          color = [p.gris * 1.06, p.gris * 0.99, p.gris * 0.87]; // arenisca cálida / travertino
+        } else if (p.fam < 0.62) {
+          color = [p.gris * 0.94, p.gris * 0.96, p.gris * 1.01]; // pizarra / granito azulado
+        } else {
+          color = [p.gris, p.gris * 0.97, p.gris * 0.92];        // caliza natural
+        }
+        const pared = [color[0] * 0.68, color[1] * 0.68, color[2] * 0.66];
         const suelo = [en(p.sa, p.ta), en(p.sb, p.ta), en(p.sb, p.tb), en(p.sa, p.tb)];
         const tope = suelo.map(q => ({ x: q.x, y: q.y + p.h, z: q.z }));
         const P = q => [q.x, q.y, q.z];
@@ -2481,7 +2701,7 @@
         }
       });
       const c = en(Math.min(total, (k + 0.5) * TRAMO_PIEDRA), 0);
-      const malla = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      const malla = new THREE.Mesh(mb.geom(), matLosa);
       malla.visible = false;
       scene.add(malla);
       ladrillosTramos.push({ malla, x: c.x, z: c.z });
@@ -2560,9 +2780,12 @@
       if (r.kind === 'calzada') { pintarCalzada(mbCalzada, linea, alturaCamino); pintarLadrillos(linea, alturaCamino, roadWidth('calzada')); }
       else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.35, alturaCamino);
     });
-    roadMesh = new THREE.Mesh(mb.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    const matsCamino = obtenerMaterialesCaminos();
+    roadMesh = new THREE.Mesh(mb.geom(), matsCamino.tierra);
+    roadMesh.receiveShadow = true;
     scene.add(roadMesh);
-    calzadaMesh = new THREE.Mesh(mbCalzada.geom(), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    calzadaMesh = new THREE.Mesh(mbCalzada.geom(), matsCamino.calzada);
+    calzadaMesh.receiveShadow = true;
     scene.add(calzadaMesh);
   }
 

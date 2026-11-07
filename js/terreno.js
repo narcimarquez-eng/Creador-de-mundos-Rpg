@@ -72,10 +72,18 @@
           '  if (b > 0.001) c = mix(c, texture(tCapas, vec3(mat2(0.28, 0.96, -0.96, 0.28) * uv * 1.13 + 0.67, base + 2.0)).rgb, b);',
           '  return c;',
           '}',
-          // Cerca, una repetición cada 8 m; lejos (de 120 a 600 m), cada 32 m para que no se vea el patrón
-          'vec3 claseLejos(float base, vec2 xz, float sem, float tL) {',
+          // De muy cerca (< 38 m) combina escala fina (2,35 m, girada para no alinear con la media) con la de 8 m;
+          // de lejos (120 a 600 m) pasa a 32 m para evitar repetición visible.
+          'vec3 claseLejos(float base, vec2 xz, float sem, float tC, float tL) {',
           '  vec3 c = vec3(0.0);',
-          '  if (tL < 0.999) c = claseTex(base, xz, sem, 1.0 / 8.0) * (1.0 - tL);',
+          '  if (tL < 0.999) {',
+          '    vec3 cMed = claseTex(base, xz, sem, 1.0 / 8.0);',
+          '    if (tC > 0.001) {',
+          '      vec3 cFina = claseTex(base, mat2(0.936, 0.352, -0.352, 0.936) * xz + vec2(3.7, -2.3), sem + 2.1, 1.0 / 2.35);',
+          '      cMed = mix(cMed, cFina, 0.52 * tC);',
+          '    }',
+          '    c = cMed * (1.0 - tL);',
+          '  }',
           '  if (tL > 0.001) c += claseTex(base, xz, sem, 1.0 / 32.0) * tL;',
           '  return c;',
           '}'
@@ -83,18 +91,20 @@
         .replace('#include <color_fragment>', [
           '#include <color_fragment>',
           'float dCam = length(vTWorld.xz - cameraPosition.xz);',
+          'float tC = 1.0 - smoothstep(5.0, 38.0, dCam);',
           'float tL = smoothstep(120.0, 600.0, dCam);',
           'vec3 tex = vec3(0.0);',
           'if (uTexOn > 0.5) {',
-          '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tL) * vSplat.x;',
-          '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tL) * vSplat.y;',
-          '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tL) * vSplat.z;',
-          '  if (vSplat.w > 0.001) tex += claseLejos(9.0, vTWorld.xz, 5.5, tL) * vSplat.w;',
-          '  if (vSnow > 0.001) tex += claseLejos(12.0, vTWorld.xz, 9.2, tL) * vSnow;',
+          '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tC, tL) * vSplat.x;',
+          '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tC, tL) * vSplat.y;',
+          '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * vSplat.z;',
+          '  if (vSplat.w > 0.001) tex += claseLejos(9.0, vTWorld.xz, 5.5, tC, tL) * vSplat.w;',
+          '  if (vSnow > 0.001) tex += claseLejos(12.0, vTWorld.xz, 9.2, tC, tL) * vSnow;',
           '}',
           'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
+          'float micro = 1.0 + tC * ((ruidoValor(vTWorld.xz * 3.4) - 0.5) * 0.16 + (ruidoValor(vTWorld.xz * 9.6 + 5.1) - 0.5) * 0.10);',
           'vec3 tinte = mix(vec3(1.0, 0.97, 0.9), vec3(0.93, 1.02, 0.88), ruidoValor(vTWorld.xz * 0.006 + 17.0));',
-          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * tinte;'
+          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte;'
         ].join('\n'));
     };
     return m;

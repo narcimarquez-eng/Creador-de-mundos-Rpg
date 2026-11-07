@@ -66,9 +66,167 @@
   // Distancia en el plano de (x, z) a la caja de una celda
   const distCaja = (c, x, z) => Math.hypot(Math.max(c.x0 - x, 0, x - c.x1), Math.max(c.z0 - z, 0, z - c.z1));
 
+  let _decorRef = null;
+  let _decorMatCache = null;
+
+  function aplicarUVBoxDecor(geo, w, h, d, esc) {
+    if (!geo || !geo.attributes || !geo.attributes.uv || typeof geo.attributes.uv.setXY !== 'function') return geo;
+    const uv = geo.attributes.uv;
+    if (uv.count < 24) return geo;
+    const s = esc || 2.2;
+    const dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+    for (let c = 0; c < 6; c++) {
+      const u = dims[c][0] / s, v = dims[c][1] / s, b = c * 4;
+      uv.setXY(b, 0, v); uv.setXY(b + 1, u, v); uv.setXY(b + 2, 0, 0); uv.setXY(b + 3, u, 0);
+    }
+    uv.needsUpdate = true;
+    return geo;
+  }
+
+  function obtenerMaterialesDecorado(THREE) {
+    if (_decorMatCache && _decorRef === THREE) return _decorMatCache;
+    let roca = { map: null, bump: null };
+    let muro = { map: null, bump: null };
+    let valla = { map: null, bump: null };
+
+    if (typeof document !== 'undefined' && THREE && THREE.CanvasTexture) {
+      const prng = seed => {
+        let s = (seed >>> 0) || 1;
+        return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+      };
+      const par = (tam, fn) => {
+        const c = document.createElement('canvas'); c.width = c.height = tam;
+        const b = document.createElement('canvas'); b.width = b.height = tam;
+        fn(c.getContext('2d'), b.getContext('2d'), tam);
+        const map = new THREE.CanvasTexture(c);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) map.colorSpace = THREE.SRGBColorSpace;
+        map.anisotropy = 8;
+        const bump = new THREE.CanvasTexture(b);
+        bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+        bump.anisotropy = 8;
+        return { map, bump };
+      };
+
+      // 1. Roca natural fracturada con vetas minerales y líquenes (256x256)
+      roca = par(256, (ctx, bctx, S) => {
+        const r = prng(1907);
+        ctx.fillStyle = '#dcd8d0'; ctx.fillRect(0, 0, S, S);
+        bctx.fillStyle = '#888888'; bctx.fillRect(0, 0, S, S);
+        for (let i = 0; i < 950; i++) {
+          const x = r() * S, y = r() * S, w = 3 + r() * 14, h = 2 + r() * 10;
+          const v = 185 + ((r() * 62) | 0);
+          ctx.fillStyle = `rgb(${v},${(v * 0.98) | 0},${(v * 0.94) | 0})`;
+          ctx.fillRect(x, y, w, h);
+          bctx.fillStyle = r() < 0.5 ? '#bababa' : '#626262';
+          bctx.fillRect(x, y, w, h);
+        }
+        // Fisuras y vetas angulares
+        for (let f = 0; f < 16; f++) {
+          let vx = r() * S, vy = r() * S;
+          ctx.strokeStyle = f % 3 === 0 ? 'rgba(245,242,235,0.45)' : 'rgba(65,60,54,0.42)';
+          ctx.lineWidth = 1.2 + r();
+          bctx.strokeStyle = f % 3 === 0 ? '#dcdcdc' : '#2c2c2c';
+          bctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(vx, vy);
+          bctx.beginPath(); bctx.moveTo(vx, vy);
+          for (let k = 0; k < 4; k++) {
+            vx += (r() - 0.3) * 38; vy += (r() - 0.5) * 34;
+            ctx.lineTo(vx, vy); bctx.lineTo(vx, vy);
+          }
+          ctx.stroke(); bctx.stroke();
+        }
+        // Manchas poligonales de liquen verde-ocre
+        for (let l = 0; l < 28; l++) {
+          const lx = r() * S, ly = r() * S;
+          ctx.fillStyle = r() < 0.6 ? 'rgba(96,118,64,0.34)' : 'rgba(156,148,84,0.30)';
+          ctx.fillRect(lx, ly, 5 + r() * 11, 4 + r() * 8);
+        }
+      });
+
+      // 2. Mampostería seca de piedra rústica para ruinas y muretes (512x512, sin elipses)
+      muro = par(512, (ctx, bctx, S) => {
+        const r = prng(4409);
+        ctx.fillStyle = '#4a463f'; ctx.fillRect(0, 0, S, S);
+        bctx.fillStyle = '#1c1c1c'; bctx.fillRect(0, 0, S, S);
+        const hileras = 10;
+        let y = 0;
+        for (let f = 0; f < hileras; f++) {
+          const hF = f === hileras - 1 ? (S - y) : Math.round((S / hileras) * (0.8 + r() * 0.4));
+          let x = -((f % 2) * 36);
+          while (x < S) {
+            const wB = 46 + ((r() * 58) | 0);
+            const x0 = Math.max(0, x + 3), x1 = Math.min(S, x + wB - 3);
+            const y0 = y + 3, y1 = Math.min(S, y + hF - 3);
+            if (x1 - x0 > 8 && y1 - y0 > 8) {
+              const v = 186 + ((r() * 54) | 0);
+              const ch = 4;
+              ctx.fillStyle = `rgb(${v},${(v * 0.97) | 0},${(v * 0.91) | 0})`;
+              ctx.beginPath();
+              ctx.moveTo(x0 + ch, y0); ctx.lineTo(x1 - ch, y0); ctx.lineTo(x1, y0 + ch);
+              ctx.lineTo(x1, y1 - ch); ctx.lineTo(x1 - ch, y1); ctx.lineTo(x0 + ch, y1);
+              ctx.lineTo(x0, y1 - ch); ctx.lineTo(x0, y0 + ch); ctx.closePath(); ctx.fill();
+              ctx.strokeStyle = 'rgba(255,250,240,0.28)'; ctx.lineWidth = 1.4;
+              ctx.strokeRect(x0 + 3, y0 + 3, Math.max(2, x1 - x0 - 6), Math.max(2, y1 - y0 - 6));
+
+              bctx.fillStyle = '#acacac'; bctx.fillRect(x0 + 1, y0 + 1, x1 - x0 - 2, y1 - y0 - 2);
+              bctx.fillStyle = '#e0e0e0'; bctx.fillRect(x0 + 5, y0 + 5, Math.max(2, x1 - x0 - 10), Math.max(2, y1 - y0 - 10));
+
+              if (r() < 0.3) {
+                ctx.fillStyle = 'rgba(74,108,52,0.42)';
+                ctx.fillRect(x0 + 4 + r() * 14, y1 - 8, 10 + r() * 14, 5);
+              }
+            }
+            x += wB;
+          }
+          y += hF;
+        }
+      });
+
+      // 3. Madera hendida envejecida para vallas de caminos (256x256)
+      valla = par(256, (ctx, bctx, S) => {
+        const r = prng(7717);
+        ctx.fillStyle = '#dfd3c0'; ctx.fillRect(0, 0, S, S);
+        bctx.fillStyle = '#989898'; bctx.fillRect(0, 0, S, S);
+        for (let i = 0; i < 42; i++) {
+          const y0 = (i / 42) * S;
+          ctx.strokeStyle = i % 3 === 0 ? 'rgba(72,48,28,0.46)' : 'rgba(130,98,64,0.32)';
+          ctx.lineWidth = 1 + r() * 1.6;
+          bctx.strokeStyle = i % 3 === 0 ? '#525252' : '#c8c8c8';
+          bctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.moveTo(0, y0);
+          bctx.beginPath(); bctx.moveTo(0, y0);
+          for (let x = 16; x <= S; x += 16) {
+            const yy = y0 + Math.sin(x * 0.04 + i) * 2.2;
+            ctx.lineTo(x, yy); bctx.lineTo(x, yy);
+          }
+          ctx.stroke(); bctx.stroke();
+        }
+      });
+    }
+
+    _decorRef = THREE;
+    _decorMatCache = {
+      rocaStd: new THREE.MeshStandardMaterial({
+        color: '#ffffff', map: roca.map, bumpMap: roca.bump, bumpScale: 0.16, roughness: 0.92
+      }),
+      rocaLambert: new THREE.MeshLambertMaterial({
+        color: '#ffffff', map: roca.map, bumpMap: roca.bump, bumpScale: 0.16, flatShading: true
+      }),
+      mamposteria: new THREE.MeshLambertMaterial({
+        color: '#ffffff', map: muro.map, bumpMap: muro.bump, bumpScale: 0.22
+      }),
+      maderaValla: new THREE.MeshLambertMaterial({
+        color: '#ffffff', map: valla.map, bumpMap: valla.bump, bumpScale: 0.14
+      })
+    };
+    return _decorMatCache;
+  }
+
   function generar(THREE, o) {
     const rng = o.rng, L = o.limites;
     const grupo = new THREE.Group();
+    const matsDecor = obtenerMaterialesDecorado(THREE);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
     const euler = new THREE.Euler();
     const ponerInstancia = (mesh, i, x, y, z, sx, sy, sz, ry, color) => {
@@ -119,9 +277,17 @@
       // Con New-Rol: tres formas de canto (cantos rodados de su generador); si no, el icosaedro de arriba
       const formas = o.props ? [1, 2, 3].map(s => o.props.rocaGeo(s, 3)) : [rocaGeo];
       formas.forEach((geo, j) => {
+        if (geo && geo.attributes && geo.attributes.position && !geo.attributes.uv) {
+          const gp = geo.attributes.position, uvArr = new Float32Array(gp.count * 2);
+          for (let vi = 0; vi < gp.count; vi++) {
+            uvArr[vi * 2] = gp.getX(vi) * 0.6 + gp.getY(vi) * 0.35;
+            uvArr[vi * 2 + 1] = gp.getZ(vi) * 0.6 + gp.getY(vi) * 0.35;
+          }
+          geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvArr, 2));
+        }
         const lista = rocas.filter(r => formas.length === 1 || r.v === j);
         if (!lista.length) return;
-        const malla = new THREE.InstancedMesh(geo, o.props ? new THREE.MeshStandardMaterial({ roughness: 0.92 }) : material({ flatShading: true }), lista.length);
+        const malla = new THREE.InstancedMesh(geo, o.props ? matsDecor.rocaStd : matsDecor.rocaLambert, lista.length);
         lista.forEach((r, i) => {
           ponerInstancia(malla, i, r.x, o.altura(r.x, r.z) - 0.15 * r.tam, r.z, r.tam, r.tam * (0.55 + 0.3 * rng.next()), r.tam * (0.8 + 0.3 * rng.next()), r.ry, r.color);
         });
@@ -201,7 +367,7 @@
 
     // ---------------------------------------------------------------- Casas en ruinas
     // Restos de muros de piedra de altura irregular, con cascotes alrededor
-    const muroGeo = new THREE.BoxGeometry(1, 1, 1);
+    const muroGeo = aplicarUVBoxDecor(new THREE.BoxGeometry(1, 1, 1), 5.2, 2.2, 0.7, 2.4);
     muroGeo.translate(0, 0.5, 0);
     const ruinas = [];
     const celdaR = 320;
@@ -219,10 +385,10 @@
     }
     if (ruinas.length) {
       const total = ruinas.reduce((a, r) => a + r.muros.length, 0);
-      const malla = new THREE.InstancedMesh(muroGeo, material(), total);
+      const malla = new THREE.InstancedMesh(muroGeo, matsDecor.mamposteria, total);
       let i = 0;
       ruinas.forEach(r => r.muros.forEach(w => {
-        ponerInstancia(malla, i++, w.x, o.altura(w.x, w.z), w.z, w.ancho, w.alto, w.grueso, w.ry, 0x9c9488 + (Math.floor(rng.next() * 3) * 0x080808));
+        ponerInstancia(malla, i++, w.x, o.altura(w.x, w.z), w.z, w.ancho, w.alto, w.grueso, w.ry, 0xa89f92 + (Math.floor(rng.next() * 3) * 0x080808));
       }));
       malla.instanceMatrix.needsUpdate = true;
       malla.instanceColor.needsUpdate = true;
@@ -231,8 +397,8 @@
       // Cascotes: rocas pequeñas junto a los muros
       const cascotes = [];
       ruinas.forEach(r => { for (let k = 0; k < 6; k++) cascotes.push({ x: r.cx + (rng.next() - 0.5) * 22, z: r.cz + (rng.next() - 0.5) * 22, tam: 0.3 + rng.next() * 0.7, ry: rng.next() * 6.28 }); });
-      const cm = new THREE.InstancedMesh(rocaGeo, material({ flatShading: true }), cascotes.length);
-      cascotes.forEach((c, j) => ponerInstancia(cm, j, c.x, o.altura(c.x, c.z) - 0.1, c.z, c.tam, c.tam * 0.6, c.tam, c.ry, 0x8d8680));
+      const cm = new THREE.InstancedMesh(rocaGeo, matsDecor.rocaLambert, cascotes.length);
+      cascotes.forEach((c, j) => ponerInstancia(cm, j, c.x, o.altura(c.x, c.z) - 0.1, c.z, c.tam, c.tam * 0.6, c.tam, c.ry, 0x989088));
       cm.instanceMatrix.needsUpdate = true;
       cm.instanceColor.needsUpdate = true;
       cm.userData.lejos = LEJOS.cascotes;
@@ -319,17 +485,17 @@
       }
     });
     if (postes.length) {
-      const pGeo = new THREE.BoxGeometry(0.16, 1.5, 0.16); pGeo.translate(0, 0.75, 0);
-      const pm = new THREE.InstancedMesh(pGeo, material(), postes.length);
-      postes.forEach((c, j) => ponerInstancia(pm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0x6b4a2b));
+      const pGeo = aplicarUVBoxDecor(new THREE.BoxGeometry(0.16, 1.5, 0.16), 0.16, 1.5, 0.16, 0.9); pGeo.translate(0, 0.75, 0);
+      const pm = new THREE.InstancedMesh(pGeo, matsDecor.maderaValla, postes.length);
+      postes.forEach((c, j) => ponerInstancia(pm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0x7d5a38));
       pm.instanceMatrix.needsUpdate = true; pm.instanceColor.needsUpdate = true;
       pm.userData.lejos = LEJOS.vallas;
       grupo.add(pm);
-      const tGeo = new THREE.BoxGeometry(tramo, 0.09, 0.09);
-      const tm = new THREE.InstancedMesh(tGeo, material(), travesanos.length * 2);
+      const tGeo = aplicarUVBoxDecor(new THREE.BoxGeometry(tramo, 0.09, 0.09), tramo, 0.09, 0.09, 1.2);
+      const tm = new THREE.InstancedMesh(tGeo, matsDecor.maderaValla, travesanos.length * 2);
       travesanos.forEach((c, j) => {
-        ponerInstancia(tm, j * 2, c.x, c.y + 0.55, c.z, 1, 1, 1, c.ry, 0x7a5a36);
-        ponerInstancia(tm, j * 2 + 1, c.x, c.y + 1.1, c.z, 1, 1, 1, c.ry, 0x7a5a36);
+        ponerInstancia(tm, j * 2, c.x, c.y + 0.55, c.z, 1, 1, 1, c.ry, 0x8c6842);
+        ponerInstancia(tm, j * 2 + 1, c.x, c.y + 1.1, c.z, 1, 1, 1, c.ry, 0x8c6842);
       });
       tm.instanceMatrix.needsUpdate = true; tm.instanceColor.needsUpdate = true;
       tm.userData.lejos = LEJOS.vallas;
@@ -346,9 +512,9 @@
       });
     }
     if (muretes.length) {
-      const mGeo = new THREE.BoxGeometry(tramo, 0.9, 0.5); mGeo.translate(0, 0.45, 0);
-      const mm = new THREE.InstancedMesh(mGeo, material(), muretes.length);
-      muretes.forEach((c, j) => ponerInstancia(mm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0xa29a8c));
+      const mGeo = aplicarUVBoxDecor(new THREE.BoxGeometry(tramo, 0.9, 0.5), tramo, 0.9, 0.5, 2.0); mGeo.translate(0, 0.45, 0);
+      const mm = new THREE.InstancedMesh(mGeo, matsDecor.mamposteria, muretes.length);
+      muretes.forEach((c, j) => ponerInstancia(mm, j, c.x, c.y, c.z, 1, 1, 1, c.ry, 0xb2aa9c));
       mm.instanceMatrix.needsUpdate = true; mm.instanceColor.needsUpdate = true;
       mm.userData.lejos = LEJOS.muretes;
       grupo.add(mm);

@@ -363,14 +363,14 @@
       const dCtx = dCanvas.getContext('2d');
       const bCtx = bCanvas.getContext('2d');
 
-      // --- BANDA 1 (Y: 0 - 512): TEJA ESCAMADA CURVA DE ALTA RESOLUCIÓN ---
+      // --- BANDA 1 (Y: 0 - 512): TEJA ESCAMADA CURVA DE ALTA RESOLUCIÓN CON PÁTINA ---
       dCtx.fillStyle = styleObj.roofHex;
       dCtx.fillRect(0, 0, size, 512);
       bCtx.fillStyle = '#404040';
       bCtx.fillRect(0, 0, size, 512);
 
-      const tileRows = 12;
-      const tileCols = 48;
+      const tileRows = 14;
+      const tileCols = 52;
       const rH = 512 / tileRows;
       const cW = size / tileCols;
 
@@ -382,12 +382,22 @@
           const gD = dCtx.createLinearGradient(x, y, x + cW, y + rH);
           gD.addColorStop(0.0, styleObj.roofAltHex);
           gD.addColorStop(0.45, styleObj.roofHex);
-          gD.addColorStop(0.85, '#0f172a');
+          gD.addColorStop(0.88, '#0f172a');
           dCtx.fillStyle = gD;
           dCtx.fillRect(x + 2, y + 2, cW - 3, rH - 3);
 
+          // Variación individual por teja cocida y pátina de liquen sutil
+          const hVar = ((r * 19 + c * 31) & 15) / 15;
+          if (hVar > 0.65) {
+            dCtx.fillStyle = 'rgba(255,235,205,0.10)';
+            dCtx.fillRect(x + 4, y + 3, cW - 8, rH - 8);
+          } else if (hVar < 0.18) {
+            dCtx.fillStyle = 'rgba(63,98,18,0.22)';
+            dCtx.fillRect(x + 3, y + rH - 10, cW * 0.6, 5);
+          }
+
           // Sombra inferior de solape de cada hilada de teja
-          dCtx.fillStyle = 'rgba(0,0,0,0.45)';
+          dCtx.fillStyle = 'rgba(0,0,0,0.48)';
           dCtx.fillRect(x, y + rH - 5, cW, 5);
 
           // Bump Map: lomo convexo blanco y canal cóncavo negro
@@ -400,31 +410,44 @@
         }
       }
 
-      // --- BANDA 2 (Y: 512 - 1024): ESTUCO MEDIEVAL + ENTRAMADO DE VIGAS ---
-      dCtx.fillStyle = '#f8fafc';
+      // --- BANDA 2 (Y: 512 - 1024): ESTUCO DE CAL MEDIEVAL + ENTRAMADO DE VIGAS Y CLAVIJAS ---
+      const gradStucco = dCtx.createLinearGradient(0, 512, 0, 1024);
+      gradStucco.addColorStop(0.0, '#f8fafc');
+      gradStucco.addColorStop(0.75, '#f1f5f9');
+      gradStucco.addColorStop(1.0, '#cbd5e1');
+      dCtx.fillStyle = gradStucco;
       dCtx.fillRect(0, 512, size, 512);
-      bCtx.fillStyle = '#909090';
+      bCtx.fillStyle = '#929292';
       bCtx.fillRect(0, 512, size, 512);
 
-      for (let i = 0; i < 24000; i++) {
+      for (let i = 0; i < 28000; i++) {
         const rx = Math.random() * size;
         const ry = 512 + Math.random() * 512;
-        dCtx.fillStyle = i % 2 === 0 ? 'rgba(100,116,139,0.22)' : 'rgba(255,255,255,0.4)';
-        dCtx.fillRect(rx, ry, 4, 4);
-        bCtx.fillStyle = i % 2 === 0 ? '#707070' : '#b5b5b5';
+        dCtx.fillStyle = i % 3 === 0 ? 'rgba(71,85,105,0.20)' : (i % 3 === 1 ? 'rgba(255,255,255,0.42)' : 'rgba(180,160,130,0.14)');
+        dCtx.fillRect(rx, ry, 3.5, 3.5);
+        bCtx.fillStyle = i % 2 === 0 ? '#747474' : '#b4b4b4';
         bCtx.fillRect(rx, ry, 3, 3);
       }
 
-      // Vigas horizontales, verticales y tornapuntas diagonales (Timber Framing)
-      dCtx.fillStyle = styleObj.woodHex;
-      bCtx.fillStyle = '#e5e5e5';
+      // Vigas horizontales, verticales y tornapuntas diagonales con veta y clavijas
       const drawBeam = (x, y, w, h) => {
         dCtx.fillStyle = styleObj.woodHex;
         dCtx.fillRect(x, y, w, h);
+        dCtx.strokeStyle = 'rgba(0,0,0,0.28)';
+        dCtx.lineWidth = 1.5;
+        if (w > h) {
+          for (let gy = y + 4; gy < y + h - 3; gy += 5) {
+            dCtx.beginPath(); dCtx.moveTo(x, gy); dCtx.lineTo(x + w, gy); dCtx.stroke();
+          }
+        } else {
+          for (let gx = x + 4; gx < x + w - 3; gx += 5) {
+            dCtx.beginPath(); dCtx.moveTo(gx, y); dCtx.lineTo(gx, y + h); dCtx.stroke();
+          }
+        }
         dCtx.strokeStyle = '#090502';
         dCtx.lineWidth = 4;
         dCtx.strokeRect(x, y, w, h);
-        bCtx.fillStyle = '#e0e0e0';
+        bCtx.fillStyle = '#e4e4e4';
         bCtx.fillRect(x, y, w, h);
       };
 
@@ -433,7 +456,6 @@
       drawBeam(0, 755, size, 20);
       for (let x = 0; x < size; x += 256) {
         drawBeam(x, 512, 26, 512);
-        // Riostras diagonales en estilo europeo/fantasía
         dCtx.strokeStyle = styleObj.woodHex;
         dCtx.lineWidth = 20;
         dCtx.beginPath();
@@ -442,68 +464,94 @@
         dCtx.lineTo(x + 256, 1024 - 26);
         dCtx.stroke();
 
-        bCtx.strokeStyle = '#d8d8d8';
+        bCtx.strokeStyle = '#dcdcdc';
         bCtx.lineWidth = 20;
         bCtx.beginPath();
         bCtx.moveTo(x + 26, 1024 - 26);
         bCtx.lineTo(x + 128, 775);
         bCtx.lineTo(x + 256, 1024 - 26);
         bCtx.stroke();
+
+        // Clavijas cuadradas de ensamblaje de carpintería
+        dCtx.fillStyle = '#1c0a02';
+        dCtx.fillRect(x + 9, 761, 8, 8);
+        dCtx.fillRect(x + 9, 522, 8, 8);
+        bCtx.fillStyle = '#ffffff';
+        bCtx.fillRect(x + 9, 761, 8, 8);
       }
 
-      // --- BANDA 3 (Y: 1024 - 1536): SILLERÍA DE PIEDRA BISELADA CON JUNTA PROFUNDA ---
-      // Fondo de mortero oscuro y hundido
-      dCtx.fillStyle = '#1e293b';
+      // --- BANDA 3 (Y: 1024 - 1536): SILLERÍA DE PIEDRA LABRADA CON BISEL, VETAS Y JUNTA PROFUNDA ---
+      dCtx.fillStyle = '#16202e';
       dCtx.fillRect(0, 1024, size, 512);
       bCtx.fillStyle = '#050505';
       bCtx.fillRect(0, 1024, size, 512);
 
-      const stRows = 8;
+      const stRows = 9;
       const stH = 512 / stRows;
-      const stonePalette = [styleObj.stoneHex, '#64748b', '#475569', '#94a3b8', '#57534e'];
+      const stonePalette = [styleObj.stoneHex, '#64748b', '#475569', '#94a3b8', '#57534e', '#78716c'];
 
       for (let r = 0; r < stRows; r++) {
         const y = 1024 + r * stH;
-        let xCursor = (r % 2 === 0) ? 0 : -70;
+        let xCursor = (r % 2 === 0) ? 0 : -68;
         while (xCursor < size) {
-          const blockW = 110 + ((r * 37 + xCursor) % 65);
-          const pad = 5; // Junta de mortero
+          const blockW = 98 + ((r * 41 + Math.abs(xCursor)) % 68);
+          const pad = 4.5;
           const bx = xCursor + pad;
           const by = y + pad;
           const bw = blockW - pad * 2;
           const bh = stH - pad * 2;
 
-          // Color individual por sillar de piedra
-          dCtx.fillStyle = stonePalette[Math.abs(r * 13 + xCursor) % stonePalette.length];
+          const baseCol = stonePalette[Math.abs(r * 13 + xCursor) % stonePalette.length];
+          const gStone = dCtx.createLinearGradient(bx, by, bx + bw, by + bh);
+          gStone.addColorStop(0.0, baseCol);
+          gStone.addColorStop(0.6, styleObj.stoneHex);
+          gStone.addColorStop(1.0, '#334155');
+          dCtx.fillStyle = gStone;
           dCtx.fillRect(bx, by, bw, bh);
 
-          // Bisel iluminado superior/izquierdo del sillar
-          dCtx.fillStyle = 'rgba(255,255,255,0.22)';
-          dCtx.fillRect(bx, by, bw, 6);
-          dCtx.fillRect(bx, by, 6, bh);
+          // Margen tallado y bisel iluminado
+          dCtx.fillStyle = 'rgba(255,255,255,0.24)';
+          dCtx.fillRect(bx, by, bw, 5);
+          dCtx.fillRect(bx, by, 5, bh);
+          dCtx.fillStyle = 'rgba(0,0,0,0.46)';
+          dCtx.fillRect(bx, by + bh - 5, bw, 5);
+          dCtx.fillRect(bx + bw - 5, by, 5, bh);
 
-          // Sombra de bisel inferior/derecho
-          dCtx.fillStyle = 'rgba(0,0,0,0.45)';
-          dCtx.fillRect(bx, by + bh - 6, bw, 6);
-          dCtx.fillRect(bx + bw - 6, by, 6, bh);
-
-          // Rugosidad interna de la roca
-          for (let k = 0; k < 25; k++) {
-            dCtx.fillStyle = k % 2 === 0 ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)';
-            dCtx.fillRect(bx + Math.random() * bw, by + Math.random() * bh, 5, 5);
+          // Surco interior de sillería almohadillada
+          if (bw > 24 && bh > 18) {
+            dCtx.strokeStyle = 'rgba(0,0,0,0.22)';
+            dCtx.lineWidth = 1.5;
+            dCtx.strokeRect(bx + 7, by + 6, bw - 14, bh - 12);
           }
 
-          // Bump Map: Sillar elevado (blanco/gris claro) y bisel progresivo
-          bCtx.fillStyle = '#b0b0b0';
+          // Veta mineral y grano de cantera
+          if ((r + xCursor) % 3 === 0) {
+            dCtx.strokeStyle = 'rgba(241,245,249,0.22)';
+            dCtx.lineWidth = 1.4;
+            dCtx.beginPath();
+            dCtx.moveTo(bx + 8, by + bh * 0.3);
+            dCtx.lineTo(bx + bw * 0.5, by + bh * 0.55);
+            dCtx.lineTo(bx + bw - 8, by + bh * 0.72);
+            dCtx.stroke();
+          }
+          for (let k = 0; k < 22; k++) {
+            dCtx.fillStyle = k % 2 === 0 ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.13)';
+            dCtx.fillRect(bx + Math.random() * bw, by + Math.random() * bh, 4, 4);
+          }
+
+          // Bump Map: Sillar almohadillado en 3 niveles
+          bCtx.fillStyle = '#a4a4a4';
           bCtx.fillRect(bx, by, bw, bh);
-          bCtx.fillStyle = '#ffffff';
-          bCtx.fillRect(bx + 8, by + 8, bw - 16, bh - 16);
+          bCtx.fillStyle = '#d4d4d4';
+          bCtx.fillRect(bx + 5, by + 5, Math.max(2, bw - 10), Math.max(2, bh - 10));
+          bCtx.fillStyle = '#f8f8f8';
+          bCtx.fillRect(bx + 10, by + 9, Math.max(2, bw - 20), Math.max(2, bh - 18));
 
           xCursor += blockW;
         }
       }
 
-      // --- BANDA 4 (Y: 1536 - 2048): TABLAZÓN DE ROBLE + HERRAJES Y REMACHES ---
+      // --- BANDA 4 (Y: 1536 - 2048): TABLAZÓN DE ROBLE + HERRAJES FORJADOS ---
       dCtx.fillStyle = '#1c0a02';
       dCtx.fillRect(0, 1536, size, 512);
       bCtx.fillStyle = '#101010';
@@ -513,30 +561,29 @@
       for (let x = 0; x < size; x += plankW) {
         const gPlank = dCtx.createLinearGradient(x, 1536, x + plankW, 1536);
         gPlank.addColorStop(0.0, '#290e02');
-        gPlank.addColorStop(0.2, styleObj.woodHex);
-        gPlank.addColorStop(0.8, styleObj.woodHex);
+        gPlank.addColorStop(0.18, styleObj.woodHex);
+        gPlank.addColorStop(0.82, styleObj.woodHex);
         gPlank.addColorStop(1.0, '#180801');
         dCtx.fillStyle = gPlank;
         dCtx.fillRect(x + 3, 1536, plankW - 6, 512);
 
-        // Vetas de madera
-        dCtx.fillStyle = 'rgba(0,0,0,0.22)';
-        for (let v = 0; v < 12; v++) {
-          dCtx.fillRect(x + 8 + (v * 4), 1536 + ((x + v * 43) % 300), 2, 180);
+        // Vetas orgánicas de madera
+        for (let v = 0; v < 14; v++) {
+          dCtx.fillStyle = v % 3 === 0 ? 'rgba(255,220,180,0.08)' : 'rgba(0,0,0,0.24)';
+          dCtx.fillRect(x + 6 + (v * 3.8), 1536 + ((x + v * 43) % 280), 2, 210);
         }
 
-        // Bump de tablón y remaches metálicos
         bCtx.fillStyle = '#cccccc';
         bCtx.fillRect(x + 4, 1536, plankW - 8, 512);
 
-        // Bandas de forja y clavos
+        // Bandas de forja y remaches cuadrados/octogonales
         [1640, 1940].forEach(strapY => {
           dCtx.fillStyle = '#1e293b';
           dCtx.fillRect(x, strapY, plankW, 28);
-          dCtx.fillStyle = '#94a3b8';
-          dCtx.beginPath();
-          dCtx.arc(x + plankW * 0.5, strapY + 14, 6, 0, Math.PI * 2);
-          dCtx.fill();
+          dCtx.fillStyle = 'rgba(255,255,255,0.18)';
+          dCtx.fillRect(x, strapY, plankW, 3);
+          dCtx.fillStyle = '#cbd5e1';
+          dCtx.fillRect(x + plankW * 0.5 - 5, strapY + 9, 10, 10);
 
           bCtx.fillStyle = '#ffffff';
           bCtx.fillRect(x, strapY, plankW, 28);
@@ -546,61 +593,263 @@
       const atlasTex = new THREE.CanvasTexture(dCanvas);
       atlasTex.wrapS = atlasTex.wrapT = THREE.RepeatWrapping;
       atlasTex.anisotropy = 8;
+      if (THREE.SRGBColorSpace) atlasTex.colorSpace = THREE.SRGBColorSpace;
 
       const bumpTex = new THREE.CanvasTexture(bCanvas);
       bumpTex.wrapS = bumpTex.wrapT = THREE.RepeatWrapping;
       bumpTex.anisotropy = 8;
 
-      // --- TEXTURA DE CALZADA EMPEDRADA + BUMP MAP ---
+      // --- TEXTURA DE CALZADA EMPEDRADA 1024x1024 CON RIGOLA CENTRAL, ADOQUINES BISELADOS Y BORDILLOS ---
+      const roadSize = 1024;
       const roadCanvas = document.createElement('canvas');
       const roadBumpCanvas = document.createElement('canvas');
-      roadCanvas.width = roadCanvas.height = 512;
-      roadBumpCanvas.width = roadBumpCanvas.height = 512;
+      roadCanvas.width = roadCanvas.height = roadSize;
+      roadBumpCanvas.width = roadBumpCanvas.height = roadSize;
       const rCtx = roadCanvas.getContext('2d');
       const rbCtx = roadBumpCanvas.getContext('2d');
 
-      rCtx.fillStyle = '#1e293b';
-      rCtx.fillRect(0, 0, 512, 512);
-      rbCtx.fillStyle = '#101010';
-      rbCtx.fillRect(0, 0, 512, 512);
+      rCtx.fillStyle = '#17202b';
+      rCtx.fillRect(0, 0, roadSize, roadSize);
+      rbCtx.fillStyle = '#0c0c0c';
+      rbCtx.fillRect(0, 0, roadSize, roadSize);
 
-      for (let y = 0; y < 512; y += 20) {
-        const shift = (y % 40 === 0) ? 0 : 14;
-        for (let x = 32 - shift; x < 480; x += 28) {
-          rCtx.fillStyle = ((x + y) % 3 === 0) ? styleObj.roadHex : '#64748b';
-          rCtx.fillRect(x + 2, y + 2, 24, 16);
-          rCtx.fillStyle = 'rgba(255,255,255,0.18)';
-          rCtx.fillRect(x + 2, y + 2, 24, 3);
+      const cobblePalette = [styleObj.roadHex, '#64748b', '#475569', '#78716c', '#94a3b8', '#57534e'];
+      const curbW = 68;
+      const gutterX0 = roadSize * 0.5 - 42;
+      const gutterX1 = roadSize * 0.5 + 42;
 
-          rbCtx.fillStyle = '#e5e5e5';
-          rbCtx.fillRect(x + 3, y + 3, 22, 14);
+      for (let y = 0; y < roadSize; y += 34) {
+        const rowIdx = Math.floor(y / 34);
+        const shift = (rowIdx % 2 === 0) ? 0 : 24;
+        for (let x = curbW - shift; x < roadSize - curbW; x += 48) {
+          const cx0 = Math.max(curbW + 2, x + 3);
+          const cx1 = Math.min(roadSize - curbW - 2, x + 45);
+          if (cx1 - cx0 < 10) continue;
+          // Dejar libre la rigola central de losas
+          if (cx1 > gutterX0 && cx0 < gutterX1) continue;
+
+          const cw = cx1 - cx0;
+          const ch = 28;
+          const colC = cobblePalette[Math.abs(rowIdx * 17 + Math.floor(x / 13)) % cobblePalette.length];
+          const gC = rCtx.createLinearGradient(cx0, y + 3, cx1, y + 3 + ch);
+          gC.addColorStop(0.0, colC);
+          gC.addColorStop(1.0, '#334155');
+          rCtx.fillStyle = gC;
+          rCtx.fillRect(cx0, y + 3, cw, ch);
+
+          rCtx.fillStyle = 'rgba(255,255,255,0.20)';
+          rCtx.fillRect(cx0, y + 3, cw, 3);
+          rCtx.fillRect(cx0, y + 3, 3, ch);
+          rCtx.fillStyle = 'rgba(0,0,0,0.36)';
+          rCtx.fillRect(cx0, y + ch, cw, 3);
+
+          // Musgo sutil ocasional en las juntas de la calzada
+          if (((rowIdx * 31 + x) & 15) === 0) {
+            rCtx.fillStyle = 'rgba(63,98,18,0.38)';
+            rCtx.fillRect(cx0 - 2, y, Math.min(18, cw), 4);
+          }
+
+          rbCtx.fillStyle = '#bdbdbd';
+          rbCtx.fillRect(cx0, y + 3, cw, ch);
+          rbCtx.fillStyle = '#ececec';
+          rbCtx.fillRect(cx0 + 4, y + 6, Math.max(2, cw - 8), Math.max(2, ch - 6));
         }
       }
-      // Grandes losas de bordillo en los márgenes
-      rCtx.fillStyle = styleObj.curbHex;
-      rCtx.fillRect(0, 0, 32, 512);
-      rCtx.fillRect(480, 0, 32, 512);
-      rbCtx.fillStyle = '#ffffff';
-      rbCtx.fillRect(0, 0, 32, 512);
-      rbCtx.fillRect(480, 0, 32, 512);
-      for (let y = 0; y < 512; y += 64) {
-        rCtx.fillStyle = '#0f172a';
-        rCtx.fillRect(0, y, 32, 4);
-        rCtx.fillRect(480, y, 32, 4);
-        rbCtx.fillStyle = '#000000';
-        rbCtx.fillRect(0, y, 32, 4);
-        rbCtx.fillRect(480, y, 32, 4);
+
+      // Canaleta / rigola central de grandes losas y tacos en rombo
+      for (let gy = 0; gy < roadSize; gy += 85.333) {
+        const ly = Math.round(gy) + 3;
+        const lh = 79;
+        rCtx.fillStyle = styleObj.curbHex;
+        rCtx.fillRect(gutterX0 + 4, ly, 76, lh);
+        rCtx.strokeStyle = 'rgba(255,255,255,0.22)';
+        rCtx.lineWidth = 2;
+        rCtx.strokeRect(gutterX0 + 6, ly + 2, 72, lh - 4);
+        // Rombo decorativo central tallado en la losa maestra
+        const mcx = roadSize * 0.5, mcy = ly + lh * 0.5;
+        rCtx.fillStyle = styleObj.roadHex;
+        rCtx.beginPath();
+        rCtx.moveTo(mcx, mcy - 16); rCtx.lineTo(mcx + 16, mcy);
+        rCtx.lineTo(mcx, mcy + 16); rCtx.lineTo(mcx - 16, mcy);
+        rCtx.closePath();
+        rCtx.fill();
+
+        rbCtx.fillStyle = '#dcdcdc';
+        rbCtx.fillRect(gutterX0 + 4, ly, 76, lh);
+        rbCtx.fillStyle = '#b0b0b0';
+        rbCtx.fillRect(mcx - 10, mcy - 10, 20, 20);
+      }
+
+      // Grandes sillares de bordillo biselados en ambos márgenes
+      for (let by = 0; by < roadSize; by += 128) {
+        [0, roadSize - curbW].forEach(bx => {
+          rCtx.fillStyle = styleObj.curbHex;
+          rCtx.fillRect(bx + 2, by + 3, curbW - 4, 122);
+          rCtx.fillStyle = 'rgba(255,255,255,0.26)';
+          rCtx.fillRect(bx + 2, by + 3, curbW - 4, 5);
+          rCtx.fillStyle = 'rgba(0,0,0,0.40)';
+          rCtx.fillRect(bx + 2, by + 120, curbW - 4, 5);
+
+          rbCtx.fillStyle = '#f5f5f5';
+          rbCtx.fillRect(bx + 2, by + 3, curbW - 4, 122);
+        });
       }
 
       const roadTex = new THREE.CanvasTexture(roadCanvas);
       roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
       roadTex.anisotropy = 8;
+      if (THREE.SRGBColorSpace) roadTex.colorSpace = THREE.SRGBColorSpace;
 
       const roadBumpTex = new THREE.CanvasTexture(roadBumpCanvas);
       roadBumpTex.wrapS = roadBumpTex.wrapT = THREE.RepeatWrapping;
       roadBumpTex.anisotropy = 8;
 
-      return { atlasTex, bumpTex, roadTex, roadBumpTex };
+      // --- MOSAICO MONUMENTAL DE PLAZA CENTRAL 1024x1024 (ADOQUINADO CONCÉNTRICO, AZULEJOS Y ROSA DE 8 PUNTAS) ---
+      const pSize = 1024;
+      const plazaCanvas = document.createElement('canvas');
+      const plazaBumpCanvas = document.createElement('canvas');
+      plazaCanvas.width = plazaCanvas.height = pSize;
+      plazaBumpCanvas.width = plazaBumpCanvas.height = pSize;
+      const pCtx = plazaCanvas.getContext('2d');
+      const pbCtx = plazaBumpCanvas.getContext('2d');
+      const pcx = pSize * 0.5, pcy = pSize * 0.5;
+      const maxR = pSize * 0.485;
+
+      pCtx.fillStyle = '#1b2430';
+      pCtx.fillRect(0, 0, pSize, pSize);
+      pbCtx.fillStyle = '#121212';
+      pbCtx.fillRect(0, 0, pSize, pSize);
+
+      // 1. Anillos concéntricos de adoquines trapeciales labrados en abanico
+      const ringCount = 16;
+      const minRingR = pSize * 0.13;
+      const ringStep = (maxR * 0.90 - minRingR) / ringCount;
+      for (let ri = 0; ri < ringCount; ri++) {
+        const r0 = minRingR + ri * ringStep + 2;
+        const r1 = r0 + ringStep - 4;
+        const segs = Math.max(24, Math.round((2 * Math.PI * ((r0 + r1) * 0.5)) / 26));
+        const dAng = (Math.PI * 2) / segs;
+        const esCenefaAnillo = (ri === 5 || ri === 11);
+
+        for (let s = 0; s < segs; s++) {
+          const a0 = s * dAng + (ri % 2) * (dAng * 0.5) + 0.008;
+          const a1 = (s + 1) * dAng + (ri % 2) * (dAng * 0.5) - 0.008;
+          const x00 = pcx + Math.cos(a0) * r0, y00 = pcy + Math.sin(a0) * r0;
+          const x10 = pcx + Math.cos(a0) * r1, y10 = pcy + Math.sin(a0) * r1;
+          const x11 = pcx + Math.cos(a1) * r1, y11 = pcy + Math.sin(a1) * r1;
+          const x01 = pcx + Math.cos(a1) * r0, y01 = pcy + Math.sin(a1) * r0;
+
+          pCtx.fillStyle = esCenefaAnillo
+            ? ((s % 2 === 0) ? styleObj.roofHex : styleObj.curbHex)
+            : cobblePalette[(ri * 7 + s * 3) % cobblePalette.length];
+          pCtx.beginPath();
+          pCtx.moveTo(x00, y00); pCtx.lineTo(x10, y10);
+          pCtx.lineTo(x11, y11); pCtx.lineTo(x01, y01);
+          pCtx.closePath();
+          pCtx.fill();
+
+          pbCtx.fillStyle = esCenefaAnillo ? '#eaeaea' : '#cbcbcb';
+          pbCtx.beginPath();
+          pbCtx.moveTo(x00, y00); pbCtx.lineTo(x10, y10);
+          pbCtx.lineTo(x11, y11); pbCtx.lineTo(x01, y01);
+          pbCtx.closePath();
+          pbCtx.fill();
+        }
+      }
+
+      // 2. Cenefa perimetral exterior de grandes losas y azulejos en rombo
+      const borderR0 = maxR * 0.905, borderR1 = maxR;
+      const borderSegs = 48;
+      for (let s = 0; s < borderSegs; s++) {
+        const a0 = (s / borderSegs) * Math.PI * 2 + 0.006;
+        const a1 = ((s + 1) / borderSegs) * Math.PI * 2 - 0.006;
+        const am = (a0 + a1) * 0.5;
+        const rm = (borderR0 + borderR1) * 0.5;
+
+        pCtx.fillStyle = styleObj.curbHex;
+        pCtx.beginPath();
+        pCtx.moveTo(pcx + Math.cos(a0) * borderR0, pcy + Math.sin(a0) * borderR0);
+        pCtx.lineTo(pcx + Math.cos(a0) * borderR1, pcy + Math.sin(a0) * borderR1);
+        pCtx.lineTo(pcx + Math.cos(a1) * borderR1, pcy + Math.sin(a1) * borderR1);
+        pCtx.lineTo(pcx + Math.cos(a1) * borderR0, pcy + Math.sin(a1) * borderR0);
+        pCtx.closePath();
+        pCtx.fill();
+
+        // Azulejo en rombo incrustado en cada losa perimetral
+        const rx = pcx + Math.cos(am) * rm, ry = pcy + Math.sin(am) * rm;
+        const ux = Math.cos(am), uy = Math.sin(am);
+        const tx = -uy, ty = ux;
+        pCtx.fillStyle = (s % 2 === 0) ? styleObj.roofHex : styleObj.roofAltHex;
+        pCtx.beginPath();
+        pCtx.moveTo(rx + ux * 16, ry + uy * 16);
+        pCtx.lineTo(rx + tx * 11, ry + ty * 11);
+        pCtx.lineTo(rx - ux * 16, ry - uy * 16);
+        pCtx.lineTo(rx - tx * 11, ry - ty * 11);
+        pCtx.closePath();
+        pCtx.fill();
+
+        pbCtx.fillStyle = '#f2f2f2';
+        pbCtx.beginPath();
+        pbCtx.moveTo(pcx + Math.cos(a0) * borderR0, pcy + Math.sin(a0) * borderR0);
+        pbCtx.lineTo(pcx + Math.cos(a0) * borderR1, pcy + Math.sin(a0) * borderR1);
+        pbCtx.lineTo(pcx + Math.cos(a1) * borderR1, pcy + Math.sin(a1) * borderR1);
+        pbCtx.lineTo(pcx + Math.cos(a1) * borderR0, pcy + Math.sin(a1) * borderR0);
+        pbCtx.closePath();
+        pbCtx.fill();
+      }
+
+      // 3. Rosa de los vientos / Estrella de mosaico de 8 puntas alrededor de la fuente central
+      const starOuter = pSize * 0.27;
+      const starInner = pSize * 0.135;
+      for (let k = 0; k < 8; k++) {
+        const ang = (k * Math.PI) / 4;
+        const angL = ang - Math.PI / 8;
+        const angR = ang + Math.PI / 8;
+        const tipX = pcx + Math.cos(ang) * starOuter;
+        const tipY = pcy + Math.sin(ang) * starOuter;
+        const inLX = pcx + Math.cos(angL) * starInner;
+        const inLY = pcy + Math.sin(angL) * starInner;
+        const inRX = pcx + Math.cos(angR) * starInner;
+        const inRY = pcy + Math.sin(angR) * starInner;
+
+        // Faceta clara de la punta de estrella
+        pCtx.fillStyle = (k % 2 === 0) ? '#f8fafc' : styleObj.curbHex;
+        pCtx.beginPath();
+        pCtx.moveTo(pcx, pcy); pCtx.lineTo(inLX, inLY); pCtx.lineTo(tipX, tipY);
+        pCtx.closePath();
+        pCtx.fill();
+        pCtx.strokeStyle = '#0f172a';
+        pCtx.lineWidth = 2.5;
+        pCtx.stroke();
+
+        // Faceta contrastada en sombra/azulejo de la punta de estrella
+        pCtx.fillStyle = (k % 2 === 0) ? styleObj.roofHex : styleObj.stoneHex;
+        pCtx.beginPath();
+        pCtx.moveTo(pcx, pcy); pCtx.lineTo(tipX, tipY); pCtx.lineTo(inRX, inRY);
+        pCtx.closePath();
+        pCtx.fill();
+        pCtx.stroke();
+
+        pbCtx.fillStyle = '#f5f5f5';
+        pbCtx.beginPath();
+        pbCtx.moveTo(pcx, pcy); pbCtx.lineTo(inLX, inLY); pCtx.lineTo(tipX, tipY); pCtx.lineTo(inRX, inRY);
+        pbCtx.closePath();
+        pbCtx.fill();
+        pbCtx.strokeStyle = '#181818';
+        pbCtx.lineWidth = 3;
+        pbCtx.stroke();
+      }
+
+      const plazaTex = new THREE.CanvasTexture(plazaCanvas);
+      plazaTex.wrapS = plazaTex.wrapT = THREE.ClampToEdgeWrapping;
+      plazaTex.anisotropy = 8;
+      if (THREE.SRGBColorSpace) plazaTex.colorSpace = THREE.SRGBColorSpace;
+
+      const plazaBumpTex = new THREE.CanvasTexture(plazaBumpCanvas);
+      plazaBumpTex.wrapS = plazaBumpTex.wrapT = THREE.ClampToEdgeWrapping;
+      plazaBumpTex.anisotropy = 8;
+
+      return { atlasTex, bumpTex, roadTex, roadBumpTex, plazaTex, plazaBumpTex };
     }
 
     // Textura de Cristal Emplomado Medieval (Romboidal) para Ventanas
@@ -677,10 +926,15 @@
     // Doble cara: las mallas de calle se generan con el orden de vértices invertido
     // y, sin esto, solo se verían desde abajo.
     const matRoad = new THREE.MeshStandardMaterial({
-      roughness: 0.85,
-      metalness: 0.08,
-      bumpScale: 0.06,
+      roughness: 0.82,
+      metalness: 0.06,
+      bumpScale: 0.075,
       side: THREE.DoubleSide
+    });
+    const matPlaza = new THREE.MeshStandardMaterial({
+      roughness: 0.74,
+      metalness: 0.08,
+      bumpScale: 0.08
     });
     const matCurb = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.85 });
     const matWater = new THREE.MeshStandardMaterial({ color: '#0284c7', roughness: 0.12, metalness: 0.65, transparent: true, opacity: 0.86 });
@@ -2091,11 +2345,23 @@
         });
         if (this.exitPaths.length) this.addExitSigns(roadsGroup, this.exitPaths);
 
-        // 4. GRAN PLAZA CENTRAL CON MONUMENTO / GATEKEEPER
+        // 4. GRAN PLAZA CENTRAL CON MOSAICO RADIAL Y MONUMENTO / GATEKEEPER
         const plazaY = this.getTerrainHeight(0, 0);
-        const plazaDiscG = new THREE.CylinderGeometry(15.5, 16.2, 0.32, 32);
-        mapUVBand(plazaDiscG, 0.25, 0.50);
-        const plazaDiscM = new THREE.Mesh(plazaDiscG, matAtlas);
+        const plazaDiscG = new THREE.CylinderGeometry(15.5, 16.2, 0.32, 48);
+        if (plazaDiscG.attributes && plazaDiscG.attributes.position && plazaDiscG.attributes.uv) {
+          const pPos = plazaDiscG.attributes.position;
+          const pNorm = plazaDiscG.attributes.normal;
+          const pUv = plazaDiscG.attributes.uv;
+          for (let vi = 0; vi < pPos.count; vi++) {
+            if (pNorm && pNorm.getY(vi) > 0.5) {
+              pUv.setXY(vi, 0.5 + pPos.getX(vi) / 31.6, 0.5 + pPos.getZ(vi) / 31.6);
+            } else {
+              pUv.setXY(vi, (Math.atan2(pPos.getZ(vi), pPos.getX(vi)) / (Math.PI * 2) + 0.5) * 8.0, pUv.getY(vi) * 0.15);
+            }
+          }
+          pUv.needsUpdate = true;
+        }
+        const plazaDiscM = new THREE.Mesh(plazaDiscG, matPlaza.map ? matPlaza : matAtlas);
         plazaDiscM.position.set(0, plazaY + 0.16, 0);
         plazaDiscM.receiveShadow = true;
         roadsGroup.add(plazaDiscM);
@@ -2896,6 +3162,9 @@
       matRoad.map = tx.roadTex;
       matRoad.bumpMap = tx.roadBumpTex;
       matRoad.needsUpdate = true;
+      matPlaza.map = tx.plazaTex;
+      matPlaza.bumpMap = tx.plazaBumpTex;
+      matPlaza.needsUpdate = true;
       matCurb.color.set(styleObj.curbHex);
       matMagicCrystal.emissive.setHex(styleObj.magicHex);
     }
@@ -2922,7 +3191,7 @@
       },
       instanceCount() { return kitState.instances.size; },
       dispose() {
-        [matAtlas.map, matAtlas.bumpMap, matRoad.map, matRoad.bumpMap, glowTex, leadedGlassTex].forEach(t => { if (t) t.dispose(); });
+        [matAtlas.map, matAtlas.bumpMap, matRoad.map, matRoad.bumpMap, matPlaza.map, matPlaza.bumpMap, glowTex, leadedGlassTex].forEach(t => { if (t) t.dispose(); });
         kitGeos.forEach(g => g.dispose());
         kitGeos.clear();
         kitProto = null;

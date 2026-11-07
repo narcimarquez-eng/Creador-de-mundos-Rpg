@@ -83,6 +83,61 @@
     };
   }
 
+  let _texVorticeCache = null;
+  function obtenerTexturaVortice(THREE) {
+    if (_texVorticeCache) return _texVorticeCache;
+    if (typeof document === 'undefined' || !THREE || typeof THREE.CanvasTexture !== 'function') return null;
+    const size = 256;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const cx = size * 0.5, cy = size * 0.5;
+    const grad = ctx.createRadialGradient(cx, cy, 8, cx, cy, size * 0.52);
+    grad.addColorStop(0.0, '#f5d0fe');
+    grad.addColorStop(0.25, '#a855f7');
+    grad.addColorStop(0.62, '#581c87');
+    grad.addColorStop(1.0, '#1e1b4b');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    // Anillos octogonales rúnicos y haces arcanos
+    [0.42, 0.30, 0.18].forEach((rf, idx) => {
+      const r = size * rf;
+      const ch = r * 0.414;
+      ctx.strokeStyle = idx === 1 ? 'rgba(245,208,254,0.85)' : 'rgba(192,132,252,0.65)';
+      ctx.lineWidth = idx === 0 ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - ch, cy - r); ctx.lineTo(cx + ch, cy - r);
+      ctx.lineTo(cx + r, cy - ch); ctx.lineTo(cx + r, cy + ch);
+      ctx.lineTo(cx + ch, cy + r); ctx.lineTo(cx - ch, cy + r);
+      ctx.lineTo(cx - r, cy + ch); ctx.lineTo(cx - r, cy - ch);
+      ctx.closePath();
+      ctx.stroke();
+    });
+    _texVorticeCache = new THREE.CanvasTexture(c);
+    if (THREE.SRGBColorSpace) _texVorticeCache.colorSpace = THREE.SRGBColorSpace;
+    return _texVorticeCache;
+  }
+
+  function aplicarUVBoxExt(geo, w, h, d, mx = 2.5, my = 2.5) {
+    if (!geo || !geo.attributes || !geo.attributes.uv) return geo;
+    const uv = geo.attributes.uv;
+    const escalas = [
+      [d / mx, h / my], [d / mx, h / my],
+      [w / mx, d / mx], [w / mx, d / mx],
+      [w / mx, h / my], [w / mx, h / my]
+    ];
+    for (let cara = 0; cara < 6; cara++) {
+      const [su, sv] = escalas[cara];
+      for (let v = 0; v < 4; v++) {
+        const idx = cara * 4 + v;
+        uv.setXY(idx, uv.getX(idx) * su, uv.getY(idx) * sv);
+      }
+    }
+    uv.needsUpdate = true;
+    return geo;
+  }
+
   /* --------------------------------------------------------------------------
    * 1. CONSTRUCCIÓN DE LA ENTRADA EXTERIOR 3D (Arco penetrable + 30m pasillo)
    * -------------------------------------------------------------------------- */
@@ -110,22 +165,33 @@
     entradaGrupo.position.set(dungeon.x, ySuelo, dungeon.y);
     entradaGrupo.rotation.y = dungeon.rotacion || 0;
 
-    // Materiales de piedra ciclópea oscura rústica y runas
-    const matPiedraMuro = new THREE.MeshStandardMaterial({
+    // Resolver texturas procedurales de alta definición acordes al estilo de la mazmorra
+    const DG = (typeof window !== 'undefined' && window.DungeonGenerator)
+      || (typeof root !== 'undefined' && root.DungeonGenerator)
+      || null;
+    let kitExt = null;
+    if (DG && typeof DG.crearKitMateriales === 'function' && DG.ESTILOS_PIEDRA && typeof THREE.CanvasTexture === 'function') {
+      const estKey = (dungeon && dungeon.estilo && DG.ESTILOS_PIEDRA[dungeon.estilo]) ? dungeon.estilo : 'cripta_gotica';
+      kitExt = DG.crearKitMateriales(DG.ESTILOS_PIEDRA[estKey], THREE);
+    }
+
+    const matPiedraMuro = (kitExt && kitExt.piedraMuro) || new THREE.MeshStandardMaterial({
       color: 0x272e39,
       roughness: 0.88,
       metalness: 0.12
     });
-    const matPiedraArco = new THREE.MeshStandardMaterial({
+    const matPiedraArco = (kitExt && kitExt.zocalo) || new THREE.MeshStandardMaterial({
       color: 0x3f4856,
       roughness: 0.80,
       metalness: 0.18
     });
-    const matSueloLosas = new THREE.MeshStandardMaterial({
+    const matSueloLosas = (kitExt && kitExt.sueloLosas) || new THREE.MeshStandardMaterial({
       color: 0x1e242c,
-      roughness: 0.94,
+      roughness: 0.90,
       metalness: 0.08
     });
+    const matMosaicoPasillo = (kitExt && kitExt.mosaicoSuelo) || matSueloLosas;
+    const matHierroExt = (kitExt && kitExt.hierro) || matPiedraArco;
     const matRunaPortal = new THREE.MeshStandardMaterial({
       color: 0x7c3aed,
       emissive: 0x6d28d9,
@@ -133,10 +199,12 @@
       roughness: 0.1,
       metalness: 0.4
     });
+    const texVortice = obtenerTexturaVortice(THREE);
     const matVortice = new THREE.MeshBasicMaterial({
-      color: 0x4c1d95,
+      color: texVortice ? 0xffffff : 0x4c1d95,
+      map: texVortice || undefined,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.88,
       side: THREE.DoubleSide
     });
     const matFuego = new THREE.MeshBasicMaterial({ color: 0xf97316 });
@@ -148,30 +216,45 @@
     const GROSOR_MUROS = 1.0;       // Grosor de los bloques
     const X_MURO = (ANCHO_PASO / 2) + (GROSOR_MUROS / 2); // Distancia del eje al centro de cada muro
 
-    // A) SUELO EMPEDRADO A LO LARGO DE LOS 30 METROS
-    const geoSuelo = new THREE.BoxGeometry(ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR);
+    // A) SUELO EMPEDRADO DE LOSAS Y ALFOMBRA CENTRAL DE MOSAICO A LO LARGO DE LOS 30 METROS
+    const geoSuelo = aplicarUVBoxExt(new THREE.BoxGeometry(ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR), ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR, 2.8, 0.5);
     const sueloPasillo = new THREE.Mesh(geoSuelo, matSueloLosas);
     sueloPasillo.position.set(0, 0.09, LONGITUD_CORREDOR / 2);
     sueloPasillo.receiveShadow = true;
     entradaGrupo.add(sueloPasillo);
 
-    // B) MURO LATERAL IZQUIERDO (30 metros de piedra)
-    const geoMuro = new THREE.BoxGeometry(GROSOR_MUROS, ALTO_MUROS, LONGITUD_CORREDOR);
+    const anchoTapiz = ANCHO_PASO * 0.54;
+    const geoTapiz = aplicarUVBoxExt(new THREE.BoxGeometry(anchoTapiz, 0.025, LONGITUD_CORREDOR - 0.8), anchoTapiz, 0.025, LONGITUD_CORREDOR - 0.8, 2.4, 0.4);
+    const tapizPasillo = new THREE.Mesh(geoTapiz, matMosaicoPasillo);
+    tapizPasillo.position.set(0, 0.192, LONGITUD_CORREDOR / 2);
+    tapizPasillo.receiveShadow = true;
+    entradaGrupo.add(tapizPasillo);
+
+    // B) MURO LATERAL IZQUIERDO Y DERECHO (30 metros de cantería con UVs métricas y zócalo)
+    const geoMuro = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS, ALTO_MUROS, LONGITUD_CORREDOR), GROSOR_MUROS, ALTO_MUROS, LONGITUD_CORREDOR, 2.5, 2.5);
     const muroIzq = new THREE.Mesh(geoMuro, matPiedraMuro);
     muroIzq.position.set(-X_MURO, ALTO_MUROS / 2, LONGITUD_CORREDOR / 2);
     muroIzq.castShadow = true;
     muroIzq.receiveShadow = true;
     entradaGrupo.add(muroIzq);
 
-    // C) MURO LATERAL DERECHO (30 metros de piedra)
     const muroDer = new THREE.Mesh(geoMuro, matPiedraMuro);
     muroDer.position.set(X_MURO, ALTO_MUROS / 2, LONGITUD_CORREDOR / 2);
     muroDer.castShadow = true;
     muroDer.receiveShadow = true;
     entradaGrupo.add(muroDer);
 
+    // Zócalos perimetrales labrados en la base de ambos muros
+    const geoZocExt = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS + 0.18, 0.72, LONGITUD_CORREDOR), GROSOR_MUROS + 0.18, 0.72, LONGITUD_CORREDOR, 2.5, 0.72);
+    [-X_MURO, X_MURO].forEach(zx => {
+      const zoc = new THREE.Mesh(geoZocExt, matPiedraArco);
+      zoc.position.set(zx, 0.36, LONGITUD_CORREDOR / 2);
+      zoc.receiveShadow = true;
+      entradaGrupo.add(zoc);
+    });
+
     // Albardillas / remates superiores almenados en ambos muros cada 3 metros (geometría compartida)
-    const geoAlmena = new THREE.BoxGeometry(GROSOR_MUROS + 0.2, 0.45, 1.4);
+    const geoAlmena = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS + 0.2, 0.45, 1.4), GROSOR_MUROS + 0.2, 0.45, 1.4, 2.0, 0.7);
     for (let mz = 1.5; mz < LONGITUD_CORREDOR; mz += 3.0) {
       const almI = new THREE.Mesh(geoAlmena, matPiedraArco);
       almI.position.set(-X_MURO, ALTO_MUROS + 0.22, mz);
@@ -183,16 +266,13 @@
     }
 
     // D) ARCO PENETRABLE DE ENTRADA (en z = 0, cota inicial)
-    // El personaje pasa a través del vano de 4.4m de ancho y 5.2m de altura
-    // Pilar Izquierdo del Arco
-    const geoPilar = new THREE.BoxGeometry(GROSOR_MUROS * 1.5, ALTO_MUROS + 0.8, GROSOR_MUROS * 1.5);
+    const geoPilar = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS * 1.5, ALTO_MUROS + 0.8, GROSOR_MUROS * 1.5), GROSOR_MUROS * 1.5, ALTO_MUROS + 0.8, GROSOR_MUROS * 1.5, 2.2, 2.2);
     const pilarIzq = new THREE.Mesh(geoPilar, matPiedraArco);
     pilarIzq.position.set(-X_MURO, (ALTO_MUROS + 0.8) / 2, 0);
     pilarIzq.castShadow = true;
     pilarIzq.receiveShadow = true;
     entradaGrupo.add(pilarIzq);
 
-    // Pilar Derecho del Arco
     const pilarDer = new THREE.Mesh(geoPilar, matPiedraArco);
     pilarDer.position.set(X_MURO, (ALTO_MUROS + 0.8) / 2, 0);
     pilarDer.castShadow = true;
@@ -200,7 +280,8 @@
     entradaGrupo.add(pilarDer);
 
     // Dintel / Bóveda del Arco superior penetrable (a 5.4m de altura)
-    const geoDintel = new THREE.BoxGeometry(ANCHO_PASO + GROSOR_MUROS * 2.8, 1.2, GROSOR_MUROS * 1.6);
+    const wDintel = ANCHO_PASO + GROSOR_MUROS * 2.8;
+    const geoDintel = aplicarUVBoxExt(new THREE.BoxGeometry(wDintel, 1.2, GROSOR_MUROS * 1.6), wDintel, 1.2, GROSOR_MUROS * 1.6, 2.4, 1.2);
     const dintelArco = new THREE.Mesh(geoDintel, matPiedraArco);
     dintelArco.position.set(0, ALTO_MUROS + 0.8, 0);
     dintelArco.castShadow = true;
@@ -212,11 +293,11 @@
     claveRuna.position.set(0, ALTO_MUROS + 0.8, -0.6);
     entradaGrupo.add(claveRuna);
 
-    // Pebeteros de fuego crepitante flanqueando el arco de entrada (geometrías compartidas)
+    // Pebeteros de hierro forjado y fuego crepitante flanqueando el arco de entrada
     const geoPebetero = new THREE.CylinderGeometry(0.45, 0.35, 1.1, 8);
     const geoLlamaPeb = new THREE.ConeGeometry(0.35, 0.7, 6);
     [-X_MURO - 1.2, X_MURO + 1.2].forEach(px => {
-      const pebetero = new THREE.Mesh(geoPebetero, matPiedraArco);
+      const pebetero = new THREE.Mesh(geoPebetero, matHierroExt);
       pebetero.position.set(px, 0.55, -0.8);
       entradaGrupo.add(pebetero);
 
@@ -237,8 +318,7 @@
     const geoFuegoAnt = new THREE.ConeGeometry(0.18, 0.45, 5);
     distAntorchas.forEach(zPos => {
       [-X_MURO + 0.55, X_MURO - 0.55].forEach((xPos, sideIdx) => {
-        // Brazo de la antorcha
-        const brazo = new THREE.Mesh(geoBrazoAnt, matPiedraArco);
+        const brazo = new THREE.Mesh(geoBrazoAnt, matHierroExt);
         brazo.position.set(xPos, 2.8, zPos);
         entradaGrupo.add(brazo);
 
