@@ -94,4 +94,18 @@ t('los puntos no quedan pegados (a menos de 3 m)', () => {
   for (let i = 1; i < ruta.length; i++) assert.ok(Math.hypot(ruta[i].x - ruta[i - 1].x, ruta[i].y - ruta[i - 1].y) >= 3);
 });
 
+t('entre dos puntos en campo abierto: calcula la ruta directa más corta sin desvíos absurdos a carreteras lejanas', () => {
+  // Dos puntos separados 50m en el campo (a 150m de la carretera A-B)
+  const ruta = R.calcularRuta(MUNDO, { x: 300, y: 150 }, { x: 350, y: 160 }, OPC);
+  assert.strictEqual(ruta.length, 1);
+  assert.ok(cerca(ruta[0], { x: 350, y: 160 }));
+});
+
+t('si una línea directa entre puntos atravesara un pueblo con murallas: rodea por caminos oficiales', () => {
+  // Desde x: -150, y: 0 (oeste de A) hasta x: 300, y: 0 (este de A): el pueblo A (mitad 100m) está en medio
+  const ruta = R.calcularRuta(MUNDO, { x: -150, y: 0 }, { x: 300, y: 0 }, OPC);
+  // No puede ir en línea directa de un solo salto porque cortaría el pueblo A
+  assert.ok(ruta.length > 1);
+});
+
 console.log(`\n${n} pruebas de la ruta superadas.`);

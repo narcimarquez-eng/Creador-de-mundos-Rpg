@@ -159,9 +159,9 @@
   }
 
   // Objetivo de un capítulo en este mundo
-  function resolverObjetivo(cap, world) {
+  function resolverObjetivo(cap, world, desdePos) {
     const m = cap.mision;
-    const inicio = puebloInicial(world);
+    const inicio = desdePos || puebloInicial(world);
     const hablarConSabio = motivo => ({
       tipo: 'hablar', cantidad: 1, npc: cap.npc, nombre: cap.sabio,
       texto: 'Habla con ' + cap.sabio + ' en la plaza', encargo: motivo
@@ -179,7 +179,7 @@
           : 'Encarga una pieza al ' + m.nombre + ' (🔨, en la plaza)'
       };
     } else if (m.tipo === 'visitar') {
-      const otros = (world.towns || []).filter(t => !inicio || t.id !== inicio.id);
+      const otros = (world.towns || []).filter(t => !inicio || !inicio.id || t.id !== inicio.id);
       if (!otros.length) return hablarConSabio('No hay más pueblos en el mundo: vuelve con ' + cap.sabio + '.');
       const vecino = otros.slice().sort((a, b) => dist(a, inicio) - dist(b, inicio))[0];
       let t = vecino;
@@ -241,11 +241,22 @@
     return !!o.npc;
   }
 
-  function asegurarObjetivo(p, world) {
+  function asegurarObjetivo(p, world, desdePos) {
     if (terminada(p)) { p.objetivo = null; p.progreso = 0; return null; }
     if (!objetivoValido(p.objetivo, world)) {
-      p.objetivo = resolverObjetivo(CAPITULOS[p.paso], world);
+      p.objetivo = resolverObjetivo(CAPITULOS[p.paso], world, desdePos);
       p.progreso = 0;
+    }
+    return p.objetivo;
+  }
+
+  // Si aún no hay progreso en el capítulo, reorienta el objetivo al lugar válido más cercano a pos
+  function reajustarObjetivoCercano(p, world, pos) {
+    if (!p || terminada(p) || !pos || !world) return p ? p.objetivo : null;
+    const cap = CAPITULOS[p.paso];
+    if (!cap) return null;
+    if (p.progreso === 0) {
+      p.objetivo = resolverObjetivo(cap, world, pos);
     }
     return p.objetivo;
   }
@@ -296,6 +307,7 @@
     capituloActual,
     contados,
     resolverObjetivo,
+    reajustarObjetivoCercano,
     objetivoValido,
     asegurarObjetivo,
     registrar,

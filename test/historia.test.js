@@ -176,4 +176,25 @@ t('la crónica repite el texto contado con el mismo lugar', () => {
   assert.ok(r.texto.includes('Prados'));
 });
 
+t('reajustarObjetivoCercano: selecciona la zona más cercana a la posición actual del héroe cuando progreso es 0', () => {
+  // Crear mundo con dos zonas de nivel 1: z1 en (100, 100) y z_lejana en (2000, 2000)
+  const w = mundo();
+  w.zones.push({ id: 'z_cercana', name: 'Bosque Cercano', type: 'caza', levelMin: 1, x: 1950, y: 1950, radius: 50, monsters: [{ boss: false }] });
+  
+  const p = H.nuevaPrincipal();
+  // Al inicio (cerca de t1 en 0,0), el objetivo por defecto es z1
+  H.asegurarObjetivo(p, w);
+  assert.strictEqual(p.objetivo.zona, 'z1');
+
+  // Si el jugador se ha desplazado a (2000, 2000) y pulsa la misión automática (reajustarObjetivoCercano)
+  H.reajustarObjetivoCercano(p, w, { x: 2000, y: 2000 });
+  assert.strictEqual(p.objetivo.zona, 'z_cercana');
+  assert.ok(p.objetivo.texto.includes('Bosque Cercano'));
+
+  // Si ya tiene progreso > 0, no cambia de zona para no perder los avances ya hechos
+  p.progreso = 1;
+  H.reajustarObjetivoCercano(p, w, { x: 0, y: 0 });
+  assert.strictEqual(p.objetivo.zona, 'z_cercana');
+});
+
 console.log(`\n${n} pruebas de la historia superadas.`);

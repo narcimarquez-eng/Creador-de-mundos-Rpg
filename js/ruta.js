@@ -43,6 +43,40 @@
     return null;
   }
 
+  // Comprueba si un segmento directo entre A y B corta la muralla o recinto cerrado de algún pueblo (Liang-Barsky)
+  function cortaPueblo(A, B, ctx) {
+    for (const t of ctx.pueblos.values()) {
+      const m = ctx.mitad(t);
+      const minX = t.x - m, maxX = t.x + m;
+      const minY = t.y - m, maxY = t.y + m;
+      if (Math.max(A.x, B.x) < minX || Math.min(A.x, B.x) > maxX ||
+          Math.max(A.y, B.y) < minY || Math.min(A.y, B.y) > maxY) {
+        continue;
+      }
+      const dx = B.x - A.x, dy = B.y - A.y;
+      let t0 = 0, t1 = 1;
+      const p = [-dx, dx, -dy, dy];
+      const q = [A.x - minX, maxX - A.x, A.y - minY, maxY - A.y];
+      let corta = true;
+      for (let i = 0; i < 4; i++) {
+        if (p[i] === 0) {
+          if (q[i] < 0) { corta = false; break; }
+        } else {
+          const r = q[i] / p[i];
+          if (p[i] < 0) {
+            if (r > t1) { corta = false; break; }
+            if (r > t0) t0 = r;
+          } else {
+            if (r < t0) { corta = false; break; }
+            if (r < t1) t1 = r;
+          }
+        }
+      }
+      if (corta && t0 <= t1) return true;
+    }
+    return false;
+  }
+
   // Punto del tramo más cercano a p: camino, segmento k y el punto proyectado
   function proyectar(ctx, p) {
     let mejor = null;
@@ -133,6 +167,12 @@
         const tramo = pS.k < pT.k ? T.slice(pS.k + 1, pT.k + 1) : pS.k > pT.k ? T.slice(pT.k + 1, pS.k + 1).reverse() : [];
         anadir('S', 'T', [pS.q].concat(tramo, [pT.q]));
       }
+    }
+
+    // Si ambos puntos están fuera de pueblos y la línea recta directa no atraviesa ningún pueblo,
+    // se conecta directamente S con T para garantizar siempre el camino más corto sin rodeos innecesarios
+    if (!tIni && !tFin && !cortaPueblo(desde, hasta, ctx)) {
+      anadir('S', 'T', [{ x: hasta.x, y: hasta.y }]);
     }
 
     // Dijkstra (pocos nodos: una búsqueda lineal del mínimo basta)

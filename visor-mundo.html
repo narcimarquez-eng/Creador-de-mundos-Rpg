@@ -6295,31 +6295,67 @@
   }
 
   // Destino de la misión activa: la zona, el pueblo, el lugar secreto o el NPC donde se cumple
-  function destinoDeMision() {
+  function destinoDeMision(posActual) {
+    if (!posActual && character && character.root) {
+      posActual = { x: character.root.position.x, y: character.root.position.z };
+    }
     if (heroeEst && heroeEst.forjaPendiente) {
-      const herreroGuru = gurus.find(x => x.info && (x.info.servicio === 'herrero' || x.info.id === 'herrero'));
-      if (herreroGuru) return { x: herreroGuru.x, y: herreroGuru.z, parar: 2.6, nombre: 'Herrero Brann', npc: herreroGuru };
-      const t = HistoriaLib.puebloInicial(world);
+      const herreroGurus = (gurus || []).filter(x => x.info && (x.info.servicio === 'herrero' || x.info.id === 'herrero'));
+      if (herreroGurus.length > 0) {
+        if (posActual) {
+          herreroGurus.sort((a, b) => Math.hypot(a.x - posActual.x, a.z - posActual.y) - Math.hypot(b.x - posActual.x, b.z - posActual.y));
+        }
+        const g = herreroGurus[0];
+        return { x: g.x, y: g.z, parar: 2.6, nombre: g.info.nombre || 'Herrero Brann', npc: g };
+      }
+      const pueblos = (world && world.towns) ? world.towns.slice() : [];
+      if (posActual && pueblos.length > 1) {
+        pueblos.sort((a, b) => Math.hypot(a.x - posActual.x, a.y - posActual.y) - Math.hypot(b.x - posActual.x, b.y - posActual.y));
+      }
+      const t = pueblos[0] || (world ? HistoriaLib.puebloInicial(world) : null);
       return { x: t.x, y: t.y, parar: 6, nombre: 'Forja del Herrero (' + (t ? t.name : 'Pueblo') + ')' };
     }
-    const o = HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
+    const cabanasListas = (lugaresSecretos || []).filter(s => s.tipo === 'cabana' && s.misionCabana && s.misionCabana.aceptada && (s.misionCabana.progreso >= (s.misionCabana.cantidad || 100)) && !s.misionCabana.entregada);
+    if (cabanasListas.length > 0) {
+      if (posActual) {
+        cabanasListas.sort((a, b) => Math.hypot(a.x - posActual.x, a.z - posActual.y) - Math.hypot(b.x - posActual.x, b.z - posActual.y));
+      }
+      const cab = cabanasListas[0];
+      return { x: cab.x, y: cab.z, parar: 8, nombre: cab.nombre + ' (Cobrar recompensa)' };
+    }
+    if (posActual && typeof HistoriaLib.reajustarObjetivoCercano === 'function') {
+      HistoriaLib.reajustarObjetivoCercano(heroeEst.principal, world, posActual);
+    }
+    const o = HistoriaLib.asegurarObjetivo(heroeEst.principal, world, posActual);
     if (!o) return null;
     if (o.secretoId || o.tipo === 'secreto') {
-      const sec = (lugaresSecretos || []).find(x => x.id === o.secretoId) || (lugaresSecretos || [])[0];
+      let sec = (lugaresSecretos || []).find(x => x.id === o.secretoId);
+      if (!sec && lugaresSecretos && lugaresSecretos.length) {
+        const candidatos = o.secretoTipo ? lugaresSecretos.filter(x => x.tipo === o.secretoTipo) : lugaresSecretos;
+        const lista = candidatos.length ? candidatos : lugaresSecretos;
+        if (posActual) {
+          lista.sort((a, b) => Math.hypot(a.x - posActual.x, a.z - posActual.y) - Math.hypot(b.x - posActual.x, b.z - posActual.y));
+        }
+        sec = lista[0];
+      }
       if (sec) return { x: sec.x, y: sec.z, parar: Math.max(6, (sec.radio || 16) * 0.75), nombre: sec.nombre };
     }
     if (o.zona) {
       const z = world.zones.find(x => x.id === o.zona);
-      return { x: z.x, y: z.y, parar: Math.max(6, Math.min(40, z.radius * 0.35)), nombre: z.name };
+      if (z) return { x: z.x, y: z.y, parar: Math.max(6, Math.min(40, z.radius * 0.35)), nombre: z.name };
     }
     if (o.pueblo) {
       const t = W.findTown(world, o.pueblo);
-      return { x: t.x, y: t.y, parar: 10, nombre: t.name };
+      if (t) return { x: t.x, y: t.y, parar: 10, nombre: t.name };
     }
-    const g = gurus.find(x => x.info.id === o.npc);
-    if (g) return { x: g.x, y: g.z, parar: 2.6, nombre: g.info.nombre, npc: g };
-    const t = HistoriaLib.puebloInicial(world);   // el NPC aún no ha llegado a la plaza
-    return { x: t.x, y: t.y, parar: 6, nombre: t.name };
+    const g = gurus.find(x => x.info && x.info.id === o.npc);
+    if (g) return { x: g.x, y: g.z, parar: 2.6, nombre: g.info.nombre || 'Sabio', npc: g };
+    const pueblos = (world && world.towns) ? world.towns.slice() : [];
+    if (posActual && pueblos.length > 1) {
+      pueblos.sort((a, b) => Math.hypot(a.x - posActual.x, a.y - posActual.y) - Math.hypot(b.x - posActual.x, b.y - posActual.y));
+    }
+    const t = pueblos[0] || (world ? HistoriaLib.puebloInicial(world) : null);
+    return { x: t.x, y: t.y, parar: 6, nombre: t ? t.name : 'Plaza' };
   }
 
   // Puertas y tamaño de los pueblos, los mismos con los que se dibujan los caminos
@@ -6336,12 +6372,14 @@
   function irAMision() {
     if (!world || !character) return;
     if (hero.dead) { toast('Primero tienes que reaparecer'); return; }
-    const d = destinoDeMision();
-    if (!d) return;
     const p = character.root.position;
+    const posActual = { x: p.x, y: p.z };
+    const d = destinoDeMision(posActual);
+    if (!d) return;
     pararAuto();
     objetivo = null;
-    ruta = { puntos: RutaLib.calcularRuta(world, { x: p.x, y: p.z }, d, opcionesRuta()), i: 0, parar: d.parar, nombre: d.nombre, npc: d.npc || null, intentos: 0 };
+    const puntosRuta = RutaLib.calcularRuta(world, posActual, d, opcionesRuta());
+    ruta = { puntos: puntosRuta, i: 0, parar: d.parar, nombre: d.nombre, npc: d.npc || null, intentos: 0 };
     character.cancelado = false;
     character.atascado = false;
     if (!follow) setFollow(true);
