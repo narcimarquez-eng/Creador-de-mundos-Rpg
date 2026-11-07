@@ -4812,8 +4812,17 @@
       areaTotal,
       update: (dt, nowSec) => {
         const t = nowSec || (performance.now() / 1000);
+        const esVisibleJerarquia = obj => {
+          let cur = obj;
+          while (cur) {
+            if (cur.visible === false) return false;
+            cur = cur.parent;
+          }
+          return true;
+        };
         for (let i = 0; i < animables.length; i++) {
           const item = animables[i];
+          if (!esVisibleJerarquia(item)) continue;
           if (item.userData && typeof item.userData.animar === 'function') {
             item.userData.animar(t, dt);
           } else if (item.userData && typeof item.userData.flicker === 'function') {
@@ -4826,7 +4835,7 @@
         }
         for (let j = 0; j < monstruos.length; j++) {
           const m = monstruos[j];
-          if (m && m.userData && typeof m.userData.animar === 'function' && !animables.includes(m)) {
+          if (m && esVisibleJerarquia(m) && m.userData && typeof m.userData.animar === 'function' && !animables.includes(m)) {
             m.userData.animar(t, dt);
           }
         }

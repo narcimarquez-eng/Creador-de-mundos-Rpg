@@ -1036,25 +1036,35 @@
     let distObjetivoMin = Infinity;
 
     if (esMonstruoCombatible(heroeObjetivo)) {
-      const dHeroe = Math.hypot(heroeObjetivo.x - heroePos.x, heroeObjetivo.z - heroePos.z);
-      if (dHeroe < 14) {
+      const dxH = heroeObjetivo.x - heroePos.x;
+      const dzH = heroeObjetivo.z - heroePos.z;
+      if (dxH * dxH + dzH * dzH < 196) {
         objetivoCombate = heroeObjetivo;
         distObjetivoMin = Math.hypot(heroeObjetivo.x - acompanante.x, heroeObjetivo.z - acompanante.z);
       }
     }
 
     if (!objetivoCombate && monstruos && monstruos.length) {
-      monstruos.forEach(m => {
-        if (!esMonstruoCombatible(m)) return;
-        const d = Math.hypot(m.x - heroePos.x, m.z - heroePos.z);
-        if (d < 10) {
-          const dComp = Math.hypot(m.x - acompanante.x, m.z - acompanante.z);
-          if (dComp < distObjetivoMin) {
-            distObjetivoMin = dComp;
-            objetivoCombate = m;
-          }
+      let distCompSqMin = Infinity;
+      const hx = heroePos.x, hz = heroePos.z;
+      const ax = acompanante.x, az = acompanante.z;
+      for (let i = 0, len = monstruos.length; i < len; i++) {
+        const m = monstruos[i];
+        if (!m) continue;
+        const dx = m.x - hx;
+        if (dx >= 10 || dx <= -10) continue;
+        const dz = m.z - hz;
+        if (dz >= 10 || dz <= -10) continue;
+        if (dx * dx + dz * dz >= 100) continue;
+        if (!esMonstruoCombatible(m)) continue;
+        const dcx = m.x - ax, dcz = m.z - az;
+        const dCompSq = dcx * dcx + dcz * dcz;
+        if (dCompSq < distCompSqMin) {
+          distCompSqMin = dCompSq;
+          objetivoCombate = m;
         }
-      });
+      }
+      if (objetivoCombate) distObjetivoMin = Math.sqrt(distCompSqMin);
     }
 
     // Detección de inicio de combate y aviso de monstruo endurecido

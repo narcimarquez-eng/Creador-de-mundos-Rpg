@@ -367,13 +367,39 @@
     return lugares;
   }
 
+  const _cabanaGlbCache = new Map();
+
+  function clonarModeloCabanaLimpio(THREE, escenaLimpia) {
+    const clon = (escenaLimpia && typeof escenaLimpia.clone === 'function') ? escenaLimpia.clone(true) : escenaLimpia;
+    if (clon && typeof clon.traverse === 'function') {
+      clon.traverse(o => {
+        if (o.isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+    }
+    return clon;
+  }
+
   // Geometría 3D procedimental para cada tipo de lugar secreto con Three.js
-  function construirModeloSecreto(THREE, lugar, getAlturaFn) {
+  function construirModeloSecreto(THREE, lugar, getAlturaFn, opciones) {
+    const sinLuces = !!(opciones && opciones.sinLucesPuntuales);
     const grupo = new THREE.Group();
     grupo.name = 'LugarSecreto_' + lugar.id;
     const ySuelo = getAlturaFn ? getAlturaFn(lugar.x, lugar.z) : 0;
     grupo.position.set(lugar.x, ySuelo, lugar.z);
     grupo.rotation.y = lugar.rotacion || 0;
+    grupo.userData = {
+      lugarId: lugar.id,
+      tipo: lugar.tipo,
+      x: lugar.x,
+      y: ySuelo,
+      z: lugar.z,
+      rotacion: lugar.rotacion || 0,
+      radioSombra: lugar.tipo === 'cabana' ? 30 : 12,
+      lugarRef: lugar
+    };
 
     const matPiedra = new THREE.MeshStandardMaterial({
       color: 0x475569, roughness: 0.85, metalness: 0.15
@@ -439,108 +465,21 @@
       orbe.position.y = 3.2;
       grupo.add(orbe);
 
-      // Luz puntual tenue
-      const luz = new THREE.PointLight(0x38bdf8, 1.8, 18, 1.6);
-      luz.position.y = 3.2;
-      grupo.add(luz);
+      // Luz puntual tenue (o metadato para luz compartida del supramundo sin recompilar shaders)
+      grupo.userData.luzLocal = { x: 0, y: 3.2, z: 0, color: 0x38bdf8, intensity: 1.8, distance: 18 };
+      if (!sinLuces) {
+        const luz = new THREE.PointLight(0x38bdf8, 1.8, 18, 1.6);
+        luz.position.y = 3.2;
+        grupo.add(luz);
+      }
 
     } else if (lugar.tipo === 'cabana') {
       // 2. CABAÑAS: Modelos GLB dedicados a ras de suelo y arquitectura arquitectónica proporcionada
       if (lugar.modeloGLB && typeof THREE.GLTFLoader !== 'undefined') {
-        // Carga asíncrona del modelo GLB con dimensionado arquitectónico óptimo y apoyo exacto en el suelo
-        const loader = new THREE.GLTFLoader();
-        loader.load(lugar.modeloGLB, gltf => {
-          const modelo = gltf.scene;
-
-          // 1. Eliminar cualquier terreno, suelo plano exterior, camino, agua o árboles incluidos dentro del archivo GLB
-          const nodosTerreno = [];
-          modelo.traverse(o => {
-            const nm = (o.name || '').toLowerCase();
-            const esMuroOTecho = nm.includes('muro') || nm.includes('techo') || nm.includes('fronton') ||
-                                 nm.includes('cristal') || nm.includes('marco') || nm.includes('puerta') ||
-                                 nm.includes('cumbrera') || nm.includes('porche') || nm.includes('chimenea') ||
-                                 nm.includes('mesa') || nm.includes('silla') || nm.includes('cama') ||
-                                 nm.includes('cofre') || nm.includes('barril') || nm.includes('farol') ||
-                                 nm.includes('poste') || nm.includes('escalon') || nm.includes('hogar') ||
-                                 nm.includes('fuego') || nm.includes('dintel') || nm.includes('entramado') ||
-                                 nm.includes('tejado') || nm.includes('colchon') || nm.includes('almohada') ||
-                                 nm.includes('manta') || nm.includes('cajon') || nm.includes('barca') ||
-                                 nm.includes('asiento') || nm.includes('muelle') || nm.includes('pilote');
-
-            if (!esMuroOTecho) {
-              if (nm.includes('hierba') || nm.includes('camino') || nm.includes('suelo') ||
-                  nm.includes('agua') || nm.includes('grass') || nm.includes('ground') ||
-                  nm.includes('terrain') || nm.includes('water') || nm.includes('arbol') ||
-                  nm.includes('tree') || nm.includes('tronco') || nm.includes('copa') ||
-                  nm.includes('plane') || nm.includes('floor')) {
-                if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
-                  nodosTerreno.push(o);
-                }
-              }
-            }
-          });
-
-          // Detectar además mallas que sean planos horizontales de suelo exterior sin nombre
-          modelo.traverse(o => {
-            if (o.isMesh && o.geometry && !nodosTerreno.includes(o)) {
-              if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
-              const bb = o.geometry.boundingBox;
-              if (bb) {
-                const dy = bb.max.y - bb.min.y;
-                const dx = bb.max.x - bb.min.x;
-                const dz = bb.max.z - bb.min.z;
-                if (dy < 0.45 && (dx > 8.0 || dz > 8.0)) {
-                  const nm = (o.name || '').toLowerCase();
-                  if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
-                    nodosTerreno.push(o);
-                  }
-                }
-              }
-            }
-          });
-
-          nodosTerreno.forEach(o => {
-            if (o.parent) o.parent.remove(o);
-            o.visible = false;
-            if (o.geometry) {
-              try { o.geometry.dispose(); } catch (e) {}
-            }
-          });
-
-          // 2. Calcular el bounding box de la estructura real del edificio limpio
-          const bboxEdificio = new THREE.Box3().setFromObject(modelo);
-          const sizeEdificio = new THREE.Vector3();
-          bboxEdificio.getSize(sizeEdificio);
-          const maxHoriz = Math.max(sizeEdificio.x, sizeEdificio.z, 0.1);
-
-          // Escala real proporcionada para un ancho de 27.5 metros reales (+30% adicional para gran presencia)
-          const escala = 27.5 / maxHoriz;
-          modelo.scale.setScalar(escala);
-
-          // 3. Centrar el edificio y apoyar la base sobre la solera de piedra
-          const bboxEscalado = new THREE.Box3().setFromObject(modelo);
-          const anchoX = Math.max(19.0, bboxEscalado.max.x - bboxEscalado.min.x);
-          const profZ = Math.max(16.0, bboxEscalado.max.z - bboxEscalado.min.z);
-          const centroX = (bboxEscalado.max.x + bboxEscalado.min.x) / 2;
-          const centroZ = (bboxEscalado.max.z + bboxEscalado.min.z) / 2;
-
-          modelo.position.set(-centroX, -bboxEscalado.min.y + 0.20, -centroZ);
-
-          modelo.traverse(o => {
-            if (o.isMesh) {
-              o.castShadow = true;
-              o.receiveShadow = true;
-              if (o.material) {
-                const mats = Array.isArray(o.material) ? o.material : [o.material];
-                mats.forEach(m => {
-                  if (m) {
-                    m.roughness = Math.min(0.92, Math.max(0.45, m.roughness || 0.7));
-                    if (typeof m.metalness === 'number') m.metalness = Math.min(0.25, m.metalness);
-                  }
-                });
-              }
-            }
-          });
+        const montarCabanaLimpia = (entradaCache, usarClon) => {
+          const modelo = usarClon ? clonarModeloCabanaLimpio(THREE, entradaCache.escena) : entradaCache.escena;
+          const anchoX = entradaCache.anchoX;
+          const profZ = entradaCache.profZ;
           grupo.add(modelo);
 
           if (!lugar.esMar) {
@@ -581,9 +520,12 @@
             llama.position.set(-4.8, 0.65, hogueraZ);
             grupo.add(llama);
 
-            const luzFuego = new THREE.PointLight(0xf97316, 2.2, 22, 1.8);
-            luzFuego.position.set(-4.8, 1.2, hogueraZ);
-            grupo.add(luzFuego);
+            grupo.userData.luzLocal = { x: -4.8, y: 1.2, z: hogueraZ, color: 0xf97316, intensity: 2.2, distance: 22 };
+            if (!sinLuces) {
+              const luzFuego = new THREE.PointLight(0xf97316, 2.2, 22, 1.8);
+              luzFuego.position.set(-4.8, 1.2, hogueraZ);
+              grupo.add(luzFuego);
+            }
           } else {
             // Cabaña marina / lacustre en el agua sobre pilotes de madera hacia el fondo del río o mar
             const altoPilotes = 4.5;
@@ -602,11 +544,116 @@
               grupo.add(p);
             });
           }
+        };
 
-        }, undefined, () => {
-          // Si falla o no encuentra el GLB, genera la cabaña procedural como respaldo
-          generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
-        });
+        if (_cabanaGlbCache.has(lugar.modeloGLB)) {
+          montarCabanaLimpia(_cabanaGlbCache.get(lugar.modeloGLB), true);
+        } else {
+          // Carga asíncrona del modelo GLB con dimensionado arquitectónico óptimo y apoyo exacto en el suelo
+          const loader = new THREE.GLTFLoader();
+          loader.load(lugar.modeloGLB, gltf => {
+            const modelo = gltf.scene;
+
+            // 1. Eliminar cualquier terreno, suelo plano exterior, camino, agua o árboles incluidos dentro del archivo GLB
+            const nodosTerreno = [];
+            modelo.traverse(o => {
+              const nm = (o.name || '').toLowerCase();
+              const esMuroOTecho = nm.includes('muro') || nm.includes('techo') || nm.includes('fronton') ||
+                                   nm.includes('cristal') || nm.includes('marco') || nm.includes('puerta') ||
+                                   nm.includes('cumbrera') || nm.includes('porche') || nm.includes('chimenea') ||
+                                   nm.includes('mesa') || nm.includes('silla') || nm.includes('cama') ||
+                                   nm.includes('cofre') || nm.includes('barril') || nm.includes('farol') ||
+                                   nm.includes('poste') || nm.includes('escalon') || nm.includes('hogar') ||
+                                   nm.includes('fuego') || nm.includes('dintel') || nm.includes('entramado') ||
+                                   nm.includes('tejado') || nm.includes('colchon') || nm.includes('almohada') ||
+                                   nm.includes('manta') || nm.includes('cajon') || nm.includes('barca') ||
+                                   nm.includes('asiento') || nm.includes('muelle') || nm.includes('pilote');
+
+              if (!esMuroOTecho) {
+                if (nm.includes('hierba') || nm.includes('camino') || nm.includes('suelo') ||
+                    nm.includes('agua') || nm.includes('grass') || nm.includes('ground') ||
+                    nm.includes('terrain') || nm.includes('water') || nm.includes('arbol') ||
+                    nm.includes('tree') || nm.includes('tronco') || nm.includes('copa') ||
+                    nm.includes('plane') || nm.includes('floor')) {
+                  if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
+                    nodosTerreno.push(o);
+                  }
+                }
+              }
+            });
+
+            // Detectar además mallas que sean planos horizontales de suelo exterior sin nombre
+            modelo.traverse(o => {
+              if (o.isMesh && o.geometry && !nodosTerreno.includes(o)) {
+                if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+                const bb = o.geometry.boundingBox;
+                if (bb) {
+                  const dy = bb.max.y - bb.min.y;
+                  const dx = bb.max.x - bb.min.x;
+                  const dz = bb.max.z - bb.min.z;
+                  if (dy < 0.45 && (dx > 8.0 || dz > 8.0)) {
+                    const nm = (o.name || '').toLowerCase();
+                    if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
+                      nodosTerreno.push(o);
+                    }
+                  }
+                }
+              }
+            });
+
+            nodosTerreno.forEach(o => {
+              if (o.parent) o.parent.remove(o);
+              o.visible = false;
+              if (o.geometry) {
+                try { o.geometry.dispose(); } catch (e) {}
+              }
+            });
+
+            // 2. Calcular el bounding box de la estructura real del edificio limpio
+            const bboxEdificio = new THREE.Box3().setFromObject(modelo);
+            const sizeEdificio = new THREE.Vector3();
+            bboxEdificio.getSize(sizeEdificio);
+            const maxHoriz = Math.max(sizeEdificio.x, sizeEdificio.z, 0.1);
+
+            // Escala real proporcionada para un ancho de 27.5 metros reales (+30% adicional para gran presencia)
+            const escala = 27.5 / maxHoriz;
+            modelo.scale.setScalar(escala);
+
+            // 3. Centrar el edificio y apoyar la base sobre la solera de piedra
+            const bboxEscalado = new THREE.Box3().setFromObject(modelo);
+            const anchoX = Math.max(19.0, bboxEscalado.max.x - bboxEscalado.min.x);
+            const profZ = Math.max(16.0, bboxEscalado.max.z - bboxEscalado.min.z);
+            const centroX = (bboxEscalado.max.x + bboxEscalado.min.x) / 2;
+            const centroZ = (bboxEscalado.max.z + bboxEscalado.min.z) / 2;
+
+            modelo.position.set(-centroX, -bboxEscalado.min.y + 0.20, -centroZ);
+
+            modelo.traverse(o => {
+              if (o.isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+                if (o.material) {
+                  const mats = Array.isArray(o.material) ? o.material : [o.material];
+                  mats.forEach(m => {
+                    if (m) {
+                      m.roughness = Math.min(0.92, Math.max(0.45, m.roughness || 0.7));
+                      if (typeof m.metalness === 'number') m.metalness = Math.min(0.25, m.metalness);
+                    }
+                  });
+                }
+              }
+            });
+
+            const entradaCache = { escena: modelo, anchoX, profZ };
+            if (modelo && typeof modelo.clone === 'function') {
+              _cabanaGlbCache.set(lugar.modeloGLB, { escena: modelo.clone(true), anchoX, profZ });
+            }
+            montarCabanaLimpia(entradaCache, false);
+          }, undefined, () => {
+            // Si falla o no encuentra el GLB, genera la cabaña procedural como respaldo
+            generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
+          });
+        }
       } else {
         generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
       }
@@ -633,21 +680,26 @@
       runaPlaca.position.y = 1.52;
       grupo.add(runaPlaca);
 
-      // Cuatro monolitos en las esquinas con runas
+      // Cuatro monolitos en las esquinas con runas (geometrías compartidas)
+      const geoPilarAltar = new THREE.BoxGeometry(0.55, 2.8, 0.55);
+      const geoRunaPilar = new THREE.BoxGeometry(0.3, 1.4, 0.58);
       [[-2.0, -2.0], [2.0, -2.0], [-2.0, 2.0], [2.0, 2.0]].forEach(([px, pz]) => {
-        const pilar = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.8, 0.55), matPiedra);
+        const pilar = new THREE.Mesh(geoPilarAltar, matPiedra);
         pilar.position.set(px, 1.55, pz);
         pilar.castShadow = true;
         grupo.add(pilar);
 
-        const runaPilar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.4, 0.58), matRuna);
+        const runaPilar = new THREE.Mesh(geoRunaPilar, matRuna);
         runaPilar.position.set(px, 1.6, pz);
         grupo.add(runaPilar);
       });
 
-      const luzAltar = new THREE.PointLight(0x38bdf8, 2.2, 16, 1.4);
-      luzAltar.position.y = 2.4;
-      grupo.add(luzAltar);
+      grupo.userData.luzLocal = { x: 0, y: 2.4, z: 0, color: 0x38bdf8, intensity: 2.2, distance: 16 };
+      if (!sinLuces) {
+        const luzAltar = new THREE.PointLight(0x38bdf8, 2.2, 16, 1.4);
+        luzAltar.position.y = 2.4;
+        grupo.add(luzAltar);
+      }
 
     } else {
       // 4. SANTUARIO DE PIEDRA Y LUZ (Círculo ceremonial de monolitos de estilo Stonehenge)
@@ -656,19 +708,21 @@
       baseCirculo.receiveShadow = true;
       grupo.add(baseCirculo);
 
-      // 6 Monolitos en círculo con dintel
+      // 6 Monolitos en círculo con dintel (geometrías compartidas)
       const numPilares = 6;
+      const geoColSan = new THREE.BoxGeometry(0.7, 3.4, 0.5);
+      const geoDintelSan = new THREE.BoxGeometry(1.6, 0.35, 0.6);
       for (let i = 0; i < numPilares; i++) {
         const a = (i / numPilares) * Math.PI * 2;
         const px = Math.cos(a) * 4.4, pz = Math.sin(a) * 4.4;
-        const col = new THREE.Mesh(new THREE.BoxGeometry(0.7, 3.4, 0.5), matPiedra);
+        const col = new THREE.Mesh(geoColSan, matPiedra);
         col.position.set(px, 1.8, pz);
         col.lookAt(0, 1.8, 0);
         col.castShadow = true;
         grupo.add(col);
 
         // Banda dorada superior
-        const dintel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 0.6), matPiedraClara);
+        const dintel = new THREE.Mesh(geoDintelSan, matPiedraClara);
         dintel.position.set(px, 3.65, pz);
         dintel.lookAt(0, 3.65, 0);
         dintel.castShadow = true;
@@ -680,9 +734,12 @@
       gemaCentral.position.y = 2.2;
       grupo.add(gemaCentral);
 
-      const luzSan = new THREE.PointLight(0xf59e0b, 2.4, 22, 1.5);
-      luzSan.position.y = 2.5;
-      grupo.add(luzSan);
+      grupo.userData.luzLocal = { x: 0, y: 2.5, z: 0, color: 0xf59e0b, intensity: 2.4, distance: 22 };
+      if (!sinLuces) {
+        const luzSan = new THREE.PointLight(0xf59e0b, 2.4, 22, 1.5);
+        luzSan.position.y = 2.5;
+        grupo.add(luzSan);
+      }
     }
 
     return grupo;

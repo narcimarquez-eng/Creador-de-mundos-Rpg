@@ -597,6 +597,12 @@
         right: 8px;
         bottom: 292px;
         width: min(290px, calc(100vw - 16px));
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      #mision, #dungeon-boss-hud, #dungeon-prompt {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
       }
       .c-pill-reabrir {
         right: 8px;
@@ -1212,7 +1218,9 @@
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
   let ladrillosTramos = [];   // tramos del empedrado de las calzadas: { malla, x, z }
   let character = null;
-  let hemiLight = null, sunLight = null, luzPlazaMundo = null, luzForjaMundo = null;
+  let hemiLight = null, sunLight = null, luzPlazaMundo = null, luzForjaMundo = null, luzSecretoMundo = null, luzMazmorraExtMundo = null;
+  let terrenoVersion = 1;
+  let _grupoSecretosCache = null, _grupoEntradasCache = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
   let terrainMat = null, farMesh = null, lastChunks = 0;
   const nearChunks = new Map();          // trozos de 300 m con detalle completo, por "cx,cz"
@@ -1573,10 +1581,12 @@
     sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.25;   // sin rayas de sombra en el suelo
     scene.add(sunLight);
     scene.add(sunLight.target);
-    // Dos luces puntuales fijas para toda la partida: evita recompilar todos los shaders al cargar o descargar pueblos
+    // Cuatro luces puntuales fijas reutilizables para toda la partida: evita recompilar todos los shaders al cargar pueblos, cabañas o entradas
     luzPlazaMundo = new THREE.PointLight('#38bdf8', 0, 55, 1.5);
     luzForjaMundo = new THREE.PointLight('#f97316', 0, 35, 1.5);
-    scene.add(luzPlazaMundo, luzForjaMundo);
+    luzSecretoMundo = new THREE.PointLight('#f97316', 0, 24, 1.6);
+    luzMazmorraExtMundo = new THREE.PointLight('#f97316', 0, 32, 1.6);
+    scene.add(luzPlazaMundo, luzForjaMundo, luzSecretoMundo, luzMazmorraExtMundo);
     loadTerrainTextures();
     // El entorno PMREM y el catálogo pesado de monstruos se preparan justo tras pintar el primer fotograma
     requestAnimationFrame(() => setTimeout(() => { prepararEntorno(); cargarModuloEnemigos(); }, 0));
@@ -1629,9 +1639,11 @@
     gurusColocados = false;
     lugaresSecretosIniciados = false;
     lugaresSecretos = [];
+    _grupoSecretosCache = null;
     const grupoSecAntiguo = scene.getObjectByName('LugaresSecretosMundo');
     if (grupoSecAntiguo) scene.remove(grupoSecAntiguo);
     mazmorrasIniciadas = false;
+    _grupoEntradasCache = null;
     if (gestorMazmorras && gestorMazmorras.enMazmorra) gestorMazmorras.salirInstancia(false);
     const grupoMazAntiguo = scene.getObjectByName('EntradasMazmorrasMundo');
     if (grupoMazAntiguo) scene.remove(grupoMazAntiguo);
@@ -1644,8 +1656,12 @@
     monsters.forEach(m => { scene.remove(m.group); scene.remove(m.bar); });
     monsters = [];
     curTown = null; curZone = null;
+    _lastRegionCheck = 0; _lastRegX = Infinity; _lastRegZ = Infinity;
+    actualizarZonaTela();
     ladrillosTramos.forEach(t => { scene.remove(t.malla); t.malla.geometry.dispose(); });
     ladrillosTramos = [];
+    _piedrasCamX = Infinity; _piedrasCamZ = Infinity;
+    terrenoVersion++;
     [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
@@ -1869,6 +1885,7 @@
 
   // Al cambiar el suelo de un pueblo, los trozos y la malla lejana que lo cubren se rehacen
   function patchChanged(o) {
+    terrenoVersion++;
     const g = terrainGrid;
     if (!g) return;
     [...nearChunks.keys()].forEach(k => {
@@ -2046,11 +2063,12 @@
     want.forEach(([cx, cz], k) => {
       if (!nearChunks.has(k)) { nearChunks.set(k, buildNear(cx, cz)); changed = true; }
     });
-    if (changed || !farMesh) buildFar();
+    if (changed || !farMesh) { terrenoVersion++; buildFar(); }
     else actualizarTeselasLejanas();
   }
 
   function clearTerrainRender() {
+    terrenoVersion++;
     nearChunks.forEach(m => { scene.remove(m); m.geometry.dispose(); });
     nearChunks.clear();
     quitarLejania();
@@ -2077,6 +2095,10 @@
       if (o.isMesh && o !== waterMesh) { o.castShadow = Q.shadows > 0 && proyectaSombra(o); o.receiveShadow = Q.shadows > 0; if (o.material) o.material.needsUpdate = true; }
     });
     monsters.forEach(m => { m.sombra = undefined; });   // cada monstruo vuelve a decidir su sombra por distancia
+    [_grupoSecretosCache, _grupoEntradasCache].forEach(grp => {
+      if (grp) grp.children.forEach(ch => { if (ch.userData) ch.userData._sombraActiva = undefined; });
+    });
+    actualizarVisibilidadEstructuras(performance.now(), true);
     if (terrainMat) terrainMat.needsUpdate = true;
     // Texturas del suelo, distancias de monstruos, pueblos y árboles según el nivel
     if (texturasCargadas) terrainU.uTexOn.value = Q.texturas ? 1 : 0;
@@ -2481,10 +2503,20 @@
     return RELIEVE_AMP * (0.7 * (ruidoRelieve(x / 14, z / 14) - 0.5) + 0.3 * (ruidoRelieve(x / 6 + 7, z / 6 - 4) - 0.5)) * 2 * w;
   }
 
-  // Enciende solo los tramos de empedrado cerca de la cámara
+  // Enciende solo los tramos de empedrado cerca de la cámara (solo recalcula cuando la cámara se mueve ≥ 3 m)
+  let _piedrasCamX = Infinity, _piedrasCamZ = Infinity;
   function actualizarPiedras() {
+    if (!ladrillosTramos.length) return;
     const x = camera.position.x, z = camera.position.z;
-    ladrillosTramos.forEach(t => { t.malla.visible = (t.x - x) ** 2 + (t.z - z) ** 2 < PIEDRA_VISIBLE_M * PIEDRA_VISIBLE_M; });
+    const dx = x - _piedrasCamX, dz = z - _piedrasCamZ;
+    if (dx * dx + dz * dz < 9) return;
+    _piedrasCamX = x; _piedrasCamZ = z;
+    const limSq = PIEDRA_VISIBLE_M * PIEDRA_VISIBLE_M;
+    for (let i = 0; i < ladrillosTramos.length; i++) {
+      const t = ladrillosTramos[i];
+      const tx = t.x - x, tz = t.z - z;
+      t.malla.visible = tx * tx + tz * tz < limSq;
+    }
   }
 
   // Puntos con los que el camino de un pueblo se une a su calle de salida (la misma del Creador):
@@ -3304,6 +3336,66 @@
     } else {
       luzForjaMundo.intensity = 0;
     }
+
+    // Luz puntual compartida para el lugar secreto o cabaña más cercano (< 75 m)
+    if (luzSecretoMundo) {
+      const grpSec = _grupoSecretosCache || (_grupoSecretosCache = scene.getObjectByName('LugaresSecretosMundo'));
+      let mejorSec = null, dSecMin = 75 * 75;
+      const px = character && character.root ? character.root.position.x : cx;
+      const pz = character && character.root ? character.root.position.z : cz;
+      if (grpSec && grpSec.visible) {
+        const hijos = grpSec.children;
+        for (let i = 0; i < hijos.length; i++) {
+          const ch = hijos[i];
+          if (!ch.visible || !ch.userData || !ch.userData.luzLocal) continue;
+          const dx = ch.position.x - px, dz = ch.position.z - pz, d2 = dx * dx + dz * dz;
+          if (d2 < dSecMin) { dSecMin = d2; mejorSec = ch; }
+        }
+      }
+      if (mejorSec) {
+        const ll = mejorSec.userData.luzLocal;
+        const rot = mejorSec.rotation.y || 0, cr = Math.cos(rot), sr = Math.sin(rot);
+        const wx = mejorSec.position.x + ll.x * cr + ll.z * sr;
+        const wz = mejorSec.position.z - ll.x * sr + ll.z * cr;
+        luzSecretoMundo.color.setHex(ll.color);
+        luzSecretoMundo.distance = ll.distance || 22;
+        luzSecretoMundo.position.set(wx, mejorSec.position.y + ll.y, wz);
+        luzSecretoMundo.intensity = ll.intensity;
+      } else {
+        luzSecretoMundo.intensity = 0;
+      }
+    }
+
+    // Luz puntual compartida para la entrada exterior de mazmorra más cercana (< 85 m)
+    if (luzMazmorraExtMundo) {
+      const grpEnt = _grupoEntradasCache || (_grupoEntradasCache = scene.getObjectByName('EntradasMazmorrasMundo'));
+      let mejorEnt = null, dEntMin = 85 * 85;
+      const px = character && character.root ? character.root.position.x : cx;
+      const pz = character && character.root ? character.root.position.z : cz;
+      if (grpEnt && grpEnt.visible) {
+        const hijos = grpEnt.children;
+        for (let i = 0; i < hijos.length; i++) {
+          const ch = hijos[i];
+          if (!ch.visible || !ch.userData || !ch.userData.luzLocal) continue;
+          const dx = ch.position.x - px, dz = ch.position.z - pz, d2 = dx * dx + dz * dz;
+          if (d2 < dEntMin) { dEntMin = d2; mejorEnt = ch; }
+        }
+      }
+      if (mejorEnt) {
+        const rot = mejorEnt.rotation.y || 0, cr = Math.cos(rot), sr = Math.sin(rot);
+        const relX = px - mejorEnt.position.x, relZ = pz - mejorEnt.position.z;
+        const localZ = relX * sr + relZ * cr;
+        const ll = (localZ > 18 && mejorEnt.userData.luzPortalLocal) ? mejorEnt.userData.luzPortalLocal : mejorEnt.userData.luzLocal;
+        const wx = mejorEnt.position.x + ll.x * cr + ll.z * sr;
+        const wz = mejorEnt.position.z - ll.x * sr + ll.z * cr;
+        luzMazmorraExtMundo.color.setHex(ll.color);
+        luzMazmorraExtMundo.distance = ll.distance || 30;
+        luzMazmorraExtMundo.position.set(wx, mejorEnt.position.y + ll.y, wz);
+        luzMazmorraExtMundo.intensity = ll.intensity;
+      } else {
+        luzMazmorraExtMundo.intensity = 0;
+      }
+    }
   }
 
   // ===========================================================================
@@ -3496,8 +3588,10 @@
     const clonRig = EnemyOpt.clonarRig(THREE, proto.rig);
     const clonFx = EnemyFx ? EnemyFx.crear(clonRig, m.enemigo) : null;
     // Núcleo y proyectil mágico brillan (resplandor selectivo)
-    marcarResplandor(clonRig.parts && clonRig.parts.coreMesh);
-    if (clonFx && clonFx.bola) marcarResplandor(clonFx.bola);
+    const coreMesh = clonRig.parts && clonRig.parts.coreMesh;
+    const bolaMesh = clonFx && clonFx.bola;
+    marcarResplandor(coreMesh);
+    if (bolaMesh) marcarResplandor(bolaMesh);
     const detalle = [];
     clonRig.rootGroup.traverse(o => {
       if (o.isMesh && DETALLE_RE.test((o.name || '') + ' ' + ((o.material && o.material.name) || ''))) detalle.push(o);
@@ -3505,6 +3599,7 @@
     return {
       rig: clonRig,
       fx: clonFx,
+      tieneResplandor: !!(coreMesh || bolaMesh),
       detalle,
       barHeight: proto.barHeight
     };
@@ -3645,6 +3740,7 @@
       const v = m.versiones[tipo];
       if (m.rig) m.group.remove(m.rig.rootGroup);
       m.rig = v.rig; m.fx = v.fx; m.barHeight = v.barHeight;
+      m.tieneResplandor = !!v.tieneResplandor;
       m.detalle = v.detalle; m.detalleOn = undefined;   // se decide en el siguiente fotograma
       m.activa = tipo; m.sombra = undefined; m.posado = false;
       m.group.add(v.rig.rootGroup);
@@ -4008,82 +4104,115 @@
         if (v.fx.matDestello) v.fx.matDestello.dispose();
       }
     });
-    m.versiones = {}; m.rig = null; m.fx = null; m.activa = null; m.posado = false; m.sombra = undefined;
+    m.versiones = {}; m.rig = null; m.fx = null; m.activa = null; m.tieneResplandor = false; m.posado = false; m.sombra = undefined;
     m.group.visible = false; m.bar.visible = false;
   }
   let fotogramaCombate = 0;
+  let hayResplandorVisible = false;
 
   function updateCombat(dt, now) {
     fotogramaCombate++;
     presupuestoModelos = 1;
+    hayResplandorVisible = false;
     CombatLib.tickHero(hero, dt);
     updateRest(dt);
     const p = character.root.position;
+    const px = p.x, pz = p.z;
+    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    const perfNow = performance.now();
+    const nowSec = now / 1000;
+    const sombrasOn = QUALITY[quality].shadows > 0;
 
     if (hero.dead) {
       if (now >= hero.deadUntil) respawnHero();
       else $('deadsub').textContent = 'Reapareces en ' + Math.ceil((hero.deadUntil - now) / 1000) + ' s';
     }
 
-    monsters.forEach(m => {
+    for (let i = 0, nMon = monsters.length; i < nMon; i++) {
+      const m = monsters[i];
       try {
         // En mazmorra: procesar y mostrar estrictamente los enemigos de la mazmorra; aislar exteriores
-        if (gestorMazmorras && gestorMazmorras.enMazmorra && !m.dungeonInfoRef) {
-          if (m.group) m.group.visible = false;
-          if (m.bar) m.bar.visible = false;
-          return;
+        if (enMazmorra && !m.dungeonInfoRef) {
+          if (m.group && m.group.visible) m.group.visible = false;
+          if (m.bar && m.bar.visible) m.bar.visible = false;
+          continue;
         }
         // En supramundo exterior: procesar enemigos exteriores e ignorar instancias de mazmorra
-        if ((!gestorMazmorras || !gestorMazmorras.enMazmorra) && m.dungeonInfoRef) {
-          if (m.group) m.group.visible = false;
-          if (m.bar) m.bar.visible = false;
-          return;
+        if (!enMazmorra && m.dungeonInfoRef) {
+          if (m.group && m.group.visible) m.group.visible = false;
+          if (m.bar && m.bar.visible) m.bar.visible = false;
+          continue;
+        }
+        // En mazmorra: saltar actualización de monstruos en estancias lejanas ocultas por el culling de salas
+        if (enMazmorra && m.dungeonInfoRef && m.dungeonInfoRef._enEstanciaVisible === false) {
+          if (m.group && m.group.visible) m.group.visible = false;
+          if (m.bar && m.bar.visible) m.bar.visible = false;
+          continue;
         }
 
-        const dPresencia = Math.hypot(m.x - p.x, m.z - p.z);
-        const presente = m.group.parent ? dPresencia <= MONSTRUO_PRESENTE : dPresencia < MONSTRUO_PRESENTE - 10;
-        if (!presente) { if (m.group.parent) quitarMonstruo(m); return; }
+        const dx = m.x - px, dz = m.z - pz;
+        // Descarte rápido por caja antes de raíz cuadrada para monstruos lejanos fuera de escena
+        if (!m.group.parent && (dx > MONSTRUO_PRESENTE - 10 || dx < -(MONSTRUO_PRESENTE - 10) || dz > MONSTRUO_PRESENTE - 10 || dz < -(MONSTRUO_PRESENTE - 10))) {
+          continue;
+        }
+        const d = Math.hypot(dx, dz);
+        const presente = m.group.parent ? d <= MONSTRUO_PRESENTE : d < MONSTRUO_PRESENTE - 10;
+        if (!presente) { if (m.group.parent) quitarMonstruo(m); continue; }
         if (!m.group.parent) ponerMonstruo(m);
         if (!m.alive) {
           // Muerte: el modelo cae un segundo antes de desaparecer
-          if (m.fx && performance.now() < m.muriendo) {
+          if (m.fx && perfNow < m.muriendo) {
             m.group.visible = true;
-            EnemyFx.actualizar(m.fx, 'death', now / 1000, dt, now / 1000);
-            return;
+            if (m.tieneResplandor) hayResplandorVisible = true;
+            EnemyFx.actualizar(m.fx, 'death', nowSec, dt, nowSec);
+            continue;
           }
-          if (m.rig && m.rig.glb && performance.now() < m.muriendo) {
+          if (m.rig && m.rig.glb && perfNow < m.muriendo) {
             m.group.visible = true;
             EnemyGlb.actualizar(m.rig.glb, 'death', dt);
-            return;
+            continue;
           }
-          if (performance.now() >= m.respawnAt) respawnMonster(m);
-          else { m.group.visible = false; m.bar.visible = false; return; }
+          if (perfNow >= m.respawnAt) respawnMonster(m);
+          else { m.group.visible = false; m.bar.visible = false; continue; }
         }
-        const d = Math.hypot(m.x - p.x, m.z - p.z);
         // Daño de un ataque que ya ha llegado al héroe (golpe o proyectil)
-        if (m.impactoEn && now >= 0 && performance.now() >= m.impactoEn) {
+        if (m.impactoEn && now >= 0 && perfNow >= m.impactoEn) {
           m.impactoEn = 0;
           if (!hero.dead) aplicarDanoEnemigo(m);
         }
-        // Los monstruos exteriores no entran en los pueblos; los de mazmorra no tienen restricción
-        const inTown = !m.dungeonInfoRef && !(gestorMazmorras && gestorMazmorras.enMazmorra) && towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
+        // Los monstruos exteriores no entran en los pueblos (solo se comprueba cuando el monstruo ha cambiado de posición)
+        let inTown = false;
+        if (!enMazmorra && !m.dungeonInfoRef) {
+          if (m._townX !== m.x || m._townZ !== m.z) {
+            m._townX = m.x; m._townZ = m.z;
+            m._inTown = towns.some(o => Math.max(Math.abs(m.x - o.t.x), Math.abs(m.z - o.t.y)) < o.R + 25);
+          }
+          inTown = !!m._inTown;
+        }
         if (inTown) m.state = 'return';
         if (d < 120 && !inTown) {
-          const r = CombatLib.monsterTick(m, hero, p.x, p.z, dt);
+          const r = CombatLib.monsterTick(m, hero, px, pz, dt);
           if (r.attack && !hero.dead) monsterHitsHero(m);
         }
-        if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && performance.now() < m.muriendo)) descargarModelosEnemigo(m);
-        const near = (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) ? (d < MONSTRUO_VISIBLE) : (d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d));
+        if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && perfNow < m.muriendo)) descargarModelosEnemigo(m);
+        const esMeshProc = !!(m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural));
+        const near = esMeshProc ? (d < MONSTRUO_VISIBLE) : (d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d));
         m.group.visible = near;
+        let my = 0;
         if (near) {
-          if (!m.meshProcedural && (!m.dungeonInfoRef || !m.dungeonInfoRef.meshProcedural)) {
-            aplicarDetalle(m, d);
+          if (m.tieneResplandor) hayResplandorVisible = true;
+          if (!esMeshProc) aplicarDetalle(m, d);
+          if (enMazmorra && m.dungeonInfoRef) {
+            my = (typeof m.y === 'number') ? m.y : ((typeof m.dungeonInfoRef.y === 'number') ? m.dungeonInfoRef.y : 0.0);
+          } else {
+            if (m._yVer !== terrenoVersion || m._yX !== m.x || m._yZ !== m.z) {
+              m._yVer = terrenoVersion; m._yX = m.x; m._yZ = m.z;
+              m._cachedY = H(m.x, m.z);
+            }
+            my = m._cachedY;
           }
-          const my = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef)
-            ? ((typeof m.y === 'number') ? m.y : ((typeof m.dungeonInfoRef.y === 'number') ? m.dungeonInfoRef.y : 0.0))
-            : H(m.x, m.z);
           m.group.position.set(m.x, my, m.z);
-          if (m.state === 'chase') m.group.rotation.y = Math.atan2(p.x - m.x, p.z - m.z);
+          if (m.state === 'chase') m.group.rotation.y = Math.atan2(px - m.x, pz - m.z);
           else if (m.state === 'idle' && m.caminando && typeof m.rumbo === 'number') {
             // Patrulla de mazmorra: gira suavemente hacia donde camina
             let dr = m.rumbo - m.group.rotation.y;
@@ -4096,28 +4225,29 @@
           // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
           const cada = d < MONSTRUO_ANIMA ? 1 : d < MONSTRUO_ANIMA_LENTO ? 4 : 0;
           m.dtAnim = (m.dtAnim || 0) + dt;
-          if (m.fx && ((cada && (fotogramaCombate + m.turno) % cada === 0) || !m.posado)) { EnemyFx.actualizar(m.fx, estado, now / 1000, m.dtAnim, now / 1000); m.dtAnim = 0; m.posado = true; }
+          if (m.fx && ((cada && (fotogramaCombate + m.turno) % cada === 0) || !m.posado)) { EnemyFx.actualizar(m.fx, estado, nowSec, m.dtAnim, nowSec); m.dtAnim = 0; m.posado = true; }
           // Solo los cercanos dibujan su sombra (fuera de la caja de sombras no se vería)
-          const sombra = d < MONSTRUO_ANIMA && QUALITY[quality].shadows > 0;
+          const sombra = d < MONSTRUO_ANIMA && sombrasOn;
           if (sombra !== m.sombra) { m.sombra = sombra; if (m.rig && m.rig.rootGroup) { m.rig.rootGroup.traverse(o => { if (o.isMesh) o.castShadow = sombra; }); } }
         }
         const showBar = near && (m.hp < m.maxHp || d < 12);
         m.bar.visible = showBar;
         if (showBar) {
-          const myBar = (gestorMazmorras && gestorMazmorras.enMazmorra && m.dungeonInfoRef)
-            ? ((typeof m.y === 'number') ? m.y : ((typeof m.dungeonInfoRef.y === 'number') ? m.dungeonInfoRef.y : 0.0))
-            : H(m.x, m.z);
-          m.bar.position.set(m.x, myBar + m.barHeight, m.z);
+          m.bar.position.set(m.x, my + m.barHeight, m.z);
           m.bar.quaternion.copy(camera.quaternion);
           const f = Math.max(0.001, m.hp / m.maxHp);
           m.fg.scale.x = f;
           m.fg.position.x = -(1 - f) * 1.3;
-          m.fg.material.color.set(f > 0.5 ? '#22c55e' : f > 0.25 ? '#f59e0b' : '#ef4444');
+          const tierCol = f > 0.5 ? 2 : f > 0.25 ? 1 : 0;
+          if (m._tierCol !== tierCol) {
+            m._tierCol = tierCol;
+            m.fg.material.color.setHex(tierCol === 2 ? 0x22c55e : tierCol === 1 ? 0xf59e0b : 0xef4444);
+          }
         }
       } catch (errMon) {
         console.error('Error actualizando monstruo:', m && m.name, errMon);
       }
-    });
+    }
   }
 
   // Habilidades: daño a los monstruos del alcance y animación del personaje (la del mismo nombre, ver js/character.js).
@@ -4291,21 +4421,34 @@
     compositorBase.addPass(new OutputPass());
     ajustarResplandor();
   }
+  const _ocultasMalla = [], _ocultasMat = [];
   function ajustarResplandor() {
     if (!compositorBase) return;
     const pr = renderer.getPixelRatio(), w = window.innerWidth, h = window.innerHeight;
     compositorBase.setPixelRatio(pr); compositorBase.setSize(w, h);
-    compositorResplandor.setPixelRatio(pr); compositorResplandor.setSize(w, h);
+    // El resplandor difuso se calcula a media resolución: idéntica suavidad visual con un 75 % menos de coste de relleno GPU
+    compositorResplandor.setPixelRatio(Math.max(0.5, pr * 0.5)); compositorResplandor.setSize(w, h);
   }
   function renderFrame() {
-    if (!compositorBase || !QUALITY[quality].resplandor) { renderer.render(scene, camera); return; }
-    const fondo = scene.background, ocultas = [];
+    if (!compositorBase || !QUALITY[quality].resplandor || !hayResplandorVisible) {
+      renderer.render(scene, camera);
+      return;
+    }
+    const fondo = scene.background;
+    _ocultasMalla.length = 0; _ocultasMat.length = 0;
     scene.background = null;   // el cielo no debe brillar en la pasada de resplandor
-    scene.traverse(o => { if (o.isMesh && !capaResplandor.test(o.layers)) { ocultas.push([o, o.material]); o.material = negroResplandor; } });
+    scene.traverse(o => {
+      if (o.isMesh && o.visible && !capaResplandor.test(o.layers)) {
+        _ocultasMalla.push(o);
+        _ocultasMat.push(o.material);
+        o.material = negroResplandor;
+      }
+    });
     try {
       compositorResplandor.render();
     } finally {
-      ocultas.forEach(([o, mat]) => { o.material = mat; });
+      for (let i = 0, n = _ocultasMalla.length; i < n; i++) _ocultasMalla[i].material = _ocultasMat[i];
+      _ocultasMalla.length = 0; _ocultasMat.length = 0;
       scene.background = fondo;
     }
     compositorBase.render();
@@ -4319,10 +4462,16 @@
   // Botón de una habilidad: icono, si está bloqueada (🔒), si el arma no vale (✖) y su enfriamiento
   function estadoBoton(btn, id, titulo) {
     const cd = hero.cd[id], bloq = bloqueada(id), falta = faltaArma(id);
-    btn.querySelector('.ico').textContent = CombatLib.SKILLS[id].icono;
-    btn.title = titulo + (bloq ? ' · ' + HeroeLib.requisito(id) : falta ? ' · ' + falta : '');
-    btn.disabled = hero.dead || bloq || !!falta || cd > 0 || hero.mp < CombatLib.SKILLS[id].mp;
-    btn.querySelector('.cd').textContent = bloq ? '🔒' : falta ? '✖' : (cd > 0 ? Math.ceil(cd) : '');
+    const icoEl = btn._icoEl || (btn._icoEl = btn.querySelector('.ico'));
+    const cdEl = btn._cdEl || (btn._cdEl = btn.querySelector('.cd'));
+    const nuevoIco = CombatLib.SKILLS[id].icono;
+    if (icoEl.textContent !== nuevoIco) icoEl.textContent = nuevoIco;
+    const nuevoTit = titulo + (bloq ? ' · ' + HeroeLib.requisito(id) : falta ? ' · ' + falta : '');
+    if (btn.title !== nuevoTit) btn.title = nuevoTit;
+    const deshab = hero.dead || bloq || !!falta || cd > 0 || hero.mp < CombatLib.SKILLS[id].mp;
+    if (btn.disabled !== deshab) btn.disabled = deshab;
+    const nuevoCd = bloq ? '🔒' : falta ? '✖' : (cd > 0 ? String(Math.ceil(cd)) : '');
+    if (cdEl.textContent !== nuevoCd) cdEl.textContent = nuevoCd;
   }
 
   function updateHud(now) {
@@ -4339,10 +4488,13 @@
     HeroeLib.TECLAS.forEach(t => {
       const id = heroeEst.barra[t], btn = $('sk-' + t);
       if (id) { estadoBoton(btn, id, CombatLib.SKILLS[id].nombre + ' (' + t.toUpperCase() + ')'); return; }
-      btn.disabled = true;
-      btn.title = 'Hueco ' + t.toUpperCase() + ' vacío: elige una habilidad en el panel 🧬 (P)';
-      btn.querySelector('.ico').textContent = '·';
-      btn.querySelector('.cd').textContent = '';
+      if (!btn.disabled) btn.disabled = true;
+      const titVacio = 'Hueco ' + t.toUpperCase() + ' vacío: elige una habilidad en el panel 🧬 (P)';
+      if (btn.title !== titVacio) btn.title = titVacio;
+      const icoEl = btn._icoEl || (btn._icoEl = btn.querySelector('.ico'));
+      const cdEl = btn._cdEl || (btn._cdEl = btn.querySelector('.cd'));
+      if (icoEl.textContent !== '·') icoEl.textContent = '·';
+      if (cdEl.textContent !== '') cdEl.textContent = '';
     });
     $('inv-gold').textContent = inv.gold;
     $('inv-vida').textContent = inv.vida;
@@ -4350,21 +4502,35 @@
     $('sk-vida').disabled = hero.dead || !inv.vida || hero.hp >= hero.maxHp;
     $('sk-mana').disabled = hero.dead || !inv.mana || hero.mp >= hero.maxMp;
     $('sk-rest').disabled = hero.dead || !curTown || (hero.resting ? false : (hero.hp >= hero.maxHp && hero.mp >= hero.maxMp));
-    $('sk-rest').querySelector('small').textContent = hero.resting ? 'parar' : 'R';
+    const restBtn = $('sk-rest');
+    const restSm = restBtn._smEl || (restBtn._smEl = restBtn.querySelector('small'));
+    if (restSm) { const rt = hero.resting ? 'parar' : 'R'; if (restSm.textContent !== rt) restSm.textContent = rt; }
     $('sk-shop').disabled = hero.dead || !curTown;
     if ($('shop').classList.contains('show')) renderShop();
     actualizarHudDopes();
   }
 
-  // Renderiza en pantalla el HUD de dopes y buffs activos con tiempo regresivo
+  // Renderiza en pantalla el HUD de dopes y buffs activos con tiempo regresivo (solo toca el DOM si cambia)
+  let _ultimaClaveDopes = '';
   function actualizarHudDopes() {
     const el = $('hud-dopes');
     if (!el) return;
     if (!acompanante || !acompanante.buffsActivos || !acompanante.buffsActivos.length) {
-      el.innerHTML = '';
+      if (_ultimaClaveDopes !== '') {
+        _ultimaClaveDopes = '';
+        el.innerHTML = '';
+      }
       return;
     }
-    el.innerHTML = acompanante.buffsActivos.map(b => {
+    let clave = '';
+    const arr = acompanante.buffsActivos;
+    for (let i = 0; i < arr.length; i++) {
+      const b = arr[i];
+      clave += (b.id || b.nombre) + ':' + Math.max(0, Math.ceil(b.timer || 0)) + '|';
+    }
+    if (clave === _ultimaClaveDopes) return;
+    _ultimaClaveDopes = clave;
+    el.innerHTML = arr.map(b => {
       const segs = Math.max(0, Math.ceil(b.timer || 0));
       const tipoClase = b.efecto === 'cura_regen' ? 'cura' : b.efecto === 'defensa' ? 'debuff' : 'buff';
       return `<div class="dope-item ${tipoClase}">
@@ -4389,8 +4555,15 @@
     bannerTimer = setTimeout(() => el.classList.remove('show'), 3800);
   }
 
-  function checkRegions() {
+  let _lastRegionCheck = 0, _lastRegX = Infinity, _lastRegZ = Infinity;
+  function checkRegions(now) {
     const p = character.root.position;
+    if (now && now - _lastRegionCheck < 120) {
+      const dx = p.x - _lastRegX, dz = p.z - _lastRegZ;
+      if (dx * dx + dz * dz < 0.36) return;
+    }
+    if (now) _lastRegionCheck = now;
+    _lastRegX = p.x; _lastRegZ = p.z;
     const town = towns.find(o => Math.max(Math.abs(p.x - o.t.x), Math.abs(p.z - o.t.y)) < o.R) || null;
     if (town !== curTown) {
       curTown = town;
@@ -4409,9 +4582,16 @@
       }
     }
     let zone = null, zr = Infinity;
-    world.zones.forEach(z => { if (W.pointInZone(z, { x: p.x, y: p.z }) && z.radius < zr) { zr = z.radius; zone = z; } });
+    for (let i = 0, nz = world.zones.length; i < nz; i++) {
+      const z = world.zones[i];
+      if (z.radius >= zr) continue;
+      const dx = p.x - z.x, dz = p.z - z.y;
+      if (dx > z.radius || dx < -z.radius || dz > z.radius || dz < -z.radius) continue;
+      if (W.pointInZone(z, { x: p.x, y: p.z })) { zr = z.radius; zone = z; }
+    }
     if (zone !== curZone) {
       curZone = zone;
+      actualizarZonaTela();
       if (zone && HeroeLib.registrarZona(heroeEst, zone.id, 'visitar')) anunciarEncargo(zone.id);
       const marca = $('zona-marca');
       if (zone) {
@@ -4435,35 +4615,67 @@
     const cv = $('minimap'), g = cv.getContext('2d');
     const S = cv.width, R = 290;               // metros desde el centro hasta el borde
     const p = character.root.position;
-    const V = MapaLib.centrada(p.x, p.z, R, S);   // el personaje en el centro
+    const px = p.x, pz = p.z;
+    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    const V = MapaLib.centrada(px, pz, R, S);   // el personaje en el centro
     g.clearRect(0, 0, S, S);
     g.save();
     g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); g.clip();
-    g.fillStyle = '#1e3a5f'; g.fillRect(0, 0, S, S);
-    world.zones.forEach(z => {
-      g.beginPath(); g.arc(V.px(z.x), V.py(z.y), z.radius * V.escala, 0, Math.PI * 2);
-      g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.25)' : 'rgba(250,204,21,.22)';
-      g.fill();
-    });
-    g.lineWidth = Math.max(2, 6 * V.escala); g.strokeStyle = '#8b6b43';
-    world.roads.forEach(r => {
-      if (!r.points.length) return;
-      g.beginPath();
-      r.points.forEach((q, i) => { if (i) g.lineTo(V.px(q.x), V.py(q.y)); else g.moveTo(V.px(q.x), V.py(q.y)); });
-      g.stroke();
-    });
-    towns.forEach(o => {
-      g.fillStyle = o.t.isStart ? '#fbbf24' : '#e2e8f0';
-      g.fillRect(V.px(o.t.x) - 4, V.py(o.t.y) - 4, 8, 8);
-    });
-    monsters.forEach(m => {
-      if (!m.alive) return;
+    g.fillStyle = enMazmorra ? '#0f172a' : '#1e3a5f'; g.fillRect(0, 0, S, S);
+    if (!enMazmorra) {
+      for (let i = 0, nz = world.zones.length; i < nz; i++) {
+        const z = world.zones[i];
+        const limZ = R + z.radius;
+        if (Math.abs(z.x - px) > limZ || Math.abs(z.y - pz) > limZ) continue;
+        g.beginPath(); g.arc(V.px(z.x), V.py(z.y), z.radius * V.escala, 0, Math.PI * 2);
+        g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.25)' : 'rgba(250,204,21,.22)';
+        g.fill();
+      }
+      g.lineWidth = Math.max(2, 6 * V.escala); g.strokeStyle = '#8b6b43';
+      for (let i = 0, nr = world.roads.length; i < nr; i++) {
+        const r = world.roads[i];
+        const pts = r.points;
+        if (!pts || !pts.length) continue;
+        if (!r._bbox) {
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          for (let j = 0; j < pts.length; j++) {
+            const q = pts[j];
+            if (q.x < minX) minX = q.x; if (q.x > maxX) maxX = q.x;
+            if (q.y < minY) minY = q.y; if (q.y > maxY) maxY = q.y;
+          }
+          r._bbox = { minX, maxX, minY, maxY };
+        }
+        const bb = r._bbox;
+        if (bb.maxX < px - R || bb.minX > px + R || bb.maxY < pz - R || bb.minY > pz + R) continue;
+        g.beginPath();
+        for (let j = 0; j < pts.length; j++) {
+          const q = pts[j];
+          if (j) g.lineTo(V.px(q.x), V.py(q.y)); else g.moveTo(V.px(q.x), V.py(q.y));
+        }
+        g.stroke();
+      }
+      for (let i = 0; i < towns.length; i++) {
+        const o = towns[i];
+        if (Math.abs(o.t.x - px) > R + 12 || Math.abs(o.t.y - pz) > R + 12) continue;
+        g.fillStyle = o.t.isStart ? '#fbbf24' : '#e2e8f0';
+        g.fillRect(V.px(o.t.x) - 4, V.py(o.t.y) - 4, 8, 8);
+      }
+    }
+    const limMon = R + 8;
+    for (let i = 0, nm = monsters.length; i < nm; i++) {
+      const m = monsters[i];
+      if (!m.alive) continue;
+      if (enMazmorra ? !m.dungeonInfoRef : !!m.dungeonInfoRef) continue;
+      if (Math.abs(m.x - px) > limMon || Math.abs(m.z - pz) > limMon) continue;
       g.fillStyle = m.boss ? '#ef4444' : '#f97316';
       g.beginPath(); g.arc(V.px(m.x), V.py(m.z), 2.5, 0, Math.PI * 2); g.fill();
-    });
-    if (lugaresSecretos && lugaresSecretos.length) {
-      lugaresSecretos.forEach(s => {
-        const d = Math.hypot(p.x - s.x, p.z - s.z);
+    }
+    if (!enMazmorra && lugaresSecretos && lugaresSecretos.length) {
+      const limSec = R + 12;
+      for (let i = 0; i < lugaresSecretos.length; i++) {
+        const s = lugaresSecretos[i];
+        const dx = px - s.x, dz = pz - s.z;
+        if (Math.abs(dx) > limSec || Math.abs(dz) > limSec) continue;
         if (s.tipo === 'cabana') {
           // Cabañas visibles siempre en el minimapa con marcador distintivo
           const m = s.misionCabana || {};
@@ -4472,11 +4684,11 @@
           g.fillStyle = cumplida ? '#22c55e' : (completada ? '#facc15' : '#38bdf8');
           g.beginPath(); g.arc(V.px(s.x), V.py(s.z), 5.5, 0, Math.PI * 2); g.fill();
           g.strokeStyle = '#0f172a'; g.lineWidth = 1.5; g.stroke();
-        } else if (s.descubierto || d < 220) {
+        } else if (s.descubierto || dx * dx + dz * dz < 220 * 220) {
           g.fillStyle = s.tipo === 'fuente' ? '#38bdf8' : (s.tipo === 'altar' ? '#c084fc' : '#fbbf24');
           g.beginPath(); g.arc(V.px(s.x), V.py(s.z), 4.5, 0, Math.PI * 2); g.fill();
         }
-      });
+      }
     }
     if (acompanante && acompanante.activo) {
       g.fillStyle = '#22c55e';
@@ -6571,43 +6783,64 @@
   }
 
   // Animación en reposo y aviso al acercarse. Cada gurú habla de su tema.
+  let _fotogramaGuru = 0;
   function actualizarGurus(dt, sec) {
+    _fotogramaGuru++;
     const cam = camera.position;
+    const cx = cam.x, cz = cam.z;
     const px = character.root.position.x, pz = character.root.position.z;
+    const limInst = DISTANCIA_VER_NPC + 45;
     // Instancia bajo demanda los encargados de zona cuando el héroe o la cámara se acercan
     for (let i = encargosPendientes.length - 1; i >= 0; i--) {
       const ep = encargosPendientes[i];
-      const dHeroe = Math.hypot(px - ep.pos.x, pz - ep.pos.z);
-      const dCam = Math.hypot(cam.x - ep.pos.x, cam.z - ep.pos.z);
-      if (Math.min(dHeroe, dCam) < DISTANCIA_VER_NPC + 45) {
+      const dhx = px - ep.pos.x, dhz = pz - ep.pos.z;
+      const dcx = cx - ep.pos.x, dcz = cz - ep.pos.z;
+      const cercaHeroe = Math.abs(dhx) < limInst && Math.abs(dhz) < limInst && (dhx * dhx + dhz * dhz < limInst * limInst);
+      const cercaCam = !cercaHeroe && Math.abs(dcx) < limInst && Math.abs(dcz) < limInst && (dcx * dcx + dcz * dcz < limInst * limInst);
+      if (cercaHeroe || cercaCam) {
         encargosPendientes.splice(i, 1);
         instanciarNpc(ep.info, ep.modelo, ep.pos.x, ep.pos.z, ep.pos.cx, ep.pos.cz);
       }
     }
     if (!gurus.length) return;
-    gurus.forEach(g => {
-      const d = Math.hypot(px - g.x, pz - g.z);
+    const limVerSq = DISTANCIA_VER_NPC * DISTANCIA_VER_NPC;
+    for (let i = 0; i < gurus.length; i++) {
+      const g = gurus[i];
+      const dhx = px - g.x, dhz = pz - g.z;
+      const dcx = cx - g.x, dcz = cz - g.z;
+      const dHeroSq = dhx * dhx + dhz * dhz;
+      const dCamSq = dcx * dcx + dcz * dcz;
       // Se ve si está cerca del personaje o de la cámara (en vista general la cámara puede estar lejos de él)
-      const visto = Math.min(d, Math.hypot(cam.x - g.x, cam.z - g.z)) < DISTANCIA_VER_NPC;
-      g.raiz.visible = visto;
-      if (!visto) return;
+      const visto = Math.min(dHeroSq, dCamSq) < limVerSq;
+      if (g.raiz.visible !== visto) g.raiz.visible = visto;
+      if (!visto) continue;
       // De cerca, el modelo completo; de lejos, el simplificado (solo se descarga y anima el nivel necesario)
       const distCam = cam.distanceTo(g.raiz.position);
       const lejos = distCam > DISTANCIA_NPC_LEJOS;
       if (distCam <= DISTANCIA_NPC_LEJOS + 25 && !g.cerca) asegurarVersionCercanaNpc(g);
       if (lejos && !g.lejos) asegurarVersionLejanaNpc(g);
       const usarLejos = g.lejos ? (lejos || !g.cerca) : false;
-      if (g.cerca) g.cerca.visible = !usarLejos;
-      if (g.lejos) g.lejos.modelo.visible = usarLejos;
-      if (usarLejos && g.lejos) g.lejos.mixer.update(dt);
-      else if (!usarLejos && g.mixer) g.mixer.update(dt);
-      // Misma altura que el personaje: el pueblo puede cargarse y cambiar el suelo
-      g.raiz.position.y = visorWorld.getWalkableHeight(g.x, g.z);
-      if (d < DISTANCIA_HABLAR && !g.info.servicio && sec - g.dicho > 25) {
+      if (g.cerca && g.cerca.visible !== !usarLejos) g.cerca.visible = !usarLejos;
+      if (g.lejos && g.lejos.modelo.visible !== usarLejos) g.lejos.modelo.visible = usarLejos;
+      if (usarLejos && g.lejos) {
+        g._dtLejos = (g._dtLejos || 0) + dt;
+        if ((_fotogramaGuru + i) % 3 === 0) {
+          g.lejos.mixer.update(g._dtLejos);
+          g._dtLejos = 0;
+        }
+      } else if (!usarLejos && g.mixer) {
+        g.mixer.update(dt);
+      }
+      // Altura cacheada: solo se recalcula si han cambiado trozos del terreno o pueblos cargados
+      if (g._alturaVer !== terrenoVersion) {
+        g._alturaVer = terrenoVersion;
+        g.raiz.position.y = visorWorld.getWalkableHeight(g.x, g.z);
+      }
+      if (dHeroSq < DISTANCIA_HABLAR * DISTANCIA_HABLAR && !g.info.servicio && sec - g.dicho > 25) {
         g.dicho = sec;
         toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + g.info.frase + '»');
       }
-    });
+    }
   }
 
   let lugaresSecretos = [];
@@ -6643,7 +6876,7 @@
       grupo.name = 'LugaresSecretosMundo';
       lugaresSecretos.forEach(s => {
         try {
-          const m = LugaresSecretosLib.construirModeloSecreto(THREE, s, (x, z) => visorWorld.getWalkableHeight(x, z));
+          const m = LugaresSecretosLib.construirModeloSecreto(THREE, s, (x, z) => visorWorld.getWalkableHeight(x, z), { sinLucesPuntuales: true });
           if (m) grupo.add(m);
           if (s.tipo === 'cabana' && s.aldeano) {
             const nombreAld = typeof s.aldeano === 'object' ? s.aldeano.nombre : s.aldeano;
@@ -6668,6 +6901,8 @@
         }
       });
       scene.add(grupo);
+      _grupoSecretosCache = grupo;
+      actualizarVisibilidadEstructuras(0, true);
       if (typeof buildCabanasUI === 'function') buildCabanasUI();
       if (typeof actualizarMision === 'function') actualizarMision();
     } catch (eGen) {
@@ -6849,18 +7084,20 @@
       }
     });
 
-    // Construir la entrada exterior de cada mazmorra (Arco penetrable + 30m pasillo entre muros)
+    // Construir la entrada exterior de cada mazmorra (Arco penetrable + 30m pasillo entre muros, sin luces puntuales fijas)
     const grupoEntradas = new THREE.Group();
     grupoEntradas.name = 'EntradasMazmorrasMundo';
     (world.dungeons || []).forEach(d => {
       try {
-        const entMesh = MazmorrasLib.construirEntradaExterior(THREE, d, (x, z) => visorWorld.getWalkableHeight(x, z));
+        const entMesh = MazmorrasLib.construirEntradaExterior(THREE, d, (x, z) => visorWorld.getWalkableHeight(x, z), { sinLucesPuntuales: true });
         if (entMesh) grupoEntradas.add(entMesh);
       } catch (e) {
         console.warn('Error construyendo entrada de mazmorra:', d.name, e);
       }
     });
     scene.add(grupoEntradas);
+    _grupoEntradasCache = grupoEntradas;
+    actualizarVisibilidadEstructuras(0, true);
 
     // Enlazar botones de modales y prompt
     const btnExit = $('btn-dungeon-exit');
@@ -6921,25 +7158,70 @@
     });
   }
 
+  // Culling por distancia para lugares secretos, cabañas GLB y entradas monumentales de mazmorra del supramundo
+  let _lastEstructurasCheck = 0;
+  function actualizarVisibilidadEstructuras(now, forzar) {
+    if (!forzar && now - _lastEstructurasCheck < 250) return;
+    _lastEstructurasCheck = now;
+    if (!camera) return;
+    const cx = camera.position.x, cz = camera.position.z;
+    const px = character && character.root ? character.root.position.x : cx;
+    const pz = character && character.root ? character.root.position.z : cz;
+    const limVis = Math.min(720, typeof distanciaOcultaLejos === 'function' ? distanciaOcultaLejos() : 650);
+    const limVisSq = limVis * limVis;
+    const sombrasActivas = QUALITY[quality].shadows > 0;
+    const aplicarEnGrupo = grp => {
+      if (!grp || !grp.visible) return;
+      const hijos = grp.children;
+      for (let i = 0; i < hijos.length; i++) {
+        const ch = hijos[i];
+        const dxC = ch.position.x - cx, dzC = ch.position.z - cz;
+        const dxP = ch.position.x - px, dzP = ch.position.z - pz;
+        const distMinSq = Math.min(dxC * dxC + dzC * dzC, dxP * dxP + dzP * dzP);
+        const vis = distMinSq < limVisSq;
+        if (ch.visible !== vis) ch.visible = vis;
+        if (vis) {
+          const rSom = sombraMitad + ((ch.userData && ch.userData.radioSombra) || 24);
+          const som = sombrasActivas && (dxP * dxP + dzP * dzP < rSom * rSom);
+          if (ch.userData && ch.userData._sombraActiva !== som) {
+            ch.userData._sombraActiva = som;
+            ch.traverse(o => { if (o.isMesh) o.castShadow = som; });
+          }
+        }
+      }
+    };
+    aplicarEnGrupo(_grupoSecretosCache || (_grupoSecretosCache = scene.getObjectByName('LugaresSecretosMundo')));
+    aplicarEnGrupo(_grupoEntradasCache || (_grupoEntradasCache = scene.getObjectByName('EntradasMazmorrasMundo')));
+  }
+
+  let _ultimoBossTxt = '', _ultimoBossPct = -1;
   function updateMazmorras(dt, now) {
     if (!gestorMazmorras) return;
 
     if (gestorMazmorras.enMazmorra) {
       // Dentro de la mazmorra:
-      // 1. Actualizar barra superior del Boss
+      // 1. Actualizar barra superior del Boss solo cuando cambian sus valores
       const b = gestorMazmorras.bossInstancia;
       if (b && b.combatRef) {
         b.hp = Math.max(0, b.combatRef.hp);
         b.maxHp = b.combatRef.maxHp || 1;
         const pct = Math.max(0, Math.min(100, Math.round((b.hp / b.maxHp) * 100)));
-        const barEl = $('dbh-bar');
-        const txtEl = $('dbh-hp-txt');
-        if (barEl) barEl.style.width = pct + '%';
-        if (txtEl) txtEl.textContent = `${b.hp} / ${b.maxHp} (${pct}%)`;
+        if (pct !== _ultimoBossPct) {
+          _ultimoBossPct = pct;
+          const barEl = $('dbh-bar');
+          if (barEl) barEl.style.width = pct + '%';
+        }
+        const txt = `${b.hp} / ${b.maxHp} (${pct}%)`;
+        if (txt !== _ultimoBossTxt) {
+          _ultimoBossTxt = txt;
+          const txtEl = $('dbh-hp-txt');
+          if (txtEl) txtEl.textContent = txt;
+        }
       }
 
-      // 2. Comprobar condiciones de fin (muerte del Jefe o muerte del héroe)
+      // 2. Comprobar condiciones de fin (la oclusión de cámara se calcula una sola vez en character.encuadrar tras controls.update)
       gestorMazmorras.actualizarInstancia(dt, hero, {
+        omitirOclusionCamara: true,
         onVictoria: res => {
           const hud = $('dungeon-boss-hud');
           if (hud) hud.style.display = 'none';
@@ -7027,20 +7309,25 @@
     }
   }
 
+  const _projVec = new THREE.Vector3();
+  let _bocadilloVisible = false, _bocX = -9999, _bocY = -9999;
   function actualizarBocadilloAcompanante() {
     const el = $('bocadillo-rowan');
-    if (!el || !acompanante || !acompanante.mesh || acompanante.tiempoFrase <= 0) {
-      if (el) el.style.opacity = '0';
+    if (!el) return;
+    if (!acompanante || !acompanante.mesh || acompanante.tiempoFrase <= 0) {
+      if (_bocadilloVisible) { _bocadilloVisible = false; el.style.opacity = '0'; }
       return;
     }
-    const pos = new THREE.Vector3(acompanante.x, acompanante.y + 2.15, acompanante.z);
-    pos.project(camera);
-    if (pos.z > 1) { el.style.opacity = '0'; return; }
-    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-    const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    el.style.opacity = '1';
+    _projVec.set(acompanante.x, acompanante.y + 2.15, acompanante.z).project(camera);
+    if (_projVec.z > 1) {
+      if (_bocadilloVisible) { _bocadilloVisible = false; el.style.opacity = '0'; }
+      return;
+    }
+    const x = Math.round((_projVec.x * 0.5 + 0.5) * window.innerWidth * 2) * 0.5;
+    const y = Math.round((-(_projVec.y * 0.5) + 0.5) * window.innerHeight * 2) * 0.5;
+    if (x !== _bocX) { _bocX = x; el.style.left = x + 'px'; }
+    if (y !== _bocY) { _bocY = y; el.style.top = y + 'px'; }
+    if (!_bocadilloVisible) { _bocadilloVisible = true; el.style.opacity = '1'; }
   }
 
   function abrirModalCompanero() {
@@ -7599,6 +7886,7 @@
   // Bucle de render
   // ===========================================================================
   let fotogramaModal = 0;
+  let _lastSecretCheck = 0;
   function loop(now) {
     requestAnimationFrame(loop);
     if (!world) return;
@@ -7629,7 +7917,7 @@
         decorGroup.userData.actualizar(camera.position.x, camera.position.z);
       }
       actualizarPiedras();
-      actualizarZonaTela();
+      actualizarVisibilidadEstructuras(now, false);
     }
     if (cielo) {
       if (enDungeon) {
@@ -7678,7 +7966,8 @@
       );
       actualizarBocadilloAcompanante();
     }
-    if (!enDungeon && lugaresSecretos && lugaresSecretos.length && typeof AcompananteLib !== 'undefined') {
+    if (!enDungeon && now - _lastSecretCheck > 200 && lugaresSecretos && lugaresSecretos.length && typeof AcompananteLib !== 'undefined') {
+      _lastSecretCheck = now;
       AcompananteLib.comprobarLugaresSecretos(
         acompanante,
         lugaresSecretos,
@@ -7699,7 +7988,7 @@
     lastNowSec = now / 1000;
     updateCombat(dt, now);
     updateHud(now);
-    if (!enDungeon) checkRegions();
+    if (!enDungeon) checkRegions(now);
     drawMinimap(now);
     updateMazmorras(dt, now);
 
@@ -7722,37 +8011,54 @@
     } catch (errRender) {
       console.error('Error al renderizar fotograma:', errRender);
     }
-    if (!enDungeon) updateLabels(character.root.position.y);
+    if (!enDungeon) updateLabels(now);
   }
 
   const NOMBRE_ZONA_M = 120;
-  // ¿Hay terreno entre la cámara y el punto? Se mira la altura del suelo en 12 puntos del segmento
-  function tapadoPorTerreno(item) {
+  // ¿Hay terreno entre la cámara y el punto? Se mira la altura del suelo en 12 puntos del segmento (cacheado 200 ms)
+  function tapadoPorTerreno(item, now) {
+    if (now && item._tapadoMs && now - item._tapadoMs < 200) return item._tapadoVal;
     const c = camera.position;
+    let tapado = false;
     for (let i = 1; i < 12; i++) {
       const f = i / 12, x = c.x + (item.x - c.x) * f, z = c.z + (item.z - c.z) * f, y = c.y + (item.y - c.y) * f;
-      if (H(x, z) > y + 0.5) return true;
+      if (H(x, z) > y + 0.5) { tapado = true; break; }
     }
-    return false;
+    if (now) { item._tapadoMs = now; item._tapadoVal = tapado; }
+    return tapado;
   }
 
-  function updateLabels(py) {
+  function updateLabels(now) {
     const w = window.innerWidth, h = window.innerHeight;
-    const v = new THREE.Vector3();
-    const place = (item, visibleFn) => {
-      v.set(item.x, item.y, item.z).project(camera);
-      if (v.z > 1 || !visibleFn()) { item.el.style.display = 'none'; return; }
-      item.el.style.display = '';
-      item.el.style.left = ((v.x + 1) / 2 * w) + 'px';
-      item.el.style.top = ((-v.y + 1) / 2 * h) + 'px';
+    const place = (item, visible) => {
+      if (!visible) {
+        if (item._oculto !== true) { item._oculto = true; item.el.style.display = 'none'; }
+        return;
+      }
+      _projVec.set(item.x, item.y, item.z).project(camera);
+      if (_projVec.z > 1 || _projVec.x < -1.15 || _projVec.x > 1.15 || _projVec.y < -1.15 || _projVec.y > 1.15) {
+        if (item._oculto !== true) { item._oculto = true; item.el.style.display = 'none'; }
+        return;
+      }
+      if (item._oculto !== false) { item._oculto = false; item.el.style.display = ''; }
+      const lx = Math.round(((_projVec.x + 1) * 0.5 * w) * 2) * 0.5;
+      const ly = Math.round(((-_projVec.y + 1) * 0.5 * h) * 2) * 0.5;
+      if (item._lx !== lx) { item._lx = lx; item.el.style.left = lx + 'px'; }
+      if (item._ly !== ly) { item._ly = ly; item.el.style.top = ly + 'px'; }
     };
     const showTowns = $('chk-labels').checked;
-    townLabels.forEach(item => place(item, () => showTowns));
-    const showZones = $('chk-labels').checked && $('chk-zones').checked;
+    for (let i = 0; i < townLabels.length; i++) place(townLabels[i], showTowns);
+    const showZones = showTowns && $('chk-zones').checked;
+    const px = character.root.position.x, pz = character.root.position.z;
+    const limZSq = NOMBRE_ZONA_M * NOMBRE_ZONA_M;
     // Nombres de zona: como mucho a 120 m del héroe y solo si ninguna colina los tapa
-    zoneLabels.forEach(item => {
-      place(item, () => showZones && Math.hypot(item.x - character.root.position.x, item.z - character.root.position.z) < NOMBRE_ZONA_M && !tapadoPorTerreno(item));
-    });
+    for (let i = 0; i < zoneLabels.length; i++) {
+      const item = zoneLabels[i];
+      if (!showZones) { place(item, false); continue; }
+      const dx = item.x - px, dz = item.z - pz;
+      const cerca = dx * dx + dz * dz < limZSq;
+      place(item, cerca && !tapadoPorTerreno(item, now));
+    }
   }
 
   // ===========================================================================

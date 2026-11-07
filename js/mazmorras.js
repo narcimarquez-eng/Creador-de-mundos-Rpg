@@ -86,15 +86,26 @@
   /* --------------------------------------------------------------------------
    * 1. CONSTRUCCIÓN DE LA ENTRADA EXTERIOR 3D (Arco penetrable + 30m pasillo)
    * -------------------------------------------------------------------------- */
-  function construirEntradaExterior(THREE, dungeon, getWalkableHeightFn) {
+  function construirEntradaExterior(THREE, dungeon, getWalkableHeightFn, opciones) {
     if (!THREE) return null;
+    const sinLuces = !!(opciones && opciones.sinLucesPuntuales);
     const entradaGrupo = new THREE.Group();
     entradaGrupo.name = 'EntradaMazmorra_' + dungeon.id;
-    entradaGrupo.userData = { dungeonId: dungeon.id, tipo: 'entrada_dungeon', dungeonRef: dungeon };
 
     const ySuelo = (typeof getWalkableHeightFn === 'function')
       ? getWalkableHeightFn(dungeon.x, dungeon.y)
       : (typeof dungeon.alturaBase === 'number' ? dungeon.alturaBase : 0);
+
+    entradaGrupo.userData = {
+      dungeonId: dungeon.id,
+      tipo: 'entrada_dungeon',
+      dungeonRef: dungeon,
+      x: dungeon.x,
+      y: ySuelo,
+      z: dungeon.y,
+      rotacion: dungeon.rotacion || 0,
+      radioSombra: 34
+    };
 
     entradaGrupo.position.set(dungeon.x, ySuelo, dungeon.y);
     entradaGrupo.rotation.y = dungeon.rotacion || 0;
@@ -159,9 +170,9 @@
     muroDer.receiveShadow = true;
     entradaGrupo.add(muroDer);
 
-    // Albardillas / remates superiores almenados en ambos muros cada 3 metros
+    // Albardillas / remates superiores almenados en ambos muros cada 3 metros (geometría compartida)
+    const geoAlmena = new THREE.BoxGeometry(GROSOR_MUROS + 0.2, 0.45, 1.4);
     for (let mz = 1.5; mz < LONGITUD_CORREDOR; mz += 3.0) {
-      const geoAlmena = new THREE.BoxGeometry(GROSOR_MUROS + 0.2, 0.45, 1.4);
       const almI = new THREE.Mesh(geoAlmena, matPiedraArco);
       almI.position.set(-X_MURO, ALTO_MUROS + 0.22, mz);
       entradaGrupo.add(almI);
@@ -201,39 +212,47 @@
     claveRuna.position.set(0, ALTO_MUROS + 0.8, -0.6);
     entradaGrupo.add(claveRuna);
 
-    // Pebeteros de fuego crepitante flanqueando el arco de entrada
+    // Pebeteros de fuego crepitante flanqueando el arco de entrada (geometrías compartidas)
+    const geoPebetero = new THREE.CylinderGeometry(0.45, 0.35, 1.1, 8);
+    const geoLlamaPeb = new THREE.ConeGeometry(0.35, 0.7, 6);
     [-X_MURO - 1.2, X_MURO + 1.2].forEach(px => {
-      const pebetero = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.35, 1.1, 8), matPiedraArco);
+      const pebetero = new THREE.Mesh(geoPebetero, matPiedraArco);
       pebetero.position.set(px, 0.55, -0.8);
       entradaGrupo.add(pebetero);
 
-      const llama = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.7, 6), matFuego);
+      const llama = new THREE.Mesh(geoLlamaPeb, matFuego);
       llama.position.set(px, 1.35, -0.8);
       entradaGrupo.add(llama);
 
-      const luz = new THREE.PointLight(0xf97316, 2.0, 16, 1.8);
-      luz.position.set(px, 1.7, -0.8);
-      entradaGrupo.add(luz);
+      if (!sinLuces) {
+        const luz = new THREE.PointLight(0xf97316, 2.0, 16, 1.8);
+        luz.position.set(px, 1.7, -0.8);
+        entradaGrupo.add(luz);
+      }
     });
 
-    // E) ANTORCHAS EN LOS MUROS CADA 7.5 METROS A LO LARGO DE LOS 30 METROS
+    // E) ANTORCHAS EN LOS MUROS CADA 7.5 METROS A LO LARGO DE LOS 30 METROS (geometrías compartidas)
     const distAntorchas = [6.0, 13.5, 21.0, 28.0];
+    const geoBrazoAnt = new THREE.BoxGeometry(0.12, 0.12, 0.6);
+    const geoFuegoAnt = new THREE.ConeGeometry(0.18, 0.45, 5);
     distAntorchas.forEach(zPos => {
       [-X_MURO + 0.55, X_MURO - 0.55].forEach((xPos, sideIdx) => {
         // Brazo de la antorcha
-        const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.6), matPiedraArco);
+        const brazo = new THREE.Mesh(geoBrazoAnt, matPiedraArco);
         brazo.position.set(xPos, 2.8, zPos);
         entradaGrupo.add(brazo);
 
         // Llama
-        const antorchaFuego = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 5), matFuego);
+        const antorchaFuego = new THREE.Mesh(geoFuegoAnt, matFuego);
         antorchaFuego.position.set(xPos + (sideIdx === 0 ? 0.25 : -0.25), 3.05, zPos);
         entradaGrupo.add(antorchaFuego);
 
         // Luz puntual tenue
-        const luzAnt = new THREE.PointLight(0xf97316, 1.4, 10, 1.8);
-        luzAnt.position.set(xPos + (sideIdx === 0 ? 0.35 : -0.35), 3.2, zPos);
-        entradaGrupo.add(luzAnt);
+        if (!sinLuces) {
+          const luzAnt = new THREE.PointLight(0xf97316, 1.4, 10, 1.8);
+          luzAnt.position.set(xPos + (sideIdx === 0 ? 0.35 : -0.35), 3.2, zPos);
+          entradaGrupo.add(luzAnt);
+        }
       });
     });
 
@@ -257,9 +276,13 @@
     vortice.position.set(0, (ALTO_MUROS + 0.2) / 2, LONGITUD_CORREDOR - 0.05);
     entradaGrupo.add(vortice);
 
-    const luzVortice = new THREE.PointLight(0x8b5cf6, 3.2, 14, 1.5);
-    luzVortice.position.set(0, 2.5, LONGITUD_CORREDOR - 0.6);
-    entradaGrupo.add(luzVortice);
+    entradaGrupo.userData.luzLocal = { x: 0, y: 2.5, z: 12.0, color: 0xf97316, intensity: 2.2, distance: 32 };
+    entradaGrupo.userData.luzPortalLocal = { x: 0, y: 2.5, z: LONGITUD_CORREDOR - 0.6, color: 0x8b5cf6, intensity: 3.0, distance: 18 };
+    if (!sinLuces) {
+      const luzVortice = new THREE.PointLight(0x8b5cf6, 3.2, 14, 1.5);
+      luzVortice.position.set(0, 2.5, LONGITUD_CORREDOR - 0.6);
+      entradaGrupo.add(luzVortice);
+    }
 
     // Información para colisiones y carga del portal
     entradaGrupo.userData.corredor = {
@@ -734,6 +757,22 @@
 
       const charCtrl = this.ctx.character;
       const charPos = (charCtrl && charCtrl.root) ? charCtrl.root.position : hero;
+      const camPos = camera.position;
+      if (camPos && charPos && this._oclCache && this._oclCache.est === this.estanciasVisibles) {
+        const dCam = (camPos.x - this._oclCache.cx) ** 2 + (camPos.y - this._oclCache.cy) ** 2 + (camPos.z - this._oclCache.cz) ** 2;
+        const hx = typeof charPos.x === 'number' ? charPos.x : 0;
+        const hy = typeof charPos.y === 'number' ? charPos.y : 0;
+        const hz = typeof charPos.z === 'number' ? charPos.z : 0;
+        const dHero = (hx - this._oclCache.hx) ** 2 + (hy - this._oclCache.hy) ** 2 + (hz - this._oclCache.hz) ** 2;
+        if (dCam < 0.0004 && dHero < 0.0004) return;
+      }
+      if (camPos && charPos) {
+        this._oclCache = {
+          cx: camPos.x || 0, cy: camPos.y || 0, cz: camPos.z || 0,
+          hx: charPos.x || 0, hy: charPos.y || 0, hz: charPos.z || 0,
+          est: this.estanciasVisibles
+        };
+      }
       proc.actualizarOclusionCamara(camera.position, charPos, this.estanciasVisibles);
     }
 
@@ -767,28 +806,56 @@
           }
         }
 
+        const obtenerSalaEntidad = ent => {
+          if (ent.combatRef) {
+            ent.x = ent.combatRef.x;
+            ent.z = ent.combatRef.z;
+          }
+          if (ent._salaCacheX === ent.x && ent._salaCacheZ === ent.z && ent._salaCacheInit) {
+            return ent._salaCache;
+          }
+          ent._salaCacheX = ent.x;
+          ent._salaCacheZ = ent.z;
+          ent._salaCacheInit = true;
+          ent._salaCache = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(ent.x, ent.z) : null;
+          return ent._salaCache;
+        };
+
         // Visibilidad dinámica de monstruos según pertenencia a estancias comunicadas
         if (this.estanciasVisibles && Array.isArray(this.elitesInstancia)) {
-          this.elitesInstancia.forEach(el => {
-            const sEl = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(el.x, el.z) : null;
+          for (let i = 0; i < this.elitesInstancia.length; i++) {
+            const el = this.elitesInstancia[i];
+            const sEl = obtenerSalaEntidad(el);
             const vis = sEl ? this.estanciasVisibles.has(sEl.id) : true;
+            el._enEstanciaVisible = vis;
             if (el.mesh) el.mesh.visible = vis;
             if (el.group) el.group.visible = vis;
             if (el.bar) el.bar.visible = vis;
             if (el.barraHp) el.barraHp.visible = vis;
-          });
+            if (el.combatRef && !vis) {
+              if (el.combatRef.group) el.combatRef.group.visible = false;
+              if (el.combatRef.bar) el.combatRef.bar.visible = false;
+            }
+          }
         }
         if (this.estanciasVisibles && this.bossInstancia) {
-          const sBoss = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(this.bossInstancia.x, this.bossInstancia.z) : null;
+          const sBoss = obtenerSalaEntidad(this.bossInstancia);
           const visBoss = sBoss ? this.estanciasVisibles.has(sBoss.id) : true;
+          this.bossInstancia._enEstanciaVisible = visBoss;
           if (this.bossInstancia.mesh) this.bossInstancia.mesh.visible = visBoss;
           if (this.bossInstancia.group) this.bossInstancia.group.visible = visBoss;
           if (this.bossInstancia.bar) this.bossInstancia.bar.visible = visBoss;
           if (this.bossInstancia.barraHp) this.bossInstancia.barraHp.visible = visBoss;
+          if (this.bossInstancia.combatRef && !visBoss) {
+            if (this.bossInstancia.combatRef.group) this.bossInstancia.combatRef.group.visible = false;
+            if (this.bossInstancia.combatRef.bar) this.bossInstancia.combatRef.bar.visible = false;
+          }
         }
 
         // Desaparición de paredes que se interponen entre la cámara y el personaje
-        this.actualizarOclusionCamara();
+        if (!callbacks.omitirOclusionCamara) {
+          this.actualizarOclusionCamara();
+        }
       }
 
       // 1. Condición de fin: Victoria por muerte del Jefe de Mazmorra
@@ -832,6 +899,7 @@
       this.instanciaProcedural = null;
       this._ultimaSalaHeroeId = null;
       this.estanciasVisibles = null;
+      this._oclCache = null;
       this.bossInstancia = null;
       this.elitesInstancia = [];
       if (typeof this.ctx.limpiarMonstruosMazmorra === 'function') {
