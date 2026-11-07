@@ -586,18 +586,26 @@
       const dataD = imgD.data;
       const imgB = ctxB ? ctxB.getImageData(0, 0, size, size) : null;
       const dataB = imgB ? imgB.data : null;
-      const rnd = pseudoRnd(seed);
+      let s = (seed | 0) || 42;
+      const scale = intensidad / 65536;
+      const len = dataD.length;
 
-      for (let i = 0; i < dataD.length; i += 4) {
-        const n = (rnd() - 0.5) * intensidad;
-        dataD[i]     = Math.min(255, Math.max(0, dataD[i] + n));
-        dataD[i + 1] = Math.min(255, Math.max(0, dataD[i + 1] + n * 0.95));
-        dataD[i + 2] = Math.min(255, Math.max(0, dataD[i + 2] + n * 0.90));
+      for (let i = 0; i < len; i += 4) {
+        s = (Math.imul(s, 1664525) + 1013904223) | 0;
+        const n = ((s >> 16) * scale) | 0;
+        let r = dataD[i] + n;
+        let g = dataD[i + 1] + n;
+        let b = dataD[i + 2] + n;
+        dataD[i]     = r < 0 ? 0 : (r > 255 ? 255 : r);
+        dataD[i + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
+        dataD[i + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
 
         if (dataB) {
-          dataB[i]     = Math.min(255, Math.max(0, dataB[i] + n * 0.85));
-          dataB[i + 1] = Math.min(255, Math.max(0, dataB[i + 1] + n * 0.85));
-          dataB[i + 2] = Math.min(255, Math.max(0, dataB[i + 2] + n * 0.85));
+          let rb = dataB[i] + n;
+          rb = rb < 0 ? 0 : (rb > 255 ? 255 : rb);
+          dataB[i] = rb;
+          dataB[i + 1] = rb;
+          dataB[i + 2] = rb;
         }
       }
       ctxD.putImageData(imgD, 0, 0);
@@ -732,12 +740,12 @@
     }
   }
 
-  function crearTexturaPared(estilo, ThreeLib) {
-    const key = estilo.id;
+  function crearTexturaPared(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texParedCache.has(key)) return _texParedCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -890,12 +898,12 @@
     return result;
   }
 
-  function crearTexturaSuelo(estilo, ThreeLib) {
-    const key = estilo.id;
+  function crearTexturaSuelo(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texSueloCache.has(key)) return _texSueloCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -993,12 +1001,12 @@
     return result;
   }
 
-  function crearTexturaZocalo(estilo, ThreeLib) {
-    const key = estilo.id;
+  function crearTexturaZocalo(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texZocaloCache.has(key)) return _texZocaloCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -1013,8 +1021,8 @@
     ctxB.fillStyle = '#080808';
     ctxB.fillRect(0, 0, size, size);
 
-    // 1. Moldura superior corrida labrada en piedra (0 a 110px)
-    const hMoldura = 110;
+    // 1. Moldura superior corrida labrada en piedra (~21.5% superior)
+    const hMoldura = Math.round(size * 0.215);
     const gradMoldura = ctxD.createLinearGradient(0, 0, 0, hMoldura);
     gradMoldura.addColorStop(0.0, estilo.colorSecundario);
     gradMoldura.addColorStop(0.3, estilo.colorBase);
@@ -1106,12 +1114,12 @@
     return result;
   }
 
-  function crearTexturaTecho(estilo, ThreeLib) {
-    const key = estilo.id;
+  function crearTexturaTecho(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texTechoCache.has(key)) return _texTechoCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -1192,11 +1200,11 @@
     return result;
   }
 
-  function crearTexturaMadera(ThreeLib) {
+  function crearTexturaMadera(ThreeLib, tamTex = 512) {
     if (_texMaderaCache) return _texMaderaCache;
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
+    const size = tamTex || 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -1240,11 +1248,12 @@
     return _texMaderaCache;
   }
 
-  function crearTexturaHierro(ThreeLib) {
+  function crearTexturaHierro(ThreeLib, tamTex = 512) {
     if (_texHierroCache) return _texHierroCache;
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
+    const size = tamTex || 512;
+    const sc = size / 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -1259,20 +1268,20 @@
 
     // Bandas de forja y remaches
     ctxD.fillStyle = '#3f3f46';
-    ctxD.fillRect(0, 64, size, 96);
-    ctxD.fillRect(0, 320, size, 96);
+    ctxD.fillRect(0, 64 * sc, size, 96 * sc);
+    ctxD.fillRect(0, 320 * sc, size, 96 * sc);
 
     ctxD.fillStyle = '#d4d4d8';
-    for (let rx = 32; rx < size; rx += 64) {
+    for (let rx = 32 * sc; rx < size; rx += 64 * sc) {
       ctxD.beginPath();
-      ctxD.arc(rx, 112, 8, 0, Math.PI * 2);
-      ctxD.arc(rx, 368, 8, 0, Math.PI * 2);
+      ctxD.arc(rx, 112 * sc, 8 * sc, 0, Math.PI * 2);
+      ctxD.arc(rx, 368 * sc, 8 * sc, 0, Math.PI * 2);
       ctxD.fill();
 
       ctxB.fillStyle = '#ffffff';
       ctxB.beginPath();
-      ctxB.arc(rx, 112, 8, 0, Math.PI * 2);
-      ctxB.arc(rx, 368, 8, 0, Math.PI * 2);
+      ctxB.arc(rx, 112 * sc, 8 * sc, 0, Math.PI * 2);
+      ctxB.arc(rx, 368 * sc, 8 * sc, 0, Math.PI * 2);
       ctxB.fill();
     }
 
@@ -1304,13 +1313,14 @@
   }
 
   // --- 4. CREADOR DE KITS DE MATERIALES PROCEDURALES INDEPENDIENTES ---
-  function crearKitMateriales(estilo, ThreeLib) {
-    const texPared = crearTexturaPared(estilo, ThreeLib);
-    const texSuelo = crearTexturaSuelo(estilo, ThreeLib);
-    const texZocalo = crearTexturaZocalo(estilo, ThreeLib);
-    const texTecho = crearTexturaTecho(estilo, ThreeLib);
-    const texMadera = crearTexturaMadera(ThreeLib);
-    const texHierro = crearTexturaHierro(ThreeLib);
+  function crearKitMateriales(estilo, ThreeLib, opcionesKit = null) {
+    const tamTex = (opcionesKit && opcionesKit.tamanoTextura) ? opcionesKit.tamanoTextura : 512;
+    const texPared = crearTexturaPared(estilo, ThreeLib, tamTex);
+    const texSuelo = crearTexturaSuelo(estilo, ThreeLib, tamTex);
+    const texZocalo = crearTexturaZocalo(estilo, ThreeLib, tamTex);
+    const texTecho = crearTexturaTecho(estilo, ThreeLib, tamTex);
+    const texMadera = crearTexturaMadera(ThreeLib, tamTex);
+    const texHierro = crearTexturaHierro(ThreeLib, tamTex);
 
     // Muros: usa exclusivamente textura de pared preservando luminosidad natural del mapa
     const matPiedraMuro = new ThreeLib.MeshStandardMaterial({
@@ -1442,6 +1452,23 @@
     const matLlamaActual = new ThreeLib.MeshBasicMaterial({ color: colorLuzVal });
 
     let luz, llamaObj, animarFn;
+    const crearFocoAntorcha = (lx, ly, lz) => {
+      if (opciones && opciones.usarPoolLuces) {
+        return {
+          position: { x: lx, y: ly, z: lz, set(nx, ny, nz) { this.x = nx; this.y = ny; this.z = nz; } },
+          color: colorLuzVal,
+          intensity: intensidad,
+          distance: radioLuz,
+          decay: decayLuz,
+          castShadow: false,
+          esVirtual: true
+        };
+      }
+      const l = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
+      l.position.set(lx, ly, lz);
+      g.add(l);
+      return l;
+    };
 
     if (forma === 'candelabro_aplique') {
       // 1. Candelabro mural con 3 velas ornamentadas
@@ -1478,9 +1505,7 @@
         llamas.push(ll);
       });
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.35, 0.3);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.35, 0.3);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.88 + Math.sin(t * 11.0) * 0.09 + Math.cos(t * 23.0) * 0.03);
@@ -1536,9 +1561,7 @@
       llama.position.set(0, -0.15, 0.32);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, -0.12, 0.32);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, -0.12, 0.32);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.90 + Math.sin(t * 8.0) * 0.08 + Math.cos(t * 19.0) * 0.02);
@@ -1578,9 +1601,7 @@
       llama.position.set(0, 0.14, 0.26);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.2, 0.29);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.2, 0.29);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.85 + Math.sin(t * 13.0) * 0.1 + Math.cos(t * 29.0) * 0.05);
@@ -1622,9 +1643,7 @@
       cristal.scale.set(0.8, 1.4, 0.8);
       g.add(cristal);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.14, 0.24);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.14, 0.24);
 
       animarFn = (t) => {
         const pulso = 0.88 + Math.sin(t * 3.5) * 0.12;
@@ -1656,9 +1675,7 @@
       llama.position.set(0, 0.3, 0.34);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.35, 0.36);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.35, 0.36);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.88 + Math.sin(t * 12.0) * 0.08 + Math.cos(t * 27.0) * 0.04);
@@ -1669,6 +1686,12 @@
         );
       };
       llamaObj = llama;
+    }
+
+    if (opciones && opciones.sinSombrasMallas) {
+      for (let ci = 0; ci < g.children.length; ci++) {
+        g.children[ci].castShadow = false;
+      }
     }
 
     // Configuración de sombras (optimizada: por defecto desactivadas en luces secundarias puntuales para 60 FPS)
@@ -3251,6 +3274,18 @@
       agregarPortalConArco(pd, W / 2 - grosorMuro / 2, cz, 'este', 'vertical', apE.puertaH);
     }
 
+    if (opciones && opciones.sinSombrasMallas) {
+      const limpiarSombras = (nodo) => {
+        if (!nodo) return;
+        nodo.castShadow = false;
+        nodo.receiveShadow = false;
+        if (Array.isArray(nodo.children)) {
+          for (let i = 0; i < nodo.children.length; i++) limpiarSombras(nodo.children[i]);
+        }
+      };
+      limpiarSombras(g);
+    }
+
     return g;
   }
 
@@ -3259,6 +3294,7 @@
   function decorarHabitacion(ThreeLib, kit, sala, estilo, rng, animables, props, config = {}) {
     const g = new ThreeLib.Group();
     g.position.set(sala.x, sala.y || 0, sala.z);
+    const animStartIdx = Array.isArray(animables) ? animables.length : 0;
 
     const cfgProps = config.props || {};
     const W = sala.w;
@@ -3273,20 +3309,36 @@
       ? sala.intensidadLuz
       : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 2.0);
     const distLuzBoveda = Math.max(W, D, 16) * 2.4;
-    const luzSala = new ThreeLib.PointLight(colorLuzBoveda, intLuzBoveda, distLuzBoveda, 1.12);
-    luzSala.position.set(0, H - 0.45, 0);
-    luzSala.name = 'luz_sala_' + sala.id;
-    if (config.sombrasPuntuales === true) {
-      luzSala.castShadow = true;
-      if (luzSala.shadow) {
-        luzSala.shadow.bias = -0.002;
-        if (luzSala.shadow.mapSize) {
-          luzSala.shadow.mapSize.width = 512;
-          luzSala.shadow.mapSize.height = 512;
+    if (config && config.usarPoolLuces) {
+      if (Array.isArray(config._focosVirtuales)) {
+        config._focosVirtuales.push({
+          x: sala.x,
+          y: (sala.y || 0) + H - 0.45,
+          z: sala.z,
+          color: colorLuzBoveda,
+          intensity: intLuzBoveda * 1.15,
+          distance: distLuzBoveda,
+          decay: 1.12,
+          salaId: sala.id,
+          esBoveda: true
+        });
+      }
+    } else {
+      const luzSala = new ThreeLib.PointLight(colorLuzBoveda, intLuzBoveda, distLuzBoveda, 1.12);
+      luzSala.position.set(0, H - 0.45, 0);
+      luzSala.name = 'luz_sala_' + sala.id;
+      if (config.sombrasPuntuales === true) {
+        luzSala.castShadow = true;
+        if (luzSala.shadow) {
+          luzSala.shadow.bias = -0.002;
+          if (luzSala.shadow.mapSize) {
+            luzSala.shadow.mapSize.width = 512;
+            luzSala.shadow.mapSize.height = 512;
+          }
         }
       }
+      g.add(luzSala);
     }
-    g.add(luzSala);
 
     const distEntreAntorchas = (config && (config.distanciaAntorchas || config.distanciaEntreAntorchas)) || 16.0;
     const colorLuzDefinido = (config && (config.colorLuzAntorcha || config.colorLuz)) || (estilo && estilo.luzAntorchas) || 0xf59e0b;
@@ -3559,15 +3611,31 @@
           llamaBoss.position.set(bx, 1.45, -D * 0.15 + 1.8);
           g.add(llamaBoss);
 
-          const luzBoss = new ThreeLib.PointLight(estilo.luzJefe, 3.6, 26, 1.4);
-          luzBoss.position.set(bx, 1.8, -D * 0.15 + 1.8);
-          g.add(luzBoss);
-
-          animables.push({
-            flicker: (t) => {
-              luzBoss.intensity = 3.6 * (0.85 + Math.sin(t * 8.0 + bx) * 0.12);
+          if (config && config.usarPoolLuces) {
+            if (Array.isArray(config._focosVirtuales)) {
+              config._focosVirtuales.push({
+                x: sala.x + bx,
+                y: (sala.y || 0) + 1.8,
+                z: sala.z - D * 0.15 + 1.8,
+                color: estilo.luzJefe,
+                intensity: 3.6,
+                distance: 26,
+                decay: 1.4,
+                salaId: sala.id,
+                esBoveda: false
+              });
             }
-          });
+          } else {
+            const luzBoss = new ThreeLib.PointLight(estilo.luzJefe, 3.6, 26, 1.4);
+            luzBoss.position.set(bx, 1.8, -D * 0.15 + 1.8);
+            g.add(luzBoss);
+
+            animables.push({
+              flicker: (t) => {
+                luzBoss.intensity = 3.6 * (0.85 + Math.sin(t * 8.0 + bx) * 0.12);
+              }
+            });
+          }
         });
         break;
       }
@@ -3686,6 +3754,69 @@
           console.warn('Error instanciando prop personalizado en estancia:', pDef, e);
         }
       });
+    }
+
+    if (config && (config.usarPoolLuces || config.sinSombrasMallas)) {
+      const focosOut = Array.isArray(config._focosVirtuales) ? config._focosVirtuales : null;
+      const optimizarJerarquia = (nodo, ox, oy, oz) => {
+        if (!nodo) return;
+        if (config.sinSombrasMallas) {
+          nodo.castShadow = false;
+          nodo.receiveShadow = false;
+        }
+        const nx = ox + (nodo !== g && nodo.position ? (nodo.position.x || 0) : 0);
+        const ny = oy + (nodo !== g && nodo.position ? (nodo.position.y || 0) : 0);
+        const nz = oz + (nodo !== g && nodo.position ? (nodo.position.z || 0) : 0);
+
+        if (config.usarPoolLuces && focosOut && nodo.userData && nodo.userData.tipo === 'antorcha' && nodo.userData.luz) {
+          focosOut.push({
+            x: sala.x + nx,
+            y: (sala.y || 0) + ny + 0.3,
+            z: sala.z + nz,
+            color: nodo.userData.luz.color || colorLuzDefinido,
+            intensity: nodo.userData.baseIntensity || intLuzDefinida,
+            distance: 24,
+            decay: 1.25,
+            salaId: sala.id,
+            esBoveda: false
+          });
+        }
+
+        if (Array.isArray(nodo.children)) {
+          for (let ci = nodo.children.length - 1; ci >= 0; ci--) {
+            const ch = nodo.children[ci];
+            if (!ch) continue;
+            const esLuzPuntual = (ThreeLib.PointLight && ch instanceof ThreeLib.PointLight) || ch.isPointLight === true;
+            if (config.usarPoolLuces && esLuzPuntual) {
+              if (focosOut) {
+                const colVal = (ch.color && typeof ch.color.getHex === 'function') ? ch.color.getHex() : (ch.color || 0xffedd5);
+                focosOut.push({
+                  x: sala.x + nx + (ch.position ? (ch.position.x || 0) : 0),
+                  y: (sala.y || 0) + ny + (ch.position ? (ch.position.y || 0) : 0),
+                  z: sala.z + nz + (ch.position ? (ch.position.z || 0) : 0),
+                  color: colVal,
+                  intensity: ch.intensity || 1.6,
+                  distance: ch.distance || 14,
+                  decay: ch.decay || 1.4,
+                  salaId: sala.id,
+                  esBoveda: false
+                });
+              }
+              if (typeof nodo.remove === 'function') nodo.remove(ch);
+              else nodo.children.splice(ci, 1);
+            } else {
+              optimizarJerarquia(ch, nx, ny, nz);
+            }
+          }
+        }
+      };
+      optimizarJerarquia(g, 0, 0, 0);
+    }
+
+    if (Array.isArray(animables)) {
+      for (let k = animStartIdx; k < animables.length; k++) {
+        if (animables[k]) animables[k]._salaRef = sala;
+      }
     }
 
     return g;
@@ -4545,12 +4676,25 @@
     const rng = new PRNG(config.seed || 108);
     const estiloKey = config.estilo || rng.pick(Object.keys(ESTILOS_PIEDRA));
     const estilo = ESTILOS_PIEDRA[estiloKey] || ESTILOS_PIEDRA.cripta_gotica;
-    const kit = crearKitMateriales(estilo, THREE_REF);
+    const opcionesKit = config.modoJuegoRapido ? { tamanoTextura: 256 } : null;
+    const kit = crearKitMateriales(estilo, THREE_REF, opcionesKit);
 
-    const kitsPorEstilo = {};
-    Object.keys(ESTILOS_PIEDRA).forEach(k => {
-      kitsPorEstilo[k] = crearKitMateriales(ESTILOS_PIEDRA[k], THREE_REF);
-    });
+    const _kitsCache = { [estiloKey]: kit };
+    const kitsPorEstilo = (typeof Proxy === 'function')
+      ? new Proxy(_kitsCache, {
+          get(target, prop) {
+            if (typeof prop === 'string' && !(prop in target) && Object.prototype.hasOwnProperty.call(ESTILOS_PIEDRA, prop)) {
+              target[prop] = crearKitMateriales(ESTILOS_PIEDRA[prop], THREE_REF, opcionesKit);
+            }
+            return target[prop];
+          }
+        })
+      : (function () {
+          Object.keys(ESTILOS_PIEDRA).forEach(k => {
+            if (!_kitsCache[k]) _kitsCache[k] = crearKitMateriales(ESTILOS_PIEDRA[k], THREE_REF, opcionesKit);
+          });
+          return _kitsCache;
+        })();
 
     const dungeonGroup = new THREE_REF.Group();
     dungeonGroup.name = 'DungeonProcedural_' + (config.id || 'seed_' + rng.s);
@@ -4593,11 +4737,13 @@
     // Sistema de Colisiones Físicas y Cajas de Oclusión de Paredes/Techos
     const colliders = [];
     const cajasOclusion = [];
+    const focosVirtuales = [];
 
     // 2. Construir geometría estructural y decorar cada sala (respetando textura/estilo y color individual de paredes, suelos, techos y fuentes)
-    const configCompleta = Object.assign({}, config, { kitsPorEstilo, colliders, cajasOclusion });
+    const configCompleta = Object.assign({}, config, { kitsPorEstilo, colliders, cajasOclusion, _focosVirtuales: focosVirtuales });
 
     salas.forEach(s => {
+      s._esVisible = true;
       const estiloKeySala = s.estilo || estiloKey;
       const estiloSala = ESTILOS_PIEDRA[estiloKeySala] || estilo;
       const kitSala = kitsPorEstilo[estiloKeySala] || kit;
@@ -4613,6 +4759,82 @@
 
     if (!dungeonGroup.userData) dungeonGroup.userData = {};
     dungeonGroup.userData.colliders = colliders;
+
+    // Pool fijo de 4 luces puntuales reutilizables (evita recompilar shaders PBR al hacer culling de salas)
+    const poolLuces = [];
+    if (config.usarPoolLuces) {
+      for (let pl = 0; pl < 4; pl++) {
+        const pLuz = new THREE_REF.PointLight(0xffedd5, 0, 40, 1.15);
+        pLuz.name = 'dungeon_pool_light_' + pl;
+        pLuz.castShadow = false;
+        pLuz.visible = true;
+        dungeonGroup.add(pLuz);
+        poolLuces.push(pLuz);
+      }
+    }
+
+    const actualizarPoolLuces = (hx, hz, idsVisibles) => {
+      if (!poolLuces.length || typeof hx !== 'number' || typeof hz !== 'number') return;
+      const setVis = (idsVisibles && (idsVisibles instanceof Set ? idsVisibles.size > 0 : idsVisibles.length > 0))
+        ? (idsVisibles instanceof Set ? idsVisibles : new Set(idsVisibles))
+        : null;
+
+      let mejorBoveda = null;
+      let mejorDistBoveda = Infinity;
+      for (let i = 0; i < focosVirtuales.length; i++) {
+        const f = focosVirtuales[i];
+        if (!f.esBoveda) continue;
+        if (setVis && !setVis.has(f.salaId)) continue;
+        const dx = f.x - hx, dz = f.z - hz;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < mejorDistBoveda) {
+          mejorDistBoveda = d2;
+          mejorBoveda = f;
+        }
+      }
+
+      // 3 focos locales más cercanos (antorchas, fuentes, cofres, braseros u otra bóveda cercana)
+      let f1 = null, f2 = null, f3 = null;
+      let d1 = Infinity, d2 = Infinity, d3 = Infinity;
+      for (let i = 0; i < focosVirtuales.length; i++) {
+        const f = focosVirtuales[i];
+        if (f === mejorBoveda) continue;
+        if (setVis && !setVis.has(f.salaId)) continue;
+        const dx = f.x - hx, dz = f.z - hz;
+        const distSq = dx * dx + dz * dz;
+        if (distSq < d1) {
+          d3 = d2; f3 = f2;
+          d2 = d1; f2 = f1;
+          d1 = distSq; f1 = f;
+        } else if (distSq < d2) {
+          d3 = d2; f3 = f2;
+          d2 = distSq; f2 = f;
+        } else if (distSq < d3) {
+          d3 = distSq; f3 = f;
+        }
+      }
+
+      const elegidos = [mejorBoveda, f1, f2, f3];
+      for (let p = 0; p < poolLuces.length; p++) {
+        const pLuz = poolLuces[p];
+        const foco = elegidos[p];
+        if (foco) {
+          if (pLuz.position && typeof pLuz.position.set === 'function') {
+            pLuz.position.set(foco.x, foco.y, foco.z);
+          }
+          if (pLuz.color && typeof pLuz.color.set === 'function') {
+            pLuz.color.set(foco.color);
+          } else {
+            pLuz.color = foco.color;
+          }
+          pLuz.intensity = foco.intensity;
+          pLuz.distance = foco.distance;
+          pLuz.decay = foco.decay;
+        } else {
+          pLuz.intensity = 0;
+        }
+      }
+    };
 
     // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni destellos excesivos)
     const intAmbiente = (typeof config.luzAmbienteIntensidad === 'number')
@@ -4675,6 +4897,9 @@
     }
 
     const areaTotal = Math.round(salas.reduce((acc, s) => acc + (s.w * s.d), 0));
+    if (poolLuces.length > 0 && spawns.hero) {
+      actualizarPoolLuces(spawns.hero.x, spawns.hero.z, null);
+    }
 
     // --- GENERACIÓN DE MONSTRUOS PROCEDURALES (JEFE Y GUARDIANES ÉLITE) ---
     const monstruos = [];
@@ -4744,12 +4969,14 @@
       cajasOclusion,
       encontrarSalaEnPosicion: (x, z) => encontrarSalaEnPosicion(salas, x, z),
       obtenerEstanciasComunicadas: (salaId, prof = 4) => obtenerEstanciasComunicadas(salas, salaId, prof),
+      actualizarPoolLuces,
       actualizarVisibilidadEstancias: (idsVisibles) => {
         if (!idsVisibles) return;
         const setVis = (idsVisibles instanceof Set) ? idsVisibles : new Set(idsVisibles);
         if (setVis.size === 0) return;
         salas.forEach(s => {
           const vis = setVis.has(s.id);
+          s._esVisible = vis;
           if (s._meshSala) s._meshSala.visible = vis;
           if (s._decMesh) s._decMesh.visible = vis;
         });
@@ -4802,12 +5029,15 @@
       getColliders: (x, z, radius = 25) => {
         if (typeof x !== 'number' || typeof z !== 'number') return colliders;
         const rSq = radius * radius;
-        return colliders.filter(c => {
-          const cx = (c.type === 'box') ? (c.minX + c.maxX) * 0.5 : c.x;
-          const cz = (c.type === 'box') ? (c.minZ + c.maxZ) * 0.5 : c.z;
+        const res = [];
+        for (let i = 0; i < colliders.length; i++) {
+          const c = colliders[i];
+          const cx = (c.type === 'box') ? Math.max(c.minX, Math.min(x, c.maxX)) : c.x;
+          const cz = (c.type === 'box') ? Math.max(c.minZ, Math.min(z, c.maxZ)) : c.z;
           const dx = cx - x, dz = cz - z;
-          return (dx * dx + dz * dz) <= rSq;
-        });
+          if ((dx * dx + dz * dz) <= rSq) res.push(c);
+        }
+        return res;
       },
       areaTotal,
       update: (dt, nowSec) => {
@@ -4822,7 +5052,9 @@
         };
         for (let i = 0; i < animables.length; i++) {
           const item = animables[i];
-          if (!esVisibleJerarquia(item)) continue;
+          if (!item) continue;
+          if (item._salaRef && item._salaRef._esVisible === false) continue;
+          if (!item._salaRef && !esVisibleJerarquia(item)) continue;
           if (item.userData && typeof item.userData.animar === 'function') {
             item.userData.animar(t, dt);
           } else if (item.userData && typeof item.userData.flicker === 'function') {

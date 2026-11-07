@@ -501,27 +501,29 @@
       this.grupoInstancia.name = 'InstanciaMazmorra_' + dungeon.id;
       scene.add(this.grupoInstancia);
 
-      // Iluminación interior clara y atmosférica de mazmorra monumental
-      const luzAmbiente = new THREE.AmbientLight(0xffffff, 1.5);
-      this.grupoInstancia.add(luzAmbiente);
+      const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
+      const esProcedural = !!Gen && dungeon.tipoGeneracion !== 'glb';
+
+      // Iluminación interior clara y atmosférica (ligera en GPU: sin luces redundantes en modo procedural)
+      if (!esProcedural) {
+        const luzAmbiente = new THREE.AmbientLight(0xffffff, 1.5);
+        this.grupoInstancia.add(luzAmbiente);
+      }
 
       if (typeof THREE.HemisphereLight === 'function') {
-        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 1.0);
+        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, esProcedural ? 0.95 : 1.0);
         hemiMazmorra.position.set(0, 30.0, 0);
         this.grupoInstancia.add(hemiMazmorra);
       }
 
-      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 1.5);
-      luzDirPasillo.position.set(0, 24.0, 42.0);
-      luzDirPasillo.target.position.set(0, 1.0, 16.0);
-      this.grupoInstancia.add(luzDirPasillo);
-      this.grupoInstancia.add(luzDirPasillo.target);
-
-      const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
-      const esProcedural = !!Gen && dungeon.tipoGeneracion !== 'glb';
-
-      // Antorchas fijas solo para el modelo GLB clásico; las mazmorras procedurales usan sus propias antorchas optimizadas
+      // Antorchas fijas y luz direccional solo para el modelo GLB clásico; las mazmorras procedurales usan pool de 4 luces optimizado
       if (!esProcedural) {
+        const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 1.5);
+        luzDirPasillo.position.set(0, 24.0, 42.0);
+        luzDirPasillo.target.position.set(0, 1.0, 16.0);
+        this.grupoInstancia.add(luzDirPasillo);
+        this.grupoInstancia.add(luzDirPasillo.target);
+
         const matLlama = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
         const geoLlama = new THREE.ConeGeometry(0.24, 0.65, 6);
         [-28.0, -16.0, -4.0, 8.0, 20.0, 32.0].forEach(zAnt => {
@@ -546,6 +548,7 @@
       let SPAWN_X = 0.0;
       let SPAWN_Y = 0.0;
       let SPAWN_Z = 46.0;
+      const cfgMonstruosProc = this.ctx.usarModelosCombateExternos ? { habilitados: false } : undefined;
 
       if (esProcedural && Gen) {
         proc = Gen.generarMazmorra(THREE, {
@@ -560,7 +563,11 @@
           alturaTechos: dungeon.alturaTechos || 6.0,
           anchoPasillos: dungeon.anchoPasillos || 8.0,
           salasPersonalizadas: dungeon.salasPersonalizadas || [],
-          props: dungeon.props
+          props: dungeon.props,
+          modoJuegoRapido: true,
+          usarPoolLuces: true,
+          sinSombrasMallas: true,
+          monstruos: cfgMonstruosProc
         });
         this.instanciaProcedural = proc;
         if (this.grupoInstancia) this.grupoInstancia.add(proc.group);
@@ -591,7 +598,11 @@
               alturaTechos: dungeon.alturaTechos || 6.0,
               anchoPasillos: dungeon.anchoPasillos || 8.0,
               salasPersonalizadas: dungeon.salasPersonalizadas || [],
-              props: dungeon.props
+              props: dungeon.props,
+              modoJuegoRapido: true,
+              usarPoolLuces: true,
+              sinSombrasMallas: true,
+              monstruos: cfgMonstruosProc
             });
             this.instanciaProcedural = fallbackProc;
             if (this.grupoInstancia) this.grupoInstancia.add(fallbackProc.group);
@@ -734,15 +745,20 @@
         callbacks.onIniciarHUD(this.bossInstancia, dungeon);
       }
 
-      // 8. Culling inicial de estancias comunicadas
+      // 8. Culling inicial de estancias comunicadas y pool de luces
       if (this.instanciaProcedural && typeof this.instanciaProcedural.actualizarVisibilidadEstancias === 'function') {
         const proc = this.instanciaProcedural;
         const salaInicio = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(SPAWN_X, SPAWN_Z) : null;
         const idInicio = salaInicio ? salaInicio.id : null;
         this._ultimaSalaHeroeId = idInicio;
-        this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idInicio, 4) : null;
+        this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idInicio, 2) : null;
         if (this.estanciasVisibles) {
           proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
+        }
+        if (typeof proc.actualizarPoolLuces === 'function') {
+          proc.actualizarPoolLuces(SPAWN_X, SPAWN_Z, this.estanciasVisibles);
+          this._luzPoolX = SPAWN_X;
+          this._luzPoolZ = SPAWN_Z;
         }
       }
     }
@@ -798,11 +814,23 @@
         const salaActual = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(hx, hz) : null;
         const idActual = salaActual ? salaActual.id : null;
 
+        let cambioEstancia = false;
         if (idActual !== this._ultimaSalaHeroeId || !this.estanciasVisibles) {
           this._ultimaSalaHeroeId = idActual;
-          this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idActual, 4) : null;
+          cambioEstancia = true;
+          this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idActual, 2) : null;
           if (typeof proc.actualizarVisibilidadEstancias === 'function' && this.estanciasVisibles) {
             proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
+          }
+        }
+
+        if (typeof proc.actualizarPoolLuces === 'function') {
+          const dxPool = hx - (this._luzPoolX !== undefined ? this._luzPoolX : -9999);
+          const dzPool = hz - (this._luzPoolZ !== undefined ? this._luzPoolZ : -9999);
+          if (cambioEstancia || (dxPool * dxPool + dzPool * dzPool) > 0.36) {
+            proc.actualizarPoolLuces(hx, hz, this.estanciasVisibles);
+            this._luzPoolX = hx;
+            this._luzPoolZ = hz;
           }
         }
 
@@ -891,20 +919,32 @@
       const hero = this.ctx.hero;
       const d = this.dungeonActiva;
 
-      // 1. Eliminar grupo de la mazmorra y limpiar esbirros
+      // 1. Limpiar esbirros de combate y eliminar/liberar geometrías de la mazmorra
+      if (typeof this.ctx.limpiarMonstruosMazmorra === 'function') {
+        this.ctx.limpiarMonstruosMazmorra();
+      }
       if (this.grupoInstancia && scene) {
         scene.remove(this.grupoInstancia);
+        const liberarGeometrias = (nodo) => {
+          if (!nodo) return;
+          if (nodo.geometry && typeof nodo.geometry.dispose === 'function') {
+            nodo.geometry.dispose();
+          }
+          if (Array.isArray(nodo.children)) {
+            for (let i = 0; i < nodo.children.length; i++) liberarGeometrias(nodo.children[i]);
+          }
+        };
+        liberarGeometrias(this.grupoInstancia);
         this.grupoInstancia = null;
       }
       this.instanciaProcedural = null;
       this._ultimaSalaHeroeId = null;
+      this._luzPoolX = undefined;
+      this._luzPoolZ = undefined;
       this.estanciasVisibles = null;
       this._oclCache = null;
       this.bossInstancia = null;
       this.elitesInstancia = [];
-      if (typeof this.ctx.limpiarMonstruosMazmorra === 'function') {
-        this.ctx.limpiarMonstruosMazmorra();
-      }
 
       // 2. Restaurar supramundo exterior
       if (scene) scene.visible = true;
