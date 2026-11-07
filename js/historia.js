@@ -17,35 +17,35 @@
       id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Pieles de caza y el primer cinturón',
       encargo: 'Rowan (tu leal compañero de camino) te acompaña desde la plaza y la Sabia Elara bendice vuestra alianza: «Las bestias han endurecido su piel y poseen una vitalidad colosal. Id juntos a {lugar} y abated a {n} criaturas. Tu compañero te guiará con indicaciones y te apoyará con sus habilidades para traer pieles resistentes y forjar tu primer cinturón».',
       texto: 'Rowan y tú regresáis triunfantes tras medir vuestras fuerzas contra las resistentes bestias. Brann remacha la hebilla de bronce del cinturón: «Gran trabajo en equipo; cubriéndoos mutuamente sobreviviréis a lo que viene». Has forjado tu primer cinturón básico.',
-      mision: { tipo: 'matar', cantidad: 3, nivel: 1 },
+      mision: { tipo: 'matar', cantidad: 8, nivel: 1 },
       recompensa: { puntos: 1, forjarPieza: 'belt', desbloquea: 'acompanante' }
     },
     {
       id: 'c2', nivel: 1, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El camino agreste y las botas de marcha',
       encargo: 'Rowan te señala los senderos lejanos hacia {lugar}: «El Maestro Oren necesita tendones y cuero grueso de {n} bestias endurecidas. Sígueme por las calzadas de piedra, te indicaré el camino seguro y te cubriré las espaldas con mis dopes marciales».',
       texto: 'Con las indicaciones de tu compañero y el cuero reforzado recogido en {lugar}, el herrero remata las suelas de tus nuevas botas de viaje. Tus pasos ahora son firmes y seguros en cualquier terreno.',
-      mision: { tipo: 'matar', cantidad: 4, nivel: 1 },
+      mision: { tipo: 'matar', cantidad: 12, nivel: 1 },
       recompensa: { puntos: 2, forjarPieza: 'boots' }
     },
     {
       id: 'c3', nivel: 2, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Garras de bestia y el aldeano leal',
       encargo: 'La Hermana Ysolde detecta perturbaciones en {lugar}. Rowan empuña su espada corta con determinación: «¡No temas a la vitalidad de esas criaturas! Con mis habilidades de apoyo y tus estocadas abatiremos a {n} monstruos para conseguir garras con las que reforzar brazales de combate».',
       texto: 'Rowan y tú combatís espalda contra espalda: sus estocadas coordinadas demuestran su valía. Con las garras y escamas recogidas, el herrero forja un par de guantes y brazales de protección. Rowan el aldeano reafirma su juramento como fiel acompañante.',
-      mision: { tipo: 'matar', cantidad: 5, nivel: 2 },
+      mision: { tipo: 'matar', cantidad: 15, nivel: 2 },
       recompensa: { puntos: 2, forjarPieza: 'gloves', desbloquea: 'acompanante' }
     },
     {
       id: 'c4', nivel: 4, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Planchas de caparazón y el peto de acero',
       encargo: 'El Viejo Tamsin exige temple: «Si queréis un peto que os salve el pellejo, abated a {n} criaturas en {lugar} y traed sus resistentes planchas quitinosas». Rowan y tú marcháis al combate.',
       texto: 'Con las duras planchas de caparazón recogidas tras el combate, Brann martilla un sólido peto sobre el yunque. Tamsin sonríe y os enseña a canalizar la fuerza al golpear el suelo: ¡has desbloqueado el impacto sísmico (Q) y equipado tu nuevo peto!',
-      mision: { tipo: 'matar', cantidad: 8, nivel: 4 },
+      mision: { tipo: 'matar', cantidad: 18, nivel: 4 },
       recompensa: { puntos: 2, forjarPieza: 'torso', desbloquea: 'sismo' }
     },
     {
       id: 'c5', nivel: 4, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'Astas de hueso y el yelmo protector',
       encargo: 'La Erudita Mirel advierte que una cabeza descubierta es presa fácil. Derrota a {n} criaturas en {lugar} para recolectar astas y fragmentos óseos para forjar un yelmo.',
       texto: 'Brann encaja los refuerzos óseos en una corona de hierro acolchada. Al colocarte el yelmo sientes la protección completa de tu cabeza ante los golpes enemigos. El equipo básico toma forma.',
-      mision: { tipo: 'matar', cantidad: 8, nivel: 4 },
+      mision: { tipo: 'matar', cantidad: 20, nivel: 4 },
       recompensa: { puntos: 2, forjarPieza: 'helmet' }
     },
     {
@@ -59,14 +59,14 @@
       id: 'c7', nivel: 8, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'Mineral salvaje y la forja del arma',
       encargo: 'Oren señala los valles salvajes de {lugar}: «Las criaturas de las profundidades devoran vetas de mineral puro. Derrotad a {n} de ellas para extraer el hierro salvaje y forjar un arma digna de vuestra clase». Rowan empuña su filo y asiente.',
       texto: 'El mineral extraído brilla al rojo vivo bajo los martillazos de Brann en la fragua. De las chispas surge un arma formidable forjada a medida de tu clase y estilo. ¡Tu equipo de combate básico de nivel de entrada queda completamente ensamblado!',
-      mision: { tipo: 'matar', cantidad: 10, nivel: 8 },
+      mision: { tipo: 'matar', cantidad: 22, nivel: 8 },
       recompensa: { puntos: 3, forjarPieza: 'weapon' }
     },
     {
       id: 'c8', nivel: 10, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'El sello de la nova',
       encargo: 'Ysolde por fin ha descifrado la frase oculta del pozo: «El sello despierta con la sangre de {lugar}». Derrota a {n} criaturas allí junto a Rowan.',
       texto: 'La nova de energía pura no es un truco vulgar: es un sello sagrado que las runas antiguas dejaron a quien lo merezca. Rowan observa maravillado el estallido: la explosión nova (E) ya es tuya.',
-      mision: { tipo: 'matar', cantidad: 12, nivel: 10 },
+      mision: { tipo: 'matar', cantidad: 25, nivel: 10 },
       recompensa: { puntos: 3, desbloquea: 'nova' }
     },
     {
@@ -80,7 +80,7 @@
       id: 'c10', nivel: 11, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Caza en la espesura',
       encargo: 'Las notas del ermitaño alertan de un nido de bestias feroces en {lugar}. Limpia el sendero derrotando a {n} criaturas.',
       texto: 'Rowan y tú coordináis cada golpe: mientras tú atraes a las bestias, el aldeano remata con su espada de acero. El camino hacia las cumbres queda despejado.',
-      mision: { tipo: 'matar', cantidad: 10, nivel: 11 },
+      mision: { tipo: 'matar', cantidad: 25, nivel: 11 },
       recompensa: { puntos: 3 }
     },
     {
@@ -94,7 +94,7 @@
       id: 'c12', nivel: 13, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Resonancia ancestral',
       encargo: 'Para abrir el paso hacia el gran santuario, Ysolde pide purificar las cumbres de {lugar} eliminando a {n} criaturas de élite.',
       texto: 'La resonancia de las runas envuelve vuestra cacería. Las criaturas caen una tras otra, confirmando que la fuerza de la alianza entre héroe y aldeano es inquebrantable.',
-      mision: { tipo: 'matar', cantidad: 12, nivel: 13 },
+      mision: { tipo: 'matar', cantidad: 30, nivel: 13 },
       recompensa: { puntos: 4 }
     },
     {

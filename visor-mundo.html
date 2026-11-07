@@ -4359,6 +4359,132 @@
     return true;
   }
 
+  // =========================================================================
+  // Marcadores Visuales de Misión Principal en Monstruos
+  // Círculo amarillo dorado en el suelo + rombo dorado sobre la barra de vida
+  // =========================================================================
+  let _misionRingGeo = null, _misionRingMat = null;
+  let _misionInnerRingGeo = null, _misionInnerRingMat = null;
+  let _misionPipGeo = null, _misionPipMat = null;
+  let _misionBadgeGeo = null, _misionBadgeMat = null;
+
+  function asegurarGeosAnilloMision() {
+    if (!_misionRingGeo) {
+      _misionRingGeo = new THREE.RingGeometry(0.88, 1.25, 32);
+      _misionRingMat = new THREE.MeshBasicMaterial({
+        color: 0xfacc15,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      _misionInnerRingGeo = new THREE.RingGeometry(0.38, 0.48, 24);
+      _misionInnerRingMat = new THREE.MeshBasicMaterial({
+        color: 0xfef08a,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      _misionPipGeo = new THREE.PlaneGeometry(0.18, 0.18);
+      _misionPipMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      _misionBadgeGeo = new THREE.PlaneGeometry(0.5, 0.5);
+      _misionBadgeMat = new THREE.MeshBasicMaterial({
+        color: 0xfacc15,
+        depthTest: false,
+        side: THREE.DoubleSide
+      });
+    }
+  }
+
+  function crearAnilloMisionMonstruo(m) {
+    if (m.questRing) return m.questRing;
+    asegurarGeosAnilloMision();
+    const grupoRing = new THREE.Group();
+    grupoRing.position.y = 0.08;
+    grupoRing.rotation.x = -Math.PI / 2;
+    const escalaBase = (m.boss ? 2.4 : (m.rangoElite && m.rangoElite >= 2) ? 1.5 : 1.1) * (m.group ? (m.group.scale.x || 1) : 1);
+    grupoRing.scale.setScalar(escalaBase);
+    m._escalaRingBase = escalaBase;
+
+    // Aro exterior amarillo dorado
+    const aroExt = new THREE.Mesh(_misionRingGeo, _misionRingMat);
+    // Aro interior fino brillante
+    const aroInt = new THREE.Mesh(_misionInnerRingGeo, _misionInnerRingMat);
+    grupoRing.add(aroExt, aroInt);
+
+    // 4 marcas cardinales luminosas en cruz
+    for (let i = 0; i < 4; i++) {
+      const pip = new THREE.Mesh(_misionPipGeo, _misionPipMat);
+      const ang = (i * Math.PI) / 2;
+      pip.position.set(Math.cos(ang) * 1.25, Math.sin(ang) * 1.25, 0.01);
+      pip.rotation.z = ang;
+      grupoRing.add(pip);
+    }
+
+    grupoRing.visible = false;
+    m.group.add(grupoRing);
+    m.questRing = grupoRing;
+    return grupoRing;
+  }
+
+  function crearMarcaBarraMision(m) {
+    if (m.questBadge) return m.questBadge;
+    asegurarGeosAnilloMision();
+    const badge = new THREE.Mesh(_misionBadgeGeo, _misionBadgeMat);
+    badge.position.y = 0.55;
+    badge.rotation.z = Math.PI / 4; // Rombo dorado de misión
+    badge.visible = false;
+    m.bar.add(badge);
+    m.questBadge = badge;
+    return badge;
+  }
+
+  function actualizarMarcadoresMisionMonstruos() {
+    if (!world || !monsters || !heroeEst) return;
+    const p = heroeEst.principal;
+    if (!p || (typeof HistoriaLib !== 'undefined' && HistoriaLib.terminada(p))) {
+      monsters.forEach(m => {
+        m.esDeMision = false;
+        if (m.questRing) m.questRing.visible = false;
+        if (m.questBadge) m.questBadge.visible = false;
+      });
+      return;
+    }
+    const cap = (typeof HistoriaLib !== 'undefined') ? HistoriaLib.capituloActual(p) : null;
+    const o = (cap && typeof HistoriaLib !== 'undefined') ? HistoriaLib.asegurarObjetivo(p, world) : null;
+    const objetivoActivo = o && (o.tipo === 'matar' || o.tipo === 'jefe') && (p.progreso < o.cantidad);
+    const targetZona = objetivoActivo ? o.zona : null;
+    const soloJefe = objetivoActivo && (o.tipo === 'jefe');
+
+    monsters.forEach(m => {
+      let esTarget = false;
+      if (objetivoActivo && m.alive && m.hp > 0) {
+        if (soloJefe) {
+          esTarget = !!(m.boss && m.zone && m.zone.id === targetZona);
+        } else {
+          esTarget = !!(m.zone && m.zone.id === targetZona && !m.boss);
+        }
+      }
+      m.esDeMision = esTarget;
+      if (esTarget) {
+        const ring = m.questRing || crearAnilloMisionMonstruo(m);
+        const badge = m.questBadge || crearMarcaBarraMision(m);
+        ring.visible = m.alive && m.group.visible;
+        badge.visible = m.alive && m.bar.visible;
+      } else {
+        if (m.questRing) m.questRing.visible = false;
+        if (m.questBadge) m.questBadge.visible = false;
+      }
+    });
+  }
+
   function buildMonsters() {
     limpiarCachePrototiposEnemigos();
     enemyMode = (world.settings && world.settings.enemyMode) || enemyMode;
@@ -4441,12 +4567,15 @@
         }
       });
     });
+    actualizarMarcadoresMisionMonstruos();
   }
 
   function respawnMonster(m) {
     m.alive = true; m.hp = m.maxHp; m.x = m.spawnX; m.z = m.spawnZ; m.state = 'idle'; m.attackTimer = 0;
     m.danoPorFuente = { hero: 0, acompanante: 0 };
     m.danoTotal = 0;
+    if (m.questRing) m.questRing.visible = !!m.esDeMision;
+    if (m.questBadge) m.questBadge.visible = !!m.esDeMision;
   }
 
   function killMonster(m) {
@@ -4455,6 +4584,8 @@
     m.respawnAt = performance.now() + Math.max(5, (m.zone && m.zone.respawnSec) || 60) * 1000;
     m.muriendo = performance.now() + 1000;
     m.bar.visible = false;
+    if (m.questRing) m.questRing.visible = false;
+    if (m.questBadge) m.questBadge.visible = false;
 
     // Reparto de experiencia:
     // Los acompañantes deben subir solo si están luchando en el combate.
@@ -4876,12 +5007,24 @@
           m.dtAnim = (m.dtAnim || 0) + dt;
           if (m.fx && ((cada && (fotogramaCombate + m.turno) % cada === 0) || !m.posado)) { EnemyFx.actualizar(m.fx, estado, nowSec, m.dtAnim, nowSec); m.dtAnim = 0; m.posado = true; }
           // Solo los cercanos dibujan su sombra en el exterior (en mazmorra no hay mapa de sombras solar)
-          const sombra = !enMazmorra && d < MONSTRUO_ANIMA && sombrasOn;
-          if (sombra !== m.sombra) { m.sombra = sombra; if (m.rig && m.rig.rootGroup) { m.rig.rootGroup.traverse(o => { if (o.isMesh) o.castShadow = sombra; }); } }
+          // Anillo amarillo en el suelo para los monstruos objetivo de la misión del capítulo activo
+          if (m.questRing) {
+            const visibleRing = near && m.alive && m.hp > 0 && !!m.esDeMision;
+            m.questRing.visible = visibleRing;
+            if (visibleRing) {
+              m.questRing.rotation.z = (nowSec * 1.5) % (Math.PI * 2);
+              const pulso = 1.0 + Math.sin(nowSec * 4.5) * 0.08;
+              const rBase = m._escalaRingBase || 1.1;
+              m.questRing.scale.set(rBase * pulso, rBase * pulso, 1);
+            }
+          }
         }
-        const showBar = near && (m.hp < m.maxHp || d < 12);
+        const showBar = near && (m.hp < m.maxHp || d < 12 || m.esDeMision);
         m.bar.visible = showBar;
         if (showBar) {
+          if (m.questBadge) {
+            m.questBadge.visible = m.alive && m.hp > 0 && !!m.esDeMision;
+          }
           m.bar.position.set(m.x, my + m.barHeight, m.z);
           m.bar.quaternion.copy(camera.quaternion);
           const f = Math.max(0.001, m.hp / m.maxHp);
@@ -6791,6 +6934,7 @@
       $('mision-guia-comp').onclick = e => { e.stopPropagation(); interactuarConAcompanante(); };
     }
     if (typeof buildCabanasUI === 'function') buildCabanasUI();
+    actualizarMarcadoresMisionMonstruos();
   }
 
   // Un hecho del juego (matar, visitar, hablar, forjar): solo cuenta para el capítulo activo

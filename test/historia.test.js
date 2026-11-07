@@ -55,7 +55,7 @@ t('empieza de 0: capítulo 1, cazar criaturas nivel 1 para forjar cinturón, sin
   assert.strictEqual(p.paso, 0);
   assert.strictEqual(p.progreso, 0);
   assert.strictEqual(o.tipo, 'matar');
-  assert.strictEqual(o.cantidad, 3);
+  assert.strictEqual(o.cantidad, 8);
   assert.strictEqual(H.CAPITULOS[0].recompensa.forjarPieza, 'belt');
 });
 
@@ -67,8 +67,7 @@ t('uno a uno: lo que pide un capítulo futuro no cuenta hasta que llega su turno
   assert.strictEqual(H.registrar(p, { tipo: 'hablar', npc: 'guru-1' }), false);
   assert.strictEqual(p.progreso, 0);
   assert.throws(() => H.completar(p), /no está cumplido/);
-  assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), false);
-  assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), false);
+  for (let i = 0; i < 7; i++) assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), false);
   assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), true);
   const r = H.completar(p);
   assert.strictEqual(r.numero, 1);
@@ -195,6 +194,24 @@ t('reajustarObjetivoCercano: selecciona la zona más cercana a la posición actu
   p.progreso = 1;
   H.reajustarObjetivoCercano(p, w, { x: 0, y: 0 });
   assert.strictEqual(p.objetivo.zona, 'z_cercana');
+});
+
+t('las misiones de matar de la historia principal tienen aumentadas las cantidades de monstruos', () => {
+  const matarCaps = H.CAPITULOS.filter(c => c.mision && c.mision.tipo === 'matar');
+  const cantEsperadas = [8, 12, 15, 18, 20, 22, 25, 25, 30];
+  assert.strictEqual(matarCaps.length, cantEsperadas.length);
+  matarCaps.forEach((c, idx) => {
+    assert.strictEqual(c.mision.cantidad, cantEsperadas[idx], `Capítulo ${c.id} debe requerir ${cantEsperadas[idx]} monstruos`);
+  });
+});
+
+t('visor-mundo.html cuenta con círculo amarillo indicador para los monstruos del capítulo activo', () => {
+  const fs = require('fs'), path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  assert.ok(html.includes('function crearAnilloMisionMonstruo'), 'visor-mundo define crearAnilloMisionMonstruo');
+  assert.ok(html.includes('0xfacc15'), 'usa color amarillo dorado para el círculo de misión');
+  assert.ok(html.includes('function actualizarMarcadoresMisionMonstruos'), 'visor-mundo define actualizarMarcadoresMisionMonstruos');
+  assert.ok(html.includes('m.questRing'), 'monstruos disponen de m.questRing');
 });
 
 console.log(`\n${n} pruebas de la historia superadas.`);
