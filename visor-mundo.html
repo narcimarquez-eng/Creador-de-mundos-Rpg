@@ -97,6 +97,9 @@
     .util button { width: 58px; height: 46px; padding: 0; font-size: 17px; position: relative; background: var(--panel); }
     .util button small { display: block; font-size: 9px; color: var(--muted); }
     .util button:disabled { opacity: .45; }
+    #sk-drawer { display: contents; }
+    #sk-menu-toggle { display: none; }
+    #btn-top-bag { display: none; }
     #shop { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 42; padding: 16px; }
     #shop.show { display: flex; }
     #shop .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 320px; max-width: 100%; }
@@ -614,30 +617,78 @@
     #bocadillo-rowan { position: fixed; background: rgba(15, 23, 42, 0.95); color: #f8fafc; border: 1.5px solid #f59e0b; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 500; line-height: 1.4; box-shadow: 0 4px 18px rgba(0,0,0,0.65); pointer-events: auto; cursor: pointer; z-index: 45; opacity: 0; transition: opacity 0.25s; max-width: 320px; text-align: center; transform: translate(-50%, -100%); }
     #bocadillo-rowan::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #f59e0b transparent transparent transparent; }
 
-    @media (max-width: 760px) {
-      #side { width: auto; right: 8px; bottom: auto; top: 54px; max-height: 40vh; }
-      #info { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 50vh; }
-      /* Joystick a la izquierda; acciones a la derecha, compactas; el ataque algo mayor */
-      #joystick-zone { left: 12px; right: auto; bottom: 14px; width: 88px; height: 88px; }
-      #joystick-knob { width: 34px; height: 34px; }
-      #minimap { right: 8px; bottom: 190px; width: 96px; height: 96px; }
-      #banner { max-width: calc(100vw - 20px); }
-      #hud { left: auto; right: 8px; bottom: 8px; transform: none; width: auto; align-items: flex-end; gap: 4px; }
-      #hud .hud-bars { width: 170px; padding: 4px 6px; gap: 3px; }
-      .hud-bars .row { gap: 6px; }
-      .lv { font-size: 10px; min-width: 30px; }
-      .bar { height: 9px; }
-      .bar b { font-size: 8px; line-height: 9px; }
-      .bar.xp { height: 4px; }
-      .inv { font-size: 10px; gap: 6px; }
-      .skills { gap: 4px; align-items: flex-end; }
-      .skills button { width: 44px; height: 42px; font-size: 15px; }
-      .skills button small { font-size: 8px; }
-      .skills #sk-attack { width: 62px; height: 58px; font-size: 24px; }
-      .util { gap: 4px; }
-      .util button { width: 38px; height: 34px; font-size: 13px; }
-      .util button small { font-size: 8px; }
-      /* Pueblos y zonas como pestañas: una lista cada vez */
+    /* =========================================================================
+       DISEÑO MÓVIL ERGONÓMICO Y UBICACIÓN ESTRATÉGICA DE CONTROLES (≤768 px)
+       - Pulgar Izquierdo: Joystick virtual libre y despejado
+       - Pulgar Derecho: Clúster de combate radial (Ataque, Salto, Habilidades en abanico, Pociones, Auto y Rowan)
+       - Zona Superior: Barra compacta, HUD a la izquierda, Minimapa a la derecha, Misión colapsable
+       - Zona Lateral: Menú flotante retráctil de gestión (Mochila, Rowan, Tienda, Descanso, Crónica, Héroe)
+       ========================================================================= */
+    @media (max-width: 768px) {
+      /* Safe area, táctil receptivo y prevención de scroll parásito */
+      button, a.btn {
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      button:active, a.btn:active {
+        transform: scale(0.92);
+        filter: brightness(1.25);
+      }
+
+      /* Barra Superior Limpia y Compacta */
+      #top {
+        height: 42px;
+        padding: 0 max(6px, env(safe-area-inset-left));
+        padding-right: max(6px, env(safe-area-inset-right));
+        gap: 4px;
+        background: rgba(15, 23, 42, 0.94);
+        backdrop-filter: blur(8px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        justify-content: flex-start;
+        scrollbar-width: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      #top::-webkit-scrollbar { display: none; }
+      #top > * { flex: none; }
+      #title { font-size: 12px; max-width: 100px; }
+      #top a.btn { padding: 4px 8px; font-size: 11px; }
+      #top button {
+        width: 34px;
+        height: 32px;
+        padding: 0;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+      }
+      #top button span.long, #top a.btn span.long { display: none !important; }
+      #btn-view-plaza, #btn-view-detail, #btn-follow { display: none !important; }
+      #btn-top-bag { display: inline-flex !important; font-size: 15px; border-color: rgba(56, 189, 248, 0.4); }
+      #hint { display: none !important; }
+
+      /* Paneles modales e inspectores adaptados a pantalla móvil */
+      #side {
+        width: auto;
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        bottom: auto;
+        top: 48px;
+        max-height: 52vh;
+        z-index: 42;
+      }
+      #info {
+        top: auto;
+        bottom: 8px;
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        width: auto;
+        max-height: 50vh;
+        z-index: 40;
+      }
       .tabs-m { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); }
       .tabs-m button { flex: 1; padding: 5px 4px; font-size: 12px; background: transparent; }
       .tabs-m button.on { background: #0c4a6e; border-color: var(--accent); color: #fff; }
@@ -650,37 +701,357 @@
       #side #towns, #side #zonas, #side #cabanas-lista, #side #mazmorras-lista { flex: 1; min-height: 0; overflow-y: auto; }
       #side .stats { font-size: 11px; line-height: 1.4; }
       #side .trow { padding: 5px 7px; margin-bottom: 3px; }
-      #top button span.long { display: none; }
-      #hint { display: none; }
-      #top a.btn span.long { display: none; }
-    }
-    /* Móvil (≤760 px): cada control en su sitio sin solaparse. Arriba: barra con desplazamiento, HUD a la izquierda,
-       mapa a la derecha. Abajo: joystick a la izquierda, ataque a la derecha, habilidades en una fila y pociones en
-       una tira que se desplaza. Solo cambian los estilos; el escritorio no se toca. */
-    @media (max-width: 760px) {
-      #top { overflow-x: auto; overflow-y: hidden; justify-content: flex-start; scrollbar-width: none; }
-      #top::-webkit-scrollbar { display: none; }
-      #top > * { flex: none; }
-      #minimap { top: 136px; right: 8px; bottom: auto; width: 84px; height: 84px; }
+
+      /* Esquina Superior Izquierda: Barra de Estado de Vida, Maná, XP y Recursos */
       #hud { display: contents; }
-      #hud .hud-bars { position: absolute; top: 136px; left: 8px; width: 176px; }
-      #zona-marca { position: absolute; top: 196px; left: 8px; }
-      #banner { top: 236px; }
-      #hud-dopes { top: 226px; right: 8px; }
+      #hud .hud-bars {
+        position: absolute;
+        top: 48px;
+        left: max(8px, env(safe-area-inset-left));
+        width: 144px;
+        padding: 4px 6px;
+        gap: 3px;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        z-index: 22;
+        cursor: pointer;
+      }
+      .hud-bars .row { gap: 4px; }
+      .lv { font-size: 10px; min-width: 28px; }
+      .bar { height: 9px; }
+      .bar b { font-size: 8px; line-height: 9px; }
+      .bar.xp { height: 4px; }
+      .inv { font-size: 10px; gap: 4px; justify-content: space-between; }
+
+      /* Esquina Superior Derecha: Radar / Minimapa Circular y Buffs */
+      #minimap {
+        position: absolute;
+        top: 48px;
+        right: max(8px, env(safe-area-inset-right));
+        bottom: auto;
+        left: auto;
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        border: 2px solid rgba(56, 189, 248, 0.5);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+        cursor: pointer;
+        z-index: 22;
+      }
+      #hud-dopes {
+        position: absolute;
+        top: 130px;
+        right: max(8px, env(safe-area-inset-right));
+        z-index: 22;
+      }
+
+      /* Zona, Anuncios y Jefes */
+      #zona-marca {
+        position: absolute;
+        top: 48px;
+        left: 160px;
+        right: 90px;
+        max-width: calc(100vw - 256px);
+        z-index: 21;
+      }
+      #banner {
+        top: 164px;
+        max-width: calc(100vw - 20px);
+        z-index: 30;
+      }
+      #dungeon-boss-hud {
+        top: 48px !important;
+        width: min(340px, calc(100vw - 16px)) !important;
+      }
+
+      /* Tarjeta de Misión Colapsable */
+      #mision {
+        position: absolute;
+        top: 106px;
+        left: max(8px, env(safe-area-inset-left));
+        width: min(280px, calc(100vw - 94px));
+        min-width: 0;
+        padding: 4px 8px;
+        border-radius: 8px;
+        z-index: 23;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      }
+      #mision.colapsado {
+        top: 106px;
+        left: max(8px, env(safe-area-inset-left));
+        width: auto !important;
+        max-width: calc(100vw - 94px);
+        padding: 3px 10px !important;
+        border-radius: 16px !important;
+      }
+      #mision .m-cap { font-size: 10.5px; }
+      #mision .m-obj { font-size: 10px; margin: 2px 0 3px; line-height: 1.3; }
+      #mision .m-pie { font-size: 9.5px; }
+      #mision .m-pie button { padding: 2px 5px; font-size: 9.5px; }
+
+      /* Zona Inferior Izquierda: Joystick Virtual Exclusivo para el Pulgar Izquierdo */
+      #joystick-zone {
+        left: max(16px, env(safe-area-inset-left)) !important;
+        right: auto !important;
+        bottom: max(16px, env(safe-area-inset-bottom)) !important;
+        width: 104px !important;
+        height: 104px !important;
+        border-radius: 50% !important;
+        background: radial-gradient(circle, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.35) 100%) !important;
+        border: 2px solid rgba(56, 189, 248, 0.45) !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.55), inset 0 0 12px rgba(56, 189, 248, 0.15) !important;
+        z-index: 25 !important;
+        touch-action: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #joystick-knob {
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
+        background: radial-gradient(circle at 35% 35%, #38bdf8, #0284c7) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 10px rgba(56, 189, 248, 0.6) !important;
+        pointer-events: none;
+      }
+
+      /* Zona Inferior Derecha: Clúster Ergonómico de Acción y Combate (Pulgar Derecho) */
       .skills { display: contents; }
-      .skills button { position: absolute; bottom: 118px; width: 44px; height: 42px; }
-      .skills button small, .util button small { display: none; }
-      #sk-q { left: 8px; }
-      #sk-e { left: 56px; }
-      #sk-z { left: 104px; }
-      #sk-v { left: 152px; }
-      #sk-jump { left: 200px; }
-      #sk-attack { right: 12px; bottom: 14px; width: 72px; height: 66px; font-size: 24px; }
-      .util { position: absolute; left: 8px; right: 8px; bottom: 170px; display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; gap: 4px; padding: 2px 0; scrollbar-width: none; }
-      .util::-webkit-scrollbar { display: none; }
-      .util button { flex: none; width: 40px; height: 36px; font-size: 15px; }
-      #joystick-zone { left: 12px; right: auto; bottom: 14px; width: 96px; height: 96px; }
-      #joystick-knob { width: 40px; height: 40px; }
+      .skills button {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #1e293b 0%, #0f172a 90%);
+        border: 1.5px solid rgba(255, 255, 255, 0.22);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+        z-index: 26;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+      }
+      .skills button small, .util button small { display: none !important; }
+      .skills button .cd { border-radius: 50%; font-size: 14px; font-weight: 800; }
+
+      /* Botón Principal de Ataque (Grande y prominente) */
+      #sk-attack {
+        right: max(16px, env(safe-area-inset-right));
+        bottom: max(16px, env(safe-area-inset-bottom));
+        width: 68px;
+        height: 68px;
+        font-size: 28px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #dc2626 0%, #7f1d1d 70%, #450a0a 100%);
+        border: 2.5px solid #f87171;
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.65), 0 0 16px rgba(239, 68, 68, 0.45);
+      }
+
+      /* Salto Acrobático (Accesible al deslizar el pulgar a la izquierda) */
+      #sk-jump {
+        right: max(94px, calc(env(safe-area-inset-right) + 78px));
+        bottom: max(18px, env(safe-area-inset-bottom));
+        width: 46px;
+        height: 46px;
+        font-size: 20px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #0284c7 0%, #0369a1 70%, #0f172a 100%);
+        border: 1.5px solid #38bdf8;
+        color: #e0f2fe;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.5), 0 0 8px rgba(56, 189, 248, 0.3);
+      }
+
+      /* Habilidades en Abanico / Arco Natural */
+      #sk-v {
+        right: max(98px, calc(env(safe-area-inset-right) + 82px));
+        bottom: max(74px, calc(env(safe-area-inset-bottom) + 56px));
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+      }
+      #sk-z {
+        right: max(120px, calc(env(safe-area-inset-right) + 104px));
+        bottom: max(122px, calc(env(safe-area-inset-bottom) + 104px));
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+      }
+      #sk-e {
+        right: max(72px, calc(env(safe-area-inset-right) + 56px));
+        bottom: max(134px, calc(env(safe-area-inset-bottom) + 116px));
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+      }
+      #sk-q {
+        right: max(18px, env(safe-area-inset-right));
+        bottom: max(134px, calc(env(safe-area-inset-bottom) + 116px));
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+      }
+
+      /* Pociones de Emergencia (A la izquierda del clúster de combate) */
+      .util { display: contents; }
+      #sk-vida {
+        position: absolute;
+        right: max(150px, calc(env(safe-area-inset-right) + 134px));
+        bottom: max(18px, env(safe-area-inset-bottom));
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, rgba(220,38,38,0.55) 0%, rgba(15,23,42,0.9) 80%);
+        border: 1.5px solid #ef4444;
+        color: #fca5a5;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.5), 0 0 10px rgba(239, 68, 68, 0.4);
+        z-index: 26;
+        touch-action: manipulation;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #sk-mana {
+        position: absolute;
+        right: max(154px, calc(env(safe-area-inset-right) + 138px));
+        bottom: max(70px, calc(env(safe-area-inset-bottom) + 52px));
+        width: 42px;
+        height: 42px;
+        font-size: 17px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, rgba(37,99,235,0.55) 0%, rgba(15,23,42,0.9) 80%);
+        border: 1.5px solid #3b82f6;
+        color: #93c5fd;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.5), 0 0 8px rgba(59, 130, 246, 0.4);
+        z-index: 26;
+        touch-action: manipulation;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Conmutadores Tácticos (Sobre las habilidades) */
+      #sk-auto {
+        position: absolute;
+        right: max(18px, env(safe-area-inset-right));
+        bottom: max(188px, calc(env(safe-area-inset-bottom) + 170px));
+        width: 44px;
+        height: 38px;
+        font-size: 17px;
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1.5px solid #0284c7;
+        color: #38bdf8;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+        z-index: 26;
+        touch-action: manipulation;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #sk-auto.gold {
+        background: rgba(16, 185, 129, 0.25) !important;
+        border-color: #10b981 !important;
+        color: #34d399 !important;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.5) !important;
+      }
+      #sk-guia-comp {
+        position: absolute;
+        right: max(68px, calc(env(safe-area-inset-right) + 50px));
+        bottom: max(188px, calc(env(safe-area-inset-bottom) + 170px));
+        width: 44px;
+        height: 38px;
+        font-size: 17px;
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1.5px solid #d97706;
+        color: #fde047;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+        z-index: 26;
+        touch-action: manipulation;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Dock Retráctil de Gestión (Mochila, Rowan, Tienda, Descanso, Crónica, Héroe) */
+      #sk-menu-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        left: max(8px, env(safe-area-inset-left));
+        top: 154px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1.5px solid #f59e0b;
+        color: #fde047;
+        font-size: 18px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+        z-index: 25;
+        touch-action: manipulation;
+        cursor: pointer;
+        transition: transform 0.15s, background 0.15s, border-color 0.15s;
+      }
+      #sk-menu-toggle.on {
+        background: #0c4a6e;
+        border-color: #38bdf8;
+        color: #38bdf8;
+      }
+      #sk-drawer {
+        position: absolute;
+        left: max(8px, env(safe-area-inset-left));
+        top: 198px;
+        display: flex !important;
+        flex-direction: column;
+        gap: 5px;
+        background: rgba(15, 23, 42, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 5px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        z-index: 25;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-8px) scale(0.95);
+        transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      #sk-drawer.abierto {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+      #sk-drawer button {
+        width: 38px;
+        height: 36px;
+        border-radius: 8px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        touch-action: manipulation;
+      }
+    }
+
+    /* Ajuste para Modo Horizontal Móvil (Landscape) */
+    @media (max-width: 896px) and (orientation: landscape), (max-height: 480px) and (max-width: 896px) {
+      #sk-drawer {
+        flex-direction: row !important;
+        left: max(52px, calc(env(safe-area-inset-left) + 44px)) !important;
+        top: 154px !important;
+      }
+      #side { max-height: 70vh !important; }
+      #info { max-height: 65vh !important; }
+      #mision { top: 48px; left: 160px; max-width: calc(100vw - 256px); }
+      #zona-marca { display: none !important; }
     }
   </style>
 </head>
@@ -689,6 +1060,7 @@
     <a class="btn" href="index.html" title="Volver al editor">← <span class="long">Editor</span></a>
     <div id="title">Visor 3D</div>
     <button id="btn-side" title="Lista de pueblos">☰</button>
+    <button id="btn-top-bag" title="Mochila y equipo (I)">🎒</button>
     <button id="btn-overview" title="Vista del mapa (M)">🗺<span class="long"> Mapa</span></button>
     <button id="btn-save" title="Partidas y guardado">💾</button>
     <button id="btn-pj" title="Crear o configurar personaje (P)">🧙<span class="long"> Personaje</span></button>
@@ -808,14 +1180,17 @@
     <div class="util">
       <button id="sk-vida" title="Poción de vida (1)">🧪<small>1</small></button>
       <button id="sk-mana" title="Poción de maná (2)">💧<small>2</small></button>
-      <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
-      <button id="sk-objetos" title="Objetos y equipo (I)">🎒<small>I</small></button>
-      <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
-      <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
-      <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
-      <button id="sk-companero" title="Acompañante Rowan (O)">🛡️<small>O</small></button>
-      <button id="sk-guia-comp" title="Pedir orientación y consejo a tu compañero (Y)">🗣️<small>Y</small></button>
       <button id="sk-auto" title="Ataque automático en la zona (K)">🤖<small>K</small></button>
+      <button id="sk-guia-comp" title="Pedir orientación y consejo a tu compañero (Y)">🗣️<small>Y</small></button>
+      <button id="sk-menu-toggle" type="button" title="Menú de utilidades (Mochila, Tienda, Rowan...)">⚡</button>
+      <div id="sk-drawer" class="sk-drawer">
+        <button id="sk-objetos" title="Objetos y equipo (I)">🎒<small>I</small></button>
+        <button id="sk-companero" title="Acompañante Rowan (O)">🛡️<small>O</small></button>
+        <button id="sk-shop" title="Tienda del pueblo (B)">🛒<small>B</small></button>
+        <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
+        <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
+        <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
+      </div>
     </div>
   </div>
   <div id="inv-card" class="oculta">
@@ -8401,6 +8776,28 @@
   $('shop-close').onclick = closeShop;
   $('buy-vida').onclick = () => buyItem('vida');
   $('buy-mana').onclick = () => buyItem('mana');
+  if ($('btn-top-bag')) $('btn-top-bag').onclick = () => $('sk-objetos').click();
+  if ($('sk-menu-toggle')) {
+    const d = $('sk-drawer');
+    $('sk-menu-toggle').onclick = (e) => {
+      e.stopPropagation();
+      if (d) {
+        d.classList.toggle('abierto');
+        $('sk-menu-toggle').classList.toggle('on', d.classList.contains('abierto'));
+      }
+    };
+    const cerrarMenuUtil = () => {
+      if (d && d.classList.contains('abierto')) {
+        d.classList.remove('abierto');
+        $('sk-menu-toggle').classList.remove('on');
+      }
+    };
+    const btnsDrawer = d ? d.querySelectorAll('button') : [];
+    btnsDrawer.forEach(b => b.addEventListener('click', cerrarMenuUtil));
+    document.addEventListener('pointerdown', e => {
+      if (!e.target.closest('#sk-drawer') && !e.target.closest('#sk-menu-toggle')) cerrarMenuUtil();
+    });
+  }
   $('btn-follow').onclick = () => setFollow(!follow);
   $('btn-view-plaza').onclick = viewPlaza;
   $('btn-view-detail').onclick = viewDetail;
