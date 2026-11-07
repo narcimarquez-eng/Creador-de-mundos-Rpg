@@ -2773,10 +2773,11 @@
       const prog = m.progreso || 0;
       const entregada = m.entregada || m.cumplida;
       const completada = m.completada || prog >= cant;
-      const pct = Math.min(100, Math.round((prog / cant) * 100));
+      const aceptada = !!m.aceptada;
+      const pct = aceptada ? Math.min(100, Math.round((prog / cant) * 100)) : 0;
       const aldeanoNom = c.aldeano ? (c.aldeano.nombre || c.aldeano) : 'Aldeano';
-      const estadoColor = entregada ? '#86efac' : (completada ? '#facc15' : '#38bdf8');
-      const estadoTxt = entregada ? '✓ Cobrada' : (completada ? '🎉 ¡Lista para entregar!' : `${prog}/${cant}`);
+      const estadoColor = entregada ? '#86efac' : (completada ? '#facc15' : (aceptada ? '#38bdf8' : '#94a3b8'));
+      const estadoTxt = entregada ? '✓ Cobrada' : (completada ? '🎉 ¡Lista para entregar!' : (aceptada ? `${prog}/${cant}` : '📜 Por aceptar'));
 
       return `
         <div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px;margin-bottom:6px">
@@ -2794,11 +2795,15 @@
             <button class="trow" data-ir-cabana="${c.id}" style="padding:4px 8px;font-size:11px;flex:1;text-align:center;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#e2e8f0;cursor:pointer">
               🧭 Ir a Cabaña
             </button>
-            ${completada && !entregada ? `
+            ${!aceptada ? `
+              <button class="gold" data-cobrar-cabana="${c.id}" style="padding:4px 8px;font-size:11px;cursor:pointer">
+                📜 Aceptar
+              </button>
+            ` : (completada && !entregada ? `
               <button class="gold" data-cobrar-cabana="${c.id}" style="padding:4px 8px;font-size:11px;cursor:pointer">
                 🎁 Cobrar
               </button>
-            ` : ''}
+            ` : '')}
           </div>
         </div>
       `;
@@ -2969,7 +2974,10 @@
       const prog = m.progreso || 0;
       const entregada = m.entregada || m.cumplida;
       const completada = m.completada || prog >= cant;
+      const aceptada = !!m.aceptada;
       const aldeanoNom = c.aldeano ? (c.aldeano.nombre || c.aldeano) : 'Aldeano de la Cabaña';
+      const estadoColor = entregada ? '#86efac' : (completada ? '#facc15' : (aceptada ? '#38bdf8' : '#94a3b8'));
+      const estadoTxt = entregada ? '✓ Cobrada' : (completada ? '🎉 ¡Lista para entregar!' : (aceptada ? `${prog}/${cant}` : '📜 Por aceptar'));
       html = `
         <button class="close" data-close>✕</button>
         <span class="kind">🏡 Refugio Especial</span>
@@ -2979,15 +2987,15 @@
         <div style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;margin:8px 0">
           <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
             <span>Caza de 100 ${esc(m.especie || 'Monstruos')}:</span>
-            <b style="color:${entregada ? '#86efac' : (completada ? '#facc15' : '#38bdf8')}">${entregada ? '✓ Cobrada' : (completada ? '🎉 ¡Lista para entregar!' : prog + '/' + cant)}</b>
+            <b style="color:${estadoColor}">${estadoTxt}</b>
           </div>
           <div style="height:6px;background:#1e293b;border-radius:3px;overflow:hidden">
-            <div style="height:100%;background:${entregada ? '#22c55e' : (completada ? '#facc15' : '#38bdf8')};width:${Math.min(100, Math.round(prog/cant*100))}%"></div>
+            <div style="height:100%;background:${estadoColor};width:${aceptada ? Math.min(100, Math.round(prog/cant*100)) : 0}%"></div>
           </div>
         </div>
         <div class="btns">
           <button class="gold" data-tp="${c.x},${c.z}">🧍 Ir aquí</button>
-          <button class="gold" data-abrir-cabana="${c.id}">🏡 Ver Encargo / Cobrar</button>
+          <button class="gold" data-abrir-cabana="${c.id}">${!aceptada ? '📜 Aceptar Encargo' : (completada && !entregada ? '🎁 Reclamar Recompensa' : '🏡 Hablar con Aldeano')}</button>
         </div>`;
     } else {
       const p = sel.at;
@@ -3222,8 +3230,8 @@
           const s = lugaresSecretos[i];
           if (s.tipo === 'cabana') {
             const d = Math.hypot(x - s.x, z - s.z);
-            if (d < 11.5) {
-              const floorY = (typeof s.y === 'number' ? s.y : (s.alturaBase || 0)) + 0.15;
+            if (d < 8.5) {
+              const floorY = (typeof s.y === 'number' ? s.y : (s.alturaBase || 0)) + 0.02;
               if (floorY > groundH) groundH = floorY;
             }
           }
@@ -3891,9 +3899,10 @@
     avanzarHistoria({ tipo: m.boss ? 'jefe' : 'matar', zona: m.zone && m.zone.id });
     if (m.zone && HeroeLib.registrarZona(heroeEst, m.zone.id, m.boss ? 'jefe' : 'matar')) anunciarEncargo(m.zone.id);
     // Contabilización precisa de bajas para las misiones de las 5 cabañas especiales (100 monstruos)
+    // Solo contabiliza si el encargo ha sido aceptado hablando previamente con el aldeano de la cabaña
     if (lugaresSecretos && lugaresSecretos.length) {
       lugaresSecretos.forEach(s => {
-        if (s.misionCabana && !s.misionCabana.entregada && !s.misionCabana.cumplida) {
+        if (s.misionCabana && s.misionCabana.aceptada && !s.misionCabana.entregada && !s.misionCabana.cumplida) {
           const mObj = s.misionCabana;
           const cantMax = mObj.cantidad || mObj.objetivoCantidad || 100;
           const esp = (mObj.especie || mObj.objetivoEspecie || '').toLowerCase();
@@ -4883,6 +4892,7 @@
     if (lugaresSecretos && lugaresSecretos.length) {
       snap.misionesCabana = lugaresSecretos.filter(s => s.tipo === 'cabana' && s.misionCabana).map(s => ({
         cabanaId: s.id,
+        aceptada: !!s.misionCabana.aceptada,
         progreso: s.misionCabana.progreso,
         entregada: !!(s.misionCabana.entregada || s.misionCabana.cumplida),
         completada: !!s.misionCabana.completada,
@@ -4926,6 +4936,7 @@
       p.misionesCabana.forEach(saved => {
         const cab = lugaresSecretos.find(s => s.id === saved.cabanaId);
         if (cab && cab.misionCabana) {
+          cab.misionCabana.aceptada = !!saved.aceptada;
           cab.misionCabana.progreso = saved.progreso || 0;
           cab.misionCabana.entregada = !!saved.entregada;
           cab.misionCabana.cumplida = !!saved.entregada;
@@ -5796,6 +5807,19 @@
       toast('Comprada');
     });
     if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
+    const ac = e.target.closest('button[data-aceptar-cabana]');
+    if (ac) accionNpc(() => {
+      const s = npcActual.cabana;
+      if (!s || !s.misionCabana) return;
+      s.misionCabana.aceptada = true;
+      s.descubierto = true;
+      const cant = s.misionCabana.objetivoCantidad || s.misionCabana.cantidad || 100;
+      const ald = s.aldeano?.nombre || s.aldeano || 'el aldeano';
+      toast(`📜 ¡Encargo aceptado! Caza ${cant} monstruos para ${ald}.`);
+      actualizarMision();
+      buildCabanasUI();
+      saveActive(true);
+    });
     const ec = e.target.closest('button[data-entregar-cabana]');
     if (ec) accionNpc(() => {
       const s = npcActual.cabana;
@@ -5881,10 +5905,18 @@
           ✅ ¡Misión completada y recompensa cobrada! Gracias por proteger las tierras.
         </div>
       `;
+    } else if (!m.aceptada) {
+      html += `
+        <div style="text-align:center">
+          <button class="gold" data-aceptar-cabana="${esc(s.id)}" style="padding:10px 20px;font-size:14px;font-weight:bold;width:100%;cursor:pointer">
+            📜 Aceptar Encargo de Cacería (${cant})
+          </button>
+        </div>
+      `;
     } else if (m.progreso >= cant) {
       html += `
         <div style="text-align:center">
-          <button class="gold" data-entregar-cabana="${esc(s.id)}" style="padding:10px 20px;font-size:14px;font-weight:bold;width:100%">
+          <button class="gold" data-entregar-cabana="${esc(s.id)}" style="padding:10px 20px;font-size:14px;font-weight:bold;width:100%;cursor:pointer">
             🎉 ¡Entregar Encargo y Reclamar Recompensas!
           </button>
         </div>
@@ -5892,8 +5924,8 @@
     } else {
       html += `
         <div style="text-align:center">
-          <button disabled style="opacity:0.6;padding:8px 16px;width:100%">
-            ⚔️ Faltan ${cant - m.progreso} monstruos por derrotar
+          <button disabled style="opacity:0.75;padding:8px 16px;width:100%">
+            ⚔️ En curso: ${m.progreso} / ${cant} (faltan ${cant - m.progreso} criaturas)
           </button>
         </div>
       `;
@@ -6020,9 +6052,9 @@
     const o = HistoriaLib.asegurarObjetivo(p, world);
     $('mision-cap').textContent = '📜 Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
 
-    // Detectar si hay encargos de cabaña en marcha o listos para cobrar
-    const cabanasListas = (lugaresSecretos || []).filter(s => s.tipo === 'cabana' && s.misionCabana && (s.misionCabana.progreso >= (s.misionCabana.cantidad || 100)) && !s.misionCabana.entregada);
-    const cabanaActiva = cabanasListas[0] || (lugaresSecretos || []).find(s => s.tipo === 'cabana' && s.misionCabana && s.misionCabana.progreso > 0 && !s.misionCabana.entregada);
+    // Detectar si hay encargos de cabaña en marcha o listos para cobrar (solo misiones previamente aceptadas)
+    const cabanasListas = (lugaresSecretos || []).filter(s => s.tipo === 'cabana' && s.misionCabana && s.misionCabana.aceptada && (s.misionCabana.progreso >= (s.misionCabana.cantidad || 100)) && !s.misionCabana.entregada);
+    const cabanaActiva = cabanasListas[0] || (lugaresSecretos || []).find(s => s.tipo === 'cabana' && s.misionCabana && s.misionCabana.aceptada && !s.misionCabana.entregada);
 
     let avisoCabana = '';
     if (cabanasListas.length > 0) {

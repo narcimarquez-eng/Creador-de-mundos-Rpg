@@ -151,5 +151,5 @@ test('lugares-secretos.js: elimina las mallas de terreno del archivo GLB de caba
 
   assert.ok(code.includes('suelo') && code.includes('hierba') && code.includes('camino'), 'Debe detectar y eliminar suelo, hierba y camino del GLB');
   assert.ok(code.includes('altoZocalo'), 'Debe generar zócalo de piedra rústica para absorción de pendientes');
-  assert.ok(code.includes('escala = 27.5') || code.includes('escala = (21.0 * 1.30)') || code.includes('27.5'), 'Debe aumentar la presencia arquitectónica (+30% escala)');
+  assert.ok(code.includes('escala = 21.0') || code.includes('21.0 / maxHoriz') || code.includes('21.0'), 'Debe ajustar la escala proporcionada a 21m reales bien integrada en el contorno');
 });
