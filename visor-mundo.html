@@ -86,9 +86,12 @@
       border-bottom: 1px solid rgba(245, 158, 11, 0.4);
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
     }
-    body.modo-fullscreen canvas,
-    :fullscreen canvas,
-    :-webkit-full-screen canvas {
+    body.modo-fullscreen #canvas-3d,
+    :fullscreen #canvas-3d,
+    :-webkit-full-screen #canvas-3d,
+    body.modo-fullscreen > canvas:first-of-type,
+    :fullscreen > canvas:first-of-type,
+    :-webkit-full-screen > canvas:first-of-type {
       width: 100vw !important;
       height: 100vh !important;
     }
@@ -139,7 +142,7 @@
     #zona-marca.show { display: flex; }
     #zona-marca i { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--zona, #fde68a); box-shadow: 0 0 6px var(--zona, #fde68a); }
     #zona-marca span { overflow: hidden; text-overflow: ellipsis; }
-    #minimap { position: absolute; top: 52px; right: 14px; width: 140px; height: 140px; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.88); z-index: 18; box-shadow: 0 8px 22px rgba(0,0,0,.55); cursor: pointer; }
+    #minimap { position: absolute; top: 52px; right: 14px; width: 105px !important; height: 105px !important; max-width: 105px !important; max-height: 105px !important; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.88); z-index: 18; box-shadow: 0 8px 22px rgba(0,0,0,.55); cursor: pointer; }
     #hud { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 24; width: min(440px, calc(100vw - 280px)); display: flex; flex-direction: column; gap: 6px; align-items: center; }
     .hud-bars { width: 100%; display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
     .hud-bars .row { display: flex; align-items: center; gap: 8px; }
@@ -230,11 +233,11 @@
     #mision {
       position: absolute;
       top: 52px;
-      right: 164px;
+      right: 128px;
       left: auto;
       transform: none;
       z-index: 19;
-      width: min(340px, calc(100vw - 185px));
+      width: min(340px, calc(100vw - 150px));
       min-width: 230px;
       max-height: calc(100vh - 70px);
       overflow-y: auto;
@@ -277,12 +280,12 @@
     /* Estado Recogido / Colapsado para tener la pantalla limpia */
     #mision.colapsado {
       top: 52px;
-      right: 164px;
+      right: 128px;
       left: auto;
       transform: none;
       width: auto !important;
       min-width: 0 !important;
-      max-width: min(260px, calc(100vw - 185px));
+      max-width: min(260px, calc(100vw - 150px));
       padding: 3px 10px !important;
       border-radius: 20px !important;
       background: rgba(15, 23, 42, 0.85) !important;
@@ -824,8 +827,10 @@
         right: max(8px, env(safe-area-inset-right));
         bottom: auto;
         left: auto;
-        width: 76px;
-        height: 76px;
+        width: 76px !important;
+        height: 76px !important;
+        max-width: 76px !important;
+        max-height: 76px !important;
         border-radius: 50%;
         border: 2px solid rgba(56, 189, 248, 0.5);
         box-shadow: 0 4px 14px rgba(0,0,0,0.6);
@@ -1142,48 +1147,46 @@
        Optimización Integral para Modo Horizontal Móvil (Landscape) y Fullscreen
        ========================================================================== */
     @media (max-width: 950px) and (orientation: landscape), (max-height: 520px) and (orientation: landscape), (max-height: 480px) {
-      /* 1. Barra Superior Ultra Compacta y Ergonómica */
+      /* 1. Barra Superior con iconos táctiles limpios idénticos a la versión vertical */
       #top {
-        height: 30px !important;
-        padding: 0 max(8px, env(safe-area-inset-left)) !important;
-        padding-right: max(8px, env(safe-area-inset-right)) !important;
-        gap: 3px !important;
-        background: rgba(15, 23, 42, 0.78) !important;
+        height: 38px !important;
+        padding: 0 max(6px, env(safe-area-inset-left)) !important;
+        padding-right: max(6px, env(safe-area-inset-right)) !important;
+        gap: 4px !important;
+        background: rgba(15, 23, 42, 0.92) !important;
         backdrop-filter: blur(8px) !important;
         -webkit-backdrop-filter: blur(8px) !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         overflow-x: auto !important;
         scrollbar-width: none !important;
       }
-      #title { display: none !important; }
+      #title { font-size: 11px !important; max-width: 80px !important; }
       #top a.btn {
-        padding: 2px 6px !important;
-        font-size: 10px !important;
-        height: 24px !important;
-        line-height: 20px !important;
+        padding: 2px 7px !important;
+        font-size: 11px !important;
+        height: 28px !important;
+        line-height: 22px !important;
       }
       #top button {
-        width: 28px !important;
-        height: 24px !important;
-        font-size: 13px !important;
-        border-radius: 5px !important;
+        width: 32px !important;
+        height: 28px !important;
+        font-size: 14px !important;
+        border-radius: 6px !important;
         padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
+      #top button span.long, #top a.btn span.long { display: none !important; }
       #btn-full {
         margin-left: auto !important;
         flex-shrink: 0 !important;
-        width: auto !important;
-        min-width: 30px !important;
-        height: 24px !important;
-        padding: 0 7px !important;
-        font-size: 12px !important;
+        width: 34px !important;
+        height: 28px !important;
+        font-size: 15px !important;
+        padding: 0 !important;
         background: rgba(30, 41, 59, 0.95) !important;
-        border: 1px solid rgba(245, 158, 11, 0.5) !important;
-      }
-      #btn-full span.long {
-        display: inline !important;
-        font-size: 10px !important;
-        font-weight: 600 !important;
+        border: 1px solid rgba(245, 158, 11, 0.45) !important;
       }
 
       /* Mantiene la misma distribución limpia en pantalla completa y normal */
@@ -1203,32 +1206,43 @@
       /* 2. Barra de Estado de Héroe (Vida, Maná, XP) */
       #hud { display: contents; }
       #hud .hud-bars {
-        top: 40px !important;
+        position: absolute !important;
+        top: 42px !important;
         left: max(8px, env(safe-area-inset-left)) !important;
-        width: 132px !important;
-        padding: 2px 5px !important;
+        width: 136px !important;
+        padding: 3px 5px !important;
         gap: 2px !important;
-        background: rgba(15, 23, 42, 0.85) !important;
+        background: rgba(15, 23, 42, 0.88) !important;
         border-radius: 6px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         z-index: 22 !important;
       }
-      .lv { font-size: 9px !important; min-width: 24px !important; }
-      .bar { height: 7px !important; }
-      .bar b { font-size: 7.5px !important; line-height: 7px !important; }
+      .lv { font-size: 9.5px !important; min-width: 26px !important; }
+      .bar { height: 8px !important; }
+      .bar b { font-size: 7.5px !important; line-height: 8px !important; }
       .bar.xp { height: 3px !important; }
-      .inv { font-size: 9px !important; gap: 2px !important; }
+      .inv { font-size: 9.5px !important; gap: 3px !important; }
 
-      /* 3. Minimapa / Radar Circular y Buffs */
+      /* 3. Minimapa / Radar Circular (Tamaño acotado fijo, nunca pantalla completa) */
       #minimap {
-        top: 40px !important;
+        position: absolute !important;
+        top: 42px !important;
         right: max(8px, env(safe-area-inset-right)) !important;
-        width: 68px !important;
-        height: 68px !important;
-        border-width: 1.5px !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: 66px !important;
+        height: 66px !important;
+        max-width: 66px !important;
+        max-height: 66px !important;
+        border-radius: 50% !important;
+        border: 1.5px solid rgba(56, 189, 248, 0.5) !important;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.6) !important;
+        cursor: pointer !important;
         z-index: 22 !important;
       }
       #hud-dopes {
-        top: 112px !important;
+        position: absolute !important;
+        top: 114px !important;
         right: max(8px, env(safe-area-inset-right)) !important;
         gap: 2px !important;
         font-size: 8.5px !important;
@@ -1237,21 +1251,24 @@
 
       /* 4. Tarjeta de Misión Principal y Secundarias junto al mapa */
       #mision {
-        top: 40px !important;
+        position: absolute !important;
+        top: 42px !important;
         right: calc(max(8px, env(safe-area-inset-right)) + 74px) !important;
         left: auto !important;
+        transform: none !important;
         max-width: calc(100vw - 230px) !important;
         width: auto !important;
-        padding: 2px 8px !important;
+        max-height: calc(100vh - 50px) !important;
+        padding: 3px 8px !important;
         border-radius: 6px !important;
         z-index: 21 !important;
         background: rgba(15, 23, 42, 0.9) !important;
       }
-      #mision .m-cap { font-size: 9.5px !important; }
+      #mision .m-cap { font-size: 10px !important; }
       #mision .m-obj {
         font-size: 9px !important;
         margin: 1px 0 !important;
-        line-height: 1.2 !important;
+        line-height: 1.25 !important;
         max-height: 24px !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -1260,40 +1277,58 @@
       #mision .m-pie { font-size: 8.5px !important; }
       #mision .m-pie button { padding: 1px 4px !important; font-size: 8.5px !important; }
       #mision.colapsado {
-        top: 40px !important;
+        top: 42px !important;
         right: calc(max(8px, env(safe-area-inset-right)) + 74px) !important;
         left: auto !important;
         padding: 2px 8px !important;
       }
       #zona-marca { display: none !important; }
 
-      /* 5. Dock de Gestión Táctico (Desplazado arriba para no estorbar el joystick) */
+      /* 5. El Rayo ⚡ (Menú flotante ordenado idéntico a vertical, bajo el HUD) */
       #sk-menu-toggle {
-        top: 72px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: absolute !important;
         left: max(8px, env(safe-area-inset-left)) !important;
-        width: 30px !important;
-        height: 30px !important;
-        font-size: 15px !important;
+        top: 96px !important;
+        width: 34px !important;
+        height: 34px !important;
         border-radius: 8px !important;
-        z-index: 24 !important;
+        background: rgba(15, 23, 42, 0.88) !important;
+        border: 1.5px solid #f59e0b !important;
+        color: #fde047 !important;
+        font-size: 16px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
+        z-index: 25 !important;
+        touch-action: manipulation !important;
+        cursor: pointer !important;
       }
       #sk-drawer {
-        top: 72px !important;
-        left: calc(max(8px, env(safe-area-inset-left)) + 34px) !important;
-        flex-direction: row !important;
+        position: absolute !important;
+        left: max(8px, env(safe-area-inset-left)) !important;
+        top: 134px !important;
+        display: flex !important;
+        flex-direction: column !important;
         gap: 4px !important;
-        padding: 3px !important;
+        padding: 4px !important;
+        background: rgba(15, 23, 42, 0.94) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
         border-radius: 8px !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.7) !important;
+        backdrop-filter: blur(8px) !important;
         z-index: 25 !important;
+        max-height: calc(100vh - 145px) !important;
+        overflow-y: auto !important;
       }
       #sk-drawer button {
-        width: 30px !important;
+        width: 32px !important;
         height: 28px !important;
         font-size: 13px !important;
         border-radius: 6px !important;
       }
 
-      /* 6. Joystick Virtual (Espacio despejado en la esquina inferior izquierda) */
+      /* 6. Joystick Virtual */
       #joystick-zone {
         bottom: max(10px, env(safe-area-inset-bottom)) !important;
         left: max(16px, env(safe-area-inset-left)) !important;
@@ -1306,7 +1341,7 @@
         height: 38px !important;
       }
 
-      /* 7. Clúster de Combate Ergonomizado en Abanico Compacto */
+      /* 7. Clúster de Combate (Pulgar Derecho) */
       #sk-attack {
         right: max(14px, env(safe-area-inset-right)) !important;
         bottom: max(10px, env(safe-area-inset-bottom)) !important;
@@ -1325,7 +1360,7 @@
       }
       #sk-v {
         right: max(78px, calc(env(safe-area-inset-right) + 64px)) !important;
-        bottom: max(54px, calc(env(safe-area-inset-bottom) + 44px)) !important;
+        bottom: max(52px, calc(env(safe-area-inset-bottom) + 42px)) !important;
         width: 36px !important;
         height: 36px !important;
         font-size: 14px !important;
@@ -1333,7 +1368,7 @@
       }
       #sk-z {
         right: max(102px, calc(env(safe-area-inset-right) + 88px)) !important;
-        bottom: max(88px, calc(env(safe-area-inset-bottom) + 78px)) !important;
+        bottom: max(86px, calc(env(safe-area-inset-bottom) + 76px)) !important;
         width: 36px !important;
         height: 36px !important;
         font-size: 14px !important;
@@ -1341,7 +1376,7 @@
       }
       #sk-e {
         right: max(60px, calc(env(safe-area-inset-right) + 46px)) !important;
-        bottom: max(96px, calc(env(safe-area-inset-bottom) + 86px)) !important;
+        bottom: max(94px, calc(env(safe-area-inset-bottom) + 84px)) !important;
         width: 36px !important;
         height: 36px !important;
         font-size: 14px !important;
@@ -1349,7 +1384,7 @@
       }
       #sk-q {
         right: max(14px, env(safe-area-inset-right)) !important;
-        bottom: max(96px, calc(env(safe-area-inset-bottom) + 86px)) !important;
+        bottom: max(94px, calc(env(safe-area-inset-bottom) + 84px)) !important;
         width: 36px !important;
         height: 36px !important;
         font-size: 14px !important;
@@ -1365,7 +1400,7 @@
       }
       #sk-mana {
         right: max(144px, calc(env(safe-area-inset-right) + 130px)) !important;
-        bottom: max(50px, calc(env(safe-area-inset-bottom) + 40px)) !important;
+        bottom: max(48px, calc(env(safe-area-inset-bottom) + 38px)) !important;
         width: 34px !important;
         height: 34px !important;
         font-size: 14px !important;
@@ -1373,6 +1408,21 @@
       }
       #sk-auto {
         right: max(14px, env(safe-area-inset-right)) !important;
+        bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px)) !important;
+        width: 36px !important;
+        height: 28px !important;
+        font-size: 13px !important;
+        z-index: 26 !important;
+      }
+      #sk-guia-comp {
+        right: max(56px, calc(env(safe-area-inset-right) + 42px)) !important;
+        bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px)) !important;
+        width: 36px !important;
+        height: 28px !important;
+        font-size: 13px !important;
+        z-index: 26 !important;
+      }
+    }
         bottom: max(138px, calc(env(safe-area-inset-bottom) + 128px)) !important;
         width: 36px !important;
         height: 28px !important;
@@ -2313,6 +2363,7 @@
     renderer.shadowMap.type = THREE.PCFShadowMap;      // sombras suaves compatibles con Three r186
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.id = 'canvas-3d';
     document.body.insertBefore(renderer.domElement, document.body.firstChild);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0';
@@ -2400,7 +2451,6 @@
       }
       if (typeof ajustarResplandor === 'function') ajustarResplandor();
     }
-    window.dispatchEvent(new Event('resize'));
   }
 
   // Actualiza icono, texto, clase dorada y accesibilidad del botón según el estado
