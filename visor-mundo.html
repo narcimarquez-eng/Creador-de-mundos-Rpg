@@ -4908,6 +4908,9 @@
     let dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level) * (1 - statsHeroe.reduccion);
     if (Math.random() < statsHeroe.bloqueo) dmg *= 0.5;
     if (statsHeroe.reflejo) damageMonster(m, dmg * statsHeroe.reflejo);
+    if (hero.poisonThorns && m && m.alive) {
+      damageMonster(m, dmg * 0.35, 'hero');
+    }
     if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
     if (acompanante && acompanante.activo && !acompanante.debilitado && typeof AcompananteLib !== 'undefined') {
       const dAcomp = Math.hypot(m.x - acompanante.x, m.z - acompanante.z);
@@ -6100,18 +6103,28 @@
   }
 
   const CRITICO = 1.5;   // multiplicador del golpe crítico
-  // Daño de una habilidad: arma, daño extra, la propia habilidad mejorada con puntos y crítico
+  // Daño de una habilidad: arma, daño extra, la propia habilidad mejorada con puntos, crítico y buffs de NPCs
   function danioDelHeroe(name, targetLevel) {
     let dmg = CombatLib.heroDamage(hero, name, targetLevel) * (1 + statsHeroe.danio);
     dmg *= statsHeroe.mult[name] || 1;
     if (acompanante && acompanante.buffs && acompanante.buffs.ataqueTimer > 0) {
       dmg *= (acompanante.buffs.multAtaque || 1.25);
     }
+    if (hero.bloodFuryTimer > 0) {
+      dmg *= 1.35;
+    }
+    if (hero.tacticalKnowledgeTimer > 0) {
+      dmg *= 1.25;
+    }
+    if (hero.reforjaOscura) {
+      dmg *= (1 + hero.reforjaOscura);
+    }
     return Math.random() < statsHeroe.critico ? dmg * CRITICO : dmg;
   }
-  // Un golpe del héroe: con robo de vida recupera parte del daño
+  // Un golpe del héroe: con robo de vida recupera parte del daño y sed de maná del hereje
   function golpear(m, dmg, sonido = 'metal') {
     if (statsHeroe.robo) hero.hp = Math.min(hero.maxHp, hero.hp + dmg * statsHeroe.robo);
+    if (hero.manaLeech) hero.mp = Math.min(hero.maxMp, hero.mp + 4);
     damageMonster(m, dmg, 'hero');
     if (window.Sonidos) window.Sonidos.impacto(sonido);
   }
@@ -6740,6 +6753,14 @@
       html = renderEncargo();
     } else if (servicio === 'cabana') {
       html = renderCabana(npcActual ? npcActual.cabana : null);
+    } else if (servicio === 'informante') {
+      html = renderInformante();
+    } else if (servicio === 'boticaria') {
+      html = renderBoticaria();
+    } else if (servicio === 'comandante') {
+      html = renderComandante();
+    } else if (servicio === 'hereje') {
+      html = renderHereje();
     } else {
       if (hero.level < 12) {
         html = '<h3 class="npc-h">Comprar 🔒 Requiere Nivel 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">El Mercader Tovi reserva su catálogo de armaduras para viajeros de nivel 12 o superior. Completa las misiones de caza de la historia para equiparte.</div>';
@@ -6757,6 +6778,138 @@
         <button data-vender="${esc(o.uid)}">${EquipoLib.precioVenta(pj, o)} 🪙</button></div>`).join('') || '<div class="muted">No tienes objetos que vender.</div>');
     }
     $('npc-lista').innerHTML = html;
+  }
+
+  function renderInformante() {
+    return `
+      <h3 class="npc-h">👁️ Mercado Negro y Pistas de Aden</h3>
+      <div style="font-size:12px;color:#cbd5e1;margin-bottom:10px;line-height:1.4">
+        <i>«Aquí no hay moral ni rezos. Solo oro contante a cambio de ventajas que la guardia prefiere ignorar.»</i>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🎯</div>
+        <div class="info">
+          <b>Chivatazo de Élite Clandestino</b>
+          <span class="muted">Localiza y marca al monstruo más temible con botín dorado asegurado</span>
+        </div>
+        <button data-informante-elite ${inv.gold < 50 ? 'disabled' : ''}>50 🪙</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🧠</div>
+        <div class="info">
+          <b>Conocimiento Táctico de Jefes</b>
+          <span class="muted">+25% de daño contra jefes y monstruos élite durante 10 minutos</span>
+        </div>
+        <button data-informante-jefe ${inv.gold < 75 ? 'disabled' : ''}>75 🪙</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🗺️</div>
+        <div class="info">
+          <b>Rumor de Secreto Oculto</b>
+          <span class="muted">Revela el lugar secreto (fuente, cabaña o altar) más cercano en el mapa</span>
+        </div>
+        <button data-informante-secreto ${inv.gold < 40 ? 'disabled' : ''}>40 🪙</button>
+      </div>
+    `;
+  }
+
+  function renderBoticaria() {
+    return `
+      <h3 class="npc-h">🧪 Alquimia de Sangre y Brebajes Prohibidos</h3>
+      <div style="font-size:12px;color:#cbd5e1;margin-bottom:10px;line-height:1.4">
+        <i>«Las hierbas de los monjes son agua tibia. Si quieres sobrevivir a los engendros de los Sabios, necesitas fuego en las venas.»</i>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🩸</div>
+        <div class="info">
+          <b>Elixir de Furia de Sangre</b>
+          <span class="muted">+35% ataque y velocidad por 2 min (consume 1% HP cada 3s)</span>
+        </div>
+        <button data-boticaria-furia ${inv.gold < 40 ? 'disabled' : ''}>40 🪙</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🌫️</div>
+        <div class="info">
+          <b>Bálsamo de Sombras y Ceniza</b>
+          <span class="muted">-60% radio de detección de los monstruos durante 5 minutos</span>
+        </div>
+        <button data-boticaria-sombras ${inv.gold < 35 ? 'disabled' : ''}>35 🪙</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🧪</div>
+        <div class="info">
+          <b>Poción Concentrada de Vida</b>
+          <span class="muted">Brebaje espeso que restaura de golpe el 85% de tu salud máxima</span>
+        </div>
+        <button data-boticaria-megavida ${inv.gold < 45 ? 'disabled' : ''}>45 🪙</button>
+      </div>
+    `;
+  }
+
+  function renderComandante() {
+    return `
+      <h3 class="npc-h">🎖️ Guardia Militar de Aden y Orden Público</h3>
+      <div style="font-size:12px;color:#cbd5e1;margin-bottom:10px;line-height:1.4">
+        <i>«No me interesan tus excusas de mercenario. Tráeme pruebas de la conspiración de los Sabios y te daré paso franco por mis guarniciones.»</i>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">📜</div>
+        <div class="info">
+          <b>Entregar Pruebas Incriminatorias</b>
+          <span class="muted">Recompensa oficial de la guarnición por esclarecer crímenes en la región</span>
+        </div>
+        <button data-comandante-pruebas class="gold">Canjear 📜</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🚩</div>
+        <div class="info">
+          <b>Salvoconducto de Calzadas</b>
+          <span class="muted">+35% velocidad de movimiento en caminos y calzadas durante 15 minutos</span>
+        </div>
+        <button data-comandante-salvoconducto ${inv.gold < 50 ? 'disabled' : ''}>50 🪙</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🛡️</div>
+        <div class="info">
+          <b>Llamar Conscriptos de Apoyo</b>
+          <span class="muted">Una patrulla armada patrullará y limpiará hostiles en el pueblo cercano</span>
+        </div>
+        <button data-comandante-refuerzos ${inv.gold < 60 ? 'disabled' : ''}>60 🪙</button>
+      </div>
+    `;
+  }
+
+  function renderHereje() {
+    return `
+      <h3 class="npc-h">💀 Forja Oculta de Maldiciones y Runas Sangrientas</h3>
+      <div style="font-size:12px;color:#cbd5e1;margin-bottom:10px;line-height:1.4">
+        <i>«Brann forja para soldados de juguete. Mis aleaciones vivas beben el dolor del enemigo y devuelven poder real.»</i>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🔮</div>
+        <div class="info">
+          <b>Maldición de Sed de Maná</b>
+          <span class="muted">Tus golpes básicos restauran +4 MP por impacto directo</span>
+        </div>
+        <button data-hereje-mana ${inv.gold < 80 ? 'disabled' : ''}>80 🪙</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🌵</div>
+        <div class="info">
+          <b>Encantamiento Espina de Ponzoña</b>
+          <span class="muted">Al recibir daño, el atacante sufre veneno corrosivo inmediato</span>
+        </div>
+        <button data-hereje-espina ${inv.gold < 75 ? 'disabled' : ''}>75 🪙</button>
+      </div>
+      <div class="slot">
+        <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">⚡</div>
+        <div class="info">
+          <b>Reforja Oscura de Furia</b>
+          <span class="muted">Pacto de sangre que incrementa permanentemente el ataque de tu arma (+15%)</span>
+        </div>
+        <button data-hereje-potencia ${inv.gold < 100 ? 'disabled' : ''}>100 🪙</button>
+      </div>
+    `;
   }
 
   function accionNpc(fn) {
@@ -6802,6 +6955,147 @@
       toast('Comprada');
     });
     if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
+
+    // Informante Clandestino (Varek "El Ojo Tuerto")
+    const infElite = e.target.closest('button[data-informante-elite]');
+    if (infElite) accionNpc(() => {
+      if (inv.gold < 50) throw new Error('Necesitas 50 🪙 para comprar el chivatazo');
+      inv.gold -= 50;
+      let mejorMonstruo = null, maxLvl = -1;
+      const pool = (gestorMazmorras && gestorMazmorras.enMazmorra ? monstruosMazmorra : monsters).filter(m => m.alive && m.hp > 0);
+      pool.forEach(m => {
+        if (m.level > maxLvl) { maxLvl = m.level; mejorMonstruo = m; }
+      });
+      if (mejorMonstruo) {
+        mejorMonstruo.marcadoElite = true;
+        if (typeof crearAnilloMisionMonstruo === 'function') crearAnilloMisionMonstruo(mejorMonstruo, 0xf59e0b);
+        toast(`🎯 Varek señala a «${mejorMonstruo.name || 'Élite'}» (Nv.${mejorMonstruo.level}): ¡marcador dorado en el mapa!`);
+      } else {
+        toast('🎯 Varek te entrega notas de caza: +100 EXP');
+        hero.xp = (hero.xp || 0) + 100;
+        checkLevelUp();
+      }
+      saveActive(true);
+    });
+    const infJefe = e.target.closest('button[data-informante-jefe]');
+    if (infJefe) accionNpc(() => {
+      if (inv.gold < 75) throw new Error('Necesitas 75 🪙 para conocer la debilidad del jefe');
+      inv.gold -= 75;
+      hero.tacticalKnowledgeTimer = 600;
+      toast('🧠 Conocimiento Táctico activo: +25% daño infligido contra jefes y élites (10m)');
+      saveActive(true);
+    });
+    const infSec = e.target.closest('button[data-informante-secreto]');
+    if (infSec) accionNpc(() => {
+      if (inv.gold < 40) throw new Error('Necesitas 40 🪙 para comprar el rumor de secreto');
+      inv.gold -= 40;
+      const p = character.root.position;
+      let secCercano = null, mejorDist = Infinity;
+      (lugaresSecretos || []).forEach(s => {
+        const d = Math.hypot(s.x - p.x, s.z - p.z);
+        if (d < mejorDist) { mejorDist = d; secCercano = s; }
+      });
+      if (secCercano) {
+        secCercano.descubierto = true;
+        toast(`🗺️ Varek te susurra: «Busca ${secCercano.nombre} a unos ${Math.round(mejorDist)} metros»`);
+      } else {
+        toast('🗺️ Varek te revela senderos secretos de la región');
+      }
+      saveActive(true);
+    });
+
+    // Boticaria de Sombras (Madre Cynthia)
+    const botFuria = e.target.closest('button[data-boticaria-furia]');
+    if (botFuria) accionNpc(() => {
+      if (inv.gold < 40) throw new Error('Necesitas 40 🪙 para adquirir el Elixir de Furia');
+      inv.gold -= 40;
+      hero.bloodFuryTimer = 120;
+      toast('🩸 ¡Elixir de Furia consumido! +35% ataque colosal (pierdes 1% HP cada 3s)');
+      saveActive(true);
+    });
+    const botSombras = e.target.closest('button[data-boticaria-sombras]');
+    if (botSombras) accionNpc(() => {
+      if (inv.gold < 35) throw new Error('Necesitas 35 🪙 para adquirir el Bálsamo de Sombras');
+      inv.gold -= 35;
+      hero.shadowBalmTimer = 300;
+      toast('🌫️ Bálsamo de Sombras untado: -60% radio de detección de los monstruos');
+      saveActive(true);
+    });
+    const botMega = e.target.closest('button[data-boticaria-megavida]');
+    if (botMega) accionNpc(() => {
+      if (inv.gold < 45) throw new Error('Necesitas 45 🪙 para adquirir la Poción Concentrada');
+      inv.gold -= 45;
+      hero.hp = Math.max(hero.hp, Math.floor(hero.maxHp * 0.85));
+      toast('🧪 ¡Poción Concentrada ingerida! Salud restaurada al 85%');
+      saveActive(true);
+    });
+
+    // Comandante Militar (Comandante Kaelen)
+    const comPruebas = e.target.closest('button[data-comandante-pruebas]');
+    if (comPruebas) accionNpc(() => {
+      const paso = (heroeEst && heroeEst.principal && heroeEst.principal.paso) || 0;
+      const entregado = heroeEst.pruebasEntregadasPaso || 0;
+      if (paso <= entregado) {
+        throw new Error('No tienes nuevas pruebas incriminatorias: avanza en los capítulos de la historia');
+      }
+      heroeEst.pruebasEntregadasPaso = paso;
+      inv.gold += 150;
+      hero.xp = (hero.xp || 0) + 400;
+      checkLevelUp();
+      toast('📜 ¡Pruebas de la conspiración entregadas a Kaelen! +150 🪙 y +400 EXP');
+      saveActive(true);
+    });
+    const comSalvo = e.target.closest('button[data-comandante-salvoconducto]');
+    if (comSalvo) accionNpc(() => {
+      if (inv.gold < 50) throw new Error('Necesitas 50 🪙 para sellar el Salvoconducto');
+      inv.gold -= 50;
+      hero.roadSpeedBuffTimer = 900;
+      toast('🚩 Salvoconducto Militar expedido: +35% velocidad de marcha en calzadas');
+      saveActive(true);
+    });
+    const comRef = e.target.closest('button[data-comandante-refuerzos]');
+    if (comRef) accionNpc(() => {
+      if (inv.gold < 60) throw new Error('Necesitas 60 🪙 para movilizar conscriptos');
+      inv.gold -= 60;
+      const p = character.root.position;
+      let abatidos = 0;
+      monsters.forEach(m => {
+        if (m.alive && !m.boss && Math.hypot(m.x - p.x, m.z - p.z) < 45) {
+          damageMonster(m, 9999, 'hero');
+          abatidos++;
+        }
+      });
+      toast(abatidos > 0
+        ? `🛡️ ¡Patrulla de conscriptos desplegada! ${abatidos} amenazas neutralizadas en el perímetro`
+        : '🛡️ ¡Patrulla desplegada! Perímetro de la guarnición asegurado sin enemigos cercanos');
+      saveActive(true);
+    });
+
+    // Herrero Hereje Proscrito (Saelen el Desollador)
+    const herMana = e.target.closest('button[data-hereje-mana]');
+    if (herMana) accionNpc(() => {
+      if (inv.gold < 80) throw new Error('Necesitas 80 🪙 para el pacto de Sed de Maná');
+      inv.gold -= 80;
+      hero.manaLeech = true;
+      toast('🔮 Sed de Maná grabada en tu arma: recuperas +4 MP por cada impacto físico');
+      saveActive(true);
+    });
+    const herEspina = e.target.closest('button[data-hereje-espina]');
+    if (herEspina) accionNpc(() => {
+      if (inv.gold < 75) throw new Error('Necesitas 75 🪙 para encantar con Espinas de Ponzoña');
+      inv.gold -= 75;
+      hero.poisonThorns = true;
+      toast('🌵 Espinas de Ponzoña forjadas: los atacantes sufrirán veneno corrosivo');
+      saveActive(true);
+    });
+    const herPot = e.target.closest('button[data-hereje-potencia]');
+    if (herPot) accionNpc(() => {
+      if (inv.gold < 100) throw new Error('Necesitas 100 🪙 para la Reforja Oscura');
+      inv.gold -= 100;
+      hero.reforjaOscura = (hero.reforjaOscura || 0) + 0.15;
+      toast('⚡ Reforja Oscura culminada: daño de combate incrementado permanentemente en +15%');
+      saveActive(true);
+    });
     const ac = e.target.closest('button[data-aceptar-cabana]');
     if (ac) accionNpc(() => {
       const s = npcActual.cabana;
@@ -7720,6 +8014,50 @@
       capa: 0x44403c,     // Manto rústico
       botas: 0x292524,    // Botas de montaña
       cabello: 0x78350f   // Castaño silvestre
+    },
+    'serv-informante': { // Varek "El Ojo Tuerto" (Mercado Negro y Pistas)
+      armadura: 0x1e293b, // Cuero negro gastado y parches
+      metalness: 0.35,
+      roughness: 0.70,
+      ribete: 0xd97706,   // Hebillas de oro viejo
+      tela: 0x334155,     // Capucha y jubón gris pizarra oscuro
+      faldon: 0x0f172a,   // Faldón oscuro de ladrón
+      capa: 0x09090b,     // Capa raída azabache
+      botas: 0x1c1917,    // Botas sigilosas de cuero blando
+      cabello: 0x27272a   // Cabello negro ceniza
+    },
+    'serv-boticaria': { // Madre Cynthia (Alquimia de Sangre)
+      armadura: 0x3b0764, // Púrpura ponzoñoso
+      metalness: 0.25,
+      roughness: 0.65,
+      ribete: 0x10b981,   // Jade ácido / verde esmeralda
+      tela: 0x064e3b,     // Túnica verde bosque ponzoñoso
+      faldon: 0x14532d,   // Mandil de boticaria manchado de extractos
+      capa: 0x581c87,     // Manto amatista oscuro
+      botas: 0x3f2e1a,    // Calzado de pantano
+      cabello: 0x94a3b8   // Mechones grises platino
+    },
+    'serv-comandante': { // Comandante Kaelen (Orden Militar y Guardia)
+      armadura: 0x94a3b8, // Acero bruñido heráldico brillante
+      metalness: 0.85,
+      roughness: 0.30,
+      ribete: 0xf59e0b,   // Borde dorado de gala
+      tela: 0x1d4ed8,     // Azul cobalto militar
+      faldon: 0x1e40af,   // Faldón azul imperial
+      capa: 0x172554,     // Capa pesada de oficial
+      botas: 0x475569,    // Grebas de acero reluciente
+      cabello: 0x451a03   // Castaño oscuro militar rapado
+    },
+    'serv-hereje': { // Saelen el Desollador (Forja Maldita)
+      armadura: 0x450a0a, // Hierro al rojo oxidado y sangre seca
+      metalness: 0.65,
+      roughness: 0.55,
+      ribete: 0xef4444,   // Runas carmesí incandescentes
+      tela: 0x18181b,     // Delantal de cuero ennegrecido al fuego
+      faldon: 0x27272a,   // Faldón de forja chamuscado
+      capa: 0x7f1d1d,     // Capa carmesí desgarrada
+      botas: 0x09090b,    // Botas de fundidor
+      cabello: 0xb91c1c   // Cabello cobrizo encendido
     }
   };
 
@@ -7730,6 +8068,14 @@
       ? 'serv-herrero'
       : (info.servicio === 'mercader' || (info.id && String(info.id).includes('mercader')))
       ? 'serv-mercader'
+      : (info.servicio === 'informante' || (info.id && String(info.id).includes('informante')))
+      ? 'serv-informante'
+      : (info.servicio === 'boticaria' || (info.id && String(info.id).includes('boticaria')))
+      ? 'serv-boticaria'
+      : (info.servicio === 'comandante' || (info.id && String(info.id).includes('comandante')))
+      ? 'serv-comandante'
+      : (info.servicio === 'hereje' || (info.id && String(info.id).includes('hereje')))
+      ? 'serv-hereje'
       : (info.servicio === 'cabana' || info.cabana)
       ? 'cabana'
       : (ESTILOS_NPC[info.id] ? info.id : entrada.nombreModelo);
@@ -7835,18 +8181,26 @@
     else asegurarVersionLejanaNpc(entrada);
   }
 
-  // Herrero y mercader: mismos cuerpos de npc/gurus; cambian por su función
+  // Red de NPCs de Servicio y Facciones: herrero, mercader, informante clandestino, boticaria, comandante y hereje
   // Texto de cada servicio: tipo, botón del panel del NPC e icono
   const TEXTO_SERVICIO = {
     herrero: { tipo: 'Herrero', boton: '🔨 Forjar', icono: '🔨' },
     mercader: { tipo: 'Mercader', boton: '🧺 Comerciar', icono: '🧺' },
     entrenador: { tipo: 'Entrenador', boton: '🎓 Entrenar', icono: '🎓' },
     encargo: { tipo: 'Encargo de zona', boton: '📜 Ver encargo', icono: '📜' },
-    cabana: { tipo: 'Encargo de la Cabaña', boton: '🏡 Misión de Caza (100)', icono: '🏡' }
+    cabana: { tipo: 'Encargo de la Cabaña', boton: '🏡 Misión de Caza (100)', icono: '🏡' },
+    informante: { tipo: 'Informante Clandestino', boton: '👁️ Pistas y Rumores', icono: '👁️' },
+    boticaria: { tipo: 'Boticaria de Sombras', boton: '🧪 Alquimia de Sangre', icono: '🧪' },
+    comandante: { tipo: 'Comandante Militar', boton: '🎖️ Guardia de Aden', icono: '🎖️' },
+    hereje: { tipo: 'Herrero Hereje Proscrito', boton: '💀 Forja Maldita', icono: '💀' }
   };
   const SERVICIOS = [
     { id: 'serv-herrero', modelo: 'guru-4', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
-    { id: 'serv-mercader', modelo: 'guru-5', nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' }
+    { id: 'serv-mercader', modelo: 'guru-5', nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' },
+    { id: 'serv-informante', modelo: 'guru-2', nombre: 'Varek "El Ojo Tuerto"', tema: 'el mercado negro', servicio: 'informante', frase: 'El oro compra silencio, pero las monedas sucias compran la verdad. Acércate.' },
+    { id: 'serv-boticaria', modelo: 'guru-3', nombre: 'Madre Cynthia', tema: 'la alquimia de sangre', servicio: 'boticaria', frase: 'La medicina oficial es para cobardes. Mis destilados curan o matan con prisa.' },
+    { id: 'serv-comandante', modelo: 'guru-1', nombre: 'Comandante Kaelen', tema: 'el orden militar', servicio: 'comandante', frase: 'La ley se cumple o se paga en sangre. Tráeme pruebas de los Sabios o apártate.' },
+    { id: 'serv-hereje', modelo: 'guru-4', nombre: 'Saelen el Desollador', tema: 'la forja prohibida', servicio: 'hereje', frase: 'Brann es un cobarde que teme al poder verdadero. El metal clama por runas vivas.' }
   ];
 
   function colocarGurus() {
@@ -7854,15 +8208,15 @@
     const inicio = towns.find(o => o.t.isStart) || towns[0];
     if (!inicio) return;
     gurusColocados = true;
-    // Gurús en los huecos entre los puestos de mercado (anillo de 12,2 m, como en village-core); servicios en el centro, a 6 m
-    const todos = GURUS.map((g, i) => ({ info: g, modelo: g.id, r: RADIO_PUESTOS, a: (i / 6) * Math.PI * 2 + 0.4 + Math.PI / 6 }))
-      .concat(SERVICIOS.map((sv, i) => ({ info: sv, modelo: sv.modelo, r: RADIO_GURUS, a: Math.PI * (i ? 4 / 3 : 1 / 3) })));
+    // Gurús en el anillo exterior de puestos (12,2 m); servicios distribuidos armónicamente en el anillo interior (6,5 m)
+    const todos = GURUS.map((g, i) => ({ info: g, modelo: g.id, r: RADIO_PUESTOS, a: (i / GURUS.length) * Math.PI * 2 + 0.3 }))
+      .concat(SERVICIOS.map((sv, i) => ({ info: sv, modelo: sv.modelo, r: RADIO_GURUS, a: (i / SERVICIOS.length) * Math.PI * 2 + 0.1 })));
     todos.forEach(item => {
       const x = inicio.t.x + Math.cos(item.a) * item.r, z = inicio.t.y + Math.sin(item.a) * item.r;
       instanciarNpc(item.info, item.modelo, x, z, inicio.t.x, inicio.t.y);
     });
 
-    // En los demás pueblos, colocar también herrero y mercader locales para que el jugador siempre disponga de servicios
+    // En los demás pueblos, colocar también los servicios principales para que el jugador siempre disponga de ellos
     towns.forEach(o => {
       if (o === inicio) return;
       SERVICIOS.forEach((sv, i) => {
@@ -7874,7 +8228,7 @@
           servicio: sv.servicio,
           frase: sv.frase
         };
-        const a = Math.PI * (i ? 4 / 3 : 1 / 3);
+        const a = (i / SERVICIOS.length) * Math.PI * 2 + 0.1;
         const x = o.t.x + Math.cos(a) * RADIO_GURUS, z = o.t.y + Math.sin(a) * RADIO_GURUS;
         instanciarNpc(infoLocal, sv.modelo, x, z, o.t.x, o.t.y);
       });
@@ -9211,6 +9565,19 @@
     seguirRuta();
     atacarAuto();
     atacarObjetivo();
+    // Actualización de temporizadores de buffs de los NPCs clave (Varek, Cynthia, Kaelen)
+    if (hero.bloodFuryTimer > 0) {
+      hero.bloodFuryTimer -= dt;
+      hero.bloodFuryTick = (hero.bloodFuryTick || 0) + dt;
+      if (hero.bloodFuryTick >= 3.0) {
+        hero.bloodFuryTick = 0;
+        hero.hp = Math.max(1, hero.hp - Math.max(1, Math.ceil(hero.maxHp * 0.01)));
+      }
+    }
+    if (hero.tacticalKnowledgeTimer > 0) hero.tacticalKnowledgeTimer -= dt;
+    if (hero.shadowBalmTimer > 0) hero.shadowBalmTimer -= dt;
+    if (hero.roadSpeedBuffTimer > 0) hero.roadSpeedBuffTimer -= dt;
+
     character.update(dt, now / 1000);
     actualizarEfectos(dt);
     if (!enDungeon) actualizarGurus(dt, now / 1000);

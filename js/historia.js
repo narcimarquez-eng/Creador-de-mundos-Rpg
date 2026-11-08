@@ -15,113 +15,113 @@
   const CAPITULOS = [
     {
       id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Pieles de caza y el primer cinturón',
-      encargo: 'Rowan (tu leal compañero de camino) te acompaña desde la plaza y la Sabia Elara bendice vuestra alianza: «Las bestias han endurecido su piel y poseen una vitalidad colosal. Id juntos a {lugar} y abated a {n} criaturas. Tu compañero te guiará con indicaciones y te apoyará con sus habilidades para traer pieles resistentes y forjar tu primer cinturón».',
-      texto: 'Rowan y tú regresáis triunfantes tras medir vuestras fuerzas contra las resistentes bestias. Brann remacha la hebilla de bronce del cinturón: «Gran trabajo en equipo; cubriéndoos mutuamente sobreviviréis a lo que viene». Has forjado tu primer cinturón básico.',
+      encargo: 'El Herrero Brann tose sangre sobre el yunque tras la emboscada: «¡Nos han tendido una trampa! Esas aberraciones con injertos de metal venían a silenciar mi forja. Rowan, sácale de aquí antes de que la guardia cierre la empalizada. Id a {lugar} y abated a {n} de esas criaturas alteradas; traedme sus correas de cuero y placas de hierro para forjar tu primer cinturón reforzado antes de que nos cacen».',
+      texto: 'Rowan y tú regresáis cubiertos de ceniza y fango. Brann remacha la hebilla de bronce con manos temblorosas y te entrega el cinturón: «Entre los restos de esas bestias había un sello de bronce de los Sabios de la plaza... La plaga no es salvaje: alguien la está fabricando en secreto desde dentro de nuestras propias murallas». Has forjado tu primer cinturón básico.',
       mision: { tipo: 'matar', cantidad: 8, nivel: 1 },
       recompensa: { puntos: 1, forjarPieza: 'belt', desbloquea: 'acompanante' }
     },
     {
       id: 'c2', nivel: 1, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El camino agreste y las botas de marcha',
-      encargo: 'Rowan te señala los senderos lejanos hacia {lugar}: «El Maestro Oren necesita tendones y cuero grueso de {n} bestias endurecidas. Sígueme por las calzadas de piedra, te indicaré el camino seguro y te cubriré las espaldas con mis dopes marciales».',
-      texto: 'Con las indicaciones de tu compañero y el cuero reforzado recogido en {lugar}, el herrero remata las suelas de tus nuevas botas de viaje. Tus pasos ahora son firmes y seguros en cualquier terreno.',
+      encargo: 'El Maestro Oren finge serenidad en la plaza, pero sus ojos esquivan tu mirada. Rowan te susurra con urgencia: «El guarda forestal de {lugar} tenía un duplicado de la lista de fugitivos antes de ser silenciado. Sígueme por las calzadas de piedra; eliminemos a {n} criaturas alteradas en {lugar} para cruzar el sendero y conseguir tendones con los que forjar unas botas de marcha resistentes».',
+      texto: 'Con las indicaciones de Rowan y el cuero reforzado recogido en {lugar}, Brann remata las suelas de tus botas de marcha. Entre los despojos halláis una orden de ejecución oficial: tu nombre y el de Rowan figuran como objetivos prioritarios. Tus pasos ahora son firmes, ágiles y seguros en cualquier terreno.',
       mision: { tipo: 'matar', cantidad: 12, nivel: 1 },
       recompensa: { puntos: 2, forjarPieza: 'boots' }
     },
     {
       id: 'c3', nivel: 2, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Garras de bestia y el aldeano leal',
-      encargo: 'La Hermana Ysolde detecta perturbaciones en {lugar}. Rowan empuña su espada corta con determinación: «¡No temas a la vitalidad de esas criaturas! Con mis habilidades de apoyo y tus estocadas abatiremos a {n} monstruos para conseguir garras con las que reforzar brazales de combate».',
-      texto: 'Rowan y tú combatís espalda contra espalda: sus estocadas coordinadas demuestran su valía. Con las garras y escamas recogidas, el herrero forja un par de guantes y brazales de protección. Rowan el aldeano reafirma su juramento como fiel acompañante.',
+      encargo: 'La Hermana Ysolde murmura cánticos en trance mientras una sustancia gris gotea de sus mangas. Rowan desenvaina con determinación: «Ysolde está enviando patrullas a morir a {lugar}. Vamos a adelantarnos: abatiremos a {n} aberraciones blindadas para arrancarles sus garras corrompidas y forjar guantes de combate antes de que la guardia nos acorrale».',
+      texto: 'Combatís espalda con espalda en un torbellino de acero y esquivas. Con las garras y escamas recogidas, Brann forja tus guantes y brazales de combate. Rowan contempla sus manos temblorosas, jurando proteger tu espalda contra la conspiración que pudre el reino. Desbloqueado el apoyo completo del Acompañante.',
       mision: { tipo: 'matar', cantidad: 15, nivel: 2 },
       recompensa: { puntos: 2, forjarPieza: 'gloves', desbloquea: 'acompanante' }
     },
     {
       id: 'c4', nivel: 4, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Planchas de caparazón y el peto de acero',
-      encargo: 'El Viejo Tamsin exige temple: «Si queréis un peto que os salve el pellejo, abated a {n} criaturas en {lugar} y traed sus resistentes planchas quitinosas». Rowan y tú marcháis al combate.',
-      texto: 'Con las duras planchas de caparazón recogidas tras el combate, Brann martilla un sólido peto sobre el yunque. Tamsin sonríe y os enseña a canalizar la fuerza al golpear el suelo: ¡has desbloqueado el impacto sísmico (Q) y equipado tu nuevo peto!',
+      encargo: 'El Viejo Tamsin te intercepta en la penumbra de la taberna: «La fundición clandestina de {lugar} devora a los aldeanos secuestrados. Destrozad a {n} autómatas de caparazón blindado allí y traedme sus resistentes placas pectorales; os enseñaré a partir la tierra antes de que sea tarde». Rowan y tú marcháis al asalto.',
+      texto: 'Con las duras planchas de caparazón recogidas tras el combate, Brann martilla un sólido peto sobre el yunque. Tamsin sonríe con amargura y os enseña a canalizar la fuerza al golpear el suelo: ¡has desbloqueado el impacto sísmico (Q) y equipado tu nuevo peto! Pero una proyección espectral de Elara os advierte: cada golpe alimenta el despertar subterráneo.',
       mision: { tipo: 'matar', cantidad: 18, nivel: 4 },
       recompensa: { puntos: 2, forjarPieza: 'torso', desbloquea: 'sismo' }
     },
     {
       id: 'c5', nivel: 4, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'Astas de hueso y el yelmo protector',
-      encargo: 'La Erudita Mirel advierte que una cabeza descubierta es presa fácil. Derrota a {n} criaturas en {lugar} para recolectar astas y fragmentos óseos para forjar un yelmo.',
-      texto: 'Brann encaja los refuerzos óseos en una corona de hierro acolchada. Al colocarte el yelmo sientes la protección completa de tu cabeza ante los golpes enemigos. El equipo básico toma forma.',
+      encargo: 'La Erudita Mirel os observa con frialdad analítica: «Los susurros del Óxido penetran por los oídos descubiertos. Si queréis conservar la cordura, cazad a {n} criaturas corrompidas en {lugar} y recolectad sus astas óseas para blindar vuestra cabeza contra la telepatía de los Siete».',
+      texto: 'Brann encaja los refuerzos óseos en una corona de hierro acolchada. Al colocarte el yelmo sientes cómo el zumbido mental de los Sabios se amortigua al instante. Tu cabeza queda protegida de los golpes y la influencia oculta.',
       mision: { tipo: 'matar', cantidad: 20, nivel: 4 },
       recompensa: { puntos: 2, forjarPieza: 'helmet' }
     },
     {
       id: 'c6', nivel: 5, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'La fuente arcana y las hombreras benditas',
-      encargo: 'Elara recuerda que para forjar unas hombreras que soporten el peso de los mandobles debéis templar las placas en la mística {lugar}. ¡Explorad con Rowan hasta descubrirla!',
-      texto: 'Al pie de la fuente arcana sumergís las hombreras forjadas en sus aguas luminosas. Las placas absorben el fulgor místico, dotándolas de una resistencia prodigiosa para proteger vuestros hombros.',
+      encargo: 'Elara finge colaborar entregándoos un vial vacío: «Para que vuestras hombreras soporten las cuchillas de los verdugos debéis templar las placas en la mística {lugar}». Rowan desconfía: «Es una trampa o el laboratorio donde extraen su elixir. Vayamos armados hasta los dientes».',
+      texto: 'Al pie de la fuente arcana sumergís las hombreras forjadas en sus aguas luminiscentes. Las placas absorben el fulgor místico, dotándolas de una resistencia prodigiosa para proteger vuestros hombros. En el fondo del agua descubrís jaulas sumergidas con el emblema de la Corona.',
       mision: { tipo: 'secreto', secreto: 'fuente' },
       recompensa: { puntos: 3, forjarPieza: 'shoulders' }
     },
     {
       id: 'c7', nivel: 8, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'Mineral salvaje y la forja del arma',
-      encargo: 'Oren señala los valles salvajes de {lugar}: «Las criaturas de las profundidades devoran vetas de mineral puro. Derrotad a {n} de ellas para extraer el hierro salvaje y forjar un arma digna de vuestra clase». Rowan empuña su filo y asiente.',
-      texto: 'El mineral extraído brilla al rojo vivo bajo los martillazos de Brann en la fragua. De las chispas surge un arma formidable forjada a medida de tu clase y estilo. ¡Tu equipo de combate básico de nivel de entrada queda completamente ensamblado!',
+      encargo: 'Oren os cita en una encrucijada solitaria: «Las tropas de los Sabios devoran vetas de mineral puro en los valles de {lugar}. Si queréis un filo capaz de cortar autómatas, abated a {n} de ellos y arrebatarles el hierro salvaje para forjar vuestra arma maestra».',
+      texto: 'El mineral extraído brilla al rojo vivo bajo los martillazos de Brann en la fragua. De las chispas surge un arma formidable forjada a medida de tu clase y estilo, sellada con runas de insumisión. ¡Tu equipo de combate básico de nivel de entrada queda completamente ensamblado!',
       mision: { tipo: 'matar', cantidad: 22, nivel: 8 },
       recompensa: { puntos: 3, forjarPieza: 'weapon' }
     },
     {
       id: 'c8', nivel: 10, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'El sello de la nova',
-      encargo: 'Ysolde por fin ha descifrado la frase oculta del pozo: «El sello despierta con la sangre de {lugar}». Derrota a {n} criaturas allí junto a Rowan.',
-      texto: 'La nova de energía pura no es un truco vulgar: es un sello sagrado que las runas antiguas dejaron a quien lo merezca. Rowan observa maravillado el estallido: la explosión nova (E) ya es tuya.',
+      encargo: 'Ysolde pierde la compostura: el pozo rúnico exige sacrificios. «El sello de la destrucción solo despertará con la sangre de las aberraciones de {lugar}». Derrota a {n} criaturas allí junto a Rowan antes de que la orden enemiga se reorganice.',
+      texto: 'La nova de energía pura no es magia divina: es la fuerza de los antiguos reyes que los Sabios intentaron suprimir. Rowan contempla maravillado la onda expansiva: ¡la explosión nova (E) ya es tuya! Por un segundo, los ojos de Rowan brillan con un halo ámbar idéntico al de las reliquias subterráneas.',
       mision: { tipo: 'matar', cantidad: 25, nivel: 10 },
       recompensa: { puntos: 3, desbloquea: 'nova' }
     },
     {
       id: 'c9', nivel: 10, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'La cabaña en la espesura',
-      encargo: 'Tamsin menciona un viejo ermitaño que vigilaba los bosques desde una cabaña escondida. Encuentra la {lugar} para recuperar sus mapas olvidados y advertencias sobre las bestias.',
-      texto: 'Entre la espesura halláis la cabaña de troncos envejecidos. Entre viejos pergaminos descubrís bocetos de un altar astronómico y anotaciones sobre los grandes señores de la fauna salvaje.',
+      encargo: 'Tamsin confiesa la verdad sobre el Guarda ejecutado: «En su cabaña oculta en {lugar} guardaba las cartas que incriminan a los cinco Sabios. Debéis infiltraros antes de que los inquisidores quemen el bosque».',
+      texto: 'Entre la espesura halláis la cabaña de troncos envejecidos. Oculto tras el hogar encontráis el diario del ermitaño: describe la ubicación del altar rúnico donde los Sabios canalizan la energía vital de las caravanas y los planos de un autómata titánico.',
       mision: { tipo: 'secreto', secreto: 'cabana' },
       recompensa: { puntos: 3 }
     },
     {
       id: 'c10', nivel: 11, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Caza en la espesura',
-      encargo: 'Las notas del ermitaño alertan de un nido de bestias feroces en {lugar}. Limpia el sendero derrotando a {n} criaturas.',
-      texto: 'Rowan y tú coordináis cada golpe: mientras tú atraes a las bestias, el aldeano remata con su espada de acero. El camino hacia las cumbres queda despejado.',
+      encargo: 'Los inquisidores han bloqueado el paso hacia las tierras altas con un regimiento de bestias acorazadas en {lugar}. Rowan blande su espada con furia: «¡Hay que abrirse paso o quedaremos atrapados en este valle! Abatamos a {n} de ellos».',
+      texto: 'Rowan y tú coordináis cada estocada y contraataque: mientras tú atraes a las bestias mayores, el aldeano remata a los flanqueadores. El paso montañoso queda sembrado de metal quebrado y el camino hacia las cumbres queda despejado.',
       mision: { tipo: 'matar', cantidad: 25, nivel: 11 },
       recompensa: { puntos: 3 }
     },
     {
       id: 'c11', nivel: 12, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El altar de las estrellas y el despertar del comercio',
-      encargo: 'Oren os encomienda seguir los mapas del ermitaño hasta el {lugar}. Al alcanzar el nivel 12 y consagrar el altar rúnico, las rutas de comercio y las forjas superiores del herrero quedarán desbloqueadas.',
-      texto: 'Los monolitos del altar rúnico se alzan hacia el cielo. Al posar la mano sobre la losa central, una oleada de energía recorre vuestras armas. A partir de nivel 12, el Herrero Brann y los mercaderes abren sus tiendas y fraguas para la compra y forja directa de equipo superior.',
+      encargo: 'Oren os entrega una llave ceremonial: «Consagrad el altar rúnico en {lugar}. Al hacerlo, quebraréis el monopolio de los Sabios sobre el comercio y permitiréis que los mercaderes y Brann abran sus forjas superiores a partir de nivel 12».',
+      texto: 'Los monolitos del altar rúnico se alzan hacia el cielo nocturno. Al posar la mano sobre la losa central, una llamarada disipa la niebla de censura: a partir de nivel 12, el Herrero Brann y los mercaderes abren sus tiendas y fraguas para la compra y forja directa de equipo superior sin supervisión eclesial.',
       mision: { tipo: 'secreto', secreto: 'altar' },
       recompensa: { puntos: 4 }
     },
     {
       id: 'c12', nivel: 13, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'Resonancia ancestral',
-      encargo: 'Para abrir el paso hacia el gran santuario, Ysolde pide purificar las cumbres de {lugar} eliminando a {n} criaturas de élite.',
-      texto: 'La resonancia de las runas envuelve vuestra cacería. Las criaturas caen una tras otra, confirmando que la fuerza de la alianza entre héroe y aldeano es inquebrantable.',
+      encargo: 'Para quebrar la cúpula que protege el bastión de los conspiradores en las cumbres, Ysolde pide neutralizar a los guardianes de élite en {lugar}. «Eliminad a {n} aberraciones de élite para desactivar sus pilares de resonancia».',
+      texto: 'La resonancia de las runas envuelve vuestra cacería. Los guardianes caen uno tras otro, confirmando que la alianza entre héroe y aldeano ha superado cualquier manipulación de los Sabios. La barrera del santuario central colapsa con estruendo.',
       mision: { tipo: 'matar', cantidad: 30, nivel: 13 },
       recompensa: { puntos: 4 }
     },
     {
       id: 'c13', nivel: 14, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'El santuario de la luz',
-      encargo: 'Elara revela la cúspide de la crónica: «En el corazón del mundo se yergue el {lugar}, la mayor maravilla de los siete reinos. Descubrid su fulgor».',
-      texto: 'Ante vosotros se alza el Santuario de Piedra y Luz: columnas ciclópeas y un cristal flotante que ilumina las nubes. El aire mismo vibra de poder milenario.',
+      encargo: 'Elara os cita en el corazón del continente: «Si tenéis la osadía de desafiar el orden supremo, contemplad con vuestros propios ojos el {lugar}, la fuente originaria del poder de los siete reinos».',
+      texto: 'Ante vosotros se alza el Santuario de Piedra y Luz: columnas ciclópeas y un cristal flotante que ilumina las nubes. Allí descubrís que el cristal es en realidad el corazón latiente del titán mecánico que los Sabios intentan despertar.',
       mision: { tipo: 'secreto', secreto: 'santuario' },
       recompensa: { puntos: 4 }
     },
     {
       id: 'c14', nivel: 15, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Los jefes del bosque y el titán',
-      encargo: 'Tamsin advierte con gravedad: «El señor de las bestias en {lugar} vigila los accesos finales. Nadie ha regresado de allí. Derrotadlo».',
-      texto: 'Cada territorio de jefe tiene su guardián, y ninguno cae a la primera. Tras un combate colosal donde Rowan te cubre en el momento crítico, el titán cae derribado. Las caravanas vuelven a salir y los caminos quedan libres.',
+      encargo: 'Tamsin desenfunda su mandoble por primera vez: «El Señor de las Bestias mecánicas custodia la cámara de control en {lugar}. Nadie ha regresado con vida de sus dominios. Es la hora de destruirlo o ser asimilados».',
+      texto: 'Un combate titánico estremece la tierra. Cuando el coloso está a punto de aplastarte, Rowan se interpone con su escudo desviando el martillo letal en el último milisegundo. Con una estocada certera atraviesas el núcleo rúnico del titán: la maquinaria de transmutación se apaga para siempre.',
       mision: { tipo: 'jefe', nivel: 15 },
       recompensa: { puntos: 5 }
     },
     {
       id: 'c15', nivel: 15, sabio: 'Hermana Ysolde', npc: 'guru-3', titulo: 'El juramento en la fuente',
-      encargo: 'Rowan te pide visitar una {lugar} para purificar las armas tras la gran batalla y renovar vuestro juramento de protección sobre Aden.',
-      texto: 'Bajo el fulgor de la fuente arcana, las aguas limpian el óxido y el cansancio. Rowan sonríe: ya no es un muchacho tímido de aldea, sino un auténtico héroe de leyenda.',
+      encargo: 'Rowan te pide acudir a la {lugar} más remota para purificar las armas teñidas de aceite oscuro y sellar un pacto que impida que nadie vuelva a alzar una forja de pesadilla en Aden.',
+      texto: 'Bajo el fulgor de las aguas transparentes, el aceite negro se disuelve en vapor blanco. Rowan sonríe: el muchacho campesino con ropas gastadas es ahora un auténtico señor de armas y el guardián más leal que jamás haya cabalgado a tu lado.',
       mision: { tipo: 'secreto', secreto: 'fuente' },
       recompensa: { puntos: 4 }
     },
     {
       id: 'c16', nivel: 15, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'El héroe de la plaza',
-      encargo: 'Regresad a la plaza de la aldea inicial. La Erudita Mirel y los sabios os aguardan para grabar vuestros nombres en la crónica, junto a los siete reinos.',
-      texto: 'Cuando alguien sube hasta aquí, la plaza le recuerda. Los puestos siguen abiertos, las runas siguen en la muralla, y el camino de piedra lleva a casa. Las campanas doblan al unísono y la multitud os aclama como los Campeones de Aden.',
+      encargo: 'Regresad a la plaza de la aldea inicial. La Erudita Mirel y los ciudadanos congregados os aguardan para juzgar a los Sabios derrotados y grabar vuestros nombres como los Libertadores de Aden.',
+      texto: 'Al cruzar la arcada de piedra, el clamor de la multitud estalla entre banderas y vítores. Las campanas tañen libres de miedo, los puestos del mercado vuelven a lucir sus frutos y telas de colores, y las murallas del reino vuelven a pertenecer a su gente. Vuestras hazañas quedan inmortalizadas en la Crónica: ¡sois los legendarios Campeones de Aden!',
       mision: { tipo: 'hablar', npc: 'guru-5', nombre: 'Erudita Mirel' },
       recompensa: { puntos: 6, titulo: 'Campeones de Aden' }
     }
