@@ -139,7 +139,7 @@
     #zona-marca.show { display: flex; }
     #zona-marca i { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--zona, #fde68a); box-shadow: 0 0 6px var(--zona, #fde68a); }
     #zona-marca span { overflow: hidden; text-overflow: ellipsis; }
-    #minimap { position: absolute; right: 24px; bottom: 150px; width: 150px; height: 150px; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.85); z-index: 16; box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+    #minimap { position: absolute; top: 52px; right: 14px; width: 140px; height: 140px; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.88); z-index: 18; box-shadow: 0 8px 22px rgba(0,0,0,.55); cursor: pointer; }
     #hud { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 24; width: min(440px, calc(100vw - 280px)); display: flex; flex-direction: column; gap: 6px; align-items: center; }
     .hud-bars { width: 100%; display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
     .hud-bars .row { display: flex; align-items: center; gap: 8px; }
@@ -229,12 +229,16 @@
     #minimap { cursor: pointer; }
     #mision {
       position: absolute;
-      top: 50px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 52px;
+      right: 164px;
+      left: auto;
+      transform: none;
       z-index: 19;
-      width: min(330px, calc(100vw - 520px));
-      min-width: 220px;
+      width: min(340px, calc(100vw - 185px));
+      min-width: 230px;
+      max-height: calc(100vh - 70px);
+      overflow-y: auto;
+      scrollbar-width: thin;
       background: rgba(15, 23, 42, 0.92);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
@@ -272,9 +276,13 @@
 
     /* Estado Recogido / Colapsado para tener la pantalla limpia */
     #mision.colapsado {
+      top: 52px;
+      right: 164px;
+      left: auto;
+      transform: none;
       width: auto !important;
       min-width: 0 !important;
-      max-width: min(260px, calc(100vw - 32px));
+      max-width: min(260px, calc(100vw - 185px));
       padding: 3px 10px !important;
       border-radius: 20px !important;
       background: rgba(15, 23, 42, 0.85) !important;
@@ -285,16 +293,23 @@
 
     @media (max-width: 760px) {
       #mision {
-        top: 48px;
-        width: min(300px, calc(100vw - 16px));
+        top: 50px;
+        right: calc(max(8px, env(safe-area-inset-right)) + 88px);
+        left: auto;
+        transform: none;
+        width: min(280px, calc(100vw - 105px));
+        max-height: calc(100vh - 60px);
         min-width: 0;
         padding: 4px 8px;
         border-radius: 8px;
       }
       #mision.colapsado {
-        top: 48px;
+        top: 50px;
+        right: calc(max(8px, env(safe-area-inset-right)) + 88px);
+        left: auto;
+        transform: none;
         width: auto !important;
-        max-width: calc(100vw - 36px);
+        max-width: calc(100vw - 105px);
         padding: 3px 10px !important;
         border-radius: 16px !important;
       }
@@ -843,12 +858,15 @@
         width: min(340px, calc(100vw - 16px)) !important;
       }
 
-      /* Tarjeta de Misión Colapsable */
+      /* Tarjeta de Misión Colapsable al lado del minimapa */
       #mision {
         position: absolute;
-        top: 106px;
-        left: max(8px, env(safe-area-inset-left));
-        width: min(280px, calc(100vw - 94px));
+        top: 48px;
+        right: calc(max(8px, env(safe-area-inset-right)) + 84px);
+        left: auto;
+        transform: none;
+        width: min(290px, calc(100vw - 100px));
+        max-height: calc(100vh - 60px);
         min-width: 0;
         padding: 4px 8px;
         border-radius: 8px;
@@ -858,10 +876,12 @@
         box-shadow: 0 4px 14px rgba(0,0,0,0.5);
       }
       #mision.colapsado {
-        top: 106px;
-        left: max(8px, env(safe-area-inset-left));
+        top: 48px;
+        right: calc(max(8px, env(safe-area-inset-right)) + 84px);
+        left: auto;
+        transform: none;
         width: auto !important;
-        max-width: calc(100vw - 94px);
+        max-width: calc(100vw - 100px);
         padding: 3px 10px !important;
         border-radius: 16px !important;
       }
@@ -1166,26 +1186,24 @@
         font-weight: 600 !important;
       }
 
-      /* Estilo en Pantalla Completa Activa en Horizontal */
+      /* Mantiene la misma distribución limpia en pantalla completa y normal */
       body.modo-fullscreen #top,
       :fullscreen #top,
       :-webkit-full-screen #top {
-        height: 28px !important;
-        background: rgba(15, 23, 42, 0.65) !important;
+        background: rgba(15, 23, 42, 0.85) !important;
         backdrop-filter: blur(10px) !important;
         -webkit-backdrop-filter: blur(10px) !important;
         border-bottom: 1px solid rgba(245, 158, 11, 0.4) !important;
       }
       body.modo-fullscreen #btn-full,
       :fullscreen #btn-full {
-        height: 24px !important;
         box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
       }
 
       /* 2. Barra de Estado de Héroe (Vida, Maná, XP) */
       #hud { display: contents; }
       #hud .hud-bars {
-        top: 34px !important;
+        top: 40px !important;
         left: max(8px, env(safe-area-inset-left)) !important;
         width: 132px !important;
         padding: 2px 5px !important;
@@ -1202,31 +1220,32 @@
 
       /* 3. Minimapa / Radar Circular y Buffs */
       #minimap {
-        top: 34px !important;
+        top: 40px !important;
         right: max(8px, env(safe-area-inset-right)) !important;
-        width: 58px !important;
-        height: 58px !important;
+        width: 68px !important;
+        height: 68px !important;
         border-width: 1.5px !important;
         z-index: 22 !important;
       }
       #hud-dopes {
-        top: 96px !important;
+        top: 112px !important;
         right: max(8px, env(safe-area-inset-right)) !important;
         gap: 2px !important;
         font-size: 8.5px !important;
         z-index: 22 !important;
       }
 
-      /* 4. Tarjeta de Misión Central Compacta */
+      /* 4. Tarjeta de Misión Principal y Secundarias junto al mapa */
       #mision {
-        top: 34px !important;
-        left: calc(max(8px, env(safe-area-inset-left)) + 140px) !important;
+        top: 40px !important;
+        right: calc(max(8px, env(safe-area-inset-right)) + 74px) !important;
+        left: auto !important;
         max-width: calc(100vw - 230px) !important;
         width: auto !important;
         padding: 2px 8px !important;
         border-radius: 6px !important;
         z-index: 21 !important;
-        background: rgba(15, 23, 42, 0.85) !important;
+        background: rgba(15, 23, 42, 0.9) !important;
       }
       #mision .m-cap { font-size: 9.5px !important; }
       #mision .m-obj {
@@ -1241,8 +1260,9 @@
       #mision .m-pie { font-size: 8.5px !important; }
       #mision .m-pie button { padding: 1px 4px !important; font-size: 8.5px !important; }
       #mision.colapsado {
-        top: 34px !important;
-        left: calc(max(8px, env(safe-area-inset-left)) + 140px) !important;
+        top: 40px !important;
+        right: calc(max(8px, env(safe-area-inset-right)) + 74px) !important;
+        left: auto !important;
         padding: 2px 8px !important;
       }
       #zona-marca { display: none !important; }
@@ -1462,6 +1482,13 @@
           <button id="mision-ir">🧭 Llévame</button>
           <button id="mision-guia-comp" title="Consultar a tu compañero para que te oriente y aconseje dónde ir" style="background:#0f172a;border:1px solid #f59e0b;color:#fde047;border-radius:4px;padding:2px 6px;font-size:10.5px;cursor:pointer">🗣️ Guía</button>
         </div>
+      </div>
+      <div id="mision-secundarias" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.12);padding-top:4px;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:10.5px;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:0.5px">⚔️ Secundarias</span>
+          <span id="mision-sec-total" style="font-size:9.5px;color:#94a3b8"></span>
+        </div>
+        <div id="mision-sec-lista" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;scrollbar-width:thin"></div>
       </div>
     </div>
   </div>
@@ -5793,7 +5820,13 @@
     $('sk-shop').disabled = hero.dead || !curTown;
     if ($('shop').classList.contains('show')) renderShop();
     actualizarHudDopes();
+    if (now - _lastHudMisionDist > 250) {
+      _lastHudMisionDist = now;
+      if (typeof actualizarContadorRuta === 'function') actualizarContadorRuta();
+    }
   }
+
+  let _lastHudMisionDist = 0;
 
   // Renderiza en pantalla el HUD de dopes y buffs activos con tiempo regresivo (solo toca el DOM si cambia)
   let _ultimaClaveDopes = '';
@@ -5903,10 +5936,25 @@
     const p = character.root.position;
     const px = p.x, pz = p.z;
     const V = MapaLib.centrada(px, pz, R, S);   // el personaje en el centro
+    const cx = S / 2, cy = S / 2;
+
+    // Orientación dinámica hacia la marcha (Heading-Up):
+    // La dirección hacia la que mira el jugador (f) siempre apuntará vertical hacia arriba.
+    const f = MapaLib.frente(character.anguloY ? character.anguloY() : 0);
+    const forwardAngle = Math.atan2(f.dy, f.dx);
+    const rotMap = -Math.PI / 2 - forwardAngle;
+
     g.clearRect(0, 0, S, S);
     g.save();
-    g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 2, 0, Math.PI * 2); g.clip();
+    g.beginPath(); g.arc(cx, cy, S / 2 - 2, 0, Math.PI * 2); g.clip();
     g.fillStyle = enMazmorra ? '#090d16' : '#1e3a5f'; g.fillRect(0, 0, S, S);
+
+    // Capa del mundo rotada dinámicamente alrededor del jugador
+    g.save();
+    g.translate(cx, cy);
+    g.rotate(rotMap);
+    g.translate(-cx, -cy);
+
     if (enMazmorra) {
       const procM = gestorMazmorras && gestorMazmorras.instanciaProcedural;
       const visSet = gestorMazmorras && gestorMazmorras.estanciasVisibles;
@@ -5930,15 +5978,74 @@
         }
       }
     } else {
+      // 1. Texturas y colores de biomas del terreno (hierba, bosque, desierto, montaña, nieve, pantano, etc.)
+      if (terrain && typeof terrain.biomeAt === 'function') {
+        const stepM = 24;
+        const limGrid = R + stepM;
+        for (let gx = -limGrid; gx <= limGrid; gx += stepM) {
+          for (let gz = -limGrid; gz <= limGrid; gz += stepM) {
+            if (gx * gx + gz * gz > limGrid * limGrid) continue;
+            const wx = px + gx, wz = pz + gz;
+            const b = terrain.biomeAt(wx, wz);
+            const col = (typeof W !== 'undefined' && W.BIOMES && W.BIOMES[b]) ? W.BIOMES[b].color : [127, 174, 90];
+            g.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
+            const xPix = V.px(wx - stepM / 2);
+            const yPix = V.py(wz - stepM / 2);
+            const sPix = stepM * V.escala + 1.2;
+            g.fillRect(xPix, yPix, sPix, sPix);
+          }
+        }
+      }
+
+      // 2. Lagos y oasis (lagosMundo)
+      if (typeof lagosMundo !== 'undefined' && lagosMundo && lagosMundo.length) {
+        for (let i = 0; i < lagosMundo.length; i++) {
+          const l = lagosMundo[i];
+          const rad = l.R || 22;
+          if (Math.abs(l.x - px) > R + rad || Math.abs(l.z - pz) > R + rad) continue;
+          g.beginPath();
+          g.arc(V.px(l.x), V.py(l.z), rad * V.escala, 0, Math.PI * 2);
+          g.fillStyle = l.tipo === 'oasis' ? 'rgba(45, 140, 160, 0.85)' : 'rgba(35, 95, 140, 0.85)';
+          g.fill();
+          g.strokeStyle = '#0284c7';
+          g.lineWidth = 1.5;
+          g.stroke();
+        }
+      }
+
+      // 3. Ríos del mundo exterior (rios)
+      if (typeof rios !== 'undefined' && rios && rios.length) {
+        g.strokeStyle = 'rgba(56, 189, 248, 0.88)';
+        g.lineWidth = Math.max(3, 7 * V.escala);
+        g.lineCap = 'round';
+        g.lineJoin = 'round';
+        for (let i = 0; i < rios.length; i++) {
+          const r = rios[i];
+          if (!r.segs) continue;
+          for (let j = 0; j < r.segs.length; j++) {
+            const s = r.segs[j];
+            if (Math.abs(s.ax - px) > R + 30 && Math.abs(s.bx - px) > R + 30) continue;
+            if (Math.abs(s.az - pz) > R + 30 && Math.abs(s.bz - pz) > R + 30) continue;
+            g.beginPath();
+            g.moveTo(V.px(s.ax), V.py(s.az));
+            g.lineTo(V.px(s.bx), V.py(s.bz));
+            g.stroke();
+          }
+        }
+      }
+
+      // 4. Zonas de monstruos y auras
       for (let i = 0, nz = world.zones.length; i < nz; i++) {
         const z = world.zones[i];
         const limZ = R + z.radius;
         if (Math.abs(z.x - px) > limZ || Math.abs(z.y - pz) > limZ) continue;
         g.beginPath(); g.arc(V.px(z.x), V.py(z.y), z.radius * V.escala, 0, Math.PI * 2);
-        g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.25)' : 'rgba(250,204,21,.22)';
+        g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.22)' : 'rgba(250,204,21,.2)';
         g.fill();
       }
-      g.lineWidth = Math.max(2, 6 * V.escala); g.strokeStyle = '#8b6b43';
+
+      // 5. Caminos y calzadas
+      g.lineWidth = Math.max(2.5, 6 * V.escala); g.strokeStyle = '#8b6b43';
       for (let i = 0, nr = world.roads.length; i < nr; i++) {
         const r = world.roads[i];
         const pts = r.points;
@@ -5961,31 +6068,43 @@
         }
         g.stroke();
       }
+
+      // 6. Trazado de ruta activa (Llévame)
+      if (ruta && ruta.puntos && ruta.puntos.length) {
+        g.save();
+        g.strokeStyle = '#38bdf8';
+        g.lineWidth = 3;
+        g.setLineDash([4, 4]);
+        g.beginPath();
+        g.moveTo(V.px(px), V.py(pz));
+        for (let k = Math.max(0, ruta.i || 0); k < ruta.puntos.length; k++) {
+          g.lineTo(V.px(ruta.puntos[k].x), V.py(ruta.puntos[k].y));
+        }
+        g.stroke();
+        g.restore();
+      }
+
+      // 7. Pueblos
       for (let i = 0; i < towns.length; i++) {
         const o = towns[i];
-        if (Math.abs(o.t.x - px) > R + 12 || Math.abs(o.t.y - pz) > R + 12) continue;
+        if (Math.abs(o.t.x - px) > R + 14 || Math.abs(o.t.y - pz) > R + 14) continue;
+        const tx = V.px(o.t.x), ty = V.py(o.t.y);
         g.fillStyle = o.t.isStart ? '#fbbf24' : '#e2e8f0';
-        g.fillRect(V.px(o.t.x) - 4, V.py(o.t.y) - 4, 8, 8);
+        g.fillRect(tx - 5, ty - 5, 10, 10);
+        g.strokeStyle = '#0f172a';
+        g.lineWidth = 1.5;
+        g.strokeRect(tx - 5, ty - 5, 10, 10);
       }
     }
-    const limMon = R + 8;
-    const listaMinimap = enMazmorra ? monstruosMazmorra : monsters;
-    for (let i = 0, nm = listaMinimap.length; i < nm; i++) {
-      const m = listaMinimap[i];
-      if (!m.alive) continue;
-      if (enMazmorra ? !m.dungeonInfoRef : !!m.dungeonInfoRef) continue;
-      if (Math.abs(m.x - px) > limMon || Math.abs(m.z - pz) > limMon) continue;
-      g.fillStyle = m.boss ? '#ef4444' : '#f97316';
-      g.beginPath(); g.arc(V.px(m.x), V.py(m.z), enMazmorra ? 3.5 : 2.5, 0, Math.PI * 2); g.fill();
-    }
+
+    // 8. Cabañas y lugares secretos
     if (!enMazmorra && lugaresSecretos && lugaresSecretos.length) {
-      const limSec = R + 12;
+      const limSec = R + 14;
       for (let i = 0; i < lugaresSecretos.length; i++) {
         const s = lugaresSecretos[i];
         const dx = px - s.x, dz = pz - s.z;
         if (Math.abs(dx) > limSec || Math.abs(dz) > limSec) continue;
         if (s.tipo === 'cabana') {
-          // Cabañas visibles siempre en el minimapa con marcador distintivo
           const m = s.misionCabana || {};
           const cumplida = m.entregada || m.cumplida;
           const completada = m.completada || (m.progreso >= (m.cantidad || 100));
@@ -5998,38 +6117,111 @@
         }
       }
     }
+
+    // 9. Monstruos y objetivos activos de misión
+    const limMon = R + 8;
+    const listaMinimap = enMazmorra ? monstruosMazmorra : monsters;
+    for (let i = 0, nm = listaMinimap.length; i < nm; i++) {
+      const m = listaMinimap[i];
+      if (!m.alive) continue;
+      if (enMazmorra ? !m.dungeonInfoRef : !!m.dungeonInfoRef) continue;
+      if (Math.abs(m.x - px) > limMon || Math.abs(m.z - pz) > limMon) continue;
+      if (m._misionActiva) {
+        g.strokeStyle = '#fde047';
+        g.lineWidth = 2;
+        g.beginPath(); g.arc(V.px(m.x), V.py(m.z), 5.5, 0, Math.PI * 2); g.stroke();
+      }
+      g.fillStyle = m.boss ? '#ef4444' : '#f97316';
+      g.beginPath(); g.arc(V.px(m.x), V.py(m.z), enMazmorra ? 3.5 : 2.5, 0, Math.PI * 2); g.fill();
+    }
+
+    // 10. Acompañante
     if (acompanante && acompanante.activo) {
       g.fillStyle = '#22c55e';
       g.beginPath(); g.arc(V.px(acompanante.x), V.py(acompanante.z), 3.5, 0, Math.PI * 2); g.fill();
     }
-    g.restore();
-    // Anillos de distancia desde el personaje
+
+    g.restore(); // Fin de la rotación del mundo
+
+    // 11. Etiquetas derechas y legibles para Pueblos y Cabañas
+    if (!enMazmorra) {
+      g.save();
+      g.font = 'bold 11px sans-serif';
+      g.textAlign = 'center';
+      for (let i = 0; i < towns.length; i++) {
+        const o = towns[i];
+        const dxM = o.t.x - px, dzM = o.t.y - pz;
+        if (Math.hypot(dxM, dzM) > R - 15) continue;
+        const rx = dxM * V.escala, ry = dzM * V.escala;
+        const sx = cx + rx * Math.cos(rotMap) - ry * Math.sin(rotMap);
+        const sy = cy + rx * Math.sin(rotMap) + ry * Math.cos(rotMap);
+        g.lineWidth = 3; g.strokeStyle = '#090d16'; g.strokeText(o.t.name, sx, sy - 8);
+        g.fillStyle = '#fde047'; g.fillText(o.t.name, sx, sy - 8);
+      }
+      if (lugaresSecretos) {
+        for (let i = 0; i < lugaresSecretos.length; i++) {
+          const s = lugaresSecretos[i];
+          if (s.tipo !== 'cabana') continue;
+          const dxM = s.x - px, dzM = s.z - pz;
+          if (Math.hypot(dxM, dzM) > R - 15) continue;
+          const rx = dxM * V.escala, ry = dzM * V.escala;
+          const sx = cx + rx * Math.cos(rotMap) - ry * Math.sin(rotMap);
+          const sy = cy + rx * Math.sin(rotMap) + ry * Math.cos(rotMap);
+          g.lineWidth = 3; g.strokeStyle = '#090d16'; g.strokeText('🏡 ' + s.nombre, sx, sy - 8);
+          g.fillStyle = '#38bdf8'; g.fillText('🏡 ' + s.nombre, sx, sy - 8);
+        }
+      }
+      g.restore();
+    }
+
+    // 12. Anillos de distancia concéntricos fijos
     g.save();
-    g.setLineDash([3, 4]); g.lineWidth = 1; g.strokeStyle = 'rgba(226,232,240,.35)';
-    g.font = 'bold 19px sans-serif'; g.fillStyle = 'rgba(226,232,240,.9)'; g.textAlign = 'left';
+    g.setLineDash([3, 4]); g.lineWidth = 1; g.strokeStyle = 'rgba(226,232,240,.3)';
+    g.font = 'bold 12px sans-serif'; g.fillStyle = 'rgba(226,232,240,.85)'; g.textAlign = 'left';
     (enMazmorra ? [25, 50] : [100, 200]).forEach(m => {
-      g.beginPath(); g.arc(S / 2, S / 2, m * V.escala, 0, Math.PI * 2); g.stroke();
-      g.fillText(m + ' m', S / 2 + 6, S / 2 - m * V.escala + 20);
+      g.beginPath(); g.arc(cx, cy, m * V.escala, 0, Math.PI * 2); g.stroke();
+      g.fillText(m + ' m', cx + 6, cy - m * V.escala + 14);
     });
     g.restore();
-    // Flecha: hacia donde mira el personaje (su frente en el mapa es (sin yaw, cos yaw))
-    const f = MapaLib.frente(character.anguloY());
-    const cx = S / 2, cy = S / 2;
+
+    // 13. Flecha fija del jugador: apunta siempre hacia arriba en la pantalla
     g.beginPath();
-    g.moveTo(cx + f.dx * 26, cy + f.dy * 26);
-    g.lineTo(cx - f.dx * 10 - f.dy * 11, cy - f.dy * 10 + f.dx * 11);
-    g.lineTo(cx - f.dx * 10 + f.dy * 11, cy - f.dy * 10 - f.dx * 11);
+    g.moveTo(cx, cy - 18);
+    g.lineTo(cx - 8, cy + 9);
+    g.lineTo(cx, cy + 5);
+    g.lineTo(cx + 8, cy + 9);
     g.closePath();
     g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.fill(); g.stroke();
-    g.fillStyle = '#e2e8f0'; g.font = 'bold 26px sans-serif'; g.textAlign = 'center';
-    g.fillText('N', S / 2, 30);
-    // Coordenadas del personaje (x e y en metros, y = z del mundo 3D)
+
+    // 14. Indicador de Norte Verdadero ("N") orbitando en el borde del minimapa
+    const northAngle = -Math.PI / 2 + rotMap;
+    const rRim = S / 2 - 14;
+    const nx = cx + rRim * Math.cos(northAngle);
+    const ny = cy + rRim * Math.sin(northAngle);
+    g.beginPath();
+    g.arc(nx, ny, 10, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    g.strokeStyle = '#ef4444';
+    g.lineWidth = 1.8;
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#ef4444';
+    g.font = 'bold 11px sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText('N', nx, ny);
+
+    // 15. Coordenadas del personaje
     const txt = 'x ' + Math.round(p.x) + ' · y ' + Math.round(p.z);
-    g.font = 'bold 24px sans-serif';
-    const ancho = g.measureText(txt).width + 20;
-    g.fillStyle = 'rgba(11,17,30,.9)';
-    g.fillRect(S / 2 - ancho / 2, S - 52, ancho, 34);
-    g.fillStyle = '#e2e8f0'; g.fillText(txt, S / 2, S - 27);
+    g.font = 'bold 11px sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'alphabetic';
+    const ancho = g.measureText(txt).width + 12;
+    g.fillStyle = 'rgba(11,17,30,.85)';
+    g.fillRect(cx - ancho / 2, S - 22, ancho, 16);
+    g.fillStyle = '#e2e8f0'; g.fillText(txt, cx, S - 10);
+
+    g.restore(); // Fin del clip circular
   }
 
   // Mapa del mundo (esquema): se abre al pulsar el minimapa. Pueblos, caminos, zonas, lugares y tu posición.
@@ -7634,20 +7826,41 @@
     const elDist = $('mision-dist');
     const btnIr = $('mision-ir');
     if (!elDist && !btnIr) return;
-    if (!ruta) {
-      if (elDist) elDist.style.display = 'none';
-      return;
+    const pPos = (character && character.root) ? character.root.position : null;
+    let m = 0;
+    if (ruta) {
+      m = metrosRestantesRuta();
+    } else if (pPos && typeof destinoDeMision === 'function') {
+      const dM = destinoDeMision({ x: pPos.x, y: pPos.z });
+      if (dM) m = Math.round(Math.hypot(pPos.x - dM.x, pPos.z - dM.y));
     }
-    const m = metrosRestantesRuta();
     const textoM = m >= 1000 ? (m / 1000).toFixed(1) + ' km' : m + ' m';
     if (elDist) {
       elDist.textContent = '📍 ' + textoM;
-      elDist.style.display = '';
-      elDist.title = 'Distancia restante a pie hasta el objetivo: ' + m + ' metros';
+      elDist.style.display = m > 0 ? '' : 'none';
+      elDist.title = ruta ? ('Distancia restante a pie: ' + m + ' m') : ('Distancia al objetivo: ' + m + ' m');
     }
     if (btnIr) {
-      btnIr.textContent = `⏹ Parar (${textoM})`;
-      btnIr.title = 'Detener el avance automático a la misión (' + m + ' m restantes)';
+      if (ruta) {
+        btnIr.textContent = `⏹ Parar (${textoM})`;
+        btnIr.title = 'Detener el avance automático a la misión (' + m + ' m restantes)';
+      } else {
+        btnIr.textContent = '🧭 Llévame';
+        btnIr.title = 'Ir automáticamente hacia la misión (' + textoM + ' restantes)';
+      }
+    }
+    if (pPos) {
+      document.querySelectorAll('[data-dist-sec]').forEach(el => {
+        const coords = (el.dataset.distSec || '').split(':');
+        if (coords.length === 2) {
+          const sx = parseFloat(coords[0]), sz = parseFloat(coords[1]);
+          if (!isNaN(sx) && !isNaN(sz)) {
+            const dSec = Math.round(Math.hypot(pPos.x - sx, pPos.z - sz));
+            const tSec = dSec >= 1000 ? (dSec / 1000).toFixed(1) + ' km' : dSec + ' m';
+            el.textContent = '· 📍 ' + tSec;
+          }
+        }
+      });
     }
   }
 
@@ -7661,6 +7874,8 @@
       $('mision-prog').textContent = '';
       $('mision-ir').style.display = 'none';
       if ($('mision-dist')) $('mision-dist').style.display = 'none';
+      const secCont = $('mision-secundarias');
+      if (secCont) secCont.style.display = 'none';
       return;
     }
     if (heroeEst && heroeEst.forjaPendiente) {
@@ -7674,12 +7889,7 @@
       $('mision-obj').textContent = '🔨 ¡Materiales reunidos! Vuelve a la forja del pueblo y habla con el Herrero Brann para forjar tu ' + nPieza + '.';
       $('mision-prog').innerHTML = '<span style="color:#facc15;font-weight:bold">Materiales listos (100%)</span> · Habla con el Herrero Brann';
       $('mision-ir').style.display = '';
-      if (ruta) {
-        actualizarContadorRuta();
-      } else {
-        $('mision-ir').textContent = '🧭 Ir al Herrero';
-        if ($('mision-dist')) $('mision-dist').style.display = 'none';
-      }
+      actualizarContadorRuta();
       return;
     }
     const o = HistoriaLib.asegurarObjetivo(p, world);
@@ -7701,20 +7911,135 @@
       </div>`;
     }
 
+    const quedanP = Math.max(0, o.cantidad - p.progreso);
+    const badgeQuedan = quedanP === 0 ? '<span style="color:#4ade80;font-weight:700">✓ Listo</span>' : `(quedan <b>${quedanP}</b>)`;
+
     $('mision-obj').innerHTML = esc(o.texto) + avisoCabana;
-    $('mision-prog').innerHTML = p.progreso + ' / ' + o.cantidad + ' · <span' + (hero.level < cap.nivel ? ' class="m-aviso"' : '') + '>nivel recomendado ' + cap.nivel + '</span>';
+    $('mision-prog').innerHTML = `${p.progreso} / ${o.cantidad} ${badgeQuedan} · <span${hero.level < cap.nivel ? ' class="m-aviso"' : ''}>nv ${cap.nivel}</span>`;
     $('mision-ir').style.display = '';
-    if (ruta) {
-      actualizarContadorRuta();
-    } else {
-      $('mision-ir').textContent = '🧭 Llévame';
-      if ($('mision-dist')) $('mision-dist').style.display = 'none';
-    }
+    actualizarContadorRuta();
+
     if ($('mision-guia-comp')) {
       const nomC = (acompanante && acompanante.nombre) ? acompanante.nombre : 'Rowan';
       $('mision-guia-comp').textContent = '🗣️ Guía de ' + nomC;
       $('mision-guia-comp').onclick = e => { e.stopPropagation(); interactuarConAcompanante(); };
     }
+
+    // Actualizar bloque de misiones secundarias (Cabañas y Encargos de zonas)
+    const secCont = $('mision-secundarias');
+    const secLista = $('mision-sec-lista');
+    const secTotal = $('mision-sec-total');
+    if (secCont && secLista) {
+      const activas = [];
+      const posH = (character && character.root) ? character.root.position : { x: 0, z: 0 };
+
+      // Cabañas aceptadas activas
+      (lugaresSecretos || []).forEach(s => {
+        if (s.tipo === 'cabana' && s.misionCabana && s.misionCabana.aceptada && !s.misionCabana.entregada) {
+          const mc = s.misionCabana;
+          const cant = mc.cantidad || 100;
+          const prog = mc.progreso || 0;
+          const quedan = Math.max(0, cant - prog);
+          const dist = Math.round(Math.hypot(posH.x - s.x, posH.z - s.z));
+          const completada = prog >= cant;
+          activas.push({
+            tipo: 'cabana',
+            id: s.id,
+            ref: s,
+            icono: '🏡',
+            nombre: s.nombre,
+            detalle: `Caza de ${mc.especie || 'Monstruos'}`,
+            progreso: prog,
+            total: cant,
+            quedan: quedan,
+            completada: completada,
+            distancia: dist,
+            x: s.x,
+            z: s.z
+          });
+        }
+      });
+
+      // Encargos de zona aceptados
+      if (heroeEst && heroeEst.zonas) {
+        Object.keys(heroeEst.zonas).forEach(idZona => {
+          const zSt = heroeEst.zonas[idZona];
+          if (zSt && !zSt.entregada) {
+            const mInfo = (typeof misionPorZona !== 'undefined') ? misionPorZona[idZona] : null;
+            const zObj = (world && world.zones) ? world.zones.find(wz => wz.id === idZona || (mInfo && (wz.id === mInfo.zona || wz.name === mInfo.zonaNombre))) : null;
+            const zx = zObj ? zObj.x : 0;
+            const zz = zObj ? zObj.y : 0;
+            const dist = zObj ? Math.round(Math.hypot(posH.x - zx, posH.z - zz)) : 0;
+            const cant = zSt.cantidad || (mInfo ? mInfo.cantidad : 10);
+            const prog = zSt.progreso || 0;
+            const quedan = Math.max(0, cant - prog);
+            const completada = !!zSt.lista || prog >= cant;
+            activas.push({
+              tipo: 'zona',
+              id: idZona,
+              ref: zObj,
+              icono: '⚔️',
+              nombre: mInfo ? mInfo.titulo : ('Zona ' + idZona),
+              detalle: mInfo ? mInfo.zonaNombre : 'Zona de combate',
+              progreso: prog,
+              total: cant,
+              quedan: quedan,
+              completada: completada,
+              distancia: dist,
+              x: zx,
+              z: zz
+            });
+          }
+        });
+      }
+
+      if (activas.length > 0) {
+        secCont.style.display = 'block';
+        if (secTotal) secTotal.textContent = activas.length + ' activa' + (activas.length > 1 ? 's' : '');
+        activas.sort((a, b) => a.distancia - b.distancia);
+        secLista.innerHTML = activas.map(sec => {
+          const distTxt = sec.distancia >= 1000 ? (sec.distancia / 1000).toFixed(1) + ' km' : sec.distancia + ' m';
+          const estadoTxt = sec.completada
+            ? '<span style="color:#facc15;font-weight:700">¡Listo! Cobrar</span>'
+            : `${sec.progreso}/${sec.total} (quedan <b>${sec.quedan}</b>)`;
+          return `
+            <div style="background:rgba(15,23,42,0.75);border:1px solid rgba(56,189,248,0.25);border-radius:5px;padding:3px 6px;display:flex;align-items:center;justify-content:space-between;gap:6px">
+              <div style="min-width:0;flex:1">
+                <div style="font-size:10px;font-weight:600;color:#fde047;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  ${sec.icono} ${esc(sec.nombre)}
+                </div>
+                <div style="font-size:9px;color:#cbd5e1;display:flex;align-items:center;gap:4px">
+                  <span>${estadoTxt}</span>
+                  <span data-dist-sec="${sec.x}:${sec.z}" style="color:#38bdf8;font-weight:600">· 📍 ${distTxt}</span>
+                </div>
+              </div>
+              <button data-ir-sec="${sec.tipo}:${sec.id}" style="padding:2px 6px;font-size:9.5px;background:#0369a1;color:#fff;border:1px solid #38bdf8;border-radius:4px;cursor:pointer;white-space:nowrap">
+                ${sec.completada ? '🎁 Cobrar' : '🧭 Ir'}
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        secLista.querySelectorAll('[data-ir-sec]').forEach(btn => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const [t, id] = btn.dataset.irSec.split(':');
+            const item = activas.find(x => x.tipo === t && String(x.id) === String(id));
+            if (!item) return;
+            if (item.tipo === 'cabana' && item.completada) {
+              focusPoint(item.x, item.z, 90, { kind: 'cabana', ref: item.ref });
+              abrirServicio('cabana', { id: 'npc-' + item.id, nombre: item.ref.aldeano, tema: 'Encargo de la Cabaña', cabana: item.ref });
+            } else {
+              focusPoint(item.x, item.z, 90, { kind: item.tipo, ref: item.ref });
+              irAPunto(item.x, item.z, item.nombre, 4);
+            }
+          };
+        });
+      } else {
+        secCont.style.display = 'none';
+      }
+    }
+
     if (typeof buildCabanasUI === 'function') buildCabanasUI();
     actualizarMarcadoresMisionMonstruos();
   }
@@ -8041,7 +8366,7 @@
     else irAMision();
   };
   $('mision').onclick = e => {
-    if (e.target.closest('#mision-ir') || e.target.closest('#mision-guia-comp') || e.target.closest('#mision-toggle')) return;
+    if (e.target.closest('#mision-ir') || e.target.closest('#mision-guia-comp') || e.target.closest('#mision-toggle') || e.target.closest('[data-ir-sec]')) return;
     if ($('mision').classList.contains('colapsado')) {
       alternarColapsoMision(e);
       return;
