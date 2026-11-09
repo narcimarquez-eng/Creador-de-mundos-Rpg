@@ -688,7 +688,7 @@
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
       }
-      #mision, #dungeon-boss-hud, #dungeon-prompt {
+      #mision, #dungeon-boss-hud, #dungeon-prompt, #culminacion-prompt {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
       }
@@ -1871,6 +1871,12 @@
     <div style="font-size:12px;color:#cbd5e1">Has recorrido los 30 metros del corredor. <b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para cruzar a la Mazmorra.</div>
   </div>
 
+  <!-- Prompt interactivo para culminación de zona de caza (Reliquia de Misión o Santuario) -->
+  <div id="culminacion-prompt" style="display:none;position:fixed;bottom:135px;left:50%;transform:translateX(-50%);z-index:90;background:rgba(15,23,42,0.94);border:1.5px solid #38bdf8;box-shadow:0 0 25px rgba(56,189,248,0.6);border-radius:12px;padding:10px 18px;text-align:center;backdrop-filter:blur(8px);cursor:pointer">
+    <div id="cp-title" style="font-weight:700;font-size:14px;color:#e0f2fe;margin-bottom:3px">🔮 Objeto de Misión</div>
+    <div id="cp-desc" style="font-size:12px;color:#cbd5e1"><b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para interactuar.</div>
+  </div>
+
   <!-- Modal de Victoria en la Mazmorra -->
   <div class="modal-bg" id="modal-dungeon-victory" style="display:none;z-index:999">
     <div class="modal" style="width:min(480px,92vw);text-align:center;border:1.5px solid #a855f7;box-shadow:0 0 35px rgba(168,85,247,0.5)">
@@ -1903,6 +1909,7 @@
   <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20261107"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
+  <script defer src="js/relieve-zona.js?v=20261110"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
@@ -2190,6 +2197,10 @@
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
     h = LagosLib.aplicar(lagosMundo, x, z, h);
+    // Relieve especial de zonas de caza: caminos rocosos, desfiladeros, laberintos y recovecos
+    if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.aplicarRelieve && world && world.zones) {
+      h = RelieveZonaLib.aplicarRelieve(world.zones, x, z, h);
+    }
     // Hondonada y aplanado topográfico para las cabañas en pendiente (sin suelo artificial)
     if (typeof LugaresSecretosLib !== 'undefined' && LugaresSecretosLib.aplicarRebajeCabanas) {
       if ((!lugaresSecretos || !lugaresSecretos.length) && world) {
@@ -2685,6 +2696,30 @@
       rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
     });
 
+    // Oasis especiales de zonas de caza con culminación 'oasis'
+    if (world && world.zones && typeof LagosLib !== 'undefined') {
+      world.zones.forEach(z => {
+        if (z.relieve && z.relieve.activo && z.relieve.culminacion === 'oasis') {
+          const yaExiste = lagosMundo.some(l => Math.hypot(l.x - z.x, l.z - z.y) < 25);
+          if (!yaExiste) {
+            const hOasis = (terrain.elevation(z.x, z.y) - SEA) * HEIGHT_SCALE - 0.35;
+            lagosMundo.push({
+              x: z.x,
+              z: z.y,
+              R: Math.max(14, Math.min(24, (z.radius || 100) * 0.16)),
+              tipo: 'oasis',
+              bioma: z.biome || 'desierto',
+              nivel: hOasis,
+              prof: 1.8,
+              honda: 0x1a7f8a,
+              clara: 0x5fd0c4,
+              esOasisZona: true
+            });
+          }
+        }
+      });
+    }
+
     // Lugares secretos y cabañas: se generan antes del relieve para que el terreno rebaje y aplane la huella de cada cabaña
     if (typeof LugaresSecretosLib !== 'undefined') {
       lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
@@ -2888,7 +2923,11 @@
       const k = j * N + i;
       const nv = TerrainLib.nodeNormal(heightAt, i, j, n, step);
       nrm[k * 3] = nv[0]; nrm[k * 3 + 1] = nv[1]; nrm[k * 3 + 2] = nv[2];
-      const w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
+      let w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
+      if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.obtenerRelieveZona && world && world.zones) {
+        const rz = RelieveZonaLib.obtenerRelieveZona(world.zones, pos[k * 3], pos[k * 3 + 2]);
+        if (rz) w = RelieveZonaLib.splatZona(rz, pos[k * 3], pos[k * 3 + 2], 1 - nv[1], heightAt(i, j), w);
+      }
       splat.set(w.splat, k * 4);
       snowA[k] = w.snow;
     }
@@ -3205,7 +3244,11 @@
       pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z;
       col[k * 3] = 1 - 0.55 * (1 - c[0] / 255); col[k * 3 + 1] = 1 - 0.55 * (1 - c[1] / 255); col[k * 3 + 2] = 1 - 0.55 * (1 - c[2] / 255);
       nrm.set(nv, k * 3);
-      const w = TerrainLib.splatFor(b, 1 - nv[1], h);
+      let w = TerrainLib.splatFor(b, 1 - nv[1], h);
+      if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.obtenerRelieveZona && world && world.zones) {
+        const rz = RelieveZonaLib.obtenerRelieveZona(world.zones, x, z);
+        if (rz) w = RelieveZonaLib.splatZona(rz, x, z, 1 - nv[1], h, w);
+      }
       splat.set(w.splat, k * 4); snowA[k] = w.snow;
     }
     const idx = [];
@@ -3784,7 +3827,16 @@
     zonaU.uZona.value.set(en ? curZone.x : 0, en ? curZone.y : 0, en ? curZone.radius : 0);
   }
 
+  let decoracionesCulminacion = [];
+  function limpiarDecoracionesCulminacion() {
+    if (decoracionesCulminacion && decoracionesCulminacion.length) {
+      decoracionesCulminacion.forEach(g => scene.remove(g));
+    }
+    decoracionesCulminacion = [];
+  }
+
   function buildZones() {
+    limpiarDecoracionesCulminacion();
     const mb = new MB();
     world.zones.forEach(z => {
       const pts = W.zoneOutline(z, 48).map(p => [p.x, H(p.x, p.y) + 1.2, p.y]);
@@ -3799,6 +3851,19 @@
     });
     zoneMesh = new THREE.Mesh(mb.geom(), zonaMat);
     scene.add(zoneMesh);
+
+    // Decorados 3D de culminación de zonas con relieve especial
+    if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.crearDecoradoCulminacion) {
+      world.zones.forEach(z => {
+        if (z.relieve && z.relieve.activo) {
+          const dec = RelieveZonaLib.crearDecoradoCulminacion(THREE, z, H);
+          if (dec) {
+            scene.add(dec);
+            decoracionesCulminacion.push(dec);
+          }
+        }
+      });
+    }
   }
   const zoneLines = [];
 
@@ -5131,6 +5196,44 @@
           monsters.push(m);
         }
       });
+
+      // Si la culminación es 'jefe' y no hay jefe en la lista de monstruos, generar el Jefe de Culminación en el centro
+      if (z.relieve && z.relieve.activo && z.relieve.culminacion === 'jefe') {
+        const tieneJefe = z.monsters.some(m => m.boss);
+        if (!tieneJefe) {
+          const nivelJefe = Math.max(z.levelMax + 2, 8);
+          const bossM = CombatLib.newMonster({
+            level: nivelJefe,
+            boss: true,
+            rangoElite: 4,
+            x: z.x,
+            z: z.y,
+            leash: z.radius + 35
+          });
+          bossM.name = '💀 [Jefe de Culminación] ' + (z.name ? 'Soberano de ' + z.name : 'Señor del Abismo');
+          bossM.zone = z; bossM.alive = true; bossM.respawnAt = 0; bossM.flashUntil = 0; bossM.phase = 0;
+          bossM.recibirDano = (dmg, fuente = 'hero') => damageMonster(bossM, dmg, fuente);
+          bossM.danoPorFuente = { hero: 0, acompanante: 0 };
+          bossM.danoTotal = 0;
+          bossM.turno = monsters.length % 4;
+          bossM.group = new THREE.Group();
+          bossM.group.userData.monstruo = bossM;
+          bossM.group.scale.setScalar(1.5);
+          bossM.rig = null;
+          bossM.versiones = {};
+          bossM.group.visible = false;
+          scene.add(bossM.group);
+          bossM.bar = new THREE.Group();
+          const bg = new THREE.Mesh(barGeo, bgMat);
+          bossM.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: '#ef4444', depthTest: false }));
+          bossM.fg.position.z = 0.01;
+          bossM.bar.add(bg, bossM.fg);
+          bossM.barHeight = 5.8;
+          bossM.bar.visible = false;
+          scene.add(bossM.bar);
+          monsters.push(bossM);
+        }
+      }
     });
     actualizarMarcadoresMisionMonstruos();
   }
@@ -6092,6 +6195,28 @@
         g.beginPath(); g.arc(V.px(z.x), V.py(z.y), z.radius * V.escala, 0, Math.PI * 2);
         g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.22)' : 'rgba(250,204,21,.2)';
         g.fill();
+
+        // Relieve especial, laberintos y culminación en el minimapa
+        if (z.relieve && z.relieve.activo) {
+          g.save();
+          g.strokeStyle = 'rgba(217,119,6,0.55)';
+          g.lineWidth = Math.max(1.2, 3.5 * V.escala);
+          g.setLineDash([5, 4]);
+          const rMinimap = z.radius * V.escala;
+          for (let k = 0.35; k <= 0.85; k += 0.25) {
+            g.beginPath();
+            g.arc(V.px(z.x), V.py(z.y), rMinimap * k, 0, Math.PI * 2);
+            g.stroke();
+          }
+          g.setLineDash([]);
+          const culm = z.relieve.culminacion || 'oasis';
+          const icon = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES[culm] && window.RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
+          g.font = `${Math.max(11, Math.min(18, Math.round(14 * V.escala)))}px sans-serif`;
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          g.fillText(icon, V.px(z.x), V.py(z.y));
+          g.restore();
+        }
       }
 
       // 5. Caminos y calzadas
@@ -6309,6 +6434,14 @@
       g.globalAlpha = 0.2; g.fillStyle = color; g.fill();
       g.globalAlpha = 0.9; g.strokeStyle = color; g.lineWidth = 2; g.stroke();
       g.globalAlpha = 1;
+      if (z.relieve && z.relieve.activo) {
+        const culm = z.relieve.culminacion || 'oasis';
+        const icon = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES[culm] && window.RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
+        g.font = '16px sans-serif';
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillText(icon, T.px(z.x), T.py(z.y));
+      }
     });
     // Caminos
     g.strokeStyle = '#a16207'; g.lineWidth = 3; g.lineJoin = 'round';
@@ -9381,6 +9514,11 @@
     if (promptEl) promptEl.onclick = () => {
       if (dungeonPromptActiva) entrarEnMazmorra(dungeonPromptActiva);
     };
+
+    const promptCulm = $('culminacion-prompt');
+    if (promptCulm) promptCulm.onclick = () => {
+      interactuarConCulminacion();
+    };
   }
 
   function entrarEnMazmorra(dungeon) {
@@ -9532,6 +9670,106 @@
           dungeonPromptActiva = null;
           if (promptEl) promptEl.style.display = 'none';
         }
+      }
+      // Comprobar proximidad a culminaciones de zonas de caza (Reliquia de Misión o Santuario)
+      actualizarProximidadCulminaciones();
+    }
+  }
+
+  let culminacionPromptActiva = null;
+  function actualizarProximidadCulminaciones() {
+    if (!character || !character.root || !decoracionesCulminacion || !decoracionesCulminacion.length) {
+      if (culminacionPromptActiva) {
+        culminacionPromptActiva = null;
+        const cp = $('culminacion-prompt');
+        if (cp) cp.style.display = 'none';
+      }
+      return;
+    }
+    const px = character.root.position.x;
+    const pz = character.root.position.z;
+    let candidato = null;
+    let menorDistSq = 36; // 6 metros
+    for (let i = 0; i < decoracionesCulminacion.length; i++) {
+      const dec = decoracionesCulminacion[i];
+      const tipo = dec.userData.culminacionTipo;
+      if (tipo !== 'objeto_mision' && tipo !== 'santuario') continue;
+      const dx = dec.position.x - px, dz = dec.position.z - pz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < menorDistSq) {
+        menorDistSq = d2;
+        candidato = { dec, tipo, zonaId: dec.userData.zonaId, zonaNombre: dec.userData.zonaNombre };
+      }
+    }
+    const cp = $('culminacion-prompt');
+    if (candidato) {
+      culminacionPromptActiva = candidato;
+      if (cp) {
+        cp.style.display = 'block';
+        if (candidato.tipo === 'objeto_mision') {
+          $('cp-title').textContent = `🔮 Reliquia Ancestral de ${candidato.zonaNombre || 'la Zona'}`;
+          $('cp-desc').innerHTML = `<b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para recoger el objeto de misión.`;
+        } else {
+          $('cp-title').textContent = `🏛️ Santuario Rúnico Sagrado`;
+          $('cp-desc').innerHTML = `<b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para recibir la Bendición Divina.`;
+        }
+      }
+    } else {
+      culminacionPromptActiva = null;
+      if (cp) cp.style.display = 'none';
+    }
+  }
+
+  function interactuarConCulminacion() {
+    if (!culminacionPromptActiva) return;
+    const c = culminacionPromptActiva;
+    const dec = c.dec;
+    if (c.tipo === 'objeto_mision') {
+      if (dec.userData.recolectado) {
+        toast('Esta reliquia ancestral ya ha sido recogida.');
+        return;
+      }
+      dec.userData.recolectado = true;
+      if (dec.userData.reliquiaMesh) dec.userData.reliquiaMesh.visible = false;
+      const nombreItem = `Reliquia Ancestral de ${c.zonaNombre || 'la Zona'}`;
+      if (inv && inv.items) {
+        inv.items.push({
+          id: 'reliquia_' + c.zonaId,
+          name: nombreItem,
+          tipo: 'mision',
+          icon: '🔮',
+          desc: `Una reliquia ancestral rescatada del fondo de los desfiladeros de ${c.zonaNombre || 'la zona'}.`,
+          rareza: 'epico'
+        });
+        if (typeof renderObjetos === 'function') renderObjetos();
+      }
+      hero.oro = (hero.oro || 0) + 750;
+      hero.xp = (hero.xp || 0) + 1500;
+      toast(`✨ ¡Has recogido la ${nombreItem}! (+750 Oro, +1500 XP)`);
+      if (typeof avanzarHistoria === 'function') {
+        avanzarHistoria({ tipo: 'objeto_zona', zonaId: c.zonaId, nombre: c.zonaNombre });
+      }
+      const cp = $('culminacion-prompt');
+      if (cp) cp.style.display = 'none';
+      culminacionPromptActiva = null;
+    } else if (c.tipo === 'santuario') {
+      hero.hp = hero.maxHp;
+      hero.mp = hero.maxMp;
+      hero.buffSantuarioTimer = 240; // 4 minutos de buff
+      toast('🏛️ ¡Has recibido la Bendición del Santuario Rúnico! (Salud y Maná al 100%, +30% Daño durante 4 min)');
+      if (typeof actualizarHud === 'function') actualizarHud(performance.now());
+    }
+  }
+
+  function actualizarDecoracionesCulminacion(dt, now) {
+    if (!decoracionesCulminacion || !decoracionesCulminacion.length) return;
+    const tRot = now * 0.0018;
+    for (let i = 0; i < decoracionesCulminacion.length; i++) {
+      const g = decoracionesCulminacion[i];
+      if (g.userData.reliquiaMesh && g.userData.reliquiaMesh.visible) {
+        g.userData.reliquiaMesh.rotation.y = tRot;
+        const baseY = g.userData.culminacionTipo === 'santuario' ? 1.6 : 3.6;
+        g.userData.reliquiaMesh.position.y = baseY + Math.sin(now * 0.0035 + i) * 0.18;
       }
     }
   }
@@ -10023,9 +10261,15 @@
     if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
     if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
     if (k === ' ') { e.preventDefault(); useSkill('attack'); }
-    if (k === 'e' && typeof dungeonPromptActiva !== 'undefined' && dungeonPromptActiva) {
-      entrarEnMazmorra(dungeonPromptActiva);
-      return;
+    if (k === 'e') {
+      if (typeof dungeonPromptActiva !== 'undefined' && dungeonPromptActiva) {
+        entrarEnMazmorra(dungeonPromptActiva);
+        return;
+      }
+      if (typeof culminacionPromptActiva !== 'undefined' && culminacionPromptActiva) {
+        interactuarConCulminacion();
+        return;
+      }
     }
     if (HeroeLib.TECLAS.includes(k)) usarHueco(k);
     if (k === 'i') $('sk-objetos').click();
@@ -10313,6 +10557,9 @@
     if (!enDungeon) checkRegions(now);
     drawMinimap(now);
     updateMazmorras(dt, now);
+    if (!enDungeon && typeof actualizarDecoracionesCulminacion === 'function') {
+      actualizarDecoracionesCulminacion(dt, now);
+    }
 
     controls.maxDistance = enDungeon ? 14.0 : (character.cameraMode === 'follow' ? 280 : 9000);
     controls.update();

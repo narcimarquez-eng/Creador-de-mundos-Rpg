@@ -274,6 +274,7 @@
   <div id="toast"></div>
 
   <script src="js/world-core.js?v=20261030c"></script>
+  <script src="js/relieve-zona.js?v=20261110"></script>
   <script src="js/mazmorras.js?v=20261101"></script>
   <script src="js/equipo.js?v=20251029"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
@@ -696,6 +697,48 @@
       ctx.strokeStyle = z.id === selectedId ? '#fde047' : stroke;
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // Dibujar relieves especiales, recovecos y culminación
+      if (z.relieve && z.relieve.activo) {
+        const center = toScreen(z.x, z.y);
+        const rScreen = z.radius * view.scale;
+        const culm = z.relieve.culminacion || 'oasis';
+        const iconoCulm = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES[culm] && window.RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
+
+        ctx.save();
+        ctx.beginPath();
+        zonePath(z);
+        ctx.clip();
+
+        // Anillos discontinuos que representan los recovecos y desfiladeros rocosos
+        ctx.strokeStyle = 'rgba(217, 119, 6, 0.45)';
+        ctx.lineWidth = Math.max(1.5, (z.relieve.anchoCamino || 10) * view.scale * 0.7);
+        for (let ring = 0.32; ring <= 0.85; ring += 0.22) {
+          ctx.beginPath();
+          ctx.arc(center.x, center.y, rScreen * ring, 0, Math.PI * 2);
+          ctx.setLineDash([12, 10]);
+          ctx.stroke();
+        }
+
+        // Explanada central de culminación
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, Math.max(11, rScreen * 0.18), 0, Math.PI * 2);
+        ctx.fillStyle = culm === 'oasis' ? 'rgba(56, 189, 248, 0.4)' : culm === 'jefe' ? 'rgba(239, 68, 68, 0.4)' : culm === 'objeto_mision' ? 'rgba(168, 85, 247, 0.4)' : culm === 'santuario' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(234, 179, 8, 0.3)';
+        ctx.fill();
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([]);
+        ctx.stroke();
+        ctx.restore();
+
+        // Icono de culminación en el centro
+        ctx.save();
+        ctx.font = `${Math.max(14, Math.min(22, Math.round(18 * view.scale)))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(iconoCulm, center.x, center.y);
+        ctx.restore();
+      }
     });
   }
 
@@ -1344,6 +1387,66 @@
       </div>`;
   }
 
+  function relieveZonaHTML(z) {
+    const r = z.relieve || { activo: false, tipo: 'desfiladero', culminacion: 'oasis', profundidad: 18, recovecos: 3, anchoCamino: 10 };
+    const tipos = (window.RelieveZonaLib && window.RelieveZonaLib.TIPOS) || {
+      desfiladero: { nombre: 'Desfiladero (Cañón)' },
+      laberinto: { nombre: 'Laberinto de Rocas' },
+      crater: { nombre: 'Cráter Hundido' },
+      meseta: { nombre: 'Meseta Escalonada' },
+      barranco: { nombre: 'Barranco con Recovecos' }
+    };
+    const culms = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES) || {
+      oasis: { nombre: 'Oasis Escondido', icono: '🌴' },
+      jefe: { nombre: 'Arena de Jefe Especial', icono: '💀' },
+      objeto_mision: { nombre: 'Objeto de Misión (Reliquia)', icono: '🔮' },
+      santuario: { nombre: 'Santuario Rúnico', icono: '🏛️' },
+      ninguno: { nombre: 'Ninguno (Mirador)', icono: '🏔️' }
+    };
+
+    return `
+      <div style="margin-top:12px;margin-bottom:12px;padding:10px 12px;background:#18181b;border:1px solid #3f3f46;border-radius:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label style="margin:0;font-weight:700;color:#facc15;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" data-zf="activo" ${r.activo ? 'checked' : ''}> 🏔️ Relieve especial de zona
+          </label>
+          ${r.activo ? `<span style="font-size:11px;color:#cbd5e1;background:#27272a;padding:2px 8px;border-radius:4px;border:1px solid #52525b">${culms[r.culminacion || 'oasis'] ? culms[r.culminacion || 'oasis'].icono + ' ' + (r.tipo || 'desfiladero') : ''}</span>` : ''}
+        </div>
+        ${r.activo ? `
+          <div style="font-size:11px;color:#94a3b8;margin:6px 0 8px;line-height:1.4">
+            Genera caminos rocosos, desfiladeros y recovecos navegables con texturas rugosas hasta una culminación especial al final.
+          </div>
+          <div class="grid2">
+            <div>
+              <label style="font-size:11px">Perfil de relieve</label>
+              <select data-zf="tipo">
+                ${Object.keys(tipos).map(k => `<option value="${k}" ${(r.tipo || 'desfiladero') === k ? 'selected' : ''}>${tipos[k].nombre}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px">Culminación al final</label>
+              <select data-zf="culminacion">
+                ${Object.keys(culms).map(k => `<option value="${k}" ${(r.culminacion || 'oasis') === k ? 'selected' : ''}>${culms[k].icono} ${culms[k].nombre}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px">Desnivel / Profundidad: <b>${r.profundidad || 18} m</b></label>
+              <input type="range" min="8" max="45" step="1" data-zf="profundidad" value="${r.profundidad || 18}">
+            </div>
+            <div>
+              <label style="font-size:11px">Densidad recovecos: <b>${r.recovecos || 3}</b></label>
+              <input type="range" min="1" max="6" step="1" data-zf="recovecos" value="${r.recovecos || 3}">
+            </div>
+          </div>
+          <div style="margin-top:6px">
+            <label style="font-size:11px">Ancho del camino: <b>${r.anchoCamino || 10} m</b></label>
+            <input type="range" min="6" max="22" step="1" data-zf="anchoCamino" value="${r.anchoCamino || 10}">
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
   function zoneHTML(z) {
     const road = z.roadId && W.findRoad(world, z.roadId);
     const pois = world.pois.filter(p => p.zoneId === z.id);
@@ -1362,6 +1465,7 @@
       <input type="range" min="60" max="900" step="10" data-f="radius" value="${z.radius}">
       <label>Reaparición de monstruos (s)</label><input type="number" min="5" max="3600" data-f="respawnSec" data-num="1" value="${z.respawnSec}">
       <div class="muted" style="margin-top:6px">${road ? 'En el camino ' + esc((W.findTown(world, road.from) || {}).name) + ' ⇄ ' + esc((W.findTown(world, road.to) || {}).name) + (z.anchored ? ' (sigue al camino)' : '') : 'Zona libre (no ligada a un camino)'}</div>
+      ${relieveZonaHTML(z)}
       <h3>Monstruos <span class="muted" style="font-weight:400">(${z.monsters.length} variedades · ${z.monsters.reduce((s, m) => s + W.monsterCount(m), 0)} ejemplares)</span></h3>
       <table class="mon">
         ${z.monsters.map((m, i) => `<tr>
@@ -1585,6 +1689,38 @@
       ent.cfg[el.dataset.cb] = el.checked;
       commit();
     }));
+
+    // Campos específicos de Relieve de Zona
+    body.querySelectorAll('[data-zf]').forEach(el => {
+      const apply = final => {
+        if (!ent.relieve) {
+          ent.relieve = {
+            activo: false,
+            tipo: 'desfiladero',
+            culminacion: 'oasis',
+            profundidad: 18,
+            recovecos: 3,
+            anchoCamino: 10
+          };
+        }
+        const f = el.dataset.zf;
+        if (el.type === 'checkbox') {
+          ent.relieve[f] = el.checked;
+        } else if (el.type === 'range') {
+          ent.relieve[f] = parseFloat(el.value);
+        } else {
+          ent.relieve[f] = el.value;
+        }
+        if (final) {
+          commit();
+          if (f === 'activo') renderPanel();
+        } else {
+          requestDraw();
+        }
+      };
+      if (el.type === 'range') el.addEventListener('input', () => apply(false));
+      el.addEventListener('change', () => apply(true));
+    });
 
     // Campos específicos de Mazmorra (dungeon)
     body.querySelectorAll('[data-df]').forEach(el => {
