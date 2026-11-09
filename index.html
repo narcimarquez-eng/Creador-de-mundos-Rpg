@@ -698,46 +698,9 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Dibujar relieves especiales, recovecos y culminación
-      if (z.relieve && z.relieve.activo) {
-        const center = toScreen(z.x, z.y);
-        const rScreen = z.radius * view.scale;
-        const culm = z.relieve.culminacion || 'oasis';
-        const iconoCulm = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES[culm] && window.RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
-
-        ctx.save();
-        ctx.beginPath();
-        zonePath(z);
-        ctx.clip();
-
-        // Anillos discontinuos que representan los recovecos y desfiladeros rocosos
-        ctx.strokeStyle = 'rgba(217, 119, 6, 0.45)';
-        ctx.lineWidth = Math.max(1.5, (z.relieve.anchoCamino || 10) * view.scale * 0.7);
-        for (let ring = 0.32; ring <= 0.85; ring += 0.22) {
-          ctx.beginPath();
-          ctx.arc(center.x, center.y, rScreen * ring, 0, Math.PI * 2);
-          ctx.setLineDash([12, 10]);
-          ctx.stroke();
-        }
-
-        // Explanada central de culminación
-        ctx.beginPath();
-        ctx.arc(center.x, center.y, Math.max(11, rScreen * 0.18), 0, Math.PI * 2);
-        ctx.fillStyle = culm === 'oasis' ? 'rgba(56, 189, 248, 0.4)' : culm === 'jefe' ? 'rgba(239, 68, 68, 0.4)' : culm === 'objeto_mision' ? 'rgba(168, 85, 247, 0.4)' : culm === 'santuario' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(234, 179, 8, 0.3)';
-        ctx.fill();
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([]);
-        ctx.stroke();
-        ctx.restore();
-
-        // Icono de culminación en el centro
-        ctx.save();
-        ctx.font = `${Math.max(14, Math.min(22, Math.round(18 * view.scale)))}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(iconoCulm, center.x, center.y);
-        ctx.restore();
+      // Dibujar laberinto de zona con muros, pasillos, entrada y meta
+      if (z.relieve && z.relieve.activo && window.RelieveZonaLib && window.RelieveZonaLib.dibujarLaberinto2D) {
+        window.RelieveZonaLib.dibujarLaberinto2D(ctx, z, toScreen, view.scale, z.id === selectedId);
       }
     });
   }
@@ -1388,59 +1351,60 @@
   }
 
   function relieveZonaHTML(z) {
-    const r = z.relieve || { activo: false, tipo: 'desfiladero', culminacion: 'oasis', profundidad: 18, recovecos: 3, anchoCamino: 10 };
-    const tipos = (window.RelieveZonaLib && window.RelieveZonaLib.TIPOS) || {
-      desfiladero: { nombre: 'Desfiladero (Cañón)' },
-      laberinto: { nombre: 'Laberinto de Rocas' },
-      crater: { nombre: 'Cráter Hundido' },
-      meseta: { nombre: 'Meseta Escalonada' },
-      barranco: { nombre: 'Barranco con Recovecos' }
+    const r = z.relieve || { activo: false, estilo: 'roca_canion', culminacion: 'oasis', complejidad: 'medio', tamGrid: 13, alturaMuro: 9, seed: 12345 };
+    const estilos = (window.RelieveZonaLib && window.RelieveZonaLib.ESTILOS) || {
+      roca_canion: { nombre: 'Cañón de Roca (Desfiladeros)' },
+      piedra_ruinas: { nombre: 'Muros de Piedra Ancestral' },
+      laberinto_setos: { nombre: 'Setos Oscuros y Riscos' }
     };
     const culms = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES) || {
       oasis: { nombre: 'Oasis Escondido', icono: '🌴' },
       jefe: { nombre: 'Arena de Jefe Especial', icono: '💀' },
       objeto_mision: { nombre: 'Objeto de Misión (Reliquia)', icono: '🔮' },
       santuario: { nombre: 'Santuario Rúnico', icono: '🏛️' },
-      ninguno: { nombre: 'Ninguno (Mirador)', icono: '🏔️' }
+      tesoro: { nombre: 'Cofre del Tesoro Legendario', icono: '💎' }
     };
 
     return `
-      <div style="margin-top:12px;margin-bottom:12px;padding:10px 12px;background:#18181b;border:1px solid #3f3f46;border-radius:8px">
+      <div style="margin-top:12px;margin-bottom:12px;padding:10px 12px;background:#18181b;border:1.5px solid #6366f1;border-radius:8px">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <label style="margin:0;font-weight:700;color:#facc15;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px">
-            <input type="checkbox" data-zf="activo" ${r.activo ? 'checked' : ''}> 🏔️ Relieve especial de zona
+            <input type="checkbox" data-zf="activo" ${r.activo ? 'checked' : ''}> 🌀 Laberinto de Zona con Meta
           </label>
-          ${r.activo ? `<span style="font-size:11px;color:#cbd5e1;background:#27272a;padding:2px 8px;border-radius:4px;border:1px solid #52525b">${culms[r.culminacion || 'oasis'] ? culms[r.culminacion || 'oasis'].icono + ' ' + (r.tipo || 'desfiladero') : ''}</span>` : ''}
+          ${r.activo ? `<span style="font-size:11px;color:#cbd5e1;background:#27272a;padding:2px 8px;border-radius:4px;border:1px solid #4f46e5">${culms[r.culminacion || 'oasis'] ? culms[r.culminacion || 'oasis'].icono + ' ' + (estilos[r.estilo || 'roca_canion'] ? estilos[r.estilo || 'roca_canion'].nombre : '') : ''}</span>` : ''}
         </div>
         ${r.activo ? `
-          <div style="font-size:11px;color:#94a3b8;margin:6px 0 8px;line-height:1.4">
-            Genera caminos rocosos, desfiladeros y recovecos navegables con texturas rugosas hasta una culminación especial al final.
+          <div style="font-size:11px;color:#a5b4fc;margin:6px 0 8px;line-height:1.4">
+            Genera un laberinto real de muros y pasillos con recovecos que el jugador debe recorrer desde la entrada para llegar a la meta central.
           </div>
           <div class="grid2">
             <div>
-              <label style="font-size:11px">Perfil de relieve</label>
-              <select data-zf="tipo">
-                ${Object.keys(tipos).map(k => `<option value="${k}" ${(r.tipo || 'desfiladero') === k ? 'selected' : ''}>${tipos[k].nombre}</option>`).join('')}
+              <label style="font-size:11px">Estilo arquitectónico</label>
+              <select data-zf="estilo">
+                ${Object.keys(estilos).map(k => `<option value="${k}" ${(r.estilo || 'roca_canion') === k ? 'selected' : ''}>${estilos[k].nombre}</option>`).join('')}
               </select>
             </div>
             <div>
-              <label style="font-size:11px">Culminación al final</label>
+              <label style="font-size:11px">Punto final (Meta)</label>
               <select data-zf="culminacion">
                 ${Object.keys(culms).map(k => `<option value="${k}" ${(r.culminacion || 'oasis') === k ? 'selected' : ''}>${culms[k].icono} ${culms[k].nombre}</option>`).join('')}
               </select>
             </div>
             <div>
-              <label style="font-size:11px">Desnivel / Profundidad: <b>${r.profundidad || 18} m</b></label>
-              <input type="range" min="8" max="45" step="1" data-zf="profundidad" value="${r.profundidad || 18}">
+              <label style="font-size:11px">Complejidad / Tamaño</label>
+              <select data-zf="complejidad">
+                <option value="simple" ${r.complejidad === 'simple' ? 'selected' : ''}>Simple (9 × 9)</option>
+                <option value="medio" ${!r.complejidad || r.complejidad === 'medio' ? 'selected' : ''}>Medio (13 × 13)</option>
+                <option value="complejo" ${r.complejidad === 'complejo' ? 'selected' : ''}>Complejo (17 × 17)</option>
+              </select>
             </div>
             <div>
-              <label style="font-size:11px">Densidad recovecos: <b>${r.recovecos || 3}</b></label>
-              <input type="range" min="1" max="6" step="1" data-zf="recovecos" value="${r.recovecos || 3}">
+              <label style="font-size:11px">Altura de muros: <b>${r.alturaMuro || 9} m</b></label>
+              <input type="range" min="4" max="18" step="1" data-zf="alturaMuro" value="${r.alturaMuro || 9}">
             </div>
           </div>
-          <div style="margin-top:6px">
-            <label style="font-size:11px">Ancho del camino: <b>${r.anchoCamino || 10} m</b></label>
-            <input type="range" min="6" max="22" step="1" data-zf="anchoCamino" value="${r.anchoCamino || 10}">
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button data-act="lab-roll" style="flex:1;background:#4338ca;color:#f3e8ff;font-size:11px;padding:6px;font-weight:600;border:none;border-radius:4px;cursor:pointer">🎲 Generar Nuevo Laberinto</button>
           </div>
         ` : ''}
       </div>
@@ -1690,30 +1654,35 @@
       commit();
     }));
 
-    // Campos específicos de Relieve de Zona
+    // Campos específicos de Relieve y Laberinto de Zona
     body.querySelectorAll('[data-zf]').forEach(el => {
       const apply = final => {
         if (!ent.relieve) {
           ent.relieve = {
             activo: false,
-            tipo: 'desfiladero',
+            estilo: 'roca_canion',
             culminacion: 'oasis',
-            profundidad: 18,
-            recovecos: 3,
-            anchoCamino: 10
+            complejidad: 'medio',
+            tamGrid: 13,
+            alturaMuro: 9,
+            seed: 12345
           };
         }
+        delete ent._cacheLaberinto;
         const f = el.dataset.zf;
         if (el.type === 'checkbox') {
           ent.relieve[f] = el.checked;
         } else if (el.type === 'range') {
           ent.relieve[f] = parseFloat(el.value);
+        } else if (f === 'complejidad') {
+          ent.relieve[f] = el.value;
+          ent.relieve.tamGrid = el.value === 'simple' ? 9 : el.value === 'complejo' ? 17 : 13;
         } else {
           ent.relieve[f] = el.value;
         }
         if (final) {
           commit();
-          if (f === 'activo') renderPanel();
+          if (f === 'activo' || f === 'complejidad') renderPanel();
         } else {
           requestDraw();
         }
@@ -1721,6 +1690,15 @@
       if (el.type === 'range') el.addEventListener('input', () => apply(false));
       el.addEventListener('change', () => apply(true));
     });
+
+    body.querySelectorAll('[data-act="lab-roll"]').forEach(el => el.addEventListener('click', () => {
+      if (!ent.relieve) ent.relieve = { activo: true };
+      ent.relieve.seed = (Math.random() * 900000 + 10000) >>> 0;
+      delete ent._cacheLaberinto;
+      commit('Nuevo laberinto generado');
+      renderPanel();
+      requestDraw();
+    }));
 
     // Campos específicos de Mazmorra (dungeon)
     body.querySelectorAll('[data-df]').forEach(el => {

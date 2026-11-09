@@ -2197,10 +2197,6 @@
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
     h = LagosLib.aplicar(lagosMundo, x, z, h);
-    // Relieve especial de zonas de caza: caminos rocosos, desfiladeros, laberintos y recovecos
-    if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.aplicarRelieve && world && world.zones) {
-      h = RelieveZonaLib.aplicarRelieve(world.zones, x, z, h);
-    }
     // Hondonada y aplanado topográfico para las cabañas en pendiente (sin suelo artificial)
     if (typeof LugaresSecretosLib !== 'undefined' && LugaresSecretosLib.aplicarRebajeCabanas) {
       if ((!lugaresSecretos || !lugaresSecretos.length) && world) {
@@ -3828,15 +3824,23 @@
   }
 
   let decoracionesCulminacion = [];
-  function limpiarDecoracionesCulminacion() {
+  let mallasLaberintos = [];
+  let laberintosMundo = [];
+
+  function limpiarLaberintosMundo() {
     if (decoracionesCulminacion && decoracionesCulminacion.length) {
       decoracionesCulminacion.forEach(g => scene.remove(g));
     }
     decoracionesCulminacion = [];
+    if (mallasLaberintos && mallasLaberintos.length) {
+      mallasLaberintos.forEach(m => scene.remove(m));
+    }
+    mallasLaberintos = [];
+    laberintosMundo = [];
   }
 
   function buildZones() {
-    limpiarDecoracionesCulminacion();
+    limpiarLaberintosMundo();
     const mb = new MB();
     world.zones.forEach(z => {
       const pts = W.zoneOutline(z, 48).map(p => [p.x, H(p.x, p.y) + 1.2, p.y]);
@@ -3852,14 +3856,29 @@
     zoneMesh = new THREE.Mesh(mb.geom(), zonaMat);
     scene.add(zoneMesh);
 
-    // Decorados 3D de culminación de zonas con relieve especial
-    if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.crearDecoradoCulminacion) {
+    // Muros 3D y decorados de culminación para zonas con laberinto
+    if (typeof RelieveZonaLib !== 'undefined') {
       world.zones.forEach(z => {
         if (z.relieve && z.relieve.activo) {
-          const dec = RelieveZonaLib.crearDecoradoCulminacion(THREE, z, H);
-          if (dec) {
-            scene.add(dec);
-            decoracionesCulminacion.push(dec);
+          const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+          if (lab) {
+            laberintosMundo.push(lab);
+            // 1. Malla 3D de los muros del laberinto
+            if (typeof RelieveZonaLib.crearMallaLaberinto === 'function') {
+              const mallaMuros = RelieveZonaLib.crearMallaLaberinto(THREE, MB, z, H);
+              if (mallaMuros) {
+                scene.add(mallaMuros);
+                mallasLaberintos.push(mallaMuros);
+              }
+            }
+            // 2. Decoración de la meta central (oasis, jefe, reliquia, santuario, tesoro)
+            if (typeof RelieveZonaLib.crearDecoradoCulminacion === 'function') {
+              const dec = RelieveZonaLib.crearDecoradoCulminacion(THREE, z, H);
+              if (dec) {
+                scene.add(dec);
+                decoracionesCulminacion.push(dec);
+              }
+            }
           }
         }
       });
@@ -4478,6 +4497,15 @@
         if (!o.worldCols) continue;
         if (Math.hypot(x - o.t.x, z - o.t.y) > o.tileHalf * 1.5) continue;
         for (const c of o.worldCols) out.push(c);
+      }
+      // Colisionadores de los muros del laberinto de zona
+      if (typeof laberintosMundo !== 'undefined' && laberintosMundo && laberintosMundo.length) {
+        for (let i = 0; i < laberintosMundo.length; i++) {
+          const lab = laberintosMundo[i];
+          if (Math.hypot(x - lab.zx, z - lab.zz) > lab.R + 15) continue;
+          const cols = lab.obtenerColisionadores(x, z);
+          for (let j = 0; j < cols.length; j++) out.push(cols[j]);
+        }
       }
       return out;
     },
@@ -6196,26 +6224,33 @@
         g.fillStyle = z.type === 'segura' ? 'rgba(103,232,249,.22)' : 'rgba(250,204,21,.2)';
         g.fill();
 
-        // Relieve especial, laberintos y culminación en el minimapa
-        if (z.relieve && z.relieve.activo) {
-          g.save();
-          g.strokeStyle = 'rgba(217,119,6,0.55)';
-          g.lineWidth = Math.max(1.2, 3.5 * V.escala);
-          g.setLineDash([5, 4]);
-          const rMinimap = z.radius * V.escala;
-          for (let k = 0.35; k <= 0.85; k += 0.25) {
-            g.beginPath();
-            g.arc(V.px(z.x), V.py(z.y), rMinimap * k, 0, Math.PI * 2);
-            g.stroke();
+        // Laberinto de zona con muros y culminación en el minimapa
+        if (z.relieve && z.relieve.activo && typeof RelieveZonaLib !== 'undefined') {
+          const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+          if (lab) {
+            g.save();
+            const { N, grid, cellSize, zx, zz } = lab;
+            const wMuroMinimap = Math.max(1.5, cellSize * V.escala);
+            g.fillStyle = 'rgba(51, 65, 85, 0.88)';
+            for (let gy = 0; gy < N; gy++) {
+              for (let gx = 0; gx < N; gx++) {
+                if (grid[gy][gx] === 1) {
+                  const wx = zx + (gx - (N - 1) / 2) * cellSize;
+                  const wz = zz + (gy - (N - 1) / 2) * cellSize;
+                  const sx = V.px(wx - cellSize / 2);
+                  const sy = V.py(wz - cellSize / 2);
+                  g.fillRect(sx, sy, wMuroMinimap, wMuroMinimap);
+                }
+              }
+            }
+            const culm = z.relieve.culminacion || 'oasis';
+            const icon = (RelieveZonaLib.CULMINACIONES[culm] && RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
+            g.font = `${Math.max(11, Math.min(18, Math.round(14 * V.escala)))}px sans-serif`;
+            g.textAlign = 'center';
+            g.textBaseline = 'middle';
+            g.fillText(icon, V.px(z.x), V.py(z.y));
+            g.restore();
           }
-          g.setLineDash([]);
-          const culm = z.relieve.culminacion || 'oasis';
-          const icon = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES[culm] && window.RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
-          g.font = `${Math.max(11, Math.min(18, Math.round(14 * V.escala)))}px sans-serif`;
-          g.textAlign = 'center';
-          g.textBaseline = 'middle';
-          g.fillText(icon, V.px(z.x), V.py(z.y));
-          g.restore();
         }
       }
 
@@ -9693,7 +9728,7 @@
     for (let i = 0; i < decoracionesCulminacion.length; i++) {
       const dec = decoracionesCulminacion[i];
       const tipo = dec.userData.culminacionTipo;
-      if (tipo !== 'objeto_mision' && tipo !== 'santuario') continue;
+      if (tipo !== 'objeto_mision' && tipo !== 'santuario' && tipo !== 'tesoro') continue;
       const dx = dec.position.x - px, dz = dec.position.z - pz;
       const d2 = dx * dx + dz * dz;
       if (d2 < menorDistSq) {
@@ -9709,6 +9744,9 @@
         if (candidato.tipo === 'objeto_mision') {
           $('cp-title').textContent = `🔮 Reliquia Ancestral de ${candidato.zonaNombre || 'la Zona'}`;
           $('cp-desc').innerHTML = `<b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para recoger el objeto de misión.`;
+        } else if (candidato.tipo === 'tesoro') {
+          $('cp-title').textContent = `💎 Cofre del Tesoro Legendario`;
+          $('cp-desc').innerHTML = `<b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para abrir el cofre legendario.`;
         } else {
           $('cp-title').textContent = `🏛️ Santuario Rúnico Sagrado`;
           $('cp-desc').innerHTML = `<b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para recibir la Bendición Divina.`;
@@ -9749,6 +9787,18 @@
       if (typeof avanzarHistoria === 'function') {
         avanzarHistoria({ tipo: 'objeto_zona', zonaId: c.zonaId, nombre: c.zonaNombre });
       }
+      const cp = $('culminacion-prompt');
+      if (cp) cp.style.display = 'none';
+      culminacionPromptActiva = null;
+    } else if (c.tipo === 'tesoro') {
+      if (dec.userData.abierto) {
+        toast('Este cofre legendario ya ha sido abierto.');
+        return;
+      }
+      dec.userData.abierto = true;
+      hero.oro = (hero.oro || 0) + 1200;
+      hero.xp = (hero.xp || 0) + 2000;
+      toast(`💎 ¡Has abierto el Cofre del Tesoro Legendario! (+1200 Oro, +2000 XP)`);
       const cp = $('culminacion-prompt');
       if (cp) cp.style.display = 'none';
       culminacionPromptActiva = null;

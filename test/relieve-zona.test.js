@@ -2,104 +2,75 @@ const test = require('node:test');
 const assert = require('node:assert');
 const RelieveZonaLib = require('../js/relieve-zona.js');
 
-test('RelieveZonaLib - Estructura de tipos y culminaciones', () => {
-  assert.ok(RelieveZonaLib.TIPOS.desfiladero, 'Debe existir tipo desfiladero');
-  assert.ok(RelieveZonaLib.TIPOS.laberinto, 'Debe existir tipo laberinto');
-  assert.ok(RelieveZonaLib.TIPOS.crater, 'Debe existir tipo crater');
-  assert.ok(RelieveZonaLib.TIPOS.meseta, 'Debe existir tipo meseta');
-  assert.ok(RelieveZonaLib.TIPOS.barranco, 'Debe existir tipo barranco');
+test('RelieveZonaLib - Estructura de estilos y culminaciones de laberinto', () => {
+  assert.ok(RelieveZonaLib.ESTILOS.roca_canion, 'Debe existir estilo roca_canion');
+  assert.ok(RelieveZonaLib.ESTILOS.piedra_ruinas, 'Debe existir estilo piedra_ruinas');
+  assert.ok(RelieveZonaLib.ESTILOS.laberinto_setos, 'Debe existir estilo laberinto_setos');
 
   assert.ok(RelieveZonaLib.CULMINACIONES.oasis, 'Debe existir culminación oasis');
   assert.ok(RelieveZonaLib.CULMINACIONES.jefe, 'Debe existir culminación jefe');
   assert.ok(RelieveZonaLib.CULMINACIONES.objeto_mision, 'Debe existir culminación objeto_mision');
   assert.ok(RelieveZonaLib.CULMINACIONES.santuario, 'Debe existir culminación santuario');
-  assert.ok(RelieveZonaLib.CULMINACIONES.ninguno, 'Debe existir culminación ninguno');
+  assert.ok(RelieveZonaLib.CULMINACIONES.tesoro, 'Debe existir culminación tesoro');
 });
 
-test('RelieveZonaLib - Evaluación de punto y caminos', () => {
+test('RelieveZonaLib - Generación de laberinto con entrada y acceso garantizado a la meta central', () => {
+  const lab = RelieveZonaLib.generarLaberinto(13, 9999);
+  assert.strictEqual(lab.N, 13);
+  assert.ok(lab.entrada, 'Debe tener punto de entrada');
+  assert.strictEqual(lab.grid[lab.entrada.gy][lab.entrada.gx], 0, 'La entrada debe ser un camino transitable');
+
+  // El centro (cámara de culminación) debe estar despejado
+  const m = Math.floor(13 / 2);
+  assert.strictEqual(lab.grid[m][m], 0, 'El centro debe ser transitable');
+  assert.strictEqual(lab.grid[m - 1][m], 0, 'El acceso norte al centro debe ser transitable');
+  assert.strictEqual(lab.grid[m + 1][m], 0, 'El acceso sur al centro debe ser transitable');
+
+  // Debe haber muros sólidos (1)
+  let countMuros = 0;
+  for (let y = 0; y < 13; y++) {
+    for (let x = 0; x < 13; x++) {
+      if (lab.grid[y][x] === 1) countMuros++;
+    }
+  }
+  assert.ok(countMuros > 20, 'Debe haber muros de laberinto estructurados');
+});
+
+test('RelieveZonaLib - Datos de laberinto y colisionadores espaciales O(1)', () => {
   const zona = {
-    id: 'z1',
-    name: 'Garganta del Eco',
-    x: 100,
-    y: 100,
-    radius: 120,
-    relieve: RelieveZonaLib.relievePorDefecto('desfiladero', 'oasis')
+    id: 'z_caza',
+    name: 'Desfiladero de los Condenados',
+    x: 200,
+    y: 300,
+    radius: 100,
+    relieve: RelieveZonaLib.configPorDefecto('roca_canion', 'oasis')
   };
 
-  assert.strictEqual(RelieveZonaLib.zonaTieneRelieve(zona), true);
+  const datos = RelieveZonaLib.obtenerDatosLaberinto(zona);
+  assert.ok(datos);
+  assert.strictEqual(datos.zonaId, 'z_caza');
+  assert.ok(datos.colliders.length > 0, 'Debe generar cajas de colisión para los muros');
 
-  // Punto muy lejano (fuera del radio)
-  const fuera = RelieveZonaLib.evaluarPunto(zona, 500, 500);
-  assert.strictEqual(fuera, null, 'Punto lejano no debe evaluarse');
-
-  // Punto en el centro exacto (explanada central)
-  const centro = RelieveZonaLib.evaluarPunto(zona, 100, 100);
-  assert.ok(centro, 'Debe evaluar el centro');
-  assert.strictEqual(centro.esClearing, true, 'El centro debe ser explanada/clearing');
-  assert.strictEqual(centro.factorCamino, 1.0, 'El centro debe tener factorCamino 1.0');
-
-  // Punto en el anillo de caminos
-  const puntoCamino = RelieveZonaLib.evaluarPunto(zona, 150, 100);
-  assert.ok(puntoCamino, 'Punto interior debe evaluarse');
-  assert.strictEqual(puntoCamino.esClearing, false);
-  assert.ok(puntoCamino.factorCamino >= 0 && puntoCamino.factorCamino <= 1);
+  // Consulta de colisionadores en (200, 300) centro de la zona
+  const cols = datos.obtenerColisionadores(200, 300);
+  assert.ok(Array.isArray(cols), 'Debe retornar array de colisionadores');
 });
 
-test('RelieveZonaLib - Aplicar relieve modifica altura hBase suavemente', () => {
-  const zonas = [
-    {
-      id: 'z1',
-      name: 'Cañón Espinado',
-      x: 0,
-      y: 0,
-      radius: 100,
-      relieve: {
-        activo: true,
-        tipo: 'desfiladero',
-        culminacion: 'jefe',
-        profundidad: 20,
-        recovecos: 3,
-        anchoCamino: 10
-      }
-    }
-  ];
-
-  const hBase = 15.0;
-  // Fuera de la zona
-  const hFuera = RelieveZonaLib.aplicarRelieve(zonas, 300, 300, hBase);
-  assert.strictEqual(hFuera, hBase, 'Fuera de la zona la altura no cambia');
-
-  // Dentro de la zona
-  const hDentro = RelieveZonaLib.aplicarRelieve(zonas, 40, 40, hBase);
-  assert.notStrictEqual(hDentro, hBase, 'Dentro de la zona la altura debe ser modificada');
-});
-
-test('RelieveZonaLib - Splat de textura para caminos y riscos', () => {
+test('RelieveZonaLib - Splatting de textura para pasillos y muros del laberinto', () => {
   const zona = {
     id: 'z1',
     x: 0,
     y: 0,
     radius: 80,
-    relieve: RelieveZonaLib.relievePorDefecto('laberinto', 'objeto_mision')
+    relieve: RelieveZonaLib.configPorDefecto('roca_canion', 'objeto_mision')
   };
+  const lab = RelieveZonaLib.obtenerDatosLaberinto(zona);
 
-  const evCamino = {
-    factorCamino: 0.9,
-    esClearing: false,
-    culminacion: 'objeto_mision',
-    wEdge: 1.0
-  };
+  // En el centro (cámara de reliquia ceremonial)
+  const splatCentro = RelieveZonaLib.splatZona(lab, 0, 0, 0, 10, { splat: [1, 0, 0, 0] });
+  assert.ok(splatCentro.splat[2] >= 0.5, 'En la cámara ceremonial debe predominar roca/losas');
 
-  const splatCamino = RelieveZonaLib.splatZona(evCamino, 20, 20, 0.1, 10, { splat: [1, 0, 0, 0], snow: 0 });
-  // En camino debe predominar tierra/grava y roca moderada, sin ser hierba suave pura
-  assert.ok(splatCamino.splat[1] > 0.3, 'Debe haber peso sustancial de tierra/grava');
-
-  const evPared = {
-    factorCamino: 0.0,
-    esClearing: false,
-    culminacion: 'objeto_mision',
-    wEdge: 1.0
-  };
-  const splatPared = RelieveZonaLib.splatZona(evPared, 25, 25, 0.5, 25, { splat: [1, 0, 0, 0], snow: 0 });
-  assert.ok(splatPared.splat[2] > 0.8, 'En paredes de roca debe predominar roca');
+  // En la entrada (pasillo)
+  const splatPasillo = RelieveZonaLib.splatZona(lab, lab.entrada.wx, lab.entrada.wz, 0, 10, { splat: [1, 0, 0, 0] });
+  assert.ok(splatPasillo.splat[1] >= 0.4, 'En los pasillos debe haber grava y tierra batida');
 });

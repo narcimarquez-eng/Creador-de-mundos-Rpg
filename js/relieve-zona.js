@@ -1,8 +1,9 @@
 /*
- * relieve-zona.js — Sistema de relieve especial y culminaciones para zonas de caza.
- * Permite modelar zonas con caminos rocosos, desfiladeros, laberintos y recovecos
- * que guían al jugador hasta una culminación (oasis, jefe especial, objeto de misión o santuario).
- * Compatible con Node.js (tests) y navegador (window.RelieveZonaLib).
+ * relieve-zona.js — Sistema de Laberinto de Zona para Zonas de Caza.
+ * Genera un laberinto real navegable dentro de la zona con muros sólidos, pasillos,
+ * bifurcaciones, recovecos (callejones sin salida) y un punto final de culminación
+ * (oasis escondido, jefe supremo, objeto de misión / reliquia, santuario o tesoro).
+ * Compatible con Node.js (pruebas) y navegador (window.RelieveZonaLib).
  */
 (function (root) {
   'use strict';
@@ -14,36 +15,30 @@
     return t * t * (3 - 2 * t);
   };
 
-  const TIPOS = {
-    desfiladero: {
-      id: 'desfiladero',
-      nombre: 'Desfiladero (Cañón)',
-      icono: '⛰️',
-      desc: 'Paredes escarpadas de roca con cañones sinuosos que descienden hacia el centro.'
+  const ESTILOS = {
+    roca_canion: {
+      id: 'roca_canion',
+      nombre: 'Cañón de Roca (Desfiladeros)',
+      colorPared: [0.35, 0.32, 0.28],
+      colorTop: [0.46, 0.43, 0.39],
+      hex: '#78716c',
+      desc: 'Altas paredes de roca natural escarpada formando estrechos desfiladeros.'
     },
-    laberinto: {
-      id: 'laberinto',
-      nombre: 'Laberinto de Rocas',
-      icono: '🌀',
-      desc: 'Corredores rocosos intrincados con múltiples recovecos y bifurcaciones.'
+    piedra_ruinas: {
+      id: 'piedra_ruinas',
+      nombre: 'Muros de Piedra Ancestral',
+      colorPared: [0.28, 0.30, 0.34],
+      colorTop: [0.40, 0.42, 0.46],
+      hex: '#64748b',
+      desc: 'Muros de sillería de piedra antigua con ruinas y bloques desgastados.'
     },
-    crater: {
-      id: 'crater',
-      nombre: 'Cráter Hundido',
-      icono: '🌋',
-      desc: 'Caldera hundida con terrazas y rampas circulares en espiral hacia el fondo.'
-    },
-    meseta: {
-      id: 'meseta',
-      nombre: 'Meseta Escalonada',
-      icono: '🗻',
-      desc: 'Elevación escalonada con rampas rocosas que ascienden a la cumbre.'
-    },
-    barranco: {
-      id: 'barranco',
-      nombre: 'Barranco con Recovecos',
-      icono: '⚡',
-      desc: 'Profunda hendidura con recodos, ensenadas y contrafuertes de piedra.'
+    laberinto_setos: {
+      id: 'laberinto_setos',
+      nombre: 'Setos Oscuros y Riscos',
+      colorPared: [0.16, 0.26, 0.15],
+      colorTop: [0.24, 0.36, 0.22],
+      hex: '#15803d',
+      desc: 'Muros densos de vegetación salvaje entrelazados con formaciones rocosas.'
     }
   };
 
@@ -53,341 +48,544 @@
       nombre: 'Oasis Escondido',
       icono: '🌴',
       badge: '🌴',
-      desc: 'Manantial de aguas cristalinas rodeado de palmeras, vegetación y remanso.'
+      desc: 'Manantial de aguas cristalinas rodeado de palmeras y remanso en el centro.'
     },
     jefe: {
       id: 'jefe',
       nombre: 'Arena de Jefe Especial',
       icono: '💀',
       badge: '💀',
-      desc: 'Plataforma ceremonial con pebeteros ardiendo y un jefe supremo aguardando.'
+      desc: 'Plataforma ceremonial con pebeteros de fuego y un jefe supremo aguardando.'
     },
     objeto_mision: {
       id: 'objeto_mision',
       nombre: 'Objeto de Misión (Reliquia)',
       icono: '🔮',
       badge: '🔮',
-      desc: 'Pedestal ancestral de piedra con una reliquia mística flotante interactuable.'
+      desc: 'Pedestal ancestral con una reliquia mística flotante interactuable [E].'
     },
     santuario: {
       id: 'santuario',
       nombre: 'Santuario Rúnico',
       icono: '🏛️',
       badge: '🏛️',
-      desc: 'Círculo de monolitos rúnicos antiguos que bendice y restaura al héroe.'
+      desc: 'Círculo de monolitos rúnicos que bendice y restaura completamente al héroe [E].'
     },
-    ninguno: {
-      id: 'ninguno',
-      nombre: 'Ninguno (Mirador)',
-      icono: '🏔️',
-      badge: '🏔️',
-      desc: 'Explanada rocosa abierta con vistas panorámicas.'
+    tesoro: {
+      id: 'tesoro',
+      nombre: 'Cofre del Tesoro Legendario',
+      icono: '💎',
+      badge: '💎',
+      desc: 'Cofre dorado sellado con botín legendario, gemas y gran tesoro [E].'
     }
   };
 
-  function relievePorDefecto(tipo, culminacion) {
+  function configPorDefecto(estilo, culminacion) {
     return {
       activo: true,
-      tipo: tipo || 'desfiladero',
+      estilo: estilo || 'roca_canion',
       culminacion: culminacion || 'oasis',
-      profundidad: 18,
-      recovecos: 3,
-      anchoCamino: 10,
-      aspereza: 0.7
+      complejidad: 'medio',
+      tamGrid: 13,
+      alturaMuro: 9,
+      anchoPasillo: 6,
+      seed: 12345 + Math.floor(Math.random() * 80000)
     };
   }
 
-  function zonaTieneRelieve(z) {
+  function zonaTieneLaberinto(z) {
     return !!(z && z.relieve && z.relieve.activo);
   }
 
   /**
-   * Evalúa la geometría del relieve para una zona y punto (x, z).
-   * Retorna información sobre si está dentro, distancia al centro, factor de camino (0=pared, 1=camino),
-   * si está en la explanada central (clearing) y el delta de altura sobre el terreno base.
+   * Genera la cuadrícula del laberinto (0 = camino, 1 = muro, 2 = exterior fuera del círculo).
+   * Usa algoritmo DFS con backtracking determinista para garantizar pasillos continuos,
+   * recovecos y acceso garantizado desde la entrada perimetral hasta la explanada central.
    */
-  function evaluarPunto(z, x, zWorld) {
-    if (!zonaTieneRelieve(z)) return null;
+  function generarLaberinto(tamGrid, seed) {
+    const N = Math.max(9, Math.min(21, tamGrid % 2 === 0 ? tamGrid + 1 : tamGrid));
+    const grid = Array.from({ length: N }, () => Array(N).fill(1));
+    const mid = (N - 1) / 2;
+    const radCells = mid - 0.4;
 
-    const dx = x - z.x;
-    const dz = zWorld - z.y;
-    const dist = Math.hypot(dx, dz);
-    const R = z.radius || 120;
-    const margenExterior = 12;
+    let s = (seed || 12345) >>> 0;
+    function rnd() {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return (s >>> 0) / 4294967296;
+    }
 
-    if (dist > R + margenExterior) return null;
+    // 1. Celdas exteriores a la circunferencia de la zona
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        if (Math.hypot(x - mid, y - mid) > radCells + 0.3) {
+          grid[y][x] = 2; // Fuera de la zona
+        }
+      }
+    }
 
-    const r = z.relieve || {};
-    const tipo = r.tipo || 'desfiladero';
-    const profundidad = typeof r.profundidad === 'number' ? r.profundidad : 18;
-    const numRecovecos = Math.max(1, Math.min(6, r.recovecos || 3));
-    const anchoCamino = Math.max(5, Math.min(25, r.anchoCamino || 10));
-    const aspereza = typeof r.aspereza === 'number' ? r.aspereza : 0.7;
+    // 2. Explanada / sala central (cámara de culminación)
+    const m = Math.round(mid);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        grid[m + dy][m + dx] = 0;
+      }
+    }
 
-    // Radio de la explanada/arena central donde se ubica la culminación
-    const rc = Math.max(14, Math.min(26, R * 0.16));
+    // 3. Talla del laberinto por backtracking (DFS)
+    const stack = [];
+    const DIRS = [
+      [0, -2],
+      [0, 2],
+      [-2, 0],
+      [2, 0]
+    ];
 
-    // Mezcla suave en el borde exterior de la zona
-    const wEdge = 1 - smooth(R - 12, R + margenExterior, dist);
-    if (wEdge <= 0) return null;
+    const startX = m;
+    const startY = m - 2 >= 1 ? m - 2 : 1;
+    grid[startY][startX] = 0;
+    stack.push([startX, startY]);
 
-    // Ángulo polar respecto al centro de la zona
-    const ang = Math.atan2(dz, dx);
-
-    // Si está dentro de la explanada central
-    if (dist <= rc) {
-      const tClearing = dist / rc;
-      let deltaHClearing = 0;
-      if (tipo === 'crater') {
-        deltaHClearing = -profundidad * 0.55;
-      } else if (tipo === 'meseta') {
-        deltaHClearing = profundidad * 0.55;
-      } else if (tipo === 'barranco') {
-        deltaHClearing = -profundidad * 0.35;
+    while (stack.length > 0) {
+      const [cx, cy] = stack[stack.length - 1];
+      const neighbors = [];
+      for (const [dx, dy] of DIRS) {
+        const nx = cx + dx,
+          ny = cy + dy;
+        if (nx >= 1 && nx < N - 1 && ny >= 1 && ny < N - 1) {
+          const dCenter = Math.hypot(nx - mid, ny - mid);
+          const inCenter = Math.abs(nx - mid) <= 1.1 && Math.abs(ny - mid) <= 1.1;
+          if (!inCenter && dCenter < radCells && grid[ny][nx] === 1) {
+            neighbors.push([nx, ny, dx, dy]);
+          }
+        }
+      }
+      if (neighbors.length > 0) {
+        const idx = Math.floor(rnd() * neighbors.length);
+        const [nx, ny, dx, dy] = neighbors[idx];
+        grid[cy + dy / 2][cx + dx / 2] = 0;
+        grid[ny][nx] = 0;
+        stack.push([nx, ny]);
       } else {
-        deltaHClearing = -profundidad * 0.12;
+        stack.pop();
       }
-
-      return {
-        inside: true,
-        dist,
-        rc,
-        R,
-        wEdge,
-        esClearing: true,
-        factorCamino: 1.0,
-        factorPared: 0.0,
-        deltaH: deltaHClearing * wEdge,
-        tipo,
-        culminacion: r.culminacion || 'oasis',
-        relieve: r,
-        zona: z
-      };
     }
 
-    // Fuera de la explanada: red de caminos, desfiladeros y recovecos
-    // 1. Espiral principal de entrada que conecta la periferia con el centro
-    const espiral = Math.sin(ang * numRecovecos + (dist - rc) * 0.08);
+    // 4. Conexión de la explanada central con los corredores del laberinto
+    grid[m - 1][m] = 0;
+    grid[m + 1][m] = 0;
+    grid[m][m - 1] = 0;
+    grid[m][m + 1] = 0;
 
-    // 2. Canales secundarios y recovecos ramificados
-    const ramas = Math.cos(ang * (numRecovecos + 1.2) - (dist - rc) * 0.11 + 1.1);
+    // 5. Entrada del laberinto al sur (perímetro)
+    let entradaY = N - 1;
+    while (entradaY > m + 1 && (grid[entradaY][m] === 2 || grid[entradaY][m] === 1)) {
+      grid[entradaY][m] = 0;
+      if (grid[entradaY - 1] && grid[entradaY - 1][m] === 0) break;
+      entradaY--;
+    }
+    const entrada = { gx: m, gy: N - 1 };
 
-    // 3. Modulación de aspereza rocosa
-    const ruido = (Math.sin(x * 0.22 + zWorld * 0.17) + Math.cos(x * 0.13 - zWorld * 0.27)) * 0.5 * aspereza;
-
-    // Función de distancia al centro de un corredor
-    const dCorredor1 = Math.abs(espiral);
-    const dCorredor2 = Math.abs(ramas);
-    const dPaso = Math.min(dCorredor1, dCorredor2 * 1.25) + ruido * 0.12;
-
-    // Ancho relativo del camino
-    const umbralCamino = Math.min(0.65, 0.22 + (anchoCamino / R) * 1.8);
-    const factorCamino = 1 - smooth(umbralCamino * 0.6, umbralCamino * 1.4, dPaso);
-    const factorPared = 1 - factorCamino;
-
-    let deltaH = 0;
-    if (tipo === 'desfiladero') {
-      // Las paredes rocosas ascienden verticalmente a los lados, el camino se mantiene transitable
-      deltaH = factorPared * profundidad + (ruido * 2.2 * factorPared);
-    } else if (tipo === 'laberinto') {
-      // Paredes de roca escarpada con recovecos que suben y bajan
-      const escalon = Math.sin(dist * 0.18) * 0.3;
-      deltaH = factorPared * (profundidad * 0.85 + escalon * 3) + ruido * 1.8 * factorPared;
-    } else if (tipo === 'crater') {
-      // Caldera hundida con paredes perimetrales altas y fondo descendente
-      const profBase = ((dist - rc) / (R - rc)) * profundidad * 0.6 - profundidad * 0.55;
-      deltaH = profBase + factorPared * (profundidad * 0.7) + ruido * 2.0;
-    } else if (tipo === 'meseta') {
-      // Meseta elevada con camino en rampa escalonada
-      const elevBase = (1 - (dist - rc) / (R - rc)) * profundidad * 0.55;
-      deltaH = elevBase - factorPared * (profundidad * 0.4) + ruido * 2.0;
-    } else if (tipo === 'barranco') {
-      // El suelo del camino se hunde en una grieta rocosa, las paredes laterales se mantienen altas
-      deltaH = -factorCamino * profundidad * 0.45 + factorPared * (profundidad * 0.55) + ruido * 2.5;
+    // 6. Verificación de camino continuo mediante BFS
+    const visitados = Array.from({ length: N }, () => Array(N).fill(false));
+    const queue = [[m, N - 1]];
+    visitados[N - 1][m] = true;
+    let llegaAlCentro = false;
+    const D1 = [
+      [0, -1],
+      [0, 1],
+      [-1, 0],
+      [1, 0]
+    ];
+    while (queue.length > 0) {
+      const [qx, qy] = queue.shift();
+      if (Math.abs(qx - m) <= 1 && Math.abs(qy - m) <= 1) {
+        llegaAlCentro = true;
+        break;
+      }
+      for (const [dx, dy] of D1) {
+        const nx = qx + dx,
+          ny = qy + dy;
+        if (nx >= 0 && nx < N && ny >= 0 && ny < N && !visitados[ny][nx] && grid[ny][nx] === 0) {
+          visitados[ny][nx] = true;
+          queue.push([nx, ny]);
+        }
+      }
     }
 
-    return {
-      inside: true,
-      dist,
-      rc,
+    // Si por alguna razón el DFS no abrió la entrada al centro, forzar apertura directa
+    if (!llegaAlCentro) {
+      for (let y = N - 1; y >= m; y--) grid[y][m] = 0;
+    }
+
+    return { N, grid, entrada, centro: { gx: m, gy: m } };
+  }
+
+  /**
+   * Obtiene o genera la estructura completa del laberinto para una zona,
+   * incluyendo coordenadas del mundo, colisionadores de muros y datos de meta.
+   */
+  function obtenerDatosLaberinto(zona) {
+    if (!zonaTieneLaberinto(zona)) return null;
+
+    const r = zona.relieve || {};
+    const tamGrid = r.tamGrid || (r.complejidad === 'simple' ? 9 : r.complejidad === 'complejo' ? 17 : 13);
+    const seed = typeof r.seed === 'number' ? r.seed : 12345;
+    const alturaMuro = typeof r.alturaMuro === 'number' ? r.alturaMuro : typeof r.profundidad === 'number' ? r.profundidad : 9;
+    const estilo = r.estilo || r.tipo || 'roca_canion';
+    const culminacion = r.culminacion || 'oasis';
+
+    const cacheKey = `${zona.id}_${zona.x}_${zona.y}_${zona.radius}_${tamGrid}_${seed}_${alturaMuro}_${estilo}_${culminacion}`;
+    if (zona._cacheLaberinto && zona._cacheLaberintoKey === cacheKey) {
+      return zona._cacheLaberinto;
+    }
+
+    const { N, grid, entrada, centro } = generarLaberinto(tamGrid, seed);
+    const zx = zona.x;
+    const zz = zona.y;
+    const R = zona.radius || 100;
+    const cellSize = (2 * R) / N;
+    const halfN = (N - 1) / 2;
+
+    // Convertidor de celda (gx, gy) a mundo (wx, wz)
+    const celdaAMundo = (gx, gy) => ({
+      wx: zx + (gx - halfN) * cellSize,
+      wz: zz + (gy - halfN) * cellSize
+    });
+
+    // Cajas de colisión para los muros
+    const colliders = [];
+    const muros = [];
+    for (let gy = 0; gy < N; gy++) {
+      for (let gx = 0; gx < N; gx++) {
+        if (grid[gy][gx] === 1) {
+          const { wx, wz } = celdaAMundo(gx, gy);
+          const half = cellSize * 0.49;
+          const box = {
+            type: 'box',
+            minX: wx - half,
+            maxX: wx + half,
+            minZ: wz - half,
+            maxZ: wz + half,
+            gx,
+            gy,
+            wx,
+            wz
+          };
+          colliders.push(box);
+          muros.push({ gx, gy, wx, wz, half });
+        }
+      }
+    }
+
+    const posEntrada = celdaAMundo(entrada.gx, entrada.gy);
+    const posCentro = celdaAMundo(centro.gx, centro.gy);
+
+    const labDatos = {
+      zonaId: zona.id,
+      zonaNombre: zona.name,
+      zx,
+      zz,
       R,
-      wEdge,
-      esClearing: false,
-      factorCamino,
-      factorPared,
-      deltaH: deltaH * wEdge,
-      tipo,
-      culminacion: r.culminacion || 'oasis',
-      relieve: r,
-      zona: z
-    };
-  }
-
-  /**
-   * Modifica la altura del terreno hBase sumando el relieve especial de las zonas activas.
-   */
-  function aplicarRelieve(zonas, x, zWorld, hBase) {
-    if (!zonas || !zonas.length) return hBase;
-    let h = hBase;
-    for (let i = 0; i < zonas.length; i++) {
-      const z = zonas[i];
-      if (!zonaTieneRelieve(z)) continue;
-      const ev = evaluarPunto(z, x, zWorld);
-      if (ev) {
-        h += ev.deltaH;
+      N,
+      grid,
+      cellSize,
+      halfN,
+      alturaMuro,
+      estilo,
+      culminacion,
+      seed,
+      colliders,
+      muros,
+      entrada: { gx: entrada.gx, gy: entrada.gy, wx: posEntrada.wx, wz: posEntrada.wz },
+      centro: { gx: centro.gx, gy: centro.gy, wx: posCentro.wx, wz: posCentro.wz, radio: cellSize * 1.5 },
+      celdaAMundo,
+      obtenerColisionadores: (x, z) => {
+        // Índice espacial en O(1) comprobando celdas contiguas en 3x3
+        const gx = Math.round((x - zx) / cellSize + halfN);
+        const gy = Math.round((z - zz) / cellSize + halfN);
+        const out = [];
+        for (let dy = -1; dy <= 1; dy++) {
+          const ny = gy + dy;
+          if (ny < 0 || ny >= N) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = gx + dx;
+            if (nx < 0 || nx >= N) continue;
+            if (grid[ny][nx] === 1) {
+              const { wx, wz } = celdaAMundo(nx, ny);
+              const half = cellSize * 0.49;
+              out.push({
+                type: 'box',
+                minX: wx - half,
+                maxX: wx + half,
+                minZ: wz - half,
+                maxZ: wz + half
+              });
+            }
+          }
+        }
+        return out;
       }
-    }
-    return h;
+    };
+
+    zona._cacheLaberinto = labDatos;
+    zona._cacheLaberintoKey = cacheKey;
+    return labDatos;
   }
 
   /**
-   * Obtiene la zona con relieve activo que contenga (x, zWorld), si existe.
+   * Consulta si una coordenada en el mundo está en un camino transitable del laberinto.
    */
-  function obtenerRelieveZona(zonas, x, zWorld) {
+  function esCamino(zona, x, z) {
+    const lab = obtenerDatosLaberinto(zona);
+    if (!lab) return true;
+    const gx = Math.round((x - lab.zx) / lab.cellSize + lab.halfN);
+    const gy = Math.round((z - lab.zz) / lab.cellSize + lab.halfN);
+    if (gx < 0 || gx >= lab.N || gy < 0 || gy >= lab.N) return true;
+    return lab.grid[gy][gx] === 0;
+  }
+
+  /**
+   * Obtiene la zona con laberinto activo en (x, z).
+   */
+  function obtenerLaberintoEnPunto(zonas, x, z) {
     if (!zonas || !zonas.length) return null;
     for (let i = 0; i < zonas.length; i++) {
-      const z = zonas[i];
-      if (!zonaTieneRelieve(z)) continue;
-      const ev = evaluarPunto(z, x, zWorld);
-      if (ev) return ev;
+      const zObj = zonas[i];
+      if (!zonaTieneLaberinto(zObj)) continue;
+      const d = Math.hypot(x - zObj.x, z - zObj.y);
+      if (d <= (zObj.radius || 100) + 5) {
+        return obtenerDatosLaberinto(zObj);
+      }
     }
     return null;
   }
 
   /**
-   * Determina si un punto es camino transitable dentro de la zona (1 = camino plano, 0 = riscos/pared).
+   * Modifica texturas (splatting): caminos de grava/tierra, paredes de roca y explanada temática.
    */
-  function esCamino(z, x, zWorld) {
-    const ev = evaluarPunto(z, x, zWorld);
-    return ev ? ev.factorCamino : 1.0;
-  }
+  function splatZona(lab, x, z, steep, h, splatBase) {
+    if (!lab) return splatBase;
+    const gx = Math.round((x - lab.zx) / lab.cellSize + lab.halfN);
+    const gy = Math.round((z - lab.zz) / lab.cellSize + lab.halfN);
+    let valorCelda = 2;
+    if (gx >= 0 && gx < lab.N && gy >= 0 && gy < lab.N) {
+      valorCelda = lab.grid[gy][gx];
+    }
 
-  /**
-   * Calcula los pesos de splatting [hierba, tierra, roca, arena] y nieve para zonas con relieve.
-   * Evita texturas lisas en estas zonas: caminos de grava/tierra batida y paredes de roca rugosa.
-   */
-  function splatZona(ev, x, zWorld, steep, h, splatBase) {
-    if (!ev) return splatBase;
-    const { factorCamino, esClearing, culminacion, wEdge } = ev;
+    const dCentro = Math.hypot(x - lab.centro.wx, z - lab.centro.wz);
+    const esCentro = dCentro <= lab.centro.radio;
 
-    let g = 0, d = 0, r = 0, s = 0, n = 0;
+    let g = 0,
+      d = 0,
+      r = 0,
+      s = 0;
 
-    if (esClearing) {
-      // Explanada central según la culminación
-      if (culminacion === 'oasis') {
-        s = 0.55; g = 0.25; d = 0.20; // arena de orilla y vegetación fresca
-      } else if (culminacion === 'jefe') {
-        r = 0.65; d = 0.35; // roca oscura quemada y arena de batalla
-      } else if (culminacion === 'objeto_mision') {
-        r = 0.60; d = 0.30; g = 0.10; // losas antiguas desgastadas
-      } else if (culminacion === 'santuario') {
-        r = 0.70; d = 0.20; g = 0.10; // círculos sagrados de piedra
+    if (esCentro) {
+      if (lab.culminacion === 'oasis') {
+        s = 0.6;
+        g = 0.25;
+        d = 0.15; // Arena de orilla y vegetación fresca
+      } else if (lab.culminacion === 'jefe') {
+        r = 0.7;
+        d = 0.3; // Roca oscura de arena de combate
+      } else if (lab.culminacion === 'objeto_mision' || lab.culminacion === 'santuario') {
+        r = 0.65;
+        d = 0.25;
+        g = 0.1; // Losas ceremoniales
       } else {
-        r = 0.50; d = 0.40; g = 0.10;
+        d = 0.5;
+        r = 0.4;
+        s = 0.1;
       }
+    } else if (valorCelda === 0) {
+      // Suelo de los pasillos transitables del laberinto: tierra batida, grava y roca
+      d = 0.6;
+      r = 0.3;
+      s = 0.1;
     } else {
-      // En los caminos y recovecos:
-      if (factorCamino > 0.45) {
-        // Suelo del camino transitable: grava, tierra prensada y roca triturada
-        d = 0.55; r = 0.35; s = 0.10;
-      } else {
-        // Paredes del desfiladero/laberinto: roca escarpada dominante
-        r = 0.92; d = 0.08;
-      }
+      // Muros del laberinto: roca dominante
+      r = 0.95;
+      d = 0.05;
     }
 
-    // Pendientes abruptas siempre acentúan roca
-    const rockSteep = smooth(0.3, 0.65, steep || 0);
-    r = Math.max(r, rockSteep);
-    const k = 1 - rockSteep;
-    g *= k; d *= k; s *= k;
-
-    // Normalizar
     const sum = g + d + r + s || 1;
-    const splatCalculado = [g / sum, d / sum, r / sum, s / sum];
-
-    // Mezcla suave con el splat base según wEdge
-    if (splatBase && splatBase.splat) {
-      const bSpl = splatBase.splat;
-      const w = wEdge;
-      const invW = 1 - w;
-      return {
-        splat: [
-          splatCalculado[0] * w + bSpl[0] * invW,
-          splatCalculado[1] * w + bSpl[1] * invW,
-          splatCalculado[2] * w + bSpl[2] * invW,
-          splatCalculado[3] * w + bSpl[3] * invW
-        ],
-        snow: (splatBase.snow || 0) * invW
-      };
-    }
-
-    return { splat: splatCalculado, snow: 0 };
+    return {
+      splat: [g / sum, d / sum, r / sum, s / sum],
+      snow: 0
+    };
   }
 
   /**
-   * Construye el grupo 3D de la culminación (pedestal místico, monolitos del santuario, pebeteros de arena, etc.).
+   * Dibuja el laberinto directamente sobre el lienzo 2D en index.html.
+   * Permite ver visualmente cada muro, pasillo, la entrada al sur y la culminación al centro.
+   */
+  function dibujarLaberinto2D(ctx, zona, toScreen, viewScale, selected) {
+    const lab = obtenerDatosLaberinto(zona);
+    if (!lab) return;
+
+    const { N, grid, cellSize, zx, zz, R, culminacion } = lab;
+    const est = ESTILOS[lab.estilo] || ESTILOS.roca_canion;
+    const culmInfo = CULMINACIONES[culminacion] || CULMINACIONES.oasis;
+
+    ctx.save();
+
+    // Dibujar celdas de muro y pasillos
+    for (let gy = 0; gy < N; gy++) {
+      for (let gx = 0; gx < N; gx++) {
+        const val = grid[gy][gx];
+        if (val === 2) continue; // Fuera de la zona
+
+        const wx = zx + (gx - (N - 1) / 2) * cellSize;
+        const wz = zz + (gy - (N - 1) / 2) * cellSize;
+        const sTopLeft = toScreen(wx - cellSize / 2, wz - cellSize / 2);
+        const sBottomRight = toScreen(wx + cellSize / 2, wz + cellSize / 2);
+        const wPx = Math.abs(sBottomRight.x - sTopLeft.x);
+        const hPx = Math.abs(sBottomRight.y - sTopLeft.y);
+
+        if (val === 1) {
+          // Muro sólido
+          ctx.fillStyle = est.hex;
+          ctx.fillRect(sTopLeft.x, sTopLeft.y, wPx + 0.5, hPx + 0.5);
+          ctx.strokeStyle = 'rgba(15,23,42,0.6)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(sTopLeft.x, sTopLeft.y, wPx + 0.5, hPx + 0.5);
+        } else if (val === 0) {
+          // Pasillo transitable
+          ctx.fillStyle = 'rgba(217, 119, 6, 0.25)';
+          ctx.fillRect(sTopLeft.x, sTopLeft.y, wPx + 0.5, hPx + 0.5);
+        }
+      }
+    }
+
+    // Explanada central
+    const sCentro = toScreen(lab.centro.wx, lab.centro.wz);
+    const rCentroPx = Math.max(12, lab.centro.radio * viewScale);
+    ctx.beginPath();
+    ctx.arc(sCentro.x, sCentro.y, rCentroPx, 0, Math.PI * 2);
+    ctx.fillStyle =
+      culminacion === 'oasis'
+        ? 'rgba(56,189,248,0.5)'
+        : culminacion === 'jefe'
+          ? 'rgba(239,68,68,0.5)'
+          : culminacion === 'objeto_mision'
+            ? 'rgba(168,85,247,0.5)'
+            : 'rgba(34,197,94,0.5)';
+    ctx.fill();
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Icono de culminación en el centro
+    const tamIcono = Math.max(14, Math.min(26, Math.round(18 * viewScale)));
+    ctx.font = `${tamIcono}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(culmInfo.icono, sCentro.x, sCentro.y);
+
+    // Indicador de Entrada en el perímetro
+    const sEntrada = toScreen(lab.entrada.wx, lab.entrada.wz);
+    ctx.fillStyle = '#22c55e';
+    ctx.font = `bold ${Math.max(10, Math.min(16, Math.round(13 * viewScale)))}px sans-serif`;
+    ctx.fillText('🚪 ENTRADA', sEntrada.x, sEntrada.y + 12);
+
+    ctx.restore();
+  }
+
+  /**
+   * Construye los muros 3D del laberinto usando el constructor MB (MeshBuilder).
+   */
+  function crearMallaLaberinto(THREE, MBClass, zona, Hgen) {
+    const lab = obtenerDatosLaberinto(zona);
+    if (!lab || !MBClass) return null;
+
+    const mb = new MBClass();
+    const est = ESTILOS[lab.estilo] || ESTILOS.roca_canion;
+    const colPared = est.colorPared;
+    const colTop = est.colorTop;
+    const { N, grid, cellSize, zx, zz, alturaMuro } = lab;
+
+    for (let gy = 0; gy < N; gy++) {
+      for (let gx = 0; gx < N; gx++) {
+        if (grid[gy][gx] === 1) {
+          const wx = zx + (gx - (N - 1) / 2) * cellSize;
+          const wz = zz + (gy - (N - 1) / 2) * cellSize;
+          const ySuelo = Hgen ? Hgen(wx, wz) : 0;
+          // Construir bloque de muro
+          mb.box(
+            wx,
+            ySuelo + alturaMuro / 2,
+            wz,
+            1,
+            0,
+            cellSize * 0.98,
+            alturaMuro,
+            cellSize * 0.98,
+            colPared,
+            colTop
+          );
+        }
+      }
+    }
+
+    const geom = mb.geom ? mb.geom() : null;
+    if (!geom) return null;
+
+    const mat = new THREE.MeshStandardMaterial({
+      roughness: 0.88,
+      metalness: 0.1,
+      vertexColors: true
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.esLaberintoMuro = true;
+    mesh.userData.zonaId = zona.id;
+    return mesh;
+  }
+
+  /**
+   * Construye los elementos 3D del punto de destino / culminación (centro del laberinto).
    */
   function crearDecoradoCulminacion(THREE, zona, Hgen) {
-    if (!zonaTieneRelieve(zona)) return null;
-    const r = zona.relieve || {};
-    const culm = r.culminacion || 'oasis';
-    if (culm === 'ninguno') return null;
+    const lab = obtenerDatosLaberinto(zona);
+    if (!lab) return null;
 
-    const zx = zona.x;
-    const zz = zona.y;
+    const culm = lab.culminacion;
+    const zx = lab.centro.wx;
+    const zz = lab.centro.wz;
     const yh = Hgen ? Hgen(zx, zz) : 0;
+
     const grupo = new THREE.Group();
     grupo.position.set(zx, yh, zz);
     grupo.userData.culminacionTipo = culm;
     grupo.userData.zonaId = zona.id;
     grupo.userData.zonaNombre = zona.name;
 
-    // Materiales comunes
-    const matRoca = new THREE.MeshStandardMaterial({
-      color: 0x475569,
-      roughness: 0.85,
-      metalness: 0.1
-    });
-    const matRocaOscura = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
-      roughness: 0.9,
-      metalness: 0.15
-    });
-    const matOro = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      roughness: 0.35,
-      metalness: 0.8
-    });
+    const matRocaOscura = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9, metalness: 0.15 });
+    const matRoca = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85, metalness: 0.1 });
+    const matOro = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.35, metalness: 0.8 });
 
     if (culm === 'objeto_mision') {
-      // 🔮 Pedestal ancestral tallado con reliquia mística flotante interactuable
+      // 🔮 Pedestal con reliquia interactuable
       const baseGeo = new THREE.CylinderGeometry(2.4, 2.8, 0.7, 8);
       const baseMesh = new THREE.Mesh(baseGeo, matRocaOscura);
       baseMesh.position.y = 0.35;
-      baseMesh.receiveShadow = true;
       baseMesh.castShadow = true;
+      baseMesh.receiveShadow = true;
       grupo.add(baseMesh);
 
       const fusteGeo = new THREE.CylinderGeometry(1.5, 1.8, 1.4, 8);
       const fusteMesh = new THREE.Mesh(fusteGeo, matRoca);
       fusteMesh.position.y = 1.4;
-      fusteMesh.receiveShadow = true;
       fusteMesh.castShadow = true;
+      fusteMesh.receiveShadow = true;
       grupo.add(fusteMesh);
 
-      const capitelGeo = new THREE.CylinderGeometry(2.1, 1.4, 0.5, 8);
-      const capitelMesh = new THREE.Mesh(capitelGeo, matRocaOscura);
-      capitelMesh.position.y = 2.35;
-      capitelMesh.receiveShadow = true;
-      grupo.add(capitelMesh);
-
-      // Reliquia flotante
-      const reliquiaGeo = new THREE.OctahedronGeometry(0.85, 0);
+      const reliquiaGeo = new THREE.OctahedronGeometry(0.9, 0);
       const matReliquia = new THREE.MeshStandardMaterial({
         color: 0x38bdf8,
         emissive: 0x0284c7,
-        emissiveIntensity: 0.85,
+        emissiveIntensity: 0.9,
         roughness: 0.15,
         metalness: 0.6
       });
@@ -397,32 +595,17 @@
       grupo.add(reliquiaMesh);
       grupo.userData.reliquiaMesh = reliquiaMesh;
 
-      // Luz mística de la reliquia
-      const luz = new THREE.PointLight(0x38bdf8, 1.8, 22);
+      const luz = new THREE.PointLight(0x38bdf8, 2.0, 24);
       luz.position.set(0, 3.8, 0);
       grupo.add(luz);
-
-      // 4 monolitos protectores alrededor del pedestal
-      for (let i = 0; i < 4; i++) {
-        const ang = (i * Math.PI) / 2 + 0.35;
-        const radPilar = 5.5;
-        const pilarGeo = new THREE.BoxGeometry(0.8, 3.6, 0.8);
-        const pilar = new THREE.Mesh(pilarGeo, matRocaOscura);
-        pilar.position.set(Math.cos(ang) * radPilar, 1.8, Math.sin(ang) * radPilar);
-        pilar.rotation.y = ang;
-        pilar.castShadow = true;
-        pilar.receiveShadow = true;
-        grupo.add(pilar);
-      }
     } else if (culm === 'santuario') {
-      // 🏛️ Círculo de monolitos rúnicos sagrados
+      // 🏛️ Círculo de monolitos rúnicos
       const numPilares = 7;
       const radCirculo = 8.5;
       for (let i = 0; i < numPilares; i++) {
         const ang = (i * 2 * Math.PI) / numPilares;
-        const alt = 4.2 + (i % 2) * 1.2;
-        const pilarGeo = new THREE.BoxGeometry(1.2, alt, 0.9);
-        const pilar = new THREE.Mesh(pilarGeo, matRoca);
+        const alt = 4.5 + (i % 2) * 1.2;
+        const pilar = new THREE.Mesh(new THREE.BoxGeometry(1.2, alt, 0.9), matRoca);
         pilar.position.set(Math.cos(ang) * radCirculo, alt / 2, Math.sin(ang) * radCirculo);
         pilar.rotation.y = -ang + Math.PI / 2;
         pilar.castShadow = true;
@@ -430,70 +613,69 @@
         grupo.add(pilar);
       }
 
-      // Altar central
-      const altarGeo = new THREE.BoxGeometry(3.0, 1.1, 2.0);
-      const altar = new THREE.Mesh(altarGeo, matRocaOscura);
+      const altar = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.1, 2.0), matRocaOscura);
       altar.position.y = 0.55;
       altar.castShadow = true;
-      altar.receiveShadow = true;
       grupo.add(altar);
 
-      // Cáliz o gema sagrada en el centro
-      const gemaGeo = new THREE.DodecahedronGeometry(0.65, 0);
-      const matGema = new THREE.MeshStandardMaterial({
-        color: 0x4ade80,
-        emissive: 0x22c55e,
-        emissiveIntensity: 0.9,
-        roughness: 0.2
-      });
-      const gema = new THREE.Mesh(gemaGeo, matGema);
+      const gema = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.65, 0),
+        new THREE.MeshStandardMaterial({ color: 0x4ade80, emissive: 0x22c55e, emissiveIntensity: 0.9 })
+      );
       gema.position.y = 1.6;
       grupo.add(gema);
       grupo.userData.reliquiaMesh = gema;
 
-      const luzSantuario = new THREE.PointLight(0x4ade80, 2.0, 26);
-      luzSantuario.position.set(0, 2.5, 0);
-      grupo.add(luzSantuario);
+      const luz = new THREE.PointLight(0x4ade80, 2.0, 26);
+      luz.position.set(0, 2.5, 0);
+      grupo.add(luz);
     } else if (culm === 'jefe') {
-      // 💀 Arena ceremonial de jefe con pebeteros encendidos
-      const circuloGeo = new THREE.CylinderGeometry(11, 11.5, 0.4, 24);
-      const circuloMesh = new THREE.Mesh(circuloGeo, matRocaOscura);
-      circuloMesh.position.y = 0.2;
-      circuloMesh.receiveShadow = true;
-      grupo.add(circuloMesh);
+      // 💀 Arena de Jefe con pebeteros de fuego
+      const arenaMesh = new THREE.Mesh(new THREE.CylinderGeometry(11, 11.5, 0.4, 24), matRocaOscura);
+      arenaMesh.position.y = 0.2;
+      arenaMesh.receiveShadow = true;
+      grupo.add(arenaMesh);
 
-      // Borde de la arena
-      const anilloGeo = new THREE.TorusGeometry(10.8, 0.4, 8, 24);
-      anilloGeo.rotateX(Math.PI / 2);
-      const anilloMesh = new THREE.Mesh(anilloGeo, matOro);
-      anilloMesh.position.y = 0.45;
-      grupo.add(anilloMesh);
-
-      // 4 Pebeteros con fuego
       const matFuego = new THREE.MeshBasicMaterial({ color: 0xf97316 });
       for (let i = 0; i < 4; i++) {
         const ang = (i * Math.PI) / 2 + Math.PI / 4;
         const radPeb = 9.2;
-        const pebColGeo = new THREE.CylinderGeometry(0.6, 0.8, 2.4, 8);
-        const pebCol = new THREE.Mesh(pebColGeo, matRoca);
+        const pebCol = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 2.4, 8), matRoca);
         pebCol.position.set(Math.cos(ang) * radPeb, 1.2, Math.sin(ang) * radPeb);
         pebCol.castShadow = true;
         grupo.add(pebCol);
 
-        const fuegoGeo = new THREE.ConeGeometry(0.55, 1.2, 7);
-        const fuegoMesh = new THREE.Mesh(fuegoGeo, matFuego);
+        const fuegoMesh = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 7), matFuego);
         fuegoMesh.position.set(Math.cos(ang) * radPeb, 2.7, Math.sin(ang) * radPeb);
         grupo.add(fuegoMesh);
 
-        const luzFuego = new THREE.PointLight(0xf97316, 1.4, 18);
-        luzFuego.position.set(Math.cos(ang) * radPeb, 3.0, Math.sin(ang) * radPeb);
-        grupo.add(luzFuego);
+        const luz = new THREE.PointLight(0xf97316, 1.5, 20);
+        luz.position.set(Math.cos(ang) * radPeb, 3.0, Math.sin(ang) * radPeb);
+        grupo.add(luz);
       }
+    } else if (culm === 'tesoro') {
+      // 💎 Cofre del Tesoro Legendario
+      const cofreBase = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.1, 1.2), matOro);
+      cofreBase.position.y = 0.55;
+      cofreBase.castShadow = true;
+      grupo.add(cofreBase);
+
+      const tapaCofre = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.6, 1.8, 12, 1, false, 0, Math.PI),
+        new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.4 })
+      );
+      tapaCofre.position.set(0, 1.1, 0);
+      tapaCofre.rotation.z = Math.PI / 2;
+      grupo.add(tapaCofre);
+      grupo.userData.reliquiaMesh = cofreBase;
+
+      const luz = new THREE.PointLight(0xf59e0b, 2.2, 22);
+      luz.position.set(0, 2.0, 0);
+      grupo.add(luz);
     } else if (culm === 'oasis') {
-      // 🌴 Palmeras exuberantes alrededor del estanque del oasis
+      // 🌴 Palmeras exuberantes en el oasis
       const matTronco = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.9 });
       const matPalma = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6, side: THREE.DoubleSide });
-
       const numPalmeras = 6;
       const radOasis = 12.5;
       for (let i = 0; i < numPalmeras; i++) {
@@ -503,21 +685,17 @@
         const palmera = new THREE.Group();
         palmera.position.set(px, 0, pz);
 
-        // Tronco curvado
         const altTronco = 7.0 + (i % 3) * 1.5;
-        const troncoGeo = new THREE.CylinderGeometry(0.35, 0.65, altTronco, 7);
-        const tronco = new THREE.Mesh(troncoGeo, matTronco);
+        const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.65, altTronco, 7), matTronco);
         tronco.position.y = altTronco / 2;
         tronco.rotation.z = (Math.random() - 0.5) * 0.22;
         tronco.castShadow = true;
         palmera.add(tronco);
 
-        // Copa de palmeras
         const numHojas = 8;
         for (let h = 0; h < numHojas; h++) {
           const hang = (h * 2 * Math.PI) / numHojas;
-          const hojaGeo = new THREE.ConeGeometry(0.9, 3.8, 4);
-          const hoja = new THREE.Mesh(hojaGeo, matPalma);
+          const hoja = new THREE.Mesh(new THREE.ConeGeometry(0.9, 3.8, 4), matPalma);
           hoja.position.set(Math.cos(hang) * 1.6, altTronco + 0.2, Math.sin(hang) * 1.6);
           hoja.rotation.x = Math.PI / 2.6;
           hoja.rotation.y = hang;
@@ -532,15 +710,19 @@
   }
 
   const RelieveZonaLib = {
-    TIPOS,
+    ESTILOS,
     CULMINACIONES,
-    relievePorDefecto,
-    zonaTieneRelieve,
-    evaluarPunto,
-    aplicarRelieve,
-    obtenerRelieveZona,
+    configPorDefecto,
+    zonaTieneLaberinto,
+    zonaTieneRelieve: zonaTieneLaberinto,
+    generarLaberinto,
+    obtenerDatosLaberinto,
+    obtenerLaberintoEnPunto,
+    obtenerRelieveZona: obtenerLaberintoEnPunto,
     esCamino,
     splatZona,
+    dibujarLaberinto2D,
+    crearMallaLaberinto,
     crearDecoradoCulminacion
   };
 
