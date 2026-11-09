@@ -6315,8 +6315,24 @@
           if (lab) {
             g.save();
             const { N, grid, cellSize, zx, zz } = lab;
-            const wMuroMinimap = Math.max(1.5, cellSize * V.escala);
-            g.fillStyle = 'rgba(51, 65, 85, 0.88)';
+            const wMuroMinimap = Math.max(1.8, cellSize * V.escala);
+
+            // 1. Trazado visible del camino/desfiladero por donde ir
+            g.fillStyle = 'rgba(217, 119, 6, 0.65)';
+            for (let gy = 0; gy < N; gy++) {
+              for (let gx = 0; gx < N; gx++) {
+                if (grid[gy][gx] === 0) {
+                  const wx = zx + (gx - (N - 1) / 2) * cellSize;
+                  const wz = zz + (gy - (N - 1) / 2) * cellSize;
+                  const sx = V.px(wx - cellSize / 2);
+                  const sy = V.py(wz - cellSize / 2);
+                  g.fillRect(sx, sy, wMuroMinimap, wMuroMinimap);
+                }
+              }
+            }
+
+            // 2. Muros y acantilados de roca que encierran el laberinto
+            g.fillStyle = 'rgba(15, 23, 42, 0.95)';
             for (let gy = 0; gy < N; gy++) {
               for (let gx = 0; gx < N; gx++) {
                 if (grid[gy][gx] === 1) {
@@ -6328,6 +6344,15 @@
                 }
               }
             }
+
+            // 3. Indicador de entrada sur
+            if (lab.entrada) {
+              g.fillStyle = '#22c55e';
+              g.beginPath();
+              g.arc(V.px(lab.entrada.wx), V.py(lab.entrada.wz), Math.max(3, 4.5 * V.escala), 0, Math.PI * 2);
+              g.fill();
+            }
+
             const culm = z.relieve.culminacion || 'oasis';
             const icon = (RelieveZonaLib.CULMINACIONES[culm] && RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
             g.font = `${Math.max(11, Math.min(18, Math.round(14 * V.escala)))}px sans-serif`;

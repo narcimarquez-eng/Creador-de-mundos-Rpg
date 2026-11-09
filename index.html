@@ -1391,16 +1391,16 @@
               </select>
             </div>
             <div>
-              <label style="font-size:11px">Complejidad / Tamaño</label>
+              <label style="font-size:11px">Complejidad / Anchura de caminos</label>
               <select data-zf="complejidad">
-                <option value="simple" ${r.complejidad === 'simple' ? 'selected' : ''}>Simple (9 × 9)</option>
-                <option value="medio" ${!r.complejidad || r.complejidad === 'medio' ? 'selected' : ''}>Medio (13 × 13)</option>
-                <option value="complejo" ${r.complejidad === 'complejo' ? 'selected' : ''}>Complejo (17 × 17)</option>
+                <option value="simple" ${r.complejidad === 'simple' ? 'selected' : ''}>Simple (9 × 9 - Caminos muy anchos)</option>
+                <option value="medio" ${!r.complejidad || r.complejidad === 'medio' ? 'selected' : ''}>Medio (11 × 11 - Caminos anchos)</option>
+                <option value="complejo" ${r.complejidad === 'complejo' ? 'selected' : ''}>Complejo (15 × 15 - Más intrincado)</option>
               </select>
             </div>
             <div>
-              <label style="font-size:11px">Altura de muros: <b>${r.alturaMuro || 9} m</b></label>
-              <input type="range" min="4" max="18" step="1" data-zf="alturaMuro" value="${r.alturaMuro || 9}">
+              <label style="font-size:11px">Altura de acantilados: <b>${r.alturaMuro || 14} m</b></label>
+              <input type="range" min="8" max="24" step="1" data-zf="alturaMuro" value="${r.alturaMuro || 14}">
             </div>
           </div>
           <div style="margin-top:8px;display:flex;gap:8px">
@@ -1676,7 +1676,7 @@
           ent.relieve[f] = parseFloat(el.value);
         } else if (f === 'complejidad') {
           ent.relieve[f] = el.value;
-          ent.relieve.tamGrid = el.value === 'simple' ? 9 : el.value === 'complejo' ? 17 : 13;
+          ent.relieve.tamGrid = el.value === 'simple' ? 9 : el.value === 'complejo' ? 15 : 11;
         } else {
           ent.relieve[f] = el.value;
         }

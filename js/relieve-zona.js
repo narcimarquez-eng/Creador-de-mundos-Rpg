@@ -86,9 +86,10 @@
       estilo: estilo || 'roca_canion',
       culminacion: culminacion || 'oasis',
       complejidad: 'medio',
-      tamGrid: 13,
-      alturaMuro: 9,
-      anchoPasillo: 6,
+      tamGrid: 11,
+      alturaMuro: 14,
+      profundidadHendidura: 3.5,
+      anchoPasillo: 10,
       seed: 12345 + Math.floor(Math.random() * 80000)
     };
   }
@@ -228,9 +229,9 @@
     if (!zonaTieneLaberinto(zona)) return null;
 
     const r = zona.relieve || {};
-    const tamGrid = r.tamGrid || (r.complejidad === 'simple' ? 9 : r.complejidad === 'complejo' ? 17 : 13);
+    const tamGrid = r.tamGrid || (r.complejidad === 'simple' ? 9 : r.complejidad === 'complejo' ? 15 : 11);
     const seed = typeof r.seed === 'number' ? r.seed : 12345;
-    const alturaMuro = typeof r.alturaMuro === 'number' ? r.alturaMuro : typeof r.profundidad === 'number' ? r.profundidad : 9;
+    const alturaMuro = typeof r.alturaMuro === 'number' ? r.alturaMuro : typeof r.profundidad === 'number' ? r.profundidad : 14;
     const estilo = r.estilo || r.tipo || 'roca_canion';
     const culminacion = r.culminacion || 'oasis';
 
@@ -399,19 +400,30 @@
       const w11 = getW(i + 1, j + 1);
       const w = (1 - fx) * (1 - fy) * w00 + fx * (1 - fy) * w10 + (1 - fx) * fy * w01 + fx * fy * w11;
 
-      // S-curve para crear pasillos planos y desfiladeros con paredes de acantilado abruptas (>50% desnivel)
-      const s = smooth(0.12, 0.60, w);
+      // S-curve más empinada: mantiene el suelo del desfiladero plano y ancho (w < 0.35)
+      // y eleva las paredes abruptamente (>400% pendiente) creando acantilados verticales que encierran el sitio
+      const s = smooth(0.35, 0.58, w);
 
-      // Hendidura en pasillos (-2.0m) y elevación de cresta de desfiladero (+alturaMuro)
-      const profHendidura = typeof zona.relieve.profundidadHendidura === 'number' ? zona.relieve.profundidadHendidura : 2.0;
-      let dh = -profHendidura * (1 - s) + alturaMuro * s;
+      // Hendidura en pasillos (-3.5m) y elevación de altas crestas de roca (+alturaMuro)
+      const profHendidura = typeof zona.relieve.profundidadHendidura === 'number'
+        ? zona.relieve.profundidadHendidura
+        : (typeof zona.relieve.profundidad === 'number' ? zona.relieve.profundidad : 3.5);
+      const altMuroEfectiva = typeof alturaMuro === 'number' && alturaMuro > 0 ? Math.max(10, alturaMuro) : 14;
+      let dh = -profHendidura * (1 - s) + altMuroEfectiva * s;
 
-      // En el centro de culminación
+      // En el centro de culminación: explanada allanada a nivel transitable del cañón
       const dCentro = Math.hypot(x - lab.centro.wx, z - lab.centro.wz);
       if (dCentro < lab.centro.radio) {
-        const tC = smooth(lab.centro.radio * 0.5, lab.centro.radio, dCentro);
-        const dhCentro = culminacion === 'oasis' ? -1.8 : 0.0;
+        const tC = smooth(lab.centro.radio * 0.4, lab.centro.radio, dCentro);
+        const dhCentro = culminacion === 'oasis' ? -(profHendidura + 1.5) : -profHendidura;
         dh = dhCentro * (1 - tC) + dh * tC;
+      }
+
+      // En la entrada sur: rampa suave que conecta el terreno exterior con el fondo del desfiladero
+      const dEntrada = Math.hypot(x - lab.entrada.wx, z - lab.entrada.wz);
+      if (dEntrada < lab.cellSize * 1.3 && d >= R - 8) {
+        const tE = smooth(R - 8, R + 2, d);
+        dh = dh * (1 - tE);
       }
 
       // En el borde exterior de la zona: mezcla suave hacia el terreno base natural
@@ -442,30 +454,30 @@
 
     if (esCentro) {
       if (lab.culminacion === 'oasis') {
-        s = 0.6;
-        g = 0.25;
-        d = 0.15; // Arena de orilla y vegetación fresca
+        s = 0.70;
+        g = 0.20;
+        d = 0.10; // Arena de orilla y vegetación fresca
       } else if (lab.culminacion === 'jefe') {
-        r = 0.7;
-        d = 0.3; // Roca oscura de arena de combate
+        r = 0.85;
+        d = 0.15; // Roca oscura de arena de combate
       } else if (lab.culminacion === 'objeto_mision' || lab.culminacion === 'santuario') {
-        r = 0.65;
-        d = 0.25;
-        g = 0.1; // Losas ceremoniales
+        r = 0.75;
+        d = 0.20;
+        g = 0.05; // Losas ceremoniales
       } else {
-        d = 0.5;
-        r = 0.4;
-        s = 0.1;
+        d = 0.55;
+        r = 0.40;
+        s = 0.05;
       }
     } else if (valorCelda === 0) {
-      // Suelo de los pasillos transitables del laberinto: tierra batida, grava y roca
-      d = 0.65;
-      r = 0.25;
-      g = 0.10;
+      // Suelo del camino en el desfiladero: tierra batida, grava y sendero contrastado
+      d = 0.88;
+      r = 0.08;
+      g = 0.04;
     } else {
-      // Muros del laberinto: roca dominante
-      r = 0.95;
-      d = 0.05;
+      // Muros y acantilados del desfiladero: roca pura dominante
+      r = 0.98;
+      d = 0.02;
     }
 
     const sum = g + d + r + s || 1;

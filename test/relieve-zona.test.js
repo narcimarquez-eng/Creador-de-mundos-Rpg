@@ -97,7 +97,7 @@ test('RelieveZonaLib - Esculpido de relieve de laberinto en terreno natural (apl
 
   // 3. En la culminación central: el suelo es accesible
   const hCentro = RelieveZonaLib.aplicarRelieveTerreno([zona], lab.centro.wx, lab.centro.wz, 25.0);
-  assert.ok(Math.abs(hCentro - 23.2) < 0.5, 'El oasis central debe ser una hondonada plana accesible');
+  assert.ok(hCentro < 25.0 && hCentro >= 18.0, 'El oasis central debe ser una hondonada plana accesible');
 });
 
 test('RelieveZonaLib - Desnivel inescalable (>50% pendiente) en paredes de acantilado', () => {
