@@ -2755,6 +2755,7 @@
     const ahora = performance.now();
     lastStream = -Infinity;
     streamTowns(ahora);
+    streamLaberintos(ahora);
     updateTerrainChunks(ahora, true);
     updateAtmosphere(0);
     if (renderer && renderer.compileAsync) {
@@ -2919,11 +2920,7 @@
       const k = j * N + i;
       const nv = TerrainLib.nodeNormal(heightAt, i, j, n, step);
       nrm[k * 3] = nv[0]; nrm[k * 3 + 1] = nv[1]; nrm[k * 3 + 2] = nv[2];
-      let w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
-      if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.obtenerRelieveZona && world && world.zones) {
-        const rz = RelieveZonaLib.obtenerRelieveZona(world.zones, pos[k * 3], pos[k * 3 + 2]);
-        if (rz) w = RelieveZonaLib.splatZona(rz, pos[k * 3], pos[k * 3 + 2], 1 - nv[1], heightAt(i, j), w);
-      }
+      const w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
       splat.set(w.splat, k * 4);
       snowA[k] = w.snow;
     }
@@ -3231,6 +3228,21 @@
     const hAt = (i, j) => alt[(j + 1) * M + i + 1];
     const pos = new Float32Array(NI * NJ * 3), col = new Float32Array(NI * NJ * 3), nrm = new Float32Array(NI * NJ * 3);
     const splat = new Float32Array(NI * NJ * 4), snowA = new Float32Array(NI * NJ);
+    // Comprobar una sola vez por trozo si solapa con alguna zona de laberinto
+    let labChunk = null;
+    if (typeof RelieveZonaLib !== 'undefined' && world && world.zones) {
+      const cxMin = xo, cxMax = xo + nI * fs, czMin = zo, czMax = zo + nJ * fs;
+      for (let zi = 0; zi < world.zones.length; zi++) {
+        const zObj = world.zones[zi];
+        if (!zObj.relieve || !zObj.relieve.activo) continue;
+        const rz = (zObj.radius || 100) + 10;
+        if (zObj.x + rz >= cxMin && zObj.x - rz <= cxMax && zObj.y + rz >= czMin && zObj.y - rz <= czMax) {
+          labChunk = RelieveZonaLib.obtenerDatosLaberinto(zObj);
+          break;
+        }
+      }
+    }
+
     for (let j = 0; j < NJ; j++) for (let i = 0; i < NI; i++) {
       const k = j * NI + i, x = xo + i * fs, z = zo + j * fs, h = hAt(i, j);
       const dx = (hAt(i + 1, j) - hAt(i - 1, j)) / (2 * fs), dz = (hAt(i, j + 1) - hAt(i, j - 1)) / (2 * fs);
@@ -3241,9 +3253,8 @@
       col[k * 3] = 1 - 0.55 * (1 - c[0] / 255); col[k * 3 + 1] = 1 - 0.55 * (1 - c[1] / 255); col[k * 3 + 2] = 1 - 0.55 * (1 - c[2] / 255);
       nrm.set(nv, k * 3);
       let w = TerrainLib.splatFor(b, 1 - nv[1], h);
-      if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.obtenerRelieveZona && world && world.zones) {
-        const rz = RelieveZonaLib.obtenerRelieveZona(world.zones, x, z);
-        if (rz) w = RelieveZonaLib.splatZona(rz, x, z, 1 - nv[1], h, w);
+      if (labChunk) {
+        w = RelieveZonaLib.splatZona(labChunk, x, z, 1 - nv[1], h, w);
       }
       splat.set(w.splat, k * 4); snowA[k] = w.snow;
     }
@@ -3829,11 +3840,21 @@
 
   function limpiarLaberintosMundo() {
     if (decoracionesCulminacion && decoracionesCulminacion.length) {
-      decoracionesCulminacion.forEach(g => scene.remove(g));
+      decoracionesCulminacion.forEach(g => { if (g && g.parent) g.parent.remove(g); else scene.remove(g); });
     }
     decoracionesCulminacion = [];
-    if (mallasLaberintos && mallasLaberintos.length) {
-      mallasLaberintos.forEach(m => scene.remove(m));
+    if (laberintosMundo && laberintosMundo.length) {
+      laberintosMundo.forEach(e => {
+        if (e.malla) {
+          scene.remove(e.malla);
+          if (e.malla.geometry) e.malla.geometry.dispose();
+          e.malla = null;
+        }
+        if (e.decorado) {
+          scene.remove(e.decorado);
+          e.decorado = null;
+        }
+      });
     }
     mallasLaberintos = [];
     laberintosMundo = [];
@@ -3856,30 +3877,92 @@
     zoneMesh = new THREE.Mesh(mb.geom(), zonaMat);
     scene.add(zoneMesh);
 
-    // Muros 3D y decorados de culminación para zonas con laberinto
+    // Registro ligero de laberintos de zona: se integran poco a poco por proximidad (streaming)
     if (typeof RelieveZonaLib !== 'undefined') {
       world.zones.forEach(z => {
         if (z.relieve && z.relieve.activo) {
           const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
           if (lab) {
-            laberintosMundo.push(lab);
-            // 1. Malla 3D de los muros del laberinto
-            if (typeof RelieveZonaLib.crearMallaLaberinto === 'function') {
-              const mallaMuros = RelieveZonaLib.crearMallaLaberinto(THREE, MB, z, H);
-              if (mallaMuros) {
-                scene.add(mallaMuros);
-                mallasLaberintos.push(mallaMuros);
-              }
+            laberintosMundo.push({
+              zona: z,
+              lab,
+              malla: null,
+              decorado: null,
+              cargado: false,
+              cargando: false
+            });
+          }
+        }
+      });
+    }
+  }
+
+  // Integración progresiva (streaming) de laberintos 3D: carga poco a poco sin saturar el hilo principal
+  const DIST_CARGA_LAB = 360;    // Se carga progresivamente cuando el jugador se acerca
+  const DIST_DESCARGA_LAB = 520; // Se descarga para liberar GPU/memoria cuando se aleja
+  let lastStreamLab = 0;
+
+  function streamLaberintos(now) {
+    if (gestorMazmorras && gestorMazmorras.enMazmorra) return;
+    if (!laberintosMundo || !laberintosMundo.length) return;
+    if (now - lastStreamLab < 200) return;
+    lastStreamLab = now;
+
+    const px = (character && character.root) ? character.root.position.x : (camera ? camera.position.x : 0);
+    const pz = (character && character.root) ? character.root.position.z : (camera ? camera.position.z : 0);
+
+    // 1. Descargar laberintos que queden lejos (> 520m)
+    for (let i = 0; i < laberintosMundo.length; i++) {
+      const e = laberintosMundo[i];
+      if (e.cargado) {
+        const d = Math.hypot(px - e.lab.zx, pz - e.lab.zz);
+        if (d > DIST_DESCARGA_LAB) {
+          if (e.malla) {
+            scene.remove(e.malla);
+            if (e.malla.geometry) e.malla.geometry.dispose();
+            e.malla = null;
+          }
+          if (e.decorado) {
+            scene.remove(e.decorado);
+            e.decorado = null;
+          }
+          const idxDec = decoracionesCulminacion.indexOf(e.decorado);
+          if (idxDec !== -1) decoracionesCulminacion.splice(idxDec, 1);
+          e.cargado = false;
+        }
+      }
+    }
+
+    // 2. Cargar como máximo 1 laberinto pendiente por ciclo para que se integre poco a poco sin congelar la pantalla
+    const pendientes = laberintosMundo
+      .filter(e => !e.cargado && !e.cargando)
+      .map(e => ({ entrada: e, dist: Math.hypot(px - e.lab.zx, pz - e.lab.zz) }))
+      .filter(x => x.dist < DIST_CARGA_LAB)
+      .sort((a, b) => a.dist - b.dist);
+
+    if (pendientes.length > 0) {
+      const e = pendientes[0].entrada;
+      e.cargando = true;
+      requestAnimationFrame(() => {
+        try {
+          if (typeof RelieveZonaLib !== 'undefined') {
+            if (typeof RelieveZonaLib.crearMallaLaberinto === 'function' && !e.malla) {
+              e.malla = RelieveZonaLib.crearMallaLaberinto(THREE, MB, e.zona, H);
+              if (e.malla) scene.add(e.malla);
             }
-            // 2. Decoración de la meta central (oasis, jefe, reliquia, santuario, tesoro)
-            if (typeof RelieveZonaLib.crearDecoradoCulminacion === 'function') {
-              const dec = RelieveZonaLib.crearDecoradoCulminacion(THREE, z, H);
-              if (dec) {
-                scene.add(dec);
-                decoracionesCulminacion.push(dec);
+            if (typeof RelieveZonaLib.crearDecoradoCulminacion === 'function' && !e.decorado) {
+              e.decorado = RelieveZonaLib.crearDecoradoCulminacion(THREE, e.zona, H);
+              if (e.decorado) {
+                scene.add(e.decorado);
+                decoracionesCulminacion.push(e.decorado);
               }
             }
           }
+          e.cargado = true;
+        } catch (err) {
+          console.warn('Error al integrar laberinto:', err);
+        } finally {
+          e.cargando = false;
         }
       });
     }
@@ -4501,7 +4584,9 @@
       // Colisionadores de los muros del laberinto de zona
       if (typeof laberintosMundo !== 'undefined' && laberintosMundo && laberintosMundo.length) {
         for (let i = 0; i < laberintosMundo.length; i++) {
-          const lab = laberintosMundo[i];
+          const e = laberintosMundo[i];
+          const lab = e.lab || e;
+          if (!lab || !lab.obtenerColisionadores) continue;
           if (Math.hypot(x - lab.zx, z - lab.zz) > lab.R + 15) continue;
           const cols = lab.obtenerColisionadores(x, z);
           for (let j = 0; j < cols.length; j++) out.push(cols[j]);
@@ -10505,12 +10590,12 @@
     const modalTapando = ($('crear').classList.contains('show') || $('mapa-mundo').classList.contains('show')) &&
       renderer.info.render.frame > 4 && towns.every(o => !o.village || o.rise >= 1);
     if (modalTapando) {
-      if (!enDungeon) streamTowns(now);
+      if (!enDungeon) { streamTowns(now); streamLaberintos(now); }
       actualizarCarga(now);
       if (++fotogramaModal % 6 !== 0) return;
     }
 
-    if (!enDungeon) streamTowns(now);
+    if (!enDungeon) { streamTowns(now); streamLaberintos(now); }
     actualizarCarga(now);
     AGUA_U.uTime.value = now / 1000;
     if (!enDungeon) {
