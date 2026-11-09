@@ -361,16 +361,76 @@
   }
 
   /**
+   * Modifica la altura del terreno base (Hgen) esculpiendo el laberinto directamente
+   * sobre el relieve: hendiduras en pasillos (-2.0m) y desfiladeros con paredes de roca
+   * elevadas (+alturaMuro) cuyas pendientes superan el 50% de desnivel, haciéndolas inescalables
+   * a pie por la física del personaje. Esto guía de forma natural al jugador por el camino.
+   */
+  function aplicarRelieveTerreno(zonas, x, z, hBase) {
+    if (!zonas || !zonas.length) return hBase;
+    let h = hBase;
+    for (let zi = 0; zi < zonas.length; zi++) {
+      const zona = zonas[zi];
+      if (!zona || !zona.relieve || !zona.relieve.activo) continue;
+      const R = zona.radius || 100;
+      const dx = x - zona.x, dz = z - zona.y;
+      const d = Math.hypot(dx, dz);
+      if (d > R + 6) continue;
+
+      const lab = obtenerDatosLaberinto(zona);
+      if (!lab) continue;
+
+      const { N, grid, cellSize, halfN, zx, zz, alturaMuro, culminacion } = lab;
+      const u = (x - zx) / cellSize + halfN;
+      const v = (z - zz) / cellSize + halfN;
+      const i = Math.floor(u);
+      const j = Math.floor(v);
+      const fx = Math.max(0, Math.min(1, u - i));
+      const fy = Math.max(0, Math.min(1, v - j));
+
+      const getW = (gx, gy) => {
+        if (gx < 0 || gx >= N || gy < 0 || gy >= N) return 0;
+        return grid[gy][gx] === 1 ? 1 : 0;
+      };
+
+      const w00 = getW(i, j);
+      const w10 = getW(i + 1, j);
+      const w01 = getW(i, j + 1);
+      const w11 = getW(i + 1, j + 1);
+      const w = (1 - fx) * (1 - fy) * w00 + fx * (1 - fy) * w10 + (1 - fx) * fy * w01 + fx * fy * w11;
+
+      // S-curve para crear pasillos planos y desfiladeros con paredes de acantilado abruptas (>50% desnivel)
+      const s = smooth(0.12, 0.60, w);
+
+      // Hendidura en pasillos (-2.0m) y elevación de cresta de desfiladero (+alturaMuro)
+      const profHendidura = typeof zona.relieve.profundidadHendidura === 'number' ? zona.relieve.profundidadHendidura : 2.0;
+      let dh = -profHendidura * (1 - s) + alturaMuro * s;
+
+      // En el centro de culminación
+      const dCentro = Math.hypot(x - lab.centro.wx, z - lab.centro.wz);
+      if (dCentro < lab.centro.radio) {
+        const tC = smooth(lab.centro.radio * 0.5, lab.centro.radio, dCentro);
+        const dhCentro = culminacion === 'oasis' ? -1.8 : 0.0;
+        dh = dhCentro * (1 - tC) + dh * tC;
+      }
+
+      // En el borde exterior de la zona: mezcla suave hacia el terreno base natural
+      const blendBorde = 1 - smooth(R - 6, R + 2, d);
+      h = h + dh * blendBorde;
+    }
+    return h;
+  }
+
+  /**
    * Modifica texturas (splatting): caminos de grava/tierra, paredes de roca y explanada temática.
    */
   function splatZona(lab, x, z, steep, h, splatBase) {
     if (!lab) return splatBase;
     const gx = Math.round((x - lab.zx) / lab.cellSize + lab.halfN);
     const gy = Math.round((z - lab.zz) / lab.cellSize + lab.halfN);
-    let valorCelda = 2;
-    if (gx >= 0 && gx < lab.N && gy >= 0 && gy < lab.N) {
-      valorCelda = lab.grid[gy][gx];
-    }
+    if (gx < 0 || gx >= lab.N || gy < 0 || gy >= lab.N) return splatBase;
+    const valorCelda = lab.grid[gy][gx];
+    if (valorCelda === 2) return splatBase;
 
     const dCentro = Math.hypot(x - lab.centro.wx, z - lab.centro.wz);
     const esCentro = dCentro <= lab.centro.radio;
@@ -399,9 +459,9 @@
       }
     } else if (valorCelda === 0) {
       // Suelo de los pasillos transitables del laberinto: tierra batida, grava y roca
-      d = 0.6;
-      r = 0.3;
-      s = 0.1;
+      d = 0.65;
+      r = 0.25;
+      g = 0.10;
     } else {
       // Muros del laberinto: roca dominante
       r = 0.95;
@@ -719,6 +779,7 @@
     obtenerDatosLaberinto,
     obtenerLaberintoEnPunto,
     obtenerRelieveZona: obtenerLaberintoEnPunto,
+    aplicarRelieveTerreno,
     esCamino,
     splatZona,
     dibujarLaberinto2D,

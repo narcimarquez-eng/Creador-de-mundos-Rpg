@@ -2205,6 +2205,10 @@
       const elevFn = (ex, ez) => terrain ? ((terrain.elevation(ex, ez) - SEA) * HEIGHT_SCALE) : 0;
       h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h, elevFn);
     }
+    // Laberinto natural en zonas de caza: hendiduras, desfiladeros y crestas inescalables en el propio terreno
+    if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.aplicarRelieveTerreno && world && world.zones) {
+      h = RelieveZonaLib.aplicarRelieveTerreno(world.zones, x, z, h);
+    }
     return h;
   }
 
@@ -3946,10 +3950,6 @@
       requestAnimationFrame(() => {
         try {
           if (typeof RelieveZonaLib !== 'undefined') {
-            if (typeof RelieveZonaLib.crearMallaLaberinto === 'function' && !e.malla) {
-              e.malla = RelieveZonaLib.crearMallaLaberinto(THREE, MB, e.zona, H);
-              if (e.malla) scene.add(e.malla);
-            }
             if (typeof RelieveZonaLib.crearDecoradoCulminacion === 'function' && !e.decorado) {
               e.decorado = RelieveZonaLib.crearDecoradoCulminacion(THREE, e.zona, H);
               if (e.decorado) {
@@ -3960,7 +3960,7 @@
           }
           e.cargado = true;
         } catch (err) {
-          console.warn('Error al integrar laberinto:', err);
+          console.warn('Error al integrar culminación de laberinto:', err);
         } finally {
           e.cargando = false;
         }

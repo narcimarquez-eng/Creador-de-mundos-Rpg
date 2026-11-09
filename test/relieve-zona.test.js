@@ -74,3 +74,65 @@ test('RelieveZonaLib - Splatting de textura para pasillos y muros del laberinto'
   const splatPasillo = RelieveZonaLib.splatZona(lab, lab.entrada.wx, lab.entrada.wz, 0, 10, { splat: [1, 0, 0, 0] });
   assert.ok(splatPasillo.splat[1] >= 0.4, 'En los pasillos debe haber grava y tierra batida');
 });
+
+test('RelieveZonaLib - Esculpido de relieve de laberinto en terreno natural (aplicarRelieveTerreno)', () => {
+  const zona = {
+    id: 'z_canyon',
+    name: 'Garganta de Piedra',
+    x: 500,
+    y: 500,
+    radius: 90,
+    relieve: RelieveZonaLib.configPorDefecto('roca_canion', 'oasis')
+  };
+  zona.relieve.alturaMuro = 11;
+  const lab = RelieveZonaLib.obtenerDatosLaberinto(zona);
+
+  // 1. Fuera de la zona: la altura base no se modifica
+  const hFuera = RelieveZonaLib.aplicarRelieveTerreno([zona], 500, 500 + 130, 25.0);
+  assert.strictEqual(hFuera, 25.0, 'Fuera de la zona el terreno natural no debe alterarse');
+
+  // 2. En la entrada perimetral: el suelo conecta de forma suave con el terreno exterior
+  const hEntrada = RelieveZonaLib.aplicarRelieveTerreno([zona], lab.entrada.wx, lab.entrada.wz, 25.0);
+  assert.ok(hEntrada <= 25.0, 'La entrada al cañón debe ser transitable y ligeramente hundida');
+
+  // 3. En la culminación central: el suelo es accesible
+  const hCentro = RelieveZonaLib.aplicarRelieveTerreno([zona], lab.centro.wx, lab.centro.wz, 25.0);
+  assert.ok(Math.abs(hCentro - 23.2) < 0.5, 'El oasis central debe ser una hondonada plana accesible');
+});
+
+test('RelieveZonaLib - Desnivel inescalable (>50% pendiente) en paredes de acantilado', () => {
+  const zona = {
+    id: 'z_canyon',
+    x: 500,
+    y: 500,
+    radius: 90,
+    relieve: RelieveZonaLib.configPorDefecto('roca_canion', 'oasis')
+  };
+  zona.relieve.alturaMuro = 12;
+  const lab = RelieveZonaLib.obtenerDatosLaberinto(zona);
+
+  // Buscar una celda de pasillo contigua a una de muro
+  let ptPasillo = null, ptMuro = null;
+  const { N, grid, cellSize, halfN, zx, zz } = lab;
+  for (let gy = 1; gy < N - 1; gy++) {
+    for (let gx = 1; gx < N - 1; gx++) {
+      if (grid[gy][gx] === 0 && grid[gy][gx + 1] === 1) {
+        ptPasillo = { x: zx + (gx - halfN) * cellSize, z: zz + (gy - halfN) * cellSize };
+        ptMuro = { x: zx + (gx + 1 - halfN) * cellSize, z: zz + (gy - halfN) * cellSize };
+        break;
+      }
+    }
+    if (ptPasillo) break;
+  }
+
+  assert.ok(ptPasillo && ptMuro, 'Debe encontrarse una transición entre pasillo y muro');
+
+  // Calcular desnivel y pendiente a lo largo de la transición
+  const h0 = RelieveZonaLib.aplicarRelieveTerreno([zona], ptPasillo.x, ptPasillo.z, 20.0);
+  const h1 = RelieveZonaLib.aplicarRelieveTerreno([zona], ptMuro.x, ptMuro.z, 20.0);
+  const dist = Math.hypot(ptMuro.x - ptPasillo.x, ptMuro.z - ptPasillo.z);
+  const pendiente = (h1 - h0) / dist;
+
+  assert.ok(h1 > h0, 'El muro/cresta debe estar más alto que el pasillo');
+  assert.ok(pendiente > 0.50, `La pendiente (${pendiente.toFixed(2)}) debe ser > 0.50 para que el personaje no pueda escalarla según su física`);
+});
