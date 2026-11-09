@@ -187,7 +187,7 @@
   }
 
   // Un paso de la IA del monstruo. Devuelve { attack: bool } para indicar si golpea este frame.
-  function monsterTick(m, hero, hx, hz, dt) {
+  function monsterTick(m, hero, hx, hz, dt, dy) {
     const out = { attack: false };
     const dHero = Math.hypot(hx - m.x, hz - m.z);
     const dSpawn = Math.hypot(m.spawnX - m.x, m.spawnZ - m.z);
@@ -198,19 +198,35 @@
     if (m.state === 'chase') {
       if (dHero > MONSTER.attackRange) {
         const sp = m.speed * dt / dHero;
-        m.x += (hx - m.x) * Math.min(1, sp);
-        m.z += (hz - m.z) * Math.min(1, sp);
+        let nx = m.x + (hx - m.x) * Math.min(1, sp);
+        let nz = m.z + (hz - m.z) * Math.min(1, sp);
+        if (typeof m.puedeIr === 'function' && !m.puedeIr(nx, nz)) {
+          if (m.puedeIr(nx, m.z)) nz = m.z;
+          else if (m.puedeIr(m.x, nz)) nx = m.x;
+          else { nx = m.x; nz = m.z; }
+        }
+        m.x = nx;
+        m.z = nz;
       } else {
-        m.attackTimer -= dt;
-        if (m.attackTimer <= 0) { m.attackTimer = MONSTER.attackCd; out.attack = true; }
+        // No atacar a través de acantilados o desniveles verticales mayores a 4 metros
+        if (typeof dy !== 'number' || dy < 4.0) {
+          m.attackTimer -= dt;
+          if (m.attackTimer <= 0) { m.attackTimer = MONSTER.attackCd; out.attack = true; }
+        }
       }
     } else if (m.state === 'return') {
       if (dSpawn < 0.5) {
         m.x = m.spawnX; m.z = m.spawnZ; m.state = 'idle';
       } else {
         const sp = MONSTER.returnSpeed * dt / dSpawn;
-        m.x += (m.spawnX - m.x) * Math.min(1, sp);
-        m.z += (m.spawnZ - m.z) * Math.min(1, sp);
+        let nx = m.x + (m.spawnX - m.x) * Math.min(1, sp);
+        let nz = m.z + (m.spawnZ - m.z) * Math.min(1, sp);
+        if (typeof m.puedeIr === 'function' && !m.puedeIr(nx, nz)) {
+          if (m.puedeIr(nx, m.z)) nz = m.z;
+          else if (m.puedeIr(m.x, nz)) nx = m.x;
+        }
+        m.x = nx;
+        m.z = nz;
         m.hp = Math.min(m.maxHp, m.hp + m.maxHp * MONSTER.regenPerSec * dt);
       }
     } else if (m.patrulla) {

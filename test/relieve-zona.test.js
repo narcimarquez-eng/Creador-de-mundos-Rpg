@@ -50,6 +50,8 @@ test('RelieveZonaLib - Datos de laberinto y colisionadores espaciales O(1)', () 
   assert.ok(datos);
   assert.strictEqual(datos.zonaId, 'z_caza');
   assert.ok(datos.colliders.length > 0, 'Debe generar cajas de colisión para los muros');
+  assert.ok(Array.isArray(datos.celdasCamino) && datos.celdasCamino.length > 0, 'Debe registrar celdasCamino para spawnear monstruos en pasillos');
+  assert.strictEqual(RelieveZonaLib.esCamino(zona, datos.entrada.wx, datos.entrada.wz), true, 'La entrada debe ser reconocida como camino');
 
   // Consulta de colisionadores en (200, 300) centro de la zona
   const cols = datos.obtenerColisionadores(200, 300);

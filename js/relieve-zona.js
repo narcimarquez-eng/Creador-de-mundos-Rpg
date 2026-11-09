@@ -253,13 +253,14 @@
       wz: zz + (gy - halfN) * cellSize
     });
 
-    // Cajas de colisión para los muros
+    // Cajas de colisión para los muros y listado de celdas de pasillo/camino
     const colliders = [];
     const muros = [];
+    const celdasCamino = [];
     for (let gy = 0; gy < N; gy++) {
       for (let gx = 0; gx < N; gx++) {
+        const { wx, wz } = celdaAMundo(gx, gy);
         if (grid[gy][gx] === 1) {
-          const { wx, wz } = celdaAMundo(gx, gy);
           const half = cellSize * 0.49;
           const box = {
             type: 'box',
@@ -274,6 +275,8 @@
           };
           colliders.push(box);
           muros.push({ gx, gy, wx, wz, half });
+        } else if (grid[gy][gx] === 0) {
+          celdasCamino.push({ gx, gy, wx, wz });
         }
       }
     }
@@ -297,6 +300,7 @@
       seed,
       colliders,
       muros,
+      celdasCamino,
       entrada: { gx: entrada.gx, gy: entrada.gy, wx: posEntrada.wx, wz: posEntrada.wz },
       centro: { gx: centro.gx, gy: centro.gy, wx: posCentro.wx, wz: posCentro.wz, radio: cellSize * 1.5 },
       celdaAMundo,
@@ -339,6 +343,8 @@
   function esCamino(zona, x, z) {
     const lab = obtenerDatosLaberinto(zona);
     if (!lab) return true;
+    const d = Math.hypot(x - lab.zx, z - lab.zz);
+    if (d > lab.R) return true;
     const gx = Math.round((x - lab.zx) / lab.cellSize + lab.halfN);
     const gy = Math.round((z - lab.zz) / lab.cellSize + lab.halfN);
     if (gx < 0 || gx >= lab.N || gy < 0 || gy >= lab.N) return true;

@@ -5262,14 +5262,35 @@
             else if (roll < 18) rangoElite = 3;
             else if (roll < 38) rangoElite = 2;
           }
+          let spawnX = z.x + Math.cos(a) * r;
+          let spawnZ = z.y + Math.sin(a) * r;
+          if (z.relieve && z.relieve.activo && typeof RelieveZonaLib !== 'undefined') {
+            const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+            if (lab && lab.celdasCamino && lab.celdasCamino.length) {
+              if (info.boss) {
+                spawnX = lab.centro.wx;
+                spawnZ = lab.centro.wz;
+              } else {
+                const idxCelda = ((k * 37 + mi * 19) % lab.celdasCamino.length);
+                const cel = lab.celdasCamino[idxCelda];
+                const offX = rng.range(-lab.cellSize * 0.22, lab.cellSize * 0.22);
+                const offZ = rng.range(-lab.cellSize * 0.22, lab.cellSize * 0.22);
+                spawnX = cel.wx + offX;
+                spawnZ = cel.wz + offZ;
+              }
+            }
+          }
           const m = CombatLib.newMonster({
             level: info.level,
             boss: info.boss,
             rangoElite,
-            x: z.x + Math.cos(a) * r,
-            z: z.y + Math.sin(a) * r,
+            x: spawnX,
+            z: spawnZ,
             leash: z.radius + 25
           });
+          if (z.relieve && z.relieve.activo && typeof RelieveZonaLib !== 'undefined') {
+            m.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
+          }
           m.rangoElite = rangoElite;
           m.esElite = rangoElite >= 2;
           const prefijoElite = rangoElite === 4 ? '👑 [Élite ×4] ' : rangoElite === 3 ? '🔥 [Élite ×3] ' : rangoElite === 2 ? '⭐ [Élite ×2] ' : '';
@@ -5315,14 +5336,20 @@
         const tieneJefe = z.monsters.some(m => m.boss);
         if (!tieneJefe) {
           const nivelJefe = Math.max(z.levelMax + 2, 8);
+          let bX = z.x, bZ = z.y;
+          if (typeof RelieveZonaLib !== 'undefined') {
+            const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+            if (lab && lab.centro) { bX = lab.centro.wx; bZ = lab.centro.wz; }
+          }
           const bossM = CombatLib.newMonster({
             level: nivelJefe,
             boss: true,
             rangoElite: 4,
-            x: z.x,
-            z: z.y,
+            x: bX,
+            z: bZ,
             leash: z.radius + 35
           });
+          bossM.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
           bossM.name = '💀 [Jefe de Culminación] ' + (z.name ? 'Soberano de ' + z.name : 'Señor del Abismo');
           bossM.zone = z; bossM.alive = true; bossM.respawnAt = 0; bossM.flashUntil = 0; bossM.phase = 0;
           bossM.recibirDano = (dmg, fuente = 'hero') => damageMonster(bossM, dmg, fuente);
@@ -5755,11 +5782,20 @@
         }
         if (inTown) m.state = 'return';
         if (d < 120 && !inTown) {
-          const r = CombatLib.monsterTick(m, hero, px, pz, dt);
-          if (r.attack && !hero.dead) monsterHitsHero(m);
+          const heroY = (character && character.root) ? character.root.position.y : 0;
+          if (m._yVer !== terrenoVersion || m._yX !== m.x || m._yZ !== m.z) {
+            m._yVer = terrenoVersion; m._yX = m.x; m._yZ = m.z;
+            m._cachedY = H(m.x, m.z);
+          }
+          const monY = typeof m._cachedY === 'number' ? m._cachedY : (m.group ? m.group.position.y : 0);
+          const dy = Math.abs(monY - heroY);
+          const r = CombatLib.monsterTick(m, hero, px, pz, dt, dy);
+          // Solo golpea al héroe si no hay un desnivel vertical abismal (no a través de acantilados) y el modelo está visible
+          if (r.attack && !hero.dead && dy < 4.0 && m.group && m.group.visible) monsterHitsHero(m);
         }
         if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && perfNow < m.muriendo)) descargarModelosEnemigo(m);
         const esMeshProc = !!(m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural));
+        if (d < 25) presupuestoModelos = Math.max(presupuestoModelos, 1);
         const near = esMeshProc ? (d < MONSTRUO_VISIBLE) : (d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d));
         m.group.visible = near;
         let my = 0;
