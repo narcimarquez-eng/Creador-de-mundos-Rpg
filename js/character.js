@@ -747,12 +747,15 @@
       const x = target.x + (cam.x - target.x) * t;
       const y = target.y + (cam.y - target.y) * t;
       const z = target.z + (cam.z - target.z) * t;
-      if (y < world.getWalkableHeight(x, z) + 0.8) {
-        if (last) cam.copy(last); else cam.set(target.x, target.y + 0.8, target.z);
+      if (y < world.getWalkableHeight(x, z) + 1.2) {
+        if (last) cam.copy(last); else cam.set(target.x, target.y + 1.2, target.z);
         return;
       }
       last = { x, y, z };
     }
+
+    const camFloor = world.getWalkableHeight(cam.x, cam.z);
+    if (cam.y < camFloor + 1.2) cam.y = camFloor + 1.2;
 
     // Colisionadores: si la cámara queda dentro de un muro o una casa, se acerca al objetivo
     const inside = (x, z) => getColliders(world, x, z).some(c => {

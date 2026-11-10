@@ -428,6 +428,11 @@
         dh = dhCentro * (1 - tC) + dh * tC;
       }
 
+      // Evitar que la excavación perfore el nivel del mar si la zona está en cota baja sobre tierra
+      if (hBase >= 0.5 && hBase + dh < 0.5) {
+        dh = 0.5 - hBase;
+      }
+
       // En la entrada sur: rampa suave que conecta el terreno exterior con el fondo del desfiladero
       const dEntrada = Math.hypot(x - lab.entrada.wx, z - lab.entrada.wz);
       if (dEntrada < lab.cellSize * 1.3 && d >= R - 8) {
@@ -438,6 +443,9 @@
       // En el borde exterior de la zona: mezcla suave hacia el terreno base natural
       const blendBorde = 1 - smooth(R - 6, R + 2, d);
       h = h + dh * blendBorde;
+      if (hBase >= 0.5 && h < 0.5) {
+        h = 0.5;
+      }
     }
     return h;
   }

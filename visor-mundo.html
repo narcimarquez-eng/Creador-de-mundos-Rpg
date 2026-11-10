@@ -2391,7 +2391,7 @@
     cielo.frustumCulled = false;
     scene.add(cielo);
     if (!(NR && typeof NR.arbolPartes === 'function' && NR.arbolPartes('arbusto', 'lejos'))) cargarArbusto();
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 40000);
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.2, 40000);
     crearResplandor();
 
     hemiLight = new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.8);
@@ -2958,12 +2958,27 @@
       townTileAt(...nodeWorld(gx, gz + s)) && townTileAt(...nodeWorld(gx + s, gz + s));
   }
 
+  function trozoConZonaCaza(cx, cz) {
+    if (!world || !world.zones || !terrainGrid) return false;
+    const g0 = terrainGrid;
+    const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
+    const rChunk = CHUNK * g0.step * 0.75;
+    for (let i = 0; i < world.zones.length; i++) {
+      const z = world.zones[i];
+      if (z.type === 'caza' || (z.relieve && z.relieve.activo)) {
+        const rz = (z.relieve && z.relieve.R) || z.radius || 120;
+        if (Math.hypot(xc - z.x, zc - z.y) < rz + rChunk + 20) return true;
+      }
+    }
+    return false;
+  }
+
   function buildNear(cx, cz) {
     const g0 = terrainGrid;
     const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
     const p = character.root.position, t = controls.target;
     const relieve = Math.hypot(xc - p.x, zc - p.z) < RELIEVE_M || Math.hypot(xc - t.x, zc - t.z) < RELIEVE_M;
-    if (relieve || trozoConRio(cx, cz)) return buildFineNear(cx, cz, relieve);
+    if (relieve || trozoConRio(cx, cz) || trozoConZonaCaza(cx, cz)) return buildFineNear(cx, cz, relieve);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
@@ -3274,10 +3289,50 @@
 
   function buildWater() {
     const ext = bounds.size * 1.4;
-    const g = new THREE.PlaneGeometry(ext, ext);
-    g.rotateX(-Math.PI / 2);
+    const segs = 96;
+    const step = ext / segs;
+    const x0 = bounds.cx - ext / 2, z0 = bounds.cz - ext / 2;
+    const P = [], I = [];
+    const vid = new Int32Array((segs + 1) * (segs + 1)).fill(-1);
+    const getVid = (i, j) => {
+      const idx = j * (segs + 1) + i;
+      if (vid[idx] !== -1) return vid[idx];
+      const wx = x0 + i * step, wz = z0 + j * step;
+      P.push(wx, 0, wz);
+      const v = P.length / 3 - 1;
+      vid[idx] = v;
+      return v;
+    };
+
+    for (let j = 0; j < segs; j++) {
+      for (let i = 0; i < segs; i++) {
+        let tieneAgua = false;
+        for (let di = 0; di <= 1; di++) {
+          for (let dj = 0; dj <= 1; dj++) {
+            const wx = x0 + (i + di) * step, wz = z0 + (j + dj) * step;
+            if (terrain.elevation(wx, wz) <= SEA + 0.015) {
+              tieneAgua = true;
+              break;
+            }
+          }
+          if (tieneAgua) break;
+        }
+        if (!tieneAgua) continue;
+
+        const a = getVid(i, j);
+        const b = getVid(i + 1, j);
+        const c = getVid(i, j + 1);
+        const d = getVid(i + 1, j + 1);
+        I.push(a, c, b, b, c, d);
+      }
+    }
+
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    g.setIndex(I);
+    g.computeVertexNormals();
+
     waterMesh = new THREE.Mesh(g, aguaMaterial(false, 0.82));
-    waterMesh.position.set(bounds.cx, 0, bounds.cz);
     waterMesh.visible = $('chk-water').checked;
     scene.add(waterMesh);
   }
