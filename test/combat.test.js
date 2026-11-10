@@ -171,4 +171,38 @@ t('animaciones: el GLB con los nombres de la lista asigna cada acción', () => {
   assert.ok(!names.some(n => CH.CLIP_KEYWORDS.idle.some(k => n.toLowerCase().includes(k))) || pick('idle') !== 'Pose Estática (Bind Pose)');
 });
 
+t('penalización de EXP por diferencia de nivel (empezando a 3 niveles y 0 EXP a 7 niveles)', () => {
+  // Enemigo de mayor o igual nivel: 100% de EXP
+  assert.strictEqual(C.factorXpPorNivel(5, 8), 1.0);
+  assert.strictEqual(C.factorXpPorNivel(5, 5), 1.0);
+  assert.strictEqual(C.xpPorMonstruo(100, 5, 5), 100);
+
+  // Diferencia de 1 y 2 niveles por debajo: 100% de EXP (sin penalización)
+  assert.strictEqual(C.factorXpPorNivel(5, 4), 1.0); // diff = 1
+  assert.strictEqual(C.factorXpPorNivel(5, 3), 1.0); // diff = 2
+  assert.strictEqual(C.xpPorMonstruo(100, 5, 3), 100);
+
+  // Diferencia de 3 niveles: empieza la penalización (-20% -> 80% EXP)
+  assert.strictEqual(C.factorXpPorNivel(5, 2), 0.8); // diff = 3
+  assert.strictEqual(C.xpPorMonstruo(100, 5, 2), 80);
+
+  // Diferencia de 4 niveles: 60% EXP
+  assert.strictEqual(C.factorXpPorNivel(5, 1), 0.6); // diff = 4
+  assert.strictEqual(C.xpPorMonstruo(100, 5, 1), 60);
+
+  // Diferencia de 5 niveles: 40% EXP
+  assert.strictEqual(C.factorXpPorNivel(6, 1), 0.4); // diff = 5
+  assert.strictEqual(C.xpPorMonstruo(100, 6, 1), 40);
+
+  // Diferencia de 6 niveles: 20% EXP
+  assert.strictEqual(C.factorXpPorNivel(7, 1), 0.2); // diff = 6
+  assert.strictEqual(C.xpPorMonstruo(100, 7, 1), 20);
+
+  // Diferencia de 7 niveles o más: 0% EXP (ya no da exp)
+  assert.strictEqual(C.factorXpPorNivel(8, 1), 0.0); // diff = 7
+  assert.strictEqual(C.xpPorMonstruo(100, 8, 1), 0);
+  assert.strictEqual(C.factorXpPorNivel(15, 1), 0.0); // diff = 14
+  assert.strictEqual(C.xpPorMonstruo(100, 15, 1), 0);
+});
+
 console.log(`\n${n} pruebas correctas`);

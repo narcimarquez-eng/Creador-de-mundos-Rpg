@@ -101,6 +101,25 @@
     return gained;
   }
 
+  // Penalización de experiencia al matar enemigos de menor nivel que el atacante (héroe o acompañante):
+  // - Hasta 2 niveles de ventaja (o si el enemigo es de igual/mayor nivel): 100 % de EXP (factor 1.0).
+  // - Al superar en 3 niveles al enemigo: empieza la penalización y baja progresivamente un 20 % por cada nivel:
+  //   * diff = 3 -> 80 % (factor 0.8)
+  //   * diff = 4 -> 60 % (factor 0.6)
+  //   * diff = 5 -> 40 % (factor 0.4)
+  //   * diff = 6 -> 20 % (factor 0.2)
+  // - Al superar en 7 niveles o más al enemigo (diff >= 7): ya no da EXP (factor 0.0).
+  function factorXpPorNivel(heroLevel, monsterLevel) {
+    const diff = heroLevel - monsterLevel;
+    if (diff <= 2) return 1.0;
+    if (diff >= 7) return 0.0;
+    return Math.round(Math.max(0, 1.0 - (diff - 2) * 0.2) * 100) / 100;
+  }
+
+  function xpPorMonstruo(monsterXp, heroLevel, monsterLevel) {
+    return Math.round(monsterXp * factorXpPorNivel(heroLevel, monsterLevel));
+  }
+
   function heroDamage(hero, skill, targetLevel) {
     const s = SKILLS[skill];
     // hero.ataque: ataque del arma equipada (0 sin arma)
@@ -272,7 +291,7 @@
 
   const api = {
     HERO, SKILLS, MONSTER,
-    diffMult, heroMax, newHero, xpToNext, gainXp, heroDamage,
+    diffMult, heroMax, newHero, xpToNext, gainXp, factorXpPorNivel, xpPorMonstruo, heroDamage,
     canUse, useSkill, monsterStats, monsterDamage, takeHit, tickHero,
     die, respawn, newMonster, monsterTick, inSkillArea, impactos
   };

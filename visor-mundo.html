@@ -5466,6 +5466,19 @@
       xpHeroe = m.xp;
     }
 
+    // Penalización por matar enemigos de menor nivel que el atacante:
+    // Empieza al superar en 3 niveles (80%), baja progresivamente (60%, 40%, 20%) y con 7 o más ya no da EXP (0%)
+    const factorHeroe = (typeof CombatLib !== 'undefined' && CombatLib.factorXpPorNivel)
+      ? CombatLib.factorXpPorNivel(hero.level, m.level)
+      : 1.0;
+    xpHeroe = Math.round(xpHeroe * factorHeroe);
+
+    if (xpComp > 0 && typeof CombatLib !== 'undefined' && CombatLib.factorXpPorNivel) {
+      const nivelComp = acompanante.nivel || hero.level;
+      const factorComp = CombatLib.factorXpPorNivel(nivelComp, m.level);
+      xpComp = Math.round(xpComp * factorComp);
+    }
+
     const levels = CombatLib.gainXp(hero, xpHeroe);
     if (xpComp > 0 && typeof AcompananteLib !== 'undefined' && AcompananteLib.ganarXpAcompanante) {
       const rComp = AcompananteLib.ganarXpAcompanante(acompanante, xpComp);
@@ -5533,11 +5546,17 @@
     if (hoja) loot += ' · 📜 ' + hoja.nombre;
     else if (personajeActual && EquipoLib.llena(personajeActual)) loot += ' · 🎒 inventario lleno';
     renderInvCard();
+    const txtXp = xpHeroe > 0
+      ? ('+' + xpHeroe + ' XP' + (factorHeroe < 1.0 ? ' (-' + Math.round((1 - factorHeroe) * 100) + '%)' : ''))
+      : '0 XP (nivel bajo)';
+    const txtXpComp = xpComp > 0
+      ? (' (+' + xpComp + ' para ' + acompanante.nombre + ')')
+      : (compLuchando && (acompanante.nivel || hero.level) - m.level >= 7 ? ' (0 XP comp.)' : '');
     if (m.boss) {
       character.playOneShot('victory', lastNowSec);
-      announce('👑 ¡Jefe derrotado!', m.name + ' · +' + xpHeroe + ' XP · ' + loot);
+      announce('👑 ¡Jefe derrotado!', m.name + ' · ' + txtXp + txtXpComp + ' · ' + loot);
     } else {
-      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · +' + xpHeroe + ' XP' + (xpComp ? ' (+' + xpComp + ' para ' + acompanante.nombre + ')' : '') + ' · ' + loot);
+      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · ' + txtXp + txtXpComp + ' · ' + loot);
     }
     if (levels) setTimeout(() => announce('⭐ Nivel ' + hero.level, 'Vida y maná completos'), 2300);
   }

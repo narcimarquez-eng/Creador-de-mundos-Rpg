@@ -134,6 +134,13 @@ sin cambiar el mundo guardado.
 - **Vida:** 20 + 8 por nivel. **Daño:** 3 + 1,5 por nivel. **XP:** 10 por nivel.
 - **Jefes** (los monstruos de «Guarida de jefe»): vida ×5, daño ×1,6, XP ×5. Cuando cae, se activa la postura de victoria.
 - **Diferencia de nivel:** +10 % de daño por cada nivel por encima del rival, entre ×0,5 y ×2.
+- **Penalización de XP por nivel inferior:** al matar enemigos de menor nivel que el héroe:
+  - 0 a 2 niveles por debajo (o nivel superior): 100 % de EXP (sin penalización).
+  - 3 niveles por debajo: 80 % de EXP (empieza la penalización: -20 %).
+  - 4 niveles por debajo: 60 % de EXP (-40 %).
+  - 5 niveles por debajo: 40 % de EXP (-60 %).
+  - 6 niveles por debajo: 20 % de EXP (-80 %).
+  - 7 o más niveles por debajo: 0 % de EXP (no otorga experiencia).
 - **Vista:** los monstruos te persiguen si estás a menos de 14 m (16 m los jefes). Atacan cada 1,5 s desde 2,2 m.
 - **Vuelta a casa:** si se alejan más del radio de su zona + 25 m, o entran en un pueblo, vuelven a su zona y se
   recuperan poco a poco.
