@@ -287,9 +287,9 @@
         zonaAsignada: zonaElegida ? zonaElegida.id : null,
         x: Math.round(cx * 10) / 10,
         z: Math.round(cz * 10) / 10,
-        radio: 28,
-        radioPlano: 14.5,
-        radioRebaje: 26.0,
+        radio: 32,
+        radioPlano: 16.0,
+        radioRebaje: 36.0,
         icono: cabDef.esMar ? '🛖🌊' : '🛖',
         desc: cabDef.nombre + ': refugio habitado por ' + cabDef.aldeano + (cabDef.esMar ? ', situado frente al mar.' : ' en plena zona de caza.'),
         recompensa: 'Cacería mayor de 100 monstruos y forja de armaduras superiores',
@@ -698,13 +698,13 @@
 
           if (!lugar.esMar) {
             // 4. Zócalo de piedra rústica integrado a ras de suelo para absorber desniveles en pendiente
-            const altoZocalo = 5.0;
+            const altoZocalo = 2.2;
             const zocaloGeo = aplicarUVBoxSecreto(
               new THREE.BoxGeometry(anchoX * 1.04, altoZocalo, profZ * 1.04),
               anchoX * 1.04, altoZocalo, profZ * 1.04, 3.2
             );
             const zocalo = new THREE.Mesh(zocaloGeo, matPiedra);
-            // Queda a ras de suelo (+0.02m) y se entierra en el terreno para no dar aspecto elevado
+            // Queda a ras de suelo (+0.02m) y se entierra en el terreno para asentar firmemente la base
             zocalo.position.set(0, -altoZocalo / 2 + 0.02, 0);
             zocalo.castShadow = true;
             zocalo.receiveShadow = true;
@@ -1000,7 +1000,7 @@
     grupo.add(aleroPorche);
 
     // Zócalo de piedra rústica para absorción de desniveles a ras de suelo
-    const altoZocalo = 4.0;
+    const altoZocalo = 2.2;
     const zocaloProc = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(ancho * 1.04, altoZocalo, prof * 1.04), ancho * 1.04, altoZocalo, prof * 1.04, 3.2), matPiedra);
     zocaloProc.position.set(0, -altoZocalo / 2 + 0.02, 0);
     zocaloProc.castShadow = true; zocaloProc.receiveShadow = true;
@@ -1013,7 +1013,7 @@
     grupo.add(chimenea);
   }
 
-  // Hondonada y aplanado topográfico para cabañas en pendiente
+  // Hondonada y aplanado topográfico para cabañas en pendiente con pendientes suaves
   function aplicarRebajeCabanas(lugares, x, z, hActual, getElevationFn) {
     if (!lugares || !lugares.length) return hActual;
     let hMod = hActual;
@@ -1024,8 +1024,8 @@
       if (s.esMar) continue;
 
       const d = Math.hypot(x - s.x, z - s.z);
-      const rPlano = s.radioPlano || 14.5;
-      const rTotal = s.radioRebaje || 26.0;
+      const rPlano = s.radioPlano || 16.0;
+      const rTotal = s.radioRebaje || 36.0;
       if (d >= rTotal) continue;
 
       let hBase = s.alturaBase;
@@ -1034,14 +1034,13 @@
       }
       const hHondonada = hBase;
 
-      // Desmonte en ladera: solo se rebaja el terreno que queda POR ENCIMA de la explanada (hActual > hHondonada).
-      // Si el terreno ya es inferior (ladera abajo), no se levanta, evitando el efecto de "peñón" o promontorio abrupto.
-      if (hActual > hHondonada) {
-        const t = Math.max(0, Math.min(1, (d - rPlano) / (rTotal - rPlano)));
-        const w = 1 - (t * t * (3 - 2 * t));
-        if (w > 0) {
-          hMod = hMod + (hHondonada - hMod) * w;
-        }
+      // Explanada aterrazada con pendientes suaves:
+      // Dentro de rPlano (16m) el suelo queda 100% allanado al nivel de la cabaña (hHondonada).
+      // Entre rPlano y rTotal (36m) transiciona suavemente hacia la ladera natural en todas direcciones.
+      const t = Math.max(0, Math.min(1, (d - rPlano) / (rTotal - rPlano)));
+      const w = 1 - (t * t * (3 - 2 * t));
+      if (w > 0) {
+        hMod = hMod + (hHondonada - hMod) * w;
       }
     }
     return hMod;

@@ -2102,9 +2102,9 @@
   const BLEND_OUT = 140;
   // Mitad del cauce plano y de la orilla fuera del pueblo (m). Se ajustan a la rejilla del terreno
   // (buildTerrain): el cauce tiene que caber entre dos nodos, si no el fondo no aparece en la malla.
-  let RIO_CAUCE = 7, RIO_BANCO = 12;
-  const RIO_FONDO = 1.95;   // el fondo del cauce queda este metro por debajo del agua
-  const RIO_RAMPA = 100;    // el cauce se excava poco a poco desde el final de la mezcla con el pueblo
+  let RIO_CAUCE = 8, RIO_BANCO = 26;
+  const RIO_FONDO = 2.6;    // el fondo del cauce queda 2.6m por debajo del agua (lecho excavado visible)
+  const RIO_RAMPA = 30;     // el cauce se excava de forma ágil desde el final de la mezcla con el pueblo
   const RIO_BOCA = 70;      // el río se desvanece en los últimos metros de su recorrido (mar o lago)
   // Ríos fuera de los pueblos: el curso viene de cfg.rio (js/world-core.js), con sus tramos guardados en
   // una rejilla para buscar rápido el más cercano a cada punto
@@ -2186,14 +2186,25 @@
         h = h + (g - h) * w;
       }
     }
-    // Río fuera del pueblo: el cauce baja el relieve hasta su fondo, siguiendo el curso hasta el mar
+    // Río fuera del pueblo: el cauce excava el lecho cóncavo del río y sube con riberas suaves hacia el relieve
     const r = rioCercano(x, z);
     if (r && r.dt > -BLEND_OUT && r.d < RIO_BANCO * r.w) {
-      // Dentro de la mezcla con el pueblo no se excava; más allá, el cauce entra poco a poco
       const k = smooth(0, RIO_RAMPA, r.dt);
-      const lecho = r.nivel - RIO_FONDO;
-      const cauce = Math.min(h, lecho + (h - lecho) * smooth(RIO_CAUCE * r.w, RIO_BANCO * r.w, r.d));
-      h = h + (cauce - h) * k;
+      const dCauce = RIO_CAUCE * r.w;
+      const dBanco = RIO_BANCO * r.w;
+      let perfil;
+      if (r.d <= dCauce) {
+        // Lecho del río bajo el agua: fondo excavado cóncavo (-2.6m en el centro)
+        const fr = r.d / dCauce;
+        const lecho = r.nivel - RIO_FONDO * (1 - 0.25 * fr * fr);
+        perfil = Math.min(h, lecho);
+      } else {
+        // Ribera / orilla: sube con pendiente suave y natural desde la orilla (r.nivel + 0.35) hasta el terreno h
+        const t = smooth(dCauce, dBanco, r.d);
+        const cotaOrilla = r.nivel + 0.35;
+        perfil = Math.min(h, cotaOrilla + (h - cotaOrilla) * t);
+      }
+      h = h + (perfil - h) * k;
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
     h = LagosLib.aplicar(lagosMundo, x, z, h);
@@ -2289,6 +2300,7 @@
   // Cinta de calle que sigue el terreno con UV continuas a lo ancho (0..1) y a lo largo (cada 6 m)
   MB.prototype.ribbon = function (pts, w, col, offset, alt) {
     const altura = alt || H;
+    const off = (typeof offset === 'number') ? offset : 0.06;
     const L = [], R = [], D = [0];
     for (let i = 0; i < pts.length; i++) {
       if (i > 0) D.push(D[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
@@ -2297,8 +2309,8 @@
       const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
       const nx = -tz * w / 2, nz = tx * w / 2;
       const p = pts[i];
-      L.push([p.x + nx, altura(p.x + nx, p.z + nz) + offset, p.z + nz]);
-      R.push([p.x - nx, altura(p.x - nx, p.z - nz) + offset, p.z - nz]);
+      L.push([p.x + nx, altura(p.x + nx, p.z + nz) + off, p.z + nz]);
+      R.push([p.x - nx, altura(p.x - nx, p.z - nz) + off, p.z - nz]);
     }
     for (let i = 0; i < pts.length - 1; i++) {
       const v0 = D[i] / 6.0, v1 = D[i + 1] / 6.0;
@@ -2888,8 +2900,8 @@
     const n = Math.max(100, Math.min(420, Math.round(ext / 20)));
     const N = n + 1;
     const step = ext / n;
-    RIO_CAUCE = Math.max(7, step * 0.6);
-    RIO_BANCO = RIO_CAUCE + 6;
+    RIO_CAUCE = Math.max(8, step * 0.65);
+    RIO_BANCO = RIO_CAUCE + 18;
     const x0 = bounds.cx - ext / 2, z0 = bounds.cz - ext / 2;
     const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
     const splat = new Float32Array(N * N * 4), snowA = new Float32Array(N * N), nrm = new Float32Array(N * N * 3);
@@ -2910,9 +2922,24 @@
     const heightAt = (i, j) => pos[(j * N + i) * 3 + 1];
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const k = j * N + i;
+      const x = x0 + i * step, z = z0 + j * step;
       const nv = TerrainLib.nodeNormal(heightAt, i, j, n, step);
       nrm[k * 3] = nv[0]; nrm[k * 3 + 1] = nv[1]; nrm[k * 3 + 2] = nv[2];
-      const w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
+      let w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
+      const rio = rioCercano(x, z);
+      if (rio && rio.dt > -BLEND_OUT && rio.d < RIO_BANCO * rio.w) {
+        const dCauce = RIO_CAUCE * rio.w, dBanco = RIO_BANCO * rio.w;
+        if (rio.d <= dCauce) {
+          w = { splat: [0, 0.1, 0, 0.9], snow: 0 };
+        } else {
+          const tRio = smooth(dCauce, dBanco, rio.d);
+          const factorArena = (1 - tRio) * 0.8;
+          w.splat[3] = w.splat[3] * tRio + factorArena;
+          const sTot = w.splat[0] + w.splat[1] + w.splat[2] + w.splat[3] || 1;
+          w.splat[0] /= sTot; w.splat[1] /= sTot; w.splat[2] /= sTot; w.splat[3] /= sTot;
+          w.snow *= tRio;
+        }
+      }
       splat.set(w.splat, k * 4);
       snowA[k] = w.snow;
     }
@@ -3260,6 +3287,20 @@
       col[k * 3] = 1 - 0.55 * (1 - c[0] / 255); col[k * 3 + 1] = 1 - 0.55 * (1 - c[1] / 255); col[k * 3 + 2] = 1 - 0.55 * (1 - c[2] / 255);
       nrm.set(nv, k * 3);
       let w = TerrainLib.splatFor(b, 1 - nv[1], h);
+      const rio = rioCercano(x, z);
+      if (rio && rio.dt > -BLEND_OUT && rio.d < RIO_BANCO * rio.w) {
+        const dCauce = RIO_CAUCE * rio.w, dBanco = RIO_BANCO * rio.w;
+        if (rio.d <= dCauce) {
+          w = { splat: [0, 0.1, 0, 0.9], snow: 0 };
+        } else {
+          const tRio = smooth(dCauce, dBanco, rio.d);
+          const factorArena = (1 - tRio) * 0.8;
+          w.splat[3] = w.splat[3] * tRio + factorArena;
+          const sTot = w.splat[0] + w.splat[1] + w.splat[2] + w.splat[3] || 1;
+          w.splat[0] /= sTot; w.splat[1] /= sTot; w.splat[2] /= sTot; w.splat[3] /= sTot;
+          w.snow *= tRio;
+        }
+      }
       if (labChunk) {
         w = RelieveZonaLib.splatZona(labChunk, x, z, 1 - nv[1], h, w);
       }
@@ -3620,15 +3661,18 @@
     _materialesCaminosCache = {
       tierra: new THREE.MeshLambertMaterial({
         map: texTierra.map, bumpMap: texTierra.bump, bumpScale: 0.15,
-        vertexColors: true, side: THREE.DoubleSide
+        vertexColors: true, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
       }),
       calzada: new THREE.MeshLambertMaterial({
         map: texCalzada.map, bumpMap: texCalzada.bump, bumpScale: 0.20,
-        vertexColors: true, side: THREE.DoubleSide
+        vertexColors: true, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
       }),
       ladrillos: new THREE.MeshLambertMaterial({
         map: texLosa3D.map, bumpMap: texLosa3D.bump, bumpScale: 0.16,
-        vertexColors: true, side: THREE.DoubleSide
+        vertexColors: true, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
       })
     };
     return _materialesCaminosCache;
@@ -3637,8 +3681,8 @@
   // Calzada romana: losas irregulares con juntas (sombreado en el material) y bordillos a los dos lados
   function pintarCalzada(mb, linea, alt) {
     const w = roadWidth('calzada');
-    mb.ribbon(linea, w, rgb('#989186'), 0.35, alt);
-    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#b5afa6'), 0.5, alt));
+    mb.ribbon(linea, w, rgb('#989186'), 0.06, alt);
+    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#b5afa6'), 0.10, alt));
   }
 
   // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su altura y su tono.
@@ -3646,7 +3690,7 @@
   // de la cámara (ver actualizarPiedras). Lejos, la calzada conserva la textura labrada de su base.
   const TRAMO_PIEDRA = 20, PIEDRA_VISIBLE_M = 80;
   function pintarLadrillos(linea, alt, w) {
-    const PASO = 0.2, desdeCalzada = 0.35, JUNTA = 0.05;
+    const PASO = 0.2, desdeCalzada = 0.08, JUNTA = 0.05;
     const matLosa = obtenerMaterialesCaminos().ladrillos;
     // Muestras de la línea cada PASO metros: posición, normal hacia la izquierda y distancia recorrida
     const m = [];
@@ -3814,9 +3858,9 @@
       let medio = pts;
       if (ini.length) medio = medio.filter(p => alCentro(p, oa) > alCentro(ini[1], oa));
       if (fin.length) medio = medio.filter(p => alCentro(p, ob) > alCentro(fin[0], ob));
-      const linea = curvePath([...ini, ...medio, ...fin], 8);
+      const linea = curvePath([...ini, ...medio, ...fin], 3.2);
       if (r.kind === 'calzada') { pintarCalzada(mbCalzada, linea, alturaCamino); pintarLadrillos(linea, alturaCamino, roadWidth('calzada')); }
-      else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.35, alturaCamino);
+      else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.06, alturaCamino);
     });
     const matsCamino = obtenerMaterialesCaminos();
     roadMesh = new THREE.Mesh(mb.geom(), matsCamino.tierra);
@@ -4598,13 +4642,19 @@
       const v = visorWorld.villageAt(x, z);
       if (v) return v.o.h0 + v.o.village.getWalkableHeight(v.lx, v.lz);
       let groundH = H(x, z);
-      // Plataforma transitable interior para las cabañas (tanto en tierra como sobre el agua)
+      // Puente de camino sobre río: el personaje camina sobre la rasante del puente en vez de hundirse al lecho excavado
+      const rRio = typeof rioCercano === 'function' ? rioCercano(x, z) : null;
+      if (rRio && rRio.d < RIO_BANCO * (rRio.w || 1) && typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 4.5)) {
+        const hPuente = rRio.nivel + 0.6;
+        if (hPuente > groundH) groundH = hPuente;
+      }
+      // Plataforma transitable de las cabañas y su explanada aterrazada
       if (typeof lugaresSecretos !== 'undefined' && lugaresSecretos && lugaresSecretos.length) {
         for (let i = 0; i < lugaresSecretos.length; i++) {
           const s = lugaresSecretos[i];
           if (s.tipo === 'cabana') {
             const d = Math.hypot(x - s.x, z - s.z);
-            if (d < 8.5) {
+            if (d < 16.0) {
               const floorY = (typeof s.y === 'number' ? s.y : (s.alturaBase || 0)) + 0.02;
               if (floorY > groundH) groundH = floorY;
             }

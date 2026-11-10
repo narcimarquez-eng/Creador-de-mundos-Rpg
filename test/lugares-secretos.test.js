@@ -154,4 +154,38 @@ t('construcción de cabaña GLB: no incluye cilindro intrusivo y asienta el mode
   assert.ok(mockScene.position.y > 4.0, `La posición Y (${mockScene.position.y}) debe elevar la base sobre el suelo sin sepultarla`);
 });
 
+t('aplanado de terreno bajo cabañas: allana cuesta arriba y cuesta abajo con pendientes suaves', () => {
+  const cabana = {
+    tipo: 'cabana',
+    x: 100,
+    z: 200,
+    alturaBase: 50,
+    radioPlano: 16.0,
+    radioRebaje: 36.0,
+    esMar: false
+  };
+
+  // Punto central (d = 0): debe ser exactamente alturaBase (50)
+  const hCentro = L.aplicarRebajeCabanas([cabana], 100, 200, 70);
+  assert.strictEqual(hCentro, 50, 'El centro de la cabaña debe allanarse a alturaBase');
+
+  // Punto cuesta abajo (terreno natural = 35 < 50): dentro de 16m (d = 10m) debe levantarse a 50
+  const hCuestaAbajo10m = L.aplicarRebajeCabanas([cabana], 110, 200, 35);
+  assert.strictEqual(hCuestaAbajo10m, 50, 'El terreno cuesta abajo a 10m (<16m) debe nivelarse a alturaBase para que la cabaña no flote');
+
+  // Punto cuesta arriba (terreno natural = 65 > 50): dentro de 16m (d = 10m) debe rebajarse a 50
+  const hCuestaArriba10m = L.aplicarRebajeCabanas([cabana], 100, 210, 65);
+  assert.strictEqual(hCuestaArriba10m, 50, 'El terreno cuesta arriba a 10m (<16m) debe rebajarse a alturaBase');
+
+  // Punto en la rampa de transición suave (d = 26m, mitad de [16, 36]):
+  // t = 0.5, w = 1 - (0.25 * (3 - 1)) = 0.5 -> hMod = 35 + (50 - 35) * 0.5 = 42.5
+  const hTransicionAbajo = L.aplicarRebajeCabanas([cabana], 126, 200, 35);
+  assert.ok(hTransicionAbajo > 35 && hTransicionAbajo < 50, 'La ladera cuesta abajo debe tener una pendiente suave de transición');
+  assert.strictEqual(Math.round(hTransicionAbajo * 10) / 10, 42.5, 'La interpolación suave a 26m debe dar 42.5');
+
+  // Punto fuera de la zona de influencia (d = 40m > 36m): no debe modificarse
+  const hFuera = L.aplicarRebajeCabanas([cabana], 140, 200, 35);
+  assert.strictEqual(hFuera, 35, 'Fuera de radioRebaje el terreno no se modifica');
+});
+
 console.log(`\n${n} pruebas de lugares secretos superadas.`);
