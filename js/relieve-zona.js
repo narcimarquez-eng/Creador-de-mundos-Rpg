@@ -243,7 +243,10 @@
     const { N, grid, entrada, centro } = generarLaberinto(tamGrid, seed);
     const zx = zona.x;
     const zz = zona.y;
-    const R = zona.radius || 100;
+    // El desfiladero de laberinto mantiene una escala humana (pasillos de 12-16m) ajustando el radio efectivo
+    const R = (zona.relieve && typeof zona.relieve.radio === 'number')
+      ? zona.relieve.radio
+      : Math.max(70, Math.min(zona.radius || 100, 120));
     const cellSize = (2 * R) / N;
     const halfN = (N - 1) / 2;
 
@@ -379,13 +382,13 @@
     for (let zi = 0; zi < zonas.length; zi++) {
       const zona = zonas[zi];
       if (!zona || !zona.relieve || !zona.relieve.activo) continue;
-      const R = zona.radius || 100;
+      const lab = obtenerDatosLaberinto(zona);
+      if (!lab) continue;
+
+      const R = lab.R;
       const dx = x - zona.x, dz = z - zona.y;
       const d = Math.hypot(dx, dz);
       if (d > R + 6) continue;
-
-      const lab = obtenerDatosLaberinto(zona);
-      if (!lab) continue;
 
       const { N, grid, cellSize, halfN, zx, zz, alturaMuro, culminacion } = lab;
       const u = (x - zx) / cellSize + halfN;
@@ -751,7 +754,23 @@
       luz.position.set(0, 2.0, 0);
       grupo.add(luz);
     } else if (culm === 'oasis') {
-      // 🌴 Palmeras exuberantes en el oasis
+      // 🌴 Manantial de agua turquesa cristalina en el lecho del oasis
+      const radAgua = 9.5;
+      const aguaGeo = new THREE.CircleGeometry(radAgua, 32);
+      aguaGeo.rotateX(-Math.PI / 2);
+      const matAguaOasis = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        roughness: 0.1,
+        metalness: 0.35,
+        transparent: true,
+        opacity: 0.85
+      });
+      const aguaMesh = new THREE.Mesh(aguaGeo, matAguaOasis);
+      aguaMesh.position.y = 0.08;
+      aguaMesh.receiveShadow = true;
+      grupo.add(aguaMesh);
+
+      // Palmeras exuberantes alrededor del manantial
       const matTronco = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.9 });
       const matPalma = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6, side: THREE.DoubleSide });
       const numPalmeras = 6;

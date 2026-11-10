@@ -620,7 +620,13 @@
       anchored: !!opts.roadId,
       monsters: [],
       respawnSec: 60,
-      notes: ''
+      notes: '',
+      relieve: opts.relieve || (typeof RelieveZonaLib !== 'undefined' && (type === 'caza' || type === 'jefe' || type === 'elite')
+        ? RelieveZonaLib.configPorDefecto(
+            biome === 'desierto' ? 'roca_canion' : biome === 'taiga' || biome === 'montana' ? 'piedra_ruinas' : 'laberinto_setos',
+            type === 'jefe' ? 'jefe' : 'oasis'
+          )
+        : null)
     };
     zone.monsters = rollMonsters(rng, biome, zone.levelMin, zone.levelMax, type, zone.radius);
     world.zones.push(zone);

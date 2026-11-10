@@ -2696,26 +2696,14 @@
       rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
     });
 
-    // Oasis especiales de zonas de caza con culminación 'oasis'
-    if (world && world.zones && typeof LagosLib !== 'undefined') {
-      world.zones.forEach(z => {
-        if (z.relieve && z.relieve.activo && z.relieve.culminacion === 'oasis') {
-          const yaExiste = lagosMundo.some(l => Math.hypot(l.x - z.x, l.z - z.y) < 25);
-          if (!yaExiste) {
-            const hOasis = (terrain.elevation(z.x, z.y) - SEA) * HEIGHT_SCALE - 0.35;
-            lagosMundo.push({
-              x: z.x,
-              z: z.y,
-              R: Math.max(14, Math.min(24, (z.radius || 100) * 0.16)),
-              tipo: 'oasis',
-              bioma: z.biome || 'desierto',
-              nivel: hOasis,
-              prof: 1.8,
-              honda: 0x1a7f8a,
-              clara: 0x5fd0c4,
-              esOasisZona: true
-            });
-          }
+    // Garantizar que las zonas de caza posean relieve de desfiladero temático activo
+    if (world && world.zones && typeof RelieveZonaLib !== 'undefined') {
+      const culms = ['oasis', 'jefe', 'objeto_mision', 'santuario', 'tesoro'];
+      world.zones.forEach((z, idx) => {
+        if (z.type === 'caza' && (!z.relieve || z.relieve.activo === undefined)) {
+          const culm = z.monsters.some(m => m.boss) ? 'jefe' : culms[idx % culms.length];
+          const estilo = z.biome === 'desierto' ? 'roca_canion' : z.biome === 'taiga' || z.biome === 'montana' ? 'piedra_ruinas' : 'laberinto_setos';
+          z.relieve = RelieveZonaLib.configPorDefecto(estilo, culm);
         }
       });
     }
@@ -3866,20 +3854,16 @@
 
   function buildZones() {
     limpiarLaberintosMundo();
-    const mb = new MB();
+    if (zoneMesh) { scene.remove(zoneMesh); zoneMesh = null; }
     world.zones.forEach(z => {
       const pts = W.zoneOutline(z, 48).map(p => [p.x, H(p.x, p.y) + 1.2, p.y]);
-      const cc = H(z.x, z.y) + 1.2;
       const c = zoneColor(z);
-      mb.fan([z.x, cc, z.y], pts, [c.r, c.g, c.b]);
       const lineGeom = new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(p[0], p[1] + 1, p[2])).concat([new THREE.Vector3(pts[0][0], pts[0][1] + 1, pts[0][2])]));
       const line = new THREE.Line(lineGeom, new THREE.LineBasicMaterial({ color: c }));
       line.userData.zoneId = z.id;
       scene.add(line);
       zoneLines.push(line);
     });
-    zoneMesh = new THREE.Mesh(mb.geom(), zonaMat);
-    scene.add(zoneMesh);
 
     // Registro ligero de laberintos de zona: se integran poco a poco por proximidad (streaming)
     if (typeof RelieveZonaLib !== 'undefined') {
