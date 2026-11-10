@@ -24259,7 +24259,7 @@ var EnemyLib = (() => {
       }
       auraInstancedMesh.instanceMatrix.needsUpdate = true;
     }
-    const tailFreq = animState === "walk" ? 5.33 : animState === "jump_bite" ? 6.78 : animState === "attack" ? 5 : 2.3;
+    const tailFreq = (animState === "run") ? 8.5 : animState === "walk" ? 5.33 : animState === "jump_bite" ? 6.78 : animState === "attack" ? 5 : 2.3;
     const tailWave = Math.sin(t * tailFreq);
     const tailTipWave = Math.sin(t * tailFreq - 0.95);
     tailGroup.rotation.y = THREE2.MathUtils.damp(tailGroup.rotation.y, tailWave * 0.26, 10, delta);
@@ -24275,7 +24275,7 @@ var EnemyLib = (() => {
       const phase = i === 0 ? 1.4 : -1.4;
       eh.rotation.x = Math.sin(t * 2.3 + phase) * 0.12;
     }
-    const wingFreq = animState === "jump_bite" ? 6.78 : animState === "attack" ? 5 : 2.3;
+    const wingFreq = (animState === "run") ? 8.0 : animState === "jump_bite" ? 6.78 : animState === "attack" ? 5 : 2.3;
     const wingFlap = Math.sin(t * wingFreq);
     const wingFold = Math.cos(t * wingFreq) * 0.16;
     leftWingGroup.rotation.y = THREE2.MathUtils.damp(leftWingGroup.rotation.y, wingFlap * 0.38, 10, delta);
@@ -24289,7 +24289,7 @@ var EnemyLib = (() => {
       rig.rootBone.position.z = THREE2.MathUtils.damp(rig.rootBone.position.z, 0, dampLambda, delta);
       headGroup.rotation.z = THREE2.MathUtils.damp(headGroup.rotation.z, 0, dampLambda, delta);
     }
-    if (animState !== "walk") {
+    if (animState !== "walk" && animState !== "run") {
       pelvisGroup.rotation.y = THREE2.MathUtils.damp(pelvisGroup.rotation.y, 0, dampLambda, delta);
       pelvisGroup.rotation.z = THREE2.MathUtils.damp(pelvisGroup.rotation.z, 0, dampLambda, delta);
       torsoGroup.rotation.y = THREE2.MathUtils.damp(torsoGroup.rotation.y, 0, dampLambda, delta);
@@ -24737,10 +24737,12 @@ var EnemyLib = (() => {
       rightKneeGroup.rotation.x = THREE2.MathUtils.damp(rightKneeGroup.rotation.x, isQuadruped ? 0.24 : 0.08, dampLambda, delta);
       pelvisGroup.rotation.x = THREE2.MathUtils.damp(pelvisGroup.rotation.x, 0, dampLambda, delta);
       tailGroup.rotation.x = THREE2.MathUtils.damp(tailGroup.rotation.x, Math.cos(t * 2.3) * 0.08, dampLambda, delta);
-    } else if (animState === "walk") {
+    } else if (animState === "walk" || animState === "run") {
       breathConeMesh.scale.setScalar(1e-4);
       slashTrailMesh.scale.setScalar(1e-4);
-      const phase = t * 5.3247;
+      const isRunning = animState === "run";
+      const animSpeed = isRunning ? 1.7 : 1.0;
+      const phase = t * 5.3247 * animSpeed;
       if (isQuadruped) {
         const pHL = phase;
         const pHR = phase + Math.PI;
@@ -24817,30 +24819,31 @@ var EnemyLib = (() => {
           _pelvisAnimOffset.y = -Math.abs(stride) * 0.024 + Math.cos(phase * 2) * 0.012;
           _pelvisAnimOffset.x = -stride * 0.026;
         }
-        pelvisGroup.rotation.x = THREE2.MathUtils.damp(pelvisGroup.rotation.x, 0.04, dampLambda, delta);
+        pelvisGroup.rotation.x = THREE2.MathUtils.damp(pelvisGroup.rotation.x, isRunning ? 0.08 : 0.04, dampLambda, delta);
         pelvisGroup.rotation.z = THREE2.MathUtils.damp(pelvisGroup.rotation.z, stride * 0.052, dampLambda, delta);
         pelvisGroup.rotation.y = THREE2.MathUtils.damp(pelvisGroup.rotation.y, -stride * 0.085, dampLambda, delta);
-        torsoGroup.rotation.x = THREE2.MathUtils.damp(torsoGroup.rotation.x, 0.07 + Math.abs(stride) * 0.025, dampLambda, delta);
+        torsoGroup.rotation.x = THREE2.MathUtils.damp(torsoGroup.rotation.x, (isRunning ? 0.16 : 0.07) + Math.abs(stride) * 0.03, dampLambda, delta);
         torsoGroup.rotation.y = THREE2.MathUtils.damp(torsoGroup.rotation.y, stride * 0.095, dampLambda, delta);
         torsoGroup.rotation.z = THREE2.MathUtils.damp(torsoGroup.rotation.z, -stride * 0.038, dampLambda, delta);
         headGroup.rotation.y = THREE2.MathUtils.damp(headGroup.rotation.y, -stride * 0.06, dampLambda, delta);
         jawGroup.rotation.x = THREE2.MathUtils.damp(jawGroup.rotation.x, 0.12, dampLambda, delta);
-        leftLegGroup.rotation.x = THREE2.MathUtils.damp(leftLegGroup.rotation.x, -stride * 0.46, dampLambda, delta);
-        rightLegGroup.rotation.x = THREE2.MathUtils.damp(rightLegGroup.rotation.x, stride * 0.46, dampLambda, delta);
+        leftLegGroup.rotation.x = THREE2.MathUtils.damp(leftLegGroup.rotation.x, -stride * (isRunning ? 0.62 : 0.46), dampLambda, delta);
+        rightLegGroup.rotation.x = THREE2.MathUtils.damp(rightLegGroup.rotation.x, stride * (isRunning ? 0.62 : 0.46), dampLambda, delta);
         leftKneeGroup.rotation.x = THREE2.MathUtils.damp(
           leftKneeGroup.rotation.x,
-          0.1 + liftL * 0.56 + Math.max(0, -stride) * 0.08,
+          0.1 + liftL * (isRunning ? 0.72 : 0.56) + Math.max(0, -stride) * 0.08,
           dampLambda,
           delta
         );
         rightKneeGroup.rotation.x = THREE2.MathUtils.damp(
           rightKneeGroup.rotation.x,
-          0.1 + liftR * 0.56 + Math.max(0, stride) * 0.08,
+          0.1 + liftR * (isRunning ? 0.72 : 0.56) + Math.max(0, stride) * 0.08,
           dampLambda,
           delta
         );
-        rightArmGroup.rotation.x = THREE2.MathUtils.damp(rightArmGroup.rotation.x, -stride * 0.42 - 0.12, dampLambda, delta);
-        leftArmGroup.rotation.x = THREE2.MathUtils.damp(leftArmGroup.rotation.x, stride * 0.42 - 0.12, dampLambda, delta);
+        const armSwing = isRunning ? 0.68 : 0.42;
+        rightArmGroup.rotation.x = THREE2.MathUtils.damp(rightArmGroup.rotation.x, -stride * armSwing - (isRunning ? 0.22 : 0.12), dampLambda, delta);
+        leftArmGroup.rotation.x = THREE2.MathUtils.damp(leftArmGroup.rotation.x, stride * armSwing - (isRunning ? 0.22 : 0.12), dampLambda, delta);
         rightElbowGroup.rotation.x = THREE2.MathUtils.damp(
           rightElbowGroup.rotation.x,
           -0.28 - Math.max(0, stride) * 0.36,

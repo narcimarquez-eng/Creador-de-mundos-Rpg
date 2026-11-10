@@ -205,4 +205,45 @@ t('penalización de EXP por diferencia de nivel (empezando a 3 niveles y 0 EXP a
   assert.strictEqual(C.xpPorMonstruo(100, 15, 1), 0);
 });
 
+t('monstruos arqueros y magos: detección de rol, ataque a distancia y velocidad de persecución', () => {
+  // Detección de arqueros
+  assert.strictEqual(C.detectarRol({ weapon: 'bone_recurved_bow' }), 'arquero');
+  assert.strictEqual(C.detectarRol({ name: 'Esqueleto Arquero' }), 'arquero');
+  assert.strictEqual(C.detectarRol({ archetype: 'archer_species_2_forest_goblin_bowman' }), 'arquero');
+
+  // Detección de magos
+  assert.strictEqual(C.detectarRol({ weapon: 'arcane_staff' }), 'mago');
+  assert.strictEqual(C.detectarRol({ raceCategory: 'magical' }), 'mago');
+  assert.strictEqual(C.detectarRol({ name: 'Archimago Oscuro' }), 'mago');
+
+  // Detección de melee
+  assert.strictEqual(C.detectarRol({ weapon: 'iron_broadsword' }), 'melee');
+  assert.strictEqual(C.detectarRol({ name: 'Lobo Salvaje' }), 'melee');
+
+  // Creación de monstruo arquero
+  const arquero = C.newMonster({ level: 3, x: 0, z: 0, weapon: 'bone_recurved_bow' });
+  assert.strictEqual(arquero.tipoRango, 'arquero');
+  assert.strictEqual(arquero.esADistancia, true);
+  assert.strictEqual(arquero.attackRange, 18.0);
+  assert.ok(arquero.speed >= 10.0, 'Velocidad de persecución similar al héroe (~10.5 m/s)');
+
+  // IA: el arquero ataca a 15 metros sin tener que acercarse a melee
+  const h = C.newHero();
+  let ataquesDistancia = 0;
+  for (let i = 0; i < 50; i++) {
+    const r = C.monsterTick(arquero, h, 15.0, 0, 0.1); // héroe a 15m
+    if (r.attack) ataquesDistancia++;
+  }
+  assert.strictEqual(arquero.state, 'chase');
+  assert.ok(ataquesDistancia >= 3, 'El arquero debe atacar a 15m de distancia: ' + ataquesDistancia);
+  assert.strictEqual(arquero.x, 0, 'El arquero no debe avanzar hacia melee cuando ya está dentro de su rango (18m)');
+
+  // Monstruo melee a 15m: debe avanzar para acercarse
+  const melee = C.newMonster({ level: 3, x: 0, z: 0, weapon: 'iron_broadsword' });
+  assert.strictEqual(melee.esADistancia, false);
+  assert.strictEqual(melee.attackRange, 2.2);
+  C.monsterTick(melee, h, 15.0, 0, 0.1);
+  assert.ok(melee.x > 0, 'El monstruo melee debe desplazarse hacia el héroe para alcanzarlo');
+});
+
 console.log(`\n${n} pruebas correctas`);

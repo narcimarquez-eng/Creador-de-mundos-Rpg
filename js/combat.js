@@ -59,10 +59,10 @@
     dmgBase: 4, dmgPerLevel: 2.0,
     xpPerLevel: 10,
     bossMult: { hp: 6, dmg: 1.8, xp: 6 },
-    aggro: 14, bossAggro: 16,
-    attackRange: 2.2, attackCd: 1.5,
-    chaseSpeed: 3.5, bossChaseSpeed: 2.5,
-    returnSpeed: 5,
+    aggro: 16, bossAggro: 20,
+    attackRange: 2.2, rangedAttackRange: 18.0, attackCd: 1.5,
+    chaseSpeed: 10.5, bossChaseSpeed: 8.5,            // velocidad de persecución similar a la carrera del héroe (12 m/s)
+    returnSpeed: 5.5,
     regenPerSec: 0.1                                  // fracción de la vida máxima por segundo al volver
   };
 
@@ -187,10 +187,27 @@
     hero.lock = 0;
   }
 
-  // Un monstruo vivo: posición de origen, estado y temporizador de ataque
+  // Determina el rol de combate (arquero, mago o melee) según arma, arquetipo o nombre
+  function detectarRol(opts) {
+    if (!opts) return 'melee';
+    if (opts.tipoRango === 'arquero' || opts.tipoRango === 'mago') return opts.tipoRango;
+    if (opts.esADistancia) return 'mago';
+    const w = (opts.weapon || '').toLowerCase();
+    const n = ((opts.name || '') + ' ' + (opts.archetype || '') + ' ' + (opts.id || '')).toLowerCase();
+    if (w.includes('bow') || w.includes('arco') || n.includes('archer') || n.includes('arquero') || n.includes('bowman')) return 'arquero';
+    if (opts.raceCategory === 'magical' || w.includes('staff') || w.includes('baston') || w.includes('varita') || w.includes('dragon_breath') || w.includes('frost_breath') || n.includes('mago') || n.includes('mage') || n.includes('shaman') || n.includes('chaman') || n.includes('brujo') || n.includes('archimago') || n.includes('sorcerer') || n.includes('wizard') || n.includes('hechicero')) return 'mago';
+    return 'melee';
+  }
+
+  // Un monstruo vivo: posición de origen, estado, rol de ataque y temporizador
   function newMonster(opts) {
     const eliteMult = opts.rangoElite || opts.eliteMult || 1;
     const st = monsterStats(opts.level, opts.boss, eliteMult);
+    const tipoRango = detectarRol(opts);
+    const esDist = tipoRango === 'arquero' || tipoRango === 'mago' || !!opts.esADistancia;
+    const defaultAggro = opts.boss ? MONSTER.bossAggro : MONSTER.aggro;
+    const defaultSpeed = opts.boss ? MONSTER.bossChaseSpeed : MONSTER.chaseSpeed;
+    const rAtaque = opts.attackRange || (esDist ? MONSTER.rangedAttackRange : MONSTER.attackRange);
     return {
       level: opts.level, boss: !!opts.boss,
       rangoElite: eliteMult,
@@ -198,16 +215,20 @@
       spawnX: opts.x, spawnZ: opts.z, x: opts.x, z: opts.z,
       leash: opts.leash || 40,
       state: 'idle', attackTimer: 0,
-      aggro: opts.boss ? MONSTER.bossAggro : MONSTER.aggro,
-      speed: opts.boss ? MONSTER.bossChaseSpeed : MONSTER.chaseSpeed,
+      tipoRango: tipoRango,
+      esADistancia: esDist,
+      attackRange: rAtaque,
+      attackCd: opts.attackCd || MONSTER.attackCd,
+      aggro: opts.aggro || (esDist ? Math.max(22, defaultAggro) : defaultAggro),
+      speed: opts.speed || defaultSpeed,
       danoPorFuente: { hero: 0, acompanante: 0 },
       danoTotal: 0
     };
   }
 
-  // Un paso de la IA del monstruo. Devuelve { attack: bool } para indicar si golpea este frame.
+  // Un paso de la IA del monstruo. Devuelve { attack: bool, ranged: bool } para indicar si golpea este frame.
   function monsterTick(m, hero, hx, hz, dt, dy) {
-    const out = { attack: false };
+    const out = { attack: false, ranged: false };
     const dHero = Math.hypot(hx - m.x, hz - m.z);
     const dSpawn = Math.hypot(m.spawnX - m.x, m.spawnZ - m.z);
 
@@ -215,7 +236,8 @@
     if (m.state === 'chase' && (hero.dead || dSpawn > m.leash)) m.state = 'return';
 
     if (m.state === 'chase') {
-      if (dHero > MONSTER.attackRange) {
+      const attackRange = m.attackRange || (m.esADistancia ? MONSTER.rangedAttackRange : MONSTER.attackRange);
+      if (dHero > attackRange) {
         const sp = m.speed * dt / dHero;
         let nx = m.x + (hx - m.x) * Math.min(1, sp);
         let nz = m.z + (hz - m.z) * Math.min(1, sp);
@@ -227,10 +249,15 @@
         m.x = nx;
         m.z = nz;
       } else {
-        // No atacar a través de acantilados o desniveles verticales mayores a 4 metros
-        if (typeof dy !== 'number' || dy < 4.0) {
+        // En rango de ataque: arqueros y magos lanzan a distancia sin tener que acercarse a melee
+        const maxDy = m.esADistancia ? 8.0 : 4.0;
+        if (typeof dy !== 'number' || dy < maxDy) {
           m.attackTimer -= dt;
-          if (m.attackTimer <= 0) { m.attackTimer = MONSTER.attackCd; out.attack = true; }
+          if (m.attackTimer <= 0) {
+            m.attackTimer = m.attackCd || MONSTER.attackCd;
+            out.attack = true;
+            out.ranged = !!m.esADistancia;
+          }
         }
       }
     } else if (m.state === 'return') {
@@ -293,7 +320,7 @@
     HERO, SKILLS, MONSTER,
     diffMult, heroMax, newHero, xpToNext, gainXp, factorXpPorNivel, xpPorMonstruo, heroDamage,
     canUse, useSkill, monsterStats, monsterDamage, takeHit, tickHero,
-    die, respawn, newMonster, monsterTick, inSkillArea, impactos
+    die, respawn, newMonster, monsterTick, inSkillArea, impactos, detectarRol
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CombatLib = api;

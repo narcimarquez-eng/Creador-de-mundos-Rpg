@@ -9,15 +9,16 @@
 
   // Versiones que se prueban por tipo, en orden: de cerca usa el medium y, si no está subido, el low
   const VERSIONES_POR_TIPO = { cerca: ['medium', 'low'], lejos: ['low'] };
-  const ESTADOS_ANIMACION = ['idle', 'walk', 'attack', 'hit', 'death'];
+  const ESTADOS_ANIMACION = ['idle', 'walk', 'run', 'attack', 'hit', 'death'];
   const UNA_VEZ = { hit: true, death: true };     // estos clips se reproducen una vez y se quedan en el último fotograma
   const FUNDIDO_S = 0.2;
 
   // Palabras que suelen tener los clips del editor, por estado del visor (se comparan en minúsculas)
   const PALABRAS_CLIP = {
     idle: ['idle', 'stand', 'reposo'],
-    walk: ['walk', 'run', 'andar', 'caminar'],
-    attack: ['attack', 'jumpbite', 'bite', 'strike', 'ataque'],
+    run: ['run', 'sprint', 'correr', 'carrera', 'fast'],
+    walk: ['walk', 'andar', 'caminar'],
+    attack: ['attack', 'jumpbite', 'bite', 'strike', 'ataque', 'shoot', 'cast', 'shot', 'arrow'],
     hit: ['hit', 'hurt', 'golpe'],
     death: ['death', 'die', 'muerte']
   };
@@ -37,6 +38,13 @@
     for (const palabra of PALABRAS_CLIP[estado] || []) {
       const clip = (clips || []).find(c => (c.name || '').toLowerCase().includes(palabra));
       if (clip) return clip;
+    }
+    // Si busca 'run' y el GLB no trae clip exclusivo de correr, recurre a 'walk'
+    if (estado === 'run') {
+      for (const palabra of PALABRAS_CLIP.walk) {
+        const clip = (clips || []).find(c => (c.name || '').toLowerCase().includes(palabra));
+        if (clip) return clip;
+      }
     }
     return null;
   }
@@ -78,7 +86,9 @@
   // Sin clip para un estado de paso (andar o atacar) se usa el reposo; para golpe o muerte, se mantiene la pose.
   function actualizar(rep, estado, dt) {
     if (!rep) return;
-    const accion = rep.acciones[estado] || ((estado === 'walk' || estado === 'attack') ? rep.acciones.idle : null);
+    const accion = rep.acciones[estado] ||
+      (estado === 'run' ? (rep.acciones.walk || rep.acciones.idle) :
+      (estado === 'walk' || estado === 'attack') ? rep.acciones.idle : null);
     if (accion && accion !== rep.actual) {
       accion.reset().play();
       if (rep.actual) rep.actual.crossFadeTo(accion, FUNDIDO_S, false);

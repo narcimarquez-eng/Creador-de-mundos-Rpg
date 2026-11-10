@@ -7,13 +7,16 @@
 (function (root) {
   'use strict';
 
-  const DURACION = { golpe: 0.5, magia: 0.9, hit: 0.3 };
+  const DURACION = { golpe: 0.5, magia: 0.85, disparo: 0.75, hit: 0.3 };
   let bolaGeoCompartida = null;
 
   // Qué gesto usa cada enemigo al atacar
   function tipoAtaque(config) {
     if (!config) return 'golpe';
-    if (config.raceCategory === 'magical' || config.weapon === 'arcane_staff' || config.weapon === 'dragon_breath_maw') return 'magia';
+    const w = (config.weapon || '').toLowerCase();
+    const n = ((config.name || '') + ' ' + (config.archetype || '') + ' ' + (config.id || '')).toLowerCase();
+    if (w.includes('bow') || w.includes('arco') || n.includes('archer') || n.includes('arquero') || n.includes('bowman')) return 'disparo';
+    if (config.raceCategory === 'magical' || w.includes('staff') || w.includes('baston') || w.includes('varita') || w.includes('dragon_breath') || w.includes('frost_breath') || n.includes('mago') || n.includes('mage') || n.includes('shaman') || n.includes('chaman') || n.includes('brujo') || n.includes('archimago') || n.includes('sorcerer') || n.includes('wizard') || n.includes('hechicero')) return 'magia';
     return 'golpe';
   }
 
@@ -42,7 +45,9 @@
   // Momento (segundos desde el inicio del gesto) en que el ataque llega al héroe: el proyectil al llegar,
   // y en el golpe, cuando el brazo está en lo alto
   function momentoImpacto(accion) {
-    return DURACION[accion] * (accion === 'magia' ? 0.9 : 0.5);
+    if (accion === 'disparo') return 0.45;
+    if (accion === 'magia') return 0.7;
+    return (DURACION[accion] || 0.5) * 0.5;
   }
 
   // Empieza un efecto. ahora: segundos, con el mismo reloj que actualizar().
@@ -79,6 +84,14 @@
       const sw = Math.sin(Math.PI * q);
       sumar(fx, p.rightArmGroup, -2.0 * sw, 0, 0);
       sumar(fx, p.torsoGroup, 0, 0.35 * sw, 0);
+    }
+
+    if (a === 'disparo') {
+      const sw = Math.sin(Math.PI * q);
+      sumar(fx, p.leftArmGroup, -1.55 * sw, -0.3 * sw, 0);
+      sumar(fx, p.rightArmGroup, -1.52 * sw, 0.4 * sw, 0);
+      sumar(fx, p.torsoGroup, 0, -0.22 * sw, 0);
+      sumar(fx, p.headGroup, 0, 0.22 * sw, 0);
     }
 
     const magia = a === 'magia' ? Math.min(1, q / 0.35, (1 - q) / 0.25) : 0;

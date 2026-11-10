@@ -5158,6 +5158,15 @@
   function construirModeloEnemigo(m, d) {
     if (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) return true;
     if (!window.EnemyLib || !m.enemigo) return false;
+    if (m.enemigo && (!m.tipoRango || m.tipoRango === 'melee')) {
+      const rolEnem = CombatLib.detectarRol(m.enemigo);
+      if (rolEnem !== 'melee') {
+        m.tipoRango = rolEnem;
+        m.esADistancia = true;
+        m.attackRange = 18.0;
+        m.aggro = Math.max(m.aggro || 16, 22.0);
+      }
+    }
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
       // Primero el GLB de esta versión (medium para cerca, low para lejos). Si el archivo no está, se genera el
@@ -5369,13 +5378,19 @@
               }
             }
           }
+          const rolDetectado = CombatLib.detectarRol(enemigoVariedad || info);
           const m = CombatLib.newMonster({
             level: info.level,
             boss: info.boss,
             rangoElite,
             x: spawnX,
             z: spawnZ,
-            leash: z.radius + 25
+            leash: z.radius + 25,
+            tipoRango: rolDetectado,
+            esADistancia: rolDetectado === 'arquero' || rolDetectado === 'mago',
+            weapon: enemigoVariedad ? enemigoVariedad.weapon : (info.weapon || ''),
+            archetype: enemigoVariedad ? (enemigoVariedad.archetype || enemigoVariedad.id) : (info.archetype || ''),
+            name: info.name
           });
           if (z.relieve && z.relieve.activo && typeof RelieveZonaLib !== 'undefined') {
             m.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
@@ -5430,13 +5445,17 @@
             const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
             if (lab && lab.centro) { bX = lab.centro.wx; bZ = lab.centro.wz; }
           }
+          const bossRol = CombatLib.detectarRol(info);
           const bossM = CombatLib.newMonster({
             level: nivelJefe,
             boss: true,
             rangoElite: 4,
             x: bX,
             z: bZ,
-            leash: z.radius + 35
+            leash: z.radius + 35,
+            tipoRango: bossRol,
+            esADistancia: bossRol === 'arquero' || bossRol === 'mago',
+            name: z.name
           });
           bossM.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
           bossM.name = '💀 [Jefe de Culminación] ' + (z.name ? 'Soberano de ' + z.name : 'Señor del Abismo');
@@ -5624,13 +5643,27 @@
     if (m.hp <= 0) killMonster(m);
   }
 
-  // El enemigo ataca: el gesto empieza ya y el daño llega cuando el golpe o el proyectil alcanzan al héroe
+  // El enemigo ataca: arqueros y magos lanzan a distancia; el daño llega cuando el proyectil alcanza al héroe
   function monsterHitsHero(m) {
-    if (!m.fx) { aplicarDanoEnemigo(m); return; }
-    const tipo = EnemyFx.tipoAtaque(m.enemigo);
-    const d = Math.hypot(m.x - character.root.position.x, m.z - character.root.position.z);
-    EnemyFx.disparar(m.fx, tipo, performance.now() / 1000, d);
-    m.impactoEn = performance.now() + EnemyFx.momentoImpacto(tipo) * 1000;
+    const rol = m.tipoRango || (m.enemigo ? CombatLib.detectarRol(m.enemigo) : 'melee');
+    const tipo = rol === 'arquero' ? 'disparo' : (rol === 'mago' ? 'magia' : (m.enemigo ? EnemyFx.tipoAtaque(m.enemigo) : 'golpe'));
+    const d = (character && character.root) ? Math.hypot(m.x - character.root.position.x, m.z - character.root.position.z) : 2.0;
+    let tiempoImpacto = 0.25;
+
+    if (rol === 'arquero' || tipo === 'disparo') {
+      tiempoImpacto = flechaMonstruo(m, character && character.root ? character.root.position : null);
+      if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo();
+    } else if (rol === 'mago' || tipo === 'magia') {
+      tiempoImpacto = magiaMonstruo(m, character && character.root ? character.root.position : null);
+      if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo();
+    } else {
+      tiempoImpacto = EnemyFx.momentoImpacto(tipo);
+    }
+
+    if (m.fx) {
+      EnemyFx.disparar(m.fx, tipo, performance.now() / 1000, d);
+    }
+    m.impactoEn = performance.now() + tiempoImpacto * 1000;
   }
 
   function aplicarDanoEnemigo(m) {
@@ -5640,6 +5673,11 @@
     if (statsHeroe.reflejo) damageMonster(m, dmg * statsHeroe.reflejo);
     if (hero.poisonThorns && m && m.alive) {
       damageMonster(m, dmg * 0.35, 'hero');
+    }
+    if (m && m.tipoRango === 'arquero') {
+      if (typeof Sonidos !== 'undefined' && Sonidos.impacto) Sonidos.impacto('flecha');
+    } else if (m && m.tipoRango === 'mago') {
+      if (typeof Sonidos !== 'undefined' && Sonidos.impacto) Sonidos.impacto('sordo');
     }
     if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
     if (acompanante && acompanante.activo && !acompanante.debilitado && typeof AcompananteLib !== 'undefined') {
@@ -5898,8 +5936,9 @@
           const monY = typeof m._cachedY === 'number' ? m._cachedY : (m.group ? m.group.position.y : 0);
           const dy = Math.abs(monY - heroY);
           const r = CombatLib.monsterTick(m, hero, px, pz, dt, dy);
-          // Solo golpea al héroe si no hay un desnivel vertical abismal (no a través de acantilados) y el modelo está visible
-          if (r.attack && !hero.dead && dy < 4.0 && m.group && m.group.visible) monsterHitsHero(m);
+          // Solo golpea al héroe si no hay un desnivel vertical abismal (arqueros/magos hasta 8m) y el modelo está visible
+          const maxDyPermitido = m.esADistancia ? 8.0 : 4.0;
+          if (r.attack && !hero.dead && dy < maxDyPermitido && m.group && m.group.visible) monsterHitsHero(m);
         }
         if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && perfNow < m.muriendo)) descargarModelosEnemigo(m);
         const esMeshProc = !!(m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural));
@@ -5927,7 +5966,21 @@
             dr = Math.atan2(Math.sin(dr), Math.cos(dr));
             m.group.rotation.y += dr * Math.min(1, dt * 6);
           }
-          const estado = now < m.flashUntil ? 'hit' : m.state === 'chase' && d < 3.5 ? 'attack' : m.state === 'chase' || m.state === 'return' || (m.state === 'idle' && m.caminando) ? 'walk' : 'idle';
+          let estado = 'idle';
+          if (now < m.flashUntil) {
+            estado = 'hit';
+          } else if (m.state === 'chase') {
+            const rangoAtaque = m.attackRange || (m.esADistancia ? 18.0 : 2.5);
+            if (d <= rangoAtaque + 0.5) {
+              estado = 'attack';
+            } else {
+              estado = 'run';
+            }
+          } else if (m.state === 'return' || (m.state === 'idle' && m.caminando)) {
+            estado = 'walk';
+          } else {
+            estado = 'idle';
+          }
           // Modelos GLB: sus clips avanzan solo a distancia de animación (de lejos se quedan en la última pose)
           if (m.rig && m.rig.glb && d < MONSTRUO_ANIMA) EnemyGlb.actualizar(m.rig.glb, estado, dt);
           // Animación: cada fotograma de cerca, uno de cada 4 a media distancia y quieto de lejos
@@ -6102,6 +6155,55 @@
       hasta.set(m.x, (m.group ? m.group.position.y : p.y) + 1.05, m.z);
       malla.position.lerpVectors(desde, hasta, k);
     });
+  }
+
+  // Proyectiles lanzados a distancia por los monstruos hacia el héroe
+  function flechaMonstruo(m, targetPos) {
+    const p = targetPos || (character && character.root ? character.root.position : { x: 0, y: 0, z: 0 });
+    const my = (m.group ? m.group.position.y : 0) + (m.barHeight ? m.barHeight * 0.45 : 1.3);
+    const desde = new THREE.Vector3(m.x, my, m.z);
+    const hasta = new THREE.Vector3(p.x, p.y + 1.1, p.z);
+    const dir = hasta.clone().sub(desde);
+    const dist = dir.length() || 1;
+    dir.divideScalar(dist);
+    const geom = new THREE.CylinderGeometry(0.025, 0.04, 0.95, 6);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x92400e });
+    const malla = new THREE.Mesh(geom, mat);
+    malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    malla.position.copy(desde);
+    const dur = Math.max(0.12, Math.min(0.65, dist / 35));
+    efecto(malla, dur, k => {
+      if (character && character.root) {
+        hasta.set(character.root.position.x, character.root.position.y + 1.1, character.root.position.z);
+      }
+      malla.position.lerpVectors(desde, hasta, k);
+    });
+    return dur;
+  }
+
+  function magiaMonstruo(m, targetPos) {
+    const p = targetPos || (character && character.root ? character.root.position : { x: 0, y: 0, z: 0 });
+    const my = (m.group ? m.group.position.y : 0) + (m.barHeight ? m.barHeight * 0.5 : 1.5);
+    const desde = new THREE.Vector3(m.x, my, m.z);
+    const hasta = new THREE.Vector3(p.x, p.y + 1.1, p.z);
+    const dir = hasta.clone().sub(desde);
+    const dist = dir.length() || 1;
+    const colorHex = (m.enemigo && m.enemigo.materials && m.enemigo.materials.emissiveColor) ? m.enemigo.materials.emissiveColor : 0x7dd3fc;
+    const geom = new THREE.SphereGeometry(0.32, 12, 10);
+    const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+    const malla = new THREE.Mesh(geom, mat);
+    malla.position.copy(desde);
+    marcarResplandor(malla);
+    const dur = Math.max(0.15, Math.min(0.85, dist / 26));
+    efecto(malla, dur, k => {
+      if (character && character.root) {
+        hasta.set(character.root.position.x, character.root.position.y + 1.1, character.root.position.z);
+      }
+      malla.position.lerpVectors(desde, hasta, k);
+      malla.position.y += Math.sin(k * Math.PI) * 0.45;
+      malla.scale.setScalar(1.0 + Math.sin(k * 15) * 0.25);
+    });
+    return dur;
   }
   function actualizarEfectos(dt) {
     for (let i = efectos.length - 1; i >= 0; i--) {
@@ -9680,12 +9782,17 @@
         actualizarVisibilidadEstructuras(0, true);
       },
       crearMonstruoCombate: (info, parentGroup, isBoss) => {
+        const rolDungeon = CombatLib.detectarRol(info);
         const m = CombatLib.newMonster({
           level: info.level,
           boss: isBoss || !!info.boss,
           rangoElite: info.rangoElite || info.multiplicador || (isBoss ? 10 : 4),
           x: info.x,
-          z: info.z
+          z: info.z,
+          tipoRango: rolDungeon,
+          esADistancia: rolDungeon === 'arquero' || rolDungeon === 'mago',
+          weapon: info.weapon || '',
+          name: info.name
         });
         m.name = info.name;
         m.alive = true;

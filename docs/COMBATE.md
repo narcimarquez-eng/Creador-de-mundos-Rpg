@@ -141,7 +141,11 @@ sin cambiar el mundo guardado.
   - 5 niveles por debajo: 40 % de EXP (-60 %).
   - 6 niveles por debajo: 20 % de EXP (-80 %).
   - 7 o más niveles por debajo: 0 % de EXP (no otorga experiencia).
-- **Vista:** los monstruos te persiguen si estás a menos de 14 m (16 m los jefes). Atacan cada 1,5 s desde 2,2 m.
+- **Vista:** los monstruos te persiguen si estás a menos de 16 m (20 m los jefes, 22 m los arqueros y magos a distancia).
+- **Persecución y velocidad:** al detectar la presencia del jugador, los monstruos usan la animación de correr (`run`) y avanzan a una velocidad similar a la del personaje (~10,5 m/s; 8,5 m/s los jefes).
+- **Ataque a distancia y cuerpo a cuerpo:**
+  - **Monstruos cuerpo a cuerpo:** persiguen hasta entrar en alcance (2,2 m) y golpean cada 1,5 s.
+  - **Monstruos arqueros y magos:** atacan a distancia hasta 18 m (sin necesidad de avanzar hasta melee), disparando flechas balísticas u orbes mágicos luminosos con resplandor (*bloom*) que aplican daño al alcanzar al personaje.
 - **Vuelta a casa:** si se alejan más del radio de su zona + 25 m, o entran en un pueblo, vuelven a su zona y se
   recuperan poco a poco.
 - **Reaparición:** tras morir, el monstruo vuelve a su zona cuando pasa el tiempo `respawnSec` de la zona.
