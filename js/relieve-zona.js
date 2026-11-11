@@ -439,8 +439,69 @@
       };
     };
 
-    const celdasMonstruos = (r && r.celdasMonstruos && typeof r.celdasMonstruos === 'object') ? r.celdasMonstruos : {};
-    const patronesMonstruos = (r && r.patronesMonstruos && typeof r.patronesMonstruos === 'object') ? r.patronesMonstruos : PATRONES_MONSTRUOS_DEFECTO;
+    const celdasMonstruos = (r && r.celdasMonstruos && typeof r.celdasMonstruos === 'object') ? { ...r.celdasMonstruos } : {};
+    let patronesMonstruos = (r && r.patronesMonstruos && typeof r.patronesMonstruos === 'object' && Object.keys(r.patronesMonstruos).length > 0)
+      ? { ...r.patronesMonstruos }
+      : null;
+
+    // Si no hay patrones personalizados, sincronizar con los monstruos reales configurados en la zona
+    if (!patronesMonstruos) {
+      if (Array.isArray(zona.monsters) && zona.monsters.length > 0) {
+        patronesMonstruos = {};
+        const paletaColores = ['#22c55e', '#3b82f6', '#ef4444', '#a855f7', '#f97316', '#eab308', '#06b6d4', '#ec4899'];
+        zona.monsters.forEach((zm, zIdx) => {
+          const pId = 'p' + (zIdx + 1);
+          const zmName = zm.name || ('Monstruo ' + (zIdx + 1));
+          const zmLower = zmName.toLowerCase();
+          let clase = 'guerrero';
+          if (zm.boss || zm.clase === 'elite' || zm.clase === 'jefe') clase = 'elite';
+          else if (zm.clase === 'mago' || zmLower.includes('mago') || zmLower.includes('arcano') || zmLower.includes('hechicero')) clase = 'mago';
+          else if (zm.clase === 'arquero' || zmLower.includes('arquero') || zmLower.includes('cazador') || zmLower.includes('tirador')) clase = 'arquero';
+          else if (zm.clase === 'rapido' || zmLower.includes('lobo') || zmLower.includes('araña') || zmLower.includes('alimaña')) clase = 'rapido';
+          const icono = clase === 'arquero' ? '🏹' : clase === 'mago' ? '🔮' : clase === 'elite' ? '👑' : clase === 'rapido' ? '🦂' : '⚔️';
+          const lvl = zm.level || zm.levelMin || 10;
+          const lvlMax = zm.levelMax || (zm.boss ? lvl : (lvl + 2));
+          const cnt = Math.max(1, Math.min(4, zm.count || (zm.density === 'alta' ? 3 : zm.density === 'media' ? 2 : 1)));
+          patronesMonstruos[pId] = {
+            id: pId,
+            name: zmName,
+            color: zm.color || paletaColores[zIdx % paletaColores.length],
+            clase: clase,
+            levelMin: lvl,
+            levelMax: lvlMax,
+            level: lvl,
+            count: cnt,
+            icono: icono
+          };
+        });
+      } else {
+        patronesMonstruos = { ...PATRONES_MONSTRUOS_DEFECTO };
+      }
+    }
+
+    // Auto-distribuir patrullas de monstruos por los pasillos transitables si no hay celdas pintadas
+    if (Object.keys(celdasMonstruos).length === 0) {
+      const pasillos = [];
+      const midC = (N - 1) / 2;
+      for (let gy = 1; gy < N - 1; gy++) {
+        for (let gx = 1; gx < N - 1; gx++) {
+          if (grid[gy][gx] === 0 && Math.hypot(gx - midC, gy - midC) > 1.8) {
+            pasillos.push({ gx, gy });
+          }
+        }
+      }
+      const patIds = Object.keys(patronesMonstruos);
+      if (pasillos.length > 0 && patIds.length > 0) {
+        const numADistribuir = Math.min(pasillos.length, Math.max(8, Math.floor(pasillos.length * 0.48)));
+        const salto = Math.max(1, Math.floor(pasillos.length / numADistribuir));
+        for (let i = 0; i < numADistribuir; i++) {
+          const idxP = (i * salto) % pasillos.length;
+          const cel = pasillos[idxP];
+          const pId = patIds[i % patIds.length];
+          celdasMonstruos[`${cel.gx}_${cel.gy}`] = pId;
+        }
+      }
+    }
 
     // Asegurar que las celdas asignadas a monstruos queden abiertas como camino transitable ANTES de crear colisionadores
     Object.keys(celdasMonstruos).forEach(key => {

@@ -1193,7 +1193,7 @@
           const patIds = Object.keys(params.patronesMonstruos);
           if (pasillos.length > 0 && patIds.length > 0) {
             params.celdasMonstruos = {};
-            const numADistribuir = Math.min(pasillos.length, Math.max(6, Math.floor(pasillos.length * 0.35)));
+            const numADistribuir = Math.min(pasillos.length, Math.max(8, Math.floor(pasillos.length * 0.48)));
             const salto = Math.max(1, Math.floor(pasillos.length / numADistribuir));
             for (let i = 0; i < numADistribuir; i++) {
               const idxP = (i * salto) % pasillos.length;

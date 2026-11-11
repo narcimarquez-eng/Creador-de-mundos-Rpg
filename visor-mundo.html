@@ -5473,21 +5473,22 @@
     const fgGeo = new THREE.PlaneGeometry(2.6, 0.2);
     const bgMat = new THREE.MeshBasicMaterial({ color: '#111827', depthTest: false });
     world.zones.forEach(z => {
-      // Determinar si la zona tiene un laberinto con monstruos específicos asignados por casillas
-      const tieneMonstruosLaberinto = !!(z.relieve && z.relieve.activo && z.relieve.celdasMonstruos && Object.keys(z.relieve.celdasMonstruos).length > 0);
+      // Determinar si la zona tiene un relieve/laberinto activo
+      const tieneLaberinto = !!(z.relieve && z.relieve.activo);
 
-      // Si la zona NO tiene monstruos de laberinto personalizados, generamos los monstruos genéricos exteriores
-      if (!tieneMonstruosLaberinto) {
+      // Si la zona NO tiene laberinto, generamos una población abundante de monstruos exteriores en manadas
+      if (!tieneLaberinto) {
         z.monsters.forEach((info, mi) => {
-          const count = typeof W.monsterCount === 'function' ? W.monsterCount(info) : (info.boss ? 1 : ({ baja: 1, media: 4, alta: 8, 'muy alta': 12 })[info.density] || 1);
+          const baseCount = (typeof W.monsterCount === 'function' && W.monsterCount(info)) || 1;
+          // Escala generosa para que las zonas de caza exteriores se sientan pobladas
+          const count = info.boss ? 1 : Math.max(3, Math.round(baseCount * 2));
           // Cada variedad comparte el mismo arquetipo 3D en toda la zona (coherencia visual y 1 solo prototipo GPU)
           const semillaVar = ((W.hashString(z.id + '|' + mi + '|' + (info.name || '')) ^ world.seed) >>> 0) || 1;
           const rngVar = new W.PRNG(semillaVar);
           const enemigoVariedad = window.EnemyLib ? (enemigoPorClave(info.enemigo) || elegirEnemigo(info, rngVar)) : null;
+
           for (let k = 0; k < count; k++) {
             const rng = new W.PRNG((W.hashString(z.id + '|' + mi + '|' + k) ^ world.seed) >>> 0);
-            const a = rng.range(0, Math.PI * 2);
-            const r = info.boss ? 0 : z.radius * rng.range(0.2, 0.78);
             let rangoElite = 1;
             if (!info.boss) {
               const roll = rng.range(0, 100);
@@ -5495,24 +5496,17 @@
               else if (roll < 18) rangoElite = 3;
               else if (roll < 38) rangoElite = 2;
             }
-            let spawnX = z.x + Math.cos(a) * r;
-            let spawnZ = z.y + Math.sin(a) * r;
-            if (z.relieve && z.relieve.activo && typeof RelieveZonaLib !== 'undefined') {
-              const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-              if (lab && lab.celdasCamino && lab.celdasCamino.length) {
-                if (info.boss) {
-                  spawnX = lab.centro.wx;
-                  spawnZ = lab.centro.wz;
-                } else {
-                  const idxCelda = ((k * 37 + mi * 19) % lab.celdasCamino.length);
-                  const cel = lab.celdasCamino[idxCelda];
-                  const offX = rng.range(-lab.cellSize * 0.22, lab.cellSize * 0.22);
-                  const offZ = rng.range(-lab.cellSize * 0.22, lab.cellSize * 0.22);
-                  spawnX = cel.wx + offX;
-                  spawnZ = cel.wz + offZ;
-                }
-              }
-            }
+
+            // Distribuir en pequeñas manadas o patrullas de 2-4 miembros por foco en la zona
+            const clusterIdx = Math.floor(k / 3);
+            const rngCluster = new W.PRNG((W.hashString(z.id + '|cl|' + mi + '|' + clusterIdx) ^ world.seed) >>> 0);
+            const aCluster = rngCluster.range(0, Math.PI * 2);
+            const rCluster = info.boss ? 0 : z.radius * rngCluster.range(0.18, 0.82);
+            const offX = (k % 3 === 0 || info.boss) ? 0 : rng.range(-11, 11);
+            const offZ = (k % 3 === 0 || info.boss) ? 0 : rng.range(-11, 11);
+            const spawnX = z.x + Math.cos(aCluster) * rCluster + offX;
+            const spawnZ = z.y + Math.sin(aCluster) * rCluster + offZ;
+
             const rolDetectado = CombatLib.detectarRol(enemigoVariedad || info);
             const m = CombatLib.newMonster({
               level: info.level,
@@ -5527,9 +5521,6 @@
               archetype: enemigoVariedad ? (enemigoVariedad.archetype || enemigoVariedad.id) : (info.archetype || ''),
               name: info.name
             });
-            if (z.relieve && z.relieve.activo && typeof RelieveZonaLib !== 'undefined') {
-              m.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
-            }
             m.rangoElite = rangoElite;
             m.esElite = rangoElite >= 2;
             const prefijoElite = rangoElite === 4 ? '👑 [Élite ×4] ' : rangoElite === 3 ? '🔥 [Élite ×3] ' : rangoElite === 2 ? '⭐ [Élite ×2] ' : '';
@@ -5575,8 +5566,8 @@
         });
       }
 
-      // Monstruos específicos asignados por sectores y colores en el Creador de Laberintos
-      if (tieneMonstruosLaberinto && typeof RelieveZonaLib !== 'undefined') {
+      // Monstruos de laberintos y desfiladeros: distribuidos por pasillos, recovecos y cámaras
+      if (tieneLaberinto && typeof RelieveZonaLib !== 'undefined') {
         const celdasMons = RelieveZonaLib.obtenerMonstruosPorCelda(z);
         celdasMons.forEach((cm, cidx) => {
           const semillaMon = ((W.hashString(z.id + '|cm|' + cm.key + '|' + (cm.index || 0) + '|' + (cm.patId || '')) ^ world.seed) >>> 0) || 1;
@@ -5671,52 +5662,157 @@
 
       // Si la culminación es 'jefe' y no hay jefe en la lista de monstruos, generar el Jefe de Culminación en el centro
       if (z.relieve && z.relieve.activo && z.relieve.culminacion === 'jefe') {
-        const tieneJefe = z.monsters.some(m => m.boss);
-        if (!tieneJefe) {
-          const nivelJefe = Math.max(z.levelMax + 2, 8);
-          let bX = z.x, bZ = z.y;
-          if (typeof RelieveZonaLib !== 'undefined') {
-            const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-            if (lab && lab.centro) { bX = lab.centro.wx; bZ = lab.centro.wz; }
+        try {
+          const tieneJefe = z.monsters.some(m => m.boss);
+          if (!tieneJefe) {
+            const nivelJefe = Math.max(z.levelMax + 2, 8);
+            let bX = z.x, bZ = z.y;
+            if (typeof RelieveZonaLib !== 'undefined') {
+              const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+              if (lab && lab.centro) { bX = lab.centro.wx; bZ = lab.centro.wz; }
+            }
+            const bossInfo = { name: z.name || 'Jefe', boss: true, archetype: 'boss' };
+            const bossRol = (typeof CombatLib !== 'undefined') ? CombatLib.detectarRol(bossInfo) : 'melee';
+            const bossM = CombatLib.newMonster({
+              level: nivelJefe,
+              boss: true,
+              rangoElite: 4,
+              x: bX,
+              z: bZ,
+              leash: z.radius + 35,
+              tipoRango: bossRol,
+              esADistancia: bossRol === 'arquero' || bossRol === 'mago',
+              name: z.name
+            });
+            bossM.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
+            bossM.name = '💀 [Jefe de Culminación] ' + (z.name ? 'Soberano de ' + z.name : 'Señor del Abismo');
+            bossM.zone = z; bossM.alive = true; bossM.respawnAt = 0; bossM.flashUntil = 0; bossM.phase = 0;
+            bossM.recibirDano = (dmg, fuente = 'hero') => damageMonster(bossM, dmg, fuente);
+            bossM.danoPorFuente = { hero: 0, acompanante: 0 };
+            bossM.danoTotal = 0;
+            bossM.turno = monsters.length % 4;
+            if (window.EnemyLib) {
+              bossM.enemigo = elegirEnemigoPorClase('elite', nivelJefe, null, true);
+            } else {
+              bossM._pendEnemigo = { info: { esLaberinto: true, clase: 'elite', level: nivelJefe, boss: true, name: bossM.name }, s: 12345 };
+              bossM.enemigo = null;
+            }
+            bossM.group = new THREE.Group();
+            bossM.group.userData.monstruo = bossM;
+            bossM.group.scale.setScalar(1.5);
+            bossM.rig = null;
+            bossM.versiones = {};
+            bossM.group.visible = false;
+            const sueloY = H(bX, bZ);
+            bossM.group.position.set(bX, sueloY, bZ);
+            scene.add(bossM.group);
+            bossM.bar = new THREE.Group();
+            const bg = new THREE.Mesh(barGeo, bgMat);
+            bossM.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: '#ef4444', depthTest: false }));
+            bossM.fg.position.z = 0.01;
+            bossM.bar.add(bg, bossM.fg);
+            bossM.barHeight = 5.8;
+            bossM.bar.position.set(bX, sueloY + bossM.barHeight, bZ);
+            bossM.bar.visible = false;
+            scene.add(bossM.bar);
+            monsters.push(bossM);
           }
-          const bossRol = CombatLib.detectarRol(info);
-          const bossM = CombatLib.newMonster({
-            level: nivelJefe,
-            boss: true,
-            rangoElite: 4,
-            x: bX,
-            z: bZ,
-            leash: z.radius + 35,
-            tipoRango: bossRol,
-            esADistancia: bossRol === 'arquero' || bossRol === 'mago',
-            name: z.name
-          });
-          bossM.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
-          bossM.name = '💀 [Jefe de Culminación] ' + (z.name ? 'Soberano de ' + z.name : 'Señor del Abismo');
-          bossM.zone = z; bossM.alive = true; bossM.respawnAt = 0; bossM.flashUntil = 0; bossM.phase = 0;
-          bossM.recibirDano = (dmg, fuente = 'hero') => damageMonster(bossM, dmg, fuente);
-          bossM.danoPorFuente = { hero: 0, acompanante: 0 };
-          bossM.danoTotal = 0;
-          bossM.turno = monsters.length % 4;
-          bossM.group = new THREE.Group();
-          bossM.group.userData.monstruo = bossM;
-          bossM.group.scale.setScalar(1.5);
-          bossM.rig = null;
-          bossM.versiones = {};
-          bossM.group.visible = false;
-          scene.add(bossM.group);
-          bossM.bar = new THREE.Group();
-          const bg = new THREE.Mesh(barGeo, bgMat);
-          bossM.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: '#ef4444', depthTest: false }));
-          bossM.fg.position.z = 0.01;
-          bossM.bar.add(bg, bossM.fg);
-          bossM.barHeight = 5.8;
-          bossM.bar.visible = false;
-          scene.add(bossM.bar);
-          monsters.push(bossM);
+        } catch (errBoss) {
+          console.warn('Advertencia al generar jefe de culminación:', errBoss);
         }
       }
     });
+
+    // Generar patrullas y criaturas salvajes en campo abierto y a lo largo de los caminos entre pueblos
+    if (world && world.roads && Array.isArray(world.roads) && world.towns && world.towns.length > 0) {
+      const rngWild = new W.PRNG((world.seed ^ 0x9e3779b9) >>> 0);
+      world.roads.forEach((rd, rIdx) => {
+        if (!rd.points || rd.points.length < 3) return;
+        // Distribuir patrullas cada ~180-260m a lo largo del camino
+        for (let pi = 1; pi < rd.points.length - 1; pi += 2) {
+          const pt = rd.points[pi];
+          // Verificar distancia a todos los pueblos (debe estar a más de 160m para no invadir pueblos)
+          const cercaPueblo = towns.some(tw => Math.hypot(pt.x - tw.t.x, pt.y - tw.t.y) < tw.R + 90);
+          if (cercaPueblo) continue;
+
+          // Verificar distancia a zonas existentes para no solapar
+          const cercaZona = world.zones.some(zn => Math.hypot(pt.x - zn.x, pt.y - (zn.y !== undefined ? zn.y : zn.z)) < (zn.radius || 150) + 40);
+          if (cercaZona) continue;
+
+          // Desplazar 30-55 metros hacia un lado del camino (para que estén en los márgenes / vegetación)
+          const lado = (rIdx + pi) % 2 === 0 ? 1 : -1;
+          const prev = rd.points[pi - 1];
+          const dirX = pt.x - prev.x, dirZ = pt.y - prev.y;
+          const lenD = Math.hypot(dirX, dirZ) || 1;
+          const perpX = -dirZ / lenD, perpZ = dirX / lenD;
+          const distMargen = rngWild.range(26, 52);
+          const grupoX = pt.x + perpX * distMargen * lado;
+          const grupoZ = pt.y + perpZ * distMargen * lado;
+
+          // Generar una manada pequeña (2-3 criaturas/bandidos)
+          const cantManada = rngWild.int(2, 3);
+          const nivelWild = Math.max(1, Math.min(18, Math.round(1 + (pi / rd.points.length) * 8)));
+          const tiposWild = ['lobo', 'bandido', 'arana', 'esqueleto'];
+          const tipoElegido = tiposWild[(rIdx + pi) % tiposWild.length];
+          const rolWild = (tipoElegido === 'bandido' && pi % 2 === 1) ? 'arquero' : 'melee';
+
+          for (let wi = 0; wi < cantManada; wi++) {
+            const offWx = (wi === 0) ? 0 : rngWild.range(-6, 6);
+            const offWz = (wi === 0) ? 0 : rngWild.range(-6, 6);
+            const wX = grupoX + offWx;
+            const wZ = grupoZ + offWz;
+            const sueloWildY = H(wX, wZ);
+
+            const m = CombatLib.newMonster({
+              level: nivelWild,
+              boss: false,
+              rangoElite: 1,
+              x: wX,
+              z: wZ,
+              leash: 55,
+              tipoRango: rolWild,
+              esADistancia: rolWild === 'arquero',
+              weapon: rolWild === 'arquero' ? 'bow' : (tipoElegido === 'bandido' ? 'dagger' : 'sword'),
+              name: (tipoElegido === 'lobo' ? 'Lobo Silvestre' : (tipoElegido === 'bandido' ? 'Forajido de los Caminos' : (tipoElegido === 'arana' ? 'Araña Acechadora' : 'Vagabundo Esqueleto')))
+            });
+            m.name = m.name || 'Criatura Salvaje';
+            m.zone = null;
+            m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rngWild.range(0, 6);
+            m.recibirDano = (dmg, fuente = 'hero') => damageMonster(m, dmg, fuente);
+            m.danoPorFuente = { hero: 0, acompanante: 0 };
+            m.danoTotal = 0;
+            m.turno = monsters.length % 4;
+
+            if (window.EnemyLib) {
+              m.enemigo = elegirEnemigoPorClase(rolWild === 'arquero' ? 'arquero' : (tipoElegido === 'lobo' || tipoElegido === 'arana' ? 'rapido' : 'guerrero'), nivelWild, rngWild, false);
+            } else {
+              m._pendEnemigo = { info: { esLaberinto: true, clase: (rolWild === 'arquero' ? 'arquero' : (tipoElegido === 'lobo' || tipoElegido === 'arana' ? 'rapido' : 'guerrero')), level: nivelWild, boss: false, name: m.name }, s: rngWild.s };
+              m.enemigo = null;
+            }
+
+            m.group = new THREE.Group();
+            m.group.userData.monstruo = m;
+            m.group.position.set(wX, sueloWildY, wZ);
+            m.rig = null;
+            m.versiones = {};
+            m.group.visible = false;
+            scene.add(m.group);
+
+            m.bar = new THREE.Group();
+            const bg = new THREE.Mesh(barGeo, bgMat);
+            m.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: '#f97316', depthTest: false }));
+            m.fg.position.z = 0.01;
+            m.bar.add(bg, m.fg);
+            m.barHeight = 2.6;
+            m.bar.position.set(wX, sueloWildY + m.barHeight, wZ);
+            m.bar.visible = false;
+            scene.add(m.bar);
+            monsters.push(m);
+          }
+        }
+      });
+    }
+
     actualizarMarcadoresMisionMonstruos();
   }
 
