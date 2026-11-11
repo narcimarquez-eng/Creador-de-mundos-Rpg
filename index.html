@@ -742,7 +742,7 @@
       ctx.setLineDash([]);
     });
     if (tool === 'road' && roadStart && pointer.last) {
-      const a = W.findTown(world, roadStart);
+      const a = W.findRoadNode ? W.findRoadNode(world, roadStart) : (W.findTown(world, roadStart) || W.findZone(world, roadStart));
       if (a) {
         const s = toScreen(a.x, a.y);
         ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(pointer.last.x, pointer.last.y);
@@ -1047,14 +1047,20 @@
         break;
       }
       case 'road': {
-        if (!hit || hit.kind !== 'town') { roadStart = null; renderToolOptions(); requestDraw(); toast('Toca un pueblo para empezar el camino.'); return; }
+        if (!hit || (hit.kind !== 'town' && hit.kind !== 'zone')) {
+          roadStart = null; renderToolOptions(); requestDraw();
+          toast('Toca un pueblo o una zona/laberinto para trazar el camino.'); return;
+        }
         if (!roadStart) { roadStart = hit.id; renderToolOptions(); requestDraw(); return; }
         if (roadStart === hit.id) { roadStart = null; renderToolOptions(); requestDraw(); return; }
         const exists = world.roads.find(r => (r.from === roadStart && r.to === hit.id) || (r.to === roadStart && r.from === hit.id));
-        if (exists) { toast('Esos pueblos ya están conectados.'); roadStart = null; renderToolOptions(); requestDraw(); return; }
+        if (exists) { toast('Ya están conectados por un camino.'); roadStart = null; renderToolOptions(); requestDraw(); return; }
         const road = W.createRoad(world, roadStart, hit.id);
-        if (autoZones) W.populateRoad(world, road);
-        W.recomputeLevelsSoft(world, W.findTown(world, hit.id), [road]);
+        const townTarget = W.findTown(world, hit.id);
+        if (townTarget) {
+          if (autoZones) W.populateRoad(world, road);
+          W.recomputeLevelsSoft(world, townTarget, [road]);
+        }
         roadStart = null;
         selectedId = road.id; activeTab = 'sel';
         renderToolOptions();
@@ -1149,9 +1155,9 @@
           <label>Nivel: <input type="number" id="to-dlvl" value="15" min="1" max="99" style="width:55px"></label>
         </div>`;
     } else if (tool === 'road') {
-      const a = roadStart && W.findTown(world, roadStart);
-      html = `<div class="row"><b>${a ? 'Ahora toca el pueblo destino (desde «' + esc(a.name) + '»)' : 'Toca el primer pueblo'}</b></div>
-        <div class="row"><label><input type="checkbox" id="to-zones" ${autoZones ? 'checked' : ''}> Crear zonas de caza en el camino</label></div>`;
+      const a = roadStart && (W.findTown(world, roadStart) || W.findZone(world, roadStart));
+      html = `<div class="row"><b>${a ? 'Ahora toca el pueblo o zona destino (desde «' + esc(a.name) + '»)' : 'Toca el primer pueblo o zona de caza'}</b></div>
+        <div class="row"><label><input type="checkbox" id="to-zones" ${autoZones ? 'checked' : ''}> Crear zonas de caza intermedias</label></div>`;
     } else if (tool === 'delete') {
       html = `<div class="row"><b>Toca lo que quieras eliminar.</b> <span class="muted">(↶ deshace)</span></div>`;
     }
@@ -1404,10 +1410,15 @@
               <input type="range" min="8" max="24" step="1" data-zf="alturaMuro" value="${r.alturaMuro || 14}">
             </div>
           </div>
-          <div style="margin-top:8px;display:flex;gap:8px">
-            <button data-act="lab-roll" style="flex:1;background:#4338ca;color:#f3e8ff;font-size:11px;padding:6px;font-weight:600;border:none;border-radius:4px;cursor:pointer">🎲 Generar Nuevo Trazado</button>
-            <button data-act="open-maze" style="flex:1.4;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:11.5px;padding:6px 10px;font-weight:700;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(99,102,241,0.4)">🎨 Diseñar Laberinto 3D</button>
+          <div style="margin-top:6px;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between">
+            <span>Orientación: <b>${r.rotacion || 0}°</b></span>
+            <span>Entradas: <b>${(r.entradas && r.entradas.length ? r.entradas : [r.entradaDir || 'sur']).join(', ')}</b></span>
           </div>
+          <div style="margin-top:8px;display:flex;gap:6px">
+            <button data-act="connect-town-road" style="flex:1.2;background:#0d9488;color:#fff;font-size:11px;padding:6px;font-weight:600;border:none;border-radius:4px;cursor:pointer">🛤 Camino a Pueblo Cercano</button>
+            <button data-act="lab-roll" style="flex:0.8;background:#4338ca;color:#f3e8ff;font-size:11px;padding:6px;font-weight:600;border:none;border-radius:4px;cursor:pointer">🎲 Regenerar</button>
+          </div>
+          <button data-act="open-maze" style="margin-top:6px;width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:11.5px;padding:7px 10px;font-weight:700;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(99,102,241,0.4)">🎨 Diseñar Laberinto 3D</button>
         ` : `
           <button data-act="open-maze" style="margin-top:8px;width:100%;background:#312e81;color:#c7d2fe;font-size:11.5px;padding:7px;font-weight:600;border:1px solid #4f46e5;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🎨 Abrir Creador de Laberintos 3D</button>
         `}
@@ -1846,6 +1857,22 @@
       case 'open-town': openTownEditor(ent); break;
       case 'open-dungeon': openDungeonEditor(ent); break;
       case 'open-maze': openMazeEditor(ent); break;
+      case 'connect-town-road': {
+        if (!world.towns.length) { toast('No hay pueblos en el mundo para conectar.'); break; }
+        let bestTown = world.towns[0], bestD = Infinity;
+        world.towns.forEach(t => {
+          const d = Math.hypot(t.x - ent.x, t.y - ent.y);
+          if (d < bestD) { bestD = d; bestTown = t; }
+        });
+        const existing = world.roads.find(r => (r.from === bestTown.id && r.to === ent.id) || (r.from === ent.id && r.to === bestTown.id));
+        if (existing) { toast('Ya existe un camino que une esta zona con «' + bestTown.name + '».'); break; }
+        const road = W.createRoad(world, bestTown.id, ent.id);
+        delete ent._cacheLaberinto;
+        commit('Camino creado desde «' + bestTown.name + '» hasta «' + ent.name + '» (' + road.length + ' m)');
+        requestDraw();
+        renderPanel();
+        break;
+      }
       case 'populate': {
         const made = W.populateRoad(world, ent, 2);
         made.forEach(z => W.autoLevelZone(world, z));
@@ -1969,6 +1996,18 @@
         delete z._cacheLaberinto;
         delete z._cacheLaberintoKey;
       }
+      if (data.conectarCaminoPueblo && world.towns.length) {
+        let bestTown = world.towns[0], bestD = Infinity;
+        world.towns.forEach(t => {
+          const d = Math.hypot(t.x - z.x, t.y - z.y);
+          if (d < bestD) { bestD = d; bestTown = t; }
+        });
+        const existing = world.roads.find(r => (r.from === bestTown.id && r.to === z.id) || (r.from === z.id && r.to === bestTown.id));
+        if (!existing) {
+          W.createRoad(world, bestTown.id, z.id);
+        }
+      }
+      world.roads.filter(r => r.from === z.id || r.to === z.id).forEach(r => W.buildRoadPoints(world, r));
       selectedId = z.id; activeTab = 'sel';
       commit('Laberinto y zona «' + z.name + '» actualizados');
       centerOn(z.x, z.y);

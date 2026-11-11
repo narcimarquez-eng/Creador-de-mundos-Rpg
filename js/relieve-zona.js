@@ -141,8 +141,17 @@
     const mid = (N - 1) / 2;
     const radCells = mid - 0.4;
     const bucleChance = typeof opciones.bucleChance === 'number' ? opciones.bucleChance : 0;
-    const entradaDir = opciones.entradaDir || 'sur';
     const murosManuales = opciones.murosManuales || null;
+
+    // Soporte para múltiples entradas o entrada individual
+    let listaDirs = [];
+    if (Array.isArray(opciones.entradas) && opciones.entradas.length) {
+      listaDirs = [...opciones.entradas];
+    } else if (opciones.entradaDir) {
+      listaDirs = [opciones.entradaDir];
+    } else {
+      listaDirs = ['sur'];
+    }
 
     let s = (seed || 12345) >>> 0;
     function rnd() {
@@ -227,42 +236,51 @@
     grid[m][m - 1] = 0;
     grid[m][m + 1] = 0;
 
-    // 5. Entrada del laberinto según dirección configurada
-    let entrada = { gx: m, gy: N - 1 };
-    if (entradaDir === 'norte') {
-      let ey = 0;
-      while (ey < m - 1 && (grid[ey][m] === 2 || grid[ey][m] === 1)) {
-        grid[ey][m] = 0;
-        if (grid[ey + 1] && grid[ey + 1][m] === 0) break;
-        ey++;
+    // 5. Entradas del laberinto según direcciones configuradas
+    const entradas = [];
+    listaDirs.forEach(dir => {
+      let ent = null;
+      if (dir === 'norte') {
+        let ey = 0;
+        while (ey < m - 1 && (grid[ey][m] === 2 || grid[ey][m] === 1)) {
+          grid[ey][m] = 0;
+          if (grid[ey + 1] && grid[ey + 1][m] === 0) break;
+          ey++;
+        }
+        ent = { dir: 'norte', gx: m, gy: 0 };
+      } else if (dir === 'este') {
+        let ex = N - 1;
+        while (ex > m + 1 && (grid[m][ex] === 2 || grid[m][ex] === 1)) {
+          grid[m][ex] = 0;
+          if (grid[m][ex - 1] === 0) break;
+          ex--;
+        }
+        ent = { dir: 'este', gx: N - 1, gy: m };
+      } else if (dir === 'oeste') {
+        let ex = 0;
+        while (ex < m - 1 && (grid[m][ex] === 2 || grid[m][ex] === 1)) {
+          grid[m][ex] = 0;
+          if (grid[m][ex + 1] === 0) break;
+          ex++;
+        }
+        ent = { dir: 'oeste', gx: 0, gy: m };
+      } else {
+        // 'sur' por defecto
+        let ey = N - 1;
+        while (ey > m + 1 && (grid[ey][m] === 2 || grid[ey][m] === 1)) {
+          grid[ey][m] = 0;
+          if (grid[ey - 1] && grid[ey - 1][m] === 0) break;
+          ey--;
+        }
+        ent = { dir: 'sur', gx: m, gy: N - 1 };
       }
-      entrada = { gx: m, gy: 0 };
-    } else if (entradaDir === 'este') {
-      let ex = N - 1;
-      while (ex > m + 1 && (grid[m][ex] === 2 || grid[m][ex] === 1)) {
-        grid[m][ex] = 0;
-        if (grid[m][ex - 1] === 0) break;
-        ex--;
-      }
-      entrada = { gx: N - 1, gy: m };
-    } else if (entradaDir === 'oeste') {
-      let ex = 0;
-      while (ex < m - 1 && (grid[m][ex] === 2 || grid[m][ex] === 1)) {
-        grid[m][ex] = 0;
-        if (grid[m][ex + 1] === 0) break;
-        ex++;
-      }
-      entrada = { gx: 0, gy: m };
-    } else {
-      // Sur por defecto
-      let entradaY = N - 1;
-      while (entradaY > m + 1 && (grid[entradaY][m] === 2 || grid[entradaY][m] === 1)) {
-        grid[entradaY][m] = 0;
-        if (grid[entradaY - 1] && grid[entradaY - 1][m] === 0) break;
-        entradaY--;
-      }
-      entrada = { gx: m, gy: N - 1 };
+      if (ent) entradas.push(ent);
+    });
+
+    if (entradas.length === 0) {
+      entradas.push({ dir: 'sur', gx: m, gy: N - 1 });
     }
+    const entradaPrincipal = entradas[0];
 
     // 6. Aplicar modificaciones manuales si existen (desde el editor interactivo)
     if (murosManuales && typeof murosManuales === 'object') {
@@ -282,50 +300,54 @@
           grid[m + dy][m + dx] = 0;
         }
       }
-      grid[entrada.gy][entrada.gx] = 0;
+      entradas.forEach(ent => {
+        grid[ent.gy][ent.gx] = 0;
+      });
     }
 
-    // 7. Verificación de camino continuo mediante BFS
-    const visitados = Array.from({ length: N }, () => Array(N).fill(false));
-    const queue = [[entrada.gx, entrada.gy]];
-    visitados[entrada.gy][entrada.gx] = true;
-    let llegaAlCentro = false;
-    const D1 = [
-      [0, -1],
-      [0, 1],
-      [-1, 0],
-      [1, 0]
-    ];
-    while (queue.length > 0) {
-      const [qx, qy] = queue.shift();
-      if (Math.abs(qx - m) <= 1 && Math.abs(qy - m) <= 1) {
-        llegaAlCentro = true;
-        break;
-      }
-      for (const [dx, dy] of D1) {
-        const nx = qx + dx,
-          ny = qy + dy;
-        if (nx >= 0 && nx < N && ny >= 0 && ny < N && !visitados[ny][nx] && grid[ny][nx] === 0) {
-          visitados[ny][nx] = true;
-          queue.push([nx, ny]);
+    // 7. Verificación de camino continuo desde cada entrada hasta el centro mediante BFS
+    entradas.forEach(ent => {
+      const visitados = Array.from({ length: N }, () => Array(N).fill(false));
+      const queue = [[ent.gx, ent.gy]];
+      visitados[ent.gy][ent.gx] = true;
+      let llegaAlCentro = false;
+      const D1 = [
+        [0, -1],
+        [0, 1],
+        [-1, 0],
+        [1, 0]
+      ];
+      while (queue.length > 0) {
+        const [qx, qy] = queue.shift();
+        if (Math.abs(qx - m) <= 1 && Math.abs(qy - m) <= 1) {
+          llegaAlCentro = true;
+          break;
+        }
+        for (const [dx, dy] of D1) {
+          const nx = qx + dx,
+            ny = qy + dy;
+          if (nx >= 0 && nx < N && ny >= 0 && ny < N && !visitados[ny][nx] && grid[ny][nx] === 0) {
+            visitados[ny][nx] = true;
+            queue.push([nx, ny]);
+          }
         }
       }
-    }
 
-    // Si por alguna razón el DFS no abrió la entrada al centro, forzar apertura directa
-    if (!llegaAlCentro) {
-      if (entradaDir === 'sur') {
-        for (let y = N - 1; y >= m; y--) grid[y][m] = 0;
-      } else if (entradaDir === 'norte') {
-        for (let y = 0; y <= m; y++) grid[y][m] = 0;
-      } else if (entradaDir === 'este') {
-        for (let x = N - 1; x >= m; x--) grid[m][x] = 0;
-      } else {
-        for (let x = 0; x <= m; x++) grid[m][x] = 0;
+      // Si no llega al centro, forzar apertura directa desde esa entrada
+      if (!llegaAlCentro) {
+        if (ent.dir === 'sur') {
+          for (let y = N - 1; y >= m; y--) grid[y][m] = 0;
+        } else if (ent.dir === 'norte') {
+          for (let y = 0; y <= m; y++) grid[y][m] = 0;
+        } else if (ent.dir === 'este') {
+          for (let x = N - 1; x >= m; x--) grid[m][x] = 0;
+        } else {
+          for (let x = 0; x <= m; x++) grid[m][x] = 0;
+        }
       }
-    }
+    });
 
-    return { N, grid, entrada, centro: { gx: m, gy: m } };
+    return { N, grid, entradas, entrada: entradaPrincipal, centro: { gx: m, gy: m } };
   }
 
   /**
@@ -350,16 +372,19 @@
     const estilo = r.estilo || r.tipo || 'roca_canion';
     const culminacion = r.culminacion || 'oasis';
     const bucleChance = typeof r.bucleChance === 'number' ? r.bucleChance : 0.08;
-    const entradaDir = r.entradaDir || 'sur';
+    const rotacion = typeof r.rotacion === 'number' ? r.rotacion : 0;
+    const entradasCfg = Array.isArray(r.entradas) && r.entradas.length ? r.entradas : (r.entradaDir ? [r.entradaDir] : ['sur']);
+    const entradaDir = entradasCfg[0] || 'sur';
     const manualesKey = r.murosManuales ? JSON.stringify(r.murosManuales) : '';
 
-    const cacheKey = `${zona.id}_${zona.x}_${zona.y}_${R}_${tamGrid}_${seed}_${alturaMuro}_${estilo}_${culminacion}_${bucleChance}_${entradaDir}_${manualesKey}`;
+    const cacheKey = `${zona.id}_${zona.x}_${zona.y}_${R}_${tamGrid}_${seed}_${alturaMuro}_${estilo}_${culminacion}_${bucleChance}_${rotacion}_${entradasCfg.join(',')}_${manualesKey}`;
     if (zona._cacheLaberinto && zona._cacheLaberintoKey === cacheKey) {
       return zona._cacheLaberinto;
     }
 
-    const { N, grid, entrada, centro } = generarLaberinto(tamGrid, seed, {
+    const { N, grid, entradas, entrada, centro } = generarLaberinto(tamGrid, seed, {
       bucleChance,
+      entradas: entradasCfg,
       entradaDir,
       murosManuales: r.murosManuales
     });
@@ -368,34 +393,61 @@
     const cellSize = (2 * R) / N;
     const halfN = (N - 1) / 2;
 
-    // Convertidor de celda (gx, gy) a mundo (wx, wz)
-    const celdaAMundo = (gx, gy) => ({
-      wx: zx + (gx - halfN) * cellSize,
-      wz: zz + (gy - halfN) * cellSize
-    });
+    const rotRad = (rotacion * Math.PI) / 180;
+    const cosR = Math.cos(rotRad);
+    const sinR = Math.sin(rotRad);
+
+    // Convertidor de celda (gx, gy) a mundo (wx, wz) considerando rotación
+    const celdaAMundo = (gx, gy) => {
+      const lx = (gx - halfN) * cellSize;
+      const lz = (gy - halfN) * cellSize;
+      const rx = lx * cosR - lz * sinR;
+      const rz = lx * sinR + lz * cosR;
+      return {
+        wx: zx + rx,
+        wz: zz + rz
+      };
+    };
+
+    // Convertidor inverso de mundo (wx, wz) a celda (gx, gy)
+    const mundoACelda = (wx, wz) => {
+      const dx = wx - zx;
+      const dz = wz - zz;
+      const lx = dx * cosR + dz * sinR;
+      const lz = -dx * sinR + dz * cosR;
+      return {
+        gx: Math.round(lx / cellSize + halfN),
+        gy: Math.round(lz / cellSize + halfN),
+        lx,
+        lz
+      };
+    };
 
     // Cajas de colisión para los muros y listado de celdas de pasillo/camino
     const colliders = [];
     const muros = [];
     const celdasCamino = [];
+    const halfBase = cellSize * 0.49;
+    const rotBoxHalf = halfBase * (Math.abs(cosR) + Math.abs(sinR));
+
     for (let gy = 0; gy < N; gy++) {
       for (let gx = 0; gx < N; gx++) {
         const { wx, wz } = celdaAMundo(gx, gy);
         if (grid[gy][gx] === 1) {
-          const half = cellSize * 0.49;
           const box = {
             type: 'box',
-            minX: wx - half,
-            maxX: wx + half,
-            minZ: wz - half,
-            maxZ: wz + half,
+            minX: wx - rotBoxHalf,
+            maxX: wx + rotBoxHalf,
+            minZ: wz - rotBoxHalf,
+            maxZ: wz + rotBoxHalf,
             gx,
             gy,
             wx,
-            wz
+            wz,
+            half: halfBase
           };
           colliders.push(box);
-          muros.push({ gx, gy, wx, wz, half });
+          muros.push({ gx, gy, wx, wz, half: halfBase });
         } else if (grid[gy][gx] === 0) {
           celdasCamino.push({ gx, gy, wx, wz });
         }
@@ -404,6 +456,11 @@
 
     const posEntrada = celdaAMundo(entrada.gx, entrada.gy);
     const posCentro = celdaAMundo(centro.gx, centro.gy);
+
+    const labEntradas = entradas.map(ent => {
+      const p = celdaAMundo(ent.gx, ent.gy);
+      return { dir: ent.dir, gx: ent.gx, gy: ent.gy, wx: p.wx, wz: p.wz };
+    });
 
     const labDatos = {
       zonaId: zona.id,
@@ -419,16 +476,21 @@
       estilo,
       culminacion,
       seed,
+      rotacion,
+      rotRad,
+      cosR,
+      sinR,
       colliders,
       muros,
       celdasCamino,
-      entrada: { gx: entrada.gx, gy: entrada.gy, wx: posEntrada.wx, wz: posEntrada.wz },
+      entradas: labEntradas,
+      entrada: labEntradas[0] || { gx: entrada.gx, gy: entrada.gy, wx: posEntrada.wx, wz: posEntrada.wz },
       centro: { gx: centro.gx, gy: centro.gy, wx: posCentro.wx, wz: posCentro.wz, radio: cellSize * 1.5 },
       celdaAMundo,
+      mundoACelda,
       obtenerColisionadores: (x, z) => {
-        // Índice espacial en O(1) comprobando celdas contiguas en 3x3
-        const gx = Math.round((x - zx) / cellSize + halfN);
-        const gy = Math.round((z - zz) / cellSize + halfN);
+        // Consulta O(1) rotada
+        const { gx, gy } = mundoACelda(x, z);
         const out = [];
         for (let dy = -1; dy <= 1; dy++) {
           const ny = gy + dy;
@@ -438,13 +500,12 @@
             if (nx < 0 || nx >= N) continue;
             if (grid[ny][nx] === 1) {
               const { wx, wz } = celdaAMundo(nx, ny);
-              const half = cellSize * 0.49;
               out.push({
                 type: 'box',
-                minX: wx - half,
-                maxX: wx + half,
-                minZ: wz - half,
-                maxZ: wz + half
+                minX: wx - rotBoxHalf,
+                maxX: wx + rotBoxHalf,
+                minZ: wz - rotBoxHalf,
+                maxZ: wz + rotBoxHalf
               });
             }
           }
@@ -466,8 +527,10 @@
     if (!lab) return true;
     const d = Math.hypot(x - lab.zx, z - lab.zz);
     if (d > lab.R) return true;
-    const gx = Math.round((x - lab.zx) / lab.cellSize + lab.halfN);
-    const gy = Math.round((z - lab.zz) / lab.cellSize + lab.halfN);
+    const { gx, gy } = lab.mundoACelda ? lab.mundoACelda(x, z) : {
+      gx: Math.round((x - lab.zx) / lab.cellSize + lab.halfN),
+      gy: Math.round((z - lab.zz) / lab.cellSize + lab.halfN)
+    };
     if (gx < 0 || gx >= lab.N || gy < 0 || gy >= lab.N) return true;
     return lab.grid[gy][gx] === 0;
   }
@@ -508,9 +571,11 @@
       const d = Math.hypot(dx, dz);
       if (d > R + 6) continue;
 
-      const { N, grid, cellSize, halfN, zx, zz, alturaMuro, culminacion } = lab;
-      const u = (x - zx) / cellSize + halfN;
-      const v = (z - zz) / cellSize + halfN;
+      const { N, grid, cellSize, halfN, zx, zz, alturaMuro, culminacion, cosR, sinR } = lab;
+      const lx = (cosR !== undefined) ? (dx * cosR + dz * sinR) : dx;
+      const lz = (sinR !== undefined) ? (-dx * sinR + dz * cosR) : dz;
+      const u = lx / cellSize + halfN;
+      const v = lz / cellSize + halfN;
       const i = Math.floor(u);
       const j = Math.floor(v);
       const fx = Math.max(0, Math.min(1, u - i));
@@ -551,11 +616,17 @@
         dh = 0.5 - hBase;
       }
 
-      // En la entrada sur: rampa suave que conecta el terreno exterior con el fondo del desfiladero
-      const dEntrada = Math.hypot(x - lab.entrada.wx, z - lab.entrada.wz);
-      if (dEntrada < lab.cellSize * 1.3 && d >= R - 8) {
-        const tE = smooth(R - 8, R + 2, d);
-        dh = dh * (1 - tE);
+      // En las entradas configuradas: rampa suave que conecta el terreno exterior con el fondo del desfiladero
+      const listaEntradas = lab.entradas && lab.entradas.length ? lab.entradas : [lab.entrada];
+      for (let ei = 0; ei < listaEntradas.length; ei++) {
+        const entObj = listaEntradas[ei];
+        if (!entObj) continue;
+        const dEntrada = Math.hypot(x - entObj.wx, z - entObj.wz);
+        if (dEntrada < lab.cellSize * 1.3 && d >= R - 8) {
+          const tE = smooth(R - 8, R + 2, d);
+          dh = dh * (1 - tE);
+          break;
+        }
       }
 
       // En el borde exterior de la zona: mezcla suave hacia el terreno base natural
@@ -573,8 +644,10 @@
    */
   function splatZona(lab, x, z, steep, h, splatBase) {
     if (!lab) return splatBase;
-    const gx = Math.round((x - lab.zx) / lab.cellSize + lab.halfN);
-    const gy = Math.round((z - lab.zz) / lab.cellSize + lab.halfN);
+    const { gx, gy } = lab.mundoACelda ? lab.mundoACelda(x, z) : {
+      gx: Math.round((x - lab.zx) / lab.cellSize + lab.halfN),
+      gy: Math.round((z - lab.zz) / lab.cellSize + lab.halfN)
+    };
     if (gx < 0 || gx >= lab.N || gy < 0 || gy >= lab.N) return splatBase;
     const valorCelda = lab.grid[gy][gx];
     if (valorCelda === 2) return splatBase;

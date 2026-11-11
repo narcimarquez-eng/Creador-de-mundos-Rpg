@@ -15,7 +15,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #0b0f19;
+      background-color: #7dd3fc;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #f8fafc;
       user-select: none;
@@ -35,7 +35,7 @@
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -84,7 +84,7 @@
       border: 1px solid rgba(99, 102, 241, 0.35);
       border-radius: 20px;
       padding: 5px 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.35);
     }
     .cam-btn {
       background: transparent;
@@ -106,7 +106,7 @@
       position: absolute;
       top: 54px;
       left: 12px;
-      width: 370px;
+      width: 375px;
       max-width: calc(100vw - 24px);
       max-height: calc(100vh - 76px);
       overflow-y: auto;
@@ -115,7 +115,7 @@
       border: 1px solid rgba(99, 102, 241, 0.4);
       border-radius: 10px;
       padding: 14px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
       z-index: 28;
       transition: transform 0.25s ease, opacity 0.2s ease;
     }
@@ -184,6 +184,36 @@
       gap: 8px;
     }
 
+    .btn-group {
+      display: flex;
+      gap: 5px;
+    }
+    .ent-btn, .light-btn {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 6px;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .ent-btn:hover, .light-btn:hover { border-color: #818cf8; color: #fff; }
+    .ent-btn.active {
+      background: #166534;
+      border-color: #22c55e;
+      color: #f0fdf4;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+    }
+    .light-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+
     .style-card {
       display: flex;
       align-items: center;
@@ -213,6 +243,7 @@
       align-items: center;
       gap: 6px;
       margin-top: 6px;
+      position: relative;
     }
     #mazeCanvas {
       background: #020617;
@@ -224,7 +255,7 @@
     }
     .canvas-legend {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       font-size: 10px;
       color: #94a3b8;
     }
@@ -246,8 +277,8 @@
       position: absolute;
       top: 14px;
       left: 170px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       color: #e2e8f0;
       border-radius: 20px;
       padding: 6px 14px;
@@ -281,12 +312,26 @@
       <span id="zone-badge" style="font-size:10px;background:#312e81;color:#a5b4fc;padding:2px 6px;border-radius:4px;font-weight:600">Zona</span>
     </div>
 
-    <!-- 1. Dimensiones -->
+    <!-- 1. Iluminación y Visibilidad -->
     <div class="panel-sec">
-      <div class="sec-title"><span>📏 Dimensiones y Escala</span></div>
+      <div class="sec-title"><span>☀️ Iluminación & Claridad</span></div>
+      <div class="btn-group" id="group-light">
+        <button type="button" class="light-btn active" data-light="dia">☀️ Día Claro</button>
+        <button type="button" class="light-btn" data-light="tarde">🌅 Atardecer</button>
+        <button type="button" class="light-btn" data-light="noche">🌙 Místico</button>
+      </div>
+    </div>
+
+    <!-- 2. Dimensiones y Orientación -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>📏 Dimensiones y Orientación</span></div>
       <div class="form-group">
         <div class="form-label"><span>Radio de la Zona:</span><span class="val" id="lbl-radius">120 m</span></div>
         <input type="range" id="sl-radius" min="60" max="450" step="10" value="120">
+      </div>
+      <div class="form-group">
+        <div class="form-label"><span>Rotación del Laberinto:</span><span class="val" id="lbl-rot">0°</span></div>
+        <input type="range" id="sl-rot" min="0" max="360" step="5" value="0">
       </div>
       <div class="grid2">
         <div class="form-group">
@@ -303,7 +348,7 @@
         </div>
         <div class="form-group">
           <div class="form-label"><span>Pasillo:</span><span class="val" id="lbl-cellsize">~18 m</span></div>
-          <div style="font-size:10.5px;color:#94a3b8;margin-top:8px">Escala óptima: 12-20 m</div>
+          <div style="font-size:10.5px;color:#94a3b8;margin-top:8px">Escala humana: 12-20 m</div>
         </div>
       </div>
       <div class="grid2">
@@ -318,7 +363,43 @@
       </div>
     </div>
 
-    <!-- 2. Estilos & Texturas -->
+    <!-- 3. Entradas y Trazado -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>🚪 Entradas y Trazado</span></div>
+      <div class="form-group">
+        <div class="form-label"><span>Puntos de Entrada al Laberinto:</span><span class="val" id="lbl-entrances">Sur</span></div>
+        <div class="btn-group" id="group-entrances">
+          <button type="button" class="ent-btn active" data-dir="sur">Sur</button>
+          <button type="button" class="ent-btn" data-dir="norte">Norte</button>
+          <button type="button" class="ent-btn" data-dir="este">Este</button>
+          <button type="button" class="ent-btn" data-dir="oeste">Oeste</button>
+        </div>
+        <div style="font-size:10.5px;color:#94a3b8;margin-top:4px">Puedes activar varias entradas simultáneamente o hacer clic en el borde del lienzo 2D.</div>
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <div class="form-group">
+          <div class="form-label"><span>Semilla:</span></div>
+          <input type="number" id="inp-seed" value="12345">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Bucles y atajos:</span><span class="val" id="lbl-loops">10%</span></div>
+          <input type="range" id="sl-loops" min="0" max="0.4" step="0.05" value="0.10">
+        </div>
+      </div>
+      <button id="btn-roll" style="width:100%;margin-top:6px;background:#4338ca;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🎲 Generar Nuevo Trazado</button>
+    </div>
+
+    <!-- 4. Caminos y Conexión con Pueblos -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>🛤 Caminos y Conexión con Pueblos</span></div>
+      <div style="font-size:11px;color:#cbd5e1;line-height:1.4">
+        Conecta las entradas del laberinto directamente a la red de caminos del mundo hacia los pueblos más cercanos.
+      </div>
+      <button id="btn-road-connect" style="width:100%;margin-top:8px;background:#0d9488;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🛤 Conectar Camino al Pueblo más Cercano</button>
+      <div id="road-status-msg" style="font-size:10.5px;color:#5eead4;margin-top:4px;display:none"></div>
+    </div>
+
+    <!-- 5. Estilos & Texturas -->
     <div class="panel-sec">
       <div class="sec-title"><span>🎨 Estilo Arquitectónico & Textura</span></div>
       <div id="styles-list"></div>
@@ -334,7 +415,7 @@
       </div>
     </div>
 
-    <!-- 3. Meta Central -->
+    <!-- 6. Meta Central -->
     <div class="panel-sec">
       <div class="sec-title"><span>⭐ Culminación / Meta Central</span></div>
       <div class="form-group">
@@ -343,36 +424,11 @@
       <div id="culm-desc" class="badge-info"></div>
     </div>
 
-    <!-- 4. Trazado & Generador -->
-    <div class="panel-sec">
-      <div class="sec-title"><span>🎲 Trazado & Algoritmo</span></div>
-      <div class="grid2">
-        <div class="form-group">
-          <div class="form-label"><span>Semilla:</span></div>
-          <input type="number" id="inp-seed" value="12345">
-        </div>
-        <div class="form-group">
-          <div class="form-label"><span>Entrada:</span></div>
-          <select id="sel-entrance">
-            <option value="sur" selected>Sur (Predeterminada)</option>
-            <option value="norte">Norte</option>
-            <option value="este">Este</option>
-            <option value="oeste">Oeste</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <div class="form-label"><span>Bucles y atajos:</span><span class="val" id="lbl-loops">10%</span></div>
-        <input type="range" id="sl-loops" min="0" max="0.4" step="0.05" value="0.10">
-      </div>
-      <button id="btn-roll" style="width:100%;margin-top:6px;background:#4338ca;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🎲 Generar Nuevo Trazado</button>
-    </div>
-
-    <!-- 5. Mini-Editor 2D Interactivo -->
+    <!-- 7. Mini-Editor 2D Interactivo -->
     <div class="panel-sec">
       <div class="sec-title">
         <span>✏️ Editor 2D en Vivo</span>
-        <span style="font-size:10px;color:#a5b4fc;font-weight:normal">Haz clic para conmutar</span>
+        <span style="font-size:10px;color:#a5b4fc;font-weight:normal">Clic para conmutar</span>
       </div>
       <div id="grid-editor-container">
         <canvas id="mazeCanvas" width="220" height="220"></canvas>
@@ -398,13 +454,16 @@
     // Estado del creador
     let zoneData = null;
     let scene, camera, renderer, controls;
-    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarker = null, playerDummy = null;
+    let hemiLight, dirLight, fillLight;
+    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarkersGroup = null, playerDummy = null;
     let currentMazeData = null;
     let manualOverrides = {};
+    let shouldAutoConnectRoad = false;
 
     // Parámetros activos
     let params = {
       radius: 120,
+      rotacion: 0,
       tamGrid: 11,
       alturaMuro: 14,
       profundidad: 3.5,
@@ -412,12 +471,13 @@
       culminacion: 'oasis',
       seed: 12345,
       bucleChance: 0.10,
-      entradaDir: 'sur',
-      wallColor: '#78716c',
-      groundColor: '#57534e'
+      entradas: ['sur'],
+      luzModo: 'dia',
+      wallColor: '#847f7a',
+      groundColor: '#605c56'
     };
 
-    // Texturas de Canvas procedimentales para evitar dependencias de red
+    // Texturas de Canvas procedimentales con buena luminosidad y detalle
     function createProceduralNoiseTexture(colorBase, roughness, isWall) {
       const cv = document.createElement('canvas');
       cv.width = 256; cv.height = 256;
@@ -431,9 +491,9 @@
       for (let y = 0; y < 256; y++) {
         for (let x = 0; x < 256; x++) {
           const idx = (y * 256 + x) * 4;
-          const n = (Math.sin(x * 0.12) * Math.cos(y * 0.12) + (Math.random() - 0.5) * 0.4);
-          const block = isWall ? (Math.sin(y * 0.08) > 0.85 ? -0.2 : 0) : 0;
-          const factor = 1.0 + n * 0.22 + block;
+          const n = (Math.sin(x * 0.12) * Math.cos(y * 0.12) + (Math.random() - 0.5) * 0.35);
+          const block = isWall ? (Math.sin(y * 0.08) > 0.88 ? -0.15 : 0) : 0;
+          const factor = 1.05 + n * 0.20 + block;
           d[idx] = Math.max(0, Math.min(255, col.r * 255 * factor));
           d[idx + 1] = Math.max(0, Math.min(255, col.g * 255 * factor));
           d[idx + 2] = Math.max(0, Math.min(255, col.b * 255 * factor));
@@ -446,20 +506,22 @@
       return tex;
     }
 
-    // Inicialización de Three.js
+    // Inicialización de Three.js con iluminación clara y vibrante
     function init3D() {
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0f172a);
-      scene.fog = new THREE.FogExp2(0x0f172a, 0.0035);
+      scene.background = new THREE.Color('#7dd3fc');
+      scene.fog = new THREE.Fog('#bae6fd', 220, 750);
 
       camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.5, 2000);
       camera.position.set(0, 160, 220);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.NeutralToneMapping;
+      renderer.toneMappingExposure = 1.15;
       document.body.appendChild(renderer.domElement);
 
       controls = new OrbitControls(camera, renderer.domElement);
@@ -470,17 +532,18 @@
       controls.maxDistance = 650;
       controls.target.set(0, 0, 0);
 
-      // Iluminación
-      const hemi = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 0.75);
-      scene.add(hemi);
+      // Iluminación hemisférica rica
+      hemiLight = new THREE.HemisphereLight('#f0f9ff', '#475569', 0.95);
+      scene.add(hemiLight);
 
-      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
-      dirLight.position.set(120, 240, 150);
+      // Luz direccional solar principal
+      dirLight = new THREE.DirectionalLight('#fffbeb', 1.5);
+      dirLight.position.set(130, 240, 160);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 2048;
       dirLight.shadow.mapSize.height = 2048;
       dirLight.shadow.camera.near = 10;
-      dirLight.shadow.camera.far = 600;
+      dirLight.shadow.camera.far = 650;
       const dRange = 250;
       dirLight.shadow.camera.left = -dRange;
       dirLight.shadow.camera.right = dRange;
@@ -488,11 +551,45 @@
       dirLight.shadow.camera.bottom = -dRange;
       scene.add(dirLight);
 
-      // Maniquí / Avatar del héroe para verificar escala humana exacta
+      // Luz de relleno para eliminar sombras negras
+      fillLight = new THREE.DirectionalLight('#bae6fd', 0.70);
+      fillLight.position.set(-130, 180, -140);
+      scene.add(fillLight);
+
+      // Avatar del héroe a escala humana 1.80m
       playerDummy = createPlayerDummy();
       scene.add(playerDummy);
 
       window.addEventListener('resize', onResize);
+    }
+
+    function applyLightingPreset(mode) {
+      params.luzModo = mode;
+      document.querySelectorAll('.light-btn').forEach(b => b.classList.toggle('active', b.dataset.light === mode));
+
+      if (mode === 'tarde') {
+        scene.background.set('#fdba74');
+        scene.fog.color.set('#fed7aa');
+        scene.fog.near = 180; scene.fog.far = 600;
+        hemiLight.color.set('#ffedd5'); hemiLight.groundColor.set('#334155'); hemiLight.intensity = 0.85;
+        dirLight.color.set('#f97316'); dirLight.intensity = 1.35; dirLight.position.set(140, 120, 80);
+        fillLight.color.set('#c084fc'); fillLight.intensity = 0.55;
+      } else if (mode === 'noche') {
+        scene.background.set('#0f172a');
+        scene.fog.color.set('#1e293b');
+        scene.fog.near = 140; scene.fog.far = 500;
+        hemiLight.color.set('#818cf8'); hemiLight.groundColor.set('#090d16'); hemiLight.intensity = 0.55;
+        dirLight.color.set('#60a5fa'); dirLight.intensity = 0.85; dirLight.position.set(100, 200, 100);
+        fillLight.color.set('#a855f7'); fillLight.intensity = 0.45;
+      } else {
+        // 'dia' por defecto (soleado y luminoso)
+        scene.background.set('#7dd3fc');
+        scene.fog.color.set('#bae6fd');
+        scene.fog.near = 220; scene.fog.far = 750;
+        hemiLight.color.set('#f0f9ff'); hemiLight.groundColor.set('#475569'); hemiLight.intensity = 0.95;
+        dirLight.color.set('#fffbeb'); dirLight.intensity = 1.5; dirLight.position.set(130, 240, 160);
+        fillLight.color.set('#bae6fd'); fillLight.intensity = 0.70;
+      }
     }
 
     function onResize() {
@@ -508,7 +605,7 @@
       const matArmor = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5, roughness: 0.4 });
       const matCape = new THREE.MeshLambertMaterial({ color: 0xef4444 });
 
-      // Cuerpo
+      // Torso
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.8, 8), matArmor);
       torso.position.y = 1.1;
       torso.castShadow = true;
@@ -543,6 +640,47 @@
       return g;
     }
 
+    function createEntranceArch(ent) {
+      const g = new THREE.Group();
+      const matPillar = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
+      const matLight = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+
+      // Dos columnas a los lados de la entrada
+      const colG = new THREE.CylinderGeometry(0.5, 0.6, 5.5, 8);
+      const p1 = new THREE.Mesh(colG, matPillar);
+      p1.position.set(-3.5, 2.75, 0);
+      p1.castShadow = true;
+      g.add(p1);
+
+      const p2 = new THREE.Mesh(colG, matPillar);
+      p2.position.set(3.5, 2.75, 0);
+      p2.castShadow = true;
+      g.add(p2);
+
+      // Dintel superior
+      const archG = new THREE.BoxGeometry(8, 0.8, 1.2);
+      const arch = new THREE.Mesh(archG, matPillar);
+      arch.position.set(0, 5.7, 0);
+      arch.castShadow = true;
+      g.add(arch);
+
+      // Antorchas o gemas luminiscentes en las columnas
+      const gemG = new THREE.OctahedronGeometry(0.35);
+      const g1 = new THREE.Mesh(gemG, matLight);
+      g1.position.set(-3.5, 5.2, 0);
+      g.add(g1);
+      const g2 = new THREE.Mesh(gemG, matLight);
+      g2.position.set(3.5, 5.2, 0);
+      g.add(g2);
+
+      // Luz de entrada puntual
+      const ptLight = new THREE.PointLight(0x4ade80, 1.2, 18);
+      ptLight.position.set(0, 4, 0);
+      g.add(ptLight);
+
+      return g;
+    }
+
     // Carga de parámetros desde URL hash (#mundo=...)
     function loadInitialPayload() {
       try {
@@ -570,7 +708,8 @@
             profundidad: 3.5,
             seed: 12345,
             bucleChance: 0.10,
-            entradaDir: 'sur'
+            rotacion: 0,
+            entradas: ['sur']
           }
         };
       }
@@ -589,7 +728,12 @@
         if (r.profundidad) params.profundidad = r.profundidad;
         if (r.seed) params.seed = r.seed;
         if (r.bucleChance !== undefined) params.bucleChance = r.bucleChance;
-        if (r.entradaDir) params.entradaDir = r.entradaDir;
+        if (r.rotacion !== undefined) params.rotacion = r.rotacion;
+        if (Array.isArray(r.entradas) && r.entradas.length) {
+          params.entradas = [...r.entradas];
+        } else if (r.entradaDir) {
+          params.entradas = [r.entradaDir];
+        }
         if (r.wallColor) params.wallColor = r.wallColor;
         if (r.groundColor) params.groundColor = r.groundColor;
         if (r.murosManuales) manualOverrides = { ...r.murosManuales };
@@ -602,6 +746,9 @@
       document.getElementById('sl-radius').value = params.radius;
       document.getElementById('lbl-radius').textContent = params.radius + ' m';
 
+      document.getElementById('sl-rot').value = params.rotacion || 0;
+      document.getElementById('lbl-rot').textContent = (params.rotacion || 0) + '°';
+
       document.getElementById('sel-grid').value = params.tamGrid;
       document.getElementById('lbl-grid').textContent = params.tamGrid + '×' + params.tamGrid;
 
@@ -612,7 +759,9 @@
       document.getElementById('lbl-depth').textContent = '-' + params.profundidad + ' m';
 
       document.getElementById('inp-seed').value = params.seed;
-      document.getElementById('sel-entrance').value = params.entradaDir;
+
+      // Entradas activas
+      updateEntrancesUI();
 
       document.getElementById('sl-loops').value = params.bucleChance;
       document.getElementById('lbl-loops').textContent = Math.round(params.bucleChance * 100) + '%';
@@ -623,6 +772,16 @@
 
       updateCulminationDesc();
       renderStyleCards();
+    }
+
+    function updateEntrancesUI() {
+      const btns = document.querySelectorAll('.ent-btn');
+      btns.forEach(b => {
+        b.classList.toggle('active', params.entradas.includes(b.dataset.dir));
+      });
+      document.getElementById('lbl-entrances').textContent = params.entradas.length
+        ? params.entradas.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')
+        : 'Ninguna';
     }
 
     function renderStyleCards() {
@@ -690,7 +849,9 @@
           culminacion: params.culminacion,
           seed: params.seed,
           bucleChance: params.bucleChance,
-          entradaDir: params.entradaDir,
+          rotacion: params.rotacion || 0,
+          entradas: params.entradas,
+          entradaDir: params.entradas[0] || 'sur',
           murosManuales: manualOverrides
         }
       };
@@ -700,7 +861,7 @@
 
       const cellSize = currentMazeData.cellSize;
       document.getElementById('lbl-cellsize').textContent = `~${cellSize.toFixed(1)} m`;
-      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m`;
+      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | ⟳ ${params.rotacion || 0}°`;
 
       // 1. Reconstruir Terreno Esculpido de la Zona
       if (terrainMesh) {
@@ -720,7 +881,7 @@
 
       const colWall = new THREE.Color(params.wallColor);
       const colGround = new THREE.Color(params.groundColor);
-      const colGrass = new THREE.Color(0x3f6212);
+      const colGrass = new THREE.Color(0x4d7c0f);
 
       const H_fn = (x, z) => RelieveZonaLib.aplicarRelieveTerreno([dummyZone], x, z, 0);
 
@@ -744,7 +905,6 @@
           const x = pos[k], y = pos[k + 1], z = pos[k + 2];
           const dCenter = Math.hypot(x, z);
 
-          // Normal mediante diferencias finitas
           const eps = step * 0.8;
           const dx = (H_fn(x + eps, z) - H_fn(x - eps, z)) / (2 * eps);
           const dz = (H_fn(x, z + eps) - H_fn(x, z - eps)) / (2 * eps);
@@ -752,7 +912,7 @@
           const nx = -dx / len, ny = 1 / len, nz = -dz / len;
           nrm[k] = nx; nrm[k + 1] = ny; nrm[k + 2] = nz;
 
-          const pend = 1 - ny; // 0 = plano, >0.4 = escarpado
+          const pend = 1 - ny;
           if (dCenter > params.radius + 15) {
             col[k] = colGrass.r; col[k + 1] = colGrass.g; col[k + 2] = colGrass.b;
           } else {
@@ -781,8 +941,8 @@
       const texGround = createProceduralNoiseTexture(params.groundColor, 0.85, false);
       const matTerrain = new THREE.MeshStandardMaterial({
         vertexColors: true,
-        roughness: 0.88,
-        metalness: 0.08,
+        roughness: 0.82,
+        metalness: 0.05,
         map: texGround
       });
 
@@ -791,7 +951,7 @@
       terrainMesh.castShadow = true;
       scene.add(terrainMesh);
 
-      // 2. Malla adicional de muros para aristas y volumen arquitectónico limpio
+      // 2. Malla adicional de muros para volumen arquitectónico y remates
       if (wallsMesh) {
         scene.remove(wallsMesh);
         if (wallsMesh.geometry) wallsMesh.geometry.dispose();
@@ -799,8 +959,13 @@
       const wallGeoms = [];
       const { muros } = currentMazeData;
       const hMuro3D = params.alturaMuro * 0.95;
+      const rotRad = (params.rotacion || 0) * (Math.PI / 180);
+
       muros.forEach(m => {
-        const boxG = new THREE.BoxGeometry(m.half * 1.96, hMuro3D, m.half * 1.96);
+        const boxG = new THREE.BoxGeometry(m.half * 1.95, hMuro3D, m.half * 1.95);
+        if (rotRad !== 0) {
+          boxG.rotateY(-rotRad);
+        }
         boxG.translate(m.wx, hMuro3D / 2 - params.profundidad * 0.4, m.wz);
         wallGeoms.push(boxG);
       });
@@ -811,24 +976,40 @@
       }
       culmGroup = RelieveZonaLib.crearDecoradoCulminacion(THREE, dummyZone, (x, z) => H_fn(x, z));
       if (culmGroup) {
+        if (rotRad !== 0) {
+          culmGroup.rotation.y = -rotRad;
+        }
         scene.add(culmGroup);
       }
 
-      // 4. Ubicar el Avatar del Jugador en la entrada
-      if (playerDummy && currentMazeData.entrada) {
-        const ex = currentMazeData.entrada.wx;
-        const ez = currentMazeData.entrada.wz;
-        const ey = H_fn(ex, ez);
-        playerDummy.position.set(ex, ey, ez);
-        // Mirar hacia el centro
+      // 4. Arcos / Marcadores en TODAS las entradas configuradas
+      if (entranceMarkersGroup) {
+        scene.remove(entranceMarkersGroup);
+      }
+      entranceMarkersGroup = new THREE.Group();
+      (currentMazeData.entradas || [currentMazeData.entrada]).forEach(ent => {
+        if (!ent) return;
+        const ey = H_fn(ent.wx, ent.wz);
+        const marker = createEntranceArch(ent);
+        marker.position.set(ent.wx, ey, ent.wz);
+        marker.lookAt(0, ey, 0);
+        entranceMarkersGroup.add(marker);
+      });
+      scene.add(entranceMarkersGroup);
+
+      // 5. Ubicar el Avatar del Jugador en la entrada principal
+      if (playerDummy && currentMazeData.entradas && currentMazeData.entradas.length) {
+        const ent0 = currentMazeData.entradas[0];
+        const ey = H_fn(ent0.wx, ent0.wz);
+        playerDummy.position.set(ent0.wx, ey, ent0.wz);
         playerDummy.lookAt(0, ey, 0);
       }
 
-      // 5. Actualizar el Canvas 2D
+      // 6. Actualizar el Canvas 2D
       draw2DMaze();
     }
 
-    // Dibujado del Canvas 2D interactivo
+    // Dibujado del Canvas 2D interactivo con brújula de rotación y entradas múltiples
     function draw2DMaze() {
       const cv = document.getElementById('mazeCanvas');
       if (!cv || !currentMazeData) return;
@@ -870,15 +1051,30 @@
       ctx.textBaseline = 'middle';
       ctx.fillText('★', (mid + 0.5) * cw, (mid + 0.5) * ch);
 
-      // Resaltar entrada
-      if (currentMazeData.entrada) {
-        const ex = currentMazeData.entrada.gx;
-        const ey = currentMazeData.entrada.gy;
+      // Resaltar TODAS las entradas activas en verde
+      const listaEntradas = currentMazeData.entradas || [currentMazeData.entrada];
+      listaEntradas.forEach((ent, idx) => {
+        if (!ent) return;
+        const ex = ent.gx;
+        const ey = ent.gy;
         ctx.fillStyle = '#22c55e';
         ctx.fillRect(ex * cw, ey * ch, cw - 0.5, ch - 0.5);
         ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
         ctx.fillText('▲', (ex + 0.5) * cw, (ey + 0.5) * ch);
-      }
+      });
+
+      // Indicador de rotación / orientación en la esquina superior derecha
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.fillRect(w - 55, 4, 51, 18);
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(w - 55, 4, 51, 18);
+      ctx.fillStyle = '#facc15';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`⟳ ${params.rotacion || 0}°`, w - 29, 13);
     }
 
     // Interacción con el lienzo 2D para alternar celdas con clic/arrastre
@@ -900,11 +1096,10 @@
         const gy = Math.floor((py / rect.height) * N);
 
         if (gx < 0 || gx >= N || gy < 0 || gy >= N) return;
-        if (currentMazeData.grid[gy][gx] === 2) return; // Fuera de zona
+        if (currentMazeData.grid[gy][gx] === 2) return;
 
         const mid = Math.round((N - 1) / 2);
-        if (Math.abs(gx - mid) <= 1 && Math.abs(gy - mid) <= 1) return; // Centro intocable
-        if (currentMazeData.entrada && gx === currentMazeData.entrada.gx && gy === currentMazeData.entrada.gy) return;
+        if (Math.abs(gx - mid) <= 1 && Math.abs(gy - mid) <= 1) return;
 
         const curVal = currentMazeData.grid[gy][gx];
         if (targetVal === null) {
@@ -929,7 +1124,6 @@
         targetVal = null;
       });
 
-      // Touch
       cv.addEventListener('touchstart', e => {
         isDrawing = true;
         targetVal = null;
@@ -954,21 +1148,19 @@
         controls.target.set(0, 0, 0);
         camera.position.set(0, R * 1.5, R * 1.8);
       } else if (view === 'entrance') {
-        if (currentMazeData.entrada) {
-          const ex = currentMazeData.entrada.wx;
-          const ez = currentMazeData.entrada.wz;
-          controls.target.set(ex, 2, ez);
-          camera.position.set(ex * 1.25, 18, ez * 1.25 + 35);
+        const ent = (currentMazeData.entradas && currentMazeData.entradas[0]) || currentMazeData.entrada;
+        if (ent) {
+          controls.target.set(ent.wx, 2, ent.wz);
+          camera.position.set(ent.wx * 1.25, 18, ent.wz * 1.25 + 35);
         }
       } else if (view === 'center') {
         controls.target.set(0, 4, 0);
         camera.position.set(0, 24, 45);
       } else if (view === 'human') {
-        if (currentMazeData.entrada) {
-          const ex = currentMazeData.entrada.wx;
-          const ez = currentMazeData.entrada.wz;
-          controls.target.set(ex * 0.8, 1.8, ez * 0.8);
-          camera.position.set(ex, 2.2, ez + 4);
+        const ent = (currentMazeData.entradas && currentMazeData.entradas[0]) || currentMazeData.entrada;
+        if (ent) {
+          controls.target.set(ent.wx * 0.8, 1.8, ent.wz * 0.8);
+          camera.position.set(ent.wx, 2.2, ent.wz + 4);
         }
       }
       controls.update();
@@ -981,7 +1173,20 @@
       const panel = document.getElementById('ui-panel');
       btnToggle.onclick = () => panel.classList.toggle('hide');
 
-      // Sliders & Selects
+      // Modos de iluminación
+      document.querySelectorAll('.light-btn').forEach(b => {
+        b.onclick = () => applyLightingPreset(b.dataset.light);
+      });
+
+      // Rotación
+      const slRot = document.getElementById('sl-rot');
+      slRot.oninput = e => {
+        params.rotacion = parseInt(e.target.value, 10) || 0;
+        document.getElementById('lbl-rot').textContent = params.rotacion + '°';
+        rebuildAll3D();
+      };
+
+      // Radio de zona
       const slRadius = document.getElementById('sl-radius');
       slRadius.oninput = e => {
         params.radius = parseInt(e.target.value, 10);
@@ -989,6 +1194,7 @@
         rebuildAll3D();
       };
 
+      // Cuadrícula
       const selGrid = document.getElementById('sel-grid');
       selGrid.onchange = e => {
         params.tamGrid = parseInt(e.target.value, 10);
@@ -997,6 +1203,7 @@
         rebuildAll3D();
       };
 
+      // Altura y profundidad
       const slHeight = document.getElementById('sl-height');
       slHeight.oninput = e => {
         params.alturaMuro = parseInt(e.target.value, 10);
@@ -1011,6 +1218,7 @@
         rebuildAll3D();
       };
 
+      // Semilla y generador
       const inpSeed = document.getElementById('inp-seed');
       inpSeed.onchange = e => {
         params.seed = parseInt(e.target.value, 10) || 12345;
@@ -1025,12 +1233,25 @@
         rebuildAll3D();
       };
 
-      document.getElementById('sel-entrance').onchange = e => {
-        params.entradaDir = e.target.value;
-        manualOverrides = {};
-        rebuildAll3D();
-      };
+      // Entradas múltiples con botones de conmutación
+      document.querySelectorAll('.ent-btn').forEach(btn => {
+        btn.onclick = () => {
+          const dir = btn.dataset.dir;
+          const idx = params.entradas.indexOf(dir);
+          if (idx >= 0) {
+            if (params.entradas.length > 1) {
+              params.entradas.splice(idx, 1);
+            }
+          } else {
+            params.entradas.push(dir);
+          }
+          updateEntrancesUI();
+          manualOverrides = {};
+          rebuildAll3D();
+        };
+      });
 
+      // Bucles
       const slLoops = document.getElementById('sl-loops');
       slLoops.oninput = e => {
         params.bucleChance = parseFloat(e.target.value);
@@ -1038,6 +1259,7 @@
         rebuildAll3D();
       };
 
+      // Colores
       document.getElementById('col-wall').onchange = e => {
         params.wallColor = e.target.value;
         rebuildAll3D();
@@ -1045,6 +1267,14 @@
       document.getElementById('col-ground').onchange = e => {
         params.groundColor = e.target.value;
         rebuildAll3D();
+      };
+
+      // Conexión con pueblos
+      document.getElementById('btn-road-connect').onclick = () => {
+        shouldAutoConnectRoad = true;
+        const msg = document.getElementById('road-status-msg');
+        msg.textContent = '✓ Conexión activada: al pulsar «Guardar y Volver», se trazará un camino directo al pueblo más cercano.';
+        msg.style.display = 'block';
       };
 
       // Limpiar manuales
@@ -1090,9 +1320,11 @@
           sessionId: zoneData.sessionId,
           zoneId: zoneData.zoneId,
           radius: params.radius,
+          conectarCaminoPueblo: shouldAutoConnectRoad,
           relieve: {
             activo: true,
             radio: params.radius,
+            rotacion: params.rotacion || 0,
             tamGrid: params.tamGrid,
             alturaMuro: params.alturaMuro,
             profundidad: params.profundidad,
@@ -1101,7 +1333,8 @@
             culminacion: params.culminacion,
             seed: params.seed,
             bucleChance: params.bucleChance,
-            entradaDir: params.entradaDir,
+            entradas: params.entradas,
+            entradaDir: params.entradas[0] || 'sur',
             wallColor: params.wallColor,
             groundColor: params.groundColor,
             murosManuales: manualOverrides
@@ -1122,7 +1355,7 @@
       requestAnimationFrame(animate);
       controls.update();
 
-      // Animación suave del agua u orbe del centro si existe
+      // Animación suave de la meta central
       if (culmGroup && culmGroup.userData && culmGroup.userData.reliquiaMesh) {
         culmGroup.userData.reliquiaMesh.rotation.y += 0.02;
         culmGroup.userData.reliquiaMesh.position.y += Math.sin(Date.now() * 0.003) * 0.004;

@@ -314,10 +314,53 @@
   // ---------------------------------------------------------------------------
   // 6. Geometría de caminos y zonas
   // ---------------------------------------------------------------------------
+  function findRoadNode(world, id) {
+    const t = findTown(world, id);
+    if (t) return { id: t.id, name: t.name, x: t.x, y: t.y, kind: 'town', obj: t };
+    const z = findZone(world, id);
+    if (z) {
+      if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.zonaTieneLaberinto && RelieveZonaLib.zonaTieneLaberinto(z)) {
+        const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+        if (lab && lab.entradas && lab.entradas.length) {
+          return {
+            id: z.id,
+            name: z.name,
+            x: lab.entrada.wx,
+            y: lab.entrada.wz,
+            kind: 'zone',
+            obj: z,
+            entradas: lab.entradas
+          };
+        }
+      }
+      return { id: z.id, name: z.name, x: z.x, y: z.y, kind: 'zone', obj: z };
+    }
+    return null;
+  }
+
   function buildRoadPoints(world, road) {
-    const a = findTown(world, road.from);
-    const b = findTown(world, road.to);
+    let a = findRoadNode(world, road.from);
+    let b = findRoadNode(world, road.to);
     if (!a || !b) { road.points = []; road.length = 0; return road; }
+
+    // Si alguno de los extremos es un laberinto con múltiples entradas, conectar con la entrada más cercana al otro extremo
+    if (a.entradas && a.entradas.length > 1) {
+      let bestE = a.entradas[0], bestD = Infinity;
+      a.entradas.forEach(e => {
+        const d = Math.hypot(e.wx - b.x, e.wz - b.y);
+        if (d < bestD) { bestD = d; bestE = e; }
+      });
+      a = { ...a, x: bestE.wx, y: bestE.wz };
+    }
+    if (b.entradas && b.entradas.length > 1) {
+      let bestE = b.entradas[0], bestD = Infinity;
+      b.entradas.forEach(e => {
+        const d = Math.hypot(e.wx - a.x, e.wz - a.y);
+        if (d < bestD) { bestD = d; bestE = e; }
+      });
+      b = { ...b, x: bestE.wx, y: bestE.wz };
+    }
+
     const len = dist(a, b) || 1;
     const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
     const cx = (a.x + b.x) / 2 + nx * road.bend * len;
@@ -405,7 +448,7 @@
 
   function roadCrossesOthers(world, a, b) {
     return world.roads.some(r => {
-      const ra = findTown(world, r.from), rb = findTown(world, r.to);
+      const ra = findRoadNode(world, r.from), rb = findRoadNode(world, r.to);
       if (!ra || !rb) return false;
       if ([r.from, r.to].includes(a.id) || [r.from, r.to].includes(b.id)) return false;
       return segmentsIntersect(a, b, ra, rb);
@@ -453,8 +496,9 @@
     const links = world.roads
       .filter(r => r.from === town.id || r.to === town.id)
       .map(r => {
-        const other = findTown(world, r.from === town.id ? r.to : r.from);
-        return { roadId: r.id, toId: other ? other.id : null, to: other ? other.name : '?', world: roadAngleAt(world, town, r) };
+        const otherId = r.from === town.id ? r.to : r.from;
+        const other = findTown(world, otherId) || findZone(world, otherId);
+        return { roadId: r.id, toId: other ? other.id : otherId, to: other ? other.name : '?', world: roadAngleAt(world, town, r) };
       })
       .filter(l => l.world !== null);
     const cur = normDeg(town.cfg.rotation || 0);
@@ -485,7 +529,10 @@
   }
 
   function updateTownExits(world, ids) {
-    ids.forEach(id => computeTownExits(world, findTown(world, id)));
+    ids.forEach(id => {
+      const t = findTown(world, id);
+      if (t) computeTownExits(world, t);
+    });
   }
 
   function updateAllExits(world) {
@@ -1194,7 +1241,7 @@
     moveEntity, removeEntity, refreshRoad, setStartTown,
     computeTownExits, updateAllExits, exitWorldPoint, townTileHalf,
     recomputeLevels, repoblarMonstruos, migrarMonstruosSiAntiguo, recomputeLevelsSoft, autoLevelZone, autoLevelTown, rerollZoneMonsters, townRadius, defaultTownCfg,
-    findTown, findRoad, findZone, findPoi, findDungeon, findAny, kindOf,
+    findTown, findRoad, findZone, findPoi, findDungeon, findAny, kindOf, findRoadNode,
     zoneOutline, zoneRadiusAt, pointInZone, distToPolyline, pointOnPolyline,
     serialize, deserialize, validate, stats
   };

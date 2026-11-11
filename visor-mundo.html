@@ -3886,10 +3886,13 @@
   function buildRoads() {
     const mb = new MB(), mbCalzada = new MB();
     world.roads.forEach(r => {
-      const a = W.findTown(world, r.from), b = W.findTown(world, r.to);
+      const a = W.findTown(world, r.from) || W.findZone(world, r.from);
+      const b = W.findTown(world, r.to) || W.findZone(world, r.to);
       if (!a || !b) return;
       const oa = towns.find(o => o.t === a), ob = towns.find(o => o.t === b);
-      const pts = trimRoad(r, a, b, Math.min(oa ? oa.tileHalf : 149, ob ? ob.tileHalf : 149));
+      const halfA = oa ? oa.tileHalf : 12;
+      const halfB = ob ? ob.tileHalf : 12;
+      const pts = trimRoad(r, a, b, Math.min(halfA, halfB));
       if (pts.length < 2) return;
       // El camino empieza y acaba en la calle de salida de cada pueblo, para que empalme con ella:
       // se quitan los puntos que quedarían dentro de ese tramo recto, y así sale por la puerta en línea recta

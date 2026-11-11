@@ -162,3 +162,59 @@ test('RelieveZonaLib - Soporte para bucles, entrada configurable y celdas manual
   assert.strictEqual(grid[2][2], 1, 'La celda 2_2 debe respetar la modificación manual de muro');
   assert.strictEqual(grid[4][4], 0, 'La celda 4_4 debe respetar la modificación manual de pasillo');
 });
+
+test('RelieveZonaLib - Soporte para múltiples entradas simultáneas', () => {
+  const { N, grid, entradas } = RelieveZonaLib.generarLaberinto(13, 8888, {
+    entradas: ['sur', 'norte', 'este', 'oeste']
+  });
+  assert.strictEqual(entradas.length, 4, 'Debe registrar las 4 entradas');
+  entradas.forEach(ent => {
+    assert.strictEqual(grid[ent.gy][ent.gx], 0, `La entrada ${ent.dir} debe ser transitable (0)`);
+  });
+});
+
+test('RelieveZonaLib - Rotación arbitraria del laberinto y alineación de coordenadas', () => {
+  const zona = {
+    id: 'z-rot',
+    x: 100,
+    y: 100,
+    radius: 120,
+    relieve: {
+      activo: true,
+      rotacion: 90,
+      entradas: ['sur']
+    }
+  };
+  const lab = RelieveZonaLib.obtenerDatosLaberinto(zona);
+  assert.strictEqual(lab.rotacion, 90, 'Debe registrar rotación de 90 grados');
+  assert.ok(lab.entradas.length >= 1, 'Debe contener las entradas');
+  assert.ok(typeof lab.mundoACelda === 'function', 'Debe proveer transformación inversa mundoACelda');
+
+  // Comprobar que en la entrada rotada es camino transitable
+  const ent = lab.entradas[0];
+  assert.strictEqual(RelieveZonaLib.esCamino(zona, ent.wx, ent.wz), true, 'La entrada rotada debe ser transitable');
+});
+
+test('WorldCore - Generación de caminos entre pueblos y laberintos de caza', () => {
+  const W = require('../js/world-core.js');
+  const world = W.emptyWorld(42);
+  const town = W.createTown(world, 0, 0, { name: 'Pueblo Test' });
+  const zone = W.createZone(world, 300, 400, {
+    name: 'Laberinto Olvidado',
+    radius: 100,
+    relieve: { activo: true, rotacion: 45, entradas: ['sur', 'norte'] }
+  });
+
+  const road = W.createRoad(world, town.id, zone.id);
+  assert.ok(road, 'Debe crear el camino entre pueblo y laberinto');
+  assert.strictEqual(road.from, town.id);
+  assert.strictEqual(road.to, zone.id);
+  assert.ok(road.points.length >= 2, 'Debe generar polilínea de puntos');
+
+  const startPt = road.points[0];
+  const endPt = road.points[road.points.length - 1];
+  assert.ok(Math.hypot(startPt.x - town.x, startPt.y - town.y) < 5, 'El inicio del camino debe comenzar en el pueblo');
+  // El fin del camino debe llegar al laberinto (a una de sus entradas)
+  const distLab = Math.hypot(endPt.x - zone.x, endPt.y - zone.y);
+  assert.ok(distLab < 150, 'El camino debe llegar a la zona del laberinto');
+});
