@@ -101,21 +101,21 @@ describe('Cabañas secretas y misiones de 100 monstruos', () => {
     const hCentro = L.aplicarRebajeCabanas([cab], cab.x, cab.z, 40.0);
     assert.strictEqual(Math.round(hCentro * 100) / 100, cotaTerraza, 'En el centro debe rebajar la ladera a 25.0m');
 
-    // Punto a 12m de distancia dentro del radio plano ampliado (rPlano = 14.5m)
+    // Punto a 12m de distancia dentro del radio plano ampliado (rPlano = 16.0m)
     const hDentro = L.aplicarRebajeCabanas([cab], cab.x + 12.0, cab.z, 35.0);
-    assert.strictEqual(Math.round(hDentro * 100) / 100, cotaTerraza, 'En todo el radio de 14.5m el suelo debe quedar nivelado');
+    assert.strictEqual(Math.round(hDentro * 100) / 100, cotaTerraza, 'En todo el radio de 16.0m el suelo debe quedar nivelado');
 
-    // Punto en la zona de transición suave (d = 20m, entre 14.5m y 26.0m)
-    const hTrans = L.aplicarRebajeCabanas([cab], cab.x + 20.0, cab.z, 40.0);
+    // Punto en la zona de transición suave (d = 26m, entre 16.0m y 36.0m)
+    const hTrans = L.aplicarRebajeCabanas([cab], cab.x + 26.0, cab.z, 40.0);
     assert.ok(hTrans > cotaTerraza && hTrans < 40.0, 'En el talud exterior debe suavizarse de forma continua');
 
-    // Punto lejos (d = 30m > 26.0m)
-    const hLejos = L.aplicarRebajeCabanas([cab], cab.x + 30.0, cab.z, 40.0);
+    // Punto lejos (d = 40m > 36.0m)
+    const hLejos = L.aplicarRebajeCabanas([cab], cab.x + 40.0, cab.z, 40.0);
     assert.strictEqual(hLejos, 40.0, 'Fuera del radio de influencia no debe modificar el terreno');
 
-    // 2. Cuesta abajo (hOriginal = 20.0m < 25.0m): NO debe levantarse para no crear un peñón artificial
+    // 2. Cuesta abajo (hOriginal = 20.0m < 25.0m): dentro del radio plano (d = 8m < 16m) se nivela a la terraza para que la cabaña no quede en el aire
     const hAbajo = L.aplicarRebajeCabanas([cab], cab.x + 8.0, cab.z, 20.0);
-    assert.strictEqual(hAbajo, 20.0, 'Hacia el valle el terreno no se levanta, evitando el peñón artificial');
+    assert.strictEqual(hAbajo, cotaTerraza, 'La huella de la cabaña cuesta abajo queda nivelada a la base de la terraza');
 
     // 3. Cabaña marina / pescador (esMar = true): NO se excava ni se crea agujero artificial
     const cabMar = { ...cab, esMar: true };

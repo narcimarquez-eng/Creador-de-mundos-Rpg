@@ -2103,7 +2103,7 @@
   // Mitad del cauce plano y de la orilla fuera del pueblo (m). Se ajustan a la rejilla del terreno
   // (buildTerrain): el cauce tiene que caber entre dos nodos, si no el fondo no aparece en la malla.
   let RIO_CAUCE = 8, RIO_BANCO = 26;
-  const RIO_FONDO = 2.6;    // el fondo del cauce queda 2.6m por debajo del agua (lecho excavado visible)
+  const RIO_FONDO = 3.8;    // el fondo del cauce queda 3.8m por debajo del agua (lecho excavado visible claramente)
   const RIO_RAMPA = 30;     // el cauce se excava de forma ágil desde el final de la mezcla con el pueblo
   const RIO_BOCA = 70;      // el río se desvanece en los últimos metros de su recorrido (mar o lago)
   // Ríos fuera de los pueblos: el curso viene de cfg.rio (js/world-core.js), con sus tramos guardados en
@@ -2194,12 +2194,12 @@
       const dBanco = RIO_BANCO * r.w;
       let perfil;
       if (r.d <= dCauce) {
-        // Lecho del río bajo el agua: fondo excavado cóncavo (-2.6m en el centro)
+        // Lecho del río bajo el agua: fondo excavado cóncavo (-3.8m en el centro) continuo sin salto en la orilla
         const fr = r.d / dCauce;
-        const lecho = r.nivel - RIO_FONDO * (1 - 0.25 * fr * fr);
+        const lecho = r.nivel - RIO_FONDO * (1 - fr * fr);
         perfil = Math.min(h, lecho);
       } else {
-        // Ribera / orilla: sube con pendiente suave y natural desde la orilla (r.nivel + 0.35) hasta el terreno h
+        // Ribera / orilla: sube con pendiente suave y continua desde la orilla (r.nivel + 0.35) hasta el terreno h
         const t = smooth(dCauce, dBanco, r.d);
         const cotaOrilla = r.nivel + 0.35;
         perfil = Math.min(h, cotaOrilla + (h - cotaOrilla) * t);
@@ -2213,7 +2213,20 @@
       if ((!lugaresSecretos || !lugaresSecretos.length) && world) {
         lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
       }
-      const elevFn = (ex, ez) => terrain ? ((terrain.elevation(ex, ez) - SEA) * HEIGHT_SCALE) : 0;
+      const elevFn = (ex, ez) => {
+        let eh = terrain ? ((terrain.elevation(ex, ez) - SEA) * HEIGHT_SCALE) : 0;
+        for (let ti = 0; ti < towns.length; ti++) {
+          const to = towns[ti];
+          const tdx = ex - to.t.x, tdz = ez - to.t.y;
+          if (Math.hypot(tdx, tdz) > (to.tileHalf + BLEND_OUT) * Math.SQRT2) continue;
+          const tlx = tdx * to.cr + tdz * to.sr, tlz = -tdx * to.sr + tdz * to.cr;
+          const tw = 1 - smooth(to.tileHalf, to.tileHalf + BLEND_OUT, Math.max(Math.abs(tlx), Math.abs(tlz)));
+          if (tw > 0 && eh >= 0) {
+            eh = eh + (sueloPueblo(to, tlx, tlz, eh) - eh) * tw;
+          }
+        }
+        return eh;
+      };
       h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h, elevFn);
     }
     // Laberinto natural en zonas de caza: hendiduras, desfiladeros y crestas inescalables en el propio terreno
@@ -2698,15 +2711,11 @@
     // Índice espacial de tramos de camino para consultas O(1) en lagos y decoración
     rejillaCaminosMundo = crearRejillaCaminos(world.roads);
 
-    // Lagos, oasis y arenas movedizas: se planean antes del relieve, porque lo excavan. Usan la altura base
-    // (sin excavar y sin pueblos); los pueblos y los ríos se respetan con sus márgenes.
-    lagosMundo = LagosLib.planear({
-      rng: new W.PRNG((world.seed ^ 0x1a6e) >>> 0), limites: bounds,
-      altura: (x, z) => (terrain.elevation(x, z) - SEA) * HEIGHT_SCALE,
-      bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
-      libre: (x, z, m) => !enMargenPueblo(x, z, BLEND_OUT + m, true) && !rejillaCaminosMundo(x, z, m),
-      rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
-    });
+    // Lugares secretos y cabañas: se generan antes del relieve para que el terreno rebaje y aplane la huella de cada cabaña
+    if (typeof LugaresSecretosLib !== 'undefined') {
+      lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
+      world.secretPlaces = lugaresSecretos;
+    }
 
     // Garantizar que las zonas de caza posean relieve de desfiladero temático activo
     if (world && world.zones && typeof RelieveZonaLib !== 'undefined') {
@@ -2720,14 +2729,28 @@
       });
     }
 
-    // Lugares secretos y cabañas: se generan antes del relieve para que el terreno rebaje y aplane la huella de cada cabaña
-    if (typeof LugaresSecretosLib !== 'undefined') {
-      lugaresSecretos = LugaresSecretosLib.generarLugaresSecretos(world);
-      world.secretPlaces = lugaresSecretos;
+    // Lagos, oasis y arenas movedizas: se planean respetando pueblos, caminos, cabañas y zonas de caza
+    lagosMundo = LagosLib.planear({
+      rng: new W.PRNG((world.seed ^ 0x1a6e) >>> 0), limites: bounds,
+      altura: (x, z) => (terrain.elevation(x, z) - SEA) * HEIGHT_SCALE,
+      bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
+      libre: (x, z, m) => {
+        if (enMargenPueblo(x, z, BLEND_OUT + m, true)) return false;
+        if (rejillaCaminosMundo(x, z, m)) return false;
+        if (world && world.zones && world.zones.some(zn => {
+          const zR = (zn.relieve && zn.relieve.radio) || zn.radius || 100;
+          return Math.hypot(x - zn.x, z - (zn.y !== undefined ? zn.y : zn.z)) < zR + m + 35;
+        })) return false;
+        if (lugaresSecretos && lugaresSecretos.some(s => Math.hypot(x - s.x, z - s.z) < (s.radioRebaje || 42) + m + 15)) return false;
+        return true;
+      },
+      rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
+    });
+
+    if (lugaresSecretos && lugaresSecretos.length) {
       lugaresSecretos.forEach(s => {
         if (s.tipo === 'cabana') {
-          const e = terrain.elevation(s.x, s.z);
-          s.alturaBase = (e - SEA) * HEIGHT_SCALE;
+          s.alturaBase = Hgen(s.x, s.z);
           s.y = s.alturaBase;
         }
       });
@@ -3000,12 +3023,27 @@
     return false;
   }
 
+  function trozoConCabana(cx, cz) {
+    if (!lugaresSecretos || !lugaresSecretos.length || !terrainGrid) return false;
+    const g0 = terrainGrid;
+    const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
+    const rChunk = CHUNK * g0.step * 0.75;
+    for (let i = 0; i < lugaresSecretos.length; i++) {
+      const s = lugaresSecretos[i];
+      if (s.tipo === 'cabana') {
+        const rCab = (s.radioRebaje || 42) + 25;
+        if (Math.hypot(xc - s.x, zc - s.z) < rCab + rChunk) return true;
+      }
+    }
+    return false;
+  }
+
   function buildNear(cx, cz) {
     const g0 = terrainGrid;
     const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
     const p = character.root.position, t = controls.target;
     const relieve = Math.hypot(xc - p.x, zc - p.z) < RELIEVE_M || Math.hypot(xc - t.x, zc - t.z) < RELIEVE_M;
-    if (relieve || trozoConRio(cx, cz) || trozoConZonaCaza(cx, cz)) return buildFineNear(cx, cz, relieve);
+    if (relieve || trozoConRio(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz)) return buildFineNear(cx, cz, relieve);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
@@ -3257,7 +3295,9 @@
     const T = CHUNK * g.step;
     for (let j = -1; j <= NJ; j++) for (let i = -1; i <= NI; i++) {
       const x = xo + i * fs, z = zo + j * fs;
-      alt[(j + 1) * M + i + 1] = Hgen(x, z) + (relieve ? relieveAt(x, z, xo, zo, T) : 0);
+      let attenRuido = 1.0;
+      if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 7.5)) attenRuido = 0.0;
+      alt[(j + 1) * M + i + 1] = Hgen(x, z) + (relieve ? relieveAt(x, z, xo, zo, T) * attenRuido : 0);
     }
     const hAt = (i, j) => alt[(j + 1) * M + i + 1];
     const pos = new Float32Array(NI * NJ * 3), col = new Float32Array(NI * NJ * 3), nrm = new Float32Array(NI * NJ * 3);
@@ -3837,7 +3877,7 @@
 
   // Altura de un camino: sobre el cauce de un río se tiende como puente, un poco por encima del agua
   function alturaCamino(x, z) {
-    let h = H(x, z);
+    let h = (typeof Hgen === 'function') ? Hgen(x, z) : H(x, z);
     const r = rioCercano(x, z);
     if (r && r.d < RIO_BANCO) h = Math.max(h, r.nivel + 0.6);
     return h;
@@ -4648,13 +4688,18 @@
         const hPuente = rRio.nivel + 0.6;
         if (hPuente > groundH) groundH = hPuente;
       }
+      // Camino sobre el terreno: el personaje camina sobre la rasante del camino sin hundirse
+      if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 3.2)) {
+        const hCam = typeof alturaCamino === 'function' ? alturaCamino(x, z) : groundH;
+        if (hCam > groundH && (hCam - groundH) < 1.6) groundH = hCam;
+      }
       // Plataforma transitable de las cabañas y su explanada aterrazada
       if (typeof lugaresSecretos !== 'undefined' && lugaresSecretos && lugaresSecretos.length) {
         for (let i = 0; i < lugaresSecretos.length; i++) {
           const s = lugaresSecretos[i];
           if (s.tipo === 'cabana') {
             const d = Math.hypot(x - s.x, z - s.z);
-            if (d < 16.0) {
+            if (d < 18.0) {
               const floorY = (typeof s.y === 'number' ? s.y : (s.alturaBase || 0)) + 0.02;
               if (floorY > groundH) groundH = floorY;
             }
@@ -9546,7 +9591,7 @@
               s.alturaBase = 0.0;
             }
           } else if (terrain) {
-            s.alturaBase = (terrain.elevation(s.x, s.z) - SEA) * HEIGHT_SCALE;
+            s.alturaBase = (typeof Hgen === 'function') ? Hgen(s.x, s.z) : (terrain.elevation(s.x, s.z) - SEA) * HEIGHT_SCALE;
           }
           s.y = s.alturaBase;
         }

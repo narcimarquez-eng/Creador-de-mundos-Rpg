@@ -613,7 +613,9 @@
     const sinLuces = !!(opciones && opciones.sinLucesPuntuales);
     const grupo = new THREE.Group();
     grupo.name = 'LugarSecreto_' + lugar.id;
-    const ySuelo = getAlturaFn ? getAlturaFn(lugar.x, lugar.z) : 0;
+    const ySuelo = getAlturaFn ? getAlturaFn(lugar.x, lugar.z) : (typeof lugar.y === 'number' ? lugar.y : 0);
+    lugar.y = ySuelo;
+    lugar.alturaBase = ySuelo;
     grupo.position.set(lugar.x, ySuelo, lugar.z);
     grupo.rotation.y = lugar.rotacion || 0;
     grupo.userData = {
@@ -697,15 +699,15 @@
           grupo.add(modelo);
 
           if (!lugar.esMar) {
-            // 4. Zócalo de piedra rústica integrado a ras de suelo para absorber desniveles en pendiente
-            const altoZocalo = 2.2;
+            // 4. Zócalo subterráneo de piedra rústica para asentar firmemente la cabaña en cualquier ladera
+            const altoZocalo = 7.5;
             const zocaloGeo = aplicarUVBoxSecreto(
               new THREE.BoxGeometry(anchoX * 1.04, altoZocalo, profZ * 1.04),
               anchoX * 1.04, altoZocalo, profZ * 1.04, 3.2
             );
             const zocalo = new THREE.Mesh(zocaloGeo, matPiedra);
-            // Queda a ras de suelo (+0.02m) y se entierra en el terreno para asentar firmemente la base
-            zocalo.position.set(0, -altoZocalo / 2 + 0.02, 0);
+            // Se entierra profundamente en el terreno para que nunca quede volando en desniveles
+            zocalo.position.set(0, -altoZocalo / 2 + 0.05, 0);
             zocalo.castShadow = true;
             zocalo.receiveShadow = true;
             grupo.add(zocalo);
@@ -1000,9 +1002,9 @@
     grupo.add(aleroPorche);
 
     // Zócalo de piedra rústica para absorción de desniveles a ras de suelo
-    const altoZocalo = 2.2;
+    const altoZocalo = 7.5;
     const zocaloProc = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(ancho * 1.04, altoZocalo, prof * 1.04), ancho * 1.04, altoZocalo, prof * 1.04, 3.2), matPiedra);
-    zocaloProc.position.set(0, -altoZocalo / 2 + 0.02, 0);
+    zocaloProc.position.set(0, -altoZocalo / 2 + 0.05, 0);
     zocaloProc.castShadow = true; zocaloProc.receiveShadow = true;
     grupo.add(zocaloProc);
 
@@ -1035,8 +1037,9 @@
       const hHondonada = hBase;
 
       // Explanada aterrazada con pendientes suaves:
-      // Dentro de rPlano (16m) el suelo queda 100% allanado al nivel de la cabaña (hHondonada).
-      // Entre rPlano y rTotal (36m) transiciona suavemente hacia la ladera natural en todas direcciones.
+      // Dentro de rPlano (16m) el suelo queda nivelado a la cota base de la cabaña (hHondonada) tanto
+      // cuesta arriba como cuesta abajo para asegurar que la cabaña nunca quede flotando en el aire.
+      // Entre rPlano y rTotal (36m) transiciona suavemente hacia la ladera natural.
       const t = Math.max(0, Math.min(1, (d - rPlano) / (rTotal - rPlano)));
       const w = 1 - (t * t * (3 - 2 * t));
       if (w > 0) {

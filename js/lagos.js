@@ -144,6 +144,11 @@
 
   // Superficie de un lago u oasis: plano a su nivel, recortado por la profundidad del terreno
   function agua(THREE, L, altura, opt) {
+    const hCentro = (typeof altura === 'function') ? altura(L.x, L.z) : L.nivel;
+    // Si el terreno fue esculpido drásticamente (ej. hendiduras o cañones), ajustar L.nivel al lecho real
+    if (typeof hCentro === 'number' && L.nivel > hCentro + (L.prof || 2.0) * 1.5) {
+      L.nivel = hCentro + (L.prof || 2.0) * 0.35;
+    }
     const ext = L.R * 1.4, N = 64, lado = 2 * ext;
     const datos = new Uint8Array(N * N * 4);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
