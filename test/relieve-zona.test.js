@@ -138,3 +138,27 @@ test('RelieveZonaLib - Desnivel inescalable (>50% pendiente) en paredes de acant
   assert.ok(h1 > h0, 'El muro/cresta debe estar más alto que el pasillo');
   assert.ok(pendiente > 0.50, `La pendiente (${pendiente.toFixed(2)}) debe ser > 0.50 para que el personaje no pueda escalarla según su física`);
 });
+
+test('RelieveZonaLib - Escalado adaptativo con aumento de radio de la zona', () => {
+  const zonaPequena = { id: 'z-peq', x: 0, y: 0, radius: 90, relieve: { activo: true } };
+  const labPeq = RelieveZonaLib.obtenerDatosLaberinto(zonaPequena);
+  assert.strictEqual(labPeq.R, 90, 'El radio del laberinto debe coincidir con el radio de la zona');
+  assert.ok(labPeq.cellSize >= 10 && labPeq.cellSize <= 18, 'La celda debe mantener escala humana de pasillos (~12-16m)');
+
+  const zonaGrande = { id: 'z-gra', x: 0, y: 0, radius: 280, relieve: { activo: true } };
+  const labGra = RelieveZonaLib.obtenerDatosLaberinto(zonaGrande);
+  assert.strictEqual(labGra.R, 280, 'Al aumentar el radio de la zona, el laberinto debe abarcar los 280m sin quedar limitado a 120m');
+  assert.ok(labGra.N >= 17, 'El número de celdas debe aumentar adaptativamente para no crear pasillos sobredimensionados');
+  assert.ok(labGra.cellSize >= 12 && labGra.cellSize <= 24, 'La celda mantiene escala caminable');
+});
+
+test('RelieveZonaLib - Soporte para bucles, entrada configurable y celdas manuales', () => {
+  const { N, grid, entrada } = RelieveZonaLib.generarLaberinto(13, 9999, {
+    bucleChance: 0.35,
+    entradaDir: 'norte',
+    murosManuales: { '2_2': 1, '4_4': 0 }
+  });
+  assert.strictEqual(entrada.gy, 0, 'La entrada al norte debe situarse en gy=0');
+  assert.strictEqual(grid[2][2], 1, 'La celda 2_2 debe respetar la modificación manual de muro');
+  assert.strictEqual(grid[4][4], 0, 'La celda 4_4 debe respetar la modificación manual de pasillo');
+});

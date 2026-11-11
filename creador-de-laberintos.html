@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Creador y Diseñador 3D de Zonas de Caza y Laberintos</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/controls/OrbitControls.js">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #0b0f19;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+      user-select: none;
+      touch-action: none;
+    }
+
+    #btn-toggle-ui {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 30;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(99, 102, 241, 0.6);
+      color: #a5b4fc;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #top-bar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 30;
+      display: flex;
+      gap: 8px;
+    }
+
+    .top-btn {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .top-btn:hover { background: #1e293b; border-color: #38bdf8; }
+    .top-btn.primary { background: #4f46e5; border-color: #818cf8; color: #fff; }
+    .top-btn.primary:hover { background: #4338ca; }
+    .top-btn.gold { background: #b45309; border-color: #facc15; }
+    .top-btn.gold:hover { background: #d97706; }
+
+    #cam-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      display: flex;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 20px;
+      padding: 5px 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    .cam-btn {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      padding: 5px 11px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 14px;
+      transition: all 0.15s;
+    }
+    .cam-btn:hover, .cam-btn.active {
+      background: #4f46e5;
+      color: #fff;
+    }
+
+    #ui-panel {
+      position: absolute;
+      top: 54px;
+      left: 12px;
+      width: 370px;
+      max-width: calc(100vw - 24px);
+      max-height: calc(100vh - 76px);
+      overflow-y: auto;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+      z-index: 28;
+      transition: transform 0.25s ease, opacity 0.2s ease;
+    }
+    #ui-panel.hide {
+      transform: translateX(-110%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .panel-sec {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .sec-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #818cf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group {
+      margin-bottom: 8px;
+    }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+    .form-label span.val { color: #facc15; font-weight: 700; }
+
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      background: #334155;
+      border-radius: 3px;
+      outline: none;
+      accent-color: #6366f1;
+      cursor: pointer;
+    }
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11.5px;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: #818cf8; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .style-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: all 0.15s;
+    }
+    .style-card:hover { border-color: #818cf8; background: #1e1b4b; }
+    .style-card.selected { border-color: #a855f7; background: rgba(168, 85, 247, 0.18); }
+    .style-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .style-name { font-size: 11.5px; font-weight: 600; flex: 1; }
+
+    /* Canvas 2D mini-editor */
+    #grid-editor-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    #mazeCanvas {
+      background: #020617;
+      border: 2px solid #4f46e5;
+      border-radius: 6px;
+      cursor: pointer;
+      image-rendering: pixelated;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .canvas-legend {
+      display: flex;
+      gap: 10px;
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-box { width: 10px; height: 10px; border-radius: 2px; }
+
+    .badge-info {
+      font-size: 10.5px;
+      color: #93c5fd;
+      background: rgba(30, 58, 138, 0.4);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    #stat-pill {
+      position: absolute;
+      top: 14px;
+      left: 170px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 25;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <button id="btn-toggle-ui">⚙️ Controles</button>
+  <div id="stat-pill">🌀 Zona de Caza HD</div>
+
+  <div id="top-bar">
+    <button class="top-btn" id="btn-exit">✕ Salir</button>
+    <button class="top-btn gold" id="btn-reset">↺ Restaurar</button>
+    <button class="top-btn primary" id="btn-save">💾 Guardar y Volver</button>
+  </div>
+
+  <div id="cam-bar">
+    <button class="cam-btn active" data-cam="overview">🦅 Vista Aérea</button>
+    <button class="cam-btn" data-cam="entrance">🚪 Entrada</button>
+    <button class="cam-btn" data-cam="center">⭐ Meta Central</button>
+    <button class="cam-btn" data-cam="human">🚶 Vista Jugador</button>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-size:14px;font-weight:800;color:#c7d2fe;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      <span>🌀 Creador 3D de Laberinto</span>
+      <span id="zone-badge" style="font-size:10px;background:#312e81;color:#a5b4fc;padding:2px 6px;border-radius:4px;font-weight:600">Zona</span>
+    </div>
+
+    <!-- 1. Dimensiones -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>📏 Dimensiones y Escala</span></div>
+      <div class="form-group">
+        <div class="form-label"><span>Radio de la Zona:</span><span class="val" id="lbl-radius">120 m</span></div>
+        <input type="range" id="sl-radius" min="60" max="450" step="10" value="120">
+      </div>
+      <div class="grid2">
+        <div class="form-group">
+          <div class="form-label"><span>Cuadrícula:</span><span class="val" id="lbl-grid">11×11</span></div>
+          <select id="sel-grid">
+            <option value="9">9 × 9 (Pasillos muy anchos)</option>
+            <option value="11" selected>11 × 11 (Pasillos anchos)</option>
+            <option value="13">13 × 13 (Equilibrado)</option>
+            <option value="15">15 × 15 (Intrincado)</option>
+            <option value="17">17 × 17 (Gran Laberinto)</option>
+            <option value="21">21 × 21 (Complejo masivo)</option>
+            <option value="25">25 × 25 (Épico)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Pasillo:</span><span class="val" id="lbl-cellsize">~18 m</span></div>
+          <div style="font-size:10.5px;color:#94a3b8;margin-top:8px">Escala óptima: 12-20 m</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="form-group">
+          <div class="form-label"><span>Altura Muros:</span><span class="val" id="lbl-height">14 m</span></div>
+          <input type="range" id="sl-height" min="6" max="28" step="1" value="14">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Hendidura:</span><span class="val" id="lbl-depth">-3.5 m</span></div>
+          <input type="range" id="sl-depth" min="1.0" max="7.0" step="0.5" value="3.5">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Estilos & Texturas -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>🎨 Estilo Arquitectónico & Textura</span></div>
+      <div id="styles-list"></div>
+      <div class="grid2" style="margin-top:8px">
+        <div class="form-group">
+          <div class="form-label"><span>Color Muro:</span></div>
+          <input type="color" id="col-wall" value="#78716c" style="height:32px;padding:1px">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Color Suelo:</span></div>
+          <input type="color" id="col-ground" value="#57534e" style="height:32px;padding:1px">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Meta Central -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>⭐ Culminación / Meta Central</span></div>
+      <div class="form-group">
+        <select id="sel-culm"></select>
+      </div>
+      <div id="culm-desc" class="badge-info"></div>
+    </div>
+
+    <!-- 4. Trazado & Generador -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>🎲 Trazado & Algoritmo</span></div>
+      <div class="grid2">
+        <div class="form-group">
+          <div class="form-label"><span>Semilla:</span></div>
+          <input type="number" id="inp-seed" value="12345">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Entrada:</span></div>
+          <select id="sel-entrance">
+            <option value="sur" selected>Sur (Predeterminada)</option>
+            <option value="norte">Norte</option>
+            <option value="este">Este</option>
+            <option value="oeste">Oeste</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-label"><span>Bucles y atajos:</span><span class="val" id="lbl-loops">10%</span></div>
+        <input type="range" id="sl-loops" min="0" max="0.4" step="0.05" value="0.10">
+      </div>
+      <button id="btn-roll" style="width:100%;margin-top:6px;background:#4338ca;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🎲 Generar Nuevo Trazado</button>
+    </div>
+
+    <!-- 5. Mini-Editor 2D Interactivo -->
+    <div class="panel-sec">
+      <div class="sec-title">
+        <span>✏️ Editor 2D en Vivo</span>
+        <span style="font-size:10px;color:#a5b4fc;font-weight:normal">Haz clic para conmutar</span>
+      </div>
+      <div id="grid-editor-container">
+        <canvas id="mazeCanvas" width="220" height="220"></canvas>
+        <div class="canvas-legend">
+          <div class="legend-item"><div class="legend-box" style="background:#1e293b;border:1px solid #475569"></div><span>Muro</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#f1f5f9"></div><span>Pasillo</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#22c55e"></div><span>Entrada</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#eab308"></div><span>Meta</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button id="btn-clear-manual" style="flex:1;background:#334155;color:#e2e8f0;border:none;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Deshacer Edición</button>
+        <button id="btn-all-open" style="flex:1;background:#1e293b;color:#94a3b8;border:1px solid #475569;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Abrir Todo</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/relieve-zona.js?v=20261111"></script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // Estado del creador
+    let zoneData = null;
+    let scene, camera, renderer, controls;
+    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarker = null, playerDummy = null;
+    let currentMazeData = null;
+    let manualOverrides = {};
+
+    // Parámetros activos
+    let params = {
+      radius: 120,
+      tamGrid: 11,
+      alturaMuro: 14,
+      profundidad: 3.5,
+      estilo: 'roca_canion',
+      culminacion: 'oasis',
+      seed: 12345,
+      bucleChance: 0.10,
+      entradaDir: 'sur',
+      wallColor: '#78716c',
+      groundColor: '#57534e'
+    };
+
+    // Texturas de Canvas procedimentales para evitar dependencias de red
+    function createProceduralNoiseTexture(colorBase, roughness, isWall) {
+      const cv = document.createElement('canvas');
+      cv.width = 256; cv.height = 256;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = colorBase;
+      ctx.fillRect(0, 0, 256, 256);
+
+      const col = new THREE.Color(colorBase);
+      const imgData = ctx.getImageData(0, 0, 256, 256);
+      const d = imgData.data;
+      for (let y = 0; y < 256; y++) {
+        for (let x = 0; x < 256; x++) {
+          const idx = (y * 256 + x) * 4;
+          const n = (Math.sin(x * 0.12) * Math.cos(y * 0.12) + (Math.random() - 0.5) * 0.4);
+          const block = isWall ? (Math.sin(y * 0.08) > 0.85 ? -0.2 : 0) : 0;
+          const factor = 1.0 + n * 0.22 + block;
+          d[idx] = Math.max(0, Math.min(255, col.r * 255 * factor));
+          d[idx + 1] = Math.max(0, Math.min(255, col.g * 255 * factor));
+          d[idx + 2] = Math.max(0, Math.min(255, col.b * 255 * factor));
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(4, 4);
+      return tex;
+    }
+
+    // Inicialización de Three.js
+    function init3D() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0f172a);
+      scene.fog = new THREE.FogExp2(0x0f172a, 0.0035);
+
+      camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.5, 2000);
+      camera.position.set(0, 160, 220);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02;
+      controls.minDistance = 8;
+      controls.maxDistance = 650;
+      controls.target.set(0, 0, 0);
+
+      // Iluminación
+      const hemi = new THREE.HemisphereLight(0xe0f2fe, 0x1e293b, 0.75);
+      scene.add(hemi);
+
+      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
+      dirLight.position.set(120, 240, 150);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 10;
+      dirLight.shadow.camera.far = 600;
+      const dRange = 250;
+      dirLight.shadow.camera.left = -dRange;
+      dirLight.shadow.camera.right = dRange;
+      dirLight.shadow.camera.top = dRange;
+      dirLight.shadow.camera.bottom = -dRange;
+      scene.add(dirLight);
+
+      // Maniquí / Avatar del héroe para verificar escala humana exacta
+      playerDummy = createPlayerDummy();
+      scene.add(playerDummy);
+
+      window.addEventListener('resize', onResize);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function createPlayerDummy() {
+      const g = new THREE.Group();
+      g.name = 'PlayerDummy';
+      const matSkin = new THREE.MeshLambertMaterial({ color: 0xfbbf24 });
+      const matArmor = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5, roughness: 0.4 });
+      const matCape = new THREE.MeshLambertMaterial({ color: 0xef4444 });
+
+      // Cuerpo
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.8, 8), matArmor);
+      torso.position.y = 1.1;
+      torso.castShadow = true;
+      g.add(torso);
+
+      // Cabeza
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), matSkin);
+      head.position.y = 1.65;
+      head.castShadow = true;
+      g.add(head);
+
+      // Piernas
+      const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.7, 6), matArmor);
+      leg1.position.set(-0.16, 0.35, 0);
+      leg1.castShadow = true;
+      g.add(leg1);
+      const leg2 = leg1.clone();
+      leg2.position.x = 0.16;
+      g.add(leg2);
+
+      // Capa roja
+      const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.9), matCape);
+      cape.position.set(0, 1.1, -0.22);
+      cape.rotation.x = 0.12;
+      g.add(cape);
+
+      // Marcador indicador flotante
+      const pin = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 6).rotateX(Math.PI), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
+      pin.position.y = 2.4;
+      g.add(pin);
+
+      return g;
+    }
+
+    // Carga de parámetros desde URL hash (#mundo=...)
+    function loadInitialPayload() {
+      try {
+        const hash = location.hash || '';
+        if (hash.startsWith('#mundo=')) {
+          const raw = decodeURIComponent(hash.slice(7));
+          zoneData = JSON.parse(raw);
+        }
+      } catch (e) {
+        console.warn('No payload en hash:', e);
+      }
+
+      if (!zoneData) {
+        zoneData = {
+          sessionId: 'default',
+          zoneId: 'zona-demo',
+          name: 'Hondonada Misteriosa',
+          radius: 120,
+          relieve: {
+            activo: true,
+            estilo: 'roca_canion',
+            culminacion: 'oasis',
+            tamGrid: 11,
+            alturaMuro: 14,
+            profundidad: 3.5,
+            seed: 12345,
+            bucleChance: 0.10,
+            entradaDir: 'sur'
+          }
+        };
+      }
+
+      document.getElementById('zone-badge').textContent = zoneData.name || 'Zona';
+      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona de Caza'} (R: ${zoneData.radius || 120}m)`;
+
+      // Asignar parámetros
+      params.radius = zoneData.radius || (zoneData.relieve && zoneData.relieve.radio) || 120;
+      if (zoneData.relieve) {
+        const r = zoneData.relieve;
+        if (r.estilo) params.estilo = r.estilo;
+        if (r.culminacion) params.culminacion = r.culminacion;
+        if (r.tamGrid) params.tamGrid = r.tamGrid;
+        if (r.alturaMuro) params.alturaMuro = r.alturaMuro;
+        if (r.profundidad) params.profundidad = r.profundidad;
+        if (r.seed) params.seed = r.seed;
+        if (r.bucleChance !== undefined) params.bucleChance = r.bucleChance;
+        if (r.entradaDir) params.entradaDir = r.entradaDir;
+        if (r.wallColor) params.wallColor = r.wallColor;
+        if (r.groundColor) params.groundColor = r.groundColor;
+        if (r.murosManuales) manualOverrides = { ...r.murosManuales };
+      }
+
+      syncUIWithParams();
+    }
+
+    function syncUIWithParams() {
+      document.getElementById('sl-radius').value = params.radius;
+      document.getElementById('lbl-radius').textContent = params.radius + ' m';
+
+      document.getElementById('sel-grid').value = params.tamGrid;
+      document.getElementById('lbl-grid').textContent = params.tamGrid + '×' + params.tamGrid;
+
+      document.getElementById('sl-height').value = params.alturaMuro;
+      document.getElementById('lbl-height').textContent = params.alturaMuro + ' m';
+
+      document.getElementById('sl-depth').value = params.profundidad;
+      document.getElementById('lbl-depth').textContent = '-' + params.profundidad + ' m';
+
+      document.getElementById('inp-seed').value = params.seed;
+      document.getElementById('sel-entrance').value = params.entradaDir;
+
+      document.getElementById('sl-loops').value = params.bucleChance;
+      document.getElementById('lbl-loops').textContent = Math.round(params.bucleChance * 100) + '%';
+
+      const est = RelieveZonaLib.ESTILOS[params.estilo] || RelieveZonaLib.ESTILOS.roca_canion;
+      document.getElementById('col-wall').value = params.wallColor || est.hex || '#78716c';
+      document.getElementById('col-ground').value = params.groundColor || '#57534e';
+
+      updateCulminationDesc();
+      renderStyleCards();
+    }
+
+    function renderStyleCards() {
+      const container = document.getElementById('styles-list');
+      container.innerHTML = '';
+      Object.keys(RelieveZonaLib.ESTILOS).forEach(key => {
+        const est = RelieveZonaLib.ESTILOS[key];
+        const card = document.createElement('div');
+        card.className = 'style-card' + (params.estilo === key ? ' selected' : '');
+        card.innerHTML = `
+          <div class="style-dot" style="background:${est.hex}"></div>
+          <div class="style-name">${est.nombre}</div>
+        `;
+        card.onclick = () => {
+          params.estilo = key;
+          params.wallColor = est.hex;
+          document.getElementById('col-wall').value = est.hex;
+          renderStyleCards();
+          rebuildAll3D();
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function renderCulmSelect() {
+      const sel = document.getElementById('sel-culm');
+      sel.innerHTML = '';
+      Object.keys(RelieveZonaLib.CULMINACIONES).forEach(k => {
+        const c = RelieveZonaLib.CULMINACIONES[k];
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = `${c.icono} ${c.nombre}`;
+        if (params.culminacion === k) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.onchange = e => {
+        params.culminacion = e.target.value;
+        updateCulminationDesc();
+        rebuildAll3D();
+      };
+    }
+
+    function updateCulminationDesc() {
+      const c = RelieveZonaLib.CULMINACIONES[params.culminacion];
+      if (c) {
+        document.getElementById('culm-desc').innerHTML = `<b>${c.icono} ${c.nombre}:</b> ${c.desc}`;
+      }
+    }
+
+    // Reconstrucción del Laberinto y Terreno 3D
+    function rebuildAll3D() {
+      const dummyZone = {
+        id: zoneData.zoneId || 'z-lab',
+        x: 0,
+        y: 0,
+        radius: params.radius,
+        relieve: {
+          activo: true,
+          radio: params.radius,
+          tamGrid: params.tamGrid,
+          alturaMuro: params.alturaMuro,
+          profundidad: params.profundidad,
+          profundidadHendidura: params.profundidad,
+          estilo: params.estilo,
+          culminacion: params.culminacion,
+          seed: params.seed,
+          bucleChance: params.bucleChance,
+          entradaDir: params.entradaDir,
+          murosManuales: manualOverrides
+        }
+      };
+
+      currentMazeData = RelieveZonaLib.obtenerDatosLaberinto(dummyZone);
+      if (!currentMazeData) return;
+
+      const cellSize = currentMazeData.cellSize;
+      document.getElementById('lbl-cellsize').textContent = `~${cellSize.toFixed(1)} m`;
+      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m`;
+
+      // 1. Reconstruir Terreno Esculpido de la Zona
+      if (terrainMesh) {
+        scene.remove(terrainMesh);
+        if (terrainMesh.geometry) terrainMesh.geometry.dispose();
+      }
+
+      const SEG = 120;
+      const sizeTerrain = params.radius * 2.8;
+      const step = sizeTerrain / SEG;
+      const N_T = SEG + 1;
+      const halfT = sizeTerrain / 2;
+
+      const pos = new Float32Array(N_T * N_T * 3);
+      const col = new Float32Array(N_T * N_T * 3);
+      const nrm = new Float32Array(N_T * N_T * 3);
+
+      const colWall = new THREE.Color(params.wallColor);
+      const colGround = new THREE.Color(params.groundColor);
+      const colGrass = new THREE.Color(0x3f6212);
+
+      const H_fn = (x, z) => RelieveZonaLib.aplicarRelieveTerreno([dummyZone], x, z, 0);
+
+      // Calcular alturas
+      for (let j = 0; j < N_T; j++) {
+        for (let i = 0; i < N_T; i++) {
+          const x = -halfT + i * step;
+          const z = -halfT + j * step;
+          const y = H_fn(x, z);
+          const k = (j * N_T + i) * 3;
+          pos[k] = x;
+          pos[k + 1] = y;
+          pos[k + 2] = z;
+        }
+      }
+
+      // Normales y color por pendiente/relieve
+      for (let j = 0; j < N_T; j++) {
+        for (let i = 0; i < N_T; i++) {
+          const k = (j * N_T + i) * 3;
+          const x = pos[k], y = pos[k + 1], z = pos[k + 2];
+          const dCenter = Math.hypot(x, z);
+
+          // Normal mediante diferencias finitas
+          const eps = step * 0.8;
+          const dx = (H_fn(x + eps, z) - H_fn(x - eps, z)) / (2 * eps);
+          const dz = (H_fn(x, z + eps) - H_fn(x, z - eps)) / (2 * eps);
+          const len = Math.hypot(-dx, 1, -dz) || 1;
+          const nx = -dx / len, ny = 1 / len, nz = -dz / len;
+          nrm[k] = nx; nrm[k + 1] = ny; nrm[k + 2] = nz;
+
+          const pend = 1 - ny; // 0 = plano, >0.4 = escarpado
+          if (dCenter > params.radius + 15) {
+            col[k] = colGrass.r; col[k + 1] = colGrass.g; col[k + 2] = colGrass.b;
+          } else {
+            const tWall = THREE.MathUtils.smoothstep(pend, 0.25, 0.65);
+            const cFinal = colGround.clone().lerp(colWall, tWall);
+            col[k] = cFinal.r; col[k + 1] = cFinal.g; col[k + 2] = cFinal.b;
+          }
+        }
+      }
+
+      const indices = [];
+      for (let j = 0; j < SEG; j++) {
+        for (let i = 0; i < SEG; i++) {
+          const a = j * N_T + i, b = a + 1, c = a + N_T, d = c + 1;
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geom.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+      geom.setIndex(indices);
+
+      const texGround = createProceduralNoiseTexture(params.groundColor, 0.85, false);
+      const matTerrain = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.88,
+        metalness: 0.08,
+        map: texGround
+      });
+
+      terrainMesh = new THREE.Mesh(geom, matTerrain);
+      terrainMesh.receiveShadow = true;
+      terrainMesh.castShadow = true;
+      scene.add(terrainMesh);
+
+      // 2. Malla adicional de muros para aristas y volumen arquitectónico limpio
+      if (wallsMesh) {
+        scene.remove(wallsMesh);
+        if (wallsMesh.geometry) wallsMesh.geometry.dispose();
+      }
+      const wallGeoms = [];
+      const { muros } = currentMazeData;
+      const hMuro3D = params.alturaMuro * 0.95;
+      muros.forEach(m => {
+        const boxG = new THREE.BoxGeometry(m.half * 1.96, hMuro3D, m.half * 1.96);
+        boxG.translate(m.wx, hMuro3D / 2 - params.profundidad * 0.4, m.wz);
+        wallGeoms.push(boxG);
+      });
+
+      // 3. Reconstruir Decorado de Culminación Central
+      if (culmGroup) {
+        scene.remove(culmGroup);
+      }
+      culmGroup = RelieveZonaLib.crearDecoradoCulminacion(THREE, dummyZone, (x, z) => H_fn(x, z));
+      if (culmGroup) {
+        scene.add(culmGroup);
+      }
+
+      // 4. Ubicar el Avatar del Jugador en la entrada
+      if (playerDummy && currentMazeData.entrada) {
+        const ex = currentMazeData.entrada.wx;
+        const ez = currentMazeData.entrada.wz;
+        const ey = H_fn(ex, ez);
+        playerDummy.position.set(ex, ey, ez);
+        // Mirar hacia el centro
+        playerDummy.lookAt(0, ey, 0);
+      }
+
+      // 5. Actualizar el Canvas 2D
+      draw2DMaze();
+    }
+
+    // Dibujado del Canvas 2D interactivo
+    function draw2DMaze() {
+      const cv = document.getElementById('mazeCanvas');
+      if (!cv || !currentMazeData) return;
+      const ctx = cv.getContext('2d');
+      const N = currentMazeData.N;
+      const grid = currentMazeData.grid;
+      const w = cv.width;
+      const h = cv.height;
+      const cw = w / N;
+      const ch = h / N;
+
+      ctx.clearRect(0, 0, w, h);
+
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+          const val = grid[y][x];
+          if (val === 2) {
+            ctx.fillStyle = '#090d16';
+          } else if (val === 1) {
+            ctx.fillStyle = params.wallColor || '#475569';
+          } else {
+            ctx.fillStyle = '#e2e8f0';
+          }
+          ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
+        }
+      }
+
+      // Resaltar centro / culminación
+      const mid = Math.round((N - 1) / 2);
+      ctx.fillStyle = '#f59e0b';
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          ctx.fillRect((mid + dx) * cw, (mid + dy) * ch, cw - 0.5, ch - 0.5);
+        }
+      }
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', (mid + 0.5) * cw, (mid + 0.5) * ch);
+
+      // Resaltar entrada
+      if (currentMazeData.entrada) {
+        const ex = currentMazeData.entrada.gx;
+        const ey = currentMazeData.entrada.gy;
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(ex * cw, ey * ch, cw - 0.5, ch - 0.5);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('▲', (ex + 0.5) * cw, (ey + 0.5) * ch);
+      }
+    }
+
+    // Interacción con el lienzo 2D para alternar celdas con clic/arrastre
+    function setupCanvasInteraction() {
+      const cv = document.getElementById('mazeCanvas');
+      let isDrawing = false;
+      let targetVal = null;
+
+      function handleCellAction(e) {
+        if (!currentMazeData) return;
+        const rect = cv.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const px = clientX - rect.left;
+        const py = clientY - rect.top;
+
+        const N = currentMazeData.N;
+        const gx = Math.floor((px / rect.width) * N);
+        const gy = Math.floor((py / rect.height) * N);
+
+        if (gx < 0 || gx >= N || gy < 0 || gy >= N) return;
+        if (currentMazeData.grid[gy][gx] === 2) return; // Fuera de zona
+
+        const mid = Math.round((N - 1) / 2);
+        if (Math.abs(gx - mid) <= 1 && Math.abs(gy - mid) <= 1) return; // Centro intocable
+        if (currentMazeData.entrada && gx === currentMazeData.entrada.gx && gy === currentMazeData.entrada.gy) return;
+
+        const curVal = currentMazeData.grid[gy][gx];
+        if (targetVal === null) {
+          targetVal = curVal === 1 ? 0 : 1;
+        }
+
+        manualOverrides[`${gx}_${gy}`] = targetVal;
+        currentMazeData.grid[gy][gx] = targetVal;
+        rebuildAll3D();
+      }
+
+      cv.addEventListener('mousedown', e => {
+        isDrawing = true;
+        targetVal = null;
+        handleCellAction(e);
+      });
+      window.addEventListener('mousemove', e => {
+        if (isDrawing) handleCellAction(e);
+      });
+      window.addEventListener('mouseup', () => {
+        isDrawing = false;
+        targetVal = null;
+      });
+
+      // Touch
+      cv.addEventListener('touchstart', e => {
+        isDrawing = true;
+        targetVal = null;
+        handleCellAction(e);
+      }, { passive: false });
+      cv.addEventListener('touchmove', e => {
+        if (isDrawing) handleCellAction(e);
+      }, { passive: false });
+      window.addEventListener('touchend', () => {
+        isDrawing = false;
+        targetVal = null;
+      });
+    }
+
+    // Puntos de vista de la cámara
+    function setCameraView(view) {
+      document.querySelectorAll('.cam-btn').forEach(b => b.classList.toggle('active', b.dataset.cam === view));
+      if (!currentMazeData) return;
+      const R = params.radius;
+
+      if (view === 'overview') {
+        controls.target.set(0, 0, 0);
+        camera.position.set(0, R * 1.5, R * 1.8);
+      } else if (view === 'entrance') {
+        if (currentMazeData.entrada) {
+          const ex = currentMazeData.entrada.wx;
+          const ez = currentMazeData.entrada.wz;
+          controls.target.set(ex, 2, ez);
+          camera.position.set(ex * 1.25, 18, ez * 1.25 + 35);
+        }
+      } else if (view === 'center') {
+        controls.target.set(0, 4, 0);
+        camera.position.set(0, 24, 45);
+      } else if (view === 'human') {
+        if (currentMazeData.entrada) {
+          const ex = currentMazeData.entrada.wx;
+          const ez = currentMazeData.entrada.wz;
+          controls.target.set(ex * 0.8, 1.8, ez * 0.8);
+          camera.position.set(ex, 2.2, ez + 4);
+        }
+      }
+      controls.update();
+    }
+
+    // Configuración de eventos UI
+    function setupUIEvents() {
+      // Toggle UI
+      const btnToggle = document.getElementById('btn-toggle-ui');
+      const panel = document.getElementById('ui-panel');
+      btnToggle.onclick = () => panel.classList.toggle('hide');
+
+      // Sliders & Selects
+      const slRadius = document.getElementById('sl-radius');
+      slRadius.oninput = e => {
+        params.radius = parseInt(e.target.value, 10);
+        document.getElementById('lbl-radius').textContent = params.radius + ' m';
+        rebuildAll3D();
+      };
+
+      const selGrid = document.getElementById('sel-grid');
+      selGrid.onchange = e => {
+        params.tamGrid = parseInt(e.target.value, 10);
+        document.getElementById('lbl-grid').textContent = params.tamGrid + '×' + params.tamGrid;
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      const slHeight = document.getElementById('sl-height');
+      slHeight.oninput = e => {
+        params.alturaMuro = parseInt(e.target.value, 10);
+        document.getElementById('lbl-height').textContent = params.alturaMuro + ' m';
+        rebuildAll3D();
+      };
+
+      const slDepth = document.getElementById('sl-depth');
+      slDepth.oninput = e => {
+        params.profundidad = parseFloat(e.target.value);
+        document.getElementById('lbl-depth').textContent = '-' + params.profundidad + ' m';
+        rebuildAll3D();
+      };
+
+      const inpSeed = document.getElementById('inp-seed');
+      inpSeed.onchange = e => {
+        params.seed = parseInt(e.target.value, 10) || 12345;
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      document.getElementById('btn-roll').onclick = () => {
+        params.seed = Math.floor(Math.random() * 99999) + 1;
+        inpSeed.value = params.seed;
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      document.getElementById('sel-entrance').onchange = e => {
+        params.entradaDir = e.target.value;
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      const slLoops = document.getElementById('sl-loops');
+      slLoops.oninput = e => {
+        params.bucleChance = parseFloat(e.target.value);
+        document.getElementById('lbl-loops').textContent = Math.round(params.bucleChance * 100) + '%';
+        rebuildAll3D();
+      };
+
+      document.getElementById('col-wall').onchange = e => {
+        params.wallColor = e.target.value;
+        rebuildAll3D();
+      };
+      document.getElementById('col-ground').onchange = e => {
+        params.groundColor = e.target.value;
+        rebuildAll3D();
+      };
+
+      // Limpiar manuales
+      document.getElementById('btn-clear-manual').onclick = () => {
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      // Abrir todo
+      document.getElementById('btn-all-open').onclick = () => {
+        if (!currentMazeData) return;
+        const N = currentMazeData.N;
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            if (currentMazeData.grid[y][x] === 1) {
+              manualOverrides[`${x}_${y}`] = 0;
+            }
+          }
+        }
+        rebuildAll3D();
+      };
+
+      // Cámaras
+      document.querySelectorAll('.cam-btn').forEach(b => {
+        b.onclick = () => setCameraView(b.dataset.cam);
+      });
+
+      // Salir
+      document.getElementById('btn-exit').onclick = () => {
+        location.href = 'index.html';
+      };
+
+      // Resetear
+      document.getElementById('btn-reset').onclick = () => {
+        manualOverrides = {};
+        loadInitialPayload();
+        rebuildAll3D();
+      };
+
+      // Guardar y Volver
+      document.getElementById('btn-save').onclick = () => {
+        const payloadRetorno = {
+          sessionId: zoneData.sessionId,
+          zoneId: zoneData.zoneId,
+          radius: params.radius,
+          relieve: {
+            activo: true,
+            radio: params.radius,
+            tamGrid: params.tamGrid,
+            alturaMuro: params.alturaMuro,
+            profundidad: params.profundidad,
+            profundidadHendidura: params.profundidad,
+            estilo: params.estilo,
+            culminacion: params.culminacion,
+            seed: params.seed,
+            bucleChance: params.bucleChance,
+            entradaDir: params.entradaDir,
+            wallColor: params.wallColor,
+            groundColor: params.groundColor,
+            murosManuales: manualOverrides
+          }
+        };
+
+        try {
+          localStorage.setItem('rpgMundo.retornoLaberinto', JSON.stringify(payloadRetorno));
+        } catch (e) {
+          console.error('Error guardando en localStorage:', e);
+        }
+        location.href = 'index.html';
+      };
+    }
+
+    // Bucle de animación
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+
+      // Animación suave del agua u orbe del centro si existe
+      if (culmGroup && culmGroup.userData && culmGroup.userData.reliquiaMesh) {
+        culmGroup.userData.reliquiaMesh.rotation.y += 0.02;
+        culmGroup.userData.reliquiaMesh.position.y += Math.sin(Date.now() * 0.003) * 0.004;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Arranque
+    init3D();
+    setupUIEvents();
+    renderCulmSelect();
+    loadInitialPayload();
+    setupCanvasInteraction();
+    rebuildAll3D();
+    animate();
+  </script>
+</body>
+</html>

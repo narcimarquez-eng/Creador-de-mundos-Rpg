@@ -39,6 +39,38 @@
       colorTop: [0.24, 0.36, 0.22],
       hex: '#15803d',
       desc: 'Muros densos de vegetación salvaje entrelazados con formaciones rocosas.'
+    },
+    arenisca_desierto: {
+      id: 'arenisca_desierto',
+      nombre: 'Arenisca & Cañón Dorado',
+      colorPared: [0.55, 0.42, 0.26],
+      colorTop: [0.65, 0.52, 0.35],
+      hex: '#d97706',
+      desc: 'Bloques de arenisca erosionada y desfiladeros de tonos cálidos desérticos.'
+    },
+    obsidiana_volcanica: {
+      id: 'obsidiana_volcanica',
+      nombre: 'Catacumbas de Obsidiana',
+      colorPared: [0.15, 0.12, 0.22],
+      colorTop: [0.28, 0.20, 0.38],
+      hex: '#581c87',
+      desc: 'Roca volcánica negra y obsidiana con reflejos oscuros y ceniza.'
+    },
+    hielo_glacial: {
+      id: 'hielo_glacial',
+      nombre: 'Hielo Glacial & Fisuras',
+      colorPared: [0.25, 0.45, 0.60],
+      colorTop: [0.65, 0.82, 0.95],
+      hex: '#38bdf8',
+      desc: 'Paredes de hielo compacto y escarcha cristalina entre grietas glaciares.'
+    },
+    mamposteria_castillo: {
+      id: 'mamposteria_castillo',
+      nombre: 'Mampostería y Bastiones',
+      colorPared: [0.38, 0.36, 0.35],
+      colorTop: [0.52, 0.50, 0.48],
+      hex: '#71717a',
+      desc: 'Muros de fortaleza medieval con sillares de piedra labrada y almenas.'
     }
   };
 
@@ -103,11 +135,14 @@
    * Usa algoritmo DFS con backtracking determinista para garantizar pasillos continuos,
    * recovecos y acceso garantizado desde la entrada perimetral hasta la explanada central.
    */
-  function generarLaberinto(tamGrid, seed) {
-    const N = Math.max(9, Math.min(21, tamGrid % 2 === 0 ? tamGrid + 1 : tamGrid));
+  function generarLaberinto(tamGrid, seed, opciones = {}) {
+    const N = Math.max(7, Math.min(31, tamGrid % 2 === 0 ? tamGrid + 1 : tamGrid));
     const grid = Array.from({ length: N }, () => Array(N).fill(1));
     const mid = (N - 1) / 2;
     const radCells = mid - 0.4;
+    const bucleChance = typeof opciones.bucleChance === 'number' ? opciones.bucleChance : 0;
+    const entradaDir = opciones.entradaDir || 'sur';
+    const murosManuales = opciones.murosManuales || null;
 
     let s = (seed || 12345) >>> 0;
     function rnd() {
@@ -171,25 +206,89 @@
       }
     }
 
+    // 3b. Bucles y atajos tácticos opcionales
+    if (bucleChance > 0) {
+      for (let y = 1; y < N - 1; y++) {
+        for (let x = 1; x < N - 1; x++) {
+          if (grid[y][x] === 1 && Math.hypot(x - mid, y - mid) < radCells - 0.5) {
+            const hConn = (grid[y][x - 1] === 0 && grid[y][x + 1] === 0);
+            const vConn = (grid[y - 1] && grid[y - 1][x] === 0 && grid[y + 1] && grid[y + 1][x] === 0);
+            if ((hConn || vConn) && rnd() < bucleChance) {
+              grid[y][x] = 0;
+            }
+          }
+        }
+      }
+    }
+
     // 4. Conexión de la explanada central con los corredores del laberinto
     grid[m - 1][m] = 0;
     grid[m + 1][m] = 0;
     grid[m][m - 1] = 0;
     grid[m][m + 1] = 0;
 
-    // 5. Entrada del laberinto al sur (perímetro)
-    let entradaY = N - 1;
-    while (entradaY > m + 1 && (grid[entradaY][m] === 2 || grid[entradaY][m] === 1)) {
-      grid[entradaY][m] = 0;
-      if (grid[entradaY - 1] && grid[entradaY - 1][m] === 0) break;
-      entradaY--;
+    // 5. Entrada del laberinto según dirección configurada
+    let entrada = { gx: m, gy: N - 1 };
+    if (entradaDir === 'norte') {
+      let ey = 0;
+      while (ey < m - 1 && (grid[ey][m] === 2 || grid[ey][m] === 1)) {
+        grid[ey][m] = 0;
+        if (grid[ey + 1] && grid[ey + 1][m] === 0) break;
+        ey++;
+      }
+      entrada = { gx: m, gy: 0 };
+    } else if (entradaDir === 'este') {
+      let ex = N - 1;
+      while (ex > m + 1 && (grid[m][ex] === 2 || grid[m][ex] === 1)) {
+        grid[m][ex] = 0;
+        if (grid[m][ex - 1] === 0) break;
+        ex--;
+      }
+      entrada = { gx: N - 1, gy: m };
+    } else if (entradaDir === 'oeste') {
+      let ex = 0;
+      while (ex < m - 1 && (grid[m][ex] === 2 || grid[m][ex] === 1)) {
+        grid[m][ex] = 0;
+        if (grid[m][ex + 1] === 0) break;
+        ex++;
+      }
+      entrada = { gx: 0, gy: m };
+    } else {
+      // Sur por defecto
+      let entradaY = N - 1;
+      while (entradaY > m + 1 && (grid[entradaY][m] === 2 || grid[entradaY][m] === 1)) {
+        grid[entradaY][m] = 0;
+        if (grid[entradaY - 1] && grid[entradaY - 1][m] === 0) break;
+        entradaY--;
+      }
+      entrada = { gx: m, gy: N - 1 };
     }
-    const entrada = { gx: m, gy: N - 1 };
 
-    // 6. Verificación de camino continuo mediante BFS
+    // 6. Aplicar modificaciones manuales si existen (desde el editor interactivo)
+    if (murosManuales && typeof murosManuales === 'object') {
+      Object.keys(murosManuales).forEach(k => {
+        const parts = k.split('_');
+        if (parts.length === 2) {
+          const gx = parseInt(parts[0], 10);
+          const gy = parseInt(parts[1], 10);
+          if (gx >= 0 && gx < N && gy >= 0 && gy < N && grid[gy][gx] !== 2) {
+            grid[gy][gx] = murosManuales[k] ? 1 : 0;
+          }
+        }
+      });
+      // Asegurar explanada central siempre abierta
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          grid[m + dy][m + dx] = 0;
+        }
+      }
+      grid[entrada.gy][entrada.gx] = 0;
+    }
+
+    // 7. Verificación de camino continuo mediante BFS
     const visitados = Array.from({ length: N }, () => Array(N).fill(false));
-    const queue = [[m, N - 1]];
-    visitados[N - 1][m] = true;
+    const queue = [[entrada.gx, entrada.gy]];
+    visitados[entrada.gy][entrada.gx] = true;
     let llegaAlCentro = false;
     const D1 = [
       [0, -1],
@@ -215,7 +314,15 @@
 
     // Si por alguna razón el DFS no abrió la entrada al centro, forzar apertura directa
     if (!llegaAlCentro) {
-      for (let y = N - 1; y >= m; y--) grid[y][m] = 0;
+      if (entradaDir === 'sur') {
+        for (let y = N - 1; y >= m; y--) grid[y][m] = 0;
+      } else if (entradaDir === 'norte') {
+        for (let y = 0; y <= m; y++) grid[y][m] = 0;
+      } else if (entradaDir === 'este') {
+        for (let x = N - 1; x >= m; x--) grid[m][x] = 0;
+      } else {
+        for (let x = 0; x <= m; x++) grid[m][x] = 0;
+      }
     }
 
     return { N, grid, entrada, centro: { gx: m, gy: m } };
@@ -229,24 +336,35 @@
     if (!zonaTieneLaberinto(zona)) return null;
 
     const r = zona.relieve || {};
-    const tamGrid = r.tamGrid || (r.complejidad === 'simple' ? 9 : r.complejidad === 'complejo' ? 15 : 11);
+    // Radio del laberinto: usa el radio específico del laberinto o se sincroniza con el radio total de la zona
+    const R = (r && typeof r.radio === 'number' && r.radio > 0)
+      ? r.radio
+      : Math.max(60, zona.radius || 100);
+
+    // Ajuste adaptativo de celdas para mantener pasillos en escala de aventura humana (~12 a 16 metros)
+    const celdaDeseada = 14;
+    const nAuto = Math.max(9, Math.min(27, Math.round((2 * R) / celdaDeseada) | 1));
+    const tamGrid = r.tamGrid || (r.complejidad === 'simple' ? 9 : r.complejidad === 'complejo' ? 17 : nAuto);
     const seed = typeof r.seed === 'number' ? r.seed : 12345;
     const alturaMuro = typeof r.alturaMuro === 'number' ? r.alturaMuro : typeof r.profundidad === 'number' ? r.profundidad : 14;
     const estilo = r.estilo || r.tipo || 'roca_canion';
     const culminacion = r.culminacion || 'oasis';
+    const bucleChance = typeof r.bucleChance === 'number' ? r.bucleChance : 0.08;
+    const entradaDir = r.entradaDir || 'sur';
+    const manualesKey = r.murosManuales ? JSON.stringify(r.murosManuales) : '';
 
-    const cacheKey = `${zona.id}_${zona.x}_${zona.y}_${zona.radius}_${tamGrid}_${seed}_${alturaMuro}_${estilo}_${culminacion}`;
+    const cacheKey = `${zona.id}_${zona.x}_${zona.y}_${R}_${tamGrid}_${seed}_${alturaMuro}_${estilo}_${culminacion}_${bucleChance}_${entradaDir}_${manualesKey}`;
     if (zona._cacheLaberinto && zona._cacheLaberintoKey === cacheKey) {
       return zona._cacheLaberinto;
     }
 
-    const { N, grid, entrada, centro } = generarLaberinto(tamGrid, seed);
+    const { N, grid, entrada, centro } = generarLaberinto(tamGrid, seed, {
+      bucleChance,
+      entradaDir,
+      murosManuales: r.murosManuales
+    });
     const zx = zona.x;
-    const zz = zona.y;
-    // El desfiladero de laberinto mantiene una escala humana (pasillos de 12-16m) ajustando el radio efectivo
-    const R = (zona.relieve && typeof zona.relieve.radio === 'number')
-      ? zona.relieve.radio
-      : Math.max(70, Math.min(zona.radius || 100, 120));
+    const zz = (zona.y !== undefined ? zona.y : zona.z) || 0;
     const cellSize = (2 * R) / N;
     const halfN = (N - 1) / 2;
 
