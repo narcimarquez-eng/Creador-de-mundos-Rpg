@@ -315,3 +315,55 @@ test('RelieveZonaLib - Múltiples monstruos por casilla (hasta 8) con formación
     posiciones.add(keyPos);
   });
 });
+
+test('RelieveZonaLib - Las casillas de monstruos quedan libres de colisionadores de muros y transitables', () => {
+  const zona = {
+    id: 'z-muros-libres',
+    x: 450,
+    y: 700,
+    radius: 120,
+    relieve: {
+      activo: true,
+      tamGrid: 11,
+      patronesMonstruos: {
+        p_arquero: {
+          id: 'p_arquero',
+          name: 'Arquero Elfico',
+          color: '#3b82f6',
+          clase: 'arquero',
+          levelMin: 12,
+          count: 2
+        }
+      },
+      celdasMonstruos: {
+        '2_2': 'p_arquero',
+        '8_8': 'p_arquero'
+      }
+    }
+  };
+
+  const lab = RelieveZonaLib.obtenerDatosLaberinto(zona);
+  assert.ok(lab, 'Debe generar datos de laberinto');
+
+  // Comprobar que las celdas asignadas tienen grid = 0
+  assert.strictEqual(lab.grid[2][2], 0, 'La celda 2,2 debe ser camino (0)');
+  assert.strictEqual(lab.grid[8][8], 0, 'La celda 8,8 debe ser camino (0)');
+
+  // Ningún muro/collider debe generarse en gx=2,gy=2 ni en gx=8,gy=8
+  const colliderEn22 = lab.colliders.find(c => c.gx === 2 && c.gy === 2);
+  const colliderEn88 = lab.colliders.find(c => c.gx === 8 && c.gy === 8);
+  assert.strictEqual(colliderEn22, undefined, 'No debe haber collider de muro en la celda de monstruos 2,2');
+  assert.strictEqual(colliderEn88, undefined, 'No debe haber collider de muro en la celda de monstruos 8,8');
+
+  // Las coordenadas de los monstruos deben coincidir con la zona y estar distribuidas
+  const mons = RelieveZonaLib.obtenerMonstruosPorCelda(zona);
+  assert.strictEqual(mons.length, 4, 'Deben ser 4 monstruos (2 casillas × 2)');
+  mons.forEach(m => {
+    // Debe estar dentro del radio de la zona respecto a su centro (450, 700)
+    const distCentro = Math.hypot(m.wx - 450, m.wz - 700);
+    assert.ok(distCentro < 120, `El monstruo debe estar dentro del radio de la zona, dist: ${distCentro}`);
+    // No debe estar cerca de (0, 0)
+    const distOrigen = Math.hypot(m.wx, m.wz);
+    assert.ok(distOrigen > 100, `El monstruo no debe estar acumulado en el origen (0,0), dist: ${distOrigen}`);
+  });
+});

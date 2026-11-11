@@ -439,6 +439,20 @@
       };
     };
 
+    const celdasMonstruos = (r && r.celdasMonstruos && typeof r.celdasMonstruos === 'object') ? r.celdasMonstruos : {};
+    const patronesMonstruos = (r && r.patronesMonstruos && typeof r.patronesMonstruos === 'object') ? r.patronesMonstruos : PATRONES_MONSTRUOS_DEFECTO;
+
+    // Asegurar que las celdas asignadas a monstruos queden abiertas como camino transitable ANTES de crear colisionadores
+    Object.keys(celdasMonstruos).forEach(key => {
+      const parts = key.split('_');
+      if (parts.length === 2) {
+        const gx = parseInt(parts[0], 10), gy = parseInt(parts[1], 10);
+        if (gx >= 0 && gx < N && gy >= 0 && gy < N && grid[gy][gx] !== 2) {
+          grid[gy][gx] = 0;
+        }
+      }
+    });
+
     // Cajas de colisión para los muros y listado de celdas de pasillo/camino
     const colliders = [];
     const muros = [];
@@ -472,20 +486,6 @@
 
     const posEntrada = celdaAMundo(entrada.gx, entrada.gy);
     const posCentro = celdaAMundo(centro.gx, centro.gy);
-
-    const celdasMonstruos = (r && r.celdasMonstruos && typeof r.celdasMonstruos === 'object') ? r.celdasMonstruos : {};
-    const patronesMonstruos = (r && r.patronesMonstruos && typeof r.patronesMonstruos === 'object') ? r.patronesMonstruos : PATRONES_MONSTRUOS_DEFECTO;
-
-    // Asegurar que las celdas asignadas a monstruos queden abiertas como camino transitable
-    Object.keys(celdasMonstruos).forEach(key => {
-      const parts = key.split('_');
-      if (parts.length === 2) {
-        const gx = parseInt(parts[0], 10), gy = parseInt(parts[1], 10);
-        if (gx >= 0 && gx < N && gy >= 0 && gy < N && grid[gy][gx] !== 2) {
-          grid[gy][gx] = 0;
-        }
-      }
-    });
 
     // Lista de monstruos asignados por celda
     const monstruosPorCelda = [];

@@ -1995,6 +1995,32 @@
         z.relieve = Object.assign({}, z.relieve, data.relieve);
         delete z._cacheLaberinto;
         delete z._cacheLaberintoKey;
+
+        // Sincronizar la lista de monstruos de la zona (exterior) con los patrones asignados dentro del laberinto
+        if (data.relieve.celdasMonstruos && Object.keys(data.relieve.celdasMonstruos).length > 0) {
+          const patronesUsados = new Set(Object.values(data.relieve.celdasMonstruos));
+          const nuevosMonstruos = [];
+          patronesUsados.forEach(patId => {
+            const pat = (data.relieve.patronesMonstruos && data.relieve.patronesMonstruos[patId]) || null;
+            if (pat) {
+              nuevosMonstruos.push({
+                name: pat.name || 'Monstruo',
+                level: pat.levelMin || 10,
+                levelMin: pat.levelMin || 10,
+                levelMax: pat.levelMax || pat.levelMin || 10,
+                density: (pat.count || 1) >= 4 ? 'alta' : ((pat.count || 1) >= 2 ? 'media' : 'baja'),
+                boss: (pat.clase === 'elite'),
+                clase: pat.clase || 'guerrero',
+                enemigo: null,
+                color: pat.color || '#22c55e',
+                count: pat.count || 1
+              });
+            }
+          });
+          if (nuevosMonstruos.length > 0) {
+            z.monsters = nuevosMonstruos;
+          }
+        }
       }
       if (data.conectarCaminoPueblo && world.towns.length) {
         let bestTown = world.towns[0], bestD = Infinity;
