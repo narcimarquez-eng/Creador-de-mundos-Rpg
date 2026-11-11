@@ -1090,60 +1090,92 @@
 
       // Asignar parámetros
       params.radius = zoneData.radius || (zoneData.relieve && zoneData.relieve.radio) || 120;
-      if (zoneData.relieve) {
-        const r = zoneData.relieve;
-        if (r.estilo) params.estilo = r.estilo;
-        if (r.culminacion) params.culminacion = r.culminacion;
-        if (r.tamGrid) params.tamGrid = r.tamGrid;
-        if (r.alturaMuro) params.alturaMuro = r.alturaMuro;
-        if (r.profundidad) params.profundidad = r.profundidad;
-        if (r.seed) params.seed = r.seed;
-        if (r.bucleChance !== undefined) params.bucleChance = r.bucleChance;
-        if (r.rotacion !== undefined) params.rotacion = r.rotacion;
-        if (Array.isArray(r.entradas) && r.entradas.length) {
-          params.entradas = [...r.entradas];
-        } else if (r.entradaDir) {
-          params.entradas = [r.entradaDir];
-        }
-        if (r.wallColor) params.wallColor = r.wallColor;
-        if (r.groundColor) params.groundColor = r.groundColor;
-        if (r.murosManuales) manualOverrides = { ...r.murosManuales };
-        if (r.patronesMonstruos && typeof r.patronesMonstruos === 'object') {
-          params.patronesMonstruos = { ...r.patronesMonstruos };
-        }
-        if (r.celdasMonstruos && typeof r.celdasMonstruos === 'object') {
-          params.celdasMonstruos = { ...r.celdasMonstruos };
-        }
+      const r = (zoneData && zoneData.relieve) ? zoneData.relieve : {};
+
+      if (r.estilo) params.estilo = r.estilo;
+      if (r.culminacion) params.culminacion = r.culminacion;
+      if (r.tamGrid) params.tamGrid = r.tamGrid;
+      if (r.alturaMuro) params.alturaMuro = r.alturaMuro;
+      if (r.profundidad) params.profundidad = r.profundidad;
+      if (r.seed) params.seed = r.seed;
+      if (r.bucleChance !== undefined) params.bucleChance = r.bucleChance;
+      if (r.rotacion !== undefined) params.rotacion = r.rotacion;
+      if (Array.isArray(r.entradas) && r.entradas.length) {
+        params.entradas = [...r.entradas];
+      } else if (r.entradaDir) {
+        params.entradas = [r.entradaDir];
+      }
+      if (r.wallColor) params.wallColor = r.wallColor;
+      if (r.groundColor) params.groundColor = r.groundColor;
+      if (r.murosManuales) manualOverrides = { ...r.murosManuales };
+      if (r.patronesMonstruos && typeof r.patronesMonstruos === 'object') {
+        params.patronesMonstruos = { ...r.patronesMonstruos };
+      }
+      if (r.celdasMonstruos && typeof r.celdasMonstruos === 'object') {
+        params.celdasMonstruos = { ...r.celdasMonstruos };
       }
 
       // Sincronizar patrones con los monstruos reales de la zona si vienen de index.html
-      if (zoneData.monsters && Array.isArray(zoneData.monsters) && zoneData.monsters.length > 0) {
-        const esDefault = !r || !r.patronesMonstruos || Object.keys(params.patronesMonstruos).length <= 3;
-        if (esDefault) {
-          const paletaColores = ['#ef4444', '#f97316', '#eab308', '#10b981', '#06b6d4', '#6366f1', '#a855f7', '#ec4899'];
-          const nuevosPatrones = {};
-          zoneData.monsters.forEach((zm, zIdx) => {
-            const pId = 'pat-' + (zIdx + 1);
-            nuevosPatrones[pId] = {
-              nombre: zm.name || ('Monstruo ' + (zIdx + 1)),
-              color: paletaColores[zIdx % paletaColores.length],
-              clase: zm.boss ? 'jefe' : (zm.name && (zm.name.toLowerCase().includes('mago') || zm.name.toLowerCase().includes('arcano')) ? 'mago' : (zm.name && (zm.name.toLowerCase().includes('arquero') || zm.name.toLowerCase().includes('cazador')) ? 'arquero' : 'guerrero')),
-              nivel: zm.level || 1,
-              esJefe: !!zm.boss,
-              count: zm.boss ? 1 : Math.min(4, Math.max(1, zm.count || 2))
-            };
-          });
-          params.patronesMonstruos = nuevosPatrones;
-          activePatternId = Object.keys(nuevosPatrones)[0] || 'pat-1';
-        }
+      const tienePatronesPrevios = r && r.patronesMonstruos && Object.keys(r.patronesMonstruos).length > 0;
+      if (!tienePatronesPrevios && zoneData.monsters && Array.isArray(zoneData.monsters) && zoneData.monsters.length > 0) {
+        const paletaColores = ['#22c55e', '#3b82f6', '#ef4444', '#a855f7', '#f97316', '#eab308', '#06b6d4', '#ec4899'];
+        const nuevosPatrones = {};
+        zoneData.monsters.forEach((zm, zIdx) => {
+          const pId = 'p' + (zIdx + 1);
+          const zmName = zm.name || ('Monstruo ' + (zIdx + 1));
+          const zmLower = zmName.toLowerCase();
+          let clase = 'guerrero';
+          if (zm.boss || zm.clase === 'elite' || zm.clase === 'jefe') {
+            clase = 'elite';
+          } else if (zm.clase === 'mago' || zmLower.includes('mago') || zmLower.includes('arcano') || zmLower.includes('hechicero') || zmLower.includes('brujo')) {
+            clase = 'mago';
+          } else if (zm.clase === 'arquero' || zmLower.includes('arquero') || zmLower.includes('cazador') || zmLower.includes('ballestero') || zmLower.includes('tirador')) {
+            clase = 'arquero';
+          } else if (zm.clase === 'rapido' || zmLower.includes('lobo') || zmLower.includes('araña') || zmLower.includes('alimaña') || zmLower.includes('rapido')) {
+            clase = 'rapido';
+          }
+          const icono = clase === 'arquero' ? '🏹' : clase === 'mago' ? '🔮' : clase === 'elite' ? '👑' : clase === 'rapido' ? '🦂' : '⚔️';
+          const lvl = zm.level || zm.levelMin || 10;
+          const lvlMax = zm.levelMax || (zm.boss ? lvl : (lvl + 2));
+          const count = zm.count || (zm.density === 'alta' ? 4 : zm.density === 'media' ? 2 : 1);
+          nuevosPatrones[pId] = {
+            id: pId,
+            name: zmName,
+            nombre: zmName,
+            color: zm.color || paletaColores[zIdx % paletaColores.length],
+            clase: clase,
+            levelMin: lvl,
+            levelMax: lvlMax,
+            level: lvl,
+            nivel: lvl,
+            count: Math.max(1, Math.min(8, count)),
+            icono: icono,
+            esJefe: (clase === 'elite' || !!zm.boss)
+          };
+        });
+        params.patronesMonstruos = nuevosPatrones;
+        activePatternId = Object.keys(nuevosPatrones)[0] || 'p1';
       }
+
+      // Normalizar campos en cada patrón existente para asegurar consistencia
+      Object.keys(params.patronesMonstruos).forEach(id => {
+        const pat = params.patronesMonstruos[id];
+        if (!pat.id) pat.id = id;
+        if (!pat.name) pat.name = pat.nombre || ('Patrón ' + id);
+        if (!pat.nombre) pat.nombre = pat.name;
+        if (!pat.clase) pat.clase = 'guerrero';
+        if (!pat.icono) {
+          pat.icono = pat.clase === 'arquero' ? '🏹' : pat.clase === 'mago' ? '🔮' : pat.clase === 'elite' ? '👑' : pat.clase === 'rapido' ? '🦂' : '⚔️';
+        }
+        if (pat.levelMin === undefined) pat.levelMin = pat.nivel || pat.level || 10;
+        if (pat.levelMax === undefined) pat.levelMax = pat.levelMin;
+        if (!pat.count) pat.count = 1;
+        if (!pat.color) pat.color = '#22c55e';
+      });
 
       // Si la zona no tiene celdas pintadas todavía, auto-distribuir los monstruos por los pasillos
       if (!params.celdasMonstruos || Object.keys(params.celdasMonstruos).length === 0) {
-        const dummyLab = RelieveZonaLib.generarLaberinto({
-          radio: params.radius,
-          tamGrid: params.tamGrid,
-          seed: params.seed,
+        const dummyLab = RelieveZonaLib.generarLaberinto(params.tamGrid, params.seed, {
           bucleChance: params.bucleChance,
           entradas: params.entradas
         });
@@ -1167,7 +1199,7 @@
               const idxP = (i * salto) % pasillos.length;
               const cel = pasillos[idxP];
               const pId = patIds[i % patIds.length];
-              params.celdasMonstruos[`${cel.gx},${cel.gy}`] = pId;
+              params.celdasMonstruos[`${cel.gx}_${cel.gy}`] = pId;
             }
           }
         }
@@ -1366,6 +1398,7 @@
       currentMazeData = RelieveZonaLib.obtenerDatosLaberinto(dummyZone);
       if (!currentMazeData) return;
 
+      const rotRad = (params.rotacion || 0) * (Math.PI / 180);
       const cellSize = currentMazeData.cellSize;
       document.getElementById('lbl-cellsize').textContent = `~${cellSize.toFixed(1)} m`;
       const numCeldas = Object.keys(params.celdasMonstruos).length;
@@ -1471,7 +1504,6 @@
       const { muros } = currentMazeData;
       if (muros && muros.length > 0) {
         const hMuro3D = Math.max(3.2, params.alturaMuro * 0.95);
-        const rotRad = (params.rotacion || 0) * (Math.PI / 180);
         const boxG = new THREE.BoxGeometry(cellSize * 0.98, hMuro3D, cellSize * 0.98);
         const texWall = (typeof createProceduralWallTexture === 'function')
           ? createProceduralWallTexture(params.estilo, params.wallColor)
