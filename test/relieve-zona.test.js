@@ -218,3 +218,59 @@ test('WorldCore - Generación de caminos entre pueblos y laberintos de caza', ()
   const distLab = Math.hypot(endPt.x - zone.x, endPt.y - zone.y);
   assert.ok(distLab < 150, 'El camino debe llegar a la zona del laberinto');
 });
+
+test('RelieveZonaLib - Patrones de monstruos por color con clases, niveles y obtención por celda', () => {
+  const zona = {
+    id: 'z-patrones',
+    x: 150,
+    y: 250,
+    radius: 120,
+    relieve: {
+      activo: true,
+      N: 13,
+      patronesMonstruos: {
+        p_arq: { id: 'p_arq', color: '#ef4444', name: 'Arquero del Abismo', clase: 'arquero', levelMin: 12, levelMax: 16, count: 2, icono: '🏹' },
+        p_mag: { id: 'p_mag', color: '#8b5cf6', name: 'Nigromante Oscuro', clase: 'mago', levelMin: 15, levelMax: 20, count: 1, icono: '🔮' }
+      },
+      celdasMonstruos: {
+        '2_3': 'p_arq',
+        '2_4': 'p_arq',
+        '3_3': 'p_mag'
+      }
+    }
+  };
+
+  const lista = RelieveZonaLib.obtenerMonstruosPorCelda(zona);
+  assert.ok(Array.isArray(lista), 'Debe retornar un array de monstruos');
+  // 2 celdas con p_arq (count 2 = 4) + 1 celda con p_mag (count 1 = 1) = 5 monstruos
+  assert.strictEqual(lista.length, 5, 'Debe generar exactamente la cantidad de monstruos configurada por celda');
+
+  const arq = lista.find(m => m.clase === 'arquero');
+  assert.ok(arq, 'Debe haber monstruos de clase arquero');
+  assert.strictEqual(arq.name, 'Arquero del Abismo');
+  assert.strictEqual(arq.color, '#ef4444');
+  assert.ok(arq.level >= 12 && arq.level <= 16, 'Nivel debe estar dentro del rango configurado');
+
+  const mag = lista.find(m => m.clase === 'mago');
+  assert.ok(mag, 'Debe haber monstruos de clase mago');
+  assert.strictEqual(mag.name, 'Nigromante Oscuro');
+  assert.strictEqual(mag.color, '#8b5cf6');
+  assert.ok(mag.level >= 15 && mag.level <= 20, 'Nivel debe estar dentro del rango configurado');
+});
+
+test('RelieveZonaLib - Protección contra perforación bajo el nivel del mar', () => {
+  const zona = {
+    id: 'z-mar',
+    x: 0,
+    y: 0,
+    radius: 100,
+    relieve: {
+      activo: true,
+      profundidad: 8.0
+    }
+  };
+
+  // Terreno en cota baja costera (0.4m sobre el nivel del mar)
+  const hResultado = RelieveZonaLib.aplicarRelieveTerreno([zona], 0, 0, 0.4);
+  assert.ok(hResultado >= 1.2, `La cota resultante (${hResultado}) nunca debe excavar bajo el nivel del mar (<1.2)`);
+});

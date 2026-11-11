@@ -112,6 +112,18 @@
     }
   };
 
+  /**
+   * Paleta predeterminada de patrones de monstruos con colores para sectores y celdas
+   */
+  const PATRONES_MONSTRUOS_DEFECTO = {
+    p1: { id: 'p1', color: '#22c55e', name: 'Guerrero Esqueleto', clase: 'guerrero', levelMin: 8, levelMax: 12, count: 1, icono: '⚔️' },
+    p2: { id: 'p2', color: '#3b82f6', name: 'Mago de Hielo', clase: 'mago', levelMin: 12, levelMax: 16, count: 1, icono: '🔮' },
+    p3: { id: 'p3', color: '#ef4444', name: 'Arquero Orco', clase: 'arquero', levelMin: 14, levelMax: 18, count: 1, icono: '🏹' },
+    p4: { id: 'p4', color: '#a855f7', name: 'Señor Oscuro Élite', clase: 'elite', levelMin: 22, levelMax: 26, count: 1, icono: '👑' },
+    p5: { id: 'p5', color: '#f97316', name: 'Berserker Salvaje', clase: 'guerrero', levelMin: 18, levelMax: 22, count: 2, icono: '🪓' },
+    p6: { id: 'p6', color: '#eab308', name: 'Enjambre de Alimañas', clase: 'rapido', levelMin: 6, levelMax: 9, count: 3, icono: '🦂' }
+  };
+
   function configPorDefecto(estilo, culminacion) {
     return {
       activo: true,
@@ -122,7 +134,9 @@
       alturaMuro: 14,
       profundidadHendidura: 3.5,
       anchoPasillo: 10,
-      seed: 12345 + Math.floor(Math.random() * 80000)
+      seed: 12345 + Math.floor(Math.random() * 80000),
+      patronesMonstruos: { ...PATRONES_MONSTRUOS_DEFECTO },
+      celdasMonstruos: {}
     };
   }
 
@@ -376,8 +390,10 @@
     const entradasCfg = Array.isArray(r.entradas) && r.entradas.length ? r.entradas : (r.entradaDir ? [r.entradaDir] : ['sur']);
     const entradaDir = entradasCfg[0] || 'sur';
     const manualesKey = r.murosManuales ? JSON.stringify(r.murosManuales) : '';
+    const monKey = r.celdasMonstruos ? JSON.stringify(r.celdasMonstruos) : '';
+    const patKey = r.patronesMonstruos ? JSON.stringify(r.patronesMonstruos) : '';
 
-    const cacheKey = `${zona.id}_${zona.x}_${zona.y}_${R}_${tamGrid}_${seed}_${alturaMuro}_${estilo}_${culminacion}_${bucleChance}_${rotacion}_${entradasCfg.join(',')}_${manualesKey}`;
+    const cacheKey = `${zona.id}_${zona.x}_${zona.y}_${R}_${tamGrid}_${seed}_${alturaMuro}_${estilo}_${culminacion}_${bucleChance}_${rotacion}_${entradasCfg.join(',')}_${manualesKey}_${monKey}_${patKey}`;
     if (zona._cacheLaberinto && zona._cacheLaberintoKey === cacheKey) {
       return zona._cacheLaberinto;
     }
@@ -457,6 +473,59 @@
     const posEntrada = celdaAMundo(entrada.gx, entrada.gy);
     const posCentro = celdaAMundo(centro.gx, centro.gy);
 
+    const celdasMonstruos = (r && r.celdasMonstruos && typeof r.celdasMonstruos === 'object') ? r.celdasMonstruos : {};
+    const patronesMonstruos = (r && r.patronesMonstruos && typeof r.patronesMonstruos === 'object') ? r.patronesMonstruos : PATRONES_MONSTRUOS_DEFECTO;
+
+    // Asegurar que las celdas asignadas a monstruos queden abiertas como camino transitable
+    Object.keys(celdasMonstruos).forEach(key => {
+      const parts = key.split('_');
+      if (parts.length === 2) {
+        const gx = parseInt(parts[0], 10), gy = parseInt(parts[1], 10);
+        if (gx >= 0 && gx < N && gy >= 0 && gy < N && grid[gy][gx] !== 2) {
+          grid[gy][gx] = 0;
+        }
+      }
+    });
+
+    // Lista de monstruos asignados por celda
+    const monstruosPorCelda = [];
+    Object.keys(celdasMonstruos).forEach(key => {
+      const patId = celdasMonstruos[key];
+      const pat = patronesMonstruos[patId];
+      if (!pat) return;
+      const parts = key.split('_');
+      if (parts.length !== 2) return;
+      const gx = parseInt(parts[0], 10);
+      const gy = parseInt(parts[1], 10);
+      if (gx < 0 || gx >= N || gy < 0 || gy >= N) return;
+      const { wx, wz } = celdaAMundo(gx, gy);
+      const count = Math.max(1, pat.count || 1);
+      const lvlMin = pat.levelMin || (pat.level ? pat.level : 10);
+      const lvlMax = pat.levelMax || lvlMin;
+
+      for (let ci = 0; ci < count; ci++) {
+        const offX = (count === 1) ? 0 : (ci === 0 ? -1.0 : (ci === 1 ? 1.0 : 0));
+        const offZ = (count === 1) ? 0 : (ci === 2 ? 1.0 : (ci === 3 ? -1.0 : 0));
+        const lvl = (count > 1) ? Math.round(lvlMin + (lvlMax - lvlMin) * (ci / (count - 1))) : Math.round((lvlMin + lvlMax) / 2);
+        monstruosPorCelda.push({
+          key,
+          gx,
+          gy,
+          wx: wx + offX,
+          wz: wz + offZ,
+          patId,
+          color: pat.color || '#22c55e',
+          name: pat.name || 'Monstruo',
+          clase: pat.clase || 'guerrero',
+          levelMin: lvlMin,
+          levelMax: lvlMax,
+          level: lvl,
+          count: 1,
+          icono: pat.icono || (pat.clase === 'arquero' ? '🏹' : pat.clase === 'mago' ? '🔮' : pat.clase === 'elite' ? '👑' : '⚔️')
+        });
+      }
+    });
+
     const labEntradas = entradas.map(ent => {
       const p = celdaAMundo(ent.gx, ent.gy);
       return { dir: ent.dir, gx: ent.gx, gy: ent.gy, wx: p.wx, wz: p.wz };
@@ -483,6 +552,9 @@
       colliders,
       muros,
       celdasCamino,
+      patronesMonstruos,
+      celdasMonstruos,
+      monstruosPorCelda,
       entradas: labEntradas,
       entrada: labEntradas[0] || { gx: entrada.gx, gy: entrada.gy, wx: posEntrada.wx, wz: posEntrada.wz },
       centro: { gx: centro.gx, gy: centro.gy, wx: posCentro.wx, wz: posCentro.wz, radio: cellSize * 1.5 },
@@ -612,8 +684,8 @@
       }
 
       // Evitar que la excavación perfore el nivel del mar si la zona está en cota baja sobre tierra
-      if (hBase >= 0.5 && hBase + dh < 0.5) {
-        dh = 0.5 - hBase;
+      if (hBase + dh < 1.2) {
+        dh = Math.max(dh, 1.2 - hBase);
       }
 
       // En las entradas configuradas: rampa suave que conecta el terreno exterior con el fondo del desfiladero
@@ -978,8 +1050,9 @@
         const ang = (i * 2 * Math.PI) / numPalmeras + (i % 2) * 0.4;
         const px = Math.cos(ang) * radOasis;
         const pz = Math.sin(ang) * radOasis;
+        const altPalmera = (typeof Hgen === 'function') ? (Hgen(zx + px, zz + pz) - yh) : 0;
         const palmera = new THREE.Group();
-        palmera.position.set(px, 0, pz);
+        palmera.position.set(px, altPalmera, pz);
 
         const altTronco = 7.0 + (i % 3) * 1.5;
         const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.65, altTronco, 7), matTronco);
@@ -1005,14 +1078,21 @@
     return grupo;
   }
 
+  function obtenerMonstruosPorCelda(zona) {
+    const lab = obtenerDatosLaberinto(zona);
+    return lab ? lab.monstruosPorCelda : [];
+  }
+
   const RelieveZonaLib = {
     ESTILOS,
     CULMINACIONES,
+    PATRONES_MONSTRUOS_DEFECTO,
     configPorDefecto,
     zonaTieneLaberinto,
     zonaTieneRelieve: zonaTieneLaberinto,
     generarLaberinto,
     obtenerDatosLaberinto,
+    obtenerMonstruosPorCelda,
     obtenerLaberintoEnPunto,
     obtenerRelieveZona: obtenerLaberintoEnPunto,
     aplicarRelieveTerreno,

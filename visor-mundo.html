@@ -2160,8 +2160,8 @@
         const d = Math.hypot(s.ax + ex * t - x, s.az + ez * t - z);
         if (!mejor || d < mejor.d) mejor = {
           d, nivel: s.ya + (s.yb - s.ya) * t, w: s.wa + (s.wb - s.wa) * t,
-          // distancia al final de la mezcla con el pueblo (negativa dentro de ella)
-          dt: Math.max(Math.abs(lx), Math.abs(lz)) - (r.o.tileHalf + BLEND_OUT)
+          // distancia al exterior de los muros del pueblo (positiva fuera del pueblo)
+          dt: Math.max(Math.abs(lx), Math.abs(lz)) - r.o.tileHalf
         };
       });
     });
@@ -2188,8 +2188,8 @@
     }
     // Río fuera del pueblo: el cauce excava el lecho cóncavo del río y sube con riberas suaves hacia el relieve
     const r = rioCercano(x, z);
-    if (r && r.dt > -BLEND_OUT && r.d < RIO_BANCO * r.w) {
-      const k = smooth(0, RIO_RAMPA, r.dt);
+    if (r && r.dt > -5 && r.d < RIO_BANCO * r.w) {
+      const k = smooth(0, Math.min(18, RIO_RAMPA), r.dt);
       const dCauce = RIO_CAUCE * r.w;
       const dBanco = RIO_BANCO * r.w;
       let perfil;
@@ -2738,8 +2738,9 @@
         if (enMargenPueblo(x, z, BLEND_OUT + m, true)) return false;
         if (rejillaCaminosMundo(x, z, m)) return false;
         if (world && world.zones && world.zones.some(zn => {
-          const zR = (zn.relieve && zn.relieve.radio) || zn.radius || 100;
-          return Math.hypot(x - zn.x, z - (zn.y !== undefined ? zn.y : zn.z)) < zR + m + 35;
+          const zR = (zn.relieve && (zn.relieve.radio || zn.relieve.R)) || zn.radius || 120;
+          const zy = zn.y !== undefined ? zn.y : zn.z;
+          return Math.hypot(x - zn.x, z - zy) < zR + m + 60;
         })) return false;
         if (lugaresSecretos && lugaresSecretos.some(s => Math.hypot(x - s.x, z - s.z) < (s.radioRebaje || 42) + m + 15)) return false;
         return true;
@@ -3387,18 +3388,19 @@
 
     for (let j = 0; j < segs; j++) {
       for (let i = 0; i < segs; i++) {
-        let tieneAgua = false;
+        let aguaCount = 0;
         for (let di = 0; di <= 1; di++) {
           for (let dj = 0; dj <= 1; dj++) {
             const wx = x0 + (i + di) * step, wz = z0 + (j + dj) * step;
-            if (terrain.elevation(wx, wz) <= SEA + 0.015) {
-              tieneAgua = true;
-              break;
+            if (terrain.elevation(wx, wz) <= SEA + 0.008) {
+              aguaCount++;
             }
           }
-          if (tieneAgua) break;
         }
-        if (!tieneAgua) continue;
+        // Solo dibujar plano de agua donde al menos la mitad de las esquinas y el centro estén en el mar
+        if (aguaCount < 2) continue;
+        const cx = x0 + (i + 0.5) * step, cz = z0 + (j + 0.5) * step;
+        if (terrain.elevation(cx, cz) > SEA + 0.004) continue;
 
         const a = getVid(i, j);
         const b = getVid(i + 1, j);
@@ -3877,9 +3879,12 @@
 
   // Altura de un camino: sobre el cauce de un río se tiende como puente, un poco por encima del agua
   function alturaCamino(x, z) {
-    let h = (typeof Hgen === 'function') ? Hgen(x, z) : H(x, z);
+    let h = (typeof H === 'function') ? H(x, z) : ((typeof Hgen === 'function') ? Hgen(x, z) : 0);
     const r = rioCercano(x, z);
-    if (r && r.d < RIO_BANCO) h = Math.max(h, r.nivel + 0.6);
+    if (r && r.d < RIO_BANCO * (r.w || 1)) {
+      const hPuente = r.nivel + 0.6;
+      if (hPuente > h) h = hPuente;
+    }
     return h;
   }
 
@@ -4685,16 +4690,10 @@
       const v = visorWorld.villageAt(x, z);
       if (v) return v.o.h0 + v.o.village.getWalkableHeight(v.lx, v.lz);
       let groundH = H(x, z);
-      // Puente de camino sobre río: el personaje camina sobre la rasante del puente en vez de hundirse al lecho excavado
-      const rRio = typeof rioCercano === 'function' ? rioCercano(x, z) : null;
-      if (rRio && rRio.d < RIO_BANCO * (rRio.w || 1) && typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 4.5)) {
-        const hPuente = rRio.nivel + 0.6;
-        if (hPuente > groundH) groundH = hPuente;
-      }
-      // Camino sobre el terreno: el personaje camina sobre la rasante del camino sin hundirse
-      if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 3.2)) {
+      // Camino sobre el terreno y puentes sobre río: el personaje camina sobre la rasante del camino sin hundirse
+      if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 4.2)) {
         const hCam = typeof alturaCamino === 'function' ? alturaCamino(x, z) : groundH;
-        if (hCam > groundH && (hCam - groundH) < 1.6) groundH = hCam;
+        if (hCam > groundH) groundH = hCam;
       }
       // Plataforma transitable de las cabañas y su explanada aterrazada
       if (typeof lugaresSecretos !== 'undefined' && lugaresSecretos && lugaresSecretos.length) {
@@ -4702,7 +4701,7 @@
           const s = lugaresSecretos[i];
           if (s.tipo === 'cabana') {
             const d = Math.hypot(x - s.x, z - s.z);
-            if (d < 18.0) {
+            if (d < (s.radioPlano || 22.0)) {
               const floorY = (typeof s.y === 'number' ? s.y : (s.alturaBase || 0)) + 0.02;
               if (floorY > groundH) groundH = floorY;
             }
@@ -5482,6 +5481,75 @@
           monsters.push(m);
         }
       });
+
+      // Monstruos específicos asignados por sectores y colores en el Creador de Laberintos
+      if (z.relieve && z.relieve.activo && typeof RelieveZonaLib !== 'undefined') {
+        const celdasMons = RelieveZonaLib.obtenerMonstruosPorCelda(z);
+        celdasMons.forEach((cm, cidx) => {
+          for (let ck = 0; ck < (cm.count || 1); ck++) {
+            const rngC = new W.PRNG((W.hashString(z.id + '|cm|' + cm.key + '|' + ck) ^ world.seed) >>> 0);
+            const rol = cm.clase === 'arquero' ? 'arquero' : cm.clase === 'mago' ? 'mago' : 'melee';
+            const esDist = rol === 'arquero' || rol === 'mago';
+            const lvl = rngC.int(cm.levelMin, cm.levelMax || cm.levelMin);
+            const esElite = cm.clase === 'elite';
+            const rElite = esElite ? 3 : 1;
+            const pref = esElite ? '👑 [Élite] ' : '';
+            const offX = (cm.count > 1 ? rngC.range(-2.5, 2.5) : 0);
+            const offZ = (cm.count > 1 ? rngC.range(-2.5, 2.5) : 0);
+
+            const m = CombatLib.newMonster({
+              level: lvl,
+              boss: false,
+              rangoElite: rElite,
+              x: cm.wx + offX,
+              z: cm.wz + offZ,
+              leash: z.radius + 30,
+              tipoRango: rol,
+              esADistancia: esDist,
+              weapon: cm.clase === 'arquero' ? 'bow' : cm.clase === 'mago' ? 'staff' : 'sword',
+              archetype: cm.clase,
+              name: pref + cm.name
+            });
+            m.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
+            m.rangoElite = rElite;
+            m.esElite = esElite;
+            m.name = pref + cm.name;
+            m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rngC.range(0, 6);
+            m.recibirDano = (dmg, fuente = 'hero') => damageMonster(m, dmg, fuente);
+            m.danoPorFuente = { hero: 0, acompanante: 0 };
+            m.danoTotal = 0;
+            m.turno = monsters.length % 4;
+            m.group = new THREE.Group();
+            m.group.userData.monstruo = m;
+            if (esElite) m.group.scale.setScalar(1.3);
+
+            // Halo en el suelo del color del patrón
+            if (cm.color) {
+              const haloG = new THREE.RingGeometry(0.7, 1.0, 16);
+              haloG.rotateX(-Math.PI / 2);
+              const haloM = new THREE.MeshBasicMaterial({ color: cm.color, side: THREE.DoubleSide });
+              const halo = new THREE.Mesh(haloG, haloM);
+              halo.position.y = 0.08;
+              m.group.add(halo);
+            }
+
+            m.rig = null;
+            m.versiones = {};
+            m.group.visible = false;
+            scene.add(m.group);
+
+            m.bar = new THREE.Group();
+            const bg = new THREE.Mesh(barGeo, bgMat);
+            const fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: cm.color || '#22c55e', depthTest: false }));
+            fg.position.z = 0.01;
+            m.bar.add(bg); m.bar.add(fg);
+            m.bar.renderOrder = 999;
+            m.bar.visible = false;
+            scene.add(m.bar);
+            monsters.push(m);
+          }
+        });
+      }
 
       // Si la culminación es 'jefe' y no hay jefe en la lista de monstruos, generar el Jefe de Culminación en el centro
       if (z.relieve && z.relieve.activo && z.relieve.culminacion === 'jefe') {

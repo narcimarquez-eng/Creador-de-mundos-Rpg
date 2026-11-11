@@ -149,14 +149,17 @@
     if (typeof hCentro === 'number' && L.nivel > hCentro + (L.prof || 2.0) * 1.5) {
       L.nivel = hCentro + (L.prof || 2.0) * 0.35;
     }
-    const ext = L.R * 1.4, N = 64, lado = 2 * ext;
+    const ext = L.R * 1.25, N = 64, lado = 2 * ext;
     const datos = new Uint8Array(N * N * 4);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const x = L.x - ext + (i + 0.5) * lado / N, z = L.z - ext + (j + 0.5) * lado / N;
       const p = (j * N + i) * 4;
-      // Se desvanece fuera del hueco: el agua nunca dibuja el borde cuadrado de su plano
-      const fuera = 1 - smooth(1.1 * L.R, 1.38 * L.R, Math.hypot(x - L.x, z - L.z));
-      datos[p] = Math.round(Math.max(0, Math.min(1, (L.nivel - altura(x, z)) / 8)) * fuera * 255);
+      const d = Math.hypot(x - L.x, z - L.z);
+      // El agua solo existe dentro del cuenco excavado (d <= L.R) y donde el terreno quede bajo la superficie
+      const hTerreno = altura(x, z);
+      const enHueco = (d <= L.R * 1.02) && (hTerreno < L.nivel);
+      const fuera = enHueco ? (1 - smooth(L.R * 0.88, L.R * 1.0, d)) : 0;
+      datos[p] = Math.round(Math.max(0, Math.min(1, (L.nivel - hTerreno) / 6.0)) * fuera * 255);
       datos[p + 3] = 255;
     }
     const prof = new THREE.DataTexture(datos, N, N);

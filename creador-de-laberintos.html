@@ -106,7 +106,7 @@
       position: absolute;
       top: 54px;
       left: 12px;
-      width: 375px;
+      width: 385px;
       max-width: calc(100vw - 24px);
       max-height: calc(100vh - 76px);
       overflow-y: auto;
@@ -188,7 +188,7 @@
       display: flex;
       gap: 5px;
     }
-    .ent-btn, .light-btn {
+    .ent-btn, .light-btn, .tool-btn {
       flex: 1;
       background: #0f172a;
       border: 1px solid #334155;
@@ -201,7 +201,7 @@
       text-align: center;
       transition: all 0.15s;
     }
-    .ent-btn:hover, .light-btn:hover { border-color: #818cf8; color: #fff; }
+    .ent-btn:hover, .light-btn:hover, .tool-btn:hover { border-color: #818cf8; color: #fff; }
     .ent-btn.active {
       background: #166534;
       border-color: #22c55e;
@@ -212,6 +212,12 @@
       background: #0284c7;
       border-color: #38bdf8;
       color: #fff;
+    }
+    .tool-btn.active {
+      background: #4f46e5;
+      border-color: #818cf8;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
     }
 
     .style-card {
@@ -236,6 +242,36 @@
     }
     .style-name { font-size: 11.5px; font-weight: 600; flex: 1; }
 
+    /* Fichas de Patrones de Monstruos */
+    .pattern-card {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 8px;
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 4px;
+    }
+    .pattern-card:hover { border-color: #818cf8; background: #1e1b4b; }
+    .pattern-card.active {
+      border-color: #facc15;
+      background: rgba(250, 204, 21, 0.12);
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.25);
+    }
+    .pattern-color-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+    .pattern-info { flex: 1; min-width: 0; font-size: 11px; }
+    .pattern-name-row { font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pattern-sub-row { font-size: 10px; color: #94a3b8; }
+
     /* Canvas 2D mini-editor */
     #grid-editor-container {
       display: flex;
@@ -249,12 +285,14 @@
       background: #020617;
       border: 2px solid #4f46e5;
       border-radius: 6px;
-      cursor: pointer;
+      cursor: crosshair;
       image-rendering: pixelated;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
     .canvas-legend {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 8px;
       font-size: 10px;
       color: #94a3b8;
@@ -374,7 +412,7 @@
           <button type="button" class="ent-btn" data-dir="este">Este</button>
           <button type="button" class="ent-btn" data-dir="oeste">Oeste</button>
         </div>
-        <div style="font-size:10.5px;color:#94a3b8;margin-top:4px">Puedes activar varias entradas simultáneamente o hacer clic en el borde del lienzo 2D.</div>
+        <div style="font-size:10.5px;color:#94a3b8;margin-top:4px">Puedes activar varias entradas simultáneamente.</div>
       </div>
       <div class="grid2" style="margin-top:8px">
         <div class="form-group">
@@ -389,17 +427,99 @@
       <button id="btn-roll" style="width:100%;margin-top:6px;background:#4338ca;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🎲 Generar Nuevo Trazado</button>
     </div>
 
-    <!-- 4. Caminos y Conexión con Pueblos -->
+    <!-- 4. Patrones de Monstruos por Color (Sectores) -->
+    <div class="panel-sec">
+      <div class="sec-title">
+        <span>👾 Patrones de Monstruos por Color</span>
+        <button id="btn-add-pattern" style="background:#4338ca;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:bold;cursor:pointer">+ Nuevo</button>
+      </div>
+      <div style="font-size:10.5px;color:#cbd5e1;margin-bottom:6px">
+        Selecciona un patrón de color y arrastra en el editor 2D para pintar varios cuadrados seguidos con los mismos bichos y niveles.
+      </div>
+      <div id="patterns-list"></div>
+
+      <!-- Editor del Patrón Activo -->
+      <div id="pattern-editor-box" style="margin-top:8px;background:rgba(15,23,42,0.9);border:1px solid #475569;border-radius:6px;padding:8px">
+        <div style="font-size:11px;font-weight:700;color:#facc15;margin-bottom:6px;display:flex;justify-content:space-between">
+          <span>Configurar Patrón: <b id="lbl-edit-pat-title">P1</b></span>
+          <span id="lbl-edit-pat-badge" style="font-size:10px;color:#a5b4fc"></span>
+        </div>
+        <div class="grid2">
+          <div class="form-group">
+            <div class="form-label"><span>Nombre del Monstruo:</span></div>
+            <input type="text" id="inp-pat-name" value="Guerrero Esqueleto">
+          </div>
+          <div class="form-group">
+            <div class="form-label"><span>Color del Sector:</span></div>
+            <input type="color" id="inp-pat-color" value="#22c55e" style="height:32px;padding:1px">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="form-group">
+            <div class="form-label"><span>Clase / Rol:</span></div>
+            <select id="sel-pat-clase">
+              <option value="guerrero">⚔️ Guerrero (Melee)</option>
+              <option value="arquero">🏹 Arquero (Distancia)</option>
+              <option value="mago">🔮 Mago (Hechizos)</option>
+              <option value="elite">👑 Élite / Campeón</option>
+              <option value="rapido">🦂 Rápido / Enjambre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label"><span>Nivel (Mín - Máx):</span></div>
+            <div style="display:flex;gap:4px">
+              <input type="number" id="inp-pat-lvlmin" value="8" min="1" max="120" style="width:50%" title="Nivel Mínimo">
+              <input type="number" id="inp-pat-lvlmax" value="12" min="1" max="120" style="width:50%" title="Nivel Máximo">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Cantidad por cuadrado:</span><span class="val" id="lbl-pat-count">1</span></div>
+          <input type="range" id="sl-pat-count" min="1" max="4" step="1" value="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Mini-Editor 2D Interactivo -->
+    <div class="panel-sec">
+      <div class="sec-title">
+        <span>✏️ Editor 2D en Vivo</span>
+        <span id="lbl-editor-mode" style="font-size:10px;color:#a5b4fc;font-weight:normal">Pintando Bichos</span>
+      </div>
+      <!-- Selector de Herramienta de Pincel -->
+      <div class="btn-group" id="group-editor-tools" style="margin-bottom:8px">
+        <button type="button" class="tool-btn active" data-tool="monsters">🎨 Pintar Bichos</button>
+        <button type="button" class="tool-btn" data-tool="erase-monsters">🧹 Borrar Bichos</button>
+        <button type="button" class="tool-btn" data-tool="walls">🧱 Muros</button>
+      </div>
+
+      <div id="grid-editor-container">
+        <canvas id="mazeCanvas" width="220" height="220"></canvas>
+        <div class="canvas-legend">
+          <div class="legend-item"><div class="legend-box" style="background:#1e293b;border:1px solid #475569"></div><span>Muro</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#f1f5f9"></div><span>Pasillo</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#22c55e"></div><span>Entrada</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#eab308"></div><span>Meta</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button id="btn-clear-monsters" style="flex:1;background:#7f1d1d;color:#fecaca;border:none;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Limpiar Bichos</button>
+        <button id="btn-clear-manual" style="flex:1;background:#334155;color:#e2e8f0;border:none;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Reset Muros</button>
+        <button id="btn-all-open" style="flex:1;background:#1e293b;color:#94a3b8;border:1px solid #475569;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Abrir Todo</button>
+      </div>
+    </div>
+
+    <!-- 6. Caminos y Conexión con Pueblos -->
     <div class="panel-sec">
       <div class="sec-title"><span>🛤 Caminos y Conexión con Pueblos</span></div>
       <div style="font-size:11px;color:#cbd5e1;line-height:1.4">
-        Conecta las entradas del laberinto directamente a la red de caminos del mundo hacia los pueblos más cercanos.
+        Conecta las entradas del laberinto directamente a la red de caminos hacia los pueblos más cercanos.
       </div>
       <button id="btn-road-connect" style="width:100%;margin-top:8px;background:#0d9488;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🛤 Conectar Camino al Pueblo más Cercano</button>
       <div id="road-status-msg" style="font-size:10.5px;color:#5eead4;margin-top:4px;display:none"></div>
     </div>
 
-    <!-- 5. Estilos & Texturas -->
+    <!-- 7. Estilos & Texturas -->
     <div class="panel-sec">
       <div class="sec-title"><span>🎨 Estilo Arquitectónico & Textura</span></div>
       <div id="styles-list"></div>
@@ -415,34 +535,13 @@
       </div>
     </div>
 
-    <!-- 6. Meta Central -->
+    <!-- 8. Meta Central -->
     <div class="panel-sec">
       <div class="sec-title"><span>⭐ Culminación / Meta Central</span></div>
       <div class="form-group">
         <select id="sel-culm"></select>
       </div>
       <div id="culm-desc" class="badge-info"></div>
-    </div>
-
-    <!-- 7. Mini-Editor 2D Interactivo -->
-    <div class="panel-sec">
-      <div class="sec-title">
-        <span>✏️ Editor 2D en Vivo</span>
-        <span style="font-size:10px;color:#a5b4fc;font-weight:normal">Clic para conmutar</span>
-      </div>
-      <div id="grid-editor-container">
-        <canvas id="mazeCanvas" width="220" height="220"></canvas>
-        <div class="canvas-legend">
-          <div class="legend-item"><div class="legend-box" style="background:#1e293b;border:1px solid #475569"></div><span>Muro</span></div>
-          <div class="legend-item"><div class="legend-box" style="background:#f1f5f9"></div><span>Pasillo</span></div>
-          <div class="legend-item"><div class="legend-box" style="background:#22c55e"></div><span>Entrada</span></div>
-          <div class="legend-item"><div class="legend-box" style="background:#eab308"></div><span>Meta</span></div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button id="btn-clear-manual" style="flex:1;background:#334155;color:#e2e8f0;border:none;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Deshacer Edición</button>
-        <button id="btn-all-open" style="flex:1;background:#1e293b;color:#94a3b8;border:1px solid #475569;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Abrir Todo</button>
-      </div>
     </div>
   </div>
 
@@ -455,10 +554,14 @@
     let zoneData = null;
     let scene, camera, renderer, controls;
     let hemiLight, dirLight, fillLight;
-    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarkersGroup = null, playerDummy = null;
+    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarkersGroup = null, monsters3DGroup = null, playerDummy = null;
     let currentMazeData = null;
     let manualOverrides = {};
     let shouldAutoConnectRoad = false;
+
+    // Herramienta y patrón activo
+    let activeTool = 'monsters'; // 'monsters', 'erase-monsters', 'walls'
+    let activePatternId = 'p1';
 
     // Parámetros activos
     let params = {
@@ -474,10 +577,19 @@
       entradas: ['sur'],
       luzModo: 'dia',
       wallColor: '#847f7a',
-      groundColor: '#605c56'
+      groundColor: '#605c56',
+      patronesMonstruos: {
+        p1: { id: 'p1', color: '#22c55e', name: 'Guerrero Esqueleto', clase: 'guerrero', levelMin: 8, levelMax: 12, count: 1, icono: '⚔️' },
+        p2: { id: 'p2', color: '#3b82f6', name: 'Mago de Hielo', clase: 'mago', levelMin: 12, levelMax: 16, count: 1, icono: '🔮' },
+        p3: { id: 'p3', color: '#ef4444', name: 'Arquero Orco', clase: 'arquero', levelMin: 14, levelMax: 18, count: 1, icono: '🏹' },
+        p4: { id: 'p4', color: '#a855f7', name: 'Señor Oscuro Élite', clase: 'elite', levelMin: 22, levelMax: 26, count: 1, icono: '👑' },
+        p5: { id: 'p5', color: '#f97316', name: 'Berserker Salvaje', clase: 'guerrero', levelMin: 18, levelMax: 22, count: 2, icono: '🪓' },
+        p6: { id: 'p6', color: '#eab308', name: 'Enjambre de Alimañas', clase: 'rapido', levelMin: 6, levelMax: 9, count: 3, icono: '🦂' }
+      },
+      celdasMonstruos: {}
     };
 
-    // Texturas de Canvas procedimentales con buena luminosidad y detalle
+    // Texturas de Canvas procedimentales con buena luminosidad
     function createProceduralNoiseTexture(colorBase, roughness, isWall) {
       const cv = document.createElement('canvas');
       cv.width = 256; cv.height = 256;
@@ -506,7 +618,7 @@
       return tex;
     }
 
-    // Inicialización de Three.js con iluminación clara y vibrante
+    // Inicialización de Three.js con iluminación clara
     function init3D() {
       scene = new THREE.Scene();
       scene.background = new THREE.Color('#7dd3fc');
@@ -532,11 +644,10 @@
       controls.maxDistance = 650;
       controls.target.set(0, 0, 0);
 
-      // Iluminación hemisférica rica
+      // Iluminación rica y sin zonas oscuras
       hemiLight = new THREE.HemisphereLight('#f0f9ff', '#475569', 0.95);
       scene.add(hemiLight);
 
-      // Luz direccional solar principal
       dirLight = new THREE.DirectionalLight('#fffbeb', 1.5);
       dirLight.position.set(130, 240, 160);
       dirLight.castShadow = true;
@@ -551,12 +662,10 @@
       dirLight.shadow.camera.bottom = -dRange;
       scene.add(dirLight);
 
-      // Luz de relleno para eliminar sombras negras
       fillLight = new THREE.DirectionalLight('#bae6fd', 0.70);
       fillLight.position.set(-130, 180, -140);
       scene.add(fillLight);
 
-      // Avatar del héroe a escala humana 1.80m
       playerDummy = createPlayerDummy();
       scene.add(playerDummy);
 
@@ -582,7 +691,6 @@
         dirLight.color.set('#60a5fa'); dirLight.intensity = 0.85; dirLight.position.set(100, 200, 100);
         fillLight.color.set('#a855f7'); fillLight.intensity = 0.45;
       } else {
-        // 'dia' por defecto (soleado y luminoso)
         scene.background.set('#7dd3fc');
         scene.fog.color.set('#bae6fd');
         scene.fog.near = 220; scene.fog.far = 750;
@@ -605,19 +713,16 @@
       const matArmor = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5, roughness: 0.4 });
       const matCape = new THREE.MeshLambertMaterial({ color: 0xef4444 });
 
-      // Torso
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.8, 8), matArmor);
       torso.position.y = 1.1;
       torso.castShadow = true;
       g.add(torso);
 
-      // Cabeza
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), matSkin);
       head.position.y = 1.65;
       head.castShadow = true;
       g.add(head);
 
-      // Piernas
       const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.7, 6), matArmor);
       leg1.position.set(-0.16, 0.35, 0);
       leg1.castShadow = true;
@@ -626,13 +731,11 @@
       leg2.position.x = 0.16;
       g.add(leg2);
 
-      // Capa roja
       const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.9), matCape);
       cape.position.set(0, 1.1, -0.22);
       cape.rotation.x = 0.12;
       g.add(cape);
 
-      // Marcador indicador flotante
       const pin = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 6).rotateX(Math.PI), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
       pin.position.y = 2.4;
       g.add(pin);
@@ -645,7 +748,6 @@
       const matPillar = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
       const matLight = new THREE.MeshBasicMaterial({ color: 0x22c55e });
 
-      // Dos columnas a los lados de la entrada
       const colG = new THREE.CylinderGeometry(0.5, 0.6, 5.5, 8);
       const p1 = new THREE.Mesh(colG, matPillar);
       p1.position.set(-3.5, 2.75, 0);
@@ -657,14 +759,12 @@
       p2.castShadow = true;
       g.add(p2);
 
-      // Dintel superior
       const archG = new THREE.BoxGeometry(8, 0.8, 1.2);
       const arch = new THREE.Mesh(archG, matPillar);
       arch.position.set(0, 5.7, 0);
       arch.castShadow = true;
       g.add(arch);
 
-      // Antorchas o gemas luminiscentes en las columnas
       const gemG = new THREE.OctahedronGeometry(0.35);
       const g1 = new THREE.Mesh(gemG, matLight);
       g1.position.set(-3.5, 5.2, 0);
@@ -673,10 +773,112 @@
       g2.position.set(3.5, 5.2, 0);
       g.add(g2);
 
-      // Luz de entrada puntual
       const ptLight = new THREE.PointLight(0x4ade80, 1.2, 18);
       ptLight.position.set(0, 4, 0);
       g.add(ptLight);
+
+      return g;
+    }
+
+    // Crea un mini-modelo 3D representativo para el monstruo del patrón
+    function create3DMonsterToken(pat, cellSize) {
+      const g = new THREE.Group();
+      const colorHex = pat.color || '#22c55e';
+      const colThree = new THREE.Color(colorHex);
+
+      // Disco / Halo de sector en el suelo
+      const ringG = new THREE.RingGeometry(cellSize * 0.15, cellSize * 0.42, 18);
+      ringG.rotateX(-Math.PI / 2);
+      const ringM = new THREE.MeshBasicMaterial({ color: colThree, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringG, ringM);
+      ring.position.y = 0.08;
+      g.add(ring);
+
+      // Figura según clase
+      const matBody = new THREE.MeshStandardMaterial({ color: colThree, roughness: 0.6 });
+      const matDark = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+
+      if (pat.clase === 'arquero') {
+        // Túnica y arco
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.6, 6), matBody);
+        body.position.y = 0.8;
+        body.castShadow = true;
+        g.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), matDark);
+        head.position.y = 1.7;
+        g.add(head);
+        // Arco
+        const bow = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.05, 4, 8, Math.PI), new THREE.MeshBasicMaterial({ color: 0x854d0e }));
+        bow.position.set(0.4, 1.1, 0.2);
+        bow.rotation.y = Math.PI / 2;
+        g.add(bow);
+      } else if (pat.clase === 'mago') {
+        // Túnica, sombrero y báculo con luz
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.55, 1.7, 7), matBody);
+        body.position.y = 0.85;
+        body.castShadow = true;
+        g.add(body);
+        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.8, 6), matDark);
+        hat.position.y = 2.0;
+        g.add(hat);
+        // Báculo mágico
+        const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 5), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+        staff.position.set(0.5, 1.1, 0.1);
+        g.add(staff);
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshBasicMaterial({ color: colThree }));
+        orb.position.set(0.5, 2.2, 0.1);
+        g.add(orb);
+      } else if (pat.clase === 'elite') {
+        // Campeón más grande con corona
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.8, 0.6), matBody);
+        body.position.y = 1.0;
+        body.scale.setScalar(1.25);
+        body.castShadow = true;
+        g.add(body);
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.25, 0.35, 6), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8 }));
+        crown.position.y = 2.45;
+        g.add(crown);
+      } else {
+        // Guerrero / melee por defecto: torso con hombreras y espada
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.3, 0.4), matBody);
+        body.position.y = 0.95;
+        body.castShadow = true;
+        g.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), matDark);
+        head.position.y = 1.75;
+        g.add(head);
+        // Espada
+        const sword = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 0.04), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
+        sword.position.set(0.45, 1.1, 0.2);
+        g.add(sword);
+      }
+
+      // Rótulo flotante tipo Billboard con CanvasTexture
+      const cvText = document.createElement('canvas');
+      cvText.width = 256; cvText.height = 64;
+      const tCtx = cvText.getContext('2d');
+      tCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      tCtx.roundRect ? tCtx.roundRect(4, 4, 248, 56, 10) : tCtx.fillRect(4, 4, 248, 56);
+      tCtx.fill();
+      tCtx.lineWidth = 3;
+      tCtx.strokeStyle = colorHex;
+      tCtx.stroke();
+      tCtx.fillStyle = '#ffffff';
+      tCtx.font = 'bold 20px sans-serif';
+      tCtx.textAlign = 'center';
+      tCtx.textBaseline = 'middle';
+      const lvlStr = pat.levelMin === pat.levelMax ? `Nv.${pat.levelMin}` : `Nv.${pat.levelMin}–${pat.levelMax}`;
+      tCtx.fillText(`${pat.icono || '👾'} ${lvlStr}`, 128, 24);
+      tCtx.font = 'bold 14px sans-serif';
+      tCtx.fillStyle = colorHex;
+      tCtx.fillText(`${pat.name}`, 128, 45);
+
+      const spriteTex = new THREE.CanvasTexture(cvText);
+      const spriteMat = new THREE.SpriteMaterial({ map: spriteTex, depthTest: false });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.position.y = 3.2;
+      sprite.scale.set(6, 1.5, 1);
+      g.add(sprite);
 
       return g;
     }
@@ -737,6 +939,18 @@
         if (r.wallColor) params.wallColor = r.wallColor;
         if (r.groundColor) params.groundColor = r.groundColor;
         if (r.murosManuales) manualOverrides = { ...r.murosManuales };
+        if (r.patronesMonstruos && typeof r.patronesMonstruos === 'object') {
+          params.patronesMonstruos = { ...r.patronesMonstruos };
+        }
+        if (r.celdasMonstruos && typeof r.celdasMonstruos === 'object') {
+          params.celdasMonstruos = { ...r.celdasMonstruos };
+        }
+      }
+
+      // Asegurar que activePatternId exista
+      const patKeys = Object.keys(params.patronesMonstruos);
+      if (!params.patronesMonstruos[activePatternId] && patKeys.length > 0) {
+        activePatternId = patKeys[0];
       }
 
       syncUIWithParams();
@@ -760,7 +974,6 @@
 
       document.getElementById('inp-seed').value = params.seed;
 
-      // Entradas activas
       updateEntrancesUI();
 
       document.getElementById('sl-loops').value = params.bucleChance;
@@ -772,6 +985,8 @@
 
       updateCulminationDesc();
       renderStyleCards();
+      renderPatternsList();
+      syncPatternEditorForm();
     }
 
     function updateEntrancesUI() {
@@ -782,6 +997,48 @@
       document.getElementById('lbl-entrances').textContent = params.entradas.length
         ? params.entradas.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')
         : 'Ninguna';
+    }
+
+    // Renderiza la lista de patrones de colores en el panel
+    function renderPatternsList() {
+      const container = document.getElementById('patterns-list');
+      container.innerHTML = '';
+      Object.keys(params.patronesMonstruos).forEach(id => {
+        const pat = params.patronesMonstruos[id];
+        const card = document.createElement('div');
+        card.className = 'pattern-card' + (activePatternId === id ? ' active' : '');
+        const lvlStr = pat.levelMin === pat.levelMax ? `Nv.${pat.levelMin}` : `Nv.${pat.levelMin}–${pat.levelMax}`;
+        card.innerHTML = `
+          <div class="pattern-color-box" style="background:${pat.color}"></div>
+          <div class="pattern-info">
+            <div class="pattern-name-row">${pat.icono || '👾'} ${pat.name}</div>
+            <div class="pattern-sub-row">${lvlStr} · ${pat.clase.toUpperCase()} · ×${pat.count || 1}</div>
+          </div>
+        `;
+        card.onclick = () => {
+          activePatternId = id;
+          renderPatternsList();
+          syncPatternEditorForm();
+          if (activeTool !== 'monsters') {
+            setEditorTool('monsters');
+          }
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function syncPatternEditorForm() {
+      const pat = params.patronesMonstruos[activePatternId];
+      if (!pat) return;
+      document.getElementById('lbl-edit-pat-title').textContent = pat.name;
+      document.getElementById('lbl-edit-pat-badge').textContent = `[ID: ${pat.id}]`;
+      document.getElementById('inp-pat-name').value = pat.name;
+      document.getElementById('inp-pat-color').value = pat.color;
+      document.getElementById('sel-pat-clase').value = pat.clase;
+      document.getElementById('inp-pat-lvlmin').value = pat.levelMin || 10;
+      document.getElementById('inp-pat-lvlmax').value = pat.levelMax || pat.levelMin || 10;
+      document.getElementById('sl-pat-count').value = pat.count || 1;
+      document.getElementById('lbl-pat-count').textContent = pat.count || 1;
     }
 
     function renderStyleCards() {
@@ -831,7 +1088,24 @@
       }
     }
 
-    // Reconstrucción del Laberinto y Terreno 3D
+    function setEditorTool(tool) {
+      activeTool = tool;
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+      const lbl = document.getElementById('lbl-editor-mode');
+      if (tool === 'monsters') {
+        const pat = params.patronesMonstruos[activePatternId];
+        lbl.textContent = `Pintando: ${pat ? pat.name : 'Bichos'}`;
+        lbl.style.color = pat ? pat.color : '#a5b4fc';
+      } else if (tool === 'erase-monsters') {
+        lbl.textContent = 'Borrando Bichos';
+        lbl.style.color = '#f87171';
+      } else {
+        lbl.textContent = 'Editando Muros';
+        lbl.style.color = '#38bdf8';
+      }
+    }
+
+    // Reconstrucción del Laberinto, Terreno 3D y Monstruos en Vivo
     function rebuildAll3D() {
       const dummyZone = {
         id: zoneData.zoneId || 'z-lab',
@@ -852,7 +1126,9 @@
           rotacion: params.rotacion || 0,
           entradas: params.entradas,
           entradaDir: params.entradas[0] || 'sur',
-          murosManuales: manualOverrides
+          murosManuales: manualOverrides,
+          patronesMonstruos: params.patronesMonstruos,
+          celdasMonstruos: params.celdasMonstruos
         }
       };
 
@@ -861,7 +1137,8 @@
 
       const cellSize = currentMazeData.cellSize;
       document.getElementById('lbl-cellsize').textContent = `~${cellSize.toFixed(1)} m`;
-      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | ⟳ ${params.rotacion || 0}°`;
+      const numMons = Object.keys(params.celdasMonstruos).length;
+      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | 👾 ${numMons} celdas con bichos`;
 
       // 1. Reconstruir Terreno Esculpido de la Zona
       if (terrainMesh) {
@@ -997,7 +1274,31 @@
       });
       scene.add(entranceMarkersGroup);
 
-      // 5. Ubicar el Avatar del Jugador en la entrada principal
+      // 5. Ubicar Monstruos 3D en Vivo en las Celdas Pintadas
+      if (monsters3DGroup) {
+        scene.remove(monsters3DGroup);
+      }
+      monsters3DGroup = new THREE.Group();
+      Object.keys(params.celdasMonstruos).forEach(key => {
+        const patId = params.celdasMonstruos[key];
+        const pat = params.patronesMonstruos[patId];
+        if (!pat) return;
+        const parts = key.split('_');
+        if (parts.length !== 2) return;
+        const gx = parseInt(parts[0], 10);
+        const gy = parseInt(parts[1], 10);
+        if (gx < 0 || gx >= currentMazeData.N || gy < 0 || gy >= currentMazeData.N) return;
+        if (currentMazeData.grid[gy][gx] === 1 || currentMazeData.grid[gy][gx] === 2) return;
+
+        const { wx, wz } = currentMazeData.celdaAMundo(gx, gy);
+        const wy = H_fn(wx, wz);
+        const token = create3DMonsterToken(pat, cellSize);
+        token.position.set(wx, wy, wz);
+        monsters3DGroup.add(token);
+      });
+      scene.add(monsters3DGroup);
+
+      // 6. Ubicar el Avatar del Jugador en la entrada principal
       if (playerDummy && currentMazeData.entradas && currentMazeData.entradas.length) {
         const ent0 = currentMazeData.entradas[0];
         const ey = H_fn(ent0.wx, ent0.wz);
@@ -1005,11 +1306,11 @@
         playerDummy.lookAt(0, ey, 0);
       }
 
-      // 6. Actualizar el Canvas 2D
+      // 7. Actualizar el Canvas 2D
       draw2DMaze();
     }
 
-    // Dibujado del Canvas 2D interactivo con brújula de rotación y entradas múltiples
+    // Dibujado del Canvas 2D interactivo con sectores de colores de monstruos
     function draw2DMaze() {
       const cv = document.getElementById('mazeCanvas');
       if (!cv || !currentMazeData) return;
@@ -1026,14 +1327,38 @@
       for (let y = 0; y < N; y++) {
         for (let x = 0; x < N; x++) {
           const val = grid[y][x];
+          const cellKey = `${x}_${y}`;
+          const patId = params.celdasMonstruos[cellKey];
+
           if (val === 2) {
             ctx.fillStyle = '#090d16';
+            ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
           } else if (val === 1) {
             ctx.fillStyle = params.wallColor || '#475569';
+            ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
           } else {
-            ctx.fillStyle = '#e2e8f0';
+            // Pasillo transitable
+            if (patId && params.patronesMonstruos[patId]) {
+              const pat = params.patronesMonstruos[patId];
+              ctx.fillStyle = pat.color || '#22c55e';
+              ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
+
+              // Borde interno contrastado
+              ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(x * cw + 0.5, y * ch + 0.5, cw - 1.5, ch - 1.5);
+
+              // Nivel del enemigo dentro del cuadrado
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 8.5px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(pat.levelMin ? String(pat.levelMin) : 'M', (x + 0.5) * cw, (y + 0.5) * ch);
+            } else {
+              ctx.fillStyle = '#e2e8f0';
+              ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
+            }
           }
-          ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
         }
       }
 
@@ -1053,7 +1378,7 @@
 
       // Resaltar TODAS las entradas activas en verde
       const listaEntradas = currentMazeData.entradas || [currentMazeData.entrada];
-      listaEntradas.forEach((ent, idx) => {
+      listaEntradas.forEach(ent => {
         if (!ent) return;
         const ex = ent.gx;
         const ey = ent.gy;
@@ -1064,7 +1389,7 @@
         ctx.fillText('▲', (ex + 0.5) * cw, (ey + 0.5) * ch);
       });
 
-      // Indicador de rotación / orientación en la esquina superior derecha
+      // Indicador de rotación en la esquina superior
       ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
       ctx.fillRect(w - 55, 4, 51, 18);
       ctx.strokeStyle = '#6366f1';
@@ -1077,7 +1402,7 @@
       ctx.fillText(`⟳ ${params.rotacion || 0}°`, w - 29, 13);
     }
 
-    // Interacción con el lienzo 2D para alternar celdas con clic/arrastre
+    // Interacción con el lienzo 2D para alternar celdas o pintar patrones de monstruos con arrastre
     function setupCanvasInteraction() {
       const cv = document.getElementById('mazeCanvas');
       let isDrawing = false;
@@ -1099,16 +1424,38 @@
         if (currentMazeData.grid[gy][gx] === 2) return;
 
         const mid = Math.round((N - 1) / 2);
-        if (Math.abs(gx - mid) <= 1 && Math.abs(gy - mid) <= 1) return;
+        if (Math.abs(gx - mid) <= 1 && Math.abs(gy - mid) <= 1) return; // Centro intocable
 
-        const curVal = currentMazeData.grid[gy][gx];
-        if (targetVal === null) {
-          targetVal = curVal === 1 ? 0 : 1;
+        const cellKey = `${gx}_${gy}`;
+
+        if (activeTool === 'monsters') {
+          // Pintar el cuadrado con el patrón de color seleccionado
+          // Si era muro, se abre como pasillo automáticamente para que los bichos tengan camino
+          if (currentMazeData.grid[gy][gx] === 1) {
+            manualOverrides[cellKey] = 0;
+            currentMazeData.grid[gy][gx] = 0;
+          }
+          params.celdasMonstruos[cellKey] = activePatternId;
+          rebuildAll3D();
+        } else if (activeTool === 'erase-monsters') {
+          // Borrar el monstruo asignado a este cuadrado
+          if (params.celdasMonstruos[cellKey]) {
+            delete params.celdasMonstruos[cellKey];
+            rebuildAll3D();
+          }
+        } else if (activeTool === 'walls') {
+          // Modo clásico de abrir/cerrar muros
+          const curVal = currentMazeData.grid[gy][gx];
+          if (targetVal === null) {
+            targetVal = curVal === 1 ? 0 : 1;
+          }
+          manualOverrides[cellKey] = targetVal;
+          currentMazeData.grid[gy][gx] = targetVal;
+          if (targetVal === 1) {
+            delete params.celdasMonstruos[cellKey];
+          }
+          rebuildAll3D();
         }
-
-        manualOverrides[`${gx}_${gy}`] = targetVal;
-        currentMazeData.grid[gy][gx] = targetVal;
-        rebuildAll3D();
       }
 
       cv.addEventListener('mousedown', e => {
@@ -1178,6 +1525,11 @@
         b.onclick = () => applyLightingPreset(b.dataset.light);
       });
 
+      // Herramientas de edición 2D (Pintar Bichos, Borrar Bichos, Muros)
+      document.querySelectorAll('.tool-btn').forEach(b => {
+        b.onclick = () => setEditorTool(b.dataset.tool);
+      });
+
       // Rotación
       const slRot = document.getElementById('sl-rot');
       slRot.oninput = e => {
@@ -1233,7 +1585,7 @@
         rebuildAll3D();
       };
 
-      // Entradas múltiples con botones de conmutación
+      // Entradas múltiples
       document.querySelectorAll('.ent-btn').forEach(btn => {
         btn.onclick = () => {
           const dir = btn.dataset.dir;
@@ -1250,6 +1602,86 @@
           rebuildAll3D();
         };
       });
+
+      // Añadir nuevo patrón
+      document.getElementById('btn-add-pattern').onclick = () => {
+        const nextIdx = Object.keys(params.patronesMonstruos).length + 1;
+        const newId = 'p' + nextIdx;
+        const colors = ['#06b6d4', '#ec4899', '#84cc16', '#e11d48', '#8b5cf6'];
+        const chosenCol = colors[nextIdx % colors.length];
+        params.patronesMonstruos[newId] = {
+          id: newId,
+          color: chosenCol,
+          name: 'Monstruo ' + nextIdx,
+          clase: 'guerrero',
+          levelMin: 15,
+          levelMax: 20,
+          count: 1,
+          icono: '⚔️'
+        };
+        activePatternId = newId;
+        renderPatternsList();
+        syncPatternEditorForm();
+        setEditorTool('monsters');
+      };
+
+      // Edición de campos del patrón activo
+      document.getElementById('inp-pat-name').oninput = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.name = e.target.value || 'Monstruo';
+          document.getElementById('lbl-edit-pat-title').textContent = pat.name;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('inp-pat-color').onchange = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.color = e.target.value;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('sel-pat-clase').onchange = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.clase = e.target.value;
+          pat.icono = pat.clase === 'arquero' ? '🏹' : pat.clase === 'mago' ? '🔮' : pat.clase === 'elite' ? '👑' : pat.clase === 'rapido' ? '🦂' : '⚔️';
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('inp-pat-lvlmin').oninput = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.levelMin = parseInt(e.target.value, 10) || 1;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('inp-pat-lvlmax').oninput = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.levelMax = parseInt(e.target.value, 10) || 1;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('sl-pat-count').oninput = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.count = parseInt(e.target.value, 10) || 1;
+          document.getElementById('lbl-pat-count').textContent = pat.count;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
 
       // Bucles
       const slLoops = document.getElementById('sl-loops');
@@ -1275,6 +1707,12 @@
         const msg = document.getElementById('road-status-msg');
         msg.textContent = '✓ Conexión activada: al pulsar «Guardar y Volver», se trazará un camino directo al pueblo más cercano.';
         msg.style.display = 'block';
+      };
+
+      // Limpiar bichos de los cuadrados
+      document.getElementById('btn-clear-monsters').onclick = () => {
+        params.celdasMonstruos = {};
+        rebuildAll3D();
       };
 
       // Limpiar manuales
@@ -1337,7 +1775,9 @@
             entradaDir: params.entradas[0] || 'sur',
             wallColor: params.wallColor,
             groundColor: params.groundColor,
-            murosManuales: manualOverrides
+            murosManuales: manualOverrides,
+            patronesMonstruos: params.patronesMonstruos,
+            celdasMonstruos: params.celdasMonstruos
           }
         };
 

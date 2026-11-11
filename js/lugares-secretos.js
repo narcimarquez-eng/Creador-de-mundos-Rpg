@@ -214,15 +214,15 @@
       }
 
       if (!mejorCand) {
-        const numCandidatos = 20;
+        const numCandidatos = 36;
         for (let cI = 0; cI < numCandidatos; cI++) {
           const angVar = (idx * 1.25) + (cI / numCandidatos) * Math.PI * 2;
-          const dCand = 150 + ((cI * 9 + Math.floor(rnd() * 25)) % 55);
+          const dCand = 175 + ((cI * 7 + Math.floor(rnd() * 25)) % 65);
           let candX = pRef.x + Math.cos(angVar) * dCand;
           let candZ = pRef.y + Math.sin(angVar) * dCand;
 
-          // Comprobar distancia a pueblos (mínimo 135m y máximo 270m)
-          const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 135);
+          // Comprobar distancia a pueblos (mínimo 165m para evitar la rampa de elevación del pueblo)
+          const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 165);
           if (cercaPueblo) continue;
 
           // Separación con otras cabañas ya ubicadas (mínimo 45m)
@@ -234,19 +234,23 @@
             const eCenter = terrain.elevation(candX, candZ);
             if (eCenter < 0.28) continue;
 
-            // Medir desnivel en radio de 10m
-            const eN = terrain.elevation(candX, candZ - 10);
-            const eS = terrain.elevation(candX, candZ + 10);
-            const eE = terrain.elevation(candX + 10, candZ);
-            const eO = terrain.elevation(candX - 10, candZ);
-            desnivel = (Math.max(eCenter, eN, eS, eE, eO) - Math.min(eCenter, eN, eS, eE, eO)) * 420;
+            // Medir desnivel en radio de 16m alrededor de la cabaña
+            const eN = terrain.elevation(candX, candZ - 16);
+            const eS = terrain.elevation(candX, candZ + 16);
+            const eE = terrain.elevation(candX + 16, candZ);
+            const eO = terrain.elevation(candX - 16, candZ);
+            const eNE = terrain.elevation(candX + 11, candZ - 11);
+            const eSO = terrain.elevation(candX - 11, candZ + 11);
+            desnivel = (Math.max(eCenter, eN, eS, eE, eO, eNE, eSO) - Math.min(eCenter, eN, eS, eE, eO, eNE, eSO)) * 420;
+            // Descartar laderas demasiado escarpadas (>10m de desnivel en el área de la cabaña)
+            if (desnivel > 10.0) continue;
           }
 
           // Si hay zona de combate asignada, orientación suave
           if (zonaElegida) {
             const zy = (zonaElegida.y !== undefined ? zonaElegida.y : zonaElegida.z);
             const dZona = Math.hypot(candX - zonaElegida.x, candZ - zy);
-            desnivel += (dZona * 0.03);
+            desnivel += (dZona * 0.02);
           }
 
           if (desnivel < menorDesnivel) {
@@ -256,17 +260,17 @@
         }
       }
 
-      // Si no encontró candidato por restricciones extremas, usar posición base periférica
-      let cx = mejorCand ? mejorCand.x : (pRef.x + Math.cos(idx * 1.28 + rnd() * 0.35) * (150 + rnd() * 55));
-      let cz = mejorCand ? mejorCand.z : (pRef.y + Math.sin(idx * 1.28 + rnd() * 0.35) * (150 + rnd() * 55));
+      // Si no encontró candidato por restricciones extremas, usar posición base periférica despejada
+      let cx = mejorCand ? mejorCand.x : (pRef.x + Math.cos(idx * 1.28 + rnd() * 0.35) * (180 + rnd() * 45));
+      let cz = mejorCand ? mejorCand.z : (pRef.y + Math.sin(idx * 1.28 + rnd() * 0.35) * (180 + rnd() * 45));
 
-      // Garantizar que no esté dentro de la plaza ni invada muros (distancia mínima de 136m)
+      // Garantizar que no esté dentro de la plaza ni en la rampa de mezcla de muros (mínimo 168m)
       pueblos.forEach(p => {
         const dP = Math.hypot(cx - p.x, cz - p.y);
-        if (dP < 136) {
+        if (dP < 168) {
           const dirP = Math.atan2(cz - p.y, cx - p.x);
-          cx = p.x + Math.cos(dirP) * 145;
-          cz = p.y + Math.sin(dirP) * 145;
+          cx = p.x + Math.cos(dirP) * 180;
+          cz = p.y + Math.sin(dirP) * 180;
         }
       });
 
@@ -700,13 +704,13 @@
 
           if (!lugar.esMar) {
             // 4. Zócalo subterráneo de piedra rústica para asentar firmemente la cabaña en cualquier ladera
-            const altoZocalo = 7.5;
+            const altoZocalo = 16.0;
             const zocaloGeo = aplicarUVBoxSecreto(
               new THREE.BoxGeometry(anchoX * 1.04, altoZocalo, profZ * 1.04),
               anchoX * 1.04, altoZocalo, profZ * 1.04, 3.2
             );
             const zocalo = new THREE.Mesh(zocaloGeo, matPiedra);
-            // Se entierra profundamente en el terreno para que nunca quede volando en desniveles
+            // Se entierra profundamente en el terreno (16m) para que nunca quede volando en desniveles o laderas
             zocalo.position.set(0, -altoZocalo / 2 + 0.05, 0);
             zocalo.castShadow = true;
             zocalo.receiveShadow = true;
@@ -1033,6 +1037,8 @@
       let hBase = s.alturaBase;
       if (typeof hBase !== 'number') {
         hBase = (typeof getElevationFn === 'function') ? getElevationFn(s.x, s.z) : (typeof s.y === 'number' ? s.y : hActual);
+        s.alturaBase = hBase;
+        s.y = hBase;
       }
       const hHondonada = hBase;
 
