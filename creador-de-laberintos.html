@@ -474,8 +474,22 @@
           </div>
         </div>
         <div class="form-group">
-          <div class="form-label"><span>Cantidad por cuadrado:</span><span class="val" id="lbl-pat-count">1</span></div>
-          <input type="range" id="sl-pat-count" min="1" max="4" step="1" value="1">
+          <div class="form-label">
+            <span>Cantidad por cuadrado:</span>
+            <span class="val" id="lbl-pat-count">1</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="range" id="sl-pat-count" min="1" max="8" step="1" value="1" style="flex:1">
+            <input type="number" id="inp-pat-count" min="1" max="8" value="1" style="width:48px;padding:3px 6px;text-align:center;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;font-weight:700" title="Cantidad directa (1 a 8 monstruos)">
+          </div>
+          <div class="btn-group" style="display:flex;gap:4px;margin-top:6px">
+            <button type="button" class="pat-count-btn" data-cnt="1" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">1</button>
+            <button type="button" class="pat-count-btn" data-cnt="2" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×2</button>
+            <button type="button" class="pat-count-btn" data-cnt="3" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×3</button>
+            <button type="button" class="pat-count-btn" data-cnt="4" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×4</button>
+            <button type="button" class="pat-count-btn" data-cnt="6" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×6</button>
+            <button type="button" class="pat-count-btn" data-cnt="8" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×8</button>
+          </div>
         </div>
       </div>
     </div>
@@ -780,14 +794,22 @@
       return g;
     }
 
-    // Crea un mini-modelo 3D representativo para el monstruo del patrón
-    function create3DMonsterToken(pat, cellSize) {
+    // Crea un mini-modelo 3D representativo para el monstruo del patrón o instancia individual
+    function create3DMonsterToken(item, cellSize) {
       const g = new THREE.Group();
-      const colorHex = pat.color || '#22c55e';
+      const pat = (item.patronId && params.patronesMonstruos[item.patronId]) ? params.patronesMonstruos[item.patronId] : item;
+      const colorHex = item.color || pat.color || '#22c55e';
       const colThree = new THREE.Color(colorHex);
+      const totalInCell = item.totalInCell || pat.count || 1;
+      const index = item.index !== undefined ? item.index : 0;
+      const nivel = item.nivel || pat.levelMin || 10;
+      const clase = item.clase || pat.clase || 'guerrero';
+      const name = item.name || pat.name || 'Monstruo';
+      const icono = item.icono || pat.icono || '👾';
 
-      // Disco / Halo de sector en el suelo
-      const ringG = new THREE.RingGeometry(cellSize * 0.15, cellSize * 0.42, 18);
+      // Disco / Halo de sector en el suelo (escalado según cantidad para que no se solapen caóticamente)
+      const ringScale = totalInCell > 1 ? Math.min(1.0, 1.4 / Math.sqrt(totalInCell)) : 1.0;
+      const ringG = new THREE.RingGeometry(cellSize * 0.10 * ringScale, cellSize * 0.35 * ringScale, 18);
       ringG.rotateX(-Math.PI / 2);
       const ringM = new THREE.MeshBasicMaterial({ color: colThree, side: THREE.DoubleSide });
       const ring = new THREE.Mesh(ringG, ringM);
@@ -798,87 +820,115 @@
       const matBody = new THREE.MeshStandardMaterial({ color: colThree, roughness: 0.6 });
       const matDark = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
 
-      if (pat.clase === 'arquero') {
+      // Escala visual de la figura si hay muchos en la misma casilla
+      const modelScale = totalInCell >= 4 ? 0.85 : 1.0;
+
+      if (clase === 'arquero') {
         // Túnica y arco
-        const body = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.6, 6), matBody);
-        body.position.y = 0.8;
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.45 * modelScale, 1.6 * modelScale, 6), matBody);
+        body.position.y = 0.8 * modelScale;
         body.castShadow = true;
         g.add(body);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), matDark);
-        head.position.y = 1.7;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.24 * modelScale, 8, 8), matDark);
+        head.position.y = 1.7 * modelScale;
         g.add(head);
         // Arco
-        const bow = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.05, 4, 8, Math.PI), new THREE.MeshBasicMaterial({ color: 0x854d0e }));
-        bow.position.set(0.4, 1.1, 0.2);
+        const bow = new THREE.Mesh(new THREE.TorusGeometry(0.45 * modelScale, 0.05 * modelScale, 4, 8, Math.PI), new THREE.MeshBasicMaterial({ color: 0x854d0e }));
+        bow.position.set(0.4 * modelScale, 1.1 * modelScale, 0.2 * modelScale);
         bow.rotation.y = Math.PI / 2;
         g.add(bow);
-      } else if (pat.clase === 'mago') {
+      } else if (clase === 'mago') {
         // Túnica, sombrero y báculo con luz
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.55, 1.7, 7), matBody);
-        body.position.y = 0.85;
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25 * modelScale, 0.55 * modelScale, 1.7 * modelScale, 7), matBody);
+        body.position.y = 0.85 * modelScale;
         body.castShadow = true;
         g.add(body);
-        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.8, 6), matDark);
-        hat.position.y = 2.0;
+        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.4 * modelScale, 0.8 * modelScale, 6), matDark);
+        hat.position.y = 2.0 * modelScale;
         g.add(hat);
         // Báculo mágico
-        const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 5), new THREE.MeshStandardMaterial({ color: 0x78350f }));
-        staff.position.set(0.5, 1.1, 0.1);
+        const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * modelScale, 0.04 * modelScale, 2.2 * modelScale, 5), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+        staff.position.set(0.5 * modelScale, 1.1 * modelScale, 0.1 * modelScale);
         g.add(staff);
-        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshBasicMaterial({ color: colThree }));
-        orb.position.set(0.5, 2.2, 0.1);
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.18 * modelScale, 8, 8), new THREE.MeshBasicMaterial({ color: colThree }));
+        orb.position.set(0.5 * modelScale, 2.2 * modelScale, 0.1 * modelScale);
         g.add(orb);
-      } else if (pat.clase === 'elite') {
+      } else if (clase === 'elite') {
         // Campeón más grande con corona
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.8, 0.6), matBody);
-        body.position.y = 1.0;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.9 * modelScale, 1.8 * modelScale, 0.6 * modelScale), matBody);
+        body.position.y = 1.0 * modelScale;
         body.scale.setScalar(1.25);
         body.castShadow = true;
         g.add(body);
-        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.25, 0.35, 6), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8 }));
-        crown.position.y = 2.45;
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * modelScale, 0.25 * modelScale, 0.35 * modelScale, 6), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8 }));
+        crown.position.y = 2.45 * modelScale;
         g.add(crown);
       } else {
         // Guerrero / melee por defecto: torso con hombreras y espada
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.3, 0.4), matBody);
-        body.position.y = 0.95;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.65 * modelScale, 1.3 * modelScale, 0.4 * modelScale), matBody);
+        body.position.y = 0.95 * modelScale;
         body.castShadow = true;
         g.add(body);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), matDark);
-        head.position.y = 1.75;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.25 * modelScale, 8, 8), matDark);
+        head.position.y = 1.75 * modelScale;
         g.add(head);
         // Espada
-        const sword = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 0.04), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
-        sword.position.set(0.45, 1.1, 0.2);
+        const sword = new THREE.Mesh(new THREE.BoxGeometry(0.1 * modelScale, 1.1 * modelScale, 0.04 * modelScale), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
+        sword.position.set(0.45 * modelScale, 1.1 * modelScale, 0.2 * modelScale);
         g.add(sword);
       }
 
-      // Rótulo flotante tipo Billboard con CanvasTexture
+      // Billboard flotante:
+      // Para el primer monstruo (o solitario), muestra el cartel principal con insignia de cantidad si count > 1
+      // Para los monstruos adicionales, muestra una etiqueta compacta de nivel para identificar a cada uno
       const cvText = document.createElement('canvas');
-      cvText.width = 256; cvText.height = 64;
-      const tCtx = cvText.getContext('2d');
-      tCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-      tCtx.roundRect ? tCtx.roundRect(4, 4, 248, 56, 10) : tCtx.fillRect(4, 4, 248, 56);
-      tCtx.fill();
-      tCtx.lineWidth = 3;
-      tCtx.strokeStyle = colorHex;
-      tCtx.stroke();
-      tCtx.fillStyle = '#ffffff';
-      tCtx.font = 'bold 20px sans-serif';
-      tCtx.textAlign = 'center';
-      tCtx.textBaseline = 'middle';
-      const lvlStr = pat.levelMin === pat.levelMax ? `Nv.${pat.levelMin}` : `Nv.${pat.levelMin}–${pat.levelMax}`;
-      tCtx.fillText(`${pat.icono || '👾'} ${lvlStr}`, 128, 24);
-      tCtx.font = 'bold 14px sans-serif';
-      tCtx.fillStyle = colorHex;
-      tCtx.fillText(`${pat.name}`, 128, 45);
+      if (index === 0) {
+        cvText.width = 256; cvText.height = 64;
+        const tCtx = cvText.getContext('2d');
+        tCtx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        tCtx.roundRect ? tCtx.roundRect(4, 4, 248, 56, 10) : tCtx.fillRect(4, 4, 248, 56);
+        tCtx.fill();
+        tCtx.lineWidth = 3;
+        tCtx.strokeStyle = colorHex;
+        tCtx.stroke();
+        tCtx.fillStyle = '#ffffff';
+        tCtx.font = 'bold 19px sans-serif';
+        tCtx.textAlign = 'center';
+        tCtx.textBaseline = 'middle';
+        const countBadge = totalInCell > 1 ? ` (×${totalInCell})` : '';
+        tCtx.fillText(`${icono} Nv.${nivel}${countBadge}`, 128, 24);
+        tCtx.font = 'bold 13px sans-serif';
+        tCtx.fillStyle = colorHex;
+        tCtx.fillText(`${name}`, 128, 45);
 
-      const spriteTex = new THREE.CanvasTexture(cvText);
-      const spriteMat = new THREE.SpriteMaterial({ map: spriteTex, depthTest: false });
-      const sprite = new THREE.Sprite(spriteMat);
-      sprite.position.y = 3.2;
-      sprite.scale.set(6, 1.5, 1);
-      g.add(sprite);
+        const spriteTex = new THREE.CanvasTexture(cvText);
+        const spriteMat = new THREE.SpriteMaterial({ map: spriteTex, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.y = 3.3 * modelScale;
+        sprite.scale.set(5.5, 1.38, 1);
+        g.add(sprite);
+      } else {
+        cvText.width = 128; cvText.height = 48;
+        const tCtx = cvText.getContext('2d');
+        tCtx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+        tCtx.roundRect ? tCtx.roundRect(2, 2, 124, 44, 8) : tCtx.fillRect(2, 2, 124, 44);
+        tCtx.fill();
+        tCtx.lineWidth = 2;
+        tCtx.strokeStyle = colorHex;
+        tCtx.stroke();
+        tCtx.fillStyle = '#fef08a';
+        tCtx.font = 'bold 18px sans-serif';
+        tCtx.textAlign = 'center';
+        tCtx.textBaseline = 'middle';
+        tCtx.fillText(`${icono} Nv.${nivel}`, 64, 24);
+
+        const spriteTex = new THREE.CanvasTexture(cvText);
+        const spriteMat = new THREE.SpriteMaterial({ map: spriteTex, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.y = 2.65 * modelScale;
+        sprite.scale.set(2.8, 1.05, 1);
+        g.add(sprite);
+      }
 
       return g;
     }
@@ -1038,7 +1088,12 @@
       document.getElementById('inp-pat-lvlmin').value = pat.levelMin || 10;
       document.getElementById('inp-pat-lvlmax').value = pat.levelMax || pat.levelMin || 10;
       document.getElementById('sl-pat-count').value = pat.count || 1;
+      const inpCount = document.getElementById('inp-pat-count');
+      if (inpCount) inpCount.value = pat.count || 1;
       document.getElementById('lbl-pat-count').textContent = pat.count || 1;
+      document.querySelectorAll('.pat-count-btn').forEach(b => {
+        b.style.background = (parseInt(b.dataset.cnt, 10) === (pat.count || 1)) ? '#6366f1' : '#334155';
+      });
     }
 
     function renderStyleCards() {
@@ -1137,8 +1192,9 @@
 
       const cellSize = currentMazeData.cellSize;
       document.getElementById('lbl-cellsize').textContent = `~${cellSize.toFixed(1)} m`;
-      const numMons = Object.keys(params.celdasMonstruos).length;
-      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | 👾 ${numMons} celdas con bichos`;
+      const numCeldas = Object.keys(params.celdasMonstruos).length;
+      const totalMonstruos = (currentMazeData.monstruosPorCelda || []).length;
+      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | 👾 ${totalMonstruos} monstruos en ${numCeldas} casillas`;
 
       // 1. Reconstruir Terreno Esculpido de la Zona
       if (terrainMesh) {
@@ -1274,26 +1330,16 @@
       });
       scene.add(entranceMarkersGroup);
 
-      // 5. Ubicar Monstruos 3D en Vivo en las Celdas Pintadas
+      // 5. Ubicar Monstruos 3D en Vivo en las Celdas Pintadas (todos según cantidad por celda con formación táctica)
       if (monsters3DGroup) {
         scene.remove(monsters3DGroup);
       }
       monsters3DGroup = new THREE.Group();
-      Object.keys(params.celdasMonstruos).forEach(key => {
-        const patId = params.celdasMonstruos[key];
-        const pat = params.patronesMonstruos[patId];
-        if (!pat) return;
-        const parts = key.split('_');
-        if (parts.length !== 2) return;
-        const gx = parseInt(parts[0], 10);
-        const gy = parseInt(parts[1], 10);
-        if (gx < 0 || gx >= currentMazeData.N || gy < 0 || gy >= currentMazeData.N) return;
-        if (currentMazeData.grid[gy][gx] === 1 || currentMazeData.grid[gy][gx] === 2) return;
-
-        const { wx, wz } = currentMazeData.celdaAMundo(gx, gy);
-        const wy = H_fn(wx, wz);
-        const token = create3DMonsterToken(pat, cellSize);
-        token.position.set(wx, wy, wz);
+      const listaMonstruos = currentMazeData.monstruosPorCelda || [];
+      listaMonstruos.forEach(cm => {
+        const wy = H_fn(cm.wx, cm.wz);
+        const token = create3DMonsterToken(cm, cellSize);
+        token.position.set(cm.wx, wy, cm.wz);
         monsters3DGroup.add(token);
       });
       scene.add(monsters3DGroup);
@@ -1348,12 +1394,22 @@
               ctx.lineWidth = 1;
               ctx.strokeRect(x * cw + 0.5, y * ch + 0.5, cw - 1.5, ch - 1.5);
 
-              // Nivel del enemigo dentro del cuadrado
-              ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 8.5px sans-serif';
+              // Nivel y cantidad del enemigo dentro del cuadrado
+              const count = Math.max(1, Math.min(8, pat.count || 1));
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
-              ctx.fillText(pat.levelMin ? String(pat.levelMin) : 'M', (x + 0.5) * cw, (y + 0.5) * ch);
+              if (count > 1) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 7px sans-serif';
+                ctx.fillText(pat.levelMin ? String(pat.levelMin) : 'M', (x + 0.5) * cw, (y + 0.35) * ch);
+                ctx.fillStyle = '#fef08a';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.fillText(`×${count}`, (x + 0.5) * cw, (y + 0.72) * ch);
+              } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 8.5px sans-serif';
+                ctx.fillText(pat.levelMin ? String(pat.levelMin) : 'M', (x + 0.5) * cw, (y + 0.5) * ch);
+              }
             } else {
               ctx.fillStyle = '#e2e8f0';
               ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
@@ -1673,15 +1729,32 @@
         }
       };
 
-      document.getElementById('sl-pat-count').oninput = e => {
+      function setPatternCount(val) {
+        const cnt = Math.max(1, Math.min(8, parseInt(val, 10) || 1));
         const pat = params.patronesMonstruos[activePatternId];
         if (pat) {
-          pat.count = parseInt(e.target.value, 10) || 1;
-          document.getElementById('lbl-pat-count').textContent = pat.count;
+          pat.count = cnt;
+          document.getElementById('sl-pat-count').value = cnt;
+          const inp = document.getElementById('inp-pat-count');
+          if (inp) inp.value = cnt;
+          document.getElementById('lbl-pat-count').textContent = cnt;
+          document.querySelectorAll('.pat-count-btn').forEach(b => {
+            b.style.background = (parseInt(b.dataset.cnt, 10) === cnt) ? '#6366f1' : '#334155';
+          });
           renderPatternsList();
           rebuildAll3D();
         }
-      };
+      }
+
+      document.getElementById('sl-pat-count').oninput = e => setPatternCount(e.target.value);
+      const inpPatCount = document.getElementById('inp-pat-count');
+      if (inpPatCount) {
+        inpPatCount.onchange = e => setPatternCount(e.target.value);
+        inpPatCount.oninput = e => setPatternCount(e.target.value);
+      }
+      document.querySelectorAll('.pat-count-btn').forEach(btn => {
+        btn.onclick = () => setPatternCount(btn.dataset.cnt);
+      });
 
       // Bucles
       const slLoops = document.getElementById('sl-loops');

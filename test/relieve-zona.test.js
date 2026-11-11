@@ -274,3 +274,44 @@ test('RelieveZonaLib - Protección contra perforación bajo el nivel del mar', (
   const hResultado = RelieveZonaLib.aplicarRelieveTerreno([zona], 0, 0, 0.4);
   assert.ok(hResultado >= 1.2, `La cota resultante (${hResultado}) nunca debe excavar bajo el nivel del mar (<1.2)`);
 });
+
+test('RelieveZonaLib - Múltiples monstruos por casilla (hasta 8) con formación táctica sin colisión', () => {
+  const zona = {
+    id: 'z-horda',
+    x: 100,
+    y: 200,
+    radius: 120,
+    relieve: {
+      activo: true,
+      tamGrid: 11,
+      patronesMonstruos: {
+        horda_elite: {
+          id: 'horda_elite',
+          name: 'Horda de Goblins',
+          color: '#f97316',
+          clase: 'rapido',
+          levelMin: 14,
+          levelMax: 20,
+          count: 8
+        }
+      },
+      celdasMonstruos: {
+        '5_3': 'horda_elite'
+      }
+    }
+  };
+
+  const lista = RelieveZonaLib.obtenerMonstruosPorCelda(zona);
+  assert.strictEqual(lista.length, 8, 'Debe generar exactamente 8 monstruos en la casilla');
+
+  // Verificar que ninguno tiene coordenadas idénticas (formación táctica sin superposición)
+  const posiciones = new Set();
+  lista.forEach((m, idx) => {
+    assert.strictEqual(m.totalInCell, 8);
+    assert.strictEqual(m.index, idx);
+    assert.ok(m.level >= 14 && m.level <= 20, `Nivel ${m.level} debe estar en el rango [14, 20]`);
+    const keyPos = `${m.wx.toFixed(2)}_${m.wz.toFixed(2)}`;
+    assert.ok(!posiciones.has(keyPos), `El monstruo ${idx} no debe solaparse exactamente con otro en ${keyPos}`);
+    posiciones.add(keyPos);
+  });
+});

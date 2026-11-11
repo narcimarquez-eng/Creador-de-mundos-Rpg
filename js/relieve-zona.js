@@ -504,8 +504,30 @@
       const lvlMax = pat.levelMax || lvlMin;
 
       for (let ci = 0; ci < count; ci++) {
-        const offX = (count === 1) ? 0 : (ci === 0 ? -1.0 : (ci === 1 ? 1.0 : 0));
-        const offZ = (count === 1) ? 0 : (ci === 2 ? 1.0 : (ci === 3 ? -1.0 : 0));
+        let offX = 0;
+        let offZ = 0;
+        if (count === 2) {
+          offX = (ci === 0 ? -1.4 : 1.4);
+          offZ = 0;
+        } else if (count === 3) {
+          if (ci === 0) { offX = 0; offZ = -1.4; }
+          else if (ci === 1) { offX = -1.3; offZ = 1.1; }
+          else { offX = 1.3; offZ = 1.1; }
+        } else if (count === 4) {
+          offX = (ci % 2 === 0 ? -1.3 : 1.3);
+          offZ = (ci < 2 ? -1.3 : 1.3);
+        } else if (count > 4) {
+          if (ci === 0) {
+            offX = 0;
+            offZ = 0;
+          } else {
+            const radForm = Math.min(2.2, cellSize * 0.28);
+            const ang = ((ci - 1) * 2 * Math.PI) / (count - 1);
+            offX = Math.cos(ang) * radForm;
+            offZ = Math.sin(ang) * radForm;
+          }
+        }
+
         const lvl = (count > 1) ? Math.round(lvlMin + (lvlMax - lvlMin) * (ci / (count - 1))) : Math.round((lvlMin + lvlMax) / 2);
         monstruosPorCelda.push({
           key,
@@ -513,6 +535,10 @@
           gy,
           wx: wx + offX,
           wz: wz + offZ,
+          offX,
+          offZ,
+          index: ci,
+          totalInCell: count,
           patId,
           color: pat.color || '#22c55e',
           name: pat.name || 'Monstruo',
@@ -520,6 +546,7 @@
           levelMin: lvlMin,
           levelMax: lvlMax,
           level: lvl,
+          nivel: lvl,
           count: 1,
           icono: pat.icono || (pat.clase === 'arquero' ? '🏹' : pat.clase === 'mago' ? '🔮' : pat.clase === 'elite' ? '👑' : '⚔️')
         });

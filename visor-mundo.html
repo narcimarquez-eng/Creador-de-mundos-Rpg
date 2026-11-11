@@ -5490,7 +5490,7 @@
             const rngC = new W.PRNG((W.hashString(z.id + '|cm|' + cm.key + '|' + ck) ^ world.seed) >>> 0);
             const rol = cm.clase === 'arquero' ? 'arquero' : cm.clase === 'mago' ? 'mago' : 'melee';
             const esDist = rol === 'arquero' || rol === 'mago';
-            const lvl = rngC.int(cm.levelMin, cm.levelMax || cm.levelMin);
+            const lvl = cm.level || cm.nivel || rngC.int(cm.levelMin, cm.levelMax || cm.levelMin);
             const esElite = cm.clase === 'elite';
             const rElite = esElite ? 3 : 1;
             const pref = esElite ? '👑 [Élite] ' : '';
