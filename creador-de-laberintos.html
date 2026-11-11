@@ -603,29 +603,148 @@
       celdasMonstruos: {}
     };
 
-    // Texturas de Canvas procedimentales con buena luminosidad
-    function createProceduralNoiseTexture(colorBase, roughness, isWall) {
+    // Texturas de Canvas procedimentales con alta resolución y detalle arquitectónico por estilo
+    function createProceduralWallTexture(estilo, colorBase) {
       const cv = document.createElement('canvas');
-      cv.width = 256; cv.height = 256;
+      cv.width = 512; cv.height = 512;
       const ctx = cv.getContext('2d');
-      ctx.fillStyle = colorBase;
-      ctx.fillRect(0, 0, 256, 256);
+      ctx.fillStyle = colorBase || '#78716c';
+      ctx.fillRect(0, 0, 512, 512);
 
-      const col = new THREE.Color(colorBase);
-      const imgData = ctx.getImageData(0, 0, 256, 256);
-      const d = imgData.data;
-      for (let y = 0; y < 256; y++) {
-        for (let x = 0; x < 256; x++) {
-          const idx = (y * 256 + x) * 4;
-          const n = (Math.sin(x * 0.12) * Math.cos(y * 0.12) + (Math.random() - 0.5) * 0.35);
-          const block = isWall ? (Math.sin(y * 0.08) > 0.88 ? -0.15 : 0) : 0;
-          const factor = 1.05 + n * 0.20 + block;
-          d[idx] = Math.max(0, Math.min(255, col.r * 255 * factor));
-          d[idx + 1] = Math.max(0, Math.min(255, col.g * 255 * factor));
-          d[idx + 2] = Math.max(0, Math.min(255, col.b * 255 * factor));
+      if (estilo === 'laberinto_setos' || estilo === 'setos') {
+        // Textura densa de setos y hojas vivas con claroscuros
+        ctx.fillStyle = '#14532d';
+        ctx.fillRect(0, 0, 512, 512);
+        for (let i = 0; i < 3500; i++) {
+          const lx = Math.random() * 512, ly = Math.random() * 512;
+          const lr = 3 + Math.random() * 7;
+          ctx.beginPath();
+          ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+          ctx.fillStyle = (Math.random() < 0.35) ? '#15803d' : (Math.random() < 0.7 ? '#22c55e' : '#166534');
+          ctx.globalAlpha = 0.65;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+      } else if (estilo === 'piedra_ruinas' || estilo === 'mamposteria_castillo') {
+        // Sillares de piedra medieval con juntas de mortero y desgaste
+        const filas = 8;
+        const hFila = 512 / filas;
+        ctx.fillStyle = colorBase;
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#1e293b';
+        for (let f = 0; f <= filas; f++) {
+          ctx.beginPath();
+          ctx.moveTo(0, f * hFila);
+          ctx.lineTo(512, f * hFila);
+          ctx.stroke();
+          const offset = (f % 2) * 32;
+          for (let vx = offset; vx <= 512; vx += 64) {
+            ctx.beginPath();
+            ctx.moveTo(vx, f * hFila);
+            ctx.lineTo(vx, (f + 1) * hFila);
+            ctx.stroke();
+          }
+        }
+        // Grano mineral y picado de cantería
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      } else if (estilo === 'hielo_glacial') {
+        // Hielo azul cristalino con fisuras glaciares
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, '#38bdf8');
+        grad.addColorStop(0.5, '#7dd3fc');
+        grad.addColorStop(1, '#0284c7');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2.5;
+        for (let i = 0; i < 25; i++) {
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * 512, Math.random() * 512);
+          ctx.lineTo(Math.random() * 512, Math.random() * 512);
+          ctx.stroke();
+        }
+      } else if (estilo === 'obsidiana_volcanica') {
+        // Obsidiana oscura con vetas de magma brillante
+        ctx.fillStyle = '#18181b';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 8;
+        for (let i = 0; i < 14; i++) {
+          ctx.beginPath();
+          const startX = Math.random() * 512, startY = Math.random() * 512;
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(startX + (Math.random() - 0.5) * 120, startY + (Math.random() - 0.5) * 120);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+      } else {
+        // Cañón de roca estratificada / arenisca
+        const grad = ctx.createLinearGradient(0, 0, 0, 512);
+        grad.addColorStop(0, colorBase);
+        grad.addColorStop(0.25, '#57534e');
+        grad.addColorStop(0.5, colorBase);
+        grad.addColorStop(0.75, '#44403c');
+        grad.addColorStop(1, colorBase);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 2;
+        for (let y = 16; y < 512; y += 24 + Math.random() * 16) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.bezierCurveTo(128, y + 4, 384, y - 4, 512, y);
+          ctx.stroke();
         }
       }
-      ctx.putImageData(imgData, 0, 0);
+
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2, 2);
+      return tex;
+    }
+
+    function createProceduralFloorTexture(estilo, colorBase) {
+      const cv = document.createElement('canvas');
+      cv.width = 512; cv.height = 512;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = colorBase || '#57534e';
+      ctx.fillRect(0, 0, 512, 512);
+
+      if (estilo === 'laberinto_setos' || estilo === 'setos') {
+        ctx.fillStyle = '#365314';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.25)';
+        for (let i = 0; i < 4000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 4);
+      } else if (estilo === 'piedra_ruinas' || estilo === 'mamposteria_castillo') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 3;
+        for (let y = 0; y <= 512; y += 48) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+          const off = (y / 48 % 2) * 24;
+          for (let x = off; x <= 512; x += 48) {
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 48); ctx.stroke();
+          }
+        }
+      } else if (estilo === 'hielo_glacial') {
+        ctx.fillStyle = '#bae6fd';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3);
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        for (let i = 0; i < 3000; i++) {
+          ctx.beginPath();
+          ctx.arc(Math.random() * 512, Math.random() * 512, Math.random() * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
       const tex = new THREE.CanvasTexture(cv);
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.repeat.set(4, 4);
@@ -997,6 +1116,63 @@
         }
       }
 
+      // Sincronizar patrones con los monstruos reales de la zona si vienen de index.html
+      if (zoneData.monsters && Array.isArray(zoneData.monsters) && zoneData.monsters.length > 0) {
+        const esDefault = !r || !r.patronesMonstruos || Object.keys(params.patronesMonstruos).length <= 3;
+        if (esDefault) {
+          const paletaColores = ['#ef4444', '#f97316', '#eab308', '#10b981', '#06b6d4', '#6366f1', '#a855f7', '#ec4899'];
+          const nuevosPatrones = {};
+          zoneData.monsters.forEach((zm, zIdx) => {
+            const pId = 'pat-' + (zIdx + 1);
+            nuevosPatrones[pId] = {
+              nombre: zm.name || ('Monstruo ' + (zIdx + 1)),
+              color: paletaColores[zIdx % paletaColores.length],
+              clase: zm.boss ? 'jefe' : (zm.name && (zm.name.toLowerCase().includes('mago') || zm.name.toLowerCase().includes('arcano')) ? 'mago' : (zm.name && (zm.name.toLowerCase().includes('arquero') || zm.name.toLowerCase().includes('cazador')) ? 'arquero' : 'guerrero')),
+              nivel: zm.level || 1,
+              esJefe: !!zm.boss,
+              count: zm.boss ? 1 : Math.min(4, Math.max(1, zm.count || 2))
+            };
+          });
+          params.patronesMonstruos = nuevosPatrones;
+          activePatternId = Object.keys(nuevosPatrones)[0] || 'pat-1';
+        }
+      }
+
+      // Si la zona no tiene celdas pintadas todavía, auto-distribuir los monstruos por los pasillos
+      if (!params.celdasMonstruos || Object.keys(params.celdasMonstruos).length === 0) {
+        const dummyLab = RelieveZonaLib.generarLaberinto({
+          radio: params.radius,
+          tamGrid: params.tamGrid,
+          seed: params.seed,
+          bucleChance: params.bucleChance,
+          entradas: params.entradas
+        });
+        if (dummyLab && dummyLab.grid) {
+          const N = dummyLab.grid.length;
+          const pasillos = [];
+          for (let gy = 1; gy < N - 1; gy++) {
+            for (let gx = 1; gx < N - 1; gx++) {
+              if (dummyLab.grid[gy][gx] === 0) {
+                const cx = (N - 1) / 2, cy = (N - 1) / 2;
+                if (Math.hypot(gx - cx, gy - cy) > 1.8) pasillos.push({ gx, gy });
+              }
+            }
+          }
+          const patIds = Object.keys(params.patronesMonstruos);
+          if (pasillos.length > 0 && patIds.length > 0) {
+            params.celdasMonstruos = {};
+            const numADistribuir = Math.min(pasillos.length, Math.max(6, Math.floor(pasillos.length * 0.35)));
+            const salto = Math.max(1, Math.floor(pasillos.length / numADistribuir));
+            for (let i = 0; i < numADistribuir; i++) {
+              const idxP = (i * salto) % pasillos.length;
+              const cel = pasillos[idxP];
+              const pId = patIds[i % patIds.length];
+              params.celdasMonstruos[`${cel.gx},${cel.gy}`] = pId;
+            }
+          }
+        }
+      }
+
       // Asegurar que activePatternId exista
       const patKeys = Object.keys(params.patronesMonstruos);
       if (!params.patronesMonstruos[activePatternId] && patKeys.length > 0) {
@@ -1271,7 +1447,9 @@
       geom.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
       geom.setIndex(indices);
 
-      const texGround = createProceduralNoiseTexture(params.groundColor, 0.85, false);
+      const texGround = (typeof createProceduralFloorTexture === 'function')
+        ? createProceduralFloorTexture(params.estilo, params.groundColor)
+        : createProceduralNoiseTexture(params.groundColor, 0.85, false);
       const matTerrain = new THREE.MeshStandardMaterial({
         vertexColors: true,
         roughness: 0.82,
@@ -1284,24 +1462,45 @@
       terrainMesh.castShadow = true;
       scene.add(terrainMesh);
 
-      // 2. Malla adicional de muros para volumen arquitectónico y remates
+      // 2. Malla adicional de muros para volumen arquitectónico y texturizado procedural
       if (wallsMesh) {
         scene.remove(wallsMesh);
         if (wallsMesh.geometry) wallsMesh.geometry.dispose();
+        wallsMesh = null;
       }
-      const wallGeoms = [];
       const { muros } = currentMazeData;
-      const hMuro3D = params.alturaMuro * 0.95;
-      const rotRad = (params.rotacion || 0) * (Math.PI / 180);
-
-      muros.forEach(m => {
-        const boxG = new THREE.BoxGeometry(m.half * 1.95, hMuro3D, m.half * 1.95);
+      if (muros && muros.length > 0) {
+        const hMuro3D = Math.max(3.2, params.alturaMuro * 0.95);
+        const rotRad = (params.rotacion || 0) * (Math.PI / 180);
+        const boxG = new THREE.BoxGeometry(cellSize * 0.98, hMuro3D, cellSize * 0.98);
+        const texWall = (typeof createProceduralWallTexture === 'function')
+          ? createProceduralWallTexture(params.estilo, params.wallColor)
+          : createProceduralNoiseTexture(params.wallColor, 0.9, true);
+        const matWall = new THREE.MeshStandardMaterial({
+          map: texWall,
+          color: new THREE.Color(params.wallColor),
+          roughness: 0.78,
+          metalness: 0.12
+        });
+        wallsMesh = new THREE.InstancedMesh(boxG, matWall, muros.length);
+        wallsMesh.castShadow = true;
+        wallsMesh.receiveShadow = true;
+        const dummyMatrix = new THREE.Matrix4();
+        const dummyPos = new THREE.Vector3();
+        const dummyQuat = new THREE.Quaternion();
+        const dummyScale = new THREE.Vector3(1, 1, 1);
         if (rotRad !== 0) {
-          boxG.rotateY(-rotRad);
+          dummyQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -rotRad);
         }
-        boxG.translate(m.wx, hMuro3D / 2 - params.profundidad * 0.4, m.wz);
-        wallGeoms.push(boxG);
-      });
+        muros.forEach((m, idx) => {
+          const wy = H_fn(m.wx, m.wz) + hMuro3D / 2 - params.profundidad * 0.2;
+          dummyPos.set(m.wx, wy, m.wz);
+          dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
+          wallsMesh.setMatrixAt(idx, dummyMatrix);
+        });
+        wallsMesh.instanceMatrix.needsUpdate = true;
+        scene.add(wallsMesh);
+      }
 
       // 3. Reconstruir Decorado de Culminación Central
       if (culmGroup) {

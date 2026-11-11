@@ -1974,7 +1974,8 @@
       name: z.name,
       biome: z.biome,
       radius: z.radius,
-      relieve: z.relieve
+      relieve: z.relieve,
+      monsters: z.monsters || []
     };
     location.href = 'creador-de-laberintos.html#mundo=' + encodeURIComponent(JSON.stringify(payload));
   }

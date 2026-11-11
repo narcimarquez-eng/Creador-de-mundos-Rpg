@@ -214,15 +214,15 @@
       }
 
       if (!mejorCand) {
-        const numCandidatos = 36;
+        const numCandidatos = 48;
         for (let cI = 0; cI < numCandidatos; cI++) {
           const angVar = (idx * 1.25) + (cI / numCandidatos) * Math.PI * 2;
-          const dCand = 175 + ((cI * 7 + Math.floor(rnd() * 25)) % 65);
+          const dCand = 180 + ((cI * 7 + Math.floor(rnd() * 20)) % 65);
           let candX = pRef.x + Math.cos(angVar) * dCand;
           let candZ = pRef.y + Math.sin(angVar) * dCand;
 
-          // Comprobar distancia a pueblos (mínimo 165m para evitar la rampa de elevación del pueblo)
-          const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 165);
+          // Comprobar distancia a pueblos (mínimo 170m para superar la rampa de elevación de los muros del pueblo)
+          const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 170);
           if (cercaPueblo) continue;
 
           // Separación con otras cabañas ya ubicadas (mínimo 45m)
@@ -242,8 +242,8 @@
             const eNE = terrain.elevation(candX + 11, candZ - 11);
             const eSO = terrain.elevation(candX - 11, candZ + 11);
             desnivel = (Math.max(eCenter, eN, eS, eE, eO, eNE, eSO) - Math.min(eCenter, eN, eS, eE, eO, eNE, eSO)) * 420;
-            // Descartar laderas demasiado escarpadas (>10m de desnivel en el área de la cabaña)
-            if (desnivel > 10.0) continue;
+            // Descartar laderas escarpadas (>4.5m de desnivel en el área de la cabaña)
+            if (desnivel > 4.5) continue;
           }
 
           // Si hay zona de combate asignada, orientación suave
@@ -261,16 +261,16 @@
       }
 
       // Si no encontró candidato por restricciones extremas, usar posición base periférica despejada
-      let cx = mejorCand ? mejorCand.x : (pRef.x + Math.cos(idx * 1.28 + rnd() * 0.35) * (180 + rnd() * 45));
-      let cz = mejorCand ? mejorCand.z : (pRef.y + Math.sin(idx * 1.28 + rnd() * 0.35) * (180 + rnd() * 45));
+      let cx = mejorCand ? mejorCand.x : (pRef.x + Math.cos(idx * 1.28 + rnd() * 0.35) * (185 + rnd() * 40));
+      let cz = mejorCand ? mejorCand.z : (pRef.y + Math.sin(idx * 1.28 + rnd() * 0.35) * (185 + rnd() * 40));
 
-      // Garantizar que no esté dentro de la plaza ni en la rampa de mezcla de muros (mínimo 168m)
+      // Garantizar que no esté dentro de la plaza ni en la rampa de mezcla de muros (mínimo 175m)
       pueblos.forEach(p => {
         const dP = Math.hypot(cx - p.x, cz - p.y);
-        if (dP < 168) {
+        if (dP < 175) {
           const dirP = Math.atan2(cz - p.y, cx - p.x);
-          cx = p.x + Math.cos(dirP) * 180;
-          cz = p.y + Math.sin(dirP) * 180;
+          cx = p.x + Math.cos(dirP) * 185;
+          cz = p.y + Math.sin(dirP) * 185;
         }
       });
 
