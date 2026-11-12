@@ -981,7 +981,7 @@
         bCtx.fillText(`${icono} ${name}${cntTxt}`, 128, 24);
         bCtx.fillStyle = colorHex;
         bCtx.font = 'bold 15px sans-serif';
-        bCtx.fillText(`Nv.${nivel} · ${clase.toUpperCase()}`, 128, 46);
+        bCtx.fillText(`Nv.${nivel} · ${(clase || 'guerrero').toUpperCase()}`, 128, 46);
 
         const beaconTex = new THREE.CanvasTexture(cvBeacon);
         const beaconMat = new THREE.SpriteMaterial({ map: beaconTex, depthTest: false });
@@ -1174,7 +1174,7 @@
       if (r.wallColor) params.wallColor = r.wallColor;
       if (r.groundColor) params.groundColor = r.groundColor;
       if (r.murosManuales) manualOverrides = { ...r.murosManuales };
-      if (r.patronesMonstruos && typeof r.patronesMonstruos === 'object') {
+      if (r.patronesMonstruos && typeof r.patronesMonstruos === 'object' && Object.keys(r.patronesMonstruos).length > 0) {
         params.patronesMonstruos = { ...r.patronesMonstruos };
       }
       if (r.celdasMonstruos && typeof r.celdasMonstruos === 'object') {
@@ -1223,9 +1223,26 @@
         activePatternId = Object.keys(nuevosPatrones)[0] || 'p1';
       }
 
+      // Si por alguna razón quedó vacío, poblar siempre con los patrones por defecto para que la UI nunca quede vacía
+      if (!params.patronesMonstruos || Object.keys(params.patronesMonstruos).length === 0) {
+        params.patronesMonstruos = (window.RelieveZonaLib && window.RelieveZonaLib.PATRONES_MONSTRUOS_DEFECTO)
+          ? { ...window.RelieveZonaLib.PATRONES_MONSTRUOS_DEFECTO }
+          : {
+              p1: { id: 'p1', color: '#22c55e', name: 'Guerrero Esqueleto', clase: 'guerrero', levelMin: 8, levelMax: 12, count: 1, icono: '⚔️' },
+              p2: { id: 'p2', color: '#3b82f6', name: 'Mago de Hielo', clase: 'mago', levelMin: 12, levelMax: 16, count: 1, icono: '🔮' },
+              p3: { id: 'p3', color: '#ef4444', name: 'Arquero Orco', clase: 'arquero', levelMin: 14, levelMax: 18, count: 1, icono: '🏹' },
+              p4: { id: 'p4', color: '#a855f7', name: 'Señor Oscuro Élite', clase: 'elite', levelMin: 22, levelMax: 26, count: 1, icono: '👑' }
+            };
+        activePatternId = Object.keys(params.patronesMonstruos)[0] || 'p1';
+      }
+
       // Normalizar campos en cada patrón existente para asegurar consistencia
       Object.keys(params.patronesMonstruos).forEach(id => {
-        const pat = params.patronesMonstruos[id];
+        let pat = params.patronesMonstruos[id];
+        if (!pat || typeof pat !== 'object') {
+          pat = { id, name: 'Patrón ' + id, clase: 'guerrero', color: '#22c55e', levelMin: 10, levelMax: 12, count: 1, icono: '⚔️' };
+          params.patronesMonstruos[id] = pat;
+        }
         if (!pat.id) pat.id = id;
         if (!pat.name) pat.name = pat.nombre || ('Patrón ' + id);
         if (!pat.nombre) pat.nombre = pat.name;
@@ -1336,7 +1353,7 @@
           <div class="pattern-color-box" style="background:${pat.color}"></div>
           <div class="pattern-info">
             <div class="pattern-name-row">${pat.icono || '👾'} ${pat.name}</div>
-            <div class="pattern-sub-row">${lvlStr} · ${pat.clase.toUpperCase()} · ×${pat.count || 1}</div>
+            <div class="pattern-sub-row">${lvlStr} · ${(pat.clase || 'guerrero').toUpperCase()} · ×${pat.count || 1}</div>
           </div>
         `;
         card.onclick = () => {

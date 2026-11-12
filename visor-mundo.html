@@ -1868,7 +1868,13 @@
   <!-- Prompt para entrar a la Mazmorra tras cruzar el pasillo de 30m -->
   <div id="dungeon-prompt" style="display:none;position:fixed;bottom:135px;left:50%;transform:translateX(-50%);z-index:90;background:rgba(15,23,42,0.94);border:1.5px solid #a855f7;box-shadow:0 0 25px rgba(168,85,247,0.6);border-radius:12px;padding:10px 18px;text-align:center;backdrop-filter:blur(8px);cursor:pointer">
     <div id="dp-title" style="font-weight:700;font-size:14px;color:#f3e8ff;margin-bottom:3px">🗝 Mazmorra Ancestral</div>
-    <div style="font-size:12px;color:#cbd5e1">Has recorrido los 30 metros del corredor. <b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para cruzar a la Mazmorra.</div>
+    <div id="dp-desc" style="font-size:12px;color:#cbd5e1">Has recorrido los 30 metros del corredor. <b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para cruzar a la Mazmorra.</div>
+  </div>
+
+  <!-- Prompt interactivo para entrar/salir de Laberinto tras el estrechamiento de 100m -->
+  <div id="laberinto-prompt" style="display:none;position:fixed;bottom:135px;left:50%;transform:translateX(-50%);z-index:90;background:rgba(15,23,42,0.94);border:1.5px solid #10b981;box-shadow:0 0 25px rgba(16,185,129,0.6);border-radius:12px;padding:10px 18px;text-align:center;cursor:pointer">
+    <div id="lp-title" style="font-weight:700;font-size:14px;color:#ecfdf5;margin-bottom:3px">🌀 Laberinto</div>
+    <div id="lp-desc" style="font-size:12px;color:#cbd5e1">Has recorrido el estrechamiento de 100 metros. <b style="color:#fbbf24">Pulsa [E]</b> o toca aquí para entrar.</div>
   </div>
 
   <!-- Prompt interactivo para culminación de zona de caza (Reliquia de Misión o Santuario) -->
@@ -2229,10 +2235,8 @@
       };
       h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h, elevFn);
     }
-    // Laberinto natural en zonas de caza: hendiduras, desfiladeros y crestas inescalables en el propio terreno
-    if (typeof RelieveZonaLib !== 'undefined' && RelieveZonaLib.aplicarRelieveTerreno && world && world.zones) {
-      h = RelieveZonaLib.aplicarRelieveTerreno(world.zones, x, z, h);
-    }
+    // Los laberintos se cargan ahora como instancia independiente (como una mazmorra) con su propio suelo plano y estrechamiento de 100m.
+    // El terreno exterior permanece 100% natural, sin peñones ni zanjas deformadas.
     return h;
   }
 
@@ -4023,107 +4027,37 @@
       zoneLines.push(line);
     });
 
-    // Registro ligero de laberintos de zona: se integran poco a poco por proximidad (streaming)
-    if (typeof RelieveZonaLib !== 'undefined') {
-      world.zones.forEach(z => {
-        if (z.relieve && z.relieve.activo) {
-          const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-          if (lab) {
-            laberintosMundo.push({
-              zona: z,
-              lab,
-              malla: null,
-              decorado: null,
-              cargado: false,
-              cargando: false
-            });
-          }
-        }
-      });
-    }
+    // Construir entradas exteriores con estrechamiento de 100m para zonas con laberinto
+    construirEntradasLaberintosExteriores();
   }
 
-  // Integración progresiva (streaming) de laberintos 3D: muros volumétricos, texturas procedurales y culminación
-  const DIST_CARGA_LAB = 750;    // Se carga progresivamente cuando el jugador o la cámara se acercan
-  const DIST_DESCARGA_LAB = 950; // Se descarga para liberar GPU/memoria cuando se aleja
-  let lastStreamLab = 0;
-
-  function streamLaberintos(now) {
-    if (gestorMazmorras && gestorMazmorras.enMazmorra) return;
-    if (!laberintosMundo || !laberintosMundo.length) return;
-    if (now - lastStreamLab < 150) return;
-    lastStreamLab = now;
-
-    const px = (character && character.root) ? character.root.position.x : (camera ? camera.position.x : 0);
-    const pz = (character && character.root) ? character.root.position.z : (camera ? camera.position.z : 0);
-
-    // 1. Descargar laberintos que queden lejos (> 950m)
-    for (let i = 0; i < laberintosMundo.length; i++) {
-      const e = laberintosMundo[i];
-      if (e.cargado) {
-        const d = Math.hypot(px - e.lab.zx, pz - e.lab.zz);
-        if (d > DIST_DESCARGA_LAB) {
-          if (e.malla) {
-            scene.remove(e.malla);
-            if (e.malla.traverse) {
-              e.malla.traverse(obj => {
-                if (obj.geometry) obj.geometry.dispose();
-                if (obj.material) {
-                  if (obj.material.map) obj.material.map.dispose();
-                  obj.material.dispose();
-                }
-              });
-            }
-            e.malla = null;
-          }
-          if (e.decorado) {
-            scene.remove(e.decorado);
-            e.decorado = null;
-          }
-          const idxDec = decoracionesCulminacion.indexOf(e.decorado);
-          if (idxDec !== -1) decoracionesCulminacion.splice(idxDec, 1);
-          e.cargado = false;
-        }
-      }
+  let _grupoEntradasLaberintosCache = null;
+  function construirEntradasLaberintosExteriores() {
+    if (_grupoEntradasLaberintosCache && _grupoEntradasLaberintosCache.parent) {
+      _grupoEntradasLaberintosCache.parent.remove(_grupoEntradasLaberintosCache);
     }
-
-    // 2. Cargar laberintos dentro de rango con sus muros texturizados y meta
-    const pendientes = laberintosMundo
-      .filter(e => !e.cargado && !e.cargando)
-      .map(e => ({ entrada: e, dist: Math.hypot(px - e.lab.zx, pz - e.lab.zz) }))
-      .filter(x => x.dist < DIST_CARGA_LAB)
-      .sort((a, b) => a.dist - b.dist);
-
-    if (pendientes.length > 0) {
-      const e = pendientes[0].entrada;
-      e.cargando = true;
-      requestAnimationFrame(() => {
-        try {
-          if (typeof RelieveZonaLib !== 'undefined') {
-            // Muros volumétricos texturizados 3D del laberinto (bloques, setos, cripta, etc.)
-            if (typeof RelieveZonaLib.crearMallaMurosLaberinto === 'function' && !e.malla) {
-              e.malla = RelieveZonaLib.crearMallaMurosLaberinto(THREE, e.zona, H);
-              if (e.malla) {
-                scene.add(e.malla);
-              }
-            }
-            // Decorado central de culminación (oasis, altar, tesoro, etc.)
-            if (typeof RelieveZonaLib.crearDecoradoCulminacion === 'function' && !e.decorado) {
-              e.decorado = RelieveZonaLib.crearDecoradoCulminacion(THREE, e.zona, H);
-              if (e.decorado) {
-                scene.add(e.decorado);
-                decoracionesCulminacion.push(e.decorado);
-              }
-            }
+    const grupoEntradasLab = new THREE.Group();
+    grupoEntradasLab.name = 'EntradasLaberintosMundo';
+    if (world && world.zones && typeof RelieveZonaLib !== 'undefined') {
+      world.zones.forEach(z => {
+        if (z.relieve && z.relieve.activo) {
+          try {
+            const entMesh = RelieveZonaLib.crearEntradaExterior100m(THREE, z, H);
+            if (entMesh) grupoEntradasLab.add(entMesh);
+          } catch (err) {
+            console.warn('Error construyendo entrada exterior de laberinto:', z.name, err);
           }
-          e.cargado = true;
-        } catch (err) {
-          console.warn('Error al integrar laberinto 3D:', err);
-        } finally {
-          e.cargando = false;
         }
       });
     }
+    scene.add(grupoEntradasLab);
+    _grupoEntradasLaberintosCache = grupoEntradasLab;
+  }
+
+  // Los laberintos ahora se cargan como instancia independiente (como una mazmorra).
+  // En el mundo exterior se muestra únicamente la entrada con el estrechamiento de 100m y el portal.
+  function streamLaberintos(now) {
+    return;
   }
   const zoneLines = [];
 
@@ -5629,212 +5563,8 @@
         });
       }
 
-      // Monstruos de laberintos y desfiladeros: distribuidos por pasillos, recovecos y cámaras
-      if (tieneLaberinto && typeof RelieveZonaLib !== 'undefined') {
-        const celdasMons = RelieveZonaLib.obtenerMonstruosPorCelda(z);
-        celdasMons.forEach((cm, cidx) => {
-          const semillaMon = ((W.hashString(z.id + '|cm|' + cm.key + '|' + (cm.index || 0) + '|' + (cm.patId || '')) ^ world.seed) >>> 0) || 1;
-          const rngC = new W.PRNG(semillaMon);
-          const rol = (cm.clase === 'arquero') ? 'arquero' : ((cm.clase === 'mago') ? 'mago' : 'melee');
-          const esDist = (rol === 'arquero' || rol === 'mago');
-          const lvl = cm.level || cm.nivel || rngC.int(cm.levelMin, cm.levelMax || cm.levelMin);
-          const esElite = (cm.clase === 'elite');
-          const rElite = esElite ? 3 : 1;
-          const pref = esElite ? '👑 [Élite] ' : '';
-
-          const spX = cm.wx;
-          const spZ = cm.wz;
-
-          const m = CombatLib.newMonster({
-            level: lvl,
-            boss: false,
-            rangoElite: rElite,
-            x: spX,
-            z: spZ,
-            leash: z.radius + 35,
-            tipoRango: rol,
-            esADistancia: esDist,
-            weapon: cm.clase === 'arquero' ? 'bone_recurved_bow' : cm.clase === 'mago' ? 'arcane_staff' : 'sword',
-            archetype: cm.clase,
-            name: pref + cm.name
-          });
-          m.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
-          m.rangoElite = rElite;
-          m.esElite = esElite;
-          m.name = pref + cm.name;
-          m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rngC.range(0, 6);
-          m.recibirDano = (dmg, fuente = 'hero') => damageMonster(m, dmg, fuente);
-          m.danoPorFuente = { hero: 0, acompanante: 0 };
-          m.danoTotal = 0;
-          m.turno = monsters.length % 4;
-          m.speed = (cm.clase === 'rapido') ? MONSTER.chaseSpeed * 1.25 : (esElite ? MONSTER.bossChaseSpeed : MONSTER.chaseSpeed);
-          m.tipoRango = rol;
-          m.esADistancia = esDist;
-          m.attackRange = esDist ? 18.0 : 2.5;
-          m.aggro = esDist ? 24.0 : 16.0;
-          m.esLaberinto = true;
-          m.color = cm.color || '#22c55e';
-
-          // Asignar modelo 3D según la clase (arquero con arco, mago con báculo, campeón élite, rápido o guerrero)
-          if (window.EnemyLib) {
-            m.enemigo = elegirEnemigoPorClase(cm.clase, lvl, rngC, esElite);
-            if (m.enemigo) {
-              if (cm.clase === 'arquero' && (!m.enemigo.weapon || !m.enemigo.weapon.includes('bow'))) m.enemigo.weapon = 'bone_recurved_bow';
-              if (cm.clase === 'mago' && (!m.enemigo.weapon || !m.enemigo.weapon.includes('staff'))) m.enemigo.weapon = 'arcane_staff';
-            }
-          } else {
-            m._pendEnemigo = { info: { esLaberinto: true, clase: cm.clase, level: lvl, boss: esElite, name: cm.name }, s: semillaMon };
-            m.enemigo = null;
-          }
-
-          m.group = new THREE.Group();
-          m.group.userData.monstruo = m;
-          if (esElite) m.group.scale.setScalar(1.35);
-
-          // Posicionar INMEDIATAMENTE en sus coordenadas exactas del laberinto para que nunca queden en (0, 0, 0)
-          const sueloY = H(spX, spZ);
-          m.group.position.set(spX, sueloY, spZ);
-
-          // Halo en el suelo del color del patrón
-          if (cm.color) {
-            const radHalo = (cm.totalInCell > 1) ? Math.max(0.45, 0.9 / Math.sqrt(cm.totalInCell)) : 0.85;
-            const haloG = new THREE.RingGeometry(radHalo * 0.7, radHalo, 16);
-            haloG.rotateX(-Math.PI / 2);
-            const haloM = new THREE.MeshBasicMaterial({ color: cm.color, side: THREE.DoubleSide });
-            const halo = new THREE.Mesh(haloG, haloM);
-            halo.position.y = 0.08;
-            m.group.add(halo);
-          }
-
-          // Pre-montar token representativo de fallback para asegurar visibilidad 100% instantánea
-          m.meshProceduralFallback = crearFallbackTokenMonstruo(m);
-          m.group.add(m.meshProceduralFallback);
-
-          // Columna de luz vertical (láser beacon) visible a larga distancia sobre los muros de 14m
-          const beamGeo = new THREE.CylinderGeometry(0.18, 0.38, 22, 8);
-          beamGeo.translate(0, 11, 0);
-          const beamMat = new THREE.MeshBasicMaterial({
-            color: cm.color || '#22c55e',
-            transparent: true,
-            opacity: 0.65,
-            blending: THREE.AdditiveBlending,
-            side: THREE.DoubleSide,
-            depthWrite: false
-          });
-          const beam = new THREE.Mesh(beamGeo, beamMat);
-          m.group.add(beam);
-          m.beamMesh = beam;
-
-          // Cartel flotante / badge a y=16.8m (sobre los muros de 14m) para visibilidad aérea y a distancia
-          const cvBeacon = document.createElement('canvas');
-          cvBeacon.width = 256; cvBeacon.height = 64;
-          const bCtx = cvBeacon.getContext('2d');
-          bCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-          bCtx.roundRect ? bCtx.roundRect(4, 4, 248, 56, 12) : bCtx.fillRect(4, 4, 248, 56);
-          bCtx.fill();
-          bCtx.lineWidth = 3.5;
-          bCtx.strokeStyle = cm.color || '#22c55e';
-          bCtx.stroke();
-          bCtx.fillStyle = '#ffffff';
-          bCtx.font = 'bold 20px sans-serif';
-          bCtx.textAlign = 'center';
-          bCtx.textBaseline = 'middle';
-          const cntTxt = cm.totalInCell > 1 ? ` (×${cm.totalInCell})` : '';
-          bCtx.fillText(`${cm.icono || '👾'} ${cm.name}${cntTxt}`, 128, 24);
-          bCtx.fillStyle = cm.color || '#22c55e';
-          bCtx.font = 'bold 15px sans-serif';
-          bCtx.fillText(`Nv.${lvl} · ${(cm.clase || 'GUERRERO').toUpperCase()}`, 128, 46);
-
-          const beaconTex = new THREE.CanvasTexture(cvBeacon);
-          const beaconMat = new THREE.SpriteMaterial({ map: beaconTex, depthTest: false });
-          const beaconSprite = new THREE.Sprite(beaconMat);
-          beaconSprite.position.y = 16.8;
-          beaconSprite.scale.set(6.2, 1.55, 1);
-          beaconSprite.renderOrder = 9999;
-          m.group.add(beaconSprite);
-          m.beaconSprite = beaconSprite;
-
-          m.rig = null;
-          m.versiones = {};
-          m.group.visible = true;
-          scene.add(m.group);
-
-          m.bar = new THREE.Group();
-          const bg = new THREE.Mesh(barGeo, bgMat);
-          const fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: cm.color || '#22c55e', depthTest: false }));
-          fg.position.z = 0.01;
-          m.bar.add(bg); m.bar.add(fg);
-          m.fg = fg; // Asignación de m.fg requerida para la barra de vida en el bucle de actualización
-          m.bar.renderOrder = 999;
-          m.barHeight = esElite ? 3.8 : 2.9;
-          m.bar.position.set(spX, sueloY + m.barHeight, spZ);
-          m.bar.visible = false;
-          scene.add(m.bar);
-          monsters.push(m);
-        });
-      }
-
-      // Si la culminación es 'jefe' y no hay jefe en la lista de monstruos, generar el Jefe de Culminación en el centro
-      if (z.relieve && z.relieve.activo && z.relieve.culminacion === 'jefe') {
-        try {
-          const tieneJefe = z.monsters.some(m => m.boss);
-          if (!tieneJefe) {
-            const nivelJefe = Math.max(z.levelMax + 2, 8);
-            let bX = z.x, bZ = z.y;
-            if (typeof RelieveZonaLib !== 'undefined') {
-              const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-              if (lab && lab.centro) { bX = lab.centro.wx; bZ = lab.centro.wz; }
-            }
-            const bossInfo = { name: z.name || 'Jefe', boss: true, archetype: 'boss' };
-            const bossRol = (typeof CombatLib !== 'undefined') ? CombatLib.detectarRol(bossInfo) : 'melee';
-            const bossM = CombatLib.newMonster({
-              level: nivelJefe,
-              boss: true,
-              rangoElite: 4,
-              x: bX,
-              z: bZ,
-              leash: z.radius + 35,
-              tipoRango: bossRol,
-              esADistancia: bossRol === 'arquero' || bossRol === 'mago',
-              name: z.name
-            });
-            bossM.puedeIr = (nx, nz) => RelieveZonaLib.esCamino(z, nx, nz);
-            bossM.name = '💀 [Jefe de Culminación] ' + (z.name ? 'Soberano de ' + z.name : 'Señor del Abismo');
-            bossM.zone = z; bossM.alive = true; bossM.respawnAt = 0; bossM.flashUntil = 0; bossM.phase = 0;
-            bossM.recibirDano = (dmg, fuente = 'hero') => damageMonster(bossM, dmg, fuente);
-            bossM.danoPorFuente = { hero: 0, acompanante: 0 };
-            bossM.danoTotal = 0;
-            bossM.turno = monsters.length % 4;
-            if (window.EnemyLib) {
-              bossM.enemigo = elegirEnemigoPorClase('elite', nivelJefe, null, true);
-            } else {
-              bossM._pendEnemigo = { info: { esLaberinto: true, clase: 'elite', level: nivelJefe, boss: true, name: bossM.name }, s: 12345 };
-              bossM.enemigo = null;
-            }
-            bossM.group = new THREE.Group();
-            bossM.group.userData.monstruo = bossM;
-            bossM.group.scale.setScalar(1.5);
-            bossM.rig = null;
-            bossM.versiones = {};
-            bossM.group.visible = false;
-            const sueloY = H(bX, bZ);
-            bossM.group.position.set(bX, sueloY, bZ);
-            scene.add(bossM.group);
-            bossM.bar = new THREE.Group();
-            const bg = new THREE.Mesh(barGeo, bgMat);
-            bossM.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: '#ef4444', depthTest: false }));
-            bossM.fg.position.z = 0.01;
-            bossM.bar.add(bg, bossM.fg);
-            bossM.barHeight = 5.8;
-            bossM.bar.position.set(bX, sueloY + bossM.barHeight, bZ);
-            bossM.bar.visible = false;
-            scene.add(bossM.bar);
-            monsters.push(bossM);
-          }
-        } catch (errBoss) {
-          console.warn('Advertencia al generar jefe de culminación:', errBoss);
-        }
-      }
+      // Las zonas con laberinto activo cargan todos sus monstruos dentro de su instancia independiente (tipo mazmorra)
+      if (tieneLaberinto) return;
     });
 
     // Generar patrullas y criaturas salvajes en campo abierto y a lo largo de los caminos entre pueblos
@@ -6292,7 +6022,7 @@
 
   function updateCombat(dt, now) {
     fotogramaCombate++;
-    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
     presupuestoModelos = enMazmorra ? 4 : 1;
     hayResplandorVisible = false;
     CombatLib.tickHero(hero, dt);
@@ -6896,7 +6626,7 @@
     if (now - lastMinimap < 120) return;
     lastMinimap = now;
     const cv = $('minimap'), g = cv.getContext('2d');
-    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
     const S = cv.width, R = enMazmorra ? 75 : 290;   // metros desde el centro hasta el borde
     const p = character.root.position;
     const px = p.x, pz = p.z;
@@ -10136,6 +9866,8 @@
         if (secGrp) secGrp.visible = false;
         const entGrp = _grupoEntradasCache || scene.getObjectByName('EntradasMazmorrasMundo');
         if (entGrp) entGrp.visible = false;
+        const entLabGrp = _grupoEntradasLaberintosCache || scene.getObjectByName('EntradasLaberintosMundo');
+        if (entLabGrp) entLabGrp.visible = false;
 
         // 4. Ocultar etiquetas HTML del supramundo para que no queden congeladas en pantalla
         if (townLabels) townLabels.forEach(l => { if (l && l.el) l.el.style.display = 'none'; });
@@ -10211,6 +9943,8 @@
         if (secGrp) secGrp.visible = true;
         const entGrp = _grupoEntradasCache || scene.getObjectByName('EntradasMazmorrasMundo');
         if (entGrp) entGrp.visible = true;
+        const entLabGrp = _grupoEntradasLaberintosCache || scene.getObjectByName('EntradasLaberintosMundo');
+        if (entLabGrp) entLabGrp.visible = true;
 
         if (hemiLight) hemiLight.visible = est.hemiVis !== undefined ? est.hemiVis : true;
         if (sunLight) sunLight.visible = est.sunVis !== undefined ? est.sunVis : true;
@@ -10370,6 +10104,16 @@
     if (promptCulm) promptCulm.onclick = () => {
       interactuarConCulminacion();
     };
+
+    const promptLab = $('laberinto-prompt');
+    if (promptLab) promptLab.onclick = () => {
+      if (gestorLaberintos && gestorLaberintos.enLaberinto) {
+        gestorLaberintos.salirInstancia();
+      } else if (laberintoPromptActiva) {
+        entrarEnLaberinto(laberintoPromptActiva);
+      }
+    };
+    if (!gestorLaberintos) gestorLaberintos = new GestorLaberintos();
   }
 
   function entrarEnMazmorra(dungeon) {
@@ -10413,6 +10157,261 @@
     });
   }
 
+  /* ===========================================================================
+   * GESTIÓN DE LABERINTOS DE ZONA (Instancia independiente con Estrechamiento 100m)
+   * =========================================================================== */
+  let gestorLaberintos = null;
+  let laberintoPromptActiva = null;
+
+  class GestorLaberintos {
+    constructor() {
+      this.enLaberinto = false;
+      this.laberintoActivo = null;
+      this.instancia = null;
+      this.posicionSalidaMundo = null;
+      this.prevWalkableHeight = null;
+      this.prevColliders = null;
+      this.luzAmbienteLab = null;
+      this.luzDirLab = null;
+    }
+
+    iniciarInstancia(zona) {
+      if (this.enLaberinto || !zona) return;
+      if (typeof RelieveZonaLib === 'undefined' || typeof RelieveZonaLib.crearInstanciaLaberinto !== 'function') {
+        console.warn('RelieveZonaLib.crearInstanciaLaberinto no disponible');
+        return;
+      }
+
+      this.laberintoActivo = zona;
+      this.enLaberinto = true;
+      const promptEl = $('laberinto-prompt');
+      if (promptEl) promptEl.style.display = 'none';
+      laberintoPromptActiva = null;
+
+      // 1. Guardar posición exterior para retorno (justo fuera del portal exterior)
+      const labInfo = RelieveZonaLib.obtenerDatosLaberinto(zona);
+      const entExt = (labInfo && labInfo.entradas && labInfo.entradas[0]) || (labInfo && labInfo.entrada) || { wx: zona.x, wz: zona.y };
+      const ey = H(entExt.wx, entExt.wz);
+      this.posicionSalidaMundo = { x: entExt.wx, y: ey, z: entExt.wz };
+
+      // 2. Aislar supramundo exterior (ocultar chunks de terreno, ríos, lagos, pueblos, cielo, NPCs, monstruos exteriores)
+      if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.aislarParaMazmorra === 'function') {
+        gestorMazmorras.ctx.aislarParaMazmorra({ name: zona.name });
+      }
+      const entLabGrp = _grupoEntradasLaberintosCache || scene.getObjectByName('EntradasLaberintosMundo');
+      if (entLabGrp) entLabGrp.visible = false;
+
+      // 3. Crear la instancia independiente limpia sobre suelo nivelado (y = 0) con estrechamiento 100m
+      if (this.instancia && this.instancia.grupo && this.instancia.grupo.parent) {
+        this.instancia.grupo.parent.remove(this.instancia.grupo);
+      }
+      this.instancia = RelieveZonaLib.crearInstanciaLaberinto(THREE, zona);
+      if (!this.instancia) {
+        console.error('No se pudo crear instancia de laberinto para', zona.name);
+        this.salirInstancia();
+        return;
+      }
+      scene.add(this.instancia.grupo);
+
+      // 4. Configurar físicas del personaje para la instancia independiente
+      this.prevWalkableHeight = character.world.getWalkableHeight;
+      this.prevColliders = character.world.colliders;
+      character.world.getWalkableHeight = (x, z) => 0.0;
+      character.world.colliders = this.instancia.colliders || [];
+
+      // 5. Situar al héroe al inicio del estrechamiento de 100m (z = -92), mirando hacia el laberinto (+Z)
+      const spH = this.instancia.spawnHeroe || { x: 0, y: 0, z: -92 };
+      character.teleport(spH.x, spH.z);
+      if (character.root) {
+        character.root.position.set(spH.x, 0, spH.z);
+        character.root.rotation.y = 0;
+      }
+      if (typeof setFollow === 'function') setFollow(true);
+      controls.target.set(spH.x, 1.8, spH.z + 6);
+      camera.position.set(spH.x, 4.5, spH.z - 8);
+      controls.update();
+
+      if (acompanante && acompanante.root) {
+        acompanante.root.position.set(spH.x - 2, 0, spH.z);
+      }
+
+      // 6. Spawnear TODOS los monstruos del laberinto dentro de la instancia en monstruosMazmorra
+      if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.crearMonstruoCombate === 'function') {
+        const spawns = this.instancia.spawnsMonstruos || [];
+        spawns.forEach(cm => {
+          const isBoss = (cm.clase === 'elite' || !!cm.boss);
+          const info = {
+            name: (isBoss ? '👑 [Élite] ' : '') + (cm.name || 'Monstruo'),
+            level: cm.level || cm.nivel || 10,
+            boss: isBoss,
+            rangoElite: isBoss ? 3 : 1,
+            x: cm.x,
+            y: 0,
+            z: cm.z,
+            clase: cm.clase || 'guerrero',
+            color: cm.color || '#22c55e',
+            weapon: cm.clase === 'arquero' ? 'bone_recurved_bow' : cm.clase === 'mago' ? 'arcane_staff' : 'sword'
+          };
+          const m = gestorMazmorras.ctx.crearMonstruoCombate(info, this.instancia.grupo, isBoss);
+          m.puedeIr = (nx, nz) => Math.abs(nx) <= (zona.radius || 120) + 20 && nz >= -95 && nz <= (zona.radius || 120) * 2.5;
+          if (cm.color) {
+            const radHalo = (cm.totalInCell > 1) ? Math.max(0.45, 0.9 / Math.sqrt(cm.totalInCell)) : 0.85;
+            const haloG = new THREE.RingGeometry(radHalo * 0.7, radHalo, 16);
+            haloG.rotateX(-Math.PI / 2);
+            const haloM = new THREE.MeshBasicMaterial({ color: cm.color, side: THREE.DoubleSide });
+            const halo = new THREE.Mesh(haloG, haloM);
+            halo.position.y = 0.08;
+            m.group.add(halo);
+          }
+        });
+      }
+
+      // 7. Iluminación atmosférica dedicada para la instancia
+      if (!this.luzAmbienteLab) {
+        this.luzAmbienteLab = new THREE.AmbientLight(0xf0fdf4, 0.95);
+        this.luzDirLab = new THREE.DirectionalLight(0xffedd5, 1.3);
+        this.luzDirLab.position.set(60, 120, 40);
+      }
+      scene.add(this.luzAmbienteLab);
+      scene.add(this.luzDirLab);
+
+      toast(`🌀 Te has adentrado en el Laberinto de «${zona.name}»`, 3500);
+    }
+
+    actualizarInstancia(dt, hero) {
+      if (!this.enLaberinto || !character || !character.root) return;
+      const p = character.root.position;
+      const pz = p.z;
+      const promptEl = $('laberinto-prompt');
+
+      // En el estrechamiento de 100m de la instancia (z < 0):
+      // Si el héroe regresa hacia el portal de salida (z <= -95):
+      if (pz <= -95) {
+        laberintoPromptActiva = this.laberintoActivo;
+        if (promptEl) {
+          promptEl.style.display = 'block';
+          $('lp-title').textContent = `🌲 Salida al Mundo Exterior`;
+          $('lp-desc').textContent = `Estás en el umbral del estrechamiento. Pulsa [E] o toca aquí para salir.`;
+        }
+        // Salida automática al alcanzar el límite del portal z <= -98.5
+        if (pz <= -98.5) {
+          this.salirInstancia();
+          return;
+        }
+      } else {
+        if (laberintoPromptActiva === this.laberintoActivo && promptEl && promptEl.style.display !== 'none') {
+          promptEl.style.display = 'none';
+          laberintoPromptActiva = null;
+        }
+      }
+    }
+
+    salirInstancia() {
+      if (!this.enLaberinto) return;
+      this.enLaberinto = false;
+      const promptEl = $('laberinto-prompt');
+      if (promptEl) promptEl.style.display = 'none';
+      laberintoPromptActiva = null;
+
+      // 1. Limpiar monstruos de la instancia
+      if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.limpiarMonstruosMazmorra === 'function') {
+        gestorMazmorras.ctx.limpiarMonstruosMazmorra();
+      }
+
+      // 2. Retirar grupo 3D de la instancia e iluminación dedicada
+      if (this.instancia && this.instancia.grupo) {
+        scene.remove(this.instancia.grupo);
+        if (this.instancia.grupo.traverse) {
+          this.instancia.grupo.traverse(ch => {
+            if (ch.geometry) ch.geometry.dispose();
+            if (ch.material) {
+              if (ch.material.map) ch.material.map.dispose();
+              ch.material.dispose();
+            }
+          });
+        }
+        this.instancia = null;
+      }
+      if (this.luzAmbienteLab) scene.remove(this.luzAmbienteLab);
+      if (this.luzDirLab) scene.remove(this.luzDirLab);
+
+      // 3. Restaurar supramundo exterior
+      if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.restaurarDeMazmorra === 'function') {
+        gestorMazmorras.ctx.restaurarDeMazmorra();
+      }
+      const entLabGrp = _grupoEntradasLaberintosCache || scene.getObjectByName('EntradasLaberintosMundo');
+      if (entLabGrp) entLabGrp.visible = true;
+
+      // 4. Restaurar físicas y suelo del supramundo
+      if (this.prevWalkableHeight) {
+        character.world.getWalkableHeight = this.prevWalkableHeight;
+      } else {
+        character.world.getWalkableHeight = H;
+      }
+      character.world.colliders = this.prevColliders || [];
+
+      // 5. Teletransportar al héroe fuera del portal en el mundo exterior
+      const posExt = this.posicionSalidaMundo || { x: 0, y: 0, z: 0 };
+      character.teleport(posExt.x, posExt.z);
+      if (character.root) {
+        const altY = H(posExt.x, posExt.z);
+        character.root.position.set(posExt.x, altY, posExt.z);
+      }
+      if (typeof setFollow === 'function') setFollow(true);
+      controls.target.set(posExt.x, posExt.y + 1.8, posExt.z);
+      camera.position.set(posExt.x, posExt.y + 12, posExt.z + 24);
+      controls.update();
+
+      if (acompanante && acompanante.root) {
+        acompanante.root.position.set(posExt.x - 2, posExt.y, posExt.z);
+      }
+
+      toast('🌲 Has regresado al Mundo Exterior', 3500);
+    }
+
+    comprobarEntradaExterior(zonas, hx, hz) {
+      if (this.enLaberinto || !zonas || !zonas.length) return null;
+      const promptEl = $('laberinto-prompt');
+
+      for (let i = 0; i < zonas.length; i++) {
+        const z = zonas[i];
+        if (!z.relieve || !z.relieve.activo) continue;
+        const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+        if (!lab) continue;
+        const ent0 = (lab.entradas && lab.entradas[0]) || lab.entrada || { wx: z.x, wz: z.y };
+        const dist = Math.hypot(hx - ent0.wx, hz - ent0.wz);
+
+        if (dist <= 16) {
+          laberintoPromptActiva = z;
+          if (promptEl) {
+            promptEl.style.display = 'block';
+            $('lp-title').textContent = `🌀 Laberinto de «${z.name}»`;
+            $('lp-desc').textContent = `Has recorrido el estrechamiento de 100 metros. Pulsa [E] o toca aquí para entrar.`;
+          }
+          if (dist <= 3.8) {
+            this.iniciarInstancia(z);
+          }
+          return { zona: z, distancia: dist };
+        }
+      }
+
+      if (laberintoPromptActiva && promptEl) {
+        promptEl.style.display = 'none';
+        laberintoPromptActiva = null;
+      }
+      return null;
+    }
+  }
+
+  function entrarEnLaberinto(zona) {
+    if (!gestorLaberintos) gestorLaberintos = new GestorLaberintos();
+    gestorLaberintos.iniciarInstancia(zona);
+  }
+
+  function salirDeLaberinto() {
+    if (gestorLaberintos) gestorLaberintos.salirInstancia();
+  }
+
   // Culling por distancia para lugares secretos, cabañas GLB y entradas monumentales de mazmorra del supramundo
   let _lastEstructurasCheck = 0;
   function actualizarVisibilidadEstructuras(now, forzar) {
@@ -10447,10 +10446,19 @@
     };
     aplicarEnGrupo(_grupoSecretosCache || (_grupoSecretosCache = scene.getObjectByName('LugaresSecretosMundo')));
     aplicarEnGrupo(_grupoEntradasCache || (_grupoEntradasCache = scene.getObjectByName('EntradasMazmorrasMundo')));
+    aplicarEnGrupo(_grupoEntradasLaberintosCache || (_grupoEntradasLaberintosCache = scene.getObjectByName('EntradasLaberintosMundo')));
   }
 
   let _ultimoBossTxt = '', _ultimoBossPct = -1;
   function updateMazmorras(dt, now) {
+    if (gestorLaberintos && gestorLaberintos.enLaberinto) {
+      gestorLaberintos.actualizarInstancia(dt, hero);
+    } else if (gestorLaberintos && character && character.root && world && world.zones) {
+      const hx = character.root.position.x;
+      const hz = character.root.position.z;
+      gestorLaberintos.comprobarEntradaExterior(world.zones, hx, hz);
+    }
+
     if (!gestorMazmorras) return;
 
     if (gestorMazmorras.enMazmorra) {
@@ -11132,6 +11140,14 @@
         entrarEnMazmorra(dungeonPromptActiva);
         return;
       }
+      if (typeof laberintoPromptActiva !== 'undefined' && laberintoPromptActiva) {
+        if (gestorLaberintos && gestorLaberintos.enLaberinto) {
+          gestorLaberintos.salirInstancia();
+        } else {
+          entrarEnLaberinto(laberintoPromptActiva);
+        }
+        return;
+      }
       if (typeof culminacionPromptActiva !== 'undefined' && culminacionPromptActiva) {
         interactuarConCulminacion();
         return;
@@ -11751,14 +11767,19 @@
           controls.target.set(ent0.wx, ey + 2, ent0.wz);
           camera.position.set(ent0.wx, ey + 14, ent0.wz + 26);
           controls.update();
-          setTimeout(() => { toast(`🌀 Entrada al Laberinto de «${targetZ.name}»`, 4000); }, 350);
+          setTimeout(() => {
+            toast(`🌀 Entrada al Laberinto de «${targetZ.name}»`, 3000);
+            if (targetZ.relieve && targetZ.relieve.activo) {
+              setTimeout(() => entrarEnLaberinto(targetZ), 350);
+            }
+          }, 350);
         }
       }
     } else {
       ensureScene();
       $('load').classList.add('show');
     }
-    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   })();
   </script>
 </body>
