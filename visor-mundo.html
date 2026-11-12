@@ -1909,7 +1909,7 @@
   <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20261107"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
-  <script defer src="js/relieve-zona.js?v=20261112"></script>
+  <script src="js/relieve-zona.js?v=20261112"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
@@ -4043,21 +4043,21 @@
     }
   }
 
-  // Integración progresiva (streaming) de laberintos 3D: carga poco a poco sin saturar el hilo principal
-  const DIST_CARGA_LAB = 360;    // Se carga progresivamente cuando el jugador se acerca
-  const DIST_DESCARGA_LAB = 520; // Se descarga para liberar GPU/memoria cuando se aleja
+  // Integración progresiva (streaming) de laberintos 3D: muros volumétricos, texturas procedurales y culminación
+  const DIST_CARGA_LAB = 750;    // Se carga progresivamente cuando el jugador o la cámara se acercan
+  const DIST_DESCARGA_LAB = 950; // Se descarga para liberar GPU/memoria cuando se aleja
   let lastStreamLab = 0;
 
   function streamLaberintos(now) {
     if (gestorMazmorras && gestorMazmorras.enMazmorra) return;
     if (!laberintosMundo || !laberintosMundo.length) return;
-    if (now - lastStreamLab < 200) return;
+    if (now - lastStreamLab < 150) return;
     lastStreamLab = now;
 
     const px = (character && character.root) ? character.root.position.x : (camera ? camera.position.x : 0);
     const pz = (character && character.root) ? character.root.position.z : (camera ? camera.position.z : 0);
 
-    // 1. Descargar laberintos que queden lejos (> 520m)
+    // 1. Descargar laberintos que queden lejos (> 950m)
     for (let i = 0; i < laberintosMundo.length; i++) {
       const e = laberintosMundo[i];
       if (e.cargado) {
@@ -4065,7 +4065,15 @@
         if (d > DIST_DESCARGA_LAB) {
           if (e.malla) {
             scene.remove(e.malla);
-            if (e.malla.geometry) e.malla.geometry.dispose();
+            if (e.malla.traverse) {
+              e.malla.traverse(obj => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                  if (obj.material.map) obj.material.map.dispose();
+                  obj.material.dispose();
+                }
+              });
+            }
             e.malla = null;
           }
           if (e.decorado) {
@@ -4079,7 +4087,7 @@
       }
     }
 
-    // 2. Cargar como máximo 1 laberinto pendiente por ciclo para que se integre poco a poco sin congelar la pantalla
+    // 2. Cargar laberintos dentro de rango con sus muros texturizados y meta
     const pendientes = laberintosMundo
       .filter(e => !e.cargado && !e.cargando)
       .map(e => ({ entrada: e, dist: Math.hypot(px - e.lab.zx, pz - e.lab.zz) }))
@@ -4092,6 +4100,14 @@
       requestAnimationFrame(() => {
         try {
           if (typeof RelieveZonaLib !== 'undefined') {
+            // Muros volumétricos texturizados 3D del laberinto (bloques, setos, cripta, etc.)
+            if (typeof RelieveZonaLib.crearMallaMurosLaberinto === 'function' && !e.malla) {
+              e.malla = RelieveZonaLib.crearMallaMurosLaberinto(THREE, e.zona, H);
+              if (e.malla) {
+                scene.add(e.malla);
+              }
+            }
+            // Decorado central de culminación (oasis, altar, tesoro, etc.)
             if (typeof RelieveZonaLib.crearDecoradoCulminacion === 'function' && !e.decorado) {
               e.decorado = RelieveZonaLib.crearDecoradoCulminacion(THREE, e.zona, H);
               if (e.decorado) {
@@ -4102,7 +4118,7 @@
           }
           e.cargado = true;
         } catch (err) {
-          console.warn('Error al integrar culminación de laberinto:', err);
+          console.warn('Error al integrar laberinto 3D:', err);
         } finally {
           e.cargando = false;
         }
@@ -5693,6 +5709,51 @@
           // Pre-montar token representativo de fallback para asegurar visibilidad 100% instantánea
           m.meshProceduralFallback = crearFallbackTokenMonstruo(m);
           m.group.add(m.meshProceduralFallback);
+
+          // Columna de luz vertical (láser beacon) visible a larga distancia sobre los muros de 14m
+          const beamGeo = new THREE.CylinderGeometry(0.18, 0.38, 22, 8);
+          beamGeo.translate(0, 11, 0);
+          const beamMat = new THREE.MeshBasicMaterial({
+            color: cm.color || '#22c55e',
+            transparent: true,
+            opacity: 0.65,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          });
+          const beam = new THREE.Mesh(beamGeo, beamMat);
+          m.group.add(beam);
+          m.beamMesh = beam;
+
+          // Cartel flotante / badge a y=16.8m (sobre los muros de 14m) para visibilidad aérea y a distancia
+          const cvBeacon = document.createElement('canvas');
+          cvBeacon.width = 256; cvBeacon.height = 64;
+          const bCtx = cvBeacon.getContext('2d');
+          bCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          bCtx.roundRect ? bCtx.roundRect(4, 4, 248, 56, 12) : bCtx.fillRect(4, 4, 248, 56);
+          bCtx.fill();
+          bCtx.lineWidth = 3.5;
+          bCtx.strokeStyle = cm.color || '#22c55e';
+          bCtx.stroke();
+          bCtx.fillStyle = '#ffffff';
+          bCtx.font = 'bold 20px sans-serif';
+          bCtx.textAlign = 'center';
+          bCtx.textBaseline = 'middle';
+          const cntTxt = cm.totalInCell > 1 ? ` (×${cm.totalInCell})` : '';
+          bCtx.fillText(`${cm.icono || '👾'} ${cm.name}${cntTxt}`, 128, 24);
+          bCtx.fillStyle = cm.color || '#22c55e';
+          bCtx.font = 'bold 15px sans-serif';
+          bCtx.fillText(`Nv.${lvl} · ${(cm.clase || 'GUERRERO').toUpperCase()}`, 128, 46);
+
+          const beaconTex = new THREE.CanvasTexture(cvBeacon);
+          const beaconMat = new THREE.SpriteMaterial({ map: beaconTex, depthTest: false });
+          const beaconSprite = new THREE.Sprite(beaconMat);
+          beaconSprite.position.y = 16.8;
+          beaconSprite.scale.set(6.2, 1.55, 1);
+          beaconSprite.renderOrder = 9999;
+          m.group.add(beaconSprite);
+          m.beaconSprite = beaconSprite;
+
           m.rig = null;
           m.versiones = {};
           m.group.visible = true;
@@ -6271,12 +6332,13 @@
         }
 
         const dx = m.x - px, dz = m.z - pz;
+        const distPresente = m.esLaberinto ? 750 : MONSTRUO_PRESENTE;
         // Descarte rápido por caja antes de raíz cuadrada para monstruos lejanos fuera de escena
-        if (!m.group.parent && (dx > MONSTRUO_PRESENTE - 10 || dx < -(MONSTRUO_PRESENTE - 10) || dz > MONSTRUO_PRESENTE - 10 || dz < -(MONSTRUO_PRESENTE - 10))) {
+        if (!m.group.parent && (dx > distPresente - 10 || dx < -(distPresente - 10) || dz > distPresente - 10 || dz < -(distPresente - 10))) {
           continue;
         }
         const d = Math.hypot(dx, dz);
-        const presente = m.group.parent ? d <= MONSTRUO_PRESENTE : d < MONSTRUO_PRESENTE - 10;
+        const presente = m.group.parent ? d <= distPresente : d < distPresente - 10;
         if (!presente) { if (m.group.parent) quitarMonstruo(m); continue; }
         if (!m.group.parent) ponerMonstruo(m);
         if (!m.alive) {
@@ -6327,9 +6389,17 @@
         const esMeshProc = !!(m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural));
         if (d < 25) presupuestoModelos = Math.max(presupuestoModelos, 1);
         const near = esMeshProc ? (d < MONSTRUO_VISIBLE) : (d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d));
-        m.group.visible = near;
+        m.group.visible = m.esLaberinto ? true : near;
+        if (m.esLaberinto) {
+          if (m.beamMesh) m.beamMesh.visible = m.alive;
+          if (m.beaconSprite) m.beaconSprite.visible = m.alive;
+          if (m.topRingMesh) m.topRingMesh.visible = m.alive;
+          if (m.ringMesh) m.ringMesh.visible = m.alive;
+          if (m.meshProceduralFallback) m.meshProceduralFallback.visible = near;
+          if (m.rig && m.rig.rootGroup) m.rig.rootGroup.visible = near;
+        }
         let my = 0;
-        if (near) {
+        if (near || m.esLaberinto) {
           if (m.tieneResplandor) hayResplandorVisible = true;
           if (!esMeshProc) aplicarDetalle(m, d);
           if (enMazmorra && m.dungeonInfoRef) {
@@ -11485,7 +11555,10 @@
     try {
       localStorage.removeItem('rpgMundo.retornoLaberinto');
       const data = JSON.parse(raw);
-      const z = (w.zones || []).find(x => x.id === data.zoneId);
+      let z = (w.zones || []).find(x => x.id === data.zoneId);
+      if (!z && w.zones && w.zones.length > 0) {
+        z = w.zones.find(x => x.relieve && x.relieve.activo) || w.zones.find(x => x.type === 'caza') || w.zones[0];
+      }
       if (z) {
         if (typeof data.radius === 'number' && data.radius >= 40) {
           z.radius = data.radius;
@@ -11664,6 +11737,23 @@
       loadText(text, false);
       bootPartida();
       if ($('load')) $('load').classList.remove('show');
+
+      // Si se abre con ?zona=... o retorno directo de laberinto, situar al jugador en la entrada del laberinto
+      const targetZonaId = params.get('zona');
+      if (targetZonaId && world && world.zones) {
+        let targetZ = world.zones.find(zn => zn.id === targetZonaId) || world.zones.find(zn => zn.relieve && zn.relieve.activo) || world.zones[0];
+        if (targetZ) {
+          const lab = (typeof RelieveZonaLib !== 'undefined') ? RelieveZonaLib.obtenerDatosLaberinto(targetZ) : null;
+          const ent0 = (lab && lab.entradas && lab.entradas[0]) || (lab && lab.entrada) || { wx: targetZ.x, wz: targetZ.y };
+          const ey = H(ent0.wx, ent0.wz);
+          character.teleport(ent0.wx, ent0.wz);
+          setFollow(true);
+          controls.target.set(ent0.wx, ey + 2, ent0.wz);
+          camera.position.set(ent0.wx, ey + 14, ent0.wz + 26);
+          controls.update();
+          setTimeout(() => { toast(`🌀 Entrada al Laberinto de «${targetZ.name}»`, 4000); }, 350);
+        }
+      }
     } else {
       ensureScene();
       $('load').classList.add('show');

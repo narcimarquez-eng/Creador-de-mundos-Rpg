@@ -1436,8 +1436,10 @@
 
     // Reconstrucción del Laberinto, Terreno 3D y Monstruos en Vivo
     function rebuildAll3D() {
+      const zId = (zoneData && zoneData.zoneId) || 'z-lab';
+      const zName = (zoneData && zoneData.name) || 'Zona de Caza';
       const dummyZone = {
-        id: zoneData.zoneId || 'z-lab',
+        id: zId,
         x: 0,
         y: 0,
         radius: params.radius,
@@ -1466,10 +1468,12 @@
 
       const rotRad = (params.rotacion || 0) * (Math.PI / 180);
       const cellSize = currentMazeData.cellSize;
-      document.getElementById('lbl-cellsize').textContent = `~${cellSize.toFixed(1)} m`;
+      const lblCell = document.getElementById('lbl-cellsize');
+      if (lblCell) lblCell.textContent = `~${cellSize.toFixed(1)} m`;
       const numCeldas = Object.keys(params.celdasMonstruos).length;
       const totalMonstruos = (currentMazeData.monstruosPorCelda || []).length;
-      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona'} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | 👾 ${totalMonstruos} monstruos en ${numCeldas} casillas`;
+      const statPill = document.getElementById('stat-pill');
+      if (statPill) statPill.textContent = `🌀 ${zName} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | 👾 ${totalMonstruos} monstruos en ${numCeldas} casillas`;
 
       // 1. Reconstruir Terreno Esculpido de la Zona
       if (terrainMesh) {
@@ -2258,7 +2262,12 @@
       const btnViewDirect = document.getElementById('btn-view3d-direct');
       if (btnViewDirect) {
         btnViewDirect.onclick = () => {
-          saveLabyrinthData('visor-mundo.html');
+          const sId = (zoneData && zoneData.sessionId) || localStorage.getItem('rpgMundo.actual') || '';
+          const zId = (zoneData && zoneData.zoneId) || '';
+          const targetUrl = (sId || zId)
+            ? `visor-mundo.html?s=${encodeURIComponent(sId)}&zona=${encodeURIComponent(zId)}`
+            : 'visor-mundo.html';
+          saveLabyrinthData(targetUrl);
         };
       }
     }
@@ -2279,9 +2288,9 @@
 
     // Arranque
     init3D();
+    loadInitialPayload();
     setupUIEvents();
     renderCulmSelect();
-    loadInitialPayload();
     setupCanvasInteraction();
     rebuildAll3D();
     animate();

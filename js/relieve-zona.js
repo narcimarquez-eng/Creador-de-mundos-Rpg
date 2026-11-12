@@ -936,6 +936,213 @@
   }
 
   /**
+   * Generador de texturas procedurales para los muros de laberintos según el estilo arquitectónico.
+   */
+  function createProceduralWallTexture(THREE, estilo, colorBase) {
+    if (typeof document === 'undefined') return null;
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = 512;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = colorBase || '#78716c';
+    ctx.fillRect(0, 0, 512, 512);
+
+    if (estilo === 'laberinto_setos' || estilo === 'setos') {
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 3500; i++) {
+        const lx = Math.random() * 512, ly = Math.random() * 512;
+        const lr = 3 + Math.random() * 7;
+        ctx.beginPath();
+        ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+        ctx.fillStyle = (Math.random() < 0.35) ? '#15803d' : (Math.random() < 0.7 ? '#22c55e' : '#166534');
+        ctx.globalAlpha = 0.65;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+    } else if (estilo === 'piedra_ruinas' || estilo === 'mamposteria_castillo' || estilo === 'cripta_catacumbas') {
+      const filas = 8;
+      const hFila = 512 / filas;
+      ctx.fillStyle = colorBase || '#475569';
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#1e293b';
+      for (let f = 0; f <= filas; f++) {
+        ctx.beginPath();
+        ctx.moveTo(0, f * hFila);
+        ctx.lineTo(512, f * hFila);
+        ctx.stroke();
+        const offset = (f % 2) * 32;
+        for (let vx = offset; vx <= 512; vx += 64) {
+          ctx.beginPath();
+          ctx.moveTo(vx, f * hFila);
+          ctx.lineTo(vx, (f + 1) * hFila);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+    } else if (estilo === 'hielo_glacial') {
+      const grad = ctx.createLinearGradient(0, 0, 512, 512);
+      grad.addColorStop(0, '#38bdf8');
+      grad.addColorStop(0.5, '#7dd3fc');
+      grad.addColorStop(1, '#0284c7');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.lineWidth = 2.5;
+      for (let i = 0; i < 25; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * 512, Math.random() * 512);
+        ctx.lineTo(Math.random() * 512, Math.random() * 512);
+        ctx.stroke();
+      }
+    } else if (estilo === 'obsidiana_volcanica' || estilo === 'volcan_magma') {
+      ctx.fillStyle = '#18181b';
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = '#f97316';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#ea580c';
+      ctx.shadowBlur = 8;
+      for (let i = 0; i < 14; i++) {
+        ctx.beginPath();
+        const startX = Math.random() * 512, startY = Math.random() * 512;
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(startX + (Math.random() - 0.5) * 120, startY + (Math.random() - 0.5) * 120);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 0, 512);
+      grad.addColorStop(0, colorBase || '#847f7a');
+      grad.addColorStop(0.25, '#57534e');
+      grad.addColorStop(0.5, colorBase || '#847f7a');
+      grad.addColorStop(0.75, '#44403c');
+      grad.addColorStop(1, colorBase || '#847f7a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 2;
+      for (let y = 16; y < 512; y += 24 + Math.random() * 16) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.bezierCurveTo(128, y + 4, 384, y - 4, 512, y);
+        ctx.stroke();
+      }
+    }
+
+    if (!THREE || !THREE.CanvasTexture) return null;
+    const tex = new THREE.CanvasTexture(cv);
+    tex.wrapS = tex.wrapT = (THREE.RepeatWrapping || 1000);
+    tex.repeat.set(2, 2);
+    return tex;
+  }
+
+  function crearArcoEntrada(THREE, ent) {
+    if (!THREE) return null;
+    const g = new THREE.Group();
+    const matPillar = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+    const matLight = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+
+    const colG = new THREE.CylinderGeometry(0.5, 0.6, 5.5, 8);
+    const p1 = new THREE.Mesh(colG, matPillar);
+    p1.position.set(-3.5, 2.75, 0);
+    p1.castShadow = true;
+    g.add(p1);
+
+    const p2 = new THREE.Mesh(colG, matPillar);
+    p2.position.set(3.5, 2.75, 0);
+    p2.castShadow = true;
+    g.add(p2);
+
+    const archG = new THREE.BoxGeometry(8, 0.8, 1.2);
+    const arch = new THREE.Mesh(archG, matPillar);
+    arch.position.set(0, 5.7, 0);
+    arch.castShadow = true;
+    g.add(arch);
+
+    const gemG = new THREE.OctahedronGeometry(0.35);
+    const g1 = new THREE.Mesh(gemG, matLight);
+    g1.position.set(-3.5, 5.2, 0);
+    g.add(g1);
+    const g2 = new THREE.Mesh(gemG, matLight);
+    g2.position.set(3.5, 5.2, 0);
+    g.add(g2);
+
+    return g;
+  }
+
+  /**
+   * Construye los muros volumétricos 3D texturizados del laberinto en una sola InstancedMesh de alto rendimiento.
+   */
+  function crearMallaMurosLaberinto(THREE, zona, Hgen) {
+    const lab = obtenerDatosLaberinto(zona);
+    if (!lab || !THREE) return null;
+    const muros = lab.muros || [];
+    if (!muros.length) return null;
+
+    const grupo = new THREE.Group();
+    grupo.name = 'Laberinto_Muros_' + (zona.id || 'z');
+    grupo.userData.zonaId = zona.id;
+
+    const r = zona.relieve || {};
+    const alturaMuro = typeof r.alturaMuro === 'number' ? r.alturaMuro : 14;
+    const hMuro3D = Math.max(3.5, alturaMuro * 0.95);
+    const cellSize = lab.cellSize;
+    const boxG = new THREE.BoxGeometry(cellSize * 0.98, hMuro3D, cellSize * 0.98);
+
+    const estilo = r.estilo || 'roca_canion';
+    const wallColor = r.wallColor || (ESTILOS[estilo] && ESTILOS[estilo].hex) || '#847f7a';
+    const texWall = createProceduralWallTexture(THREE, estilo, wallColor);
+
+    const matWall = new THREE.MeshStandardMaterial({
+      map: texWall,
+      color: new THREE.Color(wallColor),
+      roughness: 0.78,
+      metalness: 0.12
+    });
+
+    const instancedMesh = new THREE.InstancedMesh(boxG, matWall, muros.length);
+    instancedMesh.castShadow = true;
+    instancedMesh.receiveShadow = true;
+
+    const dummyMatrix = new THREE.Matrix4();
+    const dummyPos = new THREE.Vector3();
+    const dummyQuat = new THREE.Quaternion();
+    const dummyScale = new THREE.Vector3(1, 1, 1);
+    const rotRad = lab.rotRad || 0;
+    if (rotRad !== 0) {
+      dummyQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -rotRad);
+    }
+
+    const prof = typeof r.profundidad === 'number' ? r.profundidad : 3.5;
+    muros.forEach((m, idx) => {
+      const wy = (Hgen ? Hgen(m.wx, m.wz) : 0) + hMuro3D / 2 - prof * 0.2;
+      dummyPos.set(m.wx, wy, m.wz);
+      dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
+      instancedMesh.setMatrixAt(idx, dummyMatrix);
+    });
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    grupo.add(instancedMesh);
+
+    // Arcos de bienvenida en las entradas configuradas
+    const listaEntradas = lab.entradas || [lab.entrada];
+    listaEntradas.forEach(ent => {
+      if (!ent) return;
+      const ey = Hgen ? Hgen(ent.wx, ent.wz) : 0;
+      const arch = crearArcoEntrada(THREE, ent);
+      if (arch) {
+        arch.position.set(ent.wx, ey, ent.wz);
+        arch.lookAt(lab.zx, ey, lab.zz);
+        grupo.add(arch);
+      }
+    });
+
+    return grupo;
+  }
+
+  /**
    * Construye los muros 3D del laberinto usando el constructor MB (MeshBuilder).
    */
   function crearMallaLaberinto(THREE, MBClass, zona, Hgen) {
@@ -1191,6 +1398,9 @@
     esCamino,
     splatZona,
     dibujarLaberinto2D,
+    createProceduralWallTexture,
+    crearArcoEntrada,
+    crearMallaMurosLaberinto,
     crearMallaLaberinto,
     crearDecoradoCulminacion
   };
