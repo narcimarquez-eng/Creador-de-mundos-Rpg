@@ -44,18 +44,27 @@
   // Material del terreno. uniforms: { tCapas (DataArrayTexture de 15 capas, CAPAS en orden), uTexOn }.
   // Las tres texturas de cada clase se mezclan con manchas de ruido grandes e irregulares (sin celdas); la
   // textura array repite sin costuras y con mipmaps, así no salen líneas cada vez que se repite.
-  function createTerrainMaterial(THREE, uniforms) {
+  // opciones.triplanar: la roca se proyecta en los tres planos (paredes verticales sin estirar).
+  // Si uniforms trae uRecorte (vec4: x, z, radio, modo) se descartan los fragmentos dentro (modo 1)
+  // o fuera (modo -1) de ese círculo; modo 0 no recorta. Así una malla de detalle puede sustituir
+  // a un trozo del terreno sin costuras ni parpadeos.
+  function createTerrainMaterial(THREE, uniforms, opciones = {}) {
     const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    const tri = !!opciones.triplanar;
+    const conRecorte = !!(uniforms && uniforms.uRecorte);
+    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri' : '') + (conRecorte ? '-rec' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nattribute vec4 aSplat;\nattribute float aSnow;\nvarying vec4 vSplat;\nvarying float vSnow;\nvarying vec3 vTWorld;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSplat = aSplat;\nvSnow = aSnow;\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        .replace('#include <common>', '#include <common>\nattribute vec4 aSplat;\nattribute float aSnow;\nvarying vec4 vSplat;\nvarying float vSnow;\nvarying vec3 vTWorld;' + (tri ? '\nvarying vec3 vNWorld;' : ''))
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSplat = aSplat;\nvSnow = aSnow;\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;' + (tri ? '\nvNWorld = normalize(mat3(modelMatrix) * objectNormal);' : ''));
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', [
           '#include <common>',
           'uniform highp sampler2DArray tCapas;',
           'uniform float uTexOn;',
+          conRecorte ? 'uniform vec4 uRecorte;' : '',
+          tri ? 'varying vec3 vNWorld;' : '',
           'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld;',
           // Ruido de valor: manchas suaves
           'float ruidoValor(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }',
@@ -88,6 +97,10 @@
           '  return c;',
           '}'
         ].join('\n'))
+        .replace('#include <clipping_planes_fragment>', [
+          '#include <clipping_planes_fragment>',
+          conRecorte ? 'if (uRecorte.w != 0.0) { float dRec = length(vTWorld.xz - uRecorte.xy); if (uRecorte.w > 0.0 ? dRec < uRecorte.z : dRec > uRecorte.z) discard; }' : ''
+        ].join('\n'))
         .replace('#include <color_fragment>', [
           '#include <color_fragment>',
           'float dCam = length(vTWorld.xz - cameraPosition.xz);',
@@ -97,7 +110,16 @@
           'if (uTexOn > 0.5) {',
           '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tC, tL) * vSplat.x;',
           '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tC, tL) * vSplat.y;',
-          '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * vSplat.z;',
+          tri ? [
+            '  if (vSplat.z > 0.001) {',
+            '    vec3 bw = pow(abs(normalize(vNWorld)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);',
+            '    vec3 roca = vec3(0.0);',
+            '    if (bw.y > 0.02) roca += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * bw.y;',
+            '    if (bw.x > 0.02) roca += claseLejos(6.0, vTWorld.zy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.x;',
+            '    if (bw.z > 0.02) roca += claseLejos(6.0, vTWorld.xy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.z;',
+            '    tex += roca * vSplat.z;',
+            '  }'
+          ].join('\n') : '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * vSplat.z;',
           '  if (vSplat.w > 0.001) tex += claseLejos(9.0, vTWorld.xz, 5.5, tC, tL) * vSplat.w;',
           '  if (vSnow > 0.001) tex += claseLejos(12.0, vTWorld.xz, 9.2, tC, tL) * vSnow;',
           '}',

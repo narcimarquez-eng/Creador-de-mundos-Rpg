@@ -464,3 +464,112 @@ test('RelieveZonaLib - Muro perimetral circular de diferente colores con apertur
   assert.ok(perim.colliders.length < 64, 'Debe omitir segmentos en la entrada para dejar el paso libre');
 });
 
+
+// ---------------------------------------------------------------------------
+// Recinto aislado de una sola entrada (anillo de roca + pasillo en zigzag)
+// ---------------------------------------------------------------------------
+function zonaRecinto(extra = {}) {
+  return {
+    id: 'z_rec', name: 'Recinto', x: 500, y: 400, radius: 140,
+    relieve: Object.assign(RelieveZonaLib.configPorDefecto('roca_canion', 'oasis'), { seed: 777 }, extra)
+  };
+}
+
+// BFS sobre una rejilla de 1 m con la regla del personaje: sube como mucho un 50 % por paso
+// y nunca pisa laderas de más de 42° de gradiente dentro del recinto
+function alcanzables(rec, H) {
+  const paso = 1, x0 = rec.zx - rec.rMax, z0 = rec.zz - rec.rMax, n = Math.ceil(2 * rec.rMax / paso), NN = n + 1;
+  const hh = new Float32Array(NN * NN);
+  for (let j = 0; j <= n; j++) for (let i = 0; i <= n; i++) hh[j * NN + i] = H(x0 + i * paso, z0 + j * paso);
+  const id = (x, z) => [Math.round((x - x0) / paso), Math.round((z - z0) / paso)];
+  const vis = new Uint8Array(NN * NN);
+  const [si, sj] = id(rec.llegada.x, rec.llegada.z);
+  const cola = [[si, sj]]; vis[sj * NN + si] = 1;
+  while (cola.length) {
+    const [i, j] = cola.pop();
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const a = i + di, b = j + dj;
+      if (a < 1 || b < 1 || a >= n || b >= n) continue;
+      const k = b * NN + a;
+      if (vis[k]) continue;
+      const dh = hh[k] - hh[j * NN + i], dist = Math.hypot(di, dj) * paso;
+      if (dh > 0.5 * dist) continue;
+      if (dh > 0.01 && RelieveZonaLib.bloqueaSubidaRecinto(rec, 0, 0, x0 + a * paso, z0 + b * paso, H)) continue;
+      vis[k] = 1; cola.push([a, b]);
+    }
+  }
+  return (x, z) => { const [a, b] = id(x, z); return !!vis[b * NN + a]; };
+}
+
+test('Recinto - se llega al centro solo por el pasillo, sin trepar muros ni el anillo', () => {
+  const casos = [[0, 'sur', () => 10], [33, 'este', x => 10 + 0.05 * x], [71, 'oeste', (x, z) => 20 + 15 * Math.sin(x * 0.02) * Math.cos(z * 0.017)]];
+  casos.forEach(([rotacion, ent, base]) => {
+    const zona = zonaRecinto({ rotacion, entradas: [ent], seed: 777 + rotacion });
+    const rec = RelieveZonaLib.obtenerRecinto(zona, base);
+    const H = (x, z) => RelieveZonaLib.alturaRecinto(rec, x, z, base(x, z));
+    const llega = alcanzables(rec, H);
+    assert.ok(llega(rec.lab.centro.wx, rec.lab.centro.wz), `centro alcanzable (${ent})`);
+    const lab = rec.lab;
+    for (let gy = 0; gy < lab.N; gy++) for (let gx = 0; gx < lab.N; gx++) {
+      if (lab.grid[gy][gx] !== 1) continue;
+      const p = lab.celdaAMundo(gx, gy);
+      assert.ok(!llega(p.wx, p.wz), `la cima del muro ${gx},${gy} no se alcanza (${ent})`);
+    }
+    for (let a = 0; a < 360; a += 5) {
+      const t = a * Math.PI / 180, r = (rec.RtopIn + rec.Rout) / 2;
+      assert.ok(!llega(rec.zx + Math.cos(t) * r, rec.zz + Math.sin(t) * r) || H(rec.zx + Math.cos(t) * r, rec.zz + Math.sin(t) * r) < rec.baseH + 2, `cumbre del anillo a ${a}° inaccesible`);
+    }
+  });
+});
+
+test('Recinto - desde la mitad del tramo compartido no se ve ni el exterior ni el laberinto', () => {
+  const base = () => 10;
+  const rec = RelieveZonaLib.obtenerRecinto(zonaRecinto(), base);
+  const H = (x, z) => RelieveZonaLib.alturaRecinto(rec, x, z, 10);
+  const g = rec.segs[2];
+  const mx = g.ax + g.dx * 0.5, mz = g.az + g.dz * 0.5;
+  const tapado = (ay, bx, bz, by) => {
+    for (let k = 1; k < 400; k++) {
+      const t = k / 400;
+      if (H(mx + (bx - mx) * t, mz + (bz - mz) * t) > ay + (by - ay) * t) return true;
+    }
+    return false;
+  };
+  for (const ojo of [rec.baseH + 1.7, rec.baseH + 7]) {
+    for (let a = 0; a < 360; a += 30) {
+      const tx = rec.Q4.x + rec.u_out.x * 30 + Math.cos(a) * 20, tz = rec.Q4.z + rec.u_out.z * 30 + Math.sin(a) * 20;
+      assert.ok(tapado(ojo, tx, tz, base() + 1), 'exterior oculto');
+    }
+    rec.lab.celdasCamino.filter(c => Math.hypot(c.wx - rec.zx, c.wz - rec.zz) < rec.Rint).forEach(c => {
+      assert.ok(tapado(ojo, c.wx, c.wz, rec.baseH + 1), 'laberinto oculto');
+    });
+  }
+  // Estados: boca fuera, mitad del tramo B en histéresis, laberinto dentro, falda exterior fuera
+  assert.strictEqual(RelieveZonaLib.ladoDelRecinto(rec, rec.llegada.x, rec.llegada.z), 'exterior');
+  assert.strictEqual(RelieveZonaLib.ladoDelRecinto(rec, mx, mz), 'mitad');
+  assert.strictEqual(RelieveZonaLib.ladoDelRecinto(rec, rec.lab.centro.wx, rec.lab.centro.wz), 'interior');
+  assert.strictEqual(RelieveZonaLib.ladoDelRecinto(rec, rec.zx + rec.Rfin - 3, rec.zz), 'exterior');
+});
+
+test('Recinto - pasillo transitable (pendiente < 50 %) y rutas de entrada y salida', () => {
+  const base = x => 10 + 0.08 * (x - 500);
+  const rec = RelieveZonaLib.obtenerRecinto(zonaRecinto(), base);
+  const H = (x, z) => RelieveZonaLib.alturaRecinto(rec, x, z, base(x, z));
+  let prev = null;
+  for (let s = 0; s < rec.largo; s += 0.5) {
+    const g = rec.segs.find(sg => s <= sg.s0 + sg.len) || rec.segs[rec.segs.length - 1];
+    const t = (s - g.s0) / g.len;
+    const h = H(g.ax + g.dx * t, g.az + g.dz * t);
+    if (prev !== null) assert.ok(Math.abs(h - prev) / 0.5 < 0.5, `pendiente del pasillo en s=${s}`);
+    prev = h;
+  }
+  const entrar = RelieveZonaLib.rutaRecinto(rec, { x: rec.lab.centro.wx, y: rec.lab.centro.wz });
+  assert.deepStrictEqual(entrar[0], { x: rec.llegada.x, y: rec.llegada.z }, 'la ruta empieza en la boca');
+  assert.ok(entrar.length > rec.puntos.length + 1, 'pasa por el pasillo y por las celdas');
+  const salir = RelieveZonaLib.rutaRecinto(rec, { x: rec.lab.centro.wx, y: rec.lab.centro.wz }, true);
+  assert.deepStrictEqual(salir[salir.length - 1], { x: rec.llegada.x, y: rec.llegada.z }, 'la salida acaba en la boca');
+  // Una línea recta que cruza el macizo se desvía alrededor
+  const rodeo = RelieveZonaLib.rodearRecinto(rec, [{ x: rec.zx, y: rec.zz - rec.rMax - 40 }, { x: rec.llegada.x, y: rec.llegada.z }]);
+  assert.ok(rodeo.length > 2, 'se añade un rodeo');
+  for (let i = 1; i < rodeo.length - 1; i++) assert.ok(!RelieveZonaLib.puntoEnRecinto(rec, rodeo[i].x, rodeo[i].y), 'el rodeo no pisa el recinto');
+});

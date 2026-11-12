@@ -1915,7 +1915,7 @@
   <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20261107"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
-  <script src="js/relieve-zona.js?v=20261112"></script>
+  <script src="js/relieve-zona.js?v=20261112r"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
@@ -1936,9 +1936,9 @@
   <script type="module" src="js/combat.js?v=20251029"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
-  <script type="module" src="js/terreno.js?v=20261107"></script>
+  <script type="module" src="js/terreno.js?v=20261112r"></script>
   <script type="module" src="js/decorado.js?v=20261107"></script>
-  <script type="module" src="js/character.js?v=20261030d"></script>
+  <script type="module" src="js/character.js?v=20261112r"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
@@ -2029,7 +2029,9 @@
   const nearChunks = new Map();          // trozos de 300 m con detalle completo, por "cx,cz"
   const CHUNK = 16;                      // celdas de 20 m por trozo (320 m); múltiplo de los pasos de la malla lejana
   // Texturas del suelo: 15 capas (tres por clase, TerrainLib.CAPAS) sacadas del atlas assets/terreno/atlas.jpg
-  const terrainU = { tCapas: { value: null }, uTexOn: { value: 0 } };
+  // uRecorte (x, z, radio, modo): al entrar en un recinto de laberinto el terreno del mundo cede su interior
+  // a la malla detallada (modo 1 = no dibujar dentro del círculo)
+  const terrainU = { tCapas: { value: null }, uTexOn: { value: 0 }, uRecorte: { value: new THREE.Vector4(0, 0, 0, 0) } };
   let texturasCargadas = false;
   // Archivos que se están descargando (modelos, texturas…): todos los cargadores de THREE pasan por el
   // gestor por defecto; se cuentan para el indicador de carga
@@ -2177,7 +2179,102 @@
   function sueloPueblo(o, lx, lz, hMundo) {
     return hMundo < 0 ? hMundo : o.h0 + o.ground.getTerrainHeight(lx, lz);
   }
+  // Recintos de laberinto del mundo (anillo de roca + pasillo de entrada única). Ver RelieveZonaLib.obtenerRecinto
+  let recintosMundo = [];
+  function prepararRecintos() {
+    recintosMundo = [];
+    if (!world || !world.zones || typeof RelieveZonaLib === 'undefined' || !RelieveZonaLib.obtenerRecinto) return;
+    world.zones.forEach(z => {
+      if (!z.relieve || !z.relieve.activo) return;
+      // ¿Qué impide usar este recinto aquí? (agua o rampa imposible, un pueblo debajo, otro recinto encima)
+      const conflicto = rec => {
+        if (!rec) return 'sin datos';
+        if (rec.problema) return rec.problema;
+        const pueblo = towns.find(o => RelieveZonaLib.puntoEnRecinto(rec, o.t.x, o.t.y, o.tileHalf * 1.6 + 10));
+        if (pueblo) return 'pisaría el pueblo «' + pueblo.t.name + '»';
+        const otro = recintosMundo.find(o => RelieveZonaLib.recintosSeSolapan(o, rec));
+        if (otro) return 'se solapa con el laberinto de «' + otro.zona.name + '»';
+        return null;
+      };
+      const entOriginal = (z.relieve.entradas && z.relieve.entradas[0]) || z.relieve.entradaDir || 'sur';
+      const cfgOriginal = z.relieve.recinto;
+      let rec = RelieveZonaLib.obtenerRecinto(z, HgenBase);
+      const motivo = conflicto(rec);
+      if (motivo) {
+        // Se prueba el otro lado del zigzag y después las otras orientaciones de la entrada
+        rec = null;
+        const dirs = [entOriginal].concat(['sur', 'este', 'norte', 'oeste'].filter(d => d !== entOriginal));
+        busca: for (const dir of dirs) {
+          for (const lado of [1, -1]) {
+            z.relieve.entradas = [dir];
+            z.relieve.recinto = Object.assign({}, cfgOriginal || {}, { lado });
+            const alt = RelieveZonaLib.obtenerRecinto(z, HgenBase);
+            if (!conflicto(alt)) { rec = alt; break busca; }
+          }
+        }
+        if (rec) {
+          console.info(`Laberinto de «${z.name}»: entrada ${entOriginal} → ${z.relieve.entradas[0]}, giro ${rec.lado > 0 ? 'izquierda' : 'derecha'} (${motivo})`);
+        } else {
+          z.relieve.entradas = [entOriginal];
+          z.relieve.recinto = cfgOriginal;
+          console.warn(`Laberinto de «${z.name}» desactivado: ${motivo}`);
+          z.relieve.activo = false;
+          return;
+        }
+      }
+      recintosMundo.push(rec);
+    });
+  }
+  function recintoEn(x, z, margen = 0) {
+    for (let i = 0; i < recintosMundo.length; i++) {
+      if (RelieveZonaLib.puntoEnRecinto(recintosMundo[i], x, z, margen)) return recintosMundo[i];
+    }
+    return null;
+  }
+  function recintoCercaDe(x, z, margen = 0) {
+    for (let i = 0; i < recintosMundo.length; i++) {
+      const r = recintosMundo[i];
+      if (Math.hypot(x - r.zx, z - r.zz) < r.rMax + margen) return r;
+    }
+    return null;
+  }
+
+  // Caminos hacia una zona con recinto: se cortan donde empieza el macizo, lo rodean si hace falta y acaban
+  // delante de la boca del pasillo de entrada. Devuelve true si cambió algún camino.
+  function recortarCaminosEnRecintos() {
+    if (!world || !world.roads || typeof RelieveZonaLib === 'undefined' || !RelieveZonaLib.obtenerRecinto) return false;
+    let cambio = false;
+    world.roads.forEach(r => {
+      if (!r.points || r.points.length < 2) return;
+      [['to', false], ['from', true]].forEach(([extremo, alReves]) => {
+        const zn = W.findZone(world, r[extremo]);
+        if (!zn || !zn.relieve || !zn.relieve.activo) return;
+        const rec = RelieveZonaLib.obtenerRecinto(zn, null);
+        if (!rec) return;
+        let pts = alReves ? r.points.slice().reverse() : r.points.slice();
+        const llegada = { x: rec.llegada.x, y: rec.llegada.z };
+        const ultimo = pts[pts.length - 1];
+        if (Math.hypot(ultimo.x - llegada.x, ultimo.y - llegada.y) < 2) return;   // ya recortado
+        let i = pts.findIndex(p => RelieveZonaLib.puntoEnRecinto(rec, p.x, p.y, 12));
+        if (i < 0) i = pts.length;
+        pts = pts.slice(0, Math.max(1, i));
+        pts = RelieveZonaLib.rodearRecinto(rec, pts.concat([llegada]));
+        if (alReves) pts.reverse();
+        r.points = pts;
+        cambio = true;
+      });
+    });
+    return cambio;
+  }
+
+  // Altura del terreno con los recintos de laberinto esculpidos (anillo, crestas, pasillo y laberinto)
   function Hgen(x, z) {
+    let h = HgenBase(x, z);
+    for (let i = 0; i < recintosMundo.length; i++) h = RelieveZonaLib.alturaRecinto(recintosMundo[i], x, z, h);
+    return h;
+  }
+
+  function HgenBase(x, z) {
     const e = terrain.elevation(x, z);
     const hMundo = (e - SEA) * HEIGHT_SCALE;
     let h = hMundo;
@@ -2234,51 +2331,6 @@
         return eh;
       };
       h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h, elevFn);
-    }
-    // Aplanado y terraza para laberintos y su estrechamiento de 100 metros
-    if (world && world.zones && typeof RelieveZonaLib !== 'undefined') {
-      for (let zi = 0; zi < world.zones.length; zi++) {
-        const z = world.zones[zi];
-        if (!z.relieve || !z.relieve.activo) continue;
-        const zx = z.x, zz = (z.y !== undefined ? z.y : (z.z || 0));
-        const R = (z.relieve && z.relieve.radio) || z.radius || 120;
-        const dCentro = Math.hypot(x - zx, z - zz);
-        if (dCentro > R + 130) continue;
-
-        const baseH = terrain ? ((terrain.elevation(zx, zz) - SEA) * HEIGHT_SCALE) : 0;
-        const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-        if (!lab) continue;
-
-        // 1. Terraza circular interior plana a baseH
-        let wCirc = 0;
-        if (dCentro <= R) {
-          wCirc = 1.0;
-        } else if (dCentro <= R + 25) {
-          wCirc = 1 - smooth(R, R + 25, dCentro);
-        }
-
-        // 2. Terraza plana a lo largo del estrechamiento de 100m
-        let wCorr = 0;
-        if (lab.P_ext && lab.u_in && lab.v_lat) {
-          const prog = RelieveZonaLib.calcularProgresoCorredor(lab, x, z);
-          if (prog.s >= -10 && prog.s <= 105) {
-            const absW = Math.abs(prog.w);
-            if (absW <= 7) {
-              wCorr = 1.0;
-            } else if (absW <= 18) {
-              wCorr = 1 - smooth(7, 18, absW);
-            }
-            if (prog.s < 0) {
-              wCorr *= (1 - smooth(-10, 0, prog.s));
-            }
-          }
-        }
-
-        const W = Math.max(wCirc, wCorr);
-        if (W > 0) {
-          h = h + (baseH - h) * W;
-        }
-      }
     }
     return h;
   }
@@ -2497,6 +2549,7 @@
       glbUrl: null
     });
     character.alCargarModelo = modelo => { aplicarEntorno(modelo); aligerarPersonaje(modelo); };
+    envolverTeleportRecintos();
 
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
@@ -2718,6 +2771,7 @@
 
   function buildWorld(w) {
     ensureScene();
+    if (gestorLaberintos) gestorLaberintos.liberar();
     clearWorldObjects();
     world = w;
     world.dungeons = world.dungeons || [];
@@ -2772,9 +2826,15 @@
           const culm = z.monsters.some(m => m.boss) ? 'jefe' : culms[idx % culms.length];
           const estilo = z.biome === 'desierto' ? 'roca_canion' : z.biome === 'taiga' || z.biome === 'montana' ? 'piedra_ruinas' : 'laberinto_setos';
           z.relieve = RelieveZonaLib.configPorDefecto(estilo, culm);
+          // Autogenerado: laberinto compacto (radio ≤ 150 m) con celdas a escala humana (rejilla automática)
+          z.relieve.radio = Math.min(150, z.radius || 150);
+          delete z.relieve.tamGrid;
         }
       });
     }
+
+    // Los caminos que llevan a un laberinto terminan en la boca de su pasillo (no trepan el anillo de roca)
+    if (recortarCaminosEnRecintos()) rejillaCaminosMundo = crearRejillaCaminos(world.roads);
 
     // Lagos, oasis y arenas movedizas: se planean respetando pueblos, caminos, cabañas y zonas de caza
     lagosMundo = LagosLib.planear({
@@ -2785,6 +2845,11 @@
         if (enMargenPueblo(x, z, BLEND_OUT + m, true)) return false;
         if (rejillaCaminosMundo(x, z, m)) return false;
         if (world && world.zones && world.zones.some(zn => {
+          // Recinto de laberinto (anillo + pasillo de entrada): solo su geometría, sin alturas todavía
+          if (zn.relieve && zn.relieve.activo && RelieveZonaLib.obtenerRecinto) {
+            const rg = RelieveZonaLib.obtenerRecinto(zn, null);
+            if (rg) return RelieveZonaLib.puntoEnRecinto(rg, x, z, m + 25);
+          }
           const zR = (zn.relieve && (zn.relieve.radio || zn.relieve.R)) || zn.radius || 120;
           const zy = zn.y !== undefined ? zn.y : zn.z;
           return Math.hypot(x - zn.x, z - zy) < zR + m + 60;
@@ -2794,6 +2859,9 @@
       },
       rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
     });
+
+    // Recintos de laberinto: su forma entra en Hgen (terreno, física, decoración y mapa la ven igual)
+    prepararRecintos();
 
     if (lugaresSecretos && lugaresSecretos.length) {
       lugaresSecretos.forEach(s => {
@@ -3017,7 +3085,7 @@
       snowA[k] = w.snow;
     }
     terrainGrid = { x0, z0, step, n, N, pos, col, splat, snow: snowA, nrm };
-    if (!terrainMat) terrainMat = TerrainLib.createTerrainMaterial(THREE, terrainU);
+    if (!terrainMat) terrainMat = TerrainLib.createTerrainMaterial(THREE, terrainU, { triplanar: true });
   }
 
   // Texturas de hierba, tierra, roca, arena y nieve (assets/terreno, CC0 de ambientCG). Del atlas se copian
@@ -3073,6 +3141,20 @@
     return false;
   }
 
+  // Trozos que tocan un recinto de laberinto: malla más fina (2,5 m) para que paredes y pasillo se vean nítidos
+  const FINO_RECINTO = 8;
+  function trozoConRecinto(cx, cz) {
+    if (!recintosMundo.length || !terrainGrid) return null;
+    const g0 = terrainGrid, T = CHUNK * g0.step;
+    const xa = g0.x0 + cx * T, za = g0.z0 + cz * T;
+    for (let i = 0; i < recintosMundo.length; i++) {
+      const r = recintosMundo[i];
+      const qx = Math.max(xa, Math.min(xa + T, r.zx)), qz = Math.max(za, Math.min(za + T, r.zz));
+      if (Math.hypot(qx - r.zx, qz - r.zz) < r.rMax + 10) return r;
+    }
+    return null;
+  }
+
   function trozoConCabana(cx, cz) {
     if (!lugaresSecretos || !lugaresSecretos.length || !terrainGrid) return false;
     const g0 = terrainGrid;
@@ -3093,6 +3175,7 @@
     const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
     const p = character.root.position, t = controls.target;
     const relieve = Math.hypot(xc - p.x, zc - p.z) < RELIEVE_M || Math.hypot(xc - t.x, zc - t.z) < RELIEVE_M;
+    if (trozoConRecinto(cx, cz)) return buildFineNear(cx, cz, relieve, FINO_RECINTO);
     if (relieve || trozoConRio(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz)) return buildFineNear(cx, cz, relieve);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
@@ -3334,11 +3417,12 @@
     return lagosMundo.some(L => L.x + L.R * 1.4 >= xa && L.x - L.R * 1.4 <= xb && L.z + L.R * 1.4 >= za && L.z - L.R * 1.4 <= zb) || rios.some(r => r.segs.some(s =>
       Math.max(s.ax, s.bx) >= xa && Math.min(s.ax, s.bx) <= xb && Math.max(s.az, s.bz) >= za && Math.min(s.az, s.bz) <= zb));
   }
-  function buildFineNear(cx, cz, relieve = false) {
+  function buildFineNear(cx, cz, relieve = false, fino = FINO) {
     const g = terrainGrid;
     const cellsI = Math.min(CHUNK, g.n - cx * CHUNK), cellsJ = Math.min(CHUNK, g.n - cz * CHUNK);
-    const fs = g.step / FINO;
-    const nI = cellsI * FINO, nJ = cellsJ * FINO, NI = nI + 1, NJ = nJ + 1, M = NI + 2;
+    const fs = g.step / fino;
+    const nI = cellsI * fino, nJ = cellsJ * fino, NI = nI + 1, NJ = nJ + 1, M = NI + 2;
+    const recTrozo = trozoConRecinto(cx, cz);
     const xo = g.x0 + cx * CHUNK * g.step, zo = g.z0 + cz * CHUNK * g.step;
     // Alturas con un anillo extra, para las normales de los bordes
     const alt = new Float32Array(M * (NJ + 2));
@@ -3347,26 +3431,13 @@
       const x = xo + i * fs, z = zo + j * fs;
       let attenRuido = 1.0;
       if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 7.5)) attenRuido = 0.0;
+      // Dentro del recinto la forma es exacta (la comparte la malla del interior): sin ruido añadido
+      if (recTrozo && attenRuido > 0 && RelieveZonaLib.puntoEnRecinto(recTrozo, x, z, 6)) attenRuido = 0.0;
       alt[(j + 1) * M + i + 1] = Hgen(x, z) + (relieve ? relieveAt(x, z, xo, zo, T) * attenRuido : 0);
     }
     const hAt = (i, j) => alt[(j + 1) * M + i + 1];
     const pos = new Float32Array(NI * NJ * 3), col = new Float32Array(NI * NJ * 3), nrm = new Float32Array(NI * NJ * 3);
     const splat = new Float32Array(NI * NJ * 4), snowA = new Float32Array(NI * NJ);
-    // Comprobar una sola vez por trozo si solapa con alguna zona de laberinto
-    let labChunk = null;
-    if (typeof RelieveZonaLib !== 'undefined' && world && world.zones) {
-      const cxMin = xo, cxMax = xo + nI * fs, czMin = zo, czMax = zo + nJ * fs;
-      for (let zi = 0; zi < world.zones.length; zi++) {
-        const zObj = world.zones[zi];
-        if (!zObj.relieve || !zObj.relieve.activo) continue;
-        const rz = ((zObj.relieve && (zObj.relieve.radio || zObj.relieve.R)) || zObj.radius || 100) + 125;
-        if (zObj.x + rz >= cxMin && zObj.x - rz <= cxMax && zObj.y + rz >= czMin && zObj.y - rz <= czMax) {
-          labChunk = RelieveZonaLib.obtenerDatosLaberinto(zObj);
-          break;
-        }
-      }
-    }
-
     for (let j = 0; j < NJ; j++) for (let i = 0; i < NI; i++) {
       const k = j * NI + i, x = xo + i * fs, z = zo + j * fs, h = hAt(i, j);
       const dx = (hAt(i + 1, j) - hAt(i - 1, j)) / (2 * fs), dz = (hAt(i, j + 1) - hAt(i, j - 1)) / (2 * fs);
@@ -3393,8 +3464,8 @@
           w.snow *= tRio;
         }
       }
-      if (labChunk) {
-        w = RelieveZonaLib.splatZona(labChunk, x, z, 1 - nv[1], h, w);
+      if (recTrozo) {
+        w = RelieveZonaLib.splatRecinto(recTrozo, x, z, 1 - nv[1], h, w);
       }
       splat.set(w.splat, k * 4); snowA[k] = w.snow;
     }
@@ -4079,20 +4150,10 @@
     if (_grupoEntradasLaberintosCache && _grupoEntradasLaberintosCache.parent) {
       _grupoEntradasLaberintosCache.parent.remove(_grupoEntradasLaberintosCache);
     }
+    // La entrada de un laberinto ya no es un objeto aparte: es el cañón tallado en el propio terreno
+    // (ver RelieveZonaLib.alturaRecinto). El grupo se mantiene vacío para quien lo busque por nombre.
     const grupoEntradasLab = new THREE.Group();
     grupoEntradasLab.name = 'EntradasLaberintosMundo';
-    if (world && world.zones && typeof RelieveZonaLib !== 'undefined') {
-      world.zones.forEach(z => {
-        if (z.relieve && z.relieve.activo) {
-          try {
-            const entMesh = RelieveZonaLib.crearEntradaExterior100m(THREE, z, H);
-            if (entMesh) grupoEntradasLab.add(entMesh);
-          } catch (err) {
-            console.warn('Error construyendo entrada exterior de laberinto:', z.name, err);
-          }
-        }
-      });
-    }
     scene.add(grupoEntradasLab);
     _grupoEntradasLaberintosCache = grupoEntradasLab;
   }
@@ -4195,7 +4256,8 @@
       altura: (x, z) => H(x, z),
       bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
       agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02 || LagosLib.enAgua(lagosMundo, x, z),
-      libre: (x, z) => !enMargenPueblo(x, z, 60, false) && !cercaCamino(x, z, 9),
+      // Nada de árboles ni rocas sobre el macizo, el pasillo o el laberinto de un recinto (se ocultan al entrar)
+      libre: (x, z) => !enMargenPueblo(x, z, 60, false) && !cercaCamino(x, z, 9) && !recintoEn(x, z, 10),
       caminos: world.roads.map(r => r.points)
     };
     decorGroup = DecoradoLib.generar(THREE, opciones);
@@ -4301,7 +4363,7 @@
     pararAuto();
     objetivo = null;
     const dest = { x: targetX, y: targetZ, parar: pararDist, nombre: nombreDestino };
-    ruta = { puntos: RutaLib.calcularRuta(world, { x: p.x, y: p.z }, dest, opcionesRuta()), i: 0, parar: pararDist, nombre: nombreDestino, npc: null, intentos: 0 };
+    ruta = { puntos: calcularRutaMundo({ x: p.x, y: p.z }, dest, opcionesRuta()), i: 0, parar: pararDist, nombre: nombreDestino, npc: null, intentos: 0 };
     character.cancelado = false;
     character.atascado = false;
     if (!follow) setFollow(true);
@@ -4691,6 +4753,11 @@
       return null;
     },
     getWalkableHeight(x, z) {
+      // Dentro de un recinto de laberinto se pisa su malla detallada
+      if (gestorLaberintos && gestorLaberintos.enLaberinto) {
+        const hi = gestorLaberintos.alturaInterior(x, z);
+        if (hi !== null) return hi;
+      }
       const v = visorWorld.villageAt(x, z);
       if (v) return v.o.h0 + v.o.village.getWalkableHeight(v.lx, v.lz);
       let groundH = H(x, z);
@@ -4733,6 +4800,12 @@
         }
       }
       return out;
+    },
+    // Recintos de laberinto: no se trepan sus paredes ni en diagonal (pendiente real > 42°)
+    bloqueaSubida(ox, oz, x, z) {
+      if (!recintosMundo.length) return false;
+      const rec = recintoCercaDe(x, z, 0);
+      return !!rec && RelieveZonaLib.bloqueaSubidaRecinto(rec, ox, oz, x, z, (a, b) => visorWorld.getWalkableHeight(a, b));
     },
     // Agua: el suelo queda por debajo del nivel del mar (en cualquier punto del personaje)
     isWaterHazard(x, z, r) {
@@ -6669,7 +6742,8 @@
     if (now - lastMinimap < 120) return;
     lastMinimap = now;
     const cv = $('minimap'), g = cv.getContext('2d');
-    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
+    // Los recintos de laberinto se ven en el mapa del mundo (son parte de él); solo las mazmorras tienen mapa propio
+    const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
     const S = cv.width, R = enMazmorra ? 75 : 290;   // metros desde el centro hasta el borde
     const p = character.root.position;
     const px = p.x, pz = p.z;
@@ -6786,36 +6860,39 @@
           const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
           if (lab) {
             g.save();
-            const { N, grid, cellSize, zx, zz } = lab;
-            const wMuroMinimap = Math.max(1.8, cellSize * V.escala);
+            const { N, grid, cellSize } = lab;
+            // Celdas giradas igual que en el terreno (la rejilla puede tener rotación)
+            const celda = (gx, gy) => {
+              const p = lab.celdaAMundo(gx, gy);
+              g.save();
+              g.translate(V.px(p.wx), V.py(p.wz));
+              g.rotate(lab.rotRad || 0);
+              const lado = Math.max(1.8, cellSize * V.escala);
+              g.fillRect(-lado / 2, -lado / 2, lado, lado);
+              g.restore();
+            };
+
+            // 0. Anillo de roca y pasillo de entrada (la única forma de entrar)
+            const rec = recintosMundo.find(r => r.zona === z);
+            if (rec) {
+              g.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+              g.lineWidth = Math.max(2, (rec.Rout - rec.Rint) * V.escala);
+              g.beginPath(); g.arc(V.px(rec.zx), V.py(rec.zz), ((rec.Rint + rec.Rout) / 2) * V.escala, 0, Math.PI * 2); g.stroke();
+              g.strokeStyle = 'rgba(217, 119, 6, 0.85)';
+              g.lineWidth = Math.max(2, rec.cfg.anchoPasillo * V.escala);
+              g.lineJoin = 'round';
+              g.beginPath();
+              rec.puntos.forEach((q, qi) => qi ? g.lineTo(V.px(q.x), V.py(q.z)) : g.moveTo(V.px(q.x), V.py(q.z)));
+              g.stroke();
+            }
 
             // 1. Trazado visible del camino/desfiladero por donde ir
             g.fillStyle = 'rgba(217, 119, 6, 0.65)';
-            for (let gy = 0; gy < N; gy++) {
-              for (let gx = 0; gx < N; gx++) {
-                if (grid[gy][gx] === 0) {
-                  const wx = zx + (gx - (N - 1) / 2) * cellSize;
-                  const wz = zz + (gy - (N - 1) / 2) * cellSize;
-                  const sx = V.px(wx - cellSize / 2);
-                  const sy = V.py(wz - cellSize / 2);
-                  g.fillRect(sx, sy, wMuroMinimap, wMuroMinimap);
-                }
-              }
-            }
+            for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++) if (grid[gy][gx] === 0) celda(gx, gy);
 
             // 2. Muros y acantilados de roca que encierran el laberinto
             g.fillStyle = 'rgba(15, 23, 42, 0.95)';
-            for (let gy = 0; gy < N; gy++) {
-              for (let gx = 0; gx < N; gx++) {
-                if (grid[gy][gx] === 1) {
-                  const wx = zx + (gx - (N - 1) / 2) * cellSize;
-                  const wz = zz + (gy - (N - 1) / 2) * cellSize;
-                  const sx = V.px(wx - cellSize / 2);
-                  const sy = V.py(wz - cellSize / 2);
-                  g.fillRect(sx, sy, wMuroMinimap, wMuroMinimap);
-                }
-              }
-            }
+            for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++) if (grid[gy][gx] === 1) celda(gx, gy);
 
             // 3. Indicador de entrada sur
             if (lab.entrada) {
@@ -9077,7 +9154,7 @@
     if (!d) return;
     pararAuto();
     objetivo = null;
-    const puntosRuta = RutaLib.calcularRuta(world, posActual, d, opcionesRuta());
+    const puntosRuta = calcularRutaMundo(posActual, d, opcionesRuta());
     ruta = { puntos: puntosRuta, i: 0, parar: d.parar, nombre: d.nombre, npc: d.npc || null, intentos: 0 };
     character.cancelado = false;
     character.atascado = false;
@@ -10204,210 +10281,346 @@
    * GESTIÓN DE LABERINTOS DE ZONA (Paso continuo por el estrechamiento de 100m)
    * =========================================================================== */
   let gestorLaberintos = null;
-  let laberintoPromptActiva = null;
+  let laberintoPromptActiva = null;   // (sin uso: la entrada es continua por el pasillo, no hay botón)
 
+  // ---------------------------------------------------------------------------
+  // Interior detallado de un recinto: malla fina del laberinto con el material del terreno (roca triplanar),
+  // rocas sueltas, matorral y piedras del bioma, la culminación y los GLB que se configuren en
+  // zona.relieve.decoracion = [{ glb: 'ruta.glb', x, z, y?, rot?, escala? }] (x/z relativos al centro).
+  // ---------------------------------------------------------------------------
+  function construirInteriorRecinto(rec) {
+    const zona = rec.zona, lab = rec.lab;
+    const grupo = new THREE.Group();
+    grupo.name = 'InteriorRecinto_' + zona.id;
+    const uRec = { value: new THREE.Vector4(rec.zx, rec.zz, 0, -1) };   // radio 0 y modo fuera: no dibuja nada
+    const mat = TerrainLib.createTerrainMaterial(THREE, { tCapas: terrainU.tCapas, uTexOn: terrainU.uTexOn, uRecorte: uRec }, { triplanar: true });
+    // En la franja donde se solapa con el terreno del mundo, gana el mundo (sin parpadeo)
+    mat.polygonOffset = true; mat.polygonOffsetFactor = 1; mat.polygonOffsetUnits = 2;
+    const colorBase = (x, z) => {
+      const c = W.BIOMES[terrain.biomeAt(x, z, terrain.elevation(x, z))].color;
+      return [1 - 0.55 * (1 - c[0] / 255), 1 - 0.55 * (1 - c[1] / 255), 1 - 0.55 * (1 - c[2] / 255)];
+    };
+    const splatBase = (x, z, steep, h) => TerrainLib.splatFor(terrain.biomeAt(x, z, terrain.elevation(x, z)), steep, h);
+    // Resolución: 1,25 m en recintos normales; en los muy grandes se limita a ~300 × 300 vértices
+    const paso = Math.max(1.25, (2 * rec.Rcorte) / 300);
+    const suelo = RelieveZonaLib.crearMallaInteriorRecinto(THREE, rec, { material: mat, alturaBase: HgenBase, splatBase, colorBase, paso });
+    grupo.add(suelo.malla);
+
+    // Extras (solo visibles dentro): rocas, vegetación, culminación y GLB
+    const extras = new THREE.Group();
+    extras.name = 'ExtrasRecinto';
+    grupo.add(extras);
+    const rocas = RelieveZonaLib.crearRocasRecinto(THREE, rec, suelo.alturaEn, { material: mat });
+    if (rocas) extras.add(rocas);
+
+    // Matorral, troncos, setas y piedras del bioma, más densos que fuera, solo en el suelo del laberinto
+    try {
+      const enSuelo = (x, z) => {
+        const d = Math.hypot(x - rec.zx, z - rec.zz);
+        if (d > rec.Rint - 2) return false;
+        if (Math.hypot(x - lab.centro.wx, z - lab.centro.wz) < lab.centro.radio * 0.7) return false;
+        const h = suelo.alturaEn(x, z);
+        if (h - rec.baseH > 0.5) return false;
+        // pegado al pie de un muro (a 2–5 m), para no estorbar el paso
+        const e = 4;
+        return Math.max(suelo.alturaEn(x + e, z), suelo.alturaEn(x - e, z), suelo.alturaEn(x, z + e), suelo.alturaEn(x, z - e)) - h > 2.5;
+      };
+      for (let k = 0; k < 5; k++) {
+        const campo = PV.generarCampo({
+          rng: new W.PRNG(((lab.seed * 31 + k * 977) ^ 0x5eed) >>> 0),
+          limites: { minX: rec.zx - rec.Rint, maxX: rec.zx + rec.Rint, minZ: rec.zz - rec.Rint, maxZ: rec.zz + rec.Rint },
+          altura: (x, z) => suelo.alturaEn(x, z),
+          bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
+          agua: () => false,
+          libre: enSuelo
+        });
+        extras.add(campo);
+      }
+    } catch (e) { console.warn('Decoración del recinto:', e); }
+
+    // Culminación central (sin luces puntuales: cambiar el número de luces recompila todos los materiales)
+    const culm = RelieveZonaLib.crearDecoradoCulminacion(THREE, zona, () => rec.baseH);
+    if (culm) {
+      const quitar = [];
+      culm.traverse(o => { if (o.isLight) quitar.push(o); });
+      quitar.forEach(o => o.parent && o.parent.remove(o));
+      culm.position.set(lab.centro.wx, suelo.alturaEn(lab.centro.wx, lab.centro.wz), lab.centro.wz);
+      extras.add(culm);
+    }
+
+    // GLB configurados en la zona (texturas únicas, props, animaciones…)
+    const deco = (zona.relieve && Array.isArray(zona.relieve.decoracion)) ? zona.relieve.decoracion : [];
+    const mezcladores = [];
+    deco.forEach(d => {
+      if (!d || !d.glb) return;
+      import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(d.glb)).then(gltf => {
+        const o = gltf.scene;
+        const x = rec.zx + (d.x || 0), z = rec.zz + (d.z || 0);
+        o.position.set(x, (typeof d.y === 'number' ? rec.baseH + d.y : suelo.alturaEn(x, z)), z);
+        o.rotation.y = (d.rot || 0) * Math.PI / 180;
+        o.scale.setScalar(d.escala || 1);
+        o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+        aplicarEntorno(o);
+        if (gltf.animations && gltf.animations.length) {
+          const mx = new THREE.AnimationMixer(o);
+          gltf.animations.forEach(c => mx.clipAction(c).play());
+          mezcladores.push(mx);
+        }
+        extras.add(o);
+      }).catch(err => console.warn('GLB del recinto no cargado:', d.glb, err));
+    });
+
+    // Compilar ya los materiales (el cambio en el pasillo no debe dar tirones) y dejar los extras ocultos
+    try { renderer.compile(grupo, camera, scene); } catch (e) {}
+    extras.visible = false;
+    scene.add(grupo);
+
+    const reliquia = culm && culm.userData && culm.userData.reliquiaMesh;
+    return {
+      grupo, extras, malla: suelo.malla, mat, uRec, alturaEn: suelo.alturaEn,
+      actualizar(dt, t) {
+        mezcladores.forEach(m => m.update(dt));
+        if (reliquia) { reliquia.rotation.y += dt * 0.9; reliquia.position.y = 3.6 + Math.sin(t * 1.7) * 0.25; }
+      },
+      liberar() {
+        scene.remove(grupo);
+        grupo.traverse(o => {
+          if (o.geometry) o.geometry.dispose();
+          if (o.material && o.material !== mat) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+        });
+        mat.dispose();
+      }
+    };
+  }
+
+  // Oculta el mundo exterior salvo cielo, sol, niebla y el terreno del propio recinto (pasillo compartido)
+  function aislarMundoParaRecinto(rec) {
+    const est = { ocultos: [] };
+    const ocultar = o => { if (o && o.visible) { o.visible = false; est.ocultos.push(o); } };
+    if (farMesh) ocultar(farMesh);
+    nearChunks.forEach((m, k) => {
+      const [cx, cz] = k.split(',').map(Number);
+      if (!trozoConRecinto(cx, cz)) ocultar(m);
+    });
+    [waterMesh, riosMesh, lagosGroup, roadMesh, calzadaMesh, zoneMesh, selectRing, decorGroup,
+     _grupoSecretosCache || scene.getObjectByName('LugaresSecretosMundo'),
+     _grupoEntradasCache || scene.getObjectByName('EntradasMazmorrasMundo')].forEach(ocultar);
+    zoneLines.forEach(ocultar);
+    if (Array.isArray(ladrillosTramos)) ladrillosTramos.forEach(t => t && ocultar(t.malla));
+    towns.forEach(o => { ocultar(o.proxy); ocultar(o.patch); ocultar(o.group); });
+    if (gurus) gurus.forEach(g => { ocultar(g.raiz); ocultar(g.mesh); });
+    monsters.forEach(m => { if (!m.dungeonInfoRef) { ocultar(m.group); ocultar(m.bar); } });
+    est.etiquetas = [];
+    townLabels.concat(zoneLabels).forEach(l => { if (l && l.el && l.el.style.display !== 'none') { est.etiquetas.push([l.el, l.el.style.display]); l.el.style.display = 'none'; } });
+    terrainU.uRecorte.value.set(rec.zx, rec.zz, rec.Rcorte, 1);
+    return est;
+  }
+  function restaurarMundoDeRecinto(est) {
+    terrainU.uRecorte.value.set(0, 0, 0, 0);
+    if (!est) return;
+    est.ocultos.forEach(o => { o.visible = true; });
+    (est.etiquetas || []).forEach(([el, disp]) => { el.style.display = disp; });
+    lastStream = 0;
+    actualizarVisibilidadEstructuras(0, true);
+  }
+
+  /* ===========================================================================
+   * GESTIÓN DE LABERINTOS DE ZONA: recinto aislado de una sola entrada
+   * - Al acercarse (a ~60 m del macizo) se construye el interior detallado, oculto.
+   * - En la mitad del tramo compartido del pasillo (ciego en ambos sentidos) se pasa a interior:
+   *   el mundo se oculta y la malla detallada sustituye al terreno dentro del anillo. Al volver por
+   *   el pasillo se deshace. Cielo, sol, sombras y niebla no cambian: no se nota el cambio.
+   * =========================================================================== */
   class GestorLaberintos {
     constructor() {
       this.enLaberinto = false;
       this.laberintoActivo = null;
-      this.instancia = null;
-      this.prevWalkableHeight = null;
-      this.prevColliders = null;
-      this.luzAmbienteLab = null;
-      this.luzDirLab = null;
+      this.recinto = null;
+      this.interior = null;
+      this._estadoMundo = null;
+    }
+
+    preparar(rec) {
+      if (this.recinto === rec && this.interior) return;
+      this.liberar();
+      this.recinto = rec;
+      const t0 = performance.now();
+      this.interior = construirInteriorRecinto(rec);
+      console.info(`Recinto «${rec.zona.name}» preparado en ${Math.round(performance.now() - t0)} ms`);
+    }
+
+    liberar() {
+      if (this.enLaberinto) this.desactivarInterior();
+      if (this.interior) this.interior.liberar();
+      this.interior = null;
+      this.recinto = null;
     }
 
     activarInterior(zona) {
       if (this.enLaberinto || !zona) return;
-      if (typeof RelieveZonaLib === 'undefined' || typeof RelieveZonaLib.crearInstanciaLaberinto !== 'function') {
-        console.warn('RelieveZonaLib.crearInstanciaLaberinto no disponible');
-        return;
-      }
-
-      this.laberintoActivo = zona;
+      const rec = recintosMundo.find(r => r.zona === zona) || (RelieveZonaLib.obtenerRecinto && RelieveZonaLib.obtenerRecinto(zona, HgenBase));
+      if (!rec) return;
+      this.preparar(rec);
       this.enLaberinto = true;
-      const promptEl = $('laberinto-prompt');
-      if (promptEl) promptEl.style.display = 'none';
-      laberintoPromptActiva = null;
-
-      // 1. Aislar supramundo exterior (ocultar chunks de terreno, ríos, lagos, pueblos, cielo, NPCs, monstruos exteriores)
-      if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.aislarParaMazmorra === 'function') {
-        gestorMazmorras.ctx.aislarParaMazmorra({ name: zona.name });
-      }
-      const entLabGrp = _grupoEntradasLaberintosCache || scene.getObjectByName('EntradasLaberintosMundo');
-      if (entLabGrp) entLabGrp.visible = false;
-
-      // 2. Crear la instancia interior limpia a coordenadas de mundo y altura baseH
-      if (this.instancia && this.instancia.grupo && this.instancia.grupo.parent) {
-        this.instancia.grupo.parent.remove(this.instancia.grupo);
-      }
-      this.instancia = RelieveZonaLib.crearInstanciaLaberinto(THREE, zona, H);
-      if (!this.instancia) {
-        console.error('No se pudo crear instancia de laberinto para', zona.name);
-        this.desactivarInterior();
-        return;
-      }
-      scene.add(this.instancia.grupo);
-
-      // 3. Configurar físicas del personaje para la instancia (suelo plano a baseH y colisionadores de muros)
-      const baseH = this.instancia.baseH;
-      this.prevWalkableHeight = character.world.getWalkableHeight;
-      this.prevColliders = character.world.colliders;
-      character.world.getWalkableHeight = (x, z) => baseH;
-      character.world.colliders = this.instancia.colliders || [];
-
-      // 4. Spawnear TODOS los monstruos del laberinto dentro de la instancia en monstruosMazmorra
-      if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.crearMonstruoCombate === 'function') {
-        const spawns = this.instancia.spawnsMonstruos || [];
-        const R = (zona.relieve && zona.relieve.radio) || zona.radius || 120;
-        const zx = zona.x, zz = (zona.y !== undefined ? zona.y : (zona.z || 0));
-        spawns.forEach(cm => {
-          const isBoss = (cm.clase === 'elite' || !!cm.boss);
-          const info = {
-            name: (isBoss ? '👑 [Élite] ' : '') + (cm.name || 'Monstruo'),
-            level: cm.level || cm.nivel || 10,
-            boss: isBoss,
-            rangoElite: isBoss ? 3 : 1,
-            x: cm.x,
-            y: baseH,
-            z: cm.z,
-            clase: cm.clase || 'guerrero',
-            color: cm.color || '#22c55e',
-            weapon: cm.clase === 'arquero' ? 'bone_recurved_bow' : cm.clase === 'mago' ? 'arcane_staff' : 'sword'
-          };
-          const m = gestorMazmorras.ctx.crearMonstruoCombate(info, this.instancia.grupo, isBoss);
-          m.puedeIr = (nx, nz) => Math.hypot(nx - zx, nz - zz) <= R + 10;
-          if (cm.color) {
-            const radHalo = (cm.totalInCell > 1) ? Math.max(0.45, 0.9 / Math.sqrt(cm.totalInCell)) : 0.85;
-            const haloG = new THREE.RingGeometry(radHalo * 0.7, radHalo, 16);
-            haloG.rotateX(-Math.PI / 2);
-            const haloM = new THREE.MeshBasicMaterial({ color: cm.color, side: THREE.DoubleSide });
-            const halo = new THREE.Mesh(haloG, haloM);
-            halo.position.y = 0.08;
-            m.group.add(halo);
-          }
-        });
-      }
-
-      // 5. Iluminación atmosférica dedicada para la instancia
-      if (!this.luzAmbienteLab) {
-        this.luzAmbienteLab = new THREE.AmbientLight(0xf0fdf4, 0.95);
-        this.luzDirLab = new THREE.DirectionalLight(0xffedd5, 1.3);
-        this.luzDirLab.position.set(60, 120, 40);
-      }
-      scene.add(this.luzAmbienteLab);
-      scene.add(this.luzDirLab);
-
-      toast(`🌀 Interior de «${zona.name}» cargado`, 3000);
+      this.laberintoActivo = zona;
+      this._estadoMundo = aislarMundoParaRecinto(rec);
+      this.interior.uRec.value.set(rec.zx, rec.zz, rec.Rcorte + 3, -1);
+      this.interior.extras.visible = true;
+      this.spawnMonstruos(rec);
     }
 
     desactivarInterior() {
       if (!this.enLaberinto) return;
       this.enLaberinto = false;
-      const promptEl = $('laberinto-prompt');
-      if (promptEl) promptEl.style.display = 'none';
-      laberintoPromptActiva = null;
-
-      // 1. Limpiar monstruos de la instancia
       if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.limpiarMonstruosMazmorra === 'function') {
         gestorMazmorras.ctx.limpiarMonstruosMazmorra();
       }
-
-      // 2. Retirar grupo 3D de la instancia e iluminación dedicada
-      if (this.instancia && this.instancia.grupo) {
-        scene.remove(this.instancia.grupo);
-        if (this.instancia.grupo.traverse) {
-          this.instancia.grupo.traverse(ch => {
-            if (ch.geometry) ch.geometry.dispose();
-            if (ch.material) {
-              if (ch.material.map) ch.material.map.dispose();
-              ch.material.dispose();
-            }
-          });
-        }
-        this.instancia = null;
+      if (this.interior) {
+        this.interior.uRec.value.set(this.recinto.zx, this.recinto.zz, 0, -1);
+        this.interior.extras.visible = false;
       }
-      if (this.luzAmbienteLab) scene.remove(this.luzAmbienteLab);
-      if (this.luzDirLab) scene.remove(this.luzDirLab);
-
-      // 3. Restaurar supramundo exterior
-      if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.restaurarDeMazmorra === 'function') {
-        gestorMazmorras.ctx.restaurarDeMazmorra();
-      }
-      const entLabGrp = _grupoEntradasLaberintosCache || scene.getObjectByName('EntradasLaberintosMundo');
-      if (entLabGrp) entLabGrp.visible = true;
-
-      // 4. Restaurar físicas y suelo del supramundo
-      if (this.prevWalkableHeight) {
-        character.world.getWalkableHeight = this.prevWalkableHeight;
-      } else {
-        character.world.getWalkableHeight = H;
-      }
-      character.world.colliders = this.prevColliders || [];
-
-      toast('🌲 Has regresado al Mundo Exterior', 3000);
+      restaurarMundoDeRecinto(this._estadoMundo);
+      this._estadoMundo = null;
       this.laberintoActivo = null;
     }
 
-    actualizar(dt, hero, zonas) {
-      if (!character || !character.root || !zonas || !zonas.length) return;
-      const hx = character.root.position.x;
-      const hz = character.root.position.z;
+    spawnMonstruos(rec) {
+      if (!gestorMazmorras || !gestorMazmorras.ctx || typeof gestorMazmorras.ctx.crearMonstruoCombate !== 'function') return;
+      const alturaEn = this.interior.alturaEn;
+      const zona = rec.zona;
+      (rec.lab.monstruosPorCelda || []).forEach(cm => {
+        const isBoss = (cm.clase === 'elite' || !!cm.boss);
+        const y = alturaEn(cm.wx, cm.wz);
+        const info = {
+          name: (isBoss ? '👑 [Élite] ' : '') + (cm.name || 'Monstruo'),
+          level: cm.level || cm.nivel || 10,
+          boss: isBoss,
+          rangoElite: isBoss ? 3 : 1,
+          x: cm.wx, y, z: cm.wz,
+          clase: cm.clase || 'guerrero',
+          color: cm.color || '#22c55e',
+          weapon: cm.clase === 'arquero' ? 'bone_recurved_bow' : cm.clase === 'mago' ? 'arcane_staff' : 'sword'
+        };
+        const m = gestorMazmorras.ctx.crearMonstruoCombate(info, this.interior.grupo, isBoss);
+        if (!m) return;
+        m.zone = { id: 'recinto-' + zona.id, name: zona.name, respawnSec: 999999, esMazmorra: true };
+        // Solo por el suelo de los pasillos del laberinto: nunca por encima de los muros
+        m.puedeIr = (nx, nz) => Math.hypot(nx - rec.zx, nz - rec.zz) < rec.Rint && alturaEn(nx, nz) - rec.baseH < 0.9;
+        if (cm.color) {
+          const radHalo = (cm.totalInCell > 1) ? Math.max(0.45, 0.9 / Math.sqrt(cm.totalInCell)) : 0.85;
+          const haloG = new THREE.RingGeometry(radHalo * 0.7, radHalo, 16);
+          haloG.rotateX(-Math.PI / 2);
+          const halo = new THREE.Mesh(haloG, new THREE.MeshBasicMaterial({ color: cm.color, side: THREE.DoubleSide, transparent: true, opacity: 0.7 }));
+          halo.position.y = 0.08;
+          m.group.add(halo);
+        }
+      });
+    }
 
+    // Altura que pisa el personaje dentro del interior (la de la malla detallada)
+    alturaInterior(x, z) {
+      if (!this.enLaberinto || !this.interior || !this.recinto) return null;
+      const r = this.recinto;
+      if (Math.hypot(x - r.zx, z - r.zz) > r.Rcorte) return null;
+      return this.interior.alturaEn(x, z);
+    }
+
+    actualizar(dt) {
+      if (!character || !character.root || !recintosMundo.length) return;
+      const p = character.root.position;
       if (!this.enLaberinto) {
-        // En el exterior: vigilar si el personaje avanza por el estrechamiento de 100m de algún laberinto
-        for (let i = 0; i < zonas.length; i++) {
-          const z = zonas[i];
-          if (!z.relieve || !z.relieve.activo) continue;
-          const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-          if (!lab) continue;
-          const prog = RelieveZonaLib.calcularProgresoCorredor(lab, hx, hz);
-          // Si llega a la mitad del estrechamiento (s >= 50m) o entra al laberinto: cargar interior y desconectar exterior
-          if ((prog.enCorredor && prog.s >= 50) || prog.enInterior) {
-            this.activarInterior(z);
-            break;
-          }
+        const rec = recintoCercaDe(p.x, p.z, 60);
+        if (rec) {
+          this.preparar(rec);
+          if (RelieveZonaLib.ladoDelRecinto(rec, p.x, p.z) === 'interior') this.activarInterior(rec.zona);
+        } else if (this.recinto && Math.hypot(p.x - this.recinto.zx, p.z - this.recinto.zz) > this.recinto.rMax + 260) {
+          this.liberar();
         }
-      } else {
-        // En el laberinto: vigilar si el personaje retrocede por el estrechamiento hacia el exterior (s <= 48m)
-        const z = this.laberintoActivo;
-        if (z) {
-          const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-          if (lab) {
-            const prog = RelieveZonaLib.calcularProgresoCorredor(lab, hx, hz);
-            if (prog.enCorredor && prog.s <= 48 && !prog.enInterior) {
-              this.desactivarInterior();
-            }
-          }
-        }
+      } else if (RelieveZonaLib.ladoDelRecinto(this.recinto, p.x, p.z) === 'exterior') {
+        this.desactivarInterior();
       }
+      if (this.interior) this.interior.actualizar(dt, performance.now() / 1000);
     }
 
-    iniciarInstancia(zona) {
-      this.activarInterior(zona);
-    }
-
-    salirInstancia() {
-      this.desactivarInterior();
-    }
-
-    actualizarInstancia(dt, hero) {
-      if (world && world.zones) this.actualizar(dt, hero, world.zones);
-    }
-
-    comprobarEntradaExterior(zonas, hx, hz) {
-      this.actualizar(0, hero, zonas);
-      return null;
-    }
+    // Compatibilidad con llamadas antiguas
+    iniciarInstancia(zona) { this.activarInterior(zona); }
+    salirInstancia() { this.desactivarInterior(); }
+    actualizarInstancia(dt) { this.actualizar(dt); }
+    comprobarEntradaExterior() { return null; }
   }
 
+  // "Entrar" en un laberinto ya no teletransporta dentro: lleva a la boca del pasillo de entrada
   function entrarEnLaberinto(zona) {
-    if (!gestorLaberintos) gestorLaberintos = new GestorLaberintos();
-    gestorLaberintos.activarInterior(zona);
+    const rec = recintosMundo.find(r => r.zona === zona);
+    if (rec) llevarABocaRecinto(rec);
   }
 
   function salirDeLaberinto() {
-    if (gestorLaberintos) gestorLaberintos.desactivarInterior();
+    if (!gestorLaberintos || !gestorLaberintos.enLaberinto) return;
+    const rec = gestorLaberintos.recinto;
+    gestorLaberintos.desactivarInterior();
+    if (rec) llevarABocaRecinto(rec);
+  }
+
+  // Coloca al personaje delante de la boca del pasillo, mirando hacia dentro, con la cámara detrás
+  function llevarABocaRecinto(rec) {
+    if (!character) return;
+    if (gestorLaberintos && gestorLaberintos.enLaberinto) gestorLaberintos.desactivarInterior();
+    const L = rec.llegada;
+    character.teleport(L.x, L.z);
+    if (character.mirarAngulo) character.mirarAngulo(L.mirar);
+    setFollow(true);
+    const y = H(L.x, L.z);
+    const ux = rec.u_in.x, uz = rec.u_in.z;
+    controls.target.set(L.x, y + 1.4, L.z);
+    camera.position.set(L.x - ux * 9, y + 5, L.z - uz * 9);
+    controls.update();
+    toast(`🏔️ Entrada a «${rec.zona.name}»`, 3000);
+  }
+
+  // Cualquier salto (teletransporte) que caería dentro de un recinto te deja en la boca de su pasillo.
+  // Si estás dentro y saltas fuera, primero se restaura el mundo.
+  function envolverTeleportRecintos() {
+    if (!character || character._teleportRecinto) return;
+    const original = character.teleport.bind(character);
+    character._teleportRecinto = original;
+    character.teleport = (x, z) => {
+      const rec = recintoEn(x, z, 0);
+      const dentro = gestorLaberintos && gestorLaberintos.enLaberinto;
+      if (rec && !(dentro && gestorLaberintos.recinto === rec)) {
+        if (dentro) gestorLaberintos.desactivarInterior();
+        const L = rec.llegada;
+        const ok = original(L.x, L.z);
+        if (ok && character.mirarAngulo) character.mirarAngulo(L.mirar);
+        return ok;
+      }
+      if (dentro && !rec) gestorLaberintos.desactivarInterior();
+      return original(x, z);
+    };
+  }
+
+  // Ruta que entra o sale de un recinto por su pasillo (y rodea el macizo si la línea recta lo cruza)
+  function calcularRutaMundo(desde, dest, opciones) {
+    const recDest = recintoEn(dest.x, dest.y, 0), recIni = recintoEn(desde.x, desde.y, 0);
+    let pre = [], post = [], d0 = desde, d1 = dest;
+    if (recIni && recIni !== recDest) {
+      pre = RelieveZonaLib.rutaRecinto(recIni, desde, true);
+      d0 = pre[pre.length - 1];
+    }
+    if (recDest && recDest !== recIni) {
+      post = RelieveZonaLib.rutaRecinto(recDest, dest, false);
+      d1 = Object.assign({}, dest, post[0]);
+      post = post.slice(1);
+    }
+    if (recIni && recIni === recDest) {
+      // Dentro del mismo laberinto: por las celdas
+      const lab = recIni.lab;
+      const celdas = RelieveZonaLib.caminoCeldas(lab, RelieveZonaLib.celdaLibreCercana(lab, desde.x, desde.y), RelieveZonaLib.celdaLibreCercana(lab, dest.x, dest.y));
+      return celdas.length ? celdas.concat([{ x: dest.x, y: dest.y }]) : [{ x: dest.x, y: dest.y }];
+    }
+    let medio = RutaLib.calcularRuta(world, d0, d1, opciones);
+    recintosMundo.forEach(r => { medio = RelieveZonaLib.rodearRecinto(r, [d0].concat(medio)).slice(1); });
+    return pre.concat(medio, post);
   }
 
   // Culling por distancia para lugares secretos, cabañas GLB y entradas monumentales de mazmorra del supramundo
@@ -10449,9 +10662,8 @@
 
   let _ultimoBossTxt = '', _ultimoBossPct = -1;
   function updateMazmorras(dt, now) {
-    if (gestorLaberintos && character && character.root && world && world.zones) {
-      gestorLaberintos.actualizar(dt, hero, world.zones);
-    }
+    if (!gestorLaberintos && recintosMundo.length) gestorLaberintos = new GestorLaberintos();
+    if (gestorLaberintos && !(gestorMazmorras && gestorMazmorras.enMazmorra)) gestorLaberintos.actualizar(dt);
 
     if (!gestorMazmorras) return;
 
@@ -11328,18 +11540,21 @@
     }
 
     const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    // Dentro de un recinto de laberinto el mundo exterior está oculto: no se cargan pueblos ni trozos nuevos,
+    // pero el cielo, el ciclo del día y las sombras siguen exactamente igual
+    const enRecinto = !!(gestorLaberintos && gestorLaberintos.enLaberinto);
     const modalTapando = ($('crear').classList.contains('show') || $('mapa-mundo').classList.contains('show')) &&
       renderer.info.render.frame > 4 && towns.every(o => !o.village || o.rise >= 1);
     if (modalTapando) {
-      if (!enDungeon) { streamTowns(now); streamLaberintos(now); }
+      if (!enDungeon && !enRecinto) { streamTowns(now); streamLaberintos(now); }
       actualizarCarga(now);
       if (++fotogramaModal % 6 !== 0) return;
     }
 
-    if (!enDungeon) { streamTowns(now); streamLaberintos(now); }
+    if (!enDungeon && !enRecinto) { streamTowns(now); streamLaberintos(now); }
     actualizarCarga(now);
     AGUA_U.uTime.value = now / 1000;
-    if (!enDungeon) {
+    if (!enDungeon && !enRecinto) {
       if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
         lastDecor = now;
         decorGroup.userData.factorLejos = QUALITY[quality].decor;
@@ -11377,7 +11592,7 @@
 
     character.update(dt, now / 1000);
     actualizarEfectos(dt);
-    if (!enDungeon) actualizarGurus(dt, now / 1000);
+    if (!enDungeon && !enRecinto) actualizarGurus(dt, now / 1000);
     if (acompanante && acompanante.activo && typeof AcompananteLib !== 'undefined') {
       AcompananteLib.actualizarAcompanante(
         acompanante,
@@ -11421,10 +11636,12 @@
       );
     }
     if (!enDungeon) {
-      towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.setNivelArboles(nivelArbolesMuro(distPueblo(o))); o.village.updateTreeLod(camera); } });
-      animateTowns(dt);
+      if (!enRecinto) {
+        towns.forEach(o => { if (o.village) { o.village.update(now / 1000); o.village.setNivelArboles(nivelArbolesMuro(distPueblo(o))); o.village.updateTreeLod(camera); } });
+        animateTowns(dt);
+      }
       updateAtmosphere(dt);
-      updateTerrainChunks(now, false);
+      if (!enRecinto) updateTerrainChunks(now, false);
       if (QUALITY[quality].shadows > 0) seguirSombra();
     }
     lastNowSec = now / 1000;
@@ -11437,7 +11654,10 @@
       actualizarDecoracionesCulminacion(dt, now);
     }
 
-    controls.maxDistance = enDungeon ? 14.0 : (character.cameraMode === 'follow' ? 280 : 9000);
+    // Cerca de un recinto la cámara no sube por encima de sus paredes (así nunca se ve el cambio de interior)
+    const pCam = character.root.position;
+    const camRecinto = character.cameraMode === 'follow' && recintosMundo.length && recintoEn(pCam.x, pCam.z, 4);
+    controls.maxDistance = enDungeon ? 14.0 : camRecinto ? 22 : (character.cameraMode === 'follow' ? 280 : 9000);
     controls.update();
     // Al seguir, se mantienen la distancia y el giro que dejas con el ratón; el recorte por muros y suelo no se acumula
     character.encuadrar(() => {
@@ -11753,31 +11973,16 @@
       if (targetZonaId && world && world.zones) {
         let targetZ = world.zones.find(zn => zn.id === targetZonaId) || world.zones.find(zn => zn.relieve && zn.relieve.activo) || world.zones[0];
         if (targetZ) {
-          const lab = (typeof RelieveZonaLib !== 'undefined') ? RelieveZonaLib.obtenerDatosLaberinto(targetZ) : null;
-          if (lab && lab.P_ext && lab.u_in) {
-            const ey = H(lab.P_ext.wx, lab.P_ext.wz);
-            const spawnX = lab.P_ext.wx - lab.u_in.x * 4;
-            const spawnZ = lab.P_ext.wz - lab.u_in.y * 4;
-            character.teleport(spawnX, spawnZ);
-            if (character.root) {
-              character.root.position.set(spawnX, ey, spawnZ);
-              const lookAng = Math.atan2(lab.u_in.x, lab.u_in.y);
-              character.root.rotation.y = lookAng;
-            }
-            setFollow(true);
-            controls.target.set(lab.P_ext.wx + lab.u_in.x * 12, ey + 1.8, lab.P_ext.wz + lab.u_in.y * 12);
-            camera.position.set(spawnX - lab.u_in.x * 8, ey + 4.5, spawnZ - lab.u_in.y * 8);
-            controls.update();
-            setTimeout(() => {
-              toast(`🌲 Entrada al Estrechamiento de «${targetZ.name}» (100m hacia el interior)`, 3500);
-            }, 350);
+          // Abrir con ?zona=… (p. ej. al volver del Creador de Laberintos): delante de la boca del pasillo
+          const rec = recintosMundo.find(r => r.zona === targetZ);
+          if (rec) {
+            llevarABocaRecinto(rec);
           } else {
-            const ent0 = (lab && lab.entradas && lab.entradas[0]) || (lab && lab.entrada) || { wx: targetZ.x, wz: targetZ.y };
-            const ey = H(ent0.wx, ent0.wz);
-            character.teleport(ent0.wx, ent0.wz);
+            const ey = H(targetZ.x, targetZ.y);
+            character.teleport(targetZ.x, targetZ.y);
             setFollow(true);
-            controls.target.set(ent0.wx, ey + 2, ent0.wz);
-            camera.position.set(ent0.wx, ey + 14, ent0.wz + 26);
+            controls.target.set(targetZ.x, ey + 2, targetZ.y);
+            camera.position.set(targetZ.x, ey + 14, targetZ.y + 26);
             controls.update();
           }
         }
@@ -11786,7 +11991,7 @@
       ensureScene();
       $('load').classList.add('show');
     }
-    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   })();
   </script>
 </body>

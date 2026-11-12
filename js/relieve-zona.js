@@ -2030,6 +2030,633 @@
     return grupo;
   }
 
+  /* ===========================================================================
+   * RECINTO: zona aislada con UNA sola entrada (anillo de roca + pasillo ancho)
+   * ---------------------------------------------------------------------------
+   * El laberinto queda encerrado por un anillo de roca esculpido en el propio
+   * terreno del mundo (mismo material, misma luz). Se entra por un único pasillo
+   * ancho en zigzag que sale del mundo exterior:
+   *
+   *   mundo ─ Q4 ══boca══ Q3 ══tramo A══ Q2
+   *                                       ║ tramo B (pasillo compartido: sus dos
+   *                                       ║ extremos giran 90°, desde su mitad no
+   *                                       ║ se ve ni el exterior ni el interior)
+   *            anillo ══tramo C══════════ Q1
+   *   laberinto Q0 (celda de entrada)
+   *
+   * El terreno del mundo (Hgen) y la malla detallada del interior usan la MISMA
+   * función de altura (alturaRecinto), así que donde se juntan coinciden. El
+   * cambio exterior ↔ interior se hace en la mitad del tramo B, donde nada de lo
+   * que cambia es visible: el jugador no nota que entra ni que sale.
+   * =========================================================================== */
+  const RECINTO_DEFECTO = {
+    anchoPasillo: 18,     // paso libre del pasillo (m)
+    alturaAnillo: 30,     // altura del anillo y de las crestas sobre el suelo (m)
+    anchoAnillo: 30,      // grosor de la cumbre del anillo (m)
+    faldonAnillo: 46,     // ladera exterior del anillo hasta el terreno natural (m)
+    grosorCresta: 18,     // cumbre de las crestas que flanquean el pasillo (m)
+    faldonCresta: 34,     // ladera exterior de las crestas (m)
+    margenSuelo: 4,       // suelo llano entre el laberinto y el pie del anillo (m)
+    tramoA: 38,           // tramo exterior (radial) del pasillo
+    tramoB: 64,           // tramo compartido (tangencial) del pasillo
+    tramoC: 16,           // tramo que cruza el anillo hasta el laberinto (fuera del anillo)
+    boca: 26,             // abertura donde las crestas nacen del terreno exterior
+    histeresis: 3         // metros a cada lado de la mitad del tramo B para cambiar de estado
+  };
+
+  // Ruido de valor determinista (0..1), suave, sin dependencias
+  function hash2(ix, iz) {
+    let h = (ix * 374761393 + iz * 668265263) | 0;
+    h = (h ^ (h >>> 13)) * 1274126177 | 0;
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+  function ruidoValor(x, z) {
+    const ix = Math.floor(x), iz = Math.floor(z);
+    let fx = x - ix, fz = z - iz;
+    fx = fx * fx * (3 - 2 * fx);
+    fz = fz * fz * (3 - 2 * fz);
+    const a = hash2(ix, iz), b = hash2(ix + 1, iz), c = hash2(ix, iz + 1), d = hash2(ix + 1, iz + 1);
+    return (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fz;
+  }
+  function ruidoFbm(x, z) {
+    return ruidoValor(x, z) * 0.62 + ruidoValor(x * 2.13 + 17.1, z * 2.13 - 5.3) * 0.38;
+  }
+
+  /**
+   * Geometría del recinto de una zona con laberinto. alturaBase(x, z) es la altura del
+   * terreno del mundo SIN el recinto (para la cota del suelo y de la boca del pasillo).
+   * Se guarda en la caché del laberinto: si cambia la configuración, se rehace.
+   */
+  function obtenerRecinto(zona, alturaBase) {
+    const lab = obtenerDatosLaberinto(zona);
+    if (!lab) return null;
+    const r = zona.relieve || {};
+    const claveCfg = JSON.stringify(r.recinto || {});
+    if (lab._recinto && lab._recinto._clave === claveCfg && (!alturaBase || lab._recinto._alturaBase === alturaBase)) return lab._recinto;
+
+    const cfg = Object.assign({}, RECINTO_DEFECTO, (r.recinto && typeof r.recinto === 'object') ? r.recinto : {});
+    const { zx, zz, R } = lab;
+    const hB = typeof alturaBase === 'function' ? alturaBase : null;
+    // Cota del suelo del recinto: nunca bajo el agua (el personaje no pisa por debajo de 0,2 m)
+    const baseH = Math.max(1.5, hB ? hB(zx, zz) : 0);
+
+    const th = lab.theta_ent;
+    const uo = { x: Math.cos(th), z: Math.sin(th) };   // hacia fuera por la entrada
+    const vl = { x: -Math.sin(th), z: Math.cos(th) };   // lateral
+    const ladoFijo = (r.recinto && (r.recinto.lado === -1 || r.recinto.lado === 1)) ? r.recinto.lado : 0;
+    let lado = ladoFijo || ((lab.seed & 1) ? 1 : -1);
+
+    const Rint = R + cfg.margenSuelo;           // fin del suelo del laberinto
+    const RtopIn = Rint + 7;                    // cara interior del anillo ya en cumbre
+    const Rout = Rint + cfg.anchoAnillo;        // fin de la cumbre
+    const Rfin = Rout + cfg.faldonAnillo;       // terreno natural de nuevo
+    const Rcorte = Rint + 12;                   // frontera mundo ↔ malla interior (en la cumbre)
+
+    const Q0 = { x: lab.entrada.wx, z: lab.entrada.wz };
+    const Q1 = { x: zx + uo.x * (Rout + cfg.tramoC), z: zz + uo.z * (Rout + cfg.tramoC) };
+    // El zigzag gira hacia el lado cuya boca queda en tierra firme y con la rampa más suave
+    const bocaDe = l => {
+      const q2 = { x: Q1.x + vl.x * l * cfg.tramoB, z: Q1.z + vl.z * l * cfg.tramoB };
+      const q4 = { x: q2.x + uo.x * (cfg.tramoA + cfg.boca), z: q2.z + uo.z * (cfg.tramoA + cfg.boca) };
+      return { q2, q4 };
+    };
+    if (!ladoFijo && hB) {
+      const nota = l => {
+        const { q2, q4 } = bocaDe(l);
+        let peor = Infinity;
+        for (let t = 0; t <= 1.0001; t += 0.125) peor = Math.min(peor, hB(q2.x + (q4.x - q2.x) * t, q2.z + (q4.z - q2.z) * t));
+        const hl = hB(q4.x + uo.x * 8, q4.z + uo.z * 8);
+        return (Math.min(peor, hl) < 1.2 ? 1000 : 0) + Math.abs(hB(q4.x, q4.z) - baseH);
+      };
+      if (nota(-lado) < nota(lado)) lado = -lado;
+    }
+    const { q2: Q2, q4: Q4 } = bocaDe(lado);
+    const Q3 = { x: Q2.x + uo.x * cfg.tramoA, z: Q2.z + uo.z * cfg.tramoA };
+
+    // Polilínea del eje del pasillo desde el mundo (s = 0) hasta el laberinto
+    const pts = [Q4, Q3, Q2, Q1, Q0];
+    const segs = [];
+    let sAcc = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const len = Math.hypot(dx, dz) || 1;
+      segs.push({ ax: a.x, az: a.z, dx, dz, len, len2: len * len, s0: sAcc });
+      sAcc += len;
+    }
+    const sQ3 = segs[1].s0, sQ2 = segs[2].s0, sQ1 = segs[3].s0;
+    const sMitadB = (sQ2 + sQ1) / 2;
+    const hBoca = hB ? hB(Q4.x, Q4.z) : baseH;
+
+    // Radio que encierra todo lo que el recinto modifica
+    const extCresta = cfg.anchoPasillo / 2 + cfg.grosorCresta + cfg.faldonCresta;
+    let rMax = Rfin;
+    pts.forEach(p => { rMax = Math.max(rMax, Math.hypot(p.x - zx, p.z - zz) + extCresta); });
+
+    const rec = {
+      zona, lab, cfg, zx, zz, R, baseH, lado,
+      Rint, RtopIn, Rout, Rfin, Rcorte, rMax, rMax2: rMax * rMax,
+      Q0, Q1, Q2, Q3, Q4, puntos: pts, segs, largo: sAcc,
+      sQ3, sQ2, sQ1, sMitadB, hBoca,
+      u_out: uo, u_in: { x: -uo.x, z: -uo.z }, v_lat: vl,
+      // Punto seguro de llegada (fuera, delante de la boca, mirando al pasillo)
+      llegada: { x: Q4.x + uo.x * 8, z: Q4.z + uo.z * 8, mirar: Math.atan2(-uo.x, -uo.z) },
+      _alturaBase: alturaBase,
+      _clave: claveCfg
+    };
+    rec.problema = validarRecinto(rec, hB);
+    lab._recinto = rec;
+    return rec;
+  }
+
+  /**
+   * ¿Se puede usar este recinto en este terreno? Devuelve null si sí, o el motivo si no:
+   * boca o pasillo bajo el agua, o rampa de entrada demasiado empinada (> 45 %).
+   */
+  function validarRecinto(rec, alturaBase) {
+    if (!alturaBase) return null;
+    const ll = alturaBase(rec.llegada.x, rec.llegada.z);
+    if (ll < 1.2) return 'la boca del pasillo da al agua';
+    for (let s = -8; s <= rec.sQ1; s += 4) {
+      const g = rec.segs.find(sg => s <= sg.s0 + sg.len) || rec.segs[0];
+      const t = (s - g.s0) / g.len;
+      const x = g.ax + g.dx * t, z = g.az + g.dz * t;
+      if (alturaRecinto(rec, x, z, alturaBase(x, z)) < 0.9) return 'el pasillo queda bajo el agua';
+    }
+    if (Math.abs(rec.hBoca - rec.baseH) / Math.max(1, rec.sQ2) > 0.45) return 'la rampa de entrada sería demasiado empinada';
+    return null;
+  }
+
+  /** Punto más cercano del eje del pasillo: distancia lateral dC y avance s (m desde la boca). */
+  function ejePasillo(rec, x, z) {
+    let mejorD2 = Infinity, mejorS = 0;
+    const segs = rec.segs;
+    for (let i = 0; i < segs.length; i++) {
+      const g = segs[i];
+      let t = ((x - g.ax) * g.dx + (z - g.az) * g.dz) / g.len2;
+      if (i === 0) t = Math.min(1, t);          // antes de la boca: s negativo (fuera del pasillo)
+      else t = Math.max(0, Math.min(1, t));
+      if (i === segs.length - 1) t = Math.min(1, t);
+      const px = g.ax + g.dx * t, pz = g.az + g.dz * t;
+      const d2 = (x - px) * (x - px) + (z - pz) * (z - pz);
+      if (d2 < mejorD2) { mejorD2 = d2; mejorS = g.s0 + t * g.len; }
+    }
+    return { dC: Math.sqrt(mejorD2), s: mejorS };
+  }
+
+  /** Altura del laberinto (suelo + muros orgánicos) en (x, z); fuera de la rejilla es roca. */
+  function alturaMurosLaberinto(rec, x, z, n) {
+    const lab = rec.lab;
+    const { N, grid, cellSize, halfN, cosR, sinR, alturaMuro, centro } = lab;
+    const dx = x - lab.zx, dz = z - lab.zz;
+    // Bamboleo suave de las paredes para que no parezcan una cuadrícula
+    const wob = 1.4;
+    const ox = (ruidoValor(x * 0.09 + 3.1, z * 0.09) - 0.5) * 2 * wob;
+    const oz = (ruidoValor(x * 0.09, z * 0.09 - 7.7) - 0.5) * 2 * wob;
+    const lx = (dx + ox) * cosR + (dz + oz) * sinR;
+    const lz = -(dx + ox) * sinR + (dz + oz) * cosR;
+    const u = lx / cellSize + halfN, v = lz / cellSize + halfN;
+    const i = Math.floor(u), j = Math.floor(v);
+    const fx = u - i, fy = v - j;
+    const W = (gx, gy) => (gx < 0 || gx >= N || gy < 0 || gy >= N || grid[gy][gx] !== 0) ? 1 : 0;
+    const w = (1 - fx) * (1 - fy) * W(i, j) + fx * (1 - fy) * W(i + 1, j) + (1 - fx) * fy * W(i, j + 1) + fx * fy * W(i + 1, j + 1);
+    let s = smooth(0.34, 0.6, w);
+    // Explanada de culminación siempre despejada
+    const dCen = Math.hypot(x - centro.wx, z - centro.wz);
+    if (dCen < centro.radio) s *= smooth(centro.radio * 0.55, centro.radio, dCen);
+    const altM = Math.max(8, typeof alturaMuro === 'number' ? alturaMuro : 14);
+    return rec.baseH + s * altM * (0.82 + 0.36 * n);
+  }
+
+  /**
+   * Altura del terreno con el recinto aplicado. hW es la altura del mundo sin recinto.
+   * La usan el terreno del mundo y la malla detallada del interior (misma forma).
+   */
+  function alturaRecinto(rec, x, z, hW) {
+    if (!rec) return hW;
+    const dx = x - rec.zx, dz = z - rec.zz;
+    const d2 = dx * dx + dz * dz;
+    if (d2 > rec.rMax2) return hW;
+    const d = Math.sqrt(d2);
+    const cfg = rec.cfg;
+    const n = ruidoFbm(x * 0.03, z * 0.03);
+    const eje = ejePasillo(rec, x, z);
+
+    // 1. Macizo: anillo alrededor del laberinto y crestas a ambos lados del pasillo
+    // Perfil de acantilado: el 80 % de la altura cae en ~10 m (no se puede trepar) y el resto es un
+    // talud bajo que se funde con el terreno natural
+    let m = 0;
+    if (d > rec.Rint) {
+      const acant = 1 - smooth(rec.Rout, rec.Rout + 10, d);
+      const talud = 1 - smooth(rec.Rout, rec.Rfin, d);
+      m = smooth(rec.Rint, rec.RtopIn, d) * (0.8 * acant + 0.2 * talud);
+    }
+    const mitad = cfg.anchoPasillo / 2 + cfg.grosorCresta;
+    if (eje.dC < mitad + cfg.faldonCresta && eje.s > 0) {
+      const acantC = 1 - smooth(mitad, mitad + 9, eje.dC);
+      const taludC = 1 - smooth(mitad, mitad + cfg.faldonCresta, eje.dC);
+      const mc = (0.8 * acantC + 0.2 * taludC) * smooth(0, 7, eje.s);
+      if (mc > m) m = mc;
+    }
+    // Pedestal: junto al laberinto el terreno se nivela a la cota de la zona
+    const hP = d < rec.Rfin ? rec.baseH + (hW - rec.baseH) * smooth(rec.RtopIn, rec.Rfin, d) : hW;
+    const cima = Math.max(rec.baseH, hW) + cfg.alturaAnillo * (0.78 + 0.44 * n);
+    let h = hP + (cima - hP) * m;
+
+    // 2. Laberinto dentro del anillo (fuera de la rejilla es roca que se funde con el anillo)
+    if (d < rec.RtopIn) {
+      const hm = alturaMurosLaberinto(rec, x, z, n);
+      h = d < rec.Rint ? hm : Math.max(h, hm);
+    }
+
+    // 3. Pasillo: se talla con paredes casi verticales y suelo que baja en rampa hasta la cota del laberinto
+    if (eje.s > -12) {
+      // Dentro del anillo el pasillo se estrecha al ancho de una celda para no abrir atajos en el laberinto
+      const anchoMitad = cfg.anchoPasillo / 2;
+      const mitadCelda = Math.min(anchoMitad, rec.lab.cellSize * 0.4);
+      const kAncho = smooth(rec.R - rec.lab.cellSize * 0.5, rec.Rint + 6, d);
+      const borde = mitadCelda + (anchoMitad - mitadCelda) * kAncho + (ruidoValor(x * 0.11, z * 0.11) - 0.5) * 2.2 * kAncho;
+      let corte = 1 - smooth(borde, borde + 3.2, eje.dC);
+      if (corte > 0) {
+        corte *= smooth(-12, 0, eje.s);
+        const rampa = rec.hBoca + (rec.baseH - rec.hBoca) * smooth(0, rec.sQ2, Math.max(0, eje.s));
+        const suelo = hW + (rampa - hW) * smooth(0, 10, eje.s);
+        h = h + (suelo - h) * corte;
+      }
+    }
+    return h;
+  }
+
+  /** Mezcla de texturas del recinto: pasillo de tierra y grava, sendas del laberinto, roca en paredes. */
+  function splatRecinto(rec, x, z, steep, h, base) {
+    if (!rec) return base;
+    const dx = x - rec.zx, dz = z - rec.zz;
+    if (dx * dx + dz * dz > rec.rMax2) return base;
+    const relH = h - rec.baseH;
+    const eje = ejePasillo(rec, x, z);
+    const n = ruidoValor(x * 0.07, z * 0.07);
+    if (eje.s > 0 && eje.dC < rec.cfg.anchoPasillo / 2 + 1 && steep < 0.35) {
+      const k = smooth(0, 14, eje.s);
+      const pas = [0.10 + 0.12 * n, 0.70 - 0.1 * n, 0.20, 0];
+      return { splat: base.splat.map((v, i) => v * (1 - k) + pas[i] * k), snow: base.snow * (1 - k) };
+    }
+    const d = Math.sqrt(dx * dx + dz * dz);
+    if (d < rec.Rint) {
+      if (steep > 0.45 || relH > 1.6) return { splat: [0.03, 0.05, 0.92, 0], snow: base.snow * 0.3 };
+      const c = rec.lab.centro;
+      if (Math.hypot(x - c.wx, z - c.wz) < c.radio * 0.8) {
+        const cu = rec.lab.culminacion;
+        if (cu === 'oasis') return { splat: [0.62, 0.1, 0.03, 0.25], snow: 0 };
+        if (cu === 'jefe') return { splat: [0, 0.25, 0.75, 0], snow: 0 };
+        return { splat: [0.08, 0.32, 0.6, 0], snow: 0 };
+      }
+      // Senda: tierra pisada en el centro y hierba hacia el pie de los muros
+      const g = 0.18 + 0.5 * smooth(0.15, 1.4, relH) * (0.6 + 0.4 * n);
+      return { splat: [g, 1 - g - 0.08, 0.08, 0], snow: base.snow * 0.5 };
+    }
+    return base;
+  }
+
+  /**
+   * ¿Impide el recinto subir de (ox, oz) a (x, z)? Bloquea pisar laderas de más de 45° de gradiente
+   * real (no solo en la dirección del paso), así nadie trepa las paredes en diagonal ni sale por arriba.
+   * alturaEn(x, z) es la altura que pisa el personaje.
+   */
+  function bloqueaSubidaRecinto(rec, ox, oz, x, z, alturaEn, gradMax = 0.9) {
+    if (!rec) return false;
+    const dx = x - rec.zx, dz = z - rec.zz;
+    if (dx * dx + dz * dz > rec.rMax2) return false;
+    const e = 0.6;
+    const gx = (alturaEn(x + e, z) - alturaEn(x - e, z)) / (2 * e);
+    const gz = (alturaEn(x, z + e) - alturaEn(x, z - e)) / (2 * e);
+    return Math.hypot(gx, gz) > gradMax;
+  }
+
+  /** Celda transitable más cercana de la rejilla del laberinto a (x, z), o null. */
+  function celdaLibreCercana(lab, x, z) {
+    const c = lab.mundoACelda(x, z);
+    let mejor = null, md = Infinity;
+    for (let r = 0; r <= 2 && !mejor; r++) {
+      for (let gy = c.gy - r; gy <= c.gy + r; gy++) {
+        for (let gx = c.gx - r; gx <= c.gx + r; gx++) {
+          if (gx < 0 || gy < 0 || gx >= lab.N || gy >= lab.N || lab.grid[gy][gx] !== 0) continue;
+          const p = lab.celdaAMundo(gx, gy);
+          const d = Math.hypot(p.wx - x, p.wz - z);
+          if (d < md) { md = d; mejor = { gx, gy }; }
+        }
+      }
+    }
+    return mejor;
+  }
+
+  /** Centros de celda (en mundo) del camino más corto entre dos celdas libres del laberinto. */
+  function caminoCeldas(lab, a, b) {
+    if (!a || !b) return [];
+    const N = lab.N, prev = new Int32Array(N * N).fill(-1);
+    const ini = a.gy * N + a.gx, fin = b.gy * N + b.gx;
+    prev[ini] = ini;
+    const cola = [ini];
+    for (let qi = 0; qi < cola.length; qi++) {
+      const k = cola[qi];
+      if (k === fin) break;
+      const gx = k % N, gy = (k / N) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = gx + dx, ny = gy + dy;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N || lab.grid[ny][nx] !== 0) continue;
+        const nk = ny * N + nx;
+        if (prev[nk] !== -1) continue;
+        prev[nk] = k;
+        cola.push(nk);
+      }
+    }
+    if (prev[fin] === -1) return [];
+    const out = [];
+    for (let k = fin; ; k = prev[k]) {
+      const p = lab.celdaAMundo(k % N, (k / N) | 0);
+      out.unshift({ x: p.wx, y: p.wz });
+      if (k === ini) break;
+    }
+    return out;
+  }
+
+  /**
+   * Puntos para ir desde fuera del recinto hasta (hasta.x, hasta.y) dentro de él: boca → pasillo → laberinto.
+   * Y al revés con salir = true: desde dentro hasta la llegada exterior.
+   */
+  function rutaRecinto(rec, punto, salir = false) {
+    if (!rec) return [];
+    const lab = rec.lab;
+    const pasillo = rec.puntos.map(p => ({ x: p.x, y: p.z }));   // Q4 … Q0
+    const eje = ejePasillo(rec, punto.x, punto.y);
+    const enPasillo = eje.dC < rec.cfg.anchoPasillo / 2 + 2 && Math.hypot(punto.x - rec.zx, punto.y - rec.zz) > rec.Rint;
+    let tramoPasillo = pasillo, celdas = [];
+    if (enPasillo) {
+      // Solo la parte del pasillo que queda entre el punto y la salida (o el laberinto)
+      const sPts = rec.segs.map(g => g.s0).concat([rec.largo]);
+      tramoPasillo = pasillo.filter((p, i) => salir ? sPts[i] < eje.s : sPts[i] > eje.s);
+      if (!salir) tramoPasillo = [];
+    } else {
+      const ent = celdaLibreCercana(lab, lab.entrada.wx, lab.entrada.wz);
+      celdas = caminoCeldas(lab, ent, celdaLibreCercana(lab, punto.x, punto.y));
+    }
+    const llegada = { x: rec.llegada.x, y: rec.llegada.z };
+    if (salir) return celdas.slice().reverse().concat(tramoPasillo.slice().reverse(), [llegada]);
+    return [llegada].concat(tramoPasillo, celdas, [{ x: punto.x, y: punto.y }]);
+  }
+
+  /**
+   * Inserta un rodeo alrededor del macizo en los tramos de una ruta (puntos {x, y}) que lo cruzarían.
+   * Los tramos que empiezan o terminan dentro del recinto (los de rutaRecinto) se respetan.
+   */
+  function rodearRecinto(rec, puntos) {
+    if (!rec || !puntos || puntos.length < 2) return puntos;
+    const radio = rec.rMax + 8;
+    const out = [puntos[0]];
+    for (let i = 1; i < puntos.length; i++) {
+      const a = puntos[i - 1], b = puntos[i];
+      const dentroA = puntoEnRecinto(rec, a.x, a.y, 2), dentroB = puntoEnRecinto(rec, b.x, b.y, 2);
+      let cruza = false;
+      if (!dentroA && !dentroB) {
+        const L = Math.hypot(b.x - a.x, b.y - a.y);
+        for (let t = 4; t < L; t += 4) {
+          if (puntoEnRecinto(rec, a.x + (b.x - a.x) * t / L, a.y + (b.y - a.y) * t / L, 3)) { cruza = true; break; }
+        }
+      }
+      if (cruza) {
+        let a0 = Math.atan2(a.y - rec.zz, a.x - rec.zx), a1 = Math.atan2(b.y - rec.zz, b.x - rec.zx);
+        let da = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0));
+        const pasos = Math.max(1, Math.ceil(Math.abs(da) / (Math.PI / 12)));
+        for (let k = 0; k <= pasos; k++) {
+          const ang = a0 + da * k / pasos;
+          out.push({ x: rec.zx + Math.cos(ang) * radio, y: rec.zz + Math.sin(ang) * radio });
+        }
+      }
+      out.push(b);
+    }
+    return out;
+  }
+
+  /** ¿Se pisan las huellas (anillo, pasillo y crestas) de dos recintos? */
+  function recintosSeSolapan(a, b, margen = 20) {
+    if (!a || !b) return false;
+    if (Math.hypot(a.zx - b.zx, a.zz - b.zz) > a.rMax + b.rMax + margen) return false;
+    if (Math.hypot(a.zx - b.zx, a.zz - b.zz) < a.Rfin + b.Rfin + margen) return true;
+    const ancho = rc => rc.cfg.anchoPasillo / 2 + rc.cfg.grosorCresta + rc.cfg.faldonCresta;
+    const tocaPasillo = (p, q) => {
+      for (let s = 0; s <= p.sQ1; s += 8) {
+        const g = p.segs.find(sg => s <= sg.s0 + sg.len) || p.segs[0];
+        const t = (s - g.s0) / g.len;
+        if (puntoEnRecinto(q, g.ax + g.dx * t, g.az + g.dz * t, ancho(p) + margen)) return true;
+      }
+      return false;
+    };
+    return tocaPasillo(a, b) || tocaPasillo(b, a);
+  }
+
+  /** ¿Está el punto dentro de lo que ocupa el recinto (laberinto, anillo o pasillo con sus crestas)? */
+  function puntoEnRecinto(rec, x, z, margen = 0) {
+    if (!rec) return false;
+    const d = Math.hypot(x - rec.zx, z - rec.zz);
+    if (d > rec.rMax + margen) return false;
+    if (d < rec.Rfin + margen) return true;
+    const eje = ejePasillo(rec, x, z);
+    return eje.s > -margen && eje.dC < rec.cfg.anchoPasillo / 2 + rec.cfg.grosorCresta + rec.cfg.faldonCresta + margen;
+  }
+
+  /**
+   * Estado del jugador respecto al recinto:
+   *  - 'interior'  si ha pasado la mitad del tramo B (o está dentro del anillo),
+   *  - 'exterior'  si está antes de la mitad del tramo B (o fuera del recinto),
+   *  - 'mitad'     en la franja de histéresis (se mantiene el estado actual).
+   */
+  function ladoDelRecinto(rec, x, z) {
+    if (!rec) return 'exterior';
+    const d = Math.hypot(x - rec.zx, z - rec.zz);
+    if (d > rec.rMax) return 'exterior';
+    const eje = ejePasillo(rec, x, z);
+    const enPasillo = eje.dC < rec.cfg.anchoPasillo / 2 + 4 && eje.s > -5;
+    // Fuera del pasillo solo cuenta como interior lo que queda dentro del anillo (la falda exterior es mundo)
+    if (!enPasillo) return d < rec.Rcorte ? 'interior' : 'exterior';
+    const hist = rec.cfg.histeresis;
+    if (eje.s > rec.sMitadB + hist) return 'interior';
+    if (eje.s < rec.sMitadB - hist) return 'exterior';
+    return 'mitad';
+  }
+
+  /**
+   * Malla detallada del interior del recinto (laberinto y cara interior del anillo) con el
+   * material del terreno. opts:
+   *   material      material de terreno (con recorte 'fuera' a Rcorte)
+   *   alturaBase    (x, z) → altura del mundo sin recinto
+   *   splatBase     (x, z, steep, h) → { splat, snow } del mundo en ese punto
+   *   colorBase     (x, z) → [r, g, b] tinte del bioma (0..1)
+   *   paso          resolución de la malla (m), 1.25 por defecto
+   * Devuelve { malla, alturas: { x0, z0, paso, n, alt }, alturaEn(x, z) }.
+   */
+  function crearMallaInteriorRecinto(THREE, rec, opts = {}) {
+    if (!THREE || !rec) return null;
+    const paso = opts.paso || 1.25;
+    const Rc = rec.Rcorte;
+    const n = Math.ceil((2 * Rc + 2 * paso) / paso);
+    const NN = n + 1;
+    const x0 = rec.zx - Rc - paso, z0 = rec.zz - Rc - paso;
+    const alt = new Float32Array(NN * NN);
+    const est = ESTILOS[rec.lab.estilo] || ESTILOS.roca_canion;
+    const tinteMuro = estiloTinte(rec.lab.estilo);
+
+    for (let j = 0; j < NN; j++) {
+      for (let i = 0; i < NN; i++) {
+        const x = x0 + i * paso, z = z0 + j * paso;
+        const d = Math.hypot(x - rec.zx, z - rec.zz);
+        const hW = (d > rec.RtopIn - 1 && opts.alturaBase) ? opts.alturaBase(x, z) : rec.baseH;
+        let h = alturaRecinto(rec, x, z, hW);
+        // Detalle fino solo en el interior: grietas y bultos en la roca, el suelo casi liso
+        const fade = 1 - smooth(Rc - 7, Rc - 1.5, d);
+        if (fade > 0) {
+          const roca = Math.max(0, Math.min(1, (h - rec.baseH - 0.5) / 4));
+          const det = (ruidoValor(x * 0.42, z * 0.42) - 0.5) * 1.3 + (ruidoValor(x * 1.3 + 9, z * 1.3) - 0.5) * 0.45;
+          h += fade * (roca * det + (1 - roca) * (ruidoValor(x * 0.8, z * 0.8) - 0.5) * 0.07);
+        }
+        alt[j * NN + i] = h;
+      }
+    }
+    const A = (i, j) => alt[Math.max(0, Math.min(NN - 1, j)) * NN + Math.max(0, Math.min(NN - 1, i))];
+
+    const pos = new Float32Array(NN * NN * 3), nrm = new Float32Array(NN * NN * 3), col = new Float32Array(NN * NN * 3);
+    const splat = new Float32Array(NN * NN * 4), snow = new Float32Array(NN * NN);
+    for (let j = 0; j < NN; j++) {
+      for (let i = 0; i < NN; i++) {
+        const k = j * NN + i, x = x0 + i * paso, z = z0 + j * paso, h = alt[k];
+        const gx = (A(i + 1, j) - A(i - 1, j)) / (2 * paso), gz = (A(i, j + 1) - A(i, j - 1)) / (2 * paso);
+        const l = Math.hypot(gx, 1, gz);
+        const ny = 1 / l;
+        pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z;
+        nrm[k * 3] = -gx / l; nrm[k * 3 + 1] = ny; nrm[k * 3 + 2] = -gz / l;
+        const steep = 1 - ny;
+        const base = opts.splatBase ? opts.splatBase(x, z, steep, h) : { splat: [0.3, 0.3, steep > 0.4 ? 1 : 0.4, 0], snow: 0 };
+        const w = splatRecinto(rec, x, z, steep, h, base);
+        splat.set(w.splat, k * 4);
+        snow[k] = w.snow || 0;
+        const cb = opts.colorBase ? opts.colorBase(x, z) : [1, 1, 1];
+        // Tinte del estilo en la roca del interior (se apaga hacia la frontera con el mundo)
+        const d = Math.hypot(x - rec.zx, z - rec.zz);
+        const kt = (1 - smooth(rec.Rint, rec.Rcorte - 2, d)) * Math.max(0, Math.min(1, (h - rec.baseH - 0.6) / 3));
+        col[k * 3] = cb[0] * (1 + (tinteMuro[0] - 1) * kt);
+        col[k * 3 + 1] = cb[1] * (1 + (tinteMuro[1] - 1) * kt);
+        col[k * 3 + 2] = cb[2] * (1 + (tinteMuro[2] - 1) * kt);
+      }
+    }
+    const idx = [];
+    const Rc2 = (Rc + paso * 1.5) * (Rc + paso * 1.5);
+    for (let j = 0; j < n; j++) {
+      for (let i = 0; i < n; i++) {
+        const cx = x0 + (i + 0.5) * paso - rec.zx, cz = z0 + (j + 0.5) * paso - rec.zz;
+        if (cx * cx + cz * cz > Rc2) continue;
+        const a = j * NN + i, b = a + 1, c = a + NN, d = c + 1;
+        idx.push(a, c, b, b, c, d);
+      }
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geom.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+    geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geom.setAttribute('aSplat', new THREE.BufferAttribute(splat, 4));
+    geom.setAttribute('aSnow', new THREE.BufferAttribute(snow, 1));
+    geom.setIndex(idx);
+    geom.computeBoundingSphere();
+    const malla = new THREE.Mesh(geom, opts.material || new THREE.MeshLambertMaterial({ vertexColors: true }));
+    malla.name = 'SueloInteriorRecinto';
+    malla.receiveShadow = true;
+    malla.castShadow = true;
+    malla.userData.estilo = est.id;
+
+    const alturaEn = (x, z) => {
+      const fx = (x - x0) / paso, fz = (z - z0) / paso;
+      const i = Math.max(0, Math.min(n - 1, Math.floor(fx))), j = Math.max(0, Math.min(n - 1, Math.floor(fz)));
+      const u = Math.max(0, Math.min(1, fx - i)), v = Math.max(0, Math.min(1, fz - j));
+      const ya = A(i, j), yb = A(i + 1, j), yc = A(i, j + 1), yd = A(i + 1, j + 1);
+      if (u + v <= 1) return ya + (yb - ya) * u + (yc - ya) * v;
+      return yd + (yb - yd) * (1 - v) + (yc - yd) * (1 - u);
+    };
+    return { malla, alturas: { x0, z0, paso, n, alt }, alturaEn };
+  }
+
+  // Tinte multiplicativo de la roca del interior según el estilo del laberinto
+  function estiloTinte(estilo) {
+    switch (estilo) {
+      case 'arenisca_desierto': return [1.18, 1.0, 0.78];
+      case 'obsidiana_volcanica': return [0.55, 0.5, 0.62];
+      case 'hielo_glacial': return [0.88, 1.0, 1.18];
+      case 'laberinto_setos': return [0.82, 1.0, 0.8];
+      case 'mamposteria_castillo': return [0.95, 0.95, 0.98];
+      case 'piedra_ruinas': return [0.9, 0.93, 1.0];
+      default: return [1.04, 0.98, 0.92];
+    }
+  }
+
+  /**
+   * Bloques de roca sueltos al pie de los muros del laberinto (geometría fusionada, coordenadas de mundo).
+   * Lleva los atributos del terreno (aSplat = roca) para pintarse con el mismo material que las paredes.
+   */
+  function crearRocasRecinto(THREE, rec, alturaEn, opts = {}) {
+    if (!THREE || !rec) return null;
+    const lab = rec.lab;
+    const base = new THREE.IcosahedronGeometry(1, 1);
+    const bp = base.attributes.position.array;
+    const P = [], Nn = [], C = [], S = [], Wn = [], I = [];
+    let semilla = (lab.seed ^ 0x51a7) >>> 0;
+    const rnd = () => { semilla = (semilla * 1664525 + 1013904223) >>> 0; return semilla / 4294967296; };
+    const tinte = estiloTinte(lab.estilo);
+    const cant = Math.min(opts.max || 260, Math.round(lab.celdasCamino.length * 1.6));
+    const idxBase = base.index ? base.index.array : null;
+    for (let k = 0; k < cant; k++) {
+      const cel = lab.celdasCamino[Math.floor(rnd() * lab.celdasCamino.length)];
+      if (!cel) continue;
+      // Al pie de un muro vecino de la celda
+      const ang = rnd() * Math.PI * 2;
+      const off = lab.cellSize * (0.32 + rnd() * 0.12);
+      const x = cel.wx + Math.cos(ang) * off, z = cel.wz + Math.sin(ang) * off;
+      const hS = alturaEn(x, z);
+      if (hS - rec.baseH > 1.2) continue;           // encima de un muro: no
+      if (Math.hypot(x - lab.centro.wx, z - lab.centro.wz) < lab.centro.radio * 0.6) continue;
+      const eje = ejePasillo(rec, x, z);
+      if (eje.dC < rec.cfg.anchoPasillo / 2 - 3) continue;   // no taponar el pasillo
+      const sx = 0.6 + rnd() * 1.6, sy = sx * (0.55 + rnd() * 0.4), sz = sx * (0.7 + rnd() * 0.6);
+      const ry = rnd() * Math.PI * 2, cy = Math.cos(ry), sy2 = Math.sin(ry);
+      const v0 = P.length / 3;
+      for (let j = 0; j < bp.length; j += 3) {
+        let px = bp[j], py = bp[j + 1], pz = bp[j + 2];
+        const jit = 0.82 + 0.36 * hash2(Math.round((px + 3) * 97 + k * 13), Math.round((pz + 3) * 89 + py * 31));
+        px *= sx * jit; py *= sy * jit; pz *= sz * jit;
+        const wx = px * cy + pz * sy2, wz = -px * sy2 + pz * cy;
+        P.push(x + wx, hS + py - sy * 0.25, z + wz);
+        const ln = Math.hypot(bp[j], bp[j + 1], bp[j + 2]) || 1;
+        const nx = bp[j] / ln, nz = bp[j + 2] / ln;
+        Nn.push(nx * cy + nz * sy2, bp[j + 1] / ln, -nx * sy2 + nz * cy);
+        C.push(0.78 * tinte[0], 0.78 * tinte[1], 0.78 * tinte[2]);
+        S.push(0.02, 0.08, 0.9, 0);
+        Wn.push(0);
+      }
+      if (idxBase) for (let j = 0; j < idxBase.length; j++) I.push(v0 + idxBase[j]);
+      else for (let j = 0; j < bp.length / 3; j++) I.push(v0 + j);
+    }
+    base.dispose();
+    if (!P.length) return null;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    g.setAttribute('aSplat', new THREE.Float32BufferAttribute(S, 4));
+    g.setAttribute('aSnow', new THREE.Float32BufferAttribute(Wn, 1));
+    g.setIndex(I);
+    g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, opts.material || new THREE.MeshLambertMaterial({ vertexColors: true }));
+    m.name = 'RocasRecinto';
+    m.castShadow = true;
+    m.receiveShadow = true;
+    return m;
+  }
+
   function obtenerMonstruosPorCelda(zona) {
     const lab = obtenerDatosLaberinto(zona);
     return lab ? lab.monstruosPorCelda : [];
@@ -2060,6 +2687,23 @@
     calcularProgresoCorredor,
     crearInstanciaLaberinto,
     crearEntradaExterior100m,
+    RECINTO_DEFECTO,
+    obtenerRecinto,
+    validarRecinto,
+    recintosSeSolapan,
+    ejePasillo,
+    alturaRecinto,
+    splatRecinto,
+    puntoEnRecinto,
+    ladoDelRecinto,
+    bloqueaSubidaRecinto,
+    rutaRecinto,
+    rodearRecinto,
+    caminoCeldas,
+    celdaLibreCercana,
+    crearMallaInteriorRecinto,
+    crearRocasRecinto,
+    estiloTinte,
     crearMallaMurosLaberinto,
     crearMallaLaberinto,
     crearDecoradoCulminacion

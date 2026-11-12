@@ -517,6 +517,10 @@
               return true;
             }
           }
+          // Bloqueo extra del mundo (p. ej. recintos de laberinto): impide trepar paredes en diagonal
+          if (dhStep > 0.01 && typeof this.world.bloqueaSubida === 'function' && this.world.bloqueaSubida(ox, oz, x, z)) {
+            return true;
+          }
           return false;
         };
 

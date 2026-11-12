@@ -152,6 +152,32 @@ Opcional. Enemigos diseñados en el editor «Enemigo-rpg» (botón «🐉 Enemig
 | `monsters` | `[{ name, level, density, boss, enemigo }]`. `density`: `baja` (1 monstruo), `media` (2), `alta` (3) o `única` (jefe). `enemigo`: clave de un arquetipo del editor (`elder_dragon`, …) o `null` para elegirlo según `settings.enemyMode`. |
 | `respawnSec` | Segundos de reaparición. |
 | `notes` | Texto libre. |
+| `relieve` | Laberinto de la zona (Creador de Laberintos): `activo`, `estilo`, `culminacion`, `radio`, `tamGrid`, `seed`, `rotacion`, `entradas` (solo cuenta la primera), `alturaMuro`, `murosManuales`, `patronesMonstruos`, `celdasMonstruos`, y opcionalmente `recinto` y `decoracion` (abajo). |
+
+### Recinto del laberinto (visor 3D)
+El visor encierra cada laberinto en un **recinto de una sola entrada**: un anillo de roca tallado en el propio
+terreno del mundo y un pasillo ancho en zigzag (boca → tramo A → tramo B → tramo C → laberinto). Todo usa el
+material del terreno, así que se ve como el resto del mundo. Al pasar la mitad del tramo B (desde donde no se ve ni
+el exterior ni el laberinto) el mundo exterior se oculta y una malla de detalle (1,25 m, roca triplanar, rocas,
+matorral y los GLB de `decoracion`) sustituye al terreno dentro del anillo; al volver por el pasillo se deshace.
+Cielo, sol, sombras y niebla no cambian. Cualquier salto o teletransporte a un punto del recinto deja al personaje
+en la boca del pasillo. Si el recinto pisaría un pueblo u otro recinto, o su boca daría al agua, el visor prueba
+el otro giro del zigzag y las otras orientaciones; si ninguna sirve, esa zona queda sin laberinto (aviso en consola).
+
+`relieve.recinto` (todo opcional, en metros; valores por defecto en `RelieveZonaLib.RECINTO_DEFECTO`):
+
+| Campo | Defecto | Descripción |
+|---|---|---|
+| `anchoPasillo` | 18 | Paso libre del pasillo. |
+| `alturaAnillo` | 30 | Altura del anillo y de las crestas del pasillo sobre el suelo. |
+| `anchoAnillo`, `faldonAnillo` | 30, 46 | Cumbre del anillo y talud exterior. |
+| `grosorCresta`, `faldonCresta` | 18, 34 | Cumbre y talud de las crestas que flanquean el pasillo. |
+| `tramoA`, `tramoB`, `tramoC`, `boca` | 38, 64, 16, 26 | Longitudes del zigzag (B es el tramo compartido). |
+| `lado` | auto | `1` o `-1`: hacia dónde gira el tramo B. Sin él, el visor elige el lado con la boca en tierra firme. |
+
+`relieve.decoracion`: `[{ glb, x, z, y?, rot?, escala? }]` — modelos GLB que se colocan dentro del recinto
+(`x`, `z` relativos al centro de la zona; `y` sobre el suelo, si no se apoya en él; `rot` en grados). Si traen
+animaciones, se reproducen en bucle.
 
 ## Lugar de interés
 | Campo | Descripción |
