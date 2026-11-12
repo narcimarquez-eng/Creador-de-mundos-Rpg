@@ -1977,6 +1977,11 @@
       relieve: z.relieve,
       monsters: z.monsters || []
     };
+    try {
+      localStorage.setItem('rpgMundo.editorLaberinto', JSON.stringify(payload));
+    } catch (e) {
+      console.warn('Error guardando editorLaberinto en localStorage:', e);
+    }
     location.href = 'creador-de-laberintos.html#mundo=' + encodeURIComponent(JSON.stringify(payload));
   }
 
@@ -1986,7 +1991,6 @@
     lsDel(STORE.mazeReturn);
     try {
       const data = JSON.parse(raw);
-      if (data.sessionId !== sessionId) return;
       const z = W.findZone(world, data.zoneId);
       if (!z) return;
       if (typeof data.radius === 'number' && data.radius >= 40) {

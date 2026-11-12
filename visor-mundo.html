@@ -4973,7 +4973,7 @@
     } else if (clase === 'rapido') {
       pool = todos.filter(c => {
         const n = ((c.name || '') + ' ' + (c.archetype || '') + ' ' + (c.id || '')).toLowerCase();
-        return n.includes('wolf') || n.includes('spider') || n.includes('tiger') || n.includes('hound') || n.includes('stalker') || n.includes('raptor') || (c.morphology && c.morphology.bodyType === 'quadruped');
+        return n.includes('wolf') || n.includes('spider') || n.includes('tiger') || n.includes('hound') || n.includes('stalker') || n.includes('raptor') || n.includes('lobo') || n.includes('arana') || n.includes('araña') || n.includes('alimaña') || n.includes('escorpion') || n.includes('escorpión') || n.includes('jabali') || n.includes('jabalí') || n.includes('chacal') || n.includes('sauro') || n.includes('veloz') || (c.morphology && c.morphology.bodyType === 'quadruped');
       });
     } else {
       // guerrero / melee por defecto
@@ -5285,9 +5285,43 @@
     return { rig, fx: null, detalle: [], barHeight: p.altura * e + 0.9 };
   }
 
+  function crearFallbackTokenMonstruo(m) {
+    const g = new THREE.Group();
+    const colHex = m.color || (m.esElite ? 0xf59e0b : (m.tipoRango === 'mago' ? 0x8b5cf6 : m.tipoRango === 'arquero' ? 0x10b981 : 0xef4444));
+    const mat = new THREE.MeshStandardMaterial({ color: colHex, roughness: 0.6 });
+    const matDark = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+    const scale = m.esElite ? 1.4 : 1.0;
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3 * scale, 0.45 * scale, 1.4 * scale, 8), mat);
+    body.position.y = 0.7 * scale;
+    body.castShadow = true;
+    g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24 * scale, 8, 8), matDark);
+    head.position.y = 1.55 * scale;
+    head.castShadow = true;
+    g.add(head);
+    return g;
+  }
+
   function construirModeloEnemigo(m, d) {
     if (m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural)) return true;
-    if (!window.EnemyLib || !m.enemigo) return false;
+    if (!m.enemigo && m._pendEnemigo && window.EnemyLib) {
+      m.enemigo = resolverEnemigoPendiente(m._pendEnemigo.info, m._pendEnemigo.s);
+      if (m.enemigo && (!m.name || m.name === 'Nuevo monstruo' || m.name === 'Monstruo')) {
+        m.name = m.enemigo.name || m.name;
+      }
+      m._pendEnemigo = null;
+    }
+    if (!m.enemigo && window.EnemyLib) {
+      const cls = m.tipoRango || m.clase || 'guerrero';
+      m.enemigo = elegirEnemigoPorClase(cls, m.level || 10, null, m.boss || m.esElite);
+    }
+    if (!window.EnemyLib || !m.enemigo) {
+      if (!m.meshProceduralFallback) {
+        m.meshProceduralFallback = crearFallbackTokenMonstruo(m);
+        m.group.add(m.meshProceduralFallback);
+      }
+      return true;
+    }
     if (m.enemigo && (!m.tipoRango || m.tipoRango === 'melee')) {
       const rolEnem = CombatLib.detectarRol(m.enemigo);
       if (rolEnem !== 'melee') {
