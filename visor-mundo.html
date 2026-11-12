@@ -1915,7 +1915,7 @@
   <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20261107"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
-  <script src="js/relieve-zona.js?v=20261112r"></script>
+  <script src="js/relieve-zona.js?v=20261113m"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
@@ -3649,7 +3649,8 @@
   }
 
   function roadWidth(kind) { return kind === 'calzada' ? 8 : kind === 'sendero' ? 3 : 6; }
-  function roadColor(kind) { return rgb(kind === 'sendero' ? '#8b6b43' : '#b08d57'); }
+  // Tinte sobre la foto del suelo: el sendero algo más oscuro y pardo que el camino
+  function roadColor(kind) { return rgb(kind === 'sendero' ? '#d8c8ae' : '#f2ebe0'); }
 
   // Desplaza una polilínea `d` metros hacia un lado (mismo sentido que el ancho de `MB.ribbon`)
   function desplazar(pts, d) {
@@ -3840,14 +3841,43 @@
         polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
       })
     };
+    // Fotos de suelo (assets/texturas/suelo y piedra): sustituyen a las texturas dibujadas en cuanto cargan.
+    // u recorre el ancho del camino (0–1) y v su largo (1 cada 6 m); repetir ajusta el tamaño de la piedra.
+    const ponerFoto = (mat, ruta, rx, ry, relieve) => new THREE.TextureLoader().load(ruta, t => {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(rx, ry);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = maxAniso;
+      mat.map = t;
+      mat.bumpMap = t; mat.bumpScale = relieve;
+      mat.needsUpdate = true;
+    });
+    // Bordes suaves: el camino se funde con el terreno en el último 12 % de cada lado
+    const bordes = new Uint8Array(64 * 4);
+    for (let i = 0; i < 64; i++) {
+      const u = (i + 0.5) / 64, d = Math.min(u, 1 - u);
+      const a = Math.round(255 * Math.min(1, Math.max(0, (d - 0.01) / 0.11)));
+      bordes.set([a, a, a, 255], i * 4);
+    }
+    const texBordes = new THREE.DataTexture(bordes, 64, 1);
+    texBordes.needsUpdate = true;
+    const suavizar = mat => { mat.alphaMap = texBordes; mat.transparent = true; mat.depthWrite = false; return mat; };
+    const C = _materialesCaminosCache;
+    suavizar(C.tierra); suavizar(C.calzada);
+    // Senda empedrada de las entradas de los laberintos (la misma foto que la calzada)
+    C.senda = suavizar(C.calzada.clone());
+    ponerFoto(C.tierra, 'assets/texturas/suelo/t03.jpg', 2, 2, 0.12);        // tierra con grava
+    ponerFoto(C.calzada, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.18);    // senda empedrada con hierba
+    ponerFoto(C.senda, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.18);
+    ponerFoto(C.ladrillos, 'assets/texturas/piedra/t02.jpg', 0.6, 0.6, 0.1); // losas en relieve: sillar claro
     return _materialesCaminosCache;
   }
 
   // Calzada romana: losas irregulares con juntas (sombreado en el material) y bordillos a los dos lados
   function pintarCalzada(mb, linea, alt) {
     const w = roadWidth('calzada');
-    mb.ribbon(linea, w, rgb('#989186'), 0.10, alt);
-    [-1, 1].forEach(s => mb.ribbon(desplazar(linea, s * (w / 2 - 0.45)), 0.9, rgb('#b5afa6'), 0.14, alt));
+    // La foto ya trae los bordes de piedra y hierba: sin bordillos aparte
+    mb.ribbon(linea, w, rgb('#f4f1ec'), 0.10, alt);
   }
 
   // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su altura y su tono.
@@ -4047,7 +4077,31 @@
     calzadaMesh = new THREE.Mesh(mbCalzada.geom(), matsCamino.calzada);
     calzadaMesh.receiveShadow = true;
     scene.add(calzadaMesh);
+
+    // Senda empedrada por el pasillo de cada laberinto, desde la llegada hasta la celda de entrada. Va aparte de
+    // los caminos porque se ve igual dentro y fuera del recinto (el pasillo compartido no debe cambiar).
+    if (sendasRecintoMesh) { scene.remove(sendasRecintoMesh); sendasRecintoMesh.geometry.dispose(); sendasRecintoMesh = null; }
+    if (recintosMundo.length) {
+      const mbS = new MB();
+      recintosMundo.forEach(rec => {
+        const eje = [{ x: rec.llegada.x, y: rec.llegada.z }].concat(rec.puntos.map(q => ({ x: q.x, y: q.z })));
+        // La altura sale del eje del pasillo (su suelo), no del punto: en los codos la curva corta la esquina y un
+        // borde de la senda caería sobre la pared
+        const alturaSuelo = (x, z) => {
+          const e = RelieveZonaLib.ejePasillo(rec, x, z);
+          if (e.s < 0) return Hgen(x, z);
+          const q = RelieveZonaLib.puntoEjeEn(rec, e.s);
+          return Math.min(Hgen(x, z), Hgen(q.x, q.z));
+        };
+        mbS.ribbon(curvePath(eje, 2.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo);
+      });
+      sendasRecintoMesh = new THREE.Mesh(mbS.geom(), matsCamino.senda);
+      sendasRecintoMesh.receiveShadow = true;
+      sendasRecintoMesh.name = 'SendasRecintos';
+      scene.add(sendasRecintoMesh);
+    }
   }
+  let sendasRecintoMesh = null;
 
   // Agua de los ríos fuera de los pueblos, a la altura de su curso (baja hasta el mar).
   // Dentro del pueblo el agua la pone su propio terreno.
@@ -6739,6 +6793,7 @@
     }
   }
 
+  let minimapaRot = null;   // giro actual del minimapa (sigue a la cámara con suavizado)
   function drawMinimap(now) {
     if (now - lastMinimap < 120) return;
     lastMinimap = now;
@@ -6751,11 +6806,17 @@
     const V = MapaLib.centrada(px, pz, R, S);   // el personaje en el centro
     const cx = S / 2, cy = S / 2;
 
-    // Orientación dinámica hacia la marcha (Heading-Up):
-    // La dirección hacia la que mira el jugador (f) siempre apuntará vertical hacia arriba.
+    // Orientación según la cámara: arriba del mapa es hacia donde mira la cámara (no el personaje, así no gira
+    // con cada golpe o paso lateral). El giro se suaviza un poco y la flecha del centro marca dónde mira el personaje.
+    const dxCam = controls.target.x - camera.position.x, dzCam = controls.target.z - camera.position.z;
+    if (Math.hypot(dxCam, dzCam) > 0.05) {
+      const objetivoRot = -Math.PI / 2 - Math.atan2(dzCam, dxCam);
+      if (minimapaRot === null) minimapaRot = objetivoRot;
+      const dif = Math.atan2(Math.sin(objetivoRot - minimapaRot), Math.cos(objetivoRot - minimapaRot));
+      minimapaRot += Math.abs(dif) < 0.004 ? dif : dif * 0.55;
+    }
+    const rotMap = minimapaRot === null ? 0 : minimapaRot;
     const f = MapaLib.frente(character.anguloY ? character.anguloY() : 0);
-    const forwardAngle = Math.atan2(f.dy, f.dx);
-    const rotMap = -Math.PI / 2 - forwardAngle;
 
     g.clearRect(0, 0, S, S);
     g.save();
@@ -7054,14 +7115,28 @@
     });
     g.restore();
 
-    // 13. Flecha fija del jugador: apunta siempre hacia arriba en la pantalla
+    // 13. Flecha del jugador: gira hacia donde mira el personaje (el mapa ya está orientado según la cámara)
+    const angPersonaje = Math.atan2(f.dy, f.dx) + rotMap + Math.PI / 2;
+    g.save();
+    g.translate(cx, cy);
+    g.rotate(angPersonaje);
     g.beginPath();
-    g.moveTo(cx, cy - 18);
-    g.lineTo(cx - 8, cy + 9);
-    g.lineTo(cx, cy + 5);
-    g.lineTo(cx + 8, cy + 9);
+    g.moveTo(0, -18);
+    g.lineTo(-8, 9);
+    g.lineTo(0, 5);
+    g.lineTo(8, 9);
     g.closePath();
     g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.fill(); g.stroke();
+    g.restore();
+    // Cono suave de lo que ve la cámara (siempre hacia arriba)
+    g.save();
+    g.beginPath(); g.moveTo(cx, cy);
+    g.arc(cx, cy, 46, -Math.PI / 2 - 0.42, -Math.PI / 2 + 0.42);
+    g.closePath();
+    const cono = g.createRadialGradient(cx, cy, 4, cx, cy, 46);
+    cono.addColorStop(0, 'rgba(253,224,71,0.28)'); cono.addColorStop(1, 'rgba(253,224,71,0)');
+    g.fillStyle = cono; g.fill();
+    g.restore();
 
     // 14. Indicador de Norte Verdadero ("N") orbitando en el borde del minimapa
     const northAngle = -Math.PI / 2 + rotMap;

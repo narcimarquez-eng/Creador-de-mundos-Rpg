@@ -2204,6 +2204,15 @@
     return { dC: Math.sqrt(mejorD2), s: mejorS };
   }
 
+  /** Punto (x, z) del eje del pasillo a s metros de la boca. */
+  function puntoEjeEn(rec, s) {
+    const segs = rec.segs;
+    let g = segs[segs.length - 1];
+    for (let i = 0; i < segs.length; i++) if (s <= segs[i].s0 + segs[i].len) { g = segs[i]; break; }
+    const t = Math.max(0, Math.min(1, (s - g.s0) / g.len));
+    return { x: g.ax + g.dx * t, z: g.az + g.dz * t };
+  }
+
   /** Altura del laberinto (suelo + muros orgánicos) en (x, z); fuera de la rejilla es roca. */
   function alturaMurosLaberinto(rec, x, z, n) {
     const lab = rec.lab;
@@ -2692,6 +2701,7 @@
     validarRecinto,
     recintosSeSolapan,
     ejePasillo,
+    puntoEjeEn,
     alturaRecinto,
     splatRecinto,
     puntoEnRecinto,
