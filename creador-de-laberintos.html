@@ -406,16 +406,16 @@
 
     <!-- 3. Entradas y Trazado -->
     <div class="panel-sec">
-      <div class="sec-title"><span>🚪 Entradas y Trazado</span></div>
+      <div class="sec-title"><span>🚪 Única Entrada y Trazado</span></div>
       <div class="form-group">
-        <div class="form-label"><span>Puntos de Entrada al Laberinto:</span><span class="val" id="lbl-entrances">Sur</span></div>
+        <div class="form-label"><span>Entrada Única al Laberinto:</span><span class="val" id="lbl-entrances">Sur</span></div>
         <div class="btn-group" id="group-entrances">
           <button type="button" class="ent-btn active" data-dir="sur">Sur</button>
           <button type="button" class="ent-btn" data-dir="norte">Norte</button>
           <button type="button" class="ent-btn" data-dir="este">Este</button>
           <button type="button" class="ent-btn" data-dir="oeste">Oeste</button>
         </div>
-        <div style="font-size:10.5px;color:#94a3b8;margin-top:4px">Puedes activar varias entradas simultáneamente.</div>
+        <div style="font-size:10.5px;color:#94a3b8;margin-top:4px">Entrada única obligatoria conectada al estrechamiento de 100m y al muro perimetral circular de diferente colores.</div>
       </div>
       <div class="grid2" style="margin-top:8px">
         <div class="form-group">
@@ -571,7 +571,7 @@
     let zoneData = null;
     let scene, camera, renderer, controls;
     let hemiLight, dirLight, fillLight;
-    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarkersGroup = null, monsters3DGroup = null, playerDummy = null;
+    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarkersGroup = null, perimeterGroup = null, monsters3DGroup = null, playerDummy = null;
     let currentMazeData = null;
     let manualOverrides = {};
     let shouldAutoConnectRoad = false;
@@ -1167,9 +1167,11 @@
       if (r.bucleChance !== undefined) params.bucleChance = r.bucleChance;
       if (r.rotacion !== undefined) params.rotacion = r.rotacion;
       if (Array.isArray(r.entradas) && r.entradas.length) {
-        params.entradas = [...r.entradas];
+        params.entradas = [r.entradas[0]];
       } else if (r.entradaDir) {
         params.entradas = [r.entradaDir];
+      } else {
+        params.entradas = ['sur'];
       }
       if (r.wallColor) params.wallColor = r.wallColor;
       if (r.groundColor) params.groundColor = r.groundColor;
@@ -1331,13 +1333,12 @@
     }
 
     function updateEntrancesUI() {
+      const activeDir = (params.entradas && params.entradas[0]) || 'sur';
       const btns = document.querySelectorAll('.ent-btn');
       btns.forEach(b => {
-        b.classList.toggle('active', params.entradas.includes(b.dataset.dir));
+        b.classList.toggle('active', b.dataset.dir === activeDir);
       });
-      document.getElementById('lbl-entrances').textContent = params.entradas.length
-        ? params.entradas.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')
-        : 'Ninguna';
+      document.getElementById('lbl-entrances').textContent = activeDir.charAt(0).toUpperCase() + activeDir.slice(1);
     }
 
     // Renderiza la lista de patrones de colores en el panel
@@ -1636,7 +1637,26 @@
         scene.add(culmGroup);
       }
 
-      // 4. Arcos / Marcadores en TODAS las entradas configuradas
+      // 4. Muro perimetral circular exterior de diferente colores y estrechamiento 100m
+      if (perimeterGroup) {
+        scene.remove(perimeterGroup);
+      }
+      perimeterGroup = new THREE.Group();
+      if (typeof RelieveZonaLib.crearMuroPerimetralCircular === 'function') {
+        const perim = RelieveZonaLib.crearMuroPerimetralCircular(
+          THREE, 0, 0, 0, params.radius, currentMazeData.theta_ent, params.estilo, params.wallColor
+        );
+        if (perim) perimeterGroup.add(perim.grupo);
+      }
+      if (typeof RelieveZonaLib.crearEstrechamiento100mMundo === 'function') {
+        const estr = RelieveZonaLib.crearEstrechamiento100mMundo(
+          THREE, currentMazeData.P_ext, currentMazeData.P_perim, 0, currentMazeData.theta_ent, params.estilo, params.wallColor, params.groundColor
+        );
+        if (estr) perimeterGroup.add(estr.grupo);
+      }
+      scene.add(perimeterGroup);
+
+      // 5. Arcos / Marcadores en la entrada configurada
       if (entranceMarkersGroup) {
         scene.remove(entranceMarkersGroup);
       }
@@ -1651,7 +1671,7 @@
       });
       scene.add(entranceMarkersGroup);
 
-      // 5. Ubicar Monstruos 3D en Vivo en las Celdas Pintadas (todos según cantidad por celda con formación táctica)
+      // 6. Ubicar Monstruos 3D en Vivo en las Celdas Pintadas (todos según cantidad por celda con formación táctica)
       if (monsters3DGroup) {
         scene.remove(monsters3DGroup);
       }
@@ -1665,15 +1685,16 @@
       });
       scene.add(monsters3DGroup);
 
-      // 6. Ubicar el Avatar del Jugador en la entrada principal
-      if (playerDummy && currentMazeData.entradas && currentMazeData.entradas.length) {
-        const ent0 = currentMazeData.entradas[0];
-        const ey = H_fn(ent0.wx, ent0.wz);
-        playerDummy.position.set(ent0.wx, ey, ent0.wz);
+      // 7. Ubicar el Avatar del Jugador en la entrada del estrechamiento exterior de 100m
+      if (playerDummy && currentMazeData.P_ext && currentMazeData.u_in) {
+        const spX = currentMazeData.P_ext.wx + currentMazeData.u_in.x * 2;
+        const spZ = currentMazeData.P_ext.wz + currentMazeData.u_in.y * 2;
+        const ey = H_fn(spX, spZ);
+        playerDummy.position.set(spX, ey, spZ);
         playerDummy.lookAt(0, ey, 0);
       }
 
-      // 7. Actualizar el Canvas 2D
+      // 8. Actualizar el Canvas 2D
       draw2DMaze();
     }
 
@@ -1986,18 +2007,11 @@
         rebuildAll3D();
       };
 
-      // Entradas múltiples
+      // Única entrada
       document.querySelectorAll('.ent-btn').forEach(btn => {
         btn.onclick = () => {
           const dir = btn.dataset.dir;
-          const idx = params.entradas.indexOf(dir);
-          if (idx >= 0) {
-            if (params.entradas.length > 1) {
-              params.entradas.splice(idx, 1);
-            }
-          } else {
-            params.entradas.push(dir);
-          }
+          params.entradas = [dir];
           updateEntrancesUI();
           manualOverrides = {};
           rebuildAll3D();

@@ -367,3 +367,100 @@ test('RelieveZonaLib - Las casillas de monstruos quedan libres de colisionadores
     assert.ok(distOrigen > 100, `El monstruo no debe estar acumulado en el origen (0,0), dist: ${distOrigen}`);
   });
 });
+
+test('RelieveZonaLib - Vectores de entrada única y cálculo de progreso en estrechamiento 100m', () => {
+  const zona = {
+    id: 'z_corredor',
+    x: 300,
+    y: 400,
+    radius: 120,
+    relieve: {
+      activo: true,
+      radio: 120,
+      entradas: ['sur']
+    }
+  };
+
+  const lab = RelieveZonaLib.obtenerDatosLaberinto(zona);
+  assert.ok(lab, 'Debe generar datos de laberinto');
+  assert.ok(lab.P_perim, 'Debe calcular P_perim');
+  assert.ok(lab.P_ext, 'Debe calcular P_ext');
+  assert.ok(lab.u_in, 'Debe calcular u_in');
+  assert.ok(lab.v_lat, 'Debe calcular v_lat');
+
+  // La distancia entre P_ext y P_perim debe ser exactamente 100m
+  const distLargo = Math.hypot(lab.P_perim.wx - lab.P_ext.wx, lab.P_perim.wz - lab.P_ext.wz);
+  assert.ok(Math.abs(distLargo - 100) < 0.5, `La longitud del estrechamiento debe ser 100m, obtenido: ${distLargo}`);
+
+  // Progreso en P_ext debe ser s = 0m
+  const pExt = RelieveZonaLib.calcularProgresoCorredor(lab, lab.P_ext.wx, lab.P_ext.wz);
+  assert.ok(Math.abs(pExt.s) < 0.1, `Progreso en la entrada exterior debe ser s=0, obtenido: ${pExt.s}`);
+  assert.strictEqual(pExt.mitadCruzada, false, 'En s=0 no debe haber cruzado la mitad');
+
+  // Progreso a la mitad del corredor (50m)
+  const midX = (lab.P_ext.wx + lab.P_perim.wx) / 2;
+  const midZ = (lab.P_ext.wz + lab.P_perim.wz) / 2;
+  const pMid = RelieveZonaLib.calcularProgresoCorredor(lab, midX, midZ);
+  assert.ok(Math.abs(pMid.s - 50) < 0.1, `Progreso a la mitad debe ser s=50, obtenido: ${pMid.s}`);
+  assert.strictEqual(pMid.mitadCruzada, true, 'En s=50 debe haber cruzado la mitad');
+  assert.strictEqual(pMid.enCorredor, true, 'Debe estar dentro del corredor');
+
+  // Progreso en P_perim (100m)
+  const pPerim = RelieveZonaLib.calcularProgresoCorredor(lab, lab.P_perim.wx, lab.P_perim.wz);
+  assert.ok(Math.abs(pPerim.s - 100) < 0.1, `Progreso en el perímetro debe ser s=100, obtenido: ${pPerim.s}`);
+});
+
+test('RelieveZonaLib - Estrechamiento 100m sin collider bloqueador transversal en la entrada', () => {
+  // Simulador ligero de THREE
+  const mockThree = {
+    Group: function() { this.children = []; this.add = function(...args) { this.children.push(...args); }; this.position = { set: () => {} }; this.rotation = { y: 0 }; },
+    Mesh: function() { this.position = { set: () => {} }; this.rotation = { y: 0 }; },
+    PlaneGeometry: function() { this.rotateX = () => this; },
+    BoxGeometry: function() {},
+    CylinderGeometry: function() { this.rotateZ = () => this; },
+    ConeGeometry: function() {},
+    OctahedronGeometry: function() {},
+    MeshStandardMaterial: function() {},
+    MeshBasicMaterial: function() {},
+    PointLight: function() { this.position = { set: () => {} }; },
+    Color: function() { this.setHSL = () => this; this.getHSL = (o) => { o.h = 0; o.s = 0; o.l = 0.5; }; }
+  };
+
+  const estr = RelieveZonaLib.crearEstrechamiento100m(mockThree, 'roca_canion', '#78716c', '#57534e');
+  assert.ok(estr, 'Debe crear estrechamiento');
+  assert.strictEqual(estr.largo, 100, 'Largo debe ser 100m');
+  assert.strictEqual(estr.anchoPaso, 12, 'Ancho de paso libre debe ser 12m');
+
+  // Verificar que NO existe ningún collider transversal en z = -100 bloqueando la entrada
+  const blockerZ100 = estr.colliders.find(c => c.minZ <= -99 && c.maxZ >= -100 && c.minX < 0 && c.maxX > 0);
+  assert.strictEqual(blockerZ100, undefined, 'No debe existir collider transversal en z=-100 bloqueando el acceso al pasillo');
+
+  // Los colisionadores deben ser únicamente para los muros laterales izquierdo y derecho
+  assert.strictEqual(estr.colliders.length, 2, 'Solo debe haber 2 colisionadores (muro lateral izquierdo y derecho)');
+});
+
+test('RelieveZonaLib - Muro perimetral circular de diferente colores con apertura de entrada única', () => {
+  const mockThree = {
+    Group: function() { this.children = []; this.add = function(...args) { this.children.push(...args); }; this.position = { set: () => {} }; this.rotation = { y: 0 }; },
+    Mesh: function() { this.position = { set: () => {} }; this.rotation = { y: 0 }; },
+    BoxGeometry: function() {},
+    MeshStandardMaterial: function() {},
+    Color: function(c) {
+      this.c = c;
+      this.clone = function() { return new mockThree.Color(this.c); };
+      this.getHSL = function(o) { o.h = 0.5; o.s = 0.5; o.l = 0.5; };
+      this.setHSL = function(h, s, l) { return this; };
+    }
+  };
+
+  const R = 120;
+  const thetaEnt = Math.PI / 2; // Sur
+  const perim = RelieveZonaLib.crearMuroPerimetralCircular(mockThree, 100, 200, 15, R, thetaEnt, 'roca_canion', '#78716c', 64);
+  assert.ok(perim, 'Debe crear muro perimetral circular');
+  assert.ok(perim.grupo, 'Debe tener grupo THREE');
+  assert.ok(perim.colliders.length > 0, 'Debe generar colisionadores para el perímetro');
+
+  // El anillo debe dejar una brecha abierta en la entrada (thetaEnt)
+  assert.ok(perim.colliders.length < 64, 'Debe omitir segmentos en la entrada para dejar el paso libre');
+});
+

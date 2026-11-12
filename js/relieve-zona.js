@@ -678,6 +678,37 @@
       }
     };
 
+    // Orientación de la entrada única y vectores del estrechamiento de 100m
+    const entradaPrincipal = labEntradas[0] || { dir: 'sur', wx: zx, wz: zz + R };
+    let thetaEnt = Math.PI / 2; // Por defecto 'sur' (+Z)
+    if (entradaPrincipal.dir === 'norte') thetaEnt = -Math.PI / 2;
+    else if (entradaPrincipal.dir === 'este') thetaEnt = 0;
+    else if (entradaPrincipal.dir === 'oeste') thetaEnt = Math.PI;
+    thetaEnt += rotRad;
+
+    const P_perim = {
+      wx: zx + R * Math.cos(thetaEnt),
+      wz: zz + R * Math.sin(thetaEnt)
+    };
+    const P_ext = {
+      wx: zx + (R + 100) * Math.cos(thetaEnt),
+      wz: zz + (R + 100) * Math.sin(thetaEnt)
+    };
+    const u_in = {
+      x: -Math.cos(thetaEnt),
+      y: -Math.sin(thetaEnt)
+    };
+    const v_lat = {
+      x: -Math.sin(thetaEnt),
+      y: Math.cos(thetaEnt)
+    };
+
+    labDatos.theta_ent = thetaEnt;
+    labDatos.P_perim = P_perim;
+    labDatos.P_ext = P_ext;
+    labDatos.u_in = u_in;
+    labDatos.v_lat = v_lat;
+
     zona._cacheLaberinto = labDatos;
     zona._cacheLaberintoKey = cacheKey;
     return labDatos;
@@ -812,9 +843,20 @@
       gx: Math.round((x - lab.zx) / lab.cellSize + lab.halfN),
       gy: Math.round((z - lab.zz) / lab.cellSize + lab.halfN)
     };
-    if (gx < 0 || gx >= lab.N || gy < 0 || gy >= lab.N) return splatBase;
-    const valorCelda = lab.grid[gy][gx];
-    if (valorCelda === 2) return splatBase;
+    const fueraGrid = (gx < 0 || gx >= lab.N || gy < 0 || gy >= lab.N);
+    const valorCelda = fueraGrid ? 2 : lab.grid[gy][gx];
+    if (fueraGrid || valorCelda === 2) {
+      if (lab.P_ext && lab.u_in && lab.v_lat) {
+        const prog = calcularProgresoCorredor(lab, x, z);
+        if (prog.enCorredor) {
+          return {
+            splat: [0.04, 0.88, 0.08, 0],
+            snow: 0
+          };
+        }
+      }
+      return splatBase;
+    }
 
     const dCentro = Math.hypot(x - lab.centro.wx, z - lab.centro.wz);
     const esCentro = dCentro <= lab.centro.radio;
@@ -1427,6 +1469,254 @@
   }
 
   /**
+   * Calcula el progreso del personaje a lo largo del estrechamiento de 100 metros.
+   * s = 0m en la entrada exterior del desfiladero, s = 50m a la mitad exacta, s = 100m al entrar al laberinto.
+   */
+  function calcularProgresoCorredor(lab, px, pz) {
+    if (!lab || !lab.P_ext || !lab.u_in || !lab.v_lat) {
+      return { s: -999, w: 999, enCorredor: false, enInterior: false, mitadCruzada: false };
+    }
+    const dx = px - lab.P_ext.wx;
+    const dz = pz - lab.P_ext.wz;
+    const s = dx * lab.u_in.x + dz * lab.u_in.y;
+    const w = dx * lab.v_lat.x + dz * lab.v_lat.y;
+    const dCentro = Math.hypot(px - lab.zx, pz - lab.zz);
+    const R = lab.R || 120;
+    const enCorredor = (s >= -10 && s <= 110 && Math.abs(w) <= 9.0);
+    const enInterior = (dCentro <= R + 3);
+    return {
+      s,
+      w,
+      enCorredor,
+      enInterior,
+      mitadCruzada: s >= 50
+    };
+  }
+
+  /**
+   * Muro perimetral circular continuo que cerca todo el laberinto excepto en la entrada única de 12m.
+   * Compuesto por bloques de diferentes tonos y colores armónicos según el estilo.
+   */
+  function crearMuroPerimetralCircular(THREE, zx, zz, baseH, R, thetaEnt, estilo, colorPared, N_seg = 64) {
+    if (!THREE) return null;
+    const grupo = new THREE.Group();
+    grupo.name = 'MuroPerimetralCircular';
+    const colliders = [];
+
+    const hMuro = 14;
+    const grosorMuro = 4.2;
+    const dPhi = (2 * Math.PI) / N_seg;
+    const arcLen = (2 * Math.PI * R / N_seg) * 1.05;
+    const openingAngle = Math.max(0.12, 7.5 / R);
+
+    // Paleta de variaciones armónicas de tonos para "muros de diferente colores"
+    const baseColor = new THREE.Color(colorPared || '#78716c');
+    const hsl = { h: 0, s: 0, l: 0 };
+    baseColor.getHSL(hsl);
+    const mats = [];
+    const numTones = 6;
+    for (let t = 0; t < numTones; t++) {
+      const col = new THREE.Color().setHSL(
+        (hsl.h + (t * 0.05) - 0.12 + 1) % 1,
+        Math.min(1, Math.max(0.15, hsl.s + (t % 2 === 0 ? 0.12 : -0.08))),
+        Math.min(0.85, Math.max(0.2, hsl.l + (t * 0.06 - 0.15)))
+      );
+      mats.push(new THREE.MeshStandardMaterial({
+        color: col,
+        roughness: 0.82,
+        metalness: 0.12
+      }));
+    }
+
+    const boxGeo = new THREE.BoxGeometry(arcLen, hMuro, grosorMuro);
+
+    for (let i = 0; i < N_seg; i++) {
+      const phi = i * dPhi;
+      const dAng = Math.abs(Math.atan2(Math.sin(phi - thetaEnt), Math.cos(phi - thetaEnt)));
+      if (dAng < openingAngle) {
+        continue; // Apertura transitable de 12m donde conecta el estrechamiento de 100m
+      }
+
+      const bx = zx + R * Math.cos(phi);
+      const bz = zz + R * Math.sin(phi);
+      const by = baseH + hMuro / 2;
+
+      const mat = mats[i % mats.length];
+      const mesh = new THREE.Mesh(boxGeo, mat);
+      mesh.position.set(bx, by, bz);
+      mesh.rotation.y = -(phi - Math.PI / 2);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      grupo.add(mesh);
+
+      // Colisionador OBB
+      colliders.push({
+        type: 'obb',
+        cx: bx,
+        cz: bz,
+        ux: -Math.sin(phi),
+        uz: Math.cos(phi),
+        hu: arcLen / 2,
+        hv: grosorMuro / 2
+      });
+    }
+
+    return { grupo, colliders };
+  }
+
+  /**
+   * Crea el estrechamiento de 100 metros en coordenadas del mundo desde P_ext hasta P_perim.
+   * Sin ningún bloqueador, 100% transitable de un extremo al otro.
+   */
+  function crearEstrechamiento100mMundo(THREE, P_ext, P_perim, baseH, thetaEnt, estilo, colorPared, colorSuelo) {
+    if (!THREE) return null;
+    const grupo = new THREE.Group();
+    grupo.name = 'Estrechamiento100mMundo';
+
+    const est = ESTILOS[estilo] || ESTILOS.roca_canion;
+    const colP = colorPared || est.hex || '#78716c';
+    const colS = colorSuelo || '#57534e';
+
+    const hMuro = 14;
+    const anchoPaso = 12; // 12 metros de paso libre
+    const grosorMuro = 4;
+    const largo = Math.hypot(P_perim.wx - P_ext.wx, P_perim.wz - P_ext.wz) || 100;
+
+    const u_in = {
+      x: (P_perim.wx - P_ext.wx) / largo,
+      y: (P_perim.wz - P_ext.wz) / largo
+    };
+    const v_lat = {
+      x: -u_in.y,
+      y: u_in.x
+    };
+
+    const cx = (P_ext.wx + P_perim.wx) / 2;
+    const cz = (P_ext.wz + P_perim.wz) / 2;
+    const ang = Math.atan2(u_in.x, u_in.y);
+
+    // 1. Suelo del desfiladero (100m, ancho 12m)
+    const geoSuelo = new THREE.PlaneGeometry(anchoPaso + 2, largo);
+    geoSuelo.rotateX(-Math.PI / 2);
+    const texSuelo = createProceduralFloorTexture(THREE, estilo, colS);
+    const matSuelo = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(colS),
+      roughness: 0.85,
+      metalness: 0.05,
+      map: texSuelo || undefined
+    });
+    const suelo = new THREE.Mesh(geoSuelo, matSuelo);
+    suelo.position.set(cx, baseH + 0.03, cz);
+    suelo.rotation.y = -ang + Math.PI;
+    suelo.receiveShadow = true;
+    grupo.add(suelo);
+
+    // 2. Muros laterales (14m de alto x 100m de largo)
+    const geoMuro = new THREE.BoxGeometry(grosorMuro, hMuro, largo);
+    const texMuro = createProceduralWallTexture(THREE, estilo, colP);
+    const matMuro = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(colP),
+      roughness: 0.8,
+      metalness: 0.1,
+      map: texMuro || undefined
+    });
+
+    const offWall = anchoPaso / 2 + grosorMuro / 2;
+    const lx = cx - offWall * v_lat.x;
+    const lz = cz - offWall * v_lat.y;
+    const rx = cx + offWall * v_lat.x;
+    const rz = cz + offWall * v_lat.y;
+
+    const muroIzq = new THREE.Mesh(geoMuro, matMuro);
+    muroIzq.position.set(lx, baseH + hMuro / 2, lz);
+    muroIzq.rotation.y = -ang + Math.PI;
+    muroIzq.castShadow = true;
+    muroIzq.receiveShadow = true;
+    grupo.add(muroIzq);
+
+    const muroDer = new THREE.Mesh(geoMuro, matMuro);
+    muroDer.position.set(rx, baseH + hMuro / 2, rz);
+    muroDer.rotation.y = -ang + Math.PI;
+    muroDer.castShadow = true;
+    muroDer.receiveShadow = true;
+    grupo.add(muroDer);
+
+    // 3. Antorchas a lo largo del estrechamiento cada 20m
+    const matSop = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7 });
+    const matFuego = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+    const geoSop = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6);
+    const geoLlam = new THREE.ConeGeometry(0.2, 0.5, 6);
+
+    [-35, -15, 15, 35].forEach(tOff => {
+      const ax = cx + tOff * u_in.x;
+      const az = cz + tOff * u_in.y;
+
+      // Antorcha izquierda
+      const antI = new THREE.Group();
+      antI.position.set(ax - (anchoPaso / 2 - 0.25) * v_lat.x, baseH + 4.2, az - (anchoPaso / 2 - 0.25) * v_lat.y);
+      antI.rotation.y = -ang + Math.PI;
+      antI.add(new THREE.Mesh(geoSop, matSop));
+      const flI = new THREE.Mesh(geoLlam, matFuego);
+      flI.position.set(0.3, 0.35, 0);
+      antI.add(flI);
+      const ltI = new THREE.PointLight(0xf59e0b, 1.4, 22, 1.4);
+      ltI.position.set(0.3, 0.4, 0);
+      antI.add(ltI);
+      grupo.add(antI);
+
+      // Antorcha derecha
+      const antD = new THREE.Group();
+      antD.position.set(ax + (anchoPaso / 2 - 0.25) * v_lat.x, baseH + 4.2, az + (anchoPaso / 2 - 0.25) * v_lat.y);
+      antD.rotation.y = -ang;
+      antD.add(new THREE.Mesh(geoSop, matSop));
+      const flD = new THREE.Mesh(geoLlam, matFuego);
+      flD.position.set(0.3, 0.35, 0);
+      antD.add(flD);
+      const ltD = new THREE.PointLight(0xf59e0b, 1.4, 22, 1.4);
+      ltD.position.set(0.3, 0.4, 0);
+      antD.add(ltD);
+      grupo.add(antD);
+    });
+
+    // 4. Arco monumental exterior en P_ext (abierto y transitable, sin vortex bloqueador)
+    const archGroup = new THREE.Group();
+    archGroup.position.set(P_ext.wx, baseH, P_ext.wz);
+    archGroup.rotation.y = -ang + Math.PI;
+
+    const matPilar = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 });
+    const colPilar = new THREE.CylinderGeometry(0.9, 1.1, 9, 8);
+    const p1 = new THREE.Mesh(colPilar, matPilar);
+    p1.position.set(-anchoPaso / 2 + 0.6, 4.5, 0);
+    p1.castShadow = true;
+    const p2 = new THREE.Mesh(colPilar, matPilar);
+    p2.position.set(anchoPaso / 2 - 0.6, 4.5, 0);
+    p2.castShadow = true;
+
+    const dintel = new THREE.Mesh(new THREE.BoxGeometry(anchoPaso + 2, 1.5, 2.2), matPilar);
+    dintel.position.set(0, 9.2, 0);
+    dintel.castShadow = true;
+
+    const gema = new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+    gema.position.set(0, 8.5, 0);
+
+    const luzPortal = new THREE.PointLight(0x10b981, 2.5, 24);
+    luzPortal.position.set(0, 5, 0);
+
+    archGroup.add(p1, p2, dintel, gema, luzPortal);
+    grupo.add(archGroup);
+
+    return {
+      grupo,
+      colliders: [
+        { type: 'obb', cx: lx, cz: lz, ux: u_in.x, uz: u_in.y, hu: largo / 2, hv: grosorMuro / 2 },
+        { type: 'obb', cx: rx, cz: rz, ux: u_in.x, uz: u_in.y, hu: largo / 2, hv: grosorMuro / 2 }
+      ],
+      largo,
+      anchoPaso
+    };
+  }
+
+  /**
    * Crea el estrechamiento compartido de 100 metros de desfiladero (común en exterior e interior).
    */
   function crearEstrechamiento100m(THREE, estilo, colorPared, colorSuelo) {
@@ -1514,7 +1804,7 @@
       grupo.add(antD);
     });
 
-    // 4. Portal Archway al inicio (z = -100)
+    // 4. Portal Archway al inicio (z = -100) - abierto sin vortex bloqueador
     const portalGroup = new THREE.Group();
     portalGroup.position.set(0, 0, -100);
 
@@ -1524,8 +1814,9 @@
     const p1 = new THREE.Mesh(colPilar, matPilar);
     p1.position.set(-anchoPaso / 2 + 0.6, 4.5, 0);
     p1.castShadow = true;
-    const p2 = p1.clone();
-    p2.position.x = anchoPaso / 2 - 0.6;
+    const p2 = new THREE.Mesh(colPilar, matPilar);
+    p2.position.set(anchoPaso / 2 - 0.6, 4.5, 0);
+    p2.castShadow = true;
 
     const dintel = new THREE.Mesh(new THREE.BoxGeometry(anchoPaso + 2, 1.5, 2.2), matPilar);
     dintel.position.set(0, 9.2, 0);
@@ -1537,21 +1828,14 @@
     const luzPortal = new THREE.PointLight(0x10b981, 2.5, 24);
     luzPortal.position.set(0, 5, 0);
 
-    const vortice = new THREE.Mesh(
-      new THREE.PlaneGeometry(anchoPaso - 2, 8),
-      new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
-    );
-    vortice.position.set(0, 4.2, 0);
-
-    portalGroup.add(p1, p2, dintel, gema, luzPortal, vortice);
+    portalGroup.add(p1, p2, dintel, gema, luzPortal);
     grupo.add(portalGroup);
 
     return {
       grupo,
       colliders: [
         { type: 'box', minX: -(anchoPaso / 2 + grosorMuro), maxX: -anchoPaso / 2, minZ: -largo, maxZ: 0 },
-        { type: 'box', minX: anchoPaso / 2, maxX: anchoPaso / 2 + grosorMuro, minZ: -largo, maxZ: 0 },
-        { type: 'box', minX: -(anchoPaso / 2 + 6), maxX: anchoPaso / 2 + 6, minZ: -largo - 6, maxZ: -largo }
+        { type: 'box', minX: anchoPaso / 2, maxX: anchoPaso / 2 + grosorMuro, minZ: -largo, maxZ: 0 }
       ],
       largo,
       anchoPaso
@@ -1559,10 +1843,11 @@
   }
 
   /**
-   * Construye la instancia interior independiente del laberinto (plano horizontal a y=0,
-   * estrechamiento de 100m, muros 3D, culminación, colisionadores y posiciones de monstruos).
+   * Construye la instancia interior independiente del laberinto en coordenadas de mundo
+   * (terraza plana a baseH, estrechamiento de 100m, muro perimetral circular de diferente colores,
+   * muros 3D del laberinto, culminación, colisionadores y posiciones de monstruos).
    */
-  function crearInstanciaLaberinto(THREE, zona) {
+  function crearInstanciaLaberinto(THREE, zona, Hgen) {
     if (!THREE || !zona) return null;
     const lab = obtenerDatosLaberinto(zona);
     if (!lab) return null;
@@ -1574,22 +1859,12 @@
     const est = ESTILOS[estilo] || ESTILOS.roca_canion;
     const colP = lab.wallColor || est.hex || '#78716c';
     const colS = lab.groundColor || '#57534e';
-    const { N, grid, cellSize, alturaMuro, centro, entrada } = lab;
+    const { zx, zz, R, N, grid, cellSize, alturaMuro, centro, P_perim, P_ext, theta_ent } = lab;
+    const baseH = Hgen ? Hgen(zx, zz) : 0;
     const colliders = [];
 
-    // 1. Estrechamiento de 100 metros común en la entrada (z de -100 a 0)
-    const estrechamiento = crearEstrechamiento100m(THREE, estilo, colP, colS);
-    if (estrechamiento) {
-      grupo.add(estrechamiento.grupo);
-      colliders.push(...estrechamiento.colliders);
-    }
-
-    // 2. Suelo del laberinto (plano horizontal a y=0, desde z=0 hacia delante)
-    const tamTotal = Math.max(2 * (lab.R || 100) + 40, N * cellSize + 40);
-    const halfN = (N - 1) / 2;
-    const offsetZ = -entrada.gy * cellSize;
-
-    const geoSuelo = new THREE.PlaneGeometry(tamTotal, tamTotal);
+    // 1. Suelo del laberinto (círculo de radio R nivelado horizontalmente a baseH)
+    const geoSuelo = new THREE.CircleGeometry(R + 4, 64);
     geoSuelo.rotateX(-Math.PI / 2);
     const texSuelo = createProceduralFloorTexture(THREE, estilo, colS);
     const matSuelo = new THREE.MeshStandardMaterial({
@@ -1599,31 +1874,27 @@
       map: texSuelo || undefined
     });
     const sueloLab = new THREE.Mesh(geoSuelo, matSuelo);
-    sueloLab.position.set(0, 0, halfN * cellSize + offsetZ);
+    sueloLab.position.set(zx, baseH + 0.02, zz);
     sueloLab.receiveShadow = true;
     grupo.add(sueloLab);
 
-    // 3. Muros 3D del laberinto (InstancedMesh en y = 0)
-    const murosLocales = [];
-    for (let gy = 0; gy < N; gy++) {
-      for (let gx = 0; gx < N; gx++) {
-        if (grid[gy][gx] === 1) {
-          const lx = (gx - halfN) * cellSize;
-          const lz = (gy - entrada.gy) * cellSize;
-          murosLocales.push({ gx, gy, lx, lz });
-          const halfB = cellSize * 0.49;
-          colliders.push({
-            type: 'box',
-            minX: lx - halfB,
-            maxX: lx + halfB,
-            minZ: lz - halfB,
-            maxZ: lz + halfB
-          });
-        }
-      }
+    // 2. Estrechamiento de 100 metros en coordenadas de mundo
+    const estr = crearEstrechamiento100mMundo(THREE, P_ext, P_perim, baseH, theta_ent, estilo, colP, colS);
+    if (estr) {
+      grupo.add(estr.grupo);
+      colliders.push(...estr.colliders);
     }
 
-    if (murosLocales.length > 0) {
+    // 3. Muro perimetral circular de diferente colores con apertura exclusiva en la entrada
+    const perim = crearMuroPerimetralCircular(THREE, zx, zz, baseH, R, theta_ent, estilo, colP);
+    if (perim) {
+      grupo.add(perim.grupo);
+      colliders.push(...perim.colliders);
+    }
+
+    // 4. Muros 3D interiores del laberinto (InstancedMesh en coordenadas de mundo)
+    const { muros } = lab;
+    if (muros && muros.length > 0) {
       const hMuro3D = Math.max(3.5, alturaMuro || 14);
       const boxG = new THREE.BoxGeometry(cellSize * 0.98, hMuro3D, cellSize * 0.98);
       const texMuro = createProceduralWallTexture(THREE, estilo, colP);
@@ -1633,72 +1904,66 @@
         metalness: 0.1,
         map: texMuro || undefined
       });
-      const wallsMesh = new THREE.InstancedMesh(boxG, matMuro, murosLocales.length);
+      const wallsMesh = new THREE.InstancedMesh(boxG, matMuro, muros.length);
       wallsMesh.castShadow = true;
       wallsMesh.receiveShadow = true;
       const dummyMat = new THREE.Matrix4();
       const dummyPos = new THREE.Vector3();
       const dummyQuat = new THREE.Quaternion();
       const dummyScale = new THREE.Vector3(1, 1, 1);
+      if (lab.rotRad) {
+        dummyQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -lab.rotRad);
+      }
 
-      murosLocales.forEach((m, idx) => {
-        dummyPos.set(m.lx, hMuro3D / 2, m.lz);
+      muros.forEach((m, idx) => {
+        dummyPos.set(m.wx, baseH + hMuro3D / 2, m.wz);
         dummyMat.compose(dummyPos, dummyQuat, dummyScale);
         wallsMesh.setMatrixAt(idx, dummyMat);
       });
       wallsMesh.instanceMatrix.needsUpdate = true;
       grupo.add(wallsMesh);
+
+      // Colisionadores de los muros interiores
+      colliders.push(...lab.colliders);
     }
 
-    // 4. Culminación en la cámara central
-    const culmX = (centro.gx - halfN) * cellSize;
-    const culmZ = (centro.gy - entrada.gy) * cellSize;
-    const dummyZonaLocal = Object.assign({}, zona, {
-      x: culmX,
-      y: culmZ,
-      _localCulm: true
-    });
-    const decCulm = crearDecoradoCulminacion(THREE, dummyZonaLocal, () => 0);
+    // 5. Culminación en el centro
+    const decCulm = crearDecoradoCulminacion(THREE, zona, () => baseH);
     if (decCulm) {
-      decCulm.position.set(culmX, 0, culmZ);
+      decCulm.position.set(centro.wx, baseH, centro.wz);
       grupo.add(decCulm);
     }
 
-    // 5. Muros perimetrales para delimitar el mapa interior
-    const perimHalf = (N * cellSize) / 2 + cellSize;
-    const perimMinZ = offsetZ - cellSize;
-    const perimMaxZ = offsetZ + N * cellSize + cellSize;
-    colliders.push(
-      { type: 'box', minX: -perimHalf - 10, maxX: -perimHalf, minZ: perimMinZ, maxZ: perimMaxZ },
-      { type: 'box', minX: perimHalf, maxX: perimHalf + 10, minZ: perimMinZ, maxZ: perimMaxZ },
-      { type: 'box', minX: -perimHalf, maxX: perimHalf, minZ: perimMaxZ, maxZ: perimMaxZ + 10 }
-    );
-
-    // 6. Lista de posiciones locales de monstruos dentro de la instancia
-    const spawnsMonstruos = [];
-    const listaMon = lab.monstruosPorCelda || [];
-    listaMon.forEach(cm => {
-      const lx = (cm.gx - halfN) * cellSize + (cm.offX || 0);
-      const lz = (cm.gy - entrada.gy) * cellSize + (cm.offZ || 0);
-      spawnsMonstruos.push(Object.assign({}, cm, {
-        x: lx,
-        y: 0,
-        z: lz
-      }));
-    });
+    // 6. Lista de posiciones de monstruos en coordenadas reales de mundo
+    const spawnsMonstruos = (lab.monstruosPorCelda || []).map(cm => Object.assign({}, cm, {
+      x: cm.wx,
+      y: baseH,
+      z: cm.wz
+    }));
 
     return {
       grupo,
       colliders,
       spawnsMonstruos,
-      spawnHeroe: { x: 0, y: 0, z: -92 }, // Al inicio del estrechamiento de 100m mirando al laberinto
-      portalSalida: { x: 0, y: 0, z: -100 },
+      spawnHeroe: { x: P_ext.wx + lab.u_in.x * 6, y: baseH, z: P_ext.wz + lab.u_in.y * 6 },
+      baseH,
+      zx,
+      zz,
+      R,
+      P_ext,
+      P_perim,
+      u_in: lab.u_in,
+      v_lat: lab.v_lat,
+      theta_ent,
+      calcularProgreso: (px, pz) => calcularProgresoCorredor(lab, px, pz),
       lab
     };
   }
 
   /**
-   * Construye la entrada exterior con el estrechamiento de 100 metros en el mundo abierto.
+   * Construye la representación exterior del laberinto en el mundo abierto:
+   * pasillo de 100m con antorchas, muro perimetral circular de diferente colores,
+   * muros interiores sobre la terraza del terreno y culminación central.
    */
   function crearEntradaExterior100m(THREE, zona, Hgen) {
     if (!THREE || !zona) return null;
@@ -1711,133 +1976,58 @@
     const estilo = lab.estilo || 'roca_canion';
     const est = ESTILOS[estilo] || ESTILOS.roca_canion;
     const colP = lab.wallColor || est.hex || '#78716c';
+    const colS = lab.groundColor || '#57534e';
+    const { zx, zz, R, P_perim, P_ext, theta_ent, muros, centro, cellSize, alturaMuro } = lab;
+    const baseH = Hgen ? Hgen(zx, zz) : 0;
 
-    // Orientación: ángulo hacia el centro del laberinto desde la entrada
-    const ent = (lab.entradas && lab.entradas[0]) || lab.entrada || { wx: zona.x, wz: zona.y };
-    const dx = zona.x - ent.wx;
-    const dz = (zona.y !== undefined ? zona.y : zona.z) - ent.wz;
-    const ang = Math.atan2(dx, dz); // Rumbo de avance por el estrechamiento hacia el portal
+    // 1. Estrechamiento de 100m exterior
+    const estr = crearEstrechamiento100mMundo(THREE, P_ext, P_perim, baseH, theta_ent, estilo, colP, colS);
+    if (estr) grupo.add(estr.grupo);
 
-    const ey = Hgen ? Hgen(ent.wx, ent.wz) : 0;
-    grupo.position.set(ent.wx, ey, ent.wz);
-    grupo.rotation.y = ang;
+    // 2. Muro perimetral circular exterior de diferente colores
+    const perim = crearMuroPerimetralCircular(THREE, zx, zz, baseH, R, theta_ent, estilo, colP);
+    if (perim) grupo.add(perim.grupo);
 
-    // Estrechamiento de 100m exterior (de z = -100 a z = 0, donde z = 0 es el portal)
-    const largo = 100;
-    const anchoPaso = 12;
-    const grosorMuro = 4;
-    const hMuro = 14;
-
-    // Muros laterales del estrechamiento exterior
-    const geoMuro = new THREE.BoxGeometry(grosorMuro, hMuro, largo);
-    const texMuro = createProceduralWallTexture(THREE, estilo, colP);
-    const matMuro = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(colP),
-      roughness: 0.85,
-      metalness: 0.1,
-      map: texMuro || undefined
-    });
-
-    const mIzq = new THREE.Mesh(geoMuro, matMuro);
-    mIzq.position.set(-(anchoPaso / 2 + grosorMuro / 2), hMuro / 2, -largo / 2);
-    mIzq.castShadow = true;
-    mIzq.receiveShadow = true;
-    grupo.add(mIzq);
-
-    const mDer = new THREE.Mesh(geoMuro, matMuro);
-    mDer.position.set(anchoPaso / 2 + grosorMuro / 2, hMuro / 2, -largo / 2);
-    mDer.castShadow = true;
-    mDer.receiveShadow = true;
-    grupo.add(mDer);
-
-    // Faroles cada 25m
-    const matSop = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7 });
-    const matFuego = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
-    const geoSop = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6);
-    const geoLlam = new THREE.ConeGeometry(0.2, 0.5, 6);
-
-    [-75, -50, -25].forEach(zPos => {
-      [-anchoPaso / 2 + 0.3, anchoPaso / 2 - 0.3].forEach((xPos, idx) => {
-        const farol = new THREE.Group();
-        farol.position.set(xPos, 4.2, zPos);
-        if (idx === 1) farol.rotation.y = Math.PI;
-        farol.add(new THREE.Mesh(geoSop, matSop));
-        const fl = new THREE.Mesh(geoLlam, matFuego);
-        fl.position.set(0.3, 0.35, 0);
-        farol.add(fl);
-        const lt = new THREE.PointLight(0xf59e0b, 1.2, 18, 1.4);
-        lt.position.set(0.3, 0.4, 0);
-        farol.add(lt);
-        grupo.add(farol);
+    // 3. Muros interiores visibles desde la vista general / exterior sobre la terraza
+    if (muros && muros.length > 0) {
+      const hMuro3D = Math.max(3.5, alturaMuro || 14);
+      const boxG = new THREE.BoxGeometry(cellSize * 0.98, hMuro3D, cellSize * 0.98);
+      const texMuro = createProceduralWallTexture(THREE, estilo, colP);
+      const matMuro = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colP),
+        roughness: 0.8,
+        metalness: 0.1,
+        map: texMuro || undefined
       });
-    });
+      const wallsMesh = new THREE.InstancedMesh(boxG, matMuro, muros.length);
+      wallsMesh.castShadow = true;
+      wallsMesh.receiveShadow = true;
 
-    // Portal Archway al final del estrechamiento (z = 0)
-    const portalGroup = new THREE.Group();
-    portalGroup.position.set(0, 0, 0);
+      const dummyMat = new THREE.Matrix4();
+      const dummyPos = new THREE.Vector3();
+      const dummyQuat = new THREE.Quaternion();
+      const dummyScale = new THREE.Vector3(1, 1, 1);
+      if (lab.rotRad) {
+        dummyQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -lab.rotRad);
+      }
 
-    const matPilar = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.85 });
-    const colPilar = new THREE.CylinderGeometry(0.9, 1.1, 9, 8);
-    const p1 = new THREE.Mesh(colPilar, matPilar);
-    p1.position.set(-anchoPaso / 2 + 0.6, 4.5, 0);
-    p1.castShadow = true;
-    const p2 = p1.clone();
-    p2.position.x = anchoPaso / 2 - 0.6;
+      muros.forEach((m, idx) => {
+        dummyPos.set(m.wx, baseH + hMuro3D / 2, m.wz);
+        dummyMat.compose(dummyPos, dummyQuat, dummyScale);
+        wallsMesh.setMatrixAt(idx, dummyMat);
+      });
+      wallsMesh.instanceMatrix.needsUpdate = true;
+      grupo.add(wallsMesh);
+    }
 
-    const dintel = new THREE.Mesh(new THREE.BoxGeometry(anchoPaso + 2, 1.5, 2.2), matPilar);
-    dintel.position.set(0, 9.2, 0);
-    dintel.castShadow = true;
+    // 4. Culminación central
+    const decCulm = crearDecoradoCulminacion(THREE, zona, () => baseH);
+    if (decCulm) {
+      decCulm.position.set(centro.wx, baseH, centro.wz);
+      grupo.add(decCulm);
+    }
 
-    const gema = new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
-    gema.position.set(0, 8.5, 0);
-
-    const luzPortal = new THREE.PointLight(0x10b981, 2.8, 26);
-    luzPortal.position.set(0, 5, 0);
-
-    // Haz de luz vertical visible desde lejos en el mapa
-    const hazGeo = new THREE.CylinderGeometry(0.35, 0.7, 45, 10);
-    hazGeo.translate(0, 22.5, 0);
-    const hazMat = new THREE.MeshBasicMaterial({
-      color: 0x10b981,
-      transparent: true,
-      opacity: 0.7,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    const haz = new THREE.Mesh(hazGeo, hazMat);
-    portalGroup.add(haz);
-
-    // Vórtice de entrada
-    const vortice = new THREE.Mesh(
-      new THREE.PlaneGeometry(anchoPaso - 2, 8),
-      new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
-    );
-    vortice.position.set(0, 4.2, 0);
-
-    portalGroup.add(p1, p2, dintel, gema, luzPortal, vortice);
-    grupo.add(portalGroup);
-
-    // Rango de niveles para la etiqueta
-    let lvlMin = 999, lvlMax = 1;
-    (zona.monsters || []).forEach(m => {
-      const mn = m.level || m.levelMin || 10;
-      const mx = m.levelMax || mn;
-      if (mn < lvlMin) lvlMin = mn;
-      if (mx > lvlMax) lvlMax = mx;
-    });
-    if (lvlMin > lvlMax) { lvlMin = 10; lvlMax = 15; }
-
-    return {
-      grupo,
-      portalWx: ent.wx,
-      portalWz: ent.wz,
-      portalWy: ey,
-      zona,
-      lvlMin,
-      lvlMax,
-      ang
-    };
+    return grupo;
   }
 
   function obtenerMonstruosPorCelda(zona) {
@@ -1865,6 +2055,9 @@
     createProceduralFloorTexture,
     crearArcoEntrada,
     crearEstrechamiento100m,
+    crearEstrechamiento100mMundo,
+    crearMuroPerimetralCircular,
+    calcularProgresoCorredor,
     crearInstanciaLaberinto,
     crearEntradaExterior100m,
     crearMallaMurosLaberinto,

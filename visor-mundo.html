@@ -2235,8 +2235,51 @@
       };
       h = LugaresSecretosLib.aplicarRebajeCabanas(lugaresSecretos, x, z, h, elevFn);
     }
-    // Los laberintos se cargan ahora como instancia independiente (como una mazmorra) con su propio suelo plano y estrechamiento de 100m.
-    // El terreno exterior permanece 100% natural, sin peñones ni zanjas deformadas.
+    // Aplanado y terraza para laberintos y su estrechamiento de 100 metros
+    if (world && world.zones && typeof RelieveZonaLib !== 'undefined') {
+      for (let zi = 0; zi < world.zones.length; zi++) {
+        const z = world.zones[zi];
+        if (!z.relieve || !z.relieve.activo) continue;
+        const zx = z.x, zz = (z.y !== undefined ? z.y : (z.z || 0));
+        const R = (z.relieve && z.relieve.radio) || z.radius || 120;
+        const dCentro = Math.hypot(x - zx, z - zz);
+        if (dCentro > R + 130) continue;
+
+        const baseH = terrain ? ((terrain.elevation(zx, zz) - SEA) * HEIGHT_SCALE) : 0;
+        const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+        if (!lab) continue;
+
+        // 1. Terraza circular interior plana a baseH
+        let wCirc = 0;
+        if (dCentro <= R) {
+          wCirc = 1.0;
+        } else if (dCentro <= R + 25) {
+          wCirc = 1 - smooth(R, R + 25, dCentro);
+        }
+
+        // 2. Terraza plana a lo largo del estrechamiento de 100m
+        let wCorr = 0;
+        if (lab.P_ext && lab.u_in && lab.v_lat) {
+          const prog = RelieveZonaLib.calcularProgresoCorredor(lab, x, z);
+          if (prog.s >= -10 && prog.s <= 105) {
+            const absW = Math.abs(prog.w);
+            if (absW <= 7) {
+              wCorr = 1.0;
+            } else if (absW <= 18) {
+              wCorr = 1 - smooth(7, 18, absW);
+            }
+            if (prog.s < 0) {
+              wCorr *= (1 - smooth(-10, 0, prog.s));
+            }
+          }
+        }
+
+        const W = Math.max(wCirc, wCorr);
+        if (W > 0) {
+          h = h + (baseH - h) * W;
+        }
+      }
+    }
     return h;
   }
 
@@ -3023,7 +3066,7 @@
     for (let i = 0; i < world.zones.length; i++) {
       const z = world.zones[i];
       if (z.type === 'caza' || (z.relieve && z.relieve.activo)) {
-        const rz = (z.relieve && z.relieve.R) || z.radius || 120;
+        const rz = ((z.relieve && (z.relieve.radio || z.relieve.R)) || z.radius || 120) + 125;
         if (Math.hypot(xc - z.x, zc - z.y) < rz + rChunk + 20) return true;
       }
     }
@@ -3316,7 +3359,7 @@
       for (let zi = 0; zi < world.zones.length; zi++) {
         const zObj = world.zones[zi];
         if (!zObj.relieve || !zObj.relieve.activo) continue;
-        const rz = (zObj.radius || 100) + 10;
+        const rz = ((zObj.relieve && (zObj.relieve.radio || zObj.relieve.R)) || zObj.radius || 100) + 125;
         if (zObj.x + rz >= cxMin && zObj.x - rz <= cxMax && zObj.y + rz >= czMin && zObj.y - rz <= czMax) {
           labChunk = RelieveZonaLib.obtenerDatosLaberinto(zObj);
           break;
@@ -10158,7 +10201,7 @@
   }
 
   /* ===========================================================================
-   * GESTIÓN DE LABERINTOS DE ZONA (Instancia independiente con Estrechamiento 100m)
+   * GESTIÓN DE LABERINTOS DE ZONA (Paso continuo por el estrechamiento de 100m)
    * =========================================================================== */
   let gestorLaberintos = null;
   let laberintoPromptActiva = null;
@@ -10168,14 +10211,13 @@
       this.enLaberinto = false;
       this.laberintoActivo = null;
       this.instancia = null;
-      this.posicionSalidaMundo = null;
       this.prevWalkableHeight = null;
       this.prevColliders = null;
       this.luzAmbienteLab = null;
       this.luzDirLab = null;
     }
 
-    iniciarInstancia(zona) {
+    activarInterior(zona) {
       if (this.enLaberinto || !zona) return;
       if (typeof RelieveZonaLib === 'undefined' || typeof RelieveZonaLib.crearInstanciaLaberinto !== 'function') {
         console.warn('RelieveZonaLib.crearInstanciaLaberinto no disponible');
@@ -10188,56 +10230,37 @@
       if (promptEl) promptEl.style.display = 'none';
       laberintoPromptActiva = null;
 
-      // 1. Guardar posición exterior para retorno (justo fuera del portal exterior)
-      const labInfo = RelieveZonaLib.obtenerDatosLaberinto(zona);
-      const entExt = (labInfo && labInfo.entradas && labInfo.entradas[0]) || (labInfo && labInfo.entrada) || { wx: zona.x, wz: zona.y };
-      const ey = H(entExt.wx, entExt.wz);
-      this.posicionSalidaMundo = { x: entExt.wx, y: ey, z: entExt.wz };
-
-      // 2. Aislar supramundo exterior (ocultar chunks de terreno, ríos, lagos, pueblos, cielo, NPCs, monstruos exteriores)
+      // 1. Aislar supramundo exterior (ocultar chunks de terreno, ríos, lagos, pueblos, cielo, NPCs, monstruos exteriores)
       if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.aislarParaMazmorra === 'function') {
         gestorMazmorras.ctx.aislarParaMazmorra({ name: zona.name });
       }
       const entLabGrp = _grupoEntradasLaberintosCache || scene.getObjectByName('EntradasLaberintosMundo');
       if (entLabGrp) entLabGrp.visible = false;
 
-      // 3. Crear la instancia independiente limpia sobre suelo nivelado (y = 0) con estrechamiento 100m
+      // 2. Crear la instancia interior limpia a coordenadas de mundo y altura baseH
       if (this.instancia && this.instancia.grupo && this.instancia.grupo.parent) {
         this.instancia.grupo.parent.remove(this.instancia.grupo);
       }
-      this.instancia = RelieveZonaLib.crearInstanciaLaberinto(THREE, zona);
+      this.instancia = RelieveZonaLib.crearInstanciaLaberinto(THREE, zona, H);
       if (!this.instancia) {
         console.error('No se pudo crear instancia de laberinto para', zona.name);
-        this.salirInstancia();
+        this.desactivarInterior();
         return;
       }
       scene.add(this.instancia.grupo);
 
-      // 4. Configurar físicas del personaje para la instancia independiente
+      // 3. Configurar físicas del personaje para la instancia (suelo plano a baseH y colisionadores de muros)
+      const baseH = this.instancia.baseH;
       this.prevWalkableHeight = character.world.getWalkableHeight;
       this.prevColliders = character.world.colliders;
-      character.world.getWalkableHeight = (x, z) => 0.0;
+      character.world.getWalkableHeight = (x, z) => baseH;
       character.world.colliders = this.instancia.colliders || [];
 
-      // 5. Situar al héroe al inicio del estrechamiento de 100m (z = -92), mirando hacia el laberinto (+Z)
-      const spH = this.instancia.spawnHeroe || { x: 0, y: 0, z: -92 };
-      character.teleport(spH.x, spH.z);
-      if (character.root) {
-        character.root.position.set(spH.x, 0, spH.z);
-        character.root.rotation.y = 0;
-      }
-      if (typeof setFollow === 'function') setFollow(true);
-      controls.target.set(spH.x, 1.8, spH.z + 6);
-      camera.position.set(spH.x, 4.5, spH.z - 8);
-      controls.update();
-
-      if (acompanante && acompanante.root) {
-        acompanante.root.position.set(spH.x - 2, 0, spH.z);
-      }
-
-      // 6. Spawnear TODOS los monstruos del laberinto dentro de la instancia en monstruosMazmorra
+      // 4. Spawnear TODOS los monstruos del laberinto dentro de la instancia en monstruosMazmorra
       if (gestorMazmorras && gestorMazmorras.ctx && typeof gestorMazmorras.ctx.crearMonstruoCombate === 'function') {
         const spawns = this.instancia.spawnsMonstruos || [];
+        const R = (zona.relieve && zona.relieve.radio) || zona.radius || 120;
+        const zx = zona.x, zz = (zona.y !== undefined ? zona.y : (zona.z || 0));
         spawns.forEach(cm => {
           const isBoss = (cm.clase === 'elite' || !!cm.boss);
           const info = {
@@ -10246,14 +10269,14 @@
             boss: isBoss,
             rangoElite: isBoss ? 3 : 1,
             x: cm.x,
-            y: 0,
+            y: baseH,
             z: cm.z,
             clase: cm.clase || 'guerrero',
             color: cm.color || '#22c55e',
             weapon: cm.clase === 'arquero' ? 'bone_recurved_bow' : cm.clase === 'mago' ? 'arcane_staff' : 'sword'
           };
           const m = gestorMazmorras.ctx.crearMonstruoCombate(info, this.instancia.grupo, isBoss);
-          m.puedeIr = (nx, nz) => Math.abs(nx) <= (zona.radius || 120) + 20 && nz >= -95 && nz <= (zona.radius || 120) * 2.5;
+          m.puedeIr = (nx, nz) => Math.hypot(nx - zx, nz - zz) <= R + 10;
           if (cm.color) {
             const radHalo = (cm.totalInCell > 1) ? Math.max(0.45, 0.9 / Math.sqrt(cm.totalInCell)) : 0.85;
             const haloG = new THREE.RingGeometry(radHalo * 0.7, radHalo, 16);
@@ -10266,7 +10289,7 @@
         });
       }
 
-      // 7. Iluminación atmosférica dedicada para la instancia
+      // 5. Iluminación atmosférica dedicada para la instancia
       if (!this.luzAmbienteLab) {
         this.luzAmbienteLab = new THREE.AmbientLight(0xf0fdf4, 0.95);
         this.luzDirLab = new THREE.DirectionalLight(0xffedd5, 1.3);
@@ -10275,38 +10298,10 @@
       scene.add(this.luzAmbienteLab);
       scene.add(this.luzDirLab);
 
-      toast(`🌀 Te has adentrado en el Laberinto de «${zona.name}»`, 3500);
+      toast(`🌀 Interior de «${zona.name}» cargado`, 3000);
     }
 
-    actualizarInstancia(dt, hero) {
-      if (!this.enLaberinto || !character || !character.root) return;
-      const p = character.root.position;
-      const pz = p.z;
-      const promptEl = $('laberinto-prompt');
-
-      // En el estrechamiento de 100m de la instancia (z < 0):
-      // Si el héroe regresa hacia el portal de salida (z <= -95):
-      if (pz <= -95) {
-        laberintoPromptActiva = this.laberintoActivo;
-        if (promptEl) {
-          promptEl.style.display = 'block';
-          $('lp-title').textContent = `🌲 Salida al Mundo Exterior`;
-          $('lp-desc').textContent = `Estás en el umbral del estrechamiento. Pulsa [E] o toca aquí para salir.`;
-        }
-        // Salida automática al alcanzar el límite del portal z <= -98.5
-        if (pz <= -98.5) {
-          this.salirInstancia();
-          return;
-        }
-      } else {
-        if (laberintoPromptActiva === this.laberintoActivo && promptEl && promptEl.style.display !== 'none') {
-          promptEl.style.display = 'none';
-          laberintoPromptActiva = null;
-        }
-      }
-    }
-
-    salirInstancia() {
+    desactivarInterior() {
       if (!this.enLaberinto) return;
       this.enLaberinto = false;
       const promptEl = $('laberinto-prompt');
@@ -10350,66 +10345,69 @@
       }
       character.world.colliders = this.prevColliders || [];
 
-      // 5. Teletransportar al héroe fuera del portal en el mundo exterior
-      const posExt = this.posicionSalidaMundo || { x: 0, y: 0, z: 0 };
-      character.teleport(posExt.x, posExt.z);
-      if (character.root) {
-        const altY = H(posExt.x, posExt.z);
-        character.root.position.set(posExt.x, altY, posExt.z);
-      }
-      if (typeof setFollow === 'function') setFollow(true);
-      controls.target.set(posExt.x, posExt.y + 1.8, posExt.z);
-      camera.position.set(posExt.x, posExt.y + 12, posExt.z + 24);
-      controls.update();
+      toast('🌲 Has regresado al Mundo Exterior', 3000);
+      this.laberintoActivo = null;
+    }
 
-      if (acompanante && acompanante.root) {
-        acompanante.root.position.set(posExt.x - 2, posExt.y, posExt.z);
-      }
+    actualizar(dt, hero, zonas) {
+      if (!character || !character.root || !zonas || !zonas.length) return;
+      const hx = character.root.position.x;
+      const hz = character.root.position.z;
 
-      toast('🌲 Has regresado al Mundo Exterior', 3500);
+      if (!this.enLaberinto) {
+        // En el exterior: vigilar si el personaje avanza por el estrechamiento de 100m de algún laberinto
+        for (let i = 0; i < zonas.length; i++) {
+          const z = zonas[i];
+          if (!z.relieve || !z.relieve.activo) continue;
+          const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+          if (!lab) continue;
+          const prog = RelieveZonaLib.calcularProgresoCorredor(lab, hx, hz);
+          // Si llega a la mitad del estrechamiento (s >= 50m) o entra al laberinto: cargar interior y desconectar exterior
+          if ((prog.enCorredor && prog.s >= 50) || prog.enInterior) {
+            this.activarInterior(z);
+            break;
+          }
+        }
+      } else {
+        // En el laberinto: vigilar si el personaje retrocede por el estrechamiento hacia el exterior (s <= 48m)
+        const z = this.laberintoActivo;
+        if (z) {
+          const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
+          if (lab) {
+            const prog = RelieveZonaLib.calcularProgresoCorredor(lab, hx, hz);
+            if (prog.enCorredor && prog.s <= 48 && !prog.enInterior) {
+              this.desactivarInterior();
+            }
+          }
+        }
+      }
+    }
+
+    iniciarInstancia(zona) {
+      this.activarInterior(zona);
+    }
+
+    salirInstancia() {
+      this.desactivarInterior();
+    }
+
+    actualizarInstancia(dt, hero) {
+      if (world && world.zones) this.actualizar(dt, hero, world.zones);
     }
 
     comprobarEntradaExterior(zonas, hx, hz) {
-      if (this.enLaberinto || !zonas || !zonas.length) return null;
-      const promptEl = $('laberinto-prompt');
-
-      for (let i = 0; i < zonas.length; i++) {
-        const z = zonas[i];
-        if (!z.relieve || !z.relieve.activo) continue;
-        const lab = RelieveZonaLib.obtenerDatosLaberinto(z);
-        if (!lab) continue;
-        const ent0 = (lab.entradas && lab.entradas[0]) || lab.entrada || { wx: z.x, wz: z.y };
-        const dist = Math.hypot(hx - ent0.wx, hz - ent0.wz);
-
-        if (dist <= 16) {
-          laberintoPromptActiva = z;
-          if (promptEl) {
-            promptEl.style.display = 'block';
-            $('lp-title').textContent = `🌀 Laberinto de «${z.name}»`;
-            $('lp-desc').textContent = `Has recorrido el estrechamiento de 100 metros. Pulsa [E] o toca aquí para entrar.`;
-          }
-          if (dist <= 3.8) {
-            this.iniciarInstancia(z);
-          }
-          return { zona: z, distancia: dist };
-        }
-      }
-
-      if (laberintoPromptActiva && promptEl) {
-        promptEl.style.display = 'none';
-        laberintoPromptActiva = null;
-      }
+      this.actualizar(0, hero, zonas);
       return null;
     }
   }
 
   function entrarEnLaberinto(zona) {
     if (!gestorLaberintos) gestorLaberintos = new GestorLaberintos();
-    gestorLaberintos.iniciarInstancia(zona);
+    gestorLaberintos.activarInterior(zona);
   }
 
   function salirDeLaberinto() {
-    if (gestorLaberintos) gestorLaberintos.salirInstancia();
+    if (gestorLaberintos) gestorLaberintos.desactivarInterior();
   }
 
   // Culling por distancia para lugares secretos, cabañas GLB y entradas monumentales de mazmorra del supramundo
@@ -10451,12 +10449,8 @@
 
   let _ultimoBossTxt = '', _ultimoBossPct = -1;
   function updateMazmorras(dt, now) {
-    if (gestorLaberintos && gestorLaberintos.enLaberinto) {
-      gestorLaberintos.actualizarInstancia(dt, hero);
-    } else if (gestorLaberintos && character && character.root && world && world.zones) {
-      const hx = character.root.position.x;
-      const hz = character.root.position.z;
-      gestorLaberintos.comprobarEntradaExterior(world.zones, hx, hz);
+    if (gestorLaberintos && character && character.root && world && world.zones) {
+      gestorLaberintos.actualizar(dt, hero, world.zones);
     }
 
     if (!gestorMazmorras) return;
@@ -11754,25 +11748,38 @@
       bootPartida();
       if ($('load')) $('load').classList.remove('show');
 
-      // Si se abre con ?zona=... o retorno directo de laberinto, situar al jugador en la entrada del laberinto
+      // Si se abre con ?zona=... o retorno directo de laberinto, situar al jugador en la entrada del estrechamiento exterior de 100m
       const targetZonaId = params.get('zona');
       if (targetZonaId && world && world.zones) {
         let targetZ = world.zones.find(zn => zn.id === targetZonaId) || world.zones.find(zn => zn.relieve && zn.relieve.activo) || world.zones[0];
         if (targetZ) {
           const lab = (typeof RelieveZonaLib !== 'undefined') ? RelieveZonaLib.obtenerDatosLaberinto(targetZ) : null;
-          const ent0 = (lab && lab.entradas && lab.entradas[0]) || (lab && lab.entrada) || { wx: targetZ.x, wz: targetZ.y };
-          const ey = H(ent0.wx, ent0.wz);
-          character.teleport(ent0.wx, ent0.wz);
-          setFollow(true);
-          controls.target.set(ent0.wx, ey + 2, ent0.wz);
-          camera.position.set(ent0.wx, ey + 14, ent0.wz + 26);
-          controls.update();
-          setTimeout(() => {
-            toast(`🌀 Entrada al Laberinto de «${targetZ.name}»`, 3000);
-            if (targetZ.relieve && targetZ.relieve.activo) {
-              setTimeout(() => entrarEnLaberinto(targetZ), 350);
+          if (lab && lab.P_ext && lab.u_in) {
+            const ey = H(lab.P_ext.wx, lab.P_ext.wz);
+            const spawnX = lab.P_ext.wx - lab.u_in.x * 4;
+            const spawnZ = lab.P_ext.wz - lab.u_in.y * 4;
+            character.teleport(spawnX, spawnZ);
+            if (character.root) {
+              character.root.position.set(spawnX, ey, spawnZ);
+              const lookAng = Math.atan2(lab.u_in.x, lab.u_in.y);
+              character.root.rotation.y = lookAng;
             }
-          }, 350);
+            setFollow(true);
+            controls.target.set(lab.P_ext.wx + lab.u_in.x * 12, ey + 1.8, lab.P_ext.wz + lab.u_in.y * 12);
+            camera.position.set(spawnX - lab.u_in.x * 8, ey + 4.5, spawnZ - lab.u_in.y * 8);
+            controls.update();
+            setTimeout(() => {
+              toast(`🌲 Entrada al Estrechamiento de «${targetZ.name}» (100m hacia el interior)`, 3500);
+            }, 350);
+          } else {
+            const ent0 = (lab && lab.entradas && lab.entradas[0]) || (lab && lab.entrada) || { wx: targetZ.x, wz: targetZ.y };
+            const ey = H(ent0.wx, ent0.wz);
+            character.teleport(ent0.wx, ent0.wz);
+            setFollow(true);
+            controls.target.set(ent0.wx, ey + 2, ent0.wz);
+            camera.position.set(ent0.wx, ey + 14, ent0.wz + 26);
+            controls.update();
+          }
         }
       }
     } else {
