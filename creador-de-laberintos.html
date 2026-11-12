@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Creador y Diseñador 3D de Zonas de Caza y Laberintos</title>
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -324,6 +324,42 @@
       font-weight: 600;
       z-index: 25;
       pointer-events: none;
+    }
+
+    @media (max-width: 768px), (max-height: 520px) and (orientation: landscape) {
+      #stat-pill { display: none; }
+      #btn-toggle-ui {
+        top: max(8px, env(safe-area-inset-top));
+        left: max(8px, env(safe-area-inset-left));
+        padding: 7px 10px;
+        font-size: 11px;
+      }
+      #top-bar {
+        top: max(8px, env(safe-area-inset-top));
+        right: max(8px, env(safe-area-inset-right));
+        max-width: calc(100vw - 126px);
+        overflow-x: auto;
+        scrollbar-width: none;
+        gap: 5px;
+      }
+      #top-bar::-webkit-scrollbar { display: none; }
+      .top-btn { padding: 6px 9px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+      #ui-panel {
+        top: calc(max(8px, env(safe-area-inset-top)) + 40px);
+        left: max(8px, env(safe-area-inset-left));
+        width: min(350px, calc(100vw - 16px));
+        max-height: calc(100dvh - 108px);
+      }
+      #cam-bar {
+        bottom: max(8px, env(safe-area-inset-bottom));
+        max-width: calc(100vw - 16px);
+        overflow-x: auto;
+        scrollbar-width: none;
+        white-space: nowrap;
+        padding: 4px 6px;
+      }
+      #cam-bar::-webkit-scrollbar { display: none; }
+      .cam-btn { padding: 5px 8px; font-size: 10.5px; flex-shrink: 0; }
     }
   </style>
 </head>

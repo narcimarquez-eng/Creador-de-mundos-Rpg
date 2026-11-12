@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Visor 3D del Mundo</title>
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -16,7 +16,7 @@
   <style>
     :root { --panel: rgba(11, 17, 30, 0.93); --line: rgba(255,255,255,.14); --accent: #38bdf8; --gold: #fbbf24; --muted: #94a3b8; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #7dd3fc; }
+    html, body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #7dd3fc; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; font-size: 13px; user-select: none; touch-action: none; }
     canvas { display: block; }
     button, select, input { font: inherit; color: inherit; }
@@ -64,6 +64,7 @@
     body.modo-fullscreen {
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -738,7 +739,7 @@
       }
       #top::-webkit-scrollbar { display: none; }
       #top > * { flex: none; }
-      #title { font-size: 12px; max-width: 100px; }
+      #title { flex: 1 1 auto; min-width: 0; max-width: none; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       #top a.btn { padding: 4px 8px; font-size: 11px; }
       #top button {
         width: 34px;
@@ -752,6 +753,9 @@
       }
       #top button span.long, #top a.btn span.long { display: none !important; }
       #btn-full {
+        position: sticky;
+        right: 0;
+        z-index: 6;
         margin-left: auto !important;
         flex-shrink: 0 !important;
         width: 36px !important;
@@ -870,8 +874,10 @@
         right: calc(max(8px, env(safe-area-inset-right)) + 84px);
         left: auto;
         transform: none;
-        width: min(290px, calc(100vw - 100px));
-        max-height: calc(100vh - 60px);
+        width: min(220px, calc(100vw - 246px));
+        max-height: calc(100vh - 160px);
+        max-height: calc(100dvh - 160px);
+        overflow-y: auto;
         min-width: 0;
         padding: 4px 8px;
         border-radius: 8px;
@@ -886,7 +892,7 @@
         left: auto;
         transform: none;
         width: auto !important;
-        max-width: calc(100vw - 100px);
+        max-width: calc(100vw - 246px);
         padding: 3px 10px !important;
         border-radius: 16px !important;
       }
@@ -1160,7 +1166,7 @@
         overflow-x: auto !important;
         scrollbar-width: none !important;
       }
-      #title { font-size: 11px !important; max-width: 80px !important; }
+      #title { flex: 1 1 auto !important; min-width: 0 !important; max-width: none !important; font-size: 11px !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
       #top a.btn {
         padding: 2px 7px !important;
         font-size: 11px !important;
@@ -1179,6 +1185,9 @@
       }
       #top button span.long, #top a.btn span.long { display: none !important; }
       #btn-full {
+        position: sticky !important;
+        right: 0 !important;
+        z-index: 6 !important;
         margin-left: auto !important;
         flex-shrink: 0 !important;
         width: 34px !important;
@@ -1342,6 +1351,26 @@
       }
 
       /* 7. Clúster de Combate (Pulgar Derecho) */
+      .skills { display: contents !important; }
+      .util { display: contents !important; }
+      .skills button {
+        position: absolute !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+      }
+      .skills button small, .util button small { display: none !important; }
+      #sk-vida, #sk-mana, #sk-auto, #sk-guia-comp {
+        position: absolute !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+      }
+      #sk-vida, #sk-mana { border-radius: 50% !important; }
+      #sk-auto, #sk-guia-comp { border-radius: 14px !important; }
       #sk-attack {
         right: max(14px, env(safe-area-inset-right)) !important;
         bottom: max(10px, env(safe-area-inset-bottom)) !important;
@@ -1422,21 +1451,6 @@
         font-size: 13px !important;
         z-index: 26 !important;
       }
-    }
-        bottom: max(138px, calc(env(safe-area-inset-bottom) + 128px)) !important;
-        width: 36px !important;
-        height: 28px !important;
-        font-size: 13px !important;
-        z-index: 26 !important;
-      }
-      #sk-guia-comp {
-        right: max(56px, calc(env(safe-area-inset-right) + 42px)) !important;
-        bottom: max(138px, calc(env(safe-area-inset-bottom) + 128px)) !important;
-        width: 36px !important;
-        height: 28px !important;
-        font-size: 13px !important;
-        z-index: 26 !important;
-      }
 
       /* 8. Paneles Modales e Inspectores en Modo Horizontal */
       #side {
@@ -1445,6 +1459,7 @@
         left: max(8px, env(safe-area-inset-left)) !important;
         width: min(300px, calc(100vw - 16px)) !important;
         max-height: calc(100vh - 42px) !important;
+        max-height: calc(100dvh - 42px) !important;
         z-index: 42 !important;
       }
       #info {
@@ -1453,11 +1468,24 @@
         right: max(8px, env(safe-area-inset-right)) !important;
         width: min(300px, calc(100vw - 16px)) !important;
         max-height: calc(100vh - 42px) !important;
+        max-height: calc(100dvh - 42px) !important;
         z-index: 40 !important;
       }
-      #npc, #heroe, #shop, #partidas, #cronica, #modal-companero, #mapa-mundo-modal {
+      #npc, #heroe, #shop, #partidas, #cronica, #modal-companero, #mapa-mundo {
         max-height: calc(100vh - 16px) !important;
+        max-height: calc(100dvh - 16px) !important;
         overflow-y: auto !important;
+      }
+      #mapa-mundo .box {
+        max-width: calc(100vw - 24px) !important;
+        max-height: calc(100dvh - 20px) !important;
+        padding: 10px 12px !important;
+      }
+      #mapa-lienzo {
+        max-width: min(88vw, calc(100dvh - 96px)) !important;
+        max-height: calc(100dvh - 96px) !important;
+        width: auto !important;
+        height: auto !important;
       }
     }
   </style>
@@ -1650,7 +1678,10 @@
       <span><i style="background:#67e8f9"></i>Zona segura</span>
       <span><i style="background:#fde047"></i>Tú (la flecha marca hacia dónde miras)</span>
     </div>
-    <div class="btns"><button id="mapa-cerrar">Cerrar</button></div>
+    <div class="btns">
+      <button id="mapa-modo-btn" style="display:none;background:#1e3a5f;color:#e0f2fe;border:1px solid #38bdf8">🌍 Ver mapa del mundo</button>
+      <button id="mapa-cerrar">Cerrar</button>
+    </div>
   </div></div>
   <div id="objetos"><div class="box">
     <h2>🎒 Objetos</h2>
@@ -6793,14 +6824,87 @@
     }
   }
 
+  // Dibuja un recinto de laberinto (muros, pasillos, corredor de entrada y meta) en minimapa o mapa grande
+  function dibujarRecintoEnCanvas(g, T, rec, opts) {
+    if (!rec) return;
+    const compacto = !!(opts && opts.compacto);
+    const rInt = rec.Rint || rec.R || 90;
+    // Base circular interior del recinto
+    g.save();
+    g.beginPath(); g.arc(T.px(rec.zx), T.py(rec.zz), rInt * T.escala, 0, Math.PI * 2);
+    g.fillStyle = '#111827'; g.fill();
+    g.strokeStyle = 'rgba(245, 158, 11, 0.55)'; g.lineWidth = compacto ? 1.5 : 2.5; g.stroke();
+
+    // Pasillo estrecho de entrada (compartido exterior/interior)
+    if (Array.isArray(rec.puntos) && rec.puntos.length >= 2) {
+      const anchoPas = (rec.cfg && rec.cfg.pasilloAncho ? rec.cfg.pasilloAncho : 8) * T.escala;
+      g.beginPath();
+      rec.puntos.forEach((pt, idx) => {
+        if (idx === 0) g.moveTo(T.px(pt.x), T.py(pt.z));
+        else g.lineTo(T.px(pt.x), T.py(pt.z));
+      });
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      g.strokeStyle = '#334155'; g.lineWidth = Math.max(compacto ? 4 : 7, anchoPas); g.stroke();
+      g.strokeStyle = 'rgba(245, 158, 11, 0.45)'; g.lineWidth = 1; g.stroke();
+      // Marcador de entrada
+      const ent = rec.puntos[0];
+      g.fillStyle = '#22c55e';
+      g.beginPath(); g.arc(T.px(ent.x), T.py(ent.z), compacto ? 3.5 : 6, 0, Math.PI * 2); g.fill();
+    }
+
+    // Rejilla del laberinto (muros, pasillos, entrada, meta)
+    const grid = rec.lab && rec.lab.grid;
+    if (Array.isArray(grid) && grid.length > 0) {
+      const N = grid.length;
+      const lado = rec.lado || (rInt * 1.35);
+      const cell = lado / N;
+      const cellPx = cell * T.escala;
+      const x0 = rec.zx - lado / 2, z0 = rec.zz - lado / 2;
+      for (let r = 0; r < N; r++) {
+        const fila = grid[r];
+        if (!fila) continue;
+        for (let c = 0; c < N; c++) {
+          const val = fila[c];
+          const sx = T.px(x0 + c * cell);
+          const sy = T.py(z0 + r * cell);
+          if (val === 1) {
+            g.fillStyle = 'rgba(15, 23, 42, 0.94)';
+            g.fillRect(sx, sy, cellPx + 0.6, cellPx + 0.6);
+            if (!compacto || cellPx >= 5) {
+              g.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+              g.lineWidth = 0.8;
+              g.strokeRect(sx, sy, cellPx, cellPx);
+            }
+          } else {
+            g.fillStyle = val === 2 ? 'rgba(34, 197, 94, 0.35)' : (val === 3 ? 'rgba(250, 204, 21, 0.38)' : 'rgba(51, 65, 85, 0.82)');
+            g.fillRect(sx, sy, cellPx + 0.5, cellPx + 0.5);
+          }
+        }
+      }
+    }
+
+    // Icono de culminación en el centro
+    if (rec.zona && rec.zona.relieve && rec.zona.relieve.activo) {
+      const culm = rec.zona.relieve.culminacion || 'oasis';
+      const icon = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES && window.RelieveZonaLib.CULMINACIONES[culm] && window.RelieveZonaLib.CULMINACIONES[culm].icono) || '🏛️';
+      g.font = (compacto ? 13 : 20) + 'px sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(icon, T.px(rec.zx), T.py(rec.zz));
+    }
+    g.restore();
+  }
+
   let minimapaRot = null;   // giro actual del minimapa (sigue a la cámara con suavizado)
   function drawMinimap(now) {
     if (now - lastMinimap < 120) return;
     lastMinimap = now;
     const cv = $('minimap'), g = cv.getContext('2d');
-    // Los recintos de laberinto se ven en el mapa del mundo (son parte de él); solo las mazmorras tienen mapa propio
     const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
-    const S = cv.width, R = enMazmorra ? 75 : 290;   // metros desde el centro hasta el borde
+    const recActivo = (gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto) ? gestorLaberintos.recinto : null;
+    const enRecinto = !enMazmorra && !!recActivo;
+    const enInstancia = enMazmorra || enRecinto;
+    const S = cv.width;
+    const R = enMazmorra ? 75 : (enRecinto ? Math.min(115, Math.max(80, Math.round((recActivo.Rint || 95) * 0.9))) : 290);   // metros desde el centro hasta el borde
     const p = character.root.position;
     const px = p.x, pz = p.z;
     const V = MapaLib.centrada(px, pz, R, S);   // el personaje en el centro
@@ -6821,7 +6925,7 @@
     g.clearRect(0, 0, S, S);
     g.save();
     g.beginPath(); g.arc(cx, cy, S / 2 - 2, 0, Math.PI * 2); g.clip();
-    g.fillStyle = enMazmorra ? '#090d16' : '#1e3a5f'; g.fillRect(0, 0, S, S);
+    g.fillStyle = enInstancia ? '#090d16' : '#1e3a5f'; g.fillRect(0, 0, S, S);
 
     // Capa del mundo rotada dinámicamente alrededor del jugador
     g.save();
@@ -6850,6 +6954,17 @@
           g.lineWidth = esActual ? 1.8 : 1.4;
           g.strokeRect(sx, sy, sw, sh);
         }
+      }
+    } else if (enRecinto) {
+      dibujarRecintoEnCanvas(g, V, recActivo, { compacto: true });
+      // Ruta activa (por ejemplo "Llévame") dentro del laberinto
+      if (ruta && ruta.length >= 2) {
+        g.save();
+        g.strokeStyle = '#38bdf8'; g.lineWidth = 3; g.setLineDash([6, 4]);
+        g.beginPath();
+        ruta.forEach((q, idx) => { if (idx) g.lineTo(V.px(q.x), V.py(q.z)); else g.moveTo(V.px(q.x), V.py(q.z)); });
+        g.stroke();
+        g.restore();
       }
     } else {
       // 1. Texturas y colores de biomas del terreno (hierba, bosque, desierto, montaña, nieve, pantano, etc.)
@@ -7051,11 +7166,11 @@
 
     // 9. Monstruos y objetivos activos de misión
     const limMon = R + 8;
-    const listaMinimap = enMazmorra ? monstruosMazmorra : monsters;
+    const listaMinimap = enInstancia ? monstruosMazmorra : monsters;
     for (let i = 0, nm = listaMinimap.length; i < nm; i++) {
       const m = listaMinimap[i];
       if (!m.alive) continue;
-      if (enMazmorra ? !m.dungeonInfoRef : !!m.dungeonInfoRef) continue;
+      if (enInstancia ? !m.dungeonInfoRef : !!m.dungeonInfoRef) continue;
       if (Math.abs(m.x - px) > limMon || Math.abs(m.z - pz) > limMon) continue;
       if (m._misionActiva) {
         g.strokeStyle = '#fde047';
@@ -7063,7 +7178,7 @@
         g.beginPath(); g.arc(V.px(m.x), V.py(m.z), 5.5, 0, Math.PI * 2); g.stroke();
       }
       g.fillStyle = m.boss ? '#ef4444' : '#f97316';
-      g.beginPath(); g.arc(V.px(m.x), V.py(m.z), enMazmorra ? 3.5 : 2.5, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(V.px(m.x), V.py(m.z), enInstancia ? 3.5 : 2.5, 0, Math.PI * 2); g.fill();
     }
 
     // 10. Acompañante
@@ -7075,7 +7190,7 @@
     g.restore(); // Fin de la rotación del mundo
 
     // 11. Etiquetas derechas y legibles para Pueblos y Cabañas
-    if (!enMazmorra) {
+    if (!enInstancia) {
       g.save();
       g.font = 'bold 11px sans-serif';
       g.textAlign = 'center';
@@ -7109,7 +7224,7 @@
     g.save();
     g.setLineDash([3, 4]); g.lineWidth = 1; g.strokeStyle = 'rgba(226,232,240,.3)';
     g.font = 'bold 12px sans-serif'; g.fillStyle = 'rgba(226,232,240,.85)'; g.textAlign = 'left';
-    (enMazmorra ? [25, 50] : [100, 200]).forEach(m => {
+    (enInstancia ? [25, 50] : [100, 200]).forEach(m => {
       g.beginPath(); g.arc(cx, cy, m * V.escala, 0, Math.PI * 2); g.stroke();
       g.fillText(m + ' m', cx + 6, cy - m * V.escala + 14);
     });
@@ -7171,6 +7286,7 @@
 
   // Mapa del mundo (esquema): se abre al pulsar el minimapa. Pueblos, caminos, zonas, lugares y tu posición.
   let mapaT = null;   // transformación del esquema abierto, para leer coordenadas con el ratón
+  let mapaForzarMundo = false;
   function etiqueta(g, texto, x, y, color) {
     g.lineWidth = 4; g.strokeStyle = '#0b1220'; g.strokeText(texto, x, y);
     g.fillStyle = color; g.fillText(texto, x, y);
@@ -7178,7 +7294,22 @@
   function drawMapaMundo() {
     const cv = $('mapa-lienzo'), g = cv.getContext('2d');
     const L = cv.width;
-    const lim = MapaLib.limites(world);
+    const recActivo = (gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto) ? gestorLaberintos.recinto : null;
+    const modoLab = !!(recActivo && !mapaForzarMundo);
+    const btnModo = $('mapa-modo-btn');
+    const tituloEl = document.querySelector('#mapa-mundo h2');
+    if (btnModo) {
+      btnModo.style.display = recActivo ? '' : 'none';
+      btnModo.textContent = modoLab ? '🌍 Ver mapa del mundo' : '🌀 Ver laberinto';
+    }
+    if (tituloEl) {
+      tituloEl.textContent = modoLab ? ('🌀 ' + ((recActivo.zona && recActivo.zona.name) || 'Laberinto')) : '🗺 Mapa del mundo';
+    }
+
+    const rLab = recActivo ? (Math.max(recActivo.rMax || 130, recActivo.Rint || 100) + 18) : 130;
+    const lim = modoLab
+      ? { minX: recActivo.zx - rLab, maxX: recActivo.zx + rLab, minY: recActivo.zz - rLab, maxY: recActivo.zz + rLab }
+      : MapaLib.limites(world);
     const T = MapaLib.encajar(lim, L, L, 40);
     mapaT = T;
     const p = character.root.position;
@@ -7197,7 +7328,36 @@
       g.fillText(String(y), 6, T.py(y) - 5);
     }
     g.textAlign = 'right'; g.fillText('norte ↑', L - 10, L - 10);
-    // Zonas de combate, del mismo color que en el 3D
+
+    if (modoLab) {
+      dibujarRecintoEnCanvas(g, T, recActivo, { compacto: false });
+      if (ruta && ruta.length >= 2) {
+        g.save();
+        g.strokeStyle = '#38bdf8'; g.lineWidth = 3; g.setLineDash([7, 5]);
+        g.beginPath();
+        ruta.forEach((q, idx) => { if (idx) g.lineTo(T.px(q.x), T.py(q.z)); else g.moveTo(T.px(q.x), T.py(q.z)); });
+        g.stroke();
+        g.restore();
+      }
+      if (Array.isArray(monstruosMazmorra)) {
+        for (let i = 0; i < monstruosMazmorra.length; i++) {
+          const m = monstruosMazmorra[i];
+          if (!m.alive || !m.dungeonInfoRef) continue;
+          const mx = T.px(m.x), my = T.py(m.z);
+          if (m._misionActiva) {
+            g.strokeStyle = '#fde047'; g.lineWidth = 2;
+            g.beginPath(); g.arc(mx, my, 8, 0, Math.PI * 2); g.stroke();
+          }
+          g.fillStyle = m.boss ? '#ef4444' : '#f97316';
+          g.beginPath(); g.arc(mx, my, m.boss ? 6 : 4.5, 0, Math.PI * 2); g.fill();
+        }
+      }
+      if (acompanante && acompanante.activo) {
+        g.fillStyle = '#22c55e';
+        g.beginPath(); g.arc(T.px(acompanante.x), T.py(acompanante.z), 5.5, 0, Math.PI * 2); g.fill();
+      }
+    } else {
+      // Zonas de combate, del mismo color que en el 3D
     world.zones.forEach(z => {
       const color = '#' + zoneColor(z).getHexString();
       g.beginPath(); g.arc(T.px(z.x), T.py(z.y), z.radius * T.escala, 0, Math.PI * 2);
@@ -7262,6 +7422,7 @@
       g.fillRect(x - 6, y - 6, 12, 12);
       etiqueta(g, (t.isStart ? '⭐ ' : '') + t.name, x + 10, y + 5, t.isStart ? '#fde68a' : '#f8fafc');
     });
+    } // fin de modo mapa del mundo
     // Tú: un círculo y una flecha que indica hacia dónde miras
     const f = MapaLib.frente(character.anguloY());
     const x = T.px(p.x), y = T.py(p.z);
@@ -7277,6 +7438,7 @@
   }
 
   function abrirMapaMundo() {
+    mapaForzarMundo = false;
     $('mapa-cursor').textContent = 'Pasa el ratón o toca el mapa para ver coordenadas (x e y en metros).';
     $('mapa-mundo').classList.add('show');
     drawMapaMundo();
@@ -7284,6 +7446,9 @@
   function cerrarMapaMundo() { $('mapa-mundo').classList.remove('show'); }
   $('minimap').onclick = abrirMapaMundo;
   $('mapa-cerrar').onclick = cerrarMapaMundo;
+  if ($('mapa-modo-btn')) {
+    $('mapa-modo-btn').onclick = () => { mapaForzarMundo = !mapaForzarMundo; drawMapaMundo(); };
+  }
   // Coordenadas bajo el dedo o el ratón, y el pueblo más cercano
   function leerCoordenadas(e) {
     if (!mapaT) return;
