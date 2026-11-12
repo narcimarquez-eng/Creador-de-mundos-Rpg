@@ -1350,9 +1350,12 @@
       // Reparte los árboles entre «cerca» y «lejos» según la distancia a la cámara (solo si el visor lo pide).
       // Se recalcula al moverse la cámara más de 1 m.
       updateTreeLod(camera) {
-        if (!this.treeLod) return;
+        if (!this.treeLod && !this._casasGLB) return;
         treeLodInv.copy(this.scene.matrixWorld).invert();
         treeLodCam.setFromMatrixPosition(camera.matrixWorld).applyMatrix4(treeLodInv);
+        // Casas GLB: versión de cerca o de lejos según la distancia a la cámara
+        if (this._casasGLB) this._casasGLB.actualizar(treeLodCam);
+        if (!this.treeLod) return;
         const nivel = this.nivelArboles || 'cerca';
         if (this.treeLodPos && this.treeLodPos.distanceToSquared(treeLodCam) < 1 && this.treeLodNivel === nivel) return;
         this.treeLodPos = (this.treeLodPos || new THREE.Vector3()).copy(treeLodCam);
@@ -1395,7 +1398,7 @@
         this.objects.forEach(obj => {
           if (this.scene) this.scene.remove(obj);
           obj.traverse(c => {
-            if (c.geometry && !kitGeos.has(c.geometry) && !sharedTreeGeos.has(c.geometry) && c.geometry !== rockGeoCache) {
+            if (c.geometry && !kitGeos.has(c.geometry) && !sharedTreeGeos.has(c.geometry) && c.geometry !== rockGeoCache && !c.geometry.userData.casasGLB) {
               c.geometry.dispose();
             }
             if (c.isSprite && c.material) {
@@ -1405,6 +1408,7 @@
           });
         });
         this.objects = [];
+        this._casasGLB = null; this._fichaGLB = null;
         this.colliders = [];
         this.animatedCrystals = [];
         this.waterMesh = null;
@@ -1496,6 +1500,65 @@
           malla.castShadow = true; malla.receiveShadow = true;
           this.scene.add(malla);
           this.objects.push(malla);
+        });
+      }
+
+      // Casas GLB (js/casas-glb.js): se cargan una vez y se instancian por variante de textura. Llegan cuando
+      // termina la carga; si el pueblo se ha reconstruido entretanto, el resultado viejo se descarta.
+      construirCasasGLB(glbs, HW, HD, cfg) {
+        const L = window.CasasGLBLib;
+        this._casasGLB = null;
+        if (!L || !glbs.length) return;
+        const ficha = this._fichaGLB = {};
+        const casas = glbs.map(h => {
+          // Apoyada en la esquina más baja del solar: en una ladera el lado alto queda enterrado, nunca en el aire
+          const cosR = Math.cos(h.rot), sinR = Math.sin(h.rot);
+          let y = h.y;
+          [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+            const lx = sx * HW * 0.6 * h.wScale, lz = sz * HD * 0.6 * h.dScale;
+            y = Math.min(y, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
+          });
+          return { x: h.x, y: y - 0.05, z: h.z, rot: h.rot };
+        });
+        L.cargar(THREE).then(() => {
+          if (this._fichaGLB !== ficha) return;
+          const r = L.construir(THREE, casas, { ancho: HW * 1.35, fondo: HD * 1.35, variantes: 3, semilla: (cfg && cfg.seed) || 1 });
+          this.scene.add(r.grupo);
+          this.objects.push(r.grupo);
+          this._casasGLB = r;
+          return this.colocarPiezasGLB(r.casas, HW, HD, ficha);
+        }).catch(err => console.warn('Casas GLB no disponibles:', err));
+      }
+
+      // Piezas sueltas junto a las casas GLB: barriles, leñera, tocón, banco y farol, según la casa
+      colocarPiezasGLB(colocadas, HW, HD, ficha) {
+        const L = window.CasasGLBLib;
+        const piezas = [];
+        colocadas.forEach(c => {
+          const r = L.hash01(c.z * 1.31, c.x * 0.77);
+          const e = c.matriz.elements;
+          const rot = Math.atan2(e[8], e[10]);   // giro de la casa (eje Z local, con su azar incluido)
+          const cos = Math.cos(rot), sin = Math.sin(rot);
+          const poner = (nombre, lx, lz, giro = 0, escala = 1) => {
+            const x = c.x + lx * cos + lz * sin, z = c.z - lx * sin + lz * cos;
+            piezas.push({ nombre, x, y: this.getTerrainHeight(x, z), z, rot: rot + giro, escala });
+          };
+          const lado = r < 0.5 ? -1 : 1, ax = HW * 0.66, az = HD * 0.62;
+          if (r < 0.7) poner('barril', lado * (ax + 0.2), az - 0.6, r * 6);
+          if (r < 0.35) poner('barril', lado * (ax + 0.95), az - 0.9, r * 9);
+          if (c.modelo === 'cabana') {
+            if (r > 0.25) poner('lenera', -lado * (ax + 0.7), -az * 0.3, Math.PI / 2);
+            if (r > 0.6) poner('tocon', -lado * (ax + 0.4), az * 0.5, r * 4);
+          } else if (r > 0.45) {
+            poner('banco', -lado * (ax + 0.5), az * 0.1, lado * Math.PI / 2);
+          }
+          if (r > 0.82) poner('farol', lado * (ax + 0.5), az + 1.0, 0, 0.8);
+        });
+        if (!piezas.length) return;
+        return L.construirPiezas(THREE, piezas).then(grupo => {
+          if (this._fichaGLB !== ficha) return;
+          this.scene.add(grupo);
+          this.objects.push(grupo);
         });
       }
 
@@ -2843,10 +2906,17 @@
 
         // Casas de madera (cabañas procedurales): según el pueblo, todas o mezcladas con las casas de siempre.
         // Las de madera se componen aparte; el resto sigue en las mallas instanciadas de siempre.
-        const modoCasas = cfg.casas || 'original';
-        houses.forEach(h => { h.madera = modoCasas === 'madera' || (modoCasas === 'mixta' && hash01(h.x, h.z) < 0.4); });
-        const casas = houses.filter(h => !h.madera);
+        // 'glb': todas con los modelos GLB (glb/pueblo); 'variada' (por defecto): GLB, cabañas y casas de siempre mezcladas
+        const modoCasas = cfg.casas || 'variada';
+        const conGLB = !!window.CasasGLBLib;
+        houses.forEach(h => {
+          const r = hash01(h.x, h.z);
+          h.glb = conGLB && (modoCasas === 'glb' || (modoCasas === 'variada' && r < 0.5));
+          h.madera = !h.glb && (modoCasas === 'madera' || (modoCasas === 'mixta' && r < 0.4) || (modoCasas === 'variada' && r < 0.72));
+        });
+        const casas = houses.filter(h => !h.madera && !h.glb);
         const maderas = houses.filter(h => h.madera);
+        const glbs = houses.filter(h => h.glb);
 
         let totFloors = 0, totWins = 0, totChims = 0, totBalcs = 0;
         casas.forEach(h => {
@@ -2927,6 +2997,7 @@
         });
 
         this.construirCasasMadera(maderas, HW, HD);
+        this.construirCasasGLB(glbs, HW, HD, cfg);
 
         const iStall = makeInstanced(stallG, matCloth, stalls.length);
         const iBarrel = makeInstanced(barrelG, matAtlas, barrels.length, { castShadow: false });

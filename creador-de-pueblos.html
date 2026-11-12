@@ -380,7 +380,9 @@
     <div class="control-row">
       <label>Tipo de casas</label>
       <select id="inp-casas">
-        <option value="original" selected>Casas de piedra y tejado (actuales)</option>
+        <option value="variada" selected>Variado: casas GLB, cabañas y casas de siempre</option>
+        <option value="glb">Casas GLB (entramado y cabaña de troncos, con variantes)</option>
+        <option value="original">Casas de piedra y tejado (actuales)</option>
         <option value="madera">Cabañas de madera</option>
         <option value="mixta">Mixto (algunas cabañas de madera)</option>
       </select>
@@ -514,6 +516,7 @@
   <script type="module" src="js/three-puente.js"></script>
   <script type="module" src="js/arboles.js"></script>
   <script type="module" src="js/pueblo-edits.js"></script>
+  <script defer src="js/casas-glb.js?v=20261112g"></script>
   <script type="module" src="js/village-core.js"></script>
   <script type="module" src="js/character.js"></script>
   <script type="module">
@@ -706,7 +709,7 @@
       setVal('inp-road-w', cfg.roadWidth);
       setVal('inp-curve', cfg.curve);
       setVal('inp-trazado', cfg.trazado || 'clasico');
-      setVal('inp-casas', cfg.casas || 'original');
+      setVal('inp-casas', cfg.casas || 'variada');
       setVal('inp-trees', cfg.treeDensity);
       setVal('inp-time', cfg.time);
       setChk('chk-walls', cfg.hasWalls);

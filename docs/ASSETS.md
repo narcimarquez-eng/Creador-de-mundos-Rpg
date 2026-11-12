@@ -118,3 +118,29 @@ variante sale de una semilla fija. La colocación depende del bioma.
 `js/vendor/meshopt_simplifier.js`: módulo de navegador de [meshoptimizer](https://github.com/zeux/meshoptimizer)
 1.3 (licencia MIT, `js/vendor/LICENSE-meshoptimizer-MIT.md`). El visor lo usa para la versión lejana de los
 monstruos; `tools/simplificar-npcs.mjs` usa el mismo paquete en Node para las versiones lejanas de los NPCs.
+
+## Texturas de casas y suelos (assets/texturas)
+
+50 texturas de 512 × 512 px recortadas de las cinco hojas de referencia y hechas repetibles (mezcla con su
+copia desplazada media baldosa): `tejados/`, `madera/` (travesaños de cabaña), `suelo/` (suelo con piedras),
+`agua/` y `piedra/` (paredes de casa), cada una de `t01.jpg` a `t10.jpg` con la numeración de la hoja. Los
+nombres de cada una están en `CasasGLBLib.TEXTURAS` (`js/casas-glb.js`). Las de agua T-03 y T-08 y algunas de
+madera traían perspectiva en la foto, así que su costura se nota algo más.
+
+## Casas GLB del pueblo (glb/pueblo)
+
+`tools/preparar-casas-glb.mjs` los genera a partir de los originales de `tools/datos/casas-origen/`
+(`node tools/preparar-casas-glb.mjs`, con las dependencias de `tools/package.json` instaladas):
+
+- `casa_entramado.glb` y `cabana.glb`, cada una con su `*_lejos.glb` (texturas de 128 px y menos triángulos:
+  ~5.000 frente a ~16.000 la cabaña; la casa de entramado ya es ligera).
+- `piezas/`: fuente, banco, barril, leñera, tocón con hacha, farol (pilar con farolillo), jardinera, jardinera con
+  árbol, valla, muro del patio con su empedrado, y pino; separadas por componentes de la cabaña con patio.
+- Materiales con nombre de papel (`tejado`, `madera`, `piedra`, `madera_troncos`…): `js/casas-glb.js` cambia su
+  textura por otra de `assets/texturas/` para sacar variantes. El tejado de la casa de entramado está pintado en
+  el atlas de la fachada; la herramienta lo separa por inclinación y le añade UV planas (`uv1`) para las tejas.
+
+En el pueblo (`js/village-core.js`, campo `casas` de la configuración): `glb` pone todas las casas con estos
+modelos y `variada` (por defecto) mezcla GLB, cabañas de madera y casas de siempre. Cada casa GLB lleva un giro
+(±7°) y un tamaño propios, una de 3 variantes de textura por modelo, piezas sueltas a su alrededor (barriles,
+leñera, tocón, banco, farol) y cambia a la versión lejana a más de 70 m de la cámara.
