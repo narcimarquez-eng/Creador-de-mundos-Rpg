@@ -1909,7 +1909,7 @@
   <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20261107"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
-  <script defer src="js/relieve-zona.js?v=20261110"></script>
+  <script defer src="js/relieve-zona.js?v=20261112"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
@@ -4999,10 +4999,10 @@
 
     const cfg = Object.assign({}, elegido);
     if (clase === 'arquero') {
-      cfg.weapon = (cfg.weapon && cfg.weapon.includes('bow')) ? cfg.weapon : 'bow';
+      cfg.weapon = (cfg.weapon && cfg.weapon.includes('bow')) ? cfg.weapon : (elegido.weapon || 'bone_recurved_bow');
       cfg.tipoRango = 'arquero';
     } else if (clase === 'mago') {
-      cfg.weapon = (cfg.weapon && cfg.weapon.includes('staff')) ? cfg.weapon : 'staff';
+      cfg.weapon = (cfg.weapon && cfg.weapon.includes('staff')) ? cfg.weapon : (elegido.weapon || 'arcane_staff');
       cfg.tipoRango = 'mago';
     }
     return cfg;
@@ -5333,27 +5333,40 @@
     }
     const tipo = tipoEnemigo(m, d);
     if (!m.versiones[tipo]) {
+      // Helper para asegurar que el monstruo nunca sea invisible mientras espera GLB o presupuesto
+      const asegurarFallbackVisible = () => {
+        if (!m.rig && !m.meshProceduralFallback) {
+          m.meshProceduralFallback = crearFallbackTokenMonstruo(m);
+          m.group.add(m.meshProceduralFallback);
+        }
+        return true;
+      };
+
       // Primero el GLB de esta versión (medium para cerca, low para lejos). Si el archivo no está, se genera el
       // modelo procedural como antes: cada versión decide por su cuenta.
       const glb = EnemyGlb.pedir(m.enemigo.archetype, tipo);
-      if (glb && glb.estado === 'cargando') return !!m.rig;   // se espera a la descarga (unos milisegundos)
+      if (glb && glb.estado === 'cargando') return asegurarFallbackVisible();   // se espera a la descarga con fallback visible
       if (glb && glb.estado === 'listo') {
-        if (presupuestoModelos <= 0) return !!m.rig;   // un modelo por fotograma, como los procedurales
+        if (presupuestoModelos <= 0) return asegurarFallbackVisible();   // un modelo por fotograma, con fallback visible
         presupuestoModelos--;
         m.versiones[tipo] = instanciarVersionGlb(m, tipo, glb);
       } else {
         // Se espera al simplificador (unos milisegundos al abrir): sin él, la versión saldría con todos sus triángulos
-        if (esperandoSimplificador) return !!m.rig;
+        if (esperandoSimplificador) return asegurarFallbackVisible();
         // Solo se limita a 1 por fotograma la generación inicial del prototipo; clonar uno ya cacheado cuesta ~0.2 ms
         if (!protoEnemigoCache.has(claveCacheEnemigo(m, tipo))) {
-          if (presupuestoModelos <= 0) return !!m.rig;   // se construye en otro fotograma; mientras, la que haya
+          if (presupuestoModelos <= 0) return asegurarFallbackVisible();   // se construye en otro fotograma; mientras, fallback visible
           presupuestoModelos--;
         }
         m.versiones[tipo] = instanciarVersionEnemigo(m, tipo);
       }
     }
-    if (m.activa !== tipo) {
+    if (m.activa !== tipo && m.versiones[tipo]) {
       const v = m.versiones[tipo];
+      if (m.meshProceduralFallback) {
+        m.group.remove(m.meshProceduralFallback);
+        m.meshProceduralFallback = null;
+      }
       if (m.rig) m.group.remove(m.rig.rootGroup);
       m.rig = v.rig; m.fx = v.fx; m.barHeight = v.barHeight;
       m.tieneResplandor = !!v.tieneResplandor;
@@ -5625,7 +5638,7 @@
             leash: z.radius + 35,
             tipoRango: rol,
             esADistancia: esDist,
-            weapon: cm.clase === 'arquero' ? 'bow' : cm.clase === 'mago' ? 'staff' : 'sword',
+            weapon: cm.clase === 'arquero' ? 'bone_recurved_bow' : cm.clase === 'mago' ? 'arcane_staff' : 'sword',
             archetype: cm.clase,
             name: pref + cm.name
           });
@@ -5643,13 +5656,15 @@
           m.esADistancia = esDist;
           m.attackRange = esDist ? 18.0 : 2.5;
           m.aggro = esDist ? 24.0 : 16.0;
+          m.esLaberinto = true;
+          m.color = cm.color || '#22c55e';
 
           // Asignar modelo 3D según la clase (arquero con arco, mago con báculo, campeón élite, rápido o guerrero)
           if (window.EnemyLib) {
             m.enemigo = elegirEnemigoPorClase(cm.clase, lvl, rngC, esElite);
             if (m.enemigo) {
-              if (cm.clase === 'arquero' && (!m.enemigo.weapon || !m.enemigo.weapon.includes('bow'))) m.enemigo.weapon = 'bow';
-              if (cm.clase === 'mago' && (!m.enemigo.weapon || !m.enemigo.weapon.includes('staff'))) m.enemigo.weapon = 'staff';
+              if (cm.clase === 'arquero' && (!m.enemigo.weapon || !m.enemigo.weapon.includes('bow'))) m.enemigo.weapon = 'bone_recurved_bow';
+              if (cm.clase === 'mago' && (!m.enemigo.weapon || !m.enemigo.weapon.includes('staff'))) m.enemigo.weapon = 'arcane_staff';
             }
           } else {
             m._pendEnemigo = { info: { esLaberinto: true, clase: cm.clase, level: lvl, boss: esElite, name: cm.name }, s: semillaMon };
@@ -5675,9 +5690,12 @@
             m.group.add(halo);
           }
 
+          // Pre-montar token representativo de fallback para asegurar visibilidad 100% instantánea
+          m.meshProceduralFallback = crearFallbackTokenMonstruo(m);
+          m.group.add(m.meshProceduralFallback);
           m.rig = null;
           m.versiones = {};
-          m.group.visible = false;
+          m.group.visible = true;
           scene.add(m.group);
 
           m.bar = new THREE.Group();
@@ -5685,6 +5703,7 @@
           const fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: cm.color || '#22c55e', depthTest: false }));
           fg.position.z = 0.01;
           m.bar.add(bg); m.bar.add(fg);
+          m.fg = fg; // Asignación de m.fg requerida para la barra de vida en el bucle de actualización
           m.bar.renderOrder = 999;
           m.barHeight = esElite ? 3.8 : 2.9;
           m.bar.position.set(spX, sueloY + m.barHeight, spZ);
@@ -11458,9 +11477,72 @@
     return false;
   }
 
+  function consumeMazeReturnInVisor(w) {
+    if (!w) return;
+    let raw = null;
+    try { raw = localStorage.getItem('rpgMundo.retornoLaberinto'); } catch (e) {}
+    if (!raw) return;
+    try {
+      localStorage.removeItem('rpgMundo.retornoLaberinto');
+      const data = JSON.parse(raw);
+      const z = (w.zones || []).find(x => x.id === data.zoneId);
+      if (z) {
+        if (typeof data.radius === 'number' && data.radius >= 40) {
+          z.radius = data.radius;
+        }
+        if (data.relieve) {
+          z.relieve = Object.assign({}, z.relieve, data.relieve);
+          delete z._cacheLaberinto;
+          delete z._cacheLaberintoKey;
+
+          if (data.relieve.celdasMonstruos && Object.keys(data.relieve.celdasMonstruos).length > 0) {
+            const patronesUsados = new Set(Object.values(data.relieve.celdasMonstruos));
+            const nuevosMonstruos = [];
+            patronesUsados.forEach(patId => {
+              const pat = (data.relieve.patronesMonstruos && data.relieve.patronesMonstruos[patId]) || null;
+              if (pat) {
+                nuevosMonstruos.push({
+                  name: pat.name || pat.nombre || 'Monstruo',
+                  level: pat.levelMin || 10,
+                  levelMin: pat.levelMin || 10,
+                  levelMax: pat.levelMax || pat.levelMin || 12,
+                  count: pat.count || 1,
+                  clase: pat.clase || 'guerrero',
+                  boss: !!pat.esJefe || pat.clase === 'elite',
+                  color: pat.color || '#22c55e',
+                  icono: pat.icono || '👾'
+                });
+              }
+            });
+            if (nuevosMonstruos.length > 0) {
+              z.monsters = nuevosMonstruos;
+            }
+          }
+        }
+        if (data.conectarCaminoPueblo && w.towns && w.towns.length && typeof W !== 'undefined' && typeof W.createRoad === 'function') {
+          let bestTown = w.towns[0], bestD = Infinity;
+          w.towns.forEach(t => {
+            const d = Math.hypot(t.x - z.x, t.y - z.y);
+            if (d < bestD) { bestD = d; bestTown = t; }
+          });
+          const existing = (w.roads || []).find(r => (r.from === bestTown.id && r.to === z.id) || (r.from === z.id && r.to === bestTown.id));
+          if (!existing) {
+            W.createRoad(w, bestTown.id, z.id);
+          }
+        }
+        try {
+          if (worldId) localStorage.setItem('rpgMundo.sesion.' + worldId, W.serialize(w));
+        } catch (e) {}
+      }
+    } catch (errRet) {
+      console.warn('Error consumiendo retorno del laberinto en visor:', errRet);
+    }
+  }
+
   function loadText(text, label) {
     try {
       const w = W.deserialize(text);
+      consumeMazeReturnInVisor(w);
       // Versión 3 de monstruos: 4–8 variedades por zona y 4 densidades (baja, media, alta, muy alta).
       // Si el mundo era antiguo y sin ediciones manuales de monstruos, migra sin tocar pueblos ni niveles.
       if (typeof W.migrarMonstruosSiAntiguo === 'function' && W.migrarMonstruosSiAntiguo(w)) {

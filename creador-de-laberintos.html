@@ -334,6 +334,7 @@
   <div id="top-bar">
     <button class="top-btn" id="btn-exit">✕ Salir</button>
     <button class="top-btn gold" id="btn-reset">↺ Restaurar</button>
+    <button class="top-btn" id="btn-view3d-direct" style="background:#4338ca;color:#e0e7ff;font-weight:700">🎮 Probar en Visor 3D</button>
     <button class="top-btn primary" id="btn-save">💾 Guardar y Volver</button>
   </div>
 
@@ -561,7 +562,7 @@
     </div>
   </div>
 
-  <script src="js/relieve-zona.js?v=20261111"></script>
+  <script src="js/relieve-zona.js?v=20261112"></script>
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -2154,11 +2155,11 @@
         rebuildAll3D();
       };
 
-      // Guardar y Volver
-      document.getElementById('btn-save').onclick = () => {
+      // Función unificada de guardado y retorno
+      function saveLabyrinthData(redirectTo) {
         const payloadRetorno = {
-          sessionId: zoneData.sessionId,
-          zoneId: zoneData.zoneId,
+          sessionId: (zoneData && zoneData.sessionId) || 'default',
+          zoneId: (zoneData && zoneData.zoneId) || 'z-lab',
           radius: params.radius,
           conectarCaminoPueblo: shouldAutoConnectRoad,
           relieve: {
@@ -2183,13 +2184,83 @@
           }
         };
 
+        // 1. Guardar en retornoLaberinto para que index.html y visor-mundo.html lo sincronicen
         try {
           localStorage.setItem('rpgMundo.retornoLaberinto', JSON.stringify(payloadRetorno));
         } catch (e) {
-          console.error('Error guardando en localStorage:', e);
+          console.warn('Error guardando en retornoLaberinto:', e);
         }
-        location.href = 'index.html';
+
+        // 2. Guardar estado actualizado en editorLaberinto
+        try {
+          const editorState = Object.assign({}, zoneData, {
+            radius: params.radius,
+            relieve: payloadRetorno.relieve
+          });
+          localStorage.setItem('rpgMundo.editorLaberinto', JSON.stringify(editorState));
+        } catch (e) {}
+
+        // 3. Actualizar directamente la sesión activa en localStorage
+        try {
+          const sId = (zoneData && zoneData.sessionId) || localStorage.getItem('rpgMundo.actual');
+          if (sId) {
+            const rawSession = localStorage.getItem('rpgMundo.sesion.' + sId);
+            if (rawSession) {
+              const sesionObj = JSON.parse(rawSession);
+              const z = (sesionObj.zones || []).find(x => x.id === payloadRetorno.zoneId);
+              if (z) {
+                z.radius = params.radius;
+                z.relieve = Object.assign({}, z.relieve, payloadRetorno.relieve);
+                delete z._cacheLaberinto;
+                delete z._cacheLaberintoKey;
+
+                // Sincronizar z.monsters con los patrones y celdas asignadas
+                if (payloadRetorno.relieve.celdasMonstruos && Object.keys(payloadRetorno.relieve.celdasMonstruos).length > 0) {
+                  const patronesUsados = new Set(Object.values(payloadRetorno.relieve.celdasMonstruos));
+                  const nuevosMonstruos = [];
+                  patronesUsados.forEach(pId => {
+                    const pat = payloadRetorno.relieve.patronesMonstruos && payloadRetorno.relieve.patronesMonstruos[pId];
+                    if (pat) {
+                      nuevosMonstruos.push({
+                        name: pat.name || pat.nombre || 'Monstruo',
+                        level: pat.levelMin || 10,
+                        levelMin: pat.levelMin || 10,
+                        levelMax: pat.levelMax || pat.levelMin || 12,
+                        count: pat.count || 1,
+                        clase: pat.clase || 'guerrero',
+                        boss: !!pat.esJefe || pat.clase === 'elite',
+                        color: pat.color || '#22c55e',
+                        icono: pat.icono || '👾'
+                      });
+                    }
+                  });
+                  if (nuevosMonstruos.length > 0) {
+                    z.monsters = nuevosMonstruos;
+                  }
+                }
+                localStorage.setItem('rpgMundo.sesion.' + sId, JSON.stringify(sesionObj));
+              }
+            }
+          }
+        } catch (errSes) {
+          console.warn('Error sincronizando sesión directa:', errSes);
+        }
+
+        location.href = redirectTo;
+      }
+
+      // Guardar y Volver al Mapa
+      document.getElementById('btn-save').onclick = () => {
+        saveLabyrinthData('index.html');
       };
+
+      // Probar directamente en el Visor 3D
+      const btnViewDirect = document.getElementById('btn-view3d-direct');
+      if (btnViewDirect) {
+        btnViewDirect.onclick = () => {
+          saveLabyrinthData('visor-mundo.html');
+        };
+      }
     }
 
     // Bucle de animación

@@ -141,7 +141,7 @@
   }
 
   function zonaTieneLaberinto(z) {
-    return !!(z && z.relieve && z.relieve.activo);
+    return !!(z && z.relieve && (z.relieve.activo !== false));
   }
 
   /**
@@ -552,8 +552,12 @@
     const monstruosPorCelda = [];
     Object.keys(celdasMonstruos).forEach(key => {
       const patId = celdasMonstruos[key];
-      const pat = patronesMonstruos[patId];
-      if (!pat) return;
+      let pat = patronesMonstruos ? (patronesMonstruos[patId] || patronesMonstruos[String(patId).toLowerCase()] || patronesMonstruos[String(patId).toUpperCase()]) : null;
+      if (!pat && patronesMonstruos) {
+        const pKeys = Object.keys(patronesMonstruos);
+        if (pKeys.length) pat = patronesMonstruos[pKeys[0]];
+      }
+      if (!pat) pat = (PATRONES_MONSTRUOS_DEFECTO && PATRONES_MONSTRUOS_DEFECTO.p1) || { name: 'Monstruo', clase: 'guerrero', levelMin: 10, color: '#22c55e', count: 1 };
       const parts = key.split('_');
       if (parts.length !== 2) return;
       const gx = parseInt(parts[0], 10);
