@@ -6582,14 +6582,70 @@
     scene.add(malla);
     efectos.push({ malla, t: 0, dur, paso });
   }
-  function ondaSismica(alcance) {
+  function ondaSismica(alcance, colorHex = 0xf59e0b) {
     const p = character.root.position;
-    const malla = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 48), new THREE.MeshBasicMaterial({ color: 0xd6a35c, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
-    malla.rotation.x = -Math.PI / 2;
-    malla.position.set(p.x, p.y + 0.15, p.z);
-    efecto(malla, 0.45, k => {
-      malla.scale.setScalar(0.6 + k * (alcance - 0.6));
-      malla.material.opacity = 0.85 * (1 - k);
+    const grupo = new THREE.Group();
+    grupo.position.set(p.x, p.y + 0.16, p.z);
+    const r1 = new THREE.Mesh(
+      new THREE.RingGeometry(0.72, 1.0, 48),
+      new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    r1.rotation.x = -Math.PI / 2;
+    const r2 = new THREE.Mesh(
+      new THREE.RingGeometry(0.35, 0.55, 36),
+      new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    r2.rotation.x = -Math.PI / 2;
+    grupo.add(r1, r2);
+    marcarResplandor(r1);
+    efecto(grupo, 0.48, k => {
+      const s1 = 0.6 + k * (alcance - 0.6);
+      const s2 = 0.4 + k * (alcance * 0.72 - 0.4);
+      r1.scale.setScalar(s1);
+      r2.scale.setScalar(s2);
+      r1.material.opacity = 0.9 * (1 - k);
+      r2.material.opacity = 0.85 * Math.pow(1 - k, 1.4);
+    });
+  }
+  function crearFlecha3D(colorAstil = 0xd6b47a, colorPluma = 0xfef3c7, colorEstela = 0xfde047) {
+    const g = new THREE.Group();
+    const astil = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.022, 0.028, 0.92, 6),
+      new THREE.MeshBasicMaterial({ color: colorAstil })
+    );
+    const punta = new THREE.Mesh(
+      new THREE.ConeGeometry(0.056, 0.24, 6),
+      new THREE.MeshBasicMaterial({ color: 0xe2e8f0 })
+    );
+    punta.position.y = 0.56;
+    g.add(astil, punta);
+    const matPluma = new THREE.MeshBasicMaterial({ color: colorPluma, side: THREE.DoubleSide });
+    for (let i = 0; i < 3; i++) {
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.22), matPluma);
+      const a = (i * Math.PI * 2) / 3;
+      pl.position.set(Math.cos(a) * 0.045, -0.36, Math.sin(a) * 0.045);
+      pl.rotation.y = -a;
+      g.add(pl);
+    }
+    const estela = new THREE.Mesh(
+      new THREE.ConeGeometry(0.065, 1.05, 8),
+      new THREE.MeshBasicMaterial({ color: colorEstela, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    estela.rotation.x = Math.PI;
+    estela.position.y = -0.88;
+    g.add(estela);
+    return { g, estela };
+  }
+  function destelloImpacto(pos, colorHex = 0xfde047, escala = 1) {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28 * escala, 10, 8),
+      new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    m.position.copy(pos);
+    marcarResplandor(m);
+    efecto(m, 0.24, k => {
+      m.scale.setScalar(1 + k * 2.2);
+      m.material.opacity = 0.9 * (1 - k);
     });
   }
   function flecha(m) {
@@ -6597,15 +6653,26 @@
     const { x: fx, z: fz } = character.frente();
     const desde = new THREE.Vector3(p.x + fx * 0.5, p.y + 1.38, p.z + fz * 0.5);
     const hasta = new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.05, m.z);
-    const dir = hasta.clone().sub(desde);
-    const dist = dir.length() || 1;
-    dir.divideScalar(dist);
-    const malla = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.95, 6), new THREE.MeshBasicMaterial({ color: 0xe7d3a1 }));
-    malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-    malla.position.copy(desde);
-    efecto(malla, Math.max(0.08, Math.min(0.35, dist / 60)), k => {
+    const dist = hasta.distanceTo(desde) || 1;
+    const arco = Math.min(1.3, dist * 0.055);
+    const { g, estela } = crearFlecha3D(0xe7d3a1, 0xfef08a, 0x38bdf8);
+    g.position.copy(desde);
+    const prev = desde.clone();
+    const tmpDir = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0);
+    let impactoHecho = false;
+    efecto(g, Math.max(0.09, Math.min(0.36, dist / 58)), k => {
       hasta.set(m.x, (m.group ? m.group.position.y : p.y) + 1.05, m.z);
-      malla.position.lerpVectors(desde, hasta, k);
+      g.position.lerpVectors(desde, hasta, k);
+      g.position.y += Math.sin(k * Math.PI) * arco;
+      tmpDir.copy(g.position).sub(prev);
+      if (tmpDir.lengthSq() > 1e-6) {
+        tmpDir.normalize();
+        g.quaternion.setFromUnitVectors(up, tmpDir);
+      }
+      prev.copy(g.position);
+      estela.material.opacity = 0.55 * (1 - k * 0.5);
+      if (k >= 0.96 && !impactoHecho) { impactoHecho = true; destelloImpacto(hasta, 0x7dd3fc, 0.85); }
     });
   }
 
@@ -6615,20 +6682,27 @@
     const my = (m.group ? m.group.position.y : 0) + (m.barHeight ? m.barHeight * 0.45 : 1.3);
     const desde = new THREE.Vector3(m.x, my, m.z);
     const hasta = new THREE.Vector3(p.x, p.y + 1.1, p.z);
-    const dir = hasta.clone().sub(desde);
-    const dist = dir.length() || 1;
-    dir.divideScalar(dist);
-    const geom = new THREE.CylinderGeometry(0.025, 0.04, 0.95, 6);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x92400e });
-    const malla = new THREE.Mesh(geom, mat);
-    malla.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-    malla.position.copy(desde);
+    const dist = hasta.distanceTo(desde) || 1;
+    const arco = Math.min(1.5, dist * 0.065);
+    const { g, estela } = crearFlecha3D(0x92400e, 0xfca5a5, 0xef4444);
+    g.position.copy(desde);
+    const prev = desde.clone();
+    const tmpDir = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0);
     const dur = Math.max(0.12, Math.min(0.65, dist / 35));
-    efecto(malla, dur, k => {
+    efecto(g, dur, k => {
       if (character && character.root) {
         hasta.set(character.root.position.x, character.root.position.y + 1.1, character.root.position.z);
       }
-      malla.position.lerpVectors(desde, hasta, k);
+      g.position.lerpVectors(desde, hasta, k);
+      g.position.y += Math.sin(k * Math.PI) * arco;
+      tmpDir.copy(g.position).sub(prev);
+      if (tmpDir.lengthSq() > 1e-6) {
+        tmpDir.normalize();
+        g.quaternion.setFromUnitVectors(up, tmpDir);
+      }
+      prev.copy(g.position);
+      estela.material.opacity = 0.45 * (1 - k * 0.5);
     });
     return dur;
   }
@@ -6638,22 +6712,58 @@
     const my = (m.group ? m.group.position.y : 0) + (m.barHeight ? m.barHeight * 0.5 : 1.5);
     const desde = new THREE.Vector3(m.x, my, m.z);
     const hasta = new THREE.Vector3(p.x, p.y + 1.1, p.z);
-    const dir = hasta.clone().sub(desde);
-    const dist = dir.length() || 1;
+    const dist = hasta.distanceTo(desde) || 1;
     const colorHex = (m.enemigo && m.enemigo.materials && m.enemigo.materials.emissiveColor) ? m.enemigo.materials.emissiveColor : 0x7dd3fc;
-    const geom = new THREE.SphereGeometry(0.32, 12, 10);
-    const mat = new THREE.MeshBasicMaterial({ color: colorHex });
-    const malla = new THREE.Mesh(geom, mat);
-    malla.position.copy(desde);
-    marcarResplandor(malla);
+    const g = new THREE.Group();
+    const nucleo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.24, 12, 10),
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.45, 12, 10),
+      new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.65, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    const aro1 = new THREE.Mesh(
+      new THREE.TorusGeometry(0.44, 0.03, 6, 22),
+      new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending })
+    );
+    const aro2 = new THREE.Mesh(
+      new THREE.TorusGeometry(0.36, 0.025, 6, 20),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending })
+    );
+    aro1.rotation.x = Math.PI * 0.35;
+    aro2.rotation.y = Math.PI * 0.4;
+    g.add(nucleo, halo, aro1, aro2);
+    const chispas = [];
+    const geoCh = new THREE.SphereGeometry(0.065, 6, 6);
+    const matCh = new THREE.MeshBasicMaterial({ color: colorHex, blending: THREE.AdditiveBlending });
+    for (let i = 0; i < 4; i++) {
+      const ch = new THREE.Mesh(geoCh, matCh);
+      g.add(ch);
+      chispas.push(ch);
+    }
+    g.position.copy(desde);
+    marcarResplandor(nucleo);
+    marcarResplandor(aro1);
     const dur = Math.max(0.15, Math.min(0.85, dist / 26));
-    efecto(malla, dur, k => {
+    let impactoHecho = false;
+    efecto(g, dur, k => {
       if (character && character.root) {
         hasta.set(character.root.position.x, character.root.position.y + 1.1, character.root.position.z);
       }
-      malla.position.lerpVectors(desde, hasta, k);
-      malla.position.y += Math.sin(k * Math.PI) * 0.45;
-      malla.scale.setScalar(1.0 + Math.sin(k * 15) * 0.25);
+      g.position.lerpVectors(desde, hasta, k);
+      g.position.y += Math.sin(k * Math.PI) * 0.5;
+      aro1.rotation.z += 0.28;
+      aro1.rotation.y += 0.14;
+      aro2.rotation.x -= 0.24;
+      aro2.rotation.z += 0.16;
+      const pulso = 1.0 + Math.sin(k * 18) * 0.2;
+      halo.scale.setScalar(pulso);
+      for (let i = 0; i < chispas.length; i++) {
+        const ang = k * 14 + (i * Math.PI * 2) / chispas.length;
+        chispas[i].position.set(Math.cos(ang) * 0.48, Math.sin(ang * 1.5) * 0.24, Math.sin(ang) * 0.48);
+      }
+      if (k >= 0.96 && !impactoHecho) { impactoHecho = true; destelloImpacto(hasta, colorHex, 1.3); }
     });
     return dur;
   }
@@ -6663,7 +6773,17 @@
       e.t += dt;
       const k = Math.min(1, e.t / e.dur);
       e.paso(k);
-      if (k >= 1) { scene.remove(e.malla); e.malla.geometry.dispose(); e.malla.material.dispose(); efectos.splice(i, 1); }
+      if (k >= 1) {
+        scene.remove(e.malla);
+        const geos = new Set(), mats = new Set();
+        e.malla.traverse(c => {
+          if (c.geometry) geos.add(c.geometry);
+          if (c.material) mats.add(c.material);
+        });
+        geos.forEach(g => g.dispose());
+        mats.forEach(m => m.dispose());
+        efectos.splice(i, 1);
+      }
     }
   }
 

@@ -92,6 +92,18 @@
         g.computeVertexNormals();
         if (o.material) o.material.flatShading = false;
       }
+      if (o.material && o.material.isMeshStandardMaterial) {
+        const m = o.material;
+        if (m.metalness > 0.25) m.metalness = 0.15;
+        m.roughness = Math.min(0.86, Math.max(0.45, m.roughness || 0.7));
+        if (m.color && (m.color.r + m.color.g + m.color.b) < 1.5) {
+          m.color.setRGB(Math.min(1, m.color.r * 1.45 + 0.08), Math.min(1, m.color.g * 1.45 + 0.07), Math.min(1, m.color.b * 1.45 + 0.06));
+        }
+        if (m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b) < 0.05) {
+          m.emissive.setRGB(0.14, 0.11, 0.085);
+          m.emissiveIntensity = 0.26;
+        }
+      }
       g.userData.casasGLB = true;   // compartida entre pueblos: el pueblo no la libera al reconstruirse
       g.computeBoundingSphere();
       out.push({ geometria: g, material: o.material, nombre: (o.material && o.material.name) || '' });
@@ -154,13 +166,20 @@
     m.map = t;
     // Las fotos ya traen su color: sin el oscurecido que llevaba la textura original
     const ti = cambio.tinte || [1, 1, 1];
-    m.color.setRGB(ti[0], ti[1], ti[2]);
+    m.color.setRGB(Math.min(1, ti[0] * 1.12), Math.min(1, ti[1] * 1.12), Math.min(1, ti[2] * 1.12));
+    if (m.isMeshStandardMaterial) {
+      if (m.metalness > 0.25) m.metalness = 0.15;
+      if (m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b) < 0.05) {
+        m.emissive.setRGB(0.11, 0.09, 0.07);
+        m.emissiveIntensity = 0.24;
+      }
+    }
     matCache.set(clave, m);
     return m;
   }
 
   // Variantes de un modelo: combinaciones de texturas elegidas con una semilla (la primera es la original)
-  function variantes(clave, cuantas, semilla, forzar) {
+  function variantes(clave, cuantas, semilla) {
     const def = MODELOS[clave], r = rng(semilla + clave.length * 977);
     const lista = [{ id: 'original', cambios: {} }];
     for (let v = 1; v < cuantas; v++) {
@@ -173,23 +192,6 @@
         if (c.igualA && cambios[c.igualA]) cambios[papel] = Object.assign({}, cambios[c.igualA], { canal: c.canal }, c.tinte ? { tinte: c.tinte } : {});
       });
       lista.push({ id: Object.values(cambios).map(c => c.grupo[0] + c.id).join('-'), cambios });
-    }
-    // Texturas fijadas para todo el pueblo ({ tejado: 'tejados/t01', piedra: 'piedra/t03', madera: 'madera/t07' }):
-    // mandan sobre el azar en todas las variantes, también en la original
-    if (forzar) {
-      const deGrupo = { tejados: forzar.tejado, piedra: forzar.piedra, madera: forzar.madera };
-      lista.forEach(v => {
-        let cambio = false;
-        Object.entries(def.cambiables).forEach(([papel, c]) => {
-          const grupo = c.grupo || (def.cambiables[c.igualA] || {}).grupo;
-          const fijada = deGrupo[grupo];
-          if (!fijada || fijada.split('/')[0] !== grupo) return;
-          const base = def.cambiables[c.igualA] || c;
-          v.cambios[papel] = { grupo, id: fijada.split('/')[1], repetir: base.repetir, canal: c.canal !== undefined ? c.canal : base.canal, tinte: c.tinte || base.tinte };
-          cambio = true;
-        });
-        if (cambio) v.id += '|' + [forzar.tejado, forzar.piedra, forzar.madera].join(',');
-      });
     }
     return lista;
   }
@@ -221,7 +223,7 @@
         new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), giro), new THREE.Vector3(sx, sy, sz));
       const clave = modelo + '#' + variante;
       if (!porLote.has(clave)) {
-        const vars = variantes(modelo, nVar, opts.semilla || 1, opts.texturas);
+        const vars = variantes(modelo, nVar, opts.semilla || 1);
         porLote.set(clave, { modelo, variante: vars[variante % vars.length], casas: [] });
       }
       const info = { matriz: m, x: c.x, z: c.z, lejos: false, modelo, variante };

@@ -1503,61 +1503,6 @@
         });
       }
 
-      // Superficie de las calles: la sillería del atlas o, si el pueblo eligió textura de calles, su foto
-      // (u a lo ancho; v recorre 0,25–0,5 cada 5 m, así que ×4 da una foto entera cada 5 m)
-      materialCalle() {
-        const T = window.TexturasLib;
-        const id = this.cfg && this.cfg.texturas && this.cfg.texturas.calles;
-        if (!T || !T.valida(id)) return matAtlas;
-        kitState.matCalles = kitState.matCalles || {};
-        if (!kitState.matCalles[id]) {
-          const map = T.textura(THREE, id, { repetir: [1, 4] });
-          kitState.matCalles[id] = new THREE.MeshStandardMaterial({ map, bumpMap: map, bumpScale: 0.06, roughness: 0.86, metalness: 0.04, side: THREE.DoubleSide });
-        }
-        return kitState.matCalles[id];
-      }
-
-      // Texturas de la biblioteca (js/texturas-lib.js) elegidas en el Creador de Pueblos:
-      //   tejado, fachada, piedra y madera se pintan en su banda del atlas de casas y murallas;
-      //   la plaza cambia su textura (las calles la eligen al construirse, ver materialCalle). Llegan cuando cargan las fotos; si el pueblo se reconstruye
-      //   entretanto, el resultado viejo se descarta. Cada pueblo usa sus propias copias de los materiales.
-      aplicarTexturas(tex) {
-        const T = window.TexturasLib;
-        const ficha = this._fichaTex = {};
-        if (!T || !tex) return;
-        const reemplazos = new Map();
-        const tareas = [];
-        const bandas = {};
-        [['tejado', 0], ['fachada', 1], ['piedra', 2], ['madera', 3]].forEach(([k, i]) => { if (T.valida(tex[k])) bandas[i] = tex[k]; });
-        if (Object.keys(bandas).length && matAtlas.map && matAtlas.map.image) {
-          tareas.push(T.atlasConBandas(matAtlas.map.image, bandas, 4).then(cv => {
-            const t = new THREE.CanvasTexture(cv);
-            ['wrapS', 'wrapT', 'flipY', 'anisotropy', 'colorSpace'].forEach(p => { t[p] = matAtlas.map[p]; });
-            t.repeat.copy(matAtlas.map.repeat); t.offset.copy(matAtlas.map.offset);
-            const m = matAtlas.clone();
-            m.map = t;
-            m.bumpMap = t;   // el relieve sale del propio atlas (las bandas nuevas no tienen relieve dibujado)
-            reemplazos.set(matAtlas, m);
-          }));
-        }
-        const foto = (mat, id, rep) => {
-          if (!T.valida(id)) return;
-          const m = mat.clone();
-          m.map = T.textura(THREE, id, { repetir: rep });
-          if (m.bumpMap) m.bumpMap = m.map;
-          reemplazos.set(mat, m);
-        };
-        foto(matPlaza, tex.plaza, [8, 8]);
-        Promise.all(tareas).then(() => {
-          if (this._fichaTex !== ficha || !reemplazos.size) return;
-          this.objects.forEach(o => o.traverse(c => {
-            if (!c.material) return;
-            if (Array.isArray(c.material)) c.material = c.material.map(mm => reemplazos.get(mm) || mm);
-            else if (reemplazos.has(c.material)) c.material = reemplazos.get(c.material);
-          }));
-        }).catch(err => console.warn('Texturas del pueblo no aplicadas:', err));
-      }
-
       // Casas GLB (js/casas-glb.js): se cargan una vez y se instancian por variante de textura. Llegan cuando
       // termina la carga; si el pueblo se ha reconstruido entretanto, el resultado viejo se descarta.
       construirCasasGLB(glbs, HW, HD, cfg) {
@@ -1577,7 +1522,7 @@
         });
         L.cargar(THREE).then(() => {
           if (this._fichaGLB !== ficha) return;
-          const r = L.construir(THREE, casas, { ancho: HW * 1.35, fondo: HD * 1.35, variantes: 3, semilla: (cfg && cfg.seed) || 1, texturas: cfg && cfg.texturas });
+          const r = L.construir(THREE, casas, { ancho: HW * 1.35, fondo: HD * 1.35, variantes: 3, semilla: (cfg && cfg.seed) || 1 });
           this.scene.add(r.grupo);
           this.objects.push(r.grupo);
           this._casasGLB = r;
@@ -1750,7 +1695,7 @@
         geom.computeVertexNormals();
 
         const grupo = new THREE.Group();
-        const superficie = new THREE.Mesh(geom, this.materialCalle());
+        const superficie = new THREE.Mesh(geom, matAtlas);
         superficie.receiveShadow = true;
         grupo.add(superficie);
 
@@ -1992,12 +1937,23 @@
             if (!b) break;           // el cruce llega al final del terreno: no se puede cerrar
             const mid = pts[Math.floor((i + j) / 2)];
             if (!onMainBridge(mid)) {
-              // Puente pequeño de piedra alineado con la calle
+              // Puente secundario: alterna entre pasarela rústica de madera y puente pequeño de piedra
               const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
-              // Tablero de piedra sobre el río, 1,45 m por encima de la orilla más alta (con su joroba)
+              const esMadera = (width < cfg.roadWidth * 0.85) || (Math.abs(Math.round(mid.z)) % 2 === 1);
+              const hA = this.getTerrainHeight(a.x, a.z) + (esMadera ? 1.25 : 1.45);
+              const hB = this.getTerrainHeight(b.x, b.z) + (esMadera ? 1.25 : 1.45);
               const topAt = this.construirTablero(roadsGroup, a, b, {
-                ancho: width + 1.2, hA: this.getTerrainHeight(a.x, a.z) + 1.45, hB: this.getTerrainHeight(b.x, b.z) + 1.45,
-                arco: 0.35, grosor: 1.1, tramos: 4, mat: matAtlas
+                ancho: width + 1.1, hA, hB,
+                arco: esMadera ? 0.45 : 0.35, grosor: esMadera ? 0.55 : 1.1, tramos: esMadera ? 6 : 4,
+                mat: esMadera ? matSignWood : matAtlas
+              });
+              // Barandillas laterales para distinguir el puente secundario
+              [-width * 0.52, width * 0.52].forEach(lat => {
+                this.construirTablero(roadsGroup, a, b, {
+                  ancho: esMadera ? 0.22 : 0.45, hA, hB,
+                  arco: esMadera ? 0.45 : 0.35, grosor: esMadera ? 0.18 : 0.85, tramos: 4,
+                  mat: esMadera ? matSignWood : matAtlas, lateral: lat, arriba: esMadera ? 0.85 : 0.8
+                });
               });
               this.extraBridges.push({
                 cx: (a.x + b.x) / 2, cz: (a.z + b.z) / 2,
@@ -2107,8 +2063,8 @@
         const { rng, edit, styleObj, houses, trees, fences, addStreet, especieFor } = ctx;
         const g = this.manzanaGeo;
         const H = cfg.roadWidth * 0.5 + 1.0;   // del centro de la calle al borde de la manzana (en u y v)
-        const FRENTE = 12.5, FONDO = 15, PUERTA = 2.6, TRAMO = 4.5;
-        const CASA_FONDO = 5.5;                // distancia desde el frente del solar al centro de la casa
+        const FRENTE = 13.5, FONDO = 15.5, PUERTA = 4.8, TRAMO = 4.5;
+        const CASA_FONDO = 6.2;                // distancia desde el frente del solar al centro de la casa
         const FRACCION_VALLADAS = 0.6;         // parte de las casas con verja
 
         // Trozos de hasta TRAMO a lo largo de una polilínea
@@ -2183,11 +2139,13 @@
                 const moved = edit.movedHouses.get(key);
                 const tieneCasa = tiene && !removed;
 
-                if (tieneCasa && cfg.hasFences && conVALLA) {
-                  vallar(key + 'f1', muestra(c => P(c, 0), c0, cm - PUERTA / 2));
-                  vallar(key + 'f2', muestra(c => P(c, 0), cm + PUERTA / 2, c1));
-                  vallar(key + 'r', muestra(d => P(c1, d), 0, FONDO));
-                  if (k === 0) vallar(key + 'l', muestra(d => P(c0, d), 0, FONDO));
+                if (tieneCasa && cfg.hasFences && conVALLA && !moved && w >= 10.5) {
+                  // Deja siempre libre el acceso frontal (PUERTA = 4.8 m) para no cruzar porches ni escaleras
+                  const margenPuerta = Math.min(PUERTA / 2, w * 0.34);
+                  if (cm - margenPuerta - c0 >= 1.4) vallar(key + 'f1', muestra(c => P(c, -0.35), c0, cm - margenPuerta));
+                  if (c1 - (cm + margenPuerta) >= 1.4) vallar(key + 'f2', muestra(c => P(c, -0.35), cm + margenPuerta, c1));
+                  vallar(key + 'r', muestra(d => P(c1, d), -0.35, FONDO));
+                  if (k === 0) vallar(key + 'l', muestra(d => P(c0, d), -0.35, FONDO));
                   vallar(key + 'b', muestra(c => P(c, FONDO), c1, c0));
                 }
 
@@ -2197,7 +2155,8 @@
                   const n = g.normal(lado.eje === 'u' ? lado.f : cm, lado.eje === 'u' ? cm : lado.f, lado.eje, lado.sgn);
                   houses.push({
                     id: key, x: px, y: hy, z: pz, rot: Math.atan2(n.x, n.z),
-                    wScale, dScale, floors, tint, chimney, balcony
+                    wScale: Math.min(1.10, wScale), dScale: Math.min(1.10, dScale), floors, tint, chimney, balcony,
+                    slotIdx: k, distCentro: Math.hypot(px, pz)
                   });
                   if (houses.length === 1) this.sampleHousePos.set(px, hy, pz);
                   this.colliders.push({ type: 'circle', house: true, id: key, x: px, z: pz, r: 4.5 });
@@ -2343,29 +2302,65 @@
           };
 
           bridgeGroup = new THREE.Group();
-          // Tablero que une las dos orillas por la calle principal: sigue la altura del terreno en cada extremo
+          // Tablero que une las dos orillas por la calle principal: 3 estilos distintos según pueblo/semilla
           const halfS = bSpan * 0.5 + 3.5;
           const pA = { x: bx - halfS, z: 0 }, pB = { x: bx + halfS, z: 0 };
           const hA = this.getTerrainHeight(pA.x, pA.z) + 0.16, hB = this.getTerrainHeight(pB.x, pB.z) + 0.16;
+          const estiloPuente = cfg.bridgeStyle != null ? cfg.bridgeStyle : (Math.abs(Math.floor(cfg.seed || 1)) % 3);
+          const esPuenteMadera = estiloPuente === 1;
+          const arcoPuente = estiloPuente === 0 ? 1.45 : (esPuenteMadera ? 0.75 : 0.95);
+          const grosorPuente = esPuenteMadera ? 0.58 : 1.15;
+          const matTablero = esPuenteMadera ? matSignWood : matAtlas;
           const topAt = this.construirTablero(bridgeGroup, pA, pB, {
-            ancho: cfg.roadWidth + 1.2, hA, hB, arco: 1.2, grosor: 1.1, tramos: 12, mat: matAtlas
+            ancho: cfg.roadWidth + 1.2, hA, hB, arco: arcoPuente, grosor: grosorPuente, tramos: 12, mat: matTablero
           });
-          // Barandillas: mismo tablero, desplazadas a cada lado y levantadas sobre la superficie
+          // Barandillas según estilo (madera abierta con postes vs pretil de piedra con pilastras)
           [-cfg.roadWidth * 0.55, cfg.roadWidth * 0.55].forEach(pz => {
-            this.construirTablero(bridgeGroup, pA, pB, {
-              ancho: 0.65, hA, hB, arco: 1.2, grosor: 1.2, tramos: 12, mat: matAtlas, lateral: pz, arriba: 1.15
-            });
+            if (esPuenteMadera) {
+              this.construirTablero(bridgeGroup, pA, pB, {
+                ancho: 0.24, hA, hB, arco: arcoPuente, grosor: 0.18, tramos: 10, mat: matSignWood, lateral: pz, arriba: 1.05
+              });
+              this.construirTablero(bridgeGroup, pA, pB, {
+                ancho: 0.18, hA, hB, arco: arcoPuente, grosor: 0.14, tramos: 10, mat: matSignWood, lateral: pz, arriba: 0.55
+              });
+            } else {
+              this.construirTablero(bridgeGroup, pA, pB, {
+                ancho: 0.65, hA, hB, arco: arcoPuente, grosor: 1.15, tramos: 12, mat: matAtlas, lateral: pz, arriba: 1.1
+              });
+            }
+            // Pilares / postes verticales a lo largo del puente
+            const nPostes = esPuenteMadera ? 7 : 5;
+            for (let pi = 0; pi < nPostes; pi++) {
+              const s = pi / (nPostes - 1);
+              const px = pA.x + (pB.x - pA.x) * s;
+              const py = topAt(s);
+              const esExtremoOCentro = (pi === 0 || pi === nPostes - 1 || pi === Math.floor(nPostes / 2));
+              const wPost = esPuenteMadera ? 0.34 : (estiloPuente === 2 && esExtremoOCentro ? 1.05 : 0.85);
+              const hPost = esPuenteMadera ? 1.25 : (estiloPuente === 2 && esExtremoOCentro ? 1.65 : 1.35);
+              const postM = new THREE.Mesh(new THREE.BoxGeometry(wPost, hPost, wPost), matTablero);
+              postM.position.set(px, py + hPost * 0.5 - 0.1, pz);
+              postM.castShadow = postM.receiveShadow = true;
+              bridgeGroup.add(postM);
+              // Pilares de apoyo sumergidos hasta el lecho del río
+              if (pi > 0 && pi < nPostes - 1 && (pi % 2 === 1 || !esPuenteMadera)) {
+                const pilar = new THREE.Mesh(new THREE.BoxGeometry(esPuenteMadera ? 0.5 : 1.1, 4.2, esPuenteMadera ? 0.5 : 1.1), matTablero);
+                pilar.position.set(px, py - 2.1, pz * 0.88);
+                pilar.castShadow = pilar.receiveShadow = true;
+                bridgeGroup.add(pilar);
+              }
+            }
             this.colliders.push({ type: 'box', minX: this.bridgeBounds.minX, maxX: this.bridgeBounds.maxX, minZ: pz - 0.45, maxZ: pz + 0.45 });
           });
           this.bridgeTopAt = topAt;
 
           if (cfg.hasLamps) {
-            const alturaFarola = x => topAt((x - pA.x) / (pB.x - pA.x)) + 2.6;
+            const alturaFarola = x => topAt((x - pA.x) / (pB.x - pA.x)) + (esPuenteMadera ? 1.15 : 1.35);
+            const estBridge = estiloPuente === 1 ? 1 : (estiloPuente === 2 ? 2 : 0);
             lampsList.push(
-              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0 },
-              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0 },
-              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI },
-              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI }
+              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0, style: estBridge },
+              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0, style: estBridge },
+              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI, style: estBridge },
+              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI, style: estBridge }
             );
           }
         }
@@ -2829,15 +2824,54 @@
         });
 
         if (cfg.hasLamps) {
-          for (let lz = -(townRadius - 6); lz <= (townRadius - 6); lz += 14) {
+          const cercaDeCasa = (x, z) => houses.some(h => Math.hypot(h.x - x, h.z - z) < 5.6);
+          const cercaDeFarola = (x, z) => lampsList.some(l => Math.hypot(l.x - x, l.z - z) < 10.5);
+          const enRio = (x, z) => cfg.hasRiver && Math.abs(x - this.getRiverX(z)) < RIVER_WIDTH * 0.72;
+          const ponerFarolaCalle = (x, z, rot, style) => {
+            if (enRio(x, z) || cercaDeCasa(x, z) || cercaDeFarola(x, z)) return;
+            lampsList.push({ x, y: this.getTerrainHeight(x, z), z, rot, style });
+          };
+          for (let lz = -(townRadius - 6); lz <= (townRadius - 6); lz += 16) {
             const rx = this.getMainRoadX(lz);
             const lx1 = rx - (cfg.roadWidth * 0.5 + 0.9);
             const lx2 = rx + (cfg.roadWidth * 0.5 + 0.9);
-            lampsList.push(
-              { x: lx1, y: this.getTerrainHeight(lx1, lz), z: lz, rot: Math.PI * 0.5 },
-              { x: lx2, y: this.getTerrainHeight(lx2, lz), z: lz, rot: -Math.PI * 0.5 }
-            );
+            const stMain = (Math.abs(Math.round(lz / 16)) % 2 === 0) ? 0 : 2;
+            ponerFarolaCalle(lx1, lz, Math.PI * 0.5, stMain);
+            ponerFarolaCalle(lx2, lz, -Math.PI * 0.5, stMain);
           }
+          // Farolas en todas las demás calles del pueblo con estilos variados
+          this.editables.streets.forEach((st, sIdx) => {
+            if (!st || !st.pts || st.pts.length < 2) return;
+            if (st.id && st.id.startsWith('acceso-')) return;
+            const anchoCalle = st.width || cfg.roadWidth;
+            const distBorde = anchoCalle * 0.5 + 0.85;
+            const estiloCalle = anchoCalle >= cfg.roadWidth * 0.9 ? (sIdx % 2 === 0 ? 0 : 2) : 1;
+            let acum = 9; // empieza a ~9 m del cruce
+            for (let i = 1; i < st.pts.length; i++) {
+              const a = st.pts[i - 1], b = st.pts[i];
+              const dx = b.x - a.x, dz = b.z - a.z, segL = Math.hypot(dx, dz);
+              if (segL < 0.5) continue;
+              const ux = dx / segL, uz = dz / segL;
+              const nx = -uz, nz = ux;
+              let d = 0;
+              while (d < segL) {
+                const falta = 19 - acum;
+                if (d + falta <= segL) {
+                  d += falta;
+                  acum = 0;
+                  const px = a.x + ux * d, pz = a.z + uz * d;
+                  const lado = ((i + Math.round(d)) % 2 === 0) ? 1 : -1;
+                  const fx = px + nx * distBorde * lado;
+                  const fz = pz + nz * distBorde * lado;
+                  const rot = Math.atan2(-nx * lado, -nz * lado);
+                  ponerFarolaCalle(fx, fz, rot, estiloCalle);
+                } else {
+                  acum += (segL - d);
+                  d = segL;
+                }
+              }
+            }
+          });
         }
 
         const forestTotal = Math.floor(130 * (cfg.treeDensity / 100));
@@ -2920,9 +2954,33 @@
           const reg = g => { g.computeBoundingSphere(); kitGeos.add(g); return g; };
           const plinthG = new THREE.BoxGeometry(HW + 0.42, PH, HD + 0.42); mapUVBand(plinthG, 0.25, 0.50);
           const barrelG = new THREE.CylinderGeometry(0.38, 0.42, 0.95, 8); mapUVBand(barrelG, 0.0, 0.25); barrelG.translate(0, 0.48, 0);
+          // 3 estilos de farolas: 0 = hierro clásico, 1 = madera rústica colgante, 2 = columna de piedra señorial
           const postG = new THREE.CylinderGeometry(0.09, 0.16, 4.0, 8); postG.translate(0, 2.0, 0);
           const armG = new THREE.BoxGeometry(0.1, 0.1, 0.85); armG.translate(0, 3.95, 0.42);
           const lanternG = new THREE.CylinderGeometry(0.22, 0.14, 0.45, 6); lanternG.translate(0, 3.75, 0.8);
+
+          const postMaderaG = mergeGeometriesList([
+            pB(0.22, 3.6, 0.22, 0, 1.8, 0),
+            pB(0.32, 0.25, 0.32, 0, 0.12, 0)
+          ]);
+          const armMaderaG = mergeGeometriesList([
+            pB(0.14, 0.14, 0.95, 0, 3.45, 0.42),
+            pB(0.10, 0.45, 0.10, 0, 3.22, 0.28, 0.72)
+          ]);
+          const lanternMaderaG = new THREE.BoxGeometry(0.32, 0.42, 0.32); lanternMaderaG.translate(0, 3.16, 0.82);
+
+          const postPiedraG = mergeGeometriesList([
+            pB(0.42, 0.45, 0.42, 0, 0.22, 0),
+            pB(0.28, 2.9, 0.28, 0, 1.85, 0),
+            pB(0.46, 0.22, 0.46, 0, 3.4, 0)
+          ]);
+          mapUVBand(postPiedraG, 0.25, 0.50);
+          const armPiedraG = mergeGeometriesList([
+            pB(0.12, 0.28, 0.12, 0, 3.62, 0),
+            pB(0.42, 0.08, 0.42, 0, 4.12, 0)
+          ]);
+          const lanternPiedraG = new THREE.CylinderGeometry(0.24, 0.20, 0.48, 8); lanternPiedraG.translate(0, 3.88, 0);
+
           const poolG = new THREE.PlaneGeometry(7.5, 7.5); poolG.rotateX(-Math.PI / 2);
           const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95); hedgeG.translate(0, 0.48, 0);
           const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
@@ -2952,22 +3010,41 @@
             postG: reg(postG),
             armG: reg(armG),
             lanternG: reg(lanternG),
+            postMaderaG: reg(postMaderaG),
+            armMaderaG: reg(armMaderaG),
+            lanternMaderaG: reg(lanternMaderaG),
+            postPiedraG: reg(postPiedraG),
+            armPiedraG: reg(armPiedraG),
+            lanternPiedraG: reg(lanternPiedraG),
             poolG: reg(poolG),
             hedgeG: reg(hedgeG),
             fenceG: reg(fenceG)
           };
         }
-        const { plinthG, wallG, roofG, gableG, winGlassG, winFrameG, doorG, chimG, balcG, stallG, barrelG, postG, armG, lanternG, poolG, hedgeG, fenceG } = kitProto;
+        const { plinthG, wallG, roofG, gableG, winGlassG, winFrameG, doorG, chimG, balcG, stallG, barrelG, postG, armG, lanternG, postMaderaG, armMaderaG, lanternMaderaG, postPiedraG, armPiedraG, lanternPiedraG, poolG, hedgeG, fenceG } = kitProto;
 
-        // Casas de madera (cabañas procedurales): según el pueblo, todas o mezcladas con las casas de siempre.
-        // Las de madera se componen aparte; el resto sigue en las mallas instanciadas de siempre.
-        // 'glb': todas con los modelos GLB (glb/pueblo); 'variada' (por defecto): GLB, cabañas y casas de siempre mezcladas
+        // Reparto urbano con más sentido: cerca de la plaza predominan casas de piedra y GLB alternadas sin repetir
+        // seguidas; hacia las afueras aumentan las cabañas de madera.
         const modoCasas = cfg.casas || 'variada';
         const conGLB = !!window.CasasGLBLib;
-        houses.forEach(h => {
+        houses.forEach((h, idx) => {
           const r = hash01(h.x, h.z);
-          h.glb = conGLB && (modoCasas === 'glb' || (modoCasas === 'variada' && r < 0.5));
-          h.madera = !h.glb && (modoCasas === 'madera' || (modoCasas === 'mixta' && r < 0.4) || (modoCasas === 'variada' && r < 0.72));
+          const esCentro = (h.distCentro || Math.hypot(h.x, h.z)) < townRadius * 0.58;
+          const par = (h.slotIdx != null ? h.slotIdx : idx) % 2 === 0;
+          if (modoCasas === 'glb') {
+            h.glb = conGLB;
+            h.madera = false;
+          } else if (modoCasas === 'madera') {
+            h.glb = false;
+            h.madera = true;
+          } else if (modoCasas === 'mixta') {
+            h.glb = false;
+            h.madera = r < (esCentro ? 0.28 : 0.52);
+          } else {
+            // 'variada': alterna casas de piedra, GLB y cabañas con coherencia centro/afueras
+            h.glb = conGLB && (esCentro ? (par ? r < 0.72 : r < 0.35) : r < 0.38);
+            h.madera = !h.glb && (esCentro ? r < 0.32 : r < 0.68);
+          }
         });
         const casas = houses.filter(h => !h.madera && !h.glb);
         const maderas = houses.filter(h => h.madera);
@@ -3129,33 +3206,48 @@
         });
 
         // Farolas: las de fábrica se numeran por orden (f0, f1…). Las quitadas no se dibujan; las nuevas se suman.
-        lampsList.forEach((l, idx) => { l.id = 'f' + idx; });
+        lampsList.forEach((l, idx) => { l.id = 'f' + idx; if (l.style == null) l.style = idx % 3; });
         const lampsAll = lampsList
           .filter(l => !edit.removedLamps.has(l.id))
-          .concat(edit.addedLamps.map(l => ({ id: l.id, x: l.x, y: this.getTerrainHeight(l.x, l.z), z: l.z, rot: 0 })));
+          .concat(edit.addedLamps.map((l, idx) => ({ id: l.id, x: l.x, y: this.getTerrainHeight(l.x, l.z), z: l.z, rot: 0, style: l.style != null ? l.style : idx % 3 })));
         this.editables.lamps = lampsAll.map(l => ({ id: l.id, x: l.x, z: l.z }));
 
-        const iLampPost = makeInstanced(postG, matIron, lampsAll.length);
-        const iLampArm = makeInstanced(armG, matIron, lampsAll.length);
-        const iLantern = makeInstanced(lanternG, matGlassGlow, lampsAll.length, { castShadow: false });
+        const lampDefs = [
+          { post: postG, arm: armG, lantern: lanternG, matPost: matIron, matArm: matIron, poolOffZ: 0.8 },
+          { post: postMaderaG, arm: armMaderaG, lantern: lanternMaderaG, matPost: matSignWood, matArm: matSignWood, poolOffZ: 0.8 },
+          { post: postPiedraG, arm: armPiedraG, lantern: lanternPiedraG, matPost: matAtlas, matArm: matIron, poolOffZ: 0.0 }
+        ];
+        const lampsByStyle = [[], [], []];
+        lampsAll.forEach(l => {
+          const st = (l.style === 1 || l.style === 2) ? l.style : 0;
+          lampsByStyle[st].push(l);
+        });
         const iLightPool = makeInstanced(poolG, matLightPool, lampsAll.length, { castShadow: false, receiveShadow: false });
         this.lightPoolMesh = iLightPool;
         this.lightPoolCount = lampsAll.length;
         iLightPool.visible = lampsAll.length > 0 && matLightPool.opacity > 0.005;
 
-        lampsAll.forEach((l, idx) => {
-          dPos.set(l.x, l.y, l.z);
-          dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), l.rot);
-          dScale.set(1, 1, 1);
-          dMat.compose(dPos, dQuat, dScale);
-          iLampPost.setMatrixAt(idx, dMat);
-          iLampArm.setMatrixAt(idx, dMat);
-          iLantern.setMatrixAt(idx, dMat);
+        let poolIdx = 0;
+        lampsByStyle.forEach((lista, st) => {
+          if (!lista.length) return;
+          const def = lampDefs[st];
+          const iPost = makeInstanced(def.post, def.matPost, lista.length);
+          const iArm = makeInstanced(def.arm, def.matArm, lista.length);
+          const iLan = makeInstanced(def.lantern, matGlassGlow, lista.length, { castShadow: false });
+          lista.forEach((l, idx) => {
+            dPos.set(l.x, l.y, l.z);
+            dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), l.rot);
+            dScale.set(1, 1, 1);
+            dMat.compose(dPos, dQuat, dScale);
+            iPost.setMatrixAt(idx, dMat);
+            iArm.setMatrixAt(idx, dMat);
+            iLan.setMatrixAt(idx, dMat);
 
-          const poolOffset = new THREE.Vector3(0, 0, 0.8).applyQuaternion(dQuat);
-          dPos.set(l.x + poolOffset.x, l.y + 0.22, l.z + poolOffset.z);
-          dMat.compose(dPos, new THREE.Quaternion(), dScale);
-          iLightPool.setMatrixAt(idx, dMat);
+            const poolOffset = new THREE.Vector3(0, 0, def.poolOffZ).applyQuaternion(dQuat);
+            dPos.set(l.x + poolOffset.x, l.y + 0.22, l.z + poolOffset.z);
+            dMat.compose(dPos, new THREE.Quaternion(), dScale);
+            iLightPool.setMatrixAt(poolIdx++, dMat);
+          });
         });
 
         // Árboles y vallas puestos a mano (las salidas no los despejan)
@@ -3272,7 +3364,6 @@
         });
 
         setStat('st-houses', houses.length);
-        this.aplicarTexturas(cfg.texturas);
         setStat('st-specials', builtSpecials);
         setStat('st-trees', trees.length + hedges.length + rocks.length);
         setStat('st-cols', this.colliders.length);
