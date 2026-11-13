@@ -55,18 +55,12 @@
     const cachePuestosGLB = {};
     const promesasCargaPuestos = {};
 
-    // 10 texturas repetibles de setos (assets/texturas/setos/t01..t10.jpg)
+    // 4 texturas orgánicas con silueta recortada para setos (assets/texturas/setos/s01..s04.png)
     const HEDGE_TEXTURES = [
-      { id: 't01', label: 'Boj Verde (T-01)', path: 'assets/texturas/setos/t01.jpg' },
-      { id: 't02', label: 'Hoja Menuda (T-02)', path: 'assets/texturas/setos/t02.jpg' },
-      { id: 't03', label: 'Conífera Oscura (T-03)', path: 'assets/texturas/setos/t03.jpg' },
-      { id: 't04', label: 'Laurel Vivo (T-04)', path: 'assets/texturas/setos/t04.jpg' },
-      { id: 't05', label: 'Fotinia Roja (T-05)', path: 'assets/texturas/setos/t05.jpg' },
-      { id: 't06', label: 'Seto con Flores (T-06)', path: 'assets/texturas/setos/t06.jpg' },
-      { id: 't07', label: 'Evónimo Variegado (T-07)', path: 'assets/texturas/setos/t07.jpg' },
-      { id: 't08', label: 'Haya Otoñal (T-08)', path: 'assets/texturas/setos/t08.jpg' },
-      { id: 't09', label: 'Hiedra Tupida (T-09)', path: 'assets/texturas/setos/t09.jpg' },
-      { id: 't10', label: 'Lavanda Silvestre (T-10)', path: 'assets/texturas/setos/t10.jpg' }
+      { id: 's01', label: 'Boj Dorado (S-01)', path: 'assets/texturas/setos/s01.png' },
+      { id: 's02', label: 'Hiedra Frondosa (S-02)', path: 'assets/texturas/setos/s02.png' },
+      { id: 's03', label: 'Laurel Verde (S-03)', path: 'assets/texturas/setos/s03.png' },
+      { id: 's04', label: 'Ciprés Plumoso (S-04)', path: 'assets/texturas/setos/s04.png' }
     ];
 
     function base64ToArrayBuffer(base64) {
@@ -1111,17 +1105,23 @@
       if (!entry) return matFoliage;
       let tex = hedgeTexCache.get(texId);
       if (!tex && typeof THREE !== 'undefined' && THREE.TextureLoader) {
-        tex = new THREE.TextureLoader().load(entry.path);
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
+        tex = new THREE.TextureLoader().load(entry.path, t => { t.needsUpdate = true; });
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
         if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
         hedgeTexCache.set(texId, tex);
       }
       const m = new THREE.MeshStandardMaterial({
         map: tex || null,
+        bumpMap: tex || null,
+        bumpScale: 0.06,
         color: '#ffffff',
-        roughness: 0.84,
-        metalness: 0.03
+        alphaTest: 0.40,
+        alphaToCoverage: true,
+        side: THREE.DoubleSide,
+        vertexColors: true,
+        roughness: 0.86,
+        metalness: 0.02
       });
       hedgeMatCache.set(texId, m);
       return m;
@@ -3658,16 +3658,100 @@
           const lanternPiedraG = new THREE.CylinderGeometry(0.24, 0.20, 0.48, 8); lanternPiedraG.translate(0, 3.88, 0);
 
           const poolG = new THREE.PlaneGeometry(7.5, 7.5); poolG.rotateX(-Math.PI / 2);
-          const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95);
-          {
-            const uv = hedgeG.attributes.uv;
-            const nrm = hedgeG.attributes.normal;
-            for (let i = 0; i < uv.count; i++) {
-              if (Math.abs(nrm.getX(i)) < 0.5) uv.setX(i, uv.getX(i) * 2.5);
+          const createOrganicHedgeGeometry = () => {
+            const parts = [];
+            const tri = t => {
+              const f = ((t % 2) + 2) % 2;
+              return f <= 1 ? f : 2 - f;
+            };
+            // Núcleo orgánico de 5 masas arbustivas superpuestas e irregulares (sin forma de caja)
+            const lobes = [
+              { x: -0.96, y: 0.41, z: -0.05, rx: 0.54, ry: 0.45, rz: 0.40, p: 0.4 },
+              { x: -0.48, y: 0.47, z:  0.07, rx: 0.56, ry: 0.53, rz: 0.45, p: 1.7 },
+              { x:  0.02, y: 0.50, z: -0.04, rx: 0.58, ry: 0.56, rz: 0.44, p: 2.9 },
+              { x:  0.50, y: 0.45, z:  0.06, rx: 0.55, ry: 0.50, rz: 0.43, p: 4.1 },
+              { x:  0.96, y: 0.40, z: -0.05, rx: 0.53, ry: 0.44, rz: 0.39, p: 5.3 }
+            ];
+            lobes.forEach(l => {
+              const g = new THREE.SphereGeometry(1, 10, 7);
+              const pos = g.attributes.position;
+              const uv = g.attributes.uv;
+              for (let i = 0; i < pos.count; i++) {
+                const dx = pos.getX(i) * l.rx;
+                const dy = pos.getY(i) * l.ry;
+                const dz = pos.getZ(i) * l.rz;
+                let wx = l.x + dx;
+                let wy = l.y + dy;
+                let wz = l.z + dz;
+                const n = 0.87
+                  + 0.15 * Math.sin(wx * 4.4 + wz * 3.1 + l.p) * Math.cos(wy * 5.1 + wx * 1.8)
+                  + 0.08 * Math.sin(wz * 7.8 + wy * 6.3 - l.p);
+                wx = l.x + dx * n;
+                wy = l.y + dy * n;
+                wz = l.z + dz * n;
+                if (wy < 0.05) wy = 0.02 + Math.max(0, wy) * 0.25;
+                pos.setXYZ(i, wx, wy, wz);
+                // Mapea el núcleo dentro del centro opaco [0.24..0.76] para evitar huecos interiores
+                uv.setXY(i, 0.24 + 0.52 * tri(wx * 0.72 + wz * 0.42), 0.24 + 0.52 * tri(wy * 0.92 + wz * 0.48));
+              }
+              pos.needsUpdate = true;
+              uv.needsUpdate = true;
+              g.computeVertexNormals();
+              parts.push(g);
+            });
+
+            // Planos de follaje recortados por alfa que sobresalen en cresta, caras y extremos
+            const addTuftCard = (w, h, px, py, pz, rx, ry, rz, rot90, flipU) => {
+              const c = new THREE.PlaneGeometry(w, h);
+              const uv = c.attributes.uv;
+              for (let i = 0; i < uv.count; i++) {
+                let u = 0.02 + uv.getX(i) * 0.96;
+                let v = 0.02 + uv.getY(i) * 0.96;
+                if (flipU) u = 1.0 - u;
+                for (let k = 0; k < rot90; k++) { const tu = u; u = 1.0 - v; v = tu; }
+                uv.setXY(i, u, v);
+              }
+              uv.needsUpdate = true;
+              c.rotateX(rx);
+              c.rotateY(ry);
+              c.rotateZ(rz);
+              c.translate(px, py, pz);
+              c.computeVertexNormals();
+              parts.push(c);
+            };
+            // Cresta superior: hojas asomando de forma irregular
+            [-1.04, -0.68, -0.34, 0.0, 0.35, 0.70, 1.04].forEach((x, k) => {
+              addTuftCard(
+                0.92, 0.84, x, 0.62 + ((k % 3) - 1) * 0.05, (k % 2 ? 0.08 : -0.08),
+                (k % 2 ? 0.42 : -0.46), 0.45 + k * 0.73, (k % 3 - 1) * 0.16, k % 4, k % 2 === 1
+              );
+            });
+            // Caras frontal y trasera: silueta dentada de hojas laterales
+            [-0.90, -0.30, 0.30, 0.90].forEach((x, k) => {
+              addTuftCard(0.94, 0.88, x, 0.47,  0.34 + (k % 2) * 0.05, -0.24, (k % 2 ? 0.28 : -0.32), (k % 2 ? 0.12 : -0.10), (k + 1) % 4, false);
+              addTuftCard(0.94, 0.88, x, 0.47, -0.34 - (k % 2) * 0.05,  0.24, (k % 2 ? -0.30 : 0.26), (k % 2 ? -0.10 : 0.12), (k + 2) % 4, true);
+            });
+            // Remates izquierdo y derecho
+            addTuftCard(0.86, 0.84, -1.16, 0.45,  0.07, 0.18, Math.PI * 0.5 + 0.32,  0.10, 0, false);
+            addTuftCard(0.86, 0.84, -1.16, 0.45, -0.07, -0.18, Math.PI * 0.5 - 0.32, -0.10, 2, true);
+            addTuftCard(0.86, 0.84,  1.16, 0.45,  0.07, 0.18, Math.PI * 0.5 - 0.30, -0.10, 1, false);
+            addTuftCard(0.86, 0.84,  1.16, 0.45, -0.07, -0.18, Math.PI * 0.5 + 0.30,  0.10, 3, true);
+
+            const merged = mergeGeometriesList(parts);
+            const mPos = merged.attributes.position;
+            const colArr = new Float32Array(mPos.count * 3);
+            for (let i = 0; i < mPos.count; i++) {
+              const y = mPos.getY(i);
+              const t = Math.max(0, Math.min(1, y / 1.02));
+              const ao = 0.70 + 0.34 * t;
+              colArr[i * 3] = ao;
+              colArr[i * 3 + 1] = ao;
+              colArr[i * 3 + 2] = ao * 0.96;
             }
-            uv.needsUpdate = true;
-          }
-          hedgeG.translate(0, 0.48, 0);
+            merged.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+            return merged;
+          };
+          const hedgeG = createOrganicHedgeGeometry();
           const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
           kitProto = {
             plinthG: reg(plinthG),
@@ -4015,7 +4099,7 @@
           repartirArboles(grupo, 0, null, 'cerca');
           this.treeLod.push(grupo);
         });
-        // Cada pueblo elige aleatoriamente una textura mayoritaria de seto (~75%) y reparte el 25% restante entre las otras 9
+        // Cada pueblo elige aleatoriamente una textura mayoritaria de seto (~75%) y reparte el 25% restante entre las restantes
         const hedgeSeed = (Math.imul(cfg.seed || 77420, 2654435761) ^ 0x6b2f1a8d) >>> 0;
         const hedgeTownRng = new PRNG(hedgeSeed);
         const majorityHedgeTexIdx = hedgeTownRng.int(0, HEDGE_TEXTURES.length - 1);
@@ -4042,12 +4126,16 @@
           const mesh = makeInstanced(hedgeG, matHedge, list.length, { castShadow: false });
           list.forEach(({ h, hr }, idx) => {
             dPos.set(h.x, h.y, h.z);
-            dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot);
-            dScale.set(h.len ? h.len / 2.6 : 1, 1, 1);
+            const rotJitter = h.len ? hr.range(-0.04, 0.04) : hr.range(-0.28, 0.28);
+            dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), (h.rot || 0) + rotJitter);
+            const sx = (h.len ? h.len / 2.6 : hr.range(0.80, 1.10)) * hr.range(0.97, 1.05);
+            const sy = hr.range(0.84, 1.18);
+            const sz = hr.range(0.88, 1.16);
+            dScale.set(sx, sy, sz);
             dMat.compose(dPos, dQuat, dScale);
             mesh.setMatrixAt(idx, dMat);
-            const shade = hr.range(0.92, 1.0);
-            cVeg.setRGB(shade, shade, shade);
+            const shade = hr.range(0.86, 1.02);
+            cVeg.setRGB(shade * hr.range(0.95, 1.02), shade, shade * hr.range(0.92, 1.0));
             mesh.setColorAt(idx, cVeg);
           });
           dScale.set(1, 1, 1);

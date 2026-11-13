@@ -121,9 +121,9 @@ monstruos; `tools/simplificar-npcs.mjs` usa el mismo paquete en Node para las ve
 
 ## Texturas de casas, suelos y setos (assets/texturas)
 
-60 texturas de 512 × 512 px recortadas de las hojas de referencia y hechas repetibles (mezcla con su
+50 texturas de 512 × 512 px recortadas de las hojas de referencia y hechas repetibles (mezcla con su
 copia desplazada media baldosa): `tejados/`, `madera/` (travesaños de cabaña), `suelo/` (suelo con piedras),
-`agua/`, `piedra/` (paredes de casa) y `setos/` (10 variedades de seto para los pueblos), cada una de `t01.jpg` a `t10.jpg` con la numeración de la hoja. Los
+`agua/` y `piedra/` (paredes de casa), cada una de `t01.jpg` a `t10.jpg` con la numeración de la hoja; y en `setos/` 4 paneles de hojas con silueta transparente (`s01.png` a `s04.png`, más las 10 muestras previas `t01.jpg`–`t10.jpg`) para setos orgánicos con recorte alfa (`alphaTest`). Los
 nombres de cada una están en `CasasGLBLib.TEXTURAS` (`js/casas-glb.js`). Las de agua T-03 y T-08 y algunas de
 madera traían perspectiva en la foto, así que su costura se nota algo más.
 
