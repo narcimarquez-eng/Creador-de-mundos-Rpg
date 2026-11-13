@@ -94,14 +94,11 @@
       }
       if (o.material && o.material.isMeshStandardMaterial) {
         const m = o.material;
-        if (m.metalness > 0.25) m.metalness = 0.15;
-        m.roughness = Math.min(0.86, Math.max(0.45, m.roughness || 0.7));
-        if (m.color && (m.color.r + m.color.g + m.color.b) < 1.5) {
-          m.color.setRGB(Math.min(1, m.color.r * 1.45 + 0.08), Math.min(1, m.color.g * 1.45 + 0.07), Math.min(1, m.color.b * 1.45 + 0.06));
-        }
-        if (m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b) < 0.05) {
-          m.emissive.setRGB(0.14, 0.11, 0.085);
-          m.emissiveIntensity = 0.26;
+        if (m.metalness > 0.15) m.metalness = 0.08;
+        m.roughness = Math.min(0.78, Math.max(0.42, m.roughness || 0.68));
+        m.envMapIntensity = 1.25;
+        if (m.color && (m.color.r + m.color.g + m.color.b) < 1.2) {
+          m.color.setRGB(Math.min(1, m.color.r * 1.35 + 0.04), Math.min(1, m.color.g * 1.35 + 0.035), Math.min(1, m.color.b * 1.35 + 0.03));
         }
       }
       g.userData.casasGLB = true;   // compartida entre pueblos: el pueblo no la libera al reconstruirse
@@ -166,13 +163,11 @@
     m.map = t;
     // Las fotos ya traen su color: sin el oscurecido que llevaba la textura original
     const ti = cambio.tinte || [1, 1, 1];
-    m.color.setRGB(Math.min(1, ti[0] * 1.12), Math.min(1, ti[1] * 1.12), Math.min(1, ti[2] * 1.12));
+    m.color.setRGB(Math.min(1, ti[0] * 1.08), Math.min(1, ti[1] * 1.08), Math.min(1, ti[2] * 1.08));
     if (m.isMeshStandardMaterial) {
-      if (m.metalness > 0.25) m.metalness = 0.15;
-      if (m.emissive && (m.emissive.r + m.emissive.g + m.emissive.b) < 0.05) {
-        m.emissive.setRGB(0.11, 0.09, 0.07);
-        m.emissiveIntensity = 0.24;
-      }
+      if (m.metalness > 0.15) m.metalness = 0.08;
+      m.roughness = Math.min(0.78, Math.max(0.42, m.roughness || 0.68));
+      m.envMapIntensity = 1.25;
     }
     matCache.set(clave, m);
     return m;

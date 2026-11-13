@@ -2079,7 +2079,7 @@
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
   let ladrillosTramos = [];   // tramos del empedrado de las calzadas: { malla, x, z }
   let character = null;
-  let hemiLight = null, sunLight = null, luzPlazaMundo = null, luzForjaMundo = null, luzSecretoMundo = null, luzMazmorraExtMundo = null;
+  let hemiLight = null, sunLight = null, fillLight = null, luzPlazaMundo = null, luzForjaMundo = null, luzSecretoMundo = null, luzMazmorraExtMundo = null;
   let terrenoVersion = 1;
   let _grupoSecretosCache = null, _grupoEntradasCache = null;
   let terrainGrid = null;   // rejilla del mundo: { x0, z0, step, n, N, pos, col, splat, snow, nrm }
@@ -2551,8 +2551,8 @@
   function ensureScene() {
     if (scene) return;
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.toneMapping = THREE.NeutralToneMapping;   // conserva los colores sin apagar las luces
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.type = THREE.PCFShadowMap;      // sombras suaves compatibles con Three r186
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -2576,9 +2576,12 @@
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.2, 40000);
     crearResplandor();
 
-    hemiLight = new THREE.HemisphereLight('#ffffff', '#3a5a40', 0.8);
+    hemiLight = new THREE.HemisphereLight('#e0f2fe', '#4b634e', 0.62);
     scene.add(hemiLight);
-    sunLight = new THREE.DirectionalLight('#fffbeb', 1.1);
+    sunLight = new THREE.DirectionalLight('#fffdf2', 1.85);
+    fillLight = new THREE.DirectionalLight('#bfdfff', 0.28);
+    fillLight.position.set(-700, 650, -550);
+    scene.add(fillLight);
     sunLight.position.set(900, 1400, 700);
     sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.25;   // sin rayas de sombra en el suelo
     scene.add(sunLight);
@@ -4971,9 +4974,9 @@
   // Ambiente: día, atardecer y noche (valores del Creador de Pueblos, con transición)
   // ===========================================================================
   const ATMO = {
-    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.0009, hemi: '#ffffff', ground: '#3a5a40', hemiI: 0.8,  sun: '#fffbeb', sunI: 1.1,  sunPos: [900, 1400, 700],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5 },
-    golden: { bg: '#1e1b4b', fog: '#1e1b4b', fogD: 0.00018, hemi: '#fb923c', ground: '#0f172a', hemiI: 0.48, sun: '#f97316', sunI: 1.15, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.7,  pool: 0.85, plaza: 1.5, forge: 2.0 },
-    night:  { bg: '#030712', fog: '#030712', fogD: 0.00022, hemi: '#38bdf8', ground: '#020617', hemiI: 0.2,  sun: '#60a5fa', sunI: 0.28, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.8, forge: 2.2 }
+    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.0009, hemi: '#e0f2fe', ground: '#4b634e', hemiI: 0.62, sun: '#fffdf2', sunI: 1.85, sunPos: [900, 1400, 700],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5 },
+    golden: { bg: '#1e1b4b', fog: '#1e1b4b', fogD: 0.00018, hemi: '#fb923c', ground: '#1e293b', hemiI: 0.42, sun: '#f97316', sunI: 1.75, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.7,  pool: 0.85, plaza: 1.5, forge: 2.0 },
+    night:  { bg: '#030712', fog: '#030712', fogD: 0.00022, hemi: '#38bdf8', ground: '#020617', hemiI: 0.22, sun: '#60a5fa', sunI: 0.48, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.8, forge: 2.2 }
   };
   const ATMO_ICON = { day: '☀', golden: '🌇', night: '🌙' };
   const ATMO_C = {};
@@ -5022,6 +5025,7 @@
     if (scene.fog) { scene.fog.color.copy(atmoNow.fog); scene.fog.density = atmoNow.fogD; }
     if (hemiLight) { hemiLight.color.copy(atmoNow.hemi); hemiLight.groundColor.copy(atmoNow.ground); hemiLight.intensity = atmoNow.hemiI; }
     if (sunLight) { sunLight.color.copy(atmoNow.sun); sunLight.intensity = atmoNow.sunI; sunLight.position.copy(atmoNow.sunPos); }
+    if (fillLight) { fillLight.intensity = atmoNow.hemiI * 0.45; }
     Object.values(kitCache).forEach(kit => kit.setLevels(atmoNow));
     actualizarLucesPueblo();
   }
