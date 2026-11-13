@@ -463,7 +463,8 @@
       <label class="checkbox-item"><input type="checkbox" id="chk-magic" checked> Cristales Mágicos</label>
       <label class="checkbox-item"><input type="checkbox" id="chk-props" checked> Puestos y Carros</label>
       <label class="checkbox-item"><input type="checkbox" id="chk-lamps" checked> Farolas / Antorchas</label>
-      <label class="checkbox-item"><input type="checkbox" id="chk-fences" checked> Vallas y Jardines</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-fences" checked> Vallas</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-gardens" checked> Jardines</label>
     </div>
 
     <div class="control-row">
@@ -694,6 +695,7 @@
         hasProps: document.getElementById('chk-props').checked,
         hasLamps: document.getElementById('chk-lamps').checked,
         hasFences: document.getElementById('chk-fences').checked,
+        hasGardens: document.getElementById('chk-gardens').checked,
         time: document.getElementById('inp-time').value,
         rotation: currentRotation,
         exits: currentExits.map(e => Object.assign({}, e)),
@@ -751,6 +753,7 @@
       setChk('chk-props', cfg.hasProps);
       setChk('chk-lamps', cfg.hasLamps);
       setChk('chk-fences', cfg.hasFences);
+      setChk('chk-gardens', cfg.hasGardens !== false);
       currentExits = Array.isArray(cfg.exits) ? cfg.exits.map(e => Object.assign({}, e)) : [];
       currentRotation = cfg.rotation || 0;
       edits = cfg.edits && Array.isArray(cfg.edits.ops)

@@ -119,11 +119,11 @@ variante sale de una semilla fija. La colocación depende del bioma.
 1.3 (licencia MIT, `js/vendor/LICENSE-meshoptimizer-MIT.md`). El visor lo usa para la versión lejana de los
 monstruos; `tools/simplificar-npcs.mjs` usa el mismo paquete en Node para las versiones lejanas de los NPCs.
 
-## Texturas de casas y suelos (assets/texturas)
+## Texturas de casas, suelos y setos (assets/texturas)
 
-50 texturas de 512 × 512 px recortadas de las cinco hojas de referencia y hechas repetibles (mezcla con su
+60 texturas de 512 × 512 px recortadas de las hojas de referencia y hechas repetibles (mezcla con su
 copia desplazada media baldosa): `tejados/`, `madera/` (travesaños de cabaña), `suelo/` (suelo con piedras),
-`agua/` y `piedra/` (paredes de casa), cada una de `t01.jpg` a `t10.jpg` con la numeración de la hoja. Los
+`agua/`, `piedra/` (paredes de casa) y `setos/` (10 variedades de seto para los pueblos), cada una de `t01.jpg` a `t10.jpg` con la numeración de la hoja. Los
 nombres de cada una están en `CasasGLBLib.TEXTURAS` (`js/casas-glb.js`). Las de agua T-03 y T-08 y algunas de
 madera traían perspectiva en la foto, así que su costura se nota algo más.
 

@@ -305,6 +305,7 @@
       hasProps: true,
       hasLamps: true,
       hasFences: true,
+      hasGardens: true,
       time: 'day',
       rotation: 0,   // giro del pueblo en el mundo (grados), lo calcula computeTownExits
       exits: []      // salidas hacia los caminos del mundo (ver computeTownExits)

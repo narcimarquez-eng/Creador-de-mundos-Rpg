@@ -51,7 +51,8 @@
   // El trazado se añade solo si no es el clásico: así las ediciones de los pueblos ya guardados siguen valiendo
   function baseKey(cfg) {
     const trazado = cfg.trazado && cfg.trazado !== 'clasico' ? ';trazado=' + cfg.trazado : '';
-    return BASE_FIELDS.map(k => k + '=' + cfg[k]).join(';') + trazado;
+    const jardines = cfg.hasGardens === false ? ';hasGardens=false' : '';
+    return BASE_FIELDS.map(k => k + '=' + cfg[k]).join(';') + trazado + jardines;
   }
 
   function emptyEdits(cfg) {

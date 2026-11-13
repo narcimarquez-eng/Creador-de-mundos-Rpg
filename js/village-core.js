@@ -55,6 +55,20 @@
     const cachePuestosGLB = {};
     const promesasCargaPuestos = {};
 
+    // 10 texturas repetibles de setos (assets/texturas/setos/t01..t10.jpg)
+    const HEDGE_TEXTURES = [
+      { id: 't01', label: 'Boj Verde (T-01)', path: 'assets/texturas/setos/t01.jpg' },
+      { id: 't02', label: 'Hoja Menuda (T-02)', path: 'assets/texturas/setos/t02.jpg' },
+      { id: 't03', label: 'Conífera Oscura (T-03)', path: 'assets/texturas/setos/t03.jpg' },
+      { id: 't04', label: 'Laurel Vivo (T-04)', path: 'assets/texturas/setos/t04.jpg' },
+      { id: 't05', label: 'Fotinia Roja (T-05)', path: 'assets/texturas/setos/t05.jpg' },
+      { id: 't06', label: 'Seto con Flores (T-06)', path: 'assets/texturas/setos/t06.jpg' },
+      { id: 't07', label: 'Evónimo Variegado (T-07)', path: 'assets/texturas/setos/t07.jpg' },
+      { id: 't08', label: 'Haya Otoñal (T-08)', path: 'assets/texturas/setos/t08.jpg' },
+      { id: 't09', label: 'Hiedra Tupida (T-09)', path: 'assets/texturas/setos/t09.jpg' },
+      { id: 't10', label: 'Lavanda Silvestre (T-10)', path: 'assets/texturas/setos/t10.jpg' }
+    ];
+
     function base64ToArrayBuffer(base64) {
       const binaryString = (typeof window !== 'undefined' && window.atob)
         ? window.atob(base64)
@@ -1088,6 +1102,29 @@
       const prng = new PRNG(((cfg && cfg.seed) || 77420) ^ 0x5f3759df);
       const pick = STREET_TEXTURES[Math.floor(prng.next() * STREET_TEXTURES.length)];
       return getStreetMaterialById(pick.id);
+    };
+    const hedgeTexCache = new Map();
+    const hedgeMatCache = new Map();
+    const getHedgeMaterialById = (texId) => {
+      if (hedgeMatCache.has(texId)) return hedgeMatCache.get(texId);
+      const entry = HEDGE_TEXTURES.find(t => t.id === texId);
+      if (!entry) return matFoliage;
+      let tex = hedgeTexCache.get(texId);
+      if (!tex && typeof THREE !== 'undefined' && THREE.TextureLoader) {
+        tex = new THREE.TextureLoader().load(entry.path);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        hedgeTexCache.set(texId, tex);
+      }
+      const m = new THREE.MeshStandardMaterial({
+        map: tex || null,
+        color: '#ffffff',
+        roughness: 0.84,
+        metalness: 0.03
+      });
+      hedgeMatCache.set(texId, m);
+      return m;
     };
     const kitGeos = new Set();
     let kitProto = null;
@@ -2281,19 +2318,20 @@
       // a la calle. Solo los solares con casa llevan verja y solo algunas casas la llevan. Un solar sin casa queda
       // como jardín con un árbol. Los solares que no caben (río, muralla interior, edificios especiales) se saltan.
       parcelarManzanas(cfg, townRadius, ctx) {
-        const { rng, edit, styleObj, houses, trees, fences, addStreet, especieFor } = ctx;
+        const { rng, edit, styleObj, houses, trees, fences, hedges, addStreet, especieFor } = ctx;
         const g = this.manzanaGeo;
         const H = cfg.roadWidth * 0.5 + 1.0;   // del centro de la calle al borde de la manzana (en u y v)
-        const FRENTE = 13.5, FONDO = 15.5, PUERTA = 4.8, TRAMO = 4.5;
+        const FRENTE = 13.5, FONDO = 15.5, PUERTA = 4.8, TRAMO = 4.5, TRAMO_SETO = 2.6;
         const CASA_FONDO = 6.2;                // distancia desde el frente del solar al centro de la casa
         const FRACCION_VALLADAS = 0.6;         // parte de las casas con verja
+        const hasGardens = cfg.hasGardens !== false;
 
-        // Trozos de hasta TRAMO a lo largo de una polilínea
-        const tramosDe = pts => {
+        // Trozos de hasta «paso» a lo largo de una polilínea
+        const tramosDe = (pts, paso = TRAMO) => {
           const acc = [0];
           for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
           const L = acc[acc.length - 1];
-          const n = Math.max(1, Math.ceil(L / TRAMO));
+          const n = Math.max(1, Math.ceil(L / paso));
           const en = s => {
             let i = 1;
             while (i < acc.length - 1 && acc[i] < s) i++;
@@ -2305,7 +2343,7 @@
           return out;
         };
         const vallar = (id, pts) => {
-          tramosDe(pts).forEach((t, q) => {
+          tramosDe(pts, TRAMO).forEach((t, q) => {
             const fid = id + ':' + q;
             if (edit.removedFences.has(fid)) return;
             const x = (t.a.x + t.b.x) / 2, z = (t.a.z + t.b.z) / 2;
@@ -2313,6 +2351,29 @@
             const yTop = this.getTerrainHeight(x, z) + 1.0;
             const yBase = Math.min(this.getTerrainHeight(t.a.x, t.a.z), this.getTerrainHeight(t.b.x, t.b.z), yTop - 1.0) - 0.1;
             fences.push({ id: fid, x, y: yBase, z, rot: Math.atan2(-(t.b.z - t.a.z), t.b.x - t.a.x), len: Math.hypot(t.b.x - t.a.x, t.b.z - t.a.z), alto: yTop - yBase });
+          });
+        };
+        const setoPermitido = (px, pz) => {
+          if (this.onExitCorridor(px, pz, cfg.roadWidth * 0.5 + 2.5)) return false;
+          if (cfg.hasRiver && Math.abs(px - this.getRiverX(pz)) < RIVER_WIDTH * 1.05) return false;
+          return !this.colliders.some(col => {
+            if (col.wall) return false;
+            if (col.type === 'circle') return Math.hypot(px - col.x, pz - col.z) < col.r + 1.4;
+            return px > col.minX - 1.3 && px < col.maxX + 1.3 && pz > col.minZ - 1.3 && pz < col.maxZ + 1.3;
+          });
+        };
+        const setar = (id, pts) => {
+          if (!hedges) return;
+          tramosDe(pts, TRAMO_SETO).forEach((t, q) => {
+            const hid = id + ':' + q;
+            if (edit.removedHedges.has(hid)) return;
+            const x = (t.a.x + t.b.x) / 2, z = (t.a.z + t.b.z) / 2;
+            if (!setoPermitido(x, z)) return;
+            hedges.push({
+              id: hid, x, y: this.getTerrainHeight(x, z), z,
+              rot: Math.atan2(-(t.b.z - t.a.z), t.b.x - t.a.x),
+              len: Math.hypot(t.b.x - t.a.x, t.b.z - t.a.z)
+            });
           });
         };
         // Muestrea fn(t) entre t0 y t1 cada 2 m
@@ -2362,14 +2423,29 @@
                 const moved = edit.movedHouses.get(key);
                 const tieneCasa = tiene && !removed;
 
+                const ponerSeto = (hid, cPos, dPos) => {
+                  if (!hedges || edit.removedHedges.has(hid)) return;
+                  const sp = P(cPos, dPos);
+                  if (!setoPermitido(sp.x, sp.z)) return;
+                  const pa = P(cPos - 0.5, dPos), pb = P(cPos + 0.5, dPos);
+                  const rot = Math.atan2(-(pb.z - pa.z), pb.x - pa.x);
+                  hedges.push({ id: hid, x: sp.x, y: this.getTerrainHeight(sp.x, sp.z), z: sp.z, rot });
+                };
+                const cercarSolar = (idPrefix, useSeto, margenPuerta) => {
+                  const fn = useSeto ? setar : vallar;
+                  if (cm - margenPuerta - c0 >= 1.4) fn(idPrefix + 'f1', muestra(c => P(c, -0.35), c0, cm - margenPuerta));
+                  if (c1 - (cm + margenPuerta) >= 1.4) fn(idPrefix + 'f2', muestra(c => P(c, -0.35), cm + margenPuerta, c1));
+                  fn(idPrefix + 'r', muestra(d => P(c1, d), -0.35, FONDO));
+                  if (k === 0) fn(idPrefix + 'l', muestra(d => P(c0, d), -0.35, FONDO));
+                  fn(idPrefix + 'b', muestra(c => P(c, FONDO), c1, c0));
+                };
+                const hrPlot = new PRNG((cfg.seed ^ hashStr('hp:' + key)) >>> 0);
+                const useHedgeFence = hrPlot.next() < 0.45;
+                const margenPuerta = Math.min(PUERTA / 2, w * 0.34);
+
                 if (tieneCasa && cfg.hasFences && conVALLA && !moved && w >= 10.5) {
-                  // Deja siempre libre el acceso frontal (PUERTA = 4.8 m) para no cruzar porches ni escaleras
-                  const margenPuerta = Math.min(PUERTA / 2, w * 0.34);
-                  if (cm - margenPuerta - c0 >= 1.4) vallar(key + 'f1', muestra(c => P(c, -0.35), c0, cm - margenPuerta));
-                  if (c1 - (cm + margenPuerta) >= 1.4) vallar(key + 'f2', muestra(c => P(c, -0.35), cm + margenPuerta, c1));
-                  vallar(key + 'r', muestra(d => P(c1, d), -0.35, FONDO));
-                  if (k === 0) vallar(key + 'l', muestra(d => P(c0, d), -0.35, FONDO));
-                  vallar(key + 'b', muestra(c => P(c, FONDO), c1, c0));
+                  // Vallas integradas con setos: ~45 % cercado completo de seto y ~55 % valla de madera, con frente en la calle
+                  cercarSolar(useHedgeFence ? 'hs' + key : key, useHedgeFence, margenPuerta);
                 }
 
                 if (tieneCasa) {
@@ -2385,11 +2461,28 @@
                   this.colliders.push({ type: 'circle', house: true, id: key, x: px, z: pz, r: 4.5 });
                   const frente = P(cm, CASA_FONDO - 3.9);
                   addStreet('acceso-' + key, [frente, P(cm, -H)], 2.2, 0.13);
-                } else if (!tiene && conArbol) {
-                  const t = P(cm, FONDO - 3.5);
-                  if (!edit.removedTrees.has('v' + key)) {
-                    trees.push({ id: 'v' + key, x: t.x, y: this.getTerrainHeight(t.x, t.z), z: t.z, scale: tScale, isPine: tPine, color: tColor, especie: especieFor(tPine, t.x, t.z) });
-                    this.colliders.push({ type: 'circle', x: t.x, z: t.z, r: 0.65 });
+                  if (hasGardens && !moved && w >= 10.5) {
+                    if (!cfg.hasFences || !conVALLA) {
+                      if (cm - margenPuerta - c0 >= 2.8) ponerSeto('hj' + key + 'f1', (c0 + cm - margenPuerta) * 0.5, -0.35);
+                      if (c1 - (cm + margenPuerta) >= 2.8) ponerSeto('hj' + key + 'f2', (cm + margenPuerta + c1) * 0.5, -0.35);
+                    } else if (!useHedgeFence && hrPlot.next() <= 0.6) {
+                      ponerSeto('hj' + key + 'j1', cm - 2.9, 1.8);
+                      ponerSeto('hj' + key + 'j2', cm + 2.9, 1.8);
+                    }
+                  }
+                } else {
+                  if (!tiene && conArbol) {
+                    const t = P(cm, FONDO - 3.5);
+                    if (!edit.removedTrees.has('v' + key)) {
+                      trees.push({ id: 'v' + key, x: t.x, y: this.getTerrainHeight(t.x, t.z), z: t.z, scale: tScale, isPine: tPine, color: tColor, especie: especieFor(tPine, t.x, t.z) });
+                      this.colliders.push({ type: 'circle', x: t.x, z: t.z, r: 0.65 });
+                    }
+                  }
+                  // Solares vacíos como jardines rodeados de setos continuos cuando está activo «Jardines»
+                  if (!tiene && hasGardens && w >= 9.0) {
+                    cercarSolar('hj' + key, true, Math.min(1.8, w * 0.25));
+                    ponerSeto('hj' + key + 'in1', cm - 2.4, 3.0);
+                    ponerSeto('hj' + key + 'in2', cm + 2.4, 3.0);
                   }
                 }
               }
@@ -3211,8 +3304,42 @@
           }
         }
 
+        const hasGardens = cfg.hasGardens !== false;
+        // Coloca vallas o setos justo en frente de la casa (flanqueando el camino de entrada, nunca en los laterales)
+        const addFrontEnclosure = (idPrefix, px, pz, hRot, rngLocal) => {
+          const doorDirX = Math.sin(hRot), doorDirZ = Math.cos(hRot);
+          const perpX = Math.cos(hRot), perpZ = -Math.sin(hRot);
+          const frontDist = 5.0;
+          const asHedge = rngLocal.next() < 0.45;
+          if (cfg.hasFences) {
+            const latDist = asHedge ? 2.5 : 3.4;
+            [['a', -latDist], ['b', latDist]].forEach(([k, lat]) => {
+              const fx = px + doorDirX * frontDist + perpX * lat;
+              const fz = pz + doorDirZ * frontDist + perpZ * lat;
+              if (this.onExitCorridor(fx, fz, cfg.roadWidth * 0.5 + 2.5)) return;
+              if (cfg.hasRiver && Math.abs(fx - this.getRiverX(fz)) < RIVER_WIDTH * 1.05) return;
+              const fy = this.getTerrainHeight(fx, fz);
+              if (asHedge) {
+                if (!edit.removedHedges.has(idPrefix + 'h' + k)) hedges.push({ id: idPrefix + 'h' + k, x: fx, y: fy, z: fz, rot: hRot });
+              } else {
+                if (!edit.removedFences.has(idPrefix + k)) fences.push({ id: idPrefix + k, x: fx, y: fy, z: fz, rot: hRot });
+              }
+            });
+          }
+          if (hasGardens && (!cfg.hasFences || !asHedge)) {
+            const gDist = cfg.hasFences ? 3.5 : 4.8;
+            [['ga', -2.6], ['gb', 2.6]].forEach(([k, lat]) => {
+              const gx = px + doorDirX * gDist + perpX * lat;
+              const gz = pz + doorDirZ * gDist + perpZ * lat;
+              if (this.onExitCorridor(gx, gz, cfg.roadWidth * 0.5 + 2.5)) return;
+              if (cfg.hasRiver && Math.abs(gx - this.getRiverX(gz)) < RIVER_WIDTH * 1.05) return;
+              if (!edit.removedHedges.has(idPrefix + k)) hedges.push({ id: idPrefix + k, x: gx, y: this.getTerrainHeight(gx, gz), z: gz, rot: hRot });
+            });
+          }
+        };
+
         if (manzanas) {
-          this.parcelarManzanas(cfg, townRadius, { rng, edit, styleObj, houses, trees, fences, addStreet, especieFor });
+          this.parcelarManzanas(cfg, townRadius, { rng, edit, styleObj, houses, trees, fences, hedges, addStreet, especieFor });
         } else {
           const zLines = [];
           for (let z = -(townRadius - 12); z <= (townRadius - 12); z += 13.0) {
@@ -3292,10 +3419,8 @@
                   barrels.push({ x: px + doorDirX * 3.8 + 1.5, y: this.getTerrainHeight(px + doorDirX * 3.8 + 1.5, pz), z: pz });
                 }
 
-                if (cfg.hasFences && !removed) {
-                  [['a', -5.2], ['b', 5.2]].forEach(([k, off]) => {
-                    if (!edit.removedFences.has(slot + k)) fences.push({ id: slot + k, x: px, y: hy, z: pz + off, rot: hRot });
-                  });
+                if (!removed) {
+                  addFrontEnclosure(slot, px, pz, hRot, new PRNG((cfg.seed ^ hashStr('fe:' + slot)) >>> 0));
                 }
               } else if (rng.next() * 100 <= cfg.treeDensity) {
                 // El azar se consume igual aunque el árbol esté quitado, para no mover el resto del pueblo
@@ -3309,10 +3434,12 @@
                 }
               }
 
-              if (cfg.hasFences && rng.next() * 100 <= cfg.treeDensity * 0.7) {
+              if (hasGardens && rng.next() * 100 <= cfg.treeDensity * 0.75) {
                 const hedgeX = hx + (xOff < 0 ? 4.5 : -4.5);
                 const hid = 'h' + lz + ':' + xOff;
                 if (!edit.removedHedges.has(hid)) hedges.push({ id: hid, x: hedgeX, y: this.getTerrainHeight(hedgeX, hz + 4.2), z: hz + 4.2, rot: 0 });
+                const hid2 = 'hb' + lz + ':' + xOff;
+                if (!edit.removedHedges.has(hid2)) hedges.push({ id: hid2, x: hedgeX, y: this.getTerrainHeight(hedgeX, hz - 4.2), z: hz - 4.2, rot: 0 });
               }
             });
           });
@@ -3352,11 +3479,7 @@
             { x: px + doorDirX * 3.5, z: pz + doorDirZ * 3.5 },
             { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
           ], 2.2, 0.13);
-          if (cfg.hasFences) {
-            [['a', -5.2], ['b', 5.2]].forEach(([k, off]) => {
-              if (!edit.removedFences.has(ad.id + k)) fences.push({ id: ad.id + k, x: px, y: hy, z: pz + off, rot: hRot });
-            });
-          }
+          addFrontEnclosure(ad.id, px, pz, hRot, ar);
         });
         this.editables.houses = houses.map(h => ({ id: h.id, x: h.x, z: h.z }));
 
@@ -3535,7 +3658,16 @@
           const lanternPiedraG = new THREE.CylinderGeometry(0.24, 0.20, 0.48, 8); lanternPiedraG.translate(0, 3.88, 0);
 
           const poolG = new THREE.PlaneGeometry(7.5, 7.5); poolG.rotateX(-Math.PI / 2);
-          const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95); hedgeG.translate(0, 0.48, 0);
+          const hedgeG = new THREE.BoxGeometry(2.6, 0.95, 0.95);
+          {
+            const uv = hedgeG.attributes.uv;
+            const nrm = hedgeG.attributes.normal;
+            for (let i = 0; i < uv.count; i++) {
+              if (Math.abs(nrm.getX(i)) < 0.5) uv.setX(i, uv.getX(i) * 2.5);
+            }
+            uv.needsUpdate = true;
+          }
+          hedgeG.translate(0, 0.48, 0);
           const fenceG = new THREE.BoxGeometry(4.5, 1.0, 0.16); mapUVBand(fenceG, 0.0, 0.25); fenceG.translate(0, 0.5, 0);
           kitProto = {
             plinthG: reg(plinthG),
@@ -3883,19 +4015,43 @@
           repartirArboles(grupo, 0, null, 'cerca');
           this.treeLod.push(grupo);
         });
-        const iHedge = makeInstanced(hedgeG, matFoliage, hedges.length, { castShadow: false });
+        // Cada pueblo elige aleatoriamente una textura mayoritaria de seto (~75%) y reparte el 25% restante entre las otras 9
+        const hedgeSeed = (Math.imul(cfg.seed || 77420, 2654435761) ^ 0x6b2f1a8d) >>> 0;
+        const hedgeTownRng = new PRNG(hedgeSeed);
+        const majorityHedgeTexIdx = hedgeTownRng.int(0, HEDGE_TEXTURES.length - 1);
+        const hedgesByTex = Array.from({ length: HEDGE_TEXTURES.length }, () => []);
+        hedges.forEach((h, idx) => {
+          const hr = new PRNG((hedgeSeed ^ hashStr(h.id || ('idx:' + idx))) >>> 0);
+          let texIdx = majorityHedgeTexIdx;
+          if (hr.next() >= 0.75) {
+            const alt = hr.int(0, HEDGE_TEXTURES.length - 2);
+            texIdx = alt >= majorityHedgeTexIdx ? alt + 1 : alt;
+          }
+          hedgesByTex[texIdx].push({ h, hr });
+        });
+
+        const hedgeMeshes = [];
         const iFence = makeInstanced(fenceG, matAtlas, fences.length);
         const iRock = makeInstanced(rockG, matRock, rocks.length, { castShadow: false });
 
         const cVeg = new THREE.Color();
         dScale.set(1, 1, 1);
-        hedges.forEach((h, idx) => {
-          dPos.set(h.x, h.y, h.z);
-          dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot);
-          dMat.compose(dPos, dQuat, dScale);
-          iHedge.setMatrixAt(idx, dMat);
-          cVeg.setHex(idx % 2 === 0 ? styleObj.treeColors[0] : styleObj.treeColors[1 % styleObj.treeColors.length]);
-          iHedge.setColorAt(idx, cVeg);
+        hedgesByTex.forEach((list, texIdx) => {
+          if (!list.length) return;
+          const matHedge = getHedgeMaterialById(HEDGE_TEXTURES[texIdx].id);
+          const mesh = makeInstanced(hedgeG, matHedge, list.length, { castShadow: false });
+          list.forEach(({ h, hr }, idx) => {
+            dPos.set(h.x, h.y, h.z);
+            dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot);
+            dScale.set(h.len ? h.len / 2.6 : 1, 1, 1);
+            dMat.compose(dPos, dQuat, dScale);
+            mesh.setMatrixAt(idx, dMat);
+            const shade = hr.range(0.92, 1.0);
+            cVeg.setRGB(shade, shade, shade);
+            mesh.setColorAt(idx, cVeg);
+          });
+          dScale.set(1, 1, 1);
+          hedgeMeshes.push(mesh);
         });
 
         fences.forEach((f, idx) => {
@@ -3922,7 +4078,7 @@
           iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
           ...lampMeshes, iLightPool,
-          ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas, g.sil]), []), iHedge, iFence, iRock
+          ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas, g.sil]), []), ...hedgeMeshes, iFence, iRock
         ];
 
         allInstanced.forEach(m => {
@@ -3986,6 +4142,10 @@
         streetTexCache.clear();
         streetMatCache.forEach(m => { if (m) m.dispose(); });
         streetMatCache.clear();
+        hedgeTexCache.forEach(t => { if (t) t.dispose(); });
+        hedgeTexCache.clear();
+        hedgeMatCache.forEach(m => { if (m) m.dispose(); });
+        hedgeMatCache.clear();
         kitGeos.forEach(g => g.dispose());
         kitGeos.clear();
         kitProto = null;
@@ -4015,6 +4175,7 @@
       { id: 't09', label: 'Lajas Grandes (T-09)', path: 'assets/texturas/suelo/t09.jpg' },
       { id: 't10', label: 'Piedra Rota (T-10)', path: 'assets/texturas/suelo/t10.jpg' }
     ],
+    HEDGE_TEXTURES,
     createKit,
     preloadPuestos: preloadPuestosGLB,
     cachePuestos: cachePuestosGLB
