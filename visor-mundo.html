@@ -3152,7 +3152,7 @@
     const blanco = new THREE.DataArrayTexture(new Uint8Array(15 * 4).fill(255), 1, 1, 15);
     blanco.needsUpdate = true;
     terrainU.tCapas.value = blanco;
-    const blancoHierba = new THREE.DataArrayTexture(new Uint8Array(4 * 4).fill(255), 1, 1, 4);
+    const blancoHierba = new THREE.DataArrayTexture(new Uint8Array(8 * 4).fill(255), 1, 1, 8);
     blancoHierba.needsUpdate = true;
     terrainU.tHierbas.value = blancoHierba;
     new THREE.ImageLoader().load('assets/terreno/atlas.jpg', img => {
@@ -3168,8 +3168,11 @@
       texturasCargadas = true;
       terrainU.uTexOn.value = QUALITY[quality].texturas ? 1 : 0;
     }, undefined, () => { /* sin atlas: color plano */ });
-    // Variedades de hierba (t01 césped, t02 trébol, t06 hierba alta, t09 pradera con flores) mezcladas poco a poco
-    const rutasHierba = ['assets/texturas/hierba/t01.jpg', 'assets/texturas/hierba/t02.jpg', 'assets/texturas/hierba/t06.jpg', 'assets/texturas/hierba/t09.jpg'];
+    // Variedades de hierba (0..3 pradera: t01,t02,t06,t09; 4..7 transición bioma: t03 seca, t07 hojas, t08 pedregosa, t10 escarchada)
+    const rutasHierba = [
+      'assets/texturas/hierba/t01.jpg', 'assets/texturas/hierba/t02.jpg', 'assets/texturas/hierba/t06.jpg', 'assets/texturas/hierba/t09.jpg',
+      'assets/texturas/hierba/t03.jpg', 'assets/texturas/hierba/t07.jpg', 'assets/texturas/hierba/t08.jpg', 'assets/texturas/hierba/t10.jpg'
+    ];
     const imgsHierba = new Array(rutasHierba.length);
     let cargadasHierba = 0;
     rutasHierba.forEach((ruta, idx) => {
@@ -3963,7 +3966,7 @@
     C.senda = suavizar(C.calzada.clone());
     ponerFoto(C.tierra, 'assets/texturas/suelo/t03.jpg', 2, 2, 0.12);        // tierra con grava
     ponerFoto(C.calzada, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.18);    // senda empedrada con hierba
-    ponerFoto(C.senda, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.18);
+    ponerFoto(C.senda, 'assets/texturas/suelo/t05.jpg', 1, 0.75, 0.18);      // senda de laberinto con musgo y piedra
     ponerFoto(C.ladrillos, 'assets/texturas/piedra/t02.jpg', 0.6, 0.6, 0.1); // losas en relieve: sillar claro
     return _materialesCaminosCache;
   }
