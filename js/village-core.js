@@ -1902,26 +1902,76 @@
 
       // --- SALIDAS HACIA LOS CAMINOS DEL MUNDO ---
       // cfg.exits = [{ angle (grados, atan2(z, x) en coordenadas locales del pueblo), gate, to }]
-      // Cada salida es una calle recta que sale de la plaza central, atraviesa la muralla por
-      // un hueco a su mismo ángulo y continúa hasta el borde del terreno. Así el camino del
-      // mundo entra en el pueblo por el hueco que le corresponde.
-      buildExitPaths(cfg, townRadius, worldSize) {
+      // Cuando una salida coincide con un eje cardinal (N/S/E/O) de las calles del pueblo, continúa esa misma
+      // calzada desde el final de la calle interna hasta el borde del terreno (evitando calles duplicadas).
+      // Si es diagonal, sale como calle radial propia desde la plaza.
+      buildExitPaths(cfg, townRadius, worldSize, wallAnchors) {
         const exits = Array.isArray(cfg.exits) ? cfg.exits : [];
         const half = worldSize / 2 - 1.5;
         const PLAZA_R = 16.0;
         const step = 3.5;
+        const CARDINAL_ANG = { E: 0, S: Math.PI / 2, W: Math.PI, N: Math.PI * 1.5 };
+        const claimed = new Set();
+
+        const sampleSegment = (p0, p1) => {
+          const pts = [];
+          const n = Math.max(1, Math.ceil(Math.hypot(p1.x - p0.x, p1.z - p0.z) / step));
+          for (let i = 0; i <= n; i++) {
+            pts.push({ x: p0.x + (p1.x - p0.x) * i / n, z: p0.z + (p1.z - p0.z) * i / n });
+          }
+          return pts;
+        };
+
+        const sampleBezier = (p0, p1, p2, p3) => {
+          const lenApprox = Math.hypot(p3.x - p0.x, p3.z - p0.z);
+          const n = Math.max(2, Math.ceil(lenApprox / step));
+          const pts = [];
+          for (let i = 0; i <= n; i++) {
+            const t = i / n, u = 1 - t;
+            pts.push({
+              x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x,
+              z: u * u * u * p0.z + 3 * u * u * t * p1.z + 3 * u * t * t * p2.z + t * t * t * p3.z
+            });
+          }
+          return pts;
+        };
+
         return exits.map(ex => {
           const a = ((Number(ex.angle) || 0) % 360 + 360) % 360 * Math.PI / 180;
           const ca = Math.cos(a), sa = Math.sin(a);
-          const t = half / Math.max(Math.abs(ca), Math.abs(sa));
-          const start = { x: ca * PLAZA_R, z: sa * PLAZA_R };
-          const end = { x: ca * t, z: sa * t };
-          const n = Math.max(1, Math.ceil(Math.hypot(end.x - start.x, end.z - start.z) / step));
-          const points = [];
-          for (let i = 0; i <= n; i++) {
-            points.push({ x: start.x + (end.x - start.x) * i / n, z: start.z + (end.z - start.z) * i / n });
+          const tHalf = half / Math.max(Math.abs(ca), Math.abs(sa));
+          const end = { x: ca * tHalf, z: sa * tHalf };
+
+          let matchedKey = null;
+          if (wallAnchors) {
+            let bestDiff = 0.68; // ~39 grados máx para enlazarse con el eje cardinal
+            ['E', 'S', 'W', 'N'].forEach(key => {
+              if (claimed.has(key) || !wallAnchors[key]) return;
+              let diff = Math.abs(a - CARDINAL_ANG[key]);
+              if (diff > Math.PI) diff = Math.PI * 2 - diff;
+              if (diff < bestDiff) { bestDiff = diff; matchedKey = key; }
+            });
           }
-          return { exit: ex, angle: a, gate: ex.gate || null, points, end };
+
+          if (matchedKey) {
+            claimed.add(matchedKey);
+            const anc = wallAnchors[matchedKey];
+            const points = [];
+            if (Math.hypot(anc.gate.x - anc.inner.x, anc.gate.z - anc.inner.z) > 0.5) {
+              sampleSegment(anc.inner, anc.gate).forEach(q => points.push(q));
+            } else {
+              points.push({ x: anc.gate.x, z: anc.gate.z });
+            }
+            const extL = Math.hypot(end.x - anc.gate.x, end.z - anc.gate.z);
+            const p1 = { x: anc.gate.x + anc.dir.x * extL * 0.35, z: anc.gate.z + anc.dir.z * extL * 0.35 };
+            const p2 = { x: end.x - ca * extL * 0.35, z: end.z - sa * extL * 0.35 };
+            const outCurve = sampleBezier(anc.gate, p1, p2, end);
+            for (let i = 1; i < outCurve.length; i++) points.push(outCurve[i]);
+            return { exit: ex, angle: a, gate: ex.gate || matchedKey, cardinal: matchedKey, points, end };
+          }
+
+          const start = { x: ca * PLAZA_R, z: sa * PLAZA_R };
+          return { exit: ex, angle: a, gate: ex.gate || null, cardinal: null, points: sampleSegment(start, end), end };
         });
       }
 
@@ -2197,6 +2247,8 @@
 
                 const casa = P(cm, CASA_FONDO);
                 if (!this.placementOk(casa.x, casa.z, null)) continue;
+                const pf0 = P(c0, 0), pf1 = P(c1, 0);
+                if (this.onExitCorridor(pf0.x, pf0.z, cfg.roadWidth * 0.5 + 2.5) || this.onExitCorridor(pf1.x, pf1.z, cfg.roadWidth * 0.5 + 2.5)) continue;
                 const removed = edit.removedHouses.has(key);
                 const moved = edit.movedHouses.get(key);
                 const tieneCasa = tiene && !removed;
@@ -2431,6 +2483,7 @@
         const roadsGroup = new THREE.Group();
         const roadExtent = townRadius + 28;
         const matCalle = materialCallePara(cfg);
+        this.townRadius = townRadius;
 
         // Calle interna: se puede borrar o desplazar con las ediciones. Las salidas hacia el mundo no pasan por aquí.
         const pushRoad = (id, pts, width, yOffset, extra) => {
@@ -2449,6 +2502,7 @@
         const ringZOffsets = [-28, 28];
         if (cfg.size >= 4) ringZOffsets.push(-52, 52);
 
+        let wallAnchors = null;
         if (manzanas) {
           // Cuadrícula de calles en coordenadas (u, v) llevada al mundo con una onda suave (ver geometriaManzanas)
           const g = this.manzanaGeo = this.geometriaManzanas(cfg, townRadius);
@@ -2473,25 +2527,50 @@
             addCorte('calle-n' + k, norte, anchoCalle);
             addCorte('calle-e' + k, este, anchoCalle);
           }
+          wallAnchors = {
+            N: { inner: g.W(0, -g.R), gate: { x: 0, z: -townRadius }, dir: { x: 0, z: -1 } },
+            S: { inner: g.W(0, g.R),  gate: { x: 0, z:  townRadius }, dir: { x: 0, z:  1 } },
+            W: { inner: g.W(-g.R, 0), gate: { x: -townRadius, z: 0 }, dir: { x: -1, z: 0 } },
+            E: { inner: g.W(g.R, 0),  gate: { x:  townRadius, z: 0 }, dir: { x:  1, z: 0 } }
+          };
+          this.exitPaths = this.buildExitPaths(cfg, townRadius, WORLD_SIZE, wallAnchors);
         } else {
+          const zCurveW = Math.sin(-townRadius * 0.04) * (cfg.curve * 0.35);
+          wallAnchors = {
+            N: { inner: { x: this.getMainRoadX(-townRadius), z: -townRadius }, gate: { x: this.getMainRoadX(-townRadius), z: -townRadius }, dir: { x: 0, z: -1 } },
+            S: { inner: { x: this.getMainRoadX(townRadius),  z:  townRadius }, gate: { x: this.getMainRoadX(townRadius),  z:  townRadius }, dir: { x: 0, z:  1 } },
+            W: { inner: { x: -townRadius, z: zCurveW },                        gate: { x: -townRadius, z: zCurveW },                        dir: { x: -1, z: 0 } },
+            E: (!cfg.hasRiver || this.getRiverX(0) + RIVER_WIDTH * 0.65 < townRadius - 4)
+              ? { inner: { x: townRadius, z: 0 }, gate: { x: townRadius, z: 0 }, dir: { x: 1, z: 0 } }
+              : null
+          };
+          this.exitPaths = this.buildExitPaths(cfg, townRadius, WORLD_SIZE, wallAnchors);
+          const hasCardinalExit = dir => this.exitPaths.some(p => p.cardinal === dir);
+
+          const zStartMain = hasCardinalExit('N') ? -townRadius : -roadExtent;
+          const zEndMain   = hasCardinalExit('S') ?  townRadius :  roadExtent;
           const mainRoadPts = [];
-          for (let z = -roadExtent; z <= roadExtent; z += 3.5) {
-            mainRoadPts.push({ x: this.getMainRoadX(z), z: z });
+          for (let z = zStartMain; z <= zEndMain + 0.01; z += 3.5) {
+            const zClamped = Math.min(z, zEndMain);
+            mainRoadPts.push({ x: this.getMainRoadX(zClamped), z: zClamped });
           }
           addStreet('principal', mainRoadPts, cfg.roadWidth, 0.16);
 
           const eastWestPtsLeft = [];
-          const bridgeStopX = cfg.hasRiver ? (this.getRiverX(0) - RIVER_WIDTH * 0.65) : roadExtent;
-          for (let x = -roadExtent; x <= bridgeStopX; x += 3.5) {
-            eastWestPtsLeft.push({ x: x, z: Math.sin(x * 0.04) * (cfg.curve * 0.35) * Math.min(1, Math.abs(x) / 20) });
+          const xStartW = hasCardinalExit('W') ? -townRadius : -roadExtent;
+          const bridgeStopX = cfg.hasRiver ? (this.getRiverX(0) - RIVER_WIDTH * 0.65) : (hasCardinalExit('E') ? townRadius : roadExtent);
+          for (let x = xStartW; x <= bridgeStopX + 0.01; x += 3.5) {
+            const xc = Math.min(x, bridgeStopX);
+            eastWestPtsLeft.push({ x: xc, z: Math.sin(xc * 0.04) * (cfg.curve * 0.35) * Math.min(1, Math.abs(xc) / 20) });
           }
           addStreet('este-oeste-izq', eastWestPtsLeft, cfg.roadWidth * 0.9, 0.15);
 
           if (cfg.hasRiver) {
             const eastWestPtsRight = [];
             const bridgeResumeX = this.getRiverX(0) + RIVER_WIDTH * 0.65;
-            for (let x = bridgeResumeX; x <= roadExtent; x += 3.5) {
-              eastWestPtsRight.push({ x: x, z: 0 });
+            const xEndE = hasCardinalExit('E') ? townRadius : roadExtent;
+            for (let x = bridgeResumeX; x <= xEndE + 0.01; x += 3.5) {
+              eastWestPtsRight.push({ x: Math.min(x, xEndE), z: 0 });
             }
             if (eastWestPtsRight.length > 1) {
               addStreet('este-oeste-der', eastWestPtsRight, cfg.roadWidth * 0.9, 0.15);
@@ -2509,15 +2588,13 @@
               addStreet('anillo:' + rz, secPts, cfg.roadWidth * 0.72, 0.14);
             }
           });
-
         }
 
-        // 3b. SALIDAS HACIA LOS CAMINOS DEL MUNDO (cfg.exits)
-        this.townRadius = townRadius;
-        this.exitPaths = this.buildExitPaths(cfg, townRadius, WORLD_SIZE);
+        // 3b. SALIDAS HACIA LOS CAMINOS DEL MUNDO (cfg.exits) con la misma textura matCalle
         const exitPieces = this.buildExitRoadPieces(cfg, this.exitPaths, roadsGroup, matCalle);
+        const anchoSalida = manzanas ? cfg.roadWidth * 0.9 : cfg.roadWidth * 0.92;
         exitPieces.forEach(pts => {
-          roadsGroup.add(this.buildConformingRoadMesh(pts, cfg.roadWidth * 0.85, 0.17));
+          roadsGroup.add(this.buildConformingRoadMesh(pts, anchoSalida, 0.16, matCalle));
         });
         if (this.exitPaths.length) this.addExitSigns(roadsGroup, this.exitPaths);
 
@@ -2572,122 +2649,224 @@
         this.colliders.push({ type: 'circle', x: 0, z: 0, r: 3.8 });
         roadsGroup.add(monumentGroup);
 
-        // 5. MURALLAS FORTIFICADAS CON ALMENAS Y TORRES
+        // 5. MURALLAS FORTIFICADAS CON ALMENAS, TORRES, PUERTAS ENCAJADAS Y PUENTES COLGANTES
         let wallGroup = null;
         if (cfg.hasWalls) {
           wallGroup = new THREE.Group();
+          const TWO_PI = Math.PI * 2;
+          const normAng = a => ((a % TWO_PI) + TWO_PI) % TWO_PI;
+          const angDist = (a, b) => {
+            let d = Math.abs(normAng(a) - normAng(b));
+            return d > Math.PI ? TWO_PI - d : d;
+          };
+          const cutIntervals = (intervals, oMinRaw, oMaxRaw) => {
+            const cutSingle = (arr, c0, c1) => {
+              const out = [];
+              arr.forEach(([s0, s1]) => {
+                if (c1 <= s0 || c0 >= s1) { out.push([s0, s1]); return; }
+                if (c0 > s0) out.push([s0, Math.min(s1, c0)]);
+                if (c1 < s1) out.push([Math.max(s0, c1), s1]);
+              });
+              return out;
+            };
+            const span = oMaxRaw - oMinRaw;
+            if (span >= TWO_PI) return [];
+            const c0 = normAng(oMinRaw), c1 = c0 + span;
+            if (c1 <= TWO_PI) return cutSingle(intervals, c0, c1);
+            return cutSingle(cutSingle(intervals, c0, TWO_PI), 0, c1 - TWO_PI);
+          };
+
+          // Detectar intersecciones reales de calles y caminos de salida con la circunferencia de la muralla
+          const intersectCircle = (pts, rad, width) => {
+            const hits = [];
+            if (!pts || pts.length < 2) return hits;
+            for (let k = 0; k < pts.length - 1; k++) {
+              const p0 = pts[k], p1 = pts[k + 1];
+              const r0 = Math.hypot(p0.x, p0.z), r1 = Math.hypot(p1.x, p1.z);
+              if ((r0 - rad) * (r1 - rad) <= 0) {
+                const denom = (r1 - r0);
+                const t = Math.abs(denom) > 1e-5 ? Math.max(0, Math.min(1, (rad - r0) / denom)) : 0.5;
+                let hx = p0.x + (p1.x - p0.x) * t;
+                let hz = p0.z + (p1.z - p0.z) * t;
+                const hl = Math.hypot(hx, hz) || 1;
+                hx = hx / hl * rad;
+                hz = hz / hl * rad;
+                hits.push({ x: hx, z: hz, ang: normAng(Math.atan2(hz, hx)), width: width || cfg.roadWidth });
+              }
+            }
+            return hits;
+          };
+
+          const wallGates = [];
+          const pushGateCandidate = (h) => {
+            if (cfg.hasRiver && Math.abs(h.x - this.getRiverX(h.z)) < RIVER_WIDTH * 0.85) return;
+            if (wallGates.some(g => Math.hypot(g.x - h.x, g.z - h.z) < 14)) return;
+            wallGates.push(h);
+          };
+          (this.editables.streets || []).forEach(st => {
+            if (!st || (st.id && st.id.startsWith('acceso-'))) return;
+            intersectCircle(st.pts, townRadius, st.width).forEach(pushGateCandidate);
+          });
+          (this.exitPaths || []).forEach(p => {
+            intersectCircle(p.points, townRadius, cfg.roadWidth * 0.92).forEach(pushGateCandidate);
+          });
+
+          // Detectar exactamente dónde cruza el río la circunferencia de la muralla (Norte y Sur)
+          const wallRiverCrossings = [];
+          if (cfg.hasRiver) {
+            [Math.PI * 1.5, Math.PI * 0.5].forEach(angMid0 => {
+              let bestAng = angMid0, bestDiff = Infinity;
+              for (let da = -0.85; da <= 0.85; da += 0.005) {
+                const th = angMid0 + da;
+                const rx = Math.cos(th) * townRadius, rz = Math.sin(th) * townRadius;
+                const diff = Math.abs(rx - this.getRiverX(rz));
+                if (diff < bestDiff) { bestDiff = diff; bestAng = th; }
+              }
+              if (bestDiff > 4.5) return;
+              const bankHalf = RIVER_WIDTH * 0.78;
+              let thL = bestAng, thR = bestAng;
+              while (thL > bestAng - 0.65 && Math.abs(Math.cos(thL) * townRadius - this.getRiverX(Math.sin(thL) * townRadius)) < bankHalf) thL -= 0.005;
+              while (thR < bestAng + 0.65 && Math.abs(Math.cos(thR) * townRadius - this.getRiverX(Math.sin(thR) * townRadius)) < bankHalf) thR += 0.005;
+              const pA = { x: Math.cos(thL) * townRadius, z: Math.sin(thL) * townRadius, ang: normAng(thL) };
+              const pB = { x: Math.cos(thR) * townRadius, z: Math.sin(thR) * townRadius, ang: normAng(thR) };
+              if (Math.hypot(pB.x - pA.x, pB.z - pA.z) >= RIVER_WIDTH * 1.05) {
+                wallRiverCrossings.push({ pA, pB, thMin: thL, thMax: thR });
+              }
+            });
+          }
+
+          // Intervalos de apertura en el perímetro (encajan al milímetro con pilares de puertas y torres de puente)
+          const openingIntervals = [];
+          wallGates.forEach(g => {
+            g.halfClear = Math.max(4.4, g.width * 0.56);
+            g.pillarW = 2.4;
+            const dAng = (g.halfClear + 0.35) / townRadius;
+            openingIntervals.push([g.ang - dAng, g.ang + dAng]);
+          });
+          wallRiverCrossings.forEach(rc => {
+            const towerInset = 0.8 / townRadius;
+            openingIntervals.push([rc.thMin + towerInset, rc.thMax - towerInset]);
+          });
+
           const wallSegs = 36;
           for (let i = 0; i < wallSegs; i++) {
-            const a1 = (i / wallSegs) * Math.PI * 2;
-            const a2 = ((i + 1) / wallSegs) * Math.PI * 2;
-            const mx = Math.cos((a1 + a2) * 0.5) * townRadius;
-            const mz = Math.sin((a1 + a2) * 0.5) * townRadius;
-
-            const nearNorthSouthGate = Math.abs(mx - this.getMainRoadX(mz)) < (cfg.roadWidth * 0.85) && Math.abs(Math.abs(mz) - townRadius) < 12;
-            const nearEastWestGate = Math.abs(mz) < (cfg.roadWidth * 0.85) && Math.abs(Math.abs(mx) - townRadius) < 12;
-            const inRiver = cfg.hasRiver && Math.abs(mx - this.getRiverX(mz)) < RIVER_WIDTH * 0.85;
-
-            // Hueco en la muralla donde sale una calle de salida (mismo ángulo)
-            const segHalfArc = (Math.PI * 2 / wallSegs) * 0.5 * townRadius;
-            const midAng = (a1 + a2) * 0.5;
-            const atExit = this.exitPaths.some(p => {
-              let d = Math.abs(midAng - p.angle) % (Math.PI * 2);
-              if (d > Math.PI) d = Math.PI * 2 - d;
-              return d * townRadius < segHalfArc + 1.5;
-            });
-
-            if (nearNorthSouthGate || nearEastWestGate || inRiver || atExit) continue;
             // Tramo quitado a mano: no se dibuja ni su torre ni sus colisionadores
             if (edit.removedWalls.has(i)) continue;
+            const a1 = (i / wallSegs) * TWO_PI;
+            const a2 = ((i + 1) / wallSegs) * TWO_PI;
 
-            const wy = this.getTerrainHeight(mx, mz);
-            const segLen = (2 * Math.PI * townRadius) / wallSegs + 0.6;
-            const wallRot = -((a1 + a2) * 0.5) + Math.PI / 2;
-            this.editables.walls.push({ id: i, x: mx, z: mz });
+            // Puerta manual editada (solo si el tramo completo no está en un hueco)
+            const fullMx = Math.cos((a1 + a2) * 0.5) * townRadius;
+            const fullMz = Math.sin((a1 + a2) * 0.5) * townRadius;
+            let pieces = [[a1, a2]];
+            openingIntervals.forEach(([oMin, oMax]) => { pieces = cutIntervals(pieces, oMin, oMax); });
+            if (!pieces.length) continue;
 
-            // Puerta con arco: dos pilares a 3,2 m del centro y un dintel encima; el paso queda libre
-            if (edit.gates.has(i)) {
+            this.editables.walls.push({ id: i, x: fullMx, z: fullMz });
+
+            if (edit.gates.has(i) && pieces.length === 1 && Math.abs((pieces[0][1] - pieces[0][0]) - (a2 - a1)) < 0.005) {
+              const wy = this.getTerrainHeight(fullMx, fullMz);
+              const wallRot = -((a1 + a2) * 0.5) + Math.PI / 2;
               const tx = Math.sin((a1 + a2) * 0.5), tz = -Math.cos((a1 + a2) * 0.5);
               [-1, 1].forEach(sd => {
                 const pG = new THREE.BoxGeometry(1.6, 8.5, 2.6);
                 mapUVBand(pG, 0.25, 0.50);
                 const pM = new THREE.Mesh(pG, matAtlas);
-                pM.position.set(mx + tx * 3.2 * sd, wy + 4.25, mz + tz * 3.2 * sd);
+                pM.position.set(fullMx + tx * 3.2 * sd, wy + 4.25, fullMz + tz * 3.2 * sd);
                 pM.rotation.y = wallRot;
                 pM.castShadow = pM.receiveShadow = true;
                 wallGroup.add(pM);
-                this.colliders.push({ type: 'circle', x: mx + tx * 3.2 * sd, z: mz + tz * 3.2 * sd, r: 1.3 });
+                this.colliders.push({ type: 'circle', x: fullMx + tx * 3.2 * sd, z: fullMz + tz * 3.2 * sd, r: 1.3 });
               });
               const lG = new THREE.BoxGeometry(8.0, 1.6, 2.6);
               mapUVBand(lG, 0.25, 0.50);
               const lM = new THREE.Mesh(lG, matAtlas);
-              lM.position.set(mx, wy + 7.6, mz);
+              lM.position.set(fullMx, wy + 7.6, fullMz);
               lM.rotation.y = wallRot;
               lM.castShadow = true;
               wallGroup.add(lM);
               continue;
             }
 
-            // El tramo baja hasta el punto más bajo del terreno bajo sus dos extremos (en una ladera no queda en el aire)
-            const dirX = Math.sin((a1 + a2) * 0.5), dirZ = -Math.cos((a1 + a2) * 0.5);
-            const yExt = Math.min(
-              this.getTerrainHeight(mx + dirX * segLen / 2, mz + dirZ * segLen / 2),
-              this.getTerrainHeight(mx - dirX * segLen / 2, mz - dirZ * segLen / 2),
-              wy
-            );
-            const wTop = wy + 6.95, wBase = yExt - 0.6;
-            const wG = new THREE.BoxGeometry(segLen, wTop - wBase, 2.4);
-            mapUVBand(wG, 0.25, 0.50);
-            const wM = new THREE.Mesh(wG, matAtlas);
-            wM.position.set(mx, (wTop + wBase) / 2, mz);
-            wM.rotation.y = wallRot;
-            wM.castShadow = wM.receiveShadow = true;
-            wallGroup.add(wM);
+            let towerPlacedForSeg = false;
+            pieces.forEach(([sa, sb]) => {
+              const segArc = sb - sa;
+              if (segArc * townRadius < 0.7) return;
+              const midA = (sa + sb) * 0.5;
+              const mx = Math.cos(midA) * townRadius;
+              const mz = Math.sin(midA) * townRadius;
+              const wy = this.getTerrainHeight(mx, mz);
+              const segLen = segArc * townRadius + 0.45;
+              const wallRot = -midA + Math.PI / 2;
 
-            if (i % 3 === 0) {
-              const tG = new THREE.CylinderGeometry(2.7, 3.1, 11.5, 12);
-              mapUVBand(tG, 0.25, 0.50);
-              const tM = new THREE.Mesh(tG, matAtlas);
-              tM.position.set(mx, wy + 5.2, mz);
-              tM.castShadow = tM.receiveShadow = true;
-              wallGroup.add(tM);
+              // El tramo baja hasta el punto más bajo del terreno bajo sus dos extremos (en una ladera no queda en el aire)
+              const dirX = Math.sin(midA), dirZ = -Math.cos(midA);
+              const yExt = Math.min(
+                this.getTerrainHeight(mx + dirX * segLen / 2, mz + dirZ * segLen / 2),
+                this.getTerrainHeight(mx - dirX * segLen / 2, mz - dirZ * segLen / 2),
+                wy
+              );
+              const wTop = wy + 6.95, wBase = yExt - 0.6;
+              const wG = new THREE.BoxGeometry(segLen, wTop - wBase, 2.4);
+              mapUVBand(wG, 0.25, 0.50);
+              const wM = new THREE.Mesh(wG, matAtlas);
+              wM.position.set(mx, (wTop + wBase) / 2, mz);
+              wM.rotation.y = wallRot;
+              wM.castShadow = wM.receiveShadow = true;
+              wallGroup.add(wM);
 
-              const tRoofG = new THREE.ConeGeometry(3.3, 3.6, 12);
-              mapUVBand(tRoofG, 0.75, 1.00);
-              const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
-              tRoofM.position.set(mx, wy + 12.5, mz);
-              tRoofM.castShadow = true;
-              wallGroup.add(tRoofM);
+              if (i % 3 === 0 && !towerPlacedForSeg && segArc * townRadius >= 3.0) {
+                const nearGateOrBridge = wallGates.some(g => angDist(midA, g.ang) * townRadius < g.halfClear + g.pillarW + 2.8)
+                  || wallRiverCrossings.some(rc => angDist(midA, rc.pA.ang) * townRadius < 4.5 || angDist(midA, rc.pB.ang) * townRadius < 4.5);
+                if (!nearGateOrBridge) {
+                  towerPlacedForSeg = true;
+                  const tG = new THREE.CylinderGeometry(2.7, 3.1, 11.5, 12);
+                  mapUVBand(tG, 0.25, 0.50);
+                  const tM = new THREE.Mesh(tG, matAtlas);
+                  tM.position.set(mx, wy + 5.2, mz);
+                  tM.castShadow = tM.receiveShadow = true;
+                  wallGroup.add(tM);
 
-              this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.1 });
-            }
-            // Colisionadores a lo largo del tramo para que no se pueda cruzar entre ellos
-            for (let k = 0; k <= 7; k++) {
-              const t = (k / 7 - 0.5) * segLen;
-              const ang = (a1 + a2) * 0.5;
-              this.colliders.push({ type: 'circle', x: mx + Math.sin(ang) * t, z: mz - Math.cos(ang) * t, r: 1.3, wall: true });
-            }
+                  const tRoofG = new THREE.ConeGeometry(3.3, 3.6, 12);
+                  mapUVBand(tRoofG, 0.75, 1.00);
+                  const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
+                  tRoofM.position.set(mx, wy + 12.5, mz);
+                  tRoofM.castShadow = true;
+                  wallGroup.add(tRoofM);
+
+                  this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.1 });
+                }
+              }
+
+              const nCols = Math.max(2, Math.ceil(segLen / 2.4));
+              for (let k = 0; k <= nCols; k++) {
+                const t = (k / nCols - 0.5) * segLen;
+                this.colliders.push({ type: 'circle', x: mx + Math.sin(midA) * t, z: mz - Math.cos(midA) * t, r: 1.3, wall: true });
+              }
+            });
           }
 
-          // 5b. ARCOS CON PUERTA ENORME ABIERTA EN TODAS LAS SALIDAS DE CAMINO POR LA MURALLA
-          const construirArcoPuertaMuralla = (gx, gz, rotY, anchoPaso) => {
+          // 5b. ARCOS CON PUERTA ENORME ABIERTA ENCAJADOS EXACTAMENTE EN LOS HUECOS DE LA MURALLA
+          const construirArcoPuertaMuralla = (gate) => {
+            const gx = gate.x, gz = gate.z, rotY = -gate.ang + Math.PI / 2;
             const gy = this.getTerrainHeight(gx, gz);
             const gGate = new THREE.Group();
             gGate.position.set(gx, gy, gz);
             gGate.rotation.y = rotY;
-            const halfW = Math.max(4.4, anchoPaso * 0.62);
-            const pilH = 8.4;
+            const halfW = gate.halfClear;
+            const pillarW = gate.pillarW;
+            const pilH = 7.4;
 
-            // Pilares de piedra a ambos lados
-            [-halfW - 1.1, halfW + 1.1].forEach(px => {
-              const pG = new THREE.BoxGeometry(2.2, pilH + 1.2, 3.2);
+            // Pilares de piedra que empalman directamente con los extremos del muro
+            [-halfW - pillarW * 0.5, halfW + pillarW * 0.5].forEach(px => {
+              const pG = new THREE.BoxGeometry(pillarW, pilH + 1.6, 3.1);
               mapUVBand(pG, 0.25, 0.50);
               const pM = new THREE.Mesh(pG, matAtlas);
-              pM.position.set(px, (pilH + 1.2) / 2 - 0.6, 0);
+              pM.position.set(px, (pilH - 1.2) / 2, 0);
               pM.castShadow = pM.receiveShadow = true;
               gGate.add(pM);
 
-              const capG = new THREE.BoxGeometry(2.6, 0.8, 3.6);
+              const capG = new THREE.BoxGeometry(pillarW + 0.4, 0.75, 3.5);
               mapUVBand(capG, 0.25, 0.50);
               const capM = new THREE.Mesh(capG, matAtlas);
               capM.position.set(px, pilH + 0.4, 0);
@@ -2699,13 +2878,13 @@
             });
 
             // Arco de piedra segmentado sobre la calzada
-            const archR = halfW + 0.35;
+            const archR = halfW + 0.45;
             const archSegs = 9;
             for (let s = 0; s < archSegs; s++) {
               const a = (s + 0.5) / archSegs * Math.PI;
               const ax = Math.cos(a) * archR;
-              const ay = pilH - 1.4 + Math.sin(a) * (archR * 0.62);
-              const vG = new THREE.BoxGeometry((Math.PI * archR) / archSegs + 0.35, 1.5, 3.0);
+              const ay = pilH - 1.3 + Math.sin(a) * (archR * 0.56);
+              const vG = new THREE.BoxGeometry((Math.PI * archR) / archSegs + 0.35, 1.45, 2.9);
               mapUVBand(vG, 0.25, 0.50);
               const vM = new THREE.Mesh(vG, matAtlas);
               vM.position.set(ax, ay, 0);
@@ -2714,30 +2893,32 @@
               gGate.add(vM);
             }
 
-            // Dintel superior almenado
-            const lintelY = pilH + archR * 0.62 - 0.4;
-            const lG = new THREE.BoxGeometry(halfW * 2 + 4.4, 1.4, 3.1);
+            // Dintel superior ancho con todas las almenas apoyadas dentro del dintel
+            const totalW = (halfW + pillarW) * 2;
+            const lintelY = pilH + archR * 0.56 - 0.3;
+            const lG = new THREE.BoxGeometry(totalW, 1.4, 3.0);
             mapUVBand(lG, 0.25, 0.50);
             const lM = new THREE.Mesh(lG, matAtlas);
             lM.position.set(0, lintelY, 0);
             lM.castShadow = true;
             gGate.add(lM);
+            const alSpan = totalW * 0.5 - 0.8;
             for (let m = -3; m <= 3; m++) {
-              const alG = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+              const alG = new THREE.BoxGeometry(1.1, 1.0, 1.0);
               mapUVBand(alG, 0.25, 0.50);
               const alM = new THREE.Mesh(alG, matAtlas);
-              alM.position.set(m * (halfW * 0.58), lintelY + 1.2, 1.0);
+              alM.position.set((m / 3) * alSpan, lintelY + 1.15, 0.95);
               alM.castShadow = true;
               gGate.add(alM);
             }
 
-            // Dos hojas de puerta enormes de madera con herrajes, abiertas de par en par hacia afuera
-            const doorW = halfW * 0.96;
-            const doorH = pilH - 0.4;
+            // Dos hojas de puerta enormes de madera con herrajes, abiertas hacia afuera dejando todo el paso libre
+            const doorW = halfW - 0.15;
+            const doorH = pilH - 0.5;
             [-1, 1].forEach(sd => {
               const pivot = new THREE.Group();
-              pivot.position.set(sd * halfW, 0, 1.25);
-              pivot.rotation.y = sd * (-Math.PI * 0.42); // abierta ~75° hacia fuera
+              pivot.position.set(sd * halfW, 0, 1.2);
+              pivot.rotation.y = sd * (Math.PI * 0.40);
               const hoja = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.38), matSignWood);
               hoja.position.set(-sd * (doorW * 0.5), doorH * 0.5, 0);
               hoja.castShadow = hoja.receiveShadow = true;
@@ -2752,90 +2933,94 @@
 
             wallGroup.add(gGate);
           };
+          wallGates.forEach(construirArcoPuertaMuralla);
 
-          const puertaPuesta = [];
-          const tryGate = (gx, gz, rotY, ancho) => {
-            if (cfg.hasRiver && Math.abs(gx - this.getRiverX(gz)) < RIVER_WIDTH * 0.85) return;
-            if (puertaPuesta.some(p => Math.hypot(p.x - gx, p.z - gz) < 12)) return;
-            puertaPuesta.push({ x: gx, z: gz });
-            construirArcoPuertaMuralla(gx, gz, rotY, ancho);
-          };
-          tryGate(this.getMainRoadX(-townRadius), -townRadius, 0, cfg.roadWidth);
-          tryGate(this.getMainRoadX(townRadius), townRadius, Math.PI, cfg.roadWidth);
-          tryGate(-townRadius, 0, Math.PI / 2, cfg.roadWidth);
-          tryGate(townRadius, 0, -Math.PI / 2, cfg.roadWidth);
-          this.exitPaths.forEach(p => {
-            const gx = Math.cos(p.angle) * townRadius;
-            const gz = Math.sin(p.angle) * townRadius;
-            const rotY = -p.angle + Math.PI / 2;
-            tryGate(gx, gz, rotY, cfg.roadWidth);
-          });
+          // 5c. PUENTES COLGANTES QUE UNEN Y CIERRAN AMBAS PARTES DE LA MURALLA SOBRE EL RÍO
+          const construirPuenteColganteMuralla = (rc) => {
+            const pA = rc.pA, pB = rc.pB;
+            const dx = pB.x - pA.x, dz = pB.z - pA.z;
+            const L = Math.hypot(dx, dz) || 1;
+            const ux = dx / L, uz = dz / L;
+            const angBridge = -Math.atan2(dz, dx);
 
-          // 5c. PUENTE COLGANTE DE LADO A LADO DE LA MURALLA AL ATRAVESAR EL RÍO
-          if (cfg.hasRiver) {
-            const construirPuenteColganteMuralla = (zCross) => {
-              const rx = this.getRiverX(zCross);
-              if (Math.abs(rx) > townRadius * 0.88) return;
-              const spanHalf = RIVER_WIDTH * 0.92;
-              const pA = { x: rx - spanHalf, z: zCross };
-              const pB = { x: rx + spanHalf, z: zCross };
-              const hA = this.getTerrainHeight(pA.x, pA.z) + 1.15;
-              const hB = this.getTerrainHeight(pB.x, pB.z) + 1.15;
-              const anchoP = 3.8;
-              const tramos = 12;
+            const yGroundA = this.getTerrainHeight(pA.x, pA.z);
+            const yGroundB = this.getTerrainHeight(pB.x, pB.z);
+            const yDeckA = yGroundA + 6.35;
+            const yDeckB = yGroundB + 6.35;
+            const yTowerTop = Math.max(yDeckA, yDeckB) + 3.6;
+            const anchoP = 2.6; // igual al grosor de la muralla para continuar el adarve
+            const tramos = 12;
 
-              // Torres de anclaje en cada extremo donde conecta con la muralla
-              [pA, pB].forEach(pt => {
-                const ty = this.getTerrainHeight(pt.x, pt.z);
-                const torG = new THREE.BoxGeometry(2.2, 8.2, anchoP + 1.2);
-                mapUVBand(torG, 0.25, 0.50);
-                const torM = new THREE.Mesh(torG, matAtlas);
-                torM.position.set(pt.x, ty + 3.6, pt.z);
-                torM.castShadow = torM.receiveShadow = true;
-                wallGroup.add(torM);
+            // Dos torres macizas en los extremos donde termina cada brazo de la muralla
+            [
+              { pt: pA, yg: yGroundA },
+              { pt: pB, yg: yGroundB }
+            ].forEach(({ pt, yg }) => {
+              const base = yg - 1.4;
+              const hTor = yTowerTop - base;
+              const torG = new THREE.BoxGeometry(3.4, hTor, 3.4);
+              mapUVBand(torG, 0.25, 0.50);
+              const torM = new THREE.Mesh(torG, matAtlas);
+              torM.position.set(pt.x, base + hTor * 0.5, pt.z);
+              torM.rotation.y = angBridge;
+              torM.castShadow = torM.receiveShadow = true;
+              wallGroup.add(torM);
+
+              [[-1.1, -1.1], [1.1, -1.1], [-1.1, 1.1], [1.1, 1.1]].forEach(([cx, cz]) => {
+                const mG = new THREE.BoxGeometry(0.95, 1.0, 0.95);
+                mapUVBand(mG, 0.25, 0.50);
+                const mM = new THREE.Mesh(mG, matAtlas);
+                const cRot = cx * Math.cos(angBridge) + cz * Math.sin(angBridge);
+                const sRot = -cx * Math.sin(angBridge) + cz * Math.cos(angBridge);
+                mM.position.set(pt.x + cRot, yTowerTop + 0.5, pt.z + sRot);
+                mM.rotation.y = angBridge;
+                mM.castShadow = true;
+                wallGroup.add(mM);
               });
+              this.colliders.push({ type: 'circle', x: pt.x, z: pt.z, r: 2.0, wall: true });
+            });
 
-              // Tablero colgante de madera con ligera catenaria (comba hacia abajo en el centro)
-              const topAt = this.construirTablero(wallGroup, pA, pB, {
-                ancho: anchoP, hA, hB, arco: -0.55, grosor: 0.36, tramos, mat: matSignWood
-              });
+            // Pasarela colgante a la altura de lo alto de la muralla conectando ambas torres
+            this.construirTablero(wallGroup, pA, pB, {
+              ancho: anchoP, hA: yDeckA, hB: yDeckB, arco: -0.65, grosor: 0.38, tramos, mat: matSignWood
+            });
 
-              // Cables principales y péndolas verticales a ambos lados
-              const dx = pB.x - pA.x, dz = pB.z - pA.z, L = Math.hypot(dx, dz) || 1;
-              [-anchoP * 0.52, anchoP * 0.52].forEach(lat => {
-                for (let k = 0; k < tramos; k++) {
-                  const t0 = k / tramos, t1 = (k + 1) / tramos;
-                  const yDeck0 = hA + (hB - hA) * t0 - 0.55 * Math.sin(t0 * Math.PI);
-                  const yDeck1 = hA + (hB - hA) * t1 - 0.55 * Math.sin(t1 * Math.PI);
-                  const yCab0 = hA + 3.6 + (hB - hA) * t0 - 2.3 * Math.sin(t0 * Math.PI);
-                  const yCab1 = hA + 3.6 + (hB - hA) * t1 - 2.3 * Math.sin(t1 * Math.PI);
-                  const x0 = pA.x + dx * t0, z0 = pA.z + dz * t0 + lat;
-                  const x1 = pA.x + dx * t1, z1 = pA.z + dz * t1 + lat;
-                  const segL = Math.hypot(x1 - x0, yCab1 - yCab0, z1 - z0);
-                  const cab = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, segL, 6), matIron);
-                  cab.position.set((x0 + x1) / 2, (yCab0 + yCab1) / 2, (z0 + z1) / 2);
-                  cab.rotation.z = Math.atan2(yCab1 - yCab0, x1 - x0) + Math.PI / 2;
-                  wallGroup.add(cab);
+            // Cables principales en catenaria desde lo alto de ambas torres + péndolas verticales
+            const Zx = -uz, Zz = ux;
+            [-anchoP * 0.52, anchoP * 0.52].forEach(lat => {
+              for (let k = 0; k < tramos; k++) {
+                const t0 = k / tramos, t1 = (k + 1) / tramos;
+                const yD0 = yDeckA + (yDeckB - yDeckA) * t0 - 0.65 * Math.sin(t0 * Math.PI);
+                const yC0 = yTowerTop - 0.35 - 2.35 * Math.sin(t0 * Math.PI);
+                const yC1 = yTowerTop - 0.35 - 2.35 * Math.sin(t1 * Math.PI);
 
-                  if (k > 0) {
-                    const pendH = Math.max(0.2, yCab0 - yDeck0);
-                    const pend = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, pendH, 5), matIron);
-                    pend.position.set(x0, yDeck0 + pendH / 2, z0);
-                    wallGroup.add(pend);
-                  }
+                const x0 = pA.x + dx * t0 + Zx * lat, z0 = pA.z + dz * t0 + Zz * lat;
+                const x1 = pA.x + dx * t1 + Zx * lat, z1 = pA.z + dz * t1 + Zz * lat;
+
+                const segV = new THREE.Vector3(x1 - x0, yC1 - yC0, z1 - z0);
+                const cab = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, segV.length(), 6), matIron);
+                cab.position.set((x0 + x1) / 2, (yC0 + yC1) / 2, (z0 + z1) / 2);
+                cab.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), segV.clone().normalize());
+                wallGroup.add(cab);
+
+                // Barandilla lateral del puente colgante
+                const yD1 = yDeckA + (yDeckB - yDeckA) * t1 - 0.65 * Math.sin(t1 * Math.PI);
+                const rV = new THREE.Vector3(x1 - x0, yD1 - yD0, z1 - z0);
+                const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, rV.length(), 6), matSignWood);
+                bar.position.set((x0 + x1) / 2, (yD0 + yD1) / 2 + 0.95, (z0 + z1) / 2);
+                bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rV.clone().normalize());
+                wallGroup.add(bar);
+
+                if (k > 0) {
+                  const pendH = Math.max(0.25, yC0 - yD0);
+                  const pend = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, pendH, 5), matIron);
+                  pend.position.set(x0, yD0 + pendH / 2, z0);
+                  wallGroup.add(pend);
                 }
-              });
-
-              this.extraBridges.push({
-                cx: rx, cz: zCross,
-                ux: dx / L, uz: dz / L,
-                hu: L / 2, hv: (anchoP + 0.6) / 2,
-                topAt
-              });
-            };
-            construirPuenteColganteMuralla(-townRadius * 0.96);
-            construirPuenteColganteMuralla(townRadius * 0.96);
-          }
+              }
+            });
+          };
+          wallRiverCrossings.forEach(construirPuenteColganteMuralla);
         }
 
         // 6. EDIFICIOS ESPECIALES
@@ -3062,13 +3247,15 @@
             if (enRio(x, z) || cercaDeCasa(x, z) || cercaDeFarola(x, z)) return;
             lampsList.push({ x, y: this.getTerrainHeight(x, z), z, rot, style });
           };
-          for (let lz = -(townRadius - 6); lz <= (townRadius - 6); lz += 16) {
-            const rx = this.getMainRoadX(lz);
-            const lx1 = rx - (cfg.roadWidth * 0.5 + 0.9);
-            const lx2 = rx + (cfg.roadWidth * 0.5 + 0.9);
-            const stMain = (Math.abs(Math.round(lz / 16)) % 2 === 0) ? 0 : 2;
-            ponerFarolaCalle(lx1, lz, Math.PI * 0.5, stMain);
-            ponerFarolaCalle(lx2, lz, -Math.PI * 0.5, stMain);
+          if (!manzanas) {
+            for (let lz = -(townRadius - 6); lz <= (townRadius - 6); lz += 16) {
+              const rx = this.getMainRoadX(lz);
+              const lx1 = rx - (cfg.roadWidth * 0.5 + 0.9);
+              const lx2 = rx + (cfg.roadWidth * 0.5 + 0.9);
+              const stMain = (Math.abs(Math.round(lz / 16)) % 2 === 0) ? 0 : 2;
+              ponerFarolaCalle(lx1, lz, Math.PI * 0.5, stMain);
+              ponerFarolaCalle(lx2, lz, -Math.PI * 0.5, stMain);
+            }
           }
           // Farolas en todas las demás calles del pueblo con estilos variados
           this.editables.streets.forEach((st, sIdx) => {
