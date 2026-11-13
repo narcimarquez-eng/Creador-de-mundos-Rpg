@@ -3227,6 +3227,7 @@
         this.lightPoolCount = lampsAll.length;
         iLightPool.visible = lampsAll.length > 0 && matLightPool.opacity > 0.005;
 
+        const lampMeshes = [];
         let poolIdx = 0;
         lampsByStyle.forEach((lista, st) => {
           if (!lista.length) return;
@@ -3234,6 +3235,7 @@
           const iPost = makeInstanced(def.post, def.matPost, lista.length);
           const iArm = makeInstanced(def.arm, def.matArm, lista.length);
           const iLan = makeInstanced(def.lantern, matGlassGlow, lista.length, { castShadow: false });
+          lampMeshes.push(iPost, iArm, iLan);
           lista.forEach((l, idx) => {
             dPos.set(l.x, l.y, l.z);
             dQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), l.rot);
@@ -3349,7 +3351,7 @@
         const allInstanced = [
           iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
-          iLampPost, iLampArm, iLantern, iLightPool,
+          ...lampMeshes, iLightPool,
           ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas, g.sil]), []), iHedge, iFence, iRock
         ];
 
