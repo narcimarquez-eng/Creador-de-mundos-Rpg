@@ -2355,7 +2355,7 @@
         };
         const setoPermitido = (px, pz) => {
           if (this.onExitCorridor(px, pz, cfg.roadWidth * 0.5 + 2.5)) return false;
-          if (cfg.hasRiver && Math.abs(px - this.getRiverX(pz)) < RIVER_WIDTH * 1.05) return false;
+          if (cfg.hasRiver && Math.abs(px - this.getRiverX(pz)) < (this.riverWidth || 14.0) * 1.05) return false;
           return !this.colliders.some(col => {
             if (col.wall) return false;
             if (col.type === 'circle') return Math.hypot(px - col.x, pz - col.z) < col.r + 1.4;
