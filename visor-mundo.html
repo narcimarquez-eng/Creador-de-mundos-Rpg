@@ -2225,6 +2225,7 @@
         const t = Math.max(0, Math.min(1, ((x - s.ax) * ex + (z - s.az) * ez) / (ex * ex + ez * ez || 1)));
         const d = Math.hypot(s.ax + ex * t - x, s.az + ez * t - z);
         if (!mejor || d < mejor.d) mejor = {
+          o: r.o,
           d, nivel: s.ya + (s.yb - s.ya) * t, w: s.wa + (s.wb - s.wa) * t,
           // distancia al exterior de los muros del pueblo (positiva fuera del pueblo)
           dt: Math.max(Math.abs(lx), Math.abs(lz)) - r.o.tileHalf
@@ -2232,6 +2233,40 @@
       });
     });
     return mejor;
+  }
+  // Pesos de textura para lecho y márgenes de río (arena fluvial, gravilla y roca húmeda)
+  function aplicarSplatRio(w, dRio, dCauce, dBanco) {
+    if (!(dRio < dBanco)) return w;
+    if (dRio <= dCauce) return { splat: [0, 0.12, 0.28, 0.60], snow: 0 };
+    const tRio = smooth(dCauce, dBanco, dRio);
+    const factorArena = (1 - tRio) * 0.85;
+    const sp = [w.splat[0], w.splat[1], w.splat[2] * tRio + (1 - tRio) * 0.20, w.splat[3] * tRio + factorArena];
+    const sTot = sp[0] + sp[1] + sp[2] + sp[3] || 1;
+    return { splat: [sp[0] / sTot, sp[1] / sTot, sp[2] / sTot, sp[3] / sTot], snow: w.snow * tRio };
+  }
+  function splatRioEn(x, z, w) {
+    const rio = rioCercano(x, z);
+    if (rio && rio.dt > -BLEND_OUT) {
+      const kRio = rio.dt >= 0 ? smooth(0, Math.min(18, RIO_RAMPA), rio.dt) : 0;
+      const tCauce = (rio.o && rio.o.ground && rio.o.ground.riverCauce) || 9.0;
+      const tBanco = (rio.o && rio.o.ground && rio.o.ground.riverBanco) || (tCauce + 18);
+      const dCauce = tCauce + (RIO_CAUCE * rio.w - tCauce) * kRio;
+      const dBanco = tBanco + (RIO_BANCO * rio.w - tBanco) * kRio;
+      if (rio.d < dBanco) return aplicarSplatRio(w, rio.d, dCauce, dBanco);
+    }
+    for (let i = 0; i < towns.length; i++) {
+      const o = towns[i];
+      if (!o.cfg || !o.cfg.hasRiver) continue;
+      const dx = x - o.t.x, dz = z - o.t.y;
+      if (Math.hypot(dx, dz) > o.tileHalf * 1.5) continue;
+      const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+      if (Math.max(Math.abs(lx), Math.abs(lz)) < o.tileHalf) {
+        const dCauce = o.ground.riverCauce || 9.0;
+        const dBanco = o.ground.riverBanco || (dCauce + 18);
+        return aplicarSplatRio(w, Math.abs(lx - o.ground.getRiverX(lz)), dCauce, dBanco);
+      }
+    }
+    return w;
   }
   // Suelo del pueblo en (lx, lz); donde el mundo está bajo el mar se mantiene el mar, como en el mapa
   function sueloPueblo(o, lx, lz, hMundo) {
@@ -2349,23 +2384,27 @@
     }
     // Río fuera del pueblo: el cauce excava el lecho cóncavo del río y sube con riberas suaves hacia el relieve
     const r = rioCercano(x, z);
-    if (r && r.dt > -5 && r.d < RIO_BANCO * r.w) {
+    if (r && r.dt > -5) {
       const k = smooth(0, Math.min(18, RIO_RAMPA), r.dt);
-      const dCauce = RIO_CAUCE * r.w;
-      const dBanco = RIO_BANCO * r.w;
-      let perfil;
-      if (r.d <= dCauce) {
-        // Lecho del río bajo el agua: fondo excavado cóncavo (-5.5m en el centro) continuo sin salto en la orilla
-        const fr = r.d / dCauce;
-        const lecho = r.nivel - RIO_FONDO * (1 - 0.72 * fr * fr);
-        perfil = Math.min(h, lecho);
-      } else {
-        // Ribera / orilla: sube con pendiente suave y continua desde la orilla (r.nivel + 0.35) hasta el terreno h
-        const t = smooth(dCauce, dBanco, r.d);
-        const cotaOrilla = r.nivel + 0.35;
-        perfil = Math.min(h, cotaOrilla + (h - cotaOrilla) * t);
+      const tCauce = (r.o && r.o.ground && r.o.ground.riverCauce) || 9.0;
+      const tBanco = (r.o && r.o.ground && r.o.ground.riverBanco) || (tCauce + 18);
+      const dCauce = tCauce + (RIO_CAUCE * r.w - tCauce) * k;
+      const dBanco = tBanco + (RIO_BANCO * r.w - tBanco) * k;
+      if (r.d < dBanco) {
+        let perfil;
+        if (r.d <= dCauce) {
+          // Lecho del río bajo el agua: fondo excavado cóncavo (-5.5m en el centro) continuo sin salto en la orilla
+          const fr = r.d / dCauce;
+          const lecho = r.nivel - RIO_FONDO * (1 - 0.72 * fr * fr);
+          perfil = Math.min(h, lecho);
+        } else {
+          // Ribera / orilla: sube con pendiente suave y continua desde la orilla (r.nivel + 0.35) hasta el terreno h
+          const t = smooth(dCauce, dBanco, r.d);
+          const cotaOrilla = r.nivel + 0.35;
+          perfil = Math.min(h, cotaOrilla + (h - cotaOrilla) * t);
+        }
+        h = h + (perfil - h) * k;
       }
-      h = h + (perfil - h) * k;
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
     h = LagosLib.aplicar(lagosMundo, x, z, h);
@@ -3049,7 +3088,15 @@
         let c = [1 - 0.55 * (1 - gc[0] / 255), 1 - 0.55 * (1 - gc[1] / 255), 1 - 0.55 * (1 - gc[2] / 255)];
         let sp = w.splat, sn = w.snow;
         if (Math.hypot(lx, lz) < 16.5) { c = [0.8, 0.84, 0.88]; sp = [0, 1, 0, 0]; sn = 0; }          // plaza: tierra
-        else if (cfg.hasRiver && Math.abs(lx - o.ground.getRiverX(lz)) < o.ground.riverWidth * 0.72) { c = [0.6, 0.52, 0.4]; sp = [0, 0, 0, 1]; sn = 0; } // arena del río
+        else if (cfg.hasRiver) {
+          const rw = aplicarSplatRio(
+            { splat: sp, snow: sn },
+            Math.abs(lx - o.ground.getRiverX(lz)),
+            o.ground.riverCauce || 9.0,
+            o.ground.riverBanco || 27.0
+          );
+          sp = rw.splat; sn = rw.snow;
+        }
         col[k] = c[0]; col[k + 1] = c[1]; col[k + 2] = c[2];
         splat.set(sp, kk * 4); snowA[kk] = sn;
       }
@@ -3126,22 +3173,7 @@
       const nv = TerrainLib.nodeNormal(heightAt, i, j, n, step);
       nrm[k * 3] = nv[0]; nrm[k * 3 + 1] = nv[1]; nrm[k * 3 + 2] = nv[2];
       let w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
-      const rio = rioCercano(x, z);
-      if (rio && rio.dt > -BLEND_OUT && rio.d < RIO_BANCO * rio.w) {
-        const dCauce = RIO_CAUCE * rio.w, dBanco = RIO_BANCO * rio.w;
-        if (rio.d <= dCauce) {
-          // Fondo del lecho excavado: mezcla de arena fluvial, gravilla y roca húmeda
-          w = { splat: [0, 0.12, 0.28, 0.60], snow: 0 };
-        } else {
-          const tRio = smooth(dCauce, dBanco, rio.d);
-          const factorArena = (1 - tRio) * 0.85;
-          w.splat[3] = w.splat[3] * tRio + factorArena;
-          w.splat[2] = w.splat[2] * tRio + (1 - tRio) * 0.20;
-          const sTot = w.splat[0] + w.splat[1] + w.splat[2] + w.splat[3] || 1;
-          w.splat[0] /= sTot; w.splat[1] /= sTot; w.splat[2] /= sTot; w.splat[3] /= sTot;
-          w.snow *= tRio;
-        }
-      }
+      w = splatRioEn(x, z, w);
       splat.set(w.splat, k * 4);
       snowA[k] = w.snow;
     }
@@ -3550,22 +3582,7 @@
       col[k * 3] = 1 - 0.55 * (1 - c[0] / 255); col[k * 3 + 1] = 1 - 0.55 * (1 - c[1] / 255); col[k * 3 + 2] = 1 - 0.55 * (1 - c[2] / 255);
       nrm.set(nv, k * 3);
       let w = TerrainLib.splatFor(b, 1 - nv[1], h);
-      const rio = rioCercano(x, z);
-      if (rio && rio.dt > -BLEND_OUT && rio.d < RIO_BANCO * rio.w) {
-        const dCauce = RIO_CAUCE * rio.w, dBanco = RIO_BANCO * rio.w;
-        if (rio.d <= dCauce) {
-          // Fondo del lecho excavado: mezcla de arena fluvial, gravilla y roca húmeda
-          w = { splat: [0, 0.12, 0.28, 0.60], snow: 0 };
-        } else {
-          const tRio = smooth(dCauce, dBanco, rio.d);
-          const factorArena = (1 - tRio) * 0.85;
-          w.splat[3] = w.splat[3] * tRio + factorArena;
-          w.splat[2] = w.splat[2] * tRio + (1 - tRio) * 0.20;
-          const sTot = w.splat[0] + w.splat[1] + w.splat[2] + w.splat[3] || 1;
-          w.splat[0] /= sTot; w.splat[1] /= sTot; w.splat[2] /= sTot; w.splat[3] /= sTot;
-          w.snow *= tRio;
-        }
-      }
+      w = splatRioEn(x, z, w);
       if (recTrozo) {
         w = RelieveZonaLib.splatRecinto(recTrozo, x, z, 1 - nv[1], h, w);
       }
@@ -4296,19 +4313,63 @@
   function buildRios() {
     const mb = new MB();
     // Color por vértice: rojo = espuma (orilla, 0 = agua abierta); verde = opacidad (se desvanece en la boca)
-    rios.forEach(r => r.segs.forEach(s => {
-      const dx = (s.ax + s.bx) / 2 - r.o.t.x, dz = (s.az + s.bz) / 2 - r.o.t.y;
-      const lx = dx * r.o.cr + dz * r.o.sr, lz = -dx * r.o.sr + dz * r.o.cr;
-      if (Math.max(Math.abs(lx), Math.abs(lz)) < r.o.tileHalf) return;
-      let tx = s.bx - s.ax, tz = s.bz - s.az;
-      const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
-      const mitad = (RIO_CAUCE + 1) * (s.wa + s.wb) / 2, nx = -tz * mitad, nz = tx * mitad;
-      const Ea = [1, s.fa, 0], Ca = [0, s.fa, 0], Eb = [1, s.fb, 0], Cb = [0, s.fb, 0];
-      const a1 = [s.ax + nx, s.ya, s.az + nz], a0 = [s.ax, s.ya, s.az], a2 = [s.ax - nx, s.ya, s.az - nz];
-      const b1 = [s.bx + nx, s.yb, s.bz + nz], b0 = [s.bx, s.yb, s.bz], b2 = [s.bx - nx, s.yb, s.bz - nz];
-      mb.quadC(a1, a0, b0, b1, Ea, Ca, Cb, Eb);
-      mb.quadC(a0, a2, b2, b0, Ca, Ea, Eb, Cb);
-    }));
+    rios.forEach(r => {
+      const o = r.o;
+      const townHalf = ((o.ground && o.ground.riverWidth ? o.ground.riverWidth : 14) + 6) * 0.5;
+      const dtAt = (x, z) => {
+        const dx = x - o.t.x, dz = z - o.t.y;
+        const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
+        return Math.max(Math.abs(lx), Math.abs(lz)) - o.tileHalf;
+      };
+      const lerpSeg = (s, t) => ({
+        x: s.ax + (s.bx - s.ax) * t,
+        z: s.az + (s.bz - s.az) * t,
+        y: s.ya + (s.yb - s.ya) * t,
+        w: s.wa + (s.wb - s.wa) * t,
+        f: s.fa + (s.fb - s.fa) * t
+      });
+      const borderT = (s, insideAtZero) => {
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 14; k++) {
+          const m = (lo + hi) * 0.5;
+          const p = lerpSeg(s, m);
+          const d = dtAt(p.x, p.z);
+          if (insideAtZero ? (d < 0) : (d >= 0)) lo = m; else hi = m;
+        }
+        return (lo + hi) * 0.5;
+      };
+      const widthAt = (p) => {
+        const kW = smooth(0, Math.min(18, RIO_RAMPA), Math.max(0, dtAt(p.x, p.z)));
+        return townHalf + ((RIO_CAUCE + 1) * p.w - townHalf) * kW;
+      };
+      r.segs.forEach(s => {
+        const da = dtAt(s.ax, s.az), db = dtAt(s.bx, s.bz);
+        if (da < 0 && db < 0) return;
+        let t0 = 0, t1 = 1;
+        if (da < 0 && db >= 0) t0 = borderT(s, true);
+        else if (db < 0 && da >= 0) t1 = borderT(s, false);
+        const pa = lerpSeg(s, t0), pb = lerpSeg(s, t1);
+        const encajarBorde = p => {
+          const dx = p.x - o.t.x, dz = p.z - o.t.y;
+          const lz = -dx * o.sr + dz * o.cr;
+          const rx = o.ground.getRiverX(lz);
+          p.x = o.t.x + rx * o.cr - lz * o.sr;
+          p.z = o.t.y + rx * o.sr + lz * o.cr;
+        };
+        if (t0 > 0) encajarBorde(pa);
+        if (t1 < 1) encajarBorde(pb);
+        let tx = pb.x - pa.x, tz = pb.z - pa.z;
+        const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
+        const ma = widthAt(pa), mbW = widthAt(pb);
+        const nax = -tz * ma, naz = tx * ma;
+        const nbx = -tz * mbW, nbz = tx * mbW;
+        const Ea = [1, pa.f, 0], Ca = [0, pa.f, 0], Eb = [1, pb.f, 0], Cb = [0, pb.f, 0];
+        const a1 = [pa.x + nax, pa.y, pa.z + naz], a0 = [pa.x, pa.y, pa.z], a2 = [pa.x - nax, pa.y, pa.z - naz];
+        const b1 = [pb.x + nbx, pb.y, pb.z + nbz], b0 = [pb.x, pb.y, pb.z], b2 = [pb.x - nbx, pb.y, pb.z - nbz];
+        mb.quadC(a1, a0, b0, b1, Ea, Ca, Cb, Eb);
+        mb.quadC(a0, a2, b2, b0, Ca, Ea, Eb, Cb);
+      });
+    });
     riosMesh = new THREE.Mesh(mb.geom(), aguaMaterial(true, 0.9, true));
     scene.add(riosMesh);
   }
@@ -4844,7 +4905,7 @@
     try {
       const village = kit.createVillage(group, { skipGround: true, noLights: true });
       village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
-      if (village.waterMesh) { aguaPuebloMat = aguaPuebloMat || aguaMaterial(false, 0.86, true); village.waterMesh.material = aguaPuebloMat; }
+      if (village.waterMesh) { aguaPuebloMat = aguaPuebloMat || aguaMaterial(true, 0.9, true); village.waterMesh.material = aguaPuebloMat; }
       o.village = village; o.group = group; o.kit = kit;
       createPatch(o);
       o.worldCols = toWorldColliders(o);

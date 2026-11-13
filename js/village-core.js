@@ -937,7 +937,94 @@
       bumpScale: 0.08
     });
     const matCurb = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.85 });
-    const matWater = new THREE.MeshStandardMaterial({ color: '#0284c7', roughness: 0.12, metalness: 0.65, transparent: true, opacity: 0.86 });
+    const waterU = {
+      uTime: { value: 0 },
+      uCielo: { value: new THREE.Color('#bfe6f7') },
+      uDetOn: { value: 0 }
+    };
+    let waterNormTex = null;
+    let waterDetTex = null;
+    if (typeof THREE !== 'undefined' && THREE.DataTexture) {
+      waterNormTex = new THREE.DataTexture(new Uint8Array([128, 128, 255, 255]), 1, 1);
+      waterNormTex.wrapS = waterNormTex.wrapT = THREE.RepeatWrapping;
+      waterNormTex.needsUpdate = true;
+      waterDetTex = new THREE.DataTexture(new Uint8Array([128, 180, 195, 255]), 1, 1);
+      waterDetTex.wrapS = waterDetTex.wrapT = THREE.RepeatWrapping;
+      waterDetTex.needsUpdate = true;
+    }
+    if (typeof document !== 'undefined' && typeof THREE !== 'undefined' && THREE.TextureLoader) {
+      try {
+        const loader = new THREE.TextureLoader();
+        const normLoaded = loader.load('assets/agua/waternormals.jpg', () => {
+          normLoaded.wrapS = normLoaded.wrapT = THREE.RepeatWrapping;
+          if (THREE.NoColorSpace) normLoaded.colorSpace = THREE.NoColorSpace;
+          waterNormTex = normLoaded;
+        });
+        normLoaded.wrapS = normLoaded.wrapT = THREE.RepeatWrapping;
+        if (THREE.NoColorSpace) normLoaded.colorSpace = THREE.NoColorSpace;
+        waterNormTex = normLoaded;
+
+        const detLoaded = loader.load('assets/texturas/agua/t03.jpg', () => {
+          detLoaded.wrapS = detLoaded.wrapT = THREE.RepeatWrapping;
+          if (THREE.SRGBColorSpace) detLoaded.colorSpace = THREE.SRGBColorSpace;
+          waterDetTex = detLoaded;
+          waterU.uDetOn.value = 1;
+        });
+        detLoaded.wrapS = detLoaded.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) detLoaded.colorSpace = THREE.SRGBColorSpace;
+        waterDetTex = detLoaded;
+      } catch (_) { /* entorno sin cargador de texturas */ }
+    }
+    const matWater = new THREE.MeshLambertMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.76,
+      side: THREE.DoubleSide
+    });
+    if (THREE.ShaderChunk) {
+      matWater.onBeforeCompile = shader => {
+        shader.uniforms.uTime = waterU.uTime;
+        shader.uniforms.tNorm = { value: waterNormTex };
+        shader.uniforms.tAguaDet = { value: waterDetTex };
+        shader.uniforms.uDetOn = waterU.uDetOn;
+        shader.uniforms.uAguaHonda = { value: new THREE.Color('#1f5f74') };
+        shader.uniforms.uAguaClara = { value: new THREE.Color('#3aa0b8') };
+        shader.uniforms.uCielo = waterU.uCielo;
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMundo = (modelMatrix * vec4(transformed, 1.0)).xz;\n  vMundo3 = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform float uTime;\nuniform sampler2D tNorm;\nuniform sampler2D tAguaDet;\nuniform float uDetOn;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;\nuniform vec3 uCielo;')
+          .replace('#include <color_fragment>', `#include <color_fragment>
+            vec2 p = vMundo;
+            float o1 = sin(p.x * 0.35 + uTime * 0.9) + sin(p.y * 0.42 - uTime * 0.7);
+            float o2 = sin((p.x + p.y) * 0.9 + uTime * 1.6) + sin((p.x - p.y) * 0.7 - uTime * 1.2);
+            vec2 n1 = texture2D(tNorm, p * 0.035 + vec2(uTime * 0.010, uTime * 0.006)).rg * 2.0 - 1.0;
+            vec2 n2 = texture2D(tNorm, p * 0.07 - vec2(uTime * 0.008, uTime * 0.013)).rg * 2.0 - 1.0;
+            vec2 nrm = (n1 + n2) * 0.5;
+            float rizo = clamp(0.5 + 0.2 * o1 + 0.1 * o2 + 0.35 * dot(nrm, vec2(0.7, 0.7)), 0.0, 1.0);
+            vec3 agua = mix(uAguaHonda, uAguaClara, rizo);
+            agua *= 1.0 + 0.12 * dot(nrm, vec2(0.7, 0.7));
+            if (uDetOn > 0.5) {
+              vec3 detAgua = texture2D(tAguaDet, p * 0.08 + nrm * 0.03 + vec2(uTime * 0.010, -uTime * 0.007)).rgb;
+              float dCamAgua = length(cameraPosition - vMundo3);
+              float pesoDet = 0.26 * (1.0 - smoothstep(45.0, 160.0, dCamAgua));
+              agua = mix(agua, agua * 0.58 + detAgua * 0.62, pesoDet);
+            }
+            float fino = sin(p.x * 1.7 + uTime * 1.1) * sin(p.y * 1.5 - uTime * 0.9);
+            agua += vec3(0.04 * fino + smoothstep(1.4, 1.9, o1 + 0.5 * o2) * 0.08);
+            #ifdef USE_COLOR
+              agua = mix(agua, vec3(0.92, 0.97, 1.0), smoothstep(0.45, 1.0, vColor.r));
+            #endif
+            vec3 vista = normalize(cameraPosition - vMundo3);
+            float fresnel = 0.03 + 0.97 * pow(1.0 - clamp(vista.y, 0.0, 1.0), 4.0);
+            agua = mix(agua, uCielo, clamp(fresnel * 0.85, 0.0, 0.9));
+            diffuseColor.rgb = agua;
+            #ifdef USE_COLOR
+              diffuseColor.a *= vColor.g;
+            #endif`);
+      };
+    }
     const matFoliage = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.78, metalness: 0.05 });
     const matSilueta = new THREE.MeshLambertMaterial({ color: '#ffffff' });   // siluetas de árboles lejanos (color por instancia)
     const matTrunk = new THREE.MeshStandardMaterial({ color: '#451a03', roughness: 0.9 });
@@ -1382,6 +1469,8 @@
         this.waterMesh = null;
         this.cfg = null;
         this.riverWidth = 14.0;
+        this.riverCauce = 9.0;
+        this.riverBanco = 27.0;
         this.bridgeBounds = null; this.bridgeTopAt = null;
         this.sampleHousePos = new THREE.Vector3(-13, 2, 13);
         this.exitPaths = [];
@@ -1416,9 +1505,7 @@
       }
 
       update(elapsed) {
-        if (this.waterMesh) {
-          this.waterMesh.position.y = Math.sin(elapsed * 2.2) * 0.06;
-        }
+        waterU.uTime.value = elapsed;
         for (let i = 0; i < this.animatedCrystals.length; i++) {
           const item = this.animatedCrystals[i];
           item.mesh.rotation.y = elapsed * 1.4 + item.phase;
@@ -1503,11 +1590,23 @@
         if (this.cfg.hasRiver) {
           const rx = this.getRiverX(z);
           const distRiver = Math.abs(x - rx);
-          const bankSpan = this.riverWidth * 0.85;
-          if (distRiver < bankSpan) {
-            const t = distRiver / bankSpan;
-            const riverBed = -2.6 * Math.cos(t * Math.PI * 0.5);
-            h = h * t + riverBed * (1.0 - t);
+          const dCauce = this.riverCauce || 9.0;
+          const dBanco = this.riverBanco || (dCauce + 18.0);
+          if (distRiver < dBanco) {
+            let perfil;
+            if (distRiver <= dCauce) {
+              // Lecho cóncavo idéntico al exterior (-0.65 - 5.5 m en el centro)
+              const fr = distRiver / dCauce;
+              const lecho = -0.65 - 5.5 * (1 - 0.72 * fr * fr);
+              perfil = Math.min(h, lecho);
+            } else {
+              // Ribera suave y continua desde cotaOrilla (-0.30) hasta el terreno exterior
+              const u = Math.max(0, Math.min(1, (distRiver - dCauce) / (dBanco - dCauce)));
+              const t = u * u * (3 - 2 * u);
+              const cotaOrilla = -0.30;
+              perfil = Math.min(h, cotaOrilla + (h - cotaOrilla) * t);
+            }
+            h = perfil;
           }
         }
         return Number.isFinite(h) ? h : 0;
@@ -2362,9 +2461,15 @@
 
         const colG1 = new THREE.Color(styleObj.grass1);
         const colG2 = new THREE.Color(styleObj.grass2);
-        const colSand = new THREE.Color('#9c8665');
+        const colBedDeep = new THREE.Color('#5a5146');
+        const colRiverGravel = new THREE.Color('#7f7364');
+        const colRiverSand = new THREE.Color('#b6a17c');
         const colPlaza = new THREE.Color(styleObj.curbHex);
+        const colGrass = new THREE.Color();
+        const colShore = new THREE.Color();
         const tmpCol = new THREE.Color();
+        const dCauce = this.riverCauce || 9.0;
+        const dBanco = this.riverBanco || (dCauce + 18.0);
 
         for (let i = 0; i < tPos.count; i++) {
           const vx = tPos.getX(i), vz = tPos.getZ(i);
@@ -2372,13 +2477,24 @@
           tPos.setY(i, vy);
 
           const distCenter = Math.hypot(vx, vz);
-          if (cfg.hasRiver && Math.abs(vx - this.getRiverX(vz)) < RIVER_WIDTH * 0.72) {
-            tmpCol.copy(colSand);
-          } else if (distCenter < 15.5) {
+          const n = (Math.sin(vx * 0.09) + Math.cos(vz * 0.09)) * 0.5 + 0.5;
+          colGrass.lerpColors(colG1, colG2, n);
+          if (distCenter < 15.5) {
             tmpCol.copy(colPlaza);
+          } else if (cfg.hasRiver) {
+            const dRio = Math.abs(vx - this.getRiverX(vz));
+            if (dRio <= dCauce) {
+              tmpCol.lerpColors(colBedDeep, colRiverGravel, Math.min(1, dRio / dCauce));
+            } else if (dRio < dBanco) {
+              const ru = Math.max(0, Math.min(1, (dRio - dCauce) / (dBanco - dCauce)));
+              const tRio = ru * ru * (3 - 2 * ru);
+              colShore.lerpColors(colRiverGravel, colRiverSand, Math.min(1, ru * 2.2));
+              tmpCol.lerpColors(colShore, colGrass, tRio);
+            } else {
+              tmpCol.copy(colGrass);
+            }
           } else {
-            const n = (Math.sin(vx * 0.09) + Math.cos(vz * 0.09)) * 0.5 + 0.5;
-            tmpCol.lerpColors(colG1, colG2, n);
+            tmpCol.copy(colGrass);
           }
           tCols[i * 3] = tmpCol.r;
           tCols[i * 3 + 1] = tmpCol.g;
@@ -2399,14 +2515,22 @@
         const lampsList = [];
         let bridgeGroup = null;
         if (cfg.hasRiver) {
-          const waterGeom = new THREE.PlaneGeometry(RIVER_WIDTH + 6, WORLD_SIZE, 24, 90);
+          const waterHalfW = (RIVER_WIDTH + 6) * 0.5;
+          const waterGeom = new THREE.PlaneGeometry(waterHalfW * 2, WORLD_SIZE, 24, 90);
           waterGeom.rotateX(-Math.PI / 2);
           const wPos = waterGeom.attributes.position;
+          const wCols = new Float32Array(wPos.count * 3);
           for (let i = 0; i < wPos.count; i++) {
+            const lxLocal = wPos.getX(i);
             const lz = wPos.getZ(i);
-            wPos.setX(i, wPos.getX(i) + this.getRiverX(lz));
+            const foamR = Math.min(1, Math.abs(lxLocal) / waterHalfW);
+            wCols[i * 3] = foamR;
+            wCols[i * 3 + 1] = 1.0;
+            wCols[i * 3 + 2] = 0.0;
+            wPos.setX(i, lxLocal + this.getRiverX(lz));
             wPos.setY(i, -0.65);
           }
+          waterGeom.setAttribute('color', new THREE.BufferAttribute(wCols, 3));
           waterGeom.computeVertexNormals();
           this.waterMesh = new THREE.Mesh(waterGeom, matWater);
           this.scene.add(this.waterMesh);
@@ -3252,7 +3376,7 @@
         if (cfg.hasLamps) {
           const cercaDeCasa = (x, z) => houses.some(h => Math.hypot(h.x - x, h.z - z) < 5.6);
           const cercaDeFarola = (x, z) => lampsList.some(l => Math.hypot(l.x - x, l.z - z) < 10.5);
-          const enRio = (x, z) => cfg.hasRiver && Math.abs(x - this.getRiverX(z)) < RIVER_WIDTH * 0.72;
+          const enRio = (x, z) => cfg.hasRiver && Math.abs(x - this.getRiverX(z)) < Math.max(RIVER_WIDTH * 0.72, (this.riverCauce || 9.0) + 1.5);
           const ponerFarolaCalle = (x, z, rot, style) => {
             if (enRio(x, z) || cercaDeCasa(x, z) || cercaDeFarola(x, z)) return;
             lampsList.push({ x, y: this.getTerrainHeight(x, z), z, rot, style });
@@ -3333,12 +3457,13 @@
         }
 
         if (cfg.hasRiver) {
+          const dCauceRock = this.riverCauce || 9.0;
           for (let rz = -WORLD_SIZE * 0.44; rz <= WORLD_SIZE * 0.44; rz += 5.0) {
             if (Math.abs(rz) < 8) continue;
             const rx = this.getRiverX(rz);
             [-1, 1].forEach(s => {
               if (rng.next() > 0.35) {
-                const rockX = rx + s * (RIVER_WIDTH * 0.52 + rng.range(-0.5, 1.2));
+                const rockX = rx + s * (dCauceRock + rng.range(-0.2, 2.5));
                 rocks.push({
                   x: rockX, y: this.getTerrainHeight(rockX, rz), z: rz,
                   scale: rng.range(0.6, 1.4),
@@ -3856,7 +3981,7 @@
       },
       instanceCount() { return kitState.instances.size; },
       dispose() {
-        [matAtlas.map, matAtlas.bumpMap, matRoad.map, matRoad.bumpMap, matPlaza.map, matPlaza.bumpMap, glowTex, leadedGlassTex].forEach(t => { if (t) t.dispose(); });
+        [matAtlas.map, matAtlas.bumpMap, matRoad.map, matRoad.bumpMap, matPlaza.map, matPlaza.bumpMap, glowTex, leadedGlassTex, waterNormTex, waterDetTex].forEach(t => { if (t) t.dispose(); });
         streetTexCache.forEach(t => { if (t) t.dispose(); });
         streetTexCache.clear();
         streetMatCache.forEach(m => { if (m) m.dispose(); });
