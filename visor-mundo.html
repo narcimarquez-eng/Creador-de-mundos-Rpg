@@ -7697,13 +7697,16 @@
   function alternarAuto() {
     if (autoZona) { pararAuto('Ataque automático desactivado'); return; }
     if (hero.dead) return;
-    const enDungeon = gestorMazmorras && gestorMazmorras.enMazmorra;
-    if (enDungeon) {
+    const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    const enLab = !!(gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto);
+    if (enDungeon || enLab) {
       const tieneVivos = monstruosMazmorra.some(m => m.alive && m.hp > 0);
-      if (!tieneVivos) { toast('Mazmorra ya despejada'); return; }
+      if (!tieneVivos) { toast(enLab ? 'Laberinto ya despejado' : 'Mazmorra ya despejada'); return; }
       detenerRuta();
-      const dNom = (gestorMazmorras.dungeonActiva && gestorMazmorras.dungeonActiva.name) || 'la Mazmorra';
-      autoZona = { id: 'dungeon-activa', name: dNom, esMazmorra: true };
+      const dNom = enLab
+        ? ((gestorLaberintos.recinto.zona && gestorLaberintos.recinto.zona.name) || 'el Laberinto')
+        : ((gestorMazmorras.dungeonActiva && gestorMazmorras.dungeonActiva.name) || 'la Mazmorra');
+      autoZona = { id: enLab ? 'laberinto-activo' : 'dungeon-activa', name: dNom, esMazmorra: true, esLaberinto: enLab };
       autoEsperando = false;
       autoInalcanzables.clear();
       character.cancelado = false;
@@ -7711,7 +7714,19 @@
       $('sk-auto').classList.add('gold');
       return;
     }
-    if (!curZone || !curZone.monsters || !curZone.monsters.length) { toast('Entra en una zona de caza para el ataque automático'); return; }
+    if (!curZone || !curZone.monsters || !curZone.monsters.length) {
+      const p = character.root.position;
+      const hayCerca = monsters.some(m => m.alive && m.hp > 0 && !m.dungeonInfoRef && Math.hypot(m.x - p.x, m.z - p.z) <= 180);
+      if (!hayCerca) { toast('No hay monstruos cerca ni estás en una zona de caza'); return; }
+      detenerRuta();
+      autoZona = { id: 'campo-cercano', name: 'los alrededores', esCampo: true };
+      autoEsperando = false;
+      autoInalcanzables.clear();
+      character.cancelado = false;
+      toast('🤖 Ataque automático en los alrededores (muévete para pararlo)');
+      $('sk-auto').classList.add('gold');
+      return;
+    }
     detenerRuta();
     autoZona = curZone;
     autoEsperando = false;
@@ -7740,13 +7755,18 @@
     if (hero.hp < hero.maxHp * 0.35 && inv.vida > 0 && ItemsLib.usePotion(hero, inv, 'vida')) toast('🧪 Poción de vida (automática)');
     if (objetivo && objetivo.alive && objetivo.hp > 0 && !(objetivo.muriendo && performance.now() < objetivo.muriendo)) return;   // atacarObjetivo sigue con el que hay
     const p = character.root.position, ahora = performance.now();
-    const enDungeon = (autoZona && autoZona.esMazmorra) || (gestorMazmorras && gestorMazmorras.enMazmorra);
-    const listaAuto = enDungeon ? monstruosMazmorra : monsters;
+    const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    const enLab = !!(gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto);
+    const enInstancia = enDungeon || enLab || !!(autoZona && autoZona.esMazmorra);
+    const listaAuto = enInstancia ? monstruosMazmorra : monsters;
     let mejor = null, mejorD = Infinity;
     listaAuto.forEach(m => {
       if (!m.alive || m.hp <= 0 || (autoInalcanzables.get(m) || 0) > ahora || (m.muriendo && performance.now() < m.muriendo)) return;
-      if (enDungeon) {
+      if (enInstancia) {
         if (!m.dungeonInfoRef) return;
+      } else if (autoZona.esCampo) {
+        if (m.dungeonInfoRef) return;
+        if (Math.hypot(m.x - p.x, m.z - p.z) > 180) return;
       } else {
         if (m.zone !== autoZona) return;
       }
@@ -7755,7 +7775,8 @@
     });
     if (!mejor) {
       if (!autoEsperando) {
-        if (enDungeon) toast('¡Mazmorra despejada!');
+        if (enLab) toast('¡Laberinto despejado!');
+        else if (enDungeon) toast('¡Mazmorra despejada!');
         else toast('Zona despejada: esperando a que vuelvan los monstruos');
       }
       autoEsperando = true;
