@@ -52,15 +52,8 @@
     const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
     const tri = !!opciones.triplanar;
     const conRecorte = !!(uniforms && uniforms.uRecorte);
-    // opciones.extra: { roca, tierra } texturas 2D (fotos de la biblioteca) que sustituyen a esas dos clases
-    const extra = opciones.extra || {};
-    const rocaX = !!extra.roca, tierraX = !!extra.tierra;
-    if (rocaX) uniforms = Object.assign({}, uniforms, { tRocaExtra: { value: extra.roca } });
-    if (tierraX) uniforms = Object.assign({}, uniforms, { tTierraExtra: { value: extra.tierra } });
-    // Muestra de una clase: la del atlas o, si hay foto propia, la foto (más oscura: luego se aclara ×1,35)
-    const roca = p => rocaX ? `(texture(tRocaExtra, (${p}) / 4.0).rgb * 0.74)` : `claseLejos(6.0, ${p}, 3.9, tC, tL)`;
-    const tierra = p => tierraX ? `(texture(tTierraExtra, (${p}) / 3.5).rgb * 0.74)` : `claseLejos(3.0, ${p}, 7.1, tC, tL)`;
-    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri' : '') + (conRecorte ? '-rec' : '') + (rocaX ? '-rx' : '') + (tierraX ? '-tx' : '');
+    const conHierbas = !!(uniforms && uniforms.tHierbas);
+    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
       shader.vertexShader = shader.vertexShader
@@ -71,9 +64,8 @@
           '#include <common>',
           'uniform highp sampler2DArray tCapas;',
           'uniform float uTexOn;',
+          conHierbas ? 'uniform highp sampler2DArray tHierbas;\nuniform float uHierbaMix;' : '',
           conRecorte ? 'uniform vec4 uRecorte;' : '',
-          rocaX ? 'uniform sampler2D tRocaExtra;' : '',
-          tierraX ? 'uniform sampler2D tTierraExtra;' : '',
           tri ? 'varying vec3 vNWorld;' : '',
           'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld;',
           // Ruido de valor: manchas suaves
@@ -118,18 +110,34 @@
           'float tL = smoothstep(120.0, 600.0, dCam);',
           'vec3 tex = vec3(0.0);',
           'if (uTexOn > 0.5) {',
-          '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tC, tL) * vSplat.x;',
-          '  if (vSplat.y > 0.001) tex += ' + tierra('vTWorld.xz') + ' * vSplat.y;',
+          conHierbas ? [
+            '  if (vSplat.x > 0.001) {',
+            '    vec3 cHierba = claseLejos(0.0, vTWorld.xz, 1.3, tC, tL);',
+            '    if (uHierbaMix > 0.001) {',
+            '      float nH1 = smoothstep(0.35, 0.72, ruidoValor(vTWorld.xz * 0.018 + 11.3));',
+            '      float nH2 = smoothstep(0.45, 0.78, ruidoValor(vTWorld.xz * 0.025 + 37.9));',
+            '      vec2 uvH = vTWorld.xz * (1.0 / 6.5);',
+            '      vec3 h0 = texture(tHierbas, vec3(uvH, 0.0)).rgb;',
+            '      vec3 h1 = texture(tHierbas, vec3(mat2(0.8, -0.6, 0.6, 0.8) * uvH * 0.92 + 0.17, 1.0)).rgb;',
+            '      vec3 h2 = texture(tHierbas, vec3(mat2(0.35, 0.93, -0.93, 0.35) * uvH * 1.07 + 0.41, 2.0)).rgb;',
+            '      vec3 h3 = texture(tHierbas, vec3(uvH * 0.85 + 0.63, 3.0)).rgb;',
+            '      vec3 hMix = mix(mix(h0, h1, nH1), mix(h2, h3, nH2), smoothstep(0.35, 0.65, ruidoValor(vTWorld.xz * 0.012 + 5.7)));',
+            '      cHierba = mix(cHierba, hMix, uHierbaMix * (1.0 - 0.55 * tL));',
+            '    }',
+            '    tex += cHierba * vSplat.x;',
+            '  }'
+          ].join('\n') : '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tC, tL) * vSplat.x;',
+          '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tC, tL) * vSplat.y;',
           tri ? [
             '  if (vSplat.z > 0.001) {',
             '    vec3 bw = pow(abs(normalize(vNWorld)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);',
             '    vec3 roca = vec3(0.0);',
-            '    if (bw.y > 0.02) roca += ' + roca('vTWorld.xz') + ' * bw.y;',
-            '    if (bw.x > 0.02) roca += ' + roca('vTWorld.zy * vec2(1.0, 1.3)') + ' * bw.x;',
-            '    if (bw.z > 0.02) roca += ' + roca('vTWorld.xy * vec2(1.0, 1.3)') + ' * bw.z;',
+            '    if (bw.y > 0.02) roca += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * bw.y;',
+            '    if (bw.x > 0.02) roca += claseLejos(6.0, vTWorld.zy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.x;',
+            '    if (bw.z > 0.02) roca += claseLejos(6.0, vTWorld.xy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.z;',
             '    tex += roca * vSplat.z;',
             '  }'
-          ].join('\n') : '  if (vSplat.z > 0.001) tex += ' + roca('vTWorld.xz') + ' * vSplat.z;',
+          ].join('\n') : '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * vSplat.z;',
           '  if (vSplat.w > 0.001) tex += claseLejos(9.0, vTWorld.xz, 5.5, tC, tL) * vSplat.w;',
           '  if (vSnow > 0.001) tex += claseLejos(12.0, vTWorld.xz, 9.2, tC, tL) * vSnow;',
           '}',
@@ -169,6 +177,19 @@
     });
     const imgData = ctx.getImageData(0, 0, tam, tam * lista.length);
     return { datos: new Uint8Array(imgData.data.buffer), tam, capas: lista.length };
+  }
+
+  // Empaqueta un array de imágenes independientes en una textura array de tamaño tam x tam
+  function capasDesdeListaImagenes(imgs, tam = 256) {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = tam;
+    lienzo.height = tam * imgs.length;
+    const ctx = lienzo.getContext('2d', { willReadFrequently: true });
+    imgs.forEach((img, l) => {
+      ctx.drawImage(img, 0, l * tam, tam, tam);
+    });
+    const imgData = ctx.getImageData(0, 0, tam, tam * imgs.length);
+    return { datos: new Uint8Array(imgData.data.buffer), tam, capas: imgs.length };
   }
 
   // Malla de una rejilla de nodos. grid: { x0, z0, step, n, N, pos, col, splat, snow, nrm }.
@@ -245,7 +266,7 @@
     return [-dx / l, 1 / l, -dz / l];
   }
 
-  const api = { splatFor, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, CAPAS, buildGridGeometry, nodeNormal, smooth };
+  const api = { splatFor, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, capasDesdeListaImagenes, CAPAS, buildGridGeometry, nodeNormal, smooth };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TerrainLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

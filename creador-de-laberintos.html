@@ -586,10 +586,6 @@
           <input type="color" id="col-ground" value="#57534e" style="height:32px;padding:1px">
         </div>
       </div>
-      <div class="form-group">
-        <div class="form-label"><span>📷 Texturas (biblioteca de fotos)</span></div>
-        <div id="texturas-laberinto"></div>
-      </div>
     </div>
 
     <!-- 8. Meta Central -->
@@ -602,8 +598,7 @@
     </div>
   </div>
 
-  <script src="js/texturas-lib.js?v=1"></script>
-  <script src="js/relieve-zona.js?v=20261113t"></script>
+  <script src="js/relieve-zona.js?v=20261112r"></script>
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -637,7 +632,6 @@
       luzModo: 'dia',
       wallColor: '#847f7a',
       groundColor: '#605c56',
-      texturas: {},   // fotos de la biblioteca: muros, suelo y senda del pasillo de entrada
       patronesMonstruos: {
         p1: { id: 'p1', color: '#22c55e', name: 'Guerrero Esqueleto', clase: 'guerrero', levelMin: 8, levelMax: 12, count: 1, icono: '⚔️' },
         p2: { id: 'p2', color: '#3b82f6', name: 'Mago de Hielo', clase: 'mago', levelMin: 12, levelMax: 16, count: 1, icono: '🔮' },
@@ -1217,7 +1211,6 @@
       }
       if (r.wallColor) params.wallColor = r.wallColor;
       if (r.groundColor) params.groundColor = r.groundColor;
-      params.texturas = (r.texturas && typeof r.texturas === 'object') ? { ...r.texturas } : {};
       if (r.murosManuales) manualOverrides = { ...r.murosManuales };
       if (r.patronesMonstruos && typeof r.patronesMonstruos === 'object' && Object.keys(r.patronesMonstruos).length > 0) {
         params.patronesMonstruos = { ...r.patronesMonstruos };
@@ -1343,8 +1336,6 @@
     }
 
     function syncUIWithParams() {
-      montarSelectoresTexturas();
-      Object.entries(selectoresLab || {}).forEach(([k, sel]) => sel.fijar(params.texturas && params.texturas[k]));
       document.getElementById('sl-radius').value = params.radius;
       document.getElementById('lbl-radius').textContent = params.radius + ' m';
 
@@ -1498,24 +1489,6 @@
     }
 
     // Reconstrucción del Laberinto, Terreno 3D y Monstruos en Vivo
-    // Selectores de la biblioteca de texturas (muros, suelo y senda de la entrada); se guardan en relieve.texturas
-    var selectoresLab;   // se crea en el primer uso (syncUIWithParams puede llamarse antes de llegar aquí)
-    function montarSelectoresTexturas() {
-      selectoresLab = selectoresLab || {};
-      if (!window.TexturasLib || Object.keys(selectoresLab).length) return;
-      [['muros', '🧱 Muros', ['piedra', 'madera', 'suelo']], ['suelo', '⬛ Suelo de las sendas', ['suelo', 'piedra']],
-       ['senda', '🛤️ Senda de la entrada', ['suelo', 'piedra']]].forEach(([clave, etiqueta, grupos]) => {
-        selectoresLab[clave] = TexturasLib.selector(document.getElementById('texturas-laberinto'), {
-          etiqueta, grupos, valor: params.texturas && params.texturas[clave],
-          alCambiar: id => {
-            params.texturas = params.texturas || {};
-            if (id) params.texturas[clave] = id; else delete params.texturas[clave];
-            rebuildAll3D();
-          }
-        });
-      });
-    }
-
     function rebuildAll3D() {
       const zId = (zoneData && zoneData.zoneId) || 'z-lab';
       const zName = (zoneData && zoneData.name) || 'Zona de Caza';
@@ -1630,16 +1603,10 @@
       geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
       geom.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
       geom.setIndex(indices);
-      // UV planas (una repetición cada 4 m) para que la textura del suelo se vea a escala
-      const uvSuelo = new Float32Array((pos.length / 3) * 2);
-      for (let k = 0; k < pos.length / 3; k++) { uvSuelo[k * 2] = pos[k * 3] / 4; uvSuelo[k * 2 + 1] = pos[k * 3 + 2] / 4; }
-      geom.setAttribute('uv', new THREE.BufferAttribute(uvSuelo, 2));
 
-      const fotoSuelo = window.TexturasLib && params.texturas && TexturasLib.valida(params.texturas.suelo)
-        ? TexturasLib.textura(THREE, params.texturas.suelo) : null;
-      const texGround = fotoSuelo || ((typeof createProceduralFloorTexture === 'function')
+      const texGround = (typeof createProceduralFloorTexture === 'function')
         ? createProceduralFloorTexture(params.estilo, params.groundColor)
-        : createProceduralNoiseTexture(params.groundColor, 0.85, false));
+        : createProceduralNoiseTexture(params.groundColor, 0.85, false);
       const matTerrain = new THREE.MeshStandardMaterial({
         vertexColors: true,
         roughness: 0.82,
@@ -1662,14 +1629,12 @@
       if (muros && muros.length > 0) {
         const hMuro3D = Math.max(3.2, params.alturaMuro * 0.95);
         const boxG = new THREE.BoxGeometry(cellSize * 0.98, hMuro3D, cellSize * 0.98);
-        const fotoMuro = window.TexturasLib && params.texturas && TexturasLib.valida(params.texturas.muros)
-          ? TexturasLib.textura(THREE, params.texturas.muros, { repetir: [Math.max(1, Math.round(cellSize / 4)), Math.max(1, Math.round(hMuro3D / 4))] }) : null;
-        const texWall = fotoMuro || ((typeof createProceduralWallTexture === 'function')
+        const texWall = (typeof createProceduralWallTexture === 'function')
           ? createProceduralWallTexture(params.estilo, params.wallColor)
-          : createProceduralNoiseTexture(params.wallColor, 0.9, true));
+          : createProceduralNoiseTexture(params.wallColor, 0.9, true);
         const matWall = new THREE.MeshStandardMaterial({
           map: texWall,
-          color: new THREE.Color(fotoMuro ? '#ffffff' : params.wallColor),
+          color: new THREE.Color(params.wallColor),
           roughness: 0.78,
           metalness: 0.12,
           transparent: !!xrayWalls,
@@ -2284,7 +2249,6 @@
             entradaDir: params.entradas[0] || 'sur',
             wallColor: params.wallColor,
             groundColor: params.groundColor,
-            texturas: Object.keys(params.texturas || {}).length ? { ...params.texturas } : undefined,
             murosManuales: manualOverrides,
             patronesMonstruos: params.patronesMonstruos,
             celdasMonstruos: params.celdasMonstruos

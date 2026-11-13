@@ -1515,54 +1515,6 @@
       }
     }
   </style>
-
-  <style id="movil-orden">
-    /* =========================================================================
-       Botonera móvil ordenada (se aplica después del resto de reglas móviles).
-       Pulgar derecho: el ataque en la esquina y dos arcos concéntricos a su alrededor
-       (habilidades en el interior; salto, pociones, guía y modo automático en el exterior),
-       con la separación calculada para que ningún botón se monte sobre otro.
-       ========================================================================= */
-    @media (max-width: 768px) and (orientation: portrait) {
-      /* Barra superior: todo cabe sin desplazar (título corto y botones de 32 px) */
-      #top { gap: 3px !important; }
-      #top > a.btn { padding: 4px 6px !important; }
-      #title { max-width: 72px !important; font-size: 11px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      #top button { width: 32px !important; height: 32px !important; font-size: 14px !important; }
-      #btn-full { width: 32px !important; }
-      /* Misión debajo de la vida (antes la tapaba), entre ella y el minimapa por ancho */
-      #mision, #mision.colapsado {
-        top: 96px !important; left: max(8px, env(safe-area-inset-left)) !important;
-        right: calc(max(8px, env(safe-area-inset-right)) + 84px) !important;
-        width: auto !important; max-width: none !important; max-height: 38vh !important; overflow-y: auto;
-      }
-      #sk-menu-toggle { top: 150px !important; }
-      #sk-drawer { top: 192px !important; }
-      #banner { top: 200px !important; }
-      #sk-attack { right: calc(env(safe-area-inset-right, 0px) + 16px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important; width: 68px !important; height: 68px !important; left: auto !important; top: auto !important; }
-      #sk-v { right: calc(env(safe-area-inset-right, 0px) + 120px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
-      #sk-z { right: calc(env(safe-area-inset-right, 0px) + 108px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 74px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
-      #sk-e { right: calc(env(safe-area-inset-right, 0px) + 74px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 108px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
-      #sk-q { right: calc(env(safe-area-inset-right, 0px) + 28px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 120px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
-      #sk-jump { right: calc(env(safe-area-inset-right, 0px) + 179px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 27px) !important; width: 46px !important; height: 46px !important; left: auto !important; top: auto !important; }
-      #sk-vida { right: calc(env(safe-area-inset-right, 0px) + 167px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 90px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
-      #sk-mana { right: calc(env(safe-area-inset-right, 0px) + 131px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 142px) !important; width: 42px !important; height: 42px !important; left: auto !important; top: auto !important; }
-      #sk-guia-comp { right: calc(env(safe-area-inset-right, 0px) + 75px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 176px) !important; width: 44px !important; height: 38px !important; left: auto !important; top: auto !important; }
-      #sk-auto { right: calc(env(safe-area-inset-right, 0px) + 28px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 183px) !important; width: 44px !important; height: 38px !important; left: auto !important; top: auto !important; }
-    }
-    @media (orientation: landscape) and (max-height: 520px) {
-      #sk-attack { right: calc(env(safe-area-inset-right, 0px) + 14px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; width: 58px !important; height: 58px !important; left: auto !important; top: auto !important; }
-      #sk-v { right: calc(env(safe-area-inset-right, 0px) + 99px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 21px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
-      #sk-z { right: calc(env(safe-area-inset-right, 0px) + 89px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 58px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
-      #sk-e { right: calc(env(safe-area-inset-right, 0px) + 62px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 85px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
-      #sk-q { right: calc(env(safe-area-inset-right, 0px) + 25px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 95px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
-      #sk-jump { right: calc(env(safe-area-inset-right, 0px) + 148px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important; width: 38px !important; height: 38px !important; left: auto !important; top: auto !important; }
-      #sk-vida { right: calc(env(safe-area-inset-right, 0px) + 138px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 71px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
-      #sk-mana { right: calc(env(safe-area-inset-right, 0px) + 109px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 114px) !important; width: 34px !important; height: 34px !important; left: auto !important; top: auto !important; }
-      #sk-guia-comp { right: calc(env(safe-area-inset-right, 0px) + 63px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 143px) !important; width: 36px !important; height: 28px !important; left: auto !important; top: auto !important; }
-      #sk-auto { right: calc(env(safe-area-inset-right, 0px) + 25px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 149px) !important; width: 36px !important; height: 28px !important; left: auto !important; top: auto !important; }
-    }
-  </style>
 </head>
 <body>
   <div id="top">
@@ -2024,8 +1976,8 @@
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
-  <script defer src="js/dungeon-generator.js?v=20261113t"></script>
-  <script defer src="js/mazmorras.js?v=20261113t"></script>
+  <script defer src="js/dungeon-generator.js?v=20261107"></script>
+  <script defer src="js/mazmorras.js?v=20261107"></script>
   <script defer src="js/acompanante.js?v=20261031"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
@@ -2037,9 +1989,8 @@
   <script type="module" src="js/world-core.js?v=20261030c"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
   <script type="module" src="js/pueblo-edits.js?v=20251029"></script>
-  <script src="js/texturas-lib.js?v=1"></script>
-  <script defer src="js/casas-glb.js?v=20261113t"></script>
-  <script type="module" src="js/village-core.js?v=20261113t"></script>
+  <script defer src="js/casas-glb.js?v=20261112g"></script>
+  <script type="module" src="js/village-core.js?v=20261112g"></script>
   <script type="module" src="js/combat.js?v=20251029"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
@@ -2138,7 +2089,7 @@
   // Texturas del suelo: 15 capas (tres por clase, TerrainLib.CAPAS) sacadas del atlas assets/terreno/atlas.jpg
   // uRecorte (x, z, radio, modo): al entrar en un recinto de laberinto el terreno del mundo cede su interior
   // a la malla detallada (modo 1 = no dibujar dentro del círculo)
-  const terrainU = { tCapas: { value: null }, uTexOn: { value: 0 }, uRecorte: { value: new THREE.Vector4(0, 0, 0, 0) } };
+  const terrainU = { tCapas: { value: null }, tHierbas: { value: null }, uHierbaMix: { value: 0 }, uTexOn: { value: 0 }, uRecorte: { value: new THREE.Vector4(0, 0, 0, 0) } };
   let texturasCargadas = false;
   // Archivos que se están descargando (modelos, texturas…): todos los cargadores de THREE pasan por el
   // gestor por defecto; se cuentan para el indicador de carga
@@ -3201,6 +3152,9 @@
     const blanco = new THREE.DataArrayTexture(new Uint8Array(15 * 4).fill(255), 1, 1, 15);
     blanco.needsUpdate = true;
     terrainU.tCapas.value = blanco;
+    const blancoHierba = new THREE.DataArrayTexture(new Uint8Array(4 * 4).fill(255), 1, 1, 4);
+    blancoHierba.needsUpdate = true;
+    terrainU.tHierbas.value = blancoHierba;
     new THREE.ImageLoader().load('assets/terreno/atlas.jpg', img => {
       const c = TerrainLib.capasDesdeImagen(img);
       const tex = new THREE.DataArrayTexture(c.datos, c.tam, c.tam, c.capas);
@@ -3214,6 +3168,27 @@
       texturasCargadas = true;
       terrainU.uTexOn.value = QUALITY[quality].texturas ? 1 : 0;
     }, undefined, () => { /* sin atlas: color plano */ });
+    // Variedades de hierba (t01 césped, t02 trébol, t06 hierba alta, t09 pradera con flores) mezcladas poco a poco
+    const rutasHierba = ['assets/texturas/hierba/t01.jpg', 'assets/texturas/hierba/t02.jpg', 'assets/texturas/hierba/t06.jpg', 'assets/texturas/hierba/t09.jpg'];
+    const imgsHierba = new Array(rutasHierba.length);
+    let cargadasHierba = 0;
+    rutasHierba.forEach((ruta, idx) => {
+      new THREE.ImageLoader().load(ruta, img => {
+        imgsHierba[idx] = img;
+        if (++cargadasHierba === rutasHierba.length && typeof TerrainLib.capasDesdeListaImagenes === 'function') {
+          const ch = TerrainLib.capasDesdeListaImagenes(imgsHierba, 256);
+          const texH = new THREE.DataArrayTexture(ch.datos, ch.tam, ch.tam, ch.capas);
+          texH.wrapS = texH.wrapT = THREE.RepeatWrapping;
+          texH.minFilter = THREE.LinearMipmapLinearFilter;
+          texH.magFilter = THREE.LinearFilter;
+          texH.generateMipmaps = true;
+          texH.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          texH.needsUpdate = true;
+          terrainU.tHierbas.value = texH;
+          terrainU.uHierbaMix.value = 0.42;
+        }
+      }, undefined, () => {});
+    });
   }
 
   // Trozos con detalle completo (cerca del personaje) y malla gruesa del resto del mundo
@@ -3458,11 +3433,17 @@
   // ===========================================================================
   // Agua: superficie animada con rizos y brillo; en los ríos, espuma en las orillas
   // ===========================================================================
-  const AGUA_U = { uTime: { value: 0 }, uCielo: { value: new THREE.Color('#bfe6f7') } };
+  const AGUA_U = { uTime: { value: 0 }, uCielo: { value: new THREE.Color('#bfe6f7') }, uRioDetOn: { value: 0 }, uMarDetOn: { value: 0 } };
   // Normales del agua de New-Rol (assets/agua/waternormals.jpg), las mismas que su superficie de agua
   const aguaNormales = new THREE.TextureLoader().load('assets/agua/waternormals.jpg');
   aguaNormales.wrapS = aguaNormales.wrapT = THREE.RepeatWrapping;
   aguaNormales.colorSpace = THREE.NoColorSpace;
+  const aguaTexRio = new THREE.TextureLoader().load('assets/texturas/agua/t03.jpg', () => { AGUA_U.uRioDetOn.value = 1; });
+  aguaTexRio.wrapS = aguaTexRio.wrapT = THREE.RepeatWrapping;
+  aguaTexRio.colorSpace = THREE.SRGBColorSpace;
+  const aguaTexMar = new THREE.TextureLoader().load('assets/texturas/agua/t02.jpg', () => { AGUA_U.uMarDetOn.value = 1; });
+  aguaTexMar.wrapS = aguaTexMar.wrapT = THREE.RepeatWrapping;
+  aguaTexMar.colorSpace = THREE.SRGBColorSpace;
   const AGUA_FRAG = `
     vec2 p = vMundo;
     float o1 = sin(p.x * 0.35 + uTime * 0.9) + sin(p.y * 0.42 - uTime * 0.7);
@@ -3477,6 +3458,12 @@
     float rizo = clamp(0.5 + 0.2 * o1 + 0.1 * o2 + 0.35 * dot(nrm, vec2(0.7, 0.7)), 0.0, 1.0);
     vec3 agua = mix(uAguaHonda, uAguaClara, rizo);
     agua *= 1.0 + 0.12 * dot(nrm, vec2(0.7, 0.7));
+    if (uDetOn > 0.5) {
+      vec3 detAgua = texture2D(tAguaDet, p * 0.08 + nrm * 0.03 + vec2(uTime * 0.010, -uTime * 0.007)).rgb;
+      float dCamAgua = length(cameraPosition - vMundo3);
+      float pesoDet = 0.26 * (1.0 - smoothstep(45.0, 160.0, dCamAgua));
+      agua = mix(agua, agua * 0.58 + detAgua * 0.62, pesoDet);
+    }
     // Ondas finas (de cerca) y un brillo suave: sin manchas grandes
     float fino = sin(p.x * 1.7 + uTime * 1.1) * sin(p.y * 1.5 - uTime * 0.9);
     agua += vec3(0.04 * fino + smoothstep(1.4, 1.9, o1 + 0.5 * o2) * 0.08);
@@ -3499,6 +3486,8 @@
       shader.uniforms.uOrillas = { value: orillas ? 1 : 0 };
       shader.uniforms.uNormales = { value: rio ? 1 : 0 };
       shader.uniforms.tNorm = { value: aguaNormales };
+      shader.uniforms.tAguaDet = { value: rio ? aguaTexRio : aguaTexMar };
+      shader.uniforms.uDetOn = rio ? AGUA_U.uRioDetOn : AGUA_U.uMarDetOn;
       shader.uniforms.uAguaHonda = { value: new THREE.Color(rio ? '#1f5f74' : '#0b4a6e') };
       shader.uniforms.uAguaClara = { value: new THREE.Color(rio ? '#3aa0b8' : '#2b8fbd') };
       shader.uniforms.uCielo = AGUA_U.uCielo;
@@ -3506,7 +3495,7 @@
         .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMundo = (modelMatrix * vec4(transformed, 1.0)).xz;\n  vMundo3 = (modelMatrix * vec4(transformed, 1.0)).xyz;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform float uTime;\nuniform float uOrillas;\nuniform float uNormales;\nuniform sampler2D tNorm;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;\nuniform vec3 uCielo;')
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform float uTime;\nuniform float uOrillas;\nuniform float uNormales;\nuniform sampler2D tNorm;\nuniform sampler2D tAguaDet;\nuniform float uDetOn;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;\nuniform vec3 uCielo;')
         .replace('#include <color_fragment>', '#include <color_fragment>' + AGUA_FRAG);
     };
     return m;
@@ -4189,7 +4178,6 @@
     if (sendasRecintoMesh) { scene.remove(sendasRecintoMesh); sendasRecintoMesh.geometry.dispose(); sendasRecintoMesh = null; }
     if (recintosMundo.length) {
       const mbS = new MB();
-      const propias = [];   // sendas con textura propia (relieve.texturas.senda): malla y material aparte
       recintosMundo.forEach(rec => {
         const eje = [{ x: rec.llegada.x, y: rec.llegada.z }].concat(rec.puntos.map(q => ({ x: q.x, y: q.z })));
         // La altura sale del eje del pasillo (su suelo), no del punto: en los codos la curva corta la esquina y un
@@ -4200,19 +4188,9 @@
           const q = RelieveZonaLib.puntoEjeEn(rec, e.s);
           return Math.min(Hgen(x, z), Hgen(q.x, q.z));
         };
-        const idSenda = rec.zona.relieve && rec.zona.relieve.texturas && rec.zona.relieve.texturas.senda;
-        const TL = window.TexturasLib;
-        const destino = (TL && TL.valida(idSenda)) ? new MB() : mbS;
-        destino.ribbon(curvePath(eje, 2.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo);
-        if (destino !== mbS) {
-          const m = matsCamino.senda.clone();
-          m.map = TL.textura(THREE, idSenda, { repetir: [1, 0.75] });
-          m.bumpMap = m.map;
-          propias.push(new THREE.Mesh(destino.geom(), m));
-        }
+        mbS.ribbon(curvePath(eje, 2.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo);
       });
       sendasRecintoMesh = new THREE.Mesh(mbS.geom(), matsCamino.senda);
-      propias.forEach(m => { m.receiveShadow = true; sendasRecintoMesh.add(m); });
       sendasRecintoMesh.receiveShadow = true;
       sendasRecintoMesh.name = 'SendasRecintos';
       scene.add(sendasRecintoMesh);
@@ -6923,7 +6901,7 @@
 
     // Pasillo estrecho de entrada (compartido exterior/interior)
     if (Array.isArray(rec.puntos) && rec.puntos.length >= 2) {
-      const anchoPas = (rec.cfg && rec.cfg.anchoPasillo ? rec.cfg.anchoPasillo : 8) * T.escala;
+      const anchoPas = (rec.cfg && rec.cfg.pasilloAncho ? rec.cfg.pasilloAncho : 8) * T.escala;
       g.beginPath();
       rec.puntos.forEach((pt, idx) => {
         if (idx === 0) g.moveTo(T.px(pt.x), T.py(pt.z));
@@ -6938,32 +6916,35 @@
       g.beginPath(); g.arc(T.px(ent.x), T.py(ent.z), compacto ? 3.5 : 6, 0, Math.PI * 2); g.fill();
     }
 
-    // Rejilla del laberinto: cada celda en su sitio real (tamaño de celda y giro del laberinto).
-    // 1 = muro, 0 = pasillo; 2 son celdas fuera del círculo (las cubre el anillo) y no se dibujan.
-    const lab = rec.lab;
-    if (lab && Array.isArray(lab.grid) && lab.grid.length && typeof lab.celdaAMundo === 'function') {
-      const ladoPx = Math.max(compacto ? 1.2 : 2, lab.cellSize * T.escala);
-      for (let gy = 0; gy < lab.N; gy++) {
-        const fila = lab.grid[gy];
-        for (let gx = 0; gx < lab.N; gx++) {
-          const val = fila[gx];
-          if (val === 2) continue;
-          const c = lab.celdaAMundo(gx, gy);
-          g.save();
-          g.translate(T.px(c.wx), T.py(c.wz));
-          g.rotate(lab.rotRad || 0);
-          g.fillStyle = val === 1 ? 'rgba(15, 23, 42, 0.94)' : 'rgba(71, 85, 105, 0.85)';
-          g.fillRect(-ladoPx / 2, -ladoPx / 2, ladoPx + 0.5, ladoPx + 0.5);
-          if (val === 1 && (!compacto || ladoPx >= 5)) {
-            g.strokeStyle = 'rgba(148, 163, 184, 0.25)'; g.lineWidth = 0.8;
-            g.strokeRect(-ladoPx / 2, -ladoPx / 2, ladoPx, ladoPx);
+    // Rejilla del laberinto (muros, pasillos, entrada, meta)
+    const grid = rec.lab && rec.lab.grid;
+    if (Array.isArray(grid) && grid.length > 0) {
+      const N = grid.length;
+      const lado = rec.lado || (rInt * 1.35);
+      const cell = lado / N;
+      const cellPx = cell * T.escala;
+      const x0 = rec.zx - lado / 2, z0 = rec.zz - lado / 2;
+      for (let r = 0; r < N; r++) {
+        const fila = grid[r];
+        if (!fila) continue;
+        for (let c = 0; c < N; c++) {
+          const val = fila[c];
+          const sx = T.px(x0 + c * cell);
+          const sy = T.py(z0 + r * cell);
+          if (val === 1) {
+            g.fillStyle = 'rgba(15, 23, 42, 0.94)';
+            g.fillRect(sx, sy, cellPx + 0.6, cellPx + 0.6);
+            if (!compacto || cellPx >= 5) {
+              g.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+              g.lineWidth = 0.8;
+              g.strokeRect(sx, sy, cellPx, cellPx);
+            }
+          } else {
+            g.fillStyle = val === 2 ? 'rgba(34, 197, 94, 0.35)' : (val === 3 ? 'rgba(250, 204, 21, 0.38)' : 'rgba(51, 65, 85, 0.82)');
+            g.fillRect(sx, sy, cellPx + 0.5, cellPx + 0.5);
           }
-          g.restore();
         }
       }
-      // Explanada de la meta
-      g.fillStyle = 'rgba(250, 204, 21, 0.3)';
-      g.beginPath(); g.arc(T.px(lab.centro.wx), T.py(lab.centro.wz), lab.centro.radio * 0.7 * T.escala, 0, Math.PI * 2); g.fill();
     }
 
     // Icono de culminación en el centro
@@ -6978,7 +6959,6 @@
   }
 
   let minimapaRot = null;   // giro actual del minimapa (sigue a la cámara con suavizado)
-  const _dirCamMini = new THREE.Vector3();
   function drawMinimap(now) {
     if (now - lastMinimap < 120) return;
     lastMinimap = now;
@@ -6996,19 +6976,12 @@
 
     // Orientación según la cámara: arriba del mapa es hacia donde mira la cámara (no el personaje, así no gira
     // con cada golpe o paso lateral). El giro se suaviza un poco y la flecha del centro marca dónde mira el personaje.
-    // Dirección real de la cámara. Cuando mira casi en vertical (pasillos estrechos de un laberinto, cámara
-    // empujada por las paredes encima del personaje) su parte horizontal es diminuta y cambia de golpe: entonces
-    // no se gira. Además hay un margen muerto de 2° y un giro máximo por dibujo, para que nunca dé bandazos.
-    camera.getWorldDirection(_dirCamMini);
-    const horiz = Math.hypot(_dirCamMini.x, _dirCamMini.z);
-    if (horiz > 0.3) {
-      const objetivoRot = -Math.PI / 2 - Math.atan2(_dirCamMini.z, _dirCamMini.x);
+    const dxCam = controls.target.x - camera.position.x, dzCam = controls.target.z - camera.position.z;
+    if (Math.hypot(dxCam, dzCam) > 0.05) {
+      const objetivoRot = -Math.PI / 2 - Math.atan2(dzCam, dxCam);
       if (minimapaRot === null) minimapaRot = objetivoRot;
       const dif = Math.atan2(Math.sin(objetivoRot - minimapaRot), Math.cos(objetivoRot - minimapaRot));
-      if (Math.abs(dif) > 0.035) minimapaRot += Math.max(-0.45, Math.min(0.45, dif * 0.5));
-    } else if (minimapaRot === null) {
-      const fp = MapaLib.frente(character.anguloY ? character.anguloY() : 0);
-      minimapaRot = -Math.PI / 2 - Math.atan2(fp.dy, fp.dx);
+      minimapaRot += Math.abs(dif) < 0.004 ? dif : dif * 0.55;
     }
     const rotMap = minimapaRot === null ? 0 : minimapaRot;
     const f = MapaLib.frente(character.anguloY ? character.anguloY() : 0);
@@ -7049,13 +7022,11 @@
     } else if (enRecinto) {
       dibujarRecintoEnCanvas(g, V, recActivo, { compacto: true });
       // Ruta activa (por ejemplo "Llévame") dentro del laberinto
-      const puntosRuta = ruta && Array.isArray(ruta.puntos) ? ruta.puntos.slice(ruta.i || 0) : null;   // { x, y } con y = z del mundo
-      if (puntosRuta && puntosRuta.length >= 1) {
+      if (ruta && ruta.length >= 2) {
         g.save();
         g.strokeStyle = '#38bdf8'; g.lineWidth = 3; g.setLineDash([6, 4]);
         g.beginPath();
-        g.moveTo(V.px(px), V.py(pz));
-        puntosRuta.forEach(q => g.lineTo(V.px(q.x), V.py(q.y)));
+        ruta.forEach((q, idx) => { if (idx) g.lineTo(V.px(q.x), V.py(q.z)); else g.moveTo(V.px(q.x), V.py(q.z)); });
         g.stroke();
         g.restore();
       }
@@ -10627,13 +10598,7 @@
     const grupo = new THREE.Group();
     grupo.name = 'InteriorRecinto_' + zona.id;
     const uRec = { value: new THREE.Vector4(rec.zx, rec.zz, 0, -1) };   // radio 0 y modo fuera: no dibuja nada
-    // Fotos de la biblioteca elegidas en el Creador de Laberintos: muros (roca) y suelo de las sendas (tierra)
-    const txL = (zona.relieve && zona.relieve.texturas) || {};
-    const TL = window.TexturasLib;
-    const extra = {};
-    if (TL && TL.valida(txL.muros)) extra.roca = TL.textura(THREE, txL.muros);
-    if (TL && TL.valida(txL.suelo)) extra.tierra = TL.textura(THREE, txL.suelo);
-    const mat = TerrainLib.createTerrainMaterial(THREE, { tCapas: terrainU.tCapas, uTexOn: terrainU.uTexOn, uRecorte: uRec }, { triplanar: true, extra });
+    const mat = TerrainLib.createTerrainMaterial(THREE, { tCapas: terrainU.tCapas, tHierbas: terrainU.tHierbas, uHierbaMix: terrainU.uHierbaMix, uTexOn: terrainU.uTexOn, uRecorte: uRec }, { triplanar: true });
     // En la franja donde se solapa con el terreno del mundo, gana el mundo (sin parpadeo)
     mat.polygonOffset = true; mat.polygonOffsetFactor = 1; mat.polygonOffsetUnits = 2;
     const colorBase = (x, z) => {

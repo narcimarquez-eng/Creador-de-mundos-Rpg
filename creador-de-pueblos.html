@@ -389,11 +389,6 @@
     </div>
 
     <div class="control-row">
-      <label>📷 Texturas (biblioteca de fotos)</label>
-      <div id="texturas-pueblo"></div>
-    </div>
-
-    <div class="control-row">
       <label>Semilla (Seed): <span id="lbl-seed">77420</span></label>
       <input type="range" id="inp-seed" min="1" max="99999" value="77420">
     </div>
@@ -521,9 +516,8 @@
   <script type="module" src="js/three-puente.js"></script>
   <script type="module" src="js/arboles.js"></script>
   <script type="module" src="js/pueblo-edits.js"></script>
-  <script src="js/texturas-lib.js?v=1"></script>
-  <script defer src="js/casas-glb.js?v=20261113t"></script>
-  <script type="module" src="js/village-core.js?v=20261113t"></script>
+  <script defer src="js/casas-glb.js?v=20261112g"></script>
+  <script type="module" src="js/village-core.js"></script>
   <script type="module" src="js/character.js"></script>
   <script type="module">
     "use strict";
@@ -648,28 +642,12 @@
     }
     animate();
 
-    // Texturas de la biblioteca para este pueblo: tejado, fachada, piedra (zócalos y murallas) y madera van al
-    // atlas de las casas; calles y plaza a su suelo. Las casas GLB usan también el tejado, la piedra y la madera.
-    const texturasPueblo = {};
-    const selectoresPueblo = {};
-    if (window.TexturasLib) {
-      [['tejado', '🏠 Tejados', ['tejados']], ['fachada', '🧱 Fachadas', ['piedra', 'madera']],
-       ['piedra', '🪨 Piedra y murallas', ['piedra']], ['madera', '🪵 Madera', ['madera']],
-       ['calles', '🛣️ Calles', ['suelo', 'piedra']], ['plaza', '⛲ Plaza', ['suelo', 'piedra']]].forEach(([clave, etiqueta, grupos]) => {
-        selectoresPueblo[clave] = TexturasLib.selector(document.getElementById('texturas-pueblo'), {
-          etiqueta, grupos, valor: null,
-          alCambiar: id => { if (id) texturasPueblo[clave] = id; else delete texturasPueblo[clave]; rebuildFromUI(); }
-        });
-      });
-    }
-
     function readCfgFromUI() {
       return {
         style: document.getElementById('inp-style').value,
         terrainType: document.getElementById('inp-terrain-type').value,
         trazado: document.getElementById('inp-trazado').value,
         casas: document.getElementById('inp-casas').value,
-        texturas: Object.keys(texturasPueblo).length ? Object.assign({}, texturasPueblo) : undefined,
         relief: parseInt(document.getElementById('inp-relief').value, 10),
         seed: parseInt(document.getElementById('inp-seed').value, 10),
         size: parseInt(document.getElementById('inp-size').value, 10),
@@ -732,9 +710,6 @@
       setVal('inp-curve', cfg.curve);
       setVal('inp-trazado', cfg.trazado || 'clasico');
       setVal('inp-casas', cfg.casas || 'variada');
-      Object.keys(texturasPueblo).forEach(k => delete texturasPueblo[k]);
-      Object.assign(texturasPueblo, cfg.texturas || {});
-      Object.entries(selectoresPueblo).forEach(([k, sel]) => sel.fijar(texturasPueblo[k]));
       setVal('inp-trees', cfg.treeDensity);
       setVal('inp-time', cfg.time);
       setChk('chk-walls', cfg.hasWalls);

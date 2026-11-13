@@ -123,6 +123,23 @@
     return lagos.some(L => L.tipo !== 'arenas' && Math.hypot(x - L.x, z - L.z) < L.R * 1.05);
   }
 
+  // Caché de texturas de agua (assets/texturas/agua/t01..t10.jpg) para no recargar por cada lago
+  const _cacheTexAgua = {};
+  function texAgua(THREE, ruta) {
+    if (_cacheTexAgua[ruta]) return _cacheTexAgua[ruta];
+    const entry = { tex: null, lista: false, cbs: [] };
+    _cacheTexAgua[ruta] = entry;
+    new THREE.TextureLoader().load(ruta, t => {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.colorSpace = THREE.SRGBColorSpace;
+      entry.tex = t;
+      entry.lista = true;
+      entry.cbs.forEach(fn => fn(t));
+      entry.cbs.length = 0;
+    });
+    return entry;
+  }
+
   // Cómo se pinta el agua: el mismo esquema que los ríos (rizo, reflejo del cielo) más las normales de New-Rol
   // y espuma en la orilla. La profundidad viene de una textura con la altura del terreno bajo la superficie.
   const AGUA_FRAG = `
@@ -134,6 +151,12 @@
     vec2 n = (n1 + n2) * 0.5;
     vec3 agua = mix(uHonda, uClara, smoothstep(0.0, 4.0, prof));
     agua *= 0.8 + 0.4 * dot(n, vec2(0.7, 0.7)) + 0.1 * n.y;
+    if (uConDetalle > 0.5) {
+      vec3 detAgua = texture2D(tDetalle, vMundo * 0.085 + n * 0.03 + vec2(uTime * 0.012, -uTime * 0.008)).rgb;
+      float dCamAgua = length(cameraPosition - vMundo3);
+      float pesoDet = mix(0.34, 0.16, smoothstep(0.0, 3.5, prof)) * (1.0 - smoothstep(45.0, 150.0, dCamAgua));
+      agua = mix(agua, agua * 0.55 + detAgua * 0.65, pesoDet);
+    }
     float espuma = smoothstep(0.45, 0.0, prof) * (0.55 + 0.45 * n.x * 2.0);
     agua = mix(agua, vec3(0.92, 0.97, 1.0), clamp(espuma, 0.0, 1.0) * 0.8);
     vec3 vista = normalize(cameraPosition - vMundo3);
@@ -166,10 +189,15 @@
     prof.magFilter = prof.minFilter = THREE.LinearFilter;
     prof.wrapS = prof.wrapT = THREE.ClampToEdgeWrapping;
     prof.needsUpdate = true;
+    const rutaDet = L.tipo === 'oasis' ? 'assets/texturas/agua/t08.jpg' : (L.bioma === 'montana' ? 'assets/texturas/agua/t03.jpg' : 'assets/texturas/agua/t01.jpg');
+    const entDet = texAgua(THREE, rutaDet);
     const mat = new THREE.MeshLambertMaterial({ transparent: true, side: THREE.DoubleSide, depthWrite: false });
     mat.onBeforeCompile = shader => {
       shader.uniforms.tProf = { value: prof };
       shader.uniforms.tNorm = { value: opt.normales };
+      shader.uniforms.tDetalle = { value: entDet.tex || opt.normales };
+      shader.uniforms.uConDetalle = { value: entDet.lista ? 1.0 : 0.0 };
+      if (!entDet.lista) entDet.cbs.push(t => { shader.uniforms.tDetalle.value = t; shader.uniforms.uConDetalle.value = 1.0; });
       shader.uniforms.uOrigen = { value: new THREE.Vector2(L.x - ext, L.z - ext) };
       shader.uniforms.uLado = { value: lado };
       shader.uniforms.uHonda = { value: new THREE.Color(L.honda) };
@@ -180,7 +208,7 @@
         .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vec4 wp = modelMatrix * vec4(transformed, 1.0);\n  vMundo = wp.xz;\n  vMundo3 = wp.xyz;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform sampler2D tProf;\nuniform sampler2D tNorm;\nuniform vec2 uOrigen;\nuniform float uLado;\nuniform vec3 uHonda;\nuniform vec3 uClara;\nuniform float uTime;\nuniform vec3 uCielo;')
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform sampler2D tProf;\nuniform sampler2D tNorm;\nuniform sampler2D tDetalle;\nuniform float uConDetalle;\nuniform vec2 uOrigen;\nuniform float uLado;\nuniform vec3 uHonda;\nuniform vec3 uClara;\nuniform float uTime;\nuniform vec3 uCielo;')
         .replace('#include <color_fragment>', '#include <color_fragment>' + AGUA_FRAG);
     };
     const malla = new THREE.Mesh(new THREE.PlaneGeometry(lado, lado).rotateX(-Math.PI / 2), mat);
