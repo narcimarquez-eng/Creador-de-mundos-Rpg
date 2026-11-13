@@ -153,6 +153,22 @@
       dano: 24,
       defensa: 14,
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilVisual: {
+        sexo: 'hombre',
+        altura: 1.90,
+        escalaHuesos: {
+          Torso: [1.14, 1.03, 1.14],
+          Pelvis: [1.08, 1.0, 1.08],
+          UpperArm_L: [1.18, 1.0, 1.18],
+          UpperArm_R: [1.18, 1.0, 1.18],
+          Forearm_L: [1.15, 1.0, 1.15],
+          Forearm_R: [1.15, 1.0, 1.15],
+          Thigh_L: [1.10, 1.0, 1.10],
+          Thigh_R: [1.10, 1.0, 1.10],
+          Head: [0.96, 0.98, 0.96]
+        },
+        colores: { pelo: 0x3b1f0e, pecho: 0x78350f, ropa: 0x854d0e, acento: 0xf59e0b, halo: 0x22c55e }
+      },
       skillsCatalogo: [
         { id: 'grito', nombre: 'Grito de Aliento', icono: '⚔️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 10, potencia: 25, desc: '+{potencia}% daño de ataque a ambos por {duracion}s' },
         { id: 'impetu', nombre: 'Golpe de Ímpetu', icono: '💥', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 12, timer: 0, potencia: 38, desc: 'Golpe demoledor que inflige {potencia} de daño contundente' },
@@ -173,6 +189,24 @@
       dano: 34,
       defensa: 10,
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilVisual: {
+        sexo: 'mujer',
+        altura: 1.63,
+        pecho: true,
+        melena: { largo: 0.30, ancho: 0.14, color: 0x18181b },
+        escalaHuesos: {
+          Torso: [0.80, 0.98, 0.84],
+          Pelvis: [0.88, 1.0, 0.92],
+          UpperArm_L: [0.78, 1.0, 0.78],
+          UpperArm_R: [0.78, 1.0, 0.78],
+          Forearm_L: [0.78, 1.0, 0.78],
+          Forearm_R: [0.78, 1.0, 0.78],
+          Thigh_L: [0.86, 1.0, 0.86],
+          Thigh_R: [0.86, 1.0, 0.86],
+          Head: [0.98, 0.98, 0.98]
+        },
+        colores: { pelo: 0x18181b, pecho: 0x4c1d95, ropa: 0x3b0764, acento: 0xa855f7, halo: 0xc084fc }
+      },
       skillsCatalogo: [
         { id: 'danza_dagas', nombre: 'Danza de Dagas', icono: '🗡️', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 10, timer: 0, potencia: 46, desc: 'Ráfaga de tres estocadas rápidas que inflige {potencia} daño crítico' },
         { id: 'veneno', nombre: 'Veneno Letal', icono: '🧪', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 18, timer: 0, duracion: 8, potencia: 18, desc: 'Unta las armas con toxinas: +{potencia} daño de veneno por {duracion}s' },
@@ -193,6 +227,22 @@
       dano: 18,
       defensa: 12,
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilVisual: {
+        sexo: 'hombre',
+        altura: 1.86,
+        escalaHuesos: {
+          Torso: [1.08, 1.02, 1.08],
+          Pelvis: [1.04, 1.0, 1.04],
+          UpperArm_L: [1.10, 1.0, 1.10],
+          UpperArm_R: [1.10, 1.0, 1.10],
+          Forearm_L: [1.08, 1.0, 1.08],
+          Forearm_R: [1.08, 1.0, 1.08],
+          Thigh_L: [1.06, 1.0, 1.06],
+          Thigh_R: [1.06, 1.0, 1.06],
+          Head: [0.97, 0.99, 0.97]
+        },
+        colores: { pelo: 0xe2e8f0, pecho: 0x1e3a8a, ropa: 0x1d4ed8, acento: 0x38bdf8, halo: 0x38bdf8 }
+      },
       skillsCatalogo: [
         { id: 'rocio_sanador', nombre: 'Gracia Sanadora', icono: '🌿', tipo: 'cura', nivel: 1, maxNivel: 5, cd: 22, timer: 0, potencia: 50, desc: 'Restaura {potencia} HP al instante para ambos si la salud cae < 50%' },
         { id: 'baluarte_luz', nombre: 'Baluarte de Luz', icono: '🛡️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 24, timer: 0, duracion: 8, potencia: 35, desc: 'Escudo sacro que absorbe y mitiga un {potencia}% de daño por {duracion}s' },
@@ -213,6 +263,24 @@
       dano: 22,
       defensa: 18,
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilVisual: {
+        sexo: 'mujer',
+        altura: 1.68,
+        pecho: true,
+        melena: { largo: 0.26, ancho: 0.16, color: 0xb91c1c },
+        escalaHuesos: {
+          Torso: [0.85, 0.99, 0.88],
+          Pelvis: [0.92, 1.0, 0.94],
+          UpperArm_L: [0.84, 1.0, 0.84],
+          UpperArm_R: [0.84, 1.0, 0.84],
+          Forearm_L: [0.84, 1.0, 0.84],
+          Forearm_R: [0.84, 1.0, 0.84],
+          Thigh_L: [0.90, 1.0, 0.90],
+          Thigh_R: [0.90, 1.0, 0.90],
+          Head: [0.98, 0.98, 0.98]
+        },
+        colores: { pelo: 0xb91c1c, pecho: 0x7f1d1d, ropa: 0x991b1b, acento: 0xf87171, halo: 0xf87171 }
+      },
       skillsCatalogo: [
         { id: 'frenesi', nombre: 'Modo Berserker', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 26, timer: 0, duracion: 8, potencia: 40, desc: 'Desata furia salvaje ante el dolor: +{potencia}% daño y resistencia férrea por {duracion}s' },
         { id: 'provocacion', nombre: 'Grito Provocador', icono: '📢', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 18, timer: 0, duracion: 6, potencia: 35, desc: 'Atrae a los monstruos hacia ella protegiendo al héroe por {duracion}s' },
@@ -635,141 +703,166 @@
     return true;
   }
 
-  // Construcción del modelo 3D del aldeano en Three.js con materiales y vestimenta de cuero
-  function construirModeloAcompanante(THREE) {
+  // Construcción del modelo 3D del acompañante en Three.js adaptado al arquetipo (sexo, altura, complexión y colores)
+  function construirModeloAcompanante(THREE, arquetipoId) {
+    const arq = COMPANEROS[arquetipoId] || COMPANEROS.rowan;
+    const perfil = arq.perfilVisual || COMPANEROS.rowan.perfilVisual;
+    const esMujer = perfil.sexo === 'mujer';
     const grupo = new THREE.Group();
-    grupo.name = 'Acompanante_Rowan';
+    grupo.name = 'Acompanante_' + arq.id;
 
-    // Paleta de materiales: cuero curtido, cuero oscuro, bronce, piel, lino y acero
+    // Paleta de materiales diferenciada por acompañante
     const matCuero = new THREE.MeshStandardMaterial({
-      color: 0x78350f, // Marrón cuero cálido
-      roughness: 0.78,
-      metalness: 0.08
+      color: perfil.colores.pecho,
+      roughness: 0.72,
+      metalness: 0.10
     });
     const matCueroOscuro = new THREE.MeshStandardMaterial({
-      color: 0x3b1d11, // Cuero oscuro para botas y correas
+      color: 0x291811,
       roughness: 0.85,
       metalness: 0.05
     });
     const matLino = new THREE.MeshStandardMaterial({
-      color: 0xd6c7a1, // Camisa de lino rústico
-      roughness: 0.9,
-      metalness: 0.0
+      color: perfil.colores.ropa,
+      roughness: 0.85,
+      metalness: 0.04
     });
     const matPantalon = new THREE.MeshStandardMaterial({
-      color: 0x334155, // Tela resistente pizarra azulada
+      color: esMujer ? 0x1e293b : 0x334155,
       roughness: 0.82,
       metalness: 0.02
     });
     const matPiel = new THREE.MeshStandardMaterial({
-      color: 0xfbd0a6, // Tono de piel natural
+      color: 0xfbd0a6,
       roughness: 0.65,
       metalness: 0.0
     });
     const matCabello = new THREE.MeshStandardMaterial({
-      color: 0x451a03, // Pelo castaño oscuro
-      roughness: 0.9,
-      metalness: 0.02
+      color: perfil.colores.pelo,
+      roughness: 0.88,
+      metalness: 0.04
     });
     const matHebilla = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b, // Latón / bronce dorado
+      color: perfil.colores.acento,
       roughness: 0.35,
       metalness: 0.75
     });
     const matAcero = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8, // Acero de espada
+      color: 0x94a3b8,
       roughness: 0.25,
       metalness: 0.85
     });
 
-    // 1. Torso y Jubón de Cuero
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.68, 0.28), matCuero);
+    // 1. Torso (fino en mujeres, ancho y musculado en hombres)
+    const torsoW = esMujer ? 0.38 : 0.56;
+    const torsoH = esMujer ? 0.62 : 0.70;
+    const torsoD = esMujer ? 0.22 : 0.31;
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(torsoW, torsoH, torsoD), matCuero);
     torso.position.y = 1.08;
     torso.castShadow = true;
     torso.receiveShadow = true;
     grupo.add(torso);
 
-    // Cuello de la camisa de lino que asoma sobre el jubón
-    const cuelloLino = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.22), matLino);
+    if (esMujer && perfil.pecho) {
+      const pechoGeo = new THREE.SphereGeometry(0.088, 12, 10);
+      const pechoIzq = new THREE.Mesh(pechoGeo, matCuero);
+      pechoIzq.position.set(-0.082, 1.18, torsoD * 0.48);
+      pechoIzq.scale.set(0.95, 0.88, 1.12);
+      pechoIzq.castShadow = true;
+      const pechoDer = new THREE.Mesh(pechoGeo, matCuero);
+      pechoDer.position.set(0.082, 1.18, torsoD * 0.48);
+      pechoDer.scale.set(0.95, 0.88, 1.12);
+      pechoDer.castShadow = true;
+      grupo.add(pechoIzq, pechoDer);
+    }
+
+    // Cuello de la camisa
+    const cuelloLino = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.20 : 0.28, 0.12, esMujer ? 0.18 : 0.24), matLino);
     cuelloLino.position.set(0, 1.42, 0);
     grupo.add(cuelloLino);
 
-    // 2. Cinturón de Cuero con Hebilla de Bronce
-    const cinturon = new THREE.Mesh(new THREE.BoxGeometry(0.53, 0.11, 0.30), matCueroOscuro);
+    // 2. Cinturón con hebilla
+    const cinturon = new THREE.Mesh(new THREE.BoxGeometry(torsoW + 0.03, 0.10, torsoD + 0.02), matCueroOscuro);
     cinturon.position.y = 0.78;
     cinturon.castShadow = true;
     grupo.add(cinturon);
 
-    const hebilla = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.32), matHebilla);
+    const hebilla = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.08, torsoD + 0.04), matHebilla);
     hebilla.position.set(0, 0.78, 0.01);
     grupo.add(hebilla);
 
-    // Pequeño saquito / bolsa de provisiones de cuero al costado del cinturón
-    const bolsita = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.12), matCuero);
-    bolsita.position.set(0.28, 0.75, 0.05);
+    const bolsita = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.15, 0.11), matCuero);
+    bolsita.position.set(torsoW * 0.54, 0.75, 0.05);
     grupo.add(bolsita);
 
-    // 3. Cabeza y Cabello de Aldeano
-    const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.38, 0.36), matPiel);
+    // 3. Cabeza y Cabello
+    const cabeza = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.33 : 0.36, 0.37, esMujer ? 0.33 : 0.36), matPiel);
     cabeza.position.y = 1.66;
     cabeza.castShadow = true;
     grupo.add(cabeza);
 
-    const cabello = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.18, 0.38), matCabello);
+    const cabello = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.36 : 0.39, 0.18, esMujer ? 0.36 : 0.39), matCabello);
     cabello.position.set(0, 1.82, -0.02);
     grupo.add(cabello);
 
-    const flequillo = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.10, 0.10), matCabello);
-    flequillo.position.set(0, 1.76, 0.16);
+    const flequillo = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.34 : 0.36, 0.10, 0.10), matCabello);
+    flequillo.position.set(0, 1.76, 0.15);
     grupo.add(flequillo);
 
-    // 4. Piernas y Botas de Cuero
-    // Pierna Izquierda
+    if (perfil.melena) {
+      const melena = new THREE.Mesh(new THREE.BoxGeometry(perfil.melena.ancho * 2.1, perfil.melena.largo, 0.11), matCabello);
+      melena.position.set(0, 1.56, -0.17);
+      melena.castShadow = true;
+      grupo.add(melena);
+    }
+
+    // 4. Piernas y Botas
+    const legX = esMujer ? 0.11 : 0.15;
+    const legW = esMujer ? 0.15 : 0.20;
     const piernaIzqGrupo = new THREE.Group();
-    piernaIzqGrupo.position.set(-0.14, 0.74, 0);
-    const pantalonIzq = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.20), matPantalon);
+    piernaIzqGrupo.position.set(-legX, 0.74, 0);
+    const pantalonIzq = new THREE.Mesh(new THREE.BoxGeometry(legW, 0.44, legW + 0.02), matPantalon);
     pantalonIzq.position.y = -0.22;
     pantalonIzq.castShadow = true;
     piernaIzqGrupo.add(pantalonIzq);
-    const botaIzq = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.34, 0.24), matCueroOscuro);
+    const botaIzq = new THREE.Mesh(new THREE.BoxGeometry(legW + 0.02, 0.34, legW + 0.05), matCueroOscuro);
     botaIzq.position.set(0, -0.56, 0.02);
     botaIzq.castShadow = true;
     piernaIzqGrupo.add(botaIzq);
     grupo.add(piernaIzqGrupo);
 
-    // Pierna Derecha
     const piernaDerGrupo = new THREE.Group();
-    piernaDerGrupo.position.set(0.14, 0.74, 0);
-    const pantalonDer = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.20), matPantalon);
+    piernaDerGrupo.position.set(legX, 0.74, 0);
+    const pantalonDer = new THREE.Mesh(new THREE.BoxGeometry(legW, 0.44, legW + 0.02), matPantalon);
     pantalonDer.position.y = -0.22;
     pantalonDer.castShadow = true;
     piernaDerGrupo.add(pantalonDer);
-    const botaDer = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.34, 0.24), matCueroOscuro);
+    const botaDer = new THREE.Mesh(new THREE.BoxGeometry(legW + 0.02, 0.34, legW + 0.05), matCueroOscuro);
     botaDer.position.set(0, -0.56, 0.02);
     botaDer.castShadow = true;
     piernaDerGrupo.add(botaDer);
     grupo.add(piernaDerGrupo);
 
-    // 5. Brazos y Espada Corta
-    // Brazo Izquierdo
+    // 5. Brazos y Arma
+    const armX = esMujer ? 0.27 : 0.38;
+    const armW = esMujer ? 0.12 : 0.19;
     const brazoIzqGrupo = new THREE.Group();
-    brazoIzqGrupo.position.set(-0.35, 1.34, 0);
-    const mangaIzq = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.38, 0.18), matLino);
+    brazoIzqGrupo.position.set(-armX, 1.34, 0);
+    const mangaIzq = new THREE.Mesh(new THREE.BoxGeometry(armW, 0.38, armW + 0.02), matLino);
     mangaIzq.position.y = -0.19;
     brazoIzqGrupo.add(mangaIzq);
-    const antebrazoIzq = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.28, 0.16), matCuero);
+    const antebrazoIzq = new THREE.Mesh(new THREE.BoxGeometry(armW * 0.92, 0.28, armW), matCuero);
     antebrazoIzq.position.y = -0.48;
     antebrazoIzq.castShadow = true;
     brazoIzqGrupo.add(antebrazoIzq);
     grupo.add(brazoIzqGrupo);
 
-    // Brazo Derecho (Mano de combate con espada corta)
     const brazoDerGrupo = new THREE.Group();
-    brazoDerGrupo.position.set(0.35, 1.34, 0);
-    const mangaDer = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.38, 0.18), matLino);
+    brazoDerGrupo.position.set(armX, 1.34, 0);
+    const mangaDer = new THREE.Mesh(new THREE.BoxGeometry(armW, 0.38, armW + 0.02), matLino);
     mangaDer.position.y = -0.19;
     brazoDerGrupo.add(mangaDer);
-    const antebrazoDer = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.28, 0.16), matCuero);
+    const antebrazoDer = new THREE.Mesh(new THREE.BoxGeometry(armW * 0.92, 0.28, armW), matCuero);
     antebrazoDer.position.y = -0.48;
     antebrazoDer.castShadow = true;
     brazoDerGrupo.add(antebrazoDer);
@@ -795,7 +888,7 @@
     const haloGeo = new THREE.RingGeometry(0.4, 0.55, 24);
     haloGeo.rotateX(-Math.PI / 2);
     const matHalo = new THREE.MeshBasicMaterial({
-      color: 0x22c55e,
+      color: perfil.colores.halo || 0x22c55e,
       transparent: true,
       opacity: 0.45,
       depthWrite: false
@@ -803,6 +896,7 @@
     const halo = new THREE.Mesh(haloGeo, matHalo);
     halo.position.y = 0.04;
     grupo.add(halo);
+    grupo.scale.setScalar((perfil.altura || 1.82) / 1.84);
 
     return {
       root: grupo,
@@ -892,46 +986,133 @@
     acompanante.nombreAnimActual = clipName;
   }
 
-  // Integración del modelo humanoide GLB generado con el Estudio de Armaduras
+  // Integración del modelo humanoide GLB adaptado al arquetipo (4 acompañantes distintos: altura, complexión, pecho y colores)
   function instalarModeloGLBAcompanante(acompanante, gltf, THREE) {
     if (!acompanante || !gltf || !gltf.scene) return null;
-    const root = gltf.scene;
+    acompanante._gltfBase = gltf;
+    const arq = COMPANEROS[acompanante.arquetipo] || COMPANEROS.rowan;
+    const perfil = arq.perfilVisual || COMPANEROS.rowan.perfilVisual;
+    const root = typeof gltf.scene.clone === 'function' ? gltf.scene.clone(true) : gltf.scene;
 
-    // Normalizar escala anatómica a 1.82m
+    // 1. Escalar huesos por complexión (mujeres más finas, hombres más musculados)
+    if (perfil.escalaHuesos && typeof root.getObjectByName === 'function') {
+      Object.keys(perfil.escalaHuesos).forEach(nomHueso => {
+        const hueso = root.getObjectByName(nomHueso);
+        if (hueso && hueso.scale) {
+          const [sx, sy, sz] = perfil.escalaHuesos[nomHueso];
+          hueso.scale.set(sx, sy, sz);
+        }
+      });
+    }
+
+    // 2. Clonar materiales y diferenciar pelo y atuendo por acompañante
+    const colPelo = typeof THREE.Color === 'function' ? new THREE.Color(perfil.colores.pelo) : null;
+    const colRopa = typeof THREE.Color === 'function' ? new THREE.Color(perfil.colores.ropa) : null;
+    const colPecho = typeof THREE.Color === 'function' ? new THREE.Color(perfil.colores.pecho) : null;
+    if (typeof root.traverse === 'function') {
+      root.traverse(o => {
+        if (!o.isMesh) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        const clonarMat = (m) => {
+          if (!m) return m;
+          const c = typeof m.clone === 'function' ? m.clone() : m;
+          c.roughness = Math.max(0.35, c.roughness || 0.6);
+          const nomMat = (c.name || '').toLowerCase();
+          const nomObj = (o.name || '').toLowerCase();
+          if (c.color && colPelo && (nomMat.includes('cabello') || nomObj.includes('cabello'))) {
+            c.color.copy(colPelo);
+          } else if (c.color && colRopa && (nomObj.startsWith('torso_') || nomObj.startsWith('upperarm_') || nomObj.startsWith('forearm_'))) {
+            c.color.lerp(colRopa, 0.58);
+          } else if (c.color && colPecho && (nomObj.startsWith('thigh_') || nomObj.startsWith('shin_'))) {
+            c.color.lerp(colPecho, 0.42);
+          }
+          return c;
+        };
+        o.material = Array.isArray(o.material) ? o.material.map(clonarMat) : clonarMat(o.material);
+      });
+    }
+
+    // 3. Pecho femenino en Torso para las acompañantes mujeres
+    if (perfil.pecho && typeof root.getObjectByName === 'function') {
+      const huesoTorso = root.getObjectByName('Torso');
+      if (huesoTorso) {
+        if (typeof root.updateMatrixWorld === 'function') root.updateMatrixWorld(true);
+        const torsoBox = new THREE.Box3();
+        (huesoTorso.children || []).forEach(ch => {
+          if (ch.isMesh) torsoBox.expandByObject(ch);
+        });
+        const tSize = new THREE.Vector3();
+        const tCenter = new THREE.Vector3();
+        if (!torsoBox.isEmpty()) {
+          torsoBox.getSize(tSize);
+          torsoBox.getCenter(tCenter);
+          if (typeof huesoTorso.worldToLocal === 'function') huesoTorso.worldToLocal(tCenter);
+          const pechoMat = new THREE.MeshStandardMaterial({
+            color: perfil.colores.pecho,
+            roughness: 0.65,
+            metalness: 0.08
+          });
+          const rPecho = Math.max(0.045, tSize.x * 0.16);
+          const pechoGeo = new THREE.SphereGeometry(rPecho, 12, 10);
+          const offX = tSize.x * 0.21;
+          const posY = tCenter.y + tSize.y * 0.12;
+          const posZ = tCenter.z + tSize.z * 0.36;
+          [-1, 1].forEach(signo => {
+            const mPecho = new THREE.Mesh(pechoGeo, pechoMat);
+            mPecho.name = signo < 0 ? 'Pecho_L' : 'Pecho_R';
+            mPecho.position.set(signo * offX, posY, posZ);
+            mPecho.scale.set(0.95, 0.88, 1.15);
+            mPecho.castShadow = true;
+            mPecho.receiveShadow = true;
+            huesoTorso.add(mPecho);
+          });
+        }
+      }
+    }
+
+    // 4. Melena / coleta trasera en Head para diferenciar silueta femenina
+    if (perfil.melena && typeof root.getObjectByName === 'function') {
+      const huesoHead = root.getObjectByName('Head');
+      if (huesoHead) {
+        const matMelena = new THREE.MeshStandardMaterial({
+          color: perfil.melena.color,
+          roughness: 0.72,
+          metalness: 0.02
+        });
+        const melenaMesh = new THREE.Mesh(
+          new THREE.BoxGeometry(perfil.melena.ancho * 1.45, perfil.melena.largo, 0.09),
+          matMelena
+        );
+        melenaMesh.name = 'Melena_Acompanante';
+        melenaMesh.position.set(0, -0.02, -0.11);
+        melenaMesh.rotation.x = 0.18;
+        melenaMesh.castShadow = true;
+        huesoHead.add(melenaMesh);
+      }
+    }
+
+    // 5. Normalizar altura según sexo (mujeres más bajas 1.63-1.68m, hombres más altos 1.86-1.90m)
+    if (typeof root.updateMatrixWorld === 'function') root.updateMatrixWorld(true);
     const bbox = new THREE.Box3().setFromObject(root);
     const size = new THREE.Vector3();
     bbox.getSize(size);
     if (size.y > 0.01) {
-      const escala = 1.82 / size.y;
+      const escala = (perfil.altura || 1.82) / size.y;
       root.scale.setScalar(escala);
     }
     bbox.setFromObject(root);
     root.position.y = -bbox.min.y;
 
     const contenedor = new THREE.Group();
-    contenedor.name = 'Acompanante_Rowan_GLB';
+    contenedor.name = 'Acompanante_' + arq.id + '_GLB';
     contenedor.add(root);
 
-    // Ajustar materiales y sombras
-    root.traverse(o => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-        if (o.material) {
-          if (Array.isArray(o.material)) {
-            o.material.forEach(m => { if (m) m.roughness = Math.max(0.35, m.roughness || 0.6); });
-          } else {
-            o.material.roughness = Math.max(0.35, o.material.roughness || 0.6);
-          }
-        }
-      }
-    });
-
-    // Marcador sutil de aliado (halo tenue verde a sus pies)
+    // Marcador sutil de aliado (halo tenue del color del acompañante)
     const haloGeo = new THREE.RingGeometry(0.4, 0.55, 24);
     haloGeo.rotateX(-Math.PI / 2);
     const matHalo = new THREE.MeshBasicMaterial({
-      color: 0x22c55e,
+      color: perfil.colores.halo || 0x22c55e,
       transparent: true,
       opacity: 0.45,
       depthWrite: false

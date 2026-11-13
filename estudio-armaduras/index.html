@@ -15131,10 +15131,12 @@
             const ao = (THREE.MathUtils.smoothstep(v, 0.0, 0.22) * 0.68 + 0.32);
             for (let x = 0; x < W; x++) {
               const i = (y * W + x) * 4;
-              const lum = (0.72 + 0.38 * id.data[i] / 255) * ao;
+              const rawStrand = id.data[i] / 255;
+              const lum = (0.72 + 0.38 * rawStrand) * ao;
               id.data[i] = toS((root.r + (tip.r - root.r) * t) * lum);
               id.data[i + 1] = toS((root.g + (tip.g - root.g) * t) * lum);
               id.data[i + 2] = toS((root.b + (tip.b - root.b) * t) * lum);
+              id.data[i + 3] = toS((id.data[i + 3] / 255) * Math.min(1, rawStrand * 1.45));
             }
           }
           ctx.putImageData(id, 0, 0);
@@ -15283,8 +15285,9 @@
         }
         let finalIdx = idx, fP = P, fN = N, fU = U, fC = C;
         // Simplificación con meshoptimizer (bordes y costuras UV bloqueados para no deformar las placas)
+        const esCabello = b.mat && b.mat.name && b.mat.name.startsWith('Cabello_');
         const MS = window.MeshoptSimplifier;
-        if (simplifyRatio < 0.999 && MS && MS.supported !== false && idx.length > 600) {
+        if (!esCabello && simplifyRatio < 0.999 && MS && MS.supported !== false && idx.length > 600) {
           try {
             const target = Math.max(300, Math.floor(idx.length * simplifyRatio / 3) * 3);
             const res = MS.simplify(new Uint32Array(idx), new Float32Array(P), 3, target, simplifyError, ['LockBorder']);
@@ -21213,7 +21216,7 @@ function resetCharacter() {
         fijarPausaRender(!!d.pausa);
       }
       if (d.tipo === 'pedir-proporciones') {
-        window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'proporciones', fit: STATE.fit }, '*');
+        window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'proporciones', fit: STATE.fit, hair: Object.assign({}, HAIR_CONFIG) }, '*');
       }
       if (d.tipo === 'reiniciar-cuerpo') {
         window.CreadorHumano.resetCharacter();
@@ -21224,6 +21227,17 @@ function resetCharacter() {
         if (d.cuerpo) {
           Object.keys(d.cuerpo).forEach(seccion => Object.assign(window.CreadorHumano.CONFIG[seccion], d.cuerpo[seccion]));
           window.CreadorHumano.rebuildCharacter();
+        }
+        if (d.hair && typeof d.hair === 'object') {
+          Object.assign(HAIR_CONFIG, d.hair);
+          hairUniforms.uLength.value = HAIR_CONFIG.length;
+          hairUniforms.uCurl.value = HAIR_CONFIG.curl;
+          hairUniforms.uDensity.value = HAIR_CONFIG.density;
+          if (typeof setHairPresetColor === 'function') {
+            setHairPresetColor(HAIR_CONFIG.colorRoot, HAIR_CONFIG.colorTip, HAIR_CONFIG.colorHighlight, true);
+          }
+          if (typeof syncHairUISliders === 'function') syncHairUISliders();
+          if (typeof rebuildCurrentHair === 'function') rebuildCurrentHair();
         }
         syncFitSlidersUI();
         updateWardrobePieces();

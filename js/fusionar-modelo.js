@@ -218,6 +218,13 @@
     let antes = 0, despues = 0;
     raiz.traverse(m => {
       if (!m.isMesh || m.isInstancedMesh || !m.visible || Array.isArray(m.material)) return;
+      const matNom = m.material && m.material.name ? m.material.name : '';
+      if (matNom.startsWith('Cabello_') || (m.name && m.name.includes('Cabello'))) {
+        const gCab = m.geometry;
+        const totCab = gCab && gCab.attributes.position ? (gCab.index ? gCab.index.count : gCab.attributes.position.count) / 3 : 0;
+        antes += totCab; despues += totCab;
+        return;
+      }
       const g = m.geometry, P = g.attributes.position;
       if (!P || P.itemSize !== 3) return;
       if (Object.keys(g.morphAttributes || {}).length) return;
