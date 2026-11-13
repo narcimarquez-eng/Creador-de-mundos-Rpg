@@ -501,6 +501,12 @@
         </div>
       </div>
 
+      <!-- Texturas de la biblioteca (fotos de assets/texturas): sustituyen a la textura del estilo -->
+      <div class="control-row" style="margin-bottom: 6px;">
+        <label style="font-size:10px;">📷 Texturas de la biblioteca (toda la mazmorra)</label>
+        <div id="cfg-texturas-biblioteca"></div>
+      </div>
+
       <!-- Suelos de la Mazmorra -->
       <div class="control-row" style="margin-bottom: 2px;">
         <label style="font-size:10px;">⬛ Textura de Suelos / Losas</label>
@@ -885,6 +891,11 @@
             <input type="color" id="insp-color-pared" value="#706860" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
             <button id="btn-insp-color-pared-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
           </div>
+        </div>
+
+        <div class="control-row" style="margin-bottom: 6px;">
+          <label style="font-size:10px;">📷 Texturas de la biblioteca (esta estancia)</label>
+          <div id="insp-texturas-biblioteca"></div>
         </div>
 
         <!-- Suelo -->
@@ -1492,7 +1503,8 @@
 
   <div id="toast"></div>
 
-  <script src="js/dungeon-generator.js?v=2.2"></script>
+  <script src="js/texturas-lib.js?v=1"></script>
+  <script src="js/dungeon-generator.js?v=2.3"></script>
 
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
   <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
@@ -1711,6 +1723,10 @@
         colorTecho: dungeonConfig.colorTecho,
         estiloFuente: dungeonConfig.estiloFuente,
         colorAgua: dungeonConfig.colorAgua,
+        texturaPared: dungeonConfig.texturaPared,
+        texturaSuelo: dungeonConfig.texturaSuelo,
+        texturaZocalo: dungeonConfig.texturaZocalo,
+        texturaTecho: dungeonConfig.texturaTecho,
         seed: dungeonConfig.seed,
         radio: dungeonConfig.radio,
         tamanoMedio: dungeonConfig.tamanoMedio,
@@ -1946,6 +1962,7 @@
       // Materiales y texturas individuales
       $('insp-estilo').value = sala.estiloPared || sala.estilo || '';
       $('insp-color-pared').value = sala.colorPared && sala.colorPared !== 'default' ? sala.colorPared : '#706860';
+      if (window.__sincronizarTexturasSala) window.__sincronizarTexturasSala(sala);
 
       $('insp-estilo-suelo').value = sala.estiloSuelo || '';
       $('insp-color-suelo').value = sala.colorSuelo && sala.colorSuelo !== 'default' ? sala.colorSuelo : '#4a423b';
@@ -3159,6 +3176,30 @@
       actualizarPreviewsTexturas(null);
     });
 
+    // Texturas de la biblioteca: para toda la mazmorra y para la estancia seleccionada
+    (function () {
+      if (!window.TexturasLib) return;
+      const campos = [
+        ['texturaPared', '🧱 Paredes', ['piedra', 'madera']],
+        ['texturaSuelo', '⬛ Suelos', ['suelo', 'piedra', 'madera']],
+        ['texturaZocalo', '▭ Zócalo', ['piedra', 'madera']],
+        ['texturaTecho', '⛰️ Techo', ['piedra', 'madera', 'tejados']]
+      ];
+      const selCfg = {}, selSala = {};
+      campos.forEach(([campo, etiqueta, grupos]) => {
+        selCfg[campo] = TexturasLib.selector($('cfg-texturas-biblioteca'), {
+          etiqueta, grupos, valor: dungeonConfig[campo],
+          alCambiar: id => { dungeonConfig[campo] = id; rebuildDungeon(); }
+        });
+        selSala[campo] = TexturasLib.selector($('insp-texturas-biblioteca'), {
+          etiqueta, grupos, valor: null,
+          alCambiar: id => actualizarSalaSeleccionada(sala => { sala[campo] = id; })
+        });
+      });
+      window.__sincronizarTexturasSala = sala => campos.forEach(([c]) => selSala[c].fijar(sala && sala[c]));
+      window.__sincronizarTexturasCfg = () => campos.forEach(([c]) => selCfg[c].fijar(dungeonConfig[c]));
+    })();
+
     // Listeners para arquitectura y texturas globales independientes
     if ($('cfg-estilo-pared')) {
       $('cfg-estilo-pared').addEventListener('change', e => {
@@ -4058,6 +4099,7 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
         try {
           const parsed = JSON.parse(ev.target.result);
           dungeonConfig = Object.assign(dungeonConfig, parsed);
+          if (window.__sincronizarTexturasCfg) window.__sincronizarTexturasCfg();
           syncUIFromConfig();
           rebuildDungeon();
           showToast('Mazmorra importada con éxito');

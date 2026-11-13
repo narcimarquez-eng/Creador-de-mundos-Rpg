@@ -1503,6 +1503,61 @@
         });
       }
 
+      // Superficie de las calles: la sillería del atlas o, si el pueblo eligió textura de calles, su foto
+      // (u a lo ancho; v recorre 0,25–0,5 cada 5 m, así que ×4 da una foto entera cada 5 m)
+      materialCalle() {
+        const T = window.TexturasLib;
+        const id = this.cfg && this.cfg.texturas && this.cfg.texturas.calles;
+        if (!T || !T.valida(id)) return matAtlas;
+        kitState.matCalles = kitState.matCalles || {};
+        if (!kitState.matCalles[id]) {
+          const map = T.textura(THREE, id, { repetir: [1, 4] });
+          kitState.matCalles[id] = new THREE.MeshStandardMaterial({ map, bumpMap: map, bumpScale: 0.06, roughness: 0.86, metalness: 0.04, side: THREE.DoubleSide });
+        }
+        return kitState.matCalles[id];
+      }
+
+      // Texturas de la biblioteca (js/texturas-lib.js) elegidas en el Creador de Pueblos:
+      //   tejado, fachada, piedra y madera se pintan en su banda del atlas de casas y murallas;
+      //   la plaza cambia su textura (las calles la eligen al construirse, ver materialCalle). Llegan cuando cargan las fotos; si el pueblo se reconstruye
+      //   entretanto, el resultado viejo se descarta. Cada pueblo usa sus propias copias de los materiales.
+      aplicarTexturas(tex) {
+        const T = window.TexturasLib;
+        const ficha = this._fichaTex = {};
+        if (!T || !tex) return;
+        const reemplazos = new Map();
+        const tareas = [];
+        const bandas = {};
+        [['tejado', 0], ['fachada', 1], ['piedra', 2], ['madera', 3]].forEach(([k, i]) => { if (T.valida(tex[k])) bandas[i] = tex[k]; });
+        if (Object.keys(bandas).length && matAtlas.map && matAtlas.map.image) {
+          tareas.push(T.atlasConBandas(matAtlas.map.image, bandas, 4).then(cv => {
+            const t = new THREE.CanvasTexture(cv);
+            ['wrapS', 'wrapT', 'flipY', 'anisotropy', 'colorSpace'].forEach(p => { t[p] = matAtlas.map[p]; });
+            t.repeat.copy(matAtlas.map.repeat); t.offset.copy(matAtlas.map.offset);
+            const m = matAtlas.clone();
+            m.map = t;
+            m.bumpMap = t;   // el relieve sale del propio atlas (las bandas nuevas no tienen relieve dibujado)
+            reemplazos.set(matAtlas, m);
+          }));
+        }
+        const foto = (mat, id, rep) => {
+          if (!T.valida(id)) return;
+          const m = mat.clone();
+          m.map = T.textura(THREE, id, { repetir: rep });
+          if (m.bumpMap) m.bumpMap = m.map;
+          reemplazos.set(mat, m);
+        };
+        foto(matPlaza, tex.plaza, [8, 8]);
+        Promise.all(tareas).then(() => {
+          if (this._fichaTex !== ficha || !reemplazos.size) return;
+          this.objects.forEach(o => o.traverse(c => {
+            if (!c.material) return;
+            if (Array.isArray(c.material)) c.material = c.material.map(mm => reemplazos.get(mm) || mm);
+            else if (reemplazos.has(c.material)) c.material = reemplazos.get(c.material);
+          }));
+        }).catch(err => console.warn('Texturas del pueblo no aplicadas:', err));
+      }
+
       // Casas GLB (js/casas-glb.js): se cargan una vez y se instancian por variante de textura. Llegan cuando
       // termina la carga; si el pueblo se ha reconstruido entretanto, el resultado viejo se descarta.
       construirCasasGLB(glbs, HW, HD, cfg) {
@@ -1522,7 +1577,7 @@
         });
         L.cargar(THREE).then(() => {
           if (this._fichaGLB !== ficha) return;
-          const r = L.construir(THREE, casas, { ancho: HW * 1.35, fondo: HD * 1.35, variantes: 3, semilla: (cfg && cfg.seed) || 1 });
+          const r = L.construir(THREE, casas, { ancho: HW * 1.35, fondo: HD * 1.35, variantes: 3, semilla: (cfg && cfg.seed) || 1, texturas: cfg && cfg.texturas });
           this.scene.add(r.grupo);
           this.objects.push(r.grupo);
           this._casasGLB = r;
@@ -1695,7 +1750,7 @@
         geom.computeVertexNormals();
 
         const grupo = new THREE.Group();
-        const superficie = new THREE.Mesh(geom, matAtlas);
+        const superficie = new THREE.Mesh(geom, this.materialCalle());
         superficie.receiveShadow = true;
         grupo.add(superficie);
 
@@ -3217,6 +3272,7 @@
         });
 
         setStat('st-houses', houses.length);
+        this.aplicarTexturas(cfg.texturas);
         setStat('st-specials', builtSpecials);
         setStat('st-trees', trees.length + hedges.length + rocks.length);
         setStat('st-cols', this.colliders.length);

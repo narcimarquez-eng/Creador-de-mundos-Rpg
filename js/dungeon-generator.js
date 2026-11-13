@@ -481,6 +481,24 @@
     };
   }
 
+  // Copia de un material con la foto de la biblioteca en lugar de su textura procedural (misma repetición; la foto
+  // también da el relieve). Sin TexturasLib (pruebas en Node) o sin textura elegida, devuelve el material tal cual.
+  const _matTexCache = new Map();
+  function conTexturaBiblioteca(ThreeLib, mat, id) {
+    const T = (typeof window !== 'undefined') ? window.TexturasLib : null;
+    if (!T || !id || !T.valida(id) || !mat || typeof mat.clone !== 'function') return mat;
+    const clave = mat.uuid + '|' + id;
+    if (_matTexCache.has(clave)) return _matTexCache.get(clave);
+    const m = mat.clone();
+    const rep = mat.map && mat.map.repeat ? [mat.map.repeat.x, mat.map.repeat.y] : [1, 1];
+    m.map = T.textura(ThreeLib, id, { repetir: rep });
+    if (m.bumpMap) { m.bumpMap = m.map; m.bumpScale = Math.min(m.bumpScale || 1, 1.2); }
+    if (m.normalMap) m.normalMap = null;
+    m.needsUpdate = true;
+    _matTexCache.set(clave, m);
+    return m;
+  }
+
   // --- 2.3 RESOLUTOR DE MATERIALES INDIVIDUALES POR ESTANCIA ---
   function resolverMaterialesSala(ThreeLib, kitBase, kitsPorEstilo, sala, config = {}) {
     const cfg = config || {};
@@ -542,6 +560,14 @@
       if (matAgua.color && typeof matAgua.color.set === 'function') matAgua.color.set(colAgua);
       else matAgua.color = colAgua;
     }
+
+    // Texturas de la biblioteca (js/texturas-lib.js): por estancia o para toda la mazmorra
+    const tex = campo => (sala[campo] && sala[campo] !== 'default') ? sala[campo] : (cfg[campo] && cfg[campo] !== 'default' ? cfg[campo] : null);
+    matPared = conTexturaBiblioteca(ThreeLib, matPared, tex('texturaPared'));
+    matSuelo = conTexturaBiblioteca(ThreeLib, matSuelo, tex('texturaSuelo'));
+    if (tex('texturaSuelo')) matMosaico = conTexturaBiblioteca(ThreeLib, matMosaico, tex('texturaSuelo'));
+    matZocalo = conTexturaBiblioteca(ThreeLib, matZocalo, tex('texturaZocalo') || tex('texturaPared'));
+    matTecho = conTexturaBiblioteca(ThreeLib, matTecho, tex('texturaTecho'));
 
     return {
       kPared,

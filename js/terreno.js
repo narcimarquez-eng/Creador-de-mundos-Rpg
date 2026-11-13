@@ -52,7 +52,15 @@
     const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
     const tri = !!opciones.triplanar;
     const conRecorte = !!(uniforms && uniforms.uRecorte);
-    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri' : '') + (conRecorte ? '-rec' : '');
+    // opciones.extra: { roca, tierra } texturas 2D (fotos de la biblioteca) que sustituyen a esas dos clases
+    const extra = opciones.extra || {};
+    const rocaX = !!extra.roca, tierraX = !!extra.tierra;
+    if (rocaX) uniforms = Object.assign({}, uniforms, { tRocaExtra: { value: extra.roca } });
+    if (tierraX) uniforms = Object.assign({}, uniforms, { tTierraExtra: { value: extra.tierra } });
+    // Muestra de una clase: la del atlas o, si hay foto propia, la foto (más oscura: luego se aclara ×1,35)
+    const roca = p => rocaX ? `(texture(tRocaExtra, (${p}) / 4.0).rgb * 0.74)` : `claseLejos(6.0, ${p}, 3.9, tC, tL)`;
+    const tierra = p => tierraX ? `(texture(tTierraExtra, (${p}) / 3.5).rgb * 0.74)` : `claseLejos(3.0, ${p}, 7.1, tC, tL)`;
+    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri' : '') + (conRecorte ? '-rec' : '') + (rocaX ? '-rx' : '') + (tierraX ? '-tx' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
       shader.vertexShader = shader.vertexShader
@@ -64,6 +72,8 @@
           'uniform highp sampler2DArray tCapas;',
           'uniform float uTexOn;',
           conRecorte ? 'uniform vec4 uRecorte;' : '',
+          rocaX ? 'uniform sampler2D tRocaExtra;' : '',
+          tierraX ? 'uniform sampler2D tTierraExtra;' : '',
           tri ? 'varying vec3 vNWorld;' : '',
           'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld;',
           // Ruido de valor: manchas suaves
@@ -109,17 +119,17 @@
           'vec3 tex = vec3(0.0);',
           'if (uTexOn > 0.5) {',
           '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tC, tL) * vSplat.x;',
-          '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tC, tL) * vSplat.y;',
+          '  if (vSplat.y > 0.001) tex += ' + tierra('vTWorld.xz') + ' * vSplat.y;',
           tri ? [
             '  if (vSplat.z > 0.001) {',
             '    vec3 bw = pow(abs(normalize(vNWorld)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);',
             '    vec3 roca = vec3(0.0);',
-            '    if (bw.y > 0.02) roca += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * bw.y;',
-            '    if (bw.x > 0.02) roca += claseLejos(6.0, vTWorld.zy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.x;',
-            '    if (bw.z > 0.02) roca += claseLejos(6.0, vTWorld.xy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.z;',
+            '    if (bw.y > 0.02) roca += ' + roca('vTWorld.xz') + ' * bw.y;',
+            '    if (bw.x > 0.02) roca += ' + roca('vTWorld.zy * vec2(1.0, 1.3)') + ' * bw.x;',
+            '    if (bw.z > 0.02) roca += ' + roca('vTWorld.xy * vec2(1.0, 1.3)') + ' * bw.z;',
             '    tex += roca * vSplat.z;',
             '  }'
-          ].join('\n') : '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * vSplat.z;',
+          ].join('\n') : '  if (vSplat.z > 0.001) tex += ' + roca('vTWorld.xz') + ' * vSplat.z;',
           '  if (vSplat.w > 0.001) tex += claseLejos(9.0, vTWorld.xz, 5.5, tC, tL) * vSplat.w;',
           '  if (vSnow > 0.001) tex += claseLejos(12.0, vTWorld.xz, 9.2, tC, tL) * vSnow;',
           '}',

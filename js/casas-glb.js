@@ -160,7 +160,7 @@
   }
 
   // Variantes de un modelo: combinaciones de texturas elegidas con una semilla (la primera es la original)
-  function variantes(clave, cuantas, semilla) {
+  function variantes(clave, cuantas, semilla, forzar) {
     const def = MODELOS[clave], r = rng(semilla + clave.length * 977);
     const lista = [{ id: 'original', cambios: {} }];
     for (let v = 1; v < cuantas; v++) {
@@ -173,6 +173,23 @@
         if (c.igualA && cambios[c.igualA]) cambios[papel] = Object.assign({}, cambios[c.igualA], { canal: c.canal }, c.tinte ? { tinte: c.tinte } : {});
       });
       lista.push({ id: Object.values(cambios).map(c => c.grupo[0] + c.id).join('-'), cambios });
+    }
+    // Texturas fijadas para todo el pueblo ({ tejado: 'tejados/t01', piedra: 'piedra/t03', madera: 'madera/t07' }):
+    // mandan sobre el azar en todas las variantes, también en la original
+    if (forzar) {
+      const deGrupo = { tejados: forzar.tejado, piedra: forzar.piedra, madera: forzar.madera };
+      lista.forEach(v => {
+        let cambio = false;
+        Object.entries(def.cambiables).forEach(([papel, c]) => {
+          const grupo = c.grupo || (def.cambiables[c.igualA] || {}).grupo;
+          const fijada = deGrupo[grupo];
+          if (!fijada || fijada.split('/')[0] !== grupo) return;
+          const base = def.cambiables[c.igualA] || c;
+          v.cambios[papel] = { grupo, id: fijada.split('/')[1], repetir: base.repetir, canal: c.canal !== undefined ? c.canal : base.canal, tinte: c.tinte || base.tinte };
+          cambio = true;
+        });
+        if (cambio) v.id += '|' + [forzar.tejado, forzar.piedra, forzar.madera].join(',');
+      });
     }
     return lista;
   }
@@ -204,7 +221,7 @@
         new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), giro), new THREE.Vector3(sx, sy, sz));
       const clave = modelo + '#' + variante;
       if (!porLote.has(clave)) {
-        const vars = variantes(modelo, nVar, opts.semilla || 1);
+        const vars = variantes(modelo, nVar, opts.semilla || 1, opts.texturas);
         porLote.set(clave, { modelo, variante: vars[variante % vars.length], casas: [] });
       }
       const info = { matriz: m, x: c.x, z: c.z, lejos: false, modelo, variante };

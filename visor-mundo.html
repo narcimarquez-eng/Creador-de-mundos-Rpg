@@ -1515,6 +1515,54 @@
       }
     }
   </style>
+
+  <style id="movil-orden">
+    /* =========================================================================
+       Botonera móvil ordenada (se aplica después del resto de reglas móviles).
+       Pulgar derecho: el ataque en la esquina y dos arcos concéntricos a su alrededor
+       (habilidades en el interior; salto, pociones, guía y modo automático en el exterior),
+       con la separación calculada para que ningún botón se monte sobre otro.
+       ========================================================================= */
+    @media (max-width: 768px) and (orientation: portrait) {
+      /* Barra superior: todo cabe sin desplazar (título corto y botones de 32 px) */
+      #top { gap: 3px !important; }
+      #top > a.btn { padding: 4px 6px !important; }
+      #title { max-width: 72px !important; font-size: 11px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #top button { width: 32px !important; height: 32px !important; font-size: 14px !important; }
+      #btn-full { width: 32px !important; }
+      /* Misión debajo de la vida (antes la tapaba), entre ella y el minimapa por ancho */
+      #mision, #mision.colapsado {
+        top: 96px !important; left: max(8px, env(safe-area-inset-left)) !important;
+        right: calc(max(8px, env(safe-area-inset-right)) + 84px) !important;
+        width: auto !important; max-width: none !important; max-height: 38vh !important; overflow-y: auto;
+      }
+      #sk-menu-toggle { top: 150px !important; }
+      #sk-drawer { top: 192px !important; }
+      #banner { top: 200px !important; }
+      #sk-attack { right: calc(env(safe-area-inset-right, 0px) + 16px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important; width: 68px !important; height: 68px !important; left: auto !important; top: auto !important; }
+      #sk-v { right: calc(env(safe-area-inset-right, 0px) + 120px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
+      #sk-z { right: calc(env(safe-area-inset-right, 0px) + 108px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 74px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
+      #sk-e { right: calc(env(safe-area-inset-right, 0px) + 74px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 108px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
+      #sk-q { right: calc(env(safe-area-inset-right, 0px) + 28px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 120px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
+      #sk-jump { right: calc(env(safe-area-inset-right, 0px) + 179px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 27px) !important; width: 46px !important; height: 46px !important; left: auto !important; top: auto !important; }
+      #sk-vida { right: calc(env(safe-area-inset-right, 0px) + 167px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 90px) !important; width: 44px !important; height: 44px !important; left: auto !important; top: auto !important; }
+      #sk-mana { right: calc(env(safe-area-inset-right, 0px) + 131px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 142px) !important; width: 42px !important; height: 42px !important; left: auto !important; top: auto !important; }
+      #sk-guia-comp { right: calc(env(safe-area-inset-right, 0px) + 75px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 176px) !important; width: 44px !important; height: 38px !important; left: auto !important; top: auto !important; }
+      #sk-auto { right: calc(env(safe-area-inset-right, 0px) + 28px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 183px) !important; width: 44px !important; height: 38px !important; left: auto !important; top: auto !important; }
+    }
+    @media (orientation: landscape) and (max-height: 520px) {
+      #sk-attack { right: calc(env(safe-area-inset-right, 0px) + 14px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; width: 58px !important; height: 58px !important; left: auto !important; top: auto !important; }
+      #sk-v { right: calc(env(safe-area-inset-right, 0px) + 99px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 21px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
+      #sk-z { right: calc(env(safe-area-inset-right, 0px) + 89px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 58px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
+      #sk-e { right: calc(env(safe-area-inset-right, 0px) + 62px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 85px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
+      #sk-q { right: calc(env(safe-area-inset-right, 0px) + 25px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 95px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
+      #sk-jump { right: calc(env(safe-area-inset-right, 0px) + 148px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px) !important; width: 38px !important; height: 38px !important; left: auto !important; top: auto !important; }
+      #sk-vida { right: calc(env(safe-area-inset-right, 0px) + 138px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 71px) !important; width: 36px !important; height: 36px !important; left: auto !important; top: auto !important; }
+      #sk-mana { right: calc(env(safe-area-inset-right, 0px) + 109px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 114px) !important; width: 34px !important; height: 34px !important; left: auto !important; top: auto !important; }
+      #sk-guia-comp { right: calc(env(safe-area-inset-right, 0px) + 63px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 143px) !important; width: 36px !important; height: 28px !important; left: auto !important; top: auto !important; }
+      #sk-auto { right: calc(env(safe-area-inset-right, 0px) + 25px) !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 149px) !important; width: 36px !important; height: 28px !important; left: auto !important; top: auto !important; }
+    }
+  </style>
 </head>
 <body>
   <div id="top">
@@ -1976,8 +2024,8 @@
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20251029"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
-  <script defer src="js/dungeon-generator.js?v=20261107"></script>
-  <script defer src="js/mazmorras.js?v=20261107"></script>
+  <script defer src="js/dungeon-generator.js?v=20261113t"></script>
+  <script defer src="js/mazmorras.js?v=20261113t"></script>
   <script defer src="js/acompanante.js?v=20261031"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
@@ -1989,8 +2037,9 @@
   <script type="module" src="js/world-core.js?v=20261030c"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
   <script type="module" src="js/pueblo-edits.js?v=20251029"></script>
-  <script defer src="js/casas-glb.js?v=20261112g"></script>
-  <script type="module" src="js/village-core.js?v=20261112g"></script>
+  <script src="js/texturas-lib.js?v=1"></script>
+  <script defer src="js/casas-glb.js?v=20261113t"></script>
+  <script type="module" src="js/village-core.js?v=20261113t"></script>
   <script type="module" src="js/combat.js?v=20251029"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
@@ -4140,6 +4189,7 @@
     if (sendasRecintoMesh) { scene.remove(sendasRecintoMesh); sendasRecintoMesh.geometry.dispose(); sendasRecintoMesh = null; }
     if (recintosMundo.length) {
       const mbS = new MB();
+      const propias = [];   // sendas con textura propia (relieve.texturas.senda): malla y material aparte
       recintosMundo.forEach(rec => {
         const eje = [{ x: rec.llegada.x, y: rec.llegada.z }].concat(rec.puntos.map(q => ({ x: q.x, y: q.z })));
         // La altura sale del eje del pasillo (su suelo), no del punto: en los codos la curva corta la esquina y un
@@ -4150,9 +4200,19 @@
           const q = RelieveZonaLib.puntoEjeEn(rec, e.s);
           return Math.min(Hgen(x, z), Hgen(q.x, q.z));
         };
-        mbS.ribbon(curvePath(eje, 2.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo);
+        const idSenda = rec.zona.relieve && rec.zona.relieve.texturas && rec.zona.relieve.texturas.senda;
+        const TL = window.TexturasLib;
+        const destino = (TL && TL.valida(idSenda)) ? new MB() : mbS;
+        destino.ribbon(curvePath(eje, 2.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo);
+        if (destino !== mbS) {
+          const m = matsCamino.senda.clone();
+          m.map = TL.textura(THREE, idSenda, { repetir: [1, 0.75] });
+          m.bumpMap = m.map;
+          propias.push(new THREE.Mesh(destino.geom(), m));
+        }
       });
       sendasRecintoMesh = new THREE.Mesh(mbS.geom(), matsCamino.senda);
+      propias.forEach(m => { m.receiveShadow = true; sendasRecintoMesh.add(m); });
       sendasRecintoMesh.receiveShadow = true;
       sendasRecintoMesh.name = 'SendasRecintos';
       scene.add(sendasRecintoMesh);
@@ -6921,6 +6981,7 @@
   }
 
   let minimapaRot = null;   // giro actual del minimapa (sigue a la cámara con suavizado)
+  const _dirCamMini = new THREE.Vector3();
   function drawMinimap(now) {
     if (now - lastMinimap < 120) return;
     lastMinimap = now;
@@ -6938,12 +6999,19 @@
 
     // Orientación según la cámara: arriba del mapa es hacia donde mira la cámara (no el personaje, así no gira
     // con cada golpe o paso lateral). El giro se suaviza un poco y la flecha del centro marca dónde mira el personaje.
-    const dxCam = controls.target.x - camera.position.x, dzCam = controls.target.z - camera.position.z;
-    if (Math.hypot(dxCam, dzCam) > 0.05) {
-      const objetivoRot = -Math.PI / 2 - Math.atan2(dzCam, dxCam);
+    // Dirección real de la cámara. Cuando mira casi en vertical (pasillos estrechos de un laberinto, cámara
+    // empujada por las paredes encima del personaje) su parte horizontal es diminuta y cambia de golpe: entonces
+    // no se gira. Además hay un margen muerto de 2° y un giro máximo por dibujo, para que nunca dé bandazos.
+    camera.getWorldDirection(_dirCamMini);
+    const horiz = Math.hypot(_dirCamMini.x, _dirCamMini.z);
+    if (horiz > 0.3) {
+      const objetivoRot = -Math.PI / 2 - Math.atan2(_dirCamMini.z, _dirCamMini.x);
       if (minimapaRot === null) minimapaRot = objetivoRot;
       const dif = Math.atan2(Math.sin(objetivoRot - minimapaRot), Math.cos(objetivoRot - minimapaRot));
-      minimapaRot += Math.abs(dif) < 0.004 ? dif : dif * 0.55;
+      if (Math.abs(dif) > 0.035) minimapaRot += Math.max(-0.45, Math.min(0.45, dif * 0.5));
+    } else if (minimapaRot === null) {
+      const fp = MapaLib.frente(character.anguloY ? character.anguloY() : 0);
+      minimapaRot = -Math.PI / 2 - Math.atan2(fp.dy, fp.dx);
     }
     const rotMap = minimapaRot === null ? 0 : minimapaRot;
     const f = MapaLib.frente(character.anguloY ? character.anguloY() : 0);
@@ -10560,7 +10628,13 @@
     const grupo = new THREE.Group();
     grupo.name = 'InteriorRecinto_' + zona.id;
     const uRec = { value: new THREE.Vector4(rec.zx, rec.zz, 0, -1) };   // radio 0 y modo fuera: no dibuja nada
-    const mat = TerrainLib.createTerrainMaterial(THREE, { tCapas: terrainU.tCapas, uTexOn: terrainU.uTexOn, uRecorte: uRec }, { triplanar: true });
+    // Fotos de la biblioteca elegidas en el Creador de Laberintos: muros (roca) y suelo de las sendas (tierra)
+    const txL = (zona.relieve && zona.relieve.texturas) || {};
+    const TL = window.TexturasLib;
+    const extra = {};
+    if (TL && TL.valida(txL.muros)) extra.roca = TL.textura(THREE, txL.muros);
+    if (TL && TL.valida(txL.suelo)) extra.tierra = TL.textura(THREE, txL.suelo);
+    const mat = TerrainLib.createTerrainMaterial(THREE, { tCapas: terrainU.tCapas, uTexOn: terrainU.uTexOn, uRecorte: uRec }, { triplanar: true, extra });
     // En la franja donde se solapa con el terreno del mundo, gana el mundo (sin parpadeo)
     mat.polygonOffset = true; mat.polygonOffsetFactor = 1; mat.polygonOffsetUnits = 2;
     const colorBase = (x, z) => {

@@ -635,6 +635,11 @@
           seed: dungeon.seed || (Math.abs(dungeon.x || 0) * 1000 + Math.abs(dungeon.y || 0)) || 48291,
           estilo: dungeon.estilo || 'cripta_gotica',
           id: dungeon.id,
+          // Texturas de la biblioteca elegidas en el Creador de Mazmorras (toda la mazmorra; las de cada estancia van en salas)
+          texturaPared: dungeon.texturaPared,
+          texturaSuelo: dungeon.texturaSuelo,
+          texturaZocalo: dungeon.texturaZocalo,
+          texturaTecho: dungeon.texturaTecho,
           radio: dungeon.radio || 75,
           tamanoMedio: dungeon.tamanoMedio || 20,
           varianzaTamano: dungeon.varianzaTamano !== undefined ? dungeon.varianzaTamano : 0.4,
