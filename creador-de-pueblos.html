@@ -378,13 +378,24 @@
     </div>
 
     <div class="control-row">
-      <label>Tipo de casas</label>
+      <label>Tipo o Modelo de Casas</label>
       <select id="inp-casas">
-        <option value="variada" selected>Variado: casas GLB, cabañas y casas de siempre</option>
-        <option value="glb">Casas GLB (entramado y cabaña de troncos, con variantes)</option>
-        <option value="original">Casas de piedra y tejado (actuales)</option>
-        <option value="madera">Cabañas de madera</option>
-        <option value="mixta">Mixto (algunas cabañas de madera)</option>
+        <option value="variada" selected>Variado: entramado, cabañas y piedra</option>
+        <option value="glb">Solo Casas GLB (entramado + cabaña)</option>
+        <option value="casa_entramado">Un modelo: Solo Casa de Entramado (GLB)</option>
+        <option value="cabana">Un modelo: Solo Cabaña de Troncos (GLB)</option>
+        <option value="madera">Un modelo: Solo Cabaña de Madera (artesanal)</option>
+        <option value="original">Un modelo: Solo Casa de Piedra y Tejado</option>
+        <option value="mixta">Mixto (piedra y madera artesanal)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <label>Texturas, Tamaños y Orientación de Casas</label>
+      <select id="inp-casa-var">
+        <option value="alta" selected>Variada (10+ texturas, tamaños y giros)</option>
+        <option value="libre">Orientación libre (90°/360°), tamaños y texturas</option>
+        <option value="alineada">Alineadas a la calle (texturas y tamaños variados)</option>
       </select>
     </div>
 
@@ -666,6 +677,7 @@
         terrainType: document.getElementById('inp-terrain-type').value,
         trazado: document.getElementById('inp-trazado').value,
         casas: document.getElementById('inp-casas').value,
+        casaVar: document.getElementById('inp-casa-var').value,
         relief: parseInt(document.getElementById('inp-relief').value, 10),
         seed: parseInt(document.getElementById('inp-seed').value, 10),
         size: parseInt(document.getElementById('inp-size').value, 10),
@@ -730,6 +742,7 @@
       setVal('inp-curve', cfg.curve);
       setVal('inp-trazado', cfg.trazado || 'clasico');
       setVal('inp-casas', cfg.casas || 'variada');
+      setVal('inp-casa-var', cfg.casaVar || 'alta');
       setVal('inp-trees', cfg.treeDensity);
       setVal('inp-time', cfg.time);
       setChk('chk-walls', cfg.hasWalls);
@@ -855,7 +868,7 @@
     document.querySelectorAll('#ui-panel input[type="range"]').forEach(el => {
       el.addEventListener('input', pedirRebuildUI);
     });
-    document.querySelectorAll('#ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time, #inp-trazado, #inp-street-tex').forEach(el => {
+    document.querySelectorAll('#ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time, #inp-trazado, #inp-street-tex, #inp-casa-var').forEach(el => {
       el.addEventListener('change', rebuildFromUI);
     });
 

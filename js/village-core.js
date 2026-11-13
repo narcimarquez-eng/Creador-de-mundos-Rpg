@@ -1555,6 +1555,9 @@
         this._casasGLB = null;
         if (!L || !glbs.length) return;
         const ficha = this._fichaGLB = {};
+        const casaVar = (cfg && cfg.casaVar) || 'alta';
+        const modoCasas = (cfg && cfg.casas) || 'variada';
+        const modelosUnicos = (modoCasas === 'casa_entramado' || modoCasas === 'cabana') ? [modoCasas] : undefined;
         const casas = glbs.map(h => {
           // Apoyada en la esquina más baja del solar: en una ladera el lado alto queda enterrado, nunca en el aire
           const cosR = Math.cos(h.rot), sinR = Math.sin(h.rot);
@@ -1563,11 +1566,18 @@
             const lx = sx * HW * 0.6 * h.wScale, lz = sz * HD * 0.6 * h.dScale;
             y = Math.min(y, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
           });
-          return { x: h.x, y: y - 0.05, z: h.z, rot: h.rot };
+          return { x: h.x, y: y - 0.05, z: h.z, rot: h.rot, modelo: h.modeloGLB };
         });
         L.cargar(THREE).then(() => {
           if (this._fichaGLB !== ficha) return;
-          const r = L.construir(THREE, casas, { ancho: HW * 1.35, fondo: HD * 1.35, variantes: 3, semilla: (cfg && cfg.seed) || 1 });
+          const r = L.construir(THREE, casas, {
+            ancho: HW * 1.35,
+            fondo: HD * 1.35,
+            variantes: casaVar === 'libre' ? 12 : 10,
+            casaVar,
+            modelos: modelosUnicos,
+            semilla: (cfg && cfg.seed) || 1
+          });
           this.scene.add(r.grupo);
           this.objects.push(r.grupo);
           this._casasGLB = r;
@@ -3442,14 +3452,20 @@
         const { plinthG, wallG, roofG, gableG, winGlassG, winFrameG, doorG, chimG, balcG, stallG, barrelG, postG, armG, lanternG, postMaderaG, armMaderaG, lanternMaderaG, postPiedraG, armPiedraG, lanternPiedraG, poolG, hedgeG, fenceG } = kitProto;
 
         // Reparto urbano con más sentido: cerca de la plaza predominan casas de piedra y GLB alternadas sin repetir
-        // seguidas; hacia las afueras aumentan las cabañas de madera.
+        // seguidas; hacia las afueras aumentan las cabañas de madera. También admite elegir un único modelo.
         const modoCasas = cfg.casas || 'variada';
+        const casaVar = cfg.casaVar || 'alta';
         const conGLB = !!window.CasasGLBLib;
         houses.forEach((h, idx) => {
           const r = hash01(h.x, h.z);
+          const r2 = hash01(h.z * 1.3 + 5, h.x * 0.7 - 3);
           const esCentro = (h.distCentro || Math.hypot(h.x, h.z)) < townRadius * 0.58;
           const par = (h.slotIdx != null ? h.slotIdx : idx) % 2 === 0;
-          if (modoCasas === 'glb') {
+          if (modoCasas === 'casa_entramado' || modoCasas === 'cabana') {
+            h.glb = conGLB;
+            h.madera = false;
+            h.modeloGLB = modoCasas;
+          } else if (modoCasas === 'glb') {
             h.glb = conGLB;
             h.madera = false;
           } else if (modoCasas === 'madera') {
@@ -3458,10 +3474,21 @@
           } else if (modoCasas === 'mixta') {
             h.glb = false;
             h.madera = r < (esCentro ? 0.28 : 0.52);
+          } else if (modoCasas === 'original') {
+            h.glb = false;
+            h.madera = false;
           } else {
             // 'variada': alterna casas de piedra, GLB y cabañas con coherencia centro/afueras
             h.glb = conGLB && (esCentro ? (par ? r < 0.72 : r < 0.35) : r < 0.38);
             h.madera = !h.glb && (esCentro ? r < 0.32 : r < 0.68);
+          }
+          // Variación extra de tamaño y orientación según el modo seleccionado
+          if (casaVar === 'libre') {
+            h.wScale = 0.80 + 0.38 * r;
+            h.dScale = 0.80 + 0.38 * r2;
+            h.rot += Math.floor(r * 4) * (Math.PI * 0.5) + (r2 - 0.5) * 2 * (16 * Math.PI / 180);
+          } else if (casaVar === 'alta') {
+            h.rot += (r2 - 0.5) * 2 * (12 * Math.PI / 180);
           }
         });
         const casas = houses.filter(h => !h.madera && !h.glb);

@@ -41,19 +41,20 @@
       huella: [7.4, 8.0],
       cambiables: {
         // El tejado original está pintado en el atlas; las variantes usan sus UV planas (uv1, una teja cada 2,5 m)
-        tejado: { grupo: 'tejados', opciones: ['t02', 't03', 't06', 't07', 't10', 't01', 't09'], repetir: 1, canal: 1 },
-        madera: { grupo: 'madera', opciones: ['t05', 't10', 't03', 't01'], repetir: 1, tinte: [0.62, 0.58, 0.54] },
-        piedra: { grupo: 'piedra', opciones: ['t01', 't06', 't08', 't03', 't10'], repetir: 1 }
+        tejado: { grupo: 'tejados', opciones: ['t01', 't02', 't03', 't04', 't06', 't07', 't08', 't09', 't10'], repetir: 1, canal: 1 },
+        madera: { grupo: 'madera', opciones: ['t01', 't03', 't05', 't06', 't07', 't09', 't10'], repetir: 1, tinte: [0.68, 0.63, 0.58] },
+        piedra: { grupo: 'piedra', opciones: ['t01', 't02', 't03', 't04', 't05', 't06', 't07', 't08', 't09', 't10'], repetir: 1 },
+        fachada: { soloTinte: true, tintes: [[1.0, 0.98, 0.94], [0.97, 0.90, 0.77], [0.87, 0.91, 0.95], [0.95, 0.85, 0.80], [0.87, 0.93, 0.86], [0.91, 0.87, 0.81], [0.85, 0.87, 0.91], [0.96, 0.93, 0.82]] }
       }
     },
     cabana: {
       huella: [8.7, 8.1],
       cambiables: {
-        tejado: { grupo: 'tejados', opciones: ['t03', 't07', 't02', 't08', 't06', 't01'], repetir: 1 },
+        tejado: { grupo: 'tejados', opciones: ['t01', 't02', 't03', 't04', 't06', 't07', 't08', 't09', 't10'], repetir: 1 },
         tejado_musgo: { igualA: 'tejado', tinte: [0.75, 0.85, 0.65] },
-        madera_troncos: { grupo: 'madera', opciones: ['t07', 't03', 't01', 't06', 't05', 't10'], repetir: 1 },
+        madera_troncos: { grupo: 'madera', opciones: ['t01', 't02', 't03', 't04', 't05', 't06', 't07', 't08', 't09', 't10'], repetir: 1 },
         madera_tablas: { igualA: 'madera_troncos' },
-        piedra: { grupo: 'piedra', opciones: ['t01', 't05', 't06', 't03', 't08'], repetir: 1 }
+        piedra: { grupo: 'piedra', opciones: ['t01', 't02', 't03', 't04', 't05', 't06', 't07', 't08', 't09', 't10'], repetir: 1 }
       }
     }
   };
@@ -145,6 +146,12 @@
     const clave = mat.uuid + '|' + claveVar;
     if (matCache.has(clave)) return matCache.get(clave);
     const m = mat.clone();
+    if (cambio.soloTinte) {
+      const ti = cambio.tinte || [1, 1, 1];
+      m.color.setRGB(ti[0], ti[1], ti[2]);
+      matCache.set(clave, m);
+      return m;
+    }
     const base = textura(THREE, cambio.grupo, cambio.id);
     // Sin clone(): clonar marca la textura para subir antes de que llegue la foto
     const t = new THREE.Texture();
@@ -173,47 +180,90 @@
     return m;
   }
 
-  // Variantes de un modelo: combinaciones de texturas elegidas con una semilla (la primera es la original)
+  function barajar(arr, r) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      const tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  // Variantes de un modelo: baraja cada ranura (tejado, madera, piedra, fachada) sin repetir las mismas 2 texturas
   function variantes(clave, cuantas, semilla) {
     const def = MODELOS[clave], r = rng(semilla + clave.length * 977);
+    const barajas = {};
+    Object.entries(def.cambiables).forEach(([papel, c]) => {
+      if (c.igualA) return;
+      if (c.soloTinte && Array.isArray(c.tintes)) barajas[papel] = barajar(c.tintes, r);
+      else if (Array.isArray(c.opciones)) barajas[papel] = barajar(c.opciones, r);
+    });
     const lista = [{ id: 'original', cambios: {} }];
     for (let v = 1; v < cuantas; v++) {
       const cambios = {};
       Object.entries(def.cambiables).forEach(([papel, c]) => {
         if (c.igualA) return;
-        cambios[papel] = { grupo: c.grupo, id: c.opciones[Math.floor(r() * c.opciones.length)], repetir: c.repetir, canal: c.canal, tinte: c.tinte };
+        const b = barajas[papel];
+        if (!b || !b.length) return;
+        if (c.soloTinte) {
+          cambios[papel] = { soloTinte: true, tinte: b[(v - 1) % b.length] };
+        } else {
+          cambios[papel] = { grupo: c.grupo, id: b[(v - 1) % b.length], repetir: c.repetir, canal: c.canal, tinte: c.tinte };
+        }
       });
       Object.entries(def.cambiables).forEach(([papel, c]) => {
         if (c.igualA && cambios[c.igualA]) cambios[papel] = Object.assign({}, cambios[c.igualA], { canal: c.canal }, c.tinte ? { tinte: c.tinte } : {});
       });
-      lista.push({ id: Object.values(cambios).map(c => c.grupo[0] + c.id).join('-'), cambios });
+      lista.push({
+        id: Object.values(cambios).map(c => c.soloTinte ? ('f' + Math.round(c.tinte[0] * 100) + Math.round(c.tinte[1] * 100)) : (c.grupo[0] + c.id)).join('-'),
+        cambios
+      });
     }
     return lista;
   }
 
   /**
    * Construye las casas. casas: [{ x, y, z, rot, modelo?, semilla? }] (coordenadas del grupo donde se añade).
-   * opts: { ancho, fondo } huella del solar (la casa se escala para caber), variantes (por modelo, 3 por defecto),
-   *       semilla, distanciaLejos (m, 70 por defecto), modelos (lista de modelos a repartir).
+   * opts: { ancho, fondo } huella del solar (la casa se escala para caber), variantes (por modelo, 10 por defecto),
+   *       semilla, distanciaLejos (m, 70 por defecto), modelos (lista de modelos a repartir), casaVar ('alta'|'libre'|'alineada').
    * Devuelve { grupo, actualizar(posCamaraLocal), casas } — llamar a actualizar para el cambio cerca/lejos.
    */
   function construir(THREE, casas, opts = {}) {
     const grupo = new THREE.Group();
     grupo.name = 'CasasGLB';
-    const nVar = Math.max(1, opts.variantes || 3);
+    const modoVar = opts.casaVar || 'alta';
+    const nVar = Math.max(1, opts.variantes || (modoVar === 'libre' ? 12 : 10));
     const modelos = (opts.modelos || Object.keys(MODELOS)).filter(m => protos[m]);
+    if (!modelos.length) return { grupo, actualizar() {}, casas: [] };
     const dLejos = opts.distanciaLejos || 70;
     const lotes = [];   // { proto, mallasCerca, mallasLejos, casas: [{ matriz, x, z, lejos }] }
     const porLote = new Map();
     const colocadas = casas.map(c => {
       const h = hash01(c.x, c.z), h2 = hash01(c.z + 3.1, c.x - 7.7), h3 = hash01(c.x * 0.7 + 11, c.z * 1.3);
+      const h4 = hash01(c.z * 1.7 + 2, c.x + 5), h5 = hash01(c.x * 2.3 - 4, c.z * 0.9 + 9);
       const modelo = c.modelo && protos[c.modelo] ? c.modelo : modelos[Math.floor(h * modelos.length) % modelos.length];
       const variante = Math.floor(h2 * nVar);
-      // Tamaño para caber en el solar, con un poco de azar propio en cada eje
+      // Tamaño y altura variados dentro de la huella del solar
       const [hw, hd] = MODELOS[modelo].huella;
       const base = Math.min((opts.ancho || hw) / hw, (opts.fondo || hd) / hd);
-      const sx = base * (0.93 + 0.15 * h3), sz = base * (0.93 + 0.15 * hash01(c.z * 1.7, c.x + 5)), sy = (sx + sz) / 2;
-      const giro = (c.rot || 0) + (h - 0.5) * 2 * (7 * Math.PI / 180);
+      let sx, sz, sy, giro;
+      if (modoVar === 'alineada') {
+        sx = base * (0.90 + 0.18 * h3);
+        sz = base * (0.90 + 0.18 * h4);
+        sy = ((sx + sz) * 0.5) * (0.94 + 0.12 * h5);
+        giro = (c.rot || 0) + (h5 - 0.5) * 2 * (3 * Math.PI / 180);
+      } else if (modoVar === 'libre') {
+        sx = base * (0.78 + 0.36 * h3);
+        sz = base * (0.78 + 0.36 * h4);
+        sy = ((sx + sz) * 0.5) * (0.84 + 0.34 * h5);
+        const cuarto = Math.floor(h * 4) * (Math.PI * 0.5);
+        giro = (c.rot || 0) + cuarto + (h5 - 0.5) * 2 * (16 * Math.PI / 180);
+      } else {
+        sx = base * (0.82 + 0.30 * h3);
+        sz = base * (0.82 + 0.30 * h4);
+        sy = ((sx + sz) * 0.5) * (0.88 + 0.26 * h5);
+        giro = (c.rot || 0) + (h5 - 0.5) * 2 * (15 * Math.PI / 180);
+      }
       const m = new THREE.Matrix4().compose(new THREE.Vector3(c.x, c.y, c.z),
         new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), giro), new THREE.Vector3(sx, sy, sz));
       const clave = modelo + '#' + variante;
