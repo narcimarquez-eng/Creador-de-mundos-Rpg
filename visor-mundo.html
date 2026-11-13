@@ -8081,7 +8081,7 @@
     return dbHeroePromesa;
   }
   function claveModeloHeroe(pj) {
-    return JSON.stringify({ c: pj.clase || 'guerrero', f: pj.fit || {}, e: EquipoLib.equipoPorIdx(pj) });
+    return JSON.stringify({ c: pj.clase || 'guerrero', f: pj.fit || {}, h: pj.pelo || null, e: EquipoLib.equipoPorIdx(pj) });
   }
   async function leerModeloHeroeCache(clave) {
     const db = await abrirDbHeroe();
@@ -8137,7 +8137,7 @@
     const d = e.data;
     if (!d || d.origen !== 'armadura-estudio') return;
     if (d.tipo === 'listo' && esperando.listo) { esperando.listo(); delete esperando.listo; pausarEstudioSiOculto(); }
-    if (d.tipo === 'proporciones' && esperando.proporciones) { esperando.proporciones(d.fit); delete esperando.proporciones; }
+    if (d.tipo === 'proporciones' && esperando.proporciones) { esperando.proporciones({ fit: d.fit, hair: d.hair || null }); delete esperando.proporciones; }
     if (d.tipo === 'glb' && esperando[d.id]) {
       esperando[d.id](d.buffer);
       delete esperando[d.id];
@@ -8191,18 +8191,21 @@
     ok.disabled = true;
     try {
       $('crear-estado').textContent = 'Tomando las proporciones…';
-      let fit = null;
+      let fit = null, pelo = null;
       try {
-        fit = await Promise.race([
+        const resp = await Promise.race([
           pedirAlEstudio('proporciones', { tipo: 'pedir-proporciones' }),
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))
         ]);
+        fit = (resp && resp.fit) ? resp.fit : resp;
+        pelo = (resp && resp.hair) ? resp.hair : null;
       } catch (e) {
         fit = { muscular: 0.5, torso: 1.0, legs: 1.0, arms: 1.0 };
       }
       const nombrePj = ($('crear-nombre').value.trim()) || 'Aventurero';
       const clasePj = $('crear-clase').value || 'guerrero';
       const pj = prepararPersonaje(nombrePj, clasePj, fit);
+      if (pelo) pj.pelo = pelo;
       $('crear-estado').textContent = 'Preparando personaje…';
       $('crear').classList.remove('show');
       pausarEstudioSiOculto();
@@ -8210,7 +8213,7 @@
       try {
         await Promise.race([
           mostrarCuerpo(pj),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_cuerpo')), 8000))
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_cuerpo')), 25000))
         ]);
       } catch (errCuerpo) {
         console.warn('Fallback a modelo estándar de personaje:', errCuerpo);
@@ -8243,7 +8246,7 @@
     }
     frameEstudio();
     await Promise.race([estudioListo, new Promise(res => setTimeout(res, 4000))]);
-    enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit });
+    enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit, hair: pj.pelo || null });
     const buffer = await pedirAlEstudio('cuerpo', { tipo: 'exportar-personaje', id: 'cuerpo', equipo: EquipoLib.equipoPorIdx(pj) });
     pausarEstudioSiOculto();
     guardarModeloHeroeCache(clave, buffer);
@@ -11307,10 +11310,31 @@
     }
   }
 
+  function refrescarModeloAcompanante() {
+    if (!acompanante || typeof AcompananteLib === 'undefined') return;
+    if (acompanante._gltfBase) {
+      AcompananteLib.instalarModeloGLBAcompanante(acompanante, acompanante._gltfBase, THREE);
+      return;
+    }
+    const m3d = AcompananteLib.construirModeloAcompanante(THREE, acompanante.arquetipo);
+    if (acompanante.mesh) {
+      m3d.root.position.copy(acompanante.mesh.position);
+      m3d.root.rotation.copy(acompanante.mesh.rotation);
+      if (acompanante.mesh.parent) {
+        const p = acompanante.mesh.parent;
+        p.remove(acompanante.mesh);
+        p.add(m3d.root);
+      }
+    }
+    acompanante.mesh = m3d.root;
+    acompanante.limbs = m3d.limbs;
+  }
+
   function asegurarAcompananteActivo(arquetipoId, roster) {
     if (acompanante) {
       if (arquetipoId && acompanante.arquetipo !== arquetipoId && typeof AcompananteLib !== 'undefined') {
         AcompananteLib.cambiarArquetipo(acompanante, arquetipoId);
+        refrescarModeloAcompanante();
       }
       return;
     }
@@ -11323,7 +11347,7 @@
       x: p.x - 2.5,
       z: p.z - 2.5
     });
-    const m3d = AcompananteLib.construirModeloAcompanante(THREE);
+    const m3d = AcompananteLib.construirModeloAcompanante(THREE, acompanante.arquetipo);
     acompanante.mesh = m3d.root;
     acompanante.limbs = m3d.limbs;
     acompanante.bocadilloDom = $('bocadillo-rowan');
@@ -11544,6 +11568,7 @@
       const arq = btn.dataset.arq;
       if (!acompanante || acompanante.arquetipo === arq || typeof AcompananteLib === 'undefined') return;
       AcompananteLib.cambiarArquetipo(acompanante, arq);
+      refrescarModeloAcompanante();
       renderCompanero();
       toast(`🤝 Ahora te acompaña ${acompanante.nombre} (${acompanante.rol})`);
       saveActive(true);
