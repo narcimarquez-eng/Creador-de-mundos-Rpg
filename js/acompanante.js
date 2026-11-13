@@ -192,17 +192,17 @@
       perfilVisual: {
         sexo: 'mujer',
         altura: 1.63,
-        pecho: true,
+        sinBarba: true,
         melena: { largo: 0.30, ancho: 0.14, color: 0x18181b },
         escalaHuesos: {
-          Torso: [0.80, 0.98, 0.84],
-          Pelvis: [0.88, 1.0, 0.92],
+          Torso: [0.80, 0.96, 1.06],
+          Pelvis: [0.88, 1.0, 0.94],
           UpperArm_L: [0.78, 1.0, 0.78],
           UpperArm_R: [0.78, 1.0, 0.78],
           Forearm_L: [0.78, 1.0, 0.78],
           Forearm_R: [0.78, 1.0, 0.78],
-          Thigh_L: [0.86, 1.0, 0.86],
-          Thigh_R: [0.86, 1.0, 0.86],
+          Thigh_L: [0.86, 1.0, 0.88],
+          Thigh_R: [0.86, 1.0, 0.88],
           Head: [0.98, 0.98, 0.98]
         },
         colores: { pelo: 0x18181b, pecho: 0x4c1d95, ropa: 0x3b0764, acento: 0xa855f7, halo: 0xc084fc }
@@ -266,17 +266,17 @@
       perfilVisual: {
         sexo: 'mujer',
         altura: 1.68,
-        pecho: true,
+        sinBarba: true,
         melena: { largo: 0.26, ancho: 0.16, color: 0xb91c1c },
         escalaHuesos: {
-          Torso: [0.85, 0.99, 0.88],
-          Pelvis: [0.92, 1.0, 0.94],
+          Torso: [0.85, 0.98, 1.08],
+          Pelvis: [0.92, 1.0, 0.96],
           UpperArm_L: [0.84, 1.0, 0.84],
           UpperArm_R: [0.84, 1.0, 0.84],
           Forearm_L: [0.84, 1.0, 0.84],
           Forearm_R: [0.84, 1.0, 0.84],
-          Thigh_L: [0.90, 1.0, 0.90],
-          Thigh_R: [0.90, 1.0, 0.90],
+          Thigh_L: [0.90, 1.0, 0.92],
+          Thigh_R: [0.90, 1.0, 0.92],
           Head: [0.98, 0.98, 0.98]
         },
         colores: { pelo: 0xb91c1c, pecho: 0x7f1d1d, ropa: 0x991b1b, acento: 0xf87171, halo: 0xf87171 }
@@ -753,28 +753,15 @@
       metalness: 0.85
     });
 
-    // 1. Torso (fino en mujeres, ancho y musculado en hombres)
+    // 1. Torso (fino con mayor busto en mujeres, ancho y musculado en hombres)
     const torsoW = esMujer ? 0.38 : 0.56;
     const torsoH = esMujer ? 0.62 : 0.70;
-    const torsoD = esMujer ? 0.22 : 0.31;
+    const torsoD = esMujer ? 0.28 : 0.31;
     const torso = new THREE.Mesh(new THREE.BoxGeometry(torsoW, torsoH, torsoD), matCuero);
     torso.position.y = 1.08;
     torso.castShadow = true;
     torso.receiveShadow = true;
     grupo.add(torso);
-
-    if (esMujer && perfil.pecho) {
-      const pechoGeo = new THREE.SphereGeometry(0.088, 12, 10);
-      const pechoIzq = new THREE.Mesh(pechoGeo, matCuero);
-      pechoIzq.position.set(-0.082, 1.18, torsoD * 0.48);
-      pechoIzq.scale.set(0.95, 0.88, 1.12);
-      pechoIzq.castShadow = true;
-      const pechoDer = new THREE.Mesh(pechoGeo, matCuero);
-      pechoDer.position.set(0.082, 1.18, torsoD * 0.48);
-      pechoDer.scale.set(0.95, 0.88, 1.12);
-      pechoDer.castShadow = true;
-      grupo.add(pechoIzq, pechoDer);
-    }
 
     // Cuello de la camisa
     const cuelloLino = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.20 : 0.28, 0.12, esMujer ? 0.18 : 0.24), matLino);
@@ -1033,42 +1020,14 @@
       });
     }
 
-    // 3. Pecho femenino en Torso para las acompañantes mujeres
-    if (perfil.pecho && typeof root.getObjectByName === 'function') {
-      const huesoTorso = root.getObjectByName('Torso');
-      if (huesoTorso) {
-        if (typeof root.updateMatrixWorld === 'function') root.updateMatrixWorld(true);
-        const torsoBox = new THREE.Box3();
-        (huesoTorso.children || []).forEach(ch => {
-          if (ch.isMesh) torsoBox.expandByObject(ch);
-        });
-        const tSize = new THREE.Vector3();
-        const tCenter = new THREE.Vector3();
-        if (!torsoBox.isEmpty()) {
-          torsoBox.getSize(tSize);
-          torsoBox.getCenter(tCenter);
-          if (typeof huesoTorso.worldToLocal === 'function') huesoTorso.worldToLocal(tCenter);
-          const pechoMat = new THREE.MeshStandardMaterial({
-            color: perfil.colores.pecho,
-            roughness: 0.65,
-            metalness: 0.08
-          });
-          const rPecho = Math.max(0.045, tSize.x * 0.16);
-          const pechoGeo = new THREE.SphereGeometry(rPecho, 12, 10);
-          const offX = tSize.x * 0.21;
-          const posY = tCenter.y + tSize.y * 0.12;
-          const posZ = tCenter.z + tSize.z * 0.36;
-          [-1, 1].forEach(signo => {
-            const mPecho = new THREE.Mesh(pechoGeo, pechoMat);
-            mPecho.name = signo < 0 ? 'Pecho_L' : 'Pecho_R';
-            mPecho.position.set(signo * offX, posY, posZ);
-            mPecho.scale.set(0.95, 0.88, 1.15);
-            mPecho.castShadow = true;
-            mPecho.receiveShadow = true;
-            huesoTorso.add(mPecho);
-          });
+    // 3. Ocultar barba en las acompañantes mujeres
+    if (perfil.sinBarba && typeof root.traverse === 'function') {
+      root.traverse(o => {
+        const nom = (o.name || '').toLowerCase();
+        if (nom === 'head_material_6' || nom.includes('beard') || nom.includes('barba')) {
+          o.visible = false;
         }
-      }
+      });
     }
 
     // 4. Melena / coleta trasera en Head para diferenciar silueta femenina
