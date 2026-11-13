@@ -419,6 +419,24 @@
     </div>
 
     <div class="control-row">
+      <label>Textura de Calles y Senderos</label>
+      <select id="inp-street-tex">
+        <option value="auto" selected>Aleatoria por Semilla</option>
+        <option value="atlas">Clásica del Estilo</option>
+        <option value="t01">Adoquín Río (T-01)</option>
+        <option value="t02">Loseta Cuadrada (T-02)</option>
+        <option value="t03">Tierra y Grava (T-03)</option>
+        <option value="t04">Sendero Rocoso (T-04)</option>
+        <option value="t05">Calzada con Musgo (T-05)</option>
+        <option value="t06">Empedrado Rústico (T-06)</option>
+        <option value="t07">Camino Polvoriento (T-07)</option>
+        <option value="t08">Calzada Antigua (T-08)</option>
+        <option value="t09">Lajas Grandes (T-09)</option>
+        <option value="t10">Piedra Rota (T-10)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
       <label>Sinuosidad de Calles y Río: <span id="lbl-curve">6.0</span></label>
       <input type="range" id="inp-curve" min="0" max="14" step="0.5" value="6.0">
     </div>
@@ -655,6 +673,7 @@
         specialCount: parseInt(document.getElementById('inp-special').value, 10),
         maxFloors: parseInt(document.getElementById('inp-floors').value, 10),
         roadWidth: parseFloat(document.getElementById('inp-road-w').value),
+        streetTexture: document.getElementById('inp-street-tex').value,
         curve: parseFloat(document.getElementById('inp-curve').value),
         treeDensity: parseInt(document.getElementById('inp-trees').value, 10),
         hasWalls: document.getElementById('chk-walls').checked,
@@ -707,6 +726,7 @@
       setVal('inp-special', cfg.specialCount);
       setVal('inp-floors', cfg.maxFloors);
       setVal('inp-road-w', cfg.roadWidth);
+      setVal('inp-street-tex', cfg.streetTexture || 'auto');
       setVal('inp-curve', cfg.curve);
       setVal('inp-trazado', cfg.trazado || 'clasico');
       setVal('inp-casas', cfg.casas || 'variada');
@@ -835,7 +855,7 @@
     document.querySelectorAll('#ui-panel input[type="range"]').forEach(el => {
       el.addEventListener('input', pedirRebuildUI);
     });
-    document.querySelectorAll('#ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time, #inp-trazado').forEach(el => {
+    document.querySelectorAll('#ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time, #inp-trazado, #inp-street-tex').forEach(el => {
       el.addEventListener('change', rebuildFromUI);
     });
 

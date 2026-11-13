@@ -4149,7 +4149,71 @@
     return h;
   }
 
+  let puentesMundoGroup = null;
+  const puentesMundoWalkables = [];
+
+  function construirPuenteMundo(pA, pB, ancho, nivelAgua) {
+    const dx = pB.x - pA.x, dz = pB.z - pA.z;
+    const L = Math.hypot(dx, dz);
+    if (L < 4) return;
+    const ux = dx / L, uz = dz / L;
+    const cx = (pA.x + pB.x) / 2, cz = (pA.z + pB.z) / 2;
+    if (puentesMundoWalkables.some(b => Math.hypot(b.cx - cx, b.cz - cz) < 14)) return;
+
+    const hA = Math.max(Hgen(pA.x, pA.z) + 0.35, nivelAgua + 0.85);
+    const hB = Math.max(Hgen(pB.x, pB.z) + 0.35, nivelAgua + 0.85);
+    const arco = 0.65;
+    const angY = -Math.atan2(dz, dx);
+    const matPiedra = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.88, metalness: 0.06 });
+    const matMadera = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 });
+    const g = new THREE.Group();
+
+    const tramos = 6;
+    for (let i = 0; i < tramos; i++) {
+      const t0 = i / tramos, t1 = (i + 1) / tramos, tm = (t0 + t1) / 2;
+      const y0 = hA + (hB - hA) * t0 + arco * Math.sin(t0 * Math.PI);
+      const y1 = hA + (hB - hA) * t1 + arco * Math.sin(t1 * Math.PI);
+      const ym = (y0 + y1) / 2;
+      const segL = L / tramos + 0.25;
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(segL, 0.55, ancho + 1.0), matPiedra);
+      deck.position.set(pA.x + dx * tm, ym - 0.22, pA.z + dz * tm);
+      deck.rotation.y = angY;
+      deck.rotation.z = Math.atan2(y1 - y0, L / tramos);
+      deck.castShadow = deck.receiveShadow = true;
+      g.add(deck);
+
+      [-ancho * 0.52, ancho * 0.52].forEach(lat => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(segL, 0.75, 0.32), matMadera);
+        rail.position.set(pA.x + dx * tm - uz * lat, ym + 0.42, pA.z + dz * tm + ux * lat);
+        rail.rotation.y = angY;
+        rail.rotation.z = Math.atan2(y1 - y0, L / tramos);
+        rail.castShadow = true;
+        g.add(rail);
+      });
+    }
+
+    [pA, pB].forEach((pt, idx) => {
+      const hp = idx === 0 ? hA : hB;
+      const pilar = new THREE.Mesh(new THREE.BoxGeometry(1.8, 4.5, ancho + 1.4), matPiedra);
+      pilar.position.set(pt.x, hp - 2.1, pt.z);
+      pilar.rotation.y = angY;
+      pilar.castShadow = pilar.receiveShadow = true;
+      g.add(pilar);
+    });
+
+    puentesMundoGroup.add(g);
+    puentesMundoWalkables.push({
+      cx, cz, ux, uz, hu: L / 2 + 0.8, hv: (ancho + 1.2) / 2, hA, hB, arco
+    });
+  }
+
   function buildRoads() {
+    if (puentesMundoGroup) { scene.remove(puentesMundoGroup); puentesMundoGroup = null; }
+    puentesMundoWalkables.length = 0;
+    puentesMundoGroup = new THREE.Group();
+    puentesMundoGroup.name = 'PuentesMundo';
+    scene.add(puentesMundoGroup);
+
     const mb = new MB(), mbCalzada = new MB();
     world.roads.forEach(r => {
       const a = W.findTown(world, r.from) || W.findZone(world, r.from);
@@ -4170,6 +4234,29 @@
       const linea = curvePath([...ini, ...medio, ...fin], 3.2);
       if (r.kind === 'calzada') { pintarCalzada(mbCalzada, linea, alturaCamino); pintarLadrillos(linea, alturaCamino, roadWidth('calzada')); }
       else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.10, alturaCamino);
+
+      // Un único puente de lado a lado del río por cada cruce de este camino
+      if (typeof rioCercano === 'function') {
+        const enRio = linea.map(p => {
+          const rio = rioCercano(p.x, p.y);
+          return rio && rio.d < RIO_CAUCE * (rio.w || 1) * 1.45 ? rio : null;
+        });
+        for (let i = 1; i < enRio.length - 1; i++) {
+          if (!enRio[i] && enRio[i - 1] && enRio[i + 1]) enRio[i] = enRio[i - 1];
+        }
+        for (let i = 1; i < enRio.length; i++) {
+          if (enRio[i] && !enRio[i - 1]) {
+            let j = i;
+            while (j + 1 < enRio.length && enRio[j + 1]) j++;
+            if (j + 1 < linea.length) {
+              const pA = { x: linea[i - 1].x, z: linea[i - 1].y };
+              const pB = { x: linea[j + 1].x, z: linea[j + 1].y };
+              construirPuenteMundo(pA, pB, roadWidth(r.kind), enRio[i].nivel);
+            }
+            i = j;
+          }
+        }
+      }
     });
     const matsCamino = obtenerMaterialesCaminos();
     roadMesh = new THREE.Mesh(mb.geom(), matsCamino.tierra);
@@ -4917,6 +5004,18 @@
       const v = visorWorld.villageAt(x, z);
       if (v) return v.o.h0 + v.o.village.getWalkableHeight(v.lx, v.lz);
       let groundH = H(x, z);
+      // Puentes de caminos del mundo sobre ríos
+      for (let i = 0; i < puentesMundoWalkables.length; i++) {
+        const b = puentesMundoWalkables[i];
+        const rx = x - b.cx, rz = z - b.cz;
+        const u = rx * b.ux + rz * b.uz;
+        const v = -rx * b.uz + rz * b.ux;
+        if (Math.abs(u) <= b.hu && Math.abs(v) <= b.hv) {
+          const t = Math.max(0, Math.min(1, (u + b.hu) / (2 * b.hu)));
+          const hBr = b.hA + (b.hB - b.hA) * t + b.arco * Math.sin(t * Math.PI) + 0.06;
+          if (hBr > groundH) groundH = hBr;
+        }
+      }
       // Camino sobre el terreno y puentes sobre río: el personaje camina sobre la rasante del camino sin hundirse
       if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 3.8)) {
         const hCam = (typeof alturaCamino === 'function' ? alturaCamino(x, z) : groundH) + 0.10;

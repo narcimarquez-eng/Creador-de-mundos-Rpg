@@ -957,6 +957,51 @@
     const matRock = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, metalness: 0.05 });
     const matCloth = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7 });
     const matSignWood = new THREE.MeshStandardMaterial({ color: '#5c3a1e', roughness: 0.85 });
+    const STREET_TEXTURES = [
+      { id: 't01', label: 'Adoquín Río (T-01)', path: 'assets/texturas/suelo/t01.jpg' },
+      { id: 't02', label: 'Loseta Cuadrada (T-02)', path: 'assets/texturas/suelo/t02.jpg' },
+      { id: 't03', label: 'Tierra y Grava (T-03)', path: 'assets/texturas/suelo/t03.jpg' },
+      { id: 't04', label: 'Sendero Rocoso (T-04)', path: 'assets/texturas/suelo/t04.jpg' },
+      { id: 't05', label: 'Calzada con Musgo (T-05)', path: 'assets/texturas/suelo/t05.jpg' },
+      { id: 't06', label: 'Empedrado Rústico (T-06)', path: 'assets/texturas/suelo/t06.jpg' },
+      { id: 't07', label: 'Camino Polvoriento (T-07)', path: 'assets/texturas/suelo/t07.jpg' },
+      { id: 't08', label: 'Calzada Antigua (T-08)', path: 'assets/texturas/suelo/t08.jpg' },
+      { id: 't09', label: 'Lajas Grandes (T-09)', path: 'assets/texturas/suelo/t09.jpg' },
+      { id: 't10', label: 'Piedra Rota (T-10)', path: 'assets/texturas/suelo/t10.jpg' }
+    ];
+    const streetTexCache = new Map();
+    const streetMatCache = new Map();
+    const getStreetMaterialById = (texId) => {
+      if (!texId || texId === 'atlas') return matAtlas;
+      if (streetMatCache.has(texId)) return streetMatCache.get(texId);
+      const entry = STREET_TEXTURES.find(t => t.id === texId);
+      if (!entry) return matAtlas;
+      let tex = streetTexCache.get(texId);
+      if (!tex && typeof THREE !== 'undefined' && THREE.TextureLoader) {
+        tex = new THREE.TextureLoader().load(entry.path);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        streetTexCache.set(texId, tex);
+      }
+      const m = new THREE.MeshStandardMaterial({
+        map: tex || null,
+        color: '#e2e8f0',
+        roughness: 0.86,
+        metalness: 0.05,
+        side: THREE.DoubleSide
+      });
+      streetMatCache.set(texId, m);
+      return m;
+    };
+    const materialCallePara = (cfg) => {
+      const sel = (cfg && cfg.streetTexture) || 'auto';
+      if (sel === 'atlas') return matAtlas;
+      if (sel !== 'auto') return getStreetMaterialById(sel);
+      const prng = new PRNG(((cfg && cfg.seed) || 77420) ^ 0x5f3759df);
+      const pick = STREET_TEXTURES[Math.floor(prng.next() * STREET_TEXTURES.length)];
+      return getStreetMaterialById(pick.id);
+    };
     const kitGeos = new Set();
     let kitProto = null;
 
@@ -1617,9 +1662,11 @@
         return Math.abs(x - rx) < (this.riverWidth * 0.5 + radius);
       }
 
-      // Calzada con grosor: la superficie usa la piedra de los puentes y los bordes bajan por debajo del terreno,
+      // Calzada con grosor: la superficie usa la textura de calle elegida (o el atlas) y los bordes bajan por debajo del terreno,
       // así no queda como una lámina sobre el suelo. Sigue el terreno (subdividido cada 1 m) con su altura real.
-      buildConformingRoadMesh(puntos, width, yOffset = 0.16) {
+      buildConformingRoadMesh(puntos, width, yOffset = 0.16, matCalle = null) {
+        const surfMat = matCalle || matAtlas;
+        const usesTileTex = surfMat !== matAtlas;
         const points = [];
         for (let i = 0; i < puntos.length; i++) {
           if (i > 0) {
@@ -1668,12 +1715,20 @@
           positions[(vIdx + 1) * 3 + 1] = ry;
           positions[(vIdx + 1) * 3 + 2] = rz;
 
-          // Piedra de sillería como en los puentes: 0..1 a lo ancho y un bloque cada 5 m a lo largo
-          const v = 0.25 + 0.25 * ((accLen * 0.2) % 1);
-          uvs[vIdx * 2] = 0;
-          uvs[vIdx * 2 + 1] = v;
-          uvs[(vIdx + 1) * 2] = 1;
-          uvs[(vIdx + 1) * 2 + 1] = v;
+          // Piedra de sillería del atlas (0.25..0.50) o textura tileable completa (0..N)
+          if (usesTileTex) {
+            const vTile = accLen / Math.max(3.5, width);
+            uvs[vIdx * 2] = 0;
+            uvs[vIdx * 2 + 1] = vTile;
+            uvs[(vIdx + 1) * 2] = 1;
+            uvs[(vIdx + 1) * 2 + 1] = vTile;
+          } else {
+            const v = 0.25 + 0.25 * ((accLen * 0.2) % 1);
+            uvs[vIdx * 2] = 0;
+            uvs[vIdx * 2 + 1] = v;
+            uvs[(vIdx + 1) * 2] = 1;
+            uvs[(vIdx + 1) * 2 + 1] = v;
+          }
 
           if (i < segs) {
             const a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, d = (i + 1) * 2 + 1;
@@ -1681,10 +1736,11 @@
             indices.push(a, c, b, b, c, d);
           }
 
+          const vBorde = 0.25 + 0.25 * ((accLen * 0.2) % 1);
           const bajo = (x, z, y) => Math.min(y, this.getTerrainHeight(x, z)) - 0.9;
           bordes.push({
             l: [lx, ly, lz], r: [rx, ry, rz],
-            lb: [lx, bajo(lx, lz, ly), lz], rb: [rx, bajo(rx, rz, ry), rz], v
+            lb: [lx, bajo(lx, lz, ly), lz], rb: [rx, bajo(rx, rz, ry), rz], v: vBorde
           });
         }
 
@@ -1695,7 +1751,7 @@
         geom.computeVertexNormals();
 
         const grupo = new THREE.Group();
-        const superficie = new THREE.Mesh(geom, matAtlas);
+        const superficie = new THREE.Mesh(geom, surfMat);
         superficie.receiveShadow = true;
         grupo.add(superficie);
 
@@ -1924,6 +1980,10 @@
         const onMainBridge = q => Math.abs(q.z) < cfg.roadWidth * 0.55 + 1.5;
 
         const inside = pts.map(inBand);
+        // Suavizar huecos de 1-2 puntos fuera del cauce para no partir un único cruce en dos puentes
+        for (let k = 1; k < inside.length - 1; k++) {
+          if (!inside[k] && inside[k - 1] && inside[k + 1]) inside[k] = true;
+        }
         let cur = [];
         for (let i = 0; i < pts.length; i++) {
           if (!inside[i]) { cur.push(pts[i]); continue; }
@@ -1936,7 +1996,9 @@
             const a = pts[i - 1], b = pts[j + 1];
             if (!b) break;           // el cruce llega al final del terreno: no se puede cerrar
             const mid = pts[Math.floor((i + j) / 2)];
-            if (!onMainBridge(mid)) {
+            const cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2;
+            const yaExistePuente = this.extraBridges.some(eb => Math.hypot(eb.cx - cx, eb.cz - cz) < 14);
+            if (!onMainBridge(mid) && !yaExistePuente) {
               // Puente secundario: alterna entre pasarela rústica de madera y puente pequeño de piedra
               const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
               const esMadera = (width < cfg.roadWidth * 0.85) || (Math.abs(Math.round(mid.z)) % 2 === 1);
@@ -1956,7 +2018,7 @@
                 });
               });
               this.extraBridges.push({
-                cx: (a.x + b.x) / 2, cz: (a.z + b.z) / 2,
+                cx, cz,
                 ux: dx / L, uz: dz / L,
                 hu: L / 2, hv: (width + 1.2) / 2,
                 topAt
@@ -2368,11 +2430,12 @@
         // 3. SISTEMA DE CALLES CONECTADAS
         const roadsGroup = new THREE.Group();
         const roadExtent = townRadius + 28;
+        const matCalle = materialCallePara(cfg);
 
         // Calle interna: se puede borrar o desplazar con las ediciones. Las salidas hacia el mundo no pasan por aquí.
         const pushRoad = (id, pts, width, yOffset, extra) => {
           this.editables.streets.push(Object.assign({ id: id, pts: pts, width: width }, extra || {}));
-          const mesh = this.buildConformingRoadMesh(pts, width, yOffset);
+          const mesh = this.buildConformingRoadMesh(pts, width, yOffset, matCalle);
           roadsGroup.add(mesh);
           return mesh;
         };
@@ -2452,7 +2515,7 @@
         // 3b. SALIDAS HACIA LOS CAMINOS DEL MUNDO (cfg.exits)
         this.townRadius = townRadius;
         this.exitPaths = this.buildExitPaths(cfg, townRadius, WORLD_SIZE);
-        const exitPieces = this.buildExitRoadPieces(cfg, this.exitPaths, roadsGroup, matAtlas);
+        const exitPieces = this.buildExitRoadPieces(cfg, this.exitPaths, roadsGroup, matCalle);
         exitPieces.forEach(pts => {
           roadsGroup.add(this.buildConformingRoadMesh(pts, cfg.roadWidth * 0.85, 0.17));
         });
@@ -2604,6 +2667,174 @@
               const ang = (a1 + a2) * 0.5;
               this.colliders.push({ type: 'circle', x: mx + Math.sin(ang) * t, z: mz - Math.cos(ang) * t, r: 1.3, wall: true });
             }
+          }
+
+          // 5b. ARCOS CON PUERTA ENORME ABIERTA EN TODAS LAS SALIDAS DE CAMINO POR LA MURALLA
+          const construirArcoPuertaMuralla = (gx, gz, rotY, anchoPaso) => {
+            const gy = this.getTerrainHeight(gx, gz);
+            const gGate = new THREE.Group();
+            gGate.position.set(gx, gy, gz);
+            gGate.rotation.y = rotY;
+            const halfW = Math.max(4.4, anchoPaso * 0.62);
+            const pilH = 8.4;
+
+            // Pilares de piedra a ambos lados
+            [-halfW - 1.1, halfW + 1.1].forEach(px => {
+              const pG = new THREE.BoxGeometry(2.2, pilH + 1.2, 3.2);
+              mapUVBand(pG, 0.25, 0.50);
+              const pM = new THREE.Mesh(pG, matAtlas);
+              pM.position.set(px, (pilH + 1.2) / 2 - 0.6, 0);
+              pM.castShadow = pM.receiveShadow = true;
+              gGate.add(pM);
+
+              const capG = new THREE.BoxGeometry(2.6, 0.8, 3.6);
+              mapUVBand(capG, 0.25, 0.50);
+              const capM = new THREE.Mesh(capG, matAtlas);
+              capM.position.set(px, pilH + 0.4, 0);
+              capM.castShadow = true;
+              gGate.add(capM);
+
+              const wp = new THREE.Vector3(px, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
+              this.colliders.push({ type: 'circle', x: gx + wp.x, z: gz + wp.z, r: 1.5, wall: true });
+            });
+
+            // Arco de piedra segmentado sobre la calzada
+            const archR = halfW + 0.35;
+            const archSegs = 9;
+            for (let s = 0; s < archSegs; s++) {
+              const a = (s + 0.5) / archSegs * Math.PI;
+              const ax = Math.cos(a) * archR;
+              const ay = pilH - 1.4 + Math.sin(a) * (archR * 0.62);
+              const vG = new THREE.BoxGeometry((Math.PI * archR) / archSegs + 0.35, 1.5, 3.0);
+              mapUVBand(vG, 0.25, 0.50);
+              const vM = new THREE.Mesh(vG, matAtlas);
+              vM.position.set(ax, ay, 0);
+              vM.rotation.z = a - Math.PI / 2;
+              vM.castShadow = vM.receiveShadow = true;
+              gGate.add(vM);
+            }
+
+            // Dintel superior almenado
+            const lintelY = pilH + archR * 0.62 - 0.4;
+            const lG = new THREE.BoxGeometry(halfW * 2 + 4.4, 1.4, 3.1);
+            mapUVBand(lG, 0.25, 0.50);
+            const lM = new THREE.Mesh(lG, matAtlas);
+            lM.position.set(0, lintelY, 0);
+            lM.castShadow = true;
+            gGate.add(lM);
+            for (let m = -3; m <= 3; m++) {
+              const alG = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+              mapUVBand(alG, 0.25, 0.50);
+              const alM = new THREE.Mesh(alG, matAtlas);
+              alM.position.set(m * (halfW * 0.58), lintelY + 1.2, 1.0);
+              alM.castShadow = true;
+              gGate.add(alM);
+            }
+
+            // Dos hojas de puerta enormes de madera con herrajes, abiertas de par en par hacia afuera
+            const doorW = halfW * 0.96;
+            const doorH = pilH - 0.4;
+            [-1, 1].forEach(sd => {
+              const pivot = new THREE.Group();
+              pivot.position.set(sd * halfW, 0, 1.25);
+              pivot.rotation.y = sd * (-Math.PI * 0.42); // abierta ~75° hacia fuera
+              const hoja = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.38), matSignWood);
+              hoja.position.set(-sd * (doorW * 0.5), doorH * 0.5, 0);
+              hoja.castShadow = hoja.receiveShadow = true;
+              pivot.add(hoja);
+              [1.2, doorH * 0.5, doorH - 1.1].forEach(hy => {
+                const herraje = new THREE.Mesh(new THREE.BoxGeometry(doorW * 0.94, 0.26, 0.46), matIron);
+                herraje.position.set(-sd * (doorW * 0.5), hy, 0);
+                pivot.add(herraje);
+              });
+              gGate.add(pivot);
+            });
+
+            wallGroup.add(gGate);
+          };
+
+          const puertaPuesta = [];
+          const tryGate = (gx, gz, rotY, ancho) => {
+            if (cfg.hasRiver && Math.abs(gx - this.getRiverX(gz)) < RIVER_WIDTH * 0.85) return;
+            if (puertaPuesta.some(p => Math.hypot(p.x - gx, p.z - gz) < 12)) return;
+            puertaPuesta.push({ x: gx, z: gz });
+            construirArcoPuertaMuralla(gx, gz, rotY, ancho);
+          };
+          tryGate(this.getMainRoadX(-townRadius), -townRadius, 0, cfg.roadWidth);
+          tryGate(this.getMainRoadX(townRadius), townRadius, Math.PI, cfg.roadWidth);
+          tryGate(-townRadius, 0, Math.PI / 2, cfg.roadWidth);
+          tryGate(townRadius, 0, -Math.PI / 2, cfg.roadWidth);
+          this.exitPaths.forEach(p => {
+            const gx = Math.cos(p.angle) * townRadius;
+            const gz = Math.sin(p.angle) * townRadius;
+            const rotY = -p.angle + Math.PI / 2;
+            tryGate(gx, gz, rotY, cfg.roadWidth);
+          });
+
+          // 5c. PUENTE COLGANTE DE LADO A LADO DE LA MURALLA AL ATRAVESAR EL RÍO
+          if (cfg.hasRiver) {
+            const construirPuenteColganteMuralla = (zCross) => {
+              const rx = this.getRiverX(zCross);
+              if (Math.abs(rx) > townRadius * 0.88) return;
+              const spanHalf = RIVER_WIDTH * 0.92;
+              const pA = { x: rx - spanHalf, z: zCross };
+              const pB = { x: rx + spanHalf, z: zCross };
+              const hA = this.getTerrainHeight(pA.x, pA.z) + 1.15;
+              const hB = this.getTerrainHeight(pB.x, pB.z) + 1.15;
+              const anchoP = 3.8;
+              const tramos = 12;
+
+              // Torres de anclaje en cada extremo donde conecta con la muralla
+              [pA, pB].forEach(pt => {
+                const ty = this.getTerrainHeight(pt.x, pt.z);
+                const torG = new THREE.BoxGeometry(2.2, 8.2, anchoP + 1.2);
+                mapUVBand(torG, 0.25, 0.50);
+                const torM = new THREE.Mesh(torG, matAtlas);
+                torM.position.set(pt.x, ty + 3.6, pt.z);
+                torM.castShadow = torM.receiveShadow = true;
+                wallGroup.add(torM);
+              });
+
+              // Tablero colgante de madera con ligera catenaria (comba hacia abajo en el centro)
+              const topAt = this.construirTablero(wallGroup, pA, pB, {
+                ancho: anchoP, hA, hB, arco: -0.55, grosor: 0.36, tramos, mat: matSignWood
+              });
+
+              // Cables principales y péndolas verticales a ambos lados
+              const dx = pB.x - pA.x, dz = pB.z - pA.z, L = Math.hypot(dx, dz) || 1;
+              [-anchoP * 0.52, anchoP * 0.52].forEach(lat => {
+                for (let k = 0; k < tramos; k++) {
+                  const t0 = k / tramos, t1 = (k + 1) / tramos;
+                  const yDeck0 = hA + (hB - hA) * t0 - 0.55 * Math.sin(t0 * Math.PI);
+                  const yDeck1 = hA + (hB - hA) * t1 - 0.55 * Math.sin(t1 * Math.PI);
+                  const yCab0 = hA + 3.6 + (hB - hA) * t0 - 2.3 * Math.sin(t0 * Math.PI);
+                  const yCab1 = hA + 3.6 + (hB - hA) * t1 - 2.3 * Math.sin(t1 * Math.PI);
+                  const x0 = pA.x + dx * t0, z0 = pA.z + dz * t0 + lat;
+                  const x1 = pA.x + dx * t1, z1 = pA.z + dz * t1 + lat;
+                  const segL = Math.hypot(x1 - x0, yCab1 - yCab0, z1 - z0);
+                  const cab = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, segL, 6), matIron);
+                  cab.position.set((x0 + x1) / 2, (yCab0 + yCab1) / 2, (z0 + z1) / 2);
+                  cab.rotation.z = Math.atan2(yCab1 - yCab0, x1 - x0) + Math.PI / 2;
+                  wallGroup.add(cab);
+
+                  if (k > 0) {
+                    const pendH = Math.max(0.2, yCab0 - yDeck0);
+                    const pend = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, pendH, 5), matIron);
+                    pend.position.set(x0, yDeck0 + pendH / 2, z0);
+                    wallGroup.add(pend);
+                  }
+                }
+              });
+
+              this.extraBridges.push({
+                cx: rx, cz: zCross,
+                ux: dx / L, uz: dz / L,
+                hu: L / 2, hv: (anchoP + 0.6) / 2,
+                topAt
+              });
+            };
+            construirPuenteColganteMuralla(-townRadius * 0.96);
+            construirPuenteColganteMuralla(townRadius * 0.96);
           }
         }
 
@@ -3412,6 +3643,10 @@
       instanceCount() { return kitState.instances.size; },
       dispose() {
         [matAtlas.map, matAtlas.bumpMap, matRoad.map, matRoad.bumpMap, matPlaza.map, matPlaza.bumpMap, glowTex, leadedGlassTex].forEach(t => { if (t) t.dispose(); });
+        streetTexCache.forEach(t => { if (t) t.dispose(); });
+        streetTexCache.clear();
+        streetMatCache.forEach(m => { if (m) m.dispose(); });
+        streetMatCache.clear();
         kitGeos.forEach(g => g.dispose());
         kitGeos.clear();
         kitProto = null;
@@ -3429,6 +3664,18 @@
     PRNG,
     ARCHITECTURAL_STYLES,
     ATMOSPHERES,
+    STREET_TEXTURES: [
+      { id: 't01', label: 'Adoquín Río (T-01)', path: 'assets/texturas/suelo/t01.jpg' },
+      { id: 't02', label: 'Loseta Cuadrada (T-02)', path: 'assets/texturas/suelo/t02.jpg' },
+      { id: 't03', label: 'Tierra y Grava (T-03)', path: 'assets/texturas/suelo/t03.jpg' },
+      { id: 't04', label: 'Sendero Rocoso (T-04)', path: 'assets/texturas/suelo/t04.jpg' },
+      { id: 't05', label: 'Calzada con Musgo (T-05)', path: 'assets/texturas/suelo/t05.jpg' },
+      { id: 't06', label: 'Empedrado Rústico (T-06)', path: 'assets/texturas/suelo/t06.jpg' },
+      { id: 't07', label: 'Camino Polvoriento (T-07)', path: 'assets/texturas/suelo/t07.jpg' },
+      { id: 't08', label: 'Calzada Antigua (T-08)', path: 'assets/texturas/suelo/t08.jpg' },
+      { id: 't09', label: 'Lajas Grandes (T-09)', path: 'assets/texturas/suelo/t09.jpg' },
+      { id: 't10', label: 'Piedra Rota (T-10)', path: 'assets/texturas/suelo/t10.jpg' }
+    ],
     createKit,
     preloadPuestos: preloadPuestosGLB,
     cachePuestos: cachePuestosGLB
