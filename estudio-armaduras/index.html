@@ -1100,7 +1100,12 @@
       { id: 'mithril_starlight_weave', category: 'arcano',  name: '53. Mithril Luz Estelar (Plata Élfica Lunar)', primary: '#38bdf8', secondary: '#fde047', cloth: '#0c4a6e', glow: '#7dd3fc', metalness: 0.96, roughness: 0.14, texture: 'mithril_starlight_weave', bump: 0.78, tiling: 1.2, pattern: 'arcane_celestial', baseHex: '#bae6fd', accentHex: '#0284c7', detailHex: '#ffffff' },
       { id: 'orichalcum_atlantean',    category: 'arcano',  name: '54. Oricalco Atlante (Aleación Solar Cobre)',  primary: '#f97316', secondary: '#2dd4bf', cloth: '#134e4a', glow: '#5eead4', metalness: 0.92, roughness: 0.19, texture: 'orichalcum_atlantean',    bump: 0.88, tiling: 1.0, pattern: 'arcane_celestial', baseHex: '#fb923c', accentHex: '#0d9488', detailHex: '#fef08a' },
       { id: 'arcane_crystal_amethyst', category: 'arcano',  name: '55. Cristal Arcano de Amatista Facetado',      primary: '#6b21a8', secondary: '#f0abfc', cloth: '#3b0764', glow: '#e879f9', metalness: 0.84, roughness: 0.16, texture: 'arcane_crystal_amethyst', bump: 0.92, tiling: 1.1, pattern: 'arcane_celestial', baseHex: '#7e22ce', accentHex: '#e879f9', detailHex: '#ffffff' },
-      { id: 'celestial_astral_constellation',category:'arcano',name:'56. Armadura Astral del Cosmos (Estelar)',   primary: '#0f172a', secondary: '#facc15', cloth: '#1e1b4b', glow: '#fde047', metalness: 0.91, roughness: 0.18, texture: 'celestial_astral_constellation',bump:0.86, tiling: 1.0, pattern: 'arcane_celestial', baseHex: '#1e1b4b', accentHex: '#eab308', detailHex: '#ffffff' }
+      { id: 'celestial_astral_constellation',category:'arcano',name:'56. Armadura Astral del Cosmos (Estelar)',   primary: '#0f172a', secondary: '#facc15', cloth: '#1e1b4b', glow: '#fde047', metalness: 0.91, roughness: 0.18, texture: 'celestial_astral_constellation',bump:0.86, tiling: 1.0, pattern: 'arcane_celestial', baseHex: '#1e1b4b', accentHex: '#eab308', detailHex: '#ffffff' },
+      { id: 'l2_dark_crystal', category: 'abisal', name: 'L2. Cristal Oscuro (Dark Crystal)', primary: '#312e81', secondary: '#7dd3fc', cloth: '#0f0a2a', glow: '#60a5fa', metalness: 0.90, roughness: 0.24, texture: 'void_corrupted_adamant', bump: 0.9, tiling: 1.1, pattern: 'abyssal_chaos', baseHex: '#312e81', accentHex: '#7dd3fc', detailHex: '#e0f2fe' },
+      { id: 'l2_majestic', category: 'arcano', name: 'L2. Majestuosa (Majestic)', primary: '#cbd5e1', secondary: '#1d4ed8', cloth: '#1e3a8a', glow: '#93c5fd', metalness: 0.95, roughness: 0.18, texture: 'royal_alliance_plate', bump: 0.9, tiling: 1.0, pattern: 'royal_alliance_plate' },
+      { id: 'l2_tallum', category: 'arcano', name: 'L2. Tallum (azul pálido)', primary: '#e0f2fe', secondary: '#0ea5e9', cloth: '#bae6fd', glow: '#7dd3fc', metalness: 0.80, roughness: 0.30, texture: 'mithril_starlight_weave', bump: 0.8, tiling: 1.0, pattern: 'mithril_starlight_weave' },
+      { id: 'l2_avadon', category: 'cuero', name: 'L2. Avadon (cuero verde-ocre)', primary: '#365314', secondary: '#ca8a04', cloth: '#1a2e05', glow: '#a3e635', metalness: 0.40, roughness: 0.50, texture: 'leather_cuirass', bump: 0.85, tiling: 1.0, pattern: 'quilted_brigandine', baseHex: '#365314', accentHex: '#ca8a04', detailHex: '#1a2e05' },
+      { id: 'l2_doom', category: 'abisal', name: 'L2. Doom (acero negro y fuego)', primary: '#18181b', secondary: '#f97316', cloth: '#450a0a', glow: '#fb923c', metalness: 0.93, roughness: 0.26, texture: 'hellfire_magma_forged', bump: 0.95, tiling: 1.0, pattern: 'hellfire_magma_forged' },
     ];
 
     // Alias de compatibilidad para presets Lineage II / Valquiria y estilo propio por cada pieza del catálogo
@@ -1146,18 +1151,18 @@
       torso: [
         null,
         'paladin_sun_gold',
-        'royal_alliance_plate',
-        'hellfire_magma_forged',
+        'l2_avadon',
+        'l2_doom',
         'emerald_elven_filigree',
         'dynasty_celestial_rose',
-        'laurel_leaf_plate',
+        'l2_majestic',
         'triskele_full_plate',
         'dragon_scale_ruby',
-        'leather_cuirass',
+        'l2_tallum',
         'samurai_kozane_lacquer',
         'blood_knight_crimson',
         'scale_jazerant_gold',
-        'void_corrupted_adamant',
+        'l2_dark_crystal',
         'valkyrie_wing_pearl',
         'phoenix_flame_plumage',
         'toledo_blued_gold_inlay',
@@ -21249,6 +21254,15 @@ function resetCharacter() {
         Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
         Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = d.equipo[k] || 0; });
         if (d.equipo.shield == null) STATE.equipment.shield = escudoPorDefecto(STATE.equipment.weapon);
+        // Set coherente estilo Lineage II: la paleta del peto/casco se extiende a toda la armadura
+        // (cada nivel tiene su set), pero la forma de cada pieza sigue siendo la suya.
+        const refSlot = ['torso', 'helmet', 'shoulders', 'tassets'].find(k => STATE.equipment[k] > 0);
+        if (refSlot) {
+          const setId = getDefaultPresetForItem(refSlot, STATE.equipment[refSlot]);
+          ['helmet', 'shoulders', 'torso', 'gloves', 'belt', 'tassets', 'cuisses', 'knees', 'boots'].forEach(k => {
+            if (STATE.equipment[k] > 0) STATE.slotTextures[k] = setId;
+          });
+        }
         updateWardrobePieces();
         exportIdPendiente = d.id;
         exportLightweightGLB(false);
