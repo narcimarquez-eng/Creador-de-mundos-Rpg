@@ -5312,7 +5312,7 @@
       if (d2 < dPlaza) { dPlaza = d2; cercaPlaza = o; }
       if (o.village.hasForge && d2 < dForja) { dForja = d2; cercaForja = o; }
     }
-    if (cercaPlaza) {
+    if (cercaPlaza && cercaPlaza.village && cercaPlaza.village.plazaLight) {
       const lp = cercaPlaza.village.plazaLight.position;
       const wp = townPoint(cercaPlaza, lp.x, lp.z);
       luzPlazaMundo.color.copy(cercaPlaza.village.plazaLight.color);
@@ -5321,7 +5321,7 @@
     } else {
       luzPlazaMundo.intensity = 0;
     }
-    if (cercaForja) {
+    if (cercaForja && cercaForja.village && cercaForja.village.forgeLight) {
       const fp = cercaForja.village.forgeLight.position;
       const wf = townPoint(cercaForja, fp.x, fp.z);
       luzForjaMundo.color.copy(cercaForja.village.forgeLight.color);
