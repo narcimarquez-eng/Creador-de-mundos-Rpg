@@ -30,16 +30,21 @@
     mpared: { nombre: 'Paredes de mazmorra', t01: 'Ladrillos desgastados', t02: 'Ladrillos con musgo', t03: 'Mosaicos antiguos', t04: 'Mampostería irregular',
       t05: 'Piedra con enredaderas', t06: 'Piedra de calabozo', t07: 'Sillares ruinosos', t08: 'Mosaico decorativo', t09: 'Roca excavada', t10: 'Pared chamuscada' },
     msuelo: { nombre: 'Suelos de mazmorra', t01: 'Losas desgastadas', t02: 'Losas con musgo', t03: 'Baldosas agrietadas', t04: 'Mosaico desgastado', t05: 'Tierra y cascotes',
-      t06: 'Adoquines antiguos', t07: 'Baldosas de sillar', t08: 'Rocas y gravilla', t09: 'Suelo con charcos', t10: 'Barro y detritus' }
+      t06: 'Adoquines antiguos', t07: 'Baldosas de sillar', t08: 'Rocas y gravilla', t09: 'Suelo con charcos', t10: 'Barro y detritus' },
+    mmuro: { nombre: 'Muros completos', t01: 'Arco de ladrillo oscuro', t02: 'Ladrillo con hiedra', t03: 'Friso de mosaico y relieves', t04: 'Muro de piedra agrietado',
+      t05: 'Piedra húmeda con musgo', t06: 'Base de arco y zócalo', t07: 'Sillares con reja de celda', t08: 'Zócalo con mosaico antiguo', t09: 'Roca excavada con raíces', t10: 'Muro derruido' },
+    mlosa: { nombre: 'Losas y ruinas', t01: 'Losas oscuras con raíces', t02: 'Losas agrietadas con raíces', t03: 'Escombros y hiedra',
+      t04: 'Losas húmedas con charco', t05: 'Grieta profunda y raíces', t06: 'Tierra, huesos y cadenas' },
+    alfombras: { nombre: 'Mosaicos centrales', a1: 'Gran estrella de mosaico', a2: 'Medallón solar enlosado', a3: 'Sello rúnico circular', a4: 'Franja de mosaico para pasillo' }
   };
   // GRUPOS: los de pueblos y cabañas; las hojas de mazmorra se piden por nombre en el creador de mazmorras
-  const GRUPOS_MAZMORRA = ['mpared', 'msuelo'];
+  const GRUPOS_MAZMORRA = ['mpared', 'msuelo', 'mmuro', 'mlosa', 'alfombras'];
   const GRUPOS = Object.keys(CATALOGO).filter(g => !GRUPOS_MAZMORRA.includes(g));
 
   const valida = id => {
     if (typeof id !== 'string') return false;
     const [g, t] = id.split('/');
-    return /^t\d\d$/.test(t || '') && !!(CATALOGO[g] && CATALOGO[g][t]);
+    return /^(t\d\d|a\d)$/.test(t || '') && !!(CATALOGO[g] && CATALOGO[g][t]);
   };
   const ruta = id => BASE + id + '.jpg';
   const miniatura = id => BASE + 'miniaturas/' + id.replace('/', '-') + '.jpg';

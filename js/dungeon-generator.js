@@ -484,18 +484,19 @@
   // Copia de un material con la foto de la biblioteca en lugar de su textura procedural (misma repetición; la foto
   // también da el relieve). Sin TexturasLib (pruebas en Node) o sin textura elegida, devuelve el material tal cual.
   const _matTexCache = new Map();
-  function conTexturaBiblioteca(ThreeLib, mat, id, neutro) {
+  function conTexturaBiblioteca(ThreeLib, mat, id, neutro, sinRepetir) {
     const T = (typeof window !== 'undefined') ? window.TexturasLib : null;
     if (!T || !id || !T.valida(id) || !mat || typeof mat.clone !== 'function') return mat;
-    const clave = mat.uuid + '|' + id + (neutro ? '|n' : '');
+    const clave = mat.uuid + '|' + id + (neutro ? '|n' : '') + (sinRepetir ? '|1' : '');
     if (_matTexCache.has(clave)) return _matTexCache.get(clave);
     const m = mat.clone();
-    const rep = mat.map && mat.map.repeat ? [mat.map.repeat.x, mat.map.repeat.y] : [1, 1];
+    const rep = sinRepetir ? [1, 1] : (mat.map && mat.map.repeat ? [mat.map.repeat.x, mat.map.repeat.y] : [1, 1]);
     m.map = T.textura(ThreeLib, id, { repetir: rep });
     // Textura por defecto del tema: sin tinte del estilo, para que la foto se vea con sus colores reales
     if (neutro && m.color && typeof m.color.setHex === 'function') m.color.setHex(0xd6d2cc);
     if (m.bumpMap) { m.bumpMap = m.map; m.bumpScale = Math.min(m.bumpScale || 1, 1.2); }
     if (m.normalMap) m.normalMap = null;
+    if (sinRepetir) m.userData = Object.assign({}, m.userData, { mosaicoUnico: true });
     m.needsUpdate = true;
     _matTexCache.set(clave, m);
     return m;
@@ -507,19 +508,19 @@
     const t = sala.tipo;
     const base = { pared: 'mpared/t01', suelo: 'msuelo/t01', zocalo: 'mpared/t07', camino: 'msuelo/t04' };
     const porTipo = {
-      pasillo:             { pared: 'mpared/t04', suelo: 'msuelo/t07', camino: 'msuelo/t06' },
-      entrada:             { pared: 'mpared/t07', suelo: 'msuelo/t07', zocalo: 'mpared/t06' },
-      fuente:              { pared: 'mpared/t02', suelo: 'msuelo/t02', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
-      cripta_columnas:     { pared: 'mpared/t07', suelo: 'msuelo/t03', zocalo: 'mpared/t06' },
-      cripta:              { pared: 'mpared/t06', suelo: 'msuelo/t03', zocalo: 'mpared/t01' },
-      prision:             { pared: 'mpared/t06', suelo: 'msuelo/t09', zocalo: 'mpared/t09', camino: 'msuelo/t05' },
-      jardin_subterraneo:  { pared: 'mpared/t05', suelo: 'msuelo/t10', zocalo: 'mpared/t02' },
-      laboratorio:         { pared: 'mpared/t10', suelo: 'msuelo/t01', zocalo: 'mpared/t06', camino: 'msuelo/t08' },
-      armeria:             { pared: 'mpared/t10', suelo: 'msuelo/t07', zocalo: 'mpared/t07' },
-      biblioteca:          { pared: 'mpared/t01', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
-      tesoro:              { pared: 'mpared/t08', suelo: 'msuelo/t04', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
-      trono:               { pared: 'mpared/t03', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
-      sala_jefe:           { pared: 'mpared/t03', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'msuelo/t04' }
+      pasillo:             { pared: 'mpared/t04', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'alfombras/a4' },
+      entrada:             { pared: 'mmuro/t01',  suelo: 'msuelo/t07', zocalo: 'mmuro/t06',  camino: 'alfombras/a2' },
+      fuente:              { pared: 'mmuro/t05',  suelo: 'mlosa/t04',  zocalo: 'mpared/t07', camino: 'alfombras/a2' },
+      cripta_columnas:     { pared: 'mmuro/t04',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t06',  camino: 'alfombras/a3' },
+      cripta:              { pared: 'mmuro/t04',  suelo: 'mlosa/t02',  zocalo: 'mpared/t01', camino: 'alfombras/a3' },
+      prision:             { pared: 'mmuro/t07',  suelo: 'mlosa/t06',  zocalo: 'mpared/t06', camino: 'msuelo/t05' },
+      jardin_subterraneo:  { pared: 'mmuro/t02',  suelo: 'mlosa/t03',  zocalo: 'mpared/t05' },
+      laboratorio:         { pared: 'mpared/t10', suelo: 'mlosa/t05',  zocalo: 'mpared/t06', camino: 'msuelo/t08' },
+      armeria:             { pared: 'mmuro/t10',  suelo: 'msuelo/t07', zocalo: 'mmuro/t06',  camino: 'alfombras/a1' },
+      biblioteca:          { pared: 'mmuro/t03',  suelo: 'msuelo/t07', zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
+      tesoro:              { pared: 'mmuro/t08',  suelo: 'msuelo/t04', zocalo: 'mmuro/t03',  camino: 'alfombras/a1' },
+      trono:               { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
+      sala_jefe:           { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' }
     };
     return Object.assign({}, base, porTipo[t] || {});
   }
@@ -599,7 +600,7 @@
     matSuelo = conTexturaBiblioteca(ThreeLib, matSuelo, idSuelo, nSuelo);
     // Camino principal: banda/alfombra de mosaico, distinta del suelo y de las paredes
     const idCamino = tex('texturaSuelo') || (colSuelo ? null : tema.camino);
-    if (idCamino) matMosaico = conTexturaBiblioteca(ThreeLib, matMosaico, idCamino, !tex('texturaSuelo'));
+    if (idCamino) matMosaico = conTexturaBiblioteca(ThreeLib, matMosaico, idCamino, !tex('texturaSuelo'), idCamino.startsWith('alfombras/'));
     matZocalo = conTexturaBiblioteca(ThreeLib, matZocalo, tex('texturaZocalo') || tex('texturaPared') || idZoc, !tex('texturaZocalo') && !tex('texturaPared'));
     matTecho = conTexturaBiblioteca(ThreeLib, matTecho, tex('texturaTecho'));
 
@@ -4209,9 +4210,13 @@
 
     // --- ALFOMBRA PÉTREA Y MOSAICO GEOMÉTRICO DE TESELAS INCRUSTADO EN EL SUELO (SIN CÍRCULOS) ---
     if (!config.sinMosaicosSuelo && sala.tipo !== 'jardin_subterraneo' && kit && (kit.mosaicoSuelo || kit.sueloLosas)) {
-      const matMos = (config.kitsPorEstilo && (sala.estiloSuelo || config.estiloSuelo)
-        ? ((config.kitsPorEstilo[sala.estiloSuelo || config.estiloSuelo] || kit).mosaicoSuelo)
-        : kit.mosaicoSuelo) || kit.sueloLosas;
+      const matMosBase = (kit.mosaicoSuelo && kit.mosaicoSuelo.userData && kit.mosaicoSuelo.userData.mosaicoUnico)
+        ? kit.mosaicoSuelo
+        : ((config.kitsPorEstilo && (sala.estiloSuelo || config.estiloSuelo)
+          ? ((config.kitsPorEstilo[sala.estiloSuelo || config.estiloSuelo] || kit).mosaicoSuelo)
+          : kit.mosaicoSuelo) || kit.sueloLosas);
+      const matMos = matMosBase;
+      const esMosUnico = !!(matMos && matMos.userData && matMos.userData.mosaicoUnico);
       const matBord = kit.zocalo || kit.piedraMuro || matMos;
 
       if (sala.tipo === 'pasillo') {
@@ -4219,7 +4224,16 @@
           const horizP = W > D;
           const mW = horizP ? Math.max(2.0, W - 0.35) : Math.max(1.5, Math.min(W - 1.1, W * 0.50));
           const mD = horizP ? Math.max(1.5, Math.min(D - 1.1, D * 0.50)) : Math.max(2.0, D - 0.35);
-          const geoRunner = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(mW, 0.014, mD), mW, 0.014, mD, 2.6, 0.4);
+          const geoBaseR = new ThreeLib.BoxGeometry(mW, 0.014, mD);
+          if (esMosUnico && !horizP && geoBaseR.attributes && geoBaseR.attributes.uv) {
+            const uv = geoBaseR.attributes.uv;
+            for (let i = 0; i < uv.count; i++) {
+              const u = uv.getX(i), v = uv.getY(i);
+              uv.setXY(i, v, 1 - u);
+            }
+            uv.needsUpdate = true;
+          }
+          const geoRunner = esMosUnico ? geoBaseR : aplicarUVsMetricasBox(geoBaseR, mW, 0.014, mD, 2.6, 0.4);
           const runner = new ThreeLib.Mesh(geoRunner, matMos);
           runner.position.set(0, 0.007, 0);
           runner.receiveShadow = true;
@@ -4239,7 +4253,8 @@
         bordillo.userData = { tipo: 'bordillo_mosaico', idSala: sala.id };
         g.add(bordillo);
 
-        const geoMosaico = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(mW, 0.018, mD), mW, 0.018, mD, 2.6, 0.4);
+        const geoBaseM = new ThreeLib.BoxGeometry(mW, 0.018, mD);
+        const geoMosaico = esMosUnico ? geoBaseM : aplicarUVsMetricasBox(geoBaseM, mW, 0.018, mD, 2.6, 0.4);
         const tapizMosaico = new ThreeLib.Mesh(geoMosaico, matMos);
         tapizMosaico.position.set(0, 0.010, 0);
         tapizMosaico.receiveShadow = true;
