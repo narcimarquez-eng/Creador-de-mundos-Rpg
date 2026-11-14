@@ -187,13 +187,22 @@
     .dope-item.cura { border-color: #22c55e; }
     .dope-item.debuff { border-color: #ef4444; }
     .dope-timer { font-weight: bold; font-size: 12px; color: #facc15; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; margin-left: auto; }
-    #modal-prologo { position: absolute; inset: 0; background: rgba(2,6,23,.90); display: none; align-items: center; justify-content: center; z-index: 55; padding: 16px; }
+    #modal-portada { position: absolute; inset: 0; background: radial-gradient(circle at 50% 35%, rgba(30,41,59,0.78), rgba(2,6,23,0.95)); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 56; padding: 16px; }
+    #modal-portada.show { display: flex; }
+    #modal-portada .box { background: linear-gradient(180deg, rgba(15,23,42,0.97), rgba(9,13,26,0.98)); border: 1px solid rgba(234,179,8,0.65); border-radius: 16px; padding: 26px 24px; width: 520px; max-width: 96vw; max-height: 94vh; overflow-y: auto; color: #f8fafc; box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 30px rgba(234,179,8,0.12); text-align: center; }
+    #modal-portada .portada-kicker { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #facc15; margin-bottom: 6px; }
+    #modal-portada h1 { margin: 0 0 8px; font-size: 26px; color: #f8fafc; text-shadow: 0 2px 10px rgba(0,0,0,0.7); }
+    #modal-portada .portada-sub { font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-bottom: 16px; }
+    #modal-portada .portada-resumen { background: rgba(255,255,255,0.04); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; font-size: 12px; color: #e2e8f0; text-align: left; }
+    #modal-portada .portada-acciones { display: flex; flex-direction: column; gap: 8px; }
+    #modal-portada .portada-acciones button { padding: 11px 16px; font-size: 14px; font-weight: 600; border-radius: 9px; cursor: pointer; }
+    #modal-prologo { position: absolute; inset: 0; background: rgba(2,6,23,.90); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 55; padding: 16px; }
     #modal-prologo.show { display: flex; }
     #modal-prologo .box { background: #0f172a; border: 1px solid #eab308; border-radius: 14px; padding: 20px; width: 680px; max-width: 96vw; max-height: 94vh; overflow-y: auto; color: #f8fafc; box-shadow: 0 10px 35px rgba(0,0,0,0.8); }
     .comp-card { background: rgba(255,255,255,0.04); border: 2px solid #334155; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s; }
     .comp-card:hover { border-color: #60a5fa; background: rgba(255,255,255,0.07); }
     .comp-card.selected { border-color: #facc15; background: rgba(250,204,21,0.1); box-shadow: 0 0 12px rgba(250,204,21,0.25); }
-    #partidas { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
+    #partidas { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 57; padding: 16px; }
     #partidas.show { display: flex; }
     #partidas .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 380px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
     #partidas h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
@@ -203,7 +212,7 @@
     #partidas .slot .info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #partidas .muted { color: var(--muted); font-size: 12px; }
     #partidas .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    #crear { position: absolute; inset: 0; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; z-index: 44; padding: 12px; }
+    #crear { position: absolute; inset: 0; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; z-index: 58; padding: 12px; }
     #crear.show { display: flex; }
     #crear .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(1140px, 96vw); max-width: 100%; max-height: 96vh; overflow-y: auto; }
     #crear h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
@@ -1755,75 +1764,114 @@
   <!-- HUD de Dopes y Buffs Activos en Pantalla -->
   <div id="hud-dopes"></div>
 
-  <!-- Prólogo e Introducción Inicial: Juramento de Héroes y Elección de Compañero -->
+  <!-- Pantalla de Título / Portada del Juego Completo -->
+  <div id="modal-portada"><div class="box">
+    <div class="portada-kicker">⚔️ Crónica de Aden · Juego Completo</div>
+    <h1 id="portada-titulo">Creador de Mundos RPG</h1>
+    <div id="portada-sub" class="portada-sub">
+      Tras las murallas del reino, las fraguas arden en secreto y las bestias portan injertos de acero. Empuña tu arma, forja tu destino y desmantela la conspiración de los Sabios.
+    </div>
+    <div id="portada-resumen" class="portada-resumen" style="display:none"></div>
+    <div class="portada-acciones">
+      <button id="btn-portada-continuar" class="gold" style="display:none">▶ Continuar Aventura</button>
+      <button id="btn-portada-nueva" class="gold">✨ Nueva Aventura</button>
+      <button id="btn-portada-partidas" style="display:none">💾 Gestionar Partidas</button>
+      <button id="btn-portada-visor" style="background:transparent;border:1px solid #334155;color:#94a3b8;font-size:12px;padding:8px 12px">🗺 Entrar en Visor Libre (sin prólogo)</button>
+    </div>
+  </div></div>
+
+  <!-- Prólogo e Introducción Inicial: Paso 1 (Emboscada en la Fragua) y Paso 2 (Juramento y Compañero) -->
   <div id="modal-prologo"><div class="box">
-    <h2 style="color:#facc15;margin-top:0">⚔️ Prólogo: El Juramento de los Héroes</h2>
-    <div id="prologo-historia" style="line-height:1.6;font-size:13px;background:rgba(0,0,0,0.3);padding:14px;border-radius:8px;border-left:3px solid #facc15;margin-bottom:14px">
-      <p style="margin:0 0 10px">
-        El cielo sobre las comarcas de <b>Aden</b> se oscurece con la amenaza de monstruos y criaturas salvajes que asedian los caminos, destruyen caravanas de mercaderes y acorralan los pueblos. Los sabios de la plaza advierten que los reyes antiguos cayeron por la inacción.
-      </p>
-      <p style="margin:0 0 10px">
-        Tú y tu camarada de la aldea contempláis el horizonte desde los muros. <i>«No podemos quedarnos sentados esperando a que el mal arrase nuestras cosechas y nuestros hogares»</i>, dice con la mirada decidida. <i>«Dejemos la vida de simples aldeanos. ¡Hagamos un juramento, tomemos las armas y convirtámonos en los héroes que salven esta tierra!»</i>
-      </p>
-      <p style="margin:0;color:#93c5fd;font-weight:bold">
-        Elige cuál de tus cuatro leales compañeros marchará a tu lado en esta gesta:
-      </p>
-    </div>
+    <h2 id="prologo-titulo" style="color:#facc15;margin-top:0">🔥 Prólogo · La Emboscada en la Fragua de Brann</h2>
 
-    <div id="prologo-companeros" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <!-- Tarjeta 1: Rowan -->
-      <div class="comp-card selected" data-arquetipo="rowan">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <span style="font-size:26px">🧑‍🌾</span>
-          <div><b>Rowan el Guardián</b> <small class="muted" style="display:block">Dopes de Ataque & Motivación</small></div>
-        </div>
-        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
-          Forzudo aldeano que anima los corazones en batalla. Proporciona dopes masivos de daño (+25% ataque), golpes demoledores y velocidad bélica.
-        </div>
-        <div style="font-size:10px;color:#fde047">⚔️ Grito de Aliento · 💥 Golpe de Ímpetu · 🔥 Fervor Bélico</div>
+    <div id="prologo-paso-1">
+      <div id="prologo-emboscada-texto" style="line-height:1.65;font-size:13.5px;background:rgba(0,0,0,0.34);padding:15px;border-radius:8px;border-left:3px solid #ef4444;margin-bottom:14px">
+        <p style="margin:0 0 10px">
+          La noche cae sobre las murallas de <b id="prologo-pueblo">tu aldea inicial</b>. Mientras el <b>Herrero Brann</b> martillea a escondidas fuera del control de los Sabios, un estruendo rompe las vigas: criaturas deformadas con placas de hierro remachadas en carne viva irrumpen en la fragua.
+        </p>
+        <p style="margin:0 0 10px">
+          Brann logra abatir a la primera bestia antes de caer herido sobre el yunque, apretando en su mano un <b>sello de bronce perteneciente al cónclave de la plaza</b>. <i>«Nos han tendido una trampa… alguien fabrica estas aberraciones desde dentro de nuestras propias murallas»</i>, jadea.
+        </p>
+        <p style="margin:0;color:#fde047">
+          Antes de que la guardia cierre las empalizadas, debes escapar hacia <b id="prologo-zona">las tierras de caza</b> y recuperar pieles y placas de hierro para forjar tu primer cinturón de supervivencia.
+        </p>
       </div>
-
-      <!-- Tarjeta 2: Lyra -->
-      <div class="comp-card" data-arquetipo="lyra">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <span style="font-size:26px">🧝‍♀️</span>
-          <div><b>Lyra de las Sombras</b> <small class="muted" style="display:block">DPS Rápido con Dagas</small></div>
-        </div>
-        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
-          Rápida y letal con sus dos dagas. Asesta golpes críticos consecutivos, aplica sangrado profundo y unta veneno para desgarrar a los monstruos.
-        </div>
-        <div style="font-size:10px;color:#fde047">🗡️ Danza de Dagas · 🧪 Veneno Letal · 🩸 Sangrado</div>
-      </div>
-
-      <!-- Tarjeta 3: Elian -->
-      <div class="comp-card" data-arquetipo="elian">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <span style="font-size:26px">🧙‍♂️</span>
-          <div><b>Elian el Teúrgo</b> <small class="muted" style="display:block">Mago de Apoyo & Protección</small></div>
-        </div>
-        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
-          Devoto de la luz celestial. Despliega baluartes protectores (-35% daño), cura heridas críticas y aniquila con daño sacro triple a criaturas no-muertas.
-        </div>
-        <div style="font-size:10px;color:#fde047">🌿 Gracia Sanadora · 🛡️ Baluarte de Luz · ☀️ Castigo Sagrado</div>
-      </div>
-
-      <!-- Tarjeta 4: Brenda -->
-      <div class="comp-card" data-arquetipo="brenda">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <span style="font-size:26px">👩‍🦰</span>
-          <div><b>Brenda la Berserker</b> <small class="muted" style="display:block">Tanque & Furia Berserker</small></div>
-        </div>
-        <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
-          Tanque indómita con gran vitalidad. Provoca a los enemigos para absorber golpes y activa el modo Berserker ganando daño y resistencia salvaje ante el dolor.
-        </div>
-        <div style="font-size:10px;color:#fde047">🔥 Modo Berserker · 📢 Grito Provocador · 🌀 Torbellino Feroz</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="btn-prologo-siguiente" class="gold" style="flex:1;padding:10px 20px;font-size:14px;font-weight:bold">
+          ⚔️ Elegir Camarada de Armas →
+        </button>
+        <button id="btn-prologo-saltar" style="padding:10px 14px;font-size:12px;color:#94a3b8" title="Ir directo a la plaza con Rowan">
+          Saltar
+        </button>
       </div>
     </div>
 
-    <div style="text-align:center">
-      <button id="btn-prologo-iniciar" class="gold" style="padding:10px 24px;font-size:14px;font-weight:bold;width:100%">
-        🤝 Sellar el Juramento y Comenzar la Aventura
-      </button>
+    <div id="prologo-paso-2" style="display:none">
+      <div id="prologo-historia" style="line-height:1.6;font-size:13px;background:rgba(0,0,0,0.3);padding:14px;border-radius:8px;border-left:3px solid #facc15;margin-bottom:14px">
+        <p style="margin:0 0 8px">
+          Junto a la arcada de la plaza, cuatro compañeros de confianza están dispuestos a romper el miedo y marchar contigo hacia <b id="prologo-zona-2">la ruta exterior</b>.
+        </p>
+        <p style="margin:0;color:#93c5fd;font-weight:bold">
+          Elige quién cubrirá tu espalda al cruzar las puertas (podrás alternar compañeros más adelante en la plaza):
+        </p>
+      </div>
+
+      <div id="prologo-companeros" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <!-- Tarjeta 1: Rowan -->
+        <div class="comp-card selected" data-arquetipo="rowan">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:26px">🧑‍🌾</span>
+            <div><b>Rowan el Guardián</b> <small class="muted" style="display:block">Dopes de Ataque & Motivación</small></div>
+          </div>
+          <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+            Aldeano leal de la fragua que anima los corazones en batalla. Proporciona dopes masivos de daño (+25% ataque), golpes demoledores y velocidad bélica.
+          </div>
+          <div style="font-size:10px;color:#fde047">⚔️ Grito de Aliento · 💥 Golpe de Ímpetu · 🔥 Fervor Bélico</div>
+        </div>
+
+        <!-- Tarjeta 2: Lyra -->
+        <div class="comp-card" data-arquetipo="lyra">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:26px">🧝‍♀️</span>
+            <div><b>Lyra de las Sombras</b> <small class="muted" style="display:block">DPS Rápido con Dagas</small></div>
+          </div>
+          <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+            Rápida y letal con sus dos dagas. Asesta golpes críticos consecutivos, aplica sangrado profundo y unta veneno para desgarrar a los monstruos.
+          </div>
+          <div style="font-size:10px;color:#fde047">🗡️ Danza de Dagas · 🧪 Veneno Letal · 🩸 Sangrado</div>
+        </div>
+
+        <!-- Tarjeta 3: Elian -->
+        <div class="comp-card" data-arquetipo="elian">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:26px">🧙‍♂️</span>
+            <div><b>Elian el Teúrgo</b> <small class="muted" style="display:block">Mago de Apoyo & Protección</small></div>
+          </div>
+          <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+            Devoto de la luz celestial. Despliega baluartes protectores (-35% daño), cura heridas críticas y aniquila con daño sacro triple a criaturas no-muertas.
+          </div>
+          <div style="font-size:10px;color:#fde047">🌿 Gracia Sanadora · 🛡️ Baluarte de Luz · ☀️ Castigo Sagrado</div>
+        </div>
+
+        <!-- Tarjeta 4: Brenda -->
+        <div class="comp-card" data-arquetipo="brenda">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:26px">👩‍🦰</span>
+            <div><b>Brenda la Berserker</b> <small class="muted" style="display:block">Tanque & Furia Berserker</small></div>
+          </div>
+          <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
+            Tanque indómita con gran vitalidad. Provoca a los enemigos para absorber golpes y activa el modo Berserker ganando daño y resistencia salvaje ante el dolor.
+          </div>
+          <div style="font-size:10px;color:#fde047">🔥 Modo Berserker · 📢 Grito Provocador · 🌀 Torbellino Feroz</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button id="btn-prologo-volver" style="padding:10px 14px;font-size:13px">← Volver</button>
+        <button id="btn-prologo-iniciar" class="gold" style="flex:1;padding:10px 24px;font-size:14px;font-weight:bold">
+          🤝 Sellar el Juramento y Salir a la Plaza
+        </button>
+      </div>
     </div>
   </div></div>
 
@@ -7823,6 +7871,8 @@
     return best ? 'cerca de ' + best.t.name : '';
   }
 
+  let prologoVistoActual = false;
+
   function snapshot(name, id) {
     const snap = PartidaLib.makePartida({
       id, name,
@@ -7833,7 +7883,7 @@
       personaje: personajeActual, heroe: heroeEst
     });
     const act = activePartida();
-    if (act && act.prologoVisto) snap.prologoVisto = true;
+    if (prologoVistoActual || (act && act.prologoVisto)) snap.prologoVisto = true;
     if (acompanante) {
       if (typeof AcompananteLib !== 'undefined' && AcompananteLib.sincronizarArquetipoActivo) {
         AcompananteLib.sincronizarArquetipoActivo(acompanante);
@@ -7865,6 +7915,7 @@
 
   function applyPartida(p) {
     const r = PartidaLib.restoreFields(p);
+    prologoVistoActual = !!(p && p.prologoVisto);
     hero = CombatLib.newHero();
     hero.level = r.level;
     hero.xp = r.xp;
@@ -8153,6 +8204,10 @@
     if (!p) return;
     PartidaLib.setActiveId(store, worldId, id);
     applyPartida(p);
+    asegurarAcompananteActivo();
+    if (typeof cerrarPortada === 'function') cerrarPortada();
+    closePartidas();
+    if (typeof comprobarPrologo === 'function') comprobarPrologo(p);
     toast('Cargada: ' + p.name);
     renderPartidas();
   }
@@ -8184,7 +8239,10 @@
   }
 
   function openPartidas() { saveActive(true); renderPartidas(); $('partidas').classList.add('show'); }
-  function closePartidas() { $('partidas').classList.remove('show'); }
+  function closePartidas() {
+    $('partidas').classList.remove('show');
+    if ($('modal-portada') && $('modal-portada').classList.contains('show') && typeof actualizarPortada === 'function') actualizarPortada();
+  }
 
   function exportPartida() {
     const p = activePartida() || snapshot('Partida', PartidaLib.newId());
@@ -8393,7 +8451,9 @@
     $('crear').classList.remove('show');
     pausarEstudioSiOculto();
     if (!personajeActual) {
-      toast('Puedes volver a abrir la creación pulsando 🧙 Personaje en la barra superior.', 4000);
+      const pUrl = new URLSearchParams(location.search);
+      if (!(pUrl.get('zona') || pUrl.get('visor') === '1') && typeof abrirPortada === 'function') abrirPortada();
+      else toast('Puedes volver a abrir la creación pulsando 🧙 Personaje en la barra superior.', 4000);
     }
   };
 
@@ -9970,6 +10030,7 @@
     if (list.length >= PartidaLib.MAX_PER_WORLD) { toast('Ya hay 5 partidas. Borra una para crear otra.', 3500); return; }
     const id = PartidaLib.newId();
     const name = pj.nombre + ' · Partida ' + (list.length + 1);
+    prologoVistoActual = false;
     personajeActual = pj;
     hero = CombatLib.newHero();
     heroeEst = HeroeLib.nuevoHeroe();
@@ -9990,7 +10051,9 @@
     ruta = null;
     asegurarAcompananteActivo();
     actualizarMision();
-    mostrarEncargo();   // la historia empieza: capítulo 1
+    if (typeof cerrarPortada === 'function') cerrarPortada();
+    if (typeof abrirPrologo === 'function') abrirPrologo(1);
+    else mostrarEncargo();
   }
 
   // ===========================================================================
@@ -11867,16 +11930,79 @@
   }
 
   // ===========================================================================
-  // Prólogo e Introducción Inicial: Selección de Compañero de Camino
+  // Portada de Juego Completo y Prólogo de la Emboscada (2 pasos)
   // ===========================================================================
   let arquetipoSeleccionadoPrologo = 'rowan';
 
-  function comprobarPrologo(active) {
-    if (!active || active.prologoVisto) return;
-    abrirPrologo();
+  function actualizarPortada() {
+    if ($('portada-titulo') && world) $('portada-titulo').textContent = world.name || 'Crónica de Aden';
+    const list = (typeof PartidaLib !== 'undefined' && store && worldId) ? PartidaLib.readList(store, worldId) : [];
+    const active = activePartida() || list[0] || null;
+    const btnCont = $('btn-portada-continuar');
+    const btnPart = $('btn-portada-partidas');
+    const res = $('portada-resumen');
+    if (active) {
+      const hEst = active.heroe ? HeroeLib.limpiarHeroe(active.heroe) : null;
+      const acto = (hEst && typeof HistoriaLib !== 'undefined' && HistoriaLib.actoActual) ? HistoriaLib.actoActual(hEst.principal) : null;
+      const cap = (hEst && typeof HistoriaLib !== 'undefined') ? HistoriaLib.capituloActual(hEst.principal) : null;
+      const capTxt = cap ? `Cap. ${hEst.principal.paso + 1}: ${cap.titulo}` : 'Crónica completada';
+      if (btnCont) {
+        btnCont.style.display = '';
+        btnCont.textContent = `▶ Continuar Aventura (${active.name || 'Partida'})`;
+      }
+      if (btnPart) btnPart.style.display = '';
+      if (res) {
+        res.style.display = '';
+        res.innerHTML = `<b>${esc(active.name || 'Aventurero')}</b> · Nivel ${active.hero ? active.hero.level : 1}${active.where ? ' · ' + esc(active.where) : ''}<br><span class="muted">${acto ? esc(acto.nombre) + ' · ' : ''}${esc(capTxt)}</span>`;
+      }
+    } else {
+      if (btnCont) btnCont.style.display = 'none';
+      if (btnPart) btnPart.style.display = list.length ? '' : 'none';
+      if (res) res.style.display = 'none';
+    }
   }
 
-  function abrirPrologo() {
+  function abrirPortada() {
+    actualizarPortada();
+    const m = $('modal-portada');
+    if (m) m.classList.add('show');
+  }
+
+  function cerrarPortada() {
+    const m = $('modal-portada');
+    if (m) m.classList.remove('show');
+  }
+
+  function mostrarPasoPrologo(paso) {
+    const p1 = $('prologo-paso-1'), p2 = $('prologo-paso-2'), tit = $('prologo-titulo');
+    if (p1) p1.style.display = paso === 2 ? 'none' : '';
+    if (p2) p2.style.display = paso === 2 ? '' : 'none';
+    if (tit) tit.textContent = paso === 2
+      ? '⚔️ Prólogo · El Juramento en la Plaza'
+      : '🔥 Prólogo · La Emboscada en la Fragua de Brann';
+  }
+
+  function rellenarContextoPrologo() {
+    const pueblo = (typeof HistoriaLib !== 'undefined' && world) ? HistoriaLib.puebloInicial(world) : null;
+    const nombrePueblo = pueblo ? pueblo.name : 'la aldea inicial';
+    let nombreZona = 'las tierras de caza cercanas';
+    if (typeof HistoriaLib !== 'undefined' && world && heroeEst && heroeEst.principal) {
+      const o = HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
+      if (o && o.nombre) nombreZona = o.nombre;
+    }
+    if ($('prologo-pueblo')) $('prologo-pueblo').textContent = nombrePueblo;
+    if ($('prologo-zona')) $('prologo-zona').textContent = nombreZona;
+    if ($('prologo-zona-2')) $('prologo-zona-2').textContent = nombreZona;
+  }
+
+  function comprobarPrologo(active) {
+    if (!active || active.prologoVisto) return;
+    abrirPrologo(1);
+  }
+
+  function abrirPrologo(paso) {
+    rellenarContextoPrologo();
+    mostrarPasoPrologo(paso || 1);
     const m = $('modal-prologo');
     if (m) m.classList.add('show');
   }
@@ -11884,6 +12010,70 @@
   function cerrarPrologo() {
     const m = $('modal-prologo');
     if (m) m.classList.remove('show');
+  }
+
+  function finalizarPrologo(saltado) {
+    const arq = saltado ? 'rowan' : arquetipoSeleccionadoPrologo;
+    prologoVistoActual = true;
+    asegurarAcompananteActivo(arq);
+    const list = PartidaLib.readList(store, worldId);
+    const activeId = PartidaLib.getActiveId(store, worldId);
+    const idx = list.findIndex(x => x.id === activeId);
+    if (idx !== -1) {
+      list[idx].prologoVisto = true;
+      list[idx].arquetipoCompanero = arq;
+      PartidaLib.writeList(store, worldId, list);
+    }
+    saveActive(true);
+    cerrarPrologo();
+    setFollow(true);
+    actualizarMision();
+    const compInfo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS) ? AcompananteLib.COMPANEROS[arq] : null;
+    const nom = compInfo ? compInfo.nombre : 'Tu compañero';
+    toast(saltado
+      ? `🔥 Acto I · Cap. 1: Reúne materiales para Brann junto a ${nom}.`
+      : `🤝 ¡Juramento sellado! ${nom} te acompaña en la plaza de Aden.`);
+  }
+
+  if ($('btn-portada-continuar')) {
+    $('btn-portada-continuar').onclick = () => {
+      const list = PartidaLib.readList(store, worldId);
+      let active = activePartida();
+      if (!active && list.length) {
+        active = list[0];
+        PartidaLib.setActiveId(store, worldId, active.id);
+      }
+      if (active) {
+        applyPartida(active);
+        asegurarAcompananteActivo();
+        cerrarPortada();
+        comprobarPrologo(active);
+      } else {
+        cerrarPortada();
+        openCrearPersonaje(crearPartida);
+      }
+    };
+  }
+  if ($('btn-portada-nueva')) {
+    $('btn-portada-nueva').onclick = () => {
+      if (PartidaLib.readList(store, worldId).length >= PartidaLib.MAX_PER_WORLD) {
+        openPartidas();
+        toast('Ya hay 5 partidas guardadas: borra una para empezar una nueva aventura.', 3500);
+        return;
+      }
+      cerrarPortada();
+      openCrearPersonaje(crearPartida);
+    };
+  }
+  if ($('btn-portada-partidas')) {
+    $('btn-portada-partidas').onclick = () => openPartidas();
+  }
+  if ($('btn-portada-visor')) {
+    $('btn-portada-visor').onclick = () => {
+      cerrarPortada();
+      overview();
+      toast('🗺 Modo Visor Libre activo');
+    };
   }
 
   if ($('prologo-companeros')) {
@@ -11896,24 +12086,14 @@
     });
   }
 
-  if ($('btn-prologo-iniciar')) {
-    $('btn-prologo-iniciar').onclick = () => {
-      asegurarAcompananteActivo(arquetipoSeleccionadoPrologo);
-      const active = activePartida();
-      if (active) {
-        active.prologoVisto = true;
-        active.arquetipoCompanero = arquetipoSeleccionadoPrologo;
-        saveActive(true);
-      }
-      cerrarPrologo();
-      const compInfo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS) ? AcompananteLib.COMPANEROS[arquetipoSeleccionadoPrologo] : null;
-      const nom = compInfo ? compInfo.nombre : 'Tu compañero';
-      toast(`🤝 ¡Juramento sellado! ${nom} se une a tu causa.`);
-    };
-  }
+  if ($('btn-prologo-siguiente')) $('btn-prologo-siguiente').onclick = () => mostrarPasoPrologo(2);
+  if ($('btn-prologo-volver')) $('btn-prologo-volver').onclick = () => mostrarPasoPrologo(1);
+  if ($('btn-prologo-saltar')) $('btn-prologo-saltar').onclick = () => finalizarPrologo(true);
+  if ($('btn-prologo-iniciar')) $('btn-prologo-iniciar').onclick = () => finalizarPrologo(false);
 
-  // Al abrir un mundo: se usa su partida activa, o se crea la primera
-  function bootPartida() {
+  // Al abrir un mundo: prepara el mundo, restaura partida si existe y muestra la portada de Juego Completo
+  function bootPartida(opts) {
+    opts = opts || {};
     iniciarLugaresSecretos();
     iniciarMazmorras();
     colocarGurus();
@@ -11928,9 +12108,12 @@
     if (active) {
       applyPartida(active);
       asegurarAcompananteActivo();
-      comprobarPrologo(active);
-    } else {
+      if (opts.sinPortada) comprobarPrologo(active);
+      else abrirPortada();
+    } else if (opts.sinPortada) {
       openCrearPersonaje(crearPartida);
+    } else {
+      abrirPortada();
     }
   }
 
@@ -12636,13 +12819,14 @@
     }
 
     if (text) {
+      const targetZonaId = params.get('zona');
+      const sinPortada = !!(targetZonaId || params.get('visor') === '1');
       worldId = id;
       loadText(text, false);
-      bootPartida();
+      bootPartida({ sinPortada });
       if ($('load')) $('load').classList.remove('show');
 
       // Si se abre con ?zona=... o retorno directo de laberinto, situar al jugador en la entrada del estrechamiento exterior de 100m
-      const targetZonaId = params.get('zona');
       if (targetZonaId && world && world.zones) {
         let targetZ = world.zones.find(zn => zn.id === targetZonaId) || world.zones.find(zn => zn.relieve && zn.relieve.activo) || world.zones[0];
         if (targetZ) {

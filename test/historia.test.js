@@ -265,4 +265,14 @@ t('visor-mundo.html integra diálogos contextuales, actos en la crónica y feedb
   assert.ok(html.includes('HistoriaLib.actoActual'), 'visor-mundo muestra el acto actual');
 });
 
+t('visor-mundo.html ofrece portada de juego completo, prólogo de emboscada en 2 pasos y persistencia de prologoVisto', () => {
+  const fs = require('fs'), path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  ['modal-portada', 'btn-portada-continuar', 'btn-portada-nueva', 'btn-portada-partidas', 'btn-portada-visor',
+   'prologo-paso-1', 'prologo-paso-2', 'btn-prologo-siguiente', 'btn-prologo-volver', 'btn-prologo-saltar', 'btn-prologo-iniciar',
+   'function abrirPortada', 'function abrirPrologo', 'function finalizarPrologo', 'prologoVistoActual', 'sinPortada'].forEach(token => {
+    assert.ok(html.includes(token), `visor-mundo debe incluir ${token}`);
+  });
+});
+
 console.log(`\n${n} pruebas de la historia superadas.`);

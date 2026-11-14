@@ -48,6 +48,8 @@ Tras sobrevivir a una emboscada de criaturas con injertos metálicos en la fragu
 
 ## 4. Evolución implementada en la rama `juego-completo`
 
+- **Portada de Juego Completo (`#modal-portada`):** Al abrir `visor-mundo.html`, una pantalla de título muestra el nombre del mundo, el Acto/capítulo activo y las opciones de *Continuar Aventura*, *Nueva Aventura*, *Gestionar Partidas* o entrar al *Visor Libre* (`?zona=` y `?visor=1` omiten la portada para entradas directas).
+- **Prólogo narrativo en 2 pasos (`#modal-prologo`):** Al crear una partida nueva (`crearPartida`), se muestra primero la *Emboscada en la Fragua de Brann* —enlazada con el Capítulo 1— y después el *Juramento en la Plaza* para elegir compañero (*Rowan, Lyra, Elian o Brenda*), persistiendo correctamente `prologoVisto` en cada ranura.
 - **Diálogos dinámicos por Acto (`HistoriaLib.fraseContextualNpc`):** Los 5 gurús y los NPCs de servicio reaccionan al acto actual (Actos I–IV y Epílogo) y al capítulo activo.
 - **Feedback narrativo de farmeo (`HistoriaLib.materialDeCapitulo`):** Al abatir monstruos en capítulos de forja, el HUD y los avisos muestran el material recuperado rumbo al yunque de Brann.
 - **Visibilidad del Acto y del Monopolio:** La Crónica (`#cronica`), el HUD de misión (`#mision`) y las tiendas de **Brann** y **Tovi** reflejan explícitamente el Acto actual y el estado del monopolio de los Sabios (Cap. 11).
