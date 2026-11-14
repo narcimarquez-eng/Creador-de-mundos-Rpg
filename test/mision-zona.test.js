@@ -72,4 +72,12 @@ t('los encargos cambian de texto entre zonas (no todos iguales)', () => {
   assert.ok(textos.size >= 2);
 });
 
+t('contextoNarrativoZona adapta el contexto de los encargos vecinales según el Acto de Aden', () => {
+  const m = M.misionDeZona(zona('z1', 'caza'), PUEBLOS[0]);
+  assert.ok(M.contextoNarrativoZona(m, 0).includes('Acto I'));
+  assert.ok(M.contextoNarrativoZona(m, 12).includes('Acto III'));
+  assert.ok(M.contextoNarrativoZona(m, 16).includes('Epílogo'));
+  assert.ok(M.contextoNarrativoZona(m, 16).includes('Lorrin'));
+});
+
 console.log(`\n${n} pruebas de encargos de zona superadas.`);

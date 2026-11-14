@@ -471,6 +471,14 @@ t('orientación y consejos de guía: cálculo de rumbo y avisos de monstruos end
   // Advertencia de salud baja
   const consejoHerido = A.darConsejoGuia(c, destNorte, heroePos, { hp: 25, maxHp: 100 });
   assert.ok(consejoHerido.includes('tu salud está algo baja'));
+
+  // Reacción contextual al Acto cuando se pasa principal
+  const consejoActo1 = A.darConsejoGuia(c, destNorte, heroePos, { hp: 100, maxHp: 100 }, { paso: 1 });
+  const consejoActo3 = A.darConsejoGuia(c, destNorte, heroePos, { hp: 100, maxHp: 100 }, { paso: 12 });
+  const consejoEpiSinDest = A.darConsejoGuia(c, null, heroePos, { hp: 100, maxHp: 100 }, { paso: 16 });
+  assert.ok(consejoActo1.includes('Acto I'));
+  assert.ok(consejoActo3.includes('Acto III'));
+  assert.ok(consejoEpiSinDest.includes('Campeones de Aden'));
 });
 
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);

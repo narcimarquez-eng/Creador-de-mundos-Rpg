@@ -9293,6 +9293,10 @@
   function renderEncargo() {
     const m = npcActual.mision;
     const st = heroeEst.zonas[m.zona];
+    const pasoH = (heroeEst && heroeEst.principal && heroeEst.principal.paso) || 0;
+    const loreZona = (typeof MisionZonaLib !== 'undefined' && typeof MisionZonaLib.contextoNarrativoZona === 'function')
+      ? MisionZonaLib.contextoNarrativoZona(m, pasoH)
+      : '';
     const premio = '🪙 ' + m.recompensa.oro + ' · 🧪 ' + m.recompensa.vida + ' · 💧 ' + m.recompensa.mana + (m.recompensa.puntos ? ' · 🧬 1 punto de habilidad' : '');
     let accion;
     if (!st) accion = '<button class="gold" data-aceptar-zona="' + esc(m.zona) + '">Aceptar encargo</button>';
@@ -9300,6 +9304,7 @@
     else if (st.lista) accion = '<button class="gold" data-entregar-zona="' + esc(m.zona) + '">Entregar y cobrar</button>';
     else accion = '<div class="muted">En curso: ' + st.progreso + ' / ' + st.cantidad + '</div>';
     return '<h3 class="npc-h">' + esc(m.titulo) + '</h3>'
+      + (loreZona ? '<div style="font-size:11.5px;color:#93c5fd;margin:4px 0 8px;padding:6px 8px;background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;border-radius:4px">' + esc(loreZona) + '</div>' : '')
       + '<div class="muted">' + esc(m.texto) + ' (' + esc(m.zonaNombre) + ')</div>'
       + '<div class="muted" style="margin-top:4px">Recompensa: ' + premio + '</div>'
       + '<div class="btns" style="margin-top:8px">' + accion + '</div>';
@@ -9352,11 +9357,18 @@
         + (H.disponible(heroeEst, id, hero.level) ? '' : ' · 🔒 ' + esc(H.requisito(id))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
     }).join('');
     const pr = heroeEst.principal, capAct = HistoriaLib.capituloActual(pr), total = HistoriaLib.CAPITULOS.length;
+    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(pr) : null;
     const objAct = capAct && world ? HistoriaLib.asegurarObjetivo(pr, world) : null;
-    const historia = (objAct
-      ? '<div class="fila"><span>📜 Capítulo ' + (pr.paso + 1) + ' · ' + esc(capAct.titulo) + '<br><span class="muted">' + esc(objAct.texto) + '</span></span><b>' + pr.progreso + ' / ' + objAct.cantidad + '</b></div>'
-      : '<div class="muted">Crónica completa.</div>')
-      + '<div class="muted">Capítulos contados: ' + Math.min(pr.paso, total) + ' / ' + total + ' (los cuenta la crónica, tecla C)</div>';
+    const titulosList = Array.isArray(heroeEst.titulos) ? heroeEst.titulos : [];
+    const titulosHtml = titulosList.length
+      ? '<div style="margin:6px 0;padding:6px 10px;border-radius:6px;background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.45);color:#fde047;font-size:12px">👑 <b>Títulos:</b> ' + titulosList.map(esc).join(' · ') + '</div>'
+      : '<div class="muted" style="margin:4px 0">Títulos: ninguno aún (completa los 16 capítulos para obtener «Campeones de Aden»).</div>';
+    const historia = (acto ? '<div class="muted" style="color:#38bdf8;margin-bottom:4px"><b>' + esc(acto.nombre) + '</b></div>' : '')
+      + (objAct
+        ? '<div class="fila"><span>📜 Capítulo ' + (pr.paso + 1) + ' · ' + esc(capAct.titulo) + '<br><span class="muted">' + esc(objAct.texto) + '</span></span><b>' + pr.progreso + ' / ' + objAct.cantidad + '</b></div>'
+        : '<div class="muted">Crónica completa · Epílogo abierto.</div>')
+      + '<div class="muted">Capítulos contados: ' + Math.min(pr.paso, total) + ' / ' + total + ' (los cuenta la crónica, tecla C)</div>'
+      + titulosHtml;
     const posibles = Object.keys(H.ESPECIALES).map(tipo => '<div class="muted"><b>' + tipo + '</b>: ' + H.ESPECIALES[tipo].map(e => esc(e.nombre) + ' (' + esc(H.efectoTexto(e.efecto)) + ')').join(' · ') + '</div>').join('');
     const encargos = Object.keys(heroeEst.zonas).map(id => {
       const z = heroeEst.zonas[id], m = misionPorZona[id];
@@ -11713,7 +11725,7 @@
     const d = destinoDeMision();
     const p = character.root.position;
     const consejo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.darConsejoGuia)
-      ? AcompananteLib.darConsejoGuia(acompanante, d, p, hero)
+      ? AcompananteLib.darConsejoGuia(acompanante, d, p, hero, heroeEst ? heroeEst.principal : null)
       : (acompanante.nombre || 'Rowan') + ': «¡Adelante, camarada! Juntos superaremos cualquier desafío.»';
     const textoLimpio = consejo.replace(/^[^:]+:\s*«?/, '').replace(/»?$/, '');
     if (typeof AcompananteLib !== 'undefined' && AcompananteLib.decirFrase) {
@@ -11995,6 +12007,9 @@
       const acto = (hEst && typeof HistoriaLib !== 'undefined' && HistoriaLib.actoActual) ? HistoriaLib.actoActual(hEst.principal) : null;
       const cap = (hEst && typeof HistoriaLib !== 'undefined') ? HistoriaLib.capituloActual(hEst.principal) : null;
       const capTxt = cap ? `Cap. ${hEst.principal.paso + 1}: ${cap.titulo}` : 'Crónica completada';
+      const titTxt = (hEst && Array.isArray(hEst.titulos) && hEst.titulos.length)
+        ? `<br><span style="color:#facc15;font-weight:600">👑 ${esc(hEst.titulos.join(' · '))}</span>`
+        : '';
       if (btnCont) {
         btnCont.style.display = '';
         btnCont.textContent = `▶ Continuar Aventura (${active.name || 'Partida'})`;
@@ -12002,7 +12017,7 @@
       if (btnPart) btnPart.style.display = '';
       if (res) {
         res.style.display = '';
-        res.innerHTML = `<b>${esc(active.name || 'Aventurero')}</b> · Nivel ${active.hero ? active.hero.level : 1}${active.where ? ' · ' + esc(active.where) : ''}<br><span class="muted">${acto ? esc(acto.nombre) + ' · ' : ''}${esc(capTxt)}</span>`;
+        res.innerHTML = `<b>${esc(active.name || 'Aventurero')}</b> · Nivel ${active.hero ? active.hero.level : 1}${active.where ? ' · ' + esc(active.where) : ''}<br><span class="muted">${acto ? esc(acto.nombre) + ' · ' : ''}${esc(capTxt)}</span>${titTxt}`;
       }
     } else {
       if (btnCont) btnCont.style.display = 'none';

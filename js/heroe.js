@@ -106,7 +106,7 @@
 
   // Estado de un héroe nuevo
   function nuevoHeroe() {
-    return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, barra: Object.assign({}, BARRA_INICIAL),
+    return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, titulos: [], barra: Object.assign({}, BARRA_INICIAL),
       principal: { paso: 0, progreso: 0, objetivo: null } };
   }
 
@@ -144,6 +144,19 @@
       base.principal.paso = num(pr.paso);
       base.principal.objetivo = limpiarObjetivo(pr.objetivo);
       base.principal.progreso = base.principal.objetivo ? Math.min(base.principal.objetivo.cantidad, num(pr.progreso)) : 0;
+    }
+    // Títulos honoríficos desbloqueados (p. ej. "Campeones de Aden" al completar el capítulo 16)
+    const vistosTit = new Set();
+    if (Array.isArray(h.titulos)) {
+      h.titulos.forEach(t => {
+        if (typeof t === 'string') {
+          const limpio = t.trim().slice(0, 60);
+          if (limpio && !vistosTit.has(limpio)) { vistosTit.add(limpio); base.titulos.push(limpio); }
+        }
+      });
+    }
+    if (base.principal.paso >= 16 && !vistosTit.has('Campeones de Aden')) {
+      base.titulos.push('Campeones de Aden');
     }
     return base;
   }
@@ -192,10 +205,14 @@
     return z;
   }
 
-  // Recompensa de un capítulo de la historia: puntos y, si procede, una habilidad activa
+  // Recompensa de un capítulo de la historia: puntos, título honorífico y, si procede, una habilidad activa
   function recompensar(h, r) {
     h.puntos += (r && r.puntos) || 0;
     if (r && r.desbloquea && HABILIDADES[r.desbloquea]) h.desbloqueadas[r.desbloquea] = true;
+    if (r && typeof r.titulo === 'string' && r.titulo.trim()) {
+      h.titulos = Array.isArray(h.titulos) ? h.titulos : [];
+      if (!h.titulos.includes(r.titulo.trim())) h.titulos.push(r.titulo.trim());
+    }
   }
 
   // Monstruo derrotado: cuenta para los puntos de lucha. Devuelve true si gana un punto.

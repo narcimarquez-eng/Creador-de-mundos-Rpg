@@ -110,11 +110,15 @@
     return { dist, dir };
   }
 
-  // Genera un consejo contextual de guía donde el acompañante te dice dónde ir y te advierte de los monstruos
-  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo) {
+  // Genera un consejo contextual de guía donde el acompañante te dice dónde ir, te advierte de los monstruos y reacciona al Acto activo
+  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo, principal) {
     if (!acompanante) return '';
     const nomComp = acompanante.nombre || 'Rowan';
+    const paso = principal && typeof principal.paso === 'number' ? principal.paso : null;
     if (!destino) {
+      if (paso !== null && paso >= 16) {
+        return `${nomComp}: «¡Somos Campeones de Aden! Si aún buscas acero y gloria, limpiemos las 5 cabañas fronterizas y las Mazmorras Ancestrales.»`;
+      }
       return `${nomComp}: «Hemos cumplido con los objetivos por ahora. ¡Vayamos a la plaza del pueblo inicial a hablar con los sabios para nuevas órdenes!»`;
     }
 
@@ -126,6 +130,14 @@
       consejo = `«¡Ya estamos en ${nomObj}! Desenvaina y mantén la guardia alta: las bestias de esta zona poseen una vitalidad y dureza descomunales. ¡Lucharemos espalda contra espalda!»`;
     } else {
       consejo = `«Camarada, debemos marchar hacia «${nomObj}». Queda hacia el ${dir}, a unos ${dist} metros. Sigamos las calzadas empedradas: yo te cubriré las espaldas con mis dopes de combate.»`;
+    }
+
+    if (paso !== null) {
+      if (paso <= 4) consejo += ' (Acto I: cada pieza que arranquemos reforzará la forja clandestina de Brann.)';
+      else if (paso <= 9) consejo += ' (Acto II: no bajes la guardia; las reliquias y diarios incriminan al cónclave.)';
+      else if (paso <= 13) consejo += ' (Acto III: con el cerco y el monopolio temblando, vamos directos a por el Titán.)';
+      else if (paso < 16) consejo += ' (Acto IV: solo queda purificar la fuente y sellar el juicio en la plaza.)';
+      else consejo += ' (Epílogo: el reino es libre, pero las criptas ancestrales aún guardan desafíos.)';
     }
 
     if (heroeInfo && heroeInfo.hp && heroeInfo.maxHp && (heroeInfo.hp < heroeInfo.maxHp * 0.40)) {

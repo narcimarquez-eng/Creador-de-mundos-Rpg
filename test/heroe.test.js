@@ -187,4 +187,15 @@ t('encargos de zona: se guardan y se sanean al cargar la partida', () => {
   assert.strictEqual(dañado.zonas.b.progreso, 1);   // el progreso guardado se acota al total del encargo
 });
 
+t('títulos: recompensar guarda el título sin duplicados y limpiarHeroe lo sanea o desbloquea en el cap. 16', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.titulos, []);
+  H.recompensar(h, { puntos: 6, titulo: 'Campeones de Aden' });
+  H.recompensar(h, { puntos: 0, titulo: 'Campeones de Aden' });
+  assert.deepStrictEqual(h.titulos, ['Campeones de Aden']);
+
+  const saneado = H.limpiarHeroe({ titulos: ['  Héroe  ', 123, 'Héroe'], principal: { paso: 16, progreso: 0 } });
+  assert.deepStrictEqual(saneado.titulos, ['Héroe', 'Campeones de Aden']);
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

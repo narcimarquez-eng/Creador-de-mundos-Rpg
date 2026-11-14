@@ -125,7 +125,20 @@
     return (zonas || []).map(z => misionDeZona(z, puebloMasCercano(z, pueblos)));
   }
 
-  const api = { PERSONAJES, MODELOS, ENCARGOS, misionDeZona, encargosDeMundo, puebloMasCercano, objetivoDe };
+  // Contexto narrativo de cada encargo vecinal dentro de la crisis de Aden
+  function contextoNarrativoZona(mision, pasoHistoria) {
+    const paso = typeof pasoHistoria === 'number' ? pasoHistoria : 0;
+    const lugar = (mision && mision.puebloNombre) || 'la aldea';
+    if (paso >= 16) {
+      return `Epílogo · Reconstrucción libre de ${lugar}: tras caer los Sabios conspiradores, los vecinos limpian los últimos focos salvajes de la región.`;
+    }
+    if (paso >= 11) {
+      return `Acto III–IV · Rutas en disputa: con el monopolio roto y la guardia de Kaelen de lado del pueblo, cada encargo consolida los suministros de ${lugar}.`;
+    }
+    return `Acto I–II · Impacto de la plaga: la falta de escoltas del cónclave deja a los aldeanos de ${lugar} indefensos frente a las bestias alteradas.`;
+  }
+
+  const api = { PERSONAJES, MODELOS, ENCARGOS, misionDeZona, encargosDeMundo, puebloMasCercano, objetivoDe, contextoNarrativoZona };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MisionZonaLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);
