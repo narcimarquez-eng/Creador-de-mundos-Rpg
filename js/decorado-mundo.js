@@ -285,29 +285,7 @@
       grupo.add(iJunco);
     }
 
-    // 4. Partículas ambientales recicladas alrededor de la cámara (luciérnagas, nieve y pavesas)
-    const CANT_PARTICULAS = 80;
-    let puntosAmb = null;
-    let partData = null;
-    if (THREE.Points && THREE.BufferAttribute && THREE.PointsMaterial) {
-      const posArr = new Float32Array(CANT_PARTICULAS * 3);
-      partData = [];
-      for (let i = 0; i < CANT_PARTICULAS; i++) {
-        const px = (hashNum(i, 11) - 0.5) * 64;
-        const py = 1.0 + hashNum(i, 23) * 14;
-        const pz = (hashNum(i, 37) - 0.5) * 64;
-        posArr[i * 3] = px; posArr[i * 3 + 1] = py; posArr[i * 3 + 2] = pz;
-        partData.push({ ox: px, oy: py, oz: pz, fase: hashNum(i, 53) * Math.PI * 2, vel: 0.6 + hashNum(i, 71) * 0.9 });
-      }
-      const pGeo = new THREE.BufferGeometry();
-      pGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-      const pMat = new THREE.PointsMaterial({ color: 0xfef08a, size: 0.42, transparent: true, opacity: 0.72, depthWrite: false });
-      puntosAmb = new THREE.Points(pGeo, pMat);
-      puntosAmb.frustumCulled = false;
-      grupo.add(puntosAmb);
-    }
-
-    function actualizar(dt, tSec, cx, cz, modoHora) {
+    function actualizar(dt, tSec) {
       for (let i = 0; i < animados.length; i++) {
         const a = animados[i];
         if (!a.mesh) continue;
@@ -320,45 +298,6 @@
           const s = 0.92 + Math.sin(tSec * 7.5 + a.phase) * 0.12;
           a.mesh.scale.set(s, s, s);
         }
-      }
-      if (puntosAmb && partData && Number.isFinite(cx) && Number.isFinite(cz)) {
-        const bio = (biomaAt(cx, cz) || 'pradera').toLowerCase();
-        const esFrio = bio === 'nieve' || bio === 'taiga' || bio === 'tundra';
-        const esCalor = bio === 'montana' || bio === 'desierto';
-        if (esFrio) {
-          puntosAmb.material.color.setHex(0xe0f2fe);
-          puntosAmb.material.opacity = 0.68;
-        } else if (esCalor) {
-          puntosAmb.material.color.setHex(0xfb923c);
-          puntosAmb.material.opacity = 0.65;
-        } else {
-          puntosAmb.material.color.setHex(modoHora === 'night' ? 0xbef264 : 0xfef08a);
-          puntosAmb.material.opacity = modoHora === 'night' ? 0.82 : (modoHora === 'golden' ? 0.62 : 0.35);
-        }
-        const attr = puntosAmb.geometry.attributes.position;
-        const arr = attr.array;
-        const sueloBase = altura(cx, cz);
-        for (let i = 0; i < partData.length; i++) {
-          const d = partData[i];
-          if (esFrio) {
-            d.oy -= dt * 2.2 * d.vel;
-            if (d.oy < 0.2) d.oy = 14.5;
-            arr[i * 3] = cx + d.ox + Math.sin(tSec * 0.9 + d.fase) * 1.4;
-            arr[i * 3 + 1] = sueloBase + d.oy;
-            arr[i * 3 + 2] = cz + d.oz + Math.cos(tSec * 0.7 + d.fase) * 1.4;
-          } else if (esCalor) {
-            d.oy += dt * 1.6 * d.vel;
-            if (d.oy > 14.5) d.oy = 0.4;
-            arr[i * 3] = cx + d.ox + Math.sin(tSec * 1.6 + d.fase) * 1.1;
-            arr[i * 3 + 1] = sueloBase + d.oy;
-            arr[i * 3 + 2] = cz + d.oz + Math.cos(tSec * 1.4 + d.fase) * 1.1;
-          } else {
-            arr[i * 3] = cx + d.ox + Math.sin(tSec * 0.8 * d.vel + d.fase) * 2.1;
-            arr[i * 3 + 1] = sueloBase + 1.1 + (d.oy % 5.5) + Math.sin(tSec * 1.7 + d.fase) * 0.65;
-            arr[i * 3 + 2] = cz + d.oz + Math.cos(tSec * 0.7 * d.vel + d.fase) * 2.1;
-          }
-        }
-        attr.needsUpdate = true;
       }
     }
 
