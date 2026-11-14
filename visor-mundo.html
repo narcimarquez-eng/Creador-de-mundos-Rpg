@@ -2078,10 +2078,10 @@
   <script src="js/relieve-zona.js?v=20261113m"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20261113"></script>
-  <script defer src="js/mundo-campana.js?v=20261113"></script>
+  <script defer src="js/mundo-campana.js?v=20261114c"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
   <script defer src="js/dungeon-generator.js?v=20261107"></script>
-  <script defer src="js/mazmorras.js?v=20261107"></script>
+  <script defer src="js/mazmorras.js?v=20261114c"></script>
   <script defer src="js/acompanante.js?v=20261031"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
@@ -2094,12 +2094,13 @@
   <script type="module" src="js/arboles.js?v=20251029"></script>
   <script type="module" src="js/pueblo-edits.js?v=20261113b"></script>
   <script defer src="js/casas-glb.js?v=20261112g"></script>
-  <script type="module" src="js/village-core.js?v=20261114b"></script>
+  <script type="module" src="js/village-core.js?v=20261114c"></script>
   <script type="module" src="js/combat.js?v=20251029"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20261112r"></script>
   <script type="module" src="js/decorado.js?v=20261107"></script>
+  <script defer src="js/decorado-mundo.js?v=20261114c"></script>
   <script type="module" src="js/character.js?v=20261112r"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
@@ -2179,6 +2180,7 @@
   let scene, camera, renderer, controls, raycaster, terrainMesh;
   let aguaPuebloMat = null;
   let decorGroup = null;     // rocas, ruinas y vallas entre pueblos
+  let decorMundo = null;     // dioramas de POIs, postes de cruce, juncos y partículas ambientales
   let lastDecor = 0;         // última vez que se actualizó el detalle de los arbustos
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
   let ladrillosTramos = [];   // tramos del empedrado de las calzadas: { malla, x, z }
@@ -2933,6 +2935,7 @@
   function clearWorldObjects() {
     if (lagosGroup) { scene.remove(lagosGroup); lagosGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); lagosGroup = null; }
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
+    if (decorMundo && decorMundo.grupo) { scene.remove(decorMundo.grupo); decorMundo.grupo.traverse(o => { if (o.geometry) o.geometry.dispose(); }); decorMundo = null; }
     gurus.forEach(g => scene.remove(g.raiz));
     gurus.length = 0;
     gurusColocados = false;
@@ -4680,6 +4683,24 @@
     decorGroup.userData.registrarLejanos(campo);   // sus celdas se ocultan de lejos
     decorGroup.userData.arboles.visible = $('chk-trees').checked;
     scene.add(decorGroup);
+
+    if (decorMundo && decorMundo.grupo) {
+      scene.remove(decorMundo.grupo);
+      decorMundo.grupo.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+      decorMundo = null;
+    }
+    if (typeof window.DecoradoMundoLib !== 'undefined') {
+      decorMundo = window.DecoradoMundoLib.generar(THREE, {
+        world,
+        lagos: lagosMundo,
+        seaLevel: SEA,
+        altura: (x, z) => H(x, z),
+        bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
+        agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02 || LagosLib.enAgua(lagosMundo, x, z),
+        libre: (x, z) => !enMargenPueblo(x, z, 18, false) && !cercaCamino(x, z, 5) && !recintoEn(x, z, 10)
+      });
+      if (decorMundo && decorMundo.grupo) scene.add(decorMundo.grupo);
+    }
   }
 
   function buildLabels() {
@@ -11300,6 +11321,7 @@
         if (zoneLines) zoneLines.forEach(l => { if (l) l.visible = false; });
         if (selectRing) selectRing.visible = false;
         if (decorGroup) decorGroup.visible = false;
+        if (decorMundo && decorMundo.grupo) decorMundo.grupo.visible = false;
         if (cielo) cielo.visible = false;
         if (Array.isArray(ladrillosTramos)) ladrillosTramos.forEach(t => { if (t && t.malla) t.malla.visible = false; });
 
@@ -11378,6 +11400,7 @@
         if (zoneLines) zoneLines.forEach((l, idx) => { if (l) l.visible = est.zoneLinesVis && est.zoneLinesVis[idx] !== undefined ? est.zoneLinesVis[idx] : verZonas; });
         if (selectRing) selectRing.visible = !!est.selectRingVis;
         if (decorGroup) decorGroup.visible = true;
+        if (decorMundo && decorMundo.grupo) decorMundo.grupo.visible = true;
         if (cielo) cielo.visible = true;
         if (Array.isArray(ladrillosTramos)) ladrillosTramos.forEach(t => { if (t && t.malla) t.malla.visible = true; });
 
@@ -11734,6 +11757,7 @@
       if (!trozoConRecinto(cx, cz)) ocultar(m);
     });
     [waterMesh, riosMesh, lagosGroup, roadMesh, calzadaMesh, zoneMesh, selectRing, decorGroup,
+     decorMundo && decorMundo.grupo,
      _grupoSecretosCache || scene.getObjectByName('LugaresSecretosMundo'),
      _grupoEntradasCache || scene.getObjectByName('EntradasMazmorrasMundo')].forEach(ocultar);
     zoneLines.forEach(ocultar);
@@ -13097,6 +13121,9 @@
         lastDecor = now;
         decorGroup.userData.factorLejos = QUALITY[quality].decor;
         decorGroup.userData.actualizar(camera.position.x, camera.position.z);
+      }
+      if (decorMundo && decorMundo.actualizar) {
+        decorMundo.actualizar(dt, now / 1000, camera.position.x, camera.position.z, timeOfDay);
       }
       actualizarPiedras();
       actualizarVisibilidadEstructuras(now, false);

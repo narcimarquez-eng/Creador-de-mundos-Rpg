@@ -1134,6 +1134,8 @@
     const matRock = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, metalness: 0.05 });
     const matCloth = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7 });
     const matSignWood = new THREE.MeshStandardMaterial({ color: '#5c3a1e', roughness: 0.85 });
+    const matBanner = new THREE.MeshStandardMaterial({ color: styleObj.roofHex || '#b91c1c', roughness: 0.72 });
+    const matTerracotta = new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.86, metalness: 0.05 });
     const STREET_TEXTURES = [
       { id: 't01', label: 'Adoquín Río (T-01)', path: 'assets/texturas/suelo/t01.jpg' },
       { id: 't02', label: 'Loseta Cuadrada (T-02)', path: 'assets/texturas/suelo/t02.jpg' },
@@ -2076,6 +2078,21 @@
           anvilM.position.set(2.5, 0.4, 2.2); anvilM.castShadow = true;
           bGroup.add(anvilM);
 
+          // Cuba de templado y armero con espadas junto a la fragua
+          const tubM = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.48, 0.78, 10), matSignWood);
+          tubM.position.set(1.1, 0.39, 2.3); tubM.castShadow = true;
+          bGroup.add(tubM);
+          const tubWater = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 0.08, 10), matWater);
+          tubWater.position.set(1.1, 0.74, 2.3);
+          bGroup.add(tubWater);
+          const rackPostL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.5, 0.14), matSignWood);
+          rackPostL.position.set(3.5, 0.75, 1.5);
+          const rackPostR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.5, 0.14), matSignWood);
+          rackPostR.position.set(3.5, 0.75, 2.9);
+          const rackBar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 1.55), matSignWood);
+          rackBar.position.set(3.5, 1.32, 2.2);
+          bGroup.add(rackPostL, rackPostR, rackBar);
+
           const worldForgePos = new THREE.Vector3(2.8, 2.5, 0.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY).add(new THREE.Vector3(x, y0, z));
           this.forgeLight.position.copy(worldForgePos);
           this.hasForge = true;
@@ -2102,7 +2119,22 @@
           signM.position.set(3.2, 3.8, 5.2);
           bGroup.add(signM);
 
-          this.colliders.push({ type: 'box', minX: x - 4.8, maxX: x + 4.8, minZ: z - 4.5, maxZ: z + 5.2 });
+          // Mesas exteriores de taberna bajo el porche con jarras
+          [-2.1, 2.1].forEach(tx => {
+            const tblTop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.14, 0.95), matSignWood);
+            tblTop.position.set(tx, 0.78, 5.0); tblTop.castShadow = true;
+            const legL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.74, 0.78), matSignWood);
+            legL.position.set(tx - 0.68, 0.37, 5.0);
+            const legR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.74, 0.78), matSignWood);
+            legR.position.set(tx + 0.68, 0.37, 5.0);
+            const bench = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.12, 0.36), matSignWood);
+            bench.position.set(tx, 0.44, 5.75);
+            const mug = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.22, 6), matIron);
+            mug.position.set(tx + 0.35, 0.96, 4.92);
+            bGroup.add(tblTop, legL, legR, bench, mug);
+          });
+
+          this.colliders.push({ type: 'box', minX: x - 4.8, maxX: x + 4.8, minZ: z - 4.5, maxZ: z + 5.6 });
 
         } else {
           const guildG = new THREE.CylinderGeometry(4.2, 4.6, 9.5, 8);
@@ -3416,6 +3448,20 @@
               gGate.add(pivot);
             });
 
+            // Estandartes colgantes y braseros en lo alto de los pilares de la puerta
+            [-halfW - pillarW * 0.5, halfW + pillarW * 0.5].forEach(px => {
+              const barra = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.10, 0.10), matIron);
+              barra.position.set(px, pilH - 0.8, 1.85);
+              const tela = new THREE.Mesh(new THREE.BoxGeometry(0.76, 2.5, 0.08), matBanner);
+              tela.position.set(px, pilH - 2.1, 1.85);
+              tela.castShadow = true;
+              const cuenco = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.28, 0.42, 8), matIron);
+              cuenco.position.set(px, pilH + 0.98, 0);
+              const brasa = new THREE.Mesh(new THREE.SphereGeometry(0.30, 8, 6), matGlassGlow);
+              brasa.position.set(px, pilH + 1.18, 0);
+              gGate.add(barra, tela, cuenco, brasa);
+            });
+
             wallGroup.add(gGate);
           };
           wallGates.forEach(construirArcoPuertaMuralla);
@@ -3865,6 +3911,141 @@
           for (let i = barrels.length - 1; i >= 0; i--) if (onExit(barrels[i].x, barrels[i].z)) barrels.splice(i, 1);
           for (let i = rocks.length - 1; i >= 0; i--) if (onExit(rocks[i].x, rocks[i].z)) rocks.splice(i, 1);
           this.colliders = this.colliders.filter(c => !(c.type === 'circle' && c.r <= 0.7 && onExit(c.x, c.z)));
+        }
+
+        // 7c2. DECORACIÓN CULTURAL Y RIBEREÑA POR ESTILO DEL PUEBLO (compactada en specialsGroup)
+        {
+          const onExitDecor = (x, z) => this.exitPaths.length && this.distToExitPaths(x, z) < (cfg.roadWidth * 0.45 + 2.2);
+          const diagAngs = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
+          const dCauceDecor = this.riverCauce || 9.0;
+          const waterSurfaceY = -0.65;
+
+          // Bancas en los cuatro cuadrantes de la plaza mirando a la fuente
+          diagAngs.forEach(ang => {
+            const bx = Math.cos(ang) * 11.4, bz = Math.sin(ang) * 11.4;
+            if (onExitDecor(bx, bz)) return;
+            const by = this.getTerrainHeight(bx, bz);
+            const gBanca = new THREE.Group();
+            gBanca.position.set(bx, by, bz);
+            gBanca.rotation.y = -ang + Math.PI * 0.5;
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.14, 0.62), matSignWood);
+            seat.position.y = 0.50; seat.castShadow = true;
+            const legL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.48, 0.56), matAtlas);
+            legL.position.set(-0.82, 0.24, 0);
+            const legR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.48, 0.56), matAtlas);
+            legR.position.set(0.82, 0.24, 0);
+            gBanca.add(seat, legL, legR);
+            specialsGroup.add(gBanca);
+          });
+
+          // Braseros de hierro encendidos en los bordes de la plaza
+          if (styleKey === 'fortified' || styleKey === 'dwarven' || styleKey === 'l2_fantasy' || styleKey === 'european') {
+            diagAngs.forEach(ang => {
+              const bx = Math.cos(ang) * 14.3, bz = Math.sin(ang) * 14.3;
+              if (onExitDecor(bx, bz)) return;
+              const by = this.getTerrainHeight(bx, bz);
+              const gBr = new THREE.Group();
+              gBr.position.set(bx, by, bz);
+              const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.58, 0.45, 8), matIron);
+              base.position.y = 0.22; base.castShadow = true;
+              const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.26, 0.78, 8), matIron);
+              stem.position.y = 0.82;
+              const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.28, 0.36, 8), matIron);
+              bowl.position.y = 1.32;
+              const glow = new THREE.Mesh(new THREE.SphereGeometry(0.36, 8, 6), matGlassGlow);
+              glow.position.y = 1.46;
+              gBr.add(base, stem, bowl, glow);
+              specialsGroup.add(gBr);
+            });
+          }
+
+          // Ánforas de terracota y cajas junto a los puestos del mercado
+          if (styleKey === 'l2_fantasy' || styleKey === 'trade') {
+            stalls.forEach((s, idx) => {
+              if (idx % 2 !== 0) return;
+              const ax = s.x + Math.cos(s.rot) * 1.45, az = s.z - Math.sin(s.rot) * 1.45;
+              if (onExitDecor(ax, az)) return;
+              const ay = this.getTerrainHeight(ax, az);
+              const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.34, 0.82, 8), matTerracotta);
+              jar.position.set(ax, ay + 0.41, az); jar.castShadow = true;
+              const jarNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.22, 8), matTerracotta);
+              jarNeck.position.set(ax, ay + 0.90, az);
+              specialsGroup.add(jar, jarNeck);
+            });
+          }
+
+          // Pilas de troncos y tocones de leñador en estilo frontera / bosque
+          if (styleKey === 'frontier' || styleKey === 'european') {
+            let logsPlaced = 0;
+            for (let i = 0; i < houses.length && logsPlaced < 6; i++) {
+              const h = houses[i];
+              const lx = h.x + Math.cos(h.rot) * 4.4, lz = h.z - Math.sin(h.rot) * 4.4;
+              if (onExitDecor(lx, lz) || Math.hypot(lx, lz) < 20) continue;
+              if (cfg.hasRiver && Math.abs(lx - this.getRiverX(lz)) < dCauceDecor + 5) continue;
+              const ly = this.getTerrainHeight(lx, lz);
+              const gLog = new THREE.Group();
+              gLog.position.set(lx, ly, lz);
+              gLog.rotation.y = h.rot;
+              [-0.22, 0.22].forEach(ox => {
+                const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.45, 7), matSignWood);
+                tr.rotation.z = Math.PI * 0.5;
+                tr.position.set(0, 0.18, ox);
+                tr.castShadow = true;
+                gLog.add(tr);
+              });
+              const trTop = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 1.42, 7), matSignWood);
+              trTop.rotation.z = Math.PI * 0.5;
+              trTop.position.set(0, 0.48, 0);
+              gLog.add(trTop);
+              specialsGroup.add(gLog);
+              logsPlaced++;
+            }
+          }
+
+          // Muelle de madera y barca amarrada junto al río en pueblos costeros/fluviales
+          if (cfg.hasRiver && (styleKey === 'trade' || styleKey === 'elven' || (cfg.rio && cfg.rio.mar))) {
+            const dockZ = 18;
+            const riverCenterX = this.getRiverX(dockZ);
+            const bankX = riverCenterX - dCauceDecor * 0.72;
+            if (!onExitDecor(bankX, dockZ)) {
+              const dockG = new THREE.Group();
+              dockG.position.set(bankX, waterSurfaceY + 0.38, dockZ);
+              const deck = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.20, 2.4), matSignWood);
+              deck.position.set(1.6, 0, 0); deck.castShadow = deck.receiveShadow = true;
+              dockG.add(deck);
+              [[-0.6, -0.9], [-0.6, 0.9], [3.9, -0.9], [3.9, 0.9]].forEach(([px, pz]) => {
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 2.4, 6), matSignWood);
+                post.position.set(px, -0.5, pz);
+                dockG.add(post);
+              });
+              const crateDock = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.65, 0.75), matSignWood);
+              crateDock.position.set(0.2, 0.42, -0.55); crateDock.castShadow = true;
+              dockG.add(crateDock);
+
+              // Barquita amarrada junto al extremo del muelle
+              const boatHull = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.48, 3.6), matSignWood);
+              boatHull.position.set(5.1, -0.22, 0.6); boatHull.rotation.y = 0.12;
+              boatHull.castShadow = true;
+              const boatSeat = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.10, 0.42), matTerracotta);
+              boatSeat.position.set(5.1, 0.04, 0.6); boatSeat.rotation.y = 0.12;
+              dockG.add(boatHull, boatSeat);
+              specialsGroup.add(dockG);
+            }
+          }
+
+          // Farolillos y cristales élficos flotando sobre nenúfares en el río
+          if (cfg.hasRiver && styleKey === 'elven') {
+            [-48, -32, -16, 15, 29, 44].forEach((lz, i) => {
+              const rx = this.getRiverX(lz) + ((i % 2 === 0 ? -1 : 1) * 2.4);
+              const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.06, 8), matFoliage);
+              pad.position.set(rx, waterSurfaceY + 0.06, lz);
+              specialsGroup.add(pad);
+              const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), matMagicCrystal);
+              orb.position.set(rx, waterSurfaceY + 0.55, lz);
+              specialsGroup.add(orb);
+              this.animatedCrystals.push({ mesh: orb, baseY: waterSurfaceY + 0.55, phase: i * 1.1 });
+            });
+          }
         }
 
         // 7d. COMPACTACIÓN DE MALLAS ESTÁTICAS (calles, puentes, murallas y edificios especiales)
@@ -4459,6 +4640,7 @@
       matPlaza.needsUpdate = true;
       matCurb.color.set(styleObj.curbHex);
       matMagicCrystal.emissive.setHex(styleObj.magicHex);
+      matBanner.color.set(styleObj.roofHex || '#b91c1c');
     }
 
     return {

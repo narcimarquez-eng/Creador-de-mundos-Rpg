@@ -439,7 +439,7 @@ function build() {
   // -------------------------------------------------------------------------
   const dungeonSpecs = [
     {
-      id: 'dun_raices', name: 'Cripta de las Raíces Negras', x: 960, y: 1580, level: 8, rotacion: 0.4,
+      id: 'dun_raices', name: 'Cripta de las Raíces Negras', estilo: 'ruinas_musgosas', x: 960, y: 1580, level: 8, rotacion: 0.4,
       boss: {
         name: 'Arácnido Necrófago de la Savia', level: 10, rangoElite: 10,
         recompensaOro: 1800, recompensaArena: 40, recompensaEquipo: 'Coraza de Savia Templada'
@@ -450,7 +450,7 @@ function build() {
       ]
     },
     {
-      id: 'dun_sol', name: 'Catacumbas del Sol Enterrado', x: 2030, y: -220, level: 13, rotacion: -0.6,
+      id: 'dun_sol', name: 'Catacumbas del Sol Enterrado', estilo: 'arenisca_desierto', x: 2030, y: -220, level: 13, rotacion: -0.6,
       boss: {
         name: 'Faraón del Sol Enterrado', level: 15, rangoElite: 10,
         recompensaOro: 3200, recompensaArena: 70, recompensaEquipo: 'Filo del Oasis Ancestral'
@@ -461,7 +461,7 @@ function build() {
       ]
     },
     {
-      id: 'dun_eclipse', name: 'Sanctum del Trono Quebrado', x: 980, y: -1310, level: 18, rotacion: 1.1,
+      id: 'dun_eclipse', name: 'Sanctum del Trono Quebrado', estilo: 'cripta_glaciar', x: 980, y: -1310, level: 18, rotacion: 1.1,
       boss: {
         name: 'Soberano del Eclipse Helado', level: 21, rangoElite: 10,
         recompensaOro: 6000, recompensaArena: 120, recompensaEquipo: 'Corona del Sol Quebrado'

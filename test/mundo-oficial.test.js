@@ -271,5 +271,52 @@ t('VillageLib.ARCHITECTURAL_STYLES tiene wallTints y los 7 pueblos de Valdris ge
   }
 });
 
+t('las 3 mazmorras de Valdris tienen estilos arquitectónicos distintos y DecoradoMundoLib decora POIs y caminos', () => {
+  const w = MundoOficial.clonar();
+  const estilosMaz = new Set(w.dungeons.map(d => d.estilo));
+  assert.strictEqual(estilosMaz.size, 3, 'Se esperan 3 estilos distintos en mazmorras: ' + [...estilosMaz].join(', '));
+  assert.ok(estilosMaz.has('ruinas_musgosas') && estilosMaz.has('arenisca_desierto') && estilosMaz.has('cripta_glaciar'));
+
+  const DecoradoMundo = require('../js/decorado-mundo.js');
+  const noop = () => {};
+  class Vec3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; } set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; } }
+  class Quat { setFromAxisAngle() { return this; } }
+  class Mat4 { compose() { return this; } }
+  class Color { setHex() { return this; } }
+  class Obj3D {
+    constructor() { this.position = new Vec3(); this.rotation = new Vec3(); this.scale = new Vec3(1, 1, 1); this.children = []; this.visible = true; }
+    add(...a) { this.children.push(...a); return this; }
+  }
+  class Mat { constructor() { this.color = new Color(); this.opacity = 1; } }
+  class BufAttr { constructor(arr, s) { this.array = arr; this.itemSize = s; } }
+  class Geo { constructor() { this.attributes = {}; } setAttribute(k, v) { this.attributes[k] = v; } }
+  class InstMesh extends Obj3D { constructor(g, m, c) { super(); this.count = c; this.instanceMatrix = { needsUpdate: false }; } setMatrixAt() {} }
+  class Points extends Obj3D { constructor(g, m) { super(); this.geometry = g; this.material = m; } }
+  const THREE_STUB = {
+    Vector3: Vec3, Quaternion: Quat, Matrix4: Mat4, Color,
+    Group: Obj3D, Mesh: Obj3D, InstancedMesh: InstMesh, Points,
+    BoxGeometry: Geo, CylinderGeometry: Geo, ConeGeometry: Geo, SphereGeometry: Geo,
+    OctahedronGeometry: Geo, DodecahedronGeometry: Geo, TorusGeometry: Geo, BufferGeometry: Geo,
+    BufferAttribute: BufAttr, MeshStandardMaterial: Mat, PointsMaterial: Mat
+  };
+
+  const T = W.getTerrain(w.seed);
+  const res = DecoradoMundo.generar(THREE_STUB, {
+    world: w,
+    seaLevel: W.SEA_LEVEL,
+    altura: (x, z) => T.heightAt(x, z),
+    bioma: (x, z) => T.biomeAt(x, z),
+    agua: (x, z) => T.isWater(x, z),
+    libre: () => true
+  });
+
+  assert.strictEqual(res.poisCount, w.pois.length, 'Deben construirse dioramas para todos los POIs');
+  assert.ok(res.postes >= 8, 'Deben generarse postes señalizadores en los caminos: ' + res.postes);
+  assert.ok(res.juncos > 0, 'Deben generarse juncos en zonas ribereñas');
+  res.actualizar(0.016, 1.5, w.towns[0].x, w.towns[0].y, 'night');
+  res.actualizar(0.016, 2.0, w.towns[5].x, w.towns[5].y, 'day');
+  res.actualizar(0.016, 2.5, w.towns[6].x, w.towns[6].y, 'golden');
+});
+
 console.log(`\n${n} pruebas del mundo oficial superadas.`);
 

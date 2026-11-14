@@ -170,9 +170,13 @@
       || (typeof root !== 'undefined' && root.DungeonGenerator)
       || null;
     let kitExt = null;
-    if (DG && typeof DG.crearKitMateriales === 'function' && DG.ESTILOS_PIEDRA && typeof THREE.CanvasTexture === 'function') {
+    let estObjExt = null;
+    if (DG && DG.ESTILOS_PIEDRA) {
       const estKey = (dungeon && dungeon.estilo && DG.ESTILOS_PIEDRA[dungeon.estilo]) ? dungeon.estilo : 'cripta_gotica';
-      kitExt = DG.crearKitMateriales(DG.ESTILOS_PIEDRA[estKey], THREE);
+      estObjExt = DG.ESTILOS_PIEDRA[estKey] || null;
+      if (typeof DG.crearKitMateriales === 'function' && typeof THREE.CanvasTexture === 'function' && estObjExt) {
+        kitExt = DG.crearKitMateriales(estObjExt, THREE);
+      }
     }
 
     const matPiedraMuro = (kitExt && kitExt.piedraMuro) || new THREE.MeshStandardMaterial({
@@ -192,22 +196,24 @@
     });
     const matMosaicoPasillo = (kitExt && kitExt.mosaicoSuelo) || matSueloLosas;
     const matHierroExt = (kitExt && kitExt.hierro) || matPiedraArco;
+    const colorRuna = (estObjExt && estObjExt.luzJefe) ? estObjExt.luzJefe : 0x7c3aed;
+    const colorLlama = (estObjExt && estObjExt.luzAntorchas) ? estObjExt.luzAntorchas : 0xf97316;
     const matRunaPortal = new THREE.MeshStandardMaterial({
-      color: 0x7c3aed,
-      emissive: 0x6d28d9,
-      emissiveIntensity: 2.8,
+      color: colorRuna,
+      emissive: colorRuna,
+      emissiveIntensity: 2.6,
       roughness: 0.1,
       metalness: 0.4
     });
     const texVortice = obtenerTexturaVortice(THREE);
     const matVortice = new THREE.MeshBasicMaterial({
-      color: texVortice ? 0xffffff : 0x4c1d95,
+      color: texVortice ? (estObjExt && estObjExt.id !== 'cripta_gotica' ? colorRuna : 0xffffff) : colorRuna,
       map: texVortice || undefined,
       transparent: true,
       opacity: 0.88,
       side: THREE.DoubleSide
     });
-    const matFuego = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+    const matFuego = new THREE.MeshBasicMaterial({ color: colorLlama });
 
     // Dimensiones del corredor exterior entre muros
     const LONGITUD_CORREDOR = 30.0; // Exactamente 30 metros entre muros de piedra
