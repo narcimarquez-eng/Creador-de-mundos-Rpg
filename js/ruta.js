@@ -23,11 +23,42 @@
     return Math.max(240, (42 + size * 14 + 65) * 2) / 2;
   }
 
+  const MAX_PENDIENTE_RUTA = 0.48; // algo inferior al 50 % físico del personaje para evitar roces en laderas
+
   function preparar(world, opciones) {
     const op = opciones || {};
     const pueblos = new Map(world.towns.map(t => [t.id, t]));
     const mitad = t => (op.mitad ? op.mitad(t.id) : null) || mitadPorDefecto(t);
     const salida = (t, r) => (op.salida ? op.salida(t.id, r.id) || [] : []);
+    const esBloqueado = typeof op.esBloqueado === 'function' ? op.esBloqueado : null;
+    const altura = typeof op.altura === 'function' ? op.altura : null;
+    const pasoSondeo = op.pasoSondeo || 4.5;
+    const tieneObstaculos = !!(esBloqueado || altura);
+
+    function segmentoLibre(a, b) {
+      if (!tieneObstaculos) return true;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const L = Math.hypot(dx, dy);
+      if (L < 0.5) return true;
+      const pasos = Math.max(2, Math.ceil(L / pasoSondeo));
+      const stepLen = L / pasos;
+      let hAnt = altura ? altura(a.x, a.y) : 0;
+      for (let k = 1; k <= pasos; k++) {
+        const t = k / pasos;
+        const x = a.x + dx * t, y = a.y + dy * t;
+        // Se omiten los 2 últimos metros del punto final por si el destino (plaza o NPC) está junto a una fuente o casa
+        const lejosExtremos = (t * L > 1.5) && ((1 - t) * L > 2.2);
+        if (esBloqueado && lejosExtremos && esBloqueado(x, y)) return false;
+        if (altura) {
+          const hAct = altura(x, y);
+          const dh = hAct - hAnt;
+          if (dh > 0 && (dh / stepLen) > MAX_PENDIENTE_RUTA) return false;
+          hAnt = hAct;
+        }
+      }
+      return true;
+    }
+
     // Tramo de cada camino fuera de los pueblos, en el sentido from → to
     const caminos = world.roads.map(r => {
       const a = pueblos.get(r.from), b = pueblos.get(r.to);
@@ -35,7 +66,7 @@
       const tramo = r.points.filter(p => cheb(p, a) >= mitad(a) && cheb(p, b) >= mitad(b)).map(p => ({ x: p.x, y: p.y }));
       return { r, a, b, tramo };
     }).filter(Boolean);
-    return { pueblos, mitad, salida, caminos };
+    return { pueblos, mitad, salida, caminos, esBloqueado, altura, tieneObstaculos, segmentoLibre };
   }
 
   function puebloEn(ctx, p) {
@@ -77,9 +108,11 @@
     return false;
   }
 
-  // Punto del tramo más cercano a p: camino, segmento k y el punto proyectado
+  // Punto del tramo más cercano a p: camino, segmento k y el punto proyectado.
+  // Si hay comprobación de obstáculos, prefiere un punto con línea de visión despejada si no exige un rodeo enorme.
   function proyectar(ctx, p) {
     let mejor = null;
+    let mejorLibre = null;
     ctx.caminos.forEach(c => {
       const T = c.tramo;
       for (let k = 0; k < T.length - 1; k++) {
@@ -89,10 +122,186 @@
         const q = { x: ax + u * dx, y: ay + u * dy };
         const d = dist(p, q);
         if (!mejor || d < mejor.d) mejor = { c, k, q, d };
+        if (ctx.tieneObstaculos && (!mejorLibre || d < mejorLibre.d) && ctx.segmentoLibre(p, q)) {
+          mejorLibre = { c, k, q, d };
+        }
       }
-      if (T.length === 1 && (!mejor || dist(p, T[0]) < mejor.d)) mejor = { c, k: 0, q: { x: T[0].x, y: T[0].y }, d: dist(p, T[0]) };
+      if (T.length === 1) {
+        const d = dist(p, T[0]);
+        const cand = { c, k: 0, q: { x: T[0].x, y: T[0].y }, d };
+        if (!mejor || d < mejor.d) mejor = cand;
+        if (ctx.tieneObstaculos && (!mejorLibre || d < mejorLibre.d) && ctx.segmentoLibre(p, cand.q)) {
+          mejorLibre = cand;
+        }
+      }
     });
+    if (mejorLibre && mejor && mejorLibre.d <= mejor.d * 2.2 + 120) return mejorLibre;
     return mejor;
+  }
+
+  // Rodeo local por rejilla A* para sortear edificios, agua, laderas escarpadas o muros en tramos bloqueados
+  function buscarRodeoLocal(ctx, A, B) {
+    const L = dist(A, B);
+    if (L > 950) return null;
+    const step = L <= 140 ? 3.5 : (L <= 400 ? 7.5 : 13.0);
+    const pad = Math.max(48, Math.min(180, L * 0.48));
+    const minX = Math.min(A.x, B.x) - pad;
+    const minY = Math.min(A.y, B.y) - pad;
+    const maxX = Math.max(A.x, B.x) + pad;
+    const maxY = Math.max(A.y, B.y) + pad;
+    const cols = Math.min(86, Math.max(7, Math.ceil((maxX - minX) / step) + 1));
+    const rows = Math.min(86, Math.max(7, Math.ceil((maxY - minY) / step) + 1));
+    const realStepX = (maxX - minX) / (cols - 1);
+    const realStepY = (maxY - minY) / (rows - 1);
+    const total = cols * rows;
+
+    const toCell = p => ({
+      gx: Math.max(0, Math.min(cols - 1, Math.round((p.x - minX) / realStepX))),
+      gy: Math.max(0, Math.min(rows - 1, Math.round((p.y - minY) / realStepY)))
+    });
+    const toWorld = (gx, gy) => ({ x: minX + gx * realStepX, y: minY + gy * realStepY });
+
+    const s0 = toCell(A), e0 = toCell(B);
+    const blocked = new Uint8Array(total);
+    const heights = ctx.altura ? new Float32Array(total) : null;
+    for (let gy = 0; gy < rows; gy++) {
+      for (let gx = 0; gx < cols; gx++) {
+        const idx = gy * cols + gx;
+        const w = toWorld(gx, gy);
+        if (ctx.esBloqueado && ctx.esBloqueado(w.x, w.y)) blocked[idx] = 1;
+        if (heights) heights[idx] = ctx.altura(w.x, w.y);
+      }
+    }
+
+    const buscarCeldaLibreCercana = c0 => {
+      const idx0 = c0.gy * cols + c0.gx;
+      if (!blocked[idx0]) return c0;
+      let mejor = null, mejorD = Infinity;
+      for (let rad = 1; rad <= 5; rad++) {
+        for (let dy = -rad; dy <= rad; dy++) {
+          for (let dx = -rad; dx <= rad; dx++) {
+            const gx = c0.gx + dx, gy = c0.gy + dy;
+            if (gx < 0 || gx >= cols || gy < 0 || gy >= rows) continue;
+            if (!blocked[gy * cols + gx]) {
+              const d = dx * dx + dy * dy;
+              if (d < mejorD) { mejorD = d; mejor = { gx, gy }; }
+            }
+          }
+        }
+        if (mejor) return mejor;
+      }
+      return c0;
+    };
+
+    const start = buscarCeldaLibreCercana(s0);
+    const goal = buscarCeldaLibreCercana(e0);
+    const startIdx = start.gy * cols + start.gx;
+    const goalIdx = goal.gy * cols + goal.gx;
+    blocked[startIdx] = 0;
+    blocked[goalIdx] = 0;
+
+    const gScore = new Float32Array(total).fill(Infinity);
+    const fScore = new Float32Array(total).fill(Infinity);
+    const prev = new Int32Array(total).fill(-1);
+    const closed = new Uint8Array(total);
+    gScore[startIdx] = 0;
+    fScore[startIdx] = Math.hypot((goal.gx - start.gx) * realStepX, (goal.gy - start.gy) * realStepY);
+
+    const open = [startIdx];
+    const inOpen = new Uint8Array(total);
+    inOpen[startIdx] = 1;
+
+    const dirs = [
+      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [1, 1], [1, -1], [-1, 1], [-1, -1]
+    ];
+
+    let found = false;
+    while (open.length > 0) {
+      let bestPos = 0;
+      for (let i = 1; i < open.length; i++) {
+        if (fScore[open[i]] < fScore[open[bestPos]]) bestPos = i;
+      }
+      const curr = open[bestPos];
+      open[bestPos] = open[open.length - 1];
+      open.pop();
+      inOpen[curr] = 0;
+
+      if (curr === goalIdx) { found = true; break; }
+      if (closed[curr]) continue;
+      closed[curr] = 1;
+
+      const cx = curr % cols, cy = (curr / cols) | 0;
+      for (let d = 0; d < 8; d++) {
+        const nx = cx + dirs[d][0], ny = cy + dirs[d][1];
+        if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+        const nIdx = ny * cols + nx;
+        if (closed[nIdx] || blocked[nIdx]) continue;
+        // Evitar cortar esquinas diagonales por celdas bloqueadas
+        if (dirs[d][0] !== 0 && dirs[d][1] !== 0) {
+          if (blocked[cy * cols + nx] && blocked[ny * cols + cx]) continue;
+        }
+        const stepDist = Math.hypot(dirs[d][0] * realStepX, dirs[d][1] * realStepY);
+        if (heights && nIdx !== goalIdx) {
+          const dh = heights[nIdx] - heights[curr];
+          if (dh > 0 && (dh / stepDist) > MAX_PENDIENTE_RUTA) continue;
+        }
+        const tentG = gScore[curr] + stepDist;
+        if (tentG < gScore[nIdx]) {
+          prev[nIdx] = curr;
+          gScore[nIdx] = tentG;
+          fScore[nIdx] = tentG + Math.hypot((goal.gx - nx) * realStepX, (goal.gy - ny) * realStepY);
+          if (!inOpen[nIdx]) { open.push(nIdx); inOpen[nIdx] = 1; }
+        }
+      }
+    }
+
+    if (!found) return null;
+
+    const raw = [];
+    for (let c = goalIdx; c !== -1 && c !== startIdx; c = prev[c]) {
+      const gx = c % cols, gy = (c / cols) | 0;
+      raw.unshift(toWorld(gx, gy));
+    }
+    if (!raw.length) return null;
+    raw[raw.length - 1] = { x: B.x, y: B.y };
+
+    // Suavizado por línea de visión para eliminar escalones de rejilla innecesarios
+    const suavizada = [];
+    let anchor = { x: A.x, y: A.y };
+    let idx = 0;
+    while (idx < raw.length) {
+      let far = idx;
+      for (let j = raw.length - 1; j > idx; j--) {
+        if (ctx.segmentoLibre(anchor, raw[j])) { far = j; break; }
+      }
+      suavizada.push(raw[far]);
+      anchor = raw[far];
+      idx = far + 1;
+    }
+    if (B.plaza && suavizada.length) suavizada[suavizada.length - 1].plaza = true;
+    return suavizada;
+  }
+
+  function rodearBloqueos(ctx, desde, puntos) {
+    if (!ctx.tieneObstaculos || !puntos || !puntos.length) return puntos;
+    const out = [];
+    let prev = { x: desde.x, y: desde.y };
+    for (let i = 0; i < puntos.length; i++) {
+      const target = puntos[i];
+      if (dist(prev, target) > 2.5 && !ctx.segmentoLibre(prev, target)) {
+        const rodeo = buscarRodeoLocal(ctx, prev, target);
+        if (rodeo && rodeo.length) {
+          for (let k = 0; k < rodeo.length; k++) out.push(rodeo[k]);
+        } else {
+          out.push(target);
+        }
+      } else {
+        out.push(target);
+      }
+      prev = target;
+    }
+    return out;
   }
 
   // Puntos para salir de un pueblo por un camino: la boca de la calle de salida (sobre su eje, para no cortar
@@ -120,7 +329,8 @@
 
   // Ruta de 'desde' a 'hasta' ({x, y}). Devuelve la lista de puntos a seguir; el último es 'hasta'.
   // Los puntos de plaza llevan plaza: true (se pueden dar por alcanzados a unos metros).
-  // opciones: { mitad(idPueblo) → m, salida(idPueblo, idCamino) → [borde, fuera] (puntos de la puerta) }
+  // opciones: { mitad(idPueblo) → m, salida(idPueblo, idCamino) → [borde, fuera] (puntos de la puerta),
+  //             esBloqueado(x, y) → bool, altura(x, y) → metros }
   function calcularRuta(world, desde, hasta, opciones) {
     const ctx = preparar(world, opciones);
     const aristas = new Map();   // nodo → [{ a, coste, puntos }]
@@ -141,7 +351,9 @@
 
     // Inicio: dentro de un pueblo (empieza en él) o en mitad de un camino
     const tIni = puebloEn(ctx, desde), tFin = puebloEn(ctx, hasta);
-    if (tIni && tFin && tIni.id === tFin.id) return [{ x: hasta.x, y: hasta.y }];
+    if (tIni && tFin && tIni.id === tFin.id) {
+      return rodearBloqueos(ctx, desde, [{ x: hasta.x, y: hasta.y }]);
+    }
     let prefijo = [];
     let nodoIni = 'S';
     const pS = tIni ? null : proyectar(ctx, desde);
@@ -169,9 +381,9 @@
       }
     }
 
-    // Si ambos puntos están fuera de pueblos y la línea recta directa no atraviesa ningún pueblo,
-    // se conecta directamente S con T para garantizar siempre el camino más corto sin rodeos innecesarios
-    if (!tIni && !tFin && !cortaPueblo(desde, hasta, ctx)) {
+    // Si ambos puntos están fuera de pueblos, la línea recta no corta ningún pueblo y no atraviesa zonas de colisión/agua/acantilados,
+    // se conecta directamente S con T para garantizar el camino más corto sin rodeos innecesarios
+    if (!tIni && !tFin && !cortaPueblo(desde, hasta, ctx) && ctx.segmentoLibre(desde, hasta)) {
       anadir('S', 'T', [{ x: hasta.x, y: hasta.y }]);
     }
 
@@ -187,11 +399,15 @@
         if (!coste.has(e.a) || nuevo < coste.get(e.a)) { coste.set(e.a, nuevo); previo.set(e.a, { de: u, e }); }
       });
     }
-    if (!coste.has(nodoFin)) return [{ x: hasta.x, y: hasta.y }];   // sin camino: en línea recta
+    const basePuntos = coste.has(nodoFin)
+      ? (() => {
+          const tramos = [];
+          for (let n = nodoFin; n !== nodoIni; n = previo.get(n).de) tramos.unshift(previo.get(n).e.puntos);
+          return prefijo.concat(...tramos, [{ x: hasta.x, y: hasta.y }]);
+        })()
+      : [{ x: hasta.x, y: hasta.y }];
 
-    const tramos = [];
-    for (let n = nodoFin; n !== nodoIni; n = previo.get(n).de) tramos.unshift(previo.get(n).e.puntos);
-    const puntos = prefijo.concat(...tramos, [{ x: hasta.x, y: hasta.y }]);
+    const puntos = rodearBloqueos(ctx, desde, basePuntos);
     // Quitar puntos pegados al anterior (el último, el destino, se mantiene siempre)
     const out = [];
     puntos.forEach((p, i) => {

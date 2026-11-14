@@ -119,4 +119,102 @@ t('distanciaRestanteRuta: calcula correctamente la suma de metros que quedan par
   assert.strictEqual(dRest, 70); // 100 - 30 = 70m
 });
 
+t('en campo abierto con lago o colisión en medio: rodea la zona bloqueada en lugar de ir en línea recta', () => {
+  const esBloqueado = (x, y) => Math.hypot(x - 450, y - 200) < 40;
+  const origen = { x: 350, y: 200 };
+  const dest = { x: 550, y: 200 };
+  const ruta = R.calcularRuta(MUNDO, origen, dest, Object.assign({}, OPC, { esBloqueado }));
+  assert.ok(ruta.length > 1, 'Debe generar puntos de rodeo alrededor del obstáculo');
+  let prev = origen;
+  for (const p of ruta) {
+    for (let s = 1; s <= 12; s++) {
+      const mx = prev.x + (p.x - prev.x) * (s / 12);
+      const my = prev.y + (p.y - prev.y) * (s / 12);
+      assert.ok(!esBloqueado(mx, my), `El tramo cruzó la zona bloqueada en (${mx.toFixed(1)}, ${my.toFixed(1)})`);
+    }
+    prev = p;
+  }
+});
+
+t('dentro de un pueblo con edificios o fuente en medio: evita atravesar las colisiones', () => {
+  const esBloqueado = (x, y) => x > -15 && x < 15 && y > -15 && y < 15;
+  const origen = { x: -40, y: 0 };
+  const dest = { x: 40, y: 0 };
+  const ruta = R.calcularRuta(MUNDO, origen, dest, Object.assign({}, OPC, { esBloqueado }));
+  assert.ok(ruta.length > 1, 'Debe rodear el bloque central dentro del pueblo');
+  let prev = origen;
+  for (const p of ruta) {
+    for (let s = 1; s <= 10; s++) {
+      const mx = prev.x + (p.x - prev.x) * (s / 10);
+      const my = prev.y + (p.y - prev.y) * (s / 10);
+      assert.ok(!esBloqueado(mx, my), `La ruta atravesó edificio en (${mx.toFixed(1)}, ${my.toFixed(1)})`);
+    }
+    prev = p;
+  }
+});
+
+t('con acantilado (>50% de pendiente) en línea recta: elige rodear o usar la red de caminos', () => {
+  const altura = (x, y) => (Math.hypot(x - 500, y - 300) < 55 ? 80 : 0);
+  const origen = { x: 350, y: 300 };
+  const dest = { x: 650, y: 300 };
+  const ruta = R.calcularRuta(MUNDO, origen, dest, Object.assign({}, OPC, { altura }));
+  assert.ok(ruta.length > 1, 'Debe rodear la montaña escarpada');
+  assert.ok(ruta.every(p => altura(p.x, p.y) === 0), 'Ningún punto de paso debe subir a la cima escarpada');
+});
+
+t('CharacterController.caminarADestino esquiva preventivamente un colisionador frontal sin quedar atascado', () => {
+  const prevWin = global.window;
+  const prevThree = global.THREE;
+  global.window = { addEventListener: () => {} };
+  class Vec3 {
+    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+    clone() { return new Vec3(this.x, this.y, this.z); }
+    distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  }
+  class Quat {
+    constructor() { this.x = 0; this.y = 0; this.z = 0; this.w = 1; }
+    setFromAxisAngle(axis, angle) {
+      const s = Math.sin(angle / 2);
+      this.x = axis.x * s; this.y = axis.y * s; this.z = axis.z * s; this.w = Math.cos(angle / 2);
+      return this;
+    }
+    slerp() { return this; }
+  }
+  class Group {
+    constructor() { this.position = new Vec3(); this.rotation = { order: 'XYZ', y: 0 }; this.quaternion = new Quat(); this.scale = new Vec3(1, 1, 1); this.children = []; }
+    add(...a) { this.children.push(...a); }
+    remove() {}
+    traverse() {}
+  }
+  class Mat { constructor() { this.opacity = 1; this.transparent = false; } }
+  class Geo { translate() {} }
+  global.THREE = { Vector3: Vec3, Quaternion: Quat, Group, Mesh: Group, BoxGeometry: Geo, MeshStandardMaterial: Mat };
+  try {
+    const CharLib = require('../js/character.js');
+    const col = { type: 'circle', x: 0, z: 10, r: 3.0 };
+    const worldStub = {
+      getWalkableHeight: () => 0,
+      getColliders: () => [col],
+      isWaterHazard: () => false
+    };
+    const ctrl = new CharLib.CharacterController({
+      scene: new Group(), camera: { position: new Vec3(0, 5, -10) }, controls: { target: new Vec3() }, world: worldStub, glbUrl: null
+    });
+    ctrl.root.position.set(0, 0, 0);
+    ctrl.destino = { x: 0, z: 22, parar: 0.6 };
+    for (let i = 0; i < 90; i++) {
+      ctrl.caminarADestino(0.05, false);
+      const dObst = Math.hypot(ctrl.root.position.x - col.x, ctrl.root.position.z - col.z);
+      assert.ok(dObst >= col.r + ctrl.radius - 0.05, `Entró en el colisionador: dist=${dObst.toFixed(2)}`);
+      if (Math.hypot(ctrl.root.position.x - 0, ctrl.root.position.z - 22) <= 0.7) break;
+    }
+    assert.ok(!ctrl.atascado, 'No debe atascarse al rodear el obstáculo');
+    assert.ok(Math.hypot(ctrl.root.position.x, ctrl.root.position.z - 22) <= 0.8, 'Debe alcanzar el destino rodeando el colisionador');
+  } finally {
+    global.window = prevWin;
+    global.THREE = prevThree;
+  }
+});
+
 console.log(`\n${n} pruebas de la ruta superadas.`);

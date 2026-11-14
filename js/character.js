@@ -467,27 +467,96 @@
       }
     }
 
-    // Camina hacia this.destino hasta quedar a `parar` metros. Lo esquiva todo como el movimiento manual.
+    // Comprueba si (px, pz) cae en agua, pendiente inescalable desde (ox, oz) o colisionador cercano
+    _puntoBloqueado(ox, oz, h0, px, pz, margenExtra) {
+      const r = this.radius + (margenExtra || 0.25);
+      if (this.world.isWaterHazard && this.world.isWaterHazard(px, pz, r)) return true;
+      if (typeof this.world.getWalkableHeight === 'function') {
+        const dHor = Math.hypot(px - ox, pz - oz);
+        if (dHor > 0.05) {
+          const hP = this.world.getWalkableHeight(px, pz);
+          if ((hP - h0) / dHor > 0.49) return true;
+          if (hP - h0 > 0.01 && typeof this.world.bloqueaSubida === 'function' && this.world.bloqueaSubida(ox, oz, px, pz)) return true;
+        }
+      }
+      const cols = getColliders(this.world, px, pz);
+      for (let i = 0; i < cols.length; i++) {
+        const c = cols[i];
+        if (c.type === 'circle') {
+          const dx = px - c.x, dz = pz - c.z, md = r + c.r;
+          if (dx * dx + dz * dz < md * md) return true;
+        } else if (c.type === 'box') {
+          if (px > c.minX - r && px < c.maxX + r && pz > c.minZ - r && pz < c.maxZ + r) return true;
+        } else if (c.type === 'obb') {
+          const dx = px - c.cx, dz = pz - c.cz;
+          const u = dx * c.ux + dz * c.uz, v = -dx * c.uz + dz * c.ux;
+          if (Math.abs(u) < c.hu + r && Math.abs(v) < c.hv + r) return true;
+        }
+      }
+      return false;
+    }
+
+    _esRumboLibre(ox, oz, h0, dirX, dirZ, alcance) {
+      const p1x = ox + dirX * Math.min(0.95, alcance * 0.48), p1z = oz + dirZ * Math.min(0.95, alcance * 0.48);
+      if (this._puntoBloqueado(ox, oz, h0, p1x, p1z, 0.22)) return false;
+      if (alcance > 1.0) {
+        const p2x = ox + dirX * alcance, p2z = oz + dirZ * alcance;
+        if (this._puntoBloqueado(ox, oz, h0, p2x, p2z, 0.28)) return false;
+      }
+      return true;
+    }
+
+    // Camina hacia this.destino hasta quedar a `parar` metros, rodeando obstáculos preventivamente
     caminarADestino(dt, enAccion) {
       const d = this.destino;
-      const dx = d.x - this.root.position.x, dz = d.z - this.root.position.z;
+      const ox = this.root.position.x, oz = this.root.position.z;
+      const dx = d.x - ox, dz = d.z - oz;
       const dist = Math.hypot(dx, dz);
       if (dist <= d.parar) {
+        this._steerDir = 0;
         if (!enAccion) this.switchAnimation('idle');
         return;
       }
       // En cuanto empieza a desplazarse tras el bloqueo del golpe, corta la cola del ataque para correr de verdad
       this._cortarOneShot();
-      const ux = dx / dist, uz = dz / dist;
+      let ux = dx / dist, uz = dz / dist;
       const paso = Math.min(dist - d.parar, this.runSpeed * dt);   // hacia un objetivo se corre
-      const antes = this.root.position.clone();
-      const resolved = this.resolveCollisions(this.root.position.x + ux * paso, this.root.position.z + uz * paso);
+
+      // Evasión anticipada: si el tramo por delante entra en zona de colisión, busca un desvío lateral suave
+      const alcanceSondeo = Math.min(2.4, Math.max(1.0, dist - d.parar));
+      const h0 = typeof this.world.getWalkableHeight === 'function' ? this.world.getWalkableHeight(ox, oz) : 0;
+      if (!this._esRumboLibre(ox, oz, h0, ux, uz, alcanceSondeo)) {
+        const ladoPref = this._steerDir || 1;
+        const angs = [0.44, 0.88, 1.32, 1.75, 2.15]; // ~25°, 50°, 75°, 100°, 123°
+        let elegido = null;
+        for (let i = 0; i < angs.length && !elegido; i++) {
+          for (const signo of [ladoPref, -ladoPref]) {
+            const ang = angs[i] * signo;
+            const ca = Math.cos(ang), sa = Math.sin(ang);
+            const sx = ux * ca - uz * sa, sz = ux * sa + uz * ca;
+            if (this._esRumboLibre(ox, oz, h0, sx, sz, alcanceSondeo)) {
+              elegido = { x: sx, z: sz, signo };
+              break;
+            }
+          }
+        }
+        if (elegido) {
+          ux = elegido.x; uz = elegido.z;
+          this._steerDir = elegido.signo;
+        }
+      } else {
+        this._steerDir = 0;
+      }
+
+      const antesX = ox, antesZ = oz;
+      const resolved = this.resolveCollisions(ox + ux * paso, oz + uz * paso);
       this.root.position.x = resolved.x;
       this.root.position.z = resolved.z;
-      // Sin avanzar durante 2 s (un muro en medio): se rinde el destino
-      if (antes.distanceTo(this.root.position) < 0.02) this.sinAvance = (this.sinAvance || 0) + dt;
+      const avanzado = Math.hypot(resolved.x - antesX, resolved.z - antesZ);
+      // Sin avanzar de verdad durante 1.6 s (un muro en medio): marca atascado para reintentar rodeo
+      if (avanzado < Math.max(0.012, paso * 0.14)) this.sinAvance = (this.sinAvance || 0) + dt;
       else this.sinAvance = 0;
-      if (this.sinAvance > 2) { this.destino = null; this.sinAvance = 0; this.atascado = true; }
+      if (this.sinAvance > 1.6) { this.destino = null; this.sinAvance = 0; this._steerDir = 0; this.atascado = true; }
       this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
       const objetivoGiro = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(ux, uz));
       this.root.quaternion.slerp(objetivoGiro, Math.min(1, dt * 14));

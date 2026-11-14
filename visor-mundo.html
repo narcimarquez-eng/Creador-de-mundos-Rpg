@@ -2101,7 +2101,7 @@
   <script type="module" src="js/terreno.js?v=20261112r"></script>
   <script type="module" src="js/decorado.js?v=20261107"></script>
   <script defer src="js/decorado-mundo.js?v=20261114c"></script>
-  <script type="module" src="js/character.js?v=20261112r"></script>
+  <script type="module" src="js/character.js?v=20261114d"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
@@ -4797,7 +4797,7 @@
     pararAuto();
     objetivo = null;
     const dest = { x: targetX, y: targetZ, parar: pararDist, nombre: nombreDestino };
-    ruta = { puntos: calcularRutaMundo({ x: p.x, y: p.z }, dest, opcionesRuta()), i: 0, parar: pararDist, nombre: nombreDestino, npc: null, intentos: 0 };
+    ruta = { puntos: calcularRutaMundo({ x: p.x, y: p.z }, dest, opcionesRuta()), i: 0, parar: pararDist, nombre: nombreDestino, npc: null, destino: dest, intentos: 0 };
     character.cancelado = false;
     character.atascado = false;
     if (!follow) setFollow(true);
@@ -5246,6 +5246,38 @@
           for (let j = 0; j < cols.length; j++) out.push(cols[j]);
         }
       }
+      // Estructuras de lugares secretos (cabañas, fuentes, altares, santuarios)
+      if (typeof lugaresSecretos !== 'undefined' && lugaresSecretos && lugaresSecretos.length) {
+        for (let i = 0; i < lugaresSecretos.length; i++) {
+          const s = lugaresSecretos[i];
+          if (Math.hypot(x - s.x, z - s.z) > 25) continue;
+          const rad = s.tipo === 'cabana' ? 2.8 : 2.1;
+          out.push({ type: 'circle', x: s.x, z: s.z, r: rad });
+        }
+      }
+      // Muros laterales del corredor exterior de mazmorras (dejando libre el pasillo central de 4.4 m)
+      if (world && world.dungeons && world.dungeons.length) {
+        for (let i = 0; i < world.dungeons.length; i++) {
+          const d = world.dungeons[i];
+          if (Math.hypot(x - d.x, z - d.y) > 45) continue;
+          const rot = d.rotacion || 0;
+          const ca = Math.cos(rot), sa = Math.sin(rot);
+          // En local del grupo: X_MURO = ±2.7, Z centro = 15, largo = 30 (hu=0.5, hv=15)
+          const ux = ca, uz = -sa;
+          const vx = sa, vz = ca;
+          [-2.7, 2.7].forEach(lx => {
+            const lz = 15;
+            out.push({
+              type: 'obb',
+              cx: d.x + lx * ux + lz * vx,
+              cz: d.y + lx * uz + lz * vz,
+              ux, uz,
+              hu: 0.55,
+              hv: 15.0
+            });
+          });
+        }
+      }
       return out;
     },
     // Recintos de laberinto: no se trepan sus paredes ni en diagonal (pendiente real > 42°)
@@ -5254,10 +5286,14 @@
       const rec = recintoCercaDe(x, z, 0);
       return !!rec && RelieveZonaLib.bloqueaSubidaRecinto(rec, ox, oz, x, z, (a, b) => visorWorld.getWalkableHeight(a, b));
     },
-    // Agua: el suelo queda por debajo del nivel del mar (en cualquier punto del personaje)
+    // Agua: mar, ríos o lagos del mundo (en cualquier punto del personaje)
     isWaterHazard(x, z, r) {
       const d = r || 0.5;
-      return [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]].some(([dx, dz]) => visorWorld.getWalkableHeight(x + dx, z + dz) < 0.2);
+      const enLago = (px, pz) => typeof LagosLib !== 'undefined' && lagosMundo && lagosMundo.length && LagosLib.enAgua(lagosMundo, px, pz);
+      return [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]].some(([dx, dz]) => {
+        const px = x + dx, pz = z + dz;
+        return visorWorld.getWalkableHeight(px, pz) < 0.2 || enLago(px, pz);
+      });
     }
   };
 
@@ -10477,14 +10513,37 @@
     return { x: t.x, y: t.y, parar: 6, nombre: t ? t.name : 'Plaza' };
   }
 
-  // Puertas y tamaño de los pueblos, los mismos con los que se dibujan los caminos
+  function puntoBloqueadoRuta(x, z) {
+    if (visorWorld.isWaterHazard(x, z, 0.85)) return true;
+    if (typeof recintoEn === 'function' && recintoEn(x, z, 0)) return true;
+    const cols = visorWorld.getColliders(x, z);
+    const m = 0.85;
+    for (let i = 0; i < cols.length; i++) {
+      const c = cols[i];
+      if (c.type === 'circle') {
+        const dx = x - c.x, dz = z - c.z, md = c.r + m;
+        if (dx * dx + dz * dz < md * md) return true;
+      } else if (c.type === 'box') {
+        if (x > c.minX - m && x < c.maxX + m && z > c.minZ - m && z < c.maxZ + m) return true;
+      } else if (c.type === 'obb') {
+        const dx = x - c.cx, dz = z - c.cz;
+        const u = dx * c.ux + dz * c.uz, v = -dx * c.uz + dz * c.ux;
+        if (Math.abs(u) < c.hu + m && Math.abs(v) < c.hv + m) return true;
+      }
+    }
+    return false;
+  }
+
+  // Puertas y tamaño de los pueblos, los mismos con los que se dibujan los caminos, más mapa de colisiones y relieve
   function opcionesRuta() {
     return {
       mitad: id => { const o = towns.find(x => x.t.id === id); return o ? o.tileHalf : null; },
       salida: (idPueblo, idCamino) => {
         const o = towns.find(x => x.t.id === idPueblo), r = world.roads.find(x => x.id === idCamino);
         return o && r ? salidaDePueblo(o, r) : [];
-      }
+      },
+      altura: (x, y) => visorWorld.getWalkableHeight(x, y),
+      esBloqueado: (x, y) => puntoBloqueadoRuta(x, y)
     };
   }
 
@@ -10498,7 +10557,7 @@
     pararAuto();
     objetivo = null;
     const puntosRuta = calcularRutaMundo(posActual, d, opcionesRuta());
-    ruta = { puntos: puntosRuta, i: 0, parar: d.parar, nombre: d.nombre, npc: d.npc || null, intentos: 0 };
+    ruta = { puntos: puntosRuta, i: 0, parar: d.parar, nombre: d.nombre, npc: d.npc || null, destino: d, intentos: 0 };
     character.cancelado = false;
     character.atascado = false;
     if (!follow) setFollow(true);
@@ -10518,7 +10577,7 @@
   }
 
   // Cada fotograma: va de punto en punto (la plaza se da por alcanzada a 8 m, por si hay una fuente en su centro);
-  // si algo lo bloquea, rodea por un lado (hasta 3 veces)
+  // si un punto intermedio se rebasa rodeando o queda sobre una colisión, avanza o recalcula un rodeo limpio.
   let _lastContadorRuta = 0;
   function seguirRuta() {
     if (!ruta) return;
@@ -10529,15 +10588,40 @@
     let ultimo = ruta.i === ruta.puntos.length - 1;
     const d = Math.hypot(w.x - pos.x, w.y - pos.z);
     if (ultimo && d <= ruta.parar + 0.5) { llegada(); return; }
-    if (!ultimo && d <= (w.plaza ? 8 : 3)) { ruta.i++; ruta.intentos = 0; w = ruta.puntos[ruta.i]; ultimo = ruta.i === ruta.puntos.length - 1; }
+    let avanzar = !ultimo && d <= (w.plaza ? 9 : 4.0);
+    if (!avanzar && !ultimo && d <= 12) {
+      const sig = ruta.puntos[ruta.i + 1];
+      const dotSig = (sig.x - w.x) * (pos.x - w.x) + (sig.y - w.y) * (pos.z - w.y);
+      if (dotSig > 0 && puntoBloqueadoRuta(w.x, w.y)) avanzar = true;
+      else if (dotSig > 0 && Math.hypot(sig.x - pos.x, sig.y - pos.z) < Math.hypot(sig.x - w.x, sig.y - w.y)) avanzar = true;
+    }
+    if (avanzar) {
+      ruta.i++;
+      ruta.intentos = 0;
+      w = ruta.puntos[ruta.i];
+      ultimo = ruta.i === ruta.puntos.length - 1;
+    }
     if (character.atascado) {
       character.atascado = false;
       ruta.intentos++;
-      if (ruta.intentos > 3) { detenerRuta('El paso está bloqueado. Muévete un poco y vuelve a pulsar la misión.'); return; }
-      const dx = w.x - pos.x, dz = w.y - pos.z, L = Math.hypot(dx, dz) || 1, lado = ruta.intentos % 2 ? 1 : -1;
-      ruta.puntos.splice(ruta.i, 0, { x: pos.x - dz / L * 6 * lado + dx / L * 2, y: pos.z + dx / L * 6 * lado + dz / L * 2 });
-      w = ruta.puntos[ruta.i];
-      ultimo = false;
+      if (ruta.intentos === 2 && ruta.destino) {
+        const rec = calcularRutaMundo({ x: pos.x, y: pos.z }, ruta.destino, opcionesRuta());
+        if (rec && rec.length) {
+          ruta.puntos = rec;
+          ruta.i = 0;
+          w = ruta.puntos[0];
+          ultimo = ruta.puntos.length === 1;
+        }
+      } else if (ruta.intentos > 5) {
+        detenerRuta('El paso está bloqueado. Muévete un poco y vuelve a pulsar la misión.');
+        return;
+      } else {
+        const dx = w.x - pos.x, dz = w.y - pos.z, L = Math.hypot(dx, dz) || 1, lado = ruta.intentos % 2 ? 1 : -1;
+        const radioDesvio = 6 + ruta.intentos * 2.5;
+        ruta.puntos.splice(ruta.i, 0, { x: pos.x - dz / L * radioDesvio * lado + dx / L * 2, y: pos.z + dx / L * radioDesvio * lado + dz / L * 2 });
+        w = ruta.puntos[ruta.i];
+        ultimo = false;
+      }
     }
     character.destino = { x: w.x, z: w.y, parar: ultimo ? ruta.parar : 0.5 };
 
