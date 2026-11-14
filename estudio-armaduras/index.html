@@ -21287,9 +21287,10 @@ function resetCharacter() {
       }, 100);
     }
 
-    // Acceso de inspección/QA al estudio (encajar armas en el puño, revisar el tiro con arco)
+    // Acceso de inspección/QA al estudio (encajar armas en el puño, revisar el tiro con arco, exportar sets)
     window.__studio = {
-      STATE, ITEMS_DB, WEAPON_LOADOUT, TEXTURE_PRESETS, ITEM_DEFAULT_TEXTURES,
+      STATE, ITEMS_DB, WEAPON_LOADOUT, TEXTURE_PRESETS, ITEM_DEFAULT_TEXTURES, ARMOR_LOOKS,
+      HAIR_CUT_PRESETS, HAIR_COLOR_PALETTES, HAIR_CONFIG,
       findTexturePreset, resolveSlotTexturePreset, bonesMap, armorSockets,
       get mannequinRoot() { return mannequinRoot; },
       get archeryRig() { return archeryRig; },
@@ -21297,9 +21298,12 @@ function resetCharacter() {
       get clock() { return clock; },
       get controls() { return controls; },
       get archeryTime() { return archeryT; },
+      get estudioCompilado() { return estudioCompilado; },
       setArcheryTime(t) { archeryT = t; archeryLastU = 0; },
-      updateWardrobePieces, applyHandGrip, getHandGripAnchor, handGripWorld,
-      archeryApplyPose, bakeArcheryClip, getLightExportClips, AR_DRAW
+      updateWardrobePieces, applyArmorLook, applyHandGrip, getHandGripAnchor, handGripWorld,
+      generateCreador3DHumanoGLB, setHairPresetColor, syncHairUISliders, rebuildCurrentHair,
+      archeryApplyPose, bakeArcheryClip, getLightExportClips, restoreBindPose, prepareBowForExport,
+      buildLightweightExportScene, quantizeGLBBuffer, loadMeshoptSimplifier, AR_DRAW
     };
   </script>
 </body>

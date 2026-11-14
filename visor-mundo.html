@@ -11172,64 +11172,14 @@
     return npcProtoLejos[nombreModelo];
   }
 
-  // Estilos visuales temáticos para cada gurú y servicio: elimina la armadura blanca idéntica
-  // dotando a cada personaje de colores ricos, metales templados, cuero curtido o sedas de mercader.
+  // Los 5 gurús conservan intactas sus armaduras auténticas rango SR exportadas desde estudio-armaduras
+  // (sin reescribir sus texturas ni colores con tintes inventados). Los NPCs de servicio mantienen tintes de rol.
   const ESTILOS_NPC = {
-    'guru-1': { // Sabia Elara (Historia del Reino)
-      armadura: 0xd4af37, // Oro ceremonial envejecido
-      metalness: 0.55,
-      roughness: 0.55,
-      ribete: 0x38bdf8,   // Zafiro arcano
-      tela: 0x1e3a8a,     // Azul noche profundo
-      faldon: 0x581c87,   // Púrpura imperial
-      capa: 0x312e81,     // Índigo regio
-      botas: 0x1e293b,    // Cuero marino oscuro
-      cabello: 0x94a3b8   // Ceniza platino
-    },
-    'guru-2': { // Maestro Oren (Los Caminos)
-      armadura: 0xb45309, // Bronce forjado y cobre de explorador
-      metalness: 0.50,
-      roughness: 0.60,
-      ribete: 0xf59e0b,   // Ámbar cálido
-      tela: 0x14532d,     // Verde bosque / musgo
-      faldon: 0x166534,   // Verde camuflaje
-      capa: 0x78350f,     // Cuero de viaje
-      botas: 0x451a03,    // Cuero oscuro
-      cabello: 0xd97706   // Castaño cobrizo
-    },
-    'guru-3': { // Hermana Ysolde (Las Runas y Entrenamiento)
-      armadura: 0x94a3b8, // Acero rúnico / plata satinada
-      metalness: 0.60,
-      roughness: 0.50,
-      ribete: 0xa855f7,   // Amatista
-      tela: 0x6b21a8,     // Púrpura litúrgico
-      faldon: 0x7e22ce,   // Seda amatista
-      capa: 0x3b0764,     // Terciopelo morado
-      botas: 0x334155,    // Grebas de acero
-      cabello: 0xf1f5f9   // Blanco místico
-    },
-    'guru-4': { // Viejo Tamsin (Los Monstruos)
-      armadura: 0x334155, // Hierro oscuro pavonado
-      metalness: 0.50,
-      roughness: 0.65,
-      ribete: 0x991b1b,   // Ribete carmesí
-      tela: 0x78350f,     // Cuero curtido resistente
-      faldon: 0x451a03,   // Faldón de piel
-      capa: 0x1c1917,     // Capa negra de acechador
-      botas: 0x1c1917,    // Botas altas de oso
-      cabello: 0x64748b   // Gris canoso curtido
-    },
-    'guru-5': { // Erudita Mirel (El Equipo)
-      armadura: 0xf59e0b, // Oro noble mate
-      metalness: 0.58,
-      roughness: 0.52,
-      ribete: 0xd946ef,   // Rubí engarzado
-      tela: 0x991b1b,     // Escarlata borgoña
-      faldon: 0xbe123c,   // Seda carmesí
-      capa: 0x831843,     // Capa granate noble
-      botas: 0x78350f,    // Cuero noble
-      cabello: 0x7c2d12   // Caoba rojizo
-    },
+    'guru-1': { autentica: true, rango: 'SR', set: 'Dinastía Celestial' },           // Sabia Elara (Historia del Reino)
+    'guru-2': { autentica: true, rango: 'SR', set: 'Fénix Ígneo Ligero' },           // Maestro Oren (Los Caminos)
+    'guru-3': { autentica: true, rango: 'SR', set: 'Archimago Cósmico' },            // Hermana Ysolde (Las Runas y Entrenamiento)
+    'guru-4': { autentica: true, rango: 'SR', set: 'Soberano de Vacío' },            // Viejo Tamsin (Los Monstruos)
+    'guru-5': { autentica: true, rango: 'SR', set: 'Serafín Ligero de Mithril' },    // Erudita Mirel (El Equipo)
     'serv-herrero': { // Herrero Brann (La Forja)
       armadura: 0x1f2937, // Peto de hierro pesado forjado ennegrecido
       metalness: 0.55,
@@ -11328,8 +11278,8 @@
       ? 'cabana'
       : (ESTILOS_NPC[info.id] ? info.id : entrada.nombreModelo);
 
-    const estilo = ESTILOS_NPC[key] || (info.cabana ? ESTILOS_NPC['cabana'] : ESTILOS_NPC['guru-2']);
-    if (!estilo) return;
+    const estilo = ESTILOS_NPC[key] || (info.cabana ? ESTILOS_NPC['cabana'] : null);
+    if (!estilo || estilo.autentica) return;
 
     modelo3D.traverse(o => {
       if (!o.isMesh || !o.material) return;
