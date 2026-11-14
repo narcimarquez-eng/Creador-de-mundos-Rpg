@@ -247,7 +247,13 @@
       const [hw, hd] = MODELOS[modelo].huella;
       const base = Math.min((opts.ancho || hw) / hw, (opts.fondo || hd) / hd);
       let sx, sz, sy, giro;
-      if (modoVar === 'alineada') {
+      if (opts.adosadas) {
+        const anchoObjetivo = c.anchoSlot || opts.ancho || hw;
+        sx = anchoObjetivo / hw;
+        sz = base * (0.94 + 0.12 * h4);
+        sy = ((sx + sz) * 0.5) * (0.95 + 0.14 * h5);
+        giro = c.rot || 0;
+      } else if (modoVar === 'alineada') {
         sx = base * (0.90 + 0.18 * h3);
         sz = base * (0.90 + 0.18 * h4);
         sy = ((sx + sz) * 0.5) * (0.94 + 0.12 * h5);

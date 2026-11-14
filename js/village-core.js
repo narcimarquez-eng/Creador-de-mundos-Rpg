@@ -1671,7 +1671,7 @@
 
       getMainRoadX(z) {
         if (!this.cfg) return 0;
-        if (this.cfg.trazado === 'manzanas') {
+        if (this.cfg.trazado === 'manzanas' || this.cfg.trazado === 'adosadas') {
           const g = this.manzanaGeo;
           return g ? g.A * Math.sin(Math.PI * z / g.p) : 0;
         }
@@ -1749,7 +1749,7 @@
           const hash = hash01(h.x, h.z);
           const parts = C.partes(THREE, {
             variante: C.variante(hash01(h.z, h.x)),
-            ancho: HW * 1.2 * h.wScale, fondo: HD * 1.2 * h.dScale,
+            ancho: (h.adosadas && h.anchoSlot) ? h.anchoSlot : HW * 1.2 * h.wScale, fondo: HD * 1.2 * h.dScale,
             hundir: Math.max(0, h.y - yEsq + 0.2),
             semilla: Math.floor(hash * 1e6) + 1
           });
@@ -1778,6 +1778,7 @@
         const casaVar = (cfg && cfg.casaVar) || 'alta';
         const modoCasas = (cfg && cfg.casas) || 'variada';
         const modelosUnicos = (modoCasas === 'casa_entramado' || modoCasas === 'cabana') ? [modoCasas] : undefined;
+        const adosadas = !!(cfg && cfg.trazado === 'adosadas');
         const casas = glbs.map(h => {
           // Apoyada en la esquina más baja del solar: en una ladera el lado alto queda enterrado, nunca en el aire
           const cosR = Math.cos(h.rot), sinR = Math.sin(h.rot);
@@ -1786,7 +1787,7 @@
             const lx = sx * HW * 0.6 * h.wScale, lz = sz * HD * 0.6 * h.dScale;
             y = Math.min(y, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
           });
-          return { x: h.x, y: y - 0.05, z: h.z, rot: h.rot, modelo: h.modeloGLB };
+          return { x: h.x, y: y - 0.05, z: h.z, rot: h.rot, modelo: h.modeloGLB, anchoSlot: h.anchoSlot };
         });
         L.cargar(THREE).then(() => {
           if (this._fichaGLB !== ficha) return;
@@ -1795,6 +1796,7 @@
             fondo: HD * 1.35,
             variantes: casaVar === 'libre' ? 12 : 10,
             casaVar,
+            adosadas,
             modelos: modelosUnicos,
             semilla: (cfg && cfg.seed) || 1
           });
@@ -2434,9 +2436,10 @@
       parcelarManzanas(cfg, townRadius, ctx) {
         const { rng, edit, styleObj, houses, trees, fences, hedges, addStreet, especieFor } = ctx;
         const g = this.manzanaGeo;
+        const adosadas = cfg.trazado === 'adosadas';
         const H = cfg.roadWidth * 0.5 + 1.0;   // del centro de la calle al borde de la manzana (en u y v)
-        const FRENTE = 13.5, FONDO = 15.5, PUERTA = 4.8, TRAMO = 4.5, TRAMO_SETO = 2.6;
-        const CASA_FONDO = 6.2;                // distancia desde el frente del solar al centro de la casa
+        const FRENTE = adosadas ? 7.8 : 13.5, FONDO = adosadas ? 12.5 : 15.5, PUERTA = 4.8, TRAMO = 4.5, TRAMO_SETO = 2.6;
+        const CASA_FONDO = adosadas ? 5.0 : 6.2; // distancia desde el frente del solar al centro de la casa
         const FRACCION_VALLADAS = 0.6;         // parte de las casas con verja
         const hasGardens = cfg.hasGardens !== false;
 
@@ -2516,7 +2519,8 @@
                 const P = (c, d) => g.punto(lado, c, d);
 
                 // Todos los azares se consumen igual, esté o no el solar ocupado
-                const tiene = rng.next() * 100 <= cfg.houseDensity;
+                const tieneAzar = rng.next() * 100 <= cfg.houseDensity;
+                const tiene = adosadas ? (cfg.houseDensity > 0) : tieneAzar;
                 const floors = rng.int(1, cfg.maxFloors);
                 const tint = rng.pick(styleObj.wallTints);
                 const chimney = rng.next() > 0.35;
@@ -2557,7 +2561,7 @@
                 const useHedgeFence = hrPlot.next() < 0.45;
                 const margenPuerta = Math.min(PUERTA / 2, w * 0.34);
 
-                if (tieneCasa && cfg.hasFences && conVALLA && !moved && w >= 10.5) {
+                if (!adosadas && tieneCasa && cfg.hasFences && conVALLA && !moved && w >= 10.5) {
                   // Vallas integradas con setos: ~45 % cercado completo de seto y ~55 % valla de madera, con frente en la calle
                   cercarSolar(useHedgeFence ? 'hs' + key : key, useHedgeFence, margenPuerta);
                 }
@@ -2569,13 +2573,14 @@
                   houses.push({
                     id: key, x: px, y: hy, z: pz, rot: Math.atan2(n.x, n.z),
                     wScale: Math.min(1.10, wScale), dScale: Math.min(1.10, dScale), floors, tint, chimney, balcony,
-                    slotIdx: k, distCentro: Math.hypot(px, pz)
+                    slotIdx: k, distCentro: Math.hypot(px, pz),
+                    adosadas, anchoSlot: adosadas ? w : undefined
                   });
                   if (houses.length === 1) this.sampleHousePos.set(px, hy, pz);
                   this.colliders.push({ type: 'circle', house: true, id: key, x: px, z: pz, r: 4.5 });
                   const frente = P(cm, CASA_FONDO - 3.9);
                   addStreet('acceso-' + key, [frente, P(cm, -H)], 2.2, 0.13);
-                  if (hasGardens && !moved && w >= 10.5) {
+                  if (!adosadas && hasGardens && !moved && w >= 10.5) {
                     if (!cfg.hasFences || !conVALLA) {
                       if (cm - margenPuerta - c0 >= 2.8) ponerSeto('hj' + key + 'f1', (c0 + cm - margenPuerta) * 0.5, -0.35);
                       if (c1 - (cm + margenPuerta) >= 2.8) ponerSeto('hj' + key + 'f2', (cm + margenPuerta + c1) * 0.5, -0.35);
@@ -2615,7 +2620,10 @@
         if (this.onExitCorridor(x, z, cfg.roadWidth * 0.5 + 5)) return false;
         return !this.colliders.some(c => {
           if (c.wall || (c.house && c.id === ignoreId)) return false;
-          if (c.type === 'circle') return Math.hypot(x - c.x, z - c.z) < c.r + 6.5;
+          if (c.type === 'circle') {
+            const margen = (c.house && cfg.trazado === 'adosadas') ? 1.8 : 6.5;
+            return Math.hypot(x - c.x, z - c.z) < c.r + margen;
+          }
           return x > c.minX - 5 && x < c.maxX + 5 && z > c.minZ - 5 && z < c.maxZ + 5;
         });
       }
@@ -2655,7 +2663,7 @@
         this.plazaLight.color.setHex(styleObj.magicHex);
 
         const townRadius = 42 + cfg.size * 14;
-        const manzanas = cfg.trazado === 'manzanas';
+        const manzanas = cfg.trazado === 'manzanas' || cfg.trazado === 'adosadas';
         const WORLD_SIZE = Math.max(240, (townRadius + 65) * 2);
         const RIVER_WIDTH = this.riverWidth;
 
@@ -4263,7 +4271,9 @@
             h.madera = !h.glb && (esCentro ? r < 0.32 : r < 0.68);
           }
           // Variación extra de tamaño y orientación según el modo seleccionado
-          if (casaVar === 'libre') {
+          if (h.adosadas) {
+            if (h.anchoSlot) h.wScale = h.anchoSlot / HW;
+          } else if (casaVar === 'libre') {
             h.wScale = 0.80 + 0.38 * r;
             h.dScale = 0.80 + 0.38 * r2;
             h.rot += Math.floor(r * 4) * (Math.PI * 0.5) + (r2 - 0.5) * 2 * (16 * Math.PI / 180);
