@@ -48,6 +48,11 @@
     lluvia_proyectiles: ['aerial_shot', 'archery', 'lluvia'],
     juicio_relampago: ['triple_corkscrew', 'juicio'],
     sentencia_titan: ['ultimate_nova', 'sentencia'],
+    bola_fuego: ['ultimate_beam', 'punch'],
+    lanza_hielo: ['ultimate_beam', 'kick'],
+    ventisca_glacial: ['ultimate_nova', 'blast'],
+    tormenta_fuego: ['ultimate_slam', 'nova'],
+    rayo_arcano: ['ultimate_nova', 'ultimate_beam'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
     victory: ['victoria', 'victory', 'postura de victoria', 'win']
@@ -76,13 +81,23 @@
     lluvia_proyectiles: { lock: 1.5 },
     juicio_relampago: { lock: 1.1 },
     sentencia_titan: { lock: 1.6 },
+    bola_fuego: { lock: 0.65 },
+    lanza_hielo: { lock: 0.65 },
+    ventisca_glacial: { lock: 0.9 },
+    tormenta_fuego: { lock: 1.0 },
+    rayo_arcano: { lock: 0.85 },
     jump: { lock: 0.0 },
     victory: { lock: 0.0 }
   };
-  // Gestos del avatar de respaldo (sin GLB): vueltas sobre sí mismo, salto y tiro con arco
+  // Gestos del avatar de respaldo (sin GLB): vueltas sobre sí mismo, salto, tiro con arco y conjuros elementales
   const GESTO = {
     tajo: { vueltas: 1 }, torbellino: { vueltas: 2 }, tornillo: { vueltas: 3, salto: 1.2 },
-    voltereta: { salto: 1.2 }, suspension: { salto: 1.4, arco: true }, disparo: { arco: true }
+    voltereta: { salto: 1.2 }, suspension: { salto: 1.4, arco: true }, disparo: { arco: true },
+    corte_cruzado: { vueltas: 1 }, rafaga: { conjuro: true }, furia: { vueltas: 1 },
+    escudo_espiritu: { salto: 0.45 }, salto_demoledor: { salto: 1.6 },
+    juicio_relampago: { vueltas: 2, salto: 0.8 }, sentencia_titan: { salto: 1.8, conjuro: true },
+    bola_fuego: { conjuro: true }, lanza_hielo: { conjuro: true },
+    ventisca_glacial: { salto: 0.5, conjuro: true }, tormenta_fuego: { salto: 0.7, conjuro: true }, rayo_arcano: { salto: 0.6, conjuro: true }
   };
 
   // Índice de la primera animación cuyo nombre contiene alguna palabra clave; -1 si no hay
@@ -385,6 +400,7 @@
         if (g.vueltas) this.model.rotation.y = t * Math.PI * 2 * g.vueltas;
         if (g.salto) this.model.position.y = g.salto * swing;
         if (g.arco) { L.leftArm.rotation.x = -1.5; L.rightArm.rotation.x = -1.5 * (1 - swing); }
+        else if (g.conjuro) { L.leftArm.rotation.x = -2.1 * swing; L.rightArm.rotation.x = -2.1 * swing; }
         else L.rightArm.rotation.x = -2.2 * swing;
       }
       if (f.kind === 'victory') { L.leftArm.rotation.x = -2.6; L.rightArm.rotation.x = -2.6; }

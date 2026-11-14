@@ -246,4 +246,26 @@ t('monstruos arqueros y magos: detección de rol, ataque a distancia y velocidad
   assert.ok(melee.x > 0, 'El monstruo melee debe desplazarse hacia el héroe para alcanzarlo');
 });
 
+t('habilidades elementales (fuego, hielo y rayo arcano) y ralentización por escarcha', () => {
+  ['bola_fuego', 'lanza_hielo', 'ventisca_glacial', 'tormenta_fuego', 'rayo_arcano'].forEach(id => {
+    const sk = C.SKILLS[id];
+    assert.ok(sk, 'falta skill ' + id);
+    assert.strictEqual(sk.arma, undefined, id + ' debe poderse lanzar con cualquier arma');
+    assert.ok(sk.slow === undefined || sk.slow > 0);
+  });
+  assert.ok(C.SKILLS.bola_fuego.proyectil && C.SKILLS.lanza_hielo.proyectil);
+  assert.ok(C.SKILLS.lanza_hielo.slow > 0 && C.SKILLS.ventisca_glacial.slow > 0);
+
+  const h = C.newHero();
+  const normal = C.newMonster({ level: 3, x: 0, z: 0, leash: 60 });
+  const frozen = C.newMonster({ level: 3, x: 0, z: 0, leash: 60 });
+  frozen.slowTimer = 3.0;
+  frozen.slowMult = 0.4;
+  C.monsterTick(normal, h, 10, 0, 0.5);
+  C.monsterTick(frozen, h, 10, 0, 0.5);
+  assert.ok(normal.x > 0, 'monstruo normal debe avanzar hacia el héroe');
+  assert.ok(frozen.x > 0 && frozen.x < normal.x, `monstruo congelado (${frozen.x}) debe moverse más lento que normal (${normal.x})`);
+  assert.ok(frozen.slowTimer < 3.0, 'slowTimer debe decrecer con dt');
+});
+
 console.log(`\n${n} pruebas correctas`);

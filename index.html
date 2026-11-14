@@ -425,12 +425,32 @@
     if (!opts || opts.fit !== false) fitView();
   }
 
+  function migrarValdrisSiAntiguo(w) {
+    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 2) return false;
+    if (typeof window.clonarMundoOficial !== 'function') return false;
+    const fresh = window.clonarMundoOficial();
+    const byId = new Map((fresh.towns || []).map(t => [t.id, t]));
+    (w.towns || []).forEach(t => {
+      const ft = byId.get(t.id);
+      if (ft) {
+        const prevEdits = t.cfg && t.cfg.edits;
+        t.cfg = Object.assign({}, ft.cfg);
+        if (prevEdits) t.cfg.edits = prevEdits;
+        if (typeof ft.size === 'number') t.size = ft.size;
+        if (typeof ft.radius === 'number') t.radius = ft.radius;
+      }
+    });
+    w.campaignVersion = fresh.campaignVersion || 2;
+    return true;
+  }
+
   function loadSession(id) {
     const text = lsGet(STORE.data(id));
     if (!text) { toast('Sesión no encontrada.'); return false; }
     try {
       const w = W.deserialize(text);
       if (typeof W.migrarMonstruosSiAntiguo === 'function') W.migrarMonstruosSiAntiguo(w);
+      migrarValdrisSiAntiguo(w);
       openWorld(w, id);
       return true;
     } catch (e) {
@@ -2134,6 +2154,7 @@
       try {
         const w = W.deserialize(reader.result);
         if (typeof W.migrarMonstruosSiAntiguo === 'function') W.migrarMonstruosSiAntiguo(w);
+        migrarValdrisSiAntiguo(w);
         openWorld(w, newSessionId());
         closeModals();
         toast('Mundo «' + w.name + '» importado como nueva sesión');

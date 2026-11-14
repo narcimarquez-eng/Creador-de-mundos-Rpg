@@ -6,8 +6,8 @@
   "seed": 271828,
   "rngState": 443490413,
   "nextId": 108,
-  "created": "2026-11-14T01:07:46.259Z",
-  "updated": "2026-11-14T01:07:46.259Z",
+  "created": "2026-11-14T08:18:42.031Z",
+  "updated": "2026-11-14T08:18:42.031Z",
   "settings": {
     "townCount": 7,
     "spacing": 1400,
@@ -38,24 +38,29 @@
       "cfg": {
         "style": "european",
         "terrainType": "valley",
-        "relief": 0.35,
+        "relief": 30,
         "seed": 1011,
         "size": 4,
-        "houseDensity": 0.85,
-        "specialCount": 3,
-        "maxFloors": 2,
-        "roadWidth": 7,
-        "curve": 0.25,
-        "treeDensity": 0.55,
+        "houseDensity": 90,
+        "specialCount": 4,
+        "maxFloors": 3,
+        "roadWidth": 7.5,
+        "curve": 3.5,
+        "treeDensity": 48,
         "hasWalls": true,
         "hasRiver": true,
         "hasMagic": false,
         "hasProps": true,
         "hasLamps": true,
         "hasFences": true,
-        "casas": "mixta",
-        "time": "day",
+        "hasGardens": true,
+        "trazado": "manzanas",
+        "casas": "variada",
+        "casaVar": "alta",
+        "streetTexture": "t02",
+        "bridgeStyle": 0,
         "rotation": 29,
+        "time": "day",
         "exits": [
           {
             "angle": 89.89999999999998,
@@ -80,133 +85,133 @@
           }
         ],
         "rio": {
-          "clave": "v2|271828|1850|950|29|4|0.25",
+          "clave": "v2|271828|1850|950|29|4|3.5",
           "mar": false,
           "pts": [
             {
-              "x": 49.9,
+              "x": 48.9,
               "z": 463,
               "l": -0.65
             },
             {
-              "x": 49.8,
+              "x": 46.7,
               "z": 423,
               "l": -0.65
             },
             {
-              "x": 50.1,
+              "x": 51.3,
               "z": 383,
               "l": -0.65
             },
             {
-              "x": 50.2,
+              "x": 53.2,
               "z": 343,
               "l": -0.65
             },
             {
-              "x": 49.9,
+              "x": 48.5,
               "z": 303,
               "l": -0.65
             },
             {
-              "x": 49.8,
+              "x": 46.9,
               "z": 263,
               "l": -0.65
             },
             {
-              "x": 50.1,
+              "x": 51.7,
               "z": 223,
               "l": -0.65
             },
             {
-              "x": 50.2,
+              "x": 53,
               "z": 183,
               "l": -0.65
             },
             {
-              "x": 49.9,
+              "x": 48.1,
               "z": 143,
               "l": -0.65
             },
             {
-              "x": 49.8,
+              "x": 47.1,
               "z": 103,
               "l": -0.65
             },
             {
-              "x": 50.1,
+              "x": 52,
               "z": 63,
               "l": -0.65
             },
             {
-              "x": 50.2,
+              "x": 52.8,
               "z": 23,
               "l": -0.65
             },
             {
-              "x": 49.8,
+              "x": 47.8,
               "z": -17,
               "l": -0.65
             },
             {
-              "x": 49.8,
+              "x": 47.3,
               "z": -57,
               "l": -0.65
             },
             {
-              "x": 50.2,
+              "x": 52.4,
               "z": -97,
               "l": -0.65
             },
             {
-              "x": 50.2,
+              "x": 52.5,
               "z": -137,
               "l": -0.65
             },
             {
-              "x": 49.9,
+              "x": 49.2,
               "z": -163,
               "l": -0.65
             },
             {
-              "x": 88.5,
+              "x": 87.7,
               "z": -152.9,
-              "l": -29.88
+              "l": -29.78
             },
             {
-              "x": 127.1,
+              "x": 126.3,
               "z": -148.2,
-              "l": -35.13
+              "l": -35.04
             },
             {
-              "x": 165.1,
+              "x": 164.4,
               "z": -152.7,
-              "l": -40.57
+              "l": -40.46
             },
             {
-              "x": 202.9,
+              "x": 202.1,
               "z": -161.5,
-              "l": -48.14
+              "l": -47.98
             },
             {
-              "x": 241.8,
+              "x": 241,
               "z": -168.2,
-              "l": -57.31
+              "l": -57.13
             },
             {
-              "x": 280.9,
+              "x": 280.1,
               "z": -174.5,
-              "l": -65.91
+              "l": -65.77
             },
             {
-              "x": 319,
+              "x": 318.2,
               "z": -184.1,
-              "l": -71.77
+              "l": -71.7
             },
             {
-              "x": 355.8,
+              "x": 355,
               "z": -197.8,
-              "l": -73.4
+              "l": -73.41
             }
           ]
         }
@@ -231,24 +236,29 @@
       "cfg": {
         "style": "trade",
         "terrainType": "plains",
-        "relief": 0.25,
+        "relief": 18,
         "seed": 2022,
-        "size": 3,
-        "houseDensity": 0.8,
-        "specialCount": 2,
-        "maxFloors": 2,
-        "roadWidth": 7,
-        "curve": 0.2,
-        "treeDensity": 0.35,
+        "size": 4,
+        "houseDensity": 92,
+        "specialCount": 4,
+        "maxFloors": 3,
+        "roadWidth": 8,
+        "curve": 2.2,
+        "treeDensity": 35,
         "hasWalls": true,
         "hasRiver": true,
         "hasMagic": false,
         "hasProps": true,
         "hasLamps": true,
-        "hasFences": true,
-        "casas": "mixta",
-        "time": "day",
+        "hasFences": false,
+        "hasGardens": true,
+        "trazado": "manzanas",
+        "casas": "casa_entramado",
+        "casaVar": "alineada",
+        "streetTexture": "t09",
+        "bridgeStyle": 2,
         "rotation": 5,
+        "time": "day",
         "exits": [
           {
             "angle": 121.10000000000002,
@@ -266,102 +276,107 @@
           }
         ],
         "rio": {
-          "clave": "v2|271828|300|600|5|3|0.2",
+          "clave": "v2|271828|300|600|5|4|2.2",
           "mar": true,
           "pts": [
             {
-              "x": 41.8,
-              "z": 449,
+              "x": 49.3,
+              "z": 463,
               "l": -0.65
             },
             {
-              "x": 41.9,
-              "z": 409,
+              "x": 47.9,
+              "z": 423,
               "l": -0.65
             },
             {
-              "x": 42.2,
-              "z": 369,
+              "x": 50.8,
+              "z": 383,
               "l": -0.65
             },
             {
-              "x": 42.1,
-              "z": 329,
+              "x": 52,
+              "z": 343,
               "l": -0.65
             },
             {
-              "x": 41.8,
-              "z": 289,
+              "x": 49.1,
+              "z": 303,
               "l": -0.65
             },
             {
-              "x": 41.9,
-              "z": 249,
+              "x": 48,
+              "z": 263,
               "l": -0.65
             },
             {
-              "x": 42.2,
-              "z": 209,
+              "x": 51.1,
+              "z": 223,
               "l": -0.65
             },
             {
-              "x": 42.1,
-              "z": 169,
+              "x": 51.9,
+              "z": 183,
               "l": -0.65
             },
             {
-              "x": 41.8,
-              "z": 129,
+              "x": 48.8,
+              "z": 143,
               "l": -0.65
             },
             {
-              "x": 41.9,
-              "z": 89,
+              "x": 48.2,
+              "z": 103,
               "l": -0.65
             },
             {
-              "x": 42.2,
-              "z": 49,
+              "x": 51.3,
+              "z": 63,
               "l": -0.65
             },
             {
-              "x": 42.1,
-              "z": 9,
+              "x": 51.8,
+              "z": 23,
               "l": -0.65
             },
             {
-              "x": 41.8,
-              "z": -31,
+              "x": 48.6,
+              "z": -17,
               "l": -0.65
             },
             {
-              "x": 41.9,
-              "z": -71,
+              "x": 48.3,
+              "z": -57,
               "l": -0.65
             },
             {
-              "x": 42.2,
-              "z": -111,
+              "x": 51.5,
+              "z": -97,
               "l": -0.65
             },
             {
-              "x": 42.1,
-              "z": -149,
+              "x": 51.6,
+              "z": -137,
               "l": -0.65
             },
             {
-              "x": 77.5,
-              "z": -167.5,
-              "l": -21.52
+              "x": 49.5,
+              "z": -163,
+              "l": -0.65
             },
             {
-              "x": 113,
-              "z": -185.9,
-              "l": -29.82
+              "x": 85.2,
+              "z": -180.5,
+              "l": -24.44
             },
             {
-              "x": 148.5,
-              "z": -204.4,
+              "x": 122.2,
+              "z": -194.1,
+              "l": -32.42
+            },
+            {
+              "x": 160.3,
+              "z": -203.4,
               "l": -32.42
             }
           ]
@@ -369,7 +384,7 @@
       },
       "notes": "Puerto mercante frente a la bahía interior de Valdris, asfixiado por aranceles eclesiales y saqueadores de marea.",
       "biome": "pradera",
-      "radius": 114
+      "radius": 128
     },
     {
       "id": "t_3",
@@ -386,24 +401,29 @@
       "cfg": {
         "style": "frontier",
         "terrainType": "hills",
-        "relief": 0.45,
+        "relief": 46,
         "seed": 3033,
         "size": 3,
-        "houseDensity": 0.72,
+        "houseDensity": 84,
         "specialCount": 2,
         "maxFloors": 2,
         "roadWidth": 6,
-        "curve": 0.4,
-        "treeDensity": 0.85,
+        "curve": 7.5,
+        "treeDensity": 95,
         "hasWalls": false,
         "hasRiver": true,
         "hasMagic": false,
         "hasProps": true,
         "hasLamps": true,
         "hasFences": true,
-        "casas": "madera",
-        "time": "day",
+        "hasGardens": true,
+        "trazado": "radial",
+        "casas": "cabana",
+        "casaVar": "libre",
+        "streetTexture": "t05",
+        "bridgeStyle": 1,
         "rotation": 42,
+        "time": "day",
         "exits": [
           {
             "angle": 150.3,
@@ -421,93 +441,93 @@
           }
         ],
         "rio": {
-          "clave": "v2|271828|1150|1850|42|3|0.4",
+          "clave": "v2|271828|1150|1850|42|3|7.5",
           "mar": false,
           "pts": [
             {
-              "x": 42.3,
+              "x": 47.8,
               "z": -449,
               "l": -0.65
             },
             {
-              "x": 42.2,
+              "x": 46.6,
               "z": -409,
               "l": -0.65
             },
             {
-              "x": 41.7,
+              "x": 35.9,
               "z": -369,
               "l": -0.65
             },
             {
-              "x": 41.8,
+              "x": 37.8,
               "z": -329,
               "l": -0.65
             },
             {
-              "x": 42.3,
+              "x": 48.3,
               "z": -289,
               "l": -0.65
             },
             {
-              "x": 42.2,
+              "x": 45.8,
               "z": -249,
               "l": -0.65
             },
             {
-              "x": 41.7,
+              "x": 35.4,
               "z": -209,
               "l": -0.65
             },
             {
-              "x": 41.8,
+              "x": 38.6,
               "z": -169,
               "l": -0.65
             },
             {
-              "x": 42.4,
+              "x": 48.8,
               "z": -129,
               "l": -0.65
             },
             {
-              "x": 42.2,
+              "x": 45,
               "z": -89,
               "l": -0.65
             },
             {
-              "x": 41.6,
+              "x": 35.1,
               "z": -49,
               "l": -0.65
             },
             {
-              "x": 41.9,
+              "x": 39.4,
               "z": -9,
               "l": -0.65
             },
             {
-              "x": 42.4,
+              "x": 49.1,
               "z": 31,
               "l": -0.65
             },
             {
-              "x": 42.1,
+              "x": 44.2,
               "z": 71,
               "l": -0.65
             },
             {
-              "x": 41.6,
+              "x": 34.8,
               "z": 111,
               "l": -0.65
             },
             {
-              "x": 41.9,
+              "x": 39.6,
               "z": 149,
               "l": -0.65
             },
             {
-              "x": 55.2,
-              "z": 186.7,
-              "l": -19.46
+              "x": 66.4,
+              "z": 178.7,
+              "l": -19.47
             }
           ]
         }
@@ -530,53 +550,159 @@
         "almacén"
       ],
       "cfg": {
-        "style": "frontier",
+        "style": "elven",
         "terrainType": "valley",
-        "relief": 0.2,
+        "relief": 22,
         "seed": 4044,
-        "size": 2,
-        "houseDensity": 0.65,
-        "specialCount": 1,
-        "maxFloors": 1,
+        "size": 3,
+        "houseDensity": 78,
+        "specialCount": 2,
+        "maxFloors": 2,
         "roadWidth": 5.5,
-        "curve": 0.35,
-        "treeDensity": 0.5,
+        "curve": 6.2,
+        "treeDensity": 68,
         "hasWalls": false,
-        "hasRiver": false,
-        "hasMagic": false,
+        "hasRiver": true,
+        "hasMagic": true,
         "hasProps": true,
         "hasLamps": true,
         "hasFences": false,
+        "hasGardens": true,
+        "trazado": "radial",
         "casas": "madera",
+        "casaVar": "libre",
+        "streetTexture": "t03",
+        "bridgeStyle": 1,
+        "rotation": 298,
         "time": "sunset",
-        "rotation": 29,
         "exits": [
           {
-            "angle": 179.60000000000002,
-            "gate": "W",
-            "to": "Atalaya de Escarcha",
-            "toId": "t_6",
-            "roadId": "r_6"
-          },
-          {
-            "angle": 271,
-            "gate": "N",
+            "angle": 3.1000000000000227,
+            "gate": "E",
             "to": "Puerto Brisal",
             "toId": "t_2",
             "roadId": "r_3"
           },
           {
-            "angle": 330.1,
-            "gate": "E",
+            "angle": 62.39999999999998,
+            "gate": "S",
             "to": "Robledal Sombrío",
             "toId": "t_3",
             "roadId": "r_4"
+          },
+          {
+            "angle": 270.20000000000005,
+            "gate": "N",
+            "to": "Atalaya de Escarcha",
+            "toId": "t_6",
+            "roadId": "r_6"
           }
-        ]
+        ],
+        "rio": {
+          "clave": "v2|271828|-500|1750|298|3|6.2",
+          "mar": true,
+          "pts": [
+            {
+              "x": 37.2,
+              "z": 449,
+              "l": -0.65
+            },
+            {
+              "x": 38.2,
+              "z": 409,
+              "l": -0.65
+            },
+            {
+              "x": 47,
+              "z": 369,
+              "l": -0.65
+            },
+            {
+              "x": 45.5,
+              "z": 329,
+              "l": -0.65
+            },
+            {
+              "x": 36.8,
+              "z": 289,
+              "l": -0.65
+            },
+            {
+              "x": 38.8,
+              "z": 249,
+              "l": -0.65
+            },
+            {
+              "x": 47.4,
+              "z": 209,
+              "l": -0.65
+            },
+            {
+              "x": 44.8,
+              "z": 169,
+              "l": -0.65
+            },
+            {
+              "x": 36.4,
+              "z": 129,
+              "l": -0.65
+            },
+            {
+              "x": 39.5,
+              "z": 89,
+              "l": -0.65
+            },
+            {
+              "x": 47.7,
+              "z": 49,
+              "l": -0.65
+            },
+            {
+              "x": 44.2,
+              "z": 9,
+              "l": -0.65
+            },
+            {
+              "x": 36.1,
+              "z": -31,
+              "l": -0.65
+            },
+            {
+              "x": 40.2,
+              "z": -71,
+              "l": -0.65
+            },
+            {
+              "x": 48,
+              "z": -111,
+              "l": -0.65
+            },
+            {
+              "x": 44,
+              "z": -149,
+              "l": -0.65
+            },
+            {
+              "x": 68.6,
+              "z": -180.3,
+              "l": -42.92
+            },
+            {
+              "x": 89.5,
+              "z": -213.6,
+              "l": -50.96
+            },
+            {
+              "x": 106.6,
+              "z": -249,
+              "l": -54.47
+            }
+          ]
+        }
       },
       "notes": "Enclave palustre entre ciénagas donde desertores y boticarios ocultaron los registros alquímicos de la Orden del Eclipse.",
       "biome": "pantano",
-      "radius": 100
+      "radius": 114
     },
     {
       "id": "t_5",
@@ -596,44 +722,49 @@
       "cfg": {
         "style": "l2_fantasy",
         "terrainType": "plains",
-        "relief": 0.3,
+        "relief": 28,
         "seed": 5055,
-        "size": 4,
-        "houseDensity": 0.85,
-        "specialCount": 3,
+        "size": 5,
+        "houseDensity": 94,
+        "specialCount": 4,
         "maxFloors": 3,
-        "roadWidth": 7.5,
-        "curve": 0.18,
-        "treeDensity": 0.18,
+        "roadWidth": 8.5,
+        "curve": 3,
+        "treeDensity": 24,
         "hasWalls": true,
         "hasRiver": false,
         "hasMagic": true,
         "hasProps": true,
         "hasLamps": true,
         "hasFences": false,
+        "hasGardens": false,
+        "trazado": "manzanas",
         "casas": "original",
+        "casaVar": "alta",
+        "streetTexture": "t04",
+        "bridgeStyle": 0,
+        "rotation": 96,
         "time": "day",
-        "rotation": 7,
         "exits": [
           {
-            "angle": 79.39999999999998,
+            "angle": 124.30000000000001,
             "gate": "S",
-            "to": "Albaferro",
-            "toId": "t_1",
-            "roadId": "r_5"
-          },
-          {
-            "angle": 214.29999999999995,
-            "gate": "W",
             "to": "Trono de Ceniza",
             "toId": "t_7",
             "roadId": "r_7"
+          },
+          {
+            "angle": 350.4,
+            "gate": "E",
+            "to": "Albaferro",
+            "toId": "t_1",
+            "roadId": "r_5"
           }
         ]
       },
       "notes": "Ciudad caravana del desierto dorado. Aquí se alza el Altar Rúnico que rompe el monopolio comercial del Cónclave a partir de nivel 12.",
       "biome": "desierto",
-      "radius": 128
+      "radius": 142
     },
     {
       "id": "t_6",
@@ -652,35 +783,40 @@
       "cfg": {
         "style": "fortified",
         "terrainType": "highlands",
-        "relief": 0.55,
+        "relief": 54,
         "seed": 6066,
         "size": 3,
-        "houseDensity": 0.78,
-        "specialCount": 2,
+        "houseDensity": 86,
+        "specialCount": 3,
         "maxFloors": 2,
         "roadWidth": 6.5,
-        "curve": 0.2,
-        "treeDensity": 0.45,
+        "curve": 4.5,
+        "treeDensity": 55,
         "hasWalls": true,
         "hasRiver": false,
-        "hasMagic": false,
+        "hasMagic": true,
         "hasProps": true,
         "hasLamps": true,
         "hasFences": true,
+        "hasGardens": false,
+        "trazado": "radial",
         "casas": "mixta",
+        "casaVar": "alta",
+        "streetTexture": "t08",
+        "bridgeStyle": 2,
+        "rotation": 150,
         "time": "day",
-        "rotation": 330,
         "exits": [
           {
-            "angle": 11.899999999999977,
-            "gate": "E",
+            "angle": 191.89999999999998,
+            "gate": "W",
             "to": "Trono de Ceniza",
             "toId": "t_7",
             "roadId": "r_8"
           },
           {
-            "angle": 89.39999999999998,
-            "gate": "S",
+            "angle": 269.4,
+            "gate": "N",
             "to": "Limoquieto",
             "toId": "t_4",
             "roadId": "r_6"
@@ -709,24 +845,29 @@
       "cfg": {
         "style": "dwarven",
         "terrainType": "highlands",
-        "relief": 0.7,
+        "relief": 65,
         "seed": 7077,
         "size": 4,
-        "houseDensity": 0.82,
-        "specialCount": 3,
+        "houseDensity": 90,
+        "specialCount": 4,
         "maxFloors": 3,
-        "roadWidth": 7,
-        "curve": 0.15,
-        "treeDensity": 0.2,
+        "roadWidth": 7.5,
+        "curve": 2,
+        "treeDensity": 20,
         "hasWalls": true,
         "hasRiver": false,
         "hasMagic": true,
         "hasProps": true,
         "hasLamps": true,
         "hasFences": false,
+        "hasGardens": false,
+        "trazado": "manzanas",
         "casas": "original",
-        "time": "night",
+        "casaVar": "alineada",
+        "streetTexture": "t06",
+        "bridgeStyle": 0,
         "rotation": 30,
+        "time": "night",
         "exits": [
           {
             "angle": 106.10000000000002,
@@ -3468,6 +3609,7 @@
   ],
   "id": "valdris-sol-quebrado-v1",
   "campaignId": "valdris-sol-quebrado-v1",
+  "campaignVersion": 2,
   "secretPlaces": [
     {
       "id": "cabana-1-clasica",
@@ -3574,8 +3716,8 @@
       "modeloGLB": "glb/cabanas/cabana_3_pescador_pilotes.glb",
       "esMar": true,
       "zonaAsignada": "z_1",
-      "x": 1989.9,
-      "z": 828.9,
+      "x": 1991.7,
+      "z": 831,
       "radio": 32,
       "radioPlano": 16,
       "radioRebaje": 36,
@@ -3751,7 +3893,7 @@
     "subtitulo": "Campaña épica de 4 Actos · Desde Albaferro hasta el Cráter del Sol Quebrado",
     "mundoNombre": "Valdris",
     "tituloFinal": "Libertadores de Valdris",
-    "generadaEn": "2026-11-14T01:07:46.298Z",
+    "generadaEn": "2026-11-14T08:18:42.168Z",
     "prologo": {
       "titulo": "🔥 Prólogo · La Emboscada en Albaferro",
       "parrafo1": "La noche cae sobre las murallas de <b>Albaferro</b>, puerta de entrada a <b>Valdris</b>. Mientras el <b>Herrero Brann</b> forja a escondidas del cónclave, un estruendo quiebra las vigas: bestias alteradas con placas de hierro remachadas irrumpen desde la oscuridad.",

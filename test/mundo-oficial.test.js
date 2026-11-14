@@ -120,4 +120,21 @@ t('index.html y visor-mundo.html cargan Valdris y exponen controles de historia'
   assert.ok(visHtml.includes('HistoriaLib.prologoDe'));
 });
 
+t('Valdris v2 tiene pueblos con alta densidad de casas y estilos arquitectónicos variados', () => {
+  const w = MundoOficial.clonar();
+  assert.ok((w.campaignVersion || 1) >= 2, 'campaignVersion debe ser >= 2');
+  const estilos = new Set();
+  const tiposCasas = new Set();
+  const texturasCalle = new Set();
+  for (const town of w.towns) {
+    assert.ok(town.cfg && town.cfg.houseDensity >= 75, `${town.name} tiene houseDensity baja: ${town.cfg && town.cfg.houseDensity}`);
+    estilos.add(town.cfg.style);
+    if (town.cfg.casas) tiposCasas.add(town.cfg.casas);
+    if (town.cfg.streetTexture) texturasCalle.add(town.cfg.streetTexture);
+  }
+  assert.strictEqual(estilos.size, 7, 'Los 7 pueblos de Valdris deben tener estilos distintos: ' + [...estilos].join(', '));
+  assert.ok(tiposCasas.size >= 5, 'Se esperan al menos 5 estilos de casas distintos en Valdris: ' + [...tiposCasas].join(', '));
+  assert.ok(texturasCalle.size >= 6, 'Se esperan al menos 6 texturas de calle distintas en Valdris: ' + [...texturasCalle].join(', '));
+});
+
 console.log(`\n${n} pruebas del mundo oficial superadas.`);

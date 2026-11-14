@@ -257,8 +257,12 @@
         name: 'Fantasía Lineage 2',
         roofHex: '#1d4ed8',
         roofAltHex: '#1e40af',
-        wallTints: [0xffffff, 0xfef3c7, 0xf1f5f9, 0xe0f2fe],
+        roofPattern: 'scale',
+        stuccoHex: '#f8fafc',
+        stuccoTint: '#e0f2fe',
         stoneHex: '#64748b',
+        stonePattern: 'marble_ashlar',
+        stonePalette: ['#cbd5e1', '#94a3b8', '#e2e8f0', '#64748b'],
         woodHex: '#3e1a04',
         roadHex: '#475569',
         curbHex: '#cbd5e1',
@@ -266,14 +270,20 @@
         grass2: '#40916c',
         treeColors: [0x2d6a4f, 0x40916c, 0x1b4332, 0x52b788],
         magicHex: 0x38bdf8,
+        towerStyle: 'spire',
+        palisade: false,
         defaultWalls: true
       },
       european: {
         name: 'Pueblo Medieval Europeo',
         roofHex: '#9a3412',
         roofAltHex: '#7c2d12',
-        wallTints: [0xfef3c7, 0xffedd5, 0xfde68a, 0xf8fafc],
+        roofPattern: 'terracotta',
+        stuccoHex: '#fef3c7',
+        stuccoTint: '#fde68a',
         stoneHex: '#57534e',
+        stonePattern: 'fieldstone',
+        stonePalette: ['#78716c', '#57534e', '#a8a29e', '#6b5b4f'],
         woodHex: '#3b1704',
         roadHex: '#57534e',
         curbHex: '#a8a29e',
@@ -281,14 +291,20 @@
         grass2: '#344e41',
         treeColors: [0x3a5a40, 0x588157, 0x344e41, 0xa3b18a],
         magicHex: 0xf59e0b,
+        towerStyle: 'round',
+        palisade: false,
         defaultWalls: true
       },
       frontier: {
         name: 'Asentamiento Rural de Frontera',
         roofHex: '#a16207',
         roofAltHex: '#713f12',
-        wallTints: [0xfde68a, 0xfef08a, 0xd6d3d1, 0xe7e5e4],
+        roofPattern: 'shingle',
+        stuccoHex: '#fef08a',
+        stuccoTint: '#d6d3d1',
         stoneHex: '#78716c',
+        stonePattern: 'fieldstone',
+        stonePalette: ['#78716c', '#a88b67', '#57534e', '#857865'],
         woodHex: '#5c2808',
         roadHex: '#785a3c',
         curbHex: '#a88b67',
@@ -296,14 +312,20 @@
         grass2: '#3f6212',
         treeColors: [0x3f6212, 0x4d7c0f, 0x65a30d, 0x365314],
         magicHex: 0xfbbf24,
+        towerStyle: 'round',
+        palisade: true,
         defaultWalls: false
       },
       elven: {
         name: 'Pueblo Élfico Sagrado',
         roofHex: '#0d9488',
         roofAltHex: '#0284c7',
-        wallTints: [0xffffff, 0xf0fdfa, 0xe0f2fe, 0xccfbf1],
+        roofPattern: 'leaf_copper',
+        stuccoHex: '#f0fdfa',
+        stuccoTint: '#ccfbf1',
         stoneHex: '#cbd5e1',
+        stonePattern: 'elven_marble',
+        stonePalette: ['#e2e8f0', '#cbd5e1', '#f8fafc', '#99f6e4'],
         woodHex: '#78350f',
         roadHex: '#94a3b8',
         curbHex: '#f1f5f9',
@@ -311,14 +333,20 @@
         grass2: '#059669',
         treeColors: [0x10b981, 0x34d399, 0x2dd4bf, 0xf472b6, 0x6ee7b7],
         magicHex: 0x2dd4bf,
+        towerStyle: 'spire',
+        palisade: false,
         defaultWalls: false
       },
       dwarven: {
         name: 'Aldea Enana de Piedra',
         roofHex: '#334155',
         roofAltHex: '#b45309',
-        wallTints: [0x94a3b8, 0xcbd5e1, 0xd6d3d1, 0xe2e8f0],
+        roofPattern: 'slate_iron',
+        stuccoHex: '#cbd5e1',
+        stuccoTint: '#94a3b8',
         stoneHex: '#334155',
+        stonePattern: 'basalt_rune',
+        stonePalette: ['#334155', '#1e293b', '#475569', '#52525b'],
         woodHex: '#290e02',
         roadHex: '#1e293b',
         curbHex: '#64748b',
@@ -326,14 +354,20 @@
         grass2: '#334155',
         treeColors: [0x1e3a2f, 0x334155, 0x3f6212],
         magicHex: 0xf97316,
+        towerStyle: 'square',
+        palisade: false,
         defaultWalls: true
       },
       fortified: {
         name: 'Bastión Fortificado',
         roofHex: '#1e293b',
         roofAltHex: '#7f1d1d',
-        wallTints: [0xe2e8f0, 0xcbd5e1, 0xf1f5f9],
+        roofPattern: 'slate_iron',
+        stuccoHex: '#e2e8f0',
+        stuccoTint: '#cbd5e1',
         stoneHex: '#475569',
+        stonePattern: 'fortress_ashlar',
+        stonePalette: ['#475569', '#334155', '#64748b', '#3f3f46'],
         woodHex: '#27120a',
         roadHex: '#334155',
         curbHex: '#94a3b8',
@@ -341,14 +375,20 @@
         grass2: '#2b3d34',
         treeColors: [0x2b3d34, 0x3a5a40, 0x1b4332],
         magicHex: 0xef4444,
+        towerStyle: 'square',
+        palisade: false,
         defaultWalls: true
       },
       trade: {
         name: 'Ciudad Comercial Fantástica',
         roofHex: '#b91c1c',
         roofAltHex: '#1d4ed8',
-        wallTints: [0xffffff, 0xffedd5, 0xfef3c7, 0xe0e7ff],
+        roofPattern: 'terracotta',
+        stuccoHex: '#ffedd5',
+        stuccoTint: '#fef3c7',
         stoneHex: '#64748b',
+        stonePattern: 'coastal_brick',
+        stonePalette: ['#9a3412', '#7c2d12', '#78716c', '#b45309'],
         woodHex: '#451a03',
         roadHex: '#475569',
         curbHex: '#e2e8f0',
@@ -356,6 +396,8 @@
         grass2: '#3a5a40',
         treeColors: [0x2d6a4f, 0x40916c, 0xd97706, 0x15803d],
         magicHex: 0xa855f7,
+        towerStyle: 'round',
+        palisade: false,
         defaultWalls: true
       }
     };
@@ -371,14 +413,15 @@
       const dCtx = dCanvas.getContext('2d');
       const bCtx = bCanvas.getContext('2d');
 
-      // --- BANDA 1 (Y: 0 - 512): TEJA ESCAMADA CURVA DE ALTA RESOLUCIÓN CON PÁTINA ---
+      // --- BANDA 1 (Y: 0 - 512): TEJA ESCAMADA / PIZARRA / TEJADO ESTILIZADO ---
+      const roofPat = styleObj.roofPattern || 'scale';
       dCtx.fillStyle = styleObj.roofHex;
       dCtx.fillRect(0, 0, size, 512);
       bCtx.fillStyle = '#404040';
       bCtx.fillRect(0, 0, size, 512);
 
-      const tileRows = 14;
-      const tileCols = 52;
+      const tileRows = roofPat === 'slate_iron' ? 10 : 14;
+      const tileCols = roofPat === 'slate_iron' ? 36 : (roofPat === 'shingle' ? 44 : 52);
       const rH = 512 / tileRows;
       const cW = size / tileCols;
 
@@ -389,15 +432,32 @@
           const x = c * cW + shift;
           const gD = dCtx.createLinearGradient(x, y, x + cW, y + rH);
           gD.addColorStop(0.0, styleObj.roofAltHex);
-          gD.addColorStop(0.45, styleObj.roofHex);
-          gD.addColorStop(0.88, '#0f172a');
+          gD.addColorStop(0.48, styleObj.roofHex);
+          gD.addColorStop(0.92, '#0f172a');
           dCtx.fillStyle = gD;
           dCtx.fillRect(x + 2, y + 2, cW - 3, rH - 3);
 
-          // Variación individual por teja cocida y pátina de liquen sutil
           const hVar = ((r * 19 + c * 31) & 15) / 15;
-          if (hVar > 0.65) {
-            dCtx.fillStyle = 'rgba(255,235,205,0.10)';
+          if (roofPat === 'slate_iron') {
+            // Planchas de pizarra oscura y remaches metálicos
+            dCtx.strokeStyle = 'rgba(148,163,184,0.32)';
+            dCtx.lineWidth = 2;
+            dCtx.strokeRect(x + 3, y + 3, cW - 5, rH - 5);
+            dCtx.fillStyle = '#cbd5e1';
+            dCtx.fillRect(x + 8, y + 8, 4, 4);
+            dCtx.fillRect(x + cW - 12, y + 8, 4, 4);
+          } else if (roofPat === 'leaf_copper') {
+            // Escamas élficas con reflejo turquesa-dorado
+            if (hVar > 0.5) {
+              dCtx.fillStyle = 'rgba(253,224,71,0.12)';
+              dCtx.fillRect(x + 4, y + 3, cW - 8, rH - 10);
+            }
+          } else if (roofPat === 'shingle') {
+            // Tejas de madera rústica con veta vertical
+            dCtx.fillStyle = hVar > 0.5 ? 'rgba(254,240,138,0.12)' : 'rgba(28,10,2,0.22)';
+            dCtx.fillRect(x + 4, y + 2, cW * 0.35, rH - 6);
+          } else if (hVar > 0.65) {
+            dCtx.fillStyle = 'rgba(255,235,205,0.12)';
             dCtx.fillRect(x + 4, y + 3, cW - 8, rH - 8);
           } else if (hVar < 0.18) {
             dCtx.fillStyle = 'rgba(63,98,18,0.22)';
@@ -418,11 +478,11 @@
         }
       }
 
-      // --- BANDA 2 (Y: 512 - 1024): ESTUCO DE CAL MEDIEVAL + ENTRAMADO DE VIGAS Y CLAVIJAS ---
+      // --- BANDA 2 (Y: 512 - 1024): ESTUCO PROPIO DEL ESTILO + ENTRAMADO DE VIGAS Y CLAVIJAS ---
       const gradStucco = dCtx.createLinearGradient(0, 512, 0, 1024);
-      gradStucco.addColorStop(0.0, '#f8fafc');
-      gradStucco.addColorStop(0.75, '#f1f5f9');
-      gradStucco.addColorStop(1.0, '#cbd5e1');
+      gradStucco.addColorStop(0.0, styleObj.stuccoHex || '#f8fafc');
+      gradStucco.addColorStop(0.72, styleObj.stuccoTint || '#f1f5f9');
+      gradStucco.addColorStop(1.0, '#94a3b8');
       dCtx.fillStyle = gradStucco;
       dCtx.fillRect(0, 512, size, 512);
       bCtx.fillStyle = '#929292';
@@ -431,7 +491,7 @@
       for (let i = 0; i < 28000; i++) {
         const rx = Math.random() * size;
         const ry = 512 + Math.random() * 512;
-        dCtx.fillStyle = i % 3 === 0 ? 'rgba(71,85,105,0.20)' : (i % 3 === 1 ? 'rgba(255,255,255,0.42)' : 'rgba(180,160,130,0.14)');
+        dCtx.fillStyle = i % 3 === 0 ? 'rgba(71,85,105,0.20)' : (i % 3 === 1 ? 'rgba(255,255,255,0.42)' : 'rgba(180,160,130,0.16)');
         dCtx.fillRect(rx, ry, 3.5, 3.5);
         bCtx.fillStyle = i % 2 === 0 ? '#747474' : '#b4b4b4';
         bCtx.fillRect(rx, ry, 3, 3);
@@ -488,22 +548,25 @@
         bCtx.fillRect(x + 9, 761, 8, 8);
       }
 
-      // --- BANDA 3 (Y: 1024 - 1536): SILLERÍA DE PIEDRA LABRADA CON BISEL, VETAS Y JUNTA PROFUNDA ---
-      dCtx.fillStyle = '#16202e';
+      // --- BANDA 3 (Y: 1024 - 1536): SILLERÍA DE PIEDRA / MURALLA DIFERENCIADA POR ESTILO ---
+      const stonePat = styleObj.stonePattern || 'marble_ashlar';
+      dCtx.fillStyle = stonePat === 'basalt_rune' ? '#0f172a' : (stonePat === 'elven_marble' ? '#475569' : '#16202e');
       dCtx.fillRect(0, 1024, size, 512);
       bCtx.fillStyle = '#050505';
       bCtx.fillRect(0, 1024, size, 512);
 
-      const stRows = 9;
+      const stRows = stonePat === 'coastal_brick' ? 12 : (stonePat === 'basalt_rune' ? 7 : 9);
       const stH = 512 / stRows;
-      const stonePalette = [styleObj.stoneHex, '#64748b', '#475569', '#94a3b8', '#57534e', '#78716c'];
+      const stonePalette = styleObj.stonePalette || [styleObj.stoneHex, '#64748b', '#475569', '#94a3b8'];
 
       for (let r = 0; r < stRows; r++) {
         const y = 1024 + r * stH;
         let xCursor = (r % 2 === 0) ? 0 : -68;
         while (xCursor < size) {
-          const blockW = 98 + ((r * 41 + Math.abs(xCursor)) % 68);
-          const pad = 4.5;
+          const blockW = stonePat === 'basalt_rune'
+            ? (136 + ((r * 37 + Math.abs(xCursor)) % 56))
+            : (stonePat === 'coastal_brick' ? 84 + ((r * 23 + Math.abs(xCursor)) % 38) : 98 + ((r * 41 + Math.abs(xCursor)) % 68));
+          const pad = stonePat === 'coastal_brick' ? 3.5 : 4.5;
           const bx = xCursor + pad;
           const by = y + pad;
           const bw = blockW - pad * 2;
@@ -513,20 +576,32 @@
           const gStone = dCtx.createLinearGradient(bx, by, bx + bw, by + bh);
           gStone.addColorStop(0.0, baseCol);
           gStone.addColorStop(0.6, styleObj.stoneHex);
-          gStone.addColorStop(1.0, '#334155');
+          gStone.addColorStop(1.0, stonePat === 'elven_marble' ? '#94a3b8' : '#1e293b');
           dCtx.fillStyle = gStone;
           dCtx.fillRect(bx, by, bw, bh);
 
           // Margen tallado y bisel iluminado
-          dCtx.fillStyle = 'rgba(255,255,255,0.24)';
+          dCtx.fillStyle = stonePat === 'elven_marble' ? 'rgba(255,255,255,0.42)' : 'rgba(255,255,255,0.22)';
           dCtx.fillRect(bx, by, bw, 5);
           dCtx.fillRect(bx, by, 5, bh);
           dCtx.fillStyle = 'rgba(0,0,0,0.46)';
           dCtx.fillRect(bx, by + bh - 5, bw, 5);
           dCtx.fillRect(bx + bw - 5, by, 5, bh);
 
-          // Surco interior de sillería almohadillada
-          if (bw > 24 && bh > 18) {
+          // Detalle único por patrón de piedra
+          if (stonePat === 'basalt_rune' && (r + Math.floor(xCursor / 64)) % 4 === 0 && bw > 40) {
+            // Veta de bronce/lava en piedra enana
+            dCtx.strokeStyle = 'rgba(249,115,22,0.55)';
+            dCtx.lineWidth = 2.5;
+            dCtx.strokeRect(bx + 11, by + 9, bw - 22, bh - 18);
+          } else if (stonePat === 'fortress_ashlar' && bw > 36 && bh > 22) {
+            dCtx.strokeStyle = 'rgba(15,23,42,0.45)';
+            dCtx.lineWidth = 2;
+            dCtx.strokeRect(bx + 7, by + 6, bw - 14, bh - 12);
+            dCtx.fillStyle = 'rgba(203,213,225,0.45)';
+            dCtx.fillRect(bx + 10, by + 9, 4, 4);
+            dCtx.fillRect(bx + bw - 14, by + 9, 4, 4);
+          } else if (bw > 24 && bh > 18) {
             dCtx.strokeStyle = 'rgba(0,0,0,0.22)';
             dCtx.lineWidth = 1.5;
             dCtx.strokeRect(bx + 7, by + 6, bw - 14, bh - 12);
@@ -534,7 +609,7 @@
 
           // Veta mineral y grano de cantera
           if ((r + xCursor) % 3 === 0) {
-            dCtx.strokeStyle = 'rgba(241,245,249,0.22)';
+            dCtx.strokeStyle = stonePat === 'elven_marble' ? 'rgba(45,212,191,0.26)' : 'rgba(241,245,249,0.20)';
             dCtx.lineWidth = 1.4;
             dCtx.beginPath();
             dCtx.moveTo(bx + 8, by + bh * 0.3);
@@ -3034,34 +3109,210 @@
                 wy
               );
               const wTop = wy + 6.95, wBase = yExt - 0.6;
-              const wG = new THREE.BoxGeometry(segLen, wTop - wBase, 2.4);
-              mapUVBand(wG, 0.25, 0.50);
-              const wM = new THREE.Mesh(wG, matAtlas);
-              wM.position.set(mx, (wTop + wBase) / 2, mz);
-              wM.rotation.y = wallRot;
-              wM.castShadow = wM.receiveShadow = true;
-              wallGroup.add(wM);
+              const esPalisade = !!styleObj.palisade;
+              const tStyle = styleObj.towerStyle || 'round';
+
+              if (esPalisade) {
+                // Empalizada de troncos puntiagudos para asentamientos de frontera con muralla
+                const palG = new THREE.Group();
+                palG.position.set(mx, 0, mz);
+                palG.rotation.y = wallRot;
+                const nLogs = Math.max(2, Math.round(segLen / 1.1));
+                const stepL = segLen / nLogs;
+                for (let li = 0; li < nLogs; li++) {
+                  const lx = -segLen * 0.5 + (li + 0.5) * stepL;
+                  const logH = (wTop - wBase) - 0.6 + ((li % 3) * 0.25);
+                  const logG = new THREE.CylinderGeometry(0.42, 0.48, logH, 6);
+                  mapUVBand(logG, 0.0, 0.25);
+                  const logM = new THREE.Mesh(logG, matAtlas);
+                  logM.position.set(lx, wBase + logH * 0.5, 0);
+                  logM.castShadow = logM.receiveShadow = true;
+                  palG.add(logM);
+                  const tipM = new THREE.Mesh(new THREE.ConeGeometry(0.43, 0.9, 6), matSignWood);
+                  tipM.position.set(lx, wBase + logH + 0.45, 0);
+                  tipM.castShadow = true;
+                  palG.add(tipM);
+                }
+                [wy + 2.2, wy + 4.8].forEach(by => {
+                  const braceM = new THREE.Mesh(new THREE.BoxGeometry(segLen, 0.36, 1.15), matSignWood);
+                  braceM.position.set(0, by, 0);
+                  braceM.castShadow = true;
+                  palG.add(braceM);
+                });
+                wallGroup.add(palG);
+              } else {
+                const wG = new THREE.BoxGeometry(segLen, wTop - wBase, 2.4);
+                mapUVBand(wG, 0.25, 0.50);
+                const wM = new THREE.Mesh(wG, matAtlas);
+                wM.position.set(mx, (wTop + wBase) / 2, mz);
+                wM.rotation.y = wallRot;
+                wM.castShadow = wM.receiveShadow = true;
+                wallGroup.add(wM);
+
+                // Almenas exteriores (merlones) y contrafuertes sobre el tramo de muralla
+                if (segLen >= 2.2) {
+                  const detailG = new THREE.Group();
+                  detailG.position.set(mx, wy, mz);
+                  detailG.rotation.y = wallRot;
+
+                  // Cornisa superior saliente del adarve
+                  const cornG = new THREE.BoxGeometry(segLen, 0.35, 2.75);
+                  mapUVBand(cornG, 0.25, 0.50);
+                  const cornM = new THREE.Mesh(cornG, matAtlas);
+                  cornM.position.set(0, 6.95, 0);
+                  cornM.castShadow = true;
+                  detailG.add(cornM);
+
+                  // Merlones (almenas) espaciados a lo largo de la muralla exterior
+                  const nMerlons = Math.max(1, Math.floor(segLen / 2.2));
+                  const mStep = segLen / nMerlons;
+                  for (let mi = 0; mi < nMerlons; mi++) {
+                    const mOffX = -segLen * 0.5 + (mi + 0.5) * mStep;
+                    const mG = new THREE.BoxGeometry(Math.min(1.15, mStep * 0.56), 1.05, 0.72);
+                    mapUVBand(mG, 0.25, 0.50);
+                    const mMesh = new THREE.Mesh(mG, matAtlas);
+                    mMesh.position.set(mOffX, 7.62, 0.92);
+                    mMesh.castShadow = true;
+                    detailG.add(mMesh);
+
+                    // Remate triangular para estilos enano/fortificado o élfico
+                    if (tStyle === 'square' || tStyle === 'spire') {
+                      const capG = new THREE.BoxGeometry(Math.min(1.28, mStep * 0.62), 0.22, 0.84);
+                      mapUVBand(capG, 0.75, 1.00);
+                      const capM = new THREE.Mesh(capG, matAtlas);
+                      capM.position.set(mOffX, 8.24, 0.92);
+                      detailG.add(capM);
+                    }
+                  }
+
+                  // Contrafuerte exterior central si el tramo es largo
+                  if (segLen >= 5.2 && i % 2 === 1) {
+                    const butH = (wTop - wBase) * 0.82;
+                    const butG = new THREE.BoxGeometry(1.05, butH, 0.85);
+                    mapUVBand(butG, 0.25, 0.50);
+                    const butM = new THREE.Mesh(butG, matAtlas);
+                    butM.position.set(0, (wTop + wBase) * 0.5 - wy - 0.5, 1.35);
+                    butM.castShadow = butM.receiveShadow = true;
+                    detailG.add(butM);
+                  }
+                  wallGroup.add(detailG);
+                }
+              }
 
               if (i % 3 === 0 && !towerPlacedForSeg && segArc * townRadius >= 3.0) {
                 const nearGateOrBridge = wallGates.some(g => angDist(midA, g.ang) * townRadius < g.halfClear + g.pillarW + 2.8)
                   || wallRiverCrossings.some(rc => angDist(midA, rc.pA.ang) * townRadius < 4.5 || angDist(midA, rc.pB.ang) * townRadius < 4.5);
                 if (!nearGateOrBridge) {
                   towerPlacedForSeg = true;
-                  const tG = new THREE.CylinderGeometry(2.7, 3.1, 11.5, 12);
-                  mapUVBand(tG, 0.25, 0.50);
-                  const tM = new THREE.Mesh(tG, matAtlas);
-                  tM.position.set(mx, wy + 5.2, mz);
-                  tM.castShadow = tM.receiveShadow = true;
-                  wallGroup.add(tM);
+                  if (esPalisade) {
+                    // Atalaya de madera de frontera
+                    const tG = new THREE.BoxGeometry(4.4, 9.6, 4.4);
+                    mapUVBand(tG, 0.0, 0.25);
+                    const tM = new THREE.Mesh(tG, matAtlas);
+                    tM.position.set(mx, wy + 4.4, mz);
+                    tM.rotation.y = wallRot;
+                    tM.castShadow = tM.receiveShadow = true;
+                    wallGroup.add(tM);
 
-                  const tRoofG = new THREE.ConeGeometry(3.3, 3.6, 12);
-                  mapUVBand(tRoofG, 0.75, 1.00);
-                  const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
-                  tRoofM.position.set(mx, wy + 12.5, mz);
-                  tRoofM.castShadow = true;
-                  wallGroup.add(tRoofM);
+                    const tRoofG = new THREE.ConeGeometry(3.5, 3.2, 4);
+                    mapUVBand(tRoofG, 0.75, 1.00);
+                    const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
+                    tRoofM.position.set(mx, wy + 10.7, mz);
+                    tRoofM.rotation.y = wallRot + Math.PI * 0.25;
+                    tRoofM.castShadow = true;
+                    wallGroup.add(tRoofM);
+                    this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.1 });
+                  } else if (tStyle === 'square') {
+                    // Bastión cuadrado almenado con brasero en la cima (enano / fortificado)
+                    const bG = new THREE.BoxGeometry(5.5, 11.8, 5.5);
+                    mapUVBand(bG, 0.25, 0.50);
+                    const bM = new THREE.Mesh(bG, matAtlas);
+                    bM.position.set(mx, wy + 5.2, mz);
+                    bM.rotation.y = wallRot;
+                    bM.castShadow = bM.receiveShadow = true;
+                    wallGroup.add(bM);
 
-                  this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.1 });
+                    const corG = new THREE.BoxGeometry(6.1, 0.7, 6.1);
+                    mapUVBand(corG, 0.25, 0.50);
+                    const corM = new THREE.Mesh(corG, matAtlas);
+                    corM.position.set(mx, wy + 11.1, mz);
+                    corM.rotation.y = wallRot;
+                    corM.castShadow = true;
+                    wallGroup.add(corM);
+
+                    const topGroup = new THREE.Group();
+                    topGroup.position.set(mx, wy + 11.85, mz);
+                    topGroup.rotation.y = wallRot;
+                    [[-2.5, -2.5], [2.5, -2.5], [-2.5, 2.5], [2.5, 2.5], [0, 2.5], [0, -2.5], [2.5, 0], [-2.5, 0]].forEach(([ax, az]) => {
+                      const alG = new THREE.BoxGeometry(1.05, 1.0, 1.05);
+                      mapUVBand(alG, 0.25, 0.50);
+                      const alM = new THREE.Mesh(alG, matAtlas);
+                      alM.position.set(ax, 0, az);
+                      alM.castShadow = true;
+                      topGroup.add(alM);
+                    });
+                    const brazierBase = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.45, 0.9, 6), matIron);
+                    brazierBase.position.y = 0.05;
+                    topGroup.add(brazierBase);
+                    const flameM = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), matGlassGlow);
+                    flameM.position.y = 0.75;
+                    topGroup.add(flameM);
+                    wallGroup.add(topGroup);
+                    this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.4 });
+                  } else if (tStyle === 'spire') {
+                    // Torre octogonal estilizada con aguja alta y cristal (L2 / élfico)
+                    const tG = new THREE.CylinderGeometry(2.35, 2.85, 13.0, 8);
+                    mapUVBand(tG, 0.25, 0.50);
+                    const tM = new THREE.Mesh(tG, matAtlas);
+                    tM.position.set(mx, wy + 5.8, mz);
+                    tM.castShadow = tM.receiveShadow = true;
+                    wallGroup.add(tM);
+
+                    const ringG = new THREE.CylinderGeometry(2.85, 2.55, 0.85, 8);
+                    mapUVBand(ringG, 0.25, 0.50);
+                    const ringM = new THREE.Mesh(ringG, matAtlas);
+                    ringM.position.set(mx, wy + 12.1, mz);
+                    ringM.castShadow = true;
+                    wallGroup.add(ringM);
+
+                    const tRoofG = new THREE.ConeGeometry(3.05, 5.4, 8);
+                    mapUVBand(tRoofG, 0.75, 1.00);
+                    const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
+                    tRoofM.position.set(mx, wy + 15.1, mz);
+                    tRoofM.castShadow = true;
+                    wallGroup.add(tRoofM);
+
+                    if (cfg.hasMagic) {
+                      const finM = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), matMagicCrystal);
+                      finM.position.set(mx, wy + 18.2, mz);
+                      wallGroup.add(finM);
+                    }
+                    this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.0 });
+                  } else {
+                    // Torreón circular medieval con matacán saliente
+                    const tG = new THREE.CylinderGeometry(2.7, 3.1, 11.5, 12);
+                    mapUVBand(tG, 0.25, 0.50);
+                    const tM = new THREE.Mesh(tG, matAtlas);
+                    tM.position.set(mx, wy + 5.2, mz);
+                    tM.castShadow = tM.receiveShadow = true;
+                    wallGroup.add(tM);
+
+                    const corbG = new THREE.CylinderGeometry(3.15, 2.8, 0.75, 12);
+                    mapUVBand(corbG, 0.25, 0.50);
+                    const corbM = new THREE.Mesh(corbG, matAtlas);
+                    corbM.position.set(mx, wy + 10.75, mz);
+                    corbM.castShadow = true;
+                    wallGroup.add(corbM);
+
+                    const tRoofG = new THREE.ConeGeometry(3.4, 3.8, 12);
+                    mapUVBand(tRoofG, 0.75, 1.00);
+                    const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
+                    tRoofM.position.set(mx, wy + 12.8, mz);
+                    tRoofM.castShadow = true;
+                    wallGroup.add(tRoofM);
+
+                    this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.1 });
+                  }
                 }
               }
 

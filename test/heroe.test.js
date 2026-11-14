@@ -198,4 +198,22 @@ t('títulos: recompensar guarda el título sin duplicados y limpiarHeroe lo sane
   assert.deepStrictEqual(saneado.titulos, ['Héroe', 'Campeones de Aden']);
 });
 
+t('magia elemental: bola de fuego y lanza de hielo disponibles desde nivel 1 y asignables a Q/E/Z/V', () => {
+  const h = H.nuevoHeroe();
+  assert.ok(H.disponible(h, 'bola_fuego', 1));
+  assert.ok(H.disponible(h, 'lanza_hielo', 1));
+  assert.ok(!H.disponible(h, 'ventisca_glacial', 5));
+  assert.ok(H.disponible(h, 'ventisca_glacial', 6));
+  assert.ok(H.disponible(h, 'tormenta_fuego', 8));
+  assert.ok(H.disponible(h, 'rayo_arcano', 12));
+
+  h.puntos = 2;
+  assert.strictEqual(H.mejorar(h, 'bola_fuego', 1), 1);
+  assert.strictEqual(H.estadisticas(h, 1, []).mult.bola_fuego, 1.25);
+  H.asignar(h, 'q', 'bola_fuego');
+  H.asignar(h, 'e', 'lanza_hielo');
+  assert.strictEqual(h.barra.q, 'bola_fuego');
+  assert.strictEqual(h.barra.e, 'lanza_hielo');
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

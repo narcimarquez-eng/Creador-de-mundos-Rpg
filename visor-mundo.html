@@ -144,7 +144,7 @@
     #zona-marca i { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--zona, #fde68a); box-shadow: 0 0 6px var(--zona, #fde68a); }
     #zona-marca span { overflow: hidden; text-overflow: ellipsis; }
     #minimap { position: absolute; top: 52px; right: 14px; width: 105px !important; height: 105px !important; max-width: 105px !important; max-height: 105px !important; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.88); z-index: 18; box-shadow: 0 8px 22px rgba(0,0,0,.55); cursor: pointer; }
-    #hud { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 24; width: min(440px, calc(100vw - 280px)); display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    #hud { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 24; width: min(560px, calc(100vw - 220px)); display: flex; flex-direction: column; gap: 6px; align-items: center; }
     .hud-bars { width: 100%; display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
     .hud-bars .row { display: flex; align-items: center; gap: 8px; }
     .lv { font-weight: 700; color: var(--gold); font-size: 12px; min-width: 40px; }
@@ -155,8 +155,8 @@
     .bar.mp i { background: linear-gradient(90deg, #1d4ed8, #60a5fa); }
     .bar.xp { height: 6px; }
     .bar.xp i { background: linear-gradient(90deg, #a16207, #fbbf24); }
-    .skills { display: flex; gap: 6px; }
-    .skills button { width: 58px; height: 52px; padding: 0; font-size: 18px; position: relative; background: var(--panel); }
+    .skills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .skills button { width: 54px; height: 50px; padding: 0; font-size: 18px; position: relative; background: var(--panel); }
     .skills button small { display: block; font-size: 9px; color: var(--muted); }
     .skills button .cd { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #fff; background: rgba(2,6,23,.6); border-radius: 7px; }
     .skills button .cd:empty { display: none; }
@@ -1010,6 +1010,30 @@
         height: 44px;
         font-size: 16px;
       }
+      #sk-fuego {
+        right: max(18px, env(safe-area-inset-right));
+        bottom: max(186px, calc(env(safe-area-inset-bottom) + 168px));
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+        border-color: rgba(249, 115, 22, 0.7);
+      }
+      #sk-hielo {
+        right: max(68px, calc(env(safe-area-inset-right) + 50px));
+        bottom: max(186px, calc(env(safe-area-inset-bottom) + 168px));
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+        border-color: rgba(56, 189, 248, 0.7);
+      }
+      #sk-meteoro {
+        right: max(118px, calc(env(safe-area-inset-right) + 100px));
+        bottom: max(180px, calc(env(safe-area-inset-bottom) + 162px));
+        width: 42px;
+        height: 42px;
+        font-size: 16px;
+        border-color: rgba(250, 204, 21, 0.7);
+      }
 
       /* Pociones de Emergencia (A la izquierda del clúster de combate) */
       .util { display: contents; }
@@ -1454,6 +1478,30 @@
         font-size: 14px !important;
         z-index: 26 !important;
       }
+      #sk-fuego {
+        right: max(98px, calc(env(safe-area-inset-right) + 84px)) !important;
+        bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px)) !important;
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 14px !important;
+        z-index: 26 !important;
+      }
+      #sk-hielo {
+        right: max(138px, calc(env(safe-area-inset-right) + 124px)) !important;
+        bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px)) !important;
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 14px !important;
+        z-index: 26 !important;
+      }
+      #sk-meteoro {
+        right: max(178px, calc(env(safe-area-inset-right) + 164px)) !important;
+        bottom: max(136px, calc(env(safe-area-inset-bottom) + 126px)) !important;
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 14px !important;
+        z-index: 26 !important;
+      }
       #sk-vida {
         right: max(124px, calc(env(safe-area-inset-right) + 110px)) !important;
         bottom: max(10px, env(safe-area-inset-bottom)) !important;
@@ -1652,6 +1700,9 @@
       <button id="sk-e"><b class="ico"></b><small>E</small><span class="cd"></span></button>
       <button id="sk-z"><b class="ico"></b><small>Z</small><span class="cd"></span></button>
       <button id="sk-v"><b class="ico"></b><small>V</small><span class="cd"></span></button>
+      <button id="sk-fuego" title="Bola de Fuego (3)"><b class="ico">🔥</b><small>3</small><span class="cd"></span></button>
+      <button id="sk-hielo" title="Lanza de Hielo (4)"><b class="ico">❄️</b><small>4</small><span class="cd"></span></button>
+      <button id="sk-meteoro" title="Lluvia de Meteoros (5)"><b class="ico">☄️</b><small>5</small><span class="cd"></span></button>
       <button id="sk-jump" title="Salto acrobático (X)">🦘<small>X</small></button>
     </div>
     <div class="util">
@@ -3724,7 +3775,8 @@
       const rw = cfg.roadWidth || 7;
       const style = cfg.style || 'l2_fantasy';
       const roof = rgb(ROOF[style] || '#1d4ed8'), wallC = rgb(WALL[style] || '#e2e8f0');
-      const stone = rgb('#cbd5e1'), wallStone = rgb('#c9c4b5');
+      const stone = rgb(style === 'dwarven' ? '#64748b' : '#cbd5e1');
+      const wallStone = rgb(style === 'dwarven' ? '#475569' : style === 'fortified' ? '#64748b' : style === 'elven' ? '#e2e8f0' : style === 'frontier' ? '#785a3c' : '#c9c4b5');
       const L2W = (lx, lz) => ({ x: t.x + lx * cr - lz * sr, z: t.y + lx * sr + lz * cr });
       const dirW = (dx, dz) => [dx * cr - dz * sr, dx * sr + dz * cr];
       const at = (lx, lz) => { const p = L2W(lx, lz); return [p.x, H(p.x, p.z), p.z]; };
@@ -3737,21 +3789,23 @@
       const cp = [t.x, H0 + 0.35, t.y];
       mb.fan(cp, ring, stone);
 
-      // Muralla (con huecos en salidas y en los 4 ejes)
-      const segs = 36, segHalf = (Math.PI * 2 / segs) * 0.5 * R;
-      for (let i = 0; i < segs; i++) {
-        const a1 = i / segs * Math.PI * 2, a2 = (i + 1) / segs * Math.PI * 2, mid = (a1 + a2) / 2;
-        const mx = Math.cos(mid) * R, mz = Math.sin(mid) * R;
-        const nearAxis = (Math.abs(mx) < rw * 0.85 && Math.abs(Math.abs(mz) - R) < 12) || (Math.abs(mz) < rw * 0.85 && Math.abs(Math.abs(mx) - R) < 12);
-        const atExit = exits.some(e => { let d = Math.abs(mid - e.a) % (Math.PI * 2); if (d > Math.PI) d = Math.PI * 2 - d; return d * R < segHalf + 1.5; });
-        if (nearAxis || atExit) continue;
-        const c = L2W(mx, mz);
-        const [tx, tz] = dirW(-Math.sin(mid), Math.cos(mid));
-        const base = H(c.x, c.z);
-        mb.box(c.x, base + 3.2, c.z, tx, tz, 2 * Math.PI * R / segs + 0.6, 7.5, 2.4, wallStone);
-        if (i % 3 === 0) {
-          mb.box(c.x, base + 5.2, c.z, 1, 0, 5.4, 11.5, 5.4, wallStone);
-          mb.box(c.x, base + 12.4, c.z, 1, 0, 6.6, 1.6, 6.6, roof);
+      // Muralla (solo si el pueblo tiene murallas, con huecos en salidas y en los 4 ejes)
+      if (cfg.hasWalls !== false) {
+        const segs = 36, segHalf = (Math.PI * 2 / segs) * 0.5 * R;
+        for (let i = 0; i < segs; i++) {
+          const a1 = i / segs * Math.PI * 2, a2 = (i + 1) / segs * Math.PI * 2, mid = (a1 + a2) / 2;
+          const mx = Math.cos(mid) * R, mz = Math.sin(mid) * R;
+          const nearAxis = (Math.abs(mx) < rw * 0.85 && Math.abs(Math.abs(mz) - R) < 12) || (Math.abs(mz) < rw * 0.85 && Math.abs(Math.abs(mx) - R) < 12);
+          const atExit = exits.some(e => { let d = Math.abs(mid - e.a) % (Math.PI * 2); if (d > Math.PI) d = Math.PI * 2 - d; return d * R < segHalf + 1.5; });
+          if (nearAxis || atExit) continue;
+          const c = L2W(mx, mz);
+          const [tx, tz] = dirW(-Math.sin(mid), Math.cos(mid));
+          const base = H(c.x, c.z);
+          mb.box(c.x, base + 3.2, c.z, tx, tz, 2 * Math.PI * R / segs + 0.6, 7.5, 2.4, wallStone);
+          if (i % 3 === 0) {
+            mb.box(c.x, base + 5.2, c.z, 1, 0, 5.4, 11.5, 5.4, wallStone);
+            mb.box(c.x, base + 12.4, c.z, 1, 0, 6.6, 1.6, 6.6, roof);
+          }
         }
       }
 
@@ -3775,7 +3829,9 @@
       const ringZ = [-28, 28].concat(size >= 4 ? [-52, 52] : []);
       const mainX = z => Math.sin(z * 0.035) * (cfg.curve || 0) * Math.min(1, Math.abs(z) / 22);
       const xOffs = [-32, -13, 13, 32].concat(size >= 4 ? [-48, 48] : []);
-      const maxFloors = cfg.maxFloors || 3, density = (cfg.houseDensity != null ? cfg.houseDensity : 85);
+      const maxFloors = cfg.maxFloors || 3;
+      const rawDens = cfg.houseDensity != null ? cfg.houseDensity : 85;
+      const density = rawDens <= 1 && rawDens > 0 ? rawDens * 100 : rawDens;
       for (let lz = -(R - 12); lz <= R - 12; lz += 13) {
         if (Math.abs(lz) < 8 || ringZ.some(rz => Math.abs(lz - rz) < 6.5)) continue;
         xOffs.forEach(xOff => {
@@ -6669,7 +6725,38 @@
               m.questRing.scale.set(rBase * pulso, rBase * pulso, 1);
             }
           }
+          // Aura de escarcha cuando el enemigo está ralentizado por habilidades de Hielo
+          if (m.slowTimer > 0 && near && m.alive && m.hp > 0) {
+            if (!m._frostRing) {
+              const fg = new THREE.Group();
+              const ringF = new THREE.Mesh(
+                new THREE.RingGeometry(0.95, 1.32, 24),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.78, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+              );
+              ringF.rotation.x = -Math.PI / 2;
+              ringF.position.y = 0.14;
+              fg.add(ringF);
+              for (let fi = 0; fi < 4; fi++) {
+                const aF = (fi * Math.PI) / 2;
+                const shard = new THREE.Mesh(
+                  new THREE.ConeGeometry(0.16, 0.55, 5),
+                  new THREE.MeshBasicMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.85 })
+                );
+                shard.position.set(Math.cos(aF) * 1.05, 0.45, Math.sin(aF) * 1.05);
+                shard.rotation.z = Math.cos(aF) * 0.25;
+                fg.add(shard);
+              }
+              marcarResplandor(fg);
+              m.group.add(fg);
+              m._frostRing = fg;
+            }
+            m._frostRing.visible = true;
+            m._frostRing.rotation.y = (nowSec * 2.4) % (Math.PI * 2);
+          } else if (m._frostRing) {
+            m._frostRing.visible = false;
+          }
         }
+        if (!m.alive && m._frostRing) m._frostRing.visible = false;
         const showBar = near && (m.hp < m.maxHp || d < 12 || m.esDeMision);
         m.bar.visible = showBar;
         if (showBar) {
@@ -6713,6 +6800,18 @@
     useSkill(id);
   }
 
+  function colorDeHabilidad(name) {
+    const sk = CombatLib.SKILLS[name];
+    if (!sk) return 0xf59e0b;
+    if (sk.elemento === 'fuego' || name === 'furia') return 0xf97316;
+    if (sk.elemento === 'hielo') return 0x38bdf8;
+    if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo') return 0xa855f7;
+    if (name === 'escudo_espiritu' || name === 'contraataque') return 0xfacc15;
+    if (name === 'rafaga') return 0x67e8f9;
+    if (name === 'nova' || name === 'sentencia_titan') return 0xfbbf24;
+    return 0xf59e0b;
+  }
+
   function useSkill(name, blancoFijado = null) {
     if (hero.dead) return;
     if (name === 'attack' && armaDelHeroe() === 'arco') name = 'disparo';
@@ -6732,12 +6831,13 @@
     // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
     if (statsHeroe.velocidadAtaque) hero.cd[name] = Math.max(CombatLib.SKILLS[name].lock, hero.cd[name] / (1 + statsHeroe.velocidadAtaque));
     character.playOneShot(name, lastNowSec);
+    lanzarAuraConjuro(name);
     // Cada golpe llega en su momento de la animación (al caer, al cerrar el giro, al soltar la flecha); sin momento, al instante
     const sk = CombatLib.SKILLS[name];
     CombatLib.impactos(name).forEach((t, i) => {
       const golpe = () => {
         if (hero.dead) return;
-        if (sk.arc <= -1 && t > 0) ondaSismica(sk.range);   // los golpes alrededor dejan una onda en el suelo
+        if (sk.arc <= -1 && t > 0) ondaSismica(sk.range, colorDeHabilidad(name));
         aplicarGolpe(name, i === 0, blanco);
       };
       if (t > 0) setTimeout(golpe, t * 1000); else golpe();
@@ -6745,12 +6845,54 @@
   }
 
   // Daña a los monstruos del área de la habilidad, desde donde esté el personaje en ese momento.
-  // Las flechas (unico) apuntan al objetivo fijado (o al más cercano al frente) encarando al héroe al soltar.
+  // Los proyectiles elementales (bola_fuego, lanza_hielo) vuelan hacia el objetivo o al frente y estallan en área.
   function aplicarGolpe(name, primero = true, blancoFijado = null) {
     const sk = CombatLib.SKILLS[name];
     const p = character.root.position;
     const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
     const candidatos = enDungeon ? monstruosMazmorra : monsters;
+    const conArma = !!(personajeActual && personajeActual.equipo && personajeActual.equipo.weapon);
+
+    if (sk.proyectil) {
+      let diana = (blancoFijado && blancoFijado.alive && blancoFijado.hp > 0 &&
+        Math.hypot(blancoFijado.x - p.x, blancoFijado.z - p.z) <= sk.range * 1.15) ? blancoFijado : null;
+      if (!diana && autoZona) {
+        const autoEsMaz = enDungeon || !!(autoZona && autoZona.esMazmorra);
+        let mejorD = Infinity;
+        candidatos.forEach(m => {
+          if (!m.alive || m.hp <= 0) return;
+          if (autoEsMaz ? !m.dungeonInfoRef : m.zone !== autoZona) return;
+          const d = Math.hypot(m.x - p.x, m.z - p.z);
+          if (d <= sk.range && d < mejorD) { mejorD = d; diana = m; }
+        });
+      }
+      if (!diana) {
+        const { x: fx, z: fz } = character.frente();
+        const enCono = candidatos
+          .filter(m => m.alive && m.hp > 0 && (enDungeon ? !!m.dungeonInfoRef : !m.dungeonInfoRef) && CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z))
+          .sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
+        diana = enCono[0] || null;
+      }
+      if (diana) character.mirarHacia(diana.x - p.x, diana.z - p.z);
+      const { x: fx, z: fz } = character.frente();
+      const destinoPos = diana
+        ? new THREE.Vector3(diana.x, (diana.group ? diana.group.position.y : p.y) + 1.05, diana.z)
+        : new THREE.Vector3(p.x + fx * (sk.range * 0.68), p.y + 1.0, p.z + fz * (sk.range * 0.68));
+      const radioSplash = sk.splash || 3.5;
+      const blancos = diana
+        ? candidatos.filter(m => m.alive && m.hp > 0 && (enDungeon ? !!m.dungeonInfoRef : !m.dungeonInfoRef) && (m === diana || Math.hypot(m.x - diana.x, m.z - diana.z) <= radioSplash))
+        : [];
+      if (window.Sonidos) window.Sonidos.disparo();
+      lanzarProyectilElemental(name, destinoPos, diana, () => {
+        blancos.forEach(m => {
+          if (!m.alive || m.hp <= 0) return;
+          if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
+          golpear(m, danioDelHeroe(name, m.level), 'sordo');
+        });
+      });
+      return;
+    }
+
     let blancos = [];
     if (sk.unico) {
       let diana = (blancoFijado && blancoFijado.alive && blancoFijado.hp > 0 &&
@@ -6784,17 +6926,18 @@
       const { x: fx, z: fz } = character.frente();
       blancos = candidatos.filter(m => m.alive && (enDungeon ? !!m.dungeonInfoRef : !m.dungeonInfoRef) && CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z));
     }
+    lanzarVFXHabilidad(name, blancos, primero);
     // Sonido: silbido al disparar; al impactar, flecha si es disparo, metal con arma o golpe sordo sin arma
-    const conArma = !!(personajeActual && personajeActual.equipo && personajeActual.equipo.weapon);
     if (sk.unico && blancos.length && window.Sonidos) window.Sonidos.disparo();
     blancos.forEach(m => {
       if (sk.unico) flecha(m);
+      if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
       golpear(m, danioDelHeroe(name, m.level), sk.unico ? 'flecha' : (conArma ? 'metal' : 'sordo'));
     });
     if (primero && name !== 'attack' && name !== 'disparo' && !blancos.length) toast('Sin objetivos en el alcance');
   }
 
-  // Efectos breves: la onda en el suelo de los golpes alrededor y la flecha que vuela hasta su blanco
+  // Efectos breves: la onda en el suelo de los golpes alrededor, hechizos elementales y animaciones 3D de combate
   const efectos = [];
   function efecto(malla, dur, paso) {
     scene.add(malla);
@@ -6824,6 +6967,417 @@
       r1.material.opacity = 0.9 * (1 - k);
       r2.material.opacity = 0.85 * Math.pow(1 - k, 1.4);
     });
+  }
+
+  // Aura inmediata de conjuro / preparación al lanzar una habilidad
+  function lanzarAuraConjuro(name) {
+    if (!character || !character.root || name === 'attack' || name === 'disparo') return;
+    const p = character.root.position;
+    const col = colorDeHabilidad(name);
+    const g = new THREE.Group();
+    g.position.set(p.x, p.y + 0.18, p.z);
+    const anillo = new THREE.Mesh(
+      new THREE.RingGeometry(0.68, 0.98, 32),
+      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    anillo.rotation.x = -Math.PI / 2;
+    g.add(anillo);
+    const motas = [];
+    const sk = CombatLib.SKILLS[name] || {};
+    const nMotas = sk.elemento ? 8 : 5;
+    for (let i = 0; i < nMotas; i++) {
+      const m = new THREE.Mesh(
+        sk.elemento === 'hielo' ? new THREE.OctahedronGeometry(0.11, 0) : new THREE.SphereGeometry(0.085, 6, 6),
+        new THREE.MeshBasicMaterial({ color: sk.elemento === 'hielo' ? 0xbae6fd : col, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending })
+      );
+      g.add(m);
+      motas.push({ mesh: m, a0: (i / nMotas) * Math.PI * 2 });
+    }
+    marcarResplandor(g);
+    const dur = Math.min(0.45, Math.max(0.24, (sk.lock || 0.5) * 0.55));
+    efecto(g, dur, k => {
+      g.position.set(character.root.position.x, character.root.position.y + 0.18, character.root.position.z);
+      anillo.scale.setScalar(0.85 + k * 0.65);
+      anillo.material.opacity = 0.85 * (1 - k);
+      motas.forEach(it => {
+        const ang = it.a0 + k * 5.0;
+        const rad = 0.85 * (1 - k * 0.35);
+        it.mesh.position.set(Math.cos(ang) * rad, 0.25 + k * 1.45, Math.sin(ang) * rad);
+        it.mesh.material.opacity = 1 - k;
+      });
+    });
+  }
+
+  // Proyectil elemental (Bola de Fuego / Lanza de Hielo) con estela y estallido en área
+  function lanzarProyectilElemental(name, hastaInit, diana, onImpact) {
+    const p = character.root.position;
+    const { x: fx, z: fz } = character.frente();
+    const desde = new THREE.Vector3(p.x + fx * 0.6, p.y + 1.35, p.z + fz * 0.6);
+    const hasta = hastaInit.clone();
+    const esFuego = name === 'bola_fuego';
+    const colMain = esFuego ? 0xf97316 : 0x38bdf8;
+    const colCore = esFuego ? 0xfef08a : 0xe0f2fe;
+    const g = new THREE.Group();
+
+    if (esFuego) {
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), new THREE.MeshBasicMaterial({ color: colCore }));
+      const shell = new THREE.Mesh(
+        new THREE.SphereGeometry(0.48, 12, 10),
+        new THREE.MeshBasicMaterial({ color: colMain, transparent: true, opacity: 0.72, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      const trail = new THREE.Mesh(
+        new THREE.ConeGeometry(0.32, 1.35, 8),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.52, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      trail.rotation.x = Math.PI;
+      trail.position.y = -0.78;
+      g.add(core, shell, trail);
+    } else {
+      const spear = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.45, 6), new THREE.MeshBasicMaterial({ color: colCore }));
+      spear.position.y = 0.2;
+      const frost = new THREE.Mesh(
+        new THREE.ConeGeometry(0.32, 1.65, 6),
+        new THREE.MeshBasicMaterial({ color: colMain, transparent: true, opacity: 0.58, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      frost.position.y = 0.1;
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.32, 0.03, 6, 16),
+        new THREE.MeshBasicMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending })
+      );
+      ring.rotation.x = Math.PI / 2;
+      g.add(spear, frost, ring);
+    }
+    marcarResplandor(g);
+    g.position.copy(desde);
+    const dist = hasta.distanceTo(desde) || 1;
+    const dur = Math.max(0.14, Math.min(0.42, dist / 46));
+    const up = new THREE.Vector3(0, 1, 0);
+    const dir = new THREE.Vector3();
+    let impactado = false;
+
+    efecto(g, dur, k => {
+      if (diana && diana.alive) {
+        hasta.set(diana.x, (diana.group ? diana.group.position.y : p.y) + 1.05, diana.z);
+      }
+      g.position.lerpVectors(desde, hasta, k);
+      if (esFuego) g.position.y += Math.sin(k * Math.PI) * 0.45;
+      dir.copy(hasta).sub(desde);
+      if (dir.lengthSq() > 1e-6) {
+        dir.normalize();
+        g.quaternion.setFromUnitVectors(up, dir);
+      }
+      if (!esFuego) g.rotateY(0.35);
+      if (k >= 0.96 && !impactado) {
+        impactado = true;
+        if (typeof onImpact === 'function') onImpact();
+        lanzarEstallidoElemental(hasta, esFuego ? 'fuego' : 'hielo', CombatLib.SKILLS[name].splash || 3.5);
+      }
+    });
+  }
+
+  function lanzarEstallidoElemental(pos, tipo, radio = 3.5) {
+    const esFuego = tipo === 'fuego';
+    const col = esFuego ? 0xf97316 : 0x38bdf8;
+    const g = new THREE.Group();
+    g.position.set(pos.x, pos.y, pos.z);
+    const esfera = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 14, 10),
+      new THREE.MeshBasicMaterial({ color: esFuego ? 0xfef08a : 0xe0f2fe, transparent: true, opacity: 0.92, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    const onda = new THREE.Mesh(
+      new THREE.RingGeometry(0.55, 0.95, 32),
+      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    onda.rotation.x = -Math.PI / 2;
+    onda.position.y = -0.82;
+    g.add(esfera, onda);
+    const frag = [];
+    for (let i = 0; i < 8; i++) {
+      const f = new THREE.Mesh(
+        esFuego ? new THREE.SphereGeometry(0.11, 6, 6) : new THREE.ConeGeometry(0.11, 0.42, 5),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending })
+      );
+      g.add(f);
+      frag.push({ mesh: f, a: (i / 8) * Math.PI * 2, vy: 1.5 + (i % 3) * 0.9 });
+    }
+    marcarResplandor(g);
+    efecto(g, 0.42, k => {
+      esfera.scale.setScalar(0.8 + k * (radio * 0.72));
+      esfera.material.opacity = 0.92 * (1 - k);
+      onda.scale.setScalar(0.6 + k * radio);
+      onda.material.opacity = 0.88 * (1 - k);
+      frag.forEach(it => {
+        const d = k * radio * 0.85;
+        it.mesh.position.set(Math.cos(it.a) * d, k * it.vy - k * k * 1.8, Math.sin(it.a) * d);
+        it.mesh.rotation.z += 0.25;
+        it.mesh.material.opacity = 1 - k;
+      });
+    });
+  }
+
+  function lanzarArcoCorte(colorHex, angZ = 0, escala = 1.9, doble = false) {
+    const p = character.root.position;
+    const yaw = character.anguloY();
+    const g = new THREE.Group();
+    g.position.set(p.x, p.y + 1.15, p.z);
+    g.rotation.y = yaw;
+    const crearHoja = (tilt) => {
+      const m = new THREE.Mesh(
+        new THREE.TorusGeometry(escala, 0.085, 6, 22, Math.PI * 1.1),
+        new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.92, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      m.rotation.x = Math.PI / 2;
+      m.rotation.z = tilt;
+      return m;
+    };
+    const a1 = crearHoja(angZ);
+    g.add(a1);
+    let a2 = null;
+    if (doble) {
+      a2 = crearHoja(-angZ - 0.55);
+      g.add(a2);
+    }
+    marcarResplandor(g);
+    efecto(g, 0.28, k => {
+      g.rotation.y = yaw - 0.8 + k * 1.65;
+      a1.scale.setScalar(0.85 + k * 0.35);
+      a1.material.opacity = 0.92 * (1 - k);
+      if (a2) { a2.scale.setScalar(0.85 + k * 0.35); a2.material.opacity = 0.92 * (1 - k); }
+    });
+  }
+
+  function lanzarVFXHabilidad(name, blancos, primero = true) {
+    if (!character || !character.root) return;
+    const p = character.root.position;
+    const { x: fx, z: fz } = character.frente();
+    const sk = CombatLib.SKILLS[name] || {};
+
+    if (name === 'ventisca_glacial') {
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y + 0.25, p.z);
+      const vortex = new THREE.Mesh(
+        new THREE.RingGeometry(1.2, sk.range || 7.5, 36),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      vortex.rotation.x = -Math.PI / 2;
+      g.add(vortex);
+      const spikes = [];
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const rad = 2.0 + (i % 3) * 1.8;
+        const sp = new THREE.Mesh(
+          new THREE.ConeGeometry(0.28, 1.9, 5),
+          new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xbae6fd : 0x38bdf8, transparent: true, opacity: 0.88 })
+        );
+        sp.position.set(Math.cos(a) * rad, -0.5, Math.sin(a) * rad);
+        g.add(sp);
+        spikes.push({ mesh: sp, a, rad });
+      }
+      marcarResplandor(g);
+      efecto(g, 0.72, k => {
+        g.rotation.y = k * 3.8;
+        vortex.material.opacity = 0.45 * (1 - k);
+        const hCurve = Math.sin(k * Math.PI);
+        spikes.forEach(s => {
+          s.mesh.position.y = -0.3 + hCurve * 1.35;
+          s.mesh.material.opacity = 0.9 * (1 - k * 0.7);
+        });
+      });
+      return;
+    }
+
+    if (name === 'tormenta_fuego') {
+      const rng = sk.range || 8.5;
+      const puntos = (blancos && blancos.length)
+        ? blancos.slice(0, 6).map(m => ({ x: m.x, y: m.group ? m.group.position.y : p.y, z: m.z }))
+        : [];
+      while (puntos.length < 6) {
+        const a = (puntos.length / 6) * Math.PI * 2 + (primero ? 0.2 : 0.7);
+        const r = 2.5 + (puntos.length % 3) * (rng * 0.26);
+        puntos.push({ x: p.x + Math.cos(a) * r, y: p.y, z: p.z + Math.sin(a) * r });
+      }
+      puntos.forEach((pt, idx) => {
+        const g = new THREE.Group();
+        const meteo = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+        const cola = new THREE.Mesh(
+          new THREE.ConeGeometry(0.65, 2.2, 8),
+          new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        cola.position.y = 1.25;
+        g.add(meteo, cola);
+        marcarResplandor(g);
+        const startX = pt.x + 3.5, startY = pt.y + 14 + idx * 1.2, startZ = pt.z + 2.0;
+        let exploded = false;
+        efecto(g, 0.34 + idx * 0.04, k => {
+          g.position.set(startX + (pt.x - startX) * k, startY + (pt.y + 0.5 - startY) * k, startZ + (pt.z - startZ) * k);
+          meteo.rotation.x += 0.22;
+          if (k >= 0.94 && !exploded) {
+            exploded = true;
+            lanzarEstallidoElemental(new THREE.Vector3(pt.x, pt.y + 0.8, pt.z), 'fuego', 3.2);
+          }
+        });
+      });
+      return;
+    }
+
+    if (name === 'rayo_arcano' || name === 'juicio_relampago') {
+      const targets = (blancos && blancos.length)
+        ? blancos.slice(0, 6).map(m => new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y), m.z))
+        : [0, 1, 2, 3].map(i => {
+            const a = character.anguloY() + (i - 1.5) * 0.7;
+            const d = name === 'juicio_relampago' ? 3.2 : 5.2;
+            return new THREE.Vector3(p.x + Math.sin(a) * d, p.y, p.z + Math.cos(a) * d);
+          });
+      targets.forEach(tgt => {
+        const g = new THREE.Group();
+        const segs = 6;
+        let cx = tgt.x, cz = tgt.z;
+        for (let s = 0; s < segs; s++) {
+          const y0 = tgt.y + (s / segs) * 14;
+          const y1 = tgt.y + ((s + 1) / segs) * 14;
+          const nx = tgt.x + (s < segs - 1 ? Math.sin(s * 3.7 + tgt.x) * 0.65 : 0);
+          const nz = tgt.z + (s < segs - 1 ? Math.cos(s * 4.1 + tgt.z) * 0.65 : 0);
+          const segMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.09, 0.14, (y1 - y0) * 1.15, 5),
+            new THREE.MeshBasicMaterial({ color: s % 2 === 0 ? 0xe0f2fe : 0xa855f7, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+          );
+          segMesh.position.set((cx + nx) * 0.5, (y0 + y1) * 0.5, (cz + nz) * 0.5);
+          segMesh.rotation.z = (nx - cx) * 0.35;
+          segMesh.rotation.x = (nz - cz) * 0.35;
+          g.add(segMesh);
+          cx = nx; cz = nz;
+        }
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(0.4, 1.5, 24),
+          new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(tgt.x, tgt.y + 0.18, tgt.z);
+        g.add(ring);
+        marcarResplandor(g);
+        efecto(g, 0.32, k => {
+          g.traverse(c => { if (c.material) c.material.opacity = (1 - k) * (0.75 + 0.25 * Math.sin(k * 40)); });
+          ring.scale.setScalar(0.8 + k * 1.4);
+        });
+      });
+      return;
+    }
+
+    if (name === 'escudo_espiritu' || name === 'contraataque') {
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y + 1.0, p.z);
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(2.2, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.36, wireframe: true, blending: THREE.AdditiveBlending })
+      );
+      const halo = new THREE.Mesh(
+        new THREE.RingGeometry(1.5, 2.4, 32),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      halo.rotation.x = -Math.PI / 2;
+      halo.position.y = -0.82;
+      g.add(dome, halo);
+      marcarResplandor(g);
+      efecto(g, 0.45, k => {
+        dome.rotation.y = k * 3.0;
+        dome.scale.setScalar(0.9 + k * 0.35);
+        dome.material.opacity = 0.4 * (1 - k);
+        halo.scale.setScalar(0.8 + k * 1.3);
+        halo.material.opacity = 0.85 * (1 - k);
+      });
+      return;
+    }
+
+    if (name === 'sismo' || name === 'salto_demoledor' || name === 'sentencia_titan' || name === 'nova') {
+      const rng = sk.range || 5.0;
+      ondaSismica(rng, name === 'nova' ? 0xfbbf24 : (name === 'sentencia_titan' ? 0xa855f7 : 0xf59e0b));
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y, p.z);
+      const spikes = [];
+      const count = name === 'nova' ? 10 : 8;
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const r = rng * 0.55;
+        const mesh = new THREE.Mesh(
+          new THREE.ConeGeometry(0.35, 2.2, 5),
+          new THREE.MeshBasicMaterial({ color: name === 'nova' ? 0xfef08a : 0xd97706, transparent: true, opacity: 0.88 })
+        );
+        mesh.position.set(Math.cos(a) * r, -0.8, Math.sin(a) * r);
+        g.add(mesh);
+        spikes.push(mesh);
+      }
+      if (name === 'nova' || name === 'sentencia_titan') {
+        const core = new THREE.Mesh(
+          new THREE.SphereGeometry(1.1, 14, 10),
+          new THREE.MeshBasicMaterial({ color: name === 'nova' ? 0xfef08a : 0xc084fc, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        core.position.y = 1.0;
+        g.add(core);
+        spikes.push(core);
+      }
+      marcarResplandor(g);
+      efecto(g, 0.48, k => {
+        const lift = Math.sin(k * Math.PI);
+        spikes.forEach((s, idx) => {
+          if (idx < count) {
+            s.position.y = -0.6 + lift * 1.45;
+            s.material.opacity = 0.9 * (1 - k * 0.7);
+          } else {
+            s.scale.setScalar(0.8 + k * (rng * 0.55));
+            s.material.opacity = 0.75 * (1 - k);
+          }
+        });
+      });
+      return;
+    }
+
+    if (name === 'rafaga') {
+      const g = new THREE.Group();
+      const desde = new THREE.Vector3(p.x + fx * 0.6, p.y + 1.15, p.z + fz * 0.6);
+      const arc = new THREE.Mesh(
+        new THREE.TorusGeometry(1.4, 0.1, 6, 18, Math.PI * 0.85),
+        new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending })
+      );
+      arc.rotation.x = Math.PI / 2;
+      g.add(arc);
+      g.position.copy(desde);
+      g.rotation.y = character.anguloY() - Math.PI * 0.42;
+      marcarResplandor(g);
+      efecto(g, 0.34, k => {
+        g.position.set(desde.x + fx * k * 6.8, desde.y, desde.z + fz * k * 6.8);
+        arc.scale.setScalar(0.8 + k * 0.7);
+        arc.material.opacity = 0.92 * (1 - k);
+      });
+      return;
+    }
+
+    if (name === 'estocada') {
+      const g = new THREE.Group();
+      g.position.set(p.x + fx * 2.5, p.y + 1.15, p.z + fz * 2.5);
+      g.rotation.y = character.anguloY();
+      const beam = new THREE.Mesh(
+        new THREE.ConeGeometry(0.28, 4.8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      beam.rotation.x = Math.PI / 2;
+      g.add(beam);
+      marcarResplandor(g);
+      efecto(g, 0.25, k => {
+        beam.scale.set(1 - k * 0.4, 0.6 + k * 0.6, 1 - k * 0.4);
+        beam.material.opacity = 0.9 * (1 - k);
+      });
+      return;
+    }
+
+    if (name === 'corte_cruzado') { lanzarArcoCorte(0xfef08a, 0.55, 2.2, true); return; }
+    if (name === 'furia') { lanzarArcoCorte(0xef4444, 0.35, 2.5, true); return; }
+    if (name === 'tajo' || name === 'torbellino' || name === 'tornillo') {
+      ondaSismica(sk.range || 4.0, name === 'tornillo' ? 0xa855f7 : 0x38bdf8);
+      lanzarArcoCorte(name === 'tornillo' ? 0xc084fc : 0x7dd3fc, 0.15, (sk.range || 3.8) * 0.68, true);
+      return;
+    }
+    if (name === 'hendidura' || name === 'ascendente') { lanzarArcoCorte(0xfbbf24, 1.1, 2.2, false); return; }
+    if (name === 'attack') { lanzarArcoCorte(0xfef08a, 0.25, 1.7, false); }
   }
   function crearFlecha3D(colorAstil = 0xd6b47a, colorPluma = 0xfef3c7, colorEstela = 0xfde047) {
     const g = new THREE.Group();
@@ -7099,6 +7653,9 @@
     $('hud-lv').textContent = 'Nv ' + hero.level;
     const arco = armaDelHeroe() === 'arco';
     estadoBoton($('sk-attack'), arco ? 'disparo' : 'attack', arco ? 'Tiro con arco (Espacio)' : 'Combo de ataque (Espacio)');
+    if ($('sk-fuego')) estadoBoton($('sk-fuego'), 'bola_fuego', 'Bola de Fuego (3)');
+    if ($('sk-hielo')) estadoBoton($('sk-hielo'), 'lanza_hielo', 'Lanza de Hielo (4)');
+    if ($('sk-meteoro')) estadoBoton($('sk-meteoro'), 'tormenta_fuego', 'Lluvia de Meteoros (5)');
     HeroeLib.TECLAS.forEach(t => {
       const id = heroeEst.barra[t], btn = $('sk-' + t);
       if (id) { estadoBoton(btn, id, CombatLib.SKILLS[id].nombre + ' (' + t.toUpperCase() + ')'); return; }
@@ -12345,6 +12902,9 @@
     if (k === 'k') alternarAuto();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');
+    if (k === '3') useSkill('bola_fuego');
+    if (k === '4') useSkill('lanza_hielo');
+    if (k === '5') useSkill('tormenta_fuego');
     if (k === 'r') (hero.resting ? stopRest('Descanso cancelado') : startRest());
     if (k === 'b') (($('shop').classList.contains('show')) ? closeShop() : openShop());
     if (k === 'f11') {
@@ -12454,6 +13014,9 @@
   $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
   $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
   $('sk-attack').onclick = () => useSkill('attack');
+  if ($('sk-fuego')) $('sk-fuego').onclick = () => useSkill('bola_fuego');
+  if ($('sk-hielo')) $('sk-hielo').onclick = () => useSkill('lanza_hielo');
+  if ($('sk-meteoro')) $('sk-meteoro').onclick = () => useSkill('tormenta_fuego');
   $('sk-auto').onclick = alternarAuto;
   HeroeLib.TECLAS.forEach(t => { $('sk-' + t).onclick = () => usarHueco(t); });
   $('sk-jump').onclick = jump;
@@ -12848,14 +13411,35 @@
     }
   }
 
+  function migrarValdrisSiAntiguo(w) {
+    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 2) return false;
+    if (typeof window.clonarMundoOficial !== 'function') return false;
+    const fresh = window.clonarMundoOficial();
+    const byId = new Map((fresh.towns || []).map(t => [t.id, t]));
+    (w.towns || []).forEach(t => {
+      const ft = byId.get(t.id);
+      if (ft) {
+        const prevEdits = t.cfg && t.cfg.edits;
+        t.cfg = Object.assign({}, ft.cfg);
+        if (prevEdits) t.cfg.edits = prevEdits;
+        if (typeof ft.size === 'number') t.size = ft.size;
+        if (typeof ft.radius === 'number') t.radius = ft.radius;
+      }
+    });
+    w.campaignVersion = fresh.campaignVersion || 2;
+    return true;
+  }
+
   function loadText(text, label) {
     try {
       const w = W.deserialize(text);
       consumeMazeReturnInVisor(w);
       // Versión 3 de monstruos: 4–8 variedades por zona y 4 densidades (baja, media, alta, muy alta).
       // Si el mundo era antiguo y sin ediciones manuales de monstruos, migra sin tocar pueblos ni niveles.
-      if (typeof W.migrarMonstruosSiAntiguo === 'function' && W.migrarMonstruosSiAntiguo(w)) {
-        try { if (worldId) localStorage.setItem('rpgMundo.sesion.' + worldId, W.serialize(w)); } catch (e) { /* sin guardar */ }
+      const migMons = (typeof W.migrarMonstruosSiAntiguo === 'function' && W.migrarMonstruosSiAntiguo(w));
+      const migVald = migrarValdrisSiAntiguo(w);
+      if (migMons || migVald) {
+        try { if (worldId) registrarSesionMundo(worldId, w, W.serialize(w)); } catch (e) { /* sin guardar */ }
       }
       buildWorld(w);
       if (label) toast('Mundo «' + w.name + '» cargado');

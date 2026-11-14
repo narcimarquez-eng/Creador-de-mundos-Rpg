@@ -45,7 +45,13 @@
     sentencia_titan: { nombre: 'Sentencia del Titán', icono: '💥', cd: 16.0, lock: 1.6, range: 6.5, arc: -1, mult: 4.0, mp: 42, impacto: 1.2, arma: 'cuerpo' },
     // Arco: el tiro sustituye al combo cuando el arma es un arco
     disparo:     { nombre: 'Tiro con arco', icono: '🏹', cd: 1.2, lock: 0.8, range: 24, arc: 0.95, mult: 1.2, mp: 0, impacto: 0.9, arma: 'arco', unico: true },
-    suspension:  { nombre: 'Flecha en suspensión', icono: '🎯', cd: 8, lock: 2.0, range: 26, arc: 0.9, mult: 2.6, mp: 20, impacto: 1.5, arma: 'arco', unico: true }
+    suspension:  { nombre: 'Flecha en suspensión', icono: '🎯', cd: 8, lock: 2.0, range: 26, arc: 0.9, mult: 2.6, mp: 20, impacto: 1.5, arma: 'arco', unico: true },
+    // Magia elemental (fuego, hielo y tormenta arcana; usable con cualquier arma)
+    bola_fuego:       { nombre: 'Bola de Fuego', icono: '🔥', cd: 3.5, lock: 0.65, range: 22, arc: 0.65, mult: 2.1, mp: 12, impacto: 0.35, elemento: 'fuego', proyectil: true, splash: 3.8 },
+    lanza_hielo:      { nombre: 'Lanza de Hielo', icono: '❄️', cd: 4.0, lock: 0.65, range: 22, arc: 0.65, mult: 1.9, mp: 12, impacto: 0.32, elemento: 'hielo', proyectil: true, splash: 3.4, slow: 4.5, slowMult: 0.45 },
+    ventisca_glacial: { nombre: 'Ventisca Glacial', icono: '🌨️', cd: 10.0, lock: 0.9, range: 7.5, arc: -1, mult: 2.4, mp: 24, impacto: [0.35, 0.75], elemento: 'hielo', slow: 5.5, slowMult: 0.35 },
+    tormenta_fuego:   { nombre: 'Lluvia de Meteoros', icono: '☄️', cd: 12.0, lock: 1.0, range: 8.5, arc: -1, mult: 3.1, mp: 28, impacto: [0.45, 0.9], elemento: 'fuego' },
+    rayo_arcano:      { nombre: 'Tormenta Eléctrica', icono: '🌩️', cd: 11.0, lock: 0.85, range: 9.0, arc: -1, mult: 3.3, mp: 30, impacto: 0.4, elemento: 'rayo' }
   };
 
   // Momentos de golpe de una habilidad (segundos desde que empieza); [0] = al instante
@@ -229,6 +235,8 @@
   // Un paso de la IA del monstruo. Devuelve { attack: bool, ranged: bool } para indicar si golpea este frame.
   function monsterTick(m, hero, hx, hz, dt, dy) {
     const out = { attack: false, ranged: false };
+    if (m.slowTimer > 0) m.slowTimer = Math.max(0, m.slowTimer - dt);
+    const slowFactor = m.slowTimer > 0 ? (m.slowMult || 0.45) : 1;
     const dHero = Math.hypot(hx - m.x, hz - m.z);
     const dSpawn = Math.hypot(m.spawnX - m.x, m.spawnZ - m.z);
 
@@ -238,7 +246,7 @@
     if (m.state === 'chase') {
       const attackRange = m.attackRange || (m.esADistancia ? MONSTER.rangedAttackRange : MONSTER.attackRange);
       if (dHero > attackRange) {
-        const sp = m.speed * dt / dHero;
+        const sp = m.speed * slowFactor * dt / dHero;
         let nx = m.x + (hx - m.x) * Math.min(1, sp);
         let nz = m.z + (hz - m.z) * Math.min(1, sp);
         if (typeof m.puedeIr === 'function' && !m.puedeIr(nx, nz)) {
@@ -298,7 +306,8 @@
     }
     const dx = m.pDest.x - m.x, dz = m.pDest.z - m.z, d = Math.hypot(dx, dz);
     if (d < 0.25) { m.pDest = null; m.pEspera = 1.5 + Math.random() * 3; return; }
-    const paso = Math.min(d, (m.speed * 0.3) * dt);
+    const slowFactor = m.slowTimer > 0 ? (m.slowMult || 0.45) : 1;
+    const paso = Math.min(d, (m.speed * 0.3 * slowFactor) * dt);
     m.x += dx / d * paso; m.z += dz / d * paso;
     m.rumbo = Math.atan2(dx, dz);
     m.caminando = true;

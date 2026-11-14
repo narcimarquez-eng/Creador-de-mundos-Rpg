@@ -50,6 +50,7 @@ function build() {
 
   world.id = 'valdris-sol-quebrado-v1';
   world.campaignId = 'valdris-sol-quebrado-v1';
+  world.campaignVersion = 2;
   world.version = 1;
   world.nextId = 100;
 
@@ -61,10 +62,12 @@ function build() {
       id: 't_1', name: 'Albaferro', x: 1850, y: 950, level: 1, isStart: true,
       services: ['posada', 'tienda', 'herrero', 'gremio', 'almacén', 'teletransporte'],
       cfg: {
-        style: 'european', terrainType: 'valley', relief: 0.35, seed: 1011, size: 4,
-        houseDensity: 0.85, specialCount: 3, maxFloors: 2, roadWidth: 7, curve: 0.25,
-        treeDensity: 0.55, hasWalls: true, hasRiver: true, hasMagic: false,
-        hasProps: true, hasLamps: true, hasFences: true, casas: 'mixta', time: 'day'
+        style: 'european', terrainType: 'valley', relief: 30, seed: 1011, size: 4,
+        houseDensity: 90, specialCount: 4, maxFloors: 3, roadWidth: 7.5, curve: 3.5,
+        treeDensity: 48, hasWalls: true, hasRiver: true, hasMagic: false,
+        hasProps: true, hasLamps: true, hasFences: true, hasGardens: true,
+        trazado: 'manzanas', casas: 'variada', casaVar: 'alta', streetTexture: 't02',
+        bridgeStyle: 0, rotation: 12, time: 'day'
       },
       notes: 'Ciudad forjadora del valle oriental donde resiste el último yunque libre de Brann bajo vigilancia del Consejo del Eclipse.'
     },
@@ -72,10 +75,12 @@ function build() {
       id: 't_2', name: 'Puerto Brisal', x: 300, y: 600, level: 3, isStart: false,
       services: ['posada', 'tienda', 'herrero', 'almacén'],
       cfg: {
-        style: 'trade', terrainType: 'plains', relief: 0.25, seed: 2022, size: 3,
-        houseDensity: 0.8, specialCount: 2, maxFloors: 2, roadWidth: 7, curve: 0.2,
-        treeDensity: 0.35, hasWalls: true, hasRiver: true, hasMagic: false,
-        hasProps: true, hasLamps: true, hasFences: true, casas: 'mixta', time: 'day'
+        style: 'trade', terrainType: 'plains', relief: 18, seed: 2022, size: 4,
+        houseDensity: 92, specialCount: 4, maxFloors: 3, roadWidth: 8.0, curve: 2.2,
+        treeDensity: 35, hasWalls: true, hasRiver: true, hasMagic: false,
+        hasProps: true, hasLamps: true, hasFences: false, hasGardens: true,
+        trazado: 'manzanas', casas: 'casa_entramado', casaVar: 'alineada', streetTexture: 't09',
+        bridgeStyle: 2, rotation: 38, time: 'day'
       },
       notes: 'Puerto mercante frente a la bahía interior de Valdris, asfixiado por aranceles eclesiales y saqueadores de marea.'
     },
@@ -83,10 +88,12 @@ function build() {
       id: 't_3', name: 'Robledal Sombrío', x: 1150, y: 1850, level: 5, isStart: false,
       services: ['posada', 'tienda', 'herrero'],
       cfg: {
-        style: 'frontier', terrainType: 'hills', relief: 0.45, seed: 3033, size: 3,
-        houseDensity: 0.72, specialCount: 2, maxFloors: 2, roadWidth: 6, curve: 0.4,
-        treeDensity: 0.85, hasWalls: false, hasRiver: true, hasMagic: false,
-        hasProps: true, hasLamps: true, hasFences: true, casas: 'madera', time: 'day'
+        style: 'frontier', terrainType: 'hills', relief: 46, seed: 3033, size: 3,
+        houseDensity: 84, specialCount: 2, maxFloors: 2, roadWidth: 6.0, curve: 7.5,
+        treeDensity: 95, hasWalls: false, hasRiver: true, hasMagic: false,
+        hasProps: true, hasLamps: true, hasFences: true, hasGardens: true,
+        trazado: 'radial', casas: 'cabana', casaVar: 'libre', streetTexture: 't05',
+        bridgeStyle: 1, rotation: 74, time: 'day'
       },
       notes: 'Aldea maderera en el bosque sur. La savia de los robles antiguos sangra gris desde que excavaron la Cripta de las Raíces Negras.'
     },
@@ -94,10 +101,12 @@ function build() {
       id: 't_4', name: 'Limoquieto', x: -500, y: 1750, level: 8, isStart: false,
       services: ['posada', 'tienda', 'herrero', 'almacén'],
       cfg: {
-        style: 'frontier', terrainType: 'valley', relief: 0.2, seed: 4044, size: 2,
-        houseDensity: 0.65, specialCount: 1, maxFloors: 1, roadWidth: 5.5, curve: 0.35,
-        treeDensity: 0.5, hasWalls: false, hasRiver: false, hasMagic: false,
-        hasProps: true, hasLamps: true, hasFences: false, casas: 'madera', time: 'sunset'
+        style: 'elven', terrainType: 'valley', relief: 22, seed: 4044, size: 3,
+        houseDensity: 78, specialCount: 2, maxFloors: 2, roadWidth: 5.5, curve: 6.2,
+        treeDensity: 68, hasWalls: false, hasRiver: true, hasMagic: true,
+        hasProps: true, hasLamps: true, hasFences: false, hasGardens: true,
+        trazado: 'radial', casas: 'madera', casaVar: 'libre', streetTexture: 't03',
+        bridgeStyle: 1, rotation: -28, time: 'sunset'
       },
       notes: 'Enclave palustre entre ciénagas donde desertores y boticarios ocultaron los registros alquímicos de la Orden del Eclipse.'
     },
@@ -105,10 +114,12 @@ function build() {
       id: 't_5', name: 'Ámbar de Dunas', x: 2250, y: -450, level: 11, isStart: false,
       services: ['posada', 'tienda', 'herrero', 'gremio', 'almacén', 'subastas'],
       cfg: {
-        style: 'l2_fantasy', terrainType: 'plains', relief: 0.3, seed: 5055, size: 4,
-        houseDensity: 0.85, specialCount: 3, maxFloors: 3, roadWidth: 7.5, curve: 0.18,
-        treeDensity: 0.18, hasWalls: true, hasRiver: false, hasMagic: true,
-        hasProps: true, hasLamps: true, hasFences: false, casas: 'original', time: 'day'
+        style: 'l2_fantasy', terrainType: 'plains', relief: 28, seed: 5055, size: 5,
+        houseDensity: 94, specialCount: 4, maxFloors: 3, roadWidth: 8.5, curve: 3.0,
+        treeDensity: 24, hasWalls: true, hasRiver: false, hasMagic: true,
+        hasProps: true, hasLamps: true, hasFences: false, hasGardens: false,
+        trazado: 'manzanas', casas: 'original', casaVar: 'alta', streetTexture: 't04',
+        bridgeStyle: 0, rotation: 52, time: 'day'
       },
       notes: 'Ciudad caravana del desierto dorado. Aquí se alza el Altar Rúnico que rompe el monopolio comercial del Cónclave a partir de nivel 12.'
     },
@@ -116,10 +127,12 @@ function build() {
       id: 't_6', name: 'Atalaya de Escarcha', x: -2000, y: 400, level: 14, isStart: false,
       services: ['posada', 'tienda', 'herrero', 'gremio', 'almacén'],
       cfg: {
-        style: 'fortified', terrainType: 'highlands', relief: 0.55, seed: 6066, size: 3,
-        houseDensity: 0.78, specialCount: 2, maxFloors: 2, roadWidth: 6.5, curve: 0.2,
-        treeDensity: 0.45, hasWalls: true, hasRiver: false, hasMagic: false,
-        hasProps: true, hasLamps: true, hasFences: true, casas: 'mixta', time: 'day'
+        style: 'fortified', terrainType: 'highlands', relief: 54, seed: 6066, size: 3,
+        houseDensity: 86, specialCount: 3, maxFloors: 2, roadWidth: 6.5, curve: 4.5,
+        treeDensity: 55, hasWalls: true, hasRiver: false, hasMagic: true,
+        hasProps: true, hasLamps: true, hasFences: true, hasGardens: false,
+        trazado: 'radial', casas: 'mixta', casaVar: 'alta', streetTexture: 't08',
+        bridgeStyle: 2, rotation: 105, time: 'day'
       },
       notes: 'Bastión boreal de la guardia rebelde entre taigas heladas; contiene las columnas mecanizadas que descienden desde el norte.'
     },
@@ -127,10 +140,12 @@ function build() {
       id: 't_7', name: 'Trono de Ceniza', x: 800, y: -1500, level: 18, isStart: false,
       services: ['posada', 'tienda', 'herrero', 'gremio', 'almacén', 'teletransporte'],
       cfg: {
-        style: 'dwarven', terrainType: 'highlands', relief: 0.7, seed: 7077, size: 4,
-        houseDensity: 0.82, specialCount: 3, maxFloors: 3, roadWidth: 7, curve: 0.15,
-        treeDensity: 0.2, hasWalls: true, hasRiver: false, hasMagic: true,
-        hasProps: true, hasLamps: true, hasFences: false, casas: 'original', time: 'night'
+        style: 'dwarven', terrainType: 'highlands', relief: 65, seed: 7077, size: 4,
+        houseDensity: 90, specialCount: 4, maxFloors: 3, roadWidth: 7.5, curve: 2.0,
+        treeDensity: 20, hasWalls: true, hasRiver: false, hasMagic: true,
+        hasProps: true, hasLamps: true, hasFences: false, hasGardens: false,
+        trazado: 'manzanas', casas: 'original', casaVar: 'alineada', streetTexture: 't06',
+        bridgeStyle: 0, rotation: -15, time: 'night'
       },
       notes: 'Ciudadela ciclópea de alta montaña al pie del Cráter del Sol Quebrado; último bastión de la Orden del Eclipse.'
     }

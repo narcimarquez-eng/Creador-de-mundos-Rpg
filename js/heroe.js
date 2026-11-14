@@ -39,7 +39,13 @@
     salto_demoledor: { tipo: 'activa', nombre: 'Salto Demoledor', desc: '+25 % de daño por nivel · caída sísmica circular', max: 3, nivel: 12, arma: 'cuerpo' },
     lluvia_proyectiles: { tipo: 'activa', nombre: 'Lluvia de Flechas', desc: '+25 % de daño por nivel · salva perforante a distancia', max: 3, nivel: 14, arma: 'arco' },
     juicio_relampago: { tipo: 'activa', nombre: 'Filo Relámpago', desc: '+25 % de daño por nivel · descarga eléctrica veloz', max: 3, nivel: 16, arma: 'cuerpo' },
-    sentencia_titan: { tipo: 'activa', nombre: 'Sentencia del Titán', desc: '+25 % de daño por nivel · ataque colosal en área', max: 3, nivel: 20, arma: 'cuerpo' }
+    sentencia_titan: { tipo: 'activa', nombre: 'Sentencia del Titán', desc: '+25 % de daño por nivel · ataque colosal en área', max: 3, nivel: 20, arma: 'cuerpo' },
+    // Magia elemental (usable con cualquier arma)
+    bola_fuego: { tipo: 'activa', nombre: 'Bola de Fuego', desc: '+25 % de daño por nivel · proyectil ígneo explosivo en área', max: 3, nivel: 1 },
+    lanza_hielo: { tipo: 'activa', nombre: 'Lanza de Hielo', desc: '+25 % de daño por nivel · proyectil glacial que ralentiza enemigos', max: 3, nivel: 1 },
+    ventisca_glacial: { tipo: 'activa', nombre: 'Ventisca Glacial', desc: '+25 % de daño por nivel · tormenta helada en área que congela', max: 3, nivel: 6 },
+    tormenta_fuego: { tipo: 'activa', nombre: 'Lluvia de Meteoros', desc: '+25 % de daño por nivel · bombardeo meteórico en área', max: 3, nivel: 8 },
+    rayo_arcano: { tipo: 'activa', nombre: 'Tormenta Eléctrica', desc: '+25 % de daño por nivel · relámpagos arcanos alrededor', max: 3, nivel: 12 }
   };
 
   // Huecos de la barra de habilidades y lo que llevan al empezar
