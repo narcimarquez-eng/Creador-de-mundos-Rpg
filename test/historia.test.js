@@ -275,4 +275,20 @@ t('visor-mundo.html ofrece portada de juego completo, prólogo de emboscada en 2
   });
 });
 
+t('HITOS_NARRATIVOS destaca transiciones clave de Actos II-IV, ruptura del monopolio y juicio final', () => {
+  [5, 8, 10, 11, 14, 16].forEach(num => {
+    const hito = H.hitoDeCapituloCompletado(num);
+    assert.ok(hito && hito.titulo && hito.detalle, `Capítulo ${num} debe tener hito narrativo`);
+  });
+  assert.strictEqual(H.hitoDeCapituloCompletado(1), null);
+  assert.ok(H.hitoDeCapituloCompletado(11).titulo.includes('Monopolio'));
+  assert.ok(H.hitoDeCapituloCompletado(16).etiqueta.includes('Epílogo'));
+
+  const fs = require('fs'), path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  ['cap-hito', 'hitoDeCapituloCompletado', 'contextoCabana', 'contextoNarrativoMazmorra', 'dv-lore'].forEach(tok => {
+    assert.ok(html.includes(tok), `visor-mundo.html debe integrar ${tok}`);
+  });
+});
+
 console.log(`\n${n} pruebas de la historia superadas.`);

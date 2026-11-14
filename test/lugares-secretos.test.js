@@ -188,4 +188,18 @@ t('aplanado de terreno bajo cabañas: allana cuesta arriba y cuesta abajo con pe
   assert.strictEqual(hFuera, 35, 'Fuera de radioRebaje el terreno no se modifica');
 });
 
+t('contextoCabana conecta las 5 cabañas fronterizas con la trama y el acto activo', () => {
+  assert.strictEqual(L.CABANAS_GLB.length, 5);
+  L.CABANAS_GLB.forEach(c => {
+    assert.ok(typeof c.trama === 'string' && c.trama.length > 20, `${c.id} debe incluir trama narrativa`);
+  });
+  const ctxActo1 = L.contextoCabana('cabana-3-pescador', { paso: 2 });
+  const ctxActo3 = L.contextoCabana('cabana-3-pescador', { paso: 12 });
+  const ctxEpi = L.contextoCabana('cabana-3-pescador', { paso: 16 });
+  assert.ok(ctxActo1.trama.includes('jaulas'));
+  assert.ok(ctxActo1.estadoActo.includes('Acto I'));
+  assert.ok(ctxActo3.estadoActo.includes('Acto III'));
+  assert.ok(ctxEpi.estadoActo.includes('Epílogo'));
+});
+
 console.log(`\n${n} pruebas de lugares secretos superadas.`);

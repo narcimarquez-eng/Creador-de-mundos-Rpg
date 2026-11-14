@@ -1168,12 +1168,42 @@
     }
   }
 
+  // Contexto narrativo de cada Mazmorra Ancestral según el avance de la Crónica de Aden
+  function contextoNarrativoMazmorra(dungeon, principal) {
+    const paso = principal && typeof principal.paso === 'number' ? principal.paso : 0;
+    const nombre = (dungeon && dungeon.name) || 'Mazmorra Ancestral';
+    const bossNombre = (dungeon && dungeon.boss && dungeon.boss.name) || 'Señor del Trono Caído';
+    if (paso >= 16) {
+      return {
+        etiqueta: 'Epílogo · Purga de las Criptas Reales',
+        titulo: `${nombre} · Eco Final de los Siete Reinos`,
+        relato: `Aunque el juicio de la plaza depuso a los Sabios conspiradores, ${bossNombre} y sus guardianes de élite aún custodian en estas galerías reservas selladas de acero y arena de forja.`,
+        recompensaLore: 'Conquista esta bóveda ancestral para obtener arena de forja y reliquias dignas de los Campeones de Aden.'
+      };
+    }
+    if (paso >= 11) {
+      return {
+        etiqueta: 'Acto III–IV · Nodos de Energía del Cónclave',
+        titulo: `${nombre} · Cámara de Arena y Reliquias`,
+        relato: `Con el monopolio comercial roto, sabes por qué los Sabios sellaron estas criptas: ${bossNombre} concentra la energía rúnica y la arena de forja con la que intentaron alimentar al Titán.`,
+        recompensaLore: 'Derrota a la guardia élite (×4 / ×8) y reclama el botín oculto fuera del alcance del cónclave.'
+      };
+    }
+    return {
+      etiqueta: 'Bóveda Prohibida · Antes de la Ruptura',
+      titulo: `${nombre} · Tumba Sellada por los Sabios`,
+      relato: `El cónclave declaró malditas estas ruinas de los Siete Reinos para impedir que nadie forjara equipo superior fuera de su control. ${bossNombre} vigila su tesoro de guerra.`,
+      recompensaLore: 'Sobrevive a los centinelas de élite y recupera arena de forja clandestina.'
+    };
+  }
+
   const api = {
     LISTA_GLB_DISPONIBLES,
     MULTIPLICADORES_ELITE,
     generarMazmorraPorDefecto,
     construirEntradaExterior,
     cargarModeloMazmorra,
+    contextoNarrativoMazmorra,
     GestorMazmorras
   };
 

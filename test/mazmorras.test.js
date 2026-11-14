@@ -737,3 +737,14 @@ test('muerte en mazmorra devuelve a la puerta exterior y cada estancia muestra s
   assert.ok(htmlVisor.includes('function reaparecerEnPuertaMazmorra()'), 'visor-mundo.html define reaparecerEnPuertaMazmorra');
   assert.ok(htmlVisor.includes('if (gestorMazmorras && gestorMazmorras.enMazmorra) {\n      reaparecerEnPuertaMazmorra();\n      return;\n    }'), 'onHeroDeath redirige muertes dentro de mazmorra directamente a la puerta exterior sin enviar al pueblo');
 });
+
+test('contextoNarrativoMazmorra adapta el relato de la mazmorra al progreso de la Crónica', () => {
+  const d = MazmorrasLib.generarMazmorraPorDefecto({ dungeons: [] }, 100, 100, { name: 'Cripta del Óxido' });
+  const cPre = MazmorrasLib.contextoNarrativoMazmorra(d, { paso: 2 });
+  const cPost11 = MazmorrasLib.contextoNarrativoMazmorra(d, { paso: 12 });
+  const cEpi = MazmorrasLib.contextoNarrativoMazmorra(d, { paso: 16 });
+  assert.ok(cPre.etiqueta.includes('Bóveda Prohibida'));
+  assert.ok(cPost11.etiqueta.includes('Acto III'));
+  assert.ok(cEpi.etiqueta.includes('Epílogo'));
+  assert.ok(cEpi.relato.includes(d.boss.name));
+});

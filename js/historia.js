@@ -493,9 +493,60 @@
     };
   }
 
+  // Hitos narrativos de transición entre Actos y giros clave de la Crónica
+  const HITOS_NARRATIVOS = {
+    5: {
+      capitulo: 5,
+      icono: '🛡️',
+      etiqueta: 'Fin del Acto I → Acto II · Reliquias y Poder Antiguo',
+      titulo: 'Mente Blindada ante el Óxido',
+      detalle: 'El yelmo óseo bloquea la telepatía del cónclave. Dejas atrás la mera supervivencia para infiltrarte en fuentes arcanas y refugios ocultos.'
+    },
+    8: {
+      capitulo: 8,
+      icono: '✨',
+      etiqueta: 'Giro del Acto II · El Poder de los Reyes Antiguos',
+      titulo: 'Despertar de la Nova y Halo Ámbar',
+      detalle: 'La Hermana Ysolde rompe en secreto la disciplina del cónclave al liberar la Explosión Nova; por un instante, los ojos de tu compañero brillan con luz ancestral.'
+    },
+    10: {
+      capitulo: 10,
+      icono: '⚔️',
+      etiqueta: 'Fin del Acto II → Acto III · Ruptura del Monopolio y Asalto al Titán',
+      titulo: 'Cerco Roto hacia las Cumbres',
+      detalle: 'Las defensas inquisitoriales caen y el paso norte queda abierto. La Hermana Ysolde rompe abiertamente sus votos y se pasa a la rebelión.'
+    },
+    11: {
+      capitulo: 11,
+      icono: '🔓',
+      etiqueta: 'Hito Económico y Político · Altar Rúnico Consagrado',
+      titulo: '¡Monopolio de los Sabios Quebrado!',
+      detalle: 'El sello eclesial sobre el acero desaparece: el Herrero Brann y los mercaderes reabren su catálogo superior (Nv. 12+) y la guarnición de Kaelen apoya al pueblo.'
+    },
+    14: {
+      capitulo: 14,
+      icono: '⚙️',
+      etiqueta: 'Fin del Acto III → Acto IV · Purificación y Liberación de Aden',
+      titulo: 'Caída del Titán Mecánico',
+      detalle: 'El Señor de las Bestias mecánicas yace inmóvil gracias al sacrificio de tu camarada. Las fundiciones clandestinas se apagan; solo resta purificar la fuente.'
+    },
+    16: {
+      capitulo: 16,
+      icono: '👑',
+      etiqueta: 'Epílogo Desbloqueado · Campeones de Aden',
+      titulo: 'Juicio Público en la Plaza',
+      detalle: 'La Erudita Mirel lee las actas ante el pueblo libre y los Sabios conspiradores son depuestos. Las 5 cabañas fronterizas y las Mazmorras Ancestrales aguardan vuestra gesta final.'
+    }
+  };
+
+  function hitoDeCapituloCompletado(numero) {
+    return HITOS_NARRATIVOS[Number(numero)] || null;
+  }
+
   const api = {
     CAPITULOS,
     ACTOS,
+    HITOS_NARRATIVOS,
     MATERIALES_FORJA,
     DIALOGOS_NPC,
     nuevaPrincipal,
@@ -503,6 +554,7 @@
     capituloActual,
     contados,
     actoActual,
+    hitoDeCapituloCompletado,
     monopolioRoto,
     materialDeCapitulo,
     fraseContextualNpc,

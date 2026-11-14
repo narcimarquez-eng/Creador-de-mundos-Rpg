@@ -50,6 +50,7 @@
       nombre: 'Cabaña de Troncos del Bosque',
       aldeano: 'Garek el Trampero',
       frase: 'Las bestias del bosque no dejan de proliferar. Despeja a 100 de ellas y te daré un generoso pago y equipo.',
+      trama: 'Las manadas desplazadas de las fundiciones clandestinas de los Sabios se ocultan en esta espesura y cortan el suministro de madera.',
       esMar: false,
       puebloIdx: 0
     },
@@ -59,6 +60,7 @@
       nombre: 'Posada Solitaria del Sendero',
       aldeano: 'Borgan el Guardián del Paso',
       frase: 'Los viajeros temen ser devorados por los caminos. Ayúdame abatiendo a 100 de esas criaturas.',
+      trama: 'Desde que la guardia dejó de escoltar caravanas civiles, esta posada es el único refugio entre los primeros pueblos de Aden.',
       esMar: false,
       puebloIdx: 0
     },
@@ -68,6 +70,7 @@
       nombre: 'Cabaña de Pescador de la Costa',
       aldeano: 'Kyle el Pescador de Bajamar',
       frase: 'Las criaturas costeras asaltan las redes y la orilla. Acaba con 100 y compartiré los tesoros de la marea.',
+      trama: 'La marea arrastra restos de jaulas sumergidas con el emblema de la Corona, atrayendo carroñeros alterados hacia las redes.',
       esMar: true,
       puebloIdx: 0
     },
@@ -77,6 +80,7 @@
       nombre: 'Torre Vigía de la Avanzada',
       aldeano: 'Varek el Centinela del Alto',
       frase: 'Desde lo alto diviso manadas salvajes cercando el paso norte. Derrota a 100 antes de que avancen.',
+      trama: 'Esta torre vigía controla las columnas de bestias blindadas que descienden desde las cumbres controladas por el cónclave.',
       esMar: false,
       puebloIdx: 1
     },
@@ -86,6 +90,7 @@
       nombre: 'Cabaña Redonda del Erudito',
       aldeano: 'Olorin el Herbolario Silvano',
       frase: 'Mis cultivos de raíces arcanas son pisoteados por las bestias. Elimina a 100 de ellas para proteger el bosque.',
+      trama: 'El aceite oscuro vertido por las forjas prohibidas contamina las aguas bajas y vuelve agresiva a la fauna alrededor del herbolario.',
       esMar: false,
       puebloIdx: 1
     }
@@ -1055,12 +1060,33 @@
     return hMod;
   }
 
+  // Contexto narrativo que conecta las 5 cabañas fronterizas con la trama de Aden
+  function contextoCabana(cabanaOrId, principal) {
+    const id = typeof cabanaOrId === 'string'
+      ? cabanaOrId
+      : (cabanaOrId && (cabanaOrId.cabanaId || cabanaOrId.id || cabanaOrId.nombre)) || '';
+    const def = CABANAS_GLB.find(c => c.id === id || c.nombre === id) || null;
+    const paso = principal && typeof principal.paso === 'number' ? principal.paso : 0;
+    const tramaBase = (cabanaOrId && cabanaOrId.trama)
+      || (def && def.trama)
+      || 'Las bestias alteradas rodean este puesto avanzado y amenazan las rutas entre aldeas.';
+    let estadoActo = 'Acto I–II · Resistencia rural bajo vigilancia del cónclave.';
+    if (paso >= 16) estadoActo = 'Epílogo · Limpieza final de focos salvajes tras la caída de los Sabios.';
+    else if (paso >= 11) estadoActo = 'Acto III–IV · Consolidación de rutas libres tras quebrar el monopolio.';
+    return {
+      titulo: (def && def.nombre) || (cabanaOrId && cabanaOrId.nombre) || 'Puesto Fronterizo',
+      trama: tramaBase,
+      estadoActo
+    };
+  }
+
   const api = {
     TIPOS_SECRETO,
     CABANAS_GLB,
     generarLugaresSecretos,
     construirModeloSecreto,
-    aplicarRebajeCabanas
+    aplicarRebajeCabanas,
+    contextoCabana
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -1681,6 +1681,7 @@
   <div id="capitulo"><div class="box">
     <div id="cap-sabio" class="muted"></div>
     <h2 id="cap-titulo"></h2>
+    <div id="cap-hito" style="display:none;margin:8px 0 10px;padding:10px 12px;border-radius:8px;background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.45);font-size:12.5px;line-height:1.45"></div>
     <p id="cap-texto" style="line-height:1.6;margin:8px 0"></p>
     <div id="cap-extra" class="muted" style="line-height:1.5;margin:6px 0"></div>
     <div class="btns">
@@ -1993,7 +1994,8 @@
     <div class="modal" style="width:min(480px,92vw);text-align:center;border:1.5px solid #a855f7;box-shadow:0 0 35px rgba(168,85,247,0.5)">
       <div style="font-size:42px;margin-bottom:6px">👑</div>
       <h2 style="color:#f3e8ff;margin:0 0 8px;font-size:20px;text-shadow:0 0 12px rgba(168,85,247,0.8)">¡JEFE DE MAZMORRA DERROTADO!</h2>
-      <p id="dv-desc" style="color:#cbd5e1;font-size:13px;line-height:1.5;margin-bottom:14px">Has vencido al gobernante de la cripta y despejado la mazmorra ancestral.</p>
+      <p id="dv-desc" style="color:#cbd5e1;font-size:13px;line-height:1.5;margin-bottom:10px">Has vencido al gobernante de la cripta y despejado la mazmorra ancestral.</p>
+      <div id="dv-lore" style="display:none;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.35);border-radius:8px;padding:9px 11px;margin-bottom:12px;font-size:12px;color:#e9d5ff;line-height:1.45;text-align:left"></div>
       <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:16px;text-align:left">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#a855f7;margin-bottom:8px">🎁 Gran Botín Obtenido:</div>
         <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #1e293b"><span>🪙 Oro Arcano:</span><b id="dv-gold" style="color:#fbbf24">+3000</b></div>
@@ -8902,18 +8904,24 @@
   }
 
   function renderComandante() {
+    const paso = (heroeEst && heroeEst.principal && heroeEst.principal.paso) || 0;
+    const entregado = (heroeEst && heroeEst.pruebasEntregadasPaso) || 0;
+    const disponibles = Math.max(0, paso - entregado);
+    const alianza = paso >= 11
+      ? 'La guarnición ya conoce la traición del cónclave y respalda al pueblo.'
+      : 'Tráeme nuevas actas o sellos según avances en la Crónica para convencer a la guarnición.';
     return `
       <h3 class="npc-h">🎖️ Guardia Militar de Aden y Orden Público</h3>
       <div style="font-size:12px;color:#cbd5e1;margin-bottom:10px;line-height:1.4">
-        <i>«No me interesan tus excusas de mercenario. Tráeme pruebas de la conspiración de los Sabios y te daré paso franco por mis guarniciones.»</i>
+        <i>«${esc(alianza)}»</i>
       </div>
       <div class="slot">
         <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">📜</div>
         <div class="info">
-          <b>Entregar Pruebas Incriminatorias</b>
-          <span class="muted">Recompensa oficial de la guarnición por esclarecer crímenes en la región</span>
+          <b>Entregar Pruebas Incriminatorias ${disponibles > 0 ? `<span style="color:#facc15">(${disponibles} ${disponibles === 1 ? 'nueva' : 'nuevas'})</span>` : ''}</b>
+          <span class="muted">Capítulos documentados: ${paso} · Entregados a Kaelen: ${entregado}</span>
         </div>
-        <button data-comandante-pruebas class="gold">Canjear 📜</button>
+        <button data-comandante-pruebas class="gold" ${disponibles <= 0 ? 'disabled' : ''}>${disponibles > 0 ? 'Canjear 📜' : 'Al día'}</button>
       </div>
       <div class="slot">
         <div class="item-thumb" style="font-size:20px;display:flex;align-items:center;justify-content:center">🚩</div>
@@ -9217,9 +9225,13 @@
     const pocionesTxt = rec.pociones || rec.pocionesVida || 4;
     const armNivel = rec.armaduraNivel || ((m.nivelMonstruo || 1) * (rec.nivelPiezaMultiplicador || 10));
     const armNombre = rec.armaduraNombre || ('Peto Reforzado de Cazador Nv.' + armNivel);
+    const loreCab = (typeof LugaresSecretosLib !== 'undefined' && typeof LugaresSecretosLib.contextoCabana === 'function')
+      ? LugaresSecretosLib.contextoCabana(s, heroeEst ? heroeEst.principal : null)
+      : null;
     let html = `
       <div style="background:rgba(255,255,255,0.04);border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:12px">
         <h3 class="npc-h" style="margin-top:0">🏡 Gran Cacería: 100 ${esc(especie)}</h3>
+        ${loreCab ? `<div style="font-size:11.5px;color:#93c5fd;margin:4px 0 8px;padding:6px 8px;background:rgba(56,189,248,0.08);border-left:3px solid #38bdf8;border-radius:4px;line-height:1.4"><b>${esc(loreCab.estadoActo)}</b><br>${esc(loreCab.trama)}</div>` : ''}
         <p class="muted" style="line-height:1.5;margin:6px 0 10px">
           Las bestias amenazan la ruta entre los primeros pueblos. Elimina <b>${cant}</b> criaturas de esta zona para asegurar la cabaña.
         </p>
@@ -9699,6 +9711,21 @@
   function mostrarCapitulo(r) {
     $('cap-sabio').textContent = r.capitulo.sabio + ' cuenta:';
     $('cap-titulo').textContent = 'Capítulo ' + r.numero + ' · ' + r.capitulo.titulo;
+    const hitoEl = $('cap-hito');
+    const hito = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.hitoDeCapituloCompletado === 'function')
+      ? HistoriaLib.hitoDeCapituloCompletado(r.numero)
+      : null;
+    if (hitoEl) {
+      if (hito) {
+        hitoEl.style.display = '';
+        hitoEl.innerHTML = `<div style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#facc15;font-weight:700">${esc(hito.icono)} ${esc(hito.etiqueta)}</div>
+          <div style="font-weight:700;color:#f8fafc;margin:2px 0">${esc(hito.titulo)}</div>
+          <div style="color:#e2e8f0">${esc(hito.detalle)}</div>`;
+      } else {
+        hitoEl.style.display = 'none';
+        hitoEl.innerHTML = '';
+      }
+    }
     $('cap-texto').textContent = r.texto;
     const pts = r.recompensa.puntos;
     let premio = '🧬 +' + pts + (pts === 1 ? ' punto' : ' puntos') + ' de habilidad';
@@ -9713,11 +9740,14 @@
       const hab = HeroeLib.HABILIDADES[r.recompensa.desbloquea];
       premio += ' · desbloqueas ' + (hab ? hab.nombre : r.recompensa.desbloquea);
     }
+    if (r.recompensa.titulo) {
+      premio += ' · 👑 Título: ' + r.recompensa.titulo;
+    }
     const p = heroeEst.principal, sig = HistoriaLib.capituloActual(p);
     const o = sig ? HistoriaLib.asegurarObjetivo(p, world) : null;
     $('cap-extra').innerHTML = esc(premio) + '<br><br>' + (sig
       ? '<b>Siguiente · Capítulo ' + (p.paso + 1) + ' · ' + esc(sig.titulo) + '</b><br>' + esc(o.encargo) + '<br>📍 ' + esc(o.texto)
-      : '<b>Has completado la crónica.</b>');
+      : '<b>Has completado la crónica.</b> · Epílogo abierto: cabañas fronterizas (100 monstruos) y Mazmorras Ancestrales.');
     $('cap-ir').style.display = sig ? '' : 'none';
     const btnSaltar = $('cap-saltar');
     if (btnSaltar) btnSaltar.style.display = sig ? '' : 'none';
@@ -9728,6 +9758,8 @@
   function mostrarEncargo() {
     const p = heroeEst.principal, cap = HistoriaLib.capituloActual(p);
     if (!cap || !world) return;
+    const hitoEl = $('cap-hito');
+    if (hitoEl) { hitoEl.style.display = 'none'; hitoEl.innerHTML = ''; }
     const o = HistoriaLib.asegurarObjetivo(p, world);
     $('cap-sabio').textContent = cap.sabio + ' te pide:';
     $('cap-titulo').textContent = 'Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
@@ -10986,7 +11018,12 @@
           $('dbh-bar').style.width = '100%';
           $('dbh-hp-txt').textContent = '100%';
         }
-        toast('🗝 Adentrándote en «' + d.name + '»');
+        const loreMaz = (typeof MazmorrasLib !== 'undefined' && typeof MazmorrasLib.contextoNarrativoMazmorra === 'function')
+          ? MazmorrasLib.contextoNarrativoMazmorra(d, heroeEst ? heroeEst.principal : null)
+          : null;
+        toast(loreMaz
+          ? `🗝 ${loreMaz.etiqueta}: «${d.name}». ${loreMaz.recompensaLore}`
+          : ('🗝 Adentrándote en «' + d.name + '»'), 4500);
       }
     });
   }
@@ -11417,6 +11454,18 @@
           const vModal = $('modal-dungeon-victory');
           if (vModal) {
             $('dv-desc').textContent = `Has vencido a «${res.boss ? res.boss.name : 'el Jefe'}» y conquistado «${res.dungeon.name}».`;
+            const dvLore = $('dv-lore');
+            if (dvLore) {
+              const loreMaz = (typeof MazmorrasLib !== 'undefined' && typeof MazmorrasLib.contextoNarrativoMazmorra === 'function')
+                ? MazmorrasLib.contextoNarrativoMazmorra(res.dungeon, heroeEst ? heroeEst.principal : null)
+                : null;
+              if (loreMaz) {
+                dvLore.style.display = 'block';
+                dvLore.innerHTML = `<b>${esc(loreMaz.etiqueta)}</b><br>${esc(loreMaz.relato)}`;
+              } else {
+                dvLore.style.display = 'none';
+              }
+            }
             $('dv-gold').textContent = `+${r.oro || 3000}`;
             $('dv-arena').textContent = `+${r.arena || 60}`;
             $('dv-equip').textContent = r.equipo || 'Armadura del Soberano Caído';
