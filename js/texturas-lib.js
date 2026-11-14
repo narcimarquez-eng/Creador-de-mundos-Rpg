@@ -35,16 +35,17 @@
       t05: 'Piedra húmeda con musgo', t06: 'Base de arco y zócalo', t07: 'Sillares con reja de celda', t08: 'Zócalo con mosaico antiguo', t09: 'Roca excavada con raíces', t10: 'Muro derruido' },
     mlosa: { nombre: 'Losas y ruinas', t01: 'Losas oscuras con raíces', t02: 'Losas agrietadas con raíces', t03: 'Escombros y hiedra',
       t04: 'Losas húmedas con charco', t05: 'Grieta profunda y raíces', t06: 'Tierra, huesos y cadenas' },
-    alfombras: { nombre: 'Mosaicos centrales', a1: 'Gran estrella de mosaico', a2: 'Medallón solar enlosado', a3: 'Sello rúnico circular', a4: 'Franja de mosaico para pasillo' }
+    alfombras: { nombre: 'Mosaicos centrales', a1: 'Gran estrella de mosaico', a2: 'Medallón solar enlosado', a3: 'Sello rúnico circular', a4: 'Franja de mosaico para pasillo' },
+    murales: { nombre: 'Murales completos (5×2)', m1: 'Arcos mudéjares y alicatado' }
   };
   // GRUPOS: los de pueblos y cabañas; las hojas de mazmorra se piden por nombre en el creador de mazmorras
-  const GRUPOS_MAZMORRA = ['mpared', 'msuelo', 'mmuro', 'mlosa', 'alfombras'];
+  const GRUPOS_MAZMORRA = ['mpared', 'msuelo', 'mmuro', 'mlosa', 'alfombras', 'murales'];
   const GRUPOS = Object.keys(CATALOGO).filter(g => !GRUPOS_MAZMORRA.includes(g));
 
   const valida = id => {
     if (typeof id !== 'string') return false;
     const [g, t] = id.split('/');
-    return /^(t\d\d|a\d)$/.test(t || '') && !!(CATALOGO[g] && CATALOGO[g][t]);
+    return /^(t\d\d|a\d|m\d)$/.test(t || '') && !!(CATALOGO[g] && CATALOGO[g][t]);
   };
   const ruta = id => BASE + id + '.jpg';
   const miniatura = id => BASE + 'miniaturas/' + id.replace('/', '-') + '.jpg';

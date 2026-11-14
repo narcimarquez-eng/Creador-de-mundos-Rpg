@@ -497,7 +497,7 @@
     if (neutro && m.color && typeof m.color.setHex === 'function') m.color.setHex(0xd6d2cc);
     if (m.bumpMap) { m.bumpMap = m.map; m.bumpScale = Math.min(m.bumpScale || 1, 1.2); }
     if (m.normalMap) m.normalMap = null;
-    if (sinRepetir) m.userData = Object.assign({}, m.userData, { mosaicoUnico: true });
+    if (sinRepetir) m.userData = Object.assign({}, m.userData, { mosaicoUnico: true, muralUnico: String(id).startsWith('murales/') });
     m.needsUpdate = true;
     _matTexCache.set(clave, m);
     return m;
@@ -520,9 +520,9 @@
       armeria:             { pared: 'mmuro/t10',  suelo: 'msuelo/t07', zocalo: 'mmuro/t06',  camino: 'alfombras/a1' },
       biblioteca:          { pared: 'mmuro/t03',  suelo: 'msuelo/t07', zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
       tesoro:              { pared: 'mmuro/t08',  suelo: 'msuelo/t04', zocalo: 'mmuro/t03',  camino: 'alfombras/a1' },
-      trono:               { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
+      trono:               { pared: 'murales/m1', suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
       rotonda:             { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a3' },
-      sala_jefe:           { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' }
+      sala_jefe:           { pared: 'murales/m1', suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' }
     };
     return Object.assign({}, base, porTipo[t] || {});
   }
@@ -598,7 +598,7 @@
     const [idPared, nPared] = sel('texturaPared', tema.pared, colPared);
     const [idSuelo, nSuelo] = sel('texturaSuelo', tema.suelo, colSuelo);
     const [idZoc, nZoc] = sel('texturaZocalo', tema.zocalo, colZocalo);
-    matPared = conTexturaBiblioteca(ThreeLib, matPared, idPared, nPared);
+    matPared = conTexturaBiblioteca(ThreeLib, matPared, idPared, nPared, !!(idPared && idPared.startsWith('murales/')));
     matSuelo = conTexturaBiblioteca(ThreeLib, matSuelo, idSuelo, nSuelo);
     // Camino principal: banda/alfombra de mosaico, distinta del suelo y de las paredes
     const idCamino = tex('texturaSuelo') || (colSuelo ? null : tema.camino);
@@ -3782,7 +3782,18 @@
 
       const salientePlinto = 0.08;
       const esHorizontal = w >= d;
+      const esMuralCompleto = !!(mats.matPared && mats.matPared.userData && mats.matPared.userData.muralUnico && !isHombro);
 
+      if (esMuralCompleto) {
+        // Mural continuo (5x2): una sola pieza de suelo a techo con UVs [0,1] para mantener el orden exacto
+        const muralGeo = new ThreeLib.BoxGeometry(w, H, d);
+        const muralMesh = new ThreeLib.Mesh(muralGeo, mats.matPared);
+        muralMesh.position.set(px, H / 2, pz);
+        muralMesh.castShadow = true; muralMesh.receiveShadow = true;
+        muralMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+        g.add(muralMesh);
+        g._partesPorLado[ladoBase].push(muralMesh);
+      } else {
       // 1. Zócalo / Plinto inferior sobresaliente con mapeo métrico
       const zocW = esHorizontal ? w : (w + salientePlinto);
       const zocD = esHorizontal ? (d + salientePlinto) : d;
@@ -3897,6 +3908,7 @@
           g.add(capMesh);
           g._partesPorLado[ladoBase].push(capMesh);
         }
+      }
       }
 
       // 3. Registrar colisionador físico para CharacterController y motor de físicas
