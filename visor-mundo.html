@@ -2074,7 +2074,7 @@
 
   <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20261107"></script>
-  <script defer src="js/lagos.js?v=20251029"></script>
+  <script defer src="js/lagos.js?v=20261114a"></script>
   <script src="js/relieve-zona.js?v=20261114a"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20261113"></script>
@@ -2083,7 +2083,7 @@
   <script defer src="js/texturas-lib.js?v=4"></script>
   <script defer src="js/dungeon-generator.js?v=20261114w"></script>
   <script defer src="js/mazmorras.js?v=20261114c"></script>
-  <script defer src="js/acompanante.js?v=20261031"></script>
+  <script defer src="js/acompanante.js?v=20261114a"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
   <script defer src="js/mapa.js?v=20251029"></script>
@@ -2099,10 +2099,10 @@
   <script type="module" src="js/combat.js?v=20251029"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
-  <script type="module" src="js/terreno.js?v=20261112r"></script>
+  <script type="module" src="js/terreno.js?v=20261114a"></script>
   <script type="module" src="js/decorado.js?v=20261107"></script>
   <script defer src="js/decorado-mundo.js?v=20261114d"></script>
-  <script type="module" src="js/character.js?v=20261114d"></script>
+  <script type="module" src="js/character.js?v=20261114e"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
@@ -2196,7 +2196,14 @@
   // Texturas del suelo: 15 capas (tres por clase, TerrainLib.CAPAS) sacadas del atlas assets/terreno/atlas.jpg
   // uRecorte (x, z, radio, modo): al entrar en un recinto de laberinto el terreno del mundo cede su interior
   // a la malla detallada (modo 1 = no dibujar dentro del círculo)
-  const terrainU = { tCapas: { value: null }, tHierbas: { value: null }, uHierbaMix: { value: 0 }, uTexOn: { value: 0 }, uRecorte: { value: new THREE.Vector4(0, 0, 0, 0) } };
+  const terrainU = {
+    tCapas: { value: null }, tHierbas: { value: null }, uHierbaMix: { value: 0 }, uTexOn: { value: 0 },
+    uRecorte: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uSunDir: { value: new THREE.Vector3(0.45, 0.72, 0.35) },
+    uSunColor: { value: new THREE.Color('#fffdf2') },
+    uTime: { value: 0 },
+    uHeroXZ: { value: new THREE.Vector2(0, 0) }
+  };
   let texturasCargadas = false;
   // Archivos que se están descargando (modelos, texturas…): todos los cargadores de THREE pasan por el
   // gestor por defecto; se cuentan para el indicador de carga
@@ -2240,13 +2247,13 @@
   //   de pueblos completos · decor: multiplicador de la distancia de ocultación de la decoración del campo
   const QUALITY = {
     muybajo: { radius: 600, shadows: 0, pixel: 0.75, far: 4, sombra: 0, texturas: false, reflejos: false, malla: 0.35,
-      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false },
+      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, hierbaMax: 0 },
     bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0, texturas: true, reflejos: true, malla: 0.6,
-      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false },
+      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, hierbaMax: 450 },
     medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120, texturas: true, reflejos: true, malla: 0.8,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true },
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, hierbaMax: 900 },
     alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160, texturas: true, reflejos: true, malla: 1,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true }
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, hierbaMax: 1350 }
   };
   let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
@@ -2975,6 +2982,133 @@
     zoneLabels.concat(townLabels).forEach(l => l.el.remove());
     zoneLabels.length = 0; townLabels.length = 0;
     selectRing = null;
+    _hierbaHeroX = Infinity; _hierbaHeroZ = Infinity;
+    if (hierbaCampoMesh) { hierbaCampoMesh.count = 0; hierbaCampoMesh.visible = false; }
+  }
+
+  // Hierba 3D instanciada alrededor del héroe en biomas verdes (fija a celdas del mundo para que no baile)
+  const HIERBA_CAMPO_MAX = 1350;
+  let hierbaCampoMesh = null;
+  let _hierbaHeroX = Infinity, _hierbaHeroZ = Infinity;
+  const _hM4 = new THREE.Matrix4(), _hPos = new THREE.Vector3(), _hQuat = new THREE.Quaternion(), _hSc = new THREE.Vector3(), _hYAxis = new THREE.Vector3(0, 1, 0), _hCol = new THREE.Color();
+
+  function initHierbaCampo() {
+    if (hierbaCampoMesh || !scene) return;
+    const P = [], Nn = [], C = [];
+    const blades = 5;
+    for (let b = 0; b < blades; b++) {
+      const a = (b / blades) * Math.PI * 2 + (b % 2) * 0.35;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const rOff = 0.08 + (b % 2) * 0.06;
+      const w = 0.055;
+      const h = 0.48 + (b % 3) * 0.13;
+      const lean = 0.17 + (b % 2) * 0.09;
+      const bx = ca * rOff, bz = sa * rOff;
+      const tx = -sa * w, tz = ca * w;
+      P.push(bx - tx, 0, bz - tz, bx + tx, 0, bz + tz, bx + ca * lean, h, bz + sa * lean);
+      Nn.push(ca * 0.3, 0.95, sa * 0.3, ca * 0.3, 0.95, sa * 0.3, ca * 0.4, 0.9, sa * 0.4);
+      C.push(0.22, 0.38, 0.14, 0.22, 0.38, 0.14, 0.48, 0.74, 0.26);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    geo.computeBoundingSphere();
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    mat.onBeforeCompile = shader => {
+      shader.uniforms.uTime = terrainU.uTime;
+      shader.uniforms.uHeroXZ = terrainU.uHeroXZ;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nuniform float uTime;\nuniform vec2 uHeroXZ;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvec4 wPosG = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);\nfloat edgeF = 1.0 - smoothstep(22.0, 31.5, length(wPosG.xz - uHeroXZ));\ntransformed.y *= edgeF;\nfloat sway = sin(uTime * 2.1 + wPosG.x * 0.34 + wPosG.z * 0.28) * 0.095 * smoothstep(0.05, 0.65, position.y) * edgeF;\ntransformed.x += sway;\ntransformed.z += sway * 0.6;');
+    };
+    hierbaCampoMesh = new THREE.InstancedMesh(geo, mat, HIERBA_CAMPO_MAX);
+    hierbaCampoMesh.name = 'HierbaCampo';
+    hierbaCampoMesh.frustumCulled = false;
+    hierbaCampoMesh.receiveShadow = true;
+    hierbaCampoMesh.castShadow = false;
+    hierbaCampoMesh.userData.sinSombra = true;
+    hierbaCampoMesh.count = 0;
+    hierbaCampoMesh.visible = false;
+    scene.add(hierbaCampoMesh);
+  }
+
+  function actualizarHierbaCampo(forzar = false) {
+    if (!world || !terrain || !character || !character.root || !scene) return;
+    const enInterior = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
+    const maxCount = (QUALITY[quality] && QUALITY[quality].hierbaMax) || 0;
+    if (enInterior || maxCount <= 0) {
+      if (hierbaCampoMesh) hierbaCampoMesh.visible = false;
+      return;
+    }
+    if (!hierbaCampoMesh) initHierbaCampo();
+    const hx = character.root.position.x, hz = character.root.position.z;
+    terrainU.uHeroXZ.value.set(hx, hz);
+    if (!forzar && Math.hypot(hx - _hierbaHeroX, hz - _hierbaHeroZ) < 3.4) {
+      hierbaCampoMesh.visible = hierbaCampoMesh.count > 0;
+      return;
+    }
+    _hierbaHeroX = hx;
+    _hierbaHeroZ = hz;
+
+    const STEP = 1.6, RAD = 31.5, RAD2 = RAD * RAD;
+    const gx0 = Math.floor((hx - RAD) / STEP), gx1 = Math.ceil((hx + RAD) / STEP);
+    const gz0 = Math.floor((hz - RAD) / STEP), gz1 = Math.ceil((hz + RAD) / STEP);
+    const escalaDens = Math.min(1, maxCount / 1000);
+    const seed = (world.seed || 1) | 0;
+    let n = 0;
+
+    for (let gz = gz0; gz <= gz1 && n < maxCount; gz++) {
+      for (let gx = gx0; gx <= gx1 && n < maxCount; gx++) {
+        let h = (Math.imul(gx, 73856093) ^ Math.imul(gz, 19349663) ^ seed) >>> 0;
+        h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+        const r1 = (h & 1023) / 1024;
+        const r2 = ((h >>> 10) & 1023) / 1024;
+        const r3 = ((h >>> 20) & 1023) / 1024;
+        const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
+
+        const x = (gx + 0.15 + r1 * 0.70) * STEP;
+        const z = (gz + 0.15 + r2 * 0.70) * STEP;
+        const dx = x - hx, dz = z - hz;
+        if (dx * dx + dz * dz > RAD2) continue;
+
+        const elev = terrain.elevation(x, z);
+        if (elev < SEA + 0.05) continue;
+        const bio = terrain.biomeAt(x, z, elev);
+        const prob = bio === 'pradera' ? 0.88 : bio === 'bosque' ? 0.76 : bio === 'pantano' ? 0.60 : bio === 'taiga' ? 0.48 : bio === 'tundra' ? 0.24 : bio === 'costa' ? 0.14 : 0;
+        if (r3 > prob * escalaDens) continue;
+
+        if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 5.2)) continue;
+        if (LagosLib.enAgua(lagosMundo, x, z)) continue;
+        if (typeof rioCercano === 'function') {
+          const rio = rioCercano(x, z);
+          if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) continue;
+        }
+        const y = H(x, z);
+        const dh = Math.abs(H(x + 1.2, z) - H(x - 1.2, z)) + Math.abs(H(x, z + 1.2) - H(x, z - 1.2));
+        if (dh > 1.75) continue;
+
+        const sc = 0.78 + r4 * 0.54;
+        _hQuat.setFromAxisAngle(_hYAxis, r1 * 6.28318);
+        _hSc.set(sc, sc * (0.85 + r2 * 0.35), sc);
+        _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
+        hierbaCampoMesh.setMatrixAt(n, _hM4);
+
+        const lum = 0.85 + r3 * 0.28;
+        if (bio === 'taiga' || bio === 'pantano') _hCol.setRGB(lum * 0.74, lum * 0.88, lum * 0.74);
+        else if (bio === 'tundra' || bio === 'costa') _hCol.setRGB(lum * 1.04, lum * 0.96, lum * 0.70);
+        else if (bio === 'bosque') _hCol.setRGB(lum * 0.82, lum * 0.96, lum * 0.76);
+        else _hCol.setRGB(lum * 0.92, lum * 1.02, lum * 0.84);
+        hierbaCampoMesh.setColorAt(n, _hCol);
+        n++;
+      }
+    }
+    hierbaCampoMesh.count = n;
+    hierbaCampoMesh.visible = n > 0;
+    if (n > 0) {
+      hierbaCampoMesh.instanceMatrix.needsUpdate = true;
+      if (hierbaCampoMesh.instanceColor) hierbaCampoMesh.instanceColor.needsUpdate = true;
+    }
   }
 
   function buildWorld(w) {
@@ -3537,12 +3671,13 @@
     $('sel-quality').value = q;
     if (save) store.setItem('rpgMundo.calidad', q);
     updateTerrainChunks(performance.now(), true);
+    if (typeof actualizarHierbaCampo === 'function' && world) actualizarHierbaCampo(true);
   }
 
   // Sin sombra: el cielo, lo transparente y las mallas enormes y planas (caminos, ríos, marcas de zona), que
   // cubren el mundo entero y se dibujarían enteras en el mapa de sombras cada fotograma sin aportar nada
   function proyectaSombra(o) {
-    if (o === cielo || o.material.isShaderMaterial || o.material.transparent) return false;
+    if (o === cielo || (o.userData && o.userData.sinSombra) || o.material.isShaderMaterial || o.material.transparent) return false;
     if (o.isInstancedMesh || o.isSkinnedMesh) return true;
     if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
     const e = o.getWorldScale(new THREE.Vector3());
@@ -3579,7 +3714,14 @@
   // ===========================================================================
   // Agua: superficie animada con rizos y brillo; en los ríos, espuma en las orillas
   // ===========================================================================
-  const AGUA_U = { uTime: { value: 0 }, uCielo: { value: new THREE.Color('#bfe6f7') }, uRioDetOn: { value: 0 }, uMarDetOn: { value: 0 } };
+  const AGUA_U = {
+    uTime: { value: 0 },
+    uCielo: { value: new THREE.Color('#bfe6f7') },
+    uSunDir: { value: new THREE.Vector3(0.45, 0.72, 0.35) },
+    uSunColor: { value: new THREE.Color('#fffdf2') },
+    uRioDetOn: { value: 0 },
+    uMarDetOn: { value: 0 }
+  };
   // Normales del agua de New-Rol (assets/agua/waternormals.jpg), las mismas que su superficie de agua
   const aguaNormales = new THREE.TextureLoader().load('assets/agua/waternormals.jpg');
   aguaNormales.wrapS = aguaNormales.wrapT = THREE.RepeatWrapping;
@@ -3594,32 +3736,44 @@
     vec2 p = vMundo;
     float o1 = sin(p.x * 0.35 + uTime * 0.9) + sin(p.y * 0.42 - uTime * 0.7);
     float o2 = sin((p.x + p.y) * 0.9 + uTime * 1.6) + sin((p.x - p.y) * 0.7 - uTime * 1.2);
-    // Ríos (uNormales = 1): normales de New-Rol en dos capas que se desplazan a distinta velocidad
+    // Normales en dos capas que se desplazan a distinta velocidad (ríos y mar)
     vec2 nrm = vec2(0.0);
     if (uNormales > 0.5) {
       vec2 n1 = texture2D(tNorm, p * 0.035 + vec2(uTime * 0.010, uTime * 0.006)).rg * 2.0 - 1.0;
       vec2 n2 = texture2D(tNorm, p * 0.07 - vec2(uTime * 0.008, uTime * 0.013)).rg * 2.0 - 1.0;
       nrm = (n1 + n2) * 0.5;
+    } else {
+      vec2 n1 = texture2D(tNorm, p * 0.018 + vec2(uTime * 0.006, uTime * 0.004)).rg * 2.0 - 1.0;
+      vec2 n2 = texture2D(tNorm, p * 0.042 - vec2(uTime * 0.005, uTime * 0.008)).rg * 2.0 - 1.0;
+      nrm = (n1 + n2) * 0.35;
     }
     float rizo = clamp(0.5 + 0.2 * o1 + 0.1 * o2 + 0.35 * dot(nrm, vec2(0.7, 0.7)), 0.0, 1.0);
-    vec3 agua = mix(uAguaHonda, uAguaClara, rizo);
-    agua *= 1.0 + 0.12 * dot(nrm, vec2(0.7, 0.7));
+    vec3 agua = mix(uAguaHonda * 0.82, uAguaClara, rizo);
+    agua *= 1.0 + 0.14 * dot(nrm, vec2(0.7, 0.7));
     if (uDetOn > 0.5) {
       vec3 detAgua = texture2D(tAguaDet, p * 0.08 + nrm * 0.03 + vec2(uTime * 0.010, -uTime * 0.007)).rgb;
       float dCamAgua = length(cameraPosition - vMundo3);
       float pesoDet = 0.26 * (1.0 - smoothstep(45.0, 160.0, dCamAgua));
       agua = mix(agua, agua * 0.58 + detAgua * 0.62, pesoDet);
     }
-    // Ondas finas (de cerca) y un brillo suave: sin manchas grandes
+    // Ondas finas (de cerca) y un brillo suave
     float fino = sin(p.x * 1.7 + uTime * 1.1) * sin(p.y * 1.5 - uTime * 0.9);
     agua += vec3(0.04 * fino + smoothstep(1.4, 1.9, o1 + 0.5 * o2) * 0.08);
     #ifdef USE_COLOR
-      if (uOrillas > 0.5) agua = mix(agua, vec3(0.92, 0.97, 1.0), smoothstep(0.45, 1.0, vColor.r));
+      if (uOrillas > 0.5) {
+        float espumaOrilla = smoothstep(0.42, 0.98, vColor.r) * (0.65 + 0.35 * sin(p.x * 0.75 + p.y * 0.65 + uTime * 1.5 + nrm.x * 2.5));
+        agua = mix(agua, vec3(0.92, 0.97, 1.0), clamp(espumaOrilla, 0.0, 1.0));
+      }
     #endif
-    // Reflejo del cielo según el ángulo de la vista: de cerca es agua oscura, de lejos refleja el horizonte
+    // Normal 3D de ola para Fresnel y reflejo especular del sol/luna
     vec3 vista = normalize(cameraPosition - vMundo3);
-    float fresnel = 0.03 + 0.97 * pow(1.0 - clamp(vista.y, 0.0, 1.0), 4.0);
+    vec3 Nola = normalize(vec3(nrm.x * 0.30 + fino * 0.05, 1.0, nrm.y * 0.30 - fino * 0.05));
+    float fresnel = 0.04 + 0.96 * pow(1.0 - clamp(dot(vista, Nola), 0.0, 1.0), 4.0);
     agua = mix(agua, uCielo, clamp(fresnel * 0.85, 0.0, 0.9));
+    vec3 Lsol = normalize(uSunDir);
+    vec3 Hsol = normalize(Lsol + vista);
+    float spec = pow(max(dot(Nola, Hsol), 0.0), 82.0) * 1.15 + pow(max(dot(Nola, Hsol), 0.0), 16.0) * 0.14;
+    agua += uSunColor * spec * smoothstep(0.02, 0.25, Lsol.y + 0.15);
     diffuseColor.rgb = agua;
     #ifdef USE_COLOR
       if (uOrillas > 0.5) diffuseColor.a *= vColor.g;   // ríos: se desvanecen hacia su boca
@@ -3637,11 +3791,13 @@
       shader.uniforms.uAguaHonda = { value: new THREE.Color(rio ? '#1f5f74' : '#0b4a6e') };
       shader.uniforms.uAguaClara = { value: new THREE.Color(rio ? '#3aa0b8' : '#2b8fbd') };
       shader.uniforms.uCielo = AGUA_U.uCielo;
+      shader.uniforms.uSunDir = AGUA_U.uSunDir;
+      shader.uniforms.uSunColor = AGUA_U.uSunColor;
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vMundo = (modelMatrix * vec4(transformed, 1.0)).xz;\n  vMundo3 = (modelMatrix * vec4(transformed, 1.0)).xyz;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform float uTime;\nuniform float uOrillas;\nuniform float uNormales;\nuniform sampler2D tNorm;\nuniform sampler2D tAguaDet;\nuniform float uDetOn;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;\nuniform vec3 uCielo;')
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform float uTime;\nuniform float uOrillas;\nuniform float uNormales;\nuniform sampler2D tNorm;\nuniform sampler2D tAguaDet;\nuniform float uDetOn;\nuniform vec3 uAguaHonda;\nuniform vec3 uAguaClara;\nuniform vec3 uCielo;\nuniform vec3 uSunDir;\nuniform vec3 uSunColor;')
         .replace('#include <color_fragment>', '#include <color_fragment>' + AGUA_FRAG);
     };
     return m;
@@ -4604,7 +4760,7 @@
   // Superficies de los lagos, arenas movedizas y palmeras de los oasis (la excavación ya está en Hgen)
   function buildLagos() {
     if (lagosGroup) { scene.remove(lagosGroup); lagosGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); lagosGroup = null; }
-    lagosGroup = LagosLib.crear(THREE, lagosMundo, { altura: Hgen, normales: aguaNormales, tiempo: AGUA_U.uTime, cielo: AGUA_U.uCielo });
+    lagosGroup = LagosLib.crear(THREE, lagosMundo, { altura: Hgen, normales: aguaNormales, tiempo: AGUA_U.uTime, cielo: AGUA_U.uCielo, sunDir: AGUA_U.uSunDir, sunColor: AGUA_U.uSunColor });
     scene.add(lagosGroup);
   }
 
@@ -4664,6 +4820,140 @@
     return false;
   }
 
+  // Piedras y matas bajas en los arcenes de los caminos y en el perímetro exterior de los pueblos
+  function buildBordesCaminosYPueblos(rng, cercaCamino) {
+    const piedras = [], matas = [];
+    const enAguaORio = (x, z) => {
+      if (terrain.elevation(x, z) < SEA + 0.06 || LagosLib.enAgua(lagosMundo, x, z)) return true;
+      if (typeof rioCercano === 'function') {
+        const rio = rioCercano(x, z);
+        if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 2.5) return true;
+      }
+      return false;
+    };
+    const biomaAdmiteHierba = b => b !== 'desierto' && b !== 'nieve' && b !== 'oceano' && b !== 'agua';
+
+    // 1. Arcenes de caminos
+    (world.roads || []).forEach(r => {
+      const pts = r.points;
+      if (!pts || pts.length < 2) return;
+      const halfW = (typeof roadWidth === 'function' ? roadWidth(r.kind) : 6) * 0.5;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const dx = b.x - a.x, dz = b.y - a.y;
+        const len = Math.hypot(dx, dz);
+        if (len < 1) continue;
+        const tx = dx / len, tz = dz / len, nx = -tz, nz = tx;
+        const pasos = Math.max(1, Math.floor(len / 9.5));
+        for (let k = 0; k < pasos; k++) {
+          const u = (k + 0.25 + rng.next() * 0.5) / pasos;
+          const bx = a.x + dx * u, bz = a.y + dz * u;
+          for (let lado = -1; lado <= 1; lado += 2) {
+            if (rng.next() > 0.62) continue;
+            const sep = halfW + 0.5 + rng.next() * 2.2;
+            const px = bx + nx * sep * lado + tx * (rng.next() - 0.5) * 1.8;
+            const pz = bz + nz * sep * lado + tz * (rng.next() - 0.5) * 1.8;
+            if (townContains(px, pz) || recintoEn(px, pz, 4) || cercaCamino(px, pz, halfW + 0.15) || enAguaORio(px, pz)) continue;
+            const y = H(px, pz);
+            const bio = terrain.biomeAt(px, pz, terrain.elevation(px, pz));
+            if (rng.next() < 0.65) {
+              piedras.push({ x: px, y: y - 0.04, z: pz, sx: 0.7 + rng.next() * 0.9, sy: 0.42 + rng.next() * 0.45, sz: 0.7 + rng.next() * 0.9, ry: rng.next() * 6.28, bio });
+            }
+            if (biomaAdmiteHierba(bio) && rng.next() < 0.78) {
+              matas.push({ x: px + nx * 0.35 * lado, y: y - 0.02, z: pz + nz * 0.35 * lado, sc: 0.8 + rng.next() * 0.55, ry: rng.next() * 6.28, bio });
+            }
+          }
+        }
+      }
+    });
+
+    // 2. Transición exterior muralla / borde de pueblos -> campo
+    towns.forEach(o => {
+      const rIni = o.R + 2.8;
+      const perim = Math.PI * 2 * rIni;
+      const n = Math.max(18, Math.min(72, Math.floor(perim / 9)));
+      for (let i = 0; i < n; i++) {
+        const ang = (i / n) * Math.PI * 2 + (rng.next() - 0.5) * (Math.PI * 2 / n) * 0.7;
+        const dist = rIni + rng.next() * 7.5;
+        const px = o.t.x + Math.cos(ang) * dist;
+        const pz = o.t.y + Math.sin(ang) * dist;
+        if (cercaCamino(px, pz, 6.8) || recintoEn(px, pz, 5) || enAguaORio(px, pz)) continue;
+        const y = H(px, pz);
+        const bio = terrain.biomeAt(px, pz, terrain.elevation(px, pz));
+        if (rng.next() < 0.72) {
+          piedras.push({ x: px, y: y - 0.06, z: pz, sx: 0.95 + rng.next() * 1.25, sy: 0.55 + rng.next() * 0.65, sz: 0.95 + rng.next() * 1.25, ry: rng.next() * 6.28, bio });
+        }
+        if (biomaAdmiteHierba(bio)) {
+          matas.push({ x: px + (rng.next() - 0.5) * 1.4, y: y - 0.02, z: pz + (rng.next() - 0.5) * 1.4, sc: 0.9 + rng.next() * 0.6, ry: rng.next() * 6.28, bio });
+        }
+      }
+    });
+
+    const grp = new THREE.Group();
+    grp.name = 'BordesCaminosYPueblos';
+    const m4 = new THREE.Matrix4(), vPos = new THREE.Vector3(), qRot = new THREE.Quaternion(), vSc = new THREE.Vector3(), eu = new THREE.Euler(), col = new THREE.Color();
+
+    if (piedras.length) {
+      const geoP = new THREE.DodecahedronGeometry(0.28, 0);
+      const matP = new THREE.MeshLambertMaterial({ flatShading: true });
+      const imP = new THREE.InstancedMesh(geoP, matP, piedras.length);
+      imP.receiveShadow = true;
+      imP.castShadow = false;
+      imP.userData.lejos = 220;
+      imP.userData.sinSombra = true;
+      piedras.forEach((pt, idx) => {
+        m4.compose(vPos.set(pt.x, pt.y, pt.z), qRot.setFromEuler(eu.set((rng.next() - 0.5) * 0.25, pt.ry, (rng.next() - 0.5) * 0.25)), vSc.set(pt.sx, pt.sy, pt.sz));
+        imP.setMatrixAt(idx, m4);
+        const lum = 0.52 + rng.next() * 0.24;
+        if (pt.bio === 'desierto') col.setRGB(lum * 1.08, lum * 0.94, lum * 0.72);
+        else if (pt.bio === 'nieve' || pt.bio === 'tundra') col.setRGB(lum * 0.92, lum * 0.96, lum * 1.04);
+        else col.setRGB(lum * 0.96, lum * 0.94, lum * 0.88);
+        imP.setColorAt(idx, col);
+      });
+      imP.instanceMatrix.needsUpdate = true;
+      if (imP.instanceColor) imP.instanceColor.needsUpdate = true;
+      grp.add(imP);
+    }
+
+    if (matas.length) {
+      const P = [], Nn = [], C = [];
+      for (let b = 0; b < 4; b++) {
+        const a = (b / 4) * Math.PI * 2 + (b % 2) * 0.35;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const rOff = 0.08, w = 0.065, h = 0.44 + (b % 2) * 0.14, lean = 0.18;
+        const bx = ca * rOff, bz = sa * rOff, tx = -sa * w, tz = ca * w;
+        P.push(bx - tx, 0, bz - tz, bx + tx, 0, bz + tz, bx + ca * lean, h, bz + sa * lean);
+        Nn.push(ca * 0.3, 0.95, sa * 0.3, ca * 0.3, 0.95, sa * 0.3, ca * 0.4, 0.9, sa * 0.4);
+        C.push(0.28, 0.45, 0.18, 0.28, 0.45, 0.18, 0.52, 0.74, 0.28);
+      }
+      const geoM = new THREE.BufferGeometry();
+      geoM.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+      geoM.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3));
+      geoM.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+      geoM.computeBoundingSphere();
+      const matM = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+      const imM = new THREE.InstancedMesh(geoM, matM, matas.length);
+      imM.receiveShadow = true;
+      imM.castShadow = false;
+      imM.userData.lejos = 200;
+      imM.userData.sinSombra = true;
+      matas.forEach((pt, idx) => {
+        m4.compose(vPos.set(pt.x, pt.y, pt.z), qRot.setFromEuler(eu.set(0, pt.ry, 0)), vSc.set(pt.sc, pt.sc * (0.85 + rng.next() * 0.4), pt.sc));
+        imM.setMatrixAt(idx, m4);
+        const v = 0.85 + rng.next() * 0.28;
+        if (pt.bio === 'taiga' || pt.bio === 'pantano') col.setRGB(v * 0.75, v * 0.88, v * 0.74);
+        else if (pt.bio === 'tundra' || pt.bio === 'costa') col.setRGB(v * 1.02, v * 0.96, v * 0.72);
+        else col.setRGB(v * 0.92, v * 1.0, v * 0.85);
+        imM.setColorAt(idx, col);
+      });
+      imM.instanceMatrix.needsUpdate = true;
+      if (imM.instanceColor) imM.instanceColor.needsUpdate = true;
+      grp.add(imM);
+    }
+
+    return grp;
+  }
+
   function buildDecorado() {
     if (decorGroup) { scene.remove(decorGroup); decorGroup.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); decorGroup = null; }
     const rng = new W.PRNG((world.seed ^ 0x7e7e) >>> 0);
@@ -4682,6 +4972,9 @@
     const campo = PV.generarCampo({ ...opciones, rng: new W.PRNG((world.seed ^ 0x3c3c) >>> 0) });
     decorGroup.add(campo);
     decorGroup.userData.registrarLejanos(campo);   // sus celdas se ocultan de lejos
+    const bordes = buildBordesCaminosYPueblos(new W.PRNG((world.seed ^ 0x5b5b) >>> 0), cercaCamino);
+    decorGroup.add(bordes);
+    decorGroup.userData.registrarLejanos(bordes);
     decorGroup.userData.arboles.visible = $('chk-trees').checked;
     scene.add(decorGroup);
 
@@ -5302,9 +5595,9 @@
   // Ambiente: día, atardecer y noche (valores del Creador de Pueblos, con transición)
   // ===========================================================================
   const ATMO = {
-    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.0009, hemi: '#e0f2fe', ground: '#4b634e', hemiI: 0.62, sun: '#fffdf2', sunI: 1.85, sunPos: [900, 1400, 700],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5 },
-    golden: { bg: '#1e1b4b', fog: '#1e1b4b', fogD: 0.00018, hemi: '#fb923c', ground: '#1e293b', hemiI: 0.42, sun: '#f97316', sunI: 1.75, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.7,  pool: 0.85, plaza: 1.5, forge: 2.0 },
-    night:  { bg: '#030712', fog: '#030712', fogD: 0.00022, hemi: '#38bdf8', ground: '#020617', hemiI: 0.22, sun: '#60a5fa', sunI: 0.48, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.8, forge: 2.2 }
+    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.00078, hemi: '#e0f2fe', ground: '#4b634e', hemiI: 0.65, sun: '#fffdf2', sunI: 1.85, sunPos: [900, 1400, 700],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5 },
+    golden: { bg: '#38224e', fog: '#c97654', fogD: 0.00052, hemi: '#fdba74', ground: '#2a223b', hemiI: 0.48, sun: '#fb923c', sunI: 1.85, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.75, pool: 0.85, plaza: 1.6, forge: 2.1 },
+    night:  { bg: '#050a18', fog: '#0b1528', fogD: 0.00048, hemi: '#38bdf8', ground: '#030816', hemiI: 0.25, sun: '#7dd3fc', sunI: 0.55, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.9, forge: 2.3 }
   };
   const ATMO_ICON = { day: '☀', golden: '🌇', night: '🌙' };
   const ATMO_C = {};
@@ -5349,6 +5642,10 @@
 
     if (scene.background) scene.background.copy(atmoNow.bg);
     AGUA_U.uCielo.value.copy(atmoNow.fog);
+    AGUA_U.uSunDir.value.copy(atmoNow.sunPos).normalize();
+    AGUA_U.uSunColor.value.copy(atmoNow.sun).multiplyScalar(Math.min(1.2, atmoNow.sunI * 0.6));
+    terrainU.uSunDir.value.copy(AGUA_U.uSunDir.value);
+    terrainU.uSunColor.value.copy(AGUA_U.uSunColor.value);
     if (cielo) { cielo.material.uniforms.uHorizonte.value.copy(atmoNow.fog); cielo.material.uniforms.uCenit.value.copy(atmoNow.bg).multiplyScalar(0.6); }
     if (scene.fog) { scene.fog.color.copy(atmoNow.fog); scene.fog.density = atmoNow.fogD; }
     if (hemiLight) { hemiLight.color.copy(atmoNow.hemi); hemiLight.groundColor.copy(atmoNow.ground); hemiLight.intensity = atmoNow.hemiI; }
@@ -6594,6 +6891,11 @@
     descargarModelosEnemigo(m);
   }
   function ponerMonstruo(m) {
+    if (!m.contactShadow && m.group && typeof CharacterLib !== 'undefined' && typeof CharacterLib.crearSombraContacto === 'function') {
+      const rad = m.boss ? 2.8 : m.esElite ? 1.85 : 1.35;
+      m.contactShadow = CharacterLib.crearSombraContacto(THREE, rad, 0.36);
+      if (m.contactShadow) m.group.add(m.contactShadow);
+    }
     const padre = (m.dungeonInfoRef && gestorMazmorras && gestorMazmorras.grupoInstancia) ? gestorMazmorras.grupoInstancia : scene;
     padre.add(m.group); padre.add(m.bar);
   }   // más lejos se liberan sus modelos (con margen sobre los 120 m para no cargar y descargar sin parar)
@@ -6730,6 +7032,7 @@
         if (d < 25) presupuestoModelos = Math.max(presupuestoModelos, 1);
         const near = esMeshProc ? (d < MONSTRUO_VISIBLE) : (d < MONSTRUO_VISIBLE && construirModeloEnemigo(m, d));
         m.group.visible = m.esLaberinto ? true : near;
+        if (m.contactShadow) m.contactShadow.visible = !!m.alive;
         if (m.esLaberinto) {
           if (m.beamMesh) m.beamMesh.visible = m.alive;
           if (m.beaconSprite) m.beaconSprite.visible = m.alive;
@@ -11118,6 +11421,10 @@
     const raiz = new THREE.Group();
     raiz.position.set(x, visorWorld.getWalkableHeight(x, z), z);
     raiz.lookAt(lookX, raiz.position.y, lookZ);
+    if (typeof CharacterLib !== 'undefined' && typeof CharacterLib.crearSombraContacto === 'function') {
+      const sc = CharacterLib.crearSombraContacto(THREE, 1.25, 0.35);
+      if (sc) raiz.add(sc);
+    }
     scene.add(raiz);
     const entrada = { info, nombreModelo, cerca: null, raiz, mixer: null, x, z, dicho: -Infinity, lejos: null, cargandoCerca: false, cargandoLejos: false };
     raiz.userData.npc = entrada;
@@ -11746,7 +12053,10 @@
     const grupo = new THREE.Group();
     grupo.name = 'InteriorRecinto_' + zona.id;
     const uRec = { value: new THREE.Vector4(rec.zx, rec.zz, 0, -1) };   // radio 0 y modo fuera: no dibuja nada
-    const mat = TerrainLib.createTerrainMaterial(THREE, { tCapas: terrainU.tCapas, tHierbas: terrainU.tHierbas, uHierbaMix: terrainU.uHierbaMix, uTexOn: terrainU.uTexOn, uRecorte: uRec }, { triplanar: true });
+    const mat = TerrainLib.createTerrainMaterial(THREE, {
+      tCapas: terrainU.tCapas, tHierbas: terrainU.tHierbas, uHierbaMix: terrainU.uHierbaMix,
+      uTexOn: terrainU.uTexOn, uRecorte: uRec, uSunDir: terrainU.uSunDir, uSunColor: terrainU.uSunColor
+    }, { triplanar: true });
     // En la franja donde se solapa con el terreno del mundo, gana el mundo (sin parpadeo)
     mat.polygonOffset = true; mat.polygonOffsetFactor = 1; mat.polygonOffsetUnits = 2;
     const colorBase = (x, z) => {
@@ -13220,7 +13530,9 @@
 
     if (!enDungeon && !enRecinto) { streamTowns(now); streamLaberintos(now); }
     actualizarCarga(now);
-    AGUA_U.uTime.value = now / 1000;
+    const nowSecLoop = now / 1000;
+    AGUA_U.uTime.value = nowSecLoop;
+    terrainU.uTime.value = nowSecLoop;
     if (!enDungeon && !enRecinto) {
       if (decorGroup && decorGroup.userData.actualizar && now - lastDecor > 300) {
         lastDecor = now;
@@ -13228,11 +13540,12 @@
         decorGroup.userData.actualizar(camera.position.x, camera.position.z);
       }
       if (decorMundo && decorMundo.actualizar) {
-        decorMundo.actualizar(dt, now / 1000, camera.position.x, camera.position.z, timeOfDay);
+        decorMundo.actualizar(dt, nowSecLoop, camera.position.x, camera.position.z, timeOfDay);
       }
       actualizarPiedras();
       actualizarVisibilidadEstructuras(now, false);
     }
+    actualizarHierbaCampo(false);
     if (cielo) {
       if (enDungeon) {
         cielo.visible = false;

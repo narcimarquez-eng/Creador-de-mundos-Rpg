@@ -149,21 +149,28 @@
     vec2 n1 = texture2D(tNorm, vMundo * 0.035 + vec2(uTime * 0.010, uTime * 0.006)).rg * 2.0 - 1.0;
     vec2 n2 = texture2D(tNorm, vMundo * 0.07 - vec2(uTime * 0.008, uTime * 0.013)).rg * 2.0 - 1.0;
     vec2 n = (n1 + n2) * 0.5;
-    vec3 agua = mix(uHonda, uClara, smoothstep(0.0, 4.0, prof));
-    agua *= 0.8 + 0.4 * dot(n, vec2(0.7, 0.7)) + 0.1 * n.y;
+    float rizoFino = sin(vMundo.x * 1.45 + uTime * 1.2) * cos(vMundo.y * 1.35 - uTime * 0.95);
+    vec3 agua = mix(uHonda * 0.80, uClara, smoothstep(0.0, 3.8, prof));
+    agua *= 0.84 + 0.36 * dot(n, vec2(0.7, 0.7)) + 0.08 * n.y;
     if (uConDetalle > 0.5) {
       vec3 detAgua = texture2D(tDetalle, vMundo * 0.085 + n * 0.03 + vec2(uTime * 0.012, -uTime * 0.008)).rgb;
       float dCamAgua = length(cameraPosition - vMundo3);
       float pesoDet = mix(0.34, 0.16, smoothstep(0.0, 3.5, prof)) * (1.0 - smoothstep(45.0, 150.0, dCamAgua));
       agua = mix(agua, agua * 0.55 + detAgua * 0.65, pesoDet);
     }
-    float espuma = smoothstep(0.45, 0.0, prof) * (0.55 + 0.45 * n.x * 2.0);
-    agua = mix(agua, vec3(0.92, 0.97, 1.0), clamp(espuma, 0.0, 1.0) * 0.8);
+    float espumaOnda = 0.62 + 0.38 * sin(vMundo.x * 0.8 + vMundo.y * 0.7 + uTime * 1.6 + n.x * 3.0);
+    float espuma = smoothstep(0.55, 0.02, prof) * clamp(espumaOnda + n.y * 0.35, 0.0, 1.0);
+    agua = mix(agua, vec3(0.92, 0.97, 1.0), clamp(espuma, 0.0, 1.0) * 0.82);
     vec3 vista = normalize(cameraPosition - vMundo3);
-    float fresnel = 0.03 + 0.97 * pow(1.0 - clamp(vista.y + n.x * 0.08, 0.0, 1.0), 4.0);
+    vec3 Nola = normalize(vec3(n.x * 0.32 + rizoFino * 0.04, 1.0, n.y * 0.32 - rizoFino * 0.04));
+    float fresnel = 0.04 + 0.96 * pow(1.0 - clamp(dot(vista, Nola), 0.0, 1.0), 4.0);
     agua = mix(agua, uCielo, clamp(fresnel * 0.85, 0.0, 0.9));
+    vec3 Lsol = normalize(uSunDir);
+    vec3 Hsol = normalize(Lsol + vista);
+    float spec = pow(max(dot(Nola, Hsol), 0.0), 84.0) * 1.15 + pow(max(dot(Nola, Hsol), 0.0), 16.0) * 0.14;
+    agua += uSunColor * spec * smoothstep(0.02, 0.25, Lsol.y + 0.15);
     diffuseColor.rgb = agua;
-    diffuseColor.a = mix(0.6, 0.95, smoothstep(0.0, 1.2, prof));`;
+    diffuseColor.a = mix(0.56, 0.95, smoothstep(0.0, 1.2, prof));`;
 
   // Superficie de un lago u oasis: plano a su nivel, recortado por la profundidad del terreno
   function agua(THREE, L, altura, opt) {
@@ -204,11 +211,13 @@
       shader.uniforms.uClara = { value: new THREE.Color(L.clara) };
       shader.uniforms.uTime = opt.tiempo;
       shader.uniforms.uCielo = opt.cielo;
+      shader.uniforms.uSunDir = opt.sunDir || { value: new THREE.Vector3(0.45, 0.72, 0.35) };
+      shader.uniforms.uSunColor = opt.sunColor || { value: new THREE.Color('#fffdf2') };
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vec4 wp = modelMatrix * vec4(transformed, 1.0);\n  vMundo = wp.xz;\n  vMundo3 = wp.xyz;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform sampler2D tProf;\nuniform sampler2D tNorm;\nuniform sampler2D tDetalle;\nuniform float uConDetalle;\nuniform vec2 uOrigen;\nuniform float uLado;\nuniform vec3 uHonda;\nuniform vec3 uClara;\nuniform float uTime;\nuniform vec3 uCielo;')
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform sampler2D tProf;\nuniform sampler2D tNorm;\nuniform sampler2D tDetalle;\nuniform float uConDetalle;\nuniform vec2 uOrigen;\nuniform float uLado;\nuniform vec3 uHonda;\nuniform vec3 uClara;\nuniform float uTime;\nuniform vec3 uCielo;\nuniform vec3 uSunDir;\nuniform vec3 uSunColor;')
         .replace('#include <color_fragment>', '#include <color_fragment>' + AGUA_FRAG);
     };
     const malla = new THREE.Mesh(new THREE.PlaneGeometry(lado, lado).rotateX(-Math.PI / 2), mat);

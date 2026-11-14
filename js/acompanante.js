@@ -895,6 +895,10 @@
     const halo = new THREE.Mesh(haloGeo, matHalo);
     halo.position.y = 0.04;
     grupo.add(halo);
+    if (typeof CharacterLib !== 'undefined' && typeof CharacterLib.crearSombraContacto === 'function') {
+      const sc = CharacterLib.crearSombraContacto(THREE, 1.25, 0.34);
+      if (sc) grupo.add(sc);
+    }
     grupo.scale.setScalar((perfil.altura || 1.82) / 1.84);
 
     return {
@@ -1091,6 +1095,10 @@
     const halo = new THREE.Mesh(haloGeo, matHalo);
     halo.position.y = 0.04;
     contenedor.add(halo);
+    if (typeof CharacterLib !== 'undefined' && typeof CharacterLib.crearSombraContacto === 'function') {
+      const sc = CharacterLib.crearSombraContacto(THREE, 1.25, 0.34);
+      if (sc) contenedor.add(sc);
+    }
 
     // AnimationMixer y mapeo de animaciones disponibles
     let mixer = null;

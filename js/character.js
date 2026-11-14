@@ -864,7 +864,46 @@
     }
   }
 
-  const api = { CharacterController, clampCameraToWorld, findClipIndex, CLIP_KEYWORDS, ONE_SHOT, WALK_SPEED, RUN_SPEED };
+  let _texSombraContacto = null, _geoSombraContacto = null;
+  function crearSombraContacto(THREE, radio = 1.25, opacidad = 0.36) {
+    if (!THREE || !THREE.PlaneGeometry || !THREE.MeshBasicMaterial || !THREE.Mesh) return null;
+    if (!_texSombraContacto && typeof document !== 'undefined' && THREE.CanvasTexture) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+      g.addColorStop(0, 'rgba(6, 10, 18, 0.85)');
+      g.addColorStop(0.55, 'rgba(6, 10, 18, 0.42)');
+      g.addColorStop(1, 'rgba(6, 10, 18, 0.0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 64, 64);
+      _texSombraContacto = new THREE.CanvasTexture(c);
+    }
+    if (!_texSombraContacto) return null;
+    if (!_geoSombraContacto) {
+      _geoSombraContacto = new THREE.PlaneGeometry(1, 1);
+      _geoSombraContacto.rotateX(-Math.PI / 2);
+    }
+    const mat = new THREE.MeshBasicMaterial({
+      map: _texSombraContacto,
+      transparent: true,
+      opacity: opacidad,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -2
+    });
+    const m = new THREE.Mesh(_geoSombraContacto, mat);
+    m.name = 'SombraContacto';
+    m.position.y = 0.04;
+    m.scale.set(radio, 1, radio);
+    m.renderOrder = 1;
+    m.castShadow = false;
+    m.receiveShadow = false;
+    return m;
+  }
+
+  const api = { CharacterController, clampCameraToWorld, crearSombraContacto, findClipIndex, CLIP_KEYWORDS, ONE_SHOT, WALK_SPEED, RUN_SPEED };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.CharacterLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

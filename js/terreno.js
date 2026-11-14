@@ -53,12 +53,14 @@
     const tri = !!opciones.triplanar;
     const conRecorte = !!(uniforms && uniforms.uRecorte);
     const conHierbas = !!(uniforms && uniforms.tHierbas);
-    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '');
+    const conSol = !!(uniforms && uniforms.uSunDir);
+    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '') + (conSol ? '-sol' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nattribute vec4 aSplat;\nattribute float aSnow;\nvarying vec4 vSplat;\nvarying float vSnow;\nvarying vec3 vTWorld;' + (tri ? '\nvarying vec3 vNWorld;' : ''))
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSplat = aSplat;\nvSnow = aSnow;\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;' + (tri ? '\nvNWorld = normalize(mat3(modelMatrix) * objectNormal);' : ''));
+        .replace('#include <common>', '#include <common>\nattribute vec4 aSplat;\nattribute float aSnow;\nvarying vec4 vSplat;\nvarying float vSnow;\nvarying vec3 vTWorld;\nvarying vec3 vTViewPos;' + ((tri || conSol) ? '\nvarying vec3 vNWorld;' : ''))
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSplat = aSplat;\nvSnow = aSnow;\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;' + ((tri || conSol) ? '\nvNWorld = normalize(mat3(modelMatrix) * objectNormal);' : ''))
+        .replace('#include <project_vertex>', '#include <project_vertex>\nvTViewPos = -mvPosition.xyz;');
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', [
           '#include <common>',
@@ -66,8 +68,9 @@
           'uniform float uTexOn;',
           conHierbas ? 'uniform highp sampler2DArray tHierbas;\nuniform float uHierbaMix;' : '',
           conRecorte ? 'uniform vec4 uRecorte;' : '',
-          tri ? 'varying vec3 vNWorld;' : '',
-          'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld;',
+          conSol ? 'uniform vec3 uSunDir;\nuniform vec3 uSunColor;' : '',
+          (tri || conSol) ? 'varying vec3 vNWorld;' : '',
+          'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld; varying vec3 vTViewPos;',
           // Ruido de valor: manchas suaves
           'float ruidoValor(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }',
           // Una clase a una escala: la 1.ª textura de fondo, la 2.ª y la 3.ª en manchas de unos 30–60 m con
@@ -161,10 +164,35 @@
           '}',
           'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
           'float micro = 1.0 + tC * ((ruidoValor(vTWorld.xz * 3.4) - 0.5) * 0.16 + (ruidoValor(vTWorld.xz * 9.6 + 5.1) - 0.5) * 0.10);',
+          'float hBumpTerreno = (uTexOn > 0.5 ? dot(tex, vec3(0.30, 0.52, 0.18)) : 0.5) + (ruidoValor(vTWorld.xz * 2.1) - 0.5) * 0.18;',
           tri ? 'float bisel = vSplat.z * (1.0 - tL) * clamp((dFdx(rockLum) + dFdy(rockLum)) * 3.8, -0.18, 0.22);' : 'float bisel = 0.0;',
           tri ? 'float sombraRoca = mix(1.0, 0.86, rockSlope * vSplat.z);' : 'float sombraRoca = 1.0;',
           'vec3 tinte = mix(vec3(1.0, 0.97, 0.9), vec3(0.93, 1.02, 0.88), ruidoValor(vTWorld.xz * 0.006 + 17.0));',
-          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte * sombraRoca * (1.0 + bisel);'
+          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte * sombraRoca * (1.0 + bisel);',
+          conSol ? [
+            'vec3 nW = normalize(vNWorld);',
+            'vec3 sunD = normalize(uSunDir);',
+            'vec3 viewW = normalize(cameraPosition - vTWorld);',
+            'float sunRim = pow(1.0 - clamp(dot(nW, viewW), 0.0, 1.0), 2.8) * clamp(dot(nW, sunD) * 0.7 + 0.3, 0.0, 1.0);',
+            'diffuseColor.rgb += uSunColor * sunRim * (0.13 * vSplat.z + 0.09 * vSnow + 0.03 * vSplat.x) * (1.0 - tL * 0.6);'
+          ].join('\n') : ''
+        ].join('\n'))
+        .replace('#include <normal_fragment_maps>', [
+          '#include <normal_fragment_maps>',
+          'if (tL < 0.95) {',
+          '  vec3 dPosX = dFdx(vTViewPos);',
+          '  vec3 dPosY = dFdy(vTViewPos);',
+          '  float dHx = dFdx(hBumpTerreno);',
+          '  float dHy = dFdy(hBumpTerreno);',
+          '  vec3 r1 = cross(dPosY, normal);',
+          '  vec3 r2 = cross(normal, dPosX);',
+          '  float det = dot(dPosX, r1);',
+          '  if (abs(det) > 1e-6) {',
+          '    float bumpScale = mix(0.20, 0.70, vSplat.z) * (1.0 - tL);',
+          '    vec3 surfGrad = sign(det) * (dHx * r1 + dHy * r2);',
+          '    normal = normalize(abs(det) * normal - bumpScale * surfGrad);',
+          '  }',
+          '}'
         ].join('\n'));
     };
     return m;
