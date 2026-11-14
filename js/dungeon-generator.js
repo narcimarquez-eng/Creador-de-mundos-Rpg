@@ -412,6 +412,7 @@
     prision: { id: 'prision', nombre: 'Mazmorra de Celdas', icono: '⛓️', desc: 'Celdas con rejas de hierro, cadenas y bancos rústicos', w: 15, d: 15, h: 4.8 },
     laboratorio: { id: 'laboratorio', nombre: 'Laboratorio de Alquimia', icono: '⚗️', desc: 'Caldero con poción resplandeciente, mesa y redomas', w: 16, d: 15, h: 5.0 },
     jardin_subterraneo: { id: 'jardin_subterraneo', nombre: 'Jardín Fúngico de Esporas', icono: '🍄', desc: 'Densa maleza, musgo y colonias de hongos bioluminiscentes', w: 18, d: 18, h: 5.8 },
+    rotonda: { id: 'rotonda', nombre: 'Rotonda Circular', icono: '⭕', desc: 'Cámara circular abovedada con columnata en anillo y mosaico rúnico', w: 20, d: 20, h: 6.8, esRedonda: true },
     sala_jefe: { id: 'sala_jefe', nombre: 'Cámara del Trono del Jefe', icono: '👑', desc: 'Estrado elevado, trono de piedra y braseros mágicos', w: 24, d: 24, h: 7.5 }
   };
 
@@ -520,6 +521,7 @@
       biblioteca:          { pared: 'mmuro/t03',  suelo: 'msuelo/t07', zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
       tesoro:              { pared: 'mmuro/t08',  suelo: 'msuelo/t04', zocalo: 'mmuro/t03',  camino: 'alfombras/a1' },
       trono:               { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
+      rotonda:             { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a3' },
       sala_jefe:           { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' }
     };
     return Object.assign({}, base, porTipo[t] || {});
@@ -3672,43 +3674,88 @@
     };
 
     const W = sala.w, H = sala.h, D = sala.d;
+    const esRedonda = !!(sala.esRedonda || sala.tipo === 'rotonda' || sala.forma === 'redonda');
+    const R_sala = Math.min(W, D) / 2;
 
     const mats = resolverMaterialesSala(ThreeLib, kit, opciones.kitsPorEstilo, sala, opciones);
 
-    // Suelo con mapeo métrico (1 repetición cada 3m, ~75cm por losa)
-    const sueloGeo = new ThreeLib.PlaneGeometry(W, D);
-    escalarUVsPlane(sueloGeo, W / 3.0, D / 3.0);
-    const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
-    suelo.rotation.x = -Math.PI / 2;
-    suelo.receiveShadow = true;
-    suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
-    g.add(suelo);
+    if (esRedonda) {
+      const sueloGeo = new ThreeLib.CylinderGeometry(R_sala + 0.25, R_sala + 0.25, 0.04, 32);
+      if (sueloGeo.attributes && sueloGeo.attributes.uv && sueloGeo.attributes.position) {
+        const pos = sueloGeo.attributes.position, uv = sueloGeo.attributes.uv;
+        for (let i = 0; i < pos.count; i++) {
+          uv.setXY(i, (pos.getX(i) + R_sala) / 3.0, (pos.getZ(i) + R_sala) / 3.0);
+        }
+        uv.needsUpdate = true;
+      }
+      const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
+      suelo.position.y = -0.02;
+      suelo.receiveShadow = true;
+      suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
+      g.add(suelo);
 
-    // Techo con mapeo métrico (1 repetición cada 3.5m)
-    if (opciones.techo !== false && !opciones.sinTecho) {
-      const techoGeo = new ThreeLib.PlaneGeometry(W, D);
-      escalarUVsPlane(techoGeo, W / 3.5, D / 3.5);
-      const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
-      techo.rotation.x = Math.PI / 2;
-      techo.position.y = H;
-      techo.name = 'techo_' + sala.id;
-      techo.castShadow = true;
-      techo.receiveShadow = true;
-      techo.userData = { tipo: 'techo', idSala: sala.id, ladoPrincipal: 'techo', esPared: true, esTecho: true };
-      g.add(techo);
-      g._partesPorLado.techo.push(techo);
+      if (opciones.techo !== false && !opciones.sinTecho) {
+        const techoGeo = new ThreeLib.CircleGeometry(R_sala + 0.45, 32);
+        escalarUVsPlane(techoGeo, (R_sala * 2) / 3.5, (R_sala * 2) / 3.5);
+        const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
+        techo.rotation.x = Math.PI / 2;
+        techo.position.y = H;
+        techo.name = 'techo_' + sala.id;
+        techo.castShadow = true;
+        techo.receiveShadow = true;
+        techo.userData = { tipo: 'techo', idSala: sala.id, ladoPrincipal: 'techo', esPared: true, esTecho: true };
+        g.add(techo);
+        g._partesPorLado.techo.push(techo);
 
-      if (Array.isArray(opciones.cajasOclusion)) {
-        opciones.cajasOclusion.push({
-          salaId: sala.id,
-          ladoPrincipal: 'techo',
-          minX: sala.x - W / 2,
-          maxX: sala.x + W / 2,
-          minY: (sala.y || 0) + H - 0.25,
-          maxY: (sala.y || 0) + H + 0.35,
-          minZ: sala.z - D / 2,
-          maxZ: sala.z + D / 2
-        });
+        if (Array.isArray(opciones.cajasOclusion)) {
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: 'techo',
+            minX: sala.x - R_sala,
+            maxX: sala.x + R_sala,
+            minY: (sala.y || 0) + H - 0.25,
+            maxY: (sala.y || 0) + H + 0.35,
+            minZ: sala.z - R_sala,
+            maxZ: sala.z + R_sala
+          });
+        }
+      }
+    } else {
+      // Suelo con mapeo métrico (1 repetición cada 3m, ~75cm por losa)
+      const sueloGeo = new ThreeLib.PlaneGeometry(W, D);
+      escalarUVsPlane(sueloGeo, W / 3.0, D / 3.0);
+      const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
+      suelo.rotation.x = -Math.PI / 2;
+      suelo.receiveShadow = true;
+      suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
+      g.add(suelo);
+
+      // Techo con mapeo métrico (1 repetición cada 3.5m)
+      if (opciones.techo !== false && !opciones.sinTecho) {
+        const techoGeo = new ThreeLib.PlaneGeometry(W, D);
+        escalarUVsPlane(techoGeo, W / 3.5, D / 3.5);
+        const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
+        techo.rotation.x = Math.PI / 2;
+        techo.position.y = H;
+        techo.name = 'techo_' + sala.id;
+        techo.castShadow = true;
+        techo.receiveShadow = true;
+        techo.userData = { tipo: 'techo', idSala: sala.id, ladoPrincipal: 'techo', esPared: true, esTecho: true };
+        g.add(techo);
+        g._partesPorLado.techo.push(techo);
+
+        if (Array.isArray(opciones.cajasOclusion)) {
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: 'techo',
+            minX: sala.x - W / 2,
+            maxX: sala.x + W / 2,
+            minY: (sala.y || 0) + H - 0.25,
+            maxY: (sala.y || 0) + H + 0.35,
+            minZ: sala.z - D / 2,
+            maxZ: sala.z + D / 2
+          });
+        }
       }
     }
 
@@ -4055,8 +4102,121 @@
       }
     }
 
-    // 1. Muro Norte (-Z)
     const apN = sala.abiertoNorte ? (ap.norte || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
+    const apS = sala.abiertoSur ? (ap.sur || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
+    const apO = sala.abiertoOeste ? (ap.oeste || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
+    const apE = sala.abiertoEste ? (ap.este || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
+
+    if (esRedonda) {
+      const hZoc = Math.min(0.7, H * 0.22);
+      const hMur = H - hZoc;
+      const R_muro = R_sala - grosorMuro / 2;
+
+      const agregarUmbral = (uw, ud, ux, uz) => {
+        const geoU = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(uw, 0.04, ud), uw, 0.04, ud, 3.0, 0.5);
+        const mU = new ThreeLib.Mesh(geoU, mats.matSuelo);
+        mU.position.set(ux, -0.02, uz);
+        mU.receiveShadow = true;
+        mU.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
+        g.add(mU);
+      };
+
+      if (apN) {
+        const pw = Math.min(W - 0.2, apN.w || 6.8);
+        const cx = apN.cx || 0;
+        agregarUmbral(pw + 1.4, 2.0, cx, -R_sala + 0.6);
+        agregarPortalConArco(pw, cx, -R_sala + grosorMuro / 2, 'norte', 'horizontal', apN.puertaH);
+      }
+      if (apS) {
+        const pw = Math.min(W - 0.2, apS.w || 6.8);
+        const cx = apS.cx || 0;
+        agregarUmbral(pw + 1.4, 2.0, cx, R_sala - 0.6);
+        agregarPortalConArco(pw, cx, R_sala - grosorMuro / 2, 'sur', 'horizontal', apS.puertaH);
+      }
+      if (apO) {
+        const pd = Math.min(D - 0.2, apO.d || 6.0);
+        const cz = apO.cz || 0;
+        agregarUmbral(2.0, pd + 1.4, -R_sala + 0.6, cz);
+        agregarPortalConArco(pd, -R_sala + grosorMuro / 2, cz, 'oeste', 'vertical', apO.puertaH);
+      }
+      if (apE) {
+        const pd = Math.min(D - 0.2, apE.d || 6.0);
+        const cz = apE.cz || 0;
+        agregarUmbral(2.0, pd + 1.4, R_sala - 0.6, cz);
+        agregarPortalConArco(pd, R_sala - grosorMuro / 2, cz, 'este', 'vertical', apE.puertaH);
+      }
+
+      const N_SEG = 28;
+      const segLen = 2 * R_muro * Math.sin(Math.PI / N_SEG) + 0.35;
+      for (let k = 0; k < N_SEG; k++) {
+        const ang = (k + 0.5) * (2 * Math.PI / N_SEG);
+        const mx = Math.cos(ang) * R_muro;
+        const mz = Math.sin(ang) * R_muro;
+
+        // Omitir los segmentos que caen dentro de una apertura activa
+        if (apN && mz < -R_muro * 0.6 && Math.abs(mx - (apN.cx || 0)) < (Math.min(W - 0.2, apN.w || 6.8) / 2 - 0.15)) continue;
+        if (apS && mz > R_muro * 0.6 && Math.abs(mx - (apS.cx || 0)) < (Math.min(W - 0.2, apS.w || 6.8) / 2 - 0.15)) continue;
+        if (apO && mx < -R_muro * 0.6 && Math.abs(mz - (apO.cz || 0)) < (Math.min(D - 0.2, apO.d || 6.0) / 2 - 0.15)) continue;
+        if (apE && mx > R_muro * 0.6 && Math.abs(mz - (apE.cz || 0)) < (Math.min(D - 0.2, apE.d || 6.0) / 2 - 0.15)) continue;
+
+        const ladoBase = Math.abs(mx) > Math.abs(mz) ? (mx > 0 ? 'este' : 'oeste') : (mz > 0 ? 'sur' : 'norte');
+        const segGrp = new ThreeLib.Group();
+        segGrp.position.set(mx, 0, mz);
+        segGrp.rotation.y = -ang + Math.PI / 2;
+
+        const zocGeo = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(segLen, hZoc, grosorMuro + 0.10), segLen, hZoc, grosorMuro + 0.10, 2.5, 0.7);
+        const zocM = new ThreeLib.Mesh(zocGeo, mats.matZocalo);
+        zocM.position.y = hZoc / 2;
+        zocM.castShadow = true; zocM.receiveShadow = true;
+        zocM.userData = { tipo: 'zocalo', idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+        segGrp.add(zocM);
+
+        const murGeo = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(segLen, hMur, grosorMuro), segLen, hMur, grosorMuro, 3.0, 2.5);
+        const murM = new ThreeLib.Mesh(murGeo, mats.matPared);
+        murM.position.y = hZoc + hMur / 2;
+        murM.castShadow = true; murM.receiveShadow = true;
+        murM.userData = { tipo: 'muro', idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+        segGrp.add(murM);
+
+        if (H >= 4.2) {
+          const corGeo = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(segLen, 0.18, grosorMuro + 0.14), segLen, 0.18, grosorMuro + 0.14, 2.4, 0.3);
+          const corM = new ThreeLib.Mesh(corGeo, mats.matZocalo);
+          corM.position.y = H - 0.09;
+          corM.userData = { tipo: 'cornisa_muro', idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+          segGrp.add(corM);
+        }
+
+        g.add(segGrp);
+        g._partesPorLado[ladoBase].push(segGrp);
+
+        if (Array.isArray(opciones.colliders)) {
+          opciones.colliders.push({
+            type: 'circle',
+            x: sala.x + mx,
+            z: sala.z + mz,
+            r: segLen * 0.56,
+            salaId: sala.id,
+            tipo: 'muro',
+            ladoPrincipal: ladoBase,
+            esPared: true
+          });
+        }
+        if (Array.isArray(opciones.cajasOclusion)) {
+          const radOcl = segLen * 0.52;
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: ladoBase,
+            minX: sala.x + mx - radOcl,
+            maxX: sala.x + mx + radOcl,
+            minY: (sala.y || 0),
+            maxY: (sala.y || 0) + H,
+            minZ: sala.z + mz - radOcl,
+            maxZ: sala.z + mz + radOcl
+          });
+        }
+      }
+    } else {
+    // 1. Muro Norte (-Z)
     if (!apN) {
       agregarMuroConZocalo(W, grosorMuro, 0, -D / 2 + grosorMuro / 2, 'norte', false);
     } else {
@@ -4078,7 +4238,6 @@
     }
 
     // 2. Muro Sur (+Z)
-    const apS = sala.abiertoSur ? (ap.sur || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apS) {
       agregarMuroConZocalo(W, grosorMuro, 0, D / 2 - grosorMuro / 2, 'sur', false);
     } else {
@@ -4098,7 +4257,6 @@
     }
 
     // 3. Muro Oeste (-X)
-    const apO = sala.abiertoOeste ? (ap.oeste || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apO) {
       agregarMuroConZocalo(grosorMuro, D, -W / 2 + grosorMuro / 2, 0, 'oeste', false);
     } else {
@@ -4118,7 +4276,6 @@
     }
 
     // 4. Muro Este (+X)
-    const apE = sala.abiertoEste ? (ap.este || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apE) {
       agregarMuroConZocalo(grosorMuro, D, W / 2 - grosorMuro / 2, 0, 'este', false);
     } else {
@@ -4135,6 +4292,7 @@
       }
       // Portal con arco adovelado, columnas de molduras y dintel hermético
       agregarPortalConArco(pd, W / 2 - grosorMuro / 2, cz, 'este', 'vertical', apE.puertaH);
+    }
     }
 
     if (opciones && opciones.sinSombrasMallas) {
@@ -4240,6 +4398,31 @@
           runner.userData = { tipo: 'mosaico_suelo', idSala: sala.id };
           g.add(runner);
         }
+      } else if (W >= 7.0 && D >= 7.0 && (sala.esRedonda || sala.tipo === 'rotonda' || sala.forma === 'redonda')) {
+        const rMos = Math.min(W, D) * 0.32;
+        const geoBordC = new ThreeLib.CylinderGeometry(rMos + 0.24, rMos + 0.24, 0.012, 32);
+        const bordilloC = new ThreeLib.Mesh(geoBordC, matBord);
+        bordilloC.position.set(0, 0.006, 0);
+        bordilloC.receiveShadow = true;
+        bordilloC.userData = { tipo: 'bordillo_mosaico', idSala: sala.id };
+        g.add(bordilloC);
+
+        const geoMosC = new ThreeLib.CylinderGeometry(rMos, rMos, 0.018, 32);
+        if (geoMosC.attributes && geoMosC.attributes.uv && geoMosC.attributes.position) {
+          const pos = geoMosC.attributes.position, uv = geoMosC.attributes.uv;
+          const repScale = esMosUnico ? 1 : (rMos * 2) / 2.6;
+          for (let i = 0; i < pos.count; i++) {
+            const u = ((pos.getX(i) / (2 * rMos)) + 0.5) * repScale;
+            const v = ((pos.getZ(i) / (2 * rMos)) + 0.5) * repScale;
+            uv.setXY(i, u, v);
+          }
+          uv.needsUpdate = true;
+        }
+        const tapizMosaico = new ThreeLib.Mesh(geoMosC, matMos);
+        tapizMosaico.position.set(0, 0.010, 0);
+        tapizMosaico.receiveShadow = true;
+        tapizMosaico.userData = { tipo: 'mosaico_suelo', idSala: sala.id };
+        g.add(tapizMosaico);
       } else if (W >= 7.0 && D >= 7.0) {
         const mW = Math.max(3.6, Math.round(W * 0.60 * 10) / 10);
         const mD = Math.max(3.6, Math.round(D * 0.60 * 10) / 10);
@@ -4505,6 +4688,39 @@
             g.add(h);
           });
         }
+        break;
+      }
+
+      case 'rotonda': {
+        const R_rot = Math.min(W, D) / 2;
+        const rCol = R_rot * 0.68;
+        const radioCol = Math.max(0.42, Math.min(0.85, R_rot * 0.065));
+        for (let i = 0; i < 8; i++) {
+          const ang = (i * Math.PI / 4) + (Math.PI / 8); // desplazadas 22.5° respecto a los ejes N/S/E/O
+          const cx = Math.cos(ang) * rCol;
+          const cz = Math.sin(ang) * rCol;
+          const col = crearColumna(ThreeLib, kit, H, radioCol, 'gotica');
+          col.position.set(cx, 0, cz);
+          g.add(col);
+          if (config && Array.isArray(config.colliders)) {
+            config.colliders.push({ type: 'circle', x: sala.x + cx, z: sala.z + cz, r: radioCol + 0.15, tipo: 'columna' });
+          }
+        }
+        const rBras = R_rot * 0.42;
+        [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4].forEach(ang => {
+          const bx = Math.cos(ang) * rBras;
+          const bz = Math.sin(ang) * rBras;
+          const brasero = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.50, 0.28, 0.95, 8), kit.hierro);
+          brasero.position.set(bx, 0.475, bz);
+          g.add(brasero);
+          const llama = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.28, 0.65, 6), new ThreeLib.MeshBasicMaterial({ color: estilo.luzAntorchas || 0xf59e0b }));
+          llama.position.set(bx, 1.15, bz);
+          g.add(llama);
+          animables.push({ tipo: 'llama', mesh: llama, baseY: 1.15, fase: bx + bz });
+          if (config && Array.isArray(config.colliders)) {
+            config.colliders.push({ type: 'circle', x: sala.x + bx, z: sala.z + bz, r: 0.55, tipo: 'brasero' });
+          }
+        });
         break;
       }
 
@@ -5439,8 +5655,8 @@
 
     // --- GENERACIÓN DINÁMICA DE LA RED DE ESTANCIAS ---
     const salas = [];
-    const poolTiposIntermedios = ['fuente', 'cripta_columnas', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
-    const poolTiposLaterales = ['tesoro', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
+    const poolTiposIntermedios = ['rotonda', 'fuente', 'cripta_columnas', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
+    const poolTiposLaterales = ['tesoro', 'rotonda', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
 
     const zEntrada = Math.round(radio - (tamanoMedio * 0.7));
     const zBoss = Math.round(-radio + (tamanoMedio * 0.7));
@@ -5470,15 +5686,33 @@
     // 2. Cámaras intermedias a lo largo de la columna vertebral
     let tiposDisponibles = [...poolTiposIntermedios];
     let branchCounter = 0;
+    let tieneRotonda = false;
 
     for (let i = 1; i <= cantIntermedias; i++) {
       const zCamaraIdeal = Math.round(zEntrada - i * pasoZ);
 
+      if (tiposDisponibles.length === 0) tiposDisponibles = [...poolTiposIntermedios];
+      let tipoCamara;
+      if (!tieneRotonda && i === Math.min(2, cantIntermedias) && tiposDisponibles.includes('rotonda')) {
+        tipoCamara = 'rotonda';
+        tiposDisponibles.splice(tiposDisponibles.indexOf('rotonda'), 1);
+      } else {
+        const tipoIdx = rng.int(0, tiposDisponibles.length - 1);
+        tipoCamara = tiposDisponibles.splice(tipoIdx, 1)[0];
+      }
+      if (tipoCamara === 'rotonda') tieneRotonda = true;
+      const tipoDef = TIPOS_ESTANCIA[tipoCamara] || { nombre: 'Cripta Subterránea' };
+
       // Dimensiones con varianza aleatoria calculadas primero para tener la distancia exacta
       const factorVarW = 1 + (rng.range(-1, 1) * varianzaTamano);
       const factorVarD = 1 + (rng.range(-1, 1) * varianzaTamano);
-      const wCamara = Math.round(Math.max(10, tamanoMedio * factorVarW));
-      const dCamara = Math.round(Math.max(10, tamanoMedio * factorVarD));
+      let wCamara = Math.round(Math.max(10, tamanoMedio * factorVarW));
+      let dCamara = Math.round(Math.max(10, tamanoMedio * factorVarD));
+      if (tipoCamara === 'rotonda') {
+        const diam = Math.max(18, Math.round((wCamara + dCamara) / 2));
+        wCamara = diam;
+        dCamara = diam;
+      }
       const hCamara = Math.round(Math.max(4.2, alturaTechos * (1 + rng.range(-0.3, 0.3) * varianzaTamano)));
 
       // Garantizar espacio real de pasillo entre salas consecutivas para evitar solapamientos
@@ -5506,17 +5740,13 @@
         });
       }
 
-      if (tiposDisponibles.length === 0) tiposDisponibles = [...poolTiposIntermedios];
-      const tipoIdx = rng.int(0, tiposDisponibles.length - 1);
-      const tipoCamara = tiposDisponibles.splice(tipoIdx, 1)[0];
-      const tipoDef = TIPOS_ESTANCIA[tipoCamara] || { nombre: 'Cripta Subterránea' };
-
       const camaraObj = {
         id: `room_${tipoCamara}_${i}`,
         tipo: tipoCamara,
         nombre: `${tipoDef.nombre} (${i})`,
         x: 0, y: 0, z: zCamara,
         w: wCamara, d: dCamara, h: hCamara,
+        esRedonda: tipoCamara === 'rotonda',
         abiertoSur: true, abiertoNorte: true
       };
 

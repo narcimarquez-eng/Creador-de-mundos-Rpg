@@ -2081,7 +2081,7 @@
   <script defer src="js/mundo-campana.js?v=20261114c"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
   <script defer src="js/texturas-lib.js?v=3"></script>
-  <script defer src="js/dungeon-generator.js?v=20261114u"></script>
+  <script defer src="js/dungeon-generator.js?v=20261114v"></script>
   <script defer src="js/mazmorras.js?v=20261114c"></script>
   <script defer src="js/acompanante.js?v=20261031"></script>
   <script defer src="js/heroe.js?v=20251029"></script>
@@ -6124,6 +6124,10 @@
             const prefijoElite = rangoElite === 4 ? '👑 [Élite ×4] ' : rangoElite === 3 ? '🔥 [Élite ×3] ' : rangoElite === 2 ? '⭐ [Élite ×2] ' : '';
             m.name = prefijoElite + (info.name || 'Monstruo');
             m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
+            m.patrulla = !info.boss;
+            m.patrullaRadio = Math.max(5, Math.min(16, (z.radius || 30) * 0.25));
+            const zCxPat = z.x, zCzPat = z.y, zLimPat = Math.max(4, (z.radius || 30) - 3);
+            m.puedeIr = (x, zPos) => Math.hypot(x - zCxPat, zPos - zCzPat) <= zLimPat && !(visorWorld && typeof visorWorld.isWaterHazard === 'function' && visorWorld.isWaterHazard(x, zPos));
             m.recibirDano = (dmg, fuente = 'hero') => damageMonster(m, dmg, fuente);
             m.danoPorFuente = { hero: 0, acompanante: 0 };
             m.danoTotal = 0;
@@ -6705,11 +6709,16 @@
         if (inTown) m.state = 'return';
         if (d < 120 && !inTown) {
           const heroY = (character && character.root) ? character.root.position.y : 0;
-          if (m._yVer !== terrenoVersion || m._yX !== m.x || m._yZ !== m.z) {
-            m._yVer = terrenoVersion; m._yX = m.x; m._yZ = m.z;
-            m._cachedY = H(m.x, m.z);
+          let monY = 0;
+          if (enMazmorra && m.dungeonInfoRef) {
+            monY = (typeof m.y === 'number') ? m.y : ((typeof m.dungeonInfoRef.y === 'number') ? m.dungeonInfoRef.y : 0.0);
+          } else {
+            if (m._yVer !== terrenoVersion || m._yX !== m.x || m._yZ !== m.z) {
+              m._yVer = terrenoVersion; m._yX = m.x; m._yZ = m.z;
+              m._cachedY = H(m.x, m.z);
+            }
+            monY = typeof m._cachedY === 'number' ? m._cachedY : (m.group ? m.group.position.y : 0);
           }
-          const monY = typeof m._cachedY === 'number' ? m._cachedY : (m.group ? m.group.position.y : 0);
           const dy = Math.abs(monY - heroY);
           const r = CombatLib.monsterTick(m, hero, px, pz, dt, dy);
           // Solo golpea al héroe si no hay un desnivel vertical abismal (arqueros/magos hasta 8m) y el modelo está visible
@@ -11557,7 +11566,12 @@
         const procPat = gestorMazmorras && gestorMazmorras.instanciaProcedural;
         const salaOrigen = (procPat && typeof procPat.encontrarSalaEnPosicion === 'function') ? procPat.encontrarSalaEnPosicion(info.x, info.z) : null;
         if (salaOrigen) {
-          m.puedeIr = (x, z) => Math.abs(x - salaOrigen.x) < salaOrigen.w / 2 - 1.5 && Math.abs(z - salaOrigen.z) < salaOrigen.d / 2 - 1.5;
+          if (salaOrigen.esRedonda || salaOrigen.tipo === 'rotonda' || salaOrigen.forma === 'redonda') {
+            const radLim = Math.min(salaOrigen.w, salaOrigen.d) / 2 - 1.8;
+            m.puedeIr = (x, z) => Math.hypot(x - salaOrigen.x, z - salaOrigen.z) < radLim;
+          } else {
+            m.puedeIr = (x, z) => Math.abs(x - salaOrigen.x) < salaOrigen.w / 2 - 1.5 && Math.abs(z - salaOrigen.z) < salaOrigen.d / 2 - 1.5;
+          }
         }
         const sueloY = (typeof info.y === 'number') ? info.y : 0.0;
         m.y = sueloY;
