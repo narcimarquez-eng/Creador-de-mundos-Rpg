@@ -291,4 +291,34 @@ t('HITOS_NARRATIVOS destaca transiciones clave de Actos II-IV, ruptura del monop
   });
 });
 
+t('generarHistoriaParaMundo crea una crónica completa de 16 capítulos adaptada a cualquier mundo', () => {
+  const W = require('../js/world-core.js');
+  const wCustom = W.generateWorld({ name: 'Costa de Hierro', seed: 424242, settings: { townCount: 5 } });
+  const hist = H.generarHistoriaParaMundo(wCustom);
+  assert.ok(hist && hist.titulo.includes('Costa de Hierro'));
+  assert.strictEqual(hist.capitulos.length, 16);
+  assert.strictEqual(hist.actos.length, 4);
+  assert.strictEqual(hist.tituloFinal, 'Libertadores de Costa de Hierro');
+  assert.ok(hist.prologo && hist.prologo.parrafo1.includes(H.puebloInicial(wCustom).name));
+  wCustom.historia = hist;
+
+  assert.strictEqual(H.capitulosDe(wCustom).length, 16);
+  assert.strictEqual(H.actosDe(wCustom), hist.actos);
+  assert.strictEqual(H.prologoDe(wCustom), hist.prologo);
+  assert.strictEqual(H.hitoDeCapituloCompletado(16, wCustom), hist.hitos[16]);
+
+  const p = H.nuevaPrincipal();
+  const vistos = [];
+  while (!H.terminada(p, wCustom)) {
+    const o = H.asegurarObjetivo(p, wCustom);
+    assert.ok(o && !/[{}]/.test(o.encargo + o.texto), 'Sin llaves sin resolver en ' + o.encargo);
+    for (let i = 0; i < o.cantidad; i++) H.registrar(p, eventoDe(o));
+    vistos.push(H.completar(p, wCustom));
+  }
+  assert.strictEqual(vistos.length, 16);
+  assert.strictEqual(H.actoActual(p, wCustom).terminado, true);
+  assert.ok(H.fraseContextualNpc('guru-1', { paso: 0 }, wCustom).frase.includes(H.puebloInicial(wCustom).name));
+});
+
 console.log(`\n${n} pruebas de la historia superadas.`);
+

@@ -56,3 +56,26 @@ Tras sobrevivir a una emboscada de criaturas con injertos metálicos en la fragu
 - **Diálogos dinámicos por Acto (`HistoriaLib.fraseContextualNpc`):** Los 5 gurús y los NPCs de servicio reaccionan al acto actual (Actos I–IV y Epílogo) y al capítulo activo.
 - **Feedback narrativo de farmeo (`HistoriaLib.materialDeCapitulo`):** Al abatir monstruos en capítulos de forja, el HUD y los avisos muestran el material recuperado rumbo al yunque de Brann.
 - **Visibilidad del Acto y del Monopolio:** La Crónica (`#cronica`), el HUD de misión (`#mision`) y las tiendas de **Brann** y **Tovi** reflejan explícitamente el Acto actual y el estado del monopolio de los Sabios (Cap. 11).
+
+---
+
+## 5. Mundo Oficial Propio: *Valdris · Tierras del Sol Quebrado* y Generador de Historia
+
+En lugar de depender de un mundo aleatorio genérico, la rama `juego-completo` incluye un mundo diseñado a mano (`mundos/valdris.mundo.json` y `js/mundo-campana.js`, construido y validado por `tools/construir-mundo-oficial.mjs`) junto con un **Generador de Historia** (`HistoriaLib.generarHistoriaParaMundo(world)`):
+
+### Geografía de Valdris (Semilla `271828`)
+- **7 Pueblos escalonados por región:**
+  1. **Albaferro** (`t_1`, Nv. 1 · inicio): ciudad forjadora donde sobrevive el yunque secreto de Brann.
+  2. **Puerto Brisal** (`t_2`, Nv. 3): puerto mercante de la bahía bajo vigilancia inquisitorial.
+  3. **Robledal Sombrío** (`t_3`, Nv. 5): aldea del bosque cuya savia se tiñó de gris.
+  4. **Limoquieto** (`t_4`, Nv. 8): enclave palustre donde boticarios y desertores ocultan registros alquímicos.
+  5. **Ámbar de Dunas** (`t_5`, Nv. 11): ciudad caravana del desierto dorado ligada al Altar Rúnico.
+  6. **Atalaya de Escarcha** (`t_6`, Nv. 14): bastión nórdico en la taiga.
+  7. **Trono de Ceniza** (`t_7`, Nv. 18): fortaleza volcánica junto al cráter final.
+- **8 Caminos en tierra firme**, **12 Zonas de combate** con enemigos reales de `ENEMY_GLB_INDEX` y **3 Laberintos diseñados** (`z_4` *Laberinto del Seto Maldito*, `z_7` *Cañón del Pacto de Arena* y `z_10` *Garganta de Obsidiana*), coronados por **Aurelio, Titán del Sol Quebrado** en el *Cráter del Sol Quebrado* (`z_12`).
+- **3 Mazmorras Ancestrales:** *Cripta de las Raíces Negras* (Nv. 8), *Catacumbas del Sol Enterrado* (Nv. 13) y *Sanctum del Trono Quebrado* (Nv. 18).
+
+### Generador de Historia (`HistoriaLib.generarHistoriaParaMundo`)
+- Genera un objeto `world.historia` completo (prólogo, 4 Actos, epílogo, 16 capítulos, hitos y diálogos contextuales de NPCs) adaptado a los nombres reales de pueblos, zonas, laberintos, lugares secretos, mazmorras y jefes de cualquier mundo.
+- Disponible automáticamente al crear un mundo nuevo y bajo demanda en el editor (`index.html` → **✨ Generar Historia**), además de venir pregenerado en la campaña oficial de **Valdris** (que se carga por defecto en `index.html` y `visor-mundo.html`).
+

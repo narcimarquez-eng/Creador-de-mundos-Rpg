@@ -155,7 +155,8 @@
         }
       });
     }
-    if (base.principal.paso >= 16 && !vistosTit.has('Campeones de Aden')) {
+    const tieneTituloFinal = base.titulos.some(x => x.startsWith('Campeones de ') || x.startsWith('Libertadores de '));
+    if (base.principal.paso >= 16 && !tieneTituloFinal) {
       base.titulos.push('Campeones de Aden');
     }
     return base;

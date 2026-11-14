@@ -1767,15 +1767,16 @@
 
   <!-- Pantalla de Título / Portada del Juego Completo -->
   <div id="modal-portada"><div class="box">
-    <div class="portada-kicker">⚔️ Crónica de Aden · Juego Completo</div>
+    <div id="portada-kicker" class="portada-kicker">⚔️ Crónica del Mundo · Juego Completo</div>
     <h1 id="portada-titulo">Creador de Mundos RPG</h1>
     <div id="portada-sub" class="portada-sub">
-      Tras las murallas del reino, las fraguas arden en secreto y las bestias portan injertos de acero. Empuña tu arma, forja tu destino y desmantela la conspiración de los Sabios.
+      Tras las murallas del reino, las fraguas arden en secreto y las bestias portan injertos de acero. Empuña tu arma, forja tu destino y desmantela la conspiración del Cónclave.
     </div>
     <div id="portada-resumen" class="portada-resumen" style="display:none"></div>
     <div class="portada-acciones">
       <button id="btn-portada-continuar" class="gold" style="display:none">▶ Continuar Aventura</button>
       <button id="btn-portada-nueva" class="gold">✨ Nueva Aventura</button>
+      <button id="btn-portada-oficial" style="display:none;background:linear-gradient(135deg,#0f766e,#0d9488);border-color:#2dd4bf;color:#ffffff">🌍 Jugar Mundo Oficial: Valdris</button>
       <button id="btn-portada-partidas" style="display:none">💾 Gestionar Partidas</button>
       <button id="btn-portada-visor" style="background:transparent;border:1px solid #334155;color:#94a3b8;font-size:12px;padding:8px 12px">🗺 Entrar en Visor Libre (sin prólogo)</button>
     </div>
@@ -1949,11 +1950,12 @@
   <div id="load">
     <div class="box">
       <h2>No hay ningún mundo abierto</h2>
-      <div id="load-msg">Abre el editor para crear un mundo, carga un archivo <b>.mundo.json</b>, o genera un mundo nuevo al instante para explorar.</div>
+      <div id="load-msg">Abre el editor para crear un mundo, carga un archivo <b>.mundo.json</b>, juega el mundo oficial <b>Valdris · Tierras del Sol Quebrado</b> o genera un mundo nuevo al instante.</div>
       <div class="btns">
         <a class="btn" href="index.html">← Ir al editor</a>
+        <button class="gold" id="btn-official-world" style="background:linear-gradient(135deg,#0f766e,#0d9488);border-color:#2dd4bf;color:#ffffff;font-weight:700;">🌍 Jugar Valdris (Mundo Oficial)</button>
         <button class="gold" id="btn-load-file">⬆ Cargar .mundo.json</button>
-        <button class="gold" id="btn-auto-world" style="background:linear-gradient(135deg,#16a34a,#15803d);border-color:#22c55e;color:#ffffff;font-weight:700;">✨ Generar y Entrar al Mundo</button>
+        <button id="btn-auto-world" style="background:linear-gradient(135deg,#16a34a,#15803d);border-color:#22c55e;color:#ffffff;font-weight:700;">✨ Generar Mundo Aleatorio</button>
         <input type="file" id="file-world" accept=".json,application/json" hidden>
       </div>
     </div>
@@ -2024,7 +2026,8 @@
   <script defer src="js/lagos.js?v=20251029"></script>
   <script src="js/relieve-zona.js?v=20261113m"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
-  <script defer src="js/historia.js?v=20251029"></script>
+  <script defer src="js/historia.js?v=20261113"></script>
+  <script defer src="js/mundo-campana.js?v=20261113"></script>
   <script defer src="js/lugares-secretos.js?v=20261107"></script>
   <script defer src="js/dungeon-generator.js?v=20261107"></script>
   <script defer src="js/mazmorras.js?v=20261107"></script>
@@ -5901,7 +5904,7 @@
   function actualizarMarcadoresMisionMonstruos() {
     if (!world || !monsters || !heroeEst) return;
     const p = heroeEst.principal;
-    if (!p || (typeof HistoriaLib !== 'undefined' && HistoriaLib.terminada(p))) {
+    if (!p || (typeof HistoriaLib !== 'undefined' && HistoriaLib.terminada(p, world))) {
       monsters.forEach(m => {
         m.esDeMision = false;
         if (m.questRing) m.questRing.visible = false;
@@ -5909,7 +5912,7 @@
       });
       return;
     }
-    const cap = (typeof HistoriaLib !== 'undefined') ? HistoriaLib.capituloActual(p) : null;
+    const cap = (typeof HistoriaLib !== 'undefined') ? HistoriaLib.capituloActual(p, world) : null;
     const o = (cap && typeof HistoriaLib !== 'undefined') ? HistoriaLib.asegurarObjetivo(p, world) : null;
     const objetivoActivo = o && (o.tipo === 'matar' || o.tipo === 'jefe') && (p.progreso < o.cantidad);
     const targetZona = objetivoActivo ? o.zona : null;
@@ -9356,13 +9359,15 @@
       return '<div class="fila"><span>' + sk.icono + ' ' + esc(hab.nombre) + ' <span class="muted">' + nivel + '/' + hab.max + '</span><br><span class="muted">' + esc(datos)
         + (H.disponible(heroeEst, id, hero.level) ? '' : ' · 🔒 ' + esc(H.requisito(id))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
     }).join('');
-    const pr = heroeEst.principal, capAct = HistoriaLib.capituloActual(pr), total = HistoriaLib.CAPITULOS.length;
-    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(pr) : null;
+    const pr = heroeEst.principal, capsLista = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
+    const capAct = HistoriaLib.capituloActual(pr, world), total = capsLista.length;
+    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(pr, world) : null;
     const objAct = capAct && world ? HistoriaLib.asegurarObjetivo(pr, world) : null;
+    const tituloFinalEsp = (world && world.historia && world.historia.tituloFinal) || 'Campeones de Aden';
     const titulosList = Array.isArray(heroeEst.titulos) ? heroeEst.titulos : [];
     const titulosHtml = titulosList.length
       ? '<div style="margin:6px 0;padding:6px 10px;border-radius:6px;background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.45);color:#fde047;font-size:12px">👑 <b>Títulos:</b> ' + titulosList.map(esc).join(' · ') + '</div>'
-      : '<div class="muted" style="margin:4px 0">Títulos: ninguno aún (completa los 16 capítulos para obtener «Campeones de Aden»).</div>';
+      : '<div class="muted" style="margin:4px 0">Títulos: ninguno aún (completa los ' + total + ' capítulos para obtener «' + esc(tituloFinalEsp) + '»).</div>';
     const historia = (acto ? '<div class="muted" style="color:#38bdf8;margin-bottom:4px"><b>' + esc(acto.nombre) + '</b></div>' : '')
       + (objAct
         ? '<div class="fila"><span>📜 Capítulo ' + (pr.paso + 1) + ' · ' + esc(capAct.titulo) + '<br><span class="muted">' + esc(objAct.texto) + '</span></span><b>' + pr.progreso + ' / ' + objAct.cantidad + '</b></div>'
@@ -9461,11 +9466,12 @@
   function actualizarMision() {
     if (!world) return;
     const p = heroeEst.principal;
-    const cap = HistoriaLib.capituloActual(p);
-    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(p) : null;
+    const cap = HistoriaLib.capituloActual(p, world);
+    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(p, world) : null;
+    const capsLista = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
     if (!cap) {
-      $('mision-cap').textContent = '📜 Epílogo · Campeones de Aden';
-      $('mision-obj').textContent = 'Has vivido los ' + HistoriaLib.CAPITULOS.length + ' capítulos de la historia.';
+      $('mision-cap').textContent = '📜 ' + (acto ? acto.nombre : 'Epílogo · Campeones de Aden');
+      $('mision-obj').textContent = 'Has vivido los ' + capsLista.length + ' capítulos de la historia.';
       $('mision-prog').textContent = '';
       $('mision-ir').style.display = 'none';
       if ($('mision-dist')) $('mision-dist').style.display = 'none';
@@ -9645,12 +9651,12 @@
   // Un hecho del juego (matar, visitar, hablar, forjar): solo cuenta para el capítulo activo
   function avanzarHistoria(ev) {
     const p = heroeEst.principal;
-    if (!world || HistoriaLib.terminada(p)) return;
+    if (!world || HistoriaLib.terminada(p, world)) return;
     HistoriaLib.asegurarObjetivo(p, world);
     const antes = p.progreso;
     const cumplido = HistoriaLib.registrar(p, ev);
     if (cumplido) {
-      const cap = HistoriaLib.capituloActual(p);
+      const cap = HistoriaLib.capituloActual(p, world);
       if (cap && cap.recompensa && cap.recompensa.forjarPieza) {
         heroeEst.forjaPendiente = {
           ranura: cap.recompensa.forjarPieza,
@@ -9665,7 +9671,7 @@
       }
     } else if (p.progreso !== antes) {
       actualizarMision();
-      const capAct = HistoriaLib.capituloActual(p);
+      const capAct = HistoriaLib.capituloActual(p, world);
       const mat = typeof HistoriaLib.materialDeCapitulo === 'function' ? HistoriaLib.materialDeCapitulo(capAct) : null;
       const objAct = p.objetivo;
       if (mat && objAct) {
@@ -9696,7 +9702,7 @@
 
   // Capítulo cumplido: recompensa, se cuenta su historia y empieza el siguiente (con su progreso a 0)
   function cerrarCapitulo() {
-    const r = HistoriaLib.completar(heroeEst.principal);
+    const r = HistoriaLib.completar(heroeEst.principal, world);
     HeroeLib.recompensar(heroeEst, r.recompensa);
     if (r.recompensa.desbloquea) {
       heroeEst.desbloqueadas[r.recompensa.desbloquea] = true;
@@ -9725,7 +9731,7 @@
     $('cap-titulo').textContent = 'Capítulo ' + r.numero + ' · ' + r.capitulo.titulo;
     const hitoEl = $('cap-hito');
     const hito = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.hitoDeCapituloCompletado === 'function')
-      ? HistoriaLib.hitoDeCapituloCompletado(r.numero)
+      ? HistoriaLib.hitoDeCapituloCompletado(r.numero, world)
       : null;
     if (hitoEl) {
       if (hito) {
@@ -9755,7 +9761,7 @@
     if (r.recompensa.titulo) {
       premio += ' · 👑 Título: ' + r.recompensa.titulo;
     }
-    const p = heroeEst.principal, sig = HistoriaLib.capituloActual(p);
+    const p = heroeEst.principal, sig = HistoriaLib.capituloActual(p, world);
     const o = sig ? HistoriaLib.asegurarObjetivo(p, world) : null;
     $('cap-extra').innerHTML = esc(premio) + '<br><br>' + (sig
       ? '<b>Siguiente · Capítulo ' + (p.paso + 1) + ' · ' + esc(sig.titulo) + '</b><br>' + esc(o.encargo) + '<br>📍 ' + esc(o.texto)
@@ -9768,7 +9774,7 @@
 
   // Ventana del encargo activo: qué pide el sabio y dónde
   function mostrarEncargo() {
-    const p = heroeEst.principal, cap = HistoriaLib.capituloActual(p);
+    const p = heroeEst.principal, cap = HistoriaLib.capituloActual(p, world);
     if (!cap || !world) return;
     const hitoEl = $('cap-hito');
     if (hitoEl) { hitoEl.style.display = 'none'; hitoEl.innerHTML = ''; }
@@ -9791,14 +9797,18 @@
   // La crónica: capítulos contados, el actual con su encargo y los que faltan
   function renderCronica() {
     const p = heroeEst.principal;
-    const o = world && !HistoriaLib.terminada(p) ? HistoriaLib.asegurarObjetivo(p, world) : null;
-    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(p) : null;
-    const actos = HistoriaLib.ACTOS || [];
-    const cabeceraActo = acto ? `<div style="padding:10px 12px;margin-bottom:10px;border-radius:6px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.35)">
+    const o = world && !HistoriaLib.terminada(p, world) ? HistoriaLib.asegurarObjetivo(p, world) : null;
+    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(p, world) : null;
+    const actos = typeof HistoriaLib.actosDe === 'function' ? HistoriaLib.actosDe(world) : (HistoriaLib.ACTOS || []);
+    const caps = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
+    const titCronica = (world && world.historia && world.historia.titulo)
+      ? `<div style="margin-bottom:8px;font-size:14px;font-weight:700;color:#fde047">📖 ${esc(world.historia.titulo)}</div>`
+      : '';
+    const cabeceraActo = titCronica + (acto ? `<div style="padding:10px 12px;margin-bottom:10px;border-radius:6px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.35)">
       <div style="font-weight:bold;color:#38bdf8;font-size:13px">${esc(acto.nombre)}</div>
       <div class="muted" style="margin-top:4px;font-size:12px;line-height:1.4">${esc(acto.resumen)}</div>
-    </div>` : '';
-    $('cro-lista').innerHTML = cabeceraActo + HistoriaLib.CAPITULOS.map((c, i) => {
+    </div>` : '');
+    $('cro-lista').innerHTML = cabeceraActo + caps.map((c, i) => {
       const inicioActo = actos.find(a => a.desdePaso === i);
       const sepActo = inicioActo ? `<div style="margin:12px 0 4px;padding:4px 8px;background:rgba(255,255,255,0.04);border-left:3px solid #38bdf8;font-size:12px;font-weight:bold;color:#93c5fd">${esc(inicioActo.nombre)}</div>` : '';
       if (i < p.paso) {
@@ -10014,7 +10024,7 @@
   $('cap-saltar').onclick = () => {
     $('capitulo').classList.remove('show');
     const p = heroeEst.principal;
-    if (!world || HistoriaLib.terminada(p)) return;
+    if (!world || HistoriaLib.terminada(p, world)) return;
     const o = HistoriaLib.asegurarObjetivo(p, world);
     if (o) {
       p.progreso = o.cantidad;
@@ -10042,7 +10052,8 @@
       }
     } else if (accion === 'activar') {
       const targetIdx = parseInt(btn.dataset.cap, 10);
-      if (!isNaN(targetIdx) && targetIdx >= 0 && targetIdx < HistoriaLib.CAPITULOS.length) {
+      const caps = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
+      if (!isNaN(targetIdx) && targetIdx >= 0 && targetIdx < caps.length) {
         heroeEst.principal.paso = targetIdx;
         heroeEst.principal.progreso = 0;
         heroeEst.principal.objetivo = null;
@@ -10050,7 +10061,7 @@
         if (targetIdx >= 2) asegurarAcompananteActivo();
         actualizarMision();
         renderCronica();
-        toast('📖 Activado Capítulo ' + (targetIdx + 1) + ': ' + HistoriaLib.CAPITULOS[targetIdx].titulo);
+        toast('📖 Activado Capítulo ' + (targetIdx + 1) + ': ' + caps[targetIdx].titulo);
         saveActive(true);
       }
     }
@@ -11996,7 +12007,30 @@
   let arquetipoSeleccionadoPrologo = 'rowan';
 
   function actualizarPortada() {
-    if ($('portada-titulo') && world) $('portada-titulo').textContent = world.name || 'Crónica de Aden';
+    const hist = world && world.historia;
+    if ($('portada-kicker') && world) {
+      $('portada-kicker').textContent = (hist && hist.subtitulo)
+        ? ('⚔️ ' + hist.subtitulo)
+        : ('⚔️ Crónica de ' + (world.name || 'la Frontera') + ' · Juego Completo');
+    }
+    if ($('portada-titulo') && world) {
+      $('portada-titulo').textContent = (hist && hist.titulo) || world.name || 'Creador de Mundos RPG';
+    }
+    if ($('portada-sub') && world) {
+      const sinopsis = (hist && hist.sinopsis) || world.sinopsis;
+      if (sinopsis) {
+        $('portada-sub').textContent = sinopsis;
+      } else if (typeof HistoriaLib !== 'undefined' && HistoriaLib.prologoDe) {
+        const pr = HistoriaLib.prologoDe(world);
+        $('portada-sub').innerHTML = pr.parrafo1;
+      }
+    }
+    const btnOficial = $('btn-portada-oficial');
+    if (btnOficial) {
+      const hayOficial = typeof window.clonarMundoOficial === 'function' && typeof window.MUNDO_OFICIAL === 'object';
+      const esOficial = !!(world && window.MUNDO_OFICIAL && world.campaignId === window.MUNDO_OFICIAL.campaignId);
+      btnOficial.style.display = (hayOficial && !esOficial) ? '' : 'none';
+    }
     const list = (typeof PartidaLib !== 'undefined' && store && worldId) ? PartidaLib.readList(store, worldId) : [];
     const active = activePartida() || list[0] || null;
     const btnCont = $('btn-portada-continuar');
@@ -12004,8 +12038,8 @@
     const res = $('portada-resumen');
     if (active) {
       const hEst = active.heroe ? HeroeLib.limpiarHeroe(active.heroe) : null;
-      const acto = (hEst && typeof HistoriaLib !== 'undefined' && HistoriaLib.actoActual) ? HistoriaLib.actoActual(hEst.principal) : null;
-      const cap = (hEst && typeof HistoriaLib !== 'undefined') ? HistoriaLib.capituloActual(hEst.principal) : null;
+      const acto = (hEst && typeof HistoriaLib !== 'undefined' && HistoriaLib.actoActual) ? HistoriaLib.actoActual(hEst.principal, world) : null;
+      const cap = (hEst && typeof HistoriaLib !== 'undefined') ? HistoriaLib.capituloActual(hEst.principal, world) : null;
       const capTxt = cap ? `Cap. ${hEst.principal.paso + 1}: ${cap.titulo}` : 'Crónica completada';
       const titTxt = (hEst && Array.isArray(hEst.titulos) && hEst.titulos.length)
         ? `<br><span style="color:#facc15;font-weight:600">👑 ${esc(hEst.titulos.join(' · '))}</span>`
@@ -12041,9 +12075,12 @@
     const p1 = $('prologo-paso-1'), p2 = $('prologo-paso-2'), tit = $('prologo-titulo');
     if (p1) p1.style.display = paso === 2 ? 'none' : '';
     if (p2) p2.style.display = paso === 2 ? '' : 'none';
+    const pr = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.prologoDe === 'function')
+      ? HistoriaLib.prologoDe(world)
+      : null;
     if (tit) tit.textContent = paso === 2
       ? '⚔️ Prólogo · El Juramento en la Plaza'
-      : '🔥 Prólogo · La Emboscada en la Fragua de Brann';
+      : ((pr && pr.titulo) || '🔥 Prólogo · La Emboscada en la Fragua de Brann');
   }
 
   function rellenarContextoPrologo() {
@@ -12054,8 +12091,18 @@
       const o = HistoriaLib.asegurarObjetivo(heroeEst.principal, world);
       if (o && o.nombre) nombreZona = o.nombre;
     }
-    if ($('prologo-pueblo')) $('prologo-pueblo').textContent = nombrePueblo;
-    if ($('prologo-zona')) $('prologo-zona').textContent = nombreZona;
+    const pr = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.prologoDe === 'function')
+      ? HistoriaLib.prologoDe(world)
+      : null;
+    if ($('prologo-emboscada-texto') && pr) {
+      $('prologo-emboscada-texto').innerHTML =
+        `<p style="margin:0 0 10px">${pr.parrafo1}</p>` +
+        `<p style="margin:0 0 10px">${pr.parrafo2}</p>` +
+        `<p style="margin:0;color:#fde047">Antes de que la guardia cierre las empalizadas de <b id="prologo-pueblo">${esc(nombrePueblo)}</b>, debes escapar hacia <b id="prologo-zona">${esc(nombreZona)}</b> y recuperar pieles y placas de hierro para forjar tu primer cinturón de supervivencia.</p>`;
+    } else {
+      if ($('prologo-pueblo')) $('prologo-pueblo').textContent = nombrePueblo;
+      if ($('prologo-zona')) $('prologo-zona').textContent = nombreZona;
+    }
     if ($('prologo-zona-2')) $('prologo-zona-2').textContent = nombreZona;
   }
 
@@ -12094,9 +12141,11 @@
     actualizarMision();
     const compInfo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS) ? AcompananteLib.COMPANEROS[arq] : null;
     const nom = compInfo ? compInfo.nombre : 'Tu compañero';
+    const pueblo = (typeof HistoriaLib !== 'undefined' && world) ? HistoriaLib.puebloInicial(world) : null;
+    const nomPueblo = (pueblo && pueblo.name) || 'la aldea';
     toast(saltado
       ? `🔥 Acto I · Cap. 1: Reúne materiales para Brann junto a ${nom}.`
-      : `🤝 ¡Juramento sellado! ${nom} te acompaña en la plaza de Aden.`);
+      : `🤝 ¡Juramento sellado! ${nom} te acompaña en la plaza de ${nomPueblo}.`);
   }
 
   if ($('btn-portada-continuar')) {
@@ -12127,6 +12176,12 @@
       }
       cerrarPortada();
       openCrearPersonaje(crearPartida);
+    };
+  }
+  if ($('btn-portada-oficial')) {
+    $('btn-portada-oficial').onclick = () => {
+      cerrarPortada();
+      cargarMundoOficialYEntrar();
     };
   }
   if ($('btn-portada-partidas')) {
@@ -12662,32 +12717,63 @@
     return null;
   }
 
+  function registrarSesionMundo(newId, wObj, serialized) {
+    try {
+      localStorage.setItem('rpgMundo.sesion.' + newId, serialized);
+      localStorage.setItem('rpgMundo.actual', newId);
+      let prev = [];
+      try { prev = JSON.parse(localStorage.getItem('rpgMundo.sesiones') || '[]'); } catch (e) { prev = []; }
+      if (!Array.isArray(prev)) prev = [];
+      prev = prev.filter(s => s && s.id !== newId);
+      prev.unshift({
+        id: newId,
+        name: wObj.name,
+        updated: Date.now(),
+        towns: wObj.towns ? wObj.towns.length : 0,
+        zones: wObj.zones ? wObj.zones.length : 0
+      });
+      localStorage.setItem('rpgMundo.sesiones', JSON.stringify(prev.slice(0, 15)));
+    } catch (e) {}
+    try {
+      sessionStorage.setItem('rpgMundo.sesion.' + newId, serialized);
+      sessionStorage.setItem('rpgMundo.actual', newId);
+    } catch (e) {}
+  }
+
+  function cargarMundoOficialYEntrar() {
+    try {
+      if (typeof window.clonarMundoOficial !== 'function') return false;
+      const wOf = window.clonarMundoOficial();
+      const newId = 's_valdris_oficial';
+      const serialized = W.serialize(wOf);
+      worldId = newId;
+      registrarSesionMundo(newId, wOf, serialized);
+      if ($('load')) $('load').classList.remove('show');
+      loadText(serialized, false);
+      bootPartida();
+      toast('🌍 Mundo oficial «' + wOf.name + '» cargado');
+      return true;
+    } catch (e) {
+      console.error('Error cargando mundo oficial:', e);
+      return false;
+    }
+  }
+
   function generarMundoInicialYEntrar() {
     try {
       if (W && typeof W.generateWorld === 'function') {
-        const wInit = W.generateWorld({ name: 'Reino de Aden' });
+        const wInit = W.generateWorld({ name: 'Frontera del Alba' });
+        if (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.generarHistoriaParaMundo === 'function') {
+          wInit.historia = HistoriaLib.generarHistoriaParaMundo(wInit);
+        }
         const newId = 's_' + Date.now().toString(36);
         const serialized = W.serialize(wInit);
         worldId = newId;
-        try {
-          localStorage.setItem('rpgMundo.sesion.' + newId, serialized);
-          localStorage.setItem('rpgMundo.actual', newId);
-          localStorage.setItem('rpgMundo.sesiones', JSON.stringify([{
-            id: newId,
-            name: wInit.name,
-            updated: Date.now(),
-            towns: wInit.towns ? wInit.towns.length : 0,
-            zones: wInit.zones ? wInit.zones.length : 0
-          }]));
-        } catch (e) {}
-        try {
-          sessionStorage.setItem('rpgMundo.sesion.' + newId, serialized);
-          sessionStorage.setItem('rpgMundo.actual', newId);
-        } catch (e) {}
+        registrarSesionMundo(newId, wInit, serialized);
         if ($('load')) $('load').classList.remove('show');
         loadText(serialized, false);
         bootPartida();
-        toast('✨ Mundo «' + wInit.name + '» generado y cargado con éxito');
+        toast('✨ Mundo «' + wInit.name + '» y su historia generados con éxito');
         return true;
       }
     } catch (e) {
@@ -12783,6 +12869,9 @@
   }
 
   $('btn-load-file').onclick = () => $('file-world').click();
+  if ($('btn-official-world')) {
+    $('btn-official-world').onclick = () => cargarMundoOficialYEntrar();
+  }
   if ($('btn-auto-world')) {
     $('btn-auto-world').onclick = () => generarMundoInicialYEntrar();
   }
@@ -12853,32 +12942,38 @@
       } catch (e) {}
     }
 
-    // Recuperación 3: si no existe ningún mundo en el almacenamiento, auto-generar uno inicial
+    // Migración suave: si solo había un marcador auto-generado antiguo sin partidas ni historia propia, pasar a Valdris
+    if (!params.get('s') && id && id.startsWith('s_init_') && text && typeof window.clonarMundoOficial === 'function') {
+      try {
+        const prevObj = JSON.parse(text);
+        const sinPartidas = !PartidaLib || !store || PartidaLib.readList(store, id).length === 0;
+        if (prevObj && prevObj.name === 'Reino de Aden' && !prevObj.campaignId && sinPartidas) {
+          text = null;
+        }
+      } catch (e) {}
+    }
+
+    // Recuperación 3: instalar el mundo oficial Valdris (o generar uno con historia si no estuviera disponible)
     if (!text) {
       try {
-        if (W && typeof W.generateWorld === 'function') {
-          console.info('No se encontró ningún mundo previo en almacenamiento. Generando mundo inicial automático...');
-          const wInit = W.generateWorld({ name: 'Reino de Aden' });
+        if (typeof window.clonarMundoOficial === 'function') {
+          console.info('Instalando mundo oficial Valdris · Tierras del Sol Quebrado...');
+          const wOf = window.clonarMundoOficial();
+          id = 's_valdris_oficial';
+          text = W.serialize(wOf);
+          registrarSesionMundo(id, wOf, text);
+        } else if (W && typeof W.generateWorld === 'function') {
+          console.info('Generando mundo inicial con historia dinámica...');
+          const wInit = W.generateWorld({ name: 'Frontera del Alba' });
+          if (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.generarHistoriaParaMundo === 'function') {
+            wInit.historia = HistoriaLib.generarHistoriaParaMundo(wInit);
+          }
           id = 's_init_' + Date.now().toString(36);
           text = W.serialize(wInit);
-          try {
-            localStorage.setItem('rpgMundo.sesion.' + id, text);
-            localStorage.setItem('rpgMundo.actual', id);
-            localStorage.setItem('rpgMundo.sesiones', JSON.stringify([{
-              id: id,
-              name: wInit.name,
-              updated: Date.now(),
-              towns: wInit.towns ? wInit.towns.length : 0,
-              zones: wInit.zones ? wInit.zones.length : 0
-            }]));
-          } catch (e) {}
-          try {
-            sessionStorage.setItem('rpgMundo.sesion.' + id, text);
-            sessionStorage.setItem('rpgMundo.actual', id);
-          } catch (e) {}
+          registrarSesionMundo(id, wInit, text);
         }
       } catch (errGen) {
-        console.error('Error generando mundo automático:', errGen);
+        console.error('Error instalando mundo inicial:', errGen);
       }
     }
 

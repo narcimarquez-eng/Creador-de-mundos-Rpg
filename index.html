@@ -217,6 +217,7 @@
       <p class="muted">Cada cambio se guarda solo en la sesión actual de este navegador. Exporta a archivo para tener copia o pasarlo a otro dispositivo.</p>
       <div id="session-list"></div>
       <div class="btns">
+        <button id="btn-official-world" style="background:#0f766e;border-color:#2dd4bf;color:#ffffff">🌍 Cargar Valdris (Oficial)</button>
         <button class="gold" id="btn-new-world">✨ Nuevo mundo…</button>
         <button id="btn-save-as">Duplicar sesión</button>
       </div>
@@ -234,7 +235,7 @@
     <div class="modal">
       <h2>✨ Generar nuevo mundo</h2>
       <label>Nombre del mundo</label>
-      <input type="text" id="nw-name" value="Reino de Aden">
+      <input type="text" id="nw-name" value="Frontera del Alba">
       <label>Semilla del mundo (terreno y biomas)</label>
       <div style="display:flex;gap:6px"><input type="number" id="nw-seed" min="1" max="999999"><button id="nw-dice">🎲</button></div>
       <label>Pueblos iniciales: <b id="nw-towns-l"></b></label>
@@ -251,7 +252,7 @@
       <input type="range" id="nw-mpl" min="60" max="600" step="10" value="180">
       <div class="btns">
         <button id="nw-cancel">Cancelar</button>
-        <button class="gold" id="nw-go">Generar</button>
+        <button class="gold" id="nw-go">Generar mundo e historia</button>
       </div>
     </div>
   </div>
@@ -276,6 +277,9 @@
   <script src="js/world-core.js?v=20261030c"></script>
   <script src="js/relieve-zona.js?v=20261112r"></script>
   <script src="js/mazmorras.js?v=20261101"></script>
+  <script src="js/lugares-secretos.js?v=20261107"></script>
+  <script src="js/historia.js?v=20261113"></script>
+  <script src="js/mundo-campana.js?v=20261113"></script>
   <script src="js/equipo.js?v=20251029"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
   <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
@@ -1184,11 +1188,13 @@
   function worldPanelHTML() {
     const st = W.stats(world);
     const S = world.settings;
+    const h = world.historia;
+    const esOficial = !!(window.MUNDO_OFICIAL && world.campaignId === window.MUNDO_OFICIAL.campaignId);
     return `
       <h3>Mundo</h3>
       <label>Nombre</label>
       <input type="text" data-w="name" value="${esc(world.name)}">
-      <div class="muted" style="margin-top:6px">Semilla del terreno: <b>${world.seed}</b></div>
+      <div class="muted" style="margin-top:6px">Semilla del terreno: <b>${world.seed}</b>${esOficial ? ' · <span style="color:#2dd4bf;font-weight:600">🌍 Mundo Oficial</span>' : ''}</div>
       <h3>Resumen</h3>
       <div class="stats">
         <div>🏘 Pueblos: <b>${st.towns}</b></div>
@@ -1198,6 +1204,18 @@
         <div>🗝 Mazmorras: <b>${st.dungeons || 0}</b></div>
         <div>📏 ${st.roadKm} km</div>
         <div>📈 Nivel máx: <b>${st.maxLevel}</b></div>
+      </div>
+      <h3>📜 Crónica / Historia del mundo</h3>
+      <div style="padding:8px 10px;background:rgba(15,23,42,0.75);border:1px solid #334155;border-radius:6px;margin-bottom:8px;font-size:12px">
+        ${h ? `
+          <div style="font-weight:700;color:#fde047">${esc(h.titulo || ('Crónica de ' + world.name))}</div>
+          <div class="muted" style="margin-top:2px">${esc(h.subtitulo || '')}</div>
+          <div style="margin-top:4px;color:#cbd5e1">📖 <b>${(h.actos || []).length}</b> Actos · <b>${(h.capitulos || []).length}</b> Capítulos · 👑 <b>${esc(h.tituloFinal || 'Campeones')}</b></div>
+        ` : '<div class="muted">Este mundo aún no tiene crónica generada propia; usa el generador para crear sus 16 capítulos adaptados a sus pueblos, zonas y jefes.</div>'}
+      </div>
+      <div class="btns">
+        <button class="gold" data-act="gen-story">✨ ${h ? 'Regenerar Historia' : 'Generar Historia'}</button>
+        ${(!esOficial && typeof window.clonarMundoOficial === 'function') ? '<button data-act="load-official" style="background:#0f766e;border-color:#2dd4bf;color:#ffffff">🌍 Cargar Valdris</button>' : ''}
       </div>
       <h3>🗝 Mazmorras Ancestrales (${(world.dungeons || []).length})</h3>
       <div class="btns">
@@ -1811,6 +1829,27 @@
       case 'export': exportWorld(); break;
       case 'view3d': saveSession(); location.href = 'visor-mundo.html?s=' + encodeURIComponent(sessionId); break;
       case 'new': openNewWorld(); break;
+      case 'gen-story': {
+        if (!window.HistoriaLib || typeof window.HistoriaLib.generarHistoriaParaMundo !== 'function') {
+          toast('No se encontró el generador de historia.');
+          break;
+        }
+        if (window.LugaresSecretosLib && typeof window.LugaresSecretosLib.generarLugaresSecretos === 'function') {
+          world.secretPlaces = window.LugaresSecretosLib.generarLugaresSecretos(world);
+        }
+        world.historia = window.HistoriaLib.generarHistoriaParaMundo(world);
+        commit('Historia generada: ' + world.historia.titulo);
+        renderPanel();
+        break;
+      }
+      case 'load-official': {
+        if (typeof window.clonarMundoOficial !== 'function') break;
+        const wOf = window.clonarMundoOficial();
+        activeTab = 'world';
+        openWorld(wOf, 's_valdris_oficial');
+        toast('🌍 Mundo oficial «' + wOf.name + '» cargado');
+        break;
+      }
       case 'delete': deleteEntity(ent.id); break;
       case 'center': centerOn(ent.x, ent.y); break;
       case 'quick-add-dungeon': {
@@ -2127,6 +2166,16 @@
     $('nw-mpl-l').textContent = $('nw-mpl').value + ' m';
   }
   ['nw-towns', 'nw-spacing', 'nw-links', 'nw-poi', 'nw-mpl'].forEach(id => $(id).addEventListener('input', updateNewWorldLabels));
+  if ($('btn-official-world')) {
+    $('btn-official-world').onclick = () => {
+      if (typeof window.clonarMundoOficial !== 'function') { toast('No se encontró el mundo oficial'); return; }
+      const wOf = window.clonarMundoOficial();
+      activeTab = 'world';
+      openWorld(wOf, 's_valdris_oficial');
+      closeModals();
+      toast('🌍 Mundo oficial «' + wOf.name + '» cargado');
+    };
+  }
   $('btn-new-world').onclick = openNewWorld;
   $('nw-dice').onclick = () => { $('nw-seed').value = Math.floor(Math.random() * 999999) + 1; };
   $('nw-cancel').onclick = closeModals;
@@ -2143,10 +2192,16 @@
         metersPerLevel: parseInt($('nw-mpl').value, 10)
       }
     });
+    if (window.LugaresSecretosLib && typeof window.LugaresSecretosLib.generarLugaresSecretos === 'function') {
+      w.secretPlaces = window.LugaresSecretosLib.generarLugaresSecretos(w);
+    }
+    if (window.HistoriaLib && typeof window.HistoriaLib.generarHistoriaParaMundo === 'function') {
+      w.historia = window.HistoriaLib.generarHistoriaParaMundo(w);
+    }
     activeTab = 'world';
     openWorld(w, newSessionId());
     closeModals();
-    toast('Mundo «' + w.name + '» generado con ' + w.towns.length + ' pueblos');
+    toast('Mundo «' + w.name + '» e historia generados (' + w.towns.length + ' pueblos)');
   };
   document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModals(); }));
 
@@ -2278,10 +2333,29 @@
     loadPrefs();
     if (window.innerWidth <= 760) $('panel').classList.add('collapsed');
     resize();
-    const cur = lsGet(STORE.current);
+    let cur = lsGet(STORE.current);
+    if (cur && cur.startsWith('s_init_') && typeof window.clonarMundoOficial === 'function') {
+      try {
+        const rawCur = lsGet(STORE.data(cur));
+        const objCur = rawCur ? JSON.parse(rawCur) : null;
+        const pCur = lsGet('rpgMundo.partidas.' + cur);
+        if (objCur && objCur.name === 'Reino de Aden' && !objCur.campaignId && (!pCur || pCur === '[]')) {
+          cur = null;
+        }
+      } catch (e) {}
+    }
     if (!(cur && lsGet(STORE.data(cur)) && loadSession(cur))) {
-      openWorld(W.generateWorld({ name: 'Reino de Aden' }));
-      toast('Se ha generado un mundo inicial. ✨ Nuevo mundo para crear otro.', 3500);
+      if (typeof window.clonarMundoOficial === 'function') {
+        openWorld(window.clonarMundoOficial(), 's_valdris_oficial');
+        toast('🌍 Mundo oficial «Valdris · Tierras del Sol Quebrado» cargado.', 3500);
+      } else {
+        const wFallback = W.generateWorld({ name: 'Frontera del Alba' });
+        if (window.HistoriaLib && typeof window.HistoriaLib.generarHistoriaParaMundo === 'function') {
+          wFallback.historia = window.HistoriaLib.generarHistoriaParaMundo(wFallback);
+        }
+        openWorld(wFallback);
+        toast('Se ha generado un mundo inicial. ✨ Nuevo mundo para crear otro.', 3500);
+      }
     }
     consumeTownReturn();
     consumeDungeonReturn();

@@ -130,10 +130,37 @@
   const TIPOS = ['matar', 'jefe', 'visitar', 'hablar', 'forjar', 'secreto'];
   const dist = (a, b) => Math.hypot(a.x - b.x, (a.y !== undefined ? a.y : a.z) - (b.y !== undefined ? b.y : b.z));
 
+  function capitulosDe(world) {
+    return (world && world.historia && Array.isArray(world.historia.capitulos) && world.historia.capitulos.length)
+      ? world.historia.capitulos
+      : CAPITULOS;
+  }
+  function actosDe(world) {
+    return (world && world.historia && Array.isArray(world.historia.actos) && world.historia.actos.length)
+      ? world.historia.actos
+      : ACTOS;
+  }
+  function hitosDe(world) {
+    return (world && world.historia && world.historia.hitos && typeof world.historia.hitos === 'object')
+      ? world.historia.hitos
+      : HITOS_NARRATIVOS;
+  }
+  function dialogosDe(world) {
+    return (world && world.historia && world.historia.dialogosNpc && typeof world.historia.dialogosNpc === 'object')
+      ? world.historia.dialogosNpc
+      : DIALOGOS_NPC;
+  }
+
   function nuevaPrincipal() { return { paso: 0, progreso: 0, objetivo: null }; }
-  function terminada(p) { return p.paso >= CAPITULOS.length; }
-  function capituloActual(p) { return terminada(p) ? null : CAPITULOS[p.paso]; }
-  function contados(p) { return CAPITULOS.slice(0, Math.min(p.paso, CAPITULOS.length)); }
+  function terminada(p, world) { return p.paso >= capitulosDe(world).length; }
+  function capituloActual(p, world) {
+    const caps = capitulosDe(world);
+    return terminada(p, world) ? null : caps[p.paso];
+  }
+  function contados(p, world) {
+    const caps = capitulosDe(world);
+    return caps.slice(0, Math.min(p.paso, caps.length));
+  }
 
   function rellenar(texto, o) {
     return String(texto)
@@ -179,19 +206,25 @@
           : 'Encarga una pieza al ' + m.nombre + ' (🔨, en la plaza)'
       };
     } else if (m.tipo === 'visitar') {
-      const otros = (world.towns || []).filter(t => !inicio || !inicio.id || t.id !== inicio.id);
-      if (!otros.length) return hablarConSabio('No hay más pueblos en el mundo: vuelve con ' + cap.sabio + '.');
-      const vecino = otros.slice().sort((a, b) => dist(a, inicio) - dist(b, inicio))[0];
-      let t = vecino;
-      if (m.pueblo === 'norte') {
-        const lejanos = otros.length > 1 ? otros.filter(x => x.id !== vecino.id) : otros;
-        t = lejanos.slice().sort((a, b) => a.y - b.y || dist(b, inicio) - dist(a, inicio))[0];
+      const explicito = m.pueblo ? (world.towns || []).find(t => t.id === m.pueblo) : null;
+      if (explicito) {
+        o = { tipo: 'visitar', cantidad: 1, pueblo: explicito.id, nombre: explicito.name, texto: 'Llega a ' + explicito.name + ' siguiendo el camino' };
+      } else {
+        const otros = (world.towns || []).filter(t => !inicio || !inicio.id || t.id !== inicio.id);
+        if (!otros.length) return hablarConSabio('No hay más pueblos en el mundo: vuelve con ' + cap.sabio + '.');
+        const vecino = otros.slice().sort((a, b) => dist(a, inicio) - dist(b, inicio))[0];
+        let t = vecino;
+        if (m.pueblo === 'norte') {
+          const lejanos = otros.length > 1 ? otros.filter(x => x.id !== vecino.id) : otros;
+          t = lejanos.slice().sort((a, b) => a.y - b.y || dist(b, inicio) - dist(a, inicio))[0];
+        }
+        o = { tipo: 'visitar', cantidad: 1, pueblo: t.id, nombre: t.name, texto: 'Llega a ' + t.name + ' siguiendo el camino' };
       }
-      o = { tipo: 'visitar', cantidad: 1, pueblo: t.id, nombre: t.name, texto: 'Llega a ' + t.name + ' siguiendo el camino' };
     } else if (m.tipo === 'jefe') {
+      const zExp = (!desdePos && m.zona) ? (world.zones || []).find(x => x.id === m.zona && x.monsters && x.monsters.length) : null;
       const jefes = (world.zones || []).filter(z => z.type === 'jefe' && z.monsters && z.monsters.some(x => x.boss));
       const coste = z => Math.abs(z.levelMin - m.nivel) * 100000 + (inicio ? dist(z, inicio) : 0);
-      const z = jefes.slice().sort((a, b) => coste(a) - coste(b))[0];
+      const z = zExp || jefes.slice().sort((a, b) => coste(a) - coste(b))[0];
       if (z) {
         o = { tipo: 'jefe', cantidad: 1, zona: z.id, nombre: z.name, texto: 'Derrota al jefe de ' + z.name };
       } else {
@@ -207,11 +240,12 @@
           : (typeof require !== 'undefined' ? (() => { try { return require('./lugares-secretos.js').generarLugaresSecretos; } catch(e){ return null; } })() : null);
         if (generador) secretos = generador(world);
       }
+      const sExp = m.secretoId ? secretos.find(s => s.id === m.secretoId) : null;
       let candidatos = m.secreto ? secretos.filter(s => s.tipo === m.secreto) : secretos;
       if (!candidatos.length) candidatos = secretos;
 
-      if (candidatos.length) {
-        const s = candidatos.slice().sort((a, b) => (inicio ? dist(a, inicio) - dist(b, inicio) : 0))[0];
+      if (sExp || candidatos.length) {
+        const s = sExp || candidatos.slice().sort((a, b) => (inicio ? dist(a, inicio) - dist(b, inicio) : 0))[0];
         o = {
           tipo: 'secreto',
           cantidad: 1,
@@ -224,7 +258,8 @@
         return hablarConSabio('Explora las tierras lejanas y habla con ' + cap.sabio + '.');
       }
     } else {
-      const z = zonaParaLuchar(world, m.nivel, inicio);
+      const zExp = (!desdePos && m.zona) ? (world.zones || []).find(x => x.id === m.zona && x.monsters && x.monsters.length) : null;
+      const z = zExp || zonaParaLuchar(world, m.nivel, inicio);
       if (!z) return hablarConSabio('No hay zonas de combate en el mundo: vuelve con ' + cap.sabio + '.');
       o = { tipo: 'matar', cantidad: m.cantidad, zona: z.id, nombre: z.name, texto: 'Derrota a ' + m.cantidad + ' criaturas en ' + z.name };
     }
@@ -242,9 +277,10 @@
   }
 
   function asegurarObjetivo(p, world, desdePos) {
-    if (terminada(p)) { p.objetivo = null; p.progreso = 0; return null; }
+    const caps = capitulosDe(world);
+    if (terminada(p, world)) { p.objetivo = null; p.progreso = 0; return null; }
     if (!objetivoValido(p.objetivo, world)) {
-      p.objetivo = resolverObjetivo(CAPITULOS[p.paso], world, desdePos);
+      p.objetivo = resolverObjetivo(caps[p.paso], world, desdePos);
       p.progreso = 0;
     }
     return p.objetivo;
@@ -252,8 +288,8 @@
 
   // Si aún no hay progreso en el capítulo, reorienta el objetivo al lugar válido más cercano a pos
   function reajustarObjetivoCercano(p, world, pos) {
-    if (!p || terminada(p) || !pos || !world) return p ? p.objetivo : null;
-    const cap = CAPITULOS[p.paso];
+    if (!p || terminada(p, world) || !pos || !world) return p ? p.objetivo : null;
+    const cap = capitulosDe(world)[p.paso];
     if (!cap) return null;
     if (p.progreso === 0) {
       p.objetivo = resolverObjetivo(cap, world, pos);
@@ -264,7 +300,7 @@
   // Registra un evento de progreso
   function registrar(p, ev) {
     const o = p.objetivo;
-    if (!o || terminada(p) || p.progreso >= o.cantidad) return false;
+    if (!o || !o.cantidad || p.progreso >= o.cantidad) return false;
     let cuenta = false;
 
     if (o.tipo === 'matar') {
@@ -286,10 +322,10 @@
     return p.progreso >= o.cantidad;
   }
 
-  function completar(p) {
+  function completar(p, world) {
     const o = p.objetivo;
     if (!o || p.progreso < o.cantidad) throw new Error('El capítulo aún no está cumplido');
-    const capitulo = CAPITULOS[p.paso];
+    const capitulo = capitulosDe(world)[p.paso];
     p.paso += 1;
     p.progreso = 0;
     p.objetivo = null;
@@ -347,9 +383,14 @@
     weapon: 'hierro salvaje de veta pura'
   };
 
-  function actoActual(p) {
+  function actoActual(p, world) {
     const paso = p && typeof p.paso === 'number' ? p.paso : 0;
-    if (paso >= CAPITULOS.length) {
+    const caps = capitulosDe(world);
+    const actos = actosDe(world);
+    if (paso >= caps.length) {
+      if (world && world.historia && world.historia.epilogo) {
+        return Object.assign({ numero: 5, id: 'epilogo', terminado: true }, world.historia.epilogo);
+      }
       return {
         numero: 5,
         id: 'epilogo',
@@ -358,7 +399,7 @@
         terminado: true
       };
     }
-    const encontrado = ACTOS.find(a => paso >= a.desdePaso && paso <= a.hastaPaso) || ACTOS[0];
+    const encontrado = actos.find(a => paso >= a.desdePaso && paso <= a.hastaPaso) || actos[0];
     return Object.assign({ terminado: false }, encontrado);
   }
 
@@ -383,7 +424,7 @@
     return s;
   }
 
-  // Diálogos dinámicos por NPC y Acto narrativo: reflejan la evolución política y arcana de Aden
+  // Diálogos dinámicos por NPC y Acto narrativo: reflejan la evolución política y arcana del mundo
   const DIALOGOS_NPC = {
     'guru-1': {
       1: 'Los siete reinos cayeron por orgullo, joven. Cuida qué piezas llevas al yunque de Brann: las murallas tienen oídos.',
@@ -466,10 +507,10 @@
 
   function fraseContextualNpc(npcId, p, world) {
     const baseId = normalizarNpcId(npcId);
-    const acto = actoActual(p);
+    const acto = actoActual(p, world);
     const claveActo = acto.terminado ? 'fin' : acto.numero;
-    const cap = capituloActual(p);
-    const tabla = DIALOGOS_NPC[baseId] || null;
+    const cap = capituloActual(p, world);
+    const tabla = dialogosDe(world)[baseId] || DIALOGOS_NPC[baseId] || null;
     const fraseBase = tabla ? (tabla[claveActo] || tabla[1]) : null;
     const esProtagonistaCap = !!(cap && cap.npc === baseId);
 
@@ -539,8 +580,344 @@
     }
   };
 
-  function hitoDeCapituloCompletado(numero) {
-    return HITOS_NARRATIVOS[Number(numero)] || null;
+  function hitoDeCapituloCompletado(numero, world) {
+    const mapa = hitosDe(world);
+    return mapa[Number(numero)] || HITOS_NARRATIVOS[Number(numero)] || null;
+  }
+
+  function prologoDe(world) {
+    if (world && world.historia && world.historia.prologo) return world.historia.prologo;
+    const p0 = puebloInicial(world);
+    const nomP = (p0 && p0.name) || 'tu aldea inicial';
+    const nomM = (world && world.name) || 'estas tierras';
+    return {
+      titulo: `🔥 Prólogo · La Emboscada en ${nomP}`,
+      parrafo1: `La noche cae sobre las murallas de <b>${nomP}</b>, en <b>${nomM}</b>. Mientras el <b>Herrero Brann</b> martillea a escondidas fuera del control del cónclave, un estruendo rompe las vigas: criaturas deformadas con placas de hierro remachadas en carne viva irrumpen en la fragua.`,
+      parrafo2: `Brann logra abatir a la primera bestia antes de caer herido sobre el yunque, apretando en su mano un <b>sello de bronce perteneciente al consejo de la plaza</b>. <i>«Nos han tendido una trampa… alguien fabrica estas aberraciones desde dentro de nuestras propias murallas»</i>, jadea.`
+    };
+  }
+
+  // Generador de historia completa y determinista a partir de la geografía real de cualquier mundo
+  function generarHistoriaParaMundo(world, opts) {
+    opts = opts || {};
+    if (!world) return null;
+    const nombreMundo = opts.nombreMundo || world.name || 'Tierras Inexploradas';
+    const pueblos = (world.towns || []).slice().sort((a, b) => (a.level || 1) - (b.level || 1));
+    const pIni = puebloInicial(world) || pueblos[0] || { id: 't_1', name: 'Alba', x: 0, y: 0 };
+    const otrosPueblos = pueblos.filter(t => t.id !== pIni.id);
+    const p2 = otrosPueblos[0] || pIni;
+    const pMid = otrosPueblos[Math.floor(otrosPueblos.length / 2)] || p2;
+    const pFin = otrosPueblos[otrosPueblos.length - 1] || pMid;
+
+    const zonas = (world.zones || []).filter(z => z.monsters && z.monsters.length);
+    const zonasNormales = zonas.filter(z => z.type !== 'jefe').sort((a, b) => (a.levelMin || 1) - (b.levelMin || 1));
+    const zonaAt = idx => zonasNormales[Math.min(idx, Math.max(0, zonasNormales.length - 1))] || zonas[0] || null;
+    const zBoss = zonas.filter(z => z.type === 'jefe' && z.monsters.some(m => m.boss)).sort((a, b) => (b.levelMin || 1) - (a.levelMin || 1))[0]
+      || zonas[zonas.length - 1] || null;
+
+    let secretos = Array.isArray(world.secretPlaces) ? world.secretPlaces : [];
+    if (!secretos.length) {
+      const gen = (typeof root !== 'undefined' && root.LugaresSecretosLib)
+        ? root.LugaresSecretosLib.generarLugaresSecretos
+        : (typeof require !== 'undefined' ? (() => { try { return require('./lugares-secretos.js').generarLugaresSecretos; } catch (e) { return null; } })() : null);
+      if (gen) secretos = gen(world);
+    }
+    const secPorTipo = tipo => secretos.find(s => s.tipo === tipo) || secretos[0] || null;
+    const secFuente = secPorTipo('fuente');
+    const secCabana = secPorTipo('cabana');
+    const secAltar = secPorTipo('altar');
+    const secSantuario = secPorTipo('santuario');
+
+    const dungs = (world.dungeons || []).slice().sort((a, b) => (a.level || 1) - (b.level || 1));
+    const dunIni = dungs[0] ? dungs[0].name : 'la cripta subterránea';
+    const dunFin = dungs[dungs.length - 1] ? dungs[dungs.length - 1].name : dunIni;
+    const bossNombre = (zBoss && zBoss.monsters && (zBoss.monsters.find(m => m.boss) || {}).name) || 'el Titán del Eclipse';
+    const tituloFinal = opts.tituloFinal || (`Libertadores de ${nombreMundo.split('·')[0].trim()}`);
+
+    const nZ = (i, fallback) => {
+      const z = zonaAt(i);
+      return z ? z.name : (fallback || 'las tierras salvajes');
+    };
+    const idZ = i => {
+      const z = zonaAt(i);
+      return z ? z.id : undefined;
+    };
+    const labMsg = z => (z && z.relieve && z.relieve.activo !== false) ? ' Adéntrate en el laberinto natural y ' : ' ';
+
+    const z1 = zonaAt(0), z2 = zonaAt(1), z3 = zonaAt(2), z4 = zonaAt(3), z5 = zonaAt(4),
+          z6 = zonaAt(5), z7 = zonaAt(6), z8 = zonaAt(7), z9 = zonaAt(Math.max(8, zonasNormales.length - 2));
+
+    const capitulos = [
+      {
+        id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1',
+        titulo: `Cenizas en ${pIni.name} y el primer cinturón`,
+        encargo: `El Herrero Brann tose sangre sobre el yunque de ${pIni.name} tras la emboscada: «¡Nos han tendido una trampa en nuestras propias murallas! Id a {lugar} y abated a {n} criaturas alteradas; traedme sus correas de cuero y placas de hierro para forjar tu cinturón antes de que la guardia cierre las puertas».`,
+        texto: `Regresas de {lugar} cubierto de hollín. Brann remacha la hebilla del cinturón y señala el sello hallado entre los despojos: «Alguien en ${pIni.name} está forjando monstruos con hierro militar».`,
+        mision: { tipo: 'matar', cantidad: 8, nivel: (z1 && z1.levelMin) || 1, zona: z1 && z1.id },
+        recompensa: { puntos: 1, forjarPieza: 'belt', desbloquea: 'acompanante' }
+      },
+      {
+        id: 'c2', nivel: (z2 && z2.levelMin) || 2, sabio: 'Maestro Oren', npc: 'guru-2',
+        titulo: `Rumbo a ${p2.name} y las botas de marcha`,
+        encargo: `El Maestro Oren te intercepta en el sendero de ${pIni.name}: «Un emisario de ${p2.name} llevaba la lista real de sospechosos antes de desaparecer en {lugar}. Abate a {n} bestias allí y recupera sus tendones reforzados para que Brann te forje unas botas de marcha».`,
+        texto: `En {lugar} recuperas tanto el cuero de marcha como una orden sellada con tu nombre rumbo a ${p2.name}. Tus pasos ahora resisten cualquier calzada o risco.`,
+        mision: { tipo: 'matar', cantidad: 12, nivel: (z2 && z2.levelMin) || 2, zona: z2 && z2.id },
+        recompensa: { puntos: 2, forjarPieza: 'boots' }
+      },
+      {
+        id: 'c3', nivel: (z3 && z3.levelMin) || 4, sabio: 'Hermana Ysolde', npc: 'guru-3',
+        titulo: 'Savia oscura y guantes de combate',
+        encargo: `La Hermana Ysolde oculta un vial turbio bajo su túnica: «Las caravanas que cruzan {lugar} están cayendo en emboscadas. Abate a {n} criaturas alteradas allí y arráncales sus garras blindadas para forjar guantes de combate».`,
+        texto: `Combates espalda con espalda con tu compañero en {lugar}. Con las garras obtenidas, Brann templa tus guanteletes y sella la hermandad total con tu acompañante.`,
+        mision: { tipo: 'matar', cantidad: 15, nivel: (z3 && z3.levelMin) || 4, zona: z3 && z3.id },
+        recompensa: { puntos: 2, forjarPieza: 'gloves', desbloquea: 'acompanante' }
+      },
+      {
+        id: 'c4', nivel: (z4 && z4.levelMin) || 6, sabio: 'Viejo Tamsin', npc: 'guru-4',
+        titulo: `El cerco de ${nZ(3)} y el peto de acero`,
+        encargo: `El Viejo Tamsin señala hacia ${nZ(3)}: «Los capataces del cónclave esconden sus remesas tras los muros de {lugar}.${labMsg(z4)}Destroza a {n} guardianes allí y trae sus placas para forjar tu peto; te enseñaré a partir la tierra con Impacto Sísmico (Q)».`,
+        texto: `Con las planchas recogidas en {lugar}, Brann martilla un peto macizo y Tamsin despierta en tu brazo el Impacto Sísmico (Q).`,
+        mision: { tipo: 'matar', cantidad: 18, nivel: (z4 && z4.levelMin) || 6, zona: idZ(3) },
+        recompensa: { puntos: 2, forjarPieza: 'torso', desbloquea: 'sismo' }
+      },
+      {
+        id: 'c5', nivel: (z5 && z5.levelMin) || 8, sabio: 'Erudita Mirel', npc: 'guru-5',
+        titulo: 'Susurros en la bruma y el yelmo protector',
+        encargo: `La Erudita Mirel examina los mapas de ${pMid.name}: «Las emanaciones cercanas a {lugar} doblan la voluntad de los viajeros. Abate a {n} criaturas allí para recolectar refuerzos óseos con los que sellar tu yelmo».`,
+        texto: `Al ajustar el yelmo forjado con piezas de {lugar}, las voces telepáticas del cónclave se apagan al instante. Estás listo para seguir su rastro hacia los santuarios ocultos.`,
+        mision: { tipo: 'matar', cantidad: 20, nivel: (z5 && z5.levelMin) || 8, zona: idZ(4) },
+        recompensa: { puntos: 2, forjarPieza: 'helmet' }
+      },
+      {
+        id: 'c6', nivel: 9, sabio: 'Sabia Elara', npc: 'guru-1',
+        titulo: 'La fuente arcana y las hombreras templadas',
+        encargo: `Elara te entrega un mapa cifrado hacia {lugar}: «Sumerge tus placas de hombro en la fuente luminiscente para resistir el acero rúnico, pero mantente alerta: el agua guarda secretos de la Corona».`,
+        texto: `En {lugar}, las hombreras absorben un fulgor azulado indestructible. Bajo la superficie descubres jaulas selladas con emblemas idénticos a los de las patrullas corruptas.`,
+        mision: { tipo: 'secreto', secreto: 'fuente', secretoId: secFuente && secFuente.id },
+        recompensa: { puntos: 3, forjarPieza: 'shoulders' }
+      },
+      {
+        id: 'c7', nivel: (z6 && z6.levelMin) || 10, sabio: 'Maestro Oren', npc: 'guru-2',
+        titulo: 'Hierro salvaje y la forja del arma',
+        encargo: `Oren señala la ruta que une las tierras medias con ${pMid.name}: «Las vetas de hierro puro en {lugar} están tomadas por escoltas renegados. Abate a {n} enemigos allí y recupera metal suficiente para forjar tu arma maestra».`,
+        texto: `Con el mineral puro de {lugar}, Brann templa tu arma maestra entre chispas azules. Tu equipo completo de campaña queda forjado y unido bajo una sola voluntad.`,
+        mision: { tipo: 'matar', cantidad: 22, nivel: (z6 && z6.levelMin) || 10, zona: idZ(5) },
+        recompensa: { puntos: 3, forjarPieza: 'weapon' }
+      },
+      {
+        id: 'c8', nivel: (z7 && z7.levelMin) || 11, sabio: 'Hermana Ysolde', npc: 'guru-3',
+        titulo: `El despertar de la Nova en ${nZ(6)}`,
+        encargo: `Ysolde rasga sus votos frente a ti: «La energía encerrada en {lugar}.${labMsg(z7)}pertenece a los reyes antiguos, no al cónclave. Derrota a {n} centinelas allí para liberar la Explosión Nova (E)».`,
+        texto: `Una onda expansiva dorada recorre {lugar}. Has desbloqueado la Explosión Nova (E) y confirmado que las reliquias de ${nombreMundo} responden a los libres, no a los tiranos.`,
+        mision: { tipo: 'matar', cantidad: 25, nivel: (z7 && z7.levelMin) || 11, zona: idZ(6) },
+        recompensa: { puntos: 3, desbloquea: 'nova' }
+      },
+      {
+        id: 'c9', nivel: 12, sabio: 'Viejo Tamsin', npc: 'guru-4',
+        titulo: 'Los archivos de la cabaña oculta',
+        encargo: `Tamsin baja la voz: «Antes de morir, el cronista escondió en {lugar} los planos de ${dunIni} y el registro de envíos hacia ${pFin.name}. Llega hasta allí antes de que los inquisidores lo reduzcan a cenizas».`,
+        texto: `En {lugar} hallas el diario completo: revela los nombres de los conspiradores, la red de monopolio mercantil y el despertar subterráneo bajo ${pFin.name}.`,
+        mision: { tipo: 'secreto', secreto: 'cabana', secretoId: secCabana && secCabana.id },
+        recompensa: { puntos: 3 }
+      },
+      {
+        id: 'c10', nivel: (z8 && z8.levelMin) || 13, sabio: 'Sabia Elara', npc: 'guru-1',
+        titulo: `Ruptura del cerco hacia ${pFin.name}`,
+        encargo: `Los pasos fronterizos hacia ${pFin.name} arden bajo patrullas de choque en {lugar}. «Hay que romper el bloqueo ahora mismo: abatid a {n} enemigos en {lugar} para abrir paso al norte».`,
+        texto: `El cerco de {lugar} se desmorona. Las caravanas rebeldes y los exploradores de ${p2.name} y ${pMid.name} por fin tienen vía libre hacia la frontera.`,
+        mision: { tipo: 'matar', cantidad: 25, nivel: (z8 && z8.levelMin) || 13, zona: idZ(7) },
+        recompensa: { puntos: 3 }
+      },
+      {
+        id: 'c11', nivel: 14, sabio: 'Maestro Oren', npc: 'guru-2',
+        titulo: `El altar de ${pMid.name} y el fin del monopolio`,
+        encargo: `Oren te confía la llave rúnica: «Consagra {lugar} cerca de ${pMid.name}. Cuando caiga su sello eclesial, Brann y los mercaderes volverán a forjar y vender equipo superior (Nv. 12+) sin censura».`,
+        texto: `Un haz luminoso parte el cielo sobre {lugar}: ¡el monopolio mercantil del cónclave queda destruido! Las fraguas superiores y tiendas de todo ${nombreMundo} reabren sus puertas.`,
+        mision: { tipo: 'secreto', secreto: 'altar', secretoId: secAltar && secAltar.id },
+        recompensa: { puntos: 4 }
+      },
+      {
+        id: 'c12', nivel: (z9 && z9.levelMin) || 15, sabio: 'Hermana Ysolde', npc: 'guru-3',
+        titulo: `Pilar de resonancia en ${nZ(Math.max(8, zonasNormales.length - 2))}`,
+        encargo: `La ciudadela cercana a ${pFin.name} resiste protegida por un velo arcano alimentado desde {lugar}. «Derrota a {n} guardianes en {lugar} para derribar los pilares de resonancia».`,
+        texto: `La cúpula energética colapsa con un rugido sobre {lugar}. El acceso al corazón mismo de la conspiración en ${pFin.name} queda abierto.`,
+        mision: { tipo: 'matar', cantidad: 30, nivel: (z9 && z9.levelMin) || 15, zona: idZ(Math.max(8, zonasNormales.length - 2)) },
+        recompensa: { puntos: 4 }
+      },
+      {
+        id: 'c13', nivel: 16, sabio: 'Sabia Elara', npc: 'guru-1',
+        titulo: 'El santuario del sol quebrado',
+        encargo: `Elara te cita frente a los monolitos de {lugar}: «Contempla la fuente original que el cónclave intentó usurpar bajo ${dunFin}. Descubre sus ruinas para localizar el núcleo del titán».`,
+        texto: `En {lugar}, las estelas revelan la verdad definitiva: el cónclave planeaba fusionar la savia corrupta con ${bossNombre} para someter todas las rutas de ${nombreMundo}.`,
+        mision: { tipo: 'secreto', secreto: 'santuario', secretoId: secSantuario && secSantuario.id },
+        recompensa: { puntos: 4 }
+      },
+      {
+        id: 'c14', nivel: (zBoss && zBoss.levelMin) || 18, sabio: 'Viejo Tamsin', npc: 'guru-4',
+        titulo: `El asalto final contra ${bossNombre}`,
+        encargo: `Tamsin alza su mandoble hacia {lugar}, junto a ${pFin.name}: «Nadie ha vuelto vivo de los dominios de ${bossNombre}. Derriba al coloso en {lugar} antes de que despierte la última fragua abisal».`,
+        texto: `En un combate épico en {lugar}, tu compañero desvía el golpe mortal y atraviesas el núcleo de ${bossNombre}. Las líneas de suministro de monstruos mecánicos se apagan para siempre.`,
+        mision: { tipo: 'jefe', nivel: (zBoss && zBoss.levelMin) || 18, zona: zBoss && zBoss.id },
+        recompensa: { puntos: 5 }
+      },
+      {
+        id: 'c15', nivel: 18, sabio: 'Hermana Ysolde', npc: 'guru-3',
+        titulo: 'Purificación en las aguas sagradas',
+        encargo: `Con el titán derrotado, tu compañero te pide acudir una última vez a {lugar} para purificar los restos de aceite oscuro y sellar el pacto de los pueblos libres de ${nombreMundo}.`,
+        texto: `En {lugar}, la savia gris se disuelve en vapor limpio. Los ríos que alimentan ${pIni.name} y ${p2.name} vuelven a correr puros bajo el cielo abierto.`,
+        mision: { tipo: 'secreto', secreto: 'fuente', secretoId: secFuente && secFuente.id },
+        recompensa: { puntos: 4 }
+      },
+      {
+        id: 'c16', nivel: 19, sabio: 'Erudita Mirel', npc: 'guru-5',
+        titulo: `Juicio y victoria en ${pIni.name}`,
+        encargo: `Regresa a la plaza de ${pIni.name}. La Erudita Mirel, Brann y los enviados desde ${p2.name} hasta ${pFin.name} aguardan para juzgar al cónclave y grabar vuestro título en la crónica.`,
+        texto: `Entre vítores bajo la arcada de ${pIni.name}, las campanas tañen desde ${p2.name} hasta ${pFin.name}. Vuestra gesta queda sellada para la eternidad: ¡sois los ${tituloFinal}!`,
+        mision: { tipo: 'hablar', npc: 'guru-5', nombre: 'Erudita Mirel' },
+        recompensa: { puntos: 6, titulo: tituloFinal }
+      }
+    ];
+
+    const actos = [
+      {
+        numero: 1, id: 'acto-1',
+        nombre: `Acto I · Asedio en ${pIni.name} y Forja Clandestina`,
+        resumen: `Tras la emboscada en ${pIni.name}, reúnes cuero, tendones, garras y acero desde ${nZ(0)} hasta ${nZ(4)} para equiparte sin el permiso del cónclave.`,
+        desdePaso: 0, hastaPaso: 4
+      },
+      {
+        numero: 2, id: 'acto-2',
+        nombre: `Acto II · Savia, Laberintos y Secretos de ${nombreMundo}`,
+        resumen: `Templas tu armadura en la fuente arcana, despiertas la Explosión Nova y descubres las pruebas escritas de la conspiración entre ${p2.name} y ${pMid.name}.`,
+        desdePaso: 5, hastaPaso: 9
+      },
+      {
+        numero: 3, id: 'acto-3',
+        nombre: `Acto III · Ruptura del Monopolio y Caída de ${bossNombre}`,
+        resumen: `Consagras el Altar Rúnico junto a ${pMid.name} para reabrir las fraguas de nivel 12+, abres ruta hacia ${pFin.name} y abates a ${bossNombre}.`,
+        desdePaso: 10, hastaPaso: 13
+      },
+      {
+        numero: 4, id: 'acto-4',
+        nombre: `Acto IV · Purificación y Liberación de ${nombreMundo}`,
+        resumen: `Purificas las aguas de ${nombreMundo} y regresas a la plaza de ${pIni.name} para sellar el juicio que proclama a los ${tituloFinal}.`,
+        desdePaso: 14, hastaPaso: 15
+      }
+    ];
+
+    const epilogo = {
+      nombre: `Epílogo · ${tituloFinal}`,
+      resumen: `El cónclave ha caído y todas las rutas de ${nombreMundo} son libres. Las cabañas fronterizas, laberintos y mazmorras como ${dunFin} esperan a los campeones.`
+    };
+
+    const hitos = {
+      5: { capitulo: 5, icono: '🛡️', etiqueta: `Fin del Acto I → Acto II · ${nombreMundo}`, titulo: 'Mente Blindada ante la Corrupción', detalle: `El yelmo óseo forjado con trofeos de ${nZ(4)} sella tu mente. Comienza la búsqueda de santuarios y pruebas.` },
+      8: { capitulo: 8, icono: '✨', etiqueta: `Giro del Acto II · ${nZ(6)}`, titulo: 'Despertar de la Explosión Nova', detalle: `La Hermana Ysolde rompe en secreto la disciplina del cónclave y libera el poder antiguo en ${nZ(6)}.` },
+      10: { capitulo: 10, icono: '⚔️', etiqueta: `Fin del Acto II → Acto III · Camino a ${pFin.name}`, titulo: 'Frontera Desbloqueada', detalle: `Cae el bloqueo hacia ${pFin.name} y las regiones extremas de ${nombreMundo} quedan a tu alcance.` },
+      11: { capitulo: 11, icono: '🔓', etiqueta: `Hito Económico · ${pMid.name}`, titulo: '¡Monopolio Comercial Quebrado!', detalle: 'Las forjas de Brann y los mercaderes reabren todo el catálogo superior (Nv. 12+) en todos los pueblos.' },
+      14: { capitulo: 14, icono: '⚙️', etiqueta: `Fin del Acto III → Acto IV · ${pFin.name}`, titulo: `Caída de ${bossNombre}`, detalle: `${bossNombre} yace derrotado junto a ${pFin.name}. Solo resta purificar las aguas y regresar a ${pIni.name}.` },
+      16: { capitulo: 16, icono: '👑', etiqueta: `Epílogo Desbloqueado · ${tituloFinal}`, titulo: `Triunfo en la Plaza de ${pIni.name}`, detalle: `Has completado la crónica de ${nombreMundo}. Las mazmorras (${dungs.map(d => d.name).join(', ') || 'criptas'}) y las 5 cabañas quedan abiertas.` }
+    };
+
+    const dialogosNpc = {
+      'guru-1': {
+        1: `En ${pIni.name} todos vigilan lo que llevas al yunque de Brann. Empieza limpiando ${nZ(0)}.`,
+        2: `Las fuentes arcanas de ${nombreMundo} guardan rastros de cargamentos desaparecidos entre ${pIni.name} y ${p2.name}.`,
+        3: `Si llegas al santuario cerca de ${pFin.name}, entenderás por qué el cónclave temía tu avance.`,
+        4: `${bossNombre} ha caído… quizá la voluntad de los pueblos libres valga más que todos nuestros sellos.`,
+        fin: `Tu nombre ya forma parte eterna de las crónicas de ${nombreMundo}.`
+      },
+      'guru-2': {
+        1: `Sigue las calzadas entre ${pIni.name} y ${p2.name}; las patrullas corruptas vigilan cada bifurcación.`,
+        2: `Las vetas libres cerca de ${pMid.name} son vitales para templar tu arma maestra.`,
+        3: `¡Con el Altar Rúnico consagrado, los caminos entre ${pIni.name}, ${pMid.name} y ${pFin.name} vuelven a ser libres!`,
+        4: `Las caravanas vuelven a circular sin miedo desde la costa hasta ${pFin.name}.`,
+        fin: `Cada camino de ${nombreMundo} lleva hoy la huella de los ${tituloFinal}.`
+      },
+      'guru-3': {
+        1: `Entrena tus técnicas en silencio en ${pIni.name}. Las runas antiguas no pertenecen al cónclave.`,
+        2: `Cuando alcances ${nZ(6)}, la Explosión Nova despertará ante tus manos.`,
+        3: `He roto mis votos definitivamente. Derriba la barrera que protege ${pFin.name}.`,
+        4: `Purifica las aguas de ${nombreMundo} para que ninguna otra forja oscura vuelva a nacer.`,
+        fin: `Las runas sirven ahora al pueblo libre, no a las sombras.`
+      },
+      'guru-4': {
+        1: `Aprende a partir la tierra: los constructos que merodean por ${nZ(3)} se quiebran con impacto sísmico.`,
+        2: `El diario de la cabaña contiene las rutas secretas hacia ${dunIni}.`,
+        3: `Cuando entres al territorio de ${bossNombre}, lleva contigo todo tu temple.`,
+        4: `${bossNombre} ya no volverá a alzarse sobre ${pFin.name}.`,
+        fin: `Las criptas como ${dunFin} siguen guardando pruebas para guerreros legendarios.`
+      },
+      'guru-5': {
+        1: `Revisa siempre la durabilidad de tu equipo y blinda tu yelmo en cuanto llegues a ${nZ(4)}.`,
+        2: `Cada pieza recuperada demuestra quién financia estas aberraciones desde ${pMid.name} hasta ${pFin.name}.`,
+        3: `Reúno todas las actas y testimonios para el juicio en la plaza de ${pIni.name}.`,
+        4: `Todo ${nombreMundo} aguarda en la plaza para escuchar vuestro veredicto.`,
+        fin: `Los anales de ${pIni.name} honran por siempre a los ${tituloFinal}.`
+      },
+      'serv-herrero': {
+        1: `Mi yunque en ${pIni.name} sigue ardiendo a escondidas. Tráeme trofeos de ${nZ(0)} y ${nZ(1)}.`,
+        2: `En cuanto consigas hierro puro de ${nZ(5)}, forjaré tu arma definitiva.`,
+        3: `¡El monopolio cayó! Ya puedo trabajar equipo superior desde nivel 12 en toda ${nombreMundo}.`,
+        4: `El acero sale limpio de la fragua; es hora de cerrar el juicio en ${pIni.name}.`,
+        fin: `Para los ${tituloFinal}, mi fragua siempre arderá con fuego perfecto.`
+      },
+      'serv-mercader': {
+        1: `Los inspectores bloquean las ventas superiores en ${pIni.name} y ${p2.name} hasta que rompas el monopolio (Nv. 12).`,
+        2: `Tráeme el botín de las cacerías y aprovisiónate de pociones antes de cruzar hacia ${pMid.name}.`,
+        3: `¡Libre comercio al fin! Las rutas desde ${p2.name} hasta ${pMid.name} vuelven a fluir.`,
+        4: `Las caravanas celebran vuestro triunfo en cada plaza.`,
+        fin: `¡El mercado de ${nombreMundo} nunca había visto tanta abundancia!`
+      },
+      'serv-comandante': {
+        1: `Tráeme pruebas del cónclave y no tendrás problemas con mi guarnición.`,
+        2: `Esos diarios incriminan a los jefes de plaza. Mis exploradores despejarán vuestra marcha hacia ${pMid.name}.`,
+        3: `La guardia está con vosotros para asegurar los flancos rumbo a ${pFin.name}.`,
+        4: `Las murallas de ${pIni.name} vuelven a servir al pueblo.`,
+        fin: `La guardia rinde honores a los ${tituloFinal}.`
+      },
+      'serv-informante': {
+        1: `Dicen que las cabañas cercanas a ${pIni.name} esconden pistas sobre cargamentos perdidos.`,
+        2: `Entre ${p2.name} y ${pMid.name} desaparecen caravanas enteras rumbo a ${dunIni}.`,
+        3: `Mis contactos ven humo saliendo cerca de ${pFin.name}. Prepara tus mejores elixires.`,
+        4: `Con ${bossNombre} vencido, solo quedan tesoros ocultos en las criptas profundas.`,
+        fin: `Si buscas retos en ${dunFin}, siempre tengo coordenadas frescas.`
+      },
+      'serv-boticaria': {
+        1: `Mis destilados mantienen en pie a quien se atreve a entrar en ${nZ(0)} sin armadura completa.`,
+        2: `En los pantanos y bosques de ${nombreMundo} la savia corrupta quema la piel: lleva fuego líquido.`,
+        3: `Contra ${bossNombre} necesitarás pociones de furia y temple.`,
+        4: `Purificar las aguas devolvió la pureza incluso a mis hierbas.`,
+        fin: `Las mazmorras de ${nombreMundo} siguen exigiendo buenos brebajes.`
+      },
+      'serv-hereje': {
+        1: `Si buscas poder más allá de las leyes de ${pIni.name}, mis runas esperan en la sombra.`,
+        2: `Ellos llaman herejía a mis grabados mientras infectan los bosques de ${p2.name}.`,
+        3: `Graba furia en tu acero antes de enfrentarte a ${bossNombre}.`,
+        4: `Incluso en tiempos libres, alguien debe vigilar lo que duerme bajo tierra.`,
+        fin: `Mi yunque oscuro sigue abierto para quienes desciendan a ${dunFin}.`
+      }
+    };
+
+    const prologo = {
+      titulo: `🔥 Prólogo · La Emboscada en ${pIni.name}`,
+      parrafo1: `La noche cae sobre las murallas de <b>${pIni.name}</b>, puerta de entrada a <b>${nombreMundo}</b>. Mientras el <b>Herrero Brann</b> forja a escondidas del cónclave, un estruendo quiebra las vigas: bestias alteradas con placas de hierro remachadas irrumpen desde la oscuridad.`,
+      parrafo2: `Brann abatió a la primera criatura antes de desplomarse herido junto al yunque, aferrando un <b>sello de bronce del Consejo</b>. <i>«Nos han traicionado desde dentro… alguien alimenta esta plaga más allá de ${p2.name} y hasta ${pFin.name}»</i>, susurra.`
+    };
+
+    return {
+      titulo: `Crónica de ${nombreMundo}`,
+      subtitulo: `Campaña de 4 Actos · Desde ${pIni.name} hasta ${pFin.name}`,
+      mundoNombre: nombreMundo,
+      tituloFinal,
+      generadaEn: new Date().toISOString(),
+      prologo,
+      actos,
+      epilogo,
+      capitulos,
+      hitos,
+      dialogosNpc
+    };
   }
 
   const api = {
@@ -549,6 +926,12 @@
     HITOS_NARRATIVOS,
     MATERIALES_FORJA,
     DIALOGOS_NPC,
+    capitulosDe,
+    actosDe,
+    hitosDe,
+    dialogosDe,
+    prologoDe,
+    generarHistoriaParaMundo,
     nuevaPrincipal,
     terminada,
     capituloActual,
