@@ -484,19 +484,44 @@
   // Copia de un material con la foto de la biblioteca en lugar de su textura procedural (misma repetición; la foto
   // también da el relieve). Sin TexturasLib (pruebas en Node) o sin textura elegida, devuelve el material tal cual.
   const _matTexCache = new Map();
-  function conTexturaBiblioteca(ThreeLib, mat, id) {
+  function conTexturaBiblioteca(ThreeLib, mat, id, neutro) {
     const T = (typeof window !== 'undefined') ? window.TexturasLib : null;
     if (!T || !id || !T.valida(id) || !mat || typeof mat.clone !== 'function') return mat;
-    const clave = mat.uuid + '|' + id;
+    const clave = mat.uuid + '|' + id + (neutro ? '|n' : '');
     if (_matTexCache.has(clave)) return _matTexCache.get(clave);
     const m = mat.clone();
     const rep = mat.map && mat.map.repeat ? [mat.map.repeat.x, mat.map.repeat.y] : [1, 1];
     m.map = T.textura(ThreeLib, id, { repetir: rep });
+    // Textura por defecto del tema: sin tinte del estilo, para que la foto se vea con sus colores reales
+    if (neutro && m.color && typeof m.color.setHex === 'function') m.color.setHex(0xd6d2cc);
     if (m.bumpMap) { m.bumpMap = m.map; m.bumpScale = Math.min(m.bumpScale || 1, 1.2); }
     if (m.normalMap) m.normalMap = null;
     m.needsUpdate = true;
     _matTexCache.set(clave, m);
     return m;
+  }
+
+  // Tema de texturas por defecto por tipo de estancia: pared, suelo, zócalo/pileta y camino principal
+  function temaTexturasSala(sala, cfg) {
+    if (cfg && cfg.sinTexturasMazmorra) return {};
+    const t = sala.tipo;
+    const base = { pared: 'mpared/t01', suelo: 'msuelo/t01', zocalo: 'mpared/t07', camino: 'msuelo/t04' };
+    const porTipo = {
+      pasillo:             { pared: 'mpared/t04', suelo: 'msuelo/t07', camino: 'msuelo/t06' },
+      entrada:             { pared: 'mpared/t07', suelo: 'msuelo/t07', zocalo: 'mpared/t06' },
+      fuente:              { pared: 'mpared/t02', suelo: 'msuelo/t02', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
+      cripta_columnas:     { pared: 'mpared/t07', suelo: 'msuelo/t03', zocalo: 'mpared/t06' },
+      cripta:              { pared: 'mpared/t06', suelo: 'msuelo/t03', zocalo: 'mpared/t01' },
+      prision:             { pared: 'mpared/t06', suelo: 'msuelo/t09', zocalo: 'mpared/t09', camino: 'msuelo/t05' },
+      jardin_subterraneo:  { pared: 'mpared/t05', suelo: 'msuelo/t10', zocalo: 'mpared/t02' },
+      laboratorio:         { pared: 'mpared/t10', suelo: 'msuelo/t01', zocalo: 'mpared/t06', camino: 'msuelo/t08' },
+      armeria:             { pared: 'mpared/t10', suelo: 'msuelo/t07', zocalo: 'mpared/t07' },
+      biblioteca:          { pared: 'mpared/t01', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
+      tesoro:              { pared: 'mpared/t08', suelo: 'msuelo/t04', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
+      trono:               { pared: 'mpared/t03', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'msuelo/t04' },
+      sala_jefe:           { pared: 'mpared/t03', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'msuelo/t04' }
+    };
+    return Object.assign({}, base, porTipo[t] || {});
   }
 
   // --- 2.3 RESOLUTOR DE MATERIALES INDIVIDUALES POR ESTANCIA ---
@@ -563,10 +588,19 @@
 
     // Texturas de la biblioteca (js/texturas-lib.js): por estancia o para toda la mazmorra
     const tex = campo => (sala[campo] && sala[campo] !== 'default') ? sala[campo] : (cfg[campo] && cfg[campo] !== 'default' ? cfg[campo] : null);
-    matPared = conTexturaBiblioteca(ThreeLib, matPared, tex('texturaPared'));
-    matSuelo = conTexturaBiblioteca(ThreeLib, matSuelo, tex('texturaSuelo'));
-    if (tex('texturaSuelo')) matMosaico = conTexturaBiblioteca(ThreeLib, matMosaico, tex('texturaSuelo'));
-    matZocalo = conTexturaBiblioteca(ThreeLib, matZocalo, tex('texturaZocalo') || tex('texturaPared'));
+    // Tema visual por defecto (fotos de mazmorra) según el papel de cada superficie y el tipo de estancia.
+    // Solo se aplica si no hay textura elegida; sin TexturasLib (pruebas en Node) no cambia nada.
+    const tema = temaTexturasSala(sala, cfg);
+    const sel = (campo, def, hayColor) => { const e = tex(campo); return e ? [e, false] : [(hayColor ? null : def), true]; };
+    const [idPared, nPared] = sel('texturaPared', tema.pared, colPared);
+    const [idSuelo, nSuelo] = sel('texturaSuelo', tema.suelo, colSuelo);
+    const [idZoc, nZoc] = sel('texturaZocalo', tema.zocalo, colZocalo);
+    matPared = conTexturaBiblioteca(ThreeLib, matPared, idPared, nPared);
+    matSuelo = conTexturaBiblioteca(ThreeLib, matSuelo, idSuelo, nSuelo);
+    // Camino principal: banda/alfombra de mosaico, distinta del suelo y de las paredes
+    const idCamino = tex('texturaSuelo') || (colSuelo ? null : tema.camino);
+    if (idCamino) matMosaico = conTexturaBiblioteca(ThreeLib, matMosaico, idCamino, !tex('texturaSuelo'));
+    matZocalo = conTexturaBiblioteca(ThreeLib, matZocalo, tex('texturaZocalo') || tex('texturaPared') || idZoc, !tex('texturaZocalo') && !tex('texturaPared'));
     matTecho = conTexturaBiblioteca(ThreeLib, matTecho, tex('texturaTecho'));
 
     return {
@@ -4313,7 +4347,11 @@
       case 'fuente': {
         if (cfgProps.fuentes !== false) {
           const radioF = Math.max(1.8, Math.min(3.6, W * 0.18));
-          const kitFuente = (config.kitsPorEstilo && config.kitsPorEstilo[sala.estiloFuente]) || kit;
+          let kitFuente = (config.kitsPorEstilo && config.kitsPorEstilo[sala.estiloFuente]) || kit;
+          // Pileta de sillares ruinosos (distinta de la pared, con musgo en el estanque)
+          if (!sala.texturaZocalo && !config.sinTexturasMazmorra) {
+            kitFuente = Object.assign({}, kitFuente, { piedraMuro: conTexturaBiblioteca(ThreeLib, kitFuente.piedraMuro, sala.texturaZocalo || 'mpared/t07', true) });
+          }
           const fuente = crearFuente(ThreeLib, kitFuente, radioF, 1.4, sala.colorAgua);
           fuente.position.set(0, 0, 0);
           g.add(fuente);

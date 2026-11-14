@@ -25,9 +25,16 @@
     piedra: { nombre: 'Piedra', t01: 'Mampostería', t02: 'Sillar claro', t03: 'Pizarra apilada', t04: 'Arenisca', t05: 'Cantos',
       t06: 'Sillar oscuro', t07: 'Encalado', t08: 'Granito', t09: 'Travertino', t10: 'Piedra y ladrillo' },
     agua: { nombre: 'Agua', t01: 'Piscina', t02: 'Mar profundo', t03: 'Agua sobre cantos', t04: 'Oleaje', t05: 'Lluvia',
-      t06: 'Charca con algas', t07: 'Rápidos', t08: 'Orilla de arena', t09: 'Hielo', t10: 'Agua oscura' }
+      t06: 'Charca con algas', t07: 'Rápidos', t08: 'Orilla de arena', t09: 'Hielo', t10: 'Agua oscura' },
+    // Mazmorras: hojas de texturas (recortadas y repetibles sin costuras por espejo)
+    mpared: { nombre: 'Paredes de mazmorra', t01: 'Ladrillos desgastados', t02: 'Ladrillos con musgo', t03: 'Mosaicos antiguos', t04: 'Mampostería irregular',
+      t05: 'Piedra con enredaderas', t06: 'Piedra de calabozo', t07: 'Sillares ruinosos', t08: 'Mosaico decorativo', t09: 'Roca excavada', t10: 'Pared chamuscada' },
+    msuelo: { nombre: 'Suelos de mazmorra', t01: 'Losas desgastadas', t02: 'Losas con musgo', t03: 'Baldosas agrietadas', t04: 'Mosaico desgastado', t05: 'Tierra y cascotes',
+      t06: 'Adoquines antiguos', t07: 'Baldosas de sillar', t08: 'Rocas y gravilla', t09: 'Suelo con charcos', t10: 'Barro y detritus' }
   };
-  const GRUPOS = Object.keys(CATALOGO);
+  // GRUPOS: los de pueblos y cabañas; las hojas de mazmorra se piden por nombre en el creador de mazmorras
+  const GRUPOS_MAZMORRA = ['mpared', 'msuelo'];
+  const GRUPOS = Object.keys(CATALOGO).filter(g => !GRUPOS_MAZMORRA.includes(g));
 
   const valida = id => {
     if (typeof id !== 'string') return false;
@@ -171,7 +178,7 @@
     return { elemento: fila, fijar: v => { actual = valida(v) ? v : null; mostrar(); }, valor: () => actual };
   }
 
-  const TexturasLib = { BASE, CATALOGO, GRUPOS, valida, ruta, miniatura, nombre, lista, textura, imagen, atlasConBandas, selector, abrirRejilla };
+  const TexturasLib = { BASE, CATALOGO, GRUPOS, GRUPOS_MAZMORRA, valida, ruta, miniatura, nombre, lista, textura, imagen, atlasConBandas, selector, abrirRejilla };
   if (typeof module !== 'undefined' && module.exports) module.exports = TexturasLib;
   if (root) root.TexturasLib = TexturasLib;
 })(typeof window !== 'undefined' ? window : globalThis);
