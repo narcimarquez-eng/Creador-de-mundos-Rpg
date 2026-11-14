@@ -4780,12 +4780,13 @@
       const n = sel.ref;
       cx = n.raiz.position.x; cz = n.raiz.position.z; r = 2.2;
       const serv = n.info.servicio;
+      const fraseNpc = fraseVivaNpc(n.info);
       html = `
         <button class="close" data-close>✕</button>
         <span class="kind">${serv ? TEXTO_SERVICIO[serv].tipo : 'Gurú del conocimiento'}</span>
         <h2>${esc(n.info.nombre)}</h2>
         <div class="muted">${esc(n.info.tema)}</div>
-        <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${serv === 'herrero' || serv === 'mercader' ? '' : '«' + esc(n.info.frase) + '»'}</div>
+        <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${(serv === 'herrero' || serv === 'mercader') && !fraseNpc ? '' : '«' + esc(fraseNpc) + '»'}</div>
         <div class="btns">
           ${serv ? `<button class="gold" data-servicio>${TEXTO_SERVICIO[serv].boton}</button>` : '<button class="gold" data-hablar>💬 Hablar</button>'}
         </div>`;
@@ -4853,7 +4854,7 @@
       if (c) abrirServicio('cabana', { id: 'npc-' + c.id, nombre: c.aldeano, tema: 'Encargo de la Cabaña', cabana: c });
     });
     info.querySelectorAll('[data-hablar]').forEach(btn => btn.onclick = () => {
-      const txt = sel.ref.info.frase;
+      const txt = fraseVivaNpc(sel.ref.info);
       $('npc-dialogo').textContent = '«' + txt + '»';
       sel.ref.dicho = lastNowSec;
       avanzarHistoria({ tipo: 'hablar', npc: sel.ref.info.id });
@@ -8676,7 +8677,7 @@
       servicioActual = g.info.servicio;
       npcActual = g.info;
       $('npc-titulo').textContent = (TEXTO_SERVICIO[servicioActual] ? TEXTO_SERVICIO[servicioActual].icono : '👤') + ' ' + g.info.nombre;
-      $('npc-frase').textContent = '«' + g.info.frase + '»';
+      $('npc-frase').textContent = '«' + fraseVivaNpc(g.info) + '»';
       $('npc-oro').textContent = inv.gold;
       renderNpc(g.info.servicio);
       $('npc').classList.add('show');
@@ -8687,6 +8688,7 @@
     const pj = personajeActual;
     if (!pj || !catalogoPiezas) return;
     const piezas = EquipoLib.piezasDeClase(catalogoPiezas, pj.clase).filter(p => p.nivel <= hero.level);
+    const monopolioLibre = typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.monopolioRoto === 'function' && heroeEst && HistoriaLib.monopolioRoto(heroeEst.principal);
     let html = '';
     if (servicio === 'herrero') {
       if (heroeEst && heroeEst.forjaPendiente) {
@@ -8726,9 +8728,12 @@
           <button data-forjar-hoja="${esc(o.uid)}" ${(inv.arena || 0) < coste || hero.level < o.nivel ? 'disabled' : ''}>${coste} 🧱</button></div>`;
       }).join('') || '<div class="muted">No tienes hojas. Los monstruos de nivel 8 o más pueden soltarlas.</div>');
       if (hero.level < 12) {
-        html += '<h3 class="npc-h">Fabricar (estado perfecto) 🔒 Requiere Nivel 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">El Herrero Brann solo forja equipo por encargo directo a partir de nivel 12. Consigue materiales cazando en los primeros capítulos de la historia para que te forje tu equipo básico de entrada.</div>';
+        html += '<h3 class="npc-h">Fabricar (estado perfecto) 🔒 Monopolio de los Sabios · Nv. 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">Los Sabios vigilan las fraguas e impiden la forja superior hasta nivel 12 y la consagración del Altar Rúnico (Cap. 11). Reúne materiales cazando en la Crónica para que Brann forje tu equipo clandestino.</div>';
       } else {
-        html += '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + (piezas.map(p => {
+        const avisoForja = monopolioLibre
+          ? '<div class="muted" style="padding:6px 8px;background:rgba(16,185,129,0.12);border-left:3px solid #10b981;border-radius:4px;margin-bottom:6px;font-size:12px">🔓 <b>Monopolio de los Sabios quebrado (Cap. 11):</b> fragua superior abierta libremente.</div>'
+          : '<div class="muted" style="padding:6px 8px;background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;border-radius:4px;margin-bottom:6px;font-size:12px">🕯️ <i>Forja clandestina:</i> consagra el Altar Rúnico en el Capítulo 11 para romper el monopolio eclesial de los Sabios en Aden.</div>';
+        html += '<h3 class="npc-h">Fabricar (estado perfecto)</h3>' + avisoForja + (piezas.map(p => {
           const coste = EquipoLib.FORJA_ORO * p.nivel;
           return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
             <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
@@ -8750,9 +8755,12 @@
       html = renderHereje();
     } else {
       if (hero.level < 12) {
-        html = '<h3 class="npc-h">Comprar 🔒 Requiere Nivel 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">El Mercader Tovi reserva su catálogo de armaduras para viajeros de nivel 12 o superior. Completa las misiones de caza de la historia para equiparte.</div>';
+        html = '<h3 class="npc-h">Comprar 🔒 Monopolio de los Sabios · Nv. 12</h3><div class="muted" style="padding:8px;background:rgba(239,68,68,0.1);border-left:3px solid #ef4444;border-radius:4px;margin-top:6px;line-height:1.4">El cónclave controla las rutas comerciales hasta que alcances nivel 12 y consagres el Altar Rúnico (Cap. 11). Hasta entonces, equípate con las piezas de la Crónica y vende aquí el botín sobrante.</div>';
       } else {
-        html = '<h3 class="npc-h">Comprar</h3>' + (piezas.map(p => {
+        const avisoCom = monopolioLibre
+          ? '<div class="muted" style="padding:6px 8px;background:rgba(16,185,129,0.12);border-left:3px solid #10b981;border-radius:4px;margin-bottom:6px;font-size:12px">🔓 <b>Comercio libre en Aden:</b> el sello del cónclave ha caído.</div>'
+          : '<div class="muted" style="padding:6px 8px;background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;border-radius:4px;margin-bottom:6px;font-size:12px">🕯️ <i>Trato discreto:</i> consagra el Altar Rúnico (Cap. 11) para liberar oficialmente las rutas comerciales.</div>';
+        html = '<h3 class="npc-h">Comprar</h3>' + avisoCom + (piezas.map(p => {
           const coste = EquipoLib.COMPRA_ORO * p.nivel;
           return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
             <button data-comprar="${esc(p.id)}" ${inv.gold < coste || EquipoLib.llena(pj) ? 'disabled' : ''}>${coste} 🪙</button></div>`;
@@ -9357,12 +9365,22 @@
     }
   }
 
+  function fraseVivaNpc(info) {
+    if (!info) return '';
+    if (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.fraseContextualNpc === 'function' && heroeEst && heroeEst.principal) {
+      const ctx = HistoriaLib.fraseContextualNpc(info.id, heroeEst.principal, world);
+      if (ctx && ctx.frase) return ctx.frase;
+    }
+    return info.frase || '';
+  }
+
   function actualizarMision() {
     if (!world) return;
     const p = heroeEst.principal;
     const cap = HistoriaLib.capituloActual(p);
+    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(p) : null;
     if (!cap) {
-      $('mision-cap').textContent = '📜 Crónica completa';
+      $('mision-cap').textContent = '📜 Epílogo · Campeones de Aden';
       $('mision-obj').textContent = 'Has vivido los ' + HistoriaLib.CAPITULOS.length + ' capítulos de la historia.';
       $('mision-prog').textContent = '';
       $('mision-ir').style.display = 'none';
@@ -9371,6 +9389,7 @@
       if (secCont) secCont.style.display = 'none';
       return;
     }
+    const actoTag = acto ? ('Acto ' + acto.numero + ' · ') : '';
     if (heroeEst && heroeEst.forjaPendiente) {
       const fp = heroeEst.forjaPendiente;
       const ranurasNombres = {
@@ -9378,7 +9397,7 @@
         torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
       };
       const nPieza = ranurasNombres[fp.ranura] || 'pieza';
-      $('mision-cap').textContent = '📜 Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
+      $('mision-cap').textContent = '📜 ' + actoTag + 'Cap. ' + (p.paso + 1) + ' · ' + cap.titulo;
       $('mision-obj').textContent = '🔨 ¡Materiales reunidos! Vuelve a la forja del pueblo y habla con el Herrero Brann para forjar tu ' + nPieza + '.';
       $('mision-prog').innerHTML = '<span style="color:#facc15;font-weight:bold">Materiales listos (100%)</span> · Habla con el Herrero Brann';
       $('mision-ir').style.display = '';
@@ -9386,7 +9405,7 @@
       return;
     }
     const o = HistoriaLib.asegurarObjetivo(p, world);
-    $('mision-cap').textContent = '📜 Capítulo ' + (p.paso + 1) + ' · ' + cap.titulo;
+    $('mision-cap').textContent = '📜 ' + actoTag + 'Cap. ' + (p.paso + 1) + ' · ' + cap.titulo;
 
     // Detectar si hay encargos de cabaña en marcha o listos para cobrar (solo misiones previamente aceptadas)
     const cabanasListas = (lugaresSecretos || []).filter(s => s.tipo === 'cabana' && s.misionCabana && s.misionCabana.aceptada && (s.misionCabana.progreso >= (s.misionCabana.cantidad || 100)) && !s.misionCabana.entregada);
@@ -9406,9 +9425,11 @@
 
     const quedanP = Math.max(0, o.cantidad - p.progreso);
     const badgeQuedan = quedanP === 0 ? '<span style="color:#4ade80;font-weight:700">✓ Listo</span>' : `(quedan <b>${quedanP}</b>)`;
+    const mat = typeof HistoriaLib.materialDeCapitulo === 'function' ? HistoriaLib.materialDeCapitulo(cap) : null;
+    const matTxt = mat ? ` · 🔩 ${esc(mat)}` : '';
 
     $('mision-obj').innerHTML = esc(o.texto) + avisoCabana;
-    $('mision-prog').innerHTML = `${p.progreso} / ${o.cantidad} ${badgeQuedan} · <span${hero.level < cap.nivel ? ' class="m-aviso"' : ''}>nv ${cap.nivel}</span>`;
+    $('mision-prog').innerHTML = `${p.progreso} / ${o.cantidad} ${badgeQuedan} · <span${hero.level < cap.nivel ? ' class="m-aviso"' : ''}>nv ${cap.nivel}</span>${matTxt}`;
     $('mision-ir').style.display = '';
     actualizarContadorRuta();
 
@@ -9560,6 +9581,12 @@
       }
     } else if (p.progreso !== antes) {
       actualizarMision();
+      const capAct = HistoriaLib.capituloActual(p);
+      const mat = typeof HistoriaLib.materialDeCapitulo === 'function' ? HistoriaLib.materialDeCapitulo(capAct) : null;
+      const objAct = p.objetivo;
+      if (mat && objAct) {
+        toast(`🔩 Recogido: ${mat} (${p.progreso}/${objAct.cantidad})`);
+      }
     }
   }
 
@@ -9661,15 +9688,23 @@
   function renderCronica() {
     const p = heroeEst.principal;
     const o = world && !HistoriaLib.terminada(p) ? HistoriaLib.asegurarObjetivo(p, world) : null;
-    $('cro-lista').innerHTML = HistoriaLib.CAPITULOS.map((c, i) => {
+    const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(p) : null;
+    const actos = HistoriaLib.ACTOS || [];
+    const cabeceraActo = acto ? `<div style="padding:10px 12px;margin-bottom:10px;border-radius:6px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.35)">
+      <div style="font-weight:bold;color:#38bdf8;font-size:13px">${esc(acto.nombre)}</div>
+      <div class="muted" style="margin-top:4px;font-size:12px;line-height:1.4">${esc(acto.resumen)}</div>
+    </div>` : '';
+    $('cro-lista').innerHTML = cabeceraActo + HistoriaLib.CAPITULOS.map((c, i) => {
+      const inicioActo = actos.find(a => a.desdePaso === i);
+      const sepActo = inicioActo ? `<div style="margin:12px 0 4px;padding:4px 8px;background:rgba(255,255,255,0.04);border-left:3px solid #38bdf8;font-size:12px;font-weight:bold;color:#93c5fd">${esc(inicioActo.nombre)}</div>` : '';
       if (i < p.paso) {
-        return `<div class="cap cumplido" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+        return sepActo + `<div class="cap cumplido" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
           <b>✅ ${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)}</span>
           <p style="margin:4px 0">${esc(HistoriaLib.textoContado(c, world))}</p>
         </div>`;
       }
       if (i === p.paso && o) {
-        return `<div class="cap activo" style="padding:10px;border-left:3px solid #fbbf24;background:rgba(251,191,36,0.08);margin:8px 0;border-radius:4px">
+        return sepActo + `<div class="cap activo" style="padding:10px;border-left:3px solid #fbbf24;background:rgba(251,191,36,0.08);margin:8px 0;border-radius:4px">
           <b>▶ ${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)} · en curso</span>
           <p style="margin:6px 0">${esc(o.encargo)}</p>
           <p class="muted">📍 ${esc(o.texto)} · ${p.progreso} / ${o.cantidad} · nivel recomendado ${c.nivel}</p>
@@ -9679,7 +9714,7 @@
           </div>
         </div>`;
       }
-      return `<div class="cap futuro" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center">
+      return sepActo + `<div class="cap futuro" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center">
         <span><b>🔒 Capítulo ${i + 1} · ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)}</span></span>
         <button data-accion="activar" data-cap="${i}" style="font-size:11px;padding:2px 8px;background:#334155;color:#e2e8f0;border-radius:4px" title="Saltar a este capítulo">Activar</button>
       </div>`;
@@ -10436,7 +10471,7 @@
       }
       if (dHeroSq < DISTANCIA_HABLAR * DISTANCIA_HABLAR && !g.info.servicio && sec - g.dicho > 25) {
         g.dicho = sec;
-        toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + g.info.frase + '»');
+        toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + fraseVivaNpc(g.info) + '»');
       }
     }
   }

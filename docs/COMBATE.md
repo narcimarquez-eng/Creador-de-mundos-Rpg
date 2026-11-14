@@ -79,31 +79,38 @@ especiales). Reglas en `js/heroe.js`; el panel 🧬 las muestra todas, aunque va
 - **Especiales:** aparecen según el nivel de la pieza (1 desde nivel 5, 2 desde 15, 3 desde 30) y son fijos.
 - **Crítico:** 5 % + 1 % por punto de destreza (máximo 75 %), daño ×1,5.
 
-**Puntos de habilidad:** de 1 a 5 por cada capítulo de la historia (según el capítulo), los de los encargos de
-jefe y 1 por cada 20 monstruos derrotados. Se gastan con el entrenador **Hermana Ysolde** (tecla H cerca de ella):
+**Puntos de habilidad:** de 1 a 6 por cada capítulo de la historia (según el capítulo), los de los encargos de
+jefe y 1 por cada 20 monstruos derrotados. Se gastan con la entrenadora **Hermana Ysolde** (tecla H cerca de ella;
+su rol dentro de la conspiración de los Sabios se detalla en `docs/NARRATIVA.md`):
 
 - Pasivas (hasta 10 puntos cada una): vitalidad, fuerza, destreza, entereza, intelecto.
-- Activas: impacto sísmico (Q, capítulo 4) y nova (E, capítulo 8). Las desbloquea la historia y suben hasta 3 niveles
-  (+25 % de daño por nivel).
+- Activas: impacto sísmico (Q, capítulo 4) y nova (E, capítulo 8), más las técnicas de arma y arco desbloqueables por nivel (suben hasta 3 niveles, +25 % de daño por nivel).
 
 ### Historia (misión principal)
 
-La crónica del pueblo inicial se vive capítulo a capítulo (`js/historia.js`). Cada capítulo lo encarga un sabio de
-la plaza y solo hay uno activo: su progreso empieza en 0 al activarse, y lo que se haga antes no cuenta. Al
-cumplirlo, el sabio cuenta su parte de la historia, da la recompensa y encarga el siguiente.
+La crónica de Aden se vive en 4 actos y 16 capítulos (`js/historia.js`, diseño completo en `docs/NARRATIVA.md`). Cada
+capítulo lo encarga un sabio de la plaza y solo hay uno activo: su progreso empieza en 0 al activarse, y lo que se
+haga antes no cuenta. Al cumplirlo, se cuenta su parte de la historia, se entrega la recompensa (y, en los capítulos
+de recolección, se forja la pieza correspondiente en el Herrero Brann) y empieza el siguiente.
 
-| # | Capítulo | Sabio | Qué pide | Recompensa |
-|---|---|---|---|---|
-| 1 | Los siete reinos | Elara | Hablar con ella | 1 punto |
-| 2 | El camino de piedra | Oren | Llegar al pueblo vecino | 2 puntos |
-| 3 | Las runas de la muralla | Ysolde | 4 criaturas en una zona de nivel 2 | 2 puntos |
-| 4 | Los que no temen al acero | Tamsin | 8 criaturas en una zona de nivel 4 | 2 puntos y el impacto sísmico |
-| 5 | El valor de una cota | Mirel | Encargar una pieza al herrero | 2 puntos |
-| 6 | La arena del herrero | Elara | 10 criaturas en una zona de nivel 6 | 2 puntos |
-| 7 | Los caminos del norte | Oren | Llegar al pueblo más al norte | 3 puntos |
-| 8 | El sello de la nova | Ysolde | 12 criaturas en una zona de nivel 10 | 3 puntos y la nova |
-| 9 | Los jefes del bosque | Tamsin | Derrotar al jefe de un territorio de jefe | 4 puntos |
-| 10 | El héroe de la plaza | Mirel | Volver a hablar con ella | 5 puntos |
+| # | Acto | Capítulo | Sabio | Qué pide | Recompensa |
+|---|---|---|---|---|---|
+| 1 | I | Pieles de caza y el primer cinturón | Elara | 8 criaturas (nv 1) + forja | 1 pt, cinturón (`belt`) y Rowan |
+| 2 | I | El camino agreste y las botas de marcha | Oren | 12 criaturas (nv 1) + forja | 2 pts y botas (`boots`) |
+| 3 | I | Garras de bestia y el aldeano leal | Ysolde | 15 criaturas (nv 2) + forja | 2 pts, guantes (`gloves`) y apoyo de Rowan |
+| 4 | I | Planchas de caparazón y el peto de acero | Tamsin | 18 criaturas (nv 4) + forja | 2 pts, peto (`torso`) e Impacto sísmico |
+| 5 | I | Astas de hueso y el yelmo protector | Mirel | 20 criaturas (nv 4) + forja | 2 pts y yelmo (`helmet`) |
+| 6 | II | La fuente arcana y las hombreras benditas | Elara | Descubrir Fuente Arcana | 3 pts y hombreras (`shoulders`) |
+| 7 | II | Mineral salvaje y la forja del arma | Oren | 22 criaturas (nv 8) + forja | 3 pts y arma (`weapon`) |
+| 8 | II | El sello de la nova | Ysolde | 25 criaturas (nv 10) | 3 pts y Explosión nova |
+| 9 | II | La cabaña en la espesura | Tamsin | Descubrir Cabaña del Ermitaño | 3 pts |
+| 10 | II | Caza en la espesura | Elara | 25 criaturas (nv 11) | 3 pts |
+| 11 | III | El altar de las estrellas y el despertar del comercio | Oren | Consagrar Altar Rúnico | 4 pts (rompe el monopolio Nv. 12+) |
+| 12 | III | Resonancia ancestral | Ysolde | 30 criaturas de élite (nv 13) | 4 pts |
+| 13 | III | El santuario de la luz | Elara | Descubrir Santuario de Piedra y Luz | 4 pts |
+| 14 | III | Los jefes del bosque y el titán | Tamsin | Derrotar al jefe (nv 15) | 5 pts |
+| 15 | IV | El juramento en la fuente | Ysolde | Purificar armas en Fuente Arcana | 4 pts |
+| 16 | IV | El héroe de la plaza | Mirel | Hablar con ella en la plaza | 6 pts y título *Campeones de Aden* |
 
 - **El lugar** se elige con los datos del mundo: la zona de caza o élite de nivel más parecido (a igualdad, la más
   cercana al pueblo inicial), el territorio de jefe, el pueblo vecino o el que está más al norte. Solo cuentan los

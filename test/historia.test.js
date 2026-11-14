@@ -214,4 +214,55 @@ t('visor-mundo.html cuenta con círculo amarillo indicador para los monstruos de
   assert.ok(html.includes('m.questRing'), 'monstruos disponen de m.questRing');
 });
 
+t('estructura en 4 Actos y epílogo cubre todos los capítulos sin huecos', () => {
+  assert.strictEqual(H.ACTOS.length, 4);
+  assert.strictEqual(H.actoActual({ paso: 0 }).numero, 1);
+  assert.strictEqual(H.actoActual({ paso: 4 }).numero, 1);
+  assert.strictEqual(H.actoActual({ paso: 5 }).numero, 2);
+  assert.strictEqual(H.actoActual({ paso: 10 }).numero, 3);
+  assert.strictEqual(H.actoActual({ paso: 14 }).numero, 4);
+  const epi = H.actoActual({ paso: H.CAPITULOS.length });
+  assert.strictEqual(epi.terminado, true);
+  assert.ok(epi.nombre.includes('Epílogo'));
+});
+
+t('monopolioRoto se activa al completar el capítulo 11 (Altar Rúnico)', () => {
+  assert.strictEqual(H.monopolioRoto({ paso: 0 }), false);
+  assert.strictEqual(H.monopolioRoto({ paso: 10 }), false);
+  assert.strictEqual(H.monopolioRoto({ paso: 11 }), true);
+  assert.strictEqual(H.monopolioRoto({ paso: 16 }), true);
+});
+
+t('materialDeCapitulo devuelve el material narrativo en los capítulos de forja', () => {
+  assert.ok(H.materialDeCapitulo(H.CAPITULOS[0]).includes('correas'));
+  assert.ok(H.materialDeCapitulo(H.CAPITULOS[6]).includes('hierro salvaje'));
+  assert.strictEqual(H.materialDeCapitulo(H.CAPITULOS[15]), null);
+});
+
+t('fraseContextualNpc adapta los diálogos de sabios y servicios por Acto y pueblo', () => {
+  const w = mundo();
+  const f1 = H.fraseContextualNpc('guru-3', { paso: 0 }, w);
+  const f3 = H.fraseContextualNpc('guru-3', { paso: 11 }, w);
+  assert.strictEqual(f1.acto, 1);
+  assert.strictEqual(f3.acto, 3);
+  assert.notStrictEqual(f1.frase, f3.frase);
+  assert.strictEqual(f3.esProtagonista, true);
+  assert.ok(f3.frase.includes('Resonancia ancestral'));
+
+  // Normaliza IDs de servicios en pueblos secundarios (ej. serv-herrero-t2)
+  const fh1 = H.fraseContextualNpc('serv-herrero-t2', { paso: 0 }, w);
+  const fh3 = H.fraseContextualNpc('serv-herrero-t2', { paso: 11 }, w);
+  assert.strictEqual(fh1.npcId, 'serv-herrero');
+  assert.notStrictEqual(fh1.frase, fh3.frase);
+});
+
+t('visor-mundo.html integra diálogos contextuales, actos en la crónica y feedback de materiales', () => {
+  const fs = require('fs'), path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  assert.ok(html.includes('function fraseVivaNpc'), 'visor-mundo define fraseVivaNpc');
+  assert.ok(html.includes('HistoriaLib.monopolioRoto'), 'visor-mundo consulta monopolioRoto');
+  assert.ok(html.includes('HistoriaLib.materialDeCapitulo'), 'visor-mundo muestra materiales de forja');
+  assert.ok(html.includes('HistoriaLib.actoActual'), 'visor-mundo muestra el acto actual');
+});
+
 console.log(`\n${n} pruebas de la historia superadas.`);

@@ -300,12 +300,212 @@
     return rellenar(cap.texto, resolverObjetivo(cap, world));
   }
 
+  // Cuatro Actos narrativos de la Crónica de Aden (alinean combate, farmeo y misiones)
+  const ACTOS = [
+    {
+      numero: 1,
+      id: 'acto-1',
+      nombre: 'Acto I · Emboscada y Forja Clandestina',
+      resumen: 'Huidos tras el ataque a Brann, tú y Rowan recogéis piezas en la caza para forjar equipo sin depender del monopolio de los Sabios.',
+      desdePaso: 0,
+      hastaPaso: 4
+    },
+    {
+      numero: 2,
+      id: 'acto-2',
+      nombre: 'Acto II · Reliquias y Poder Antiguo',
+      resumen: 'Templas tu armadura en la Fuente Arcana, despiertas la Nova de los reyes antiguos y hallas el diario que incrimina a los Sabios.',
+      desdePaso: 5,
+      hastaPaso: 9
+    },
+    {
+      numero: 3,
+      id: 'acto-3',
+      nombre: 'Acto III · Ruptura del Monopolio y Asalto al Titán',
+      resumen: 'Consagras el Altar Rúnico para reabrir las fraguas de nivel 12+, abres paso en las cumbres y destruyes al Señor de las Bestias mecánicas.',
+      desdePaso: 10,
+      hastaPaso: 13
+    },
+    {
+      numero: 4,
+      id: 'acto-4',
+      nombre: 'Acto IV · Purificación y Liberación de Aden',
+      resumen: 'Purificas el aceite oscuro en la Fuente Arcana y regresas a la plaza para el juicio final que libera el reino.',
+      desdePaso: 14,
+      hastaPaso: 15
+    }
+  ];
+
+  // Materiales narrativos que explican por qué cada capítulo de caza alimenta la forja de Brann
+  const MATERIALES_FORJA = {
+    belt: 'correas de cuero y placas de hierro',
+    boots: 'tendones y cuero de marcha',
+    gloves: 'garras y escamas acorazadas',
+    torso: 'planchas de caparazón blindado',
+    helmet: 'astas óseas anti-telepatía',
+    shoulders: 'hombreras templadas en agua arcana',
+    weapon: 'hierro salvaje de veta pura'
+  };
+
+  function actoActual(p) {
+    const paso = p && typeof p.paso === 'number' ? p.paso : 0;
+    if (paso >= CAPITULOS.length) {
+      return {
+        numero: 5,
+        id: 'epilogo',
+        nombre: 'Epílogo · Campeones de Aden',
+        resumen: 'Los Sabios conspiradores han caído y las fraguas, caminos y mazmorras de Aden quedan abiertos para los héroes libres.',
+        terminado: true
+      };
+    }
+    const encontrado = ACTOS.find(a => paso >= a.desdePaso && paso <= a.hastaPaso) || ACTOS[0];
+    return Object.assign({ terminado: false }, encontrado);
+  }
+
+  // El monopolio eclesial de los Sabios se rompe al completar el Capítulo 11 (Altar Rúnico, paso >= 11)
+  function monopolioRoto(p) {
+    return !!(p && typeof p.paso === 'number' && p.paso >= 11);
+  }
+
+  function materialDeCapitulo(cap) {
+    if (!cap || !cap.recompensa || !cap.recompensa.forjarPieza) return null;
+    return MATERIALES_FORJA[cap.recompensa.forjarPieza] || null;
+  }
+
+  function normalizarNpcId(npcId) {
+    const s = String(npcId || '');
+    if (s.indexOf('serv-herrero') === 0) return 'serv-herrero';
+    if (s.indexOf('serv-mercader') === 0) return 'serv-mercader';
+    if (s.indexOf('serv-informante') === 0) return 'serv-informante';
+    if (s.indexOf('serv-boticaria') === 0) return 'serv-boticaria';
+    if (s.indexOf('serv-comandante') === 0) return 'serv-comandante';
+    if (s.indexOf('serv-hereje') === 0) return 'serv-hereje';
+    return s;
+  }
+
+  // Diálogos dinámicos por NPC y Acto narrativo: reflejan la evolución política y arcana de Aden
+  const DIALOGOS_NPC = {
+    'guru-1': {
+      1: 'Los siete reinos cayeron por orgullo, joven. Cuida qué piezas llevas al yunque de Brann: las murallas tienen oídos.',
+      2: 'Si buscas las aguas luminiscentes, ten cautela; la Corona no dejó aquellas jaulas sumergidas por caridad.',
+      3: '¿Así que osáis cuestionar el orden supremo en el Santuario? El cristal late por una razón que aún no comprendéis.',
+      4: 'El núcleo del titán se ha apagado… quizá subestimamos hasta dónde llegaría un aldeano con su espada.',
+      fin: 'Las crónicas antiguas ya no bastan: ahora el nombre que resuena en Aden es el vuestro.'
+    },
+    'guru-2': {
+      1: 'No te apartes de las calzadas de piedra. Las patrullas vigilan cada cruce desde que atacaron a Brann.',
+      2: 'Las vetas de hierro salvaje fuera de las rutas reales son nuestra única oportunidad de armar a quien resista.',
+      3: 'Con el Altar Rúnico consagrado, los sellos del cónclave saltaron por los aires. ¡Las forjas vuelven a ser libres!',
+      4: 'Los caminos hacia el norte vuelven a abrirse para las caravanas sin escolta inquisitorial.',
+      fin: 'Cada sendero de Aden lleva hoy el rastro de vuestra marcha, Campeones.'
+    },
+    'guru-3': {
+      1: 'Las runas se leen de abajo arriba. Entrena tus técnicas conmigo en silencio; finjo servir al cónclave para desviar sus patrullas.',
+      2: 'La Nova que buscas no pertenece a los Sabios sino a los antiguos reyes. Úsala para sobrevivir cuando el pozo rúnico arda.',
+      3: 'Ya no hay vuelta atrás: he roto mis votos con el cónclave. Abate a los guardianes de élite y derrumba su cúpula.',
+      4: 'Purifica ese aceite oscuro en la fuente más remota. Ninguna forja de pesadilla volverá a manchar este reino.',
+      fin: 'Mis runas vuelven a servir a quienes protegen la plaza, no a quienes la encadenan.'
+    },
+    'guru-4': {
+      1: 'Conozco ese brillo en tu hoja. Aprende a partir la tierra en la penumbra; los autómatas no sangran, se quiebran.',
+      2: 'El diario del guarda sigue oculto en la espesura. Si lo quemaran los inquisidores, perderíamos la única prueba escrita.',
+      3: 'He afilado mi mandoble después de veinte años. Cuando entres en la cámara del Señor de las Bestias, iré contigo.',
+      4: 'El coloso yace frío bajo la montaña. Por fin puedo colgar el acero en paz.',
+      fin: 'Las bestias que quedan en el campo son solo ecos salvajes; ya nadie las fabrica en la sombra.'
+    },
+    'guru-5': {
+      1: 'Observa el estado de tu cota y protege tu cabeza con refuerzos óseos: los susurros del Óxido buscan mentes descubiertas.',
+      2: 'Cada pieza que recuperas del campo confirma que alguien funde armaduras militares para criaturas salvajes.',
+      3: 'Tengo actas, sellos y testimonios de cada aldea. Cuando caiga el titán, el juicio en la plaza será implacable.',
+      4: 'La multitud ya se congrega bajo la arcada. Solo falta cerrar el juicio de Aden.',
+      fin: 'Vuestra gesta quedó grabada en los anales de la plaza para todas las generaciones.'
+    },
+    'serv-herrero': {
+      1: 'Aún tengo ceniza y sangre en el yunque. Tráeme pieles, tendones y caparazones de la caza: forjaré en secreto hasta que rompamos su yugo.',
+      2: 'El hierro salvaje de las vetas libres corta mejor que el acero de la guardia. Sigue trayendo planos si encuentras hojas en nivel 8+.',
+      3: '¡Por fin reabrimos los fuelles superiores! Con el monopolio roto y tu nivel, mi fragua vuelve a trabajar acero completo.',
+      4: 'El aceite negro desapareció de las aguas. Hoy cada hoja que sale de este yunque es limpia y digna de Aden.',
+      fin: 'Para el Campeón de Aden siempre habrá fuego encendido y acero perfecto en mi forja.'
+    },
+    'serv-mercader': {
+      1: 'Los inspectores del cónclave revisan cada carreta: tengo prohibido vender equipo superior hasta que ganes renombre (nivel 12) y caiga su sello.',
+      2: 'Las rutas siguen peligrosas, pero te compraré cualquier pieza saqueada a las aberraciones. Guárdate las pociones.',
+      3: '¡Las tasas abusivas han caído con el Altar Rúnico! Mi catálogo completo se abre para viajeros curtidos.',
+      4: 'Las caravanas vuelven a cruzar las calzadas sin pagar mordidas a los inquisidores.',
+      fin: '¡El mercado de Aden florece como antaño! Todo mi género está a disposición del Libertador.'
+    },
+    'serv-comandante': {
+      1: 'Si tienes pruebas reales contra los Sabios, dámelas. Hasta entonces, mantén tu acero lejos de mis conscriptos.',
+      2: 'Esas órdenes de ejecución y diarios confirman mis sospechas. Mis patrullas empezarán a mirar hacia otro lado cuando pases.',
+      3: 'La guarnición ya conoce la traición del cónclave. Mis hombres cubrirán la retaguardia mientras asaltas las cumbres.',
+      4: 'Las murallas vuelven a responder ante la ley del pueblo, no ante el Óxido.',
+      fin: 'La Guardia de Aden rinde honores al Campeón que salvó la plaza.'
+    },
+    'serv-informante': {
+      1: 'Los Sabios pagan caro por cabezas como la tuya y la de Rowan. Por unas monedas te diré qué élites patrullan cerca.',
+      2: 'Dicen que hay jaulas con el emblema de la Corona bajo el agua… alguien está haciendo desaparecer caravanas enteras.',
+      3: 'El monopolio tiembla y los contrabandistas brindan por ti. Aprovecha mis mapas para localizar los últimos altares.',
+      4: 'Con el titán muerto, hasta mis espías duermen tranquilos… aunque las mazmorras antiguas siguen llenas de oro.',
+      fin: 'Eres leyenda viva, aunque si aún buscas presas en las criptas, siempre tengo un chivatazo.'
+    },
+    'serv-boticaria': {
+      1: 'Mis brebajes huelen a hollín y sangre, pero te mantendrán en pie mientras Brann remienda tu cuero.',
+      2: 'Esa sustancia gris que gotea en los templos no es bendita: es savia alquímica corrupta. Toma fuego líquido si vas a enfrentarla.',
+      3: 'Contra autómatas gigantes no valen las hierbas dulces de los monjes. Bebe furia y rompe su coraza.',
+      4: 'Incluso yo respeto haber purificado la fuente sin destruir el valle.',
+      fin: 'Las mazmorras ancestrales no perdonan errores; vuelve por mis elixires cuando bajes a las criptas.'
+    },
+    'serv-hereje': {
+      1: 'Brann solo remienda harapos de fugitivo. Cuando quieras que tu hoja devore maná de los verdugos, búscame en la sombra.',
+      2: 'Los Sabios llaman herejía a mis runas mientras ellos funden aldeanos en acero. Hipócritas.',
+      3: 'Has quebrado su altar y vas a por su titán. Deja que grabe furia oscura en tu arma para atravesar su núcleo.',
+      4: 'Incluso en un reino libre hace falta alguien que forje lo que nadie se atreve a nombrar.',
+      fin: 'Aden respira en paz, pero bajo tierra esperan los señores de las criptas. Mi yunque sigue ardiendo.'
+    }
+  };
+
+  function fraseContextualNpc(npcId, p, world) {
+    const baseId = normalizarNpcId(npcId);
+    const acto = actoActual(p);
+    const claveActo = acto.terminado ? 'fin' : acto.numero;
+    const cap = capituloActual(p);
+    const tabla = DIALOGOS_NPC[baseId] || null;
+    const fraseBase = tabla ? (tabla[claveActo] || tabla[1]) : null;
+    const esProtagonistaCap = !!(cap && cap.npc === baseId);
+
+    if (esProtagonistaCap && cap && world) {
+      const obj = resolverObjetivo(cap, world);
+      return {
+        npcId: baseId,
+        acto: acto.numero,
+        actoNombre: acto.nombre,
+        esProtagonista: true,
+        frase: fraseBase ? `${fraseBase} (${cap.titulo}: ${obj.texto})` : obj.encargo
+      };
+    }
+
+    return {
+      npcId: baseId,
+      acto: acto.numero,
+      actoNombre: acto.nombre,
+      esProtagonista: false,
+      frase: fraseBase
+    };
+  }
+
   const api = {
     CAPITULOS,
+    ACTOS,
+    MATERIALES_FORJA,
+    DIALOGOS_NPC,
     nuevaPrincipal,
     terminada,
     capituloActual,
     contados,
+    actoActual,
+    monopolioRoto,
+    materialDeCapitulo,
+    fraseContextualNpc,
     resolverObjetivo,
     reajustarObjetivoCercano,
     objetivoValido,
