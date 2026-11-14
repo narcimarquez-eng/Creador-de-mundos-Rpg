@@ -39,7 +39,7 @@
   // Texturas del atlas (assets/terreno/atlas.jpg, 10 × 10 celdas de 256 px) que usa el suelo: tres parecidas por
   // clase, en orden hierba, tierra, roca, arena y nieve. Antes cada celda de 14 m elegía una al azar entre
   // todas las de su clase (hasta 41 muy distintas) y el suelo parecía un damero.
-  const CAPAS = [[5, 6, 3], [32, 34, 36], [56, 57, 67], [89, 24, 52], [90, 92, 99]];
+  const CAPAS = [[5, 6, 3], [32, 34, 36], [70, 59, 62], [89, 24, 52], [90, 92, 99]];
 
   // Material del terreno. uniforms: { tCapas (DataArrayTexture de 15 capas, CAPAS en orden), uTexOn }.
   // Las tres texturas de cada clase se mezclan con manchas de ruido grandes e irregulares (sin celdas); la
@@ -53,7 +53,7 @@
     const tri = !!opciones.triplanar;
     const conRecorte = !!(uniforms && uniforms.uRecorte);
     const conHierbas = !!(uniforms && uniforms.tHierbas);
-    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '');
+    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
       shader.vertexShader = shader.vertexShader
@@ -109,6 +109,8 @@
           'float tC = 1.0 - smoothstep(5.0, 38.0, dCam);',
           'float tL = smoothstep(120.0, 600.0, dCam);',
           'vec3 tex = vec3(0.0);',
+          'float rockSlope = 0.0;',
+          'float rockLum = 0.5;',
           'if (uTexOn > 0.5) {',
           conHierbas ? [
             '  if (vSplat.x > 0.001) {',
@@ -140,11 +142,17 @@
           '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tC, tL) * vSplat.y;',
           tri ? [
             '  if (vSplat.z > 0.001) {',
-            '    vec3 bw = pow(abs(normalize(vNWorld)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);',
+            '    vec3 nrmW = normalize(vNWorld);',
+            '    rockSlope = 1.0 - abs(nrmW.y);',
+            '    vec3 bw = pow(abs(nrmW), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);',
             '    vec3 roca = vec3(0.0);',
             '    if (bw.y > 0.02) roca += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * bw.y;',
-            '    if (bw.x > 0.02) roca += claseLejos(6.0, vTWorld.zy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.x;',
-            '    if (bw.z > 0.02) roca += claseLejos(6.0, vTWorld.xy * vec2(1.0, 1.3), 3.9, tC, tL) * bw.z;',
+            '    if (bw.x > 0.02) roca += claseLejos(6.0, vTWorld.zy * vec2(1.0, 1.35), 3.9, tC, tL) * bw.x;',
+            '    if (bw.z > 0.02) roca += claseLejos(6.0, vTWorld.xy * vec2(1.0, 1.35), 3.9, tC, tL) * bw.z;',
+            '    rockLum = dot(roca, vec3(0.299, 0.587, 0.114));',
+            '    float grieta = smoothstep(0.18, 0.52, rockLum);',
+            '    float estrato = 0.90 + 0.14 * sin(vTWorld.y * 0.75 + ruidoValor(vTWorld.xz * 0.09) * 3.5);',
+            '    roca = mix(roca * 0.62, roca * 1.08, grieta) * estrato;',
             '    tex += roca * vSplat.z;',
             '  }'
           ].join('\n') : '  if (vSplat.z > 0.001) tex += claseLejos(6.0, vTWorld.xz, 3.9, tC, tL) * vSplat.z;',
@@ -153,8 +161,10 @@
           '}',
           'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
           'float micro = 1.0 + tC * ((ruidoValor(vTWorld.xz * 3.4) - 0.5) * 0.16 + (ruidoValor(vTWorld.xz * 9.6 + 5.1) - 0.5) * 0.10);',
+          tri ? 'float bisel = vSplat.z * (1.0 - tL) * clamp((dFdx(rockLum) + dFdy(rockLum)) * 3.8, -0.18, 0.22);' : 'float bisel = 0.0;',
+          tri ? 'float sombraRoca = mix(1.0, 0.86, rockSlope * vSplat.z);' : 'float sombraRoca = 1.0;',
           'vec3 tinte = mix(vec3(1.0, 0.97, 0.9), vec3(0.93, 1.02, 0.88), ruidoValor(vTWorld.xz * 0.006 + 17.0));',
-          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte;'
+          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte * sombraRoca * (1.0 + bisel);'
         ].join('\n'));
     };
     return m;

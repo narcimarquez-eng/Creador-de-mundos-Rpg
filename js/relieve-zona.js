@@ -2604,51 +2604,125 @@
   }
 
   /**
-   * Bloques de roca sueltos al pie de los muros del laberinto (geometría fusionada, coordenadas de mundo).
-   * Lleva los atributos del terreno (aSplat = roca) para pintarse con el mismo material que las paredes.
+   * Contrafuertes de acantilado facetados a lo largo de los muros y peñascos al pie del recinto.
+   * Lleva los atributos del terreno (aSplat = roca) y normales por cara plana para marcar las aristas.
    */
   function crearRocasRecinto(THREE, rec, alturaEn, opts = {}) {
     if (!THREE || !rec) return null;
     const lab = rec.lab;
     const base = new THREE.IcosahedronGeometry(1, 1);
-    const bp = base.attributes.position.array;
+    const baseFlat = base.toNonIndexed ? base.toNonIndexed() : base;
+    const bp = baseFlat.attributes.position.array;
     const P = [], Nn = [], C = [], S = [], Wn = [], I = [];
     let semilla = (lab.seed ^ 0x51a7) >>> 0;
     const rnd = () => { semilla = (semilla * 1664525 + 1013904223) >>> 0; return semilla / 4294967296; };
     const tinte = estiloTinte(lab.estilo);
-    const cant = Math.min(opts.max || 260, Math.round(lab.celdasCamino.length * 1.6));
-    const idxBase = base.index ? base.index.array : null;
+
+    const pushRock = (cx, cy, cz, sx, sy, sz, ry, rx, rz, shadeBase, jitterAmp) => {
+      const cy1 = Math.cos(ry), sy1 = Math.sin(ry);
+      const cx1 = Math.cos(rx), sx1 = Math.sin(rx);
+      const cz1 = Math.cos(rz), sz1 = Math.sin(rz);
+      const transformPt = (lx, ly, lz) => {
+        const jit = 1.0 + jitterAmp * (hash2(Math.round((lx + 4) * 97 + cx * 7), Math.round((lz + 4) * 89 + ly * 43 + cz * 7)) - 0.5);
+        let px = lx * sx * jit, py = ly * sy * jit, pz = lz * sz * jit;
+        // Ligero biselado en estratos verticales
+        py *= (1.0 - 0.08 * Math.sin(py * 1.3));
+        // Rotación X, Z, Y
+        let y1 = py * cx1 - pz * sx1, z1 = py * sx1 + pz * cx1;
+        let x2 = px * cz1 - y1 * sz1, y2 = px * sz1 + y1 * cz1;
+        const wx = x2 * cy1 + z1 * sy1, wz = -x2 * sy1 + z1 * cy1;
+        return [cx + wx, cy + y2, cz + wz];
+      };
+      for (let j = 0; j < bp.length; j += 9) {
+        const a = transformPt(bp[j], bp[j + 1], bp[j + 2]);
+        const b = transformPt(bp[j + 3], bp[j + 4], bp[j + 5]);
+        const c = transformPt(bp[j + 6], bp[j + 7], bp[j + 8]);
+        const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+        const vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        const nl = Math.hypot(nx, ny, nz) || 1;
+        nx /= nl; ny /= nl; nz /= nl;
+        const v0 = P.length / 3;
+        [a, b, c].forEach(pt => {
+          const aoPie = 0.76 + 0.24 * Math.max(0, Math.min(1, (pt[1] - rec.baseH) / 4.5));
+          const sh = shadeBase * aoPie;
+          P.push(pt[0], pt[1], pt[2]);
+          Nn.push(nx, ny, nz);
+          C.push(sh * tinte[0], sh * tinte[1], sh * tinte[2]);
+          S.push(0.02, 0.06, 0.92, 0);
+          Wn.push(0);
+        });
+        I.push(v0, v0 + 1, v0 + 2);
+      }
+    };
+
+    // 1. Farallones verticales facetados incrustados en las laderas de los muros del laberinto y el anillo
+    const farallonesMax = opts.maxFarallones || 520;
+    let puestos = 0;
+    const candidatos = [];
+    for (let gy = 0; gy < lab.N; gy++) {
+      for (let gx = 0; gx < lab.N; gx++) {
+        if (lab.grid[gy][gx] !== 1) continue;
+        const p = lab.celdaAMundo ? lab.celdaAMundo(gx, gy) : { wx: lab.zx + (gx - lab.halfN) * lab.cellSize, wz: lab.zz + (gy - lab.halfN) * lab.cellSize };
+        if (Math.hypot(p.wx - rec.zx, p.wz - rec.zz) > rec.Rint + 4) continue;
+        candidatos.push(p);
+      }
+    }
+    const pasoCelda = Math.max(3.6, lab.cellSize * 0.42);
+    for (let ci = 0; ci < candidatos.length && puestos < farallonesMax; ci++) {
+      const c = candidatos[ci];
+      for (let side = 0; side < 4 && puestos < farallonesMax; side++) {
+        const ang = (side * Math.PI * 0.5) + (rnd() - 0.5) * 0.45;
+        const dist = lab.cellSize * (0.36 + rnd() * 0.14);
+        const x = c.wx + Math.cos(ang) * dist;
+        const z = c.wz + Math.sin(ang) * dist;
+        const hS = alturaEn(x, z);
+        if (hS - rec.baseH < 1.1 || hS - rec.baseH > 10.5) continue;
+        if (Math.hypot(x - lab.centro.wx, z - lab.centro.wz) < lab.centro.radio * 0.65) continue;
+        const eje = ejePasillo(rec, x, z);
+        if (eje.s > 0 && eje.dC < rec.cfg.anchoPasillo / 2 - 0.8) continue;
+        const w = pasoCelda * (0.55 + rnd() * 0.35);
+        const hCol = 4.2 + rnd() * 5.8;
+        const dCol = pasoCelda * (0.45 + rnd() * 0.3);
+        const cy = Math.max(rec.baseH + hCol * 0.42, hS - 0.5);
+        pushRock(x, cy, z, w, hCol * 0.62, dCol, rnd() * Math.PI * 2, (rnd() - 0.5) * 0.22, (rnd() - 0.5) * 0.22, 0.72 + rnd() * 0.16, 0.48);
+        puestos++;
+      }
+    }
+
+    // Farallones en la cara interior del anillo perimetral
+    const segAnillo = Math.max(36, Math.round((2 * Math.PI * rec.Rint) / 5.5));
+    for (let k = 0; k < segAnillo && puestos < farallonesMax + 140; k++) {
+      const a = (k / segAnillo) * Math.PI * 2 + (rnd() - 0.5) * 0.04;
+      const rad = rec.Rint + 1.4 + rnd() * 3.2;
+      const x = rec.zx + Math.cos(a) * rad, z = rec.zz + Math.sin(a) * rad;
+      const eje = ejePasillo(rec, x, z);
+      if (eje.s > 0 && eje.dC < rec.cfg.anchoPasillo / 2 + 0.5) continue;
+      const hS = alturaEn(x, z);
+      if (hS - rec.baseH < 0.8) continue;
+      const hCol = 6.0 + rnd() * 7.5;
+      pushRock(x, rec.baseH + hCol * 0.45, z, 2.8 + rnd() * 2.2, hCol * 0.62, 2.6 + rnd() * 2.0, a + (rnd() - 0.5) * 0.5, (rnd() - 0.5) * 0.2, (rnd() - 0.5) * 0.2, 0.70 + rnd() * 0.16, 0.50);
+      puestos++;
+    }
+
+    // 2. Peñascos sueltos al pie de los muros
+    const cant = Math.min(opts.max || 220, Math.round(lab.celdasCamino.length * 1.4));
     for (let k = 0; k < cant; k++) {
       const cel = lab.celdasCamino[Math.floor(rnd() * lab.celdasCamino.length)];
       if (!cel) continue;
-      // Al pie de un muro vecino de la celda
       const ang = rnd() * Math.PI * 2;
-      const off = lab.cellSize * (0.32 + rnd() * 0.12);
+      const off = lab.cellSize * (0.34 + rnd() * 0.12);
       const x = cel.wx + Math.cos(ang) * off, z = cel.wz + Math.sin(ang) * off;
       const hS = alturaEn(x, z);
-      if (hS - rec.baseH > 1.2) continue;           // encima de un muro: no
+      if (hS - rec.baseH > 1.2) continue;
       if (Math.hypot(x - lab.centro.wx, z - lab.centro.wz) < lab.centro.radio * 0.6) continue;
       const eje = ejePasillo(rec, x, z);
-      if (eje.dC < rec.cfg.anchoPasillo / 2 - 3) continue;   // no taponar el pasillo
-      const sx = 0.6 + rnd() * 1.6, sy = sx * (0.55 + rnd() * 0.4), sz = sx * (0.7 + rnd() * 0.6);
-      const ry = rnd() * Math.PI * 2, cy = Math.cos(ry), sy2 = Math.sin(ry);
-      const v0 = P.length / 3;
-      for (let j = 0; j < bp.length; j += 3) {
-        let px = bp[j], py = bp[j + 1], pz = bp[j + 2];
-        const jit = 0.82 + 0.36 * hash2(Math.round((px + 3) * 97 + k * 13), Math.round((pz + 3) * 89 + py * 31));
-        px *= sx * jit; py *= sy * jit; pz *= sz * jit;
-        const wx = px * cy + pz * sy2, wz = -px * sy2 + pz * cy;
-        P.push(x + wx, hS + py - sy * 0.25, z + wz);
-        const ln = Math.hypot(bp[j], bp[j + 1], bp[j + 2]) || 1;
-        const nx = bp[j] / ln, nz = bp[j + 2] / ln;
-        Nn.push(nx * cy + nz * sy2, bp[j + 1] / ln, -nx * sy2 + nz * cy);
-        C.push(0.78 * tinte[0], 0.78 * tinte[1], 0.78 * tinte[2]);
-        S.push(0.02, 0.08, 0.9, 0);
-        Wn.push(0);
-      }
-      if (idxBase) for (let j = 0; j < idxBase.length; j++) I.push(v0 + idxBase[j]);
-      else for (let j = 0; j < bp.length / 3; j++) I.push(v0 + j);
+      if (eje.dC < rec.cfg.anchoPasillo / 2 - 2.5) continue;
+      const sx = 0.65 + rnd() * 1.5, sy = sx * (0.65 + rnd() * 0.45), sz = sx * (0.7 + rnd() * 0.6);
+      pushRock(x, hS + sy * 0.35, z, sx, sy, sz, rnd() * Math.PI * 2, (rnd() - 0.5) * 0.2, (rnd() - 0.5) * 0.2, 0.76 + rnd() * 0.14, 0.42);
     }
+
+    if (baseFlat !== base) baseFlat.dispose();
     base.dispose();
     if (!P.length) return null;
     const g = new THREE.BufferGeometry();
@@ -2664,6 +2738,103 @@
     m.castShadow = true;
     m.receiveShadow = true;
     return m;
+  }
+
+  /**
+   * Matas de hierba 3D al pie de los muros y bordes del suelo del recinto (InstancedMesh con vaivén suave).
+   */
+  function crearHierbaRecinto(THREE, rec, alturaEn, opts = {}) {
+    if (!THREE || !rec || !THREE.InstancedMesh) return null;
+    const lab = rec.lab;
+    const est = lab.estilo || 'roca_canion';
+    const bio = (opts.bioma || '').toLowerCase();
+    if (est === 'arenisca_desierto' || est === 'hielo_glacial' || bio === 'desierto' || bio === 'nieve') return null;
+
+    // Geometría de una mata con 5 briznas estrechas inclinadas hacia fuera
+    const P = [], Nn = [], C = [];
+    const blades = 5;
+    for (let b = 0; b < blades; b++) {
+      const a = (b / blades) * Math.PI * 2 + (b % 2) * 0.35;
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const rOff = 0.08 + (b % 2) * 0.06;
+      const w = 0.055;
+      const h = 0.55 + (b % 3) * 0.14;
+      const lean = 0.18 + (b % 2) * 0.10;
+      const bx = ca * rOff, bz = sa * rOff;
+      const tx = -sa * w, tz = ca * w;
+      const p0 = [bx - tx, 0, bz - tz];
+      const p1 = [bx + tx, 0, bz + tz];
+      const p2 = [bx + ca * lean, h, bz + sa * lean];
+      P.push(...p0, ...p1, ...p2);
+      Nn.push(ca * 0.3, 0.95, sa * 0.3, ca * 0.3, 0.95, sa * 0.3, ca * 0.4, 0.9, sa * 0.4);
+      // Raíz más oscura y punta verde fresca
+      C.push(0.24, 0.42, 0.16, 0.24, 0.42, 0.16, 0.46, 0.72, 0.26);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    geo.computeBoundingSphere();
+
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    const uTime = { value: 0 };
+    mat.userData.uTime = uTime;
+    if (typeof mat.onBeforeCompile === 'function') {
+      mat.onBeforeCompile = shader => {
+        shader.uniforms.uTime = uTime;
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', '#include <common>\nuniform float uTime;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\nvec4 wPosG = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);\nfloat sway = sin(uTime * 2.1 + wPosG.x * 0.35 + wPosG.z * 0.27) * 0.09 * smoothstep(0.05, 0.65, position.y);\ntransformed.x += sway;\ntransformed.z += sway * 0.6;');
+      };
+    }
+
+    let semilla = (lab.seed ^ 0x6a09) >>> 0;
+    const rnd = () => { semilla = (semilla * 1664525 + 1013904223) >>> 0; return semilla / 4294967296; };
+    const puntos = [];
+    const maxMatas = opts.max || 1100;
+    const rMax = rec.Rint - 0.8;
+    for (let i = 0; i < maxMatas * 3 && puntos.length < maxMatas; i++) {
+      const cel = lab.celdasCamino[Math.floor(rnd() * lab.celdasCamino.length)];
+      if (!cel) continue;
+      const ang = rnd() * Math.PI * 2;
+      const rad = lab.cellSize * (0.15 + rnd() * 0.42);
+      const x = cel.wx + Math.cos(ang) * rad, z = cel.wz + Math.sin(ang) * rad;
+      if (Math.hypot(x - rec.zx, z - rec.zz) > rMax) continue;
+      if (Math.hypot(x - lab.centro.wx, z - lab.centro.wz) < lab.centro.radio * 0.55) continue;
+      const hS = alturaEn(x, z);
+      if (hS - rec.baseH > 0.45) continue;
+      // Más densa junto al pie de los muros de roca
+      const e = 3.2;
+      const hVec = Math.max(alturaEn(x + e, z), alturaEn(x - e, z), alturaEn(x, z + e), alturaEn(x, z - e));
+      const cercaMuro = hVec - hS > 0.7;
+      if (!cercaMuro && rnd() > 0.28) continue;
+      const sc = (cercaMuro ? 1.0 : 0.78) * (0.8 + rnd() * 0.65);
+      puntos.push({ x, y: hS - 0.03, z, ry: rnd() * Math.PI * 2, sc });
+    }
+    if (!puntos.length) {
+      geo.dispose(); mat.dispose();
+      return null;
+    }
+
+    const im = new THREE.InstancedMesh(geo, mat, puntos.length);
+    im.name = 'HierbaRecinto';
+    im.receiveShadow = true;
+    const m4 = new THREE.Matrix4(), vPos = new THREE.Vector3(), qRot = new THREE.Quaternion(), vSc = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
+    const col = new THREE.Color();
+    for (let i = 0; i < puntos.length; i++) {
+      const pt = puntos[i];
+      vPos.set(pt.x, pt.y, pt.z);
+      qRot.setFromAxisAngle(yAxis, pt.ry);
+      vSc.set(pt.sc, pt.sc * (0.9 + rnd() * 0.35), pt.sc);
+      m4.compose(vPos, qRot, vSc);
+      im.setMatrixAt(i, m4);
+      const v = 0.86 + rnd() * 0.28;
+      col.setRGB(v * 0.94, v, v * 0.88);
+      im.setColorAt(i, col);
+    }
+    im.instanceMatrix.needsUpdate = true;
+    if (im.instanceColor) im.instanceColor.needsUpdate = true;
+    return im;
   }
 
   function obtenerMonstruosPorCelda(zona) {
@@ -2713,6 +2884,7 @@
     celdaLibreCercana,
     crearMallaInteriorRecinto,
     crearRocasRecinto,
+    crearHierbaRecinto,
     estiloTinte,
     crearMallaMurosLaberinto,
     crearMallaLaberinto,

@@ -2075,7 +2075,7 @@
   <script src="js/carga-archivos.js?v=20261101"></script>
   <script defer src="js/casa-madera.js?v=20261107"></script>
   <script defer src="js/lagos.js?v=20251029"></script>
-  <script src="js/relieve-zona.js?v=20261113m"></script>
+  <script src="js/relieve-zona.js?v=20261114a"></script>
   <script defer src="js/equipo.js?v=20251029"></script>
   <script defer src="js/historia.js?v=20261113"></script>
   <script defer src="js/mundo-campana.js?v=20261114c"></script>
@@ -11765,6 +11765,10 @@
     grupo.add(extras);
     const rocas = RelieveZonaLib.crearRocasRecinto(THREE, rec, suelo.alturaEn, { material: mat });
     if (rocas) extras.add(rocas);
+    const hierba = typeof RelieveZonaLib.crearHierbaRecinto === 'function'
+      ? RelieveZonaLib.crearHierbaRecinto(THREE, rec, suelo.alturaEn, { bioma: terrain.biomeAt(rec.zx, rec.zz, terrain.elevation(rec.zx, rec.zz)) })
+      : null;
+    if (hierba) extras.add(hierba);
 
     // Matorral, troncos, setas y piedras del bioma, más densos que fuera, solo en el suelo del laberinto
     try {
@@ -11829,10 +11833,12 @@
     scene.add(grupo);
 
     const reliquia = culm && culm.userData && culm.userData.reliquiaMesh;
+    const uHierbaTime = hierba && hierba.material && hierba.material.userData && hierba.material.userData.uTime;
     return {
       grupo, extras, malla: suelo.malla, mat, uRec, alturaEn: suelo.alturaEn,
       actualizar(dt, t) {
         mezcladores.forEach(m => m.update(dt));
+        if (uHierbaTime) uHierbaTime.value = t;
         if (reliquia) { reliquia.rotation.y += dt * 0.9; reliquia.position.y = 3.6 + Math.sin(t * 1.7) * 0.25; }
       },
       liberar() {
