@@ -482,6 +482,15 @@
     };
   }
 
+  let crearEscombrosBordeCache = null;
+  function copiarShaderSuelo(src, dst) {
+    if (src && dst && src.onBeforeCompile && src.userData && src.userData._sueloPbrHook) {
+      dst.onBeforeCompile = src.onBeforeCompile;
+      if (src.customProgramCacheKey) dst.customProgramCacheKey = src.customProgramCacheKey;
+    }
+    return dst;
+  }
+
   // Copia de un material con la foto de la biblioteca en lugar de su textura procedural (misma repetición; la foto
   // también da el relieve). Sin TexturasLib (pruebas en Node) o sin textura elegida, devuelve el material tal cual.
   const _matTexCache = new Map();
@@ -491,11 +500,15 @@
     const clave = mat.uuid + '|' + id + (neutro ? '|n' : '') + (sinRepetir ? '|1' : '');
     if (_matTexCache.has(clave)) return _matTexCache.get(clave);
     const m = mat.clone();
+    copiarShaderSuelo(mat, m);
     const rep = sinRepetir ? [1, 1] : (mat.map && mat.map.repeat ? [mat.map.repeat.x, mat.map.repeat.y] : [1, 1]);
     m.map = T.textura(ThreeLib, id, { repetir: rep });
     // Textura por defecto del tema: sin tinte del estilo, para que la foto se vea con sus colores reales
     if (neutro && m.color && typeof m.color.setHex === 'function') m.color.setHex(0xd6d2cc);
-    if (m.bumpMap) { m.bumpMap = m.map; m.bumpScale = Math.min(m.bumpScale || 1, 1.2); }
+    if (m.bumpMap) {
+      m.bumpMap = m.map;
+      m.bumpScale = (mat.userData && mat.userData.esSueloMazmorra) ? Math.max(mat.bumpScale || 0.26, 0.28) : Math.min(m.bumpScale || 1, 1.2);
+    }
     if (m.normalMap) m.normalMap = null;
     if (sinRepetir) m.userData = Object.assign({}, m.userData, { mosaicoUnico: true, muralUnico: String(id).startsWith('murales/') });
     m.needsUpdate = true;
@@ -553,7 +566,9 @@
     let matSuelo = kSuelo.sueloLosas;
     const colSuelo = (sala.colorSuelo && sala.colorSuelo !== 'default') ? sala.colorSuelo : (cfg.colorSuelo && cfg.colorSuelo !== 'default' ? cfg.colorSuelo : null);
     if (colSuelo) {
+      const matOrig = matSuelo;
       matSuelo = (matSuelo && typeof matSuelo.clone === 'function') ? matSuelo.clone() : Object.assign({}, matSuelo);
+      copiarShaderSuelo(matOrig, matSuelo);
       if (matSuelo.color && typeof matSuelo.color.set === 'function') matSuelo.color.set(colSuelo);
       else matSuelo.color = colSuelo;
     }
@@ -2167,25 +2182,80 @@
     const texHierro = crearTexturaHierro(ThreeLib, tamTex);
     const texCeramica = crearTexturaCeramica(ThreeLib, Math.min(256, tamTex));
 
-    // Muros: usa exclusivamente textura de pared preservando luminosidad natural del mapa
+    // Muros: usa exclusivamente textura de pared preservando luminosidad natural del mapa y relieve marcado
     const matPiedraMuro = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
       roughness: Math.max(0.80, Math.min(0.95, estilo.rugosidad || 0.86)),
       metalness: 0.01,
       map: texPared.diffuse,
       bumpMap: texPared.bump,
-      bumpScale: 0.095
+      bumpScale: 0.18
     });
 
-    // Suelo: losas y azulejos arquitectónicos con relieve nítido
-    const matSueloLosas = new ThreeLib.MeshStandardMaterial({
+    // Suelo: losas y azulejos arquitectónicos PBR con transición de zonas (desgaste central, bordes musgosos/húmedos, charcos en hondonadas)
+    const MatSueloPbr = ThreeLib.MeshPhysicalMaterial || ThreeLib.MeshStandardMaterial;
+    const colorMusgoVal = (typeof ThreeLib.Color === 'function') ? new ThreeLib.Color(estilo.colorMusgo || '#15803d') : null;
+    const densMusgo = Math.max(0.24, Math.min(0.90, estilo.densidadMusgo != null ? estilo.densidadMusgo : 0.38));
+    const matSueloLosas = new MatSueloPbr(Object.assign({
       color: 0xffffff,
-      roughness: Math.max(0.70, Math.min(0.86, (estilo.rugosidad || 0.82))),
+      roughness: Math.max(0.68, Math.min(0.86, (estilo.rugosidad || 0.82))),
       metalness: 0.02,
       map: texSuelo.diffuse,
       bumpMap: texSuelo.bump,
-      bumpScale: 0.075
-    });
+      bumpScale: 0.26
+    }, ThreeLib.MeshPhysicalMaterial ? { clearcoat: 0.9, clearcoatRoughness: 0.09 } : {}));
+    matSueloLosas.userData = Object.assign({}, matSueloLosas.userData, { _sueloPbrHook: true, esSueloMazmorra: true });
+    if (colorMusgoVal && typeof ThreeLib.MeshPhysicalMaterial === 'function') {
+      const claveEstiloSuelo = String(estilo.nombre || estilo.colorMusgo || 'base');
+      matSueloLosas.customProgramCacheKey = () => 'suelo-maz-pbr-v1:' + claveEstiloSuelo;
+      matSueloLosas.onBeforeCompile = (shader) => {
+        shader.uniforms.uColorMusgo = { value: colorMusgoVal };
+        shader.uniforms.uDensMusgo = { value: densMusgo };
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', '#include <common>\nattribute vec3 aZona;\nvarying vec3 vZonaMaz;\nvarying vec3 vWorldMaz;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\nvZonaMaz = aZona;\nvWorldMaz = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <common>', [
+            '#include <common>',
+            'uniform vec3 uColorMusgo;',
+            'uniform float uDensMusgo;',
+            'varying vec3 vZonaMaz;',
+            'varying vec3 vWorldMaz;',
+            'float mHash2(vec2 p) { p = fract(p * vec2(127.1, 311.7)); p += dot(p, p + 34.5); return fract(p.x * p.y); }',
+            'float mNoise2(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f); return mix(mix(mHash2(i), mHash2(i + vec2(1.0, 0.0)), u.x), mix(mHash2(i + vec2(0.0, 1.0)), mHash2(i + vec2(1.0, 1.0)), u.x), u.y); }'
+          ].join('\n'))
+          .replace('#include <color_fragment>', [
+            '#include <color_fragment>',
+            'float mN1 = mNoise2(vWorldMaz.xz * 0.55);',
+            'float mN2 = mNoise2(vWorldMaz.xz * 0.24 + 7.1);',
+            'float bordeMaz = clamp(vZonaMaz.x, 0.0, 1.0);',
+            'float hondMaz = clamp(vZonaMaz.y, 0.0, 1.0);',
+            'float centroMaz = clamp(vZonaMaz.z, 0.0, 1.0);',
+            'float musgoMaz = smoothstep(0.32, 0.80, bordeMaz * (0.48 + uDensMusgo * 0.65) + mN1 * 0.34);',
+            'float charcoMaz = smoothstep(0.46, 0.84, hondMaz * 0.82 + mN2 * 0.34 + bordeMaz * 0.14);',
+            'float aoBordeMaz = mix(1.0, 0.66, pow(bordeMaz, 1.45));',
+            'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.12, centroMaz * 0.42);',
+            'diffuseColor.rgb = mix(diffuseColor.rgb, uColorMusgo * 0.62, musgoMaz * 0.58);',
+            'diffuseColor.rgb *= aoBordeMaz * mix(1.0, 0.62, charcoMaz * 0.85);'
+          ].join('\n'))
+          .replace('#include <roughnessmap_fragment>', [
+            '#include <roughnessmap_fragment>',
+            'roughnessFactor = mix(roughnessFactor, 0.46, centroMaz * 0.48);',
+            'roughnessFactor = mix(roughnessFactor, mix(0.24, 0.09, charcoMaz), clamp(musgoMaz * 0.35 + bordeMaz * 0.28 + charcoMaz * 0.92, 0.0, 1.0));'
+          ].join('\n'))
+          .replace('#include <normal_fragment_maps>', [
+            '#include <normal_fragment_maps>',
+            'normal = normalize(mix(normal, nonPerturbedNormal, charcoMaz * 0.86));'
+          ].join('\n'))
+          .replace('#include <lights_physical_fragment>', [
+            '#include <lights_physical_fragment>',
+            '#ifdef USE_CLEARCOAT',
+            'material.clearcoat = clamp(charcoMaz * 0.90 + bordeMaz * 0.22, 0.0, 0.90);',
+            'material.clearcoatRoughness = clamp(mix(0.32, 0.06, charcoMaz), 0.0525, 1.0);',
+            '#endif'
+          ].join('\n'));
+      };
+    }
 
     // Alfombra pétrea / mosaico de teselas y azulejos esmaltados incrustados en el pavimento
     const matMosaicoSuelo = new ThreeLib.MeshStandardMaterial({
@@ -2194,7 +2264,7 @@
       metalness: 0.05,
       map: texMosaico.diffuse,
       bumpMap: texMosaico.bump,
-      bumpScale: 0.065
+      bumpScale: 0.16
     });
 
     // Zócalo perimetral: moldura tallada de dentículos y sillar ciclópeo inferior
@@ -2204,7 +2274,7 @@
       metalness: 0.01,
       map: texZocalo.diffuse,
       bumpMap: texZocalo.bump,
-      bumpScale: 0.10
+      bumpScale: 0.16
     });
 
     // Techo / Bóveda nervada con clave octogonal
@@ -3680,16 +3750,74 @@
     const mats = resolverMaterialesSala(ThreeLib, kit, opciones.kitsPorEstilo, sala, opciones);
 
     if (esRedonda) {
-      const sueloGeo = new ThreeLib.CylinderGeometry(R_sala + 0.25, R_sala + 0.25, 0.04, 32);
-      if (sueloGeo.attributes && sueloGeo.attributes.uv && sueloGeo.attributes.position) {
-        const pos = sueloGeo.attributes.position, uv = sueloGeo.attributes.uv;
-        for (let i = 0; i < pos.count; i++) {
-          uv.setXY(i, (pos.getX(i) + R_sala) / 3.0, (pos.getZ(i) + R_sala) / 3.0);
+      let sueloGeo;
+      if (typeof ThreeLib.BufferGeometry === 'function' && typeof ThreeLib.Float32BufferAttribute === 'function') {
+        const segA = 36;
+        const segR = 14;
+        const radMax = R_sala + 0.25;
+        const verts = [];
+        const uvs = [];
+        const zonas = [];
+        const indices = [];
+        const apR = sala.aperturas || {};
+        // Centro
+        verts.push(0, 0, 0);
+        uvs.push(R_sala / 3.0, R_sala / 3.0);
+        zonas.push(0.0, 0.0, 1.0);
+        for (let ir = 1; ir <= segR; ir++) {
+          const fr = ir / segR;
+          const rad = fr * radMax;
+          const bordeMask = Math.max(0, Math.min(1, (fr - 0.58) / 0.42));
+          const centroMask = Math.max(0, 1.0 - fr / 0.55);
+          const maskPlano = Math.max(0, Math.min(1, (fr - 0.22) / 0.22)) * Math.max(0, Math.min(1, (1.0 - fr) / 0.14));
+          for (let ia = 0; ia <= segA; ia++) {
+            const ang = (ia / segA) * Math.PI * 2;
+            const px = Math.cos(ang) * rad;
+            const pz = Math.sin(ang) * rad;
+            let puertaMask = 1.0;
+            if (apR.norte && pz < -R_sala * 0.45 && Math.abs(px - (apR.norte.cx || 0)) < 3.5) puertaMask = 0.25;
+            if (apR.sur && pz > R_sala * 0.45 && Math.abs(px - (apR.sur.cx || 0)) < 3.5) puertaMask = 0.25;
+            if (apR.oeste && px < -R_sala * 0.45 && Math.abs(pz - (apR.oeste.cz || 0)) < 3.5) puertaMask = 0.25;
+            if (apR.este && px > R_sala * 0.45 && Math.abs(pz - (apR.este.cz || 0)) < 3.5) puertaMask = 0.25;
+            const wave = Math.sin(px * 0.72 + (sala.x || 0) * 0.3) * Math.cos(pz * 0.68 + (sala.z || 0) * 0.3) * 0.62
+              + Math.sin((px - pz) * 1.15) * 0.38;
+            const py = (-0.015 + wave * 0.019) * maskPlano * puertaMask;
+            const hondonada = Math.max(0, Math.min(1, (-py - 0.006) / 0.026));
+            verts.push(px, py, pz);
+            uvs.push((px + R_sala) / 3.0, (pz + R_sala) / 3.0);
+            zonas.push(bordeMask, hondonada, centroMask);
+          }
         }
-        uv.needsUpdate = true;
+        const stride = segA + 1;
+        for (let ia = 0; ia < segA; ia++) {
+          indices.push(0, 1 + ia + 1, 1 + ia);
+        }
+        for (let ir = 1; ir < segR; ir++) {
+          const base0 = 1 + (ir - 1) * stride;
+          const base1 = 1 + ir * stride;
+          for (let ia = 0; ia < segA; ia++) {
+            const v0 = base0 + ia, v1 = base1 + ia, v2 = base1 + ia + 1, v3 = base0 + ia + 1;
+            indices.push(v0, v3, v2, v0, v2, v1);
+          }
+        }
+        sueloGeo = new ThreeLib.BufferGeometry();
+        sueloGeo.setIndex(indices);
+        sueloGeo.setAttribute('position', new ThreeLib.Float32BufferAttribute(verts, 3));
+        sueloGeo.setAttribute('uv', new ThreeLib.Float32BufferAttribute(uvs, 2));
+        sueloGeo.setAttribute('aZona', new ThreeLib.Float32BufferAttribute(zonas, 3));
+        sueloGeo.computeVertexNormals();
+      } else {
+        sueloGeo = new ThreeLib.CylinderGeometry(R_sala + 0.25, R_sala + 0.25, 0.04, 32);
+        if (sueloGeo.attributes && sueloGeo.attributes.uv && sueloGeo.attributes.position) {
+          const pos = sueloGeo.attributes.position, uv = sueloGeo.attributes.uv;
+          for (let i = 0; i < pos.count; i++) {
+            uv.setXY(i, (pos.getX(i) + R_sala) / 3.0, (pos.getZ(i) + R_sala) / 3.0);
+          }
+          uv.needsUpdate = true;
+        }
       }
       const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
-      suelo.position.y = -0.02;
+      suelo.position.y = (typeof ThreeLib.BufferGeometry === 'function' && typeof ThreeLib.Float32BufferAttribute === 'function') ? 0 : -0.02;
       suelo.receiveShadow = true;
       suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
       g.add(suelo);
@@ -3721,9 +3849,51 @@
         }
       }
     } else {
-      // Suelo con mapeo métrico (1 repetición cada 3m, ~75cm por losa)
-      const sueloGeo = new ThreeLib.PlaneGeometry(W, D);
+      // Suelo denso con micro-relieve (20..48 segmentos), zonas de transición (centro desgastado / bordes musgosos / charcos) y normales suaves
+      const segW = Math.min(48, Math.max(20, Math.round(W * 1.6)));
+      const segD = Math.min(48, Math.max(20, Math.round(D * 1.6)));
+      const sueloGeo = new ThreeLib.PlaneGeometry(W, D, segW, segD);
       escalarUVsPlane(sueloGeo, W / 3.0, D / 3.0);
+      if (sueloGeo.attributes && sueloGeo.attributes.position && typeof sueloGeo.setAttribute === 'function' && typeof ThreeLib.Float32BufferAttribute === 'function') {
+        const pos = sueloGeo.attributes.position;
+        const zonas = new Float32Array(pos.count * 3);
+        const apRect = sala.aperturas || {};
+        const halfW = W * 0.5, halfD = D * 0.5;
+        const centCutX = Math.min(3.2, W * 0.22), centCutZ = Math.min(3.2, D * 0.22);
+        for (let i = 0; i < pos.count; i++) {
+          const lx = pos.getX(i);
+          const ly = pos.getY(i);
+          const wz = -ly; // tras rotation.x = -PI/2
+          const dWall = Math.min(halfW - Math.abs(lx), halfD - Math.abs(wz));
+          const dNormCenter = Math.hypot(lx / Math.max(1, halfW), wz / Math.max(1, halfD));
+          const bordeMask = Math.max(0, Math.min(1, (2.2 - dWall) / 1.9));
+          const centroMask = Math.max(0, Math.min(1, (0.58 - dNormCenter) / 0.45));
+
+          let maskPuerta = 1.0;
+          if (apRect.norte && wz < -halfD + 2.4 && Math.abs(lx - (apRect.norte.cx || 0)) < (apRect.norte.w || 6.8) * 0.55) maskPuerta = 0.15;
+          if (apRect.sur && wz > halfD - 2.4 && Math.abs(lx - (apRect.sur.cx || 0)) < (apRect.sur.w || 6.8) * 0.55) maskPuerta = 0.15;
+          if (apRect.oeste && lx < -halfW + 2.4 && Math.abs(wz - (apRect.oeste.cz || 0)) < (apRect.oeste.d || 6.0) * 0.55) maskPuerta = 0.15;
+          if (apRect.este && lx > halfW - 2.4 && Math.abs(wz - (apRect.este.cz || 0)) < (apRect.este.d || 6.0) * 0.55) maskPuerta = 0.15;
+
+          const enCentroMosaic = (Math.abs(lx) < centCutX && Math.abs(wz) < centCutZ)
+            ? Math.max(0, Math.min(1, (Math.max(Math.abs(lx) / centCutX, Math.abs(wz) / centCutZ) - 0.65) / 0.35))
+            : 1.0;
+          const bordeSuave = Math.max(0, Math.min(1, dWall / 0.65));
+
+          const wave = Math.sin(lx * 0.72 + (sala.x || 0) * 0.3) * Math.cos(wz * 0.68 + (sala.z || 0) * 0.3) * 0.60
+            + Math.sin((lx - wz) * 1.15) * 0.40;
+          const lz = (-0.014 + wave * 0.019) * bordeSuave * enCentroMosaic * maskPuerta;
+          pos.setZ(i, lz);
+
+          const hondonada = Math.max(0, Math.min(1, (-lz - 0.005) / 0.025));
+          zonas[i * 3] = bordeMask * maskPuerta;
+          zonas[i * 3 + 1] = hondonada;
+          zonas[i * 3 + 2] = centroMask;
+        }
+        pos.needsUpdate = true;
+        sueloGeo.setAttribute('aZona', new ThreeLib.Float32BufferAttribute(zonas, 3));
+        if (typeof sueloGeo.computeVertexNormals === 'function') sueloGeo.computeVertexNormals();
+      }
       const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
       suelo.rotation.x = -Math.PI / 2;
       suelo.receiveShadow = true;
@@ -4917,6 +5087,79 @@
           console.warn('Error instanciando prop personalizado en estancia:', pDef, e);
         }
       });
+    }
+
+    // Escombros y guijarros 3D en esquinas y base de muros (DodecahedronGeometry deformada) para sombreado de contacto y SSAO
+    if (!config.sinEscombrosSuelo && typeof ThreeLib.DodecahedronGeometry === 'function') {
+      const esRedondaSala = !!(sala.esRedonda || sala.tipo === 'rotonda' || sala.forma === 'redonda');
+      const apSala = sala.aperturas || {};
+      const matEscombro = (kit && (kit.zocalo || kit.piedraMuro || kit.sueloLosas)) || null;
+      if (matEscombro) {
+        if (!crearEscombrosBordeCache) {
+          const gEsc = new ThreeLib.DodecahedronGeometry(0.18, 0);
+          if (gEsc.attributes && gEsc.attributes.position) {
+            const p = gEsc.attributes.position;
+            for (let i = 0; i < p.count; i++) {
+              const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+              const n = 0.82 + 0.18 * Math.sin(x * 11.3 + z * 7.7) * Math.cos(y * 9.1);
+              p.setXYZ(i, x * n * 1.25, y * n * 0.56, z * n * 0.98);
+            }
+            if (typeof gEsc.computeVertexNormals === 'function') gEsc.computeVertexNormals();
+          }
+          crearEscombrosBordeCache = gEsc;
+        }
+        const prngEsc = new PRNG((((Math.round(sala.x * 13) * 73856093) ^ (Math.round(sala.z * 17) * 19349663)) >>> 0) || 1337);
+        const cercaDePuerta = (px, pz) => {
+          if (apSala.norte && pz < -D * 0.25 && Math.abs(px - (apSala.norte.cx || 0)) < (apSala.norte.w || 6.8) * 0.65 + 0.9) return true;
+          if (apSala.sur && pz > D * 0.25 && Math.abs(px - (apSala.sur.cx || 0)) < (apSala.sur.w || 6.8) * 0.65 + 0.9) return true;
+          if (apSala.oeste && px < -W * 0.25 && Math.abs(pz - (apSala.oeste.cz || 0)) < (apSala.oeste.d || 6.0) * 0.65 + 0.9) return true;
+          if (apSala.este && px > W * 0.25 && Math.abs(pz - (apSala.este.cz || 0)) < (apSala.este.d || 6.0) * 0.65 + 0.9) return true;
+          return false;
+        };
+        const agregarCanto = (px, pz, scBase) => {
+          const rock = new ThreeLib.Mesh(crearEscombrosBordeCache, matEscombro);
+          const sc = scBase * (0.7 + prngEsc.next() * 0.85);
+          rock.position.set(px, 0.03 * sc, pz);
+          rock.rotation.set((prngEsc.next() - 0.5) * 0.35, prngEsc.next() * Math.PI * 2, (prngEsc.next() - 0.5) * 0.35);
+          rock.scale.set(sc, sc * (0.75 + prngEsc.next() * 0.45), sc * (0.85 + prngEsc.next() * 0.4));
+          rock.receiveShadow = true;
+          rock.userData = { tipo: 'escombro_borde', idSala: sala.id };
+          g.add(rock);
+        };
+        if (esRedondaSala) {
+          const R_es = Math.min(W, D) * 0.5 - 0.85;
+          for (let i = 0; i < 12; i++) {
+            const ang = (i / 12) * Math.PI * 2 + (prngEsc.next() - 0.5) * 0.25;
+            const px = Math.cos(ang) * R_es, pz = Math.sin(ang) * R_es;
+            if (!cercaDePuerta(px, pz) && prngEsc.next() < 0.75) agregarCanto(px, pz, 0.85);
+          }
+        } else {
+          // 4 esquinas interiores (dos o tres piedritas agrupadas por esquina libre)
+          const esquinas = [
+            [-W * 0.5 + 0.95, -D * 0.5 + 0.95, 1, 1],
+            [W * 0.5 - 0.95, -D * 0.5 + 0.95, -1, 1],
+            [-W * 0.5 + 0.95, D * 0.5 - 0.95, 1, -1],
+            [W * 0.5 - 0.95, D * 0.5 - 0.95, -1, -1]
+          ];
+          esquinas.forEach(([ex, ez, sx, sz]) => {
+            if (cercaDePuerta(ex, ez)) return;
+            const count = 2 + (prngEsc.next() > 0.45 ? 1 : 0);
+            for (let k = 0; k < count; k++) {
+              agregarCanto(ex + sx * prngEsc.next() * 0.75, ez + sz * prngEsc.next() * 0.75, k === 0 ? 1.05 : 0.68);
+            }
+          });
+          // Piedritas ocasionales junto a los zócalos de muros largos
+          for (let i = 0; i < 6; i++) {
+            const lado = i % 4;
+            let px = 0, pz = 0;
+            if (lado === 0) { px = (prngEsc.next() - 0.5) * (W - 2.6); pz = -D * 0.5 + 0.85; }
+            else if (lado === 1) { px = (prngEsc.next() - 0.5) * (W - 2.6); pz = D * 0.5 - 0.85; }
+            else if (lado === 2) { px = -W * 0.5 + 0.85; pz = (prngEsc.next() - 0.5) * (D - 2.6); }
+            else { px = W * 0.5 - 0.85; pz = (prngEsc.next() - 0.5) * (D - 2.6); }
+            if (!cercaDePuerta(px, pz)) agregarCanto(px, pz, 0.75);
+          }
+        }
+      }
     }
 
     if (config && (config.usarPoolLuces || config.sinSombrasMallas)) {

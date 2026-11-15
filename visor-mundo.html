@@ -1620,6 +1620,7 @@
       <label><input type="checkbox" id="chk-trees" checked> Bosques</label>
       <label><input type="checkbox" id="chk-water" checked> Agua</label>
       <label title="Un solo ajuste: texturas, sombras, reflejos, detalle de monstruos, pueblos y decoración">Calidad gráfica <select id="sel-quality"><option value="muybajo">Muy baja</option><option value="bajo">Baja</option><option value="medio">Media</option><option value="alto">Alta</option></select></label>
+      <label title="Oclusión ambiental (SSAO) para sombras de contacto en piedras, muros y depresiones"><input type="checkbox" id="chk-ssao" checked> Oclusión (SSAO)</label>
       <label title="Pelo y escamas de los monstruos: son la mayor parte de sus polígonos">Pelo y escamas <select id="sel-pelo"><option value="completo">Completo (hasta 30 m)</option><option value="ligero">Ligero (hasta 8 m)</option><option value="nada">Sin detalle</option></select></label>
       <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
       <label title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
@@ -2099,7 +2100,7 @@
   <script type="module" src="js/combat.js?v=20251029"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
-  <script type="module" src="js/terreno.js?v=20261114a"></script>
+  <script type="module" src="js/terreno.js?v=20261115a"></script>
   <script type="module" src="js/decorado.js?v=20261114e"></script>
   <script defer src="js/decorado-mundo.js?v=20261114d"></script>
   <script type="module" src="js/character.js?v=20261114e"></script>
@@ -2117,6 +2118,7 @@
   import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
   import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
   import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+  import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
   import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
   import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
   // Simplificador de mallas (meshoptimizer, MIT): versión lejana de los monstruos con menos triángulos
@@ -2198,12 +2200,15 @@
   // a la malla detallada (modo 1 = no dibujar dentro del círculo)
   const terrainU = {
     tCapas: { value: null }, tHierbas: { value: null }, uHierbaMix: { value: 0 }, uTexOn: { value: 0 },
+    uHumedad: { value: 1.0 }, uBumpFuerza: { value: 1.2 },
     uRecorte: { value: new THREE.Vector4(0, 0, 0, 0) },
     uSunDir: { value: new THREE.Vector3(0.45, 0.72, 0.35) },
     uSunColor: { value: new THREE.Color('#fffdf2') },
     uTime: { value: 0 },
     uHeroXZ: { value: new THREE.Vector2(0, 0) }
   };
+  const caminoU = { uHumedad: { value: 1.0 }, uBumpFuerza: { value: 1.2 } };
+  let ssaoActivo = true;
   let texturasCargadas = false;
   // Archivos que se están descargando (modelos, texturas…): todos los cargadores de THREE pasan por el
   // gestor por defecto; se cuentan para el indicador de carga
@@ -2247,13 +2252,13 @@
   //   de pueblos completos · decor: multiplicador de la distancia de ocultación de la decoración del campo
   const QUALITY = {
     muybajo: { radius: 600, shadows: 0, pixel: 0.75, far: 4, sombra: 0, texturas: false, reflejos: false, malla: 0.35,
-      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, hierbaMax: 0 },
+      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, ssao: false, humedad: 0.0, bump: 0.65, hierbaMax: 0 },
     bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0, texturas: true, reflejos: true, malla: 0.6,
-      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, hierbaMax: 450 },
+      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, ssao: false, humedad: 0.25, bump: 0.85, hierbaMax: 450 },
     medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120, texturas: true, reflejos: true, malla: 0.8,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, hierbaMax: 900 },
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, ssao: false, humedad: 0.88, bump: 1.05, hierbaMax: 900 },
     alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160, texturas: true, reflejos: true, malla: 1,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, hierbaMax: 1350 }
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, ssao: true, humedad: 1.0, bump: 1.25, hierbaMax: 1350 }
   };
   let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
@@ -2579,13 +2584,15 @@
   // ===========================================================================
   // Constructor de mallas con colores por vértice y coordenadas UV
   // ===========================================================================
-  function MB() { this.p = []; this.c = []; this.u = []; }
-  MB.prototype.tri = function (a, b, c, col, ua, ub, uc) {
+  function MB() { this.p = []; this.c = []; this.u = []; this.n = []; }
+  MB.prototype.tri = function (a, b, c, col, ua, ub, uc, na, nb, nc) {
     const uvs = ua ? [ua, ub, uc] : [[a[0] * 0.35, a[2] * 0.35], [b[0] * 0.35, b[2] * 0.35], [c[0] * 0.35, c[2] * 0.35]];
+    const nrms = na ? [na, nb, nc] : null;
     [a, b, c].forEach((v, idx) => {
       this.p.push(v[0], v[1], v[2]);
       this.c.push(col[0], col[1], col[2]);
       this.u.push(uvs[idx][0], uvs[idx][1]);
+      if (nrms) this.n.push(nrms[idx][0], nrms[idx][1], nrms[idx][2]);
     });
   };
   MB.prototype.quad = function (a, b, c, d, col) { this.tri(a, b, c, col); this.tri(a, c, d, col); };
@@ -2621,24 +2628,109 @@
       this.quad(C[f[0]], C[f[1]], C[f[2]], C[f[3]], cc);
     });
   };
-  // Cinta de calle que sigue el terreno con UV continuas a lo ancho (0..1) y a lo largo (cada 6 m)
-  MB.prototype.ribbon = function (pts, w, col, offset, alt) {
+  // Cinta de calle que sigue el terreno con UV continuas a lo ancho (0..1) y a lo largo (cada 6 m).
+  // Con opts.segW > 1 subdivide transversalmente en franjas con micro-relieve (rodadas/baches) y normales suaves.
+  MB.prototype.ribbon = function (pts, w, col, offset, alt, opts) {
+    if (!pts || pts.length < 2) return;
     const altura = alt || H;
     const off = (typeof offset === 'number') ? offset : 0.06;
-    const L = [], R = [], D = [0];
+    const segW = Math.max(1, (opts && opts.segW) | 0 || 1);
+    const amp = (opts && typeof opts.amp === 'number') ? opts.amp : 0;
+    const esCalzada = !!(opts && opts.esCalzada);
+    const D = [0];
+    const ejes = [];
     for (let i = 0; i < pts.length; i++) {
-      if (i > 0) D.push(D[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
-      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
-      let tx = b.x - a.x, tz = b.z - a.z;
-      const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
-      const nx = -tz * w / 2, nz = tx * w / 2;
       const p = pts[i];
-      L.push([p.x + nx, altura(p.x + nx, p.z + nz) + off, p.z + nz]);
-      R.push([p.x - nx, altura(p.x - nx, p.z - nz) + off, p.z - nz]);
+      const pz = p.z !== undefined ? p.z : p.y;
+      if (i > 0) {
+        const q = pts[i - 1], qz = q.z !== undefined ? q.z : q.y;
+        D.push(D[i - 1] + Math.hypot(p.x - q.x, pz - qz));
+      }
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      const az = a.z !== undefined ? a.z : a.y, bz = b.z !== undefined ? b.z : b.y;
+      let tx = b.x - a.x, tz = bz - az;
+      const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
+      ejes.push({ px: p.x, pz, nx: -tz * w * 0.5, nz: tx * w * 0.5 });
     }
-    for (let i = 0; i < pts.length - 1; i++) {
+    if (segW === 1 && amp <= 0) {
+      const L = [], R = [];
+      for (let i = 0; i < ejes.length; i++) {
+        const e = ejes[i];
+        L.push([e.px + e.nx, altura(e.px + e.nx, e.pz + e.nz) + off, e.pz + e.nz]);
+        R.push([e.px - e.nx, altura(e.px - e.nx, e.pz - e.nz) + off, e.pz - e.nz]);
+      }
+      for (let i = 0; i < ejes.length - 1; i++) {
+        const v0 = D[i] / 6.0, v1 = D[i + 1] / 6.0;
+        this.quadUV(L[i], R[i], R[i + 1], L[i + 1], col, [0, v0], [1, v0], [1, v1], [0, v1]);
+      }
+      return;
+    }
+    const sTot = D[D.length - 1] || 1;
+    const M = pts.length, N = segW + 1;
+    const gridPos = new Array(M);
+    const gridCol = new Array(M);
+    for (let i = 0; i < M; i++) {
+      const e = ejes[i];
+      const s = D[i];
+      const endFade = smooth(0, 5.5, s) * smooth(0, 5.5, sTot - s);
+      gridPos[i] = new Array(N);
+      gridCol[i] = new Array(N);
+      for (let j = 0; j < N; j++) {
+        const u = j / segW;
+        const uSigned = u * 2 - 1;       // -1 izquierda .. +1 derecha
+        const signo = 1 - 2 * u;         // +1 en u=0 (L), -1 en u=1 (R)
+        const wx = e.px + e.nx * signo;
+        const wz = e.pz + e.nz * signo;
+        const edgeFade = 1.0 - smooth(0.60, 0.98, Math.abs(uSigned));
+        let rioFade = 1.0;
+        if (typeof rioCercano === 'function') {
+          const r = rioCercano(wx, wz);
+          if (r) rioFade = smooth(RIO_CAUCE * (r.w || 1), RIO_BANCO * (r.w || 1), r.d);
+        }
+        const rut = Math.exp(-Math.pow((Math.abs(uSigned) - 0.42) / 0.16, 2));
+        const onda = 0.55 * Math.sin(wx * 0.23 + wz * 0.19) + 0.45 * Math.cos(wx * 0.41 - wz * 0.37);
+        const bache = Math.sin(wx * 0.14 + wz * 0.11) * Math.cos(wx * 0.29 - wz * 0.24);
+        const corona = (1.0 - uSigned * uSigned) * 0.22;
+        const dy = endFade * edgeFade * rioFade * amp * (
+          esCalzada
+            ? (0.45 * bache - 0.30 * rut * (0.6 + 0.4 * onda) + corona * 0.5)
+            : (-0.95 * rut * (0.65 + 0.35 * onda) + 0.42 * bache + corona)
+        );
+        gridPos[i][j] = [wx, altura(wx, wz) + off + dy, wz];
+        const kTint = 1.0 - 0.10 * rut * endFade * (0.65 + 0.35 * Math.max(0, -onda));
+        gridCol[i][j] = [col[0] * kTint, col[1] * kTint, col[2] * kTint];
+      }
+    }
+    const gridNrm = new Array(M);
+    for (let i = 0; i < M; i++) {
+      const i0 = Math.max(0, i - 1), i1 = Math.min(M - 1, i + 1);
+      gridNrm[i] = new Array(N);
+      for (let j = 0; j < N; j++) {
+        const j0 = Math.max(0, j - 1), j1 = Math.min(N - 1, j + 1);
+        const pa = gridPos[i][j0], pb = gridPos[i][j1];
+        const pc = gridPos[i0][j], pd = gridPos[i1][j];
+        // T_u = pb - pa (de izquierda a derecha), T_v = pd - pc (a lo largo del camino)
+        const ux = pb[0] - pa[0], uy = pb[1] - pa[1], uz = pb[2] - pa[2];
+        const vx = pd[0] - pc[0], vy = pd[1] - pc[1], vz = pd[2] - pc[2];
+        // Normal hacia arriba (+Y): cross(T_v, T_u) o asegurar ny > 0
+        let nx = vy * uz - vz * uy;
+        let ny = vz * ux - vx * uz;
+        let nz = vx * uy - vy * ux;
+        if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; }
+        const l = Math.hypot(nx, ny, nz) || 1;
+        gridNrm[i][j] = [nx / l, ny / l, nz / l];
+      }
+    }
+    for (let i = 0; i < M - 1; i++) {
       const v0 = D[i] / 6.0, v1 = D[i + 1] / 6.0;
-      this.quadUV(L[i], R[i], R[i + 1], L[i + 1], col, [0, v0], [1, v0], [1, v1], [0, v1]);
+      for (let j = 0; j < segW; j++) {
+        const u0 = j / segW, u1 = (j + 1) / segW;
+        const a = gridPos[i][j], b = gridPos[i][j + 1], c = gridPos[i + 1][j + 1], d = gridPos[i + 1][j];
+        const na = gridNrm[i][j], nb = gridNrm[i][j + 1], nc = gridNrm[i + 1][j + 1], nd = gridNrm[i + 1][j];
+        const ca = gridCol[i][j];
+        this.tri(a, b, c, ca, [u0, v0], [u1, v0], [u1, v1], na, nb, nc);
+        this.tri(a, c, d, ca, [u0, v0], [u1, v1], [u0, v1], na, nc, nd);
+      }
     }
   };
   MB.prototype.geom = function () {
@@ -2646,7 +2738,11 @@
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(this.c, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.u, 2));
-    g.computeVertexNormals();
+    if (this.n.length === this.p.length) {
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3));
+    } else {
+      g.computeVertexNormals();
+    }
     return g;
   };
 
@@ -3417,6 +3513,10 @@
       nrm[k * 3] = nv[0]; nrm[k * 3 + 1] = nv[1]; nrm[k * 3 + 2] = nv[2];
       let w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
       w = splatRioEn(x, z, w);
+      if (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function' && TerrainLib.splatWithRoad) {
+        const dCam = rejillaCaminosMundo.dist(x, z, 13);
+        if (dCam < 13) w = TerrainLib.splatWithRoad(w, dCam, { halfWidth: 3.4, bandWidth: 7.5 });
+      }
       splat.set(w.splat, k * 4);
       snowA[k] = w.snow;
     }
@@ -3661,8 +3761,19 @@
     });
     actualizarVisibilidadEstructuras(performance.now(), true);
     if (terrainMat) terrainMat.needsUpdate = true;
-    // Texturas del suelo, distancias de monstruos, pueblos y árboles según el nivel
+    // Texturas del suelo, humedad/charcos PBR, relieve bump, SSAO, distancias de monstruos, pueblos y árboles
     if (texturasCargadas) terrainU.uTexOn.value = Q.texturas ? 1 : 0;
+    if (terrainU.uHumedad) terrainU.uHumedad.value = Q.humedad != null ? Q.humedad : 1.0;
+    if (terrainU.uBumpFuerza) terrainU.uBumpFuerza.value = Q.bump != null ? Q.bump : 1.0;
+    caminoU.uHumedad.value = Q.humedad != null ? Q.humedad : 1.0;
+    caminoU.uBumpFuerza.value = Q.bump != null ? Q.bump : 1.0;
+    if (_materialesCaminosCache) {
+      Object.values(_materialesCaminosCache).forEach(mc => {
+        if (mc && mc.userData && mc.userData.baseBump != null) mc.bumpScale = mc.userData.baseBump * caminoU.uBumpFuerza.value;
+      });
+    }
+    ssaoActivo = !!Q.ssao;
+    if ($('chk-ssao')) $('chk-ssao').checked = ssaoActivo;
     LOAD_R = Q.pueblo[0]; UNLOAD_R = Q.pueblo[1]; MAX_LOADED = Q.pueblosMax; ARBOLES_CERCA_M = Q.arbolesCerca;
     MONSTRUO_VISIBLE = Q.monstruoVisible; MONSTRUO_ANIMA = Q.monstruoAnima; MONSTRUO_ANIMA_LENTO = Q.monstruoVisible; MONSTRUO_DESCARGA = Q.monstruoDescarga;
     // Los modelos de monstruos se reconstruyen con la nueva resolución (se hacen de nuevo al acercarse)
@@ -3848,6 +3959,10 @@
       nrm.set(nv, k * 3);
       let w = TerrainLib.splatFor(b, 1 - nv[1], h);
       w = splatRioEn(x, z, w);
+      if (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function' && TerrainLib.splatWithRoad) {
+        const dCam = rejillaCaminosMundo.dist(x, z, 13);
+        if (dCam < 13) w = TerrainLib.splatWithRoad(w, dCam, { halfWidth: 3.4, bandWidth: 7.5 });
+      }
       if (recTrozo) {
         w = RelieveZonaLib.splatRecinto(recTrozo, x, z, 1 - nv[1], h, w);
       }
@@ -4212,22 +4327,72 @@
       }
     });
 
+    const aplicarPbrCamino = (mat, modo, baseBump) => {
+      mat.userData = Object.assign(mat.userData || {}, { baseBump });
+      mat.customProgramCacheKey = () => 'camino-pbr-' + modo;
+      mat.onBeforeCompile = shader => {
+        shader.uniforms.uHumedad = caminoU.uHumedad;
+        shader.uniforms.uBumpFuerza = caminoU.uBumpFuerza;
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', '#include <common>\nvarying vec3 vCamWorld;\nvarying float vUAncho;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCamWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvUAncho = uv.x;');
+        const usarRut = modo === 'tierra' || modo === 'calzada' || modo === 'senda';
+        const usarAlphaBorde = modo === 'tierra' || modo === 'calzada' || modo === 'senda';
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <common>', [
+            '#include <common>',
+            'uniform float uHumedad;',
+            'uniform float uBumpFuerza;',
+            'varying vec3 vCamWorld;',
+            'varying float vUAncho;',
+            'float ruidoCam(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }'
+          ].join('\n'))
+          .replace('#include <color_fragment>', [
+            '#include <color_fragment>',
+            'float nC1 = ruidoCam(vCamWorld.xz * 0.14 + 3.1);',
+            'float nC2 = ruidoCam(vCamWorld.xz * 0.43 - 6.7);',
+            'float rutC = ' + (usarRut ? 'max(exp(-pow((vUAncho - 0.29) / 0.085, 2.0)), exp(-pow((vUAncho - 0.71) / 0.085, 2.0)))' : '0.35') + ';',
+            'float innerC = ' + (usarAlphaBorde ? 'smoothstep(0.11, 0.25, min(vUAncho, 1.0 - vUAncho))' : '1.0') + ';',
+            'float depC = (1.0 - nC1 * 0.65 - nC2 * 0.35) * 0.65 + rutC * 0.45;',
+            'float charcoCam = uHumedad * innerC * smoothstep(' + (modo === 'tierra' ? '0.66, 0.82' : '0.72, 0.87') + ', depC);',
+            'float humCam = uHumedad * innerC * smoothstep(0.46, 0.72, depC);',
+            'float aoBordeC = ' + (usarAlphaBorde ? 'mix(0.84, 1.0, smoothstep(0.06, 0.22, min(vUAncho, 1.0 - vUAncho)))' : '1.0') + ';',
+            'diffuseColor.rgb *= aoBordeC * mix(1.0, 0.66, clamp(charcoCam * 0.82 + humCam * 0.22, 0.0, 0.86));',
+            'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 0.20, 0.24), charcoCam * 0.24);'
+          ].join('\n'))
+          .replace('#include <roughnessmap_fragment>', [
+            '#include <roughnessmap_fragment>',
+            'float baseRC = ' + (modo === 'ladrillos' ? '0.84' : '0.90') + ';',
+            'roughnessFactor = mix(baseRC, mix(0.28, 0.09, charcoCam), clamp(max(charcoCam, humCam * 0.65), 0.0, 1.0));'
+          ].join('\n'))
+          .replace('#include <normal_fragment_maps>', [
+            '#include <normal_fragment_maps>',
+            'normal = normalize(mix(normal, nonPerturbedNormal, charcoCam * 0.88));'
+          ].join('\n'))
+          .replace('#include <lights_physical_fragment>', [
+            '#include <lights_physical_fragment>',
+            'material.clearcoat = uHumedad * clamp(charcoCam * 0.92 + humCam * 0.20, 0.0, 0.92);',
+            'material.clearcoatRoughness = clamp(mix(0.32, 0.06, charcoCam), 0.0525, 1.0);'
+          ].join('\n'));
+      };
+      return mat;
+    };
+
+    const crearMatCamino = (map, bump, bumpScale, modo) => {
+      const mat = new THREE.MeshPhysicalMaterial({
+        map, bumpMap: bump, bumpScale,
+        roughness: 0.90, metalness: 0.0,
+        clearcoat: 0.9, clearcoatRoughness: 0.08,
+        vertexColors: true, side: THREE.DoubleSide,
+        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
+      });
+      return aplicarPbrCamino(mat, modo, bumpScale);
+    };
+
     _materialesCaminosCache = {
-      tierra: new THREE.MeshLambertMaterial({
-        map: texTierra.map, bumpMap: texTierra.bump, bumpScale: 0.15,
-        vertexColors: true, side: THREE.DoubleSide,
-        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
-      }),
-      calzada: new THREE.MeshLambertMaterial({
-        map: texCalzada.map, bumpMap: texCalzada.bump, bumpScale: 0.20,
-        vertexColors: true, side: THREE.DoubleSide,
-        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
-      }),
-      ladrillos: new THREE.MeshLambertMaterial({
-        map: texLosa3D.map, bumpMap: texLosa3D.bump, bumpScale: 0.16,
-        vertexColors: true, side: THREE.DoubleSide,
-        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
-      })
+      tierra: crearMatCamino(texTierra.map, texTierra.bump, 0.45, 'tierra'),
+      calzada: crearMatCamino(texCalzada.map, texCalzada.bump, 0.56, 'calzada'),
+      ladrillos: crearMatCamino(texLosa3D.map, texLosa3D.bump, 0.40, 'ladrillos')
     };
     // Fotos de suelo (assets/texturas/suelo y piedra): sustituyen a las texturas dibujadas en cuanto cargan.
     // u recorre el ancho del camino (0–1) y v su largo (1 cada 6 m); repetir ajusta el tamaño de la piedra.
@@ -4237,7 +4402,9 @@
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = maxAniso;
       mat.map = t;
-      mat.bumpMap = t; mat.bumpScale = relieve;
+      mat.bumpMap = t;
+      mat.userData.baseBump = relieve;
+      mat.bumpScale = relieve * caminoU.uBumpFuerza.value;
       mat.needsUpdate = true;
     });
     // Bordes suaves: el camino se funde con el terreno en el último 12 % de cada lado
@@ -4253,11 +4420,11 @@
     const C = _materialesCaminosCache;
     suavizar(C.tierra); suavizar(C.calzada);
     // Senda empedrada de las entradas de los laberintos (la misma foto que la calzada)
-    C.senda = suavizar(C.calzada.clone());
-    ponerFoto(C.tierra, 'assets/texturas/suelo/t03.jpg', 2, 2, 0.12);        // tierra con grava
-    ponerFoto(C.calzada, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.18);    // senda empedrada con hierba
-    ponerFoto(C.senda, 'assets/texturas/suelo/t05.jpg', 1, 0.75, 0.18);      // senda de laberinto con musgo y piedra
-    ponerFoto(C.ladrillos, 'assets/texturas/piedra/t02.jpg', 0.6, 0.6, 0.1); // losas en relieve: sillar claro
+    C.senda = aplicarPbrCamino(suavizar(C.calzada.clone()), 'senda', 0.54);
+    ponerFoto(C.tierra, 'assets/texturas/suelo/t03.jpg', 2, 2, 0.44);        // tierra con grava y bump alto
+    ponerFoto(C.calzada, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.58);    // senda empedrada con hierba
+    ponerFoto(C.senda, 'assets/texturas/suelo/t05.jpg', 1, 0.75, 0.54);      // senda de laberinto con musgo y piedra
+    ponerFoto(C.ladrillos, 'assets/texturas/piedra/t02.jpg', 0.6, 0.6, 0.36); // losas en relieve: sillar claro
     return _materialesCaminosCache;
   }
 
@@ -4265,7 +4432,7 @@
   function pintarCalzada(mb, linea, alt) {
     const w = roadWidth('calzada');
     // La foto ya trae los bordes de piedra y hierba: sin bordillos aparte
-    mb.ribbon(linea, w, rgb('#f4f1ec'), 0.10, alt);
+    mb.ribbon(linea, w, rgb('#f4f1ec'), 0.10, alt, { segW: 6, amp: 0.024, esCalzada: true });
   }
 
   // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su altura y su tono.
@@ -4594,7 +4761,7 @@
       let medio = pts;
       if (ini.length) medio = medio.filter(p => alCentro(p, oa) > alCentro(ini[1], oa));
       if (fin.length) medio = medio.filter(p => alCentro(p, ob) > alCentro(fin[0], ob));
-      const linea = curvePath([...ini, ...medio, ...fin], 3.2);
+      const linea = curvePath([...ini, ...medio, ...fin], 1.6);
 
       // Cortar la cinta de camino en los cruces de río y reemplazar cada cruce con un puente GLB
       let tramosCamino = [linea];
@@ -4638,7 +4805,8 @@
           pintarCalzada(mbCalzada, tramo, alturaCamino);
           pintarLadrillos(tramo, alturaCamino, roadWidth('calzada'));
         } else {
-          mb.ribbon(tramo, roadWidth(r.kind), roadColor(r.kind), 0.10, alturaCamino);
+          const ampCam = r.kind === 'sendero' ? 0.028 : 0.038;
+          mb.ribbon(tramo, roadWidth(r.kind), roadColor(r.kind), 0.10, alturaCamino, { segW: 6, amp: ampCam, esCalzada: false });
         }
       });
     });
@@ -4665,7 +4833,7 @@
           const q = RelieveZonaLib.puntoEjeEn(rec, e.s);
           return Math.min(Hgen(x, z), Hgen(q.x, q.z));
         };
-        mbS.ribbon(curvePath(eje, 2.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo);
+        mbS.ribbon(curvePath(eje, 1.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo, { segW: 6, amp: 0.020, esCalzada: true });
       });
       sendasRecintoMesh = new THREE.Mesh(mbS.geom(), matsCamino.senda);
       sendasRecintoMesh.receiveShadow = true;
@@ -4864,6 +5032,7 @@
 
   // Rejilla espacial de segmentos de camino para comprobar distancias en O(1) sin recorrer todo el mapa
   let rejillaCaminosMundo = () => false;
+  rejillaCaminosMundo.dist = () => Infinity;
   function crearRejillaCaminos(roads) {
     const CELDA = 64;
     const mapa = new Map();
@@ -4887,8 +5056,12 @@
         }
       }
     }
-    if (!numSegs) return () => false;
-    return function cercaDeCamino(x, z, m) {
+    if (!numSegs) {
+      const fnVacia = () => false;
+      fnVacia.dist = () => Infinity;
+      return fnVacia;
+    }
+    function cercaDeCamino(x, z, m) {
       const m2 = m * m;
       const x0 = Math.floor((x - m) / CELDA), x1 = Math.floor((x + m) / CELDA);
       const z0 = Math.floor((z - m) / CELDA), z1 = Math.floor((z + m) / CELDA);
@@ -4905,7 +5078,27 @@
         }
       }
       return false;
+    }
+    cercaDeCamino.dist = function (x, z, maxR = 14) {
+      let best2 = maxR * maxR;
+      const x0 = Math.floor((x - maxR) / CELDA), x1 = Math.floor((x + maxR) / CELDA);
+      const z0 = Math.floor((z - maxR) / CELDA), z1 = Math.floor((z + maxR) / CELDA);
+      for (let cx = x0; cx <= x1; cx++) {
+        for (let cz = z0; cz <= z1; cz++) {
+          const arr = mapa.get((cx << 16) ^ (cz & 0xffff));
+          if (!arr) continue;
+          for (let i = 0; i < arr.length; i++) {
+            const s = arr[i];
+            const t = s.len2 > 0 ? Math.max(0, Math.min(1, ((x - s.ax) * s.dx + (z - s.az) * s.dz) / s.len2)) : 0;
+            const px = x - (s.ax + s.dx * t), pz = z - (s.az + s.dz * t);
+            const d2 = px * px + pz * pz;
+            if (d2 < best2) best2 = d2;
+          }
+        }
+      }
+      return best2 < maxR * maxR ? Math.sqrt(best2) : Infinity;
     };
+    return cercaDeCamino;
   }
 
   function enMargenPueblo(x, z, extra, usarTileHalf) {
@@ -4918,20 +5111,20 @@
     return false;
   }
 
-  // Piedras y matas bajas en los arcenes de los caminos y en el perímetro exterior de los pueblos
+  // Piedras y matas bajas en arcenes de caminos, riberas de ríos/lagos y perímetro exterior de pueblos
   function buildBordesCaminosYPueblos(rng, cercaCamino) {
     const piedras = [], matas = [];
     const enAguaORio = (x, z) => {
       if (terrain.elevation(x, z) < SEA + 0.06 || LagosLib.enAgua(lagosMundo, x, z)) return true;
       if (typeof rioCercano === 'function') {
         const rio = rioCercano(x, z);
-        if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 2.5) return true;
+        if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) return true;
       }
       return false;
     };
     const biomaAdmiteHierba = b => b !== 'desierto' && b !== 'nieve' && b !== 'oceano' && b !== 'agua';
 
-    // 1. Arcenes de caminos
+    // 1. Arcenes de caminos + pequeños racimos de guijarros apoyados
     (world.roads || []).forEach(r => {
       const pts = r.points;
       if (!pts || pts.length < 2) return;
@@ -4942,22 +5135,31 @@
         const len = Math.hypot(dx, dz);
         if (len < 1) continue;
         const tx = dx / len, tz = dz / len, nx = -tz, nz = tx;
-        const pasos = Math.max(1, Math.floor(len / 9.5));
+        const pasos = Math.max(1, Math.floor(len / 7.2));
         for (let k = 0; k < pasos; k++) {
-          const u = (k + 0.25 + rng.next() * 0.5) / pasos;
+          const u = (k + 0.2 + rng.next() * 0.6) / pasos;
           const bx = a.x + dx * u, bz = a.y + dz * u;
           for (let lado = -1; lado <= 1; lado += 2) {
-            if (rng.next() > 0.62) continue;
-            const sep = halfW + 0.5 + rng.next() * 2.2;
+            if (rng.next() > 0.72) continue;
+            const sep = halfW + 0.35 + rng.next() * 2.4;
             const px = bx + nx * sep * lado + tx * (rng.next() - 0.5) * 1.8;
             const pz = bz + nz * sep * lado + tz * (rng.next() - 0.5) * 1.8;
-            if (townContains(px, pz) || recintoEn(px, pz, 4) || cercaCamino(px, pz, halfW + 0.15) || enAguaORio(px, pz)) continue;
+            if (townContains(px, pz) || recintoEn(px, pz, 4) || cercaCamino(px, pz, halfW + 0.12) || enAguaORio(px, pz)) continue;
             const y = H(px, pz);
             const bio = terrain.biomeAt(px, pz, terrain.elevation(px, pz));
-            if (rng.next() < 0.65) {
-              piedras.push({ x: px, y: y - 0.04, z: pz, sx: 0.7 + rng.next() * 0.9, sy: 0.42 + rng.next() * 0.45, sz: 0.7 + rng.next() * 0.9, ry: rng.next() * 6.28, bio });
+            if (rng.next() < 0.78) {
+              piedras.push({ x: px, y: y - 0.06, z: pz, sx: 0.65 + rng.next() * 0.95, sy: 0.38 + rng.next() * 0.45, sz: 0.65 + rng.next() * 0.95, ry: rng.next() * 6.28, bio });
+              // Guijarros satélite alrededor de la piedra principal para contacto natural
+              const nSub = rng.next() < 0.55 ? 2 : 1;
+              for (let s = 0; s < nSub; s++) {
+                const angS = rng.next() * 6.28, rS = 0.35 + rng.next() * 0.55;
+                const qx = px + Math.cos(angS) * rS, qz = pz + Math.sin(angS) * rS;
+                if (!cercaCamino(qx, qz, halfW + 0.05)) {
+                  piedras.push({ x: qx, y: H(qx, qz) - 0.05, z: qz, sx: 0.30 + rng.next() * 0.42, sy: 0.20 + rng.next() * 0.24, sz: 0.30 + rng.next() * 0.42, ry: rng.next() * 6.28, bio });
+                }
+              }
             }
-            if (biomaAdmiteHierba(bio) && rng.next() < 0.78) {
+            if (biomaAdmiteHierba(bio) && rng.next() < 0.75) {
               matas.push({ x: px + nx * 0.35 * lado, y: y - 0.02, z: pz + nz * 0.35 * lado, sc: 0.8 + rng.next() * 0.55, ry: rng.next() * 6.28, bio });
             }
           }
@@ -4969,7 +5171,7 @@
     towns.forEach(o => {
       const rIni = o.R + 2.8;
       const perim = Math.PI * 2 * rIni;
-      const n = Math.max(18, Math.min(72, Math.floor(perim / 9)));
+      const n = Math.max(22, Math.min(84, Math.floor(perim / 7.5)));
       for (let i = 0; i < n; i++) {
         const ang = (i / n) * Math.PI * 2 + (rng.next() - 0.5) * (Math.PI * 2 / n) * 0.7;
         const dist = rIni + rng.next() * 7.5;
@@ -4978,12 +5180,51 @@
         if (cercaCamino(px, pz, 6.8) || recintoEn(px, pz, 5) || enAguaORio(px, pz)) continue;
         const y = H(px, pz);
         const bio = terrain.biomeAt(px, pz, terrain.elevation(px, pz));
-        if (rng.next() < 0.72) {
-          piedras.push({ x: px, y: y - 0.06, z: pz, sx: 0.95 + rng.next() * 1.25, sy: 0.55 + rng.next() * 0.65, sz: 0.95 + rng.next() * 1.25, ry: rng.next() * 6.28, bio });
+        if (rng.next() < 0.76) {
+          piedras.push({ x: px, y: y - 0.07, z: pz, sx: 0.90 + rng.next() * 1.25, sy: 0.50 + rng.next() * 0.65, sz: 0.90 + rng.next() * 1.25, ry: rng.next() * 6.28, bio });
         }
         if (biomaAdmiteHierba(bio)) {
           matas.push({ x: px + (rng.next() - 0.5) * 1.4, y: y - 0.02, z: pz + (rng.next() - 0.5) * 1.4, sc: 0.9 + rng.next() * 0.6, ry: rng.next() * 6.28, bio });
         }
+      }
+    });
+
+    // 3. Riberas de ríos y orillas de lagos: cantos rodados apoyados en la línea de humedad
+    (rios || []).forEach(r => {
+      (r.segs || []).forEach(s => {
+        const dx = s.bx - s.ax, dz = s.bz - s.az, len = Math.hypot(dx, dz);
+        if (len < 4) return;
+        const tx = dx / len, tz = dz / len, nx = -tz, nz = tx;
+        const nPasos = Math.max(1, Math.min(18, Math.floor(len / 9)));
+        for (let k = 0; k < nPasos; k++) {
+          const t = (k + 0.15 + rng.next() * 0.7) / nPasos;
+          const cx = s.ax + dx * t, cz = s.az + dz * t;
+          const rw = s.wa + (s.wb - s.wa) * t;
+          for (let lado = -1; lado <= 1; lado += 2) {
+            if (rng.next() > 0.60) continue;
+            const distRibera = RIO_CAUCE * rw + 2.2 + rng.next() * 4.2;
+            const px = cx + nx * distRibera * lado + tx * (rng.next() - 0.5) * 2.0;
+            const pz = cz + nz * distRibera * lado + tz * (rng.next() - 0.5) * 2.0;
+            if (townContains(px, pz) || cercaCamino(px, pz, 7.5) || recintoEn(px, pz, 4)) continue;
+            if (terrain.elevation(px, pz) < SEA + 0.04) continue;
+            const y = H(px, pz);
+            const bio = terrain.biomeAt(px, pz, terrain.elevation(px, pz));
+            piedras.push({ x: px, y: y - 0.08, z: pz, sx: 0.75 + rng.next() * 1.15, sy: 0.40 + rng.next() * 0.45, sz: 0.75 + rng.next() * 1.15, ry: rng.next() * 6.28, bio });
+          }
+        }
+      });
+    });
+    (lagosMundo || []).forEach(L => {
+      const nOrilla = Math.max(10, Math.min(36, Math.round((L.R || 20) * 0.85)));
+      for (let i = 0; i < nOrilla; i++) {
+        if (rng.next() > 0.65) continue;
+        const ang = (i / nOrilla) * 6.283 + rng.next() * 0.25;
+        const rad = (L.R || 20) * (0.98 + rng.next() * 0.14);
+        const px = L.x + Math.cos(ang) * rad, pz = L.z + Math.sin(ang) * rad;
+        if (townContains(px, pz) || cercaCamino(px, pz, 7.5) || LagosLib.enAgua(lagosMundo, px, pz)) continue;
+        const y = H(px, pz);
+        const bio = terrain.biomeAt(px, pz, terrain.elevation(px, pz));
+        piedras.push({ x: px, y: y - 0.07, z: pz, sx: 0.7 + rng.next() * 1.0, sy: 0.42 + rng.next() * 0.42, sz: 0.7 + rng.next() * 1.0, ry: rng.next() * 6.28, bio });
       }
     });
 
@@ -4993,7 +5234,18 @@
 
     if (piedras.length) {
       const geoP = new THREE.DodecahedronGeometry(0.28, 0);
-      const matP = new THREE.MeshLambertMaterial({ flatShading: true });
+      // Facetado asimétrico y base algo aplanada para mejor asiento visual sobre el terreno
+      const pAttr = geoP.attributes.position;
+      for (let i = 0; i < pAttr.count; i++) {
+        let vx = pAttr.getX(i), vy = pAttr.getY(i), vz = pAttr.getZ(i);
+        const h = Math.sin(vx * 31.7 + vy * 17.3 + vz * 23.1);
+        const f = 1.0 + 0.18 * h;
+        vx *= f; vz *= (1.0 - 0.12 * h);
+        if (vy < 0) vy *= 0.72;
+        pAttr.setXYZ(i, vx, vy, vz);
+      }
+      geoP.computeVertexNormals();
+      const matP = new THREE.MeshStandardMaterial({ flatShading: true, roughness: 0.88, metalness: 0.04 });
       const imP = new THREE.InstancedMesh(geoP, matP, piedras.length);
       imP.receiveShadow = true;
       imP.castShadow = false;
@@ -8075,7 +8327,7 @@
   const capaResplandor = new THREE.Layers();
   capaResplandor.set(CAPA_RESPLANDOR);
   const negroResplandor = new THREE.MeshBasicMaterial({ color: 0x000000 });
-  let compositorBase = null, compositorResplandor = null;
+  let compositorBase = null, compositorResplandor = null, gtaoPass = null, mezclaPass = null;
   function marcarResplandor(obj) {
     if (obj) obj.traverse(o => o.layers.enable(CAPA_RESPLANDOR));
   }
@@ -8085,14 +8337,36 @@
     compositorResplandor.renderToScreen = false;
     compositorResplandor.addPass(new RenderPass(scene, camera));
     compositorResplandor.addPass(new UnrealBloomPass(new THREE.Vector2(tam.x, tam.y), 0.28, 0.38, 0.48));
-    const mezcla = new ShaderPass(new THREE.ShaderMaterial({
+    mezclaPass = new ShaderPass(new THREE.ShaderMaterial({
       uniforms: { baseTexture: { value: null }, bloomTexture: { value: compositorResplandor.renderTarget2.texture } },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
       fragmentShader: 'uniform sampler2D baseTexture; uniform sampler2D bloomTexture; varying vec2 vUv; void main() { gl_FragColor = texture2D(baseTexture, vUv) + texture2D(bloomTexture, vUv) * 0.55; }'
     }), 'baseTexture');
+    gtaoPass = new GTAOPass(scene, camera, tam.x, tam.y);
+    gtaoPass.output = GTAOPass.OUTPUT.Default;
+    gtaoPass.blendIntensity = 1.0;
+    gtaoPass.updateGtaoMaterial({
+      radius: 1.25,
+      distanceExponent: 1.6,
+      thickness: 1.2,
+      scale: 1.35,
+      distanceFallOff: 1.0,
+      samples: 12
+    });
+    const origOverrideVis = gtaoPass._overrideVisibility.bind(gtaoPass);
+    gtaoPass._overrideVisibility = function () {
+      origOverrideVis();
+      [cielo, zoneMesh, selectRing].forEach(obj => {
+        if (obj && obj.visible) {
+          obj.visible = false;
+          this._visibilityCache.push(obj);
+        }
+      });
+    };
     compositorBase = new EffectComposer(renderer);
     compositorBase.addPass(new RenderPass(scene, camera));
-    compositorBase.addPass(mezcla);
+    compositorBase.addPass(gtaoPass);
+    compositorBase.addPass(mezclaPass);
     compositorBase.addPass(new OutputPass());
     ajustarResplandor();
   }
@@ -8104,27 +8378,38 @@
     // El resplandor difuso se calcula a media resolución: idéntica suavidad visual con un 75 % menos de coste de relleno GPU
     compositorResplandor.setPixelRatio(Math.max(0.5, pr * 0.5)); compositorResplandor.setSize(w, h);
   }
+  function setSsao(on) {
+    ssaoActivo = !!on;
+    if ($('chk-ssao')) $('chk-ssao').checked = ssaoActivo;
+    if (gtaoPass) gtaoPass.enabled = ssaoActivo;
+  }
   function renderFrame() {
-    if (!compositorBase || !QUALITY[quality].resplandor || !hayResplandorVisible || (gestorMazmorras && gestorMazmorras.enMazmorra)) {
+    const usarBloom = !!(QUALITY[quality].resplandor && hayResplandorVisible && !(gestorMazmorras && gestorMazmorras.enMazmorra));
+    const usarSsao = !!(gtaoPass && ssaoActivo);
+    if (!compositorBase || (!usarBloom && !usarSsao)) {
       renderer.render(scene, camera);
       return;
     }
-    const fondo = scene.background;
-    _ocultasMalla.length = 0; _ocultasMat.length = 0;
-    scene.background = null;   // el cielo no debe brillar en la pasada de resplandor
-    scene.traverse(o => {
-      if (o.isMesh && o.visible && !capaResplandor.test(o.layers)) {
-        _ocultasMalla.push(o);
-        _ocultasMat.push(o.material);
-        o.material = negroResplandor;
-      }
-    });
-    try {
-      compositorResplandor.render();
-    } finally {
-      for (let i = 0, n = _ocultasMalla.length; i < n; i++) _ocultasMalla[i].material = _ocultasMat[i];
+    if (gtaoPass) gtaoPass.enabled = usarSsao;
+    if (mezclaPass) mezclaPass.enabled = usarBloom;
+    if (usarBloom) {
+      const fondo = scene.background;
       _ocultasMalla.length = 0; _ocultasMat.length = 0;
-      scene.background = fondo;
+      scene.background = null;   // el cielo no debe brillar en la pasada de resplandor
+      scene.traverse(o => {
+        if (o.isMesh && o.visible && !capaResplandor.test(o.layers)) {
+          _ocultasMalla.push(o);
+          _ocultasMat.push(o.material);
+          o.material = negroResplandor;
+        }
+      });
+      try {
+        compositorResplandor.render();
+      } finally {
+        for (let i = 0, n = _ocultasMalla.length; i < n; i++) _ocultasMalla[i].material = _ocultasMat[i];
+        _ocultasMalla.length = 0; _ocultasMat.length = 0;
+        scene.background = fondo;
+      }
     }
     compositorBase.render();
   }
@@ -13586,6 +13871,7 @@
   $('sel-enemigos').onchange = e => { enemyMode = e.target.value; buildMonsters(); };
   $('tam-enemigos').oninput = e => { escalaEnemigosPanel = parseFloat(e.target.value); aplicarEscalaEnemigos(); };
   $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
+  if ($('chk-ssao')) $('chk-ssao').onchange = e => setSsao(e.target.checked);
 
   // ===========================================================================
   // Bucle de render
@@ -14123,7 +14409,7 @@
       ensureScene();
       $('load').classList.add('show');
     }
-    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   })();
   </script>
 </body>

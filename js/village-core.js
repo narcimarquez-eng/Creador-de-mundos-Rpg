@@ -590,6 +590,22 @@
       return (rockGeoCache = g);
     }
 
+    let edgePebbleGeoCache = null;
+    function edgePebbleGeometry() {
+      if (edgePebbleGeoCache) return edgePebbleGeoCache;
+      const GeoCtor = THREE.DodecahedronGeometry || THREE.IcosahedronGeometry;
+      const g = new GeoCtor(1, 0);
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+        const n = 0.84 + 0.16 * Math.sin(x * 4.3 + z * 2.9) * Math.cos(y * 3.1 + x * 1.4);
+        p.setXYZ(i, x * n * 1.18, y * n * 0.56, z * n * 0.96);
+      }
+      g.translate(0, 0.12, 0);
+      g.computeVertexNormals();
+      return (edgePebbleGeoCache = g);
+    }
+
     // Especie de un árbol de fábrica: pino para las coníferas; el resto, según su posición (siempre la misma)
     function especieFor(isPine, x, z) {
       if (isPine) return 'pino';
@@ -1478,6 +1494,7 @@
     });
     const matLightPool = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
     const matRock = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, metalness: 0.05 });
+    const matGuijarro = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.86, metalness: 0.06, flatShading: true });
     const matCloth = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7 });
     const matSignWood = new THREE.MeshStandardMaterial({ color: '#5c3a1e', roughness: 0.85 });
     const matBanner = new THREE.MeshStandardMaterial({ color: styleObj.roofHex || '#b91c1c', roughness: 0.72 });
@@ -1509,13 +1526,16 @@
         if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
         streetTexCache.set(texId, tex);
       }
-      const m = new THREE.MeshStandardMaterial({
+      const MatCallePbr = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
+      const m = new MatCallePbr(Object.assign({
         map: tex || null,
+        bumpMap: tex || null,
+        bumpScale: 0.24,
         color: '#e2e8f0',
-        roughness: 0.86,
-        metalness: 0.05,
+        roughness: 0.82,
+        metalness: 0.04,
         side: THREE.DoubleSide
-      });
+      }, THREE.MeshPhysicalMaterial ? { clearcoat: 0.14, clearcoatRoughness: 0.28 } : {}));
       streetMatCache.set(texId, m);
       return m;
     };
@@ -3293,11 +3313,12 @@
         const RIVER_WIDTH = this.riverWidth;
 
         if (!this.opts.skipGround) {
-        // 1. TERRENO 3D CONTINUO
-        const terrainGeom = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 120, 120);
+        // 1. TERRENO 3D CONTINUO (cuadrícula densa con micro-relieve y humedad PBR en riberas/hondonadas)
+        const terrainGeom = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 128, 128);
         terrainGeom.rotateX(-Math.PI / 2);
         const tPos = terrainGeom.attributes.position;
         const tCols = new Float32Array(tPos.count * 3);
+        const tHum = new Float32Array(tPos.count);
 
         const colG1 = new THREE.Color(styleObj.grass1);
         const colG2 = new THREE.Color(styleObj.grass2);
@@ -3313,37 +3334,107 @@
 
         for (let i = 0; i < tPos.count; i++) {
           const vx = tPos.getX(i), vz = tPos.getZ(i);
-          const vy = this.getTerrainHeight(vx, vz);
-          tPos.setY(i, vy);
+          let vy = this.getTerrainHeight(vx, vz);
 
           const distCenter = Math.hypot(vx, vz);
+          const dRio = cfg.hasRiver ? Math.abs(vx - this.getRiverX(vz)) : 9999;
+          // Micro-relieve suave fuera de la plaza, las calles principales y el cauce
+          const fueraPlaza = Math.max(0, Math.min(1, (distCenter - 19.0) / 8.0));
+          const fueraEjes = Math.min(
+            Math.max(0, Math.min(1, (Math.abs(vx) - 8.5) / 5.0)),
+            Math.max(0, Math.min(1, (Math.abs(vz) - 8.5) / 5.0))
+          );
+          const fueraRio = cfg.hasRiver ? Math.max(0, Math.min(1, (dRio - dCauce * 1.1) / 5.5)) : 1.0;
+          const microWave = (
+            Math.sin(vx * 0.24 + 0.7) * Math.cos(vz * 0.21 - 0.4) * 0.65 +
+            Math.sin((vx - vz) * 0.43) * 0.35
+          );
+          const micro = microWave * 0.048 * fueraPlaza * (0.25 + 0.75 * fueraEjes) * fueraRio;
+          vy += micro;
+          tPos.setY(i, vy);
+
+          let hum = 0.0;
+          if (distCenter >= 15.0 && distCenter <= 18.5) {
+            hum = Math.max(hum, 0.22); // borde húmedo junto al bordillo de la plaza
+          } else if (micro < -0.012) {
+            hum = Math.max(hum, Math.min(0.68, (-micro - 0.012) / 0.036));
+          }
+
           const n = (Math.sin(vx * 0.09) + Math.cos(vz * 0.09)) * 0.5 + 0.5;
           colGrass.lerpColors(colG1, colG2, n);
           if (distCenter < 15.5) {
             tmpCol.copy(colPlaza);
           } else if (cfg.hasRiver) {
-            const dRio = Math.abs(vx - this.getRiverX(vz));
             if (dRio <= dCauce) {
               tmpCol.lerpColors(colBedDeep, colRiverGravel, Math.min(1, dRio / dCauce));
+              hum = 1.0;
             } else if (dRio < dBanco) {
               const ru = Math.max(0, Math.min(1, (dRio - dCauce) / (dBanco - dCauce)));
               const tRio = ru * ru * (3 - 2 * ru);
               colShore.lerpColors(colRiverGravel, colRiverSand, Math.min(1, ru * 2.2));
               tmpCol.lerpColors(colShore, colGrass, tRio);
+              hum = Math.max(hum, Math.max(0, 1.0 - ru * 1.15));
             } else {
               tmpCol.copy(colGrass);
             }
           } else {
             tmpCol.copy(colGrass);
           }
+          tHum[i] = hum;
           tCols[i * 3] = tmpCol.r;
           tCols[i * 3 + 1] = tmpCol.g;
           tCols[i * 3 + 2] = tmpCol.b;
         }
         terrainGeom.setAttribute('color', new THREE.BufferAttribute(tCols, 3));
+        terrainGeom.setAttribute('aHumedad', new THREE.BufferAttribute(tHum, 1));
         terrainGeom.computeVertexNormals();
 
-        const terrainMesh = new THREE.Mesh(terrainGeom, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 }));
+        const MatTerrainPbr = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
+        const terrainMat = new MatTerrainPbr(Object.assign({
+          vertexColors: true,
+          roughness: 0.90,
+          metalness: 0.02
+        }, THREE.MeshPhysicalMaterial ? { clearcoat: 0.9, clearcoatRoughness: 0.10 } : {}));
+        if (typeof terrainMat.onBeforeCompile === 'function') {
+          terrainMat.onBeforeCompile = (shader) => {
+            shader.vertexShader = shader.vertexShader
+              .replace('#include <common>', '#include <common>\nattribute float aHumedad;\nvarying float vHumedadV;\nvarying vec3 vVWorld;')
+              .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHumedadV = aHumedad;\nvVWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+            shader.fragmentShader = shader.fragmentShader
+              .replace('#include <common>', [
+                '#include <common>',
+                'varying float vHumedadV;',
+                'varying vec3 vVWorld;',
+                'float vHash2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }',
+                'float vNoise2(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f); return mix(mix(vHash2(i), vHash2(i + vec2(1.0, 0.0)), u.x), mix(vHash2(i + vec2(0.0, 1.0)), vHash2(i + vec2(1.0, 1.0)), u.x), u.y); }'
+              ].join('\n'))
+              .replace('#include <color_fragment>', [
+                '#include <color_fragment>',
+                'float vN1 = vNoise2(vVWorld.xz * 0.45);',
+                'float vN2 = vNoise2(vVWorld.xz * 0.19 + 4.3);',
+                'float humV = clamp(vHumedadV, 0.0, 1.0);',
+                'float charcoV = smoothstep(0.58, 0.86, humV * 0.80 + vN2 * 0.34);',
+                'float microVarV = 0.91 + 0.16 * vN1;',
+                'diffuseColor.rgb *= mix(microVarV, 0.72, clamp(humV * 0.62 + charcoV * 0.38, 0.0, 1.0));'
+              ].join('\n'))
+              .replace('#include <roughnessmap_fragment>', [
+                '#include <roughnessmap_fragment>',
+                'roughnessFactor = mix(roughnessFactor, mix(0.30, 0.10, charcoV), clamp(humV * 0.55 + charcoV * 0.88, 0.0, 1.0));'
+              ].join('\n'))
+              .replace('#include <normal_fragment_maps>', [
+                '#include <normal_fragment_maps>',
+                'normal = normalize(mix(normal, nonPerturbedNormal, charcoV * 0.82));'
+              ].join('\n'))
+              .replace('#include <lights_physical_fragment>', [
+                '#include <lights_physical_fragment>',
+                '#ifdef USE_CLEARCOAT',
+                'material.clearcoat = clamp(charcoV * 0.90 + humV * 0.22, 0.0, 0.90);',
+                'material.clearcoatRoughness = clamp(mix(0.34, 0.08, charcoV), 0.0525, 1.0);',
+                '#endif'
+              ].join('\n'));
+          };
+        }
+        const terrainMesh = new THREE.Mesh(terrainGeom, terrainMat);
         terrainMesh.receiveShadow = true;
         this.scene.add(terrainMesh);
         this.objects.push(terrainMesh);
@@ -4588,6 +4679,55 @@
           this.colliders = this.colliders.filter(c => !(c.type === 'circle' && c.r <= 0.7 && onExit(c.x, c.z)));
         }
 
+        // Guijarros pequeños 3D apoyados en bordes de riberas, bordillo de plaza y base de murallas (con PRNG independiente)
+        const edgePebbles = [];
+        {
+          const pebbleRng = new PRNG(((cfg.seed || 77420) ^ 0x9e3779b9) >>> 0);
+          const clearRoadR = (cfg.roadWidth || 5.2) * 0.55 + 1.4;
+          const pebbleColors = [0x64748b, 0x78716c, 0x57534e, 0x94a3b8];
+          const pushPebble = (px, pz, scMin, scMax) => {
+            if (Math.abs(px) < 4.5 && Math.abs(pz) > 12) return;
+            if (Math.abs(pz) < 4.5) return;
+            if (this.exitPaths.length && this.distToExitPaths(px, pz) < clearRoadR) return;
+            const py = this.getTerrainHeight(px, pz);
+            edgePebbles.push({
+              x: px, y: py - 0.03, z: pz,
+              scale: pebbleRng.range(scMin, scMax),
+              rotY: pebbleRng.range(0, Math.PI * 2),
+              tilt: pebbleRng.range(-0.22, 0.22),
+              color: pebbleRng.pick(pebbleColors)
+            });
+          };
+          if (cfg.hasRiver) {
+            const dCaucePeb = this.riverCauce || 9.0;
+            for (let rz = -WORLD_SIZE * 0.43; rz <= WORLD_SIZE * 0.43; rz += 2.6) {
+              if (Math.abs(rz) < 9.5) continue;
+              const rx = this.getRiverX(rz);
+              [-1, 1].forEach(s => {
+                if (pebbleRng.next() < 0.72) {
+                  const px = rx + s * (dCaucePeb + pebbleRng.range(0.7, 4.2));
+                  pushPebble(px, rz + pebbleRng.range(-0.9, 0.9), 0.16, 0.42);
+                }
+              });
+            }
+          }
+          // Bordes del perímetro del pueblo (muralla/empalizada)
+          for (let i = 0; i < 72; i++) {
+            const ang = (i / 72) * Math.PI * 2 + pebbleRng.range(-0.04, 0.04);
+            const r = townRadius + pebbleRng.range(-3.6, 1.4);
+            const px = Math.cos(ang) * r, pz = Math.sin(ang) * r;
+            if (cfg.hasRiver && Math.abs(px - this.getRiverX(pz)) < (this.riverCauce || 9.0) + 2.0) continue;
+            pushPebble(px, pz, 0.18, 0.46);
+          }
+          // Contorno del bordillo de la plaza central
+          for (let i = 0; i < 28; i++) {
+            const ang = (i / 28) * Math.PI * 2 + pebbleRng.range(-0.06, 0.06);
+            const r = pebbleRng.range(15.6, 16.9);
+            const px = Math.cos(ang) * r, pz = Math.sin(ang) * r;
+            pushPebble(px, pz, 0.13, 0.28);
+          }
+        }
+
         // 7c2. DECORACIÓN CULTURAL Y RIBEREÑA POR ESTILO DEL PUEBLO (compactada en specialsGroup)
         {
           const onExitDecor = (x, z) => this.exitPaths.length && this.distToExitPaths(x, z) < (cfg.roadWidth * 0.45 + 2.2);
@@ -5254,6 +5394,7 @@
         const hedgeMeshes = [];
         const iFence = makeInstanced(fenceG, matAtlas, fences.length);
         const iRock = makeInstanced(rockG, matRock, rocks.length, { castShadow: false });
+        const iEdgePebble = makeInstanced(edgePebbleGeometry(), matGuijarro, edgePebbles.length, { castShadow: false });
 
         const cVeg = new THREE.Color();
         dScale.set(1, 1, 1);
@@ -5298,12 +5439,22 @@
           iRock.setColorAt(idx, cVeg);
         });
 
+        edgePebbles.forEach((p, idx) => {
+          dPos.set(p.x, p.y, p.z);
+          dQuat.setFromEuler(new THREE.Euler(p.tilt, p.rotY, p.tilt * 0.5));
+          dScale.set(p.scale * 1.25, p.scale * 0.72, p.scale);
+          dMat.compose(dPos, dQuat, dScale);
+          iEdgePebble.setMatrixAt(idx, dMat);
+          cVeg.setHex(p.color);
+          iEdgePebble.setColorAt(idx, cVeg);
+        });
+
         const esferaPueblo = new THREE.Sphere(new THREE.Vector3(0, 12, 0), WORLD_SIZE * 0.68);
         const allInstanced = [
           iPlinth, iWall, iRoofTrim, ...roofMeshes, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
           ...lampMeshes, iLightPool,
-          ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas, g.sil]), []), ...hedgeMeshes, iFence, iRock
+          ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas, g.sil]), []), ...hedgeMeshes, iFence, iRock, iEdgePebble
         ];
 
         allInstanced.forEach(m => {

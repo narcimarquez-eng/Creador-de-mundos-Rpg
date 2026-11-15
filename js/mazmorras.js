@@ -222,12 +222,72 @@
     const GROSOR_MUROS = 1.0;       // Grosor de los bloques
     const X_MURO = (ANCHO_PASO / 2) + (GROSOR_MUROS / 2); // Distancia del eje al centro de cada muro
 
-    // A) SUELO EMPEDRADO DE LOSAS Y ALFOMBRA CENTRAL DE MOSAICO A LO LARGO DE LOS 30 METROS
-    const geoSuelo = aplicarUVBoxExt(new THREE.BoxGeometry(ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR), ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR, 2.8, 0.5);
+    // A) SUELO EMPEDRADO DE LOSAS SUBDIVIDIDO (micro-relieve lateral, aZona PBR) Y ALFOMBRA CENTRAL DE MOSAICO
+    const geoSuelo = new THREE.BoxGeometry(ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR, 12, 1, 40);
+    if (geoSuelo.attributes && geoSuelo.attributes.uv && geoSuelo.attributes.normal && geoSuelo.attributes.position && typeof THREE.Float32BufferAttribute === 'function') {
+      const wS = ANCHO_PASO + 0.4, hS = 0.18, dS = LONGITUD_CORREDOR;
+      const uv = geoSuelo.attributes.uv;
+      const nrm = geoSuelo.attributes.normal;
+      const pos = geoSuelo.attributes.position;
+      const zonas = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) {
+        const nx = Math.abs(nrm.getX(i)), ny = Math.abs(nrm.getY(i));
+        let su = wS / 2.8, sv = hS / 0.5;
+        if (ny > 0.5) { su = wS / 2.8; sv = dS / 2.8; }
+        else if (nx > 0.5) { su = dS / 2.8; sv = hS / 0.5; }
+        uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv);
+
+        const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+        const absX = Math.abs(vx);
+        const bordeMask = Math.max(0, Math.min(1, (absX - 1.35) / 0.85));
+        const centroMask = Math.max(0, Math.min(1, (1.2 - absX) / 1.0));
+        let hondonada = 0;
+        if (vy > 0.06 && absX > 1.25) {
+          const wave = Math.sin(vz * 0.72 + vx * 1.1) * 0.6 + Math.cos(vz * 1.35) * 0.4;
+          const dy = (-0.012 + wave * 0.014) * bordeMask;
+          pos.setY(i, vy + dy);
+          hondonada = Math.max(0, Math.min(1, (-dy - 0.004) / 0.020));
+        }
+        zonas[i * 3] = bordeMask;
+        zonas[i * 3 + 1] = hondonada;
+        zonas[i * 3 + 2] = centroMask;
+      }
+      uv.needsUpdate = true;
+      pos.needsUpdate = true;
+      geoSuelo.setAttribute('aZona', new THREE.Float32BufferAttribute(zonas, 3));
+      if (typeof geoSuelo.computeVertexNormals === 'function') geoSuelo.computeVertexNormals();
+    } else {
+      aplicarUVBoxExt(geoSuelo, ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR, 2.8, 0.5);
+    }
     const sueloPasillo = new THREE.Mesh(geoSuelo, matSueloLosas);
     sueloPasillo.position.set(0, 0.09, LONGITUD_CORREDOR / 2);
     sueloPasillo.receiveShadow = true;
     entradaGrupo.add(sueloPasillo);
+
+    if (typeof THREE.DodecahedronGeometry === 'function') {
+      const geoCantoExt = new THREE.DodecahedronGeometry(0.16, 0);
+      if (geoCantoExt.attributes && geoCantoExt.attributes.position) {
+        const p = geoCantoExt.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+          const n = 0.84 + 0.16 * Math.sin(x * 11.1 + z * 7.3);
+          p.setXYZ(i, x * n * 1.2, y * n * 0.54, z * n * 0.96);
+        }
+        if (typeof geoCantoExt.computeVertexNormals === 'function') geoCantoExt.computeVertexNormals();
+      }
+      for (let idx = 0; idx < 10; idx++) {
+        const side = idx % 2 === 0 ? -1 : 1;
+        const cz = 2.5 + idx * 2.55;
+        const h = Math.abs(Math.sin(idx * 12.9898 + 4.1414) * 43758.5453) % 1;
+        const canto = new THREE.Mesh(geoCantoExt, matPiedraArco);
+        const sc = 0.72 + h * 0.75;
+        canto.position.set(side * (ANCHO_PASO * 0.5 - 0.14 - h * 0.18), 0.18 + 0.02 * sc, cz);
+        canto.rotation.set(0.1 * (h - 0.5), h * Math.PI * 2, 0.08 * (0.5 - h));
+        canto.scale.set(sc, sc * 0.82, sc);
+        canto.receiveShadow = true;
+        entradaGrupo.add(canto);
+      }
+    }
 
     const anchoTapiz = ANCHO_PASO * 0.54;
     const geoTapiz = aplicarUVBoxExt(new THREE.BoxGeometry(anchoTapiz, 0.025, LONGITUD_CORREDOR - 0.8), anchoTapiz, 0.025, LONGITUD_CORREDOR - 0.8, 2.4, 0.4);

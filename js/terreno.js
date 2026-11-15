@@ -36,6 +36,30 @@
     return { splat: [g / sum * rest, d / sum * rest, r / sum * rest, s / sum * rest], snow };
   }
 
+  // Transición adicional según cercanía a un camino o hondonada: compacta grava/tierra en el arcén
+  // y favorece musgo/humedad en el borde de transición hacia la hierba.
+  function splatWithRoad(w, distCamino, opts = {}) {
+    if (!w || !Array.isArray(w.splat) || !(distCamino < 14)) return w;
+    const ancho = opts.halfWidth || 3.4;
+    const u = clamp01((distCamino - ancho) / Math.max(2.0, (opts.bandWidth || 7.5)));
+    const peso = 1 - smooth(0, 1, u);
+    if (peso <= 0.001) return w;
+    const sp = w.splat.slice();
+    // En el borde inmediato: grava/tierra apisonada; un poco más afuera: tierra húmeda/musgosa
+    const kGrava = peso * (1 - u) * 0.45;
+    const kTierra = peso * 0.52;
+    sp[0] = Math.max(0, sp[0] * (1 - peso * 0.55));
+    sp[1] = sp[1] + kTierra;
+    sp[2] = sp[2] + kGrava;
+    const s = sp[0] + sp[1] + sp[2] + sp[3] || 1;
+    const rest = Math.max(0, 1 - (w.snow || 0) * (1 - peso * 0.4));
+    const snow = 1 - rest;
+    return {
+      splat: [sp[0] / s * rest, sp[1] / s * rest, sp[2] / s * rest, sp[3] / s * rest],
+      snow
+    };
+  }
+
   // Texturas del atlas (assets/terreno/atlas.jpg, 10 × 10 celdas de 256 px) que usa el suelo: tres parecidas por
   // clase, en orden hierba, tierra, roca, arena y nieve. Antes cada celda de 14 m elegía una al azar entre
   // todas las de su clase (hasta 41 muy distintas) y el suelo parecía un damero.
@@ -45,31 +69,48 @@
   // Las tres texturas de cada clase se mezclan con manchas de ruido grandes e irregulares (sin celdas); la
   // textura array repite sin costuras y con mipmaps, así no salen líneas cada vez que se repite.
   // opciones.triplanar: la roca se proyecta en los tres planos (paredes verticales sin estirar).
+  // opciones.pbr (por defecto true si existe MeshPhysicalMaterial): activa brillo húmedo y charcos
+  // mediante roughness baja (0.08–0.20) + clearcoat alto (0.9) en depresiones y riberas, además de bump reforzado.
   // Si uniforms trae uRecorte (vec4: x, z, radio, modo) se descartan los fragmentos dentro (modo 1)
   // o fuera (modo -1) de ese círculo; modo 0 no recorta. Así una malla de detalle puede sustituir
   // a un trozo del terreno sin costuras ni parpadeos.
   function createTerrainMaterial(THREE, uniforms, opciones = {}) {
-    const m = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    const usarPbr = opciones.pbr !== false && typeof THREE.MeshPhysicalMaterial === 'function';
+    const m = usarPbr
+      ? new THREE.MeshPhysicalMaterial({
+        vertexColors: true,
+        side: THREE.DoubleSide,
+        roughness: 0.92,
+        metalness: 0.0,
+        clearcoat: 0.9,
+        clearcoatRoughness: 0.08
+      })
+      : new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
     const tri = !!opciones.triplanar;
     const conRecorte = !!(uniforms && uniforms.uRecorte);
     const conHierbas = !!(uniforms && uniforms.tHierbas);
     const conSol = !!(uniforms && uniforms.uSunDir);
-    m.customProgramCacheKey = () => 'terreno' + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '') + (conSol ? '-sol' : '');
+    m.userData = Object.assign(m.userData || {}, { pbrHumedo: usarPbr });
+    m.customProgramCacheKey = () => 'terreno' + (usarPbr ? '-pbr2' : '') + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '') + (conSol ? '-sol' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
+      if (!shader.uniforms.uHumedad) shader.uniforms.uHumedad = { value: usarPbr ? 1.0 : 0.0 };
+      if (!shader.uniforms.uBumpFuerza) shader.uniforms.uBumpFuerza = { value: 1.0 };
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nattribute vec4 aSplat;\nattribute float aSnow;\nvarying vec4 vSplat;\nvarying float vSnow;\nvarying vec3 vTWorld;\nvarying vec3 vTViewPos;' + ((tri || conSol) ? '\nvarying vec3 vNWorld;' : ''))
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSplat = aSplat;\nvSnow = aSnow;\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;' + ((tri || conSol) ? '\nvNWorld = normalize(mat3(modelMatrix) * objectNormal);' : ''))
+        .replace('#include <common>', '#include <common>\nattribute vec4 aSplat;\nattribute float aSnow;\nvarying vec4 vSplat;\nvarying float vSnow;\nvarying vec3 vTWorld;\nvarying vec3 vTViewPos;\nvarying vec3 vNWorld;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSplat = aSplat;\nvSnow = aSnow;\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvNWorld = normalize(mat3(modelMatrix) * objectNormal);')
         .replace('#include <project_vertex>', '#include <project_vertex>\nvTViewPos = -mvPosition.xyz;');
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', [
           '#include <common>',
           'uniform highp sampler2DArray tCapas;',
           'uniform float uTexOn;',
+          'uniform float uHumedad;',
+          'uniform float uBumpFuerza;',
           conHierbas ? 'uniform highp sampler2DArray tHierbas;\nuniform float uHierbaMix;' : '',
           conRecorte ? 'uniform vec4 uRecorte;' : '',
           conSol ? 'uniform vec3 uSunDir;\nuniform vec3 uSunColor;' : '',
-          (tri || conSol) ? 'varying vec3 vNWorld;' : '',
+          'varying vec3 vNWorld;',
           'varying vec4 vSplat; varying float vSnow; varying vec3 vTWorld; varying vec3 vTViewPos;',
           // Ruido de valor: manchas suaves
           'float ruidoValor(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }',
@@ -114,6 +155,7 @@
           'vec3 tex = vec3(0.0);',
           'float rockSlope = 0.0;',
           'float rockLum = 0.5;',
+          'vec3 nrmW = normalize(vNWorld);',
           'if (uTexOn > 0.5) {',
           conHierbas ? [
             '  if (vSplat.x > 0.001) {',
@@ -145,7 +187,6 @@
           '  if (vSplat.y > 0.001) tex += claseLejos(3.0, vTWorld.xz, 7.1, tC, tL) * vSplat.y;',
           tri ? [
             '  if (vSplat.z > 0.001) {',
-            '    vec3 nrmW = normalize(vNWorld);',
             '    rockSlope = 1.0 - abs(nrmW.y);',
             '    vec3 bw = pow(abs(nrmW), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);',
             '    vec3 roca = vec3(0.0);',
@@ -165,18 +206,44 @@
           'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
           'float micro = 1.0 + tC * ((ruidoValor(vTWorld.xz * 3.4) - 0.5) * 0.16 + (ruidoValor(vTWorld.xz * 9.6 + 5.1) - 0.5) * 0.10);',
           'float hBumpTerreno = (uTexOn > 0.5 ? dot(tex, vec3(0.30, 0.52, 0.18)) : 0.5) + (ruidoValor(vTWorld.xz * 2.1) - 0.5) * 0.18;',
+          // Humedad y charcos en depresiones suaves, zonas bajas de ribera (vSplat.w) y tierra húmeda (vSplat.y)
+          'float planoSuave = smoothstep(0.86, 0.985, abs(nrmW.y));',
+          'float nCharcoA = ruidoValor(vTWorld.xz * 0.11 + 4.2);',
+          'float nCharcoB = ruidoValor(vTWorld.xz * 0.34 - 7.9);',
+          'float baseHum = clamp(vSplat.w * 0.82 + vSplat.y * 0.42 + smoothstep(0.55, 0.22, hBumpTerreno) * 0.30, 0.0, 1.0);',
+          'float campoHondonada = (1.0 - nCharcoA * 0.65 - nCharcoB * 0.35) * 0.60 + baseHum * 0.52;',
+          'float charcoMask = uHumedad * planoSuave * (1.0 - tL) * smoothstep(0.68, 0.84, campoHondonada) * (1.0 - vSnow);',
+          'float humedadMask = uHumedad * (1.0 - tL) * clamp(vSplat.w * 0.72 + vSplat.y * 0.32 + smoothstep(0.54, 0.72, campoHondonada) * 0.45, 0.0, 1.0) * (1.0 - vSnow);',
+          // Sombra de contacto / AO en grietas finas del suelo y roca
+          'float aoMicro = mix(0.82, 1.0, smoothstep(0.14, 0.58, hBumpTerreno));',
           tri ? 'float bisel = vSplat.z * (1.0 - tL) * clamp((dFdx(rockLum) + dFdy(rockLum)) * 3.8, -0.18, 0.22);' : 'float bisel = 0.0;',
           tri ? 'float sombraRoca = mix(1.0, 0.86, rockSlope * vSplat.z);' : 'float sombraRoca = 1.0;',
           'vec3 tinte = mix(vec3(1.0, 0.97, 0.9), vec3(0.93, 1.02, 0.88), ruidoValor(vTWorld.xz * 0.006 + 17.0));',
-          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte * sombraRoca * (1.0 + bisel);',
+          'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte * sombraRoca * (1.0 + bisel) * mix(1.0, aoMicro, (1.0 - tL) * 0.60);',
+          'diffuseColor.rgb *= mix(1.0, 0.72, clamp(charcoMask * 0.75 + humedadMask * 0.25, 0.0, 0.85));',
+          'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.16, 0.23, 0.28), charcoMask * 0.26);',
           conSol ? [
-            'vec3 nW = normalize(vNWorld);',
             'vec3 sunD = normalize(uSunDir);',
             'vec3 viewW = normalize(cameraPosition - vTWorld);',
-            'float sunRim = pow(1.0 - clamp(dot(nW, viewW), 0.0, 1.0), 2.8) * clamp(dot(nW, sunD) * 0.7 + 0.3, 0.0, 1.0);',
+            'float sunRim = pow(1.0 - clamp(dot(nrmW, viewW), 0.0, 1.0), 2.8) * clamp(dot(nrmW, sunD) * 0.7 + 0.3, 0.0, 1.0);',
             'diffuseColor.rgb += uSunColor * sunRim * (0.13 * vSplat.z + 0.09 * vSnow + 0.03 * vSplat.x) * (1.0 - tL * 0.6);'
           ].join('\n') : ''
-        ].join('\n'))
+        ].join('\n'));
+      if (usarPbr) {
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <roughnessmap_fragment>', [
+            '#include <roughnessmap_fragment>',
+            'float dryRough = mix(0.92, 0.80, vSplat.z);',
+            'float wetRough = mix(0.30, 0.09, charcoMask);',
+            'roughnessFactor = mix(dryRough, wetRough, clamp(max(charcoMask, humedadMask * 0.75), 0.0, 1.0));'
+          ].join('\n'))
+          .replace('#include <lights_physical_fragment>', [
+            '#include <lights_physical_fragment>',
+            'material.clearcoat = uHumedad * clamp(charcoMask * 0.92 + humedadMask * 0.24, 0.0, 0.92);',
+            'material.clearcoatRoughness = clamp(mix(0.36, 0.06, charcoMask), 0.0525, 1.0);'
+          ].join('\n'));
+      }
+      shader.fragmentShader = shader.fragmentShader
         .replace('#include <normal_fragment_maps>', [
           '#include <normal_fragment_maps>',
           'if (tL < 0.95) {',
@@ -188,7 +255,8 @@
           '  vec3 r2 = cross(normal, dPosX);',
           '  float det = dot(dPosX, r1);',
           '  if (abs(det) > 1e-6) {',
-          '    float bumpScale = mix(0.20, 0.70, vSplat.z) * (1.0 - tL);',
+          '    float bumpBase = mix(0.42, 1.42, clamp(vSplat.z + vSplat.y * 0.35, 0.0, 1.0));',
+          '    float bumpScale = bumpBase * uBumpFuerza * (1.0 - tL) * (1.0 - charcoMask * 0.90);',
           '    vec3 surfGrad = sign(det) * (dHx * r1 + dHy * r2);',
           '    normal = normalize(abs(det) * normal - bumpScale * surfGrad);',
           '  }',
@@ -314,7 +382,7 @@
     return [-dx / l, 1 / l, -dz / l];
   }
 
-  const api = { splatFor, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, capasDesdeListaImagenes, CAPAS, buildGridGeometry, nodeNormal, smooth };
+  const api = { splatFor, splatWithRoad, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, capasDesdeListaImagenes, CAPAS, buildGridGeometry, nodeNormal, smooth };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TerrainLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);
