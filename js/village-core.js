@@ -55,6 +55,269 @@
     const cachePuestosGLB = {};
     const promesasCargaPuestos = {};
 
+    // Texturas reales de muros y mampostería de piedra (assets/texturas/piedra/t01..t10.jpg)
+    const STONE_TEXTURES = [
+      { id: 't01', label: 'Sillería Cálida (P-01)', path: 'assets/texturas/piedra/t01.jpg' },
+      { id: 't02', label: 'Sillería Clara (P-02)', path: 'assets/texturas/piedra/t02.jpg' },
+      { id: 't03', label: 'Piedra Costera (P-03)', path: 'assets/texturas/piedra/t03.jpg' },
+      { id: 't04', label: 'Muro de Bastión (P-04)', path: 'assets/texturas/piedra/t04.jpg' },
+      { id: 't05', label: 'Ladrillo Antiguo (P-05)', path: 'assets/texturas/piedra/t05.jpg' },
+      { id: 't06', label: 'Mampostería Rústica (P-06)', path: 'assets/texturas/piedra/t06.jpg' },
+      { id: 't07', label: 'Caliza Tallada (P-07)', path: 'assets/texturas/piedra/t07.jpg' },
+      { id: 't08', label: 'Basalto Oscuro (P-08)', path: 'assets/texturas/piedra/t08.jpg' },
+      { id: 't09', label: 'Mármol Claro (P-09)', path: 'assets/texturas/piedra/t09.jpg' },
+      { id: 't10', label: 'Bloques Musgosos (P-10)', path: 'assets/texturas/piedra/t10.jpg' }
+    ];
+    const STYLE_STONE_WALL_TEX = {
+      l2_fantasy: 't02',
+      european: 't01',
+      frontier: 't06',
+      elven: 't09',
+      dwarven: 't08',
+      fortified: 't04',
+      trade: 't03'
+    };
+
+    // Catálogo de puentes GLB (glb/puente0.glb, puente1.glb, puente3.glb) + medidas exactas en eje local X
+    const BRIDGE_GLBS = {
+      puente0: {
+        id: 'puente0',
+        label: 'Romano 2 Arcos (GLB)',
+        path: 'glb/puente0.glb',
+        minX: -8.034, maxX: 8.034,
+        deckHalfSpan: 8.0,
+        roadHalfW: 1.56,
+        outerHalfW: 1.96,
+        cutwaterHalfW: 3.103,
+        baseY: 0.010,
+        deckEndY: 3.630,
+        deckPeakY: 4.100,
+        flatHalfX: 1.20,
+        towerHalfX: 0,
+        doorHalfW: 0,
+        needsRamp: true,
+        pierLocalXs: [-7.0, 0.0, 7.0],
+        pierWidthLocalX: 1.45,
+        pierDepthLocalZ: 3.8,
+        submergedColor: '#57534e',
+        riverWidth: 14.0, riverCauce: 9.0, riverBanco: 27.0,
+        deckY(lx) {
+          const ax = Math.min(8.0, Math.abs(lx));
+          if (ax <= 1.2) return 4.10;
+          return 4.10 - ((ax - 1.2) / 6.8) * 0.47;
+        }
+      },
+      puente1: {
+        id: 'puente1',
+        label: 'Medieval con Torreón (GLB)',
+        path: 'glb/puente1.glb',
+        minX: -11.0, maxX: 11.0,
+        deckHalfSpan: 11.0,
+        roadHalfW: 1.36,
+        outerHalfW: 1.724,
+        cutwaterHalfW: 2.851,
+        baseY: 0.033,
+        deckEndY: 0.910,
+        deckPeakY: 3.310,
+        flatHalfX: 3.60,
+        towerHalfX: 1.485,
+        doorHalfW: 1.04,
+        needsRamp: false,
+        pierLocalXs: [-9.2, -4.4, 0.0, 4.4, 9.2],
+        pierWidthLocalX: 1.25,
+        pierDepthLocalZ: 3.4,
+        submergedColor: '#52525b',
+        riverWidth: 16.5, riverCauce: 10.5, riverBanco: 28.5,
+        deckY(lx) {
+          const ax = Math.min(11.0, Math.abs(lx));
+          if (ax <= 3.6) return 3.31;
+          return 3.31 - ((ax - 3.6) / 7.4) * 2.40;
+        }
+      },
+      puente3: {
+        id: 'puente3',
+        label: 'Madera con Arcos (GLB)',
+        path: 'glb/puente3.glb',
+        minX: -5.744, maxX: 5.744,
+        deckHalfSpan: 5.685,
+        roadHalfW: 1.48,
+        outerHalfW: 1.541,
+        cutwaterHalfW: 1.541,
+        baseY: -0.099,
+        deckEndY: 1.182,
+        deckPeakY: 2.008,
+        flatHalfX: 1.95,
+        towerHalfX: 0,
+        doorHalfW: 0,
+        needsRamp: false,
+        pierLocalXs: [-3.55, 0.0, 3.55],
+        pierWidthLocalX: 0.42,
+        pierDepthLocalZ: 2.75,
+        submergedColor: '#452715',
+        riverWidth: 11.5, riverCauce: 7.5, riverBanco: 24.5,
+        deckY(lx) {
+          const ax = Math.min(5.685, Math.abs(lx));
+          if (ax <= 1.95) return 2.008;
+          return 2.008 - ((ax - 1.95) / (5.685 - 1.95)) * (2.008 - 1.182);
+        }
+      }
+    };
+    const BRIDGE_STYLES = ['principal', 'puente0', 'puente1', 'puente3'];
+    const cachePuentesGLB = {};
+    const promesasCargaPuentes = {};
+
+    function resolveBridgeStyle(cfg) {
+      const raw = cfg && cfg.bridgeStyle;
+      if (raw === 'principal' || raw === 'puente0' || raw === 'puente1' || raw === 'puente3') return raw;
+      if (typeof raw === 'number' && Number.isFinite(raw)) {
+        const idx = Math.abs(Math.floor(raw)) % 4;
+        return ['principal', 'puente3', 'puente1', 'puente0'][idx];
+      }
+      if (typeof raw === 'string' && /^\d+$/.test(raw.trim())) {
+        const idx = Math.abs(parseInt(raw.trim(), 10)) % 4;
+        return ['principal', 'puente3', 'puente1', 'puente0'][idx];
+      }
+      const seed = Math.abs(Math.floor((cfg && cfg.seed) || 1));
+      return BRIDGE_STYLES[seed % BRIDGE_STYLES.length];
+    }
+
+    function riverParamsFor(cfg) {
+      const style = resolveBridgeStyle(cfg);
+      const glb = BRIDGE_GLBS[style];
+      if (glb) {
+        return {
+          style,
+          riverWidth: glb.riverWidth,
+          riverCauce: glb.riverCauce,
+          riverBanco: glb.riverBanco
+        };
+      }
+      return { style: 'principal', riverWidth: 14.0, riverCauce: 9.0, riverBanco: 27.0 };
+    }
+
+    function calcularPuenteGLB(id, pA, pB, hA, hB, roadWidth, opts) {
+      const meta = BRIDGE_GLBS[id] || BRIDGE_GLBS.puente0;
+      const dx = pB.x - pA.x, dz = pB.z - pA.z;
+      const L = Math.hypot(dx, dz) || 1;
+      const ux = dx / L, uz = dz / L;
+      const waterLevel = (opts && Number.isFinite(opts.waterLevel)) ? opts.waterLevel : -0.65;
+
+      let rampLen = 0, rampRise = 0;
+      if (meta.needsRamp && L > 12) {
+        rampLen = L >= 18 ? Math.min(L * 0.16, 3.6) : Math.min(L * 0.12, 2.2);
+        const hMin = Math.min(hA, hB);
+        const targetEnd = Math.max(hMin + 0.72, waterLevel + 1.55);
+        rampRise = Math.min(1.45, Math.max(0.70, targetEnd - hMin));
+      }
+
+      const glbSpan = Math.max(6.0, L - 2 * rampLen);
+      const scaleX = glbSpan / (meta.deckHalfSpan * 2);
+      const targetRoadW = Math.max(3.6, (roadWidth || 6.0) + 0.6);
+      const scaleZ = targetRoadW / (meta.roadHalfW * 2);
+      const scaleY = id === 'puente1'
+        ? Math.max(1.38, Math.min(1.90, scaleX * 0.96))
+        : (id === 'puente3'
+          ? Math.max(1.18, Math.min(1.58, scaleX * 0.65))
+          : Math.max(1.05, Math.min(1.45, scaleX * 0.78)));
+
+      const glbEndHA = hA + rampRise;
+      const glbEndHB = hB + rampRise;
+      const midEndY = (glbEndHA + glbEndHB) * 0.5;
+      const posY = midEndY - meta.deckEndY * scaleY;
+      const pitch = Math.atan2(glbEndHB - glbEndHA, glbSpan);
+      const angY = -Math.atan2(dz, dx);
+
+      const cx = (pA.x + pB.x) * 0.5;
+      const cz = (pA.z + pB.z) * 0.5;
+      const glbA = { x: pA.x + ux * rampLen, z: pA.z + uz * rampLen };
+      const glbB = { x: pB.x - ux * rampLen, z: pB.z - uz * rampLen };
+
+      const topAt = (s) => {
+        const sc = Math.max(0, Math.min(1, s));
+        if (rampLen > 0) {
+          const sR = rampLen / L;
+          if (sc < sR) {
+            return hA + (glbEndHA - hA) * (sc / sR);
+          }
+          if (sc > 1 - sR) {
+            return hB + (glbEndHB - hB) * ((1 - sc) / sR);
+          }
+          const u = (sc - sR) / (1 - 2 * sR);
+          const lx = (u - 0.5) * 2 * meta.deckHalfSpan;
+          const base = glbEndHA + (glbEndHB - glbEndHA) * u;
+          return base + (meta.deckY(lx) - meta.deckEndY) * scaleY;
+        }
+        const lx = (sc - 0.5) * 2 * meta.deckHalfSpan;
+        const base = glbEndHA + (glbEndHB - glbEndHA) * sc;
+        return base + (meta.deckY(lx) - meta.deckEndY) * scaleY;
+      };
+
+      return {
+        id: meta.id,
+        meta,
+        pA, pB,
+        glbA, glbB,
+        hA, hB,
+        glbEndHA, glbEndHB,
+        L, glbSpan,
+        ux, uz,
+        cx, cz,
+        angY, pitch,
+        rampLen, rampRise,
+        scaleX, scaleY, scaleZ,
+        posY,
+        halfWalkW: meta.roadHalfW * scaleZ,
+        outerHalfW: meta.outerHalfW * scaleZ,
+        waterLevel,
+        topAt
+      };
+    }
+
+    function cargarPuenteGLB(id, ThreeLib) {
+      const meta = BRIDGE_GLBS[id];
+      if (!meta) return Promise.resolve(null);
+      if (cachePuentesGLB[id]) return Promise.resolve(cachePuentesGLB[id]);
+      if (promesasCargaPuentes[id]) return promesasCargaPuentes[id];
+
+      const GLTFLoaderClass = (ThreeLib && ThreeLib.GLTFLoader)
+        || (typeof THREE !== 'undefined' && THREE.GLTFLoader)
+        || (typeof window !== 'undefined' && window.THREE && window.THREE.GLTFLoader)
+        || null;
+
+      if (!GLTFLoaderClass) return Promise.resolve(null);
+
+      promesasCargaPuentes[id] = new Promise(resolve => {
+        try {
+          const loader = new GLTFLoaderClass();
+          loader.load(meta.path, gltf => {
+            if (gltf && gltf.scene) {
+              gltf.scene.traverse(obj => {
+                if (obj.isMesh) {
+                  obj.castShadow = true;
+                  obj.receiveShadow = true;
+                  if (obj.geometry) {
+                    obj.geometry.userData = obj.geometry.userData || {};
+                    obj.geometry.userData.puenteGLB = true;
+                  }
+                }
+              });
+              cachePuentesGLB[id] = gltf.scene;
+              resolve(gltf.scene);
+            } else {
+              resolve(null);
+            }
+          }, undefined, () => resolve(null));
+        } catch (e) {
+          resolve(null);
+        }
+      });
+      return promesasCargaPuentes[id];
+    }
+
+    function preloadPuentesGLB(ThreeLib) {
+      return Promise.all(Object.keys(BRIDGE_GLBS).map(id => cargarPuenteGLB(id, ThreeLib)));
+    }
+
     // 4 texturas orgánicas con silueta recortada para setos (assets/texturas/setos/s01..s04.png)
     const HEDGE_TEXTURES = [
       { id: 's01', label: 'Boj Dorado (S-01)', path: 'assets/texturas/setos/s01.png' },
@@ -1347,6 +1610,43 @@
       const s = STYLE_STATIC_ROOFS[styleKey] || STYLE_STATIC_ROOFS.l2_fantasy;
       return getRoofMaterialById(s.tex, s.tint);
     };
+    const stoneTexCache = new Map();
+    const stoneMatCache = new Map();
+    const getStoneMaterialById = (texId) => {
+      const id = texId || 't01';
+      if (stoneMatCache.has(id)) return stoneMatCache.get(id);
+      const entry = STONE_TEXTURES.find(t => t.id === id);
+      if (!entry) return matAtlas;
+      let tex = stoneTexCache.get(id);
+      if (!tex && typeof THREE !== 'undefined' && THREE.TextureLoader) {
+        tex = new THREE.TextureLoader().load(entry.path, t => { t.needsUpdate = true; });
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 8;
+        stoneTexCache.set(id, tex);
+      }
+      const m = new THREE.MeshStandardMaterial({
+        map: tex || null,
+        bumpMap: tex || null,
+        bumpScale: 0.085,
+        color: '#e2e8f0',
+        roughness: 0.85,
+        metalness: 0.06
+      });
+      stoneMatCache.set(id, m);
+      return m;
+    };
+    const getBridgeWallMaterial = () => {
+      const texId = STYLE_STONE_WALL_TEX[styleKey] || 't01';
+      return getStoneMaterialById(texId);
+    };
+    const getBridgeRoadMaterial = (cfg) => {
+      const m = materialCallePara(cfg);
+      if (m && m !== matAtlas) return m;
+      const seed = Math.abs(Math.floor((cfg && cfg.seed) || 1));
+      return getStreetMaterialById(STREET_TEXTURES[seed % STREET_TEXTURES.length].id);
+    };
     const pickHouseRoof = (h, idx) => {
       const pal = STYLE_ROOF_VARIANTS[styleKey] || STYLE_ROOF_VARIANTS.l2_fantasy;
       const r = hash01(h.x * 1.37 + 19, h.z * 0.83 - 11);
@@ -1363,6 +1663,30 @@
         uv.setY(i, vMin + uv.getY(i) * (vMax - vMin));
       }
       uv.needsUpdate = true;
+    }
+
+    function tileBoxUV(geom, tileSize = 3.2) {
+      const pos = geom.attributes.position;
+      let norm = geom.attributes.normal;
+      if (!norm) { geom.computeVertexNormals(); norm = geom.attributes.normal; }
+      const uv = geom.attributes.uv;
+      if (!pos || !uv) return geom;
+      const s = 1 / Math.max(0.25, tileSize);
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const ax = Math.abs(norm ? norm.getX(i) : 0);
+        const ay = Math.abs(norm ? norm.getY(i) : 1);
+        const az = Math.abs(norm ? norm.getZ(i) : 0);
+        if (ay >= ax && ay >= az) {
+          uv.setXY(i, x * s, z * s);
+        } else if (az >= ax) {
+          uv.setXY(i, x * s, y * s);
+        } else {
+          uv.setXY(i, z * s, y * s);
+        }
+      }
+      uv.needsUpdate = true;
+      return geom;
     }
 
     // Fusiona un array de BufferGeometries en una sola malla optimizada sin requerir librerías externas
@@ -1828,6 +2152,7 @@
       }
 
       clear() {
+        this._genToken = (this._genToken || 0) + 1;
         this.extraBridges = [];
         this.hasForge = false;
         this.lightPoolMesh = null;
@@ -1839,7 +2164,7 @@
         this.objects.forEach(obj => {
           if (this.scene) this.scene.remove(obj);
           obj.traverse(c => {
-            if (c.geometry && !kitGeos.has(c.geometry) && !sharedTreeGeos.has(c.geometry) && c.geometry !== rockGeoCache && !c.geometry.userData.casasGLB) {
+            if (c.geometry && !kitGeos.has(c.geometry) && !sharedTreeGeos.has(c.geometry) && c.geometry !== rockGeoCache && !(c.geometry.userData && (c.geometry.userData.casasGLB || c.geometry.userData.puenteGLB))) {
               c.geometry.dispose();
             }
             if (c.isSprite && c.material) {
@@ -1855,6 +2180,88 @@
         this.waterMesh = null;
         this.bridgeBounds = null; this.bridgeTopAt = null;
         this.exitPaths = [];
+      }
+
+      configurarRio(cfg) {
+        const rp = riverParamsFor(cfg || this.cfg);
+        this.riverWidth = rp.riverWidth;
+        this.riverCauce = rp.riverCauce;
+        this.riverBanco = rp.riverBanco;
+        this.bridgeStyle = rp.style;
+        return rp;
+      }
+
+      construirPuenteGLBEn(spec, cfg, rampGroup, roadWidth) {
+        const matPared = getBridgeWallMaterial();
+        const matCalzada = getBridgeRoadMaterial(cfg);
+        const wRoad = roadWidth || (cfg && cfg.roadWidth) || 7.0;
+
+        // Rampas de acceso en los extremos si el puente GLB se eleva sobre la orilla (ej. puente0 romano)
+        if (rampGroup && spec.rampLen > 0) {
+          this.construirTablero(rampGroup, spec.pA, spec.glbA, {
+            ancho: wRoad + 0.3, hA: spec.hA, hB: spec.glbEndHA,
+            arco: 0, grosor: 0.28, tramos: 2, mat: matCalzada, uvScale: 3.4
+          });
+          this.construirTablero(rampGroup, spec.pA, spec.glbA, {
+            ancho: spec.outerHalfW * 2, hA: spec.hA, hB: spec.glbEndHA,
+            arco: 0, grosor: 2.2, tramos: 2, mat: matPared, arriba: -0.22, uvScale: 3.0
+          });
+          this.construirTablero(rampGroup, spec.glbB, spec.pB, {
+            ancho: wRoad + 0.3, hA: spec.glbEndHB, hB: spec.hB,
+            arco: 0, grosor: 0.28, tramos: 2, mat: matCalzada, uvScale: 3.4
+          });
+          this.construirTablero(rampGroup, spec.glbB, spec.pB, {
+            ancho: spec.outerHalfW * 2, hA: spec.glbEndHB, hB: spec.hB,
+            arco: 0, grosor: 2.2, tramos: 2, mat: matPared, arriba: -0.22, uvScale: 3.0
+          });
+        }
+
+        // Prolongaciones sumergidas bajo los pilares para que el apoyo llegue hasta el lecho del río
+        if (rampGroup && spec.meta.pierLocalXs && spec.meta.pierLocalXs.length) {
+          const footTopY = spec.posY + (spec.meta.baseY + 0.25) * spec.scaleY;
+          const footBotY = spec.waterLevel - 6.4;
+          const footH = footTopY - footBotY;
+          if (footH > 0.2) {
+            const matFoot = spec.id === 'puente3' ? matSignWood : matPared;
+            spec.meta.pierLocalXs.forEach(lx => {
+              const offsetWorld = lx * spec.scaleX;
+              const px = spec.cx + spec.ux * offsetWorld;
+              const pz = spec.cz + spec.uz * offsetWorld;
+              const pW = Math.max(0.45, (spec.meta.pierWidthLocalX || 1.1) * spec.scaleX * 0.92);
+              const pD = Math.max(0.8, (spec.meta.pierDepthLocalZ || 2.8) * spec.scaleZ * 0.92);
+              const geo = new THREE.BoxGeometry(pW, footH, pD);
+              if (matFoot !== matAtlas) tileBoxUV(geo, 2.8);
+              const fMesh = new THREE.Mesh(geo, matFoot);
+              fMesh.position.set(px, footBotY + footH * 0.5, pz);
+              fMesh.rotation.y = spec.angY;
+              fMesh.castShadow = fMesh.receiveShadow = true;
+              rampGroup.add(fMesh);
+            });
+          }
+        }
+
+        const holder = new THREE.Group();
+        holder.position.set(spec.cx, spec.posY, spec.cz);
+        holder.rotation.order = 'YXZ';
+        holder.rotation.y = spec.angY;
+        holder.rotation.z = spec.pitch;
+        holder.scale.set(spec.scaleX, spec.scaleY, spec.scaleZ);
+        if (this.scene) this.scene.add(holder);
+        this.objects.push(holder);
+
+        const token = this._genToken;
+        cargarPuenteGLB(spec.id, THREE).then(tmpl => {
+          if (!tmpl || this._genToken !== token) return;
+          const inst = tmpl.clone(true);
+          inst.traverse(o => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+            }
+          });
+          holder.add(inst);
+        });
+        return holder;
       }
 
       getMainRoadX(z) {
@@ -2468,7 +2875,8 @@
           X.normalize();
           const Y = new THREE.Vector3().crossVectors(Zv, X).normalize();
           const geo = new THREE.BoxGeometry(len + 0.05, o.grosor, o.ancho);
-          mapUVBand(geo, 0.25, 0.50);
+          if (o.mat === matAtlas) mapUVBand(geo, 0.25, 0.50);
+          else tileBoxUV(geo, o.uvScale || 3.2);
           const m = new THREE.Mesh(geo, o.mat);
           m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Zv));
           // La cara de arriba del bloque queda en la mitad del tramo
@@ -2483,7 +2891,18 @@
         return topAt;
       }
 
-      // Corta un camino donde cruza el río y pone un puente pequeño en cada cruce.
+      _colliderHitsPoint(c, x, z, padCircle, padBox) {
+        if (c.type === 'circle') return Math.hypot(x - c.x, z - c.z) < c.r + padCircle;
+        if (c.type === 'obb') {
+          const dx = x - c.cx, dz = z - c.cz;
+          const u = dx * c.ux + dz * c.uz;
+          const v = -dx * c.uz + dz * c.ux;
+          return Math.abs(u) < c.hu + padBox && Math.abs(v) < c.hv + padBox;
+        }
+        return x > c.minX - padBox && x < c.maxX + padBox && z > c.minZ - padBox && z < c.maxZ + padBox;
+      }
+
+      // Corta un camino donde cruza el río y pone un puente GLB en cada cruce secundario.
       // El cruce por el puente principal ya tiene tablero, así que solo se corta el camino.
       splitAtRiver(cfg, pts, width, roadsGroup, matAtlas) {
         const pieces = [];
@@ -2493,7 +2912,10 @@
         }
         const band = this.riverWidth * 0.65;
         const inBand = q => Math.abs(q.x - this.getRiverX(q.z)) < band;
-        const onMainBridge = q => Math.abs(q.z) < cfg.roadWidth * 0.55 + 1.5;
+        const mainHalfZ = this.bridgeBounds
+          ? Math.max(Math.abs(this.bridgeBounds.minZ), Math.abs(this.bridgeBounds.maxZ)) + 2.5
+          : (cfg.roadWidth * 0.55 + 1.5);
+        const onMainBridge = q => Math.abs(q.z) < mainHalfZ;
 
         const inside = pts.map(inBand);
         // Suavizar huecos de 1-2 puntos fuera del cauce para no partir un único cruce en dos puentes
@@ -2515,29 +2937,33 @@
             const cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2;
             const yaExistePuente = this.extraBridges.some(eb => Math.hypot(eb.cx - cx, eb.cz - cz) < 14);
             if (!onMainBridge(mid) && !yaExistePuente) {
-              // Puente secundario: alterna entre pasarela rústica de madera y puente pequeño de piedra
+              // Puente secundario GLB: alterna entre puente3 (madera con arcos) y puente0 (piedra romano)
               const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
+              const ux = dx / L, uz = dz / L;
               const esMadera = (width < cfg.roadWidth * 0.85) || (Math.abs(Math.round(mid.z)) % 2 === 1);
-              const hA = this.getTerrainHeight(a.x, a.z) + (esMadera ? 1.25 : 1.45);
-              const hB = this.getTerrainHeight(b.x, b.z) + (esMadera ? 1.25 : 1.45);
-              const topAt = this.construirTablero(roadsGroup, a, b, {
-                ancho: width + 1.1, hA, hB,
-                arco: esMadera ? 0.45 : 0.35, grosor: esMadera ? 0.55 : 1.1, tramos: esMadera ? 6 : 4,
-                mat: esMadera ? matSignWood : matAtlas
-              });
-              // Barandillas laterales para distinguir el puente secundario
-              [-width * 0.52, width * 0.52].forEach(lat => {
-                this.construirTablero(roadsGroup, a, b, {
-                  ancho: esMadera ? 0.22 : 0.45, hA, hB,
-                  arco: esMadera ? 0.45 : 0.35, grosor: esMadera ? 0.18 : 0.85, tramos: 4,
-                  mat: esMadera ? matSignWood : matAtlas, lateral: lat, arriba: esMadera ? 0.85 : 0.8
+              const bridgeId = esMadera ? 'puente3' : 'puente0';
+              const hA = this.getTerrainHeight(a.x, a.z) + 0.16;
+              const hB = this.getTerrainHeight(b.x, b.z) + 0.16;
+              const spec = calcularPuenteGLB(bridgeId, a, b, hA, hB, width, { waterLevel: -0.65 });
+              this.construirPuenteGLBEn(spec, cfg, roadsGroup, width);
+              const vx = -uz, vz = ux;
+              [-1, 1].forEach(side => {
+                const off = side * (spec.halfWalkW + 0.38);
+                this.colliders.push({
+                  type: 'obb',
+                  cx: spec.cx + vx * off,
+                  cz: spec.cz + vz * off,
+                  ux, uz,
+                  hu: spec.L * 0.5,
+                  hv: 0.42
                 });
               });
               this.extraBridges.push({
-                cx, cz,
-                ux: dx / L, uz: dz / L,
-                hu: L / 2, hv: (width + 1.2) / 2,
-                topAt
+                cx: spec.cx, cz: spec.cz,
+                ux, uz,
+                hu: spec.L * 0.5, hv: spec.halfWalkW,
+                bridgeId, spec,
+                topAt: spec.topAt
               });
             }
           }
@@ -2588,10 +3014,7 @@
 
       // ¿Cabe un árbol puesto a mano en (x, z)? Lejos de casas, edificios, muros y calles.
       treeOk(x, z) {
-        const blocked = this.colliders.some(c => {
-          if (c.type === 'circle') return Math.hypot(x - c.x, z - c.z) < c.r + 1.2;
-          return x > c.minX - 1.2 && x < c.maxX + 1.2 && z > c.minZ - 1.2 && z < c.maxZ + 1.2;
-        });
+        const blocked = this.colliders.some(c => this._colliderHitsPoint(c, x, z, 1.2, 1.2));
         if (blocked) return false;
         return !(this.editables.streets || []).some(st => {
           const half = st.width * 0.5 + 1.0;
@@ -2824,11 +3247,8 @@
         if (this.onExitCorridor(x, z, cfg.roadWidth * 0.5 + 5)) return false;
         return !this.colliders.some(c => {
           if (c.wall || (c.house && c.id === ignoreId)) return false;
-          if (c.type === 'circle') {
-            const margen = (c.house && cfg.trazado === 'adosadas') ? 1.8 : 6.5;
-            return Math.hypot(x - c.x, z - c.z) < c.r + margen;
-          }
-          return x > c.minX - 5 && x < c.maxX + 5 && z > c.minZ - 5 && z < c.maxZ + 5;
+          const margen = (c.house && cfg.trazado === 'adosadas') ? 1.8 : 6.5;
+          return this._colliderHitsPoint(c, x, z, margen, 5);
         });
       }
 
@@ -2857,6 +3277,7 @@
           this.scene.add(this.forgeLight);
         }
         this.cfg = cfg;
+        this.configurarRio(cfg);
         const edit = indexEdits(cfg);
         this.editables = { houses: [], streets: [], walls: [], lamps: [] };
         this.terrainMesh = null;
@@ -2930,7 +3351,7 @@
 
         }
 
-        // 2. RÍO Y PUENTE DE PIEDRA
+        // 2. RÍO Y PUENTE (principal texturizado con calle+pared o modelos GLB puente0/puente1/puente3)
         const lampsList = [];
         let bridgeGroup = null;
         if (cfg.hasRiver) {
@@ -2955,80 +3376,120 @@
           this.scene.add(this.waterMesh);
           this.objects.push(this.waterMesh);
 
+          const bridgeStyle = resolveBridgeStyle(cfg);
           const bx = this.getRiverX(0);
           const by = Math.max(0, this.getTerrainHeight(bx - RIVER_WIDTH, 0));
           const bSpan = RIVER_WIDTH + 8.0;
-          this.bridgeBounds = {
-            centerX: bx,
-            baseY: by,
-            halfSpan: bSpan * 0.5 + 3.5,
-            minX: bx - (bSpan * 0.5 + 3.5),
-            maxX: bx + (bSpan * 0.5 + 3.5),
-            minZ: -cfg.roadWidth * 0.55,
-            maxZ: cfg.roadWidth * 0.55
-          };
-
-          bridgeGroup = new THREE.Group();
-          // Tablero que une las dos orillas por la calle principal: 3 estilos distintos según pueblo/semilla
           const halfS = bSpan * 0.5 + 3.5;
           const pA = { x: bx - halfS, z: 0 }, pB = { x: bx + halfS, z: 0 };
           const hA = this.getTerrainHeight(pA.x, pA.z) + 0.16, hB = this.getTerrainHeight(pB.x, pB.z) + 0.16;
-          const estiloPuente = cfg.bridgeStyle != null ? cfg.bridgeStyle : (Math.abs(Math.floor(cfg.seed || 1)) % 3);
-          const esPuenteMadera = estiloPuente === 1;
-          const arcoPuente = estiloPuente === 0 ? 1.45 : (esPuenteMadera ? 0.75 : 0.95);
-          const grosorPuente = esPuenteMadera ? 0.58 : 1.15;
-          const matTablero = esPuenteMadera ? matSignWood : matAtlas;
-          const topAt = this.construirTablero(bridgeGroup, pA, pB, {
-            ancho: cfg.roadWidth + 1.2, hA, hB, arco: arcoPuente, grosor: grosorPuente, tramos: 12, mat: matTablero
-          });
-          // Barandillas según estilo (madera abierta con postes vs pretil de piedra con pilastras)
-          [-cfg.roadWidth * 0.55, cfg.roadWidth * 0.55].forEach(pz => {
-            if (esPuenteMadera) {
-              this.construirTablero(bridgeGroup, pA, pB, {
-                ancho: 0.24, hA, hB, arco: arcoPuente, grosor: 0.18, tramos: 10, mat: matSignWood, lateral: pz, arriba: 1.05
-              });
-              this.construirTablero(bridgeGroup, pA, pB, {
-                ancho: 0.18, hA, hB, arco: arcoPuente, grosor: 0.14, tramos: 10, mat: matSignWood, lateral: pz, arriba: 0.55
-              });
-            } else {
-              this.construirTablero(bridgeGroup, pA, pB, {
-                ancho: 0.65, hA, hB, arco: arcoPuente, grosor: 1.15, tramos: 12, mat: matAtlas, lateral: pz, arriba: 1.1
-              });
-            }
-            // Pilares / postes verticales a lo largo del puente
-            const nPostes = esPuenteMadera ? 7 : 5;
-            for (let pi = 0; pi < nPostes; pi++) {
-              const s = pi / (nPostes - 1);
-              const px = pA.x + (pB.x - pA.x) * s;
-              const py = topAt(s);
-              const esExtremoOCentro = (pi === 0 || pi === nPostes - 1 || pi === Math.floor(nPostes / 2));
-              const wPost = esPuenteMadera ? 0.34 : (estiloPuente === 2 && esExtremoOCentro ? 1.05 : 0.85);
-              const hPost = esPuenteMadera ? 1.25 : (estiloPuente === 2 && esExtremoOCentro ? 1.65 : 1.35);
-              const postM = new THREE.Mesh(new THREE.BoxGeometry(wPost, hPost, wPost), matTablero);
-              postM.position.set(px, py + hPost * 0.5 - 0.1, pz);
-              postM.castShadow = postM.receiveShadow = true;
-              bridgeGroup.add(postM);
-              // Pilares de apoyo sumergidos hasta el lecho del río
-              if (pi > 0 && pi < nPostes - 1 && (pi % 2 === 1 || !esPuenteMadera)) {
-                const pilar = new THREE.Mesh(new THREE.BoxGeometry(esPuenteMadera ? 0.5 : 1.1, 4.2, esPuenteMadera ? 0.5 : 1.1), matTablero);
-                pilar.position.set(px, py - 2.1, pz * 0.88);
-                pilar.castShadow = pilar.receiveShadow = true;
-                bridgeGroup.add(pilar);
-              }
-            }
-            this.colliders.push({ type: 'box', minX: this.bridgeBounds.minX, maxX: this.bridgeBounds.maxX, minZ: pz - 0.45, maxZ: pz + 0.45 });
-          });
-          this.bridgeTopAt = topAt;
 
-          if (cfg.hasLamps) {
-            const alturaFarola = x => topAt((x - pA.x) / (pB.x - pA.x)) + (esPuenteMadera ? 1.15 : 1.35);
-            const estBridge = estiloPuente === 1 ? 1 : (estiloPuente === 2 ? 2 : 0);
-            lampsList.push(
-              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0, style: estBridge },
-              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z: -cfg.roadWidth * 0.55, rot: 0, style: estBridge },
-              { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI, style: estBridge },
-              { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z:  cfg.roadWidth * 0.55, rot: Math.PI, style: estBridge }
-            );
+          bridgeGroup = new THREE.Group();
+          if (bridgeStyle === 'principal') {
+            const matPared = getBridgeWallMaterial();
+            const matCalzada = getBridgeRoadMaterial(cfg);
+            const arcoPuente = 1.45;
+            const halfWalkW = cfg.roadWidth * 0.55;
+            this.bridgeBounds = {
+              centerX: bx,
+              baseY: by,
+              halfSpan: halfS,
+              minX: pA.x,
+              maxX: pB.x,
+              minZ: -halfWalkW,
+              maxZ: halfWalkW,
+              style: 'principal'
+            };
+            const topAt = this.construirTablero(bridgeGroup, pA, pB, {
+              ancho: cfg.roadWidth + 0.5, hA, hB, arco: arcoPuente, grosor: 0.28, tramos: 12, mat: matCalzada, uvScale: 3.4
+            });
+            // Cuerpo estructural y bóveda inferior de sillería con textura real de pared
+            this.construirTablero(bridgeGroup, pA, pB, {
+              ancho: cfg.roadWidth + 1.2, hA, hB, arco: arcoPuente, grosor: 1.05, tramos: 12, mat: matPared, arriba: -0.22, uvScale: 2.8
+            });
+            [-halfWalkW, halfWalkW].forEach(pz => {
+              this.construirTablero(bridgeGroup, pA, pB, {
+                ancho: 0.65, hA, hB, arco: arcoPuente, grosor: 1.15, tramos: 12, mat: matPared, lateral: pz, arriba: 1.1, uvScale: 2.8
+              });
+              const nPostes = 5;
+              for (let pi = 0; pi < nPostes; pi++) {
+                const s = pi / (nPostes - 1);
+                const px = pA.x + (pB.x - pA.x) * s;
+                const py = topAt(s);
+                const wPost = (pi === 0 || pi === nPostes - 1 || pi === 2) ? 0.96 : 0.85;
+                const hPost = (pi === 0 || pi === nPostes - 1 || pi === 2) ? 1.48 : 1.35;
+                const postGeo = new THREE.BoxGeometry(wPost, hPost, wPost);
+                tileBoxUV(postGeo, 2.6);
+                const postM = new THREE.Mesh(postGeo, matPared);
+                postM.position.set(px, py + hPost * 0.5 - 0.1, pz);
+                postM.castShadow = postM.receiveShadow = true;
+                bridgeGroup.add(postM);
+                if (pi > 0 && pi < nPostes - 1) {
+                  const pilarGeo = new THREE.BoxGeometry(1.15, 6.2, 1.15);
+                  tileBoxUV(pilarGeo, 2.8);
+                  const pilar = new THREE.Mesh(pilarGeo, matPared);
+                  pilar.position.set(px, py - 3.1, pz * 0.88);
+                  pilar.castShadow = pilar.receiveShadow = true;
+                  bridgeGroup.add(pilar);
+                }
+              }
+              this.colliders.push({ type: 'box', minX: this.bridgeBounds.minX, maxX: this.bridgeBounds.maxX, minZ: pz - 0.45, maxZ: pz + 0.45 });
+            });
+            this.bridgeTopAt = topAt;
+
+            if (cfg.hasLamps) {
+              const alturaFarola = x => topAt((x - pA.x) / (pB.x - pA.x)) + 1.35;
+              lampsList.push(
+                { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z: -halfWalkW, rot: 0, style: 0 },
+                { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z: -halfWalkW, rot: 0, style: 0 },
+                { x: bx - bSpan * 0.45, y: alturaFarola(bx - bSpan * 0.45), z:  halfWalkW, rot: Math.PI, style: 0 },
+                { x: bx + bSpan * 0.45, y: alturaFarola(bx + bSpan * 0.45), z:  halfWalkW, rot: Math.PI, style: 0 }
+              );
+            }
+          } else {
+            const spec = calcularPuenteGLB(bridgeStyle, pA, pB, hA, hB, cfg.roadWidth, { waterLevel: -0.65 });
+            this.bridgeBounds = {
+              centerX: bx,
+              baseY: by,
+              halfSpan: halfS,
+              minX: pA.x,
+              maxX: pB.x,
+              minZ: -spec.halfWalkW,
+              maxZ: spec.halfWalkW,
+              style: bridgeStyle,
+              spec
+            };
+            this.construirPuenteGLBEn(spec, cfg, bridgeGroup, cfg.roadWidth);
+            this.bridgeTopAt = spec.topAt;
+
+            [-1, 1].forEach(side => {
+              const pz = side * (spec.halfWalkW + 0.40);
+              this.colliders.push({ type: 'box', minX: pA.x, maxX: pB.x, minZ: pz - 0.44, maxZ: pz + 0.44 });
+            });
+            if (bridgeStyle === 'puente1' && spec.meta.doorHalfW > 0) {
+              const towHalfX = spec.meta.towerHalfX * spec.scaleX + 0.25;
+              const doorZ = spec.meta.doorHalfW * spec.scaleZ;
+              const outerZ = spec.outerHalfW + 0.45;
+              [-1, 1].forEach(side => {
+                const z0 = side * doorZ, z1 = side * outerZ;
+                this.colliders.push({
+                  type: 'box',
+                  minX: spec.cx - towHalfX, maxX: spec.cx + towHalfX,
+                  minZ: Math.min(z0, z1), maxZ: Math.max(z0, z1)
+                });
+              });
+            }
+            if (cfg.hasLamps) {
+              const lz = spec.outerHalfW + 0.45;
+              const estL = bridgeStyle === 'puente3' ? 1 : 2;
+              const ax = pA.x - 0.6, bxEnd = pB.x + 0.6;
+              lampsList.push(
+                { x: ax, y: this.getTerrainHeight(ax, -lz), z: -lz, rot: 0, style: estL },
+                { x: bxEnd, y: this.getTerrainHeight(bxEnd, -lz), z: -lz, rot: 0, style: estL },
+                { x: ax, y: this.getTerrainHeight(ax, lz), z: lz, rot: Math.PI, style: estL },
+                { x: bxEnd, y: this.getTerrainHeight(bxEnd, lz), z: lz, rot: Math.PI, style: estL }
+              );
+            }
           }
         }
 
@@ -3093,7 +3554,7 @@
             N: { inner: { x: this.getMainRoadX(-townRadius), z: -townRadius }, gate: { x: this.getMainRoadX(-townRadius), z: -townRadius }, dir: { x: 0, z: -1 } },
             S: { inner: { x: this.getMainRoadX(townRadius),  z:  townRadius }, gate: { x: this.getMainRoadX(townRadius),  z:  townRadius }, dir: { x: 0, z:  1 } },
             W: { inner: { x: -townRadius, z: zCurveW },                        gate: { x: -townRadius, z: zCurveW },                        dir: { x: -1, z: 0 } },
-            E: (!cfg.hasRiver || this.getRiverX(0) + RIVER_WIDTH * 0.65 < townRadius - 4)
+            E: (!cfg.hasRiver || (this.bridgeBounds ? this.bridgeBounds.maxX : this.getRiverX(0) + RIVER_WIDTH * 0.65) < townRadius - 4)
               ? { inner: { x: townRadius, z: 0 }, gate: { x: townRadius, z: 0 }, dir: { x: 1, z: 0 } }
               : null
           };
@@ -3111,7 +3572,9 @@
 
           const eastWestPtsLeft = [];
           const xStartW = hasCardinalExit('W') ? -townRadius : -roadExtent;
-          const bridgeStopX = cfg.hasRiver ? (this.getRiverX(0) - RIVER_WIDTH * 0.65) : (hasCardinalExit('E') ? townRadius : roadExtent);
+          const bridgeStopX = cfg.hasRiver
+            ? (this.bridgeBounds ? this.bridgeBounds.minX + 0.9 : (this.getRiverX(0) - RIVER_WIDTH * 0.65))
+            : (hasCardinalExit('E') ? townRadius : roadExtent);
           for (let x = xStartW; x <= bridgeStopX + 0.01; x += 3.5) {
             const xc = Math.min(x, bridgeStopX);
             eastWestPtsLeft.push({ x: xc, z: Math.sin(xc * 0.04) * (cfg.curve * 0.35) * Math.min(1, Math.abs(xc) / 20) });
@@ -3120,7 +3583,7 @@
 
           if (cfg.hasRiver) {
             const eastWestPtsRight = [];
-            const bridgeResumeX = this.getRiverX(0) + RIVER_WIDTH * 0.65;
+            const bridgeResumeX = this.bridgeBounds ? this.bridgeBounds.maxX - 0.9 : (this.getRiverX(0) + RIVER_WIDTH * 0.65);
             const xEndE = hasCardinalExit('E') ? townRadius : roadExtent;
             for (let x = bridgeResumeX; x <= xEndE + 0.01; x += 3.5) {
               eastWestPtsRight.push({ x: Math.min(x, xEndE), z: 0 });
@@ -4913,6 +5376,10 @@
         roofTexCache.clear();
         roofMatCache.forEach(m => { if (m) m.dispose(); });
         roofMatCache.clear();
+        stoneTexCache.forEach(t => { if (t) t.dispose(); });
+        stoneTexCache.clear();
+        stoneMatCache.forEach(m => { if (m) m.dispose(); });
+        stoneMatCache.clear();
         kitGeos.forEach(g => g.dispose());
         kitGeos.clear();
         kitProto = null;
@@ -4942,6 +5409,15 @@
       { id: 't09', label: 'Lajas Grandes (T-09)', path: 'assets/texturas/suelo/t09.jpg' },
       { id: 't10', label: 'Piedra Rota (T-10)', path: 'assets/texturas/suelo/t10.jpg' }
     ],
+    STONE_TEXTURES,
+    STYLE_STONE_WALL_TEX,
+    BRIDGE_GLBS,
+    BRIDGE_STYLES,
+    resolveBridgeStyle,
+    riverParamsFor,
+    calcularPuenteGLB,
+    cargarPuenteGLB,
+    preloadPuentesGLB,
     HEDGE_TEXTURES,
     ROOF_TEXTURES,
     STYLE_ROOF_VARIANTS,
@@ -4953,6 +5429,7 @@
   if (typeof window !== 'undefined') {
     setTimeout(() => {
       try { preloadPuestosGLB(window.THREE); } catch (e) {}
+      try { preloadPuentesGLB(window.THREE); } catch (e) {}
     }, 25);
   }
 })();

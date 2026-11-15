@@ -2564,6 +2564,7 @@
     if (!groundKit) groundKit = VillageLib.createKit(null);
     const ground = groundKit.createVillage(null, { skipGround: true });
     ground.cfg = cfg;
+    if (ground.configurarRio) ground.configurarRio(cfg);
     const o = {
       t, cfg, R, size,
       tileHalf: Math.max(240, (R + 65) * 2) / 2,
@@ -4437,59 +4438,135 @@
 
   let puentesMundoGroup = null;
   const puentesMundoWalkables = [];
+  let _matPuenteMundoPiedra = null, _matPuenteMundoCalzada = null, _matPuenteMundoMadera = null;
+
+  function _matsPuenteMundo() {
+    if (!_matPuenteMundoPiedra) {
+      const texP = new THREE.TextureLoader().load('assets/texturas/piedra/t01.jpg');
+      texP.wrapS = texP.wrapT = THREE.RepeatWrapping;
+      if (THREE.SRGBColorSpace) texP.colorSpace = THREE.SRGBColorSpace;
+      _matPuenteMundoPiedra = new THREE.MeshStandardMaterial({ map: texP, bumpMap: texP, bumpScale: 0.08, color: 0xe2e8f0, roughness: 0.86, metalness: 0.06 });
+    }
+    if (!_matPuenteMundoCalzada) {
+      const texC = new THREE.TextureLoader().load('assets/texturas/suelo/t01.jpg');
+      texC.wrapS = texC.wrapT = THREE.RepeatWrapping;
+      if (THREE.SRGBColorSpace) texC.colorSpace = THREE.SRGBColorSpace;
+      _matPuenteMundoCalzada = new THREE.MeshStandardMaterial({ map: texC, color: 0xe2e8f0, roughness: 0.86, metalness: 0.05 });
+    }
+    if (!_matPuenteMundoMadera) {
+      _matPuenteMundoMadera = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.85 });
+    }
+    return { piedra: _matPuenteMundoPiedra, calzada: _matPuenteMundoCalzada, madera: _matPuenteMundoMadera };
+  }
+
+  function _tileBoxUVMundo(geom, tileSize) {
+    const pos = geom.attributes.position;
+    let norm = geom.attributes.normal;
+    if (!norm) { geom.computeVertexNormals(); norm = geom.attributes.normal; }
+    const uv = geom.attributes.uv;
+    if (!pos || !uv) return geom;
+    const s = 1 / Math.max(0.25, tileSize || 3.2);
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const ax = Math.abs(norm.getX(i)), ay = Math.abs(norm.getY(i)), az = Math.abs(norm.getZ(i));
+      if (ay >= ax && ay >= az) uv.setXY(i, x * s, z * s);
+      else if (az >= ax) uv.setXY(i, x * s, y * s);
+      else uv.setXY(i, z * s, y * s);
+    }
+    uv.needsUpdate = true;
+    return geom;
+  }
 
   function construirPuenteMundo(pA, pB, ancho, nivelAgua) {
     const dx = pB.x - pA.x, dz = pB.z - pA.z;
     const L = Math.hypot(dx, dz);
     if (L < 4) return;
-    const ux = dx / L, uz = dz / L;
     const cx = (pA.x + pB.x) / 2, cz = (pA.z + pB.z) / 2;
     if (puentesMundoWalkables.some(b => Math.hypot(b.cx - cx, b.cz - cz) < 14)) return;
 
-    const hA = Math.max(Hgen(pA.x, pA.z) + 0.35, nivelAgua + 0.85);
-    const hB = Math.max(Hgen(pB.x, pB.z) + 0.35, nivelAgua + 0.85);
-    const arco = 0.65;
-    const angY = -Math.atan2(dz, dx);
-    const matPiedra = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.88, metalness: 0.06 });
-    const matMadera = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 });
+    const hCamA = typeof alturaCamino === 'function' ? alturaCamino(pA.x, pA.z) + 0.10 : Hgen(pA.x, pA.z) + 0.25;
+    const hCamB = typeof alturaCamino === 'function' ? alturaCamino(pB.x, pB.z) + 0.10 : Hgen(pB.x, pB.z) + 0.25;
+    const hA = Math.max(hCamA, Hgen(pA.x, pA.z) + 0.28, nivelAgua + 0.88);
+    const hB = Math.max(hCamB, Hgen(pB.x, pB.z) + 0.28, nivelAgua + 0.88);
+
+    const ids = ancho <= 4.6 ? ['puente3'] : ['puente0', 'puente1', 'puente3'];
+    const hash = Math.abs(Math.round(cx * 7 + cz * 13));
+    const bridgeId = ids[hash % ids.length];
+    const spec = VillageLib.calcularPuenteGLB(bridgeId, pA, pB, hA, hB, ancho, { waterLevel: nivelAgua });
+    const mats = _matsPuenteMundo();
+
+    const targetGroup = puentesMundoGroup;
     const g = new THREE.Group();
 
-    const tramos = 6;
-    for (let i = 0; i < tramos; i++) {
-      const t0 = i / tramos, t1 = (i + 1) / tramos, tm = (t0 + t1) / 2;
-      const y0 = hA + (hB - hA) * t0 + arco * Math.sin(t0 * Math.PI);
-      const y1 = hA + (hB - hA) * t1 + arco * Math.sin(t1 * Math.PI);
-      const ym = (y0 + y1) / 2;
-      const segL = L / tramos + 0.25;
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(segL, 0.55, ancho + 1.0), matPiedra);
-      deck.position.set(pA.x + dx * tm, ym - 0.22, pA.z + dz * tm);
-      deck.rotation.y = angY;
-      deck.rotation.z = Math.atan2(y1 - y0, L / tramos);
-      deck.castShadow = deck.receiveShadow = true;
-      g.add(deck);
-
-      [-ancho * 0.52, ancho * 0.52].forEach(lat => {
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(segL, 0.75, 0.32), matMadera);
-        rail.position.set(pA.x + dx * tm - uz * lat, ym + 0.42, pA.z + dz * tm + ux * lat);
-        rail.rotation.y = angY;
-        rail.rotation.z = Math.atan2(y1 - y0, L / tramos);
-        rail.castShadow = true;
-        g.add(rail);
-      });
+    // Rampas de acceso para puente0 (romano) si el tablero se eleva sobre la ribera
+    if (spec.rampLen > 0) {
+      const addRamp = (ra, rb, y0, y1, w, grosor, arriba, mat, uvScale) => {
+        const rdx = rb.x - ra.x, rdz = rb.z - ra.z, rL = Math.hypot(rdx, rdz) || 1;
+        const rx = rdx / rL, rz = rdz / rL;
+        const slope = Math.atan2(y1 - y0, rL);
+        const geo = new THREE.BoxGeometry(rL + 0.08, grosor, w);
+        _tileBoxUVMundo(geo, uvScale);
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set((ra.x + rb.x) * 0.5, (y0 + y1) * 0.5 + (arriba || 0) - grosor * 0.5, (ra.z + rb.z) * 0.5);
+        mesh.rotation.order = 'YXZ';
+        mesh.rotation.y = -Math.atan2(rz, rx);
+        mesh.rotation.z = slope;
+        mesh.castShadow = mesh.receiveShadow = true;
+        g.add(mesh);
+      };
+      addRamp(spec.pA, spec.glbA, spec.hA, spec.glbEndHA, ancho + 0.3, 0.28, 0, mats.calzada, 3.4);
+      addRamp(spec.pA, spec.glbA, spec.hA, spec.glbEndHA, spec.outerHalfW * 2, 2.4, -0.22, mats.piedra, 3.0);
+      addRamp(spec.glbB, spec.pB, spec.glbEndHB, spec.hB, ancho + 0.3, 0.28, 0, mats.calzada, 3.4);
+      addRamp(spec.glbB, spec.pB, spec.glbEndHB, spec.hB, spec.outerHalfW * 2, 2.4, -0.22, mats.piedra, 3.0);
     }
 
-    [pA, pB].forEach((pt, idx) => {
-      const hp = idx === 0 ? hA : hB;
-      const pilar = new THREE.Mesh(new THREE.BoxGeometry(1.8, 4.5, ancho + 1.4), matPiedra);
-      pilar.position.set(pt.x, hp - 2.1, pt.z);
-      pilar.rotation.y = angY;
-      pilar.castShadow = pilar.receiveShadow = true;
-      g.add(pilar);
+    // Prolongaciones sumergidas bajo los pilares hasta el lecho del río
+    if (spec.meta.pierLocalXs && spec.meta.pierLocalXs.length) {
+      const footTopY = spec.posY + (spec.meta.baseY + 0.25) * spec.scaleY;
+      const footBotY = nivelAgua - 6.5;
+      const footH = footTopY - footBotY;
+      if (footH > 0.2) {
+        const matFoot = bridgeId === 'puente3' ? mats.madera : mats.piedra;
+        spec.meta.pierLocalXs.forEach(lx => {
+          const offsetW = lx * spec.scaleX;
+          const pW = Math.max(0.45, (spec.meta.pierWidthLocalX || 1.1) * spec.scaleX * 0.92);
+          const pD = Math.max(0.8, (spec.meta.pierDepthLocalZ || 2.8) * spec.scaleZ * 0.92);
+          const fGeo = new THREE.BoxGeometry(pW, footH, pD);
+          if (matFoot !== mats.madera) _tileBoxUVMundo(fGeo, 2.8);
+          const fMesh = new THREE.Mesh(fGeo, matFoot);
+          fMesh.position.set(spec.cx + spec.ux * offsetW, footBotY + footH * 0.5, spec.cz + spec.uz * offsetW);
+          fMesh.rotation.y = spec.angY;
+          fMesh.castShadow = fMesh.receiveShadow = true;
+          g.add(fMesh);
+        });
+      }
+    }
+
+    const holder = new THREE.Group();
+    holder.position.set(spec.cx, spec.posY, spec.cz);
+    holder.rotation.order = 'YXZ';
+    holder.rotation.y = spec.angY;
+    holder.rotation.z = spec.pitch;
+    holder.scale.set(spec.scaleX, spec.scaleY, spec.scaleZ);
+    g.add(holder);
+    targetGroup.add(g);
+
+    VillageLib.cargarPuenteGLB(bridgeId, THREE).then(tmpl => {
+      if (!tmpl || puentesMundoGroup !== targetGroup) return;
+      const inst = tmpl.clone(true);
+      inst.traverse(o => {
+        if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
+      });
+      holder.add(inst);
     });
 
-    puentesMundoGroup.add(g);
     puentesMundoWalkables.push({
-      cx, cz, ux, uz, hu: L / 2 + 0.8, hv: (ancho + 1.2) / 2, hA, hB, arco
+      cx: spec.cx, cz: spec.cz,
+      ux: spec.ux, uz: spec.uz,
+      hu: spec.L * 0.5 + 0.6,
+      hv: spec.halfWalkW,
+      bridgeId, spec,
+      topAt: spec.topAt
     });
   }
 
@@ -4518,31 +4595,52 @@
       if (ini.length) medio = medio.filter(p => alCentro(p, oa) > alCentro(ini[1], oa));
       if (fin.length) medio = medio.filter(p => alCentro(p, ob) > alCentro(fin[0], ob));
       const linea = curvePath([...ini, ...medio, ...fin], 3.2);
-      if (r.kind === 'calzada') { pintarCalzada(mbCalzada, linea, alturaCamino); pintarLadrillos(linea, alturaCamino, roadWidth('calzada')); }
-      else mb.ribbon(linea, roadWidth(r.kind), roadColor(r.kind), 0.10, alturaCamino);
 
-      // Un único puente de lado a lado del río por cada cruce de este camino
+      // Cortar la cinta de camino en los cruces de río y reemplazar cada cruce con un puente GLB
+      let tramosCamino = [linea];
       if (typeof rioCercano === 'function') {
+        const ptZ = p => (p.z !== undefined ? p.z : p.y);
         const enRio = linea.map(p => {
-          const rio = rioCercano(p.x, p.y);
+          const rio = rioCercano(p.x, ptZ(p));
           return rio && rio.d < RIO_CAUCE * (rio.w || 1) * 1.45 ? rio : null;
         });
         for (let i = 1; i < enRio.length - 1; i++) {
           if (!enRio[i] && enRio[i - 1] && enRio[i + 1]) enRio[i] = enRio[i - 1];
         }
-        for (let i = 1; i < enRio.length; i++) {
-          if (enRio[i] && !enRio[i - 1]) {
+        tramosCamino = [];
+        let seg = [];
+        for (let i = 0; i < linea.length; i++) {
+          if (!enRio[i]) {
+            seg.push(linea[i]);
+            continue;
+          }
+          if (i > 0 && !enRio[i - 1]) {
             let j = i;
             while (j + 1 < enRio.length && enRio[j + 1]) j++;
             if (j + 1 < linea.length) {
-              const pA = { x: linea[i - 1].x, z: linea[i - 1].y };
-              const pB = { x: linea[j + 1].x, z: linea[j + 1].y };
+              const pA = { x: linea[i - 1].x, z: ptZ(linea[i - 1]) };
+              const pB = { x: linea[j + 1].x, z: ptZ(linea[j + 1]) };
               construirPuenteMundo(pA, pB, roadWidth(r.kind), enRio[i].nivel);
+              if (seg.length > 1) tramosCamino.push(seg);
+              seg = [];
+              i = j;
+            } else {
+              if (seg.length > 1) tramosCamino.push(seg);
+              seg = [];
             }
-            i = j;
           }
         }
+        if (seg.length > 1) tramosCamino.push(seg);
       }
+
+      tramosCamino.forEach(tramo => {
+        if (r.kind === 'calzada') {
+          pintarCalzada(mbCalzada, tramo, alturaCamino);
+          pintarLadrillos(tramo, alturaCamino, roadWidth('calzada'));
+        } else {
+          mb.ribbon(tramo, roadWidth(r.kind), roadColor(r.kind), 0.10, alturaCamino);
+        }
+      });
     });
     const matsCamino = obtenerMaterialesCaminos();
     roadMesh = new THREE.Mesh(mb.geom(), matsCamino.tierra);
@@ -5461,12 +5559,32 @@
       if (c.type === 'circle') {
         const p = W2(c.x, c.z);
         out.push({ type: 'circle', x: p.x, z: p.z, r: c.r });
+      } else if (c.type === 'obb') {
+        const p = W2(c.cx, c.cz);
+        out.push({
+          type: 'obb',
+          cx: p.x, cz: p.z,
+          ux: c.ux * o.cr - c.uz * o.sr,
+          uz: c.ux * o.sr + c.uz * o.cr,
+          hu: c.hu, hv: c.hv
+        });
       } else {
         const p = W2((c.minX + c.maxX) / 2, (c.minZ + c.maxZ) / 2);
         out.push({ type: 'obb', cx: p.x, cz: p.z, ux: o.cr, uz: o.sr, hu: (c.maxX - c.minX) / 2, hv: (c.maxZ - c.minZ) / 2 });
       }
     }
     return out;
+  }
+
+  function _enPuenteMundo(x, z) {
+    for (let i = 0; i < puentesMundoWalkables.length; i++) {
+      const b = puentesMundoWalkables[i];
+      const rx = x - b.cx, rz = z - b.cz;
+      const u = rx * b.ux + rz * b.uz;
+      const v = -rx * b.uz + rz * b.ux;
+      if (Math.abs(u) <= b.hu && Math.abs(v) <= b.hv) return { b, u, v };
+    }
+    return null;
   }
 
   // El mundo tal como lo ve el personaje: suelo y colisiones de los pueblos completos y del terreno
@@ -5490,20 +5608,14 @@
       const v = visorWorld.villageAt(x, z);
       if (v) return v.o.h0 + v.o.village.getWalkableHeight(v.lx, v.lz);
       let groundH = H(x, z);
-      // Puentes de caminos del mundo sobre ríos
-      for (let i = 0; i < puentesMundoWalkables.length; i++) {
-        const b = puentesMundoWalkables[i];
-        const rx = x - b.cx, rz = z - b.cz;
-        const u = rx * b.ux + rz * b.uz;
-        const v = -rx * b.uz + rz * b.ux;
-        if (Math.abs(u) <= b.hu && Math.abs(v) <= b.hv) {
-          const t = Math.max(0, Math.min(1, (u + b.hu) / (2 * b.hu)));
-          const hBr = b.hA + (b.hB - b.hA) * t + b.arco * Math.sin(t * Math.PI) + 0.06;
-          if (hBr > groundH) groundH = hBr;
-        }
-      }
-      // Camino sobre el terreno y puentes sobre río: el personaje camina sobre la rasante del camino sin hundirse
-      if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 3.8)) {
+      // Puentes GLB de caminos del mundo sobre ríos
+      const hitB = _enPuenteMundo(x, z);
+      if (hitB) {
+        const b = hitB.b;
+        const t = Math.max(0, Math.min(1, (hitB.u + b.hu) / (2 * b.hu)));
+        const hBr = (b.topAt ? b.topAt(t) : (b.hA + (b.hB - b.hA) * t + b.arco * Math.sin(t * Math.PI))) + 0.06;
+        if (hBr > groundH) groundH = hBr;
+      } else if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 3.8)) {
         const hCam = (typeof alturaCamino === 'function' ? alturaCamino(x, z) : groundH) + 0.10;
         if (hCam > groundH) groundH = hCam;
       }
@@ -5528,6 +5640,28 @@
         if (!o.worldCols) continue;
         if (Math.hypot(x - o.t.x, z - o.t.y) > o.tileHalf * 1.5) continue;
         for (const c of o.worldCols) out.push(c);
+      }
+      // Barandillas y torreones de los puentes GLB de caminos del mundo
+      for (let i = 0; i < puentesMundoWalkables.length; i++) {
+        const b = puentesMundoWalkables[i];
+        if (Math.hypot(x - b.cx, z - b.cz) > b.hu + 6) continue;
+        const sp = b.spec;
+        if (!sp) continue;
+        const vx = -b.uz, vz = b.ux;
+        [-1, 1].forEach(side => {
+          const off = side * (b.hv + 0.42);
+          out.push({ type: 'obb', cx: b.cx + vx * off, cz: b.cz + vz * off, ux: b.ux, uz: b.uz, hu: b.hu, hv: 0.42 });
+        });
+        if (b.bridgeId === 'puente1' && sp.meta && sp.meta.doorHalfW > 0) {
+          const towHalfX = sp.meta.towerHalfX * sp.scaleX + 0.25;
+          const doorZ = sp.meta.doorHalfW * sp.scaleZ;
+          const outerZ = sp.outerHalfW + 0.45;
+          const hvSide = Math.max(0.25, (outerZ - doorZ) * 0.5);
+          const midLat = (doorZ + outerZ) * 0.5;
+          [-1, 1].forEach(side => {
+            out.push({ type: 'obb', cx: b.cx + vx * (side * midLat), cz: b.cz + vz * (side * midLat), ux: b.ux, uz: b.uz, hu: towHalfX, hv: hvSide });
+          });
+        }
       }
       // Colisionadores de los muros del laberinto de zona
       if (typeof laberintosMundo !== 'undefined' && laberintosMundo && laberintosMundo.length) {
@@ -5586,6 +5720,9 @@
       const enLago = (px, pz) => typeof LagosLib !== 'undefined' && lagosMundo && lagosMundo.length && LagosLib.enAgua(lagosMundo, px, pz);
       return [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]].some(([dx, dz]) => {
         const px = x + dx, pz = z + dz;
+        if (_enPuenteMundo(px, pz)) return false;
+        const v = visorWorld.villageAt(px, pz);
+        if (v) return v.o.village.isWaterHazard(v.lx, v.lz, 0.25);
         return visorWorld.getWalkableHeight(px, pz) < 0.2 || enLago(px, pz);
       });
     }
