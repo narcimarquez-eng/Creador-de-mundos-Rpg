@@ -432,13 +432,21 @@
         const partes = C.partesRuina(THREE, { tipo: c.tipo, ancho: c.ancho, fondo: c.fondo, semilla: c.semilla, hundir: Math.max(0, hc - yEsq + 0.2) });
         const M = new THREE.Matrix4().compose(new THREE.Vector3(c.x, hc, c.z),
           new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), c.ry), new THREE.Vector3(1, 1, 1));
-        // Una malla por material y celda, para poder ocultar las lejanas
+        const tv = C.varianteTextura ? C.varianteTextura((c.semilla % 997) / 997, ((c.semilla * 7 + 13) % 991) / 991) : null;
+        // Una malla por material, textura y celda, para poder ocultar las lejanas
         const celdaC = Math.floor(c.x / CELDA_LEJOS * 0.5) + ',' + Math.floor(c.z / CELDA_LEJOS * 0.5);
-        Object.keys(partes).forEach(k => { const clave = celdaC + '|' + k; (piezas[clave] = piezas[clave] || []).push(partes[k].clone().applyMatrix4(M)); });
+        Object.keys(partes).forEach(k => {
+          const tid = tv && (k === 'madera' ? tv.madera : k === 'tejas' ? tv.teja : k === 'oscura' ? tv.oscura : 'def');
+          const clave = celdaC + '|' + k + '|' + (tid || 'def');
+          if (!piezas[clave]) piezas[clave] = { matKey: k, tv, list: [] };
+          piezas[clave].list.push(partes[k].clone().applyMatrix4(M));
+        });
       });
-      const mats = C.materiales(THREE);
+      const matsDef = C.materiales(THREE);
       Object.keys(piezas).forEach(clave => {
-        const malla = new THREE.Mesh(C.fundir(THREE, piezas[clave]), mats[clave.split('|')[1]]);
+        const lote = piezas[clave];
+        const mats = lote.tv ? C.materiales(THREE, lote.tv) : matsDef;
+        const malla = new THREE.Mesh(C.fundir(THREE, lote.list), mats[lote.matKey]);
         malla.castShadow = true; malla.receiveShadow = true;
         malla.userData.lejos = LEJOS.cabanas;
         grupo.add(malla);

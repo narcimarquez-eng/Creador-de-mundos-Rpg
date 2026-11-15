@@ -63,6 +63,89 @@
       { id: 's04', label: 'Ciprés Plumoso (S-04)', path: 'assets/texturas/setos/s04.png' }
     ];
 
+    const ROOF_TEXTURES = [
+      { id: 't01', label: 'Teja árabe roja (T-01)', path: 'assets/texturas/tejados/t01.jpg' },
+      { id: 't02', label: 'Pizarra (T-02)', path: 'assets/texturas/tejados/t02.jpg' },
+      { id: 't03', label: 'Tablillas de madera (T-03)', path: 'assets/texturas/tejados/t03.jpg' },
+      { id: 't04', label: 'Teja con musgo (T-04)', path: 'assets/texturas/tejados/t04.jpg' },
+      { id: 't05', label: 'Chapa ondulada (T-05)', path: 'assets/texturas/tejados/t05.jpg' },
+      { id: 't06', label: 'Tejas de asfalto (T-06)', path: 'assets/texturas/tejados/t06.jpg' },
+      { id: 't07', label: 'Paja (T-07)', path: 'assets/texturas/tejados/t07.jpg' },
+      { id: 't08', label: 'Teja plana (T-08)', path: 'assets/texturas/tejados/t08.jpg' },
+      { id: 't09', label: 'Escamas de barro (T-09)', path: 'assets/texturas/tejados/t09.jpg' },
+      { id: 't10', label: 'Losas con liquen (T-10)', path: 'assets/texturas/tejados/t10.jpg' }
+    ];
+    const STYLE_ROOF_VARIANTS = {
+      l2_fantasy: [
+        { tex: 't09', tint: '#3b82f6' },
+        { tex: 't02', tint: '#60a5fa' },
+        { tex: 't06', tint: '#818cf8' },
+        { tex: 't10', tint: '#93c5fd' },
+        { tex: 't03', tint: '#7dd3fc' },
+        { tex: 't02', tint: '#ffffff' },
+        { tex: 't01', tint: '#ffffff' }
+      ],
+      european: [
+        { tex: 't01', tint: '#ffffff' },
+        { tex: 't08', tint: '#ffffff' },
+        { tex: 't09', tint: '#ffffff' },
+        { tex: 't04', tint: '#ffffff' },
+        { tex: 't03', tint: '#ffffff' },
+        { tex: 't02', tint: '#cbd5e1' },
+        { tex: 't01', tint: '#f87171' }
+      ],
+      frontier: [
+        { tex: 't07', tint: '#ffffff' },
+        { tex: 't03', tint: '#ffffff' },
+        { tex: 't04', tint: '#ffffff' },
+        { tex: 't10', tint: '#ffffff' },
+        { tex: 't01', tint: '#fde68a' },
+        { tex: 't08', tint: '#ffffff' }
+      ],
+      elven: [
+        { tex: 't09', tint: '#2dd4bf' },
+        { tex: 't02', tint: '#5eead4' },
+        { tex: 't10', tint: '#7dd3fc' },
+        { tex: 't03', tint: '#6ee7b7' },
+        { tex: 't04', tint: '#ffffff' },
+        { tex: 't06', tint: '#38bdf8' }
+      ],
+      dwarven: [
+        { tex: 't02', tint: '#cbd5e1' },
+        { tex: 't05', tint: '#94a3b8' },
+        { tex: 't10', tint: '#e2e8f0' },
+        { tex: 't06', tint: '#cbd5e1' },
+        { tex: 't09', tint: '#fb923c' },
+        { tex: 't05', tint: '#f59e0b' }
+      ],
+      fortified: [
+        { tex: 't02', tint: '#94a3b8' },
+        { tex: 't06', tint: '#cbd5e1' },
+        { tex: 't05', tint: '#64748b' },
+        { tex: 't10', tint: '#cbd5e1' },
+        { tex: 't01', tint: '#ef4444' },
+        { tex: 't08', tint: '#dc2626' }
+      ],
+      trade: [
+        { tex: 't01', tint: '#ffffff' },
+        { tex: 't08', tint: '#f87171' },
+        { tex: 't09', tint: '#3b82f6' },
+        { tex: 't02', tint: '#60a5fa' },
+        { tex: 't03', tint: '#ffffff' },
+        { tex: 't07', tint: '#ffffff' },
+        { tex: 't10', tint: '#ffffff' }
+      ]
+    };
+    const STYLE_STATIC_ROOFS = {
+      l2_fantasy: { tex: 't02', tint: '#60a5fa' },
+      european: { tex: 't01', tint: '#ffffff' },
+      frontier: { tex: 't03', tint: '#ffffff' },
+      elven: { tex: 't02', tint: '#5eead4' },
+      dwarven: { tex: 't02', tint: '#cbd5e1' },
+      fortified: { tex: 't02', tint: '#94a3b8' },
+      trade: { tex: 't08', tint: '#f87171' }
+    };
+
     function base64ToArrayBuffer(base64) {
       const binaryString = (typeof window !== 'undefined' && window.atob)
         ? window.atob(base64)
@@ -1210,6 +1293,66 @@
       hedgeMatCache.set(texId, m);
       return m;
     };
+    const roofTexCache = new Map();
+    const roofMatCache = new Map();
+    const getRoofTextureById = (texId) => {
+      if (roofTexCache.has(texId)) return roofTexCache.get(texId);
+      const entry = ROOF_TEXTURES.find(t => t.id === texId);
+      if (!entry) return null;
+      let tex = null;
+      if (typeof THREE !== 'undefined' && THREE.TextureLoader) {
+        tex = new THREE.TextureLoader().load(entry.path, t => { t.needsUpdate = true; });
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 8;
+        roofTexCache.set(texId, tex);
+      }
+      return tex;
+    };
+    const getRoofMaterialById = (texId, staticTintHex) => {
+      const clave = texId + '|' + (staticTintHex || 'inst');
+      if (roofMatCache.has(clave)) return roofMatCache.get(clave);
+      const entry = ROOF_TEXTURES.find(t => t.id === texId);
+      if (!entry) return matAtlas;
+      const tex = getRoofTextureById(texId);
+      const m = new THREE.MeshStandardMaterial({
+        map: tex || null,
+        bumpMap: tex || null,
+        bumpScale: 0.09,
+        color: staticTintHex || '#ffffff',
+        roughness: texId === 't05' ? 0.56 : 0.78,
+        metalness: texId === 't05' ? 0.25 : 0.08
+      });
+      // En tejados de colores (azul L2, turquesa élfico, rojo comercio…), desatura suavemente la base
+      // cuando vColor tiene color vivo para que las tejas reales tomen el tono sin quedar apagadas.
+      if (!staticTintHex && THREE.ShaderChunk) {
+        m.onBeforeCompile = shader => {
+          shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <color_fragment>',
+            `#if defined( USE_COLOR ) || defined( USE_COLOR_ALPHA )
+              float _rLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+              float _rSat = max(vColor.r, max(vColor.g, vColor.b)) - min(vColor.r, min(vColor.g, vColor.b));
+              vec3 _rBase = mix(diffuseColor.rgb, vec3(min(1.0, _rLum * 1.45)), smoothstep(0.06, 0.25, _rSat));
+              diffuseColor.rgb = _rBase * vColor.rgb;
+              diffuseColor.a *= vColor.a;
+            #endif`
+          );
+        };
+      }
+      roofMatCache.set(clave, m);
+      return m;
+    };
+    const getStyleStaticRoofMaterial = () => {
+      const s = STYLE_STATIC_ROOFS[styleKey] || STYLE_STATIC_ROOFS.l2_fantasy;
+      return getRoofMaterialById(s.tex, s.tint);
+    };
+    const pickHouseRoof = (h, idx) => {
+      const pal = STYLE_ROOF_VARIANTS[styleKey] || STYLE_ROOF_VARIANTS.l2_fantasy;
+      const r = hash01(h.x * 1.37 + 19, h.z * 0.83 - 11);
+      const i = (Math.floor(r * pal.length) + (idx % pal.length)) % pal.length;
+      return pal[i];
+    };
     const kitGeos = new Set();
     let kitProto = null;
 
@@ -1415,9 +1558,43 @@
       return mergeGeometriesList(parts);
     }
 
-    // 5.4 Cubierta a dos aguas con cabrios de madera vistos bajo el alero (Rafter tails)
-    function createRoofGeometry(width, depth, ridgeH, overX, overZ, thick) {
-      const parts = [];
+    function mapRoofSlopeUV(geom, scale = 2.2) {
+      const pos = geom.attributes.position;
+      let norm = geom.attributes.normal;
+      if (!norm) { geom.computeVertexNormals(); norm = geom.attributes.normal; }
+      const uv = geom.attributes.uv || new THREE.Float32BufferAttribute(new Float32Array(pos.count * 2), 2);
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        let nx = norm ? norm.getX(i) : 0, ny = norm ? norm.getY(i) : 1, nz = norm ? norm.getZ(i) : 0;
+        if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; }
+        const hLen = Math.hypot(nx, nz);
+        if (hLen > 0.1 && ny > 0.1 && Math.abs(nz) < 0.25) {
+          const tx = -nz / hLen, tz = nx / hLen;
+          const ux = -nx * ny / hLen, uy = hLen, uz = -nz * ny / hLen;
+          uv.setXY(i, (x * tx + z * tz) / scale, (x * ux + y * uy + z * uz) / scale);
+        } else if (Math.abs(nz) >= 0.5) {
+          uv.setXY(i, x / scale, y / scale);
+        } else {
+          uv.setXY(i, z / scale, y / scale);
+        }
+      }
+      if (!geom.attributes.uv) geom.setAttribute('uv', uv);
+      uv.needsUpdate = true;
+      return geom;
+    }
+
+    function mapConeRoofUV(geom, repU = 4, repV = 2) {
+      const uv = geom.attributes.uv;
+      if (!uv) return geom;
+      for (let i = 0; i < uv.count; i++) {
+        uv.setXY(i, uv.getX(i) * repU, uv.getY(i) * repV);
+      }
+      uv.needsUpdate = true;
+      return geom;
+    }
+
+    // 5.4 Cubierta a dos aguas (tejado con textura real y cabrios de madera separados)
+    function createRoofShellGeometry(width, depth, ridgeH, overX, overZ, thick) {
       const hw = width * 0.5, slope = ridgeH / hw, drop = slope * overX, totD = depth + overZ * 2.0;
 
       const shape = new THREE.Shape();
@@ -1433,9 +1610,14 @@
 
       const roofShell = new THREE.ExtrudeGeometry(shape, { steps: 1, depth: totD, bevelEnabled: false });
       roofShell.translate(0, 0, -totD * 0.5);
-      mapUVBand(roofShell, 0.75, 1.00);
       roofShell.computeVertexNormals();
-      parts.push(roofShell);
+      mapRoofSlopeUV(roofShell, 2.2);
+      return roofShell;
+    }
+
+    function createRoofTrimGeometry(width, depth, ridgeH, overX, overZ, thick) {
+      const parts = [];
+      const hw = width * 0.5, slope = ridgeH / hw, drop = slope * overX, totD = depth + overZ * 2.0;
 
       // Cabrios/Canecillos de madera bajo los aleros laterales y cumbrera
       const ridgeBeam = new THREE.BoxGeometry(0.28, 0.28, totD + 0.3);
@@ -1453,6 +1635,12 @@
       }
 
       return mergeGeometriesList(parts);
+    }
+
+    function createRoofGeometry(width, depth, ridgeH, overX, overZ, thick) {
+      const shell = createRoofShellGeometry(width, depth, ridgeH, overX, overZ, thick);
+      const trim = createRoofTrimGeometry(width, depth, ridgeH, overX, overZ, thick);
+      return mergeGeometriesList([shell, trim]);
     }
 
     // 5.5 Chimenea con corona escalonada de piedra y tiro cerámico
@@ -1733,13 +1921,13 @@
         return Number.isFinite(h) ? h : 0;
       }
 
-      // Casas de madera: cada una con su variante y su zócalo hundido en la ladera; las piezas de todas se
-      // fusionan por material, así que un pueblo gasta pocas llamadas de dibujo. Requiere js/casa-madera.js.
+      // Casas de madera: cada una con su variante, sus maderas y su tejado reales, y su zócalo hundido;
+      // las piezas se fusionan por material y textura para mantener pocas llamadas de dibujo. Requiere js/casa-madera.js.
       construirCasasMadera(maderas, HW, HD) {
         const C = window.CasaMaderaLib;
         if (!C || !maderas.length) return;
         const piezas = {};
-        maderas.forEach(h => {
+        maderas.forEach((h, idx) => {
           const cosR = Math.cos(h.rot), sinR = Math.sin(h.rot);
           let yEsq = h.y;
           [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
@@ -1747,6 +1935,7 @@
             yEsq = Math.min(yEsq, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
           });
           const hash = hash01(h.x, h.z);
+          const hash2 = hash01(h.z + idx * 0.37, h.x - idx * 0.71);
           const parts = C.partes(THREE, {
             variante: C.variante(hash01(h.z, h.x)),
             ancho: (h.adosadas && h.anchoSlot) ? h.anchoSlot : HW * 1.2 * h.wScale, fondo: HD * 1.2 * h.dScale,
@@ -1755,13 +1944,19 @@
           });
           const M = new THREE.Matrix4().compose(new THREE.Vector3(h.x, h.y, h.z),
             new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot), new THREE.Vector3(1, 1, 1));
+          const tv = C.varianteTextura ? C.varianteTextura(hash, hash2) : null;
           Object.keys(parts).forEach(k => {
-            (piezas[k] = piezas[k] || []).push(parts[k].clone().applyMatrix4(M));
+            const tid = tv && (k === 'madera' ? tv.madera : k === 'tejas' ? tv.teja : k === 'oscura' ? tv.oscura : k === 'puerta' ? tv.puerta : k === 'troncos' ? tv.troncos : 'def');
+            const clave = k + '|' + (tid || 'def');
+            if (!piezas[clave]) piezas[clave] = { matKey: k, tv, list: [] };
+            piezas[clave].list.push(parts[k].applyMatrix4(M));
           });
         });
-        const mats = C.materiales(THREE);
-        Object.keys(piezas).forEach(k => {
-          const malla = new THREE.Mesh(C.fundir(THREE, piezas[k]), mats[k]);
+        const matsDef = C.materiales(THREE);
+        Object.keys(piezas).forEach(clave => {
+          const lote = piezas[clave];
+          const mats = lote.tv ? C.materiales(THREE, lote.tv) : matsDef;
+          const malla = new THREE.Mesh(C.fundir(THREE, lote.list), mats[lote.matKey]);
           malla.castShadow = true; malla.receiveShadow = true;
           this.scene.add(malla);
           this.objects.push(malla);
@@ -2030,9 +2225,12 @@
           naveM.position.y = 3.6; naveM.castShadow = naveM.receiveShadow = true;
           bGroup.add(naveM);
 
-          const roofM = new THREE.Mesh(createRoofGeometry(9.2, 12.5, 3.4, 0.6, 0.6, 0.25), matAtlas);
+          const roofM = new THREE.Mesh(createRoofShellGeometry(9.2, 12.5, 3.4, 0.6, 0.6, 0.25), getStyleStaticRoofMaterial());
           roofM.position.y = 7.2; roofM.castShadow = true;
           bGroup.add(roofM);
+          const roofTrimM = new THREE.Mesh(createRoofTrimGeometry(9.2, 12.5, 3.4, 0.6, 0.6, 0.25), matAtlas);
+          roofTrimM.position.y = 7.2; roofTrimM.castShadow = true;
+          bGroup.add(roofTrimM);
 
           [-3.2, -1.1, 1.1, 3.2].forEach(cx => {
             const colG = new THREE.CylinderGeometry(0.38, 0.46, 5.5, 12);
@@ -2049,8 +2247,8 @@
           bGroup.add(towM);
 
           const spireG = new THREE.ConeGeometry(3.0, 5.5, 4);
-          spireG.rotateY(Math.PI / 4); mapUVBand(spireG, 0.75, 1.00);
-          const spireM = new THREE.Mesh(spireG, matAtlas);
+          spireG.rotateY(Math.PI / 4); mapConeRoofUV(spireG, 4, 2);
+          const spireM = new THREE.Mesh(spireG, getStyleStaticRoofMaterial());
           spireM.position.set(0, 18.25, -4.5); spireM.castShadow = true;
           bGroup.add(spireM);
 
@@ -2062,9 +2260,12 @@
           bodyM.position.set(-1.2, 2.1, 0); bodyM.castShadow = bodyM.receiveShadow = true;
           bGroup.add(bodyM);
 
-          const roofM = new THREE.Mesh(createRoofGeometry(6.5, 7.5, 2.1, 0.5, 0.5, 0.2), matAtlas);
+          const roofM = new THREE.Mesh(createRoofShellGeometry(6.5, 7.5, 2.1, 0.5, 0.5, 0.2), getStyleStaticRoofMaterial());
           roofM.position.set(-1.2, 4.2, 0); roofM.castShadow = true;
           bGroup.add(roofM);
+          const roofTrimM = new THREE.Mesh(createRoofTrimGeometry(6.5, 7.5, 2.1, 0.5, 0.5, 0.2), matAtlas);
+          roofTrimM.position.set(-1.2, 4.2, 0); roofTrimM.castShadow = true;
+          bGroup.add(roofTrimM);
 
           const furnaceG = new THREE.BoxGeometry(2.8, 7.5, 2.8);
           mapUVBand(furnaceG, 0.25, 0.50);
@@ -2107,9 +2308,12 @@
           mainM.position.y = 3.0; mainM.castShadow = mainM.receiveShadow = true;
           bGroup.add(mainM);
 
-          const roofM = new THREE.Mesh(createRoofGeometry(8.5, 8.0, 2.5, 0.6, 0.6, 0.22), matAtlas);
+          const roofM = new THREE.Mesh(createRoofShellGeometry(8.5, 8.0, 2.5, 0.6, 0.6, 0.22), getStyleStaticRoofMaterial());
           roofM.position.y = 6.0; roofM.castShadow = true;
           bGroup.add(roofM);
+          const roofTrimM = new THREE.Mesh(createRoofTrimGeometry(8.5, 8.0, 2.5, 0.6, 0.6, 0.22), matAtlas);
+          roofTrimM.position.y = 6.0; roofTrimM.castShadow = true;
+          bGroup.add(roofTrimM);
 
           const porchG = new THREE.BoxGeometry(8.2, 0.25, 2.6);
           mapUVBand(porchG, 0.0, 0.25);
@@ -2146,8 +2350,8 @@
           bGroup.add(guildM);
 
           const domeG = new THREE.ConeGeometry(4.8, 4.2, 8);
-          mapUVBand(domeG, 0.75, 1.00);
-          const domeM = new THREE.Mesh(domeG, matAtlas);
+          mapConeRoofUV(domeG, 5, 2);
+          const domeM = new THREE.Mesh(domeG, getStyleStaticRoofMaterial());
           domeM.position.y = 11.6; domeM.castShadow = true;
           bGroup.add(domeM);
 
@@ -3262,8 +3466,8 @@
                     wallGroup.add(tM);
 
                     const tRoofG = new THREE.ConeGeometry(3.5, 3.2, 4);
-                    mapUVBand(tRoofG, 0.75, 1.00);
-                    const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
+                    mapConeRoofUV(tRoofG, 4, 2);
+                    const tRoofM = new THREE.Mesh(tRoofG, getStyleStaticRoofMaterial());
                     tRoofM.position.set(mx, wy + 10.7, mz);
                     tRoofM.rotation.y = wallRot + Math.PI * 0.25;
                     tRoofM.castShadow = true;
@@ -3323,8 +3527,8 @@
                     wallGroup.add(ringM);
 
                     const tRoofG = new THREE.ConeGeometry(3.05, 5.4, 8);
-                    mapUVBand(tRoofG, 0.75, 1.00);
-                    const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
+                    mapConeRoofUV(tRoofG, 4, 2);
+                    const tRoofM = new THREE.Mesh(tRoofG, getStyleStaticRoofMaterial());
                     tRoofM.position.set(mx, wy + 15.1, mz);
                     tRoofM.castShadow = true;
                     wallGroup.add(tRoofM);
@@ -3352,8 +3556,8 @@
                     wallGroup.add(corbM);
 
                     const tRoofG = new THREE.ConeGeometry(3.4, 3.8, 12);
-                    mapUVBand(tRoofG, 0.75, 1.00);
-                    const tRoofM = new THREE.Mesh(tRoofG, matAtlas);
+                    mapConeRoofUV(tRoofG, 5, 2);
+                    const tRoofM = new THREE.Mesh(tRoofG, getStyleStaticRoofMaterial());
                     tRoofM.position.set(mx, wy + 12.8, mz);
                     tRoofM.castShadow = true;
                     wallGroup.add(tRoofM);
@@ -4203,7 +4407,8 @@
           kitProto = {
             plinthG: reg(plinthG),
             wallG: reg(createDetailedWallGeometry(HW, FH, HD)),
-            roofG: reg(createRoofGeometry(HW, HD, RH, 0.58, 0.58, 0.22)),
+            roofShellG: reg(createRoofShellGeometry(HW, HD, RH, 0.58, 0.58, 0.22)),
+            roofTrimG: reg(createRoofTrimGeometry(HW, HD, RH, 0.58, 0.58, 0.22)),
             gableG: reg(createGableGeometry(HW, RH, 0.28)),
             winGlassG: reg(new THREE.BoxGeometry(1.18, 1.42, 0.18)),
             winFrameG: reg(createDetailedWindowFrameGeometry()),
@@ -4237,7 +4442,7 @@
             fenceG: reg(fenceG)
           };
         }
-        const { plinthG, wallG, roofG, gableG, winGlassG, winFrameG, doorG, chimG, balcG, stallG, barrelG, postG, armG, lanternG, postMaderaG, armMaderaG, lanternMaderaG, postPiedraG, armPiedraG, lanternPiedraG, poolG, hedgeG, fenceG } = kitProto;
+        const { plinthG, wallG, roofShellG, roofTrimG, gableG, winGlassG, winFrameG, doorG, chimG, balcG, stallG, barrelG, postG, armG, lanternG, postMaderaG, armMaderaG, lanternMaderaG, postPiedraG, armPiedraG, lanternPiedraG, poolG, hedgeG, fenceG } = kitProto;
 
         // Reparto urbano con más sentido: cerca de la plaza predominan casas de piedra y GLB alternadas sin repetir
         // seguidas; hacia las afueras aumentan las cabañas de madera. También admite elegir un único modelo.
@@ -4293,9 +4498,26 @@
           if (h.balcony) totBalcs++;
         });
 
+        const roofBatches = new Map();
+        const houseRoofAssign = casas.map((h, idx) => {
+          const pick = pickHouseRoof(h, idx);
+          let list = roofBatches.get(pick.tex);
+          if (!list) { list = []; roofBatches.set(pick.tex, list); }
+          const slot = list.length;
+          list.push(pick);
+          return { tex: pick.tex, tint: pick.tint, slot };
+        });
+        const roofMeshesByTex = new Map();
+        const roofMeshes = [];
+        roofBatches.forEach((list, texId) => {
+          const m = makeInstanced(roofShellG, getRoofMaterialById(texId), list.length);
+          roofMeshesByTex.set(texId, m);
+          roofMeshes.push(m);
+        });
+
         const iPlinth = makeInstanced(plinthG, matAtlas, casas.length);
         const iWall = makeInstanced(wallG, matAtlas, totFloors);
-        const iRoof = makeInstanced(roofG, matAtlas, casas.length);
+        const iRoofTrim = makeInstanced(roofTrimG, matAtlas, casas.length);
         const iGable = makeInstanced(gableG, matAtlas, casas.length * 2);
         const iWinGlass = makeInstanced(winGlassG, matWindowGlass, totWins, { castShadow: false });
         const iWinFrame = makeInstanced(winFrameG, matAtlas, totWins);
@@ -4304,10 +4526,10 @@
         const iBalc = makeInstanced(balcG, matIron, totBalcs);
 
         const dMat = new THREE.Matrix4(), dPos = new THREE.Vector3(), dQuat = new THREE.Quaternion(), dScale = new THREE.Vector3(1, 1, 1);
-        const cWhite = new THREE.Color(0xffffff), cTint = new THREE.Color();
-        let pIdx = 0, wIdx = 0, rIdx = 0, gIdx = 0, winIdx = 0, dIdx = 0, cIdx = 0, bIdx = 0;
+        const cWhite = new THREE.Color(0xffffff), cTint = new THREE.Color(), cRoofTint = new THREE.Color();
+        let pIdx = 0, wIdx = 0, rtIdx = 0, gIdx = 0, winIdx = 0, dIdx = 0, cIdx = 0, bIdx = 0;
 
-        casas.forEach(h => {
+        casas.forEach((h, hIdx) => {
           cTint.setHex(h.tint);
           const hQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot);
           const hBase = new THREE.Vector3(h.x, h.y, h.z);
@@ -4359,7 +4581,10 @@
           const topY = baseFloorY + h.floors * FH;
           place(iGable, gIdx++, 0, topY, HD * 0.5 - 0.14, qId, cTint);
           place(iGable, gIdx++, 0, topY, -HD * 0.5 + 0.14, qBack, cTint);
-          place(iRoof, rIdx++, 0, topY, 0, qId, cWhite);
+          const rAssign = houseRoofAssign[hIdx];
+          cRoofTint.set(rAssign.tint);
+          place(roofMeshesByTex.get(rAssign.tex), rAssign.slot, 0, topY, 0, qId, cRoofTint);
+          place(iRoofTrim, rtIdx++, 0, topY, 0, qId, cWhite);
           if (h.chimney) place(iChim, cIdx++, 1.6, topY + 1.15, 1.3, qId, cWhite, 1, 1, 1);
         });
 
@@ -4612,7 +4837,7 @@
 
         const esferaPueblo = new THREE.Sphere(new THREE.Vector3(0, 12, 0), WORLD_SIZE * 0.68);
         const allInstanced = [
-          iPlinth, iWall, iRoof, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
+          iPlinth, iWall, iRoofTrim, ...roofMeshes, iGable, iWinGlass, iWinFrame, iDoor, iChim, iBalc,
           iStall, iBarrel,
           ...lampMeshes, iLightPool,
           ...this.treeLod.reduce((acc, g) => acc.concat([g.cerca.ramas, g.cerca.hojas, g.lejos.ramas, g.lejos.hojas, g.sil]), []), ...hedgeMeshes, iFence, iRock
@@ -4684,6 +4909,10 @@
         hedgeTexCache.clear();
         hedgeMatCache.forEach(m => { if (m) m.dispose(); });
         hedgeMatCache.clear();
+        roofTexCache.forEach(t => { if (t) t.dispose(); });
+        roofTexCache.clear();
+        roofMatCache.forEach(m => { if (m) m.dispose(); });
+        roofMatCache.clear();
         kitGeos.forEach(g => g.dispose());
         kitGeos.clear();
         kitProto = null;
@@ -4714,6 +4943,8 @@
       { id: 't10', label: 'Piedra Rota (T-10)', path: 'assets/texturas/suelo/t10.jpg' }
     ],
     HEDGE_TEXTURES,
+    ROOF_TEXTURES,
+    STYLE_ROOF_VARIANTS,
     createKit,
     preloadPuestos: preloadPuestosGLB,
     cachePuestos: cachePuestosGLB
