@@ -21252,8 +21252,20 @@ function resetCharacter() {
         // el GLB lleva además el tiro con arco y la flecha en suspensión.
         STATE.useGlobalMaterial = false;
         Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
+        if (d.claseArmadura && ARMOR_CLASSES[d.claseArmadura]) {
+          const cls = ARMOR_CLASSES[d.claseArmadura];
+          Object.assign(STATE.fit, FIT_DEFAULTS, (d.fit && typeof d.fit === 'object') ? d.fit : {}, cls.fit || {});
+          STATE.fit.chestCutoutOverride = cls.chest ? { ...cls.chest } : null;
+          STATE.fit.bootShapeOverride = cls.boot ? { ...cls.boot } : null;
+        } else if (d.fit && typeof d.fit === 'object') {
+          Object.assign(STATE.fit, FIT_DEFAULTS, d.fit);
+        }
         Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = d.equipo[k] || 0; });
-        if (d.equipo.shield == null) STATE.equipment.shield = escudoPorDefecto(STATE.equipment.weapon);
+        if (d.claseArmadura === 'mago' || STATE.equipment.weapon >= 41) {
+          STATE.equipment.shield = 0;
+        } else if (d.equipo.shield == null) {
+          STATE.equipment.shield = escudoPorDefecto(STATE.equipment.weapon);
+        }
         // Set coherente estilo Lineage II: la paleta del peto/casco se extiende a toda la armadura
         // (cada nivel tiene su set), pero la forma de cada pieza sigue siendo la suya.
         const refSlot = ['torso', 'helmet', 'shoulders', 'tassets'].find(k => STATE.equipment[k] > 0);

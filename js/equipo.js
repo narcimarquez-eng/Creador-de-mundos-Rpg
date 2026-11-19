@@ -33,14 +33,75 @@
   // Estado de 0 (malo) a 1 (perfecto). Un objeto malo rinde la mitad que uno perfecto.
   function factorEstado(estado) { return 0.5 + 0.5 * estado; }
 
+  function perfilDeClase(catalogo, clase) {
+    return (catalogo && catalogo.perfilesClase && catalogo.perfilesClase[clase]) || null;
+  }
+
+  function tipoArmaduraDeClase(catalogo, clase) {
+    const perfil = perfilDeClase(catalogo, clase);
+    if (perfil && perfil.tipoArmadura) return perfil.tipoArmadura;
+    if (clase === 'mago') return 'mago';
+    if (clase === 'cazador' || clase === 'picaro') return 'ligera';
+    return 'pesada';
+  }
+
+  function tieneTipoArmadura(pieza, tipoClase) {
+    if (!pieza || !pieza.tipoArmadura) return false;
+    return Array.isArray(pieza.tipoArmadura)
+      ? pieza.tipoArmadura.includes(tipoClase)
+      : pieza.tipoArmadura === tipoClase;
+  }
+
+  function esPiezaCompatible(pieza, clase, catalogo) {
+    if (!pieza || !clase) return true;
+    if (Array.isArray(pieza.clases) && !pieza.clases.includes(clase)) return false;
+    const tipoClase = tipoArmaduraDeClase(catalogo, clase);
+    if (pieza.tipoArmadura && !tieneTipoArmadura(pieza, tipoClase)) return false;
+    const perfil = perfilDeClase(catalogo, clase);
+    if (pieza.ranura === 'weapon' && perfil && Array.isArray(perfil.familiasArma) && pieza.familia) {
+      return perfil.familiasArma.includes(pieza.familia);
+    }
+    if (perfil && pieza.ranura && !esArma(pieza.ranura)) {
+      const enActuales = Array.isArray(perfil.ranuras) && perfil.ranuras.includes(pieza.ranura);
+      if (!enActuales) {
+        const enFuturas = Array.isArray(perfil.ranurasFuturas) && perfil.ranurasFuturas.includes(pieza.ranura);
+        if (!enFuturas) return false;
+        return Boolean((Array.isArray(pieza.clases) && pieza.clases.includes(clase)) || tieneTipoArmadura(pieza, tipoClase));
+      }
+    }
+    return true;
+  }
+
   // Lista plana de piezas de una clase, ordenadas por nivel. Cada una lleva su ranura y su id estable.
+  // Soporta ranurasFuturas y prioriza armaduras dedicadas por tipoArmadura cuando se añadan al catálogo.
   function piezasDeClase(catalogo, clase) {
-    const ranuras = catalogo.clases[clase];
+    const perfil = perfilDeClase(catalogo, clase);
+    const ranuras = (perfil && perfil.ranuras) || (catalogo && catalogo.clases && catalogo.clases[clase]);
     if (!ranuras) throw new Error('Clase sin piezas o desconocida: ' + clase);
+    const tipoClase = tipoArmaduraDeClase(catalogo, clase);
     const lista = [];
+    const vistas = new Set();
     ranuras.forEach(r => {
-      (catalogo.ranuras[r] || []).forEach(p => lista.push(Object.assign({ ranura: r, id: r + '.' + p.idx }, p)));
+      vistas.add(r);
+      const compatibles = ((catalogo.ranuras && catalogo.ranuras[r]) || [])
+        .map(p => Object.assign({ ranura: r, id: r + '.' + p.idx }, p))
+        .filter(p => esPiezaCompatible(p, clase, catalogo));
+      if (!esArma(r)) {
+        const dedicadas = compatibles.filter(p => tieneTipoArmadura(p, tipoClase));
+        (dedicadas.length ? dedicadas : compatibles).forEach(p => lista.push(p));
+      } else {
+        compatibles.forEach(p => lista.push(p));
+      }
     });
+    if (perfil && Array.isArray(perfil.ranurasFuturas)) {
+      perfil.ranurasFuturas.forEach(r => {
+        if (vistas.has(r)) return;
+        ((catalogo.ranuras && catalogo.ranuras[r]) || [])
+          .map(p => Object.assign({ ranura: r, id: r + '.' + p.idx }, p))
+          .filter(p => (p.tipoArmadura || Array.isArray(p.clases)) && esPiezaCompatible(p, clase, catalogo))
+          .forEach(p => lista.push(p));
+      });
+    }
     return lista.sort((a, b) => a.nivel - b.nivel || a.id.localeCompare(b.id));
   }
 
@@ -59,19 +120,29 @@
     return obj;
   }
 
-  // Personaje nuevo: clase, nombre, inventario con la cota inicial y el arma básica (la de menor ataque de nivel 1)
+  // Personaje nuevo: clase, nombre, inventario con la cota inicial y el arma básica (la de la familia inicial o menor ataque nv 1)
   function crearPersonaje(catalogo, clase, nombre) {
+    const perfil = perfilDeClase(catalogo, clase);
     const todas = piezasDeClase(catalogo, clase);
     const inventario = [];
     const equipo = {};
-    Object.keys(catalogo.inicial).forEach(r => {
-      const pieza = todas.find(p => p.ranura === r && p.idx === catalogo.inicial[r]);
+    const iniciales = (perfil && perfil.inicial) || catalogo.inicial || {};
+    Object.keys(iniciales).forEach(r => {
+      const pieza = todas.find(p => p.ranura === r && p.idx === iniciales[r])
+        || ((catalogo.ranuras && catalogo.ranuras[r]) || [])
+          .map(p => Object.assign({ ranura: r, id: r + '.' + p.idx }, p))
+          .find(p => p.idx === iniciales[r] && esPiezaCompatible(p, clase, catalogo));
       if (!pieza) return;
       const obj = instancia(pieza, 1);
       inventario.push(obj);
       equipo[r] = obj.uid;
     });
-    const basica = todas.filter(p => esArma(p.ranura) && p.nivel === 1).sort((a, b) => ataqueBase(a) - ataqueBase(b))[0];
+    const armasNv1 = todas.filter(p => esArma(p.ranura) && p.nivel === 1);
+    const preferidas = perfil && perfil.armaInicialFamilia
+      ? armasNv1.filter(p => p.familia === perfil.armaInicialFamilia)
+      : [];
+    const candidatasArma = preferidas.length ? preferidas : armasNv1;
+    const basica = candidatasArma.sort((a, b) => ataqueBase(a) - ataqueBase(b))[0];
     if (basica && !equipo.weapon) {
       const arma = instancia(basica, 1);
       inventario.push(arma);
@@ -95,12 +166,19 @@
     return out;
   }
 
-  // Equipa un objeto del inventario. Lanza un error si no lo tiene o si el nivel no basta.
-  function equipar(personaje, uid, nivelHeroe) {
+  // Equipa un objeto del inventario. Lanza un error si no lo tiene, si el nivel no basta o si no es compatible con la clase.
+  function equipar(personaje, uid, nivelHeroe, catalogo = null) {
     const o = objeto(personaje, uid);
     if (!o) throw new Error('No tienes ese objeto');
     if (o.tipo === 'hoja') throw new Error('Una hoja se forja en el herrero, no se equipa');
     if (nivelHeroe < o.nivel) throw new Error(o.nombre + ' requiere nivel ' + o.nivel);
+    if (catalogo && personaje.clase) {
+      const raw = ((catalogo.ranuras && catalogo.ranuras[o.ranura]) || []).find(p => p.idx === o.idx);
+      const pieza = raw ? Object.assign({ ranura: o.ranura, id: o.ranura + '.' + raw.idx }, raw) : { ranura: o.ranura, idx: o.idx, nombre: o.nombre, nivel: o.nivel };
+      if (!esPiezaCompatible(pieza, personaje.clase, catalogo)) {
+        throw new Error(o.nombre + ' no es compatible con tu profesión');
+      }
+    }
     personaje.equipo[o.ranura] = o.uid;
     return o;
   }
@@ -126,8 +204,13 @@
     const piezas = piezasDeClase(catalogo, clase);
     if (nivelMonstruo <= NIVEL_SOLO_COTAS) {
       const cotas = piezas.filter(p => !esArma(p.ranura) && esCota(p));
-      const banda = cotas.filter(p => p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
-      return banda.length ? banda : cotas.filter(p => p.nivel <= nivelMonstruo);
+      if (cotas.length) {
+        const banda = cotas.filter(p => p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
+        return banda.length ? banda : cotas.filter(p => p.nivel <= nivelMonstruo);
+      }
+      const armadurasNv = piezas.filter(p => !esArma(p.ranura) && p.nivel <= nivelMonstruo);
+      const bandaArm = armadurasNv.filter(p => p.nivel >= nivelMonstruo - RANGO_DROP);
+      return bandaArm.length ? bandaArm : armadurasNv;
     }
     const armaduras = piezas.filter(p => !esArma(p.ranura) && p.nivel <= nivelMonstruo && p.nivel >= nivelMonstruo - RANGO_DROP);
     return armaduras.concat(armasDeDrop(catalogo, clase, nivelMonstruo));
@@ -187,10 +270,16 @@
     const piezas = piezasDeClase(catalogo, personaje.clase);
     let candidatas = piezas.filter(p => p.ranura === ranura && p.nivel <= 2);
     if (!candidatas.length) {
-      candidatas = (catalogo.ranuras[ranura] || []).filter(p => p.nivel <= 2).map(p => Object.assign({ ranura, id: ranura + '.' + p.idx }, p));
+      candidatas = piezas.filter(p => p.ranura === ranura);
+    }
+    if (!candidatas.length && !perfilDeClase(catalogo, personaje.clase)) {
+      candidatas = ((catalogo.ranuras && catalogo.ranuras[ranura]) || []).filter(p => p.nivel <= 2).map(p => Object.assign({ ranura, id: ranura + '.' + p.idx }, p));
     }
     if (!candidatas.length) {
-      candidatas = piezas.filter(p => p.ranura === ranura);
+      candidatas = piezas.filter(p => !esArma(p.ranura) && p.nivel <= 2);
+    }
+    if (!candidatas.length) {
+      candidatas = piezas.filter(p => !esArma(p.ranura));
     }
     if (!candidatas.length) return null;
     const pieza = candidatas[Math.floor(rnd() * candidatas.length)];
@@ -198,6 +287,54 @@
     const obj = instancia(pieza, calidad);
     guardar(personaje, obj);
     return obj;
+  }
+
+  // Asegura un arma (y desequipar piezas incompatibles) al cambiar o inicializar profesión
+  function asegurarArmaDeClase(personaje, catalogo, clase, nivelHeroe = 1) {
+    if (!personaje || !catalogo) return null;
+    personaje.clase = clase;
+    Object.keys(personaje.equipo || {}).forEach(r => {
+      const uid = personaje.equipo[r];
+      const obj = objeto(personaje, uid);
+      if (!obj) { delete personaje.equipo[r]; return; }
+      const raw = ((catalogo.ranuras && catalogo.ranuras[obj.ranura]) || []).find(p => p.idx === obj.idx);
+      const pieza = raw ? Object.assign({ ranura: obj.ranura, id: obj.ranura + '.' + raw.idx }, raw) : obj;
+      if (!esPiezaCompatible(pieza, clase, catalogo)) delete personaje.equipo[r];
+    });
+    if (personaje.equipo.weapon) {
+      const actual = objeto(personaje, personaje.equipo.weapon);
+      if (actual) return actual;
+    }
+    const compatiblesInv = personaje.inventario.filter(o => {
+      if (!o || o.tipo === 'hoja' || !esArma(o.ranura) || o.nivel > nivelHeroe) return false;
+      const raw = ((catalogo.ranuras && catalogo.ranuras.weapon) || []).find(p => p.idx === o.idx);
+      const pieza = raw ? Object.assign({ ranura: 'weapon', id: 'weapon.' + raw.idx }, raw) : o;
+      return esPiezaCompatible(pieza, clase, catalogo);
+    }).sort((a, b) => b.nivel - a.nivel || (b.ataque || 0) - (a.ataque || 0));
+    if (compatiblesInv.length) {
+      personaje.equipo.weapon = compatiblesInv[0].uid;
+      return compatiblesInv[0];
+    }
+    const perfil = perfilDeClase(catalogo, clase);
+    const todasArmas = piezasDeClase(catalogo, clase).filter(p => esArma(p.ranura) && p.nivel <= Math.max(1, nivelHeroe));
+    if (!todasArmas.length) return null;
+    let elegida = null;
+    if (nivelHeroe <= 4 && perfil && perfil.armaInicialFamilia) {
+      elegida = todasArmas.filter(p => p.familia === perfil.armaInicialFamilia).sort((a, b) => a.nivel - b.nivel || ataqueBase(a) - ataqueBase(b))[0] || null;
+    }
+    if (!elegida) {
+      elegida = todasArmas.slice().sort((a, b) => b.nivel - a.nivel || ataqueBase(b) - ataqueBase(a))[0];
+    }
+    const arma = instancia(elegida, 0.85);
+    if (!llena(personaje)) {
+      personaje.inventario.push(arma);
+    } else {
+      const libreIdx = personaje.inventario.findIndex(o => !Object.values(personaje.equipo).includes(o.uid));
+      if (libreIdx >= 0) personaje.inventario.splice(libreIdx, 1, arma);
+      else personaje.inventario.push(arma);
+    }
+    personaje.equipo.weapon = arma.uid;
+    return arma;
   }
 
   // Herrero: forja la pieza de una hoja con arena. Consume la hoja. Devuelve la arena que cuesta.
@@ -267,6 +404,7 @@
 
   const api = {
     RANURAS, DROP_NORMAL, FORJA_ORO, COMPRA_ORO, NIVEL_SOLO_COTAS, CAPACIDAD,
+    perfilDeClase, tipoArmaduraDeClase, esPiezaCompatible, asegurarArmaDeClase,
     piezasDeClase, instancia, crearPersonaje, objeto, equipoPorIdx, equipar,
     armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota, forjarPiezaBasica,
     soltarArena, soltarHoja, forjarConHoja, HOJA_NIVEL, ARENA_FORJA,

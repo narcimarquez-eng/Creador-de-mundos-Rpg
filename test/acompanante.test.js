@@ -553,4 +553,26 @@ t('misiones personales de los 4 compañeros y talento único idempotente', () =>
   assert.strictEqual(c.skillsCatalogo[0].potencia, Math.round(potAntes * (1 + bonos.pctSkills)));
 });
 
+t('P4 sinergias compañero × profesión y consejo táctico adaptado', () => {
+  const recMago = A.compRecomendadoParaClase('mago');
+  assert.strictEqual(recMago.principal, 'brenda');
+  const sinOpt = A.sinergiaConProfesion('brenda', 'mago');
+  const sinBue = A.sinergiaConProfesion('elian', 'mago');
+  const sinEq = A.sinergiaConProfesion('rowan', 'mago');
+  assert.strictEqual(sinOpt.nivel, 'optima');
+  assert.ok(sinOpt.bonos.poderMagico >= 8);
+  assert.strictEqual(sinBue.nivel, 'buena');
+  assert.strictEqual(sinEq.nivel, 'equilibrada');
+
+  ['guerrero', 'cazador', 'mago', 'picaro'].forEach(cls => {
+    const rec = A.compRecomendadoParaClase(cls);
+    const sin = A.sinergiaConProfesion(rec.principal, cls);
+    assert.strictEqual(sin.nivel, 'optima', `Principal de ${cls} debe dar sinergia optima`);
+  });
+
+  const c = A.crearAcompanante({ arquetipo: 'brenda', activo: true });
+  const consejoMago = A.darConsejoGuia(c, { x: 40, z: 0, nombre: 'Valle Sombrío' }, { x: 0, z: 0 }, {}, { paso: 2 }, 'mago');
+  assert.ok(consejoMago.includes('Vanguardia Arcana'));
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);

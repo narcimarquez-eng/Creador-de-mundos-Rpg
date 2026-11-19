@@ -110,8 +110,8 @@
     return { dist, dir };
   }
 
-  // Genera un consejo contextual de guía donde el acompañante te dice dónde ir, te advierte de los monstruos y reacciona al Acto activo
-  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo, principal) {
+  // Genera un consejo contextual de guía donde el acompañante te dice dónde ir, te advierte de los monstruos y reacciona al Acto activo y a tu profesión
+  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo, principal, clase = null) {
     if (!acompanante) return '';
     const nomComp = acompanante.nombre || 'Rowan';
     const paso = principal && typeof principal.paso === 'number' ? principal.paso : null;
@@ -138,6 +138,16 @@
       else if (paso <= 13) consejo += ' (Acto III: con el cerco y el monopolio temblando, vamos directos a por el Titán.)';
       else if (paso < 16) consejo += ' (Acto IV: solo queda purificar la fuente y sellar el juicio en la plaza.)';
       else consejo += ' (Epílogo: el reino es libre, pero las criptas ancestrales aún guardan desafíos.)';
+    }
+
+    if (clase && SINERGIAS_PROFESION[clase]) {
+      const sin = sinergiaConProfesion(acompanante.arquetipo, clase);
+      const rec = compRecomendadoParaClase(clase);
+      if (sin.nivel === 'optima' || sin.nivel === 'buena') {
+        consejo += ` [Sinergia ${sin.titulo}: ${sin.desc}]`;
+      } else if (rec && COMPANEROS[rec.principal]) {
+        consejo += ` [Consejo táctico: ${rec.consejo} (${COMPANEROS[rec.principal].nombre}).]`;
+      }
     }
 
     if (heroeInfo && heroeInfo.hp && heroeInfo.maxHp && (heroeInfo.hp < heroeInfo.maxHp * 0.40)) {
@@ -302,6 +312,107 @@
       skillsEquipadas: ['frenesi', 'provocacion', 'torbellino']
     }
   };
+
+  // Sinergias tácticas entre cada profesión del héroe y los 4 arquetipos de compañero
+  const SINERGIAS_PROFESION = {
+    mago: {
+      principal: 'brenda',
+      secundario: 'elian',
+      consejo: 'Como Mago, agradece un tanque frontal que fije las bestias mientras canalizas a distancia',
+      defaultEquilibrada: { bonos: { poderMagico: 4 }, desc: 'Apoyo general de combate (+4 Poder Mágico).' },
+      mapa: {
+        brenda: {
+          nivel: 'optima',
+          titulo: 'Vanguardia Arcana',
+          bonos: { poderMagico: 8, reduccion: 0.04 },
+          desc: 'Brenda atrae a las bestias mientras canalizas conjuros (+8 Poder Mágico, +4 % reducción).'
+        },
+        elian: {
+          nivel: 'buena',
+          titulo: 'Resonancia Mística',
+          bonos: { mpRegenMult: 1.2, mana: 25 },
+          desc: 'Flujo compartido de luz y éter (+25 maná y +20 % regen de maná).'
+        }
+      }
+    },
+    cazador: {
+      principal: 'brenda',
+      secundario: 'rowan',
+      consejo: 'Como Cazador, brilla cuando un compañero fija al objetivo para encadenar tiros críticos',
+      defaultEquilibrada: { bonos: { velocidad: 0.04 }, desc: 'Paso ágil coordinado (+4 % velocidad).' },
+      mapa: {
+        brenda: {
+          nivel: 'optima',
+          titulo: 'Caza Coordinada',
+          bonos: { critico: 0.06, danio: 0.08 },
+          desc: 'Brenda frena al objetivo en línea frontal (+6 % crítico y +8 % daño).'
+        },
+        rowan: {
+          nivel: 'buena',
+          titulo: 'Fuego de Cobertura',
+          bonos: { danio: 0.10 },
+          desc: 'Los dopes de Rowan potencian cada disparo (+10 % daño).'
+        }
+      }
+    },
+    guerrero: {
+      principal: 'elian',
+      secundario: 'lyra',
+      consejo: 'Como Guerrero de primera línea, sostener tu vida y castigar flancos maximiza cada combate',
+      defaultEquilibrada: { bonos: { vida: 20 }, desc: 'Resistencia marcial conjunta (+20 vida).' },
+      mapa: {
+        elian: {
+          nivel: 'optima',
+          titulo: 'Escudo y Luz',
+          bonos: { vida: 45, reduccion: 0.05 },
+          desc: 'Curación y barreras de Elian sostienen tu vanguardia (+45 vida y +5 % reducción).'
+        },
+        lyra: {
+          nivel: 'buena',
+          titulo: 'Yunque y Daga',
+          bonos: { danio: 0.08, critico: 0.04 },
+          desc: 'Mientras tú aguantas el golpe, Lyra castiga los flancos (+8 % daño, +4 % crítico).'
+        }
+      }
+    },
+    picaro: {
+      principal: 'rowan',
+      secundario: 'lyra',
+      consejo: 'Como Pícaro, aprovechar distracciones y toxinas duplica tus emboscadas críticas',
+      defaultEquilibrada: { bonos: { velocidad: 0.05 }, desc: 'Flanqueo ágil en pareja (+5 % velocidad).' },
+      mapa: {
+        rowan: {
+          nivel: 'optima',
+          titulo: 'Distracción Táctica',
+          bonos: { critico: 0.07, velocidadAtaque: 0.08 },
+          desc: 'Rowan atrae miradas para tus emboscadas (+7 % crítico y +8 % vel. ataque).'
+        },
+        lyra: {
+          nivel: 'buena',
+          titulo: 'Pacto de Sombras',
+          bonos: { venenoMult: 0.25, critico: 0.05 },
+          desc: 'Doble letalidad con dagas y toxinas (+25 % veneno y +5 % crítico).'
+        }
+      }
+    }
+  };
+
+  function sinergiaConProfesion(arquetipo, clase) {
+    const arq = arquetipo || 'rowan';
+    const cls = SINERGIAS_PROFESION[clase] ? clase : 'guerrero';
+    const cfg = SINERGIAS_PROFESION[cls];
+    const esp = cfg.mapa[arq];
+    if (esp) {
+      return { arquetipo: arq, clase: cls, nivel: esp.nivel, titulo: esp.titulo, desc: esp.desc, bonos: Object.assign({}, esp.bonos) };
+    }
+    const def = cfg.defaultEquilibrada;
+    return { arquetipo: arq, clase: cls, nivel: 'equilibrada', titulo: 'Formación Equilibrada', desc: def.desc, bonos: Object.assign({}, def.bonos) };
+  }
+
+  function compRecomendadoParaClase(clase) {
+    const cfg = SINERGIAS_PROFESION[clase] || SINERGIAS_PROFESION.guerrero;
+    return { principal: cfg.principal, secundario: cfg.secundario, consejo: cfg.consejo };
+  }
 
   // Clona un catálogo de habilidades para un acompañante
   function clonarSkillsCatalogo(lista) {
@@ -1876,7 +1987,10 @@
     FRASES,
     COMPANEROS,
     MISIONES_COMPANERO,
+    SINERGIAS_PROFESION,
     MAX_SLOTS_INVENTARIO,
+    sinergiaConProfesion,
+    compRecomendadoParaClase,
     elegirFrase,
     crearAcompanante,
     cambiarArquetipo,

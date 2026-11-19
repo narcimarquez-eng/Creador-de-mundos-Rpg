@@ -1160,6 +1160,143 @@
       "underlayer",
       "weapon"
     ],
-    "mago": []
+    "cazador": [
+      "belt",
+      "boots",
+      "cuisses",
+      "gloves",
+      "helmet",
+      "knees",
+      "shoulders",
+      "tassets",
+      "torso",
+      "underlayer",
+      "weapon"
+    ],
+    "mago": [
+      "underlayer",
+      "helmet",
+      "belt",
+      "boots",
+      "weapon"
+    ],
+    "picaro": [
+      "belt",
+      "boots",
+      "cuisses",
+      "gloves",
+      "helmet",
+      "knees",
+      "shoulders",
+      "tassets",
+      "torso",
+      "underlayer",
+      "weapon"
+    ]
+  },
+  "perfilesClase": {
+    "guerrero": {
+      "tipoArmadura": "pesada",
+      "ranuras": [
+        "belt",
+        "boots",
+        "cuisses",
+        "gloves",
+        "helmet",
+        "knees",
+        "shoulders",
+        "tassets",
+        "torso",
+        "underlayer",
+        "weapon"
+      ],
+      "ranurasFuturas": [],
+      "familiasArma": [
+        "legado",
+        "espada",
+        "hacha",
+        "maza",
+        "lanza"
+      ],
+      "armaInicialFamilia": "legado",
+      "inicial": {
+        "underlayer": 2
+      }
+    },
+    "cazador": {
+      "tipoArmadura": "ligera",
+      "ranuras": [
+        "belt",
+        "boots",
+        "cuisses",
+        "gloves",
+        "helmet",
+        "knees",
+        "shoulders",
+        "tassets",
+        "torso",
+        "underlayer",
+        "weapon"
+      ],
+      "ranurasFuturas": [],
+      "familiasArma": [
+        "arco",
+        "daga"
+      ],
+      "armaInicialFamilia": "arco",
+      "inicial": {
+        "underlayer": 1
+      }
+    },
+    "mago": {
+      "tipoArmadura": "mago",
+      "ranuras": [
+        "underlayer",
+        "helmet",
+        "belt",
+        "boots",
+        "weapon"
+      ],
+      "ranurasFuturas": [
+        "torso",
+        "gloves",
+        "shoulders",
+        "tassets",
+        "cuisses",
+        "knees"
+      ],
+      "familiasArma": [
+        "baculo"
+      ],
+      "armaInicialFamilia": "baculo",
+      "inicial": {
+        "underlayer": 1
+      }
+    },
+    "picaro": {
+      "tipoArmadura": "ligera",
+      "ranuras": [
+        "belt",
+        "boots",
+        "cuisses",
+        "gloves",
+        "helmet",
+        "knees",
+        "shoulders",
+        "tassets",
+        "torso",
+        "underlayer",
+        "weapon"
+      ],
+      "ranurasFuturas": [],
+      "familiasArma": [
+        "daga",
+        "espada"
+      ],
+      "armaInicialFamilia": "daga",
+      "inicial": {
+        "underlayer": 1
+      }
+    }
   }
 }

@@ -388,6 +388,95 @@
     weapon: 'hierro salvaje de veta pura'
   };
 
+  const MATERIALES_FORJA_CLASE = {
+    mago: {
+      belt: 'hebras rúnicas y broches de bronce',
+      boots: 'cuero fino y runas de paso',
+      gloves: 'seda canalizadora y esquirlas arcanas',
+      torso: 'cristales de éter y tejido denso',
+      helmet: 'diadema ósea anti-telepatía',
+      shoulders: 'hombreras ligeras grabadas al éter',
+      weapon: 'madera fósil y núcleo de maná'
+    },
+    cazador: {
+      belt: 'pieles curtidas y correas flexibles',
+      boots: 'suela silenciosa y tendones ágiles',
+      gloves: 'cuero de presa y refuerzo ligero',
+      torso: 'cuero endurecido y escamas ligeras',
+      helmet: 'capucha forrada anti-telepatía',
+      shoulders: 'hombreras ágiles templadas',
+      weapon: 'acero ligero y veta de tejo'
+    },
+    picaro: {
+      belt: 'pieles oscuras y hebillas silenciosas',
+      boots: 'suela de sigilo y tendones ágiles',
+      gloves: 'cuero fino y remaches ligeros',
+      torso: 'brigantina ligera de sombras',
+      helmet: 'capucha forrada anti-telepatía',
+      shoulders: 'hombreras compactas de asalto',
+      weapon: 'acero templado de filo fino'
+    }
+  };
+
+  const FORJA_POR_CLASE = {
+    guerrero: {
+      nombreClase: 'Guerrero',
+      belt: 'Cinturón de Placas',
+      boots: 'Grebas y Botas de Marcha',
+      gloves: 'Guanteletes de Combate',
+      torso: 'Peto de Placas',
+      helmet: 'Yelmo de Acero',
+      shoulders: 'Hombreras de Vanguardia',
+      weapon: 'Arma de Acero'
+    },
+    cazador: {
+      nombreClase: 'Cazador',
+      belt: 'Cinturón de Rastreador',
+      boots: 'Botas de Senda',
+      gloves: 'Guantes de Tirador',
+      torso: 'Jubón de Cuero Reforzado',
+      helmet: 'Capucha de Explorador',
+      shoulders: 'Hombreras de Caza',
+      weapon: 'Arco de Caza'
+    },
+    mago: {
+      nombreClase: 'Mago',
+      belt: 'Fajín Rúnico',
+      boots: 'Botas de Erudito',
+      gloves: 'Brazales Arcanos',
+      torso: 'Túnica Arcana',
+      helmet: 'Tiara / Capucha Rúnica',
+      shoulders: 'Manto de Runas',
+      weapon: 'Báculo Arcano'
+    },
+    picaro: {
+      nombreClase: 'Pícaro',
+      belt: 'Cinturón de Sombras',
+      boots: 'Botas Silenciosas',
+      gloves: 'Mitones Reforzados',
+      torso: 'Coraza Ligera de Sombras',
+      helmet: 'Capucha de Asesino',
+      shoulders: 'Hombreras Ligeras',
+      weapon: 'Daga Templada'
+    }
+  };
+
+  function textoForjaClase(ranura, clase = 'guerrero') {
+    const cKey = FORJA_POR_CLASE[clase] ? clase : 'guerrero';
+    const tabla = FORJA_POR_CLASE[cKey];
+    const nombrePieza = tabla[ranura] || 'Pieza de Equipo';
+    let fraseBrann;
+    if (cKey === 'mago') {
+      fraseBrann = `«¡Estas hebras e ingredientes de éter son oro puro para tu oficio de Mago! Cosamos los broches en el yunque y grabemos las runas para entregarte tu ${nombrePieza}.»`;
+    } else if (cKey === 'cazador' || cKey === 'picaro') {
+      fraseBrann = `«¡Buena caza! Con estos tendones y pieles flexibles evitaré el peso innecesario y moldearé a tu medida tu ${nombrePieza}.»`;
+    } else {
+      fraseBrann = `«¡Has traído las pieles y el hierro necesarios! Calentemos la fragua y martillemos sin descanso para forjar tu ${nombrePieza}.»`;
+    }
+    const premioTexto = ` · 🔨 forja de ${nombrePieza} (${tabla.nombreClase})`;
+    return { ranura, clase: cKey, nombreClase: tabla.nombreClase, nombrePieza, fraseBrann, premioTexto };
+  }
+
   function actoActual(p, world) {
     const paso = p && typeof p.paso === 'number' ? p.paso : 0;
     const caps = capitulosDe(world);
@@ -413,20 +502,42 @@
     return !!(p && typeof p.paso === 'number' && p.paso >= 11);
   }
 
-  function materialDeCapitulo(cap) {
+  function materialDeCapitulo(cap, clase = null) {
     if (!cap || !cap.recompensa || !cap.recompensa.forjarPieza) return null;
-    return MATERIALES_FORJA[cap.recompensa.forjarPieza] || null;
+    const ranura = cap.recompensa.forjarPieza;
+    if (clase && MATERIALES_FORJA_CLASE[clase] && MATERIALES_FORJA_CLASE[clase][ranura]) {
+      return MATERIALES_FORJA_CLASE[clase][ranura];
+    }
+    return MATERIALES_FORJA[ranura] || null;
   }
 
   function normalizarNpcId(npcId) {
     const s = String(npcId || '');
     if (s.indexOf('serv-herrero') === 0) return 'serv-herrero';
+    if (s.indexOf('serv-entrenador') === 0) return 'serv-entrenador';
     if (s.indexOf('serv-mercader') === 0) return 'serv-mercader';
     if (s.indexOf('serv-informante') === 0) return 'serv-informante';
     if (s.indexOf('serv-boticaria') === 0) return 'serv-boticaria';
     if (s.indexOf('serv-comandante') === 0) return 'serv-comandante';
     if (s.indexOf('serv-hereje') === 0) return 'serv-hereje';
     return s;
+  }
+
+  function notaOficioNpc(baseId, clase) {
+    if (!clase || !FORJA_POR_CLASE[clase]) return '';
+    if (baseId === 'serv-herrero') {
+      if (clase === 'mago') return ' Para un Mago como tú reservo hebras rúnicas, broches arcanos y báculos equilibrados.';
+      if (clase === 'cazador') return ' Como Cazador, aligero tus hombros y refuerzo la tensión de cada arco.';
+      if (clase === 'picaro') return ' Para tu estilo de Pícaro silencio cada hebilla y templo dagas rápidas.';
+      return ' Como Guerrero de primera línea, doblo el temple de tu acero y tus placas.';
+    }
+    if (baseId === 'serv-entrenador') {
+      if (clase === 'mago') return ' Como instructora de Mago, puliré tus conjuros elementales, maná y tu especialización arcana de nivel 15.';
+      if (clase === 'cazador') return ' Como instructora de Cazador, entrenaremos disparos perforantes, trampas y tu senda de nivel 15.';
+      if (clase === 'picaro') return ' Como instructora de Pícaro, dominaremos venenos, emboscadas sombrías y tu senda de nivel 15.';
+      return ' Como instructora de Guerrero, fortaleceremos tus tajos pesados, defensa y tu senda de nivel 15.';
+    }
+    return '';
   }
 
   // Diálogos dinámicos por NPC y Acto narrativo: reflejan la evolución política y arcana del mundo
@@ -535,7 +646,7 @@
     return '';
   }
 
-  function fraseContextualNpc(npcId, p, world, heroeEst) {
+  function fraseContextualNpc(npcId, p, world, heroeEst, clase = null) {
     const baseId = normalizarNpcId(npcId);
     const acto = actoActual(p, world);
     const claveActo = acto.terminado ? 'fin' : acto.numero;
@@ -544,6 +655,8 @@
     const fraseBase = tabla ? (tabla[claveActo] || tabla[1]) : null;
     const esProtagonistaCap = !!(cap && cap.npc === baseId);
     const matiz = matizReputacionNpc(baseId, heroeEst);
+    const notaOficio = clase ? notaOficioNpc(baseId, clase) : '';
+    const fraseFinal = fraseBase ? `${fraseBase}${matiz}${notaOficio}` : (notaOficio ? notaOficio.trim() : null);
 
     if (esProtagonistaCap && cap && world) {
       const obj = resolverObjetivo(cap, world);
@@ -552,7 +665,7 @@
         acto: acto.numero,
         actoNombre: acto.nombre,
         esProtagonista: true,
-        frase: fraseBase ? `${fraseBase}${matiz} (${cap.titulo}: ${obj.texto})` : obj.encargo
+        frase: fraseFinal ? `${fraseFinal} (${cap.titulo}: ${obj.texto})` : obj.encargo
       };
     }
 
@@ -561,7 +674,7 @@
       acto: acto.numero,
       actoNombre: acto.nombre,
       esProtagonista: false,
-      frase: fraseBase ? `${fraseBase}${matiz}` : null
+      frase: fraseFinal
     };
   }
 
@@ -2299,6 +2412,7 @@
     ACTOS,
     HITOS_NARRATIVOS,
     MATERIALES_FORJA,
+    FORJA_POR_CLASE,
     DIALOGOS_NPC,
     DECISIONES_CAPITULO,
     EPILOGOS_FINALES,
@@ -2317,6 +2431,7 @@
     hitoDeCapituloCompletado,
     monopolioRoto,
     materialDeCapitulo,
+    textoForjaClase,
     fraseContextualNpc,
     decisionDeCapitulo,
     aplicarDecision,

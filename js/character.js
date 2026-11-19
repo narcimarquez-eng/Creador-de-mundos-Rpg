@@ -53,6 +53,12 @@
     ventisca_glacial: ['ultimate_nova', 'blast'],
     tormenta_fuego: ['ultimate_slam', 'nova'],
     rayo_arcano: ['ultimate_nova', 'ultimate_beam'],
+    orbe_arcano: ['ultimate_beam', 'punch', 'attack'],
+    flecha_perforante: ['archery', 'aerial_shot', 'disparo'],
+    trampa_espinas: ['aerial_shot', 'archery', 'slam'],
+    escudo_mana: ['guard_counter', 'ultimate_nova', 'escudo'],
+    paso_sombrio: ['thrust_lunge', 'spin_slash', 'dodge'],
+    hoja_veneno: ['spin_slash', 'thrust_lunge', 'punch'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
     dodge: ['dodge', 'esquiv', 'roll', 'rodar', 'dash', 'salto', 'acrobat', 'jump'],
@@ -87,6 +93,12 @@
     ventisca_glacial: { lock: 0.9 },
     tormenta_fuego: { lock: 1.0 },
     rayo_arcano: { lock: 0.85 },
+    orbe_arcano: { lock: 0.6 },
+    flecha_perforante: { lock: 0.85 },
+    trampa_espinas: { lock: 0.7 },
+    escudo_mana: { lock: 0.65 },
+    paso_sombrio: { lock: 0.65 },
+    hoja_veneno: { lock: 0.75 },
     jump: { lock: 0.0 },
     dodge: { lock: 0.0 },
     victory: { lock: 0.0 }
@@ -99,7 +111,9 @@
     escudo_espiritu: { salto: 0.45 }, salto_demoledor: { salto: 1.6 },
     juicio_relampago: { vueltas: 2, salto: 0.8 }, sentencia_titan: { salto: 1.8, conjuro: true },
     bola_fuego: { conjuro: true }, lanza_hielo: { conjuro: true },
-    ventisca_glacial: { salto: 0.5, conjuro: true }, tormenta_fuego: { salto: 0.7, conjuro: true }, rayo_arcano: { salto: 0.6, conjuro: true }
+    ventisca_glacial: { salto: 0.5, conjuro: true }, tormenta_fuego: { salto: 0.7, conjuro: true }, rayo_arcano: { salto: 0.6, conjuro: true },
+    orbe_arcano: { conjuro: true }, flecha_perforante: { arco: true }, trampa_espinas: { arco: true },
+    escudo_mana: { salto: 0.35, conjuro: true }, paso_sombrio: { vueltas: 1 }, hoja_veneno: { vueltas: 1 }
   };
 
   // Índice de la primera animación cuyo nombre contiene alguna palabra clave; -1 si no hay

@@ -380,4 +380,48 @@ t('inTelegraphArea: detecta exactamente áreas slam, cone, charge y nova_orbs', 
   assert.strictEqual(C.inTelegraphArea(orbs, 0, 0), false);
 });
 
+t('nuevas habilidades por profesión, escalado poderMagico, regen de maná y recarga de esquiva', () => {
+  const nuevas = ['orbe_arcano', 'flecha_perforante', 'trampa_espinas', 'escudo_mana', 'paso_sombrio', 'hoja_veneno'];
+  nuevas.forEach(id => {
+    const sk = C.SKILLS[id];
+    assert.ok(sk, 'falta en CombatLib.SKILLS: ' + id);
+    assert.ok(CH.CLIP_KEYWORDS[id] && CH.CLIP_KEYWORDS[id].length > 0, 'falta CLIP_KEYWORDS: ' + id);
+    assert.ok(CH.ONE_SHOT[id], 'falta ONE_SHOT: ' + id);
+    assert.strictEqual(CH.ONE_SHOT[id].lock, sk.lock, `lock desincronizado en ${id}`);
+  });
+  assert.strictEqual(C.SKILLS.sismo.arma, undefined, 'sismo debe ser universal entre clases');
+
+  // Escalado de poderMagico afecta a conjuros y báculo, no a tajo físico
+  const hSinMagia = C.newHero();
+  hSinMagia.level = 5; hSinMagia.ataque = 10; hSinMagia.poderMagico = 0;
+  const hMago = C.newHero();
+  hMago.level = 5; hMago.ataque = 10; hMago.poderMagico = 30;
+  assert.ok(C.heroDamage(hMago, 'bola_fuego', 5) > C.heroDamage(hSinMagia, 'bola_fuego', 5));
+  assert.ok(C.heroDamage(hMago, 'orbe_arcano', 5) > C.heroDamage(hSinMagia, 'orbe_arcano', 5));
+  assert.strictEqual(C.heroDamage(hMago, 'tajo', 5), C.heroDamage(hSinMagia, 'tajo', 5));
+
+  // mpRegenMult acelera recuperación de maná en tickHero
+  const hRegen = C.newHero();
+  hRegen.mp = 0; hRegen.mpRegenMult = 1.5;
+  const hNorm = C.newHero();
+  hNorm.mp = 0; hNorm.mpRegenMult = 1;
+  C.tickHero(hRegen, 1.0);
+  C.tickHero(hNorm, 1.0);
+  assert.ok(hRegen.mp > hNorm.mp);
+
+  // startDodge(hero, 0.7) recorta recarga (ej. Pícaro)
+  const hPic = C.newHero();
+  assert.strictEqual(C.startDodge(hPic, 0.7), true);
+  assert.ok(Math.abs(hPic.dodgeCd - C.DODGE.cd * 0.7) < 1e-6);
+
+  // Bonos elementales de subclase (fuegoMult / hieloMult) en heroDamage
+  const hBase = C.newHero(); hBase.level = 15; hBase.ataque = 20;
+  const hFuego = C.newHero(); hFuego.level = 15; hFuego.ataque = 20; hFuego.fuegoMult = 0.25;
+  const hHielo = C.newHero(); hHielo.level = 15; hHielo.ataque = 20; hHielo.hieloMult = 0.25;
+  assert.ok(Math.abs(C.heroDamage(hFuego, 'bola_fuego', 15) - C.heroDamage(hBase, 'bola_fuego', 15) * 1.25) < 1e-6);
+  assert.strictEqual(C.heroDamage(hFuego, 'lanza_hielo', 15), C.heroDamage(hBase, 'lanza_hielo', 15));
+  assert.ok(Math.abs(C.heroDamage(hHielo, 'lanza_hielo', 15) - C.heroDamage(hBase, 'lanza_hielo', 15) * 1.25) < 1e-6);
+  assert.strictEqual(C.heroDamage(hHielo, 'tajo', 15), C.heroDamage(hBase, 'tajo', 15));
+});
+
 console.log(`\n${n} pruebas correctas`);

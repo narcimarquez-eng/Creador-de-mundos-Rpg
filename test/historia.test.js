@@ -693,9 +693,45 @@ t('visor-mundo.html integra UI y lógica de Bloques H3 y H4', () => {
     'invocarLiderCabana3D',
     'reconstruirRastrosCabanas3D',
     'notificarProgresoCompanero',
+    'crear-clase-info',
+    'atajosDeClase',
+    'data-cambiar-clase',
+    'data-respec-heroe',
+    'asegurarArmaDeClase',
+    'claseArmadura',
+    'escudoArcano',
+    'orbe_arcano',
+    'data-elegir-subclase',
+    'comp-sinergia',
+    'textoForjaClase',
+    'sinergiaConProfesion',
+    '_manaShieldMesh',
+    '_poisonRing',
+    'trampa_espinas',
+    'paso_sombrio',
+    'hoja_veneno',
+    'flecha_perforante',
   ]) {
     assert.ok(html.includes(token), `Falta en visor-mundo.html: ${token}`);
   }
+});
+
+t('P4 historia: textoForjaClase, materialDeCapitulo y fraseContextualNpc se adaptan a la profesión', () => {
+  const fMago = H.textoForjaClase('torso', 'mago');
+  const fGuer = H.textoForjaClase('torso', 'guerrero');
+  assert.strictEqual(fMago.nombrePieza, 'Túnica Arcana');
+  assert.strictEqual(fGuer.nombrePieza, 'Peto de Placas');
+  assert.ok(fMago.fraseBrann !== fGuer.fraseBrann);
+
+  const capTorso = H.CAPITULOS[3];
+  assert.strictEqual(H.materialDeCapitulo(capTorso), 'planchas de caparazón blindado');
+  assert.ok(H.materialDeCapitulo(capTorso, 'mago').includes('éter'));
+
+  const w = mundo();
+  const est = { paso: 2, reputacion: { pueblo: 0, sombra: 0, vinculo: 0 }, decisiones: {} };
+  const npcSin = H.fraseContextualNpc('serv-herrero-t1', est, w, null);
+  const npcMago = H.fraseContextualNpc('serv-herrero-t1', est, w, null, 'mago');
+  assert.ok(npcMago.frase.length > npcSin.frase.length && npcMago.frase.includes('Mago'));
 });
 
 console.log(`\n${n} pruebas de la historia superadas.`);

@@ -315,4 +315,93 @@ t('companeroMisiones se inicializa vacío sin alterar principal y limpiarHeroe l
   assert.strictEqual(limpio.companeroMisiones.desconocido, undefined);
 });
 
+t('profesiones: estadisticas diferenciadas, filtrado de skills, atajos y reiniciarPuntos (Respec)', () => {
+  assert.ok(H.PROFESIONES && H.PROFESIONES.guerrero && H.PROFESIONES.cazador && H.PROFESIONES.mago && H.PROFESIONES.picaro);
+
+  const hMago = H.nuevoHeroe();
+  hMago.puntos = 6;
+  hMago.gastados.intelecto = 4;
+  const stMago = H.estadisticas(hMago, 10, [], 'mago');
+  const stGuer = H.estadisticas(H.nuevoHeroe(), 10, [], 'guerrero');
+  const stPic = H.estadisticas(H.nuevoHeroe(), 10, [], 'picaro');
+  const stCaz = H.estadisticas(H.nuevoHeroe(), 10, [], 'cazador');
+
+  assert.ok(stMago.poderMagico > 0, 'Mago debe generar Poder Mágico');
+  assert.ok(stMago['maná'] > stGuer['maná'] && stMago.mpRegenMult > 1);
+  assert.ok(stGuer.vida > stMago.vida && stGuer.reduccion > stMago.reduccion);
+  assert.ok(stPic.critico > stGuer.critico && stPic.dodgeCdMult < 1 && stPic.velocidad > 0);
+  assert.ok(stCaz.critico > stGuer.critico && stCaz.dodgeCdMult < 1 && stCaz.velocidad > 0);
+
+  // Filtrado de habilidades por clase (y universales de historia)
+  assert.strictEqual(H.disponible(hMago, 'bola_fuego', 1, 'mago'), true);
+  assert.strictEqual(H.disponible(hMago, 'bola_fuego', 1, 'guerrero'), false);
+  assert.strictEqual(H.disponible(hMago, 'tajo', 5, 'guerrero'), true);
+  assert.strictEqual(H.disponible(hMago, 'tajo', 5, 'mago'), false);
+  assert.strictEqual(H.disponible(hMago, 'flecha_perforante', 2, 'cazador'), true);
+  assert.strictEqual(H.disponible(hMago, 'paso_sombrio', 4, 'picaro'), true);
+
+  H.recompensar(hMago, { puntos: 0, desbloquea: 'sismo' });
+  ['guerrero', 'cazador', 'mago', 'picaro'].forEach(c => {
+    assert.strictEqual(H.disponible(hMago, 'sismo', 1, c), true, `sismo debe ser universal para ${c}`);
+    assert.strictEqual(H.atajosDeClase(c).length, 3, `atajosDeClase(${c}) debe devolver 3 skills`);
+  });
+
+  assert.throws(() => H.mejorar(hMago, 'tajo', 10, 'mago'), /exclusiva/i);
+  assert.throws(() => H.asignar(hMago, 'q', 'flecha_perforante', 'mago'), /profesi/i);
+  H.mejorar(hMago, 'escudo_mana', 5, 'mago');
+  assert.strictEqual(hMago.gastados.escudo_mana, 1);
+
+  // Respec devuelve todos los puntos gastados
+  const puntosAntesRespec = hMago.puntos;
+  const devueltos = H.reiniciarPuntos(hMago);
+  assert.strictEqual(devueltos, 5);
+  assert.strictEqual(hMago.puntos, puntosAntesRespec + 5);
+  assert.deepStrictEqual(hMago.gastados, {});
+
+  // esBaculo / esDaga
+  assert.ok(H.esBaculo({ ranura: 'weapon', nombre: 'Báculo Solar', familia: 'baculo' }));
+  assert.ok(H.esDaga({ ranura: 'weapon', nombre: 'Daga Élfica', familia: 'daga' }));
+});
+
+t('subclases (Nv. 15) y pasivas exclusivas por profesión + limpieza al cambiar de clase', () => {
+  assert.strictEqual(H.NIVEL_SUBCLASE, 15);
+  assert.strictEqual(Object.keys(H.SUBCLASES).length, 8);
+  ['guerrero', 'cazador', 'mago', 'picaro'].forEach(c => {
+    assert.strictEqual(H.subclasesDeClase(c).length, 2, `${c} debe tener 2 subclases`);
+  });
+
+  const h = H.nuevoHeroe();
+  h.puntos = 8;
+  // Bloqueada antes del nivel 15
+  assert.throws(() => H.elegirSubclase(h, 'piromante', 14, 'mago'), /15/);
+  // Bloqueada si pertenece a otra profesión
+  assert.throws(() => H.elegirSubclase(h, 'paladin', 15, 'mago'), /Guerrero/);
+
+  const sub = H.elegirSubclase(h, 'piromante', 15, 'mago');
+  assert.strictEqual(sub.id, 'piromante');
+  assert.strictEqual(h.subclase, 'piromante');
+
+  // Pasivas exclusivas por clase
+  assert.strictEqual(H.disponible(h, 'maestria_arcana', 1, 'mago'), true);
+  assert.strictEqual(H.disponible(h, 'maestria_arcana', 1, 'guerrero'), false);
+  assert.throws(() => H.mejorar(h, 'piel_acero', 15, 'mago'), /Guerrero/);
+  H.mejorar(h, 'maestria_arcana', 15, 'mago');
+
+  const stMagoBase = H.estadisticas(H.nuevoHeroe(), 15, [], 'mago');
+  const stMagoPiro = H.estadisticas(h, 15, [], 'mago');
+  assert.strictEqual(stMagoPiro.subclase, 'piromante');
+  assert.strictEqual(stMagoPiro.fuegoMult, 0.25);
+  assert.ok(stMagoPiro.poderMagico >= stMagoBase.poderMagico + 17, 'Piromante (+14) + Maestría Arcana (+3) deben sumar >= +17 Poder Mágico');
+  assert.ok(stMagoPiro.critico > stMagoBase.critico);
+
+  // Al limpiar un estado guardado conserva subclase válida y descarta corruptas
+  const saneado = H.limpiarHeroe({ subclase: 'piromante' });
+  assert.strictEqual(saneado.subclase, 'piromante');
+  assert.strictEqual(H.limpiarHeroe({ subclase: 'inventada' }).subclase, null);
+
+  // Al cambiar de clase en aplicarBarraDeClase limpia la subclase incompatible
+  H.aplicarBarraDeClase(h, 'guerrero');
+  assert.strictEqual(h.subclase, null);
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

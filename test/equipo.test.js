@@ -173,4 +173,60 @@ t('forjar con hoja: consume la hoja, cuesta arena y da la pieza en estado perfec
   assert.ok(p.inventario.some(o => o.piezaId === 'torso.3' && o.estado === 1));
 });
 
+t('profesiones real (catalogo.json): perfilesClase, armas iniciales, compatibilidad y futuras armaduras por tipoArmadura', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const cat = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'estudio-armaduras', 'catalogo.json'), 'utf8'));
+  assert.ok(cat.perfilesClase, 'catalogo.json debe definir perfilesClase');
+
+  const g = E.crearPersonaje(cat, 'guerrero', 'Kael');
+  const c = E.crearPersonaje(cat, 'cazador', 'Lyra');
+  const m = E.crearPersonaje(cat, 'mago', 'Aldric');
+  const p = E.crearPersonaje(cat, 'picaro', 'Vex');
+
+  assert.strictEqual(E.objeto(g, g.equipo.weapon).idx, 1, 'Guerrero nace con Espada Solar');
+  assert.strictEqual(E.objeto(c, c.equipo.weapon).idx, 71, 'Cazador nace con Arco Largo Élfico');
+  assert.strictEqual(E.objeto(m, m.equipo.weapon).idx, 61, 'Mago nace con Báculo Solar');
+  assert.strictEqual(E.objeto(p, p.equipo.weapon).idx, 41, 'Pícaro nace con Daga Élfica');
+
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'guerrero'), 'pesada');
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'cazador'), 'ligera');
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'mago'), 'mago');
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'picaro'), 'ligera');
+
+  // Restricción de clase al equipar con catálogo
+  const arcoAjeno = E.instancia({ id: 'weapon.71', ranura: 'weapon', idx: 71, nombre: 'Arco Largo Élfico', nivel: 1 }, 1);
+  g.inventario.push(arcoAjeno);
+  assert.throws(() => E.equipar(g, arcoAjeno.uid, 10, cat), /compatible/i);
+
+  const petoPesado = E.instancia({ id: 'torso.1', ranura: 'torso', idx: 1, nombre: 'Peto pesado', nivel: 1 }, 1);
+  m.inventario.push(petoPesado);
+  assert.throws(() => E.equipar(m, petoPesado.uid, 10, cat), /compatible/i);
+
+  // Forjar pieza básica en ranura futura de Mago antes de meter túnicas hace fallback a ranura compatible
+  const forjaMagoFallback = E.forjarPiezaBasica(m, cat, 'torso', () => 0);
+  assert.ok(forjaMagoFallback && !['torso', 'gloves', 'shoulders', 'tassets', 'cuisses', 'knees'].includes(forjaMagoFallback.ranura));
+
+  // Al añadir futuras armaduras etiquetadas con tipoArmadura, aparecen automáticamente solo para su clase y se priorizan
+  const catFut = JSON.parse(JSON.stringify(cat));
+  catFut.ranuras.torso.push({ idx: 99, nombre: 'Túnica Astral de Prueba', nivel: 1, archivo: 'piezas/torso/99.glb', tipoArmadura: 'mago' });
+  catFut.ranuras.underlayer.push({ idx: 98, nombre: 'Túnica Base de Aprendiz', nivel: 1, archivo: 'piezas/underlayer/98.glb', tipoArmadura: 'mago' });
+
+  const piezasMagoFut = E.piezasDeClase(catFut, 'mago');
+  assert.ok(piezasMagoFut.some(x => x.id === 'torso.99'), 'La túnica futura debe integrarse en Mago sin tocar código');
+  const underMago = piezasMagoFut.filter(x => x.ranura === 'underlayer');
+  assert.strictEqual(underMago.length, 1, 'Si hay piezas dedicadas por tipoArmadura, se priorizan sobre las genéricas');
+  assert.strictEqual(underMago[0].idx, 98);
+  assert.ok(!E.piezasDeClase(catFut, 'guerrero').some(x => x.id === 'torso.99'), 'Una pieza de Mago no debe aparecer en Guerrero');
+
+  // Cambio de clase con asegurarArmaDeClase
+  g.inventario.push(petoPesado);
+  E.equipar(g, petoPesado.uid, 10, cat);
+  assert.ok(g.equipo.torso, 'Guerrero llevaba peto equipado');
+  const nuevaArma = E.asegurarArmaDeClase(g, cat, 'mago', 12);
+  assert.strictEqual(g.clase, 'mago');
+  assert.strictEqual(g.equipo.torso, undefined, 'Al pasar a Mago se desequipan placas incompatibles');
+  assert.ok(nuevaArma && cat.ranuras.weapon.find(w => w.idx === nuevaArma.idx).familia === 'baculo');
+});
+
 console.log(`\n${n} pruebas de equipo superadas.`);

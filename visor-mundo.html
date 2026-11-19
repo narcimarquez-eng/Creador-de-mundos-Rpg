@@ -170,6 +170,8 @@
     .dmg-hero { color: #f87171; font-size: 17px; }
     .dmg-block { color: #fbbf24; font-size: 14px; }
     .dmg-dodge { color: #22d3ee; font-size: 14px; letter-spacing: .5px; text-shadow: 0 0 8px rgba(34,211,238,.65), 0 2px 3px #000; }
+    .dmg-poison { color: #4ade80; font-size: 13px; text-shadow: 0 0 6px rgba(74,222,128,.6), 0 2px 3px #000; }
+    .dmg-shield { color: #c084fc; font-size: 13px; text-shadow: 0 0 8px rgba(192,132,252,.65), 0 2px 3px #000; }
     .dmg-heal { color: #4ade80; font-size: 15px; }
     #dmg-vignette { position: fixed; inset: 0; pointer-events: none; z-index: 21; box-shadow: inset 0 0 70px rgba(220,38,38,0); transition: box-shadow .16s ease-out; }
     #dmg-vignette.hit { box-shadow: inset 0 0 85px rgba(220,38,38,0.55); }
@@ -1864,7 +1866,13 @@
   <div id="crear"><div class="box">
     <h2>🧙 Crear personaje</h2>
     <label>Nombre <input type="text" id="crear-nombre" value="Aventurero"></label>
-    <label>Clase <select id="crear-clase"><option value="guerrero">Guerrero</option><option value="mago" disabled>Mago (túnicas pendientes)</option></select></label>
+    <label>Clase <select id="crear-clase">
+      <option value="guerrero">🛡️ Guerrero · Armadura pesada</option>
+      <option value="cazador">🏹 Cazador · Armadura ligera</option>
+      <option value="mago">🔮 Mago · Armadura mágica</option>
+      <option value="picaro">🗡️ Pícaro · Armadura ligera</option>
+    </select></label>
+    <div id="crear-clase-info" style="margin-top:6px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,0.75);border:1px solid rgba(148,163,184,0.28);font-size:12px;line-height:1.45"></div>
     <div class="muted">Ajusta el cuerpo en el estudio: las armaduras iniciales se generan con esas proporciones.</div>
     <iframe id="crear-frame" title="Estudio de armaduras" style="width:100%;height:min(620px,68vh);border:0;border-radius:8px;margin-top:6px;background:#070a13"></iframe>
     <div id="crear-estado" class="muted" style="margin-top:6px"></div>
@@ -2039,6 +2047,7 @@
     </div>
 
     <div id="comp-mision-personal" class="comp-quest-box"></div>
+    <div id="comp-sinergia" style="margin-bottom:8px;padding:8px 10px;border-radius:6px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.3);font-size:11.5px;line-height:1.45"></div>
 
     <!-- 3 Ranuras de Habilidades / Dopes Equipados -->
     <div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
@@ -2157,15 +2166,15 @@
   <script defer src="js/casa-madera.js?v=20261114e"></script>
   <script defer src="js/lagos.js?v=20261114a"></script>
   <script src="js/relieve-zona.js?v=20261114a"></script>
-  <script defer src="js/equipo.js?v=20261119a"></script>
-  <script defer src="js/historia.js?v=20261119c"></script>
+  <script defer src="js/equipo.js?v=20261119d"></script>
+  <script defer src="js/historia.js?v=20261119e"></script>
   <script defer src="js/mundo-campana.js?v=20261114c"></script>
   <script defer src="js/lugares-secretos.js?v=20261119c"></script>
   <script defer src="js/texturas-lib.js?v=4"></script>
   <script defer src="js/dungeon-generator.js?v=20261114w"></script>
   <script defer src="js/mazmorras.js?v=20261114c"></script>
-  <script defer src="js/acompanante.js?v=20261119c"></script>
-  <script defer src="js/heroe.js?v=20261119c"></script>
+  <script defer src="js/acompanante.js?v=20261119e"></script>
+  <script defer src="js/heroe.js?v=20261119e"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
   <script defer src="js/mapa.js?v=20251029"></script>
   <script defer src="js/ruta.js?v=20251029"></script>
@@ -2177,13 +2186,13 @@
   <script type="module" src="js/pueblo-edits.js?v=20261113b"></script>
   <script defer src="js/casas-glb.js?v=20261114a"></script>
   <script type="module" src="js/village-core.js?v=20261118c"></script>
-  <script type="module" src="js/combat.js?v=20261118b"></script>
+  <script type="module" src="js/combat.js?v=20261119e"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20261115a"></script>
   <script type="module" src="js/decorado.js?v=20261114e"></script>
   <script defer src="js/decorado-mundo.js?v=20261118c"></script>
-  <script type="module" src="js/character.js?v=20261118a"></script>
+  <script type="module" src="js/character.js?v=20261119d"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
@@ -8256,9 +8265,10 @@
     } else if (typeof Sonidos !== 'undefined' && Sonidos.danoHeroe) {
       Sonidos.danoHeroe();
     }
-    const murio = CombatLib.takeHit(hero, dmg);
-    if (heroPos) {
-      const txtD = bloqueado ? ('🛡 -' + Math.round(dmg)) : ('-' + Math.round(dmg));
+    const dmgReal = absorberConEscudoArcano(dmg, heroPos);
+    const murio = dmgReal > 0 ? CombatLib.takeHit(hero, dmgReal) : false;
+    if (heroPos && (dmgReal > 0 || bloqueado)) {
+      const txtD = bloqueado ? ('🛡 -' + Math.round(dmgReal)) : ('-' + Math.round(dmgReal));
       lanzarNumeroFlotante({ x: heroPos.x, y: heroPos.y + 2.05, z: heroPos.z }, txtD, bloqueado ? 'dmg-block' : 'dmg-hero');
     }
     activarSacudida(bloqueado ? 0.12 : 0.26, 0.18);
@@ -8698,9 +8708,12 @@
       let dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level) * (tg.dmgMult || 1.75) * (1 - statsHeroe.reduccion);
       let bloqueado = false;
       if (Math.random() < statsHeroe.bloqueo) { dmg *= 0.5; bloqueado = true; }
-      const murio = CombatLib.takeHit(hero, dmg);
-      const txtD = bloqueado ? ('🛡 -' + Math.round(dmg)) : ('-' + Math.round(dmg));
-      lanzarNumeroFlotante({ x: heroPos.x, y: heroPos.y + 2.1, z: heroPos.z }, txtD, bloqueado ? 'dmg-block' : 'dmg-hero');
+      const dmgReal = absorberConEscudoArcano(dmg, heroPos);
+      const murio = dmgReal > 0 ? CombatLib.takeHit(hero, dmgReal) : false;
+      if (dmgReal > 0 || bloqueado) {
+        const txtD = bloqueado ? ('🛡 -' + Math.round(dmgReal)) : ('-' + Math.round(dmgReal));
+        lanzarNumeroFlotante({ x: heroPos.x, y: heroPos.y + 2.1, z: heroPos.z }, txtD, bloqueado ? 'dmg-block' : 'dmg-hero');
+      }
       activarSacudida(bloqueado ? 0.20 : 0.36, 0.24);
       pulsarVinetaDano();
       if (window.Sonidos && window.Sonidos.danoHeroe) window.Sonidos.danoHeroe();
@@ -8722,11 +8735,52 @@
     }
   }
 
+  function absorberConEscudoArcano(dmg, pos) {
+    if (hero.escudoArcano > 0 && (hero.escudoArcanoTimer || 0) > 0 && dmg > 0) {
+      const abs = Math.min(hero.escudoArcano, dmg);
+      hero.escudoArcano -= abs;
+      if (hero.escudoArcano <= 0.5) { hero.escudoArcano = 0; hero.escudoArcanoTimer = 0; }
+      if (pos) lanzarNumeroFlotante({ x: pos.x, y: pos.y + 2.25, z: pos.z }, '💠 -' + Math.round(abs), 'dmg-shield');
+      return Math.max(0, dmg - abs);
+    }
+    return dmg;
+  }
+
   function updateCombat(dt, now) {
     fotogramaCombate++;
     const enMazmorra = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
     presupuestoModelos = enMazmorra ? 4 : 1;
     CombatLib.tickHero(hero, dt);
+    if (hero.escudoArcanoTimer > 0) {
+      hero.escudoArcanoTimer = Math.max(0, hero.escudoArcanoTimer - dt);
+      if (hero.escudoArcanoTimer <= 0) hero.escudoArcano = 0;
+    }
+    if (character && character.root) {
+      const escudoActivo = !hero.dead && hero.escudoArcano > 0 && hero.escudoArcanoTimer > 0;
+      if (escudoActivo) {
+        if (!character._manaShieldMesh) {
+          const sg = new THREE.Group();
+          const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.95, 16, 12),
+            new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.22, depthWrite: false, wireframe: true, blending: THREE.AdditiveBlending })
+          );
+          const ringS = new THREE.Mesh(
+            new THREE.TorusGeometry(1.04, 0.035, 6, 28),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.78, blending: THREE.AdditiveBlending })
+          );
+          ringS.rotation.x = Math.PI / 2;
+          sg.position.y = 1.02;
+          sg.add(sphere, ringS);
+          marcarResplandor(sg);
+          character.root.add(sg);
+          character._manaShieldMesh = sg;
+        }
+        character._manaShieldMesh.visible = true;
+        character._manaShieldMesh.rotation.y += dt * 1.9;
+      } else if (character._manaShieldMesh) {
+        character._manaShieldMesh.visible = false;
+      }
+    }
     if (accionEncolada) {
       if (perfNow >= accionEncolada.expira) {
         accionEncolada = null;
@@ -8843,6 +8897,16 @@
           // Solo golpea al héroe si no hay un desnivel vertical abismal (arqueros/magos hasta 8m) y el modelo está visible
           const maxDyPermitido = m.esADistancia ? 8.0 : 4.0;
           if (r.attack && !hero.dead && dy < maxDyPermitido && m.group && m.group.visible) monsterHitsHero(m);
+          if (m.venenoTimer > 0 && m.alive && m.hp > 0) {
+            m.venenoTimer = Math.max(0, m.venenoTimer - dt);
+            m._venenoTick = (m._venenoTick || 0) + dt;
+            if (m._venenoTick >= 1.0) {
+              m._venenoTick -= 1.0;
+              const dmgVen = Math.max(1, m.venenoDps || 4);
+              damageMonster(m, dmgVen, 'hero');
+              if (m.group && m.group.visible) lanzarNumeroFlotante(posCabezaMonstruo(m), '☠ -' + dmgVen, 'dmg-poison');
+            }
+          }
         }
         if (d > MONSTRUO_DESCARGA && m.rig && !(m.fx && perfNow < m.muriendo)) descargarModelosEnemigo(m);
         const esMeshProc = !!(m.meshProcedural || (m.dungeonInfoRef && m.dungeonInfoRef.meshProcedural));
@@ -8969,8 +9033,38 @@
           } else if (m._frostRing) {
             m._frostRing.visible = false;
           }
+          // Aura tóxica verde cuando el enemigo sufre Hoja Envenenada
+          if (m.venenoTimer > 0 && near && m.alive && m.hp > 0) {
+            if (!m._poisonRing) {
+              const pg = new THREE.Group();
+              const ringP = new THREE.Mesh(
+                new THREE.RingGeometry(0.86, 1.22, 24),
+                new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.72, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+              );
+              ringP.rotation.x = -Math.PI / 2;
+              ringP.position.y = 0.16;
+              pg.add(ringP);
+              for (let pi = 0; pi < 4; pi++) {
+                const aP = (pi * Math.PI) / 2 + 0.35;
+                const drop = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.11, 6, 6),
+                  new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending })
+                );
+                drop.position.set(Math.cos(aP) * 0.92, 0.55, Math.sin(aP) * 0.92);
+                pg.add(drop);
+              }
+              marcarResplandor(pg);
+              m.group.add(pg);
+              m._poisonRing = pg;
+            }
+            m._poisonRing.visible = true;
+            m._poisonRing.rotation.y = (nowSec * 3.1) % (Math.PI * 2);
+          } else if (m._poisonRing) {
+            m._poisonRing.visible = false;
+          }
         }
         if (!m.alive && m._frostRing) m._frostRing.visible = false;
+        if ((!m.alive || m.venenoTimer <= 0) && m._poisonRing) m._poisonRing.visible = false;
         const showBar = near && (m.hp < m.maxHp || d < 12 || m.esDeMision);
         m.bar.visible = showBar;
         if (showBar) {
@@ -9034,17 +9128,27 @@
 
   // Habilidades: daño a los monstruos del alcance y animación del personaje (la del mismo nombre, ver js/character.js).
   // Espacio: combo, o tiro con arco si el arma es un arco. Q, E, Z y V: lo que lleve cada hueco de la barra.
+  function claseHeroe() {
+    return (personajeActual && personajeActual.clase) || 'guerrero';
+  }
+  function atajosActivos() {
+    return HeroeLib.atajosDeClase(claseHeroe());
+  }
   function armaDelHeroe() {
     const arma = personajeActual && EquipoLib.objeto(personajeActual, personajeActual.equipo.weapon);
-    return HeroeLib.esArco(arma) ? 'arco' : 'cuerpo';
+    if (HeroeLib.esArco(arma)) return 'arco';
+    if (HeroeLib.esBaculo(arma)) return 'baculo';
+    return 'cuerpo';
   }
-  // Las de la historia, hasta su capítulo; las técnicas, hasta su nivel (ver js/heroe.js)
-  function bloqueada(name) { return !!HeroeLib.HABILIDADES[name] && !HeroeLib.disponible(heroeEst, name, hero.level); }
+  // Las de la historia, hasta su capítulo; las técnicas, hasta su nivel y profesión (ver js/heroe.js)
+  function bloqueada(name) { return !!HeroeLib.HABILIDADES[name] && !HeroeLib.disponible(heroeEst, name, hero.level, claseHeroe()); }
   // Por qué no se puede usar con el arma que lleva ('' si se puede)
   function faltaArma(name) {
     const req = CombatLib.SKILLS[name].arma;
     if (!req || req === armaDelHeroe()) return '';
-    return req === 'arco' ? 'Necesitas un arco' : 'Con el arco no puedes usar ' + CombatLib.SKILLS[name].nombre.toLowerCase();
+    if (req === 'arco') return 'Necesitas un arco';
+    if (req === 'baculo') return 'Necesitas un báculo o cetro';
+    return (armaDelHeroe() === 'arco' ? 'Con el arco' : 'Con báculo') + ' no puedes usar ' + CombatLib.SKILLS[name].nombre.toLowerCase();
   }
   function usarHueco(tecla) {
     const id = heroeEst.barra[tecla];
@@ -9057,7 +9161,8 @@
     if (!sk) return 0xf59e0b;
     if (sk.elemento === 'fuego' || name === 'furia') return 0xf97316;
     if (sk.elemento === 'hielo') return 0x38bdf8;
-    if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo') return 0xa855f7;
+    if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo' || name === 'paso_sombrio') return 0xa855f7;
+    if (name === 'hoja_veneno' || name === 'trampa_espinas') return 0x22c55e;
     if (name === 'escudo_espiritu' || name === 'contraataque') return 0xfacc15;
     if (name === 'rafaga') return 0x67e8f9;
     if (name === 'nova' || name === 'sentencia_titan') return 0xfbbf24;
@@ -9066,8 +9171,12 @@
 
   function useSkill(name, blancoFijado = null) {
     if (hero.dead) return;
-    if (name === 'attack' && armaDelHeroe() === 'arco') name = 'disparo';
-    if (bloqueada(name)) { toast('🔒 ' + CombatLib.SKILLS[name].nombre + ': ' + HeroeLib.requisito(name)); return; }
+    if (name === 'attack') {
+      const a = armaDelHeroe();
+      if (a === 'arco') name = 'disparo';
+      else if (a === 'baculo') name = 'orbe_arcano';
+    }
+    if (bloqueada(name)) { toast('🔒 ' + CombatLib.SKILLS[name].nombre + ': ' + HeroeLib.requisito(name, claseHeroe())); return; }
     const falta = faltaArma(name);
     if (falta) { toast(falta); return; }
     const esquivando = !!(character && character.isDodging && character.isDodging());
@@ -9078,7 +9187,7 @@
         accionEncolada = { name, blanco: blancoFijado || null, expira: performance.now() + 240 };
         return;
       }
-      if (cd > 0) toast(name === 'attack' || name === 'disparo' ? 'Listo en un momento' : 'Recargando…');
+      if (cd > 0) toast(name === 'attack' || name === 'disparo' || name === 'orbe_arcano' ? 'Listo en un momento' : 'Recargando…');
       else if (hero.mp < skChk.mp) toast('Sin maná');
       return;
     }
@@ -9090,10 +9199,50 @@
     CombatLib.useSkill(hero, name);
     // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
     if (statsHeroe.velocidadAtaque) hero.cd[name] = Math.max(CombatLib.SKILLS[name].lock, hero.cd[name] / (1 + statsHeroe.velocidadAtaque));
+    const sk = CombatLib.SKILLS[name];
+    if (sk.escudoPct) {
+      const pctEsc = sk.escudoPct + (hero.escudoBonusPct || 0);
+      hero.escudoArcano = Math.max(hero.escudoArcano || 0, Math.round(hero.maxHp * pctEsc));
+      hero.escudoArcanoTimer = sk.escudoDur || 8.0;
+      if (character && character.root) {
+        const ep = character.root.position;
+        lanzarNumeroFlotante({ x: ep.x, y: ep.y + 2.2, z: ep.z }, '💠 +' + hero.escudoArcano + ' ESCUDO', 'dmg-shield');
+      }
+    }
+    if (sk.dashToTarget && character && character.root) {
+      const enDungeonD = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+      const poolD = enDungeonD ? monstruosMazmorra : monsters;
+      let destTarget = (blanco && blanco.alive && blanco.hp > 0 &&
+        Math.hypot(blanco.x - character.root.position.x, blanco.z - character.root.position.z) <= sk.range * 1.15) ? blanco : null;
+      if (!destTarget) {
+        let mejorD = sk.range * 1.15;
+        poolD.forEach(m => {
+          if (!m || !m.alive || m.hp <= 0 || (enDungeonD ? !m.dungeonInfoRef : !!m.dungeonInfoRef)) return;
+          const dM = Math.hypot(m.x - character.root.position.x, m.z - character.root.position.z);
+          if (dM <= mejorD) { mejorD = dM; destTarget = m; }
+        });
+      }
+      if (destTarget) {
+        const dxD = destTarget.x - character.root.position.x;
+        const dzD = destTarget.z - character.root.position.z;
+        const dD = Math.hypot(dxD, dzD) || 1;
+        const stopDist = Math.min(1.9, Math.max(1.2, dD * 0.35));
+        const tx = destTarget.x - (dxD / dD) * stopDist;
+        const tz = destTarget.z - (dzD / dD) * stopDist;
+        const enAgua = visorWorld && visorWorld.isWaterHazard && visorWorld.isWaterHazard(tx, tz, 0.6);
+        if (!enAgua) {
+          const curY = character.root.position.y;
+          const ny = (!enDungeonD && typeof meshHeight === 'function') ? meshHeight(tx, tz) : curY;
+          if (!Number.isFinite(ny) || Math.abs(ny - curY) <= 4.0) {
+            character.root.position.set(tx, Number.isFinite(ny) ? ny : curY, tz);
+            character.mirarHacia(destTarget.x - tx, destTarget.z - tz);
+            destelloImpacto(new THREE.Vector3(tx, character.root.position.y + 1.0, tz), 0xa855f7, 1.5);
+          }
+        }
+      }
+    }
     character.playOneShot(name, lastNowSec);
     lanzarAuraConjuro(name);
-    // Cada golpe llega en su momento de la animación (al caer, al cerrar el giro, al soltar la flecha); sin momento, al instante
-    const sk = CombatLib.SKILLS[name];
     if (window.Sonidos) {
       if (sk.elemento === 'fuego' || name === 'furia') window.Sonidos.fuego();
       else if (sk.elemento === 'hielo') window.Sonidos.hielo();
@@ -9162,7 +9311,7 @@
         blancos.forEach(m => {
           if (!m.alive || m.hp <= 0) return;
           if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
-          const res = calcularDanioHeroe(name, m.level);
+          const res = calcularDanioHeroe(name, m.level, sk.bonusCrit || 0, m);
           golpear(m, res.dmg, 'sordo', { crit: res.crit, skill: name });
         });
       });
@@ -9209,10 +9358,16 @@
     blancos.forEach(m => {
       if (sk.unico) flecha(m);
       if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
-      const res = calcularDanioHeroe(name, m.level);
+      const res = calcularDanioHeroe(name, m.level, sk.bonusCrit || 0, m);
       golpear(m, res.dmg, sk.unico ? 'flecha' : (conArma ? 'metal' : 'sordo'), { crit: res.crit, skill: name });
+      if (sk.venenoPct && m.alive && m.hp > 0) {
+        m.venenoTimer = Math.max(m.venenoTimer || 0, sk.venenoDur || 5.0);
+        m.venenoDps = Math.max(4, Math.round(res.dmg * sk.venenoPct * (1 + (hero.venenoMult || 0))));
+        m._venenoTick = 0;
+        lanzarNumeroFlotante(posCabezaMonstruo(m), '☠ VENENO', 'dmg-poison');
+      }
     });
-    if (primero && name !== 'attack' && name !== 'disparo' && !blancos.length) toast('Sin objetivos en el alcance');
+    if (primero && name !== 'attack' && name !== 'disparo' && name !== 'orbe_arcano' && !sk.escudoPct && !blancos.length) toast('Sin objetivos en el alcance');
   }
 
   // Efectos breves: la onda en el suelo de los golpes alrededor, hechizos elementales y animaciones 3D de combate
@@ -9333,8 +9488,9 @@
     const desde = new THREE.Vector3(p.x + fx * 0.6, p.y + 1.35, p.z + fz * 0.6);
     const hasta = hastaInit.clone();
     const esFuego = name === 'bola_fuego';
-    const colMain = esFuego ? 0xf97316 : 0x38bdf8;
-    const colCore = esFuego ? 0xfef08a : 0xe0f2fe;
+    const esArcano = name === 'orbe_arcano';
+    const colMain = esFuego ? 0xf97316 : (esArcano ? 0xa855f7 : 0x38bdf8);
+    const colCore = esFuego ? 0xfef08a : (esArcano ? 0xf3e8ff : 0xe0f2fe);
     const g = new THREE.Group();
 
     if (esFuego) {
@@ -9350,6 +9506,18 @@
       trail.rotation.x = Math.PI;
       trail.position.y = -0.78;
       g.add(core, shell, trail);
+    } else if (esArcano) {
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), new THREE.MeshBasicMaterial({ color: colCore }));
+      const shell = new THREE.Mesh(
+        new THREE.SphereGeometry(0.42, 12, 10),
+        new THREE.MeshBasicMaterial({ color: colMain, transparent: true, opacity: 0.74, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.36, 0.035, 6, 18),
+        new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending })
+      );
+      ring.rotation.x = Math.PI / 2;
+      g.add(core, shell, ring);
     } else {
       const spear = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.45, 6), new THREE.MeshBasicMaterial({ color: colCore }));
       spear.position.y = 0.2;
@@ -9388,19 +9556,20 @@
       if (k >= 0.96 && !impactado) {
         impactado = true;
         if (typeof onImpact === 'function') onImpact();
-        lanzarEstallidoElemental(hasta, esFuego ? 'fuego' : 'hielo', CombatLib.SKILLS[name].splash || 3.5);
+        lanzarEstallidoElemental(hasta, esFuego ? 'fuego' : (esArcano ? 'rayo' : 'hielo'), CombatLib.SKILLS[name].splash || 3.5);
       }
     });
   }
 
   function lanzarEstallidoElemental(pos, tipo, radio = 3.5) {
     const esFuego = tipo === 'fuego';
-    const col = esFuego ? 0xf97316 : 0x38bdf8;
+    const esRayo = tipo === 'rayo';
+    const col = esFuego ? 0xf97316 : (esRayo ? 0xa855f7 : 0x38bdf8);
     const g = new THREE.Group();
     g.position.set(pos.x, pos.y, pos.z);
     const esfera = new THREE.Mesh(
       new THREE.SphereGeometry(0.55, 14, 10),
-      new THREE.MeshBasicMaterial({ color: esFuego ? 0xfef08a : 0xe0f2fe, transparent: true, opacity: 0.92, depthWrite: false, blending: THREE.AdditiveBlending })
+      new THREE.MeshBasicMaterial({ color: esFuego ? 0xfef08a : (esRayo ? 0xf3e8ff : 0xe0f2fe), transparent: true, opacity: 0.92, depthWrite: false, blending: THREE.AdditiveBlending })
     );
     const onda = new THREE.Mesh(
       new THREE.RingGeometry(0.55, 0.95, 32),
@@ -9683,6 +9852,140 @@
       efecto(g, 0.25, k => {
         beam.scale.set(1 - k * 0.4, 0.6 + k * 0.6, 1 - k * 0.4);
         beam.material.opacity = 0.9 * (1 - k);
+      });
+      return;
+    }
+
+    if (name === 'flecha_perforante') {
+      const g = new THREE.Group();
+      const rng = Math.min(22, sk.range || 22);
+      const haz = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.24, rng, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      haz.rotation.x = Math.PI / 2;
+      const núcleo = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.09, rng, 6),
+        new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.92, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      núcleo.rotation.x = Math.PI / 2;
+      g.add(haz, núcleo);
+      g.position.set(p.x + fx * (rng * 0.5 + 0.6), p.y + 1.2, p.z + fz * (rng * 0.5 + 0.6));
+      g.rotation.y = character.anguloY();
+      marcarResplandor(g);
+      efecto(g, 0.34, k => {
+        haz.scale.set(1 + k * 0.8, 1, 1 + k * 0.8);
+        haz.material.opacity = 0.85 * (1 - k);
+        núcleo.material.opacity = 0.92 * (1 - k);
+      });
+      (blancos || []).forEach(m => {
+        if (m && m.alive) destelloImpacto(new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.1, m.z), 0xfacc15, 1.3);
+      });
+      return;
+    }
+
+    if (name === 'trampa_espinas') {
+      const g = new THREE.Group();
+      const centro = (blancos && blancos.length)
+        ? new THREE.Vector3(blancos[0].x, (blancos[0].group ? blancos[0].group.position.y : p.y), blancos[0].z)
+        : new THREE.Vector3(p.x + fx * 5.0, p.y, p.z + fz * 5.0);
+      g.position.set(centro.x, centro.y + 0.08, centro.z);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(1.0, Math.min(6.0, (sk.range || 10) * 0.5), 28),
+        new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.72, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      g.add(ring);
+      const puas = [];
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        const r = 1.1 + (i % 3) * 1.1;
+        const pua = new THREE.Mesh(
+          new THREE.ConeGeometry(0.18, 1.45, 5),
+          new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x22c55e : 0x15803d, transparent: true, opacity: 0.92 })
+        );
+        pua.position.set(Math.cos(a) * r, -0.5, Math.sin(a) * r);
+        pua.rotation.z = (Math.cos(a) || 0.2) * 0.22;
+        g.add(pua);
+        puas.push(pua);
+      }
+      marcarResplandor(g);
+      efecto(g, 0.75, k => {
+        const lift = Math.sin(Math.min(1, k * 1.15) * Math.PI);
+        puas.forEach(sp => { sp.position.y = -0.3 + lift * 0.95; sp.material.opacity = 0.92 * (1 - k * 0.6); });
+        ring.material.opacity = 0.75 * (1 - k);
+      });
+      return;
+    }
+
+    if (name === 'escudo_mana') {
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y + 1.0, p.z);
+      const domo = new THREE.Mesh(
+        new THREE.SphereGeometry(1.6, 18, 12),
+        new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.42, wireframe: true, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      const aro = new THREE.Mesh(
+        new THREE.TorusGeometry(2.0, 0.08, 6, 28),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending })
+      );
+      aro.rotation.x = Math.PI / 2;
+      g.add(domo, aro);
+      marcarResplandor(g);
+      ondaSismica(sk.range || 6.0, 0xa855f7);
+      efecto(g, 0.55, k => {
+        domo.rotation.y = k * 4.0;
+        domo.scale.setScalar(0.8 + k * 0.7);
+        domo.material.opacity = 0.45 * (1 - k);
+        aro.scale.setScalar(0.7 + k * 1.4);
+        aro.material.opacity = 0.9 * (1 - k);
+      });
+      return;
+    }
+
+    if (name === 'paso_sombrio') {
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y + 0.35, p.z);
+      const halo1 = new THREE.Mesh(
+        new THREE.RingGeometry(0.9, 1.9, 24),
+        new THREE.MeshBasicMaterial({ color: 0x7e22ce, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      halo1.rotation.x = -Math.PI / 2;
+      const halo2 = new THREE.Mesh(
+        new THREE.TorusGeometry(1.15, 0.07, 6, 24),
+        new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending })
+      );
+      halo2.rotation.x = Math.PI / 2;
+      halo2.position.y = 0.6;
+      g.add(halo1, halo2);
+      marcarResplandor(g);
+      lanzarArcoCorte(0xa855f7, 0.4, 2.3, true);
+      efecto(g, 0.42, k => {
+        halo1.scale.setScalar(0.8 + k * 1.4);
+        halo1.material.opacity = 0.85 * (1 - k);
+        halo2.position.y = 0.4 + k * 1.2;
+        halo2.material.opacity = 0.88 * (1 - k);
+      });
+      return;
+    }
+
+    if (name === 'hoja_veneno') {
+      lanzarArcoCorte(0x22c55e, 0.35, 2.1, true);
+      (blancos || []).forEach(m => {
+        if (!m || !m.alive) return;
+        const g = new THREE.Group();
+        g.position.set(m.x, (m.group ? m.group.position.y : p.y) + 0.5, m.z);
+        const nube = new THREE.Mesh(
+          new THREE.SphereGeometry(0.95, 12, 10),
+          new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        g.add(nube);
+        marcarResplandor(g);
+        efecto(g, 0.5, k => {
+          g.position.y += 0.02;
+          nube.scale.setScalar(0.75 + k * 0.9);
+          nube.material.opacity = 0.45 * (1 - k);
+        });
       });
       return;
     }
@@ -9985,7 +10288,7 @@
 
   function doDodge() {
     if (hero.dead) return;
-    if (!CombatLib.startDodge(hero)) return;
+    if (!CombatLib.startDodge(hero, hero.dodgeCdMult || 1)) return;
     cancelarImpactosPendientes();
     accionEncolada = null;
     stopRest('Descanso cancelado');
@@ -10006,7 +10309,7 @@
     const cdEl = btn._cdEl || (btn._cdEl = btn.querySelector('.cd'));
     const nuevoIco = CombatLib.SKILLS[id].icono;
     if (icoEl.textContent !== nuevoIco) icoEl.textContent = nuevoIco;
-    const nuevoTit = titulo + (bloq ? ' · ' + HeroeLib.requisito(id) : falta ? ' · ' + falta : '');
+    const nuevoTit = titulo + (bloq ? ' · ' + HeroeLib.requisito(id, claseHeroe()) : falta ? ' · ' + falta : '');
     if (btn.title !== nuevoTit) btn.title = nuevoTit;
     const deshab = hero.dead || bloq || !!falta || cd > 0 || hero.mp < CombatLib.SKILLS[id].mp;
     if (btn.disabled !== deshab) btn.disabled = deshab;
@@ -10023,11 +10326,14 @@
     $('hud-xp').style.width = pct(hero.xp, CombatLib.xpToNext(hero.level));
     $('hud-hp-t').textContent = Math.ceil(hero.hp) + ' / ' + hero.maxHp;
     $('hud-lv').textContent = 'Nv ' + hero.level;
-    const arco = armaDelHeroe() === 'arco';
-    estadoBoton($('sk-attack'), arco ? 'disparo' : 'attack', arco ? 'Tiro con arco (Espacio)' : 'Combo de ataque (Espacio)');
-    if ($('sk-fuego')) estadoBoton($('sk-fuego'), 'bola_fuego', 'Bola de Fuego (3)');
-    if ($('sk-hielo')) estadoBoton($('sk-hielo'), 'lanza_hielo', 'Lanza de Hielo (4)');
-    if ($('sk-meteoro')) estadoBoton($('sk-meteoro'), 'tormenta_fuego', 'Lluvia de Meteoros (5)');
+    const armaAct = armaDelHeroe();
+    const attackSkill = armaAct === 'arco' ? 'disparo' : (armaAct === 'baculo' ? 'orbe_arcano' : 'attack');
+    const attackTit = armaAct === 'arco' ? 'Tiro con arco (Espacio)' : (armaAct === 'baculo' ? 'Orbe Arcano (Espacio)' : 'Combo de ataque (Espacio)');
+    estadoBoton($('sk-attack'), attackSkill, attackTit);
+    const [at3, at4, at5] = atajosActivos();
+    if ($('sk-fuego') && CombatLib.SKILLS[at3]) estadoBoton($('sk-fuego'), at3, CombatLib.SKILLS[at3].nombre + ' (3)');
+    if ($('sk-hielo') && CombatLib.SKILLS[at4]) estadoBoton($('sk-hielo'), at4, CombatLib.SKILLS[at4].nombre + ' (4)');
+    if ($('sk-meteoro') && CombatLib.SKILLS[at5]) estadoBoton($('sk-meteoro'), at5, CombatLib.SKILLS[at5].nombre + ' (5)');
     const btnJump = $('sk-jump');
     if (btnJump) {
       const dCd = hero.dodgeCd || 0;
@@ -11022,12 +11328,13 @@
     }
     const cx = character.root.position.x, cz = character.root.position.z;
     const d = Math.hypot(objetivo.x - cx, objetivo.z - cz);
-    // Con arco se dispara desde lejos; con cualquier otra arma, se va hasta él
-    const arco = armaDelHeroe() === 'arco';
-    const golpe = arco ? 'disparo' : 'attack';
+    // Con arco o báculo se dispara desde lejos; con cualquier otra arma, se va hasta él
+    const armaTipo = armaDelHeroe();
+    const esRango = armaTipo === 'arco' || armaTipo === 'baculo';
+    const golpe = armaTipo === 'arco' ? 'disparo' : (armaTipo === 'baculo' ? 'orbe_arcano' : 'attack');
     const esBoss = objetivo.boss || (objetivo.rangoElite && objetivo.rangoElite >= 8);
     const alcanceBase = esBoss ? (ALCANCE_ATAQUE + 1.2) : ALCANCE_ATAQUE;
-    const alcance = arco ? CombatLib.SKILLS.disparo.range * 0.82 : alcanceBase;
+    const alcance = esRango ? CombatLib.SKILLS[golpe].range * 0.82 : alcanceBase;
     if (d <= alcance) {
       // Ya está en distancia de ataque: planta los pies, encara continuamente al monstruo y ataca sin micro-deslizarse
       character.destino = null;
@@ -11037,7 +11344,7 @@
       if (habilidad) useSkill(habilidad, objetivo);
       else if (CombatLib.canUse(hero, golpe)) useSkill(golpe, objetivo);
     } else {
-      character.destino = { x: objetivo.x, z: objetivo.z, parar: arco ? alcance * 0.9 : alcance * 0.8 };
+      character.destino = { x: objetivo.x, z: objetivo.z, parar: esRango ? alcance * 0.9 : alcance * 0.8 };
     }
   }
 
@@ -11152,13 +11459,39 @@
   // Estadísticas del héroe: nivel, equipo (con sus especiales) y habilidades pasivas. Se recalculan al cambiar
   // de equipo, subir de nivel, mejorar una habilidad o cargar la partida.
   function aplicarStats() {
+    const cls = claseHeroe();
     const equipados = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
-    statsHeroe = HeroeLib.estadisticas(heroeEst, hero.level, equipados);
+    statsHeroe = HeroeLib.estadisticas(heroeEst, hero.level, equipados, cls);
+    if (acompanante && acompanante.activo && !acompanante.debilitado && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.sinergiaConProfesion === 'function') {
+      const sin = AcompananteLib.sinergiaConProfesion(acompanante.arquetipo, cls);
+      const b = sin.bonos || {};
+      if (b.vida) statsHeroe.vida += b.vida;
+      if (b.mana) statsHeroe.maná += b.mana;
+      if (b.poderMagico) statsHeroe.poderMagico = Math.round(((statsHeroe.poderMagico || 0) + b.poderMagico) * 10) / 10;
+      if (b.danio) statsHeroe.danio += b.danio;
+      if (b.critico) statsHeroe.critico = Math.min(0.75, statsHeroe.critico + b.critico);
+      if (b.reduccion) statsHeroe.reduccion = Math.min(0.7, statsHeroe.reduccion + b.reduccion);
+      if (b.velocidad) statsHeroe.velocidad += b.velocidad;
+      if (b.velocidadAtaque) statsHeroe.velocidadAtaque += b.velocidadAtaque;
+      if (b.venenoMult) statsHeroe.venenoMult = (statsHeroe.venenoMult || 0) + b.venenoMult;
+      if (b.mpRegenMult) statsHeroe.mpRegenMult = (statsHeroe.mpRegenMult || 1) * b.mpRegenMult;
+      statsHeroe.sinergiaComp = sin;
+    } else {
+      statsHeroe.sinergiaComp = null;
+    }
     hero.maxHp = statsHeroe.vida;
     hero.maxMp = statsHeroe.maná;
     hero.hp = Math.min(hero.hp, hero.maxHp);
     hero.mp = Math.min(hero.mp, hero.maxMp);
     hero.ataque = statsHeroe.ataque;
+    hero.poderMagico = statsHeroe.poderMagico || 0;
+    hero.mpRegenMult = statsHeroe.mpRegenMult || 1;
+    hero.dodgeCdMult = statsHeroe.dodgeCdMult || 1;
+    hero.fuegoMult = statsHeroe.fuegoMult || 0;
+    hero.hieloMult = statsHeroe.hieloMult || 0;
+    hero.venenoMult = statsHeroe.venenoMult || 0;
+    hero.multSlowBonus = statsHeroe.multSlowBonus || 0;
+    hero.escudoBonusPct = statsHeroe.escudoBonusPct || 0;
     if (!velBase) velBase = { walk: character.walkSpeed, run: character.runSpeed };
     character.walkSpeed = velBase.walk * (1 + statsHeroe.velocidad);
     character.runSpeed = velBase.run * (1 + statsHeroe.velocidad);
@@ -11166,9 +11499,12 @@
 
   const CRITICO = 1.5;   // multiplicador del golpe crítico
   // Daño de una habilidad: arma, daño extra, la propia habilidad mejorada con puntos, crítico y buffs de NPCs
-  function calcularDanioHeroe(name, targetLevel) {
+  function calcularDanioHeroe(name, targetLevel, bonusCrit = 0, targetMonster = null) {
     let dmg = CombatLib.heroDamage(hero, name, targetLevel) * (1 + statsHeroe.danio);
     dmg *= statsHeroe.mult[name] || 1;
+    if (targetMonster && targetMonster.slowTimer > 0 && hero.multSlowBonus) {
+      dmg *= (1 + hero.multSlowBonus);
+    }
     if (acompanante && acompanante.buffs && acompanante.buffs.ataqueTimer > 0) {
       dmg *= (acompanante.buffs.multAtaque || 1.25);
     }
@@ -11181,7 +11517,8 @@
     if (hero.reforjaOscura) {
       dmg *= (1 + hero.reforjaOscura);
     }
-    const crit = Math.random() < statsHeroe.critico;
+    const probCrit = Math.min(0.95, statsHeroe.critico + (Number(bonusCrit) || 0));
+    const crit = Math.random() < probCrit;
     return { dmg: crit ? dmg * CRITICO : dmg, crit };
   }
   function danioDelHeroe(name, targetLevel) {
@@ -11378,7 +11715,15 @@
     return dbHeroePromesa;
   }
   function claveModeloHeroe(pj) {
-    return JSON.stringify({ c: pj.clase || 'guerrero', f: pj.fit || {}, h: pj.pelo || null, e: EquipoLib.equipoPorIdx(pj) });
+    return JSON.stringify({
+      c: pj.clase || 'guerrero',
+      ta: (typeof EquipoLib !== 'undefined' && EquipoLib.tipoArmaduraDeClase)
+        ? EquipoLib.tipoArmaduraDeClase(catalogoPiezas, pj.clase)
+        : 'pesada',
+      f: pj.fit || {},
+      h: pj.pelo || null,
+      e: EquipoLib.equipoPorIdx(pj)
+    });
   }
   async function leerModeloHeroeCache(clave) {
     const db = await abrirDbHeroe();
@@ -11443,7 +11788,7 @@
 
   async function cargarCatalogoPiezas() {
     if (!catalogoPiezas) {
-      const r = await fetch('estudio-armaduras/catalogo.json');
+      const r = await fetch('estudio-armaduras/catalogo.json?v=20261119d');
       if (!r.ok) throw new Error('No se pudo leer el catálogo de piezas');
       catalogoPiezas = await r.json();
     }
@@ -11462,8 +11807,29 @@
     requestAnimationFrame(paso);
   });
 
+  function actualizarInfoClaseCrear() {
+    const el = $('crear-clase-info');
+    if (!el || typeof HeroeLib === 'undefined' || !HeroeLib.profesionDe) return;
+    const cls = ($('crear-clase') && $('crear-clase').value) || 'guerrero';
+    const prof = HeroeLib.profesionDe(cls);
+    const taNom = prof.tipoArmadura === 'mago' ? 'Mágica (túnicas/ligera arcana)' : (prof.tipoArmadura === 'ligera' ? 'Ligera' : 'Pesada');
+    const armasNom = (prof.familiasArma || []).join(', ');
+    const barra = HeroeLib.TECLAS.map(t => {
+      const id = prof.barraInicial && prof.barraInicial[t];
+      const nom = (typeof CombatLib !== 'undefined' && CombatLib.SKILLS && CombatLib.SKILLS[id]) ? CombatLib.SKILLS[id].nombre : id;
+      return '<b>' + t.toUpperCase() + '</b>: ' + esc(nom || '-');
+    }).join(' · ');
+    el.innerHTML = '<div><b>' + prof.icono + ' ' + esc(prof.nombre) + '</b> · <span style="color:#38bdf8">' + esc(prof.rol) + '</span></div>'
+      + '<div class="muted" style="margin:3px 0">' + esc(prof.desc) + '</div>'
+      + '<div><b>Armadura:</b> ' + esc(taNom) + ' · <b>Armas afines:</b> ' + esc(armasNom) + '</div>'
+      + '<div><b>Pasiva innata:</b> ' + esc(prof.pasiva) + '</div>'
+      + '<div class="muted" style="margin-top:2px"><b>Barra inicial:</b> ' + barra + '</div>';
+  }
+  if ($('crear-clase')) $('crear-clase').addEventListener('change', actualizarInfoClaseCrear);
+
   async function openCrearPersonaje(alCrearFn) {
     alCrear = alCrearFn || crearPartida;
+    actualizarInfoClaseCrear();
     $('crear-estado').textContent = 'Cargando el estudio…';
     $('crear').classList.add('show');
     estudioCargando = true;
@@ -11546,7 +11912,14 @@
     frameEstudio();
     await Promise.race([estudioListo, new Promise(res => setTimeout(res, 4000))]);
     enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit, hair: pj.pelo || null });
-    const buffer = await pedirAlEstudio('cuerpo', { tipo: 'exportar-personaje', id: 'cuerpo', equipo: EquipoLib.equipoPorIdx(pj) });
+    const claseArmadura = EquipoLib.tipoArmaduraDeClase(catalogoPiezas, pj.clase);
+    const buffer = await pedirAlEstudio('cuerpo', {
+      tipo: 'exportar-personaje',
+      id: 'cuerpo',
+      equipo: EquipoLib.equipoPorIdx(pj),
+      claseArmadura,
+      fit: pj.fit || null
+    });
     pausarEstudioSiOculto();
     guardarModeloHeroeCache(clave, buffer);
     character.loadGLBBuffer(buffer, pj.nombre);
@@ -11781,7 +12154,7 @@
     const b = e.target.closest('button[data-equipar]');
     if (!b) return;
     try {
-      EquipoLib.equipar(personajeActual, b.dataset.equipar, hero.level);
+      EquipoLib.equipar(personajeActual, b.dataset.equipar, hero.level, catalogoPiezas);
       aplicarStats();
       renderObjetos();
       toast('Equipado');
@@ -11917,7 +12290,10 @@
     if (servicio === 'herrero') {
       if (heroeEst && heroeEst.forjaPendiente) {
         const fp = heroeEst.forjaPendiente;
-        const nombrePieza = {
+        const forjaTxt = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.textoForjaClase === 'function')
+          ? HistoriaLib.textoForjaClase(fp.ranura, claseHeroe())
+          : null;
+        const nombrePieza = (forjaTxt && forjaTxt.nombrePieza) || ({
           belt: 'Cinturón de Cuero Reforzado',
           boots: 'Botas de Viajero',
           gloves: 'Brazales / Guantes Curtidos',
@@ -11925,7 +12301,9 @@
           helmet: 'Yelmo de Explorador',
           shoulders: 'Hombreras de Caza',
           weapon: 'Arma de Combate de Acero'
-        }[fp.ranura] || 'Pieza de Equipo';
+        }[fp.ranura] || 'Pieza de Equipo');
+        const fraseBrann = (forjaTxt && forjaTxt.fraseBrann)
+          || `«¡Has traído las pieles y materiales necesarios! Calentemos el hierro y martillemos en el yunque para forjar tu ${nombrePieza} de entrada.»`;
 
         html += `
           <div style="background:linear-gradient(135deg,rgba(234,179,8,0.2),rgba(20,20,30,0.8));border:2px solid #eab308;border-radius:8px;padding:12px;margin-bottom:14px;box-shadow:0 0 10px rgba(234,179,8,0.3)">
@@ -11937,7 +12315,7 @@
               </div>
             </div>
             <div style="font-size:13px;color:#e2e8f0;line-height:1.4;margin:8px 0;background:rgba(0,0,0,0.25);padding:8px;border-radius:6px;border-left:3px solid #facc15">
-              <i>«¡Has traído las pieles y materiales necesarios! Calentemos el hierro y martillemos en el yunque para forjar tu ${esc(nombrePieza)} de entrada.»</i>
+              <i>${esc(fraseBrann)}</i>
             </div>
             <button data-forjar-historia class="gold" style="width:100%;padding:8px;font-weight:bold;font-size:13px;cursor:pointer">
               🔨 Entregar materiales y Forjar ${esc(nombrePieza)}
@@ -12173,7 +12551,36 @@
       toast('Encargo entregado: +' + m.recompensa.oro + ' 🪙');
     });
     const mj = e.target.closest('button[data-mejorar]');
-    if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar, hero.level); aplicarStats(); toast('Habilidad mejorada'); });
+    if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar, hero.level, claseHeroe()); aplicarStats(); toast('Habilidad mejorada'); });
+    const esub = e.target.closest('button[data-elegir-subclase]');
+    if (esub) accionNpc(() => {
+      const sub = HeroeLib.elegirSubclase(heroeEst, esub.dataset.elegirSubclase, hero.level, claseHeroe());
+      aplicarStats();
+      toast('🌟 ¡Especialización desbloqueada: ' + sub.icono + ' ' + sub.nombre + '!');
+    });
+    const rs = e.target.closest('button[data-respec-heroe]');
+    if (rs) accionNpc(() => {
+      const dev = HeroeLib.reiniciarPuntos(heroeEst);
+      aplicarStats();
+      toast(dev ? ('🔄 Reiniciados ' + dev + ' puntos de habilidad') : '🔄 Puntos listos para reasignar');
+    });
+    const cc = e.target.closest('button[data-cambiar-clase]');
+    if (cc) {
+      const nuevaClase = cc.dataset.cambiarClase;
+      if (HeroeLib.PROFESIONES && HeroeLib.PROFESIONES[nuevaClase] && nuevaClase !== claseHeroe()) {
+        accionNpc(() => {
+          HeroeLib.reiniciarPuntos(heroeEst);
+          HeroeLib.aplicarBarraDeClase(heroeEst, nuevaClase);
+          const arma = EquipoLib.asegurarArmaDeClase(pj, catalogoPiezas, nuevaClase, hero.level);
+          aplicarStats();
+          renderObjetos();
+          renderInvCard();
+          mostrarCuerpo(pj);
+          const pInfo = HeroeLib.profesionDe(nuevaClase);
+          toast('🎭 Profesión cambiada a ' + pInfo.nombre + (arma ? ' · Arma: ' + arma.nombre : ''));
+        });
+      }
+    }
     const fhist = e.target.closest('button[data-forjar-historia]');
     if (fhist) accionNpc(() => {
       if (!heroeEst || !heroeEst.forjaPendiente) return;
@@ -12561,30 +12968,65 @@
       + '<div class="btns" style="margin-top:8px">' + accion + '</div>';
   }
 
-  // Entrenador: gasta puntos de habilidad en pasivas y en activas (desbloqueadas por misión)
+  // Entrenador: gasta puntos de habilidad en pasivas y activas de tu profesión + subclase Nv. 15 y cambio de especialidad
   function renderEntrenador() {
     const H = HeroeLib;
+    const cls = claseHeroe();
+    const prof = H.profesionDe(cls);
+    const subActiva = H.subclaseDe ? H.subclaseDe(heroeEst, cls) : null;
+    const subclases = H.subclasesDeClase ? H.subclasesDeClase(cls) : [];
     const fila = id => {
       const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
       let accion;
-      if (!H.disponible(heroeEst, id, hero.level)) accion = '<span class="muted">🔒 ' + esc(H.requisito(id)) + '</span>';
+      if (!H.disponible(heroeEst, id, hero.level, cls)) accion = '<span class="muted">🔒 ' + esc(H.requisito(id, cls)) + '</span>';
       else if (nivel >= hab.max) accion = '<span class="muted">máximo</span>';
       else accion = '<button data-mejorar="' + id + '" ' + (heroeEst.puntos < 1 ? 'disabled' : '') + '>Mejorar</button>';
       return '<div class="slot"><div class="info"><b>' + esc(hab.nombre) + '</b> <span class="muted">' + nivel + '/' + hab.max + '</span><div class="muted">' + esc(hab.desc) + '</div></div>' + accion + '</div>';
     };
     const ids = Object.keys(H.HABILIDADES);
-    return '<div class="muted">Puntos de habilidad: <b>' + heroeEst.puntos + '</b>. Se ganan con misiones y cada ' + H.PUNTOS_KILLS + ' monstruos derrotados.</div>'
-      + '<h3 class="npc-h">Pasivas</h3>' + ids.filter(i => H.HABILIDADES[i].tipo === 'pasiva').map(fila).join('')
-      + '<h3 class="npc-h">Activas</h3>' + ids.filter(i => H.HABILIDADES[i].tipo === 'activa').map(fila).join('');
+    const pasivasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'pasiva' && H.habilidadDeClase(i, cls));
+    const activasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'activa' && H.habilidadDeClase(i, cls));
+    const totalGastados = Object.values(heroeEst.gastados || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+    const subclasesHtml = subclases.map(sub => {
+      const esAct = subActiva && subActiva.id === sub.id;
+      const bloqNv = hero.level < (H.NIVEL_SUBCLASE || 15);
+      const btn = esAct
+        ? '<span style="color:#4ade80;font-weight:bold">✓ Activa</span>'
+        : '<button data-elegir-subclase="' + sub.id + '" ' + (bloqNv ? 'disabled' : 'class="gold"') + '>' + (bloqNv ? ('🔒 Nv ' + (H.NIVEL_SUBCLASE || 15)) : 'Elegir senda') + '</button>';
+      return '<div class="slot"><div class="info"><b>' + sub.icono + ' ' + esc(sub.nombre) + '</b><div class="muted">' + esc(sub.desc) + '</div></div>' + btn + '</div>';
+    }).join('');
+    const cambioClasesHtml = Object.keys(H.PROFESIONES || {}).map(k => {
+      const p = H.PROFESIONES[k], esAct = k === cls;
+      return '<button data-cambiar-clase="' + k + '" ' + (esAct ? 'class="gold" disabled' : '') + '>' + p.icono + ' ' + esc(p.nombre) + (esAct ? ' (activa)' : '') + '</button>';
+    }).join('');
+    return '<div style="margin:6px 0;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.28);font-size:12px">'
+      + '<b>' + prof.icono + ' Profesión actual: ' + esc(prof.nombre) + (subActiva ? (' · ' + subActiva.icono + ' ' + esc(subActiva.nombre)) : '') + '</b> · <span class="muted">' + esc(prof.rol) + '</span>'
+      + '<div class="muted" style="margin-top:3px">' + esc(prof.pasiva) + '</div></div>'
+      + '<div class="muted">Puntos de habilidad: <b>' + heroeEst.puntos + '</b>. Se ganan con misiones y cada ' + H.PUNTOS_KILLS + ' monstruos derrotados.</div>'
+      + '<h3 class="npc-h">Pasivas</h3>' + pasivasClase.map(fila).join('')
+      + '<h3 class="npc-h">Activas de ' + esc(prof.nombre) + '</h3>' + activasClase.map(fila).join('')
+      + '<h3 class="npc-h">🌟 Especialización de Profesión (Nivel ' + (H.NIVEL_SUBCLASE || 15) + ')</h3>' + subclasesHtml
+      + '<h3 class="npc-h">🔄 Especialidad y Profesión</h3>'
+      + '<div class="muted" style="margin-bottom:6px">Reinicia tus puntos gastados o cambia de profesión manteniendo tu nivel y progreso (recibes un arma acorde).</div>'
+      + '<div class="btns" style="flex-wrap:wrap;gap:6px">'
+      + '<button data-respec-heroe="1" ' + (totalGastados < 1 ? 'disabled' : '') + '>🔄 Reiniciar puntos (' + totalGastados + ')</button>'
+      + cambioClasesHtml
+      + '</div>';
   }
 
   // Panel del héroe (tecla P): todas las estadísticas aunque valgan 0, equipo con sus especiales, habilidades y misiones
   function renderHeroe() {
     const H = HeroeLib, s = statsHeroe;
+    const cls = claseHeroe(), prof = H.profesionDe(cls);
+    const subActiva = H.subclaseDe ? H.subclaseDe(heroeEst, cls) : null;
+    const nombreTa = prof.tipoArmadura === 'mago' ? 'Mágica' : (prof.tipoArmadura === 'ligera' ? 'Ligera' : 'Pesada');
     const pct = v => Math.round(v * 100) + ' %';
     const mas = v => '+' + pct(v);
     const filas = [
-      ['Vida máxima', s.vida], ['Maná máximo', s.maná], ['Ataque (arma + fuerza)', s.ataque], ['Defensa de armadura', s.defensa],
+      ['Vida máxima', s.vida], ['Maná máximo', s.maná], ['Ataque (arma + fuerza)', s.ataque],
+      ...(s.poderMagico > 0 ? [['Poder mágico', '+' + s.poderMagico]] : []),
+      ...(s.sinergiaComp ? [['Sinergia con compañero', s.sinergiaComp.titulo]] : []),
+      ['Defensa de armadura', s.defensa],
       ['Reducción de daño', pct(s.reduccion)], ['Bloqueo (escudo)', pct(s.bloqueo)], ['Crítico (daño ×' + CRITICO + ')', pct(s.critico)],
       ['Daño extra', mas(s.danio)], ['Robo de vida', pct(s.robo)], ['Reflejo (espinas)', pct(s.reflejo)],
       ['Velocidad de movimiento', mas(s.velocidad)], ['Velocidad de ataque', mas(s.velocidadAtaque)],
@@ -12597,15 +13039,17 @@
         + f.lineas.map(l => '<div class="muted">· ' + esc(l) + '</div>').join('')
         + f.especiales.map(e => '<div class="muted">✦ ' + esc(e.nombre) + ': ' + esc(e.texto) + '</div>').join('');
     }).join('') || '<div class="muted">Sin equipo.</div>';
-    // Pasivas con su nivel; activas con su área, coste y los huecos de la barra donde ponerlas
+    // Pasivas y activas filtradas por profesión con su área, coste y huecos Q/E/Z/V
     const habs = Object.keys(H.HABILIDADES).map(id => {
       const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
+      if (!H.habilidadDeClase(id, cls)) return '';
       if (hab.tipo !== 'activa') return '<div class="fila"><span>' + esc(hab.nombre) + '<br><span class="muted">' + esc(hab.desc) + '</span></span><b>' + nivel + '/' + hab.max + '</b></div>';
       const sk = CombatLib.SKILLS[id];
-      const datos = (sk.arc <= -1 ? 'alrededor' : 'delante') + ', ' + sk.range + ' m · ' + sk.mp + ' maná · recarga ' + sk.cd + ' s' + (hab.arma === 'arco' ? ' · con arco' : '');
+      const armaNota = hab.arma === 'arco' ? ' · con arco' : (hab.arma === 'baculo' ? ' · con báculo' : '');
+      const datos = (sk.arc <= -1 ? 'alrededor' : 'delante') + ', ' + sk.range + ' m · ' + sk.mp + ' maná · recarga ' + sk.cd + ' s' + armaNota;
       const huecos = H.TECLAS.map(t => '<button class="hueco-b' + (heroeEst.barra[t] === id ? ' gold' : '') + '" data-asignar="' + id + '" data-tecla="' + t + '">' + t.toUpperCase() + '</button>').join('');
       return '<div class="fila"><span>' + sk.icono + ' ' + esc(hab.nombre) + ' <span class="muted">' + nivel + '/' + hab.max + '</span><br><span class="muted">' + esc(datos)
-        + (H.disponible(heroeEst, id, hero.level) ? '' : ' · 🔒 ' + esc(H.requisito(id))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
+        + (H.disponible(heroeEst, id, hero.level, cls) ? '' : ' · 🔒 ' + esc(H.requisito(id, cls))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
     }).join('');
     const pr = heroeEst.principal, capsLista = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
     const capAct = HistoriaLib.capituloActual(pr, world), total = capsLista.length;
@@ -12629,7 +13073,12 @@
       return '<div class="fila"><span>' + esc(m ? m.titulo : 'Zona desconocida') + '<br><span class="muted">' + esc(m ? m.texto : '') + '</span></span><b>' + estado + '</b></div>';
     }).join('') || '<div class="muted">Aún no has aceptado encargos de zona. Los NPC de los pueblos los ofrecen.</div>';
     $('heroe-cuerpo').innerHTML =
-      '<div class="muted">Nivel ' + hero.level + ' · puntos de habilidad: <b>' + heroeEst.puntos + '</b> · monstruos derrotados: ' + heroeEst.kills + ' (siguiente punto en ' + (H.PUNTOS_KILLS - heroeEst.kills % H.PUNTOS_KILLS) + ')</div>'
+      '<div style="margin:0 0 8px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,0.72);border:1px solid rgba(56,189,248,0.35)">'
+      + '<div><b>' + prof.icono + ' ' + esc(prof.nombre) + '</b>'
+      + (subActiva ? (' · <span style="color:#facc15">' + subActiva.icono + ' ' + esc(subActiva.nombre) + '</span>') : (' · <span class="muted">Especialización en Nv ' + (H.NIVEL_SUBCLASE || 15) + '</span>'))
+      + ' · <span class="muted">' + esc(prof.rol) + ' · Armadura: ' + esc(nombreTa) + '</span></div>'
+      + '<div class="muted" style="font-size:11.5px;margin-top:2px">' + esc(subActiva ? subActiva.desc : prof.pasiva) + '</div></div>'
+      + '<div class="muted">Nivel ' + hero.level + ' · puntos de habilidad: <b>' + heroeEst.puntos + '</b> · monstruos derrotados: ' + heroeEst.kills + ' (siguiente punto en ' + (H.PUNTOS_KILLS - heroeEst.kills % H.PUNTOS_KILLS) + ')</div>'
       + '<h3>Estadísticas</h3>' + filas.map(f => '<div class="fila"><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('')
       + '<h3>Equipo</h3>' + equipoHtml
       + '<h3>Habilidades · pulsa Q, E, Z o V para ponerla en ese hueco de la barra</h3>' + habs
@@ -12705,7 +13154,7 @@
   function fraseVivaNpc(info) {
     if (!info) return '';
     if (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.fraseContextualNpc === 'function' && heroeEst && heroeEst.principal) {
-      const ctx = HistoriaLib.fraseContextualNpc(info.id, heroeEst.principal, world, heroeEst);
+      const ctx = HistoriaLib.fraseContextualNpc(info.id, heroeEst.principal, world, heroeEst, claseHeroe());
       if (ctx && ctx.frase) return ctx.frase;
     }
     return info.frase || '';
@@ -12730,11 +13179,14 @@
     const actoTag = acto ? ('Acto ' + acto.numero + ' · ') : '';
     if (heroeEst && heroeEst.forjaPendiente) {
       const fp = heroeEst.forjaPendiente;
+      const forjaTxt = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.textoForjaClase === 'function')
+        ? HistoriaLib.textoForjaClase(fp.ranura, claseHeroe())
+        : null;
       const ranurasNombres = {
         belt: 'cinturón', boots: 'botas', gloves: 'guantes/brazales',
         torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
       };
-      const nPieza = ranurasNombres[fp.ranura] || 'pieza';
+      const nPieza = (forjaTxt && forjaTxt.nombrePieza) || ranurasNombres[fp.ranura] || 'pieza';
       $('mision-cap').textContent = '📜 ' + actoTag + 'Cap. ' + (p.paso + 1) + ' · ' + cap.titulo;
       $('mision-obj').textContent = '🔨 ¡Materiales reunidos! Vuelve a la forja del pueblo y habla con el Herrero Brann para forjar tu ' + nPieza + '.';
       $('mision-prog').innerHTML = '<span style="color:#facc15;font-weight:bold">Materiales listos (100%)</span> · Habla con el Herrero Brann';
@@ -12770,7 +13222,7 @@
 
     const quedanP = Math.max(0, o.cantidad - p.progreso);
     const badgeQuedan = quedanP === 0 ? '<span style="color:#4ade80;font-weight:700">✓ Listo</span>' : `(quedan <b>${quedanP}</b>)`;
-    const mat = typeof HistoriaLib.materialDeCapitulo === 'function' ? HistoriaLib.materialDeCapitulo(cap) : null;
+    const mat = typeof HistoriaLib.materialDeCapitulo === 'function' ? HistoriaLib.materialDeCapitulo(cap, claseHeroe()) : null;
     const matTxt = mat ? ` · 🔩 ${esc(mat)}` : '';
 
     $('mision-obj').innerHTML = esc(o.texto) + avisoCabana;
@@ -12935,7 +13387,7 @@
     } else if (p.progreso !== antes) {
       actualizarMision();
       const capAct = HistoriaLib.capituloActual(p, world);
-      const mat = typeof HistoriaLib.materialDeCapitulo === 'function' ? HistoriaLib.materialDeCapitulo(capAct) : null;
+      const mat = typeof HistoriaLib.materialDeCapitulo === 'function' ? HistoriaLib.materialDeCapitulo(capAct, claseHeroe()) : null;
       const objAct = p.objetivo;
       if (mat && objAct && ev && ev.tipo !== 'avance_interactivo') {
         toast(`🔩 Recogido: ${mat} (${p.progreso}/${objAct.cantidad})`);
@@ -12951,7 +13403,7 @@
       await cargarCatalogoPiezas();
       const obj = EquipoLib.forjarPiezaBasica(pj, catalogoPiezas, ranura, Math.random);
       if (obj) {
-        EquipoLib.equipar(pj, obj.uid, hero.level);
+        EquipoLib.equipar(pj, obj.uid, hero.level, catalogoPiezas);
         aplicarStats();
         renderObjetos();
         renderInvCard();
@@ -13104,11 +13556,18 @@
     const pts = r.recompensa.puntos;
     let premio = '🧬 +' + pts + (pts === 1 ? ' punto' : ' puntos') + ' de habilidad';
     if (r.recompensa.forjarPieza) {
-      const ranurasNombres = {
-        belt: 'cinturón', boots: 'botas', gloves: 'guantes/brazales',
-        torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
-      };
-      premio += ' · 🔨 forja de ' + (ranurasNombres[r.recompensa.forjarPieza] || r.recompensa.forjarPieza) + ' aleatorio';
+      const forjaTxt = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.textoForjaClase === 'function')
+        ? HistoriaLib.textoForjaClase(r.recompensa.forjarPieza, claseHeroe())
+        : null;
+      if (forjaTxt && forjaTxt.premioTexto) {
+        premio += forjaTxt.premioTexto;
+      } else {
+        const ranurasNombres = {
+          belt: 'cinturón', boots: 'botas', gloves: 'guantes/brazales',
+          torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
+        };
+        premio += ' · 🔨 forja de ' + (ranurasNombres[r.recompensa.forjarPieza] || r.recompensa.forjarPieza) + ' aleatorio';
+      }
     }
     if (r.recompensa.desbloquea) {
       const hab = HeroeLib.HABILIDADES[r.recompensa.desbloquea];
@@ -13664,7 +14123,7 @@
   $('heroe-cuerpo').addEventListener('click', e => {
     const b = e.target.closest('button[data-asignar]');
     if (!b) return;
-    HeroeLib.asignar(heroeEst, b.dataset.tecla, b.dataset.asignar);
+    HeroeLib.asignar(heroeEst, b.dataset.tecla, b.dataset.asignar, claseHeroe());
     toast(CombatLib.SKILLS[b.dataset.asignar].nombre + ' en el hueco ' + b.dataset.tecla.toUpperCase());
     renderHeroe();
     saveActive(true);
@@ -13680,6 +14139,7 @@
     personajeActual = pj;
     hero = CombatLib.newHero();
     heroeEst = HeroeLib.nuevoHeroe();
+    HeroeLib.aplicarBarraDeClase(heroeEst, pj.clase);
     aplicarStats();
     renderInvCard();
     inv = ItemsLib.newInventory();
@@ -15284,6 +15744,7 @@
       if (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.aplicarTalentoCompaneroSiCorresponde === 'function' && heroeEst) {
         AcompananteLib.aplicarTalentoCompaneroSiCorresponde(acompanante, heroeEst);
       }
+      aplicarStats();
       return;
     }
     if (typeof AcompananteLib === 'undefined' || !character) return;
@@ -15298,6 +15759,7 @@
     if (typeof AcompananteLib.aplicarTalentoCompaneroSiCorresponde === 'function' && heroeEst) {
       AcompananteLib.aplicarTalentoCompaneroSiCorresponde(acompanante, heroeEst);
     }
+    aplicarStats();
     const m3d = AcompananteLib.construirModeloAcompanante(THREE, acompanante.arquetipo);
     acompanante.mesh = m3d.root;
     acompanante.limbs = m3d.limbs;
@@ -15357,7 +15819,7 @@
     const d = destinoDeMision();
     const p = character.root.position;
     const consejo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.darConsejoGuia)
-      ? AcompananteLib.darConsejoGuia(acompanante, d, p, hero, heroeEst ? heroeEst.principal : null)
+      ? AcompananteLib.darConsejoGuia(acompanante, d, p, hero, heroeEst ? heroeEst.principal : null, claseHeroe())
       : (acompanante.nombre || 'Rowan') + ': «¡Adelante, camarada! Juntos superaremos cualquier desafío.»';
     const textoLimpio = consejo.replace(/^[^:]+:\s*«?/, '').replace(/»?$/, '');
     if (typeof AcompananteLib !== 'undefined' && AcompananteLib.decirFrase) {
@@ -15431,14 +15893,33 @@
       `;
     }
 
+    const sinBox = $('comp-sinergia');
+    const clsHeroe = claseHeroe();
+    const recComp = (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.compRecomendadoParaClase === 'function')
+      ? AcompananteLib.compRecomendadoParaClase(clsHeroe) : null;
+    if (sinBox && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.sinergiaConProfesion === 'function') {
+      const sin = AcompananteLib.sinergiaConProfesion(acompanante.arquetipo, clsHeroe);
+      const profInfo = HeroeLib.profesionDe(clsHeroe);
+      const etiqueta = sin.nivel === 'optima' ? '⭐ ÓPTIMA' : (sin.nivel === 'buena' ? '✨ BUENA' : '⚖️ EQUILIBRADA');
+      const colorEtq = sin.nivel === 'optima' ? '#facc15' : (sin.nivel === 'buena' ? '#38bdf8' : '#cbd5e1');
+      const compRecObj = recComp && AcompananteLib.COMPANEROS && AcompananteLib.COMPANEROS[recComp.principal];
+      sinBox.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <b style="color:#e2e8f0">🤝 Sinergia (${esc(profInfo.nombre)}): ${esc(sin.titulo)}</b>
+          <span style="color:${colorEtq};font-weight:700;font-size:10.5px">${etiqueta}</span>
+        </div>
+        <div style="color:#bae6fd;margin-top:3px">${esc(sin.desc)}</div>
+        ${compRecObj && sin.nivel !== 'optima' ? `<div class="muted" style="margin-top:3px">💡 Recomendado para ${esc(profInfo.nombre)}: <b>⭐ ${esc(compRecObj.nombre)}</b> — ${esc(recComp.consejo)}</div>` : ''}`;
+    }
+
     // Botones de selector de arquetipo con su nivel independiente
     document.querySelectorAll('.comp-sel-btn').forEach(btn => {
       const arqKey = btn.dataset.arq;
       const rEntry = (acompanante.roster && acompanante.roster[arqKey]) || (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS && AcompananteLib.COMPANEROS[arqKey]);
       const nv = rEntry ? (rEntry.nivel || 1) : 1;
       const arqInfo = (typeof AcompananteLib !== 'undefined' && AcompananteLib.COMPANEROS) ? AcompananteLib.COMPANEROS[arqKey] : null;
+      const esRec = recComp && recComp.principal === arqKey;
       if (arqInfo) {
-        btn.innerHTML = (arqInfo.icono || '👤') + ' ' + arqInfo.nombre.split(' ')[0] + ' <small style="opacity:0.85;font-weight:normal">(Nv ' + nv + ')</small>';
+        btn.innerHTML = (arqInfo.icono || '👤') + (esRec ? '⭐ ' : ' ') + arqInfo.nombre.split(' ')[0] + ' <small style="opacity:0.85;font-weight:normal">(Nv ' + nv + ')</small>';
       }
       if (btn.dataset.arq === acompanante.arquetipo) {
         btn.style.borderColor = '#eab308';
@@ -15556,6 +16037,7 @@
       if (typeof AcompananteLib.aplicarTalentoCompaneroSiCorresponde === 'function') {
         AcompananteLib.aplicarTalentoCompaneroSiCorresponde(acompanante, heroeEst);
       }
+      aplicarStats();
       refrescarModeloAcompanante();
       renderCompanero();
       toast(`🤝 Ahora te acompaña ${acompanante.nombre} (${acompanante.rol})`);
@@ -16021,9 +16503,9 @@
     if (k === 'k') alternarAuto();
     if (k === '1') drink('vida');
     if (k === '2') drink('mana');
-    if (k === '3') useSkill('bola_fuego');
-    if (k === '4') useSkill('lanza_hielo');
-    if (k === '5') useSkill('tormenta_fuego');
+    if (k === '3') useSkill(atajosActivos()[0]);
+    if (k === '4') useSkill(atajosActivos()[1]);
+    if (k === '5') useSkill(atajosActivos()[2]);
     if (k === 'r') (hero.resting ? stopRest('Descanso cancelado') : startRest());
     if (k === 'b') (($('shop').classList.contains('show')) ? closeShop() : openShop());
     if (k === 'f11') {
@@ -16175,9 +16657,9 @@
     };
   })();
   $('sk-attack').onclick = () => useSkill('attack');
-  if ($('sk-fuego')) $('sk-fuego').onclick = () => useSkill('bola_fuego');
-  if ($('sk-hielo')) $('sk-hielo').onclick = () => useSkill('lanza_hielo');
-  if ($('sk-meteoro')) $('sk-meteoro').onclick = () => useSkill('tormenta_fuego');
+  if ($('sk-fuego')) $('sk-fuego').onclick = () => useSkill(atajosActivos()[0]);
+  if ($('sk-hielo')) $('sk-hielo').onclick = () => useSkill(atajosActivos()[1]);
+  if ($('sk-meteoro')) $('sk-meteoro').onclick = () => useSkill(atajosActivos()[2]);
   $('sk-auto').onclick = alternarAuto;
   HeroeLib.TECLAS.forEach(t => { $('sk-' + t).onclick = () => usarHueco(t); });
   $('sk-jump').onclick = jump;

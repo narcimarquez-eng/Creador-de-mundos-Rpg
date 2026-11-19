@@ -11,41 +11,176 @@
 
   const PUNTOS_KILLS = 20;   // cada 20 monstruos derrotados, 1 punto de lucha
 
+  // Profesiones jugables: cada una define silueta de armadura, familias de arma, estadísticas base y barra inicial
+  const PROFESIONES = {
+    guerrero: {
+      id: 'guerrero',
+      nombre: 'Guerrero',
+      icono: '🛡️',
+      rol: 'Vanguardia · Cuerpo a cuerpo',
+      desc: 'Maestro de armas pesadas y escudo. Alta resistencia y golpes demoledores en primera línea.',
+      pasiva: '+20 vida base, +3 vida/nivel, +5 % reducción de daño; espada, hacha, maza y lanza.',
+      tipoArmadura: 'pesada',
+      familiasArma: ['legado', 'espada', 'hacha', 'maza', 'lanza'],
+      vidaBase: 120, vidaNivel: 15,
+      manaBase: 45, manaNivel: 5,
+      ataqueBase: 2,
+      poderMagicoNivel: 0, poderMagicoPorInt: 0,
+      criticoBase: 0.05,
+      reduccionBonus: 0.05, velocidadBonus: 0, velAtaqueBonus: 0,
+      dodgeCdMult: 1.0, mpRegenMult: 1.0,
+      barraInicial: { q: 'sismo', e: 'nova', z: 'tajo', v: 'corte_cruzado' },
+      atajos: ['corte_cruzado', 'furia', 'salto_demoledor']
+    },
+    cazador: {
+      id: 'cazador',
+      nombre: 'Cazador',
+      icono: '🏹',
+      rol: 'Tirador · Combate a distancia',
+      desc: 'Rastreador ágil con arco largo y dagas. Dispara desde lejos, atrapa presas y esquiva con soltura.',
+      pasiva: '+4 % crítico base, +6 % velocidad de movimiento, -15 % recarga de esquiva; arcos y dagas.',
+      tipoArmadura: 'ligera',
+      familiasArma: ['arco', 'daga'],
+      vidaBase: 95, vidaNivel: 11,
+      manaBase: 55, manaNivel: 7,
+      ataqueBase: 1,
+      poderMagicoNivel: 0, poderMagicoPorInt: 0,
+      criticoBase: 0.09,
+      reduccionBonus: 0.01, velocidadBonus: 0.06, velAtaqueBonus: 0.05,
+      dodgeCdMult: 0.85, mpRegenMult: 1.1,
+      barraInicial: { q: 'sismo', e: 'nova', z: 'flecha_perforante', v: 'suspension' },
+      atajos: ['flecha_perforante', 'trampa_espinas', 'lluvia_proyectiles']
+    },
+    mago: {
+      id: 'mago',
+      nombre: 'Mago',
+      icono: '🔮',
+      rol: 'Arcanista · Conjuros elementales',
+      desc: 'Portador de báculo y magia elemental. Menor defensa física, pero gran maná y conjuros devastadores.',
+      pasiva: '+40 maná base, +50 % regen de maná y Poder Mágico (+1.5/nivel y +2.5/Intelecto); solo báculos.',
+      tipoArmadura: 'mago',
+      familiasArma: ['baculo'],
+      vidaBase: 80, vidaNivel: 9,
+      manaBase: 90, manaNivel: 12,
+      ataqueBase: 0,
+      poderMagicoNivel: 1.5, poderMagicoPorInt: 2.5,
+      criticoBase: 0.06,
+      reduccionBonus: 0, velocidadBonus: 0.02, velAtaqueBonus: 0,
+      dodgeCdMult: 0.95, mpRegenMult: 1.5,
+      barraInicial: { q: 'bola_fuego', e: 'lanza_hielo', z: 'escudo_mana', v: 'nova' },
+      atajos: ['bola_fuego', 'lanza_hielo', 'tormenta_fuego']
+    },
+    picaro: {
+      id: 'picaro',
+      nombre: 'Pícaro',
+      icono: '🗡️',
+      rol: 'Asesino · Sigilo y veneno',
+      desc: 'Combatiente veloz con dagas y espadas ligeras. Altísimo crítico, paso sombrío y hojas envenenadas.',
+      pasiva: '+7 % crítico base, +8 % velocidad, +10 % vel. ataque y -30 % recarga de esquiva; dagas y espadas.',
+      tipoArmadura: 'ligera',
+      familiasArma: ['daga', 'espada'],
+      vidaBase: 95, vidaNivel: 11,
+      manaBase: 50, manaNivel: 6,
+      ataqueBase: 1,
+      poderMagicoNivel: 0, poderMagicoPorInt: 0,
+      criticoBase: 0.12,
+      reduccionBonus: 0.02, velocidadBonus: 0.08, velAtaqueBonus: 0.10,
+      dodgeCdMult: 0.7, mpRegenMult: 1.15,
+      barraInicial: { q: 'sismo', e: 'nova', z: 'corte_cruzado', v: 'paso_sombrio' },
+      atajos: ['corte_cruzado', 'paso_sombrio', 'hoja_veneno']
+    }
+  };
+
+  const NIVEL_SUBCLASE = 15;
+
+  // Especializaciones de nivel 15 (2 subclases por profesión)
+  const SUBCLASES = {
+    paladin: {
+      id: 'paladin', clase: 'guerrero', nombre: 'Paladín del Alba', icono: '🛡️',
+      desc: 'Baluarte sagrado: +60 vida, +8 % reducción de daño, +8 % bloqueo y +6 % reflejo.',
+      bonos: { vida: 60, reduccion: 0.08, bloqueo: 0.08, reflejo: 0.06 }
+    },
+    berserker: {
+      id: 'berserker', clase: 'guerrero', nombre: 'Berserker Carmesí', icono: '🪓',
+      desc: 'Furia imparable: +16 % daño, +5 % robo de vida, +12 % vel. ataque y +5 % crítico.',
+      bonos: { danio: 0.16, robo: 0.05, velocidadAtaque: 0.12, critico: 0.05 }
+    },
+    francotirador: {
+      id: 'francotirador', clase: 'cazador', nombre: 'Francotirador Real', icono: '🎯',
+      desc: 'Puntería letal: +12 % crítico, +14 % daño y +8 % velocidad de ataque.',
+      bonos: { critico: 0.12, danio: 0.14, velocidadAtaque: 0.08 }
+    },
+    trampero: {
+      id: 'trampero', clase: 'cazador', nombre: 'Trampero Silvestre', icono: '🌿',
+      desc: 'Control del terreno: +35 vida, +8 % velocidad, -15 % CD esquiva y +25 % daño a ralentizados.',
+      bonos: { vida: 35, velocidad: 0.08, dodgeCdMult: 0.85, multSlowBonus: 0.25 }
+    },
+    piromante: {
+      id: 'piromante', clase: 'mago', nombre: 'Piromante Solar', icono: '🔥',
+      desc: 'Dominio ígneo: +14 Poder Mágico, +8 % crítico y +25 % daño con fuego.',
+      bonos: { poderMagico: 14, critico: 0.08, fuegoMult: 0.25 }
+    },
+    criomante: {
+      id: 'criomante', clase: 'mago', nombre: 'Criomante Glacial', icono: '❄️',
+      desc: 'Armadura de éter: +60 maná, ×1.25 regen maná, +10 % escudo de maná y +25 % daño con hielo.',
+      bonos: { mana: 60, mpRegenMult: 1.25, escudoBonusPct: 0.10, hieloMult: 0.25 }
+    },
+    asesino: {
+      id: 'asesino', clase: 'picaro', nombre: 'Asesino Letal', icono: '☠️',
+      desc: 'Toxinas mortales: +10 % crítico, +12 % daño y +45 % daño de veneno.',
+      bonos: { critico: 0.10, danio: 0.12, venenoMult: 0.45 }
+    },
+    sombra: {
+      id: 'sombra', clase: 'picaro', nombre: 'Caminante de Sombras', icono: '🌑',
+      desc: 'Reflejos letales: +10 % velocidad, -20 % CD esquiva, +15 % vel. ataque y +4 % robo de vida.',
+      bonos: { velocidad: 0.10, dodgeCdMult: 0.80, velocidadAtaque: 0.15, robo: 0.04 }
+    }
+  };
+
   // Habilidades: pasivas (cada punto suma) y activas (se mejoran hasta el máximo)
   const HABILIDADES = {
     vitalidad: { tipo: 'pasiva', nombre: 'Vitalidad', desc: '+10 vida máxima por punto', max: 10 },
     fuerza: { tipo: 'pasiva', nombre: 'Fuerza', desc: '+1 de ataque por punto', max: 10 },
     destreza: { tipo: 'pasiva', nombre: 'Destreza', desc: '+1 % de crítico por punto', max: 10 },
     entereza: { tipo: 'pasiva', nombre: 'Entereza', desc: '+1 % de reducción de daño por punto', max: 10 },
-    intelecto: { tipo: 'pasiva', nombre: 'Intelecto', desc: '+8 maná máximo por punto', max: 10 },
-    sismo: { tipo: 'activa', nombre: 'Impacto sísmico', desc: '+25 % de daño por nivel', max: 3, capitulo: 4 },
-    nova: { tipo: 'activa', nombre: 'Explosión nova', desc: '+25 % de daño por nivel', max: 3, capitulo: 8 },
+    intelecto: { tipo: 'pasiva', nombre: 'Intelecto', desc: '+8 maná máximo por punto (y +Poder Mágico en Mago)', max: 10 },
+    piel_acero: { tipo: 'pasiva', nombre: 'Piel de Acero', desc: '+15 vida máxima y +1.5 % reducción de daño por punto', max: 5, clases: ['guerrero'] },
+    ojo_halcon: { tipo: 'pasiva', nombre: 'Ojo de Halcón', desc: '+2 % crítico y +2 % daño por punto', max: 5, clases: ['cazador'] },
+    maestria_arcana: { tipo: 'pasiva', nombre: 'Maestría Arcana', desc: '+3 Poder Mágico y +10 maná máximo por punto', max: 5, clases: ['mago'] },
+    paso_silencioso: { tipo: 'pasiva', nombre: 'Paso Silencioso', desc: '+2 % crítico, +1.5 % velocidad y +2 % vel. ataque por punto', max: 5, clases: ['picaro'] },
+    sismo: { tipo: 'activa', nombre: 'Impacto sísmico', desc: '+25 % de daño por nivel', max: 3, capitulo: 4, clases: null },
+    nova: { tipo: 'activa', nombre: 'Explosión nova', desc: '+25 % de daño por nivel', max: 3, capitulo: 8, clases: null },
     acompanante: { tipo: 'especial', nombre: 'Acompañante Aldeano (Rowan)', desc: 'Un leal aldeano explorador te acompaña y lucha a tu lado', max: 1, capitulo: 3 },
-    // Técnicas: se pueden usar desde su nivel; los puntos las mejoran. arma: 'cuerpo' (no arco) o 'arco'
-    tajo: { tipo: 'activa', nombre: 'Tajo giratorio', desc: '+25 % de daño por nivel', max: 3, nivel: 3, arma: 'cuerpo' },
-    estocada: { tipo: 'activa', nombre: 'Estocada a fondo', desc: '+25 % de daño por nivel', max: 3, nivel: 5, arma: 'cuerpo' },
-    suspension: { tipo: 'activa', nombre: 'Flecha en suspensión', desc: '+25 % de daño por nivel', max: 3, nivel: 6, arma: 'arco' },
-    ascendente: { tipo: 'activa', nombre: 'Tajo ascendente', desc: '+25 % de daño por nivel', max: 3, nivel: 7, arma: 'cuerpo' },
-    hendidura: { tipo: 'activa', nombre: 'Hendidura vertical', desc: '+25 % de daño por nivel', max: 3, nivel: 9, arma: 'cuerpo' },
-    contraataque: { tipo: 'activa', nombre: 'Parada y contraataque', desc: '+25 % de daño por nivel', max: 3, nivel: 11, arma: 'cuerpo' },
-    torbellino: { tipo: 'activa', nombre: 'Torbellino', desc: '+25 % de daño por nivel', max: 3, nivel: 13, arma: 'cuerpo' },
-    voltereta: { tipo: 'activa', nombre: 'Voltereta mortal', desc: '+25 % de daño por nivel', max: 3, nivel: 15, arma: 'cuerpo' },
-    tornillo: { tipo: 'activa', nombre: 'Tornillo triple', desc: '+25 % de daño por nivel', max: 3, nivel: 18, arma: 'cuerpo' },
-    // Nuevas habilidades activas desbloqueables por nivel
-    corte_cruzado: { tipo: 'activa', nombre: 'Corte en Cruz', desc: '+25 % de daño por nivel · dos tajos cruzados veloces', max: 3, nivel: 2, arma: 'cuerpo' },
-    rafaga: { tipo: 'activa', nombre: 'Ráfaga de Viento', desc: '+25 % de daño por nivel · proyectil cortante de viento', max: 3, nivel: 4, arma: 'cuerpo' },
-    furia: { tipo: 'activa', nombre: 'Furia Sangrienta', desc: '+25 % de daño por nivel · tajo salvaje devastador', max: 3, nivel: 8, arma: 'cuerpo' },
-    escudo_espiritu: { tipo: 'activa', nombre: 'Escudo del Bastión', desc: '+25 % de daño por nivel · golpe contundente con barrera', max: 3, nivel: 10, arma: 'cuerpo' },
-    salto_demoledor: { tipo: 'activa', nombre: 'Salto Demoledor', desc: '+25 % de daño por nivel · caída sísmica circular', max: 3, nivel: 12, arma: 'cuerpo' },
-    lluvia_proyectiles: { tipo: 'activa', nombre: 'Lluvia de Flechas', desc: '+25 % de daño por nivel · salva perforante a distancia', max: 3, nivel: 14, arma: 'arco' },
-    juicio_relampago: { tipo: 'activa', nombre: 'Filo Relámpago', desc: '+25 % de daño por nivel · descarga eléctrica veloz', max: 3, nivel: 16, arma: 'cuerpo' },
-    sentencia_titan: { tipo: 'activa', nombre: 'Sentencia del Titán', desc: '+25 % de daño por nivel · ataque colosal en área', max: 3, nivel: 20, arma: 'cuerpo' },
-    // Magia elemental (usable con cualquier arma)
-    bola_fuego: { tipo: 'activa', nombre: 'Bola de Fuego', desc: '+25 % de daño por nivel · proyectil ígneo explosivo en área', max: 3, nivel: 1 },
-    lanza_hielo: { tipo: 'activa', nombre: 'Lanza de Hielo', desc: '+25 % de daño por nivel · proyectil glacial que ralentiza enemigos', max: 3, nivel: 1 },
-    ventisca_glacial: { tipo: 'activa', nombre: 'Ventisca Glacial', desc: '+25 % de daño por nivel · tormenta helada en área que congela', max: 3, nivel: 6 },
-    tormenta_fuego: { tipo: 'activa', nombre: 'Lluvia de Meteoros', desc: '+25 % de daño por nivel · bombardeo meteórico en área', max: 3, nivel: 8 },
-    rayo_arcano: { tipo: 'activa', nombre: 'Tormenta Eléctrica', desc: '+25 % de daño por nivel · relámpagos arcanos alrededor', max: 3, nivel: 12 }
+    // Técnicas: se pueden usar desde su nivel; los puntos las mejoran. arma: 'cuerpo', 'arco' o 'baculo'
+    tajo: { tipo: 'activa', nombre: 'Tajo giratorio', desc: '+25 % de daño por nivel', max: 3, nivel: 3, arma: 'cuerpo', clases: ['guerrero'] },
+    estocada: { tipo: 'activa', nombre: 'Estocada a fondo', desc: '+25 % de daño por nivel', max: 3, nivel: 5, arma: 'cuerpo', clases: ['picaro'] },
+    suspension: { tipo: 'activa', nombre: 'Flecha en suspensión', desc: '+25 % de daño por nivel', max: 3, nivel: 6, arma: 'arco', clases: ['cazador'] },
+    ascendente: { tipo: 'activa', nombre: 'Tajo ascendente', desc: '+25 % de daño por nivel', max: 3, nivel: 7, arma: 'cuerpo', clases: ['guerrero'] },
+    hendidura: { tipo: 'activa', nombre: 'Hendidura vertical', desc: '+25 % de daño por nivel', max: 3, nivel: 9, arma: 'cuerpo', clases: ['guerrero'] },
+    contraataque: { tipo: 'activa', nombre: 'Parada y contraataque', desc: '+25 % de daño por nivel', max: 3, nivel: 11, arma: 'cuerpo', clases: ['guerrero'] },
+    torbellino: { tipo: 'activa', nombre: 'Torbellino', desc: '+25 % de daño por nivel', max: 3, nivel: 13, arma: 'cuerpo', clases: ['guerrero'] },
+    voltereta: { tipo: 'activa', nombre: 'Voltereta mortal', desc: '+25 % de daño por nivel', max: 3, nivel: 15, arma: 'cuerpo', clases: ['cazador', 'picaro'] },
+    tornillo: { tipo: 'activa', nombre: 'Tornillo triple', desc: '+25 % de daño por nivel', max: 3, nivel: 18, arma: 'cuerpo', clases: ['picaro'] },
+    // Habilidades activas desbloqueables por nivel y profesión
+    corte_cruzado: { tipo: 'activa', nombre: 'Corte en Cruz', desc: '+25 % de daño por nivel · dos tajos cruzados veloces', max: 3, nivel: 2, arma: 'cuerpo', clases: ['guerrero', 'picaro'] },
+    flecha_perforante: { tipo: 'activa', nombre: 'Flecha Perforante', desc: '+25 % de daño por nivel · flecha que atraviesa enemigos en línea', max: 3, nivel: 2, arma: 'arco', clases: ['cazador'] },
+    rafaga: { tipo: 'activa', nombre: 'Ráfaga de Viento', desc: '+25 % de daño por nivel · proyectil cortante de viento', max: 3, nivel: 4, arma: 'cuerpo', clases: ['cazador', 'picaro'] },
+    escudo_mana: { tipo: 'activa', nombre: 'Escudo de Maná', desc: '+25 % de daño por nivel · onda arcana con barrera protectora', max: 3, nivel: 4, arma: 'baculo', clases: ['mago'] },
+    paso_sombrio: { tipo: 'activa', nombre: 'Paso Sombrío', desc: '+25 % de daño por nivel · asalto veloz hacia el objetivo con +25 % crítico', max: 3, nivel: 4, arma: 'cuerpo', clases: ['picaro'] },
+    hoja_veneno: { tipo: 'activa', nombre: 'Hoja Envenenada', desc: '+25 % de daño por nivel · envenena al objetivo durante 5 s', max: 3, nivel: 6, arma: 'cuerpo', clases: ['picaro'] },
+    furia: { tipo: 'activa', nombre: 'Furia Sangrienta', desc: '+25 % de daño por nivel · tajo salvaje devastador', max: 3, nivel: 8, arma: 'cuerpo', clases: ['guerrero', 'picaro'] },
+    trampa_espinas: { tipo: 'activa', nombre: 'Trampa de Espinas', desc: '+25 % de daño por nivel · zarzas en área que ralentizan enemigos', max: 3, nivel: 8, arma: 'arco', clases: ['cazador'] },
+    escudo_espiritu: { tipo: 'activa', nombre: 'Escudo del Bastión', desc: '+25 % de daño por nivel · golpe contundente con barrera', max: 3, nivel: 10, arma: 'cuerpo', clases: ['guerrero'] },
+    salto_demoledor: { tipo: 'activa', nombre: 'Salto Demoledor', desc: '+25 % de daño por nivel · caída sísmica circular', max: 3, nivel: 12, arma: 'cuerpo', clases: ['guerrero'] },
+    lluvia_proyectiles: { tipo: 'activa', nombre: 'Lluvia de Flechas', desc: '+25 % de daño por nivel · salva perforante a distancia', max: 3, nivel: 14, arma: 'arco', clases: ['cazador'] },
+    juicio_relampago: { tipo: 'activa', nombre: 'Filo Relámpago', desc: '+25 % de daño por nivel · descarga eléctrica veloz', max: 3, nivel: 16, arma: 'cuerpo', clases: ['picaro'] },
+    sentencia_titan: { tipo: 'activa', nombre: 'Sentencia del Titán', desc: '+25 % de daño por nivel · ataque colosal en área', max: 3, nivel: 20, arma: 'cuerpo', clases: ['guerrero'] },
+    // Magia elemental (exclusiva de Mago)
+    bola_fuego: { tipo: 'activa', nombre: 'Bola de Fuego', desc: '+25 % de daño por nivel · proyectil ígneo explosivo en área', max: 3, nivel: 1, clases: ['mago'] },
+    lanza_hielo: { tipo: 'activa', nombre: 'Lanza de Hielo', desc: '+25 % de daño por nivel · proyectil glacial que ralentiza enemigos', max: 3, nivel: 1, clases: ['mago'] },
+    ventisca_glacial: { tipo: 'activa', nombre: 'Ventisca Glacial', desc: '+25 % de daño por nivel · tormenta helada en área que congela', max: 3, nivel: 6, clases: ['mago'] },
+    tormenta_fuego: { tipo: 'activa', nombre: 'Lluvia de Meteoros', desc: '+25 % de daño por nivel · bombardeo meteórico en área', max: 3, nivel: 8, clases: ['mago'] },
+    rayo_arcano: { tipo: 'activa', nombre: 'Tormenta Eléctrica', desc: '+25 % de daño por nivel · relámpagos arcanos alrededor', max: 3, nivel: 12, clases: ['mago'] }
   };
 
   // Huecos de la barra de habilidades y lo que llevan al empezar
@@ -92,7 +227,86 @@
 
   // ¿Es un arco? (las técnicas de arco lo necesitan; con él no se usan las de cuerpo a cuerpo)
   function esArco(obj) {
-    return !!obj && obj.ranura === 'weapon' && /\bArco\b/.test(obj.nombre);
+    return !!obj && obj.ranura === 'weapon' && (obj.familia === 'arco' || /\bArco\b/.test(obj.nombre));
+  }
+
+  function esBaculo(obj) {
+    return !!obj && obj.ranura === 'weapon' && (obj.familia === 'baculo' || /Báculo|Baculo|Cetro|Bastón|Baston|Vara/i.test(obj.nombre));
+  }
+
+  function esDaga(obj) {
+    return !!obj && obj.ranura === 'weapon' && (obj.familia === 'daga' || /Daga|Kris/i.test(obj.nombre));
+  }
+
+  function profesionDe(clase) {
+    return PROFESIONES[clase] || PROFESIONES.guerrero;
+  }
+
+  function barraInicialDeClase(clase) {
+    const p = PROFESIONES[clase];
+    return Object.assign({}, (p && p.barraInicial) || BARRA_INICIAL);
+  }
+
+  function habilidadDeClase(id, clase) {
+    const hab = HABILIDADES[id];
+    if (!hab) return false;
+    if (!clase) return true;
+    if (Array.isArray(hab.clases)) return hab.clases.includes(clase);
+    return true;
+  }
+
+  function habilidadesDeClase(clase) {
+    return Object.keys(HABILIDADES).filter(id => HABILIDADES[id].tipo === 'activa' && habilidadDeClase(id, clase));
+  }
+
+  function atajosDeClase(clase) {
+    const p = PROFESIONES[clase];
+    return p && Array.isArray(p.atajos) ? p.atajos.slice() : ['bola_fuego', 'lanza_hielo', 'tormenta_fuego'];
+  }
+
+  function subclasesDeClase(clase) {
+    return Object.values(SUBCLASES).filter(s => s.clase === clase);
+  }
+
+  function subclaseDe(h, clase = null) {
+    if (!h || !h.subclase || !SUBCLASES[h.subclase]) return null;
+    const sub = SUBCLASES[h.subclase];
+    if (clase && sub.clase !== clase) return null;
+    return sub;
+  }
+
+  function elegirSubclase(h, subclaseId, nivelHeroe, clase = null) {
+    if (!h) throw new Error('Estado de héroe inválido');
+    if ((Number(nivelHeroe) || 1) < NIVEL_SUBCLASE) {
+      throw new Error('La especialización se desbloquea en el nivel ' + NIVEL_SUBCLASE);
+    }
+    const sub = SUBCLASES[subclaseId];
+    if (!sub) throw new Error('Subclase desconocida: ' + subclaseId);
+    if (clase && sub.clase !== clase) {
+      const nom = PROFESIONES[sub.clase] ? PROFESIONES[sub.clase].nombre : sub.clase;
+      throw new Error(sub.nombre + ' es exclusiva de ' + nom);
+    }
+    h.subclase = sub.id;
+    return sub;
+  }
+
+  function reiniciarPuntos(h) {
+    if (!h) return 0;
+    const g = h.gastados || {};
+    let total = 0;
+    Object.keys(g).forEach(k => { total += Math.max(0, Number(g[k]) || 0); });
+    h.puntos = (h.puntos || 0) + total;
+    h.gastados = {};
+    return total;
+  }
+
+  function aplicarBarraDeClase(h, clase) {
+    if (!h) return {};
+    h.barra = barraInicialDeClase(clase);
+    if (h.subclase && SUBCLASES[h.subclase] && SUBCLASES[h.subclase].clase !== clase) {
+      h.subclase = null;
+    }
+    return h.barra;
   }
 
   // Número de habilidades especiales según el nivel del objeto
@@ -115,6 +329,7 @@
 
   function nuevoHeroe() {
     return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, titulos: [], barra: Object.assign({}, BARRA_INICIAL),
+      subclase: null,
       principal: { paso: 0, progreso: 0, objetivo: null },
       reputacion: { pueblo: 0, sombra: 0, vinculo: 0 },
       decisiones: {},
@@ -176,6 +391,9 @@
     }
     if (typeof h.finalId === 'string' && FINALES_VALIDOS.has(h.finalId)) {
       base.finalId = h.finalId;
+    }
+    if (typeof h.subclase === 'string' && SUBCLASES[h.subclase]) {
+      base.subclase = h.subclase;
     }
     const copiarMapaBool = (src, dest, maxKeys) => {
       if (!src || typeof src !== 'object') return;
@@ -299,26 +517,35 @@
     return true;
   }
 
-  // ¿Se puede usar ya? Las de la historia, al cumplir su capítulo; las técnicas, desde su nivel
-  function disponible(h, id, nivelHeroe) {
+  // ¿Se puede usar ya? Las de la historia, al cumplir su capítulo; las técnicas, desde su nivel (y profesión si se indica)
+  function disponible(h, id, nivelHeroe, clase = null) {
     const hab = HABILIDADES[id];
     if (!hab) return false;
+    if (clase && !habilidadDeClase(id, clase)) return false;
     if (hab.tipo !== 'activa') return true;
     if (hab.capitulo) return !!h.desbloqueadas[id];
     return nivelHeroe >= (hab.nivel || 1);
   }
 
   // Por qué no se puede usar aún (texto para la interfaz)
-  function requisito(id) {
+  function requisito(id, clase = null) {
     const hab = HABILIDADES[id];
-    if (!hab || hab.tipo !== 'activa') return '';
+    if (!hab) return '';
+    if (clase && !habilidadDeClase(id, clase)) {
+      const nombres = (hab.clases || []).map(c => PROFESIONES[c] ? PROFESIONES[c].nombre : c).join('/');
+      return 'exclusiva de ' + (nombres || 'otra profesión');
+    }
+    if (hab.tipo !== 'activa') return '';
     return hab.capitulo ? 'se desbloquea con la historia (capítulo ' + hab.capitulo + ')' : 'se aprende en el nivel ' + hab.nivel;
   }
 
   // Pone una habilidad activa en un hueco de la barra. Si ya estaba en otro, se intercambian.
-  function asignar(h, tecla, id) {
+  function asignar(h, tecla, id, clase = null) {
     if (!TECLAS.includes(tecla)) throw new Error('Hueco desconocido: ' + tecla);
     if (id !== null && (!HABILIDADES[id] || HABILIDADES[id].tipo !== 'activa')) throw new Error('Esa habilidad no va en la barra');
+    if (id !== null && clase && !habilidadDeClase(id, clase)) {
+      throw new Error(HABILIDADES[id].nombre + ' no pertenece a esta profesión');
+    }
     const otra = TECLAS.find(t => t !== tecla && h.barra[t] === id);
     if (otra) h.barra[otra] = h.barra[tecla];
     h.barra[tecla] = id;
@@ -326,10 +553,10 @@
   }
 
   // Gasta un punto en una habilidad. nivelHeroe: para las técnicas, que piden un nivel.
-  function mejorar(h, id, nivelHeroe = Infinity) {
+  function mejorar(h, id, nivelHeroe = Infinity, clase = null) {
     const hab = HABILIDADES[id];
     if (!hab) throw new Error('Habilidad desconocida: ' + id);
-    if (!disponible(h, id, nivelHeroe)) { const r = requisito(id); throw new Error(r.charAt(0).toUpperCase() + r.slice(1)); }
+    if (!disponible(h, id, nivelHeroe, clase)) { const r = requisito(id, clase); throw new Error(r.charAt(0).toUpperCase() + r.slice(1)); }
     const nivel = h.gastados[id] || 0;
     if (nivel >= hab.max) throw new Error(hab.nombre + ' ya está al máximo');
     if (h.puntos < 1) throw new Error('No tienes puntos de habilidad');
@@ -338,23 +565,55 @@
     return h.gastados[id];
   }
 
-  // Estadísticas del héroe a partir de su nivel y de su equipo (lista de objetos equipados)
-  function estadisticas(h, nivelHeroe, equipados) {
+  // Estadísticas del héroe a partir de su nivel, equipo, profesión y subclase opcionales
+  function estadisticas(h, nivelHeroe, equipados, clase = null) {
+    const prof = clase && PROFESIONES[clase] ? PROFESIONES[clase] : null;
+    const sub = clase ? subclaseDe(h, clase) : null;
+    const sb = (sub && sub.bonos) || {};
     const pas = k => (h.gastados[k] || 0);
+    const pasClase = k => (!clase || habilidadDeClase(k, clase)) ? pas(k) : 0;
     const br = bonosReputacion(h);
+    const pAcero = pasClase('piel_acero');
+    const oHalcon = pasClase('ojo_halcon');
+    const mArcana = pasClase('maestria_arcana');
+    const pSilencio = pasClase('paso_silencioso');
+    const vidaBase = prof ? prof.vidaBase : 100;
+    const vidaNivel = prof ? prof.vidaNivel : 12;
+    const manaBase = prof ? prof.manaBase : 50;
+    const manaNivel = prof ? prof.manaNivel : 6;
+    const ataqueClase = prof ? prof.ataqueBase : 0;
+    const critBase = prof ? prof.criticoBase : 0.05;
+    const redBonus = prof ? prof.reduccionBonus : 0;
+    const velBonus = prof ? prof.velocidadBonus : 0;
+    const velAtkBonus = prof ? prof.velAtaqueBonus : 0;
+    const poderMagicoBase = prof
+      ? (prof.poderMagicoNivel * (nivelHeroe - 1) + prof.poderMagicoPorInt * pas('intelecto'))
+      : 0;
+    const poderMagico = Math.round((poderMagicoBase + 3 * mArcana + (sb.poderMagico || 0)) * 10) / 10;
     const s = {
-      vida: 100 + 12 * (nivelHeroe - 1) + 10 * pas('vitalidad') + br.bonusVida,
-      maná: 50 + 6 * (nivelHeroe - 1) + 8 * pas('intelecto'),
-      ataque: pas('fuerza'),
-      critico: 0.05 + 0.01 * pas('destreza'),
+      vida: vidaBase + vidaNivel * (nivelHeroe - 1) + 10 * pas('vitalidad') + 15 * pAcero + br.bonusVida + (sb.vida || 0),
+      maná: manaBase + manaNivel * (nivelHeroe - 1) + 8 * pas('intelecto') + 10 * mArcana + (sb.mana || 0),
+      ataque: ataqueClase + pas('fuerza'),
+      poderMagico,
+      critico: critBase + 0.01 * pas('destreza') + 0.02 * oHalcon + 0.02 * pSilencio + (sb.critico || 0),
       defensa: 0,
       reduccion: 0,
-      bloqueo: 0,
-      danio: 0,
-      robo: 0,
-      reflejo: 0,
-      velocidad: 0,
-      velocidadAtaque: 0,
+      bloqueo: sb.bloqueo || 0,
+      danio: 0.02 * oHalcon + (sb.danio || 0),
+      robo: sb.robo || 0,
+      reflejo: sb.reflejo || 0,
+      velocidad: velBonus + 0.015 * pSilencio + (sb.velocidad || 0),
+      velocidadAtaque: velAtkBonus + 0.02 * pSilencio + (sb.velocidadAtaque || 0),
+      mpRegenMult: (prof ? prof.mpRegenMult : 1) * (sb.mpRegenMult || 1),
+      dodgeCdMult: Math.max(0.5, (prof ? prof.dodgeCdMult : 1) * (sb.dodgeCdMult || 1)),
+      clase: prof ? prof.id : null,
+      subclase: sub ? sub.id : null,
+      tipoArmadura: prof ? prof.tipoArmadura : null,
+      fuegoMult: sb.fuegoMult || 0,
+      hieloMult: sb.hieloMult || 0,
+      venenoMult: sb.venenoMult || 0,
+      multSlowBonus: sb.multSlowBonus || 0,
+      escudoBonusPct: sb.escudoBonusPct || 0,
       mult: {}   // daño de cada habilidad activa: +25 % por punto
     };
     Object.keys(HABILIDADES).forEach(id => { if (HABILIDADES[id].tipo === 'activa') s.mult[id] = 1 + 0.25 * (h.gastados[id] || 0); });
@@ -379,7 +638,7 @@
     });
     s.ataque += ataqueArma;
     s.defensa = Math.round(defensaArmadura * 10) / 10;
-    s.reduccion = Math.min(0.7, defensaArmadura / (defensaArmadura + 60) + 0.01 * pas('entereza') + br.bonusDefensa);
+    s.reduccion = Math.min(0.7, defensaArmadura / (defensaArmadura + 60) + 0.01 * pas('entereza') + 0.015 * pAcero + br.bonusDefensa + redBonus + (sb.reduccion || 0));
     s.bloqueo = Math.min(0.6, s.bloqueo);
     s.critico = Math.min(0.75, s.critico + br.bonusCritico + br.bonusCriticoFinal);
     return s;
@@ -412,8 +671,9 @@
     return { tipo: tipoDe(obj), lineas, especiales };
   }
 
-  const api = { HABILIDADES, ESPECIALES, PUNTOS_KILLS, TECLAS, BARRA_INICIAL, nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
-    disponible, requisito, asignar, esArco, bonosReputacion,
+  const api = { PROFESIONES, NIVEL_SUBCLASE, SUBCLASES, HABILIDADES, ESPECIALES, PUNTOS_KILLS, TECLAS, BARRA_INICIAL, nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
+    disponible, requisito, asignar, esArco, esBaculo, esDaga, profesionDe, barraInicialDeClase, habilidadDeClase, habilidadesDeClase, atajosDeClase,
+    subclasesDeClase, subclaseDe, elegirSubclase, reiniciarPuntos, aplicarBarraDeClase, bonosReputacion,
     aceptarZona, registrarZona, entregarZona,
     mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

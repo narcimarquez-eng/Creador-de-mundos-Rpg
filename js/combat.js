@@ -25,7 +25,7 @@
   // Cada habilidad usa la animación del mismo nombre del personaje (ver js/character.js).
   const SKILLS = {
     attack:      { nombre: 'Combo de ataque', icono: '⚔', cd: 0.7, lock: 0.5, range: 3.0, arc: 0.5, mult: 1.0, mp: 0 },
-    sismo:       { nombre: 'Impacto sísmico', icono: '🪨', cd: 5.0, lock: 1.2, range: 4.5, arc: -1, mult: 2.0, mp: 18, impacto: 0.95, arma: 'cuerpo' },
+    sismo:       { nombre: 'Impacto sísmico', icono: '🪨', cd: 5.0, lock: 1.2, range: 4.5, arc: -1, mult: 2.0, mp: 18, impacto: 0.95 },
     nova:        { nombre: 'Explosión nova', icono: '💥', cd: 12, lock: 1.0, range: 7.0, arc: -1, mult: 2.5, mp: 30 },
     // Técnicas de arma (animaciones de ataque especial del estudio)
     tajo:        { nombre: 'Tajo giratorio', icono: '🌀', cd: 5, lock: 1.0, range: 3.5, arc: -1, mult: 1.8, mp: 12, impacto: 0.6, arma: 'cuerpo' },
@@ -53,7 +53,14 @@
     lanza_hielo:      { nombre: 'Lanza de Hielo', icono: '❄️', cd: 4.0, lock: 0.65, range: 22, arc: 0.65, mult: 1.9, mp: 12, impacto: 0.32, elemento: 'hielo', proyectil: true, splash: 3.4, slow: 4.5, slowMult: 0.45 },
     ventisca_glacial: { nombre: 'Ventisca Glacial', icono: '🌨️', cd: 10.0, lock: 0.9, range: 7.5, arc: -1, mult: 2.4, mp: 24, impacto: [0.35, 0.75], elemento: 'hielo', slow: 5.5, slowMult: 0.35 },
     tormenta_fuego:   { nombre: 'Lluvia de Meteoros', icono: '☄️', cd: 12.0, lock: 1.0, range: 8.5, arc: -1, mult: 3.1, mp: 28, impacto: [0.45, 0.9], elemento: 'fuego' },
-    rayo_arcano:      { nombre: 'Tormenta Eléctrica', icono: '🌩️', cd: 11.0, lock: 0.85, range: 9.0, arc: -1, mult: 3.3, mp: 30, impacto: 0.4, elemento: 'rayo' }
+    rayo_arcano:      { nombre: 'Tormenta Eléctrica', icono: '🌩️', cd: 11.0, lock: 0.85, range: 9.0, arc: -1, mult: 3.3, mp: 30, impacto: 0.4, elemento: 'rayo' },
+    // Habilidades específicas por profesión (Báculo / Cazador / Mago / Pícaro)
+    orbe_arcano:       { nombre: 'Orbe Arcano', icono: '🔮', cd: 0.95, lock: 0.6, range: 22, arc: 0.85, mult: 1.15, mp: 0, impacto: 0.35, arma: 'baculo', proyectil: true, splash: 1.4, elemento: 'rayo' },
+    flecha_perforante: { nombre: 'Flecha Perforante', icono: '🏹', cd: 4.5, lock: 0.85, range: 26, arc: 0.88, mult: 2.2, mp: 12, impacto: 0.55, arma: 'arco' },
+    trampa_espinas:    { nombre: 'Trampa de Espinas', icono: '🌿', cd: 9.0, lock: 0.7, range: 12, arc: -1, mult: 2.1, mp: 18, impacto: 0.35, arma: 'arco', slow: 5.0, slowMult: 0.4 },
+    escudo_mana:       { nombre: 'Escudo de Maná', icono: '💠', cd: 11.0, lock: 0.65, range: 6.0, arc: -1, mult: 1.7, mp: 20, impacto: 0.3, arma: 'baculo', elemento: 'rayo', escudoPct: 0.28, escudoDur: 8.0 },
+    paso_sombrio:      { nombre: 'Paso Sombrío', icono: '🌑', cd: 6.5, lock: 0.65, range: 11.0, arc: 0.7, mult: 2.35, mp: 14, impacto: 0.3, arma: 'cuerpo', dashToTarget: true, bonusCrit: 0.25 },
+    hoja_veneno:       { nombre: 'Hoja Envenenada', icono: '☠️', cd: 7.0, lock: 0.75, range: 3.6, arc: 0.7, mult: 2.1, mp: 14, impacto: 0.4, arma: 'cuerpo', venenoPct: 0.24, venenoDur: 5.0 }
   };
 
   // Momentos de golpe de una habilidad (segundos desde que empieza); [0] = al instante
@@ -131,8 +138,11 @@
 
   function heroDamage(hero, skill, targetLevel) {
     const s = SKILLS[skill];
-    // hero.ataque: ataque del arma equipada (0 sin arma)
-    return (HERO.baseDamage + HERO.damagePerLevel * hero.level + (hero.ataque || 0)) * s.mult * diffMult(hero.level, targetLevel);
+    const bonoMagico = (s.elemento || s.arma === 'baculo') ? (hero.poderMagico || 0) : 0;
+    const multElem = (s.elemento === 'fuego' && hero.fuegoMult ? 1 + hero.fuegoMult : 1)
+      * (s.elemento === 'hielo' && hero.hieloMult ? 1 + hero.hieloMult : 1);
+    // hero.ataque: ataque del arma equipada (0 sin arma); bonoMagico + multElem: escalado mágico y de subclase
+    return (HERO.baseDamage + HERO.damagePerLevel * hero.level + (hero.ataque || 0) + bonoMagico) * s.mult * multElem * diffMult(hero.level, targetLevel);
   }
 
   function canUse(hero, skill) {
@@ -172,9 +182,9 @@
     return !!(hero && !hero.dead && (hero.dodgeCd || 0) <= 0 && (hero.dodgeTimer || 0) <= 0);
   }
 
-  function startDodge(hero) {
+  function startDodge(hero, cdMult = 1) {
     if (!canDodge(hero)) return false;
-    hero.dodgeCd = DODGE.cd;
+    hero.dodgeCd = DODGE.cd * Math.max(0.5, Number(cdMult) || 1);
     hero.dodgeTimer = DODGE.duration;
     hero.invulnTimer = DODGE.iframes;
     hero.lock = 0;
@@ -209,7 +219,7 @@
     hero.dodgeCd = Math.max(0, (hero.dodgeCd || 0) - dt);
     hero.dodgeTimer = Math.max(0, (hero.dodgeTimer || 0) - dt);
     hero.invulnTimer = Math.max(0, (hero.invulnTimer || 0) - dt);
-    hero.mp = Math.min(hero.maxMp, hero.mp + HERO.mpRegen * dt);
+    hero.mp = Math.min(hero.maxMp, hero.mp + HERO.mpRegen * (hero.mpRegenMult || 1) * dt);
     hero.sinceHit += dt;
     if (hero.sinceHit >= HERO.hpRegenDelay) hero.hp = Math.min(hero.maxHp, hero.hp + HERO.hpRegen * dt);
   }
