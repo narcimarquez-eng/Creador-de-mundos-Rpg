@@ -215,11 +215,12 @@
   }
 
   // Herrero: fabrica una pieza de nivel ≤ nivel del héroe con estado perfecto. Devuelve el oro que cuesta.
-  function fabricar(personaje, catalogo, id, nivelHeroe, oro) {
+  function fabricar(personaje, catalogo, id, nivelHeroe, oro, descuento = 0) {
     const pieza = piezasDeClase(catalogo, personaje.clase).find(p => p.id === id);
     if (!pieza) throw new Error('Pieza no disponible para esta clase: ' + id);
     if (nivelHeroe < pieza.nivel) throw new Error(pieza.nombre + ' requiere nivel ' + pieza.nivel);
-    const coste = FORJA_ORO * pieza.nivel;
+    const desc = Math.max(0, Math.min(0.5, Number(descuento) || 0));
+    const coste = Math.max(1, Math.round(FORJA_ORO * pieza.nivel * (1 - desc)));
     if (oro < coste) throw new Error('Faltan ' + (coste - oro) + ' de oro');
     guardar(personaje, instancia(pieza, 1));
     return coste;
@@ -231,11 +232,12 @@
   }
 
   // Compra una pieza al mercader con calidad estándar. Devuelve el oro que cuesta.
-  function comprar(personaje, catalogo, id, nivelHeroe, oro) {
+  function comprar(personaje, catalogo, id, nivelHeroe, oro, descuento = 0) {
     const pieza = piezasDeClase(catalogo, personaje.clase).find(p => p.id === id);
     if (!pieza) throw new Error('El mercader no tiene ' + id);
     if (nivelHeroe < pieza.nivel) throw new Error(pieza.nombre + ' requiere nivel ' + pieza.nivel);
-    const coste = COMPRA_ORO * pieza.nivel;
+    const desc = Math.max(0, Math.min(0.5, Number(descuento) || 0));
+    const coste = Math.max(1, Math.round(COMPRA_ORO * pieza.nivel * (1 - desc)));
     if (oro < coste) throw new Error('Faltan ' + (coste - oro) + ' de oro');
     guardar(personaje, instancia(pieza, ESTADO_MERCADO));
     return coste;

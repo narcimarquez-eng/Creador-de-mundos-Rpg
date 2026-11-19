@@ -13,23 +13,47 @@
     return (h >>> 0) / 4294967296;
   }
 
+  function cargarTex(THREE, ruta, repX, repY) {
+    if (!THREE || typeof THREE.TextureLoader !== 'function' || typeof document === 'undefined') return null;
+    const t = new THREE.TextureLoader().load(ruta);
+    t.wrapS = THREE.RepeatWrapping;
+    t.wrapT = THREE.RepeatWrapping;
+    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    t.repeat.set(repX || 1, repY || 1);
+    return t;
+  }
+
   function crearMateriales(THREE) {
+    const texMadera = cargarTex(THREE, 'assets/texturas/madera/t02.jpg', 1.4, 1.4);
+    const texMaderaOsc = cargarTex(THREE, 'assets/texturas/madera/t06.jpg', 1.5, 1.5);
+    const texPiedra = cargarTex(THREE, 'assets/texturas/piedra/t02.jpg', 1.8, 1.8);
+    const texMuro = cargarTex(THREE, 'assets/texturas/mmuro/t04.jpg', 1.6, 1.6);
+    const texArenisca = cargarTex(THREE, 'assets/texturas/piedra/t07.jpg', 1.6, 1.6);
+    const texTela = cargarTex(THREE, 'assets/texturas/alfombras/a1.jpg', 1.5, 1.5);
     return {
-      madera: new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.88 }),
-      maderaOscura: new THREE.MeshStandardMaterial({ color: 0x3e2411, roughness: 0.90 }),
-      piedra: new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.90, metalness: 0.06 }),
-      piedraOscura: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.88, metalness: 0.14 }),
-      arenisca: new THREE.MeshStandardMaterial({ color: 0xc28e4b, roughness: 0.86 }),
+      madera: new THREE.MeshStandardMaterial({ color: texMadera ? 0xb88b61 : 0x6b4423, map: texMadera, bumpMap: texMadera, bumpScale: 0.05, roughness: 0.86 }),
+      maderaOscura: new THREE.MeshStandardMaterial({ color: texMaderaOsc ? 0x916b4a : 0x3e2411, map: texMaderaOsc, bumpMap: texMaderaOsc, bumpScale: 0.05, roughness: 0.88 }),
+      piedra: new THREE.MeshStandardMaterial({ color: texPiedra ? 0xb4bfcc : 0x64748b, map: texPiedra, bumpMap: texPiedra, bumpScale: 0.07, roughness: 0.88, metalness: 0.06 }),
+      piedraOscura: new THREE.MeshStandardMaterial({ color: texMuro ? 0x8a97a8 : 0x334155, map: texMuro, bumpMap: texMuro, bumpScale: 0.08, roughness: 0.86, metalness: 0.14 }),
+      arenisca: new THREE.MeshStandardMaterial({ color: texArenisca ? 0xe5bc88 : 0xc28e4b, map: texArenisca, bumpMap: texArenisca, bumpScale: 0.07, roughness: 0.84 }),
       hierro: new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.42, metalness: 0.82 }),
-      lona: new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.78 }),
-      lonaClara: new THREE.MeshStandardMaterial({ color: 0xe7e5e4, roughness: 0.80 }),
-      estandarte: new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.75 }),
+      lona: new THREE.MeshStandardMaterial({ color: texTela ? 0xf59e0b : 0xd97706, map: texTela, bumpMap: texTela, bumpScale: 0.03, roughness: 0.78 }),
+      lonaClara: new THREE.MeshStandardMaterial({ color: texTela ? 0xf5f5f4 : 0xe7e5e4, map: texTela, roughness: 0.80 }),
+      estandarte: new THREE.MeshStandardMaterial({ color: texTela ? 0xdc2626 : 0x991b1b, map: texTela, bumpMap: texTela, bumpScale: 0.03, roughness: 0.75 }),
       brasa: new THREE.MeshStandardMaterial({ color: 0xfb923c, emissive: 0xf97316, emissiveIntensity: 2.2, roughness: 0.25 }),
       cristalSolar: new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xf59e0b, emissiveIntensity: 2.4, roughness: 0.15, metalness: 0.4 }),
       cristalHielo: new THREE.MeshStandardMaterial({ color: 0xbae6fd, emissive: 0x38bdf8, emissiveIntensity: 2.6, roughness: 0.12, metalness: 0.5 }),
       cristalMina: new THREE.MeshStandardMaterial({ color: 0x6ee7b7, emissive: 0x10b981, emissiveIntensity: 1.9, roughness: 0.2, metalness: 0.35 }),
-      junco: new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.82 })
+      junco: new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.82 }),
+      humo: new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 1.0, transparent: true, opacity: 0.36, depthWrite: false })
     };
+  }
+
+  function agregarColumnaHumo(THREE, matHumo, addRel, animados, cx, cy, cz, faseBase, altura) {
+    for (let i = 0; i < 3; i++) {
+      const vol = addRel(new THREE.Mesh(new THREE.SphereGeometry(0.24 + i * 0.06, 6, 5), matHumo), cx, cy, cz);
+      animados.push({ tipo: 'humo', mesh: vol, baseX: cx, baseY: cy, baseZ: cz, phase: faseBase + i * 0.33, altura: altura || 2.8 });
+    }
   }
 
   function construirDioramaPOI(THREE, poi, mats, altura, animados) {
@@ -53,6 +77,7 @@
       // Hoguera central con troncos y brasas
       const brasa = addRel(new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), mats.brasa), 0, 0.26, 0);
       animados.push({ tipo: 'pulso', mesh: brasa, baseY: brasa.position.y, phase: px });
+      agregarColumnaHumo(THREE, mats.humo, addRel, animados, 0, 0.65, 0, px * 0.13, 2.7);
       for (let i = 0; i < 4; i++) {
         const a = (i / 4) * Math.PI * 2 + 0.3;
         const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.35, 6), mats.maderaOscura);
@@ -151,6 +176,7 @@
       const fuego = new THREE.Mesh(new THREE.OctahedronGeometry(0.85, 0), mats.brasa);
       addRel(fuego, 0, 2.35, 0);
       animados.push({ tipo: 'cristal', mesh: fuego, baseY: fuego.position.y, phase: 0.7 });
+      agregarColumnaHumo(THREE, mats.humo, addRel, animados, 0, 2.95, 0, pz * 0.17, 3.2);
       // Cuatro armas / estandartes alrededor del altar
       for (let i = 0; i < 4; i++) {
         const a = (i / 4) * Math.PI * 2 + 0.4;
@@ -297,6 +323,13 @@
         } else if (a.tipo === 'pulso') {
           const s = 0.92 + Math.sin(tSec * 7.5 + a.phase) * 0.12;
           a.mesh.scale.set(s, s, s);
+        } else if (a.tipo === 'humo') {
+          const ciclo = ((tSec * 0.28 + a.phase) % 1 + 1) % 1;
+          a.mesh.position.y = a.baseY + ciclo * a.altura;
+          a.mesh.position.x = a.baseX + Math.sin(tSec * 1.4 + a.phase * 6.28) * (0.14 + ciclo * 0.26);
+          a.mesh.position.z = a.baseZ + Math.cos(tSec * 1.1 + a.phase * 6.28) * (0.10 + ciclo * 0.20);
+          const s = 0.28 + 1.05 * Math.sin(ciclo * Math.PI);
+          a.mesh.scale.set(s, s * 0.85, s);
         }
       }
     }

@@ -111,9 +111,17 @@
   }
 
   // Estado de un héroe nuevo
+  const FINALES_VALIDOS = new Set(['luz', 'sombra', 'equilibrio']);
+
   function nuevoHeroe() {
     return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, titulos: [], barra: Object.assign({}, BARRA_INICIAL),
-      principal: { paso: 0, progreso: 0, objetivo: null } };
+      principal: { paso: 0, progreso: 0, objetivo: null },
+      reputacion: { pueblo: 0, sombra: 0, vinculo: 0 },
+      decisiones: {},
+      finalId: null,
+      dialogosVistos: {},
+      hitosMundo: {},
+      companeroMisiones: {} };
   }
 
   // Sanea el estado guardado en una partida (campos desconocidos o dañados se descartan)
@@ -121,6 +129,7 @@
     const base = nuevoHeroe();
     if (!h || typeof h !== 'object') return base;
     const num = x => (isFinite(x) && x >= 0 ? Math.floor(x) : 0);
+    const repNum = x => (isFinite(x) ? Math.max(-20, Math.min(50, Math.trunc(x))) : 0);
     base.puntos = num(h.puntos);
     base.kills = num(h.kills);
     Object.keys(h.gastados || {}).forEach(k => {
@@ -151,6 +160,45 @@
       base.principal.objetivo = limpiarObjetivo(pr.objetivo);
       base.principal.progreso = base.principal.objetivo ? Math.min(base.principal.objetivo.cantidad, num(pr.progreso)) : 0;
     }
+    // Reputación, decisiones narrativas, diálogos vistos y final elegido
+    if (h.reputacion && typeof h.reputacion === 'object') {
+      base.reputacion.pueblo = repNum(h.reputacion.pueblo);
+      base.reputacion.sombra = repNum(h.reputacion.sombra);
+      base.reputacion.vinculo = repNum(h.reputacion.vinculo);
+    }
+    if (h.decisiones && typeof h.decisiones === 'object') {
+      Object.keys(h.decisiones).forEach(k => {
+        const val = h.decisiones[k];
+        if (typeof k === 'string' && k.trim() && typeof val === 'string' && val.trim()) {
+          base.decisiones[k.trim().slice(0, 40)] = val.trim().slice(0, 40);
+        }
+      });
+    }
+    if (typeof h.finalId === 'string' && FINALES_VALIDOS.has(h.finalId)) {
+      base.finalId = h.finalId;
+    }
+    const copiarMapaBool = (src, dest, maxKeys) => {
+      if (!src || typeof src !== 'object') return;
+      Object.keys(src).slice(0, maxKeys).forEach(k => {
+        if (typeof k === 'string' && k.trim() && src[k]) dest[k.trim().slice(0, 64)] = true;
+      });
+    };
+    copiarMapaBool(h.dialogosVistos, base.dialogosVistos, 120);
+    copiarMapaBool(h.hitosMundo, base.hitosMundo, 160);
+    if (h.companeroMisiones && typeof h.companeroMisiones === 'object') {
+      ['rowan', 'lyra', 'elian', 'brenda'].forEach(arq => {
+        const entry = h.companeroMisiones[arq];
+        if (!entry || typeof entry !== 'object') return;
+        const etapa = Math.max(0, Math.min(3, num(entry.etapa)));
+        const progreso = Math.max(0, Math.min(999, num(entry.progreso)));
+        base.companeroMisiones[arq] = {
+          etapa,
+          progreso,
+          activa: etapa >= 3 ? false : !!entry.activa,
+          talentoDesbloqueado: !!(entry.talentoDesbloqueado || etapa >= 3)
+        };
+      });
+    }
     // Títulos honoríficos desbloqueados (p. ej. "Campeones de Aden" al completar el capítulo 16)
     const vistosTit = new Set();
     if (Array.isArray(h.titulos)) {
@@ -166,6 +214,27 @@
       base.titulos.push('Campeones de Aden');
     }
     return base;
+  }
+
+  function bonosReputacion(h) {
+    const rep = (h && h.reputacion) || { pueblo: 0, sombra: 0, vinculo: 0 };
+    const pueblo = Number(rep.pueblo) || 0;
+    const sombra = Number(rep.sombra) || 0;
+    const vinculo = Number(rep.vinculo) || 0;
+    const finalId = (h && h.finalId) || null;
+    const senda = pueblo >= sombra + 2 ? 'guardia' : sombra >= pueblo + 2 ? 'sombra' : 'equilibrio';
+    const sendaNombre = senda === 'guardia' ? 'Senda del Alba' : senda === 'sombra' ? 'Senda de la Sombra' : 'Senda del Equilibrio';
+    return {
+      pueblo, sombra, vinculo, finalId,
+      senda, sendaNombre,
+      descuentoTienda: pueblo >= 10 ? 0.18 : pueblo >= 6 ? 0.12 : pueblo >= 3 ? 0.05 : 0,
+      descuentoSombra: sombra >= 10 ? 0.30 : sombra >= 6 ? 0.20 : sombra >= 3 ? 0.10 : 0,
+      bonusDefensa: pueblo >= 10 ? 0.08 : pueblo >= 5 ? 0.04 : 0,
+      bonusCritico: sombra >= 10 ? 0.06 : sombra >= 5 ? 0.03 : 0,
+      bonusCriticoFinal: finalId === 'sombra' ? 0.08 : 0,
+      bonusVida: (vinculo >= 10 ? 25 : vinculo >= 6 ? 15 : 0) + (finalId === 'luz' ? 25 : 0),
+      bonusDanioComp: vinculo >= 10 ? 0.30 : vinculo >= 6 ? 0.20 : vinculo >= 3 ? 0.10 : 0
+    };
   }
 
   function limpiarObjetivo(o) {
@@ -272,8 +341,9 @@
   // Estadísticas del héroe a partir de su nivel y de su equipo (lista de objetos equipados)
   function estadisticas(h, nivelHeroe, equipados) {
     const pas = k => (h.gastados[k] || 0);
+    const br = bonosReputacion(h);
     const s = {
-      vida: 100 + 12 * (nivelHeroe - 1) + 10 * pas('vitalidad'),
+      vida: 100 + 12 * (nivelHeroe - 1) + 10 * pas('vitalidad') + br.bonusVida,
       maná: 50 + 6 * (nivelHeroe - 1) + 8 * pas('intelecto'),
       ataque: pas('fuerza'),
       critico: 0.05 + 0.01 * pas('destreza'),
@@ -309,9 +379,9 @@
     });
     s.ataque += ataqueArma;
     s.defensa = Math.round(defensaArmadura * 10) / 10;
-    s.reduccion = Math.min(0.7, defensaArmadura / (defensaArmadura + 60) + 0.01 * pas('entereza'));
+    s.reduccion = Math.min(0.7, defensaArmadura / (defensaArmadura + 60) + 0.01 * pas('entereza') + br.bonusDefensa);
     s.bloqueo = Math.min(0.6, s.bloqueo);
-    s.critico = Math.min(0.75, s.critico);
+    s.critico = Math.min(0.75, s.critico + br.bonusCritico + br.bonusCriticoFinal);
     return s;
   }
 
@@ -343,7 +413,7 @@
   }
 
   const api = { HABILIDADES, ESPECIALES, PUNTOS_KILLS, TECLAS, BARRA_INICIAL, nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
-    disponible, requisito, asignar, esArco,
+    disponible, requisito, asignar, esArco, bonosReputacion,
     aceptarZona, registrarZona, entregarZona,
     mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

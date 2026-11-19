@@ -320,5 +320,383 @@ t('generarHistoriaParaMundo crea una crónica completa de 16 capítulos adaptada
   assert.ok(H.fraseContextualNpc('guru-1', { paso: 0 }, wCustom).frase.includes(H.puebloInicial(wCustom).name));
 });
 
+t('DECISIONES_CAPITULO cubre los 7 capítulos clave y aplicarDecision es idempotente', () => {
+  [2, 4, 6, 9, 11, 13, 16].forEach(num => {
+    const d = H.decisionDeCapitulo(num);
+    assert.ok(d && Array.isArray(d.opciones) && d.opciones.length >= 2, `Capítulo ${num} debe tener opciones`);
+  });
+  assert.strictEqual(H.decisionDeCapitulo(1), null);
+
+  const Heroe = require('../js/heroe.js');
+  const est = Heroe.nuevoHeroe();
+  const r1 = H.aplicarDecision(est, 2, 'guardia');
+  assert.strictEqual(r1.yaTomada, false);
+  assert.strictEqual(est.decisiones.d_c2_lista, 'guardia');
+  assert.deepStrictEqual(est.reputacion, { pueblo: 3, sombra: 0, vinculo: 1 });
+
+  // Intentar cambiar/repetir la misma decisión no duplica reputación ni cambia lo ya sellado
+  const r2 = H.aplicarDecision(est, 2, 'informante');
+  assert.strictEqual(r2.yaTomada, true);
+  assert.deepStrictEqual(est.reputacion, { pueblo: 3, sombra: 0, vinculo: 1 });
+
+  // Los 3 finales del Capítulo 16 asignan finalId, título y epílogo propios
+  ['luz', 'sombra', 'equilibrio'].forEach(rama => {
+    const h = Heroe.nuevoHeroe();
+    const resFin = H.aplicarDecision(h, 16, rama);
+    assert.strictEqual(h.finalId, rama);
+    assert.ok(resFin.epilogo && resFin.epilogo.id === rama);
+    assert.ok(h.titulos.includes(resFin.opcion.premio.titulo));
+    assert.strictEqual(H.epilogoDe(h, mundo()).id, rama);
+  });
+});
+
+t('dialogoInteractivoNpc y resolverOpcionDialogo generan 3 opciones y solo premian la primera vez', () => {
+  const Heroe = require('../js/heroe.js');
+  const w = mundo();
+  const est = Heroe.nuevoHeroe();
+  const dlg = H.dialogoInteractivoNpc('serv-comandante-t2', est, w);
+  assert.strictEqual(dlg.npcId, 'serv-comandante');
+  assert.strictEqual(dlg.opciones.length, 3);
+  assert.ok(!/[{}]/.test(dlg.opciones.map(o => o.etiqueta + o.respuesta).join(' ')));
+
+  const r1 = H.resolverOpcionDialogo(est, dlg.opciones[0]);
+  assert.strictEqual(r1.primeraVez, true);
+  assert.ok(r1.xp > 0);
+  assert.strictEqual(est.dialogosVistos[dlg.opciones[0].vistoKey], true);
+  const vinAntes = est.reputacion.vinculo;
+
+  const r2 = H.resolverOpcionDialogo(est, dlg.opciones[0]);
+  assert.strictEqual(r2.primeraVez, false);
+  assert.strictEqual(r2.xp, 0);
+  assert.strictEqual(est.reputacion.vinculo, vinAntes);
+});
+
+t('subtituloVivo genera réplicas contextuales de compañero sin vacíos', () => {
+  const w = mundo();
+  ['pueblo', 'mazmorra', 'jefe_caido', 'hora', 'decision'].forEach(tipo => {
+    const ev = tipo === 'hora' ? { tipo, hora: 'night' }
+      : tipo === 'decision' ? { tipo, reaccion: '«Bien hecho.»' }
+      : { tipo, nombre: 'Albaferro' };
+    const sub = H.subtituloVivo(ev, { principal: { paso: 11 }, reputacion: { pueblo: 5, sombra: 0, vinculo: 2 } }, w, 'Rowan');
+    assert.ok(sub && sub.hablante === 'Rowan' && sub.texto.length > 4);
+  });
+});
+
+t('visor-mundo.html integra UI interactiva de decisiones, banner narrativo y desbloqueo de audio', () => {
+  const fs = require('fs'), path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  ['cap-decision', 'banner-narrativo', 'npc-conv-box', 'Sonidos.desbloquear',
+   'HistoriaLib.aplicarDecision', 'HistoriaLib.dialogoInteractivoNpc', 'HeroeLib.bonosReputacion'].forEach(tok => {
+    assert.ok(html.includes(tok), `visor-mundo.html debe incluir ${tok}`);
+  });
+});
+
+t('sonidos.js desbloquea AudioContext, crea ambiente y arranca/detiene el secuenciador de música', () => {
+  const vm = require('vm'), fs = require('fs'), path = require('path');
+  let resumed = false, suspended = false, intervals = 0, cleared = 0, oscCount = 0;
+  function makeParam(v = 0) {
+    return { value: v, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} };
+  }
+  class FakeAudioContext {
+    constructor() { this.sampleRate = 22050; this.currentTime = 1.0; this.state = 'suspended'; this.destination = {}; }
+    createGain() { return { gain: makeParam(1), connect() {} }; }
+    createBiquadFilter() { return { type: 'lowpass', frequency: makeParam(400), Q: makeParam(0.7), connect() {} }; }
+    createBuffer(ch, len) { return { getChannelData: () => new Float32Array(len) }; }
+    createBufferSource() { return { buffer: null, loop: false, connect() {}, start() {}, stop() {} }; }
+    createOscillator() { oscCount++; return { type: 'sine', frequency: makeParam(440), connect() {}, start() {}, stop() {} }; }
+    resume() { resumed = true; this.state = 'running'; return { then(cb) { cb(); return this; }, catch() { return this; } }; }
+    suspend() { suspended = true; this.state = 'suspended'; return { then(cb) { if (cb) cb(); return this; }, catch() { return this; } }; }
+  }
+  const sb = {
+    AudioContext: FakeAudioContext,
+    Math,
+    Promise,
+    setInterval: () => { intervals++; return intervals; },
+    clearInterval: () => { cleared++; }
+  };
+  sb.window = sb; sb.globalThis = sb;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'js/sonidos.js'), 'utf8'), sb);
+  sb.Sonidos.setAmbiente('pueblo', 'day');
+  sb.Sonidos.desbloquear();
+  assert.ok(resumed, 'desbloquear debe llamar a resume()');
+  assert.ok(intervals >= 1, 'Debe arrancar el temporizador de música ambiente');
+  assert.ok(oscCount >= 2, 'Debe crear osciladores para LFO ambiental y notas musicales');
+  sb.Sonidos.activar(false);
+  assert.ok(suspended && cleared >= 1, 'activar(false) debe suspender audio y detener música');
+});
+
+t('pistasDeCapitulo e inspeccionarPista generan pistas en zona, avanzan progreso y suman vínculo', () => {
+  const w = mundo();
+  const z1 = w.zones[0];
+  const capMatar = H.CAPITULOS[0];
+  const pistas = H.pistasDeCapitulo(capMatar, { tipo: 'matar', zona: z1.id, cantidad: 6 }, w);
+  assert.strictEqual(pistas.length, 3);
+
+  const ids = new Set();
+  for (let i = 0; i < pistas.length; i++) {
+    const p = pistas[i];
+    assert.strictEqual(p.zona, z1.id);
+    assert.strictEqual(p.id, `pista_${capMatar.id}_${i}`);
+    assert.ok(!ids.has(p.id), 'Cada pista debe tener un id único');
+    ids.add(p.id);
+    const d = Math.hypot(p.x - z1.x, p.z - z1.y);
+    assert.ok(d >= 1 && d <= (z1.radius || 100) * 0.85, `Pista ${p.id} fuera del radio de zona (${d})`);
+  }
+
+  assert.deepStrictEqual(H.pistasDeCapitulo(capMatar, { tipo: 'hablar', zona: z1.id }, w), []);
+  assert.deepStrictEqual(H.pistasDeCapitulo(capMatar, { tipo: 'secreto', secreto: 'altar' }, w), []);
+
+  const h = { reputacion: { pueblo: 0, vinculo: 0, sombra: 0 }, hitosMundo: {} };
+  const r0 = H.inspeccionarPista(h, pistas[0]);
+  assert.strictEqual(r0.nueva, true);
+  assert.strictEqual(r0.completas, 1);
+  assert.ok(r0.avance >= 1 && r0.xp > 0 && r0.oro > 0);
+  assert.strictEqual(h.hitosMundo[pistas[0].id], true);
+  assert.strictEqual(h.reputacion.vinculo, 0);
+
+  const r0Dup = H.inspeccionarPista(h, pistas[0]);
+  assert.strictEqual(r0Dup.nueva, false);
+  assert.strictEqual(r0Dup.avance, 0);
+  assert.strictEqual(h.reputacion.vinculo, 0);
+
+  const r1 = H.inspeccionarPista(h, pistas[1]);
+  assert.strictEqual(r1.nueva, true);
+  assert.strictEqual(r1.completas, 2);
+  assert.strictEqual(h.reputacion.vinculo, 0);
+
+  const r2 = H.inspeccionarPista(h, pistas[2]);
+  assert.strictEqual(r2.nueva, true);
+  assert.strictEqual(r2.completas, 3);
+  assert.strictEqual(r2.bonoVinculo, 1);
+  assert.strictEqual(h.reputacion.vinculo, 1);
+});
+
+t('registrar avance_interactivo respeta zona, topa progreso y completa capítulos de caza', () => {
+  const est = { paso: 0, progreso: 0, objetivo: { tipo: 'matar', zona: 'z1', cantidad: 5 } };
+  assert.strictEqual(H.registrar(est, { tipo: 'avance_interactivo', zona: 'z2', cantidad: 3 }), false);
+  assert.strictEqual(est.progreso, 0);
+
+  assert.strictEqual(H.registrar(est, { tipo: 'avance_interactivo', zona: 'z1', cantidad: 2 }), false);
+  assert.strictEqual(est.progreso, 2);
+
+  assert.strictEqual(H.registrar(est, { tipo: 'avance_interactivo', zona: 'z1', cantidad: 10 }), true);
+  assert.strictEqual(est.progreso, 5);
+});
+
+t('ritualDeSecreto define pasos y emboscada según tipo de lugar secreto y capítulo', () => {
+  const altar = H.ritualDeSecreto({ id: 'sec-a1', tipo: 'altar', nombre: 'Altar Antiguo' }, { id: 'c7' });
+  assert.strictEqual(altar.pasos.length, 3);
+  assert.ok(!altar.emboscada);
+
+  const cabana = H.ritualDeSecreto({ id: 'sec-c1', tipo: 'cabana', nombre: 'Cabaña' }, { id: 'c4' });
+  assert.strictEqual(cabana.pasos.length, 2);
+  assert.ok(!cabana.emboscada);
+
+  const santuario = H.ritualDeSecreto({ id: 'sec-s1', tipo: 'santuario', nombre: 'Santuario' }, { id: 'c12' });
+  assert.strictEqual(santuario.pasos.length, 1);
+  assert.ok(santuario.emboscada && santuario.emboscada.cantidad >= 2);
+
+  const fuente6 = H.ritualDeSecreto({ id: 'sec-f1', tipo: 'fuente', nombre: 'Fuente' }, { id: 'c6' });
+  assert.strictEqual(fuente6.pasos.length, 1);
+  assert.ok(fuente6.emboscada && fuente6.emboscada.cantidad >= 2);
+
+  const fuente15 = H.ritualDeSecreto({ id: 'sec-f1', tipo: 'fuente', nombre: 'Fuente' }, { id: 'c15' });
+  assert.strictEqual(fuente15.pasos.length, 1);
+  assert.ok(!fuente15.emboscada);
+});
+
+t('recompensaReliquiaHistoria es idempotente y actualiza reputación, puntos e hitosMundo', () => {
+  const w = mundo();
+  const h = { puntos: 0, reputacion: { pueblo: 0, vinculo: 0, sombra: 0 }, hitosMundo: {} };
+
+  const dun1 = H.recompensaReliquiaHistoria('mazmorra', 'dun1', 'Cripta del Alba', h, w);
+  assert.strictEqual(h.hitosMundo.dun_dun1, true);
+  assert.strictEqual(h.reputacion.pueblo, 2);
+  assert.strictEqual(h.reputacion.vinculo, 2);
+  assert.strictEqual(h.puntos, 1);
+  assert.strictEqual(dun1.avance, 6);
+
+  const dunDup = H.recompensaReliquiaHistoria('mazmorra', 'dun1', 'Cripta del Alba', h, w);
+  assert.strictEqual(h.reputacion.pueblo, 2);
+  assert.strictEqual(h.reputacion.vinculo, 2);
+  assert.strictEqual(h.puntos, 1);
+  assert.ok(!dunDup || dunDup.avance === 0 || dunDup.nueva === false || dunDup.yaReclamada === true);
+
+  const lab1 = H.recompensaReliquiaHistoria('laberinto', 'lab1', 'Laberinto Exterior', h, w);
+  assert.strictEqual(h.hitosMundo.lab_lab1, true);
+  assert.strictEqual(h.reputacion.pueblo, 3);
+  assert.strictEqual(h.reputacion.vinculo, 3);
+  assert.strictEqual(h.puntos, 1);
+  assert.strictEqual(lab1.avance, 4);
+
+  H.recompensaReliquiaHistoria('laberinto', 'lab1', 'Laberinto Exterior', h, w);
+  assert.strictEqual(h.reputacion.pueblo, 3);
+  assert.strictEqual(h.reputacion.vinculo, 3);
+});
+
+t('generarEventoCamino y resolverEventoCamino cubren viajero, emboscada y cofre_conclave', () => {
+  const w = mundo();
+  const pos = { x: 0, z: 0 };
+  const dir = { x: 0, z: 1 };
+  const tiposVistos = new Set();
+
+  for (let i = 0; i < 30; i++) {
+    const r = (i + 0.2) / 30;
+    const h = { reputacion: { pueblo: 0, vinculo: 0, sombra: 0 }, hitosMundo: {} };
+    const ev = H.generarEventoCamino(pos, dir, w, h, () => r);
+    if (!ev) continue;
+    tiposVistos.add(ev.tipo);
+    const dist = Math.hypot(ev.x - pos.x, ev.z - pos.z);
+    assert.ok(Math.abs(dist - 26) < 2.5, `Evento debe aparecer ~26m delante (${dist})`);
+
+    let opcionId;
+    if (ev.tipo === 'emboscada') {
+      assert.ok(ev.oleada && ev.oleada.cantidad === 2, 'Emboscada debe definir oleada de 2 enemigos');
+      opcionId = 'victoria';
+    } else {
+      assert.ok(Array.isArray(ev.opciones) && ev.opciones.length === 2, `Evento ${ev.tipo} debe ofrecer 2 opciones`);
+      opcionId = ev.opciones[0].id;
+    }
+
+    const res = H.resolverEventoCamino(h, ev, opcionId);
+    assert.strictEqual(res.yaResuelto, false);
+    assert.strictEqual(h.hitosMundo[ev.id], true);
+    assert.ok((h.reputacion.pueblo || 0) + (h.reputacion.vinculo || 0) + (h.reputacion.sombra || 0) > 0);
+
+    const rep = H.resolverEventoCamino(h, ev, opcionId);
+    assert.strictEqual(rep.yaResuelto, true);
+  }
+
+  assert.ok(tiposVistos.has('viajero'), 'Debe poder generarse evento viajero');
+  assert.ok(tiposVistos.has('emboscada'), 'Debe poder generarse evento emboscada');
+  assert.ok(tiposVistos.has('cofre_conclave'), 'Debe poder generarse evento cofre_conclave');
+});
+
+t('visor-mundo.html integra los sistemas interactivos H2', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  for (const token of [
+    'historia-prompt',
+    'reconstruirPistasCapitulo',
+    'iniciarRitualSecreto',
+    'engendrarEnemigosEvento',
+    'recompensaReliquiaHistoria',
+    'generarEventoCamino',
+    'inv.gold = (inv.gold || 0) + 750',
+  ]) {
+    assert.ok(html.includes(token), `Falta en visor-mundo.html: ${token}`);
+  }
+});
+
+t('codicePersonajes evoluciona sospechas y alianzas de Elara, Ysolde, Oren y Kaelen por Acto y decisión', () => {
+  const w = mundo();
+  const hActo1 = { principal: { paso: 1 }, reputacion: { pueblo: 0, sombra: 0, vinculo: 0 }, decisiones: {}, hitosMundo: {} };
+  const f1 = H.codicePersonajes(hActo1, w);
+  assert.strictEqual(f1.length, 10);
+  const elara1 = f1.find(x => x.id === 'guru-1');
+  const oren1 = f1.find(x => x.id === 'guru-2');
+  const ysolde1 = f1.find(x => x.id === 'guru-3');
+  const kaelen1 = f1.find(x => x.id === 'serv-comandante');
+  assert.strictEqual(elara1.estadoId, 'sospechoso');
+  assert.strictEqual(oren1.estadoId, 'sospechoso');
+  assert.strictEqual(ysolde1.estadoId, 'sospechoso');
+  assert.strictEqual(kaelen1.estadoId, 'neutral');
+
+  const hActo3 = {
+    principal: { paso: 11 },
+    reputacion: { pueblo: 6, sombra: 0, vinculo: 3 },
+    decisiones: { d_c2_lista: 'guardia' },
+    hitosMundo: { dun_m1: true },
+  };
+  const f3 = H.codicePersonajes(hActo3, w);
+  assert.strictEqual(f3.find(x => x.id === 'guru-1').estadoId, 'culpable');
+  assert.strictEqual(f3.find(x => x.id === 'guru-2').estadoId, 'aliado');
+  assert.strictEqual(f3.find(x => x.id === 'guru-3').estadoId, 'disidente');
+  assert.strictEqual(f3.find(x => x.id === 'serv-comandante').estadoId, 'aliado');
+
+  const hFin = { principal: { paso: 16 }, finalId: 'luz', reputacion: { pueblo: 10, sombra: 0, vinculo: 5 }, decisiones: {}, hitosMundo: {} };
+  const fFin = H.codicePersonajes(hFin, w);
+  assert.strictEqual(fFin.find(x => x.id === 'guru-1').estadoId, 'juzgado');
+});
+
+t('codiceInvestigacion y codiceDecisiones resumen pistas, rituales, reliquias, eventos y encrucijadas', () => {
+  const baseW = mundo();
+  const w = {
+    ...baseW,
+    dungeons: [{ id: 'dun1', name: 'Cripta Norte' }],
+    zones: baseW.zones.concat([{ id: 'zlab', name: 'Laberinto del Eco', type: 'caza', x: 50, y: 50, radius: 40, monsters: [{ name: 'Lobo', level: 2 }], relieve: { activo: true } }]),
+  };
+  const h = {
+    principal: { paso: 9 },
+    reputacion: { pueblo: 5, sombra: 1, vinculo: 3 },
+    decisiones: { d_c2_lista: 'guardia', d_c6_fuente: 'liberar' },
+    hitosMundo: {
+      pista_c1_0: true,
+      pista_c1_1: true,
+      dun_dun1: true,
+      lab_zlab: true,
+      ev_viajero_12: true,
+    },
+  };
+
+  const inv = H.codiceInvestigacion(h, w);
+  assert.ok(inv.pistas.length >= 6);
+  assert.strictEqual(inv.resumen.pistasHalladas, 2);
+  assert.ok(inv.resumen.ritualesHechos >= 2);
+  assert.strictEqual(inv.resumen.mazmorras, 1);
+  assert.strictEqual(inv.resumen.mazmorrasTotal, 1);
+  assert.strictEqual(inv.resumen.laberintos, 1);
+  assert.strictEqual(inv.resumen.laberintosTotal, 1);
+  assert.strictEqual(inv.resumen.eventosResueltos, 1);
+
+  const dec = H.codiceDecisiones(h, w);
+  assert.strictEqual(dec.total, 7);
+  assert.strictEqual(dec.decididas, 2);
+  assert.strictEqual(dec.senda, 'guardia');
+  assert.strictEqual(dec.lista.find(x => x.capNum === 2).estado, 'decidida');
+  assert.strictEqual(dec.lista.find(x => x.capNum === 4).estado, 'pendiente');
+  assert.strictEqual(dec.lista.find(x => x.capNum === 16).estado, 'bloqueada');
+});
+
+t('subtituloVivo ampliado genera réplicas de 2 líneas para eventos H3 y H4', () => {
+  const w = mundo();
+  const h = { principal: { paso: 7 }, reputacion: { pueblo: 2, sombra: 0, vinculo: 2 } };
+  [
+    { tipo: 'zona_peligrosa', nombre: 'Cumbres Negras' },
+    { tipo: 'cabana', fase: 'rastro', nombre: 'Cabaña Costera' },
+    { tipo: 'cabana', fase: 'lider', nombre: 'Cabaña Costera' },
+    { tipo: 'mision_comp', fase: 'talento', talento: 'Juramento del Alba' },
+    { tipo: 'charla_camino', arquetipo: 'lyra' },
+    { tipo: 'charla_camino', arquetipo: 'elian' },
+    { tipo: 'charla_camino', arquetipo: 'brenda' },
+    { tipo: 'charla_camino', arquetipo: 'rowan' },
+  ].forEach(ev => {
+    const sub = H.subtituloVivo(ev, h, w, 'Compañero');
+    assert.ok(sub && sub.hablante === 'Compañero' && sub.texto.length > 5);
+    assert.ok(sub.replica && sub.replica.hablante === 'Héroe' && sub.replica.texto.length > 5);
+  });
+});
+
+t('visor-mundo.html integra UI y lógica de Bloques H3 y H4', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  for (const token of [
+    'cro-tabs',
+    'comp-mision-personal',
+    'codicePersonajes',
+    'codiceInvestigacion',
+    'codiceDecisiones',
+    'elegirModalidadCabana',
+    'registrarProgresoCabana',
+    'invocarLiderCabana3D',
+    'reconstruirRastrosCabanas3D',
+    'notificarProgresoCompanero',
+  ]) {
+    assert.ok(html.includes(token), `Falta en visor-mundo.html: ${token}`);
+  }
+});
+
 console.log(`\n${n} pruebas de la historia superadas.`);
 

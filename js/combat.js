@@ -16,6 +16,8 @@
     deathXpLoss: 0.05                                // se pierde el 5 % del XP actual al morir
   };
 
+  const DODGE = { cd: 1.35, duration: 0.34, iframes: 0.36, speed: 22.0 };
+
   // arc: coseno del semiángulo del cono frontal (-1 = alrededor del personaje).
   // impacto: segundos desde que empieza la animación hasta el golpe (una lista = varios golpes, mult por golpe).
   // arma: 'cuerpo' (cualquier arma menos el arco) o 'arco'; sin arma, vale con cualquiera.
@@ -87,7 +89,8 @@
       level: 1, xp: 0,
       hp: m.maxHp, maxHp: m.maxHp, mp: m.maxMp, maxMp: m.maxMp,
       sinceHit: 99, dead: false, deadUntil: 0,
-      cd: Object.fromEntries(Object.keys(SKILLS).map(k => [k, 0])), lock: 0
+      cd: Object.fromEntries(Object.keys(SKILLS).map(k => [k, 0])), lock: 0,
+      dodgeCd: 0, dodgeTimer: 0, invulnTimer: 0
     };
   }
 
@@ -161,8 +164,37 @@
     return monsterStats(monsterLevel, boss).dmg * diffMult(monsterLevel, heroLevel);
   }
 
+  function isInvulnerable(hero) {
+    return !!(hero && (hero.invulnTimer || 0) > 0);
+  }
+
+  function canDodge(hero) {
+    return !!(hero && !hero.dead && (hero.dodgeCd || 0) <= 0 && (hero.dodgeTimer || 0) <= 0);
+  }
+
+  function startDodge(hero) {
+    if (!canDodge(hero)) return false;
+    hero.dodgeCd = DODGE.cd;
+    hero.dodgeTimer = DODGE.duration;
+    hero.invulnTimer = DODGE.iframes;
+    hero.lock = 0;
+    return true;
+  }
+
+  function checkEnemyHitAvoided(atk, hx, hz, heroY) {
+    if (!atk) return false;
+    if (typeof heroY === 'number' && typeof atk.attackerY === 'number' &&
+        Math.abs(heroY - atk.attackerY) > (atk.ranged ? 8.0 : 4.0)) {
+      return true;
+    }
+    if (atk.ranged) {
+      return Math.hypot(hx - atk.targetX, hz - atk.targetZ) > (atk.hitRadius || 1.65);
+    }
+    return Math.hypot(hx - atk.attackerX, hz - atk.attackerZ) > (atk.hitRadius || 3.4);
+  }
+
   function takeHit(hero, dmg) {
-    if (hero.dead) return false;
+    if (hero.dead || isInvulnerable(hero)) return false;
     hero.hp -= dmg;
     hero.sinceHit = 0;
     if (hero.hp <= 0) { hero.hp = 0; hero.dead = true; return true; }
@@ -174,6 +206,9 @@
     if (hero.dead) return;
     for (const k of Object.keys(hero.cd)) hero.cd[k] = Math.max(0, hero.cd[k] - dt);
     hero.lock = Math.max(0, hero.lock - dt);
+    hero.dodgeCd = Math.max(0, (hero.dodgeCd || 0) - dt);
+    hero.dodgeTimer = Math.max(0, (hero.dodgeTimer || 0) - dt);
+    hero.invulnTimer = Math.max(0, (hero.invulnTimer || 0) - dt);
     hero.mp = Math.min(hero.maxMp, hero.mp + HERO.mpRegen * dt);
     hero.sinceHit += dt;
     if (hero.sinceHit >= HERO.hpRegenDelay) hero.hp = Math.min(hero.maxHp, hero.hp + HERO.hpRegen * dt);
@@ -191,6 +226,9 @@
     hero.mp = hero.maxMp;
     hero.sinceHit = 99;
     hero.lock = 0;
+    hero.dodgeCd = 0;
+    hero.dodgeTimer = 0;
+    hero.invulnTimer = 0;
   }
 
   // Determina el rol de combate (arquero, mago o melee) según arma, arquetipo o nombre
@@ -205,6 +243,13 @@
     return 'melee';
   }
 
+  const SPECIAL_ATTACKS = {
+    slam:      { nombre: 'Onda Sísmica',      tipo: 'slam',      radius: 5.5, bossRadius: 7.2, duration: 1.25, dmgMult: 1.75, bossDmgMult: 2.05 },
+    charge:    { nombre: 'Embestida Brutal',  tipo: 'charge',    length: 10.5, bossLength: 13.0, halfWidth: 1.55, duration: 1.15, dmgMult: 1.75, bossDmgMult: 2.0 },
+    cone:      { nombre: 'Barrido Devastador', tipo: 'cone',     radius: 6.5, bossRadius: 8.0, halfAngle: 0.62, duration: 1.2, dmgMult: 1.7, bossDmgMult: 1.95 },
+    nova_orbs: { nombre: 'Lluvia Arcana',     tipo: 'nova_orbs', orbCount: 3, fase2Count: 4, orbRadius: 2.9, duration: 1.3, dmgMult: 1.6 }
+  };
+
   // Un monstruo vivo: posición de origen, estado, rol de ataque y temporizador
   function newMonster(opts) {
     const eliteMult = opts.rangoElite || opts.eliteMult || 1;
@@ -214,6 +259,7 @@
     const defaultAggro = opts.boss ? MONSTER.bossAggro : MONSTER.aggro;
     const defaultSpeed = opts.boss ? MONSTER.bossChaseSpeed : MONSTER.chaseSpeed;
     const rAtaque = opts.attackRange || (esDist ? MONSTER.rangedAttackRange : MONSTER.attackRange);
+    const esJefe = !!opts.boss || eliteMult >= 8;
     return {
       level: opts.level, boss: !!opts.boss,
       rangoElite: eliteMult,
@@ -221,6 +267,8 @@
       spawnX: opts.x, spawnZ: opts.z, x: opts.x, z: opts.z,
       leash: opts.leash || 40,
       state: 'idle', attackTimer: 0,
+      fase: 1, telegraph: null, specialIdx: 0,
+      specialCd: esJefe ? 2.8 : (eliteMult >= 2 ? 4.0 : 999),
       tipoRango: tipoRango,
       esADistancia: esDist,
       attackRange: rAtaque,
@@ -232,18 +280,137 @@
     };
   }
 
-  // Un paso de la IA del monstruo. Devuelve { attack: bool, ranged: bool } para indicar si golpea este frame.
+  function crearTelegrafiado(m, hx, hz) {
+    const esJefe = !!m.boss || (m.rangoElite || 1) >= 8;
+    const enFase2 = (m.fase || 1) >= 2;
+    const dx = hx - m.x, dz = hz - m.z;
+    const dHero = Math.hypot(dx, dz) || 1;
+    const ux = dx / dHero, uz = dz / dHero;
+
+    const lista = esJefe
+      ? (enFase2 ? ['slam', 'nova_orbs', 'charge', 'cone'] : ['slam', 'charge', 'cone', 'nova_orbs'])
+      : ['slam', 'cone', 'charge'];
+    const idx = m.specialIdx || 0;
+    m.specialIdx = idx + 1;
+    let tipo = lista[idx % lista.length];
+    if (idx === 0) {
+      if (dHero <= 5.5) tipo = 'slam';
+      else if (dHero >= 7.5) tipo = 'charge';
+    }
+
+    const spec = SPECIAL_ATTACKS[tipo];
+    const duration = Math.max(0.85, spec.duration * (enFase2 ? 0.85 : 1.0));
+    const dmgMult = esJefe ? (spec.bossDmgMult || spec.dmgMult) : spec.dmgMult;
+
+    if (tipo === 'slam') {
+      return {
+        tipo: 'slam', nombre: spec.nombre,
+        x: m.x, z: m.z,
+        radius: esJefe ? spec.bossRadius : spec.radius,
+        duration, elapsed: 0, dmgMult
+      };
+    }
+    if (tipo === 'cone') {
+      return {
+        tipo: 'cone', nombre: spec.nombre,
+        x: m.x, z: m.z, dirX: ux, dirZ: uz,
+        radius: esJefe ? spec.bossRadius : spec.radius,
+        halfAngle: spec.halfAngle,
+        duration, elapsed: 0, dmgMult
+      };
+    }
+    if (tipo === 'charge') {
+      const len = esJefe ? spec.bossLength : spec.length;
+      return {
+        tipo: 'charge', nombre: spec.nombre,
+        x: m.x, z: m.z, dirX: ux, dirZ: uz,
+        length: len, endX: m.x + ux * len, endZ: m.z + uz * len,
+        halfWidth: spec.halfWidth,
+        duration, elapsed: 0, dmgMult
+      };
+    }
+    const count = enFase2 ? spec.fase2Count : spec.orbCount;
+    const zones = [{ x: hx, z: hz, radius: spec.orbRadius }];
+    const baseAng = idx * 1.1;
+    for (let i = 1; i < count; i++) {
+      const a = baseAng + ((i - 1) * Math.PI * 2) / (count - 1);
+      zones.push({ x: hx + Math.cos(a) * 4.2, z: hz + Math.sin(a) * 4.2, radius: spec.orbRadius });
+    }
+    return {
+      tipo: 'nova_orbs', nombre: spec.nombre,
+      x: m.x, z: m.z, zones,
+      duration, elapsed: 0, dmgMult
+    };
+  }
+
+  function inTelegraphArea(tg, hx, hz) {
+    if (!tg) return false;
+    if (tg.tipo === 'slam') {
+      return Math.hypot(hx - tg.x, hz - tg.z) <= tg.radius;
+    }
+    if (tg.tipo === 'cone') {
+      const dx = hx - tg.x, dz = hz - tg.z;
+      const d = Math.hypot(dx, dz);
+      if (d > tg.radius) return false;
+      if (d < 0.6) return true;
+      return (dx * tg.dirX + dz * tg.dirZ) / d >= Math.cos(tg.halfAngle);
+    }
+    if (tg.tipo === 'charge') {
+      const dx = hx - tg.x, dz = hz - tg.z;
+      const along = dx * tg.dirX + dz * tg.dirZ;
+      const perp = Math.abs(-dx * tg.dirZ + dz * tg.dirX);
+      return along >= -0.5 && along <= tg.length + 0.6 && perp <= tg.halfWidth;
+    }
+    if (tg.tipo === 'nova_orbs') {
+      return (tg.zones || []).some(z => Math.hypot(hx - z.x, hz - z.z) <= z.radius);
+    }
+    return false;
+  }
+
+  // Un paso de la IA del monstruo. Devuelve { attack, ranged, specialStart, specialRelease, specialCancel, fase2 }.
   function monsterTick(m, hero, hx, hz, dt, dy) {
-    const out = { attack: false, ranged: false };
+    const out = { attack: false, ranged: false, specialStart: null, specialRelease: null, specialCancel: false, fase2: false };
     if (m.slowTimer > 0) m.slowTimer = Math.max(0, m.slowTimer - dt);
     const slowFactor = m.slowTimer > 0 ? (m.slowMult || 0.45) : 1;
     const dHero = Math.hypot(hx - m.x, hz - m.z);
     const dSpawn = Math.hypot(m.spawnX - m.x, m.spawnZ - m.z);
+    const esJefe = !!m.boss || (m.rangoElite || 1) >= 8;
+    const esEspecial = esJefe || (m.rangoElite || 1) >= 2;
+
+    if (esJefe && (m.fase || 1) < 2 && m.hp > 0 && m.hp <= m.maxHp * 0.5) {
+      m.fase = 2;
+      m.specialCd = Math.min(m.specialCd !== undefined ? m.specialCd : 1.0, 1.0);
+      out.fase2 = true;
+    }
 
     if (m.state !== 'chase' && !hero.dead && dHero < m.aggro) m.state = 'chase';
-    if (m.state === 'chase' && (hero.dead || dSpawn > m.leash)) m.state = 'return';
+    if (m.state === 'chase' && (hero.dead || dSpawn > m.leash)) {
+      m.state = 'return';
+      if (m.telegraph) {
+        m.telegraph = null;
+        out.specialCancel = true;
+      }
+    }
 
     if (m.state === 'chase') {
+      if (m.telegraph) {
+        m.telegraph.elapsed += dt;
+        if (m.telegraph.elapsed >= m.telegraph.duration) {
+          out.specialRelease = m.telegraph;
+          m.telegraph = null;
+          m.specialCd = esJefe ? ((m.fase || 1) >= 2 ? 4.4 : 6.2) : 8.0;
+          m.attackTimer = Math.max(m.attackTimer || 0, 1.0);
+        }
+        return out;
+      }
+      if (esEspecial) {
+        m.specialCd = Math.max(0, (m.specialCd !== undefined ? m.specialCd : (esJefe ? 2.8 : 4.0)) - dt);
+        if (m.specialCd <= 0 && !hero.dead && dHero <= 13.5 && (typeof dy !== 'number' || dy < 5.0)) {
+          m.telegraph = crearTelegrafiado(m, hx, hz);
+          out.specialStart = m.telegraph;
+          return out;
+        }
+      }
       const attackRange = m.attackRange || (m.esADistancia ? MONSTER.rangedAttackRange : MONSTER.attackRange);
       if (dHero > attackRange) {
         const sp = m.speed * slowFactor * dt / dHero;
@@ -326,9 +493,11 @@
   }
 
   const api = {
-    HERO, SKILLS, MONSTER,
+    HERO, SKILLS, MONSTER, DODGE, SPECIAL_ATTACKS,
     diffMult, heroMax, newHero, xpToNext, gainXp, factorXpPorNivel, xpPorMonstruo, heroDamage,
-    canUse, useSkill, monsterStats, monsterDamage, takeHit, tickHero,
+    canUse, useSkill, isInvulnerable, canDodge, startDodge, checkEnemyHitAvoided,
+    crearTelegrafiado, inTelegraphArea,
+    monsterStats, monsterDamage, takeHit, tickHero,
     die, respawn, newMonster, monsterTick, inSkillArea, impactos, detectarRol
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

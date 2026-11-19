@@ -268,4 +268,116 @@ t('habilidades elementales (fuego, hielo y rayo arcano) y ralentización por esc
   assert.ok(frozen.slowTimer < 3.0, 'slowTimer debe decrecer con dt');
 });
 
+t('esquiva (dodge): i-frames bloquean daño, cancela lock, respeta cooldown y permite evadir ataques', () => {
+  const h = C.newHero();
+  assert.ok(C.DODGE && C.DODGE.iframes > 0 && C.DODGE.cd > C.DODGE.duration);
+  assert.ok(C.canDodge(h));
+
+  // Cancelar lock de habilidad al esquivar
+  h.lock = 0.8;
+  assert.strictEqual(C.startDodge(h), true);
+  assert.strictEqual(h.lock, 0, 'startDodge debe cancelar el bloqueo de movimiento');
+  assert.ok(C.isInvulnerable(h));
+  assert.ok(!C.canDodge(h), 'no se puede volver a esquivar en recarga');
+  assert.strictEqual(C.startDodge(h), false);
+
+  // Durante i-frames takeHit no quita vida
+  const hpAntes = h.hp;
+  assert.strictEqual(C.takeHit(h, 40), false);
+  assert.strictEqual(h.hp, hpAntes);
+
+  // Al expirar i-frames vuelve a recibir daño; al pasar cd vuelve a poder esquivar
+  C.tickHero(h, C.DODGE.iframes + 0.05);
+  assert.ok(!C.isInvulnerable(h));
+  C.takeHit(h, 25);
+  assert.strictEqual(h.hp, hpAntes - 25);
+
+  C.tickHero(h, C.DODGE.cd);
+  assert.ok(C.canDodge(h));
+
+  // Evasión espacial de proyectiles y cuerpo a cuerpo
+  const flecha = { ranged: true, targetX: 10, targetZ: 10, hitRadius: 1.5, attackerY: 0 };
+  assert.strictEqual(C.checkEnemyHitAvoided(flecha, 10.5, 10.5, 0), false);
+  assert.strictEqual(C.checkEnemyHitAvoided(flecha, 13.0, 10.0, 0), true);
+
+  const melee = { ranged: false, attackerX: 0, attackerZ: 0, attackerY: 0, hitRadius: 3.3 };
+  assert.strictEqual(C.checkEnemyHitAvoided(melee, 2.0, 1.0, 0), false);
+  assert.strictEqual(C.checkEnemyHitAvoided(melee, 4.5, 0.0, 0), true);
+  assert.strictEqual(C.checkEnemyHitAvoided(melee, 1.0, 0.0, 5.5), true);
+});
+
+t('ataques telegrafiados: normal no usa especiales; jefe y élite lanzan specialStart/specialRelease, fase 2 y cancelación', () => {
+  const h = C.newHero();
+
+  // 1. Monstruo normal nunca genera telegraph
+  const normal = C.newMonster({ level: 3, x: 0, z: 0, leash: 60 });
+  for (let i = 0; i < 60; i++) {
+    const r = C.monsterTick(normal, h, 3, 0, 0.1);
+    assert.strictEqual(r.specialStart, null);
+    assert.strictEqual(normal.telegraph, null);
+  }
+
+  // 2. Jefe genera specialStart tras specialCd, pausa desplazamiento durante carga y suelta specialRelease
+  const jefe = C.newMonster({ level: 5, boss: true, x: 0, z: 0, leash: 60 });
+  jefe.specialCd = 0.2;
+  let rStart = null;
+  for (let i = 0; i < 5 && !rStart; i++) {
+    const r = C.monsterTick(jefe, h, 4, 0, 0.1);
+    if (r.specialStart) rStart = r.specialStart;
+  }
+  assert.ok(rStart, 'el jefe debe iniciar un ataque telegrafiado tras agotar specialCd');
+  assert.ok(jefe.telegraph, 'jefe.telegraph debe permanecer activo durante la carga');
+  const posInicioX = jefe.x;
+
+  let released = null;
+  for (let i = 0; i < 30 && !released; i++) {
+    const r = C.monsterTick(jefe, h, 4, 0, 0.1);
+    assert.strictEqual(jefe.x, posInicioX, 'el jefe no debe moverse ni avanzar mientras carga el telegrafiado');
+    assert.strictEqual(r.attack, false, 'no debe soltar ataque básico mientras carga el especial');
+    if (r.specialRelease) released = r.specialRelease;
+  }
+  assert.ok(released, 'el jefe debe emitir specialRelease al completar duration');
+  assert.strictEqual(jefe.telegraph, null);
+
+  // 3. Transición única a Fase 2 al bajar a <= 50 % HP y aceleración
+  jefe.hp = Math.floor(jefe.maxHp * 0.45);
+  jefe.specialCd = 5.0;
+  const rF2 = C.monsterTick(jefe, h, 4, 0, 0.1);
+  assert.strictEqual(jefe.fase, 2);
+  assert.strictEqual(rF2.fase2, true);
+  assert.ok(jefe.specialCd <= 1.0);
+  const rF2Rep = C.monsterTick(jefe, h, 4, 0, 0.1);
+  assert.strictEqual(rF2Rep.fase2, false, 'fase2 solo debe emitirse una vez');
+
+  // 4. Élite genera aviso y se cancela limpio si el héroe muere o sale de leash
+  const elite = C.newMonster({ level: 4, rangoElite: 2, x: 0, z: 0, leash: 30 });
+  elite.specialCd = 0.05;
+  const rEl = C.monsterTick(elite, h, 3, 0, 0.1);
+  assert.ok(rEl.specialStart && elite.telegraph);
+  h.dead = true;
+  const rCan = C.monsterTick(elite, h, 3, 0, 0.1);
+  assert.strictEqual(rCan.specialCancel, true);
+  assert.strictEqual(elite.telegraph, null);
+});
+
+t('inTelegraphArea: detecta exactamente áreas slam, cone, charge y nova_orbs', () => {
+  const slam = { tipo: 'slam', x: 0, z: 0, radius: 5 };
+  assert.strictEqual(C.inTelegraphArea(slam, 3, 3), true);
+  assert.strictEqual(C.inTelegraphArea(slam, 5.5, 0), false);
+
+  const cone = { tipo: 'cone', x: 0, z: 0, dirX: 1, dirZ: 0, radius: 6, halfAngle: 0.5 };
+  assert.strictEqual(C.inTelegraphArea(cone, 4, 0), true);
+  assert.strictEqual(C.inTelegraphArea(cone, 4, 3.5), false); // ángulo > 0.5 rad
+  assert.strictEqual(C.inTelegraphArea(cone, -2, 0), false);  // detrás
+
+  const charge = { tipo: 'charge', x: 0, z: 0, dirX: 0, dirZ: 1, length: 10, halfWidth: 1.5 };
+  assert.strictEqual(C.inTelegraphArea(charge, 1.0, 5), true);
+  assert.strictEqual(C.inTelegraphArea(charge, 2.2, 5), false); // fuera lateral
+  assert.strictEqual(C.inTelegraphArea(charge, 0, 12), false);  // pasado el largo
+
+  const orbs = { tipo: 'nova_orbs', zones: [{ x: 10, z: 10, radius: 2.5 }, { x: 15, z: 10, radius: 2.5 }] };
+  assert.strictEqual(C.inTelegraphArea(orbs, 14, 10), true);
+  assert.strictEqual(C.inTelegraphArea(orbs, 0, 0), false);
+});
+
 console.log(`\n${n} pruebas correctas`);

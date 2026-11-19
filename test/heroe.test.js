@@ -216,4 +216,103 @@ t('magia elemental: bola de fuego y lanza de hielo disponibles desde nivel 1 y a
   assert.strictEqual(h.barra.e, 'lanza_hielo');
 });
 
+t('reputación, decisiones, finalId y dialogosVistos se inicializan y sanean sin alterar principal', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.reputacion, { pueblo: 0, sombra: 0, vinculo: 0 });
+  assert.deepStrictEqual(h.decisiones, {});
+  assert.strictEqual(h.finalId, null);
+  assert.deepStrictEqual(h.dialogosVistos, {});
+  assert.deepStrictEqual(h.principal, { paso: 0, progreso: 0, objetivo: null });
+
+  const saneado = H.limpiarHeroe({
+    reputacion: { pueblo: 99, sombra: -99, vinculo: 'mal' },
+    decisiones: { d_c2_lista: 'guardia', '': 'invalido', mala: 123 },
+    finalId: 'no_existe',
+    dialogosVistos: { 'guru-1_trama_1': true, ignorar: false }
+  });
+  assert.deepStrictEqual(saneado.reputacion, { pueblo: 50, sombra: -20, vinculo: 0 });
+  assert.deepStrictEqual(saneado.decisiones, { d_c2_lista: 'guardia' });
+  assert.strictEqual(saneado.finalId, null);
+  assert.deepStrictEqual(saneado.dialogosVistos, { 'guru-1_trama_1': true });
+
+  const conFinal = H.limpiarHeroe({ finalId: 'equilibrio' });
+  assert.strictEqual(conFinal.finalId, 'equilibrio');
+});
+
+t('bonosReputacion calcula senda, descuentos y altera estadísticas reales del héroe', () => {
+  const hAlba = H.nuevoHeroe();
+  hAlba.reputacion = { pueblo: 10, sombra: 1, vinculo: 6 };
+  hAlba.finalId = 'luz';
+  const brAlba = H.bonosReputacion(hAlba);
+  assert.strictEqual(brAlba.senda, 'guardia');
+  assert.strictEqual(brAlba.sendaNombre, 'Senda del Alba');
+  assert.strictEqual(brAlba.descuentoTienda, 0.18);
+  assert.strictEqual(brAlba.bonusDefensa, 0.08);
+  assert.strictEqual(brAlba.bonusVida, 15 + 25);
+  assert.strictEqual(brAlba.bonusDanioComp, 0.20);
+
+  const statsAlba = H.estadisticas(hAlba, 1, []);
+  assert.strictEqual(statsAlba.vida, 100 + 40);
+  assert.strictEqual(statsAlba.reduccion, 0.08);
+
+  const hSombra = H.nuevoHeroe();
+  hSombra.reputacion = { pueblo: 0, sombra: 10, vinculo: 0 };
+  hSombra.finalId = 'sombra';
+  const brSombra = H.bonosReputacion(hSombra);
+  assert.strictEqual(brSombra.senda, 'sombra');
+  assert.strictEqual(brSombra.descuentoSombra, 0.30);
+  const statsSombra = H.estadisticas(hSombra, 1, []);
+  assert.ok(Math.abs(statsSombra.critico - (0.05 + 0.06 + 0.08)) < 1e-9);
+});
+
+t('hitosMundo se inicializa vacío sin alterar principal y limpiarHeroe lo sanea', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.principal, { paso: 0, progreso: 0, objetivo: null });
+  assert.deepStrictEqual(h.hitosMundo, {});
+
+  assert.deepStrictEqual(H.limpiarHeroe({}).hitosMundo, {});
+  assert.deepStrictEqual(H.limpiarHeroe({ hitosMundo: 'invalido' }).hitosMundo, {});
+
+  const limpio = H.limpiarHeroe({
+    hitosMundo: {
+      pista_c1_0: true,
+      dun_m1: 1,
+      falsa: false,
+      cero: 0,
+      nula: null,
+      vacia: '',
+    },
+  });
+  assert.deepStrictEqual(limpio.hitosMundo, {
+    pista_c1_0: true,
+    dun_m1: true,
+  });
+});
+
+t('companeroMisiones se inicializa vacío sin alterar principal y limpiarHeroe lo sanea', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.principal, { paso: 0, progreso: 0, objetivo: null });
+  assert.deepStrictEqual(h.companeroMisiones, {});
+
+  assert.deepStrictEqual(H.limpiarHeroe({}).companeroMisiones, {});
+  assert.deepStrictEqual(H.limpiarHeroe({ companeroMisiones: 'invalido' }).companeroMisiones, {});
+
+  const limpio = H.limpiarHeroe({
+    companeroMisiones: {
+      rowan: { etapa: 1, progreso: 2, activa: true, talentoDesbloqueado: false },
+      lyra: { etapa: 9, progreso: 2500, activa: true, talentoDesbloqueado: false },
+      elian: { etapa: -3, progreso: -5, activa: 1, talentoDesbloqueado: true },
+      brenda: 'corrupto',
+      desconocido: { etapa: 2, progreso: 1, activa: true },
+    },
+  });
+
+  assert.deepStrictEqual(limpio.companeroMisiones, {
+    rowan: { etapa: 1, progreso: 2, activa: true, talentoDesbloqueado: false },
+    lyra: { etapa: 3, progreso: 999, activa: false, talentoDesbloqueado: true },
+    elian: { etapa: 0, progreso: 0, activa: true, talentoDesbloqueado: true },
+  });
+  assert.strictEqual(limpio.companeroMisiones.desconocido, undefined);
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

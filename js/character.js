@@ -55,6 +55,7 @@
     rayo_arcano: ['ultimate_nova', 'ultimate_beam'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
+    dodge: ['dodge', 'esquiv', 'roll', 'rodar', 'dash', 'salto', 'acrobat', 'jump'],
     victory: ['victoria', 'victory', 'postura de victoria', 'win']
   };
   // Duración de cada acción de un solo uso (segundos) y tiempo en que bloquea el movimiento
@@ -87,6 +88,7 @@
     tormenta_fuego: { lock: 1.0 },
     rayo_arcano: { lock: 0.85 },
     jump: { lock: 0.0 },
+    dodge: { lock: 0.0 },
     victory: { lock: 0.0 }
   };
   // Gestos del avatar de respaldo (sin GLB): vueltas sobre sí mismo, salto, tiro con arco y conjuros elementales
@@ -175,6 +177,7 @@
       this.cancelado = false;    // true cuando el jugador mueve al personaje y se cancela el destino
       this.tiempo = 0;           // reloj propio del personaje (segundos acumulados)
       this.fallbackAct = null;   // { kind, start, duration } para el avatar de respaldo
+      this.dodgeState = null;    // { dirX, dirZ, elapsed, duration, speed } durante una esquiva activa
 
       this.initInput();
       if (opts.joystick && opts.joystick.zone && opts.joystick.knob) {
@@ -394,8 +397,15 @@
       }
       if (f.kind === 'nova') { const s = 1 + 0.25 * swing; this.model.scale.set(s, s, s); } else if (this.model.scale.x !== 1) this.model.scale.set(1, 1, 1);
       if (f.kind === 'jump') this.model.position.y = 1.2 * swing;
+      if (f.kind === 'dodge') {
+        this.model.position.y = 0.55 * swing;
+        L.leftLeg.rotation.x = 0.65 * swing;
+        L.rightLeg.rotation.x = -0.55 * swing;
+        L.leftArm.rotation.x = -0.8 * swing;
+        L.rightArm.rotation.x = -0.8 * swing;
+      }
       const gesto = GESTO[f.kind];
-      if (gesto || (ONE_SHOT[f.kind] && !['attack', 'sismo', 'nova', 'jump', 'victory'].includes(f.kind))) {
+      if (gesto || (ONE_SHOT[f.kind] && !['attack', 'sismo', 'nova', 'jump', 'dodge', 'victory'].includes(f.kind))) {
         const g = gesto || {};
         if (g.vueltas) this.model.rotation.y = t * Math.PI * 2 * g.vueltas;
         if (g.salto) this.model.position.y = g.salto * swing;
@@ -436,17 +446,69 @@
       return Math.hypot(moveX, moveZ) > 0.08;
     }
 
-    _cortarOneShot() {
-      if (this.activeState === 'oneshot' && this.oneShotKind !== 'jump') {
+    _cortarOneShot(forzar = false) {
+      if (this.activeState === 'oneshot' && (forzar || (this.oneShotKind !== 'jump' && this.oneShotKind !== 'dodge'))) {
         if (this.currentAction) this.currentAction.fadeOut(0.12);
         this.activeState = 'none';
         this.oneShotKind = null;
         this.oneShotUntil = 0;
       }
-      if (this.fallbackAct && this.fallbackAct.kind !== 'jump') {
+      if (this.fallbackAct && (forzar || (this.fallbackAct.kind !== 'jump' && this.fallbackAct.kind !== 'dodge'))) {
         this.fallbackAct = null;
         if (this.model) { this.model.rotation.y = 0; this.model.position.y = 0; this.model.scale.set(1, 1, 1); }
       }
+    }
+
+    getMoveInputDir() {
+      const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+      const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
+      const moveX = kbX !== 0 ? kbX : this.joyVec.x;
+      const moveZ = kbZ !== 0 ? kbZ : this.joyVec.y;
+      const mag = Math.hypot(moveX, moveZ);
+      if (mag <= 0.08) return null;
+      if (!this.camera) return { x: moveX / mag, z: moveZ / mag, mag };
+
+      const camForward = new THREE.Vector3();
+      this.camera.getWorldDirection(camForward);
+      camForward.y = 0;
+      if (camForward.lengthSq() < 1e-6) camForward.set(0, 0, -1);
+      else camForward.normalize();
+
+      const camRight = new THREE.Vector3().crossVectors(camForward, new THREE.Vector3(0, 1, 0)).normalize();
+      const moveDir = new THREE.Vector3()
+        .addScaledVector(camForward, -moveZ)
+        .addScaledVector(camRight, moveX);
+      if (moveDir.lengthSq() < 1e-6) return null;
+      moveDir.normalize();
+      return { x: moveDir.x, z: moveDir.z, mag };
+    }
+
+    isDodging() {
+      return !!(this.dodgeState && this.dodgeState.elapsed < this.dodgeState.duration);
+    }
+
+    startDodge(opts = {}) {
+      let dir = null;
+      if (typeof opts.dirX === 'number' && typeof opts.dirZ === 'number') {
+        const len = Math.hypot(opts.dirX, opts.dirZ);
+        if (len > 1e-6) dir = { x: opts.dirX / len, z: opts.dirZ / len };
+      }
+      if (!dir) dir = this.getMoveInputDir() || this.frente();
+
+      this.lockUntil = 0;
+      this.destino = null;
+      this._cortarOneShot(true);
+      this.mirarHacia(dir.x, dir.z);
+
+      this.dodgeState = {
+        dirX: dir.x,
+        dirZ: dir.z,
+        elapsed: 0,
+        duration: opts.duration || 0.34,
+        speed: opts.speed || 22.0
+      };
+      this.playOneShot('dodge');
+      return { dirX: dir.x, dirZ: dir.z };
     }
 
     switchAnimation(nextState) {
@@ -735,49 +797,54 @@
       // Mientras dura una acción de un solo uso no se cambia a idle
       const enAccion = this.activeState === 'oneshot' && this.tiempo < this.oneShotUntil;
 
-      const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
-      const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
-
-      const moveX = kbX !== 0 ? kbX : this.joyVec.x;
-      const moveZ = kbZ !== 0 ? kbZ : this.joyVec.y;
-      const mag = Math.hypot(moveX, moveZ);
-      // El jugador toma el control: se cancela el destino automático
-      if (mag > 0.08 && this.destino) { this.destino = null; this.cancelado = true; }
-
-      if (mag > 0.08 && !locked) {
-        this._cortarOneShot();
-        const isRunning = this.keys.shift || mag > 0.85;
-        if (this.activeState !== 'oneshot') this.switchAnimation(isRunning ? 'run' : 'walk');
-        const speed = (isRunning ? this.runSpeed : this.walkSpeed) * Math.min(1.0, mag);
-
-        const camForward = new THREE.Vector3();
-        this.camera.getWorldDirection(camForward);
-        camForward.y = 0;
-        camForward.normalize();
-
-        const camRight = new THREE.Vector3().crossVectors(camForward, new THREE.Vector3(0, 1, 0)).normalize();
-        const moveDir = new THREE.Vector3()
-          .addScaledVector(camForward, -moveZ)
-          .addScaledVector(camRight, moveX)
-          .normalize();
-
-        const targetAngle = Math.atan2(moveDir.x, moveDir.z);
-        const targetQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
-        this.root.quaternion.slerp(targetQuat, Math.min(1, dt * 12));
-
-        const candidateX = this.root.position.x + moveDir.x * speed * dt;
-        const candidateZ = this.root.position.z + moveDir.z * speed * dt;
-        const resolved = this.resolveCollisions(candidateX, candidateZ);
-
-        this.root.position.x = resolved.x;
-        this.root.position.z = resolved.z;
-
-        this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
-      } else if (this.destino && !locked) {
-        this.caminarADestino(dt, enAccion);
-      } else {
-        if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'sismo')) this.switchAnimation('idle');
+      if (this.dodgeState) {
+        this.dodgeState.elapsed += dt;
+        const p = Math.min(1, this.dodgeState.elapsed / this.dodgeState.duration);
+        const mult = 1.30 - 0.85 * p;
+        const dist = this.dodgeState.speed * mult * dt;
+        const steps = Math.max(1, Math.ceil(dist / 0.4));
+        const stepDist = dist / steps;
+        for (let s = 0; s < steps; s++) {
+          const cx = this.root.position.x + this.dodgeState.dirX * stepDist;
+          const cz = this.root.position.z + this.dodgeState.dirZ * stepDist;
+          const resolved = this.resolveCollisions(cx, cz);
+          this.root.position.x = resolved.x;
+          this.root.position.z = resolved.z;
+        }
         this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
+        if (this.dodgeState.elapsed >= this.dodgeState.duration) {
+          this.dodgeState = null;
+        }
+      } else {
+        const inputDir = this.getMoveInputDir();
+        const mag = inputDir ? inputDir.mag : 0;
+        // El jugador toma el control: se cancela el destino automático
+        if (inputDir && this.destino) { this.destino = null; this.cancelado = true; }
+
+        if (inputDir && !locked) {
+          this._cortarOneShot();
+          const isRunning = this.keys.shift || mag > 0.85;
+          if (this.activeState !== 'oneshot') this.switchAnimation(isRunning ? 'run' : 'walk');
+          const speed = (isRunning ? this.runSpeed : this.walkSpeed) * Math.min(1.0, mag);
+
+          const targetAngle = Math.atan2(inputDir.x, inputDir.z);
+          const targetQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
+          this.root.quaternion.slerp(targetQuat, Math.min(1, dt * 12));
+
+          const candidateX = this.root.position.x + inputDir.x * speed * dt;
+          const candidateZ = this.root.position.z + inputDir.z * speed * dt;
+          const resolved = this.resolveCollisions(candidateX, candidateZ);
+
+          this.root.position.x = resolved.x;
+          this.root.position.z = resolved.z;
+
+          this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
+        } else if (this.destino && !locked) {
+          this.caminarADestino(dt, enAccion);
+        } else {
+          if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'sismo')) this.switchAnimation('idle');
+          this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
+        }
       }
 
       if (this.cameraMode === 'follow') this.colocarCamara();

@@ -76,4 +76,27 @@ t('tras disparar arco o atacar, en cuanto termina el bloqueo y corre hacia otro 
   assert.strictEqual(ch.activeState, 'run', 'tras golpe cuerpo a cuerpo vuelve a correr en cuanto se desplaza');
 });
 
+t('startDodge cancela el bloqueo, avanza en su dirección, respeta muros y termina tras duration', () => {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera();
+  const controls = { target: new THREE.Vector3() };
+  const world = {
+    getWalkableHeight: () => 0,
+    colliders: [{ type: 'box', minX: 3.5, maxX: 5.5, minZ: -4, maxZ: 4 }]
+  };
+  const ch = new CharacterController({ scene, camera, controls, world, glbUrl: null });
+  ch.root.position.set(0, 0, 0);
+  ch.lockUntil = 5.0;
+
+  ch.startDodge({ dirX: 1, dirZ: 0, duration: 0.34, speed: 22.0 });
+  assert.strictEqual(ch.lockUntil, 0, 'startDodge debe limpiar lockUntil');
+  assert.strictEqual(ch.isDodging(), true);
+  assert.ok(ch.frente().x > 0.99, 'el personaje debe orientarse hacia la dirección de esquiva');
+
+  for (let i = 0; i < 8; i++) ch.update(0.05); // 0.40 s > 0.34 s
+  assert.strictEqual(ch.isDodging(), false, 'al finalizar duration debe salir de estado dodge');
+  assert.ok(ch.root.position.x > 1.5, 'debe haberse desplazado hacia el muro');
+  assert.ok(ch.root.position.x <= 3.5 - ch.radius + 0.05, 'la esquiva no debe atravesar el muro (x=' + ch.root.position.x.toFixed(2) + ')');
+});
+
 console.log('\n' + n + ' pruebas de movimiento y puntería automática superadas.');

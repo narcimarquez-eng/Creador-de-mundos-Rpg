@@ -52,7 +52,12 @@
       frase: 'Las bestias del bosque no dejan de proliferar. Despeja a 100 de ellas y te daré un generoso pago y equipo.',
       trama: 'Las manadas desplazadas de las fundiciones clandestinas de los Sabios se ocultan en esta espesura y cortan el suministro de madera.',
       esMar: false,
-      puebloIdx: 0
+      puebloIdx: 0,
+      encargoFases: {
+        rastroNombre: 'Trampa Destrozada con Sello de Bronce',
+        rastroLore: 'El lazo de acero partido conserva el punzón de las fundiciones clandestinas.',
+        liderNombre: 'Colmillo de Ceniza'
+      }
     },
     {
       id: 'cabana-2-posada',
@@ -62,7 +67,12 @@
       frase: 'Los viajeros temen ser devorados por los caminos. Ayúdame abatiendo a 100 de esas criaturas.',
       trama: 'Desde que la guardia dejó de escoltar caravanas civiles, esta posada es el único refugio entre los primeros pueblos de Aden.',
       esMar: false,
-      puebloIdx: 0
+      puebloIdx: 0,
+      encargoFases: {
+        rastroNombre: 'Carreta Volcada del Paso',
+        rastroLore: 'Rastros frescos de zarpas blindadas conducen al acecho del alfa de la ruta.',
+        liderNombre: 'Merodeador del Paso'
+      }
     },
     {
       id: 'cabana-3-pescador',
@@ -72,7 +82,12 @@
       frase: 'Las criaturas costeras asaltan las redes y la orilla. Acaba con 100 y compartiré los tesoros de la marea.',
       trama: 'La marea arrastra restos de jaulas sumergidas con el emblema de la Corona, atrayendo carroñeros alterados hacia las redes.',
       esMar: true,
-      puebloIdx: 0
+      puebloIdx: 0,
+      encargoFases: {
+        rastroNombre: 'Jaula Sumergida Varada en la Orilla',
+        rastroLore: 'Los hierros traídos por la marea llevan el mismo sello que viste en la Fuente Arcana.',
+        liderNombre: 'Acechador de Bajamar'
+      }
     },
     {
       id: 'cabana-4-vigia',
@@ -82,7 +97,12 @@
       frase: 'Desde lo alto diviso manadas salvajes cercando el paso norte. Derrota a 100 antes de que avancen.',
       trama: 'Esta torre vigía controla las columnas de bestias blindadas que descienden desde las cumbres controladas por el cónclave.',
       esMar: false,
-      puebloIdx: 1
+      puebloIdx: 1,
+      encargoFases: {
+        rastroNombre: 'Estandarte Acorazado de la Avanzada',
+        rastroLore: 'El guion ensangrentado señala el punto donde aguarda el alfa de vanguardia.',
+        liderNombre: 'Acorazado de la Cumbre'
+      }
     },
     {
       id: 'cabana-5-redonda',
@@ -92,7 +112,12 @@
       frase: 'Mis cultivos de raíces arcanas son pisoteados por las bestias. Elimina a 100 de ellas para proteger el bosque.',
       trama: 'El aceite oscuro vertido por las forjas prohibidas contamina las aguas bajas y vuelve agresiva a la fauna alrededor del herbolario.',
       esMar: false,
-      puebloIdx: 1
+      puebloIdx: 1,
+      encargoFases: {
+        rastroNombre: 'Raíz Arcana Contaminada',
+        rastroLore: 'Savia negra brota entre los surcos alimentando a una criatura alfa mutada.',
+        liderNombre: 'Espora Corrupta Alfa'
+      }
     }
   ];
 
@@ -285,6 +310,16 @@
       const especieMonstruo = mNormal.name || 'Criatura del Bosque';
       const lvlMonstruo = mNormal.level || 2;
 
+      // Offset determinista para el rastro de Fase 2 (sin alterar la secuencia PRNG compartida)
+      const hR = hashStr(cabDef.id + '|' + W + '|rastro');
+      const angR = ((hR % 360) * Math.PI) / 180;
+      const distR = 28 + ((hR >>> 8) % 7);
+      const rastroOffset = {
+        dx: Math.round(Math.cos(angR) * distR * 10) / 10,
+        dz: Math.round(Math.sin(angR) * distR * 10) / 10
+      };
+      const encF = cabDef.encargoFases || {};
+
       lugares.push({
         id: cabDef.id,
         tipo: 'cabana',
@@ -321,6 +356,16 @@
           entregada: false,
           cumplida: false, // Alias compatible
           completada: false,
+          modalidad: null,
+          faseActual: 1,
+          cantidadFases: 15,
+          rastroEncontrado: false,
+          liderDerrotado: false,
+          multiplicadorPremio: 1,
+          rastroNombre: encF.rastroNombre || 'Rastro Sospechoso',
+          rastroLore: encF.rastroLore || 'Huellas frescas de una bestia alfa merodeando el puesto.',
+          liderNombre: encF.liderNombre || ('Alfa de ' + especieMonstruo),
+          rastroOffset,
           recompensa: {
             oroMin: 1, oroMax: 2000,
             arenaMin: 10, arenaMax: 50,
@@ -1080,13 +1125,219 @@
     };
   }
 
+  // Bloque H4: Encargo de cabaña en 3 Fases cortas vs Cacería Mayor tradicional (100 monstruos)
+  function elegirModalidadCabana(cabana, modalidad) {
+    if (!cabana || !cabana.misionCabana) return { yaAceptada: false, modalidad: null, estado: null };
+    const m = cabana.misionCabana;
+    if (m.aceptada && m.modalidad) {
+      return { yaAceptada: true, modalidad: m.modalidad, estado: estadoMisionCabana(cabana) };
+    }
+    const mod = modalidad === 'fases' ? 'fases' : 'caceria';
+    m.modalidad = mod;
+    m.aceptada = true;
+    cabana.descubierto = true;
+    m.progreso = 0;
+    m.faseActual = 1;
+    m.completada = false;
+    m.cumplida = false;
+    if (mod === 'fases') {
+      const cantF = m.cantidadFases || 15;
+      m.cantidad = cantF;
+      m.objetivoCantidad = cantF;
+      m.rastroEncontrado = false;
+      m.liderDerrotado = false;
+      m.multiplicadorPremio = 1;
+    } else {
+      m.cantidad = 100;
+      m.objetivoCantidad = 100;
+      m.multiplicadorPremio = 1.5;
+    }
+    return { yaAceptada: false, modalidad: mod, estado: estadoMisionCabana(cabana) };
+  }
+
+  function registrarProgresoCabana(cabana, evento) {
+    if (!cabana || !cabana.misionCabana || !evento) return { avanzo: false };
+    const m = cabana.misionCabana;
+    if (!m.aceptada || m.entregada || m.cumplida || m.completada) return { avanzo: false };
+    const inc = Math.max(1, Math.floor(evento.cantidad || 1));
+
+    if (m.modalidad === 'fases') {
+      const fase = m.faseActual || 1;
+      const cantF = m.cantidad || m.cantidadFases || 15;
+      if (fase === 1 && evento.tipo === 'matar') {
+        m.progreso = Math.min(cantF, (m.progreso || 0) + inc);
+        let faseCompletada = 0;
+        if (m.progreso >= cantF) {
+          m.faseActual = 2;
+          faseCompletada = 1;
+        }
+        return {
+          avanzo: true,
+          modalidad: 'fases',
+          faseCompletada,
+          nuevaFase: m.faseActual,
+          lanzarLider: false,
+          completarMision: false,
+          progreso: m.progreso,
+          total: cantF
+        };
+      }
+      if (fase === 2 && evento.tipo === 'rastro') {
+        m.rastroEncontrado = true;
+        m.faseActual = 3;
+        return {
+          avanzo: true,
+          modalidad: 'fases',
+          faseCompletada: 2,
+          nuevaFase: 3,
+          lanzarLider: true,
+          completarMision: false,
+          lore: m.rastroLore || '',
+          liderNombre: m.liderNombre || 'Líder Alfa'
+        };
+      }
+      if (fase === 3 && evento.tipo === 'lider') {
+        m.liderDerrotado = true;
+        m.completada = true;
+        return {
+          avanzo: true,
+          modalidad: 'fases',
+          faseCompletada: 3,
+          nuevaFase: 3,
+          lanzarLider: false,
+          completarMision: true,
+          liderNombre: m.liderNombre || 'Líder Alfa'
+        };
+      }
+      return { avanzo: false };
+    }
+
+    if (evento.tipo === 'matar') {
+      const cantMax = m.cantidad || m.objetivoCantidad || 100;
+      m.progreso = Math.min(cantMax, (m.progreso || 0) + inc);
+      if (m.progreso >= cantMax) m.completada = true;
+      return {
+        avanzo: true,
+        modalidad: m.modalidad || 'caceria',
+        faseCompletada: m.completada ? 1 : 0,
+        nuevaFase: 1,
+        lanzarLider: false,
+        completarMision: !!m.completada,
+        progreso: m.progreso,
+        total: cantMax
+      };
+    }
+    return { avanzo: false };
+  }
+
+  function estadoMisionCabana(cabana) {
+    if (!cabana || !cabana.misionCabana) return null;
+    const m = cabana.misionCabana;
+    const modalidad = m.modalidad || null;
+    const faseActual = m.faseActual || 1;
+    const aceptada = !!m.aceptada;
+    const entregada = !!(m.entregada || m.cumplida);
+    const completada = !!(m.completada || (modalidad !== 'fases' && aceptada && (m.progreso || 0) >= (m.cantidad || 100)));
+    const progreso = m.progreso || 0;
+    const total = m.cantidad || m.objetivoCantidad || (modalidad === 'fases' ? (m.cantidadFases || 15) : 100);
+    const off = m.rastroOffset || { dx: 28, dz: 10 };
+    const rastroX = Math.round((cabana.x + (off.dx || 0)) * 10) / 10;
+    const rastroZ = Math.round((cabana.z + (off.dz || 0)) * 10) / 10;
+
+    let pct = 0;
+    let etiquetaFase = '';
+    let resumenCorto = '';
+    let puntoObjetivo = { x: cabana.x, z: cabana.z, nombre: cabana.nombre || 'Cabaña' };
+
+    if (!aceptada) {
+      etiquetaFase = 'Por elegir modalidad';
+      resumenCorto = '📜 Elige encargo (3 Fases o 100)';
+    } else if (entregada) {
+      pct = 100;
+      etiquetaFase = 'Cobrada';
+      resumenCorto = '✓ Cobrada';
+    } else if (completada) {
+      pct = 100;
+      etiquetaFase = '¡Lista para cobrar!';
+      resumenCorto = '🎉 ¡Lista para cobrar!';
+    } else if (modalidad === 'fases') {
+      if (faseActual === 1) {
+        pct = Math.min(60, Math.round((progreso / Math.max(1, total)) * 60));
+        etiquetaFase = `Fase 1/3 · Despejar manada (${progreso}/${total})`;
+        resumenCorto = `Fase 1/3: ${progreso}/${total}`;
+        puntoObjetivo = { x: cabana.x, z: cabana.z, nombre: `Caza en ${m.zonaNombre || cabana.nombre}` };
+      } else if (faseActual === 2 && !m.rastroEncontrado) {
+        pct = 66;
+        etiquetaFase = `Fase 2/3 · Inspeccionar ${m.rastroNombre || 'el rastro'} [E]`;
+        resumenCorto = `Fase 2/3: Rastro [E]`;
+        puntoObjetivo = { x: rastroX, z: rastroZ, nombre: m.rastroNombre || 'Rastro sospechoso' };
+      } else {
+        pct = 86;
+        etiquetaFase = `Fase 3/3 · Abatir a ${m.liderNombre || 'Líder Alfa'}`;
+        resumenCorto = `Fase 3/3: ${m.liderNombre || 'Líder Alfa'}`;
+        puntoObjetivo = { x: cabana.x, z: cabana.z, nombre: m.liderNombre || 'Líder Alfa' };
+      }
+    } else {
+      pct = Math.min(100, Math.round((progreso / Math.max(1, total)) * 100));
+      etiquetaFase = `Cacería Mayor · ${progreso}/${total} (+50% premio)`;
+      resumenCorto = `${progreso}/${total} (+50%)`;
+    }
+
+    return {
+      modalidad,
+      faseActual,
+      aceptada,
+      completada,
+      entregada,
+      progreso,
+      total,
+      pct,
+      etiquetaFase,
+      resumenCorto,
+      puntoObjetivo
+    };
+  }
+
+  function recompensaCabana(cabana, rng) {
+    const r = typeof rng === 'function' ? rng : Math.random;
+    const m = (cabana && cabana.misionCabana) || {};
+    const rec = m.recompensa || {};
+    const esCaceria = m.modalidad === 'caceria';
+    const mult = esCaceria ? (m.multiplicadorPremio || 1.5) : 1;
+
+    const baseOro = rec.oro || (Math.floor(r() * ((rec.oroMax || 2000) - (rec.oroMin || 1) + 1)) + (rec.oroMin || 1));
+    const baseArena = rec.arena || (Math.floor(r() * ((rec.arenaMax || 50) - (rec.arenaMin || 10) + 1)) + (rec.arenaMin || 10));
+    const oro = Math.round(baseOro * mult);
+    const arena = Math.round(baseArena * mult);
+    const pociones = Math.round((rec.pociones || rec.pocionesVida || 4) * (esCaceria ? 1.5 : 1));
+    const armNivel = rec.armaduraNivel || ((m.nivelMonstruo || 1) * (rec.nivelPiezaMultiplicador || 10));
+    const armCalidad = Math.min(0.99, rec.armaduraCalidad || (0.50 + r() * 0.40));
+    const armNombre = rec.armaduraNombre || ('Peto Reforzado de Cazador Nv.' + armNivel);
+
+    return {
+      oro,
+      arena,
+      pociones,
+      xp: esCaceria ? 250 : 160,
+      armaduraNivel: armNivel,
+      armaduraCalidad: armCalidad,
+      armaduraNombre: armNombre,
+      deltaRep: esCaceria ? { pueblo: 3, vinculo: 1 } : { pueblo: 2, vinculo: 1 },
+      titulo: esCaceria ? 'Cazador Veterano de Frontera' : null
+    };
+  }
+
   const api = {
     TIPOS_SECRETO,
     CABANAS_GLB,
     generarLugaresSecretos,
     construirModeloSecreto,
     aplicarRebajeCabanas,
-    contextoCabana
+    contextoCabana,
+    elegirModalidadCabana,
+    registrarProgresoCabana,
+    estadoMisionCabana,
+    recompensaCabana
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

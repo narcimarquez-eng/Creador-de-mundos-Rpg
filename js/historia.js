@@ -304,6 +304,11 @@
     let cuenta = false;
 
     if (o.tipo === 'matar') {
+      if (ev.tipo === 'avance_interactivo' && (!ev.zona || ev.zona === o.zona)) {
+        const inc = Math.max(1, Math.floor(ev.cantidad || 1));
+        p.progreso = Math.min(o.cantidad, p.progreso + inc);
+        return p.progreso >= o.cantidad;
+      }
       cuenta = (ev.tipo === 'matar' || ev.tipo === 'jefe') && ev.zona === o.zona;
     } else if (o.tipo === 'jefe') {
       cuenta = ev.tipo === 'jefe' && ev.zona === o.zona;
@@ -505,7 +510,32 @@
     }
   };
 
-  function fraseContextualNpc(npcId, p, world) {
+  function matizReputacionNpc(baseId, heroeEst) {
+    if (!heroeEst || typeof heroeEst !== 'object') return '';
+    const rep = heroeEst.reputacion || {};
+    const dec = heroeEst.decisiones || {};
+    if (baseId === 'serv-comandante' && dec.d_c2_lista === 'guardia') {
+      return ' Tu entrega de la orden de ejecución demostró lealtad a la plaza.';
+    }
+    if (baseId === 'serv-comandante' && (rep.sombra || 0) > (rep.pueblo || 0) + 3) {
+      return ' Mis exploradores murmuran sobre tus tratos en las sombras; no cruces la línea.';
+    }
+    if (baseId === 'serv-informante' && dec.d_c2_lista === 'informante') {
+      return ' Aquella copia sellada me abrió media docena de cofres; sigues teniendo preferencia aquí.';
+    }
+    if (baseId === 'serv-hereje' && (dec.d_c6_fuente === 'extraer' || dec.d_c11_altar === 'absorber')) {
+      return ' Percibo el frío del poder antiguo en tu acero… ya no peleas como un simple guardia.';
+    }
+    if (baseId === 'guru-1' && (rep.sombra || 0) >= 6) {
+      return ' Tu aura pesa como el eclipse… recuerda por qué alzamos esta lucha.';
+    }
+    if ((rep.vinculo || 0) >= 6 && (baseId === 'guru-4' || baseId === 'serv-herrero')) {
+      return ' La hermandad entre tu compañero y tú ya es leyenda en las posadas.';
+    }
+    return '';
+  }
+
+  function fraseContextualNpc(npcId, p, world, heroeEst) {
     const baseId = normalizarNpcId(npcId);
     const acto = actoActual(p, world);
     const claveActo = acto.terminado ? 'fin' : acto.numero;
@@ -513,6 +543,7 @@
     const tabla = dialogosDe(world)[baseId] || DIALOGOS_NPC[baseId] || null;
     const fraseBase = tabla ? (tabla[claveActo] || tabla[1]) : null;
     const esProtagonistaCap = !!(cap && cap.npc === baseId);
+    const matiz = matizReputacionNpc(baseId, heroeEst);
 
     if (esProtagonistaCap && cap && world) {
       const obj = resolverObjetivo(cap, world);
@@ -521,7 +552,7 @@
         acto: acto.numero,
         actoNombre: acto.nombre,
         esProtagonista: true,
-        frase: fraseBase ? `${fraseBase} (${cap.titulo}: ${obj.texto})` : obj.encargo
+        frase: fraseBase ? `${fraseBase}${matiz} (${cap.titulo}: ${obj.texto})` : obj.encargo
       };
     }
 
@@ -530,7 +561,7 @@
       acto: acto.numero,
       actoNombre: acto.nombre,
       esProtagonista: false,
-      frase: fraseBase
+      frase: fraseBase ? `${fraseBase}${matiz}` : null
     };
   }
 
@@ -920,12 +951,1358 @@
     };
   }
 
+  // Encrucijadas interactivas en capítulos clave (decisiones persistentes y múltiples finales)
+  const DECISIONES_CAPITULO = {
+    2: {
+      id: 'd_c2_lista',
+      capitulo: 2,
+      pregunta: 'La orden de ejecución oficial lleva vuestros nombres. ¿Qué haces con el pergamino sellado?',
+      contexto: 'La guardia patrulla la entrada del pueblo y el mercado negro puja por información del cónclave.',
+      opciones: [
+        {
+          id: 'guardia',
+          etiqueta: '🛡️ Entregarlo al Comandante Kaelen',
+          tendencia: 'Pueblo +3 · Vínculo +1',
+          resumen: 'Buscas que la guarnición vea quién firma realmente las desapariciones.',
+          efectoTxt: '+3 Pueblo · +1 Vínculo · +80 🪙',
+          deltaRep: { pueblo: 3, sombra: 0, vinculo: 1 },
+          premio: { oro: 80 },
+          consecuencia: 'Kaelen examina el lacre con el ceño fruncido. La guardia empieza a dudar del cónclave y te abre crédito en la plaza.',
+          reaccionRowan: '«Es arriesgado confiar en el uniforme, pero si Kaelen abre los ojos nos ahorrará muchas espadas en contra.»'
+        },
+        {
+          id: 'informante',
+          etiqueta: '🌘 Vender una copia a Varek en la sombra',
+          tendencia: 'Sombra +3',
+          resumen: 'Conviertes el peligro en oro y favor en los bajos fondos.',
+          efectoTxt: '+3 Sombra · +120 🪙 · +1 🧪',
+          deltaRep: { pueblo: 0, sombra: 3, vinculo: 0 },
+          premio: { oro: 120, vida: 1 },
+          consecuencia: 'Varek desliza las monedas bajo la manga: «Con esta firma tengo al consejo agarrado por el cuello».',
+          reaccionRowan: '«Oro sucio… pero en las calzadas necesitaremos cada frasco de cura y cada moneda.»'
+        },
+        {
+          id: 'rowan',
+          etiqueta: '🤝 Quemarla junto a Rowan y cerrar filas',
+          tendencia: 'Vínculo +3',
+          resumen: 'No dependéis ni de la guardia ni de los espías: solo espalda con espalda.',
+          efectoTxt: '+3 Vínculo · +1 🧬',
+          deltaRep: { pueblo: 0, sombra: 0, vinculo: 3 },
+          premio: { puntos: 1 },
+          consecuencia: 'Las cenizas de la orden se las lleva el viento. Ningún bando tiene vuestra firma y vuestro temple se afila.',
+          reaccionRowan: '«Pase lo que pase, tú cubres mi flanco y yo el tuyo. No necesitamos permiso de nadie.»'
+        }
+      ]
+    },
+    4: {
+      id: 'd_c4_espectro',
+      capitulo: 4,
+      pregunta: 'La proyección espectral de la Sabia Elara vibra tras tu Impacto Sísmico. ¿Cómo respondes?',
+      contexto: 'El eco arcano aún conserva parte de su canalización entre las placas del bosque.',
+      opciones: [
+        {
+          id: 'desafiar',
+          etiqueta: '🛡️ Desafiarla y quebrar el foco espectral',
+          tendencia: 'Pueblo +3 · Vínculo +1',
+          resumen: 'Rompes la transmisión delante de los suyos para marcar desafío abierto.',
+          efectoTxt: '+3 Pueblo · +1 Vínculo · +100 EXP',
+          deltaRep: { pueblo: 3, sombra: 0, vinculo: 1 },
+          premio: { xp: 100 },
+          consecuencia: 'El espejo rúnico estalla en mil chispas; los aldeanos presentes comprenden que el cónclave ya no es invencible.',
+          reaccionRowan: '«Eso le habrá dolido hasta la torre del consejo. Que sepan que no somos presa fácil.»'
+        },
+        {
+          id: 'fingir',
+          etiqueta: '🌘 Drenar en silencio su esquirla de enlace',
+          tendencia: 'Sombra +3',
+          resumen: 'Dejas creer al espectro que falló mientras saqueas su energía residual.',
+          efectoTxt: '+3 Sombra · +150 🪙',
+          deltaRep: { pueblo: 0, sombra: 3, vinculo: 0 },
+          premio: { oro: 150 },
+          consecuencia: 'Aíslas el residuo arcano sin alertar a Elara: oro fácil al vender los fragmentos al mercado negro.',
+          reaccionRowan: '«Qué frío estuviste ahí… parece que ya les lees la mente mejor que Mirel.»'
+        },
+        {
+          id: 'preguntar_rowan',
+          etiqueta: '🤝 Compartir la visión con Rowan',
+          tendencia: 'Vínculo +3',
+          resumen: 'Analizáis juntos los latidos subterráneos antes de disiparla.',
+          efectoTxt: '+3 Vínculo · +150 EXP',
+          deltaRep: { pueblo: 0, sombra: 0, vinculo: 3 },
+          premio: { xp: 150 },
+          consecuencia: 'Rowan reconoce el símbolo que palpita en la proyección: exactamente el mismo de los talleres olvidados bajo la montaña.',
+          reaccionRowan: '«Gracias por confiar en lo que vi. Ya no caminamos a ciegas entre sus trampas.»'
+        }
+      ]
+    },
+    6: {
+      id: 'd_c6_fuente',
+      capitulo: 6,
+      pregunta: 'Bajo las aguas luminiscentes yacen jaulas con el sello de la Corona llenas de aceite oscuro.',
+      contexto: 'Las hombreras ya están templadas; aún puedes decidir qué hacer con el hallazgo sumergido.',
+      opciones: [
+        {
+          id: 'liberar',
+          etiqueta: '🛡️ Romper los candados y avisar a los ribereños',
+          tendencia: 'Pueblo +3 · Vínculo +2',
+          resumen: 'Hundes las trampas y dejas limpia la fuente para los viajeros.',
+          efectoTxt: '+3 Pueblo · +2 Vínculo · +150 🪙',
+          deltaRep: { pueblo: 3, sombra: 0, vinculo: 2 },
+          premio: { oro: 150 },
+          consecuencia: 'El agua recupera su transparencia azul y los pescadores agradecen el rescate entre aplausos.',
+          reaccionRowan: '«Las aguas vuelven a respirar. Por esto merece la pena aguantar tantos golpes.»'
+        },
+        {
+          id: 'extraer',
+          etiqueta: '🌘 Embotellar el elixir concentrado para Saelen',
+          tendencia: 'Sombra +4',
+          resumen: 'Aprovechas la savia residual antes de que se disuelva.',
+          efectoTxt: '+4 Sombra · +200 🪙 · +1 💧',
+          deltaRep: { pueblo: 0, sombra: 4, vinculo: 0 },
+          premio: { oro: 200, mana: 1 },
+          consecuencia: 'Llenas dos frascos de agua negra hirviente; el hereje y los contrabandistas pagarán bien por su pureza.',
+          reaccionRowan: '«Saelen se frotará las manos con eso… solo prométeme que no dejarás que oscurezca tu filo.»'
+        }
+      ]
+    },
+    9: {
+      id: 'd_c9_diario',
+      capitulo: 9,
+      pregunta: 'Tienes el diario completo que incrimina a los cinco Sabios. ¿Qué destino le das a la prueba?',
+      contexto: 'Están en juego tanto la revuelta popular como la caída silenciosa de la cúpula.',
+      opciones: [
+        {
+          id: 'publicar',
+          etiqueta: '🛡️ Sacar copias para todas las posadas y guardias',
+          tendencia: 'Pueblo +4 · Vínculo +1',
+          resumen: 'Conviertes el secreto en clamor abierto en cada plaza.',
+          efectoTxt: '+4 Pueblo · +1 Vínculo · +1 🧬',
+          deltaRep: { pueblo: 4, sombra: 0, vinculo: 1 },
+          premio: { puntos: 1 },
+          consecuencia: 'En menos de un día los nombres de los conspiradores corren de boca en boca y las caravanas dejan de temer.',
+          reaccionRowan: '«Ahora sí que no pueden ocultarse tras togas doradas. Todo el reino sabe la verdad.»'
+        },
+        {
+          id: 'chantajear',
+          etiqueta: '🌘 Exigir rescate y salvoconductos a sus emisarios',
+          tendencia: 'Sombra +4',
+          resumen: 'Usas el diario como moneda de cambio para financiar tu campaña.',
+          efectoTxt: '+4 Sombra · +300 🪙 · +2 🧪',
+          deltaRep: { pueblo: 0, sombra: 4, vinculo: 0 },
+          premio: { oro: 300, vida: 2 },
+          consecuencia: 'Los mensajeros del cónclave dejan bolsas de oro selladas en la espesura, aunque con ojos llenos de rencor.',
+          reaccionRowan: '«Les has hecho pagar por adelantado. Pero ten por seguro que enviarán asesinos más duros.»'
+        },
+        {
+          id: 'confiar_ysolde',
+          etiqueta: '🤝 Entregarlo a Ysolde para que rompa sus votos',
+          tendencia: 'Vínculo +4',
+          resumen: 'Le das la coartada moral necesaria para desertar del consejo.',
+          efectoTxt: '+4 Vínculo · +1 🧬',
+          deltaRep: { pueblo: 0, sombra: 0, vinculo: 4 },
+          premio: { puntos: 1 },
+          consecuencia: 'Ysolde lee los párrafos con rabia contenida y arroja su medallón eclesial al suelo, jurando ayudaros hasta el final.',
+          reaccionRowan: '«Ganar a Ysolde dentro de su propio templo vale más que diez armerías.»'
+        }
+      ]
+    },
+    11: {
+      id: 'd_c11_altar',
+      capitulo: 11,
+      pregunta: 'La llama del Altar Rúnico acaba de quebrar el monopolio comercial. ¿A quién confías las runas?',
+      contexto: 'Las fraguas superiores acaban de abrirse; el poder restante del altar todavía vibra.',
+      opciones: [
+        {
+          id: 'gremios',
+          etiqueta: '🛡️ Entregar la llave al gremio de Brann y Tovi',
+          tendencia: 'Pueblo +3',
+          resumen: 'Garantizas que ningún otro consejo vuelva a cerrar el libre comercio.',
+          efectoTxt: '+3 Pueblo · +250 🪙',
+          deltaRep: { pueblo: 3, sombra: 0, vinculo: 0 },
+          premio: { oro: 250 },
+          consecuencia: 'Los artesanos y mercaderes celebran el fin de los aranceles abusivos con un generoso premio de campaña.',
+          reaccionRowan: '«¡Por fin Brann puede golpear acero de verdad sin esconderse tras un muro!»'
+        },
+        {
+          id: 'absorber',
+          etiqueta: '🌘 Absorber el resto del sello rúnico para tu técnica',
+          tendencia: 'Sombra +3',
+          resumen: 'Concentras el remanente del altar directamente en tus habilidades.',
+          efectoTxt: '+3 Sombra · +1 🧬',
+          deltaRep: { pueblo: 0, sombra: 3, vinculo: 0 },
+          premio: { puntos: 1 },
+          consecuencia: 'Una corriente fría recorre tu brazo: el monopolio ha muerto y tú heredas su antigua potencia concentrada.',
+          reaccionRowan: '«¡Cuidado! Ese altar lleva siglos acumulando energía ajena… aunque reconozco tu fuerza.»'
+        }
+      ]
+    },
+    13: {
+      id: 'd_c13_corazon',
+      capitulo: 13,
+      pregunta: 'El cristal flotante del Santuario late sincronizado con el Titán mecánico. ¿Cómo actúas?',
+      contexto: 'Aún queda el combate decisivo contra la bestia titánica.',
+      opciones: [
+        {
+          id: 'destruir',
+          etiqueta: '🛡️ Astillar sus conductos para proteger los caminos',
+          tendencia: 'Pueblo +3 · Vínculo +2',
+          resumen: 'Cortas los enlaces arcanos hacia las aldeas antes del asalto.',
+          efectoTxt: '+3 Pueblo · +2 Vínculo · +200 EXP',
+          deltaRep: { pueblo: 3, sombra: 0, vinculo: 2 },
+          premio: { xp: 200 },
+          consecuencia: 'Las placas del santuario quedan silenciadas; los pueblos ya no corren peligro de sufrir otra oleada mientras subes.',
+          reaccionRowan: '«Las rutas de abajo están a salvo. Ahora sí podemos encarar al coloso con la mente limpia.»'
+        },
+        {
+          id: 'drenar',
+          etiqueta: '🌘 Arrancar una esquirla viva del cristal',
+          tendencia: 'Sombra +4',
+          resumen: 'Aseguras un núcleo de energía pura de altísimo valor.',
+          efectoTxt: '+4 Sombra · +250 🪙',
+          deltaRep: { pueblo: 0, sombra: 4, vinculo: 0 },
+          premio: { oro: 250 },
+          consecuencia: 'El fragmento aún palpita en tu bolsa con un brillo ambarino temible y valiosísimo.',
+          reaccionRowan: '«Ese pedazo late como si siguiera vivo… no tardes en acabar con su dueño.»'
+        }
+      ]
+    },
+    16: {
+      id: 'd_c16_juicio',
+      capitulo: 16,
+      pregunta: 'La plaza entera aguarda tu veredicto sobre los Sabios derrotados y el futuro del reino.',
+      contexto: 'Tu última elección sellará qué clase de leyenda cantarán las próximas generaciones.',
+      opciones: [
+        {
+          id: 'luz',
+          etiqueta: '☀️ Justicia del Alba: destruir el núcleo y restaurar el consejo abierto',
+          tendencia: 'Final Luz · +25 Vida Máx permanente',
+          resumen: 'Sometes a los culpables a juicio público y fundas leyes limpias para todos los pueblos.',
+          efectoTxt: '+4 Pueblo · +2 Vínculo · +2 🧬 · 👑 Guardianes del Alba',
+          deltaRep: { pueblo: 4, sombra: 0, vinculo: 2 },
+          premio: { puntos: 2, titulo: 'Guardianes del Alba' },
+          finalId: 'luz',
+          consecuencia: 'El núcleo es pulverizado ante la multitud. Nacen asambleas abiertas desde la costa hasta la sierra.',
+          reaccionRowan: '«¡Lo logramos de verdad! Hoy nadie volverá a mandar en la sombra sobre estas murallas.»'
+        },
+        {
+          id: 'sombra',
+          etiqueta: '🌘 Trono del Eclipse: conservar el sello del cónclave bajo tu mano',
+          tendencia: 'Final Sombra · +8% Crítico permanente',
+          resumen: 'Exiges sumisión de los gremios ocultos y tomas las riendas del antiguo poder.',
+          efectoTxt: '+5 Sombra · +400 🪙 · +2 🧬 · 👑 Señores del Eclipse',
+          deltaRep: { pueblo: 0, sombra: 5, vinculo: 0 },
+          premio: { oro: 400, puntos: 2, titulo: 'Señores del Eclipse' },
+          finalId: 'sombra',
+          consecuencia: 'Ningún funcionario alza la vista al pasar ante ti. Las arcas reales y los secretos arcanos cambian de dueño.',
+          reaccionRowan: '«Vaya silencio en la plaza… cumpliste nuestra promesa, pero ten cuidado en quién te conviertes.»'
+        },
+        {
+          id: 'equilibrio',
+          etiqueta: '⚖️ Pacto de la Hermandad: repartir el mandato con Rowan y Brann',
+          tendencia: 'Final Equilibrio · +2 Maestría de Compañero',
+          resumen: 'Ni consejo tirano ni trono solitario: una guardia errante vela por las rutas.',
+          efectoTxt: '+2 Pueblo · +4 Vínculo · +2 🧬 · +2 ⭐ Comp · 👑 Custodios del Pacto',
+          deltaRep: { pueblo: 2, sombra: 0, vinculo: 4 },
+          premio: { puntos: 2, compPuntos: 2, titulo: 'Custodios del Pacto' },
+          finalId: 'equilibrio',
+          consecuencia: 'Brann abre hermandad de forjadores libres, Ysolde custodia los altares y Rowan cabalga a tu par.',
+          reaccionRowan: '«De aprendiz de aldea a Custodio del Pacto… ¡aún nos esperan muchas mazmorras juntos!»'
+        }
+      ]
+    }
+  };
+
+  const EPILOGOS_FINALES = {
+    luz: {
+      id: 'luz',
+      titulo: '☀️ Final del Alba · La Plaza Libre',
+      badge: 'Guardianes del Alba (+25 Vida Máxima permanente)',
+      texto: 'Las antiguas jaulas y fraguas prohibidas fueron desmanteladas ante toda la ciudad. Brann encabeza un gremio abierto de artesanos, Kaelen patrulla rutas seguras y tu nombre abre todas las puertas sin miedo.'
+    },
+    sombra: {
+      id: 'sombra',
+      titulo: '🌘 Final del Eclipse · El Nuevo Señorío',
+      badge: 'Señores del Eclipse (+8% Crítico permanente)',
+      texto: 'Los sellos del cónclave sobrevivieron bajo tu custodia. Varek y Saelen te rinden cuentas entre murmullos mientras nadie osa bloquear tus caravanas: el reino vive en paz, pero tiembla cuando desenvainas.'
+    },
+    equilibrio: {
+      id: 'equilibrio',
+      titulo: '⚖️ Final del Pacto · Hermandad de los Caminos',
+      badge: 'Custodios del Pacto (+2 Maestría para tu Compañero)',
+      texto: 'Ni consejo oculto ni corona férrea: el poder volvió a los pueblos y a quienes protegen los senderos. Tú y Rowan seguís siendo los guardianes errantes de cada frontera, cabaña y cripta olvidada.'
+    }
+  };
+
+  function decisionDeCapitulo(numero) {
+    return DECISIONES_CAPITULO[Number(numero)] || null;
+  }
+
+  function aplicarDecision(heroeEst, numero, opcionId) {
+    const dec = decisionDeCapitulo(numero);
+    if (!dec) throw new Error('Este capítulo no tiene decisión asociada: ' + numero);
+    const opt = dec.opciones.find(o => o.id === opcionId);
+    if (!opt) throw new Error('Opción de decisión inválida: ' + opcionId);
+    if (!heroeEst || typeof heroeEst !== 'object') throw new Error('Estado de héroe requerido');
+    heroeEst.decisiones = heroeEst.decisiones || {};
+    heroeEst.reputacion = heroeEst.reputacion || { pueblo: 0, sombra: 0, vinculo: 0 };
+    heroeEst.titulos = Array.isArray(heroeEst.titulos) ? heroeEst.titulos : [];
+
+    if (heroeEst.decisiones[dec.id]) {
+      const prevOpt = dec.opciones.find(o => o.id === heroeEst.decisiones[dec.id]) || opt;
+      return {
+        yaTomada: true,
+        decision: dec,
+        opcion: prevOpt,
+        premio: {},
+        epilogo: heroeEst.finalId ? (EPILOGOS_FINALES[heroeEst.finalId] || null) : null
+      };
+    }
+
+    heroeEst.decisiones[dec.id] = opt.id;
+    const clmp = v => Math.max(-20, Math.min(50, Math.trunc(v)));
+    const dr = opt.deltaRep || {};
+    heroeEst.reputacion.pueblo = clmp((heroeEst.reputacion.pueblo || 0) + (dr.pueblo || 0));
+    heroeEst.reputacion.sombra = clmp((heroeEst.reputacion.sombra || 0) + (dr.sombra || 0));
+    heroeEst.reputacion.vinculo = clmp((heroeEst.reputacion.vinculo || 0) + (dr.vinculo || 0));
+    if (opt.finalId) heroeEst.finalId = opt.finalId;
+    const premio = opt.premio || {};
+    if (premio.puntos) heroeEst.puntos = (heroeEst.puntos || 0) + premio.puntos;
+    if (premio.titulo && !heroeEst.titulos.includes(premio.titulo)) heroeEst.titulos.push(premio.titulo);
+    return {
+      yaTomada: false,
+      decision: dec,
+      opcion: opt,
+      premio,
+      epilogo: opt.finalId ? (EPILOGOS_FINALES[opt.finalId] || null) : null
+    };
+  }
+
+  function epilogoDe(heroeEst, world) {
+    if (heroeEst && heroeEst.finalId && EPILOGOS_FINALES[heroeEst.finalId]) {
+      return EPILOGOS_FINALES[heroeEst.finalId];
+    }
+    const acto = actoActual(heroeEst && heroeEst.principal ? heroeEst.principal : { paso: 0 }, world);
+    return {
+      id: 'base',
+      titulo: acto.nombre,
+      badge: 'Crónica de campaña',
+      texto: acto.resumen
+    };
+  }
+
+  // Diálogos interactivos con 3 opciones reales al hablar con cualquier Sabio o Servicio
+  function dialogoInteractivoNpc(npcId, heroeEst, world) {
+    const baseId = normalizarNpcId(npcId);
+    const p = (heroeEst && heroeEst.principal) ? heroeEst.principal : { paso: 0, progreso: 0, objetivo: null };
+    const acto = actoActual(p, world);
+    const claveActo = acto.terminado ? 'fin' : acto.numero;
+    const cap = capituloActual(p, world);
+    const obj = (!terminada(p, world) && world) ? resolverObjetivo(cap, world) : null;
+    const ctx = fraseContextualNpc(baseId, p, world, heroeEst);
+    const vistos = (heroeEst && heroeEst.dialogosVistos) || {};
+    const dun = (world && world.dungeons && world.dungeons[0]) ? world.dungeons[0].name : 'la cripta antigua';
+    const pobIni = puebloInicial(world);
+    const nomIni = (pobIni && pobIni.name) || 'la plaza';
+
+    const tramas = {
+      'guru-1': {
+        1: 'El cónclave controla cada yunque desde la sombra. Si encuentras sellos de bronce entre las bestias, no confíes ni en tu propia sombra.',
+        2: 'Las jaulas bajo las fuentes se fabricaron con hierro de las minas reales antes del asedio.',
+        3: 'Ya no finjas obediencia: si llegas al santuario mayor entenderás qué intentábamos contener bajo el cráter.',
+        4: 'Solo un alma templada puede cerrar el juicio sin repetir nuestra caída.',
+        fin: 'La historia siempre olvida los nombres de quienes firman las leyes en secreto… pero recordará los vuestros.'
+      },
+      'guru-2': {
+        1: 'Cortamos los mapas de las calzadas para que los inquisidores perdieran el rastro de vuestros pasos.',
+        2: 'Las vetas fuera de la carretera principal escapan al recuento fiscal de los Sabios.',
+        3: 'Ahora que el Altar Rúnico arde libre, ningún comerciante pagará tributo al Óxido.',
+        4: 'Hasta los arrieros de las fronteras regresan cargados de especias y acero limpio.',
+        fin: 'Las siete rutas de comercio cantan baladas de vuestra travesía.'
+      },
+      'guru-3': {
+        1: 'Cada túnica blanca oculta manchas grises de aceite rúnico. Sigue entrenando tus técnicas.',
+        2: 'Cuando liberé el sello antiguo de la Nova supe que nuestro tiempo como consejo había terminado.',
+        3: 'No tengas piedad con los centinelas de élite de la cúpula; no son hombres, sino cascarones.',
+        4: 'Limpia la última mancha en la fuente y serás libre de todo juramento.',
+        fin: 'Por fin enseño las runas sin miedo a una purga.'
+      },
+      'guru-4': {
+        1: 'Llevo veinte inviernos oliendo esta corrupción. Las piezas de metal incrustadas en los lobos salen de un mismo crisol.',
+        2: 'En aquella cabaña dejé marcas en las vigas para que quien encontrara el diario supiera bajar hasta las criptas.',
+        3: 'Cuando cargues contra el titán, no golpees su escudo: espera al instante tras su impacto pesado.',
+        4: 'Al ver caer a aquel coloso respiré por primera vez sin sentir metal bajo los pies.',
+        fin: 'Si aún buscas desafíos de acero puro, desciende a ' + dun + '.'
+      },
+      'guru-5': {
+        1: 'Reviso las bajas de cada patrulla: hay envíos enteros de armaduras que nunca llegaron al frente.',
+        2: 'Con cada prueba que recoges, un nombre nuevo cae en mis actas de acusación.',
+        3: 'Falta poco para reunir al pueblo entero bajo la arcada y dictar sentencia.',
+        4: 'Cada testigo desde los muelles hasta el norte ha confirmado vuestro relato.',
+        fin: 'Vuestro nombre abre el primer tomo de la Nueva Crónica de ' + nomIni + '.'
+      },
+      'serv-herrero': {
+        1: 'Cada coraza de bestia que deshago en la fragua tiene estampado el punzón del consejo.',
+        2: 'Dame mineral sin contaminar y haré saltar chispas azules hasta forjar tu arma.',
+        3: '¡Qué descanso volver a golpear el yunque a plena luz del día!',
+        4: 'Solo queda cerrar el juicio para que jamás cierren otra forja libre.',
+        fin: 'Mientras siga en pie, nunca te faltará acero.'
+      },
+      'serv-mercader': {
+        1: 'Me sellaron los cofres con lacre rojo; apenas puedo comerciar pociones y retales.',
+        2: 'Dicen en las posadas que pronto caerá algún altar grande cerca del camino.',
+        3: '¡Libre comercio! Los precios vuelven a fluir y tengo mejor género listo.',
+        4: 'Las caravanas brindan por vuestra victoria en cada taberna.',
+        fin: 'Ningún sello prohibido volverá a cerrar nuestras tiendas.'
+      },
+      'serv-comandante': {
+        1: 'Mis hombres obedecen órdenes selladas… pero no soy ciego: las desapariciones huelen mal.',
+        2: 'Ya tengo medio batallón listo para ignorar los avisos del cónclave cuando pases.',
+        3: 'Cubrimos las puertas de la plaza para que avances hacia las cumbres sin emboscadas por la espalda.',
+        4: 'La guarnición espera tu veredicto final con las lanzas firmes.',
+        fin: 'Un honor haber luchado del lado correcto de la muralla.'
+      },
+      'serv-informante': {
+        1: 'Por aquí pasan demasiados mensajeros con bolsas pesadas y pocas respuestas.',
+        2: 'Si buscas cabañas o jaulas, sigue las huellas de carros sin marca oficial.',
+        3: 'Hasta mis espías celebran que rompieras el monopolio: hay más oro circulando para todos.',
+        4: 'Cuando acabe la fiesta en la plaza, los tesoros de ' + dun + ' seguirán intactos.',
+        fin: 'Siempre seremos socios mientras quede un rincón oscuro por explorar.'
+      },
+      'serv-boticaria': {
+        1: 'Ese aceite oscuro que enloquece a las fieras es el mismo que destilan en secreto los templos.',
+        2: 'Si pisas los pantanos sin bálsamo, la savia te delatará a cien metros.',
+        3: 'El corazón del titán late con alquimia vieja: lleva pociones concentradas.',
+        4: 'Me alegra que eligieras purificar la fuente en lugar de quemarla.',
+        fin: 'Si bajas a las catacumbas, pasa primero por mis destilados.'
+      },
+      'serv-hereje': {
+        1: 'Me desterraron por grabar runas de maná mientras ellos clavaban placas a lobos vivos.',
+        2: 'Cada vez que rompes uno de sus sellos, mis viejos planos cobran vida.',
+        3: 'Para tumbar al señor de las bestias hace falta filo oscuro, no rezos suaves.',
+        4: 'Incluso en un reino en paz alguien debe vigilar lo que respira bajo la roca.',
+        fin: 'Mi yunque no juzga bandos: solo tempera poder real.'
+      }
+    };
+
+    const pistaActual = obj
+      ? `Objetivo actual (Cap. ${p.paso + 1}): ${obj.texto}. Recuerda ajustar la hora con T o usar la ruta automática (🧭) si buscas el camino rápido.`
+      : `Toda la crónica está completa. Explora ${dun} o habla con las 5 cabañas especiales para desafíos mayores.`;
+
+    const keyTrama = `${baseId}_trama_${claveActo}`;
+    const keyPista = `${baseId}_pista_${cap ? cap.id : 'fin'}`;
+    const keyPost = `${baseId}_postura_${claveActo}`;
+    const esSombraNpc = baseId === 'serv-informante' || baseId === 'serv-boticaria' || baseId === 'serv-hereje';
+
+    return {
+      npcId: baseId,
+      acto: acto.numero,
+      saludo: ctx.frase || '',
+      opciones: [
+        {
+          id: 'trama',
+          etiqueta: '🔍 Preguntar sobre el cónclave y este acto',
+          respuesta: (tramas[baseId] && tramas[baseId][claveActo]) || 'Los vientos cambian sobre el reino. Mantén los ojos abiertos.',
+          deltaRep: { vinculo: 1 },
+          xp: 35,
+          vistoKey: keyTrama,
+          vista: !!vistos[keyTrama]
+        },
+        {
+          id: 'pista',
+          etiqueta: '🧭 Pedir orientación práctica sobre el siguiente objetivo',
+          respuesta: pistaActual,
+          pista: obj ? obj.texto : null,
+          vistoKey: keyPista,
+          vista: !!vistos[keyPista]
+        },
+        {
+          id: 'postura',
+          etiqueta: esSombraNpc ? '🌘 Acordar discreción y favor en la sombra' : '🛡️ Prometer defensa del pueblo y las rutas',
+          respuesta: esSombraNpc
+            ? '«Trato hecho. Quien mueve oro sin hacer ruido siempre encuentra puertas entreabiertas aquí.»'
+            : '«Que así sea. Las gentes de estas tierras recordarán quién sostuvo el escudo por ellas.»',
+          deltaRep: esSombraNpc ? { sombra: 1 } : { pueblo: 1 },
+          xp: 20,
+          vistoKey: keyPost,
+          vista: !!vistos[keyPost]
+        }
+      ]
+    };
+  }
+
+  function resolverOpcionDialogo(heroeEst, opcion) {
+    if (!heroeEst || !opcion) return { primeraVez: false, respuesta: '', deltaRep: null, xp: 0, oro: 0, pista: null };
+    heroeEst.dialogosVistos = heroeEst.dialogosVistos || {};
+    heroeEst.reputacion = heroeEst.reputacion || { pueblo: 0, sombra: 0, vinculo: 0 };
+    const clave = opcion.vistoKey || '';
+    const primeraVez = !!(clave && !heroeEst.dialogosVistos[clave]);
+    if (clave) heroeEst.dialogosVistos[clave] = true;
+    let appliedRep = null;
+    if (primeraVez && opcion.deltaRep) {
+      const clmp = v => Math.max(-20, Math.min(50, Math.trunc(v)));
+      ['pueblo', 'sombra', 'vinculo'].forEach(k => {
+        if (opcion.deltaRep[k]) heroeEst.reputacion[k] = clmp((heroeEst.reputacion[k] || 0) + opcion.deltaRep[k]);
+      });
+      appliedRep = opcion.deltaRep;
+    }
+    return {
+      primeraVez,
+      respuesta: opcion.respuesta || '',
+      deltaRep: appliedRep,
+      xp: primeraVez ? (opcion.xp || 0) : 0,
+      oro: primeraVez ? (opcion.oro || 0) : 0,
+      pista: opcion.pista || null
+    };
+  }
+
+  function subtituloVivo(evento, heroeEst, world, nombreCompanero) {
+    if (!evento || !evento.tipo) return null;
+    const comp = nombreCompanero || 'Rowan';
+    const p = (heroeEst && heroeEst.principal) ? heroeEst.principal : { paso: 0 };
+    const rep = (heroeEst && heroeEst.reputacion) || {};
+    const acto = actoActual(p, world);
+    const nom = evento.nombre || '';
+
+    if (evento.tipo === 'decision' && evento.reaccion) {
+      return {
+        hablante: comp,
+        icono: '🗣️',
+        texto: evento.reaccion,
+        replica: evento.replicaHeroe ? { hablante: 'Héroe', texto: evento.replicaHeroe } : null
+      };
+    }
+    if (evento.tipo === 'pueblo') {
+      const pNom = nom || 'el pueblo';
+      const msg = monopolioRoto(p)
+        ? `«Las fraguas y mercados de ${pNom} respiran libres al fin. Buen trabajo, camarada.»`
+        : ((rep.sombra || 0) > (rep.pueblo || 0) + 2
+          ? `«Cuidado al cruzar la plaza de ${pNom}: tus tratos en la sombra ya despiertan rumores.»`
+          : `«Entramos en ${pNom}. Revisa el estado de tu cota en el yunque de Brann antes de salir.»`);
+      const repH = monopolioRoto(p)
+        ? '«Y aún nos queda asegurar las fronteras y las criptas antiguas.»'
+        : '«Echemos un vistazo rápido a provisiones y encargos antes de partir.»';
+      return { hablante: comp, icono: '🏘️', texto: msg, replica: { hablante: 'Héroe', texto: repH } };
+    }
+    if (evento.tipo === 'mazmorra') {
+      const mNom = nom || 'la cripta';
+      return {
+        hablante: comp,
+        icono: '🗝️',
+        texto: `«Qué aire tan helado sube de ${mNom}… prepárate para esquivar (X) si el guardián ruge.»`,
+        replica: { hablante: 'Héroe', texto: '«Mantén la formación cerrada tras de mí. Vamos a limpiar esta cámara.»' }
+      };
+    }
+    if (evento.tipo === 'zona_peligrosa') {
+      const zNom = nom || 'esta comarca hostil';
+      return {
+        hablante: comp,
+        icono: '⚠️',
+        texto: `«¡Atención al entrar en ${zNom}! Las patrullas de élite aquí no dan tregua.»`,
+        replica: { hablante: 'Héroe', texto: '«Buen ojo. Prepara tus dopes en cuanto rompan la distancia.»' }
+      };
+    }
+    if (evento.tipo === 'jefe_caido') {
+      const jNom = nom || 'el coloso';
+      return {
+        hablante: comp,
+        icono: '⚔️',
+        texto: `«¡${jNom} ha caído! Todo el reino sentirá que el cónclave pierde el control.»`,
+        replica: { hablante: 'Héroe', texto: '«Recojamos las pruebas de este combate y sigamos la pista principal.»' }
+      };
+    }
+    if (evento.tipo === 'cabana') {
+      const cNom = nom || 'el puesto fronterizo';
+      if (evento.fase === 'rastro') {
+        return {
+          hablante: comp,
+          icono: '🔎',
+          texto: `«¡Por aquí cerca de ${cNom} hay huellas frescas del líder de la manada!»`,
+          replica: { hablante: 'Héroe', texto: '«Inspeccionemos el rastro y acabemos con el alfa de una vez.»' }
+        };
+      }
+      if (evento.fase === 'lider') {
+        return {
+          hablante: comp,
+          icono: '🐺',
+          texto: `«¡Ese alfa de ${cNom} ha caído! Los aldeanos de la cabaña respirarán en paz.»`,
+          replica: { hablante: 'Héroe', texto: '«Volvamos con el guarda de la cabaña a entregar el contrato.»' }
+        };
+      }
+      return {
+        hablante: comp,
+        icono: '🏡',
+        texto: `«Cuidar puestos avanzados como ${cNom} deja sin guarida a las bestias del cónclave.»`,
+        replica: { hablante: 'Héroe', texto: '«Paso a paso aseguraremos todos los senderos entre pueblos.»' }
+      };
+    }
+    if (evento.tipo === 'mision_comp') {
+      if (evento.fase === 'talento') {
+        const tNom = evento.talento || 'juramento marcial';
+        return {
+          hablante: comp,
+          icono: '🌟',
+          texto: `«Luchar contigo ha despertado mi ${tNom}. ¡Ya no hay bestia ni inquisidor que me haga retroceder!»`,
+          replica: { hablante: 'Héroe', texto: '«Eres irreemplazable en este camino. Seguimos espalda con espalda.»' }
+        };
+      }
+      return {
+        hablante: comp,
+        icono: '🤝',
+        texto: `«Avanzamos en nuestra propia senda juntos, camarada. Siento el pulso más firme en cada lance.»`,
+        replica: { hablante: 'Héroe', texto: '«Nuestra alianza pesa más que cualquier decreto del consejo.»' }
+      };
+    }
+    if (evento.tipo === 'charla_camino') {
+      const arq = evento.arquetipo || 'rowan';
+      if (arq === 'lyra') {
+        return {
+          hablante: comp,
+          icono: '🗡️',
+          texto: (rep.sombra || 0) >= 4
+            ? '«Sabes moverte entre los secretos de esta tierra mejor que mis antiguos informantes.»'
+            : '«No dejes que el cónclave marque el ritmo: golpeamos donde menos vigilan.»',
+          replica: { hablante: 'Héroe', texto: '«Tus dagas y mis técnicas cubren cualquier emboscada.»' }
+        };
+      }
+      if (arq === 'elian') {
+        return {
+          hablante: comp,
+          icono: '✨',
+          texto: acto.numero >= 3
+            ? '«Las runas antiguas ya responden limpias fuera del yugo de los Sabios.»'
+            : '«Incluso en la espesura queda luz pura que el Óxido no ha logrado corromper.»',
+          replica: { hablante: 'Héroe', texto: '«Tus barreras nos mantendrán enteros hasta cerrar la crónica.»' }
+        };
+      }
+      if (arq === 'brenda') {
+        return {
+          hablante: comp,
+          icono: '🪓',
+          texto: '«¡Tanto rodeo de sellos y papeles! Donde entra el acero libre no queda trampa en pie.»',
+          replica: { hablante: 'Héroe', texto: '«Mantén esa furia lista para el próximo élite de la ruta.»' }
+        };
+      }
+      const lineaRowan = acto.terminado
+        ? '«Quién iba a decir al salir de la aldea que acabaríamos siendo leyenda en las rutas.»'
+        : (acto.numero >= 3
+          ? '«Con las fraguas abiertas y medio consejo acorralado, cada paso nos acerca al juicio final.»'
+          : (acto.numero === 2
+            ? '«Entre fuentes arcanas y diarios ocultos, el cerco de mentiras de Elara se agrieta.»'
+            : '«Brann confió en nosotros al darnos aquel primer cinturón. No le fallaremos.»'));
+      return {
+        hablante: comp,
+        icono: '🥾',
+        texto: lineaRowan,
+        replica: { hablante: 'Héroe', texto: '«Sigamos la calzada; aún hay mucho por descubrir y proteger.»' }
+      };
+    }
+    if (evento.tipo === 'hora') {
+      if (evento.hora === 'night') {
+        return {
+          hablante: comp, icono: '🌙',
+          texto: '«Cae la noche sobre el valle… mantén las pociones a mano y los ojos en las sombras.»',
+          replica: { hablante: 'Héroe', texto: '«Seguiremos atentos a las antorchas de los caminos.»' }
+        };
+      }
+      if (evento.hora === 'golden') {
+        return {
+          hablante: comp, icono: '🌇',
+          texto: '«El cielo arde en oro; buen momento para explorar antes de que oscurezca.»',
+          replica: { hablante: 'Héroe', texto: '«Aprovechemos la última luz para revisar pistas cercanas.»' }
+        };
+      }
+      return {
+        hablante: comp, icono: '☀️',
+        texto: '«Amanece limpio sobre el camino. Sigamos adelante.»',
+        replica: { hablante: 'Héroe', texto: '«Un día más para ganar terreno al cónclave.»' }
+      };
+    }
+    return null;
+  }
+
+  // Bloque H2: Pistas investigables en 3D, rituales de secretos, reliquias de mazmorras/laberintos y eventos de camino
+  function hashPistaStr(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+    return h;
+  }
+
+  function sumarRepHito(heroeEst, dr) {
+    if (!heroeEst || !dr) return;
+    heroeEst.reputacion = heroeEst.reputacion || { pueblo: 0, sombra: 0, vinculo: 0 };
+    const clmp = v => Math.max(-20, Math.min(50, Math.trunc(v)));
+    ['pueblo', 'sombra', 'vinculo'].forEach(k => {
+      if (dr[k]) heroeEst.reputacion[k] = clmp((heroeEst.reputacion[k] || 0) + dr[k]);
+    });
+  }
+
+  function pistasDeCapitulo(cap, objetivo, world) {
+    if (!cap || !objetivo || objetivo.tipo !== 'matar' || !objetivo.zona || !world || !Array.isArray(world.zones)) {
+      return [];
+    }
+    const z = world.zones.find(x => x.id === objetivo.zona);
+    if (!z) return [];
+    const zx = z.x || 0;
+    const zz = (z.y !== undefined ? z.y : z.z) || 0;
+    const R = Math.max(24, (z.radius || 100) * 0.85);
+    const numCap = parseInt(String(cap.id || 'c1').replace(/\D/g, ''), 10) || 1;
+    const actoIdx = numCap <= 5 ? 0 : (numCap <= 10 ? 1 : 2);
+    const PLANTILLAS_PISTA = [
+      [
+        { icono: '🔏', nombre: 'Sello de bronce partido', lore: `Emblema del Cónclave incrustado junto a restos metálicos en ${z.name}.`, reacc: '«Este sello lleva la marca oficial de la plaza… otro indicio de su conspiración.»' },
+        { icono: '🛞', nombre: 'Carreta de forja saqueada', lore: `Restos de carro con placas grabadas halladas entre la maleza de ${z.name}.`, reacc: '«Transportaban hierro militar sin declarar rumbo hacia las afueras.»' },
+        { icono: '📜', nombre: 'Orden cifrada del Cónclave', lore: `Pergamino a medio arder con rutas secretas de patrullas en ${z.name}.`, reacc: '«Mira estas coordenadas… ahora sabemos dónde concentran sus fuerzas.»' }
+      ],
+      [
+        { icono: '🧪', nombre: 'Vial de savia gris', lore: `Frasco alquímico roto cuya sustancia tiñe el suelo de ${z.name}.`, reacc: '«El mismo aceite turbio que goteaba de la túnica de Ysolde…»' },
+        { icono: '🗿', nombre: 'Marca rúnica en piedra', lore: `Estela oculta en ${z.name} con glifos hacia las fuentes y altares antiguos.`, reacc: '«Esos símbolos no son suyos: pertenecen a los antiguos guardianes del reino.»' },
+        { icono: '📓', nombre: 'Diario de explorador caído', lore: `Anotaciones de campo sobre los convoyes blindados de ${z.name}.`, reacc: '«Alguien pagó muy caro por dejarnos este aviso antes de caer.»' }
+      ],
+      [
+        { icono: '⚙️', nombre: 'Núcleo de autómata fundido', lore: `Engranaje rúnico aún tibio recuperado tras las patrullas de ${z.name}.`, reacc: '«Cada pieza que apagamos debilita al coloso antes del asalto final.»' },
+        { icono: '🗺️', nombre: 'Mapa de suministros al cráter', lore: `Carta logística con los envíos de mineral hacia la fortaleza norte desde ${z.name}.`, reacc: '«Sus líneas de abasto quedan al descubierto. Sigamos avanzando.»' },
+        { icono: '🚩', nombre: 'Estandarte inquisitorial rasgado', lore: `Pendón calcinado de la guardia de choque en el paso de ${z.name}.`, reacc: '«Su cerco ya se resquebraja bajo nuestros pasos.»' }
+      ]
+    ];
+    const grupo = PLANTILLAS_PISTA[actoIdx];
+    const h = hashPistaStr((cap.id || 'c') + ':' + z.id);
+    const ang0 = ((h % 360) * Math.PI) / 180;
+    const avance = Math.max(2, Math.floor((objetivo.cantidad || 8) * 0.22));
+    return grupo.map((tpl, i) => {
+      const ang = ang0 + (i * Math.PI * 2) / 3;
+      const rFrac = 0.28 + 0.13 * ((h >>> (i * 3)) % 3);
+      return {
+        id: `pista_${cap.id || 'c'}_${i}`,
+        capId: cap.id || 'c',
+        zona: z.id,
+        idx: i,
+        icono: tpl.icono,
+        nombre: tpl.nombre,
+        x: Math.round(zx + Math.cos(ang) * R * rFrac),
+        z: Math.round(zz + Math.sin(ang) * R * rFrac),
+        avance,
+        lore: tpl.lore,
+        reaccionRowan: tpl.reacc
+      };
+    });
+  }
+
+  function inspeccionarPista(heroeEst, pista) {
+    if (!heroeEst || !pista) return { nueva: false, avance: 0, xp: 0, oro: 0, bonoVinculo: 0, lore: '', reaccionRowan: '' };
+    heroeEst.hitosMundo = heroeEst.hitosMundo || {};
+    if (heroeEst.hitosMundo[pista.id]) {
+      return { nueva: false, avance: 0, xp: 0, oro: 0, bonoVinculo: 0, lore: pista.lore, reaccionRowan: pista.reaccionRowan };
+    }
+    heroeEst.hitosMundo[pista.id] = true;
+    let cont = 0;
+    for (let i = 0; i < 3; i++) {
+      if (heroeEst.hitosMundo[`pista_${pista.capId}_${i}`]) cont++;
+    }
+    let bonoVinculo = 0;
+    if (cont === 3) {
+      sumarRepHito(heroeEst, { vinculo: 1 });
+      bonoVinculo = 1;
+    }
+    return {
+      nueva: true,
+      avance: pista.avance || 2,
+      xp: 60,
+      oro: 45,
+      bonoVinculo,
+      completas: cont,
+      lore: pista.lore,
+      reaccionRowan: pista.reaccionRowan
+    };
+  }
+
+  function ritualDeSecreto(secreto, cap) {
+    const tipo = (secreto && (secreto.tipo || secreto.secretoTipo)) || 'fuente';
+    if (tipo === 'altar') {
+      return {
+        tipo: 'altar',
+        titulo: 'Consagración del Altar Rúnico',
+        pasos: [
+          { id: 'pilar-1', dx: -2.0, dz: -2.0, icono: '✨', etiqueta: 'Encender Pilar Norte-Oeste' },
+          { id: 'pilar-2', dx:  2.0, dz: -2.0, icono: '✨', etiqueta: 'Encender Pilar Norte-Este' },
+          { id: 'pilar-3', dx:  2.0, dz:  2.0, icono: '✨', etiqueta: 'Encender Pilar Sur-Este' }
+        ],
+        emboscada: false,
+        textoFin: '¡Las tres runas resuenan al unísono y quiebran el sello del Cónclave!'
+      };
+    }
+    if (tipo === 'cabana') {
+      return {
+        tipo: 'cabana',
+        titulo: 'Registro de la Cabaña Oculta',
+        pasos: [
+          { id: 'baul', dx: -3.2, dz: 4.5, icono: '📦', etiqueta: 'Registrar el baúl junto al porche' },
+          { id: 'diario', dx: 3.2, dz: 4.5, icono: '📖', etiqueta: 'Recuperar el diario oculto' }
+        ],
+        emboscada: false,
+        textoFin: 'Encuentras el diario completo que delata a los cinco Sabios.'
+      };
+    }
+    if (tipo === 'santuario') {
+      return {
+        tipo: 'santuario',
+        titulo: 'Sintonía del Santuario de Luz',
+        pasos: [
+          { id: 'cristal', dx: 0, dz: 2.8, icono: '🏛️', etiqueta: 'Canalizar el Cristal del Santuario' }
+        ],
+        emboscada: { cantidad: 2, nombre: 'Centinela del Eclipse', nivelMin: 14 },
+        textoFin: 'El cristal revela la verdad del Titán tras caer sus centinelas.'
+      };
+    }
+    if (cap && cap.id === 'c15') {
+      return {
+        tipo: 'fuente',
+        titulo: 'Purificación de la Fuente Arcana',
+        pasos: [
+          { id: 'purificar', dx: 0, dz: 2.6, icono: '💧', etiqueta: 'Purificar las aguas de la Fuente' }
+        ],
+        emboscada: false,
+        textoFin: 'El aceite oscuro se disuelve en vapor limpio sobre las aguas sagradas.'
+      };
+    }
+    return {
+      tipo: 'fuente',
+      titulo: 'Templado en la Fuente Arcana',
+      pasos: [
+        { id: 'sumergir', dx: 0, dz: 2.6, icono: '⛲', etiqueta: 'Sumergir las placas en la Fuente' }
+      ],
+      emboscada: { cantidad: 2, nombre: 'Inquisidor de la Fuente', nivelMin: 5 },
+      textoFin: 'Las hombreras absorben el fulgor arcano tras repeler a los inquisidores.'
+    };
+  }
+
+  function recompensaReliquiaHistoria(tipo, id, nombre, heroeEst, world) {
+    const esMaz = tipo === 'mazmorra';
+    const key = (esMaz ? 'dun_' : 'lab_') + String(id || 'desconocida');
+    if (!heroeEst || typeof heroeEst !== 'object') {
+      return { primeraVez: false, key, avance: 0, puntos: 0, deltaRep: null, texto: '', reaccionRowan: '' };
+    }
+    heroeEst.hitosMundo = heroeEst.hitosMundo || {};
+    if (heroeEst.hitosMundo[key]) {
+      return { primeraVez: false, key, avance: 0, puntos: 0, deltaRep: null, texto: '', reaccionRowan: '' };
+    }
+    heroeEst.hitosMundo[key] = true;
+    const nom = nombre || (esMaz ? 'la mazmorra' : 'el laberinto');
+    if (esMaz) {
+      const deltaRep = { pueblo: 2, sombra: 0, vinculo: 2 };
+      sumarRepHito(heroeEst, deltaRep);
+      heroeEst.puntos = (heroeEst.puntos || 0) + 1;
+      return {
+        primeraVez: true,
+        key,
+        avance: 6,
+        puntos: 1,
+        deltaRep,
+        texto: `Cripta purgada: los archivos recuperados de ${nom} debilitan al Cónclave (+2 Pueblo · +2 Vínculo · +1 🧬).`,
+        reaccionRowan: `«¡Lo que ocultaban en ${nom} basta para hacer temblar a los Sabios!»`
+      };
+    }
+    const deltaRep = { pueblo: 1, sombra: 0, vinculo: 1 };
+    sumarRepHito(heroeEst, deltaRep);
+    return {
+      primeraVez: true,
+      key,
+      avance: 4,
+      puntos: 0,
+      deltaRep,
+      texto: `Reliquia de laberinto asegurada en ${nom} (+1 Pueblo · +1 Vínculo).`,
+      reaccionRowan: `«Esta reliquia de ${nom} nos acerca un paso más al final de la conspiración.»`
+    };
+  }
+
+  function generarEventoCamino(pos, dir, world, heroeEst, rng) {
+    const r = typeof rng === 'function' ? rng : Math.random;
+    const dx = dir && isFinite(dir.x) ? dir.x : 1;
+    const dz = dir && isFinite(dir.z) ? dir.z : 0;
+    const len = Math.hypot(dx, dz) || 1;
+    const px = ((pos && pos.x) || 0) + (dx / len) * 26;
+    const pz = ((pos && pos.z) || 0) + (dz / len) * 26;
+    const tipos = ['viajero', 'emboscada', 'cofre_conclave'];
+    const tipo = tipos[Math.floor(r() * tipos.length) % tipos.length];
+    const id = `ev_${tipo}_${Math.floor(r() * 1000000)}`;
+    const paso = (heroeEst && heroeEst.principal && typeof heroeEst.principal.paso === 'number') ? heroeEst.principal.paso : 0;
+    const nivel = Math.max(2, Math.min(20, 2 + paso));
+
+    if (tipo === 'emboscada') {
+      return {
+        id,
+        tipo,
+        x: Math.round(px),
+        z: Math.round(pz),
+        icono: '⚔️',
+        titulo: 'Emboscada de Patrulla del Cónclave',
+        desc: '¡Guardias del Eclipse salen de la cuneta para interceptarte!',
+        oleada: { cantidad: 2, nombre: 'Patrullero del Eclipse', nivel },
+        premio: { oro: 120, xp: 150, arena: 2, avance: 2 },
+        deltaRep: { pueblo: 1, sombra: 0, vinculo: 1 },
+        reaccionRowan: '«¡Cuidado en el camino, nos cortan el paso!»'
+      };
+    }
+    if (tipo === 'cofre_conclave') {
+      return {
+        id,
+        tipo,
+        x: Math.round(px),
+        z: Math.round(pz),
+        icono: '🧰',
+        titulo: 'Arcón Sellado del Cónclave',
+        desc: 'Un arcón de suministros caído de un convoy yace junto al sendero.',
+        opciones: [
+          {
+            id: 'repartir',
+            etiqueta: '🛡️ Enviar los suministros a la aldea (+2 Pueblo · +110 🪙 · +80 EXP)',
+            deltaRep: { pueblo: 2, sombra: 0, vinculo: 0 },
+            premio: { oro: 110, xp: 80, avance: 2 },
+            texto: 'Entregas el sello a los arrieros de la aldea más cercana.',
+            reaccionRowan: '«Las familias del valle agradecerán esos víveres más que nadie.»'
+          },
+          {
+            id: 'saquear',
+            etiqueta: '🌘 Forzar el candado y quedarnos el botín (+2 Sombra · +220 🪙 · +2 🧱)',
+            deltaRep: { pueblo: 0, sombra: 2, vinculo: 0 },
+            premio: { oro: 220, arena: 2 },
+            texto: 'Fuerzas la cerradura rúnica y guardas monedas y arena de forja.',
+            reaccionRowan: '«Bien equipado pesa menos la carretera… aunque el cónclave notará la falta.»'
+          }
+        ],
+        reaccionRowan: '«Mira junto al camino: ¡un arcón con el emblema del cónclave!»'
+      };
+    }
+    return {
+      id,
+      tipo: 'viajero',
+      x: Math.round(px),
+      z: Math.round(pz),
+      icono: '🩹',
+      titulo: 'Arriero Herido en la Calzada',
+      desc: 'Un mensajero cojeando pide ayuda tras esquivar a las bestias de la ruta.',
+      opciones: [
+        {
+          id: 'ayudar',
+          etiqueta: '🛡️ Escoltarlo y compartir víveres (+2 Pueblo · +1 Vínculo · +120 🪙 · +90 EXP)',
+          deltaRep: { pueblo: 2, sombra: 0, vinculo: 1 },
+          premio: { oro: 120, xp: 90, avance: 2 },
+          texto: 'Aseguras su carreta y te entrega su bolsa de gratitud e información del camino.',
+          reaccionRowan: '«Un buen gesto abre más puertas que diez salvoconductos.»'
+        },
+        {
+          id: 'interrogar',
+          etiqueta: '🌘 Exigirle el paso franco y sus cartas (+2 Sombra · +140 🪙)',
+          deltaRep: { pueblo: 0, sombra: 2, vinculo: 0 },
+          premio: { oro: 140, mana: 1 },
+          texto: 'El arriero vacía su alforja por miedo antes de escabullirse camino abajo.',
+          reaccionRowan: '«Duro trato, pero tenemos oro y un frasco de maná más para el viaje.»'
+        }
+      ],
+      reaccionRowan: '«¡Espera! Hay un viajero herido pidiendo auxilio más adelante.»'
+    };
+  }
+
+  function resolverEventoCamino(heroeEst, evento, opcionId) {
+    if (!heroeEst || !evento) return { yaResuelto: false, texto: '', premio: {}, deltaRep: null, reaccionRowan: '' };
+    heroeEst.hitosMundo = heroeEst.hitosMundo || {};
+    const evKey = evento.id || ('ev_' + evento.tipo);
+    if (heroeEst.hitosMundo[evKey]) {
+      return { yaResuelto: true, texto: '', premio: {}, deltaRep: null, reaccionRowan: '' };
+    }
+    heroeEst.hitosMundo[evKey] = true;
+    if (evento.tipo === 'emboscada') {
+      sumarRepHito(heroeEst, evento.deltaRep);
+      return {
+        yaResuelto: false,
+        texto: 'Patrulla del Cónclave neutralizada en la calzada.',
+        premio: evento.premio || {},
+        deltaRep: evento.deltaRep || null,
+        reaccionRowan: '«Camino despejado. Ya no molestarán a ninguna caravana aquí.»'
+      };
+    }
+    const opt = (evento.opciones || []).find(o => o.id === opcionId) || (evento.opciones && evento.opciones[0]);
+    if (!opt) return { yaResuelto: false, texto: '', premio: {}, deltaRep: null, reaccionRowan: '' };
+    sumarRepHito(heroeEst, opt.deltaRep);
+    return {
+      yaResuelto: false,
+      opcion: opt,
+      texto: opt.texto || '',
+      premio: opt.premio || {},
+      deltaRep: opt.deltaRep || null,
+      reaccionRowan: opt.reaccionRowan || ''
+    };
+  }
+
+  // Bloque H3: Códice de Investigación (personajes sospechosos/aliados, pistas e hitos, decisiones)
+  const PERSONAJES_CODICE = [
+    { id: 'guru-1', nombre: 'Sabia Elara', icono: '🔮', faccion: 'Cónclave de los Siete' },
+    { id: 'guru-2', nombre: 'Maestro Oren', icono: '🧭', faccion: 'Maestres de Rutas' },
+    { id: 'guru-3', nombre: 'Hermana Ysolde', icono: '🕯️', faccion: 'Orden Rúnica' },
+    { id: 'guru-4', nombre: 'Viejo Tamsin', icono: '🗡️', faccion: 'Viejos Guardianes' },
+    { id: 'guru-5', nombre: 'Erudita Mirel', icono: '📜', faccion: 'Cronistas del Reino' },
+    { id: 'serv-herrero', nombre: 'Herrero Brann', icono: '🔨', faccion: 'Fragua Libre' },
+    { id: 'companero-rowan', nombre: 'Rowan y la Cuadrilla', icono: '🛡️', faccion: 'Compañeros de Camino' },
+    { id: 'serv-comandante', nombre: 'Comandante Kaelen', icono: '🏰', faccion: 'Guardia de la Plaza' },
+    { id: 'serv-hereje', nombre: 'Herrero Hereje', icono: '🌒', faccion: 'Talleres de la Sombra' },
+    { id: 'serv-boticaria', nombre: 'Boticaria e Informante', icono: '🧪', faccion: 'Alquimia y Bajos Fondos' }
+  ];
+
+  function codicePersonajes(heroeEst, world) {
+    const p = (heroeEst && heroeEst.principal) ? heroeEst.principal : { paso: 0 };
+    const paso = p.paso || 0;
+    const dec = (heroeEst && heroeEst.decisiones) || {};
+    const rep = (heroeEst && heroeEst.reputacion) || {};
+    const finalId = heroeEst && heroeEst.finalId;
+    const hitos = (heroeEst && heroeEst.hitosMundo) || {};
+    const compM = (heroeEst && heroeEst.companeroMisiones) || {};
+    const nTalentos = Object.values(compM).filter(x => x && x.talentoDesbloqueado).length;
+    const nPistasC1 = [0, 1, 2].filter(i => hitos[`pista_c1_${i}`]).length;
+    const dunCount = Object.keys(hitos).filter(k => k.startsWith('dun_')).length;
+
+    return PERSONAJES_CODICE.map(base => {
+      let estadoId = 'neutral';
+      let estadoEtiqueta = 'Sin confirmar';
+      let color = '#94a3b8';
+      let sospecha = 25;
+      let resumen = '';
+      const notas = [];
+
+      if (base.id === 'guru-1') {
+        if (paso >= 16 || finalId) {
+          estadoId = 'juzgado';
+          estadoEtiqueta = finalId === 'sombra' ? 'Juzgada · Sometida al Eclipse' : (finalId === 'equilibrio' ? 'Juzgada · Depuesta ante el Pacto' : 'Juzgada · Condenada en la Plaza');
+          color = '#a855f7';
+          sospecha = 100;
+          resumen = 'Cabeza visible del cónclave tras el proyecto del Titán y el sellado de forjas.';
+        } else if (paso >= 6) {
+          estadoId = 'culpable';
+          estadoEtiqueta = paso >= 9 ? 'Culpable Incriminada' : 'Principal Sospechosa';
+          color = '#ef4444';
+          sospecha = paso >= 9 ? 100 : 85;
+          resumen = paso >= 9
+            ? 'El diario del ermitaño en la cabaña y las jaulas sumergidas confirman su implicación directa.'
+            : 'Os envió a una Fuente Arcana rodeada de trampas con el sello oficial del Consejo.';
+        } else if (paso >= 4) {
+          estadoId = 'sospechoso';
+          estadoEtiqueta = 'Sospechosa (Vigilancia Espectral)';
+          color = '#f97316';
+          sospecha = 70;
+          resumen = 'Su proyección espectral vigila vuestro despertar sísmico desde la torre del consejo.';
+        } else {
+          estadoId = 'sospechoso';
+          estadoEtiqueta = 'Sospechosa en la Plaza';
+          color = '#facc15';
+          sospecha = 45 + nPistasC1 * 5;
+          resumen = 'Mantiene el control oficial mientras las bestias atacan con sellos de bronce del cónclave.';
+        }
+        notas.push('Sello de bronce hallado junto a Brann en el prólogo.');
+        if (paso >= 4) notas.push('Vigiló tu técnica del Impacto Sísmico por proyección.');
+        if (paso >= 6) notas.push('Ordenó sumergir jaulas con aceite oscuro bajo la Fuente Arcana.');
+        if (paso >= 9) notas.push('Su firma aparece en los cuadernos secretos de la cabaña fronteriza.');
+      } else if (base.id === 'guru-2') {
+        if (paso >= 11) {
+          estadoId = 'aliado';
+          estadoEtiqueta = 'Aliado del Libre Comercio';
+          color = '#4ade80';
+          sospecha = 0;
+          resumen = 'Consagró contigo el Altar Rúnico para reabrir rutas y fraguas superiores (Nv. 12+).';
+        } else if (paso >= 6) {
+          estadoId = 'observado';
+          estadoEtiqueta = 'Colaborador Discreto';
+          color = '#38bdf8';
+          sospecha = 25;
+          resumen = 'Desvía mapas e inspecciones lejos de tus suministros de hierro salvaje.';
+        } else {
+          estadoId = 'sospechoso';
+          estadoEtiqueta = 'Evasivo en la Plaza';
+          color = '#facc15';
+          sospecha = 50;
+          resumen = 'Teme represalias del consejo si habla abiertamente en la muralla.';
+        }
+        notas.push('Conoce todas las rutas seguras y vetas libres de mineral.');
+        if (paso >= 11) notas.push('Participó activamente en la ruptura del monopolio.');
+      } else if (base.id === 'guru-3') {
+        if (paso >= 16) {
+          estadoId = finalId === 'equilibrio' ? 'aliado' : 'disidente';
+          estadoEtiqueta = finalId === 'equilibrio' ? 'Aliada · Custodia de Altares' : 'Disidente Reformada';
+          color = '#4ade80';
+          sospecha = 10;
+          resumen = 'Abandonó los dogmas del cónclave para devolver la magia antigua al reino libre.';
+        } else if (paso >= 8) {
+          estadoId = 'disidente';
+          estadoEtiqueta = 'Disidente del Cónclave';
+          color = '#38bdf8';
+          sospecha = 20;
+          resumen = 'Rompió la disciplina del consejo liberando el sello de la Explosión Nova.';
+        } else {
+          estadoId = 'sospechoso';
+          estadoEtiqueta = 'Sospechosa (Savia Gris)';
+          color = '#f97316';
+          sospecha = 75;
+          resumen = 'Murmura cánticos en trance mientras gotea aceite alquímico de sus túnicas.';
+        }
+        notas.push('Vigilada por manchas de savia gris en Acto I.');
+        if (paso >= 8) notas.push('Liberó el conocimiento real de la Explosión Nova.');
+        if (paso >= 10) notas.push('Rompió votos abiertamente para abrir paso hacia las cumbres.');
+      } else if (base.id === 'guru-4') {
+        if (paso >= 14) {
+          estadoId = 'aliado';
+          estadoEtiqueta = 'Aliado Veterano';
+          color = '#4ade80';
+          sospecha = 0;
+          resumen = 'Desenfundó su mandoble para combatir contigo contra el Titán mecánico.';
+        } else if (paso >= 4) {
+          estadoId = 'aliado';
+          estadoEtiqueta = 'Mentor Clandestino';
+          color = '#38bdf8';
+          sospecha = 5;
+          resumen = 'Te instruyó en el Impacto Sísmico y te guió hacia el diario incriminatorio.';
+        } else {
+          estadoId = 'observado';
+          estadoEtiqueta = 'Testigo Reservado';
+          color = '#94a3b8';
+          sospecha = 20;
+          resumen = 'Observa desde las sombras de la taberna buscando quién se atreva a resistir.';
+        }
+        notas.push('Conoce el origen de las placas remachadas desde hace veinte años.');
+        if (paso >= 9) notas.push('Marcó las pistas hacia la cabaña del guarda ejecutado.');
+      } else if (base.id === 'guru-5') {
+        if (paso >= 16) {
+          estadoId = 'aliado';
+          estadoEtiqueta = 'Aliada · Cronista del Juicio';
+          color = '#4ade80';
+          sospecha = 0;
+          resumen = 'Preside la lectura pública de actas que sella vuestra gesta en la Crónica.';
+        } else if (paso >= 11) {
+          estadoId = 'aliado';
+          estadoEtiqueta = 'Aliada en Investigación';
+          color = '#38bdf8';
+          sospecha = 15;
+          resumen = 'Reúne testimonios y envíos desaparecidos para sostener el juicio en la plaza.';
+        } else {
+          estadoId = 'sospechoso';
+          estadoEtiqueta = 'Analítica y Distante';
+          color = '#facc15';
+          sospecha = 45;
+          resumen = 'Registra hechos sin tomar partido abierto hasta ver pruebas tangibles.';
+        }
+        notas.push('Advirtió contra la influencia mental del Óxido.');
+        if (dunCount > 0) notas.push(`Ha catalogado ${dunCount} archivo(s) de criptas purgadas.`);
+      } else if (base.id === 'serv-herrero') {
+        estadoId = 'aliado';
+        estadoEtiqueta = paso >= 11 ? 'Aliado · Forja Superior Libre' : 'Aliado Clandestino';
+        color = '#4ade80';
+        sospecha = 0;
+        resumen = paso >= 11
+          ? 'Tras caer el monopolio, su yunque forja armamento superior sin censura eclesial.'
+          : 'Sobrevivió a la emboscada del prólogo y forja en secreto tu equipo pieza a pieza.';
+        notas.push('Primer aliado desde la emboscada inicial.');
+      } else if (base.id === 'companero-rowan') {
+        estadoId = 'aliado';
+        estadoEtiqueta = nTalentos > 0 ? `Hermandad (${nTalentos} talento/s único/s)` : 'Compañero Leal';
+        color = '#38bdf8';
+        sospecha = 0;
+        resumen = `Vínculo actual: ${rep.vinculo || 0}. Cada etapa personal junto a Rowan, Lyra, Elian o Brenda refuerza su historial y poder.`;
+        notas.push(paso >= 8 ? 'En Cap. 8 sus ojos brillaron con un misterioso halo ámbar.' : 'Te cubre el flanco desde el estallido en la fragua.');
+        if (paso >= 14) notas.push('Desvió con su escudo el golpe mortal del Señor de las Bestias.');
+      } else if (base.id === 'serv-comandante') {
+        if (dec.d_c2_lista === 'guardia' || paso >= 11 || (rep.pueblo || 0) >= 6) {
+          estadoId = 'aliado';
+          estadoEtiqueta = paso >= 11 ? 'Aliado · Guarnición Libre' : 'Aliado en la Guardia';
+          color = '#4ade80';
+          sospecha = 5;
+          resumen = 'Kaelen conoce las órdenes falsificadas del cónclave y despeja las patrullas de tus pasos.';
+        } else if (dec.d_c2_lista === 'informante' && (rep.sombra || 0) > (rep.pueblo || 0)) {
+          estadoId = 'hostil';
+          estadoEtiqueta = 'Receloso / Bajo Sospecha';
+          color = '#f97316';
+          sospecha = 60;
+          resumen = 'Tus tratos en los bajos fondos despiertan las alarmas de la guardia oficial.';
+        } else {
+          estadoId = 'neutral';
+          estadoEtiqueta = 'Neutral (Disciplina Oficial)';
+          color = '#94a3b8';
+          sospecha = 35;
+          resumen = 'Cumple órdenes selladas de plaza mientras busca pruebas concretas de la traición.';
+        }
+        if (dec.d_c2_lista) notas.push(`Decisión Cap. 2 registrada: elegiste "${dec.d_c2_lista}".`);
+      } else if (base.id === 'serv-hereje') {
+        if ((rep.sombra || 0) >= 4 || dec.d_c11_monopolio === 'oscuro') {
+          estadoId = 'sombra';
+          estadoEtiqueta = 'Socio en la Sombra';
+          color = '#c084fc';
+          sospecha = 30;
+          resumen = 'Graba runas oscuras de alto filo sin preguntar por las leyes de la plaza.';
+        } else {
+          estadoId = 'neutral';
+          estadoEtiqueta = 'Forjador Proscrito';
+          color = '#94a3b8';
+          sospecha = 45;
+          resumen = 'Desterrado por el consejo; ofrece encantamientos agresivos lejos de Brann.';
+        }
+        notas.push('Desterrado por desafiar el sello único de los Sabios.');
+      } else {
+        if (paso >= 6 || dec.d_c2_lista === 'informante') {
+          estadoId = 'informado';
+          estadoEtiqueta = 'Red Activa de Indicios';
+          color = '#38bdf8';
+          sospecha = 25;
+          resumen = 'Varek rastrea envíos clandestinos y la Boticaria analiza la savia gris hallada en templos.';
+        } else {
+          estadoId = 'neutral';
+          estadoEtiqueta = 'Informadores Locales';
+          color = '#94a3b8';
+          sospecha = 35;
+          resumen = 'Sus espías y destilados ofrecen ventaja en rutas si sabes qué preguntar.';
+        }
+        notas.push('Sus pistas del mercado negro complementan los diarios oficiales.');
+      }
+
+      return {
+        id: base.id,
+        nombre: base.nombre,
+        icono: base.icono,
+        faccion: base.faccion,
+        estadoId,
+        estadoEtiqueta,
+        color,
+        sospecha,
+        resumen,
+        notasDesbloqueadas: notas
+      };
+    });
+  }
+
+  function codiceInvestigacion(heroeEst, world) {
+    const caps = capitulosDe(world);
+    const p = (heroeEst && heroeEst.principal) ? heroeEst.principal : { paso: 0 };
+    const paso = p.paso || 0;
+    const hitos = (heroeEst && heroeEst.hitosMundo) || {};
+
+    const pistas = [];
+    const rituales = [];
+    caps.forEach((cap, idx) => {
+      if (cap.mision && cap.mision.tipo === 'matar' && world && Array.isArray(world.zones)) {
+        const obj = resolverObjetivo(cap, world);
+        if (obj && obj.tipo === 'matar' && obj.zona) {
+          pistasDeCapitulo(cap, obj, world).forEach(pi => {
+            pistas.push({
+              id: pi.id,
+              capNum: idx + 1,
+              capId: cap.id,
+              capTitulo: cap.titulo,
+              icono: pi.icono,
+              nombre: pi.nombre,
+              lore: pi.lore,
+              encontrada: !!hitos[pi.id]
+            });
+          });
+        }
+      } else if (cap.mision && cap.mision.tipo === 'secreto') {
+        const completado = idx < paso;
+        const obj = world ? resolverObjetivo(cap, world) : { nombre: cap.mision.secreto };
+        rituales.push({
+          id: cap.id,
+          capNum: idx + 1,
+          titulo: cap.titulo,
+          tipoSecreto: cap.mision.secreto,
+          completado,
+          detalle: completado ? rellenar(cap.texto, obj) : 'Ritual pendiente de activar sobre el terreno.'
+        });
+      }
+    });
+
+    const reliquias = { mazmorras: [], laberintos: [] };
+    const vistosKeys = new Set();
+    if (world && Array.isArray(world.dungeons)) {
+      world.dungeons.forEach(d => {
+        const k = 'dun_' + String(d.id || d.name || 'd');
+        vistosKeys.add(k);
+        reliquias.mazmorras.push({ key: k, nombre: d.name || d.id, completada: !!hitos[k] });
+      });
+    }
+    if (world && Array.isArray(world.zones)) {
+      world.zones.filter(z => z.relieve && z.relieve.activo).forEach(z => {
+        const k = 'lab_' + String(z.id || 'z');
+        vistosKeys.add(k);
+        reliquias.laberintos.push({ key: k, nombre: z.name || z.id, completada: !!hitos[k] });
+      });
+    }
+    Object.keys(hitos).forEach(k => {
+      if (!hitos[k] || vistosKeys.has(k)) return;
+      if (k.startsWith('dun_')) reliquias.mazmorras.push({ key: k, nombre: k.slice(4), completada: true });
+      else if (k.startsWith('lab_')) reliquias.laberintos.push({ key: k, nombre: k.slice(4), completada: true });
+    });
+
+    const eventos = Object.keys(hitos).filter(k => k.startsWith('ev_') && hitos[k]);
+    return {
+      pistas,
+      rituales,
+      reliquias,
+      eventos,
+      resumen: {
+        pistasHalladas: pistas.filter(x => x.encontrada).length,
+        pistasTotal: pistas.length,
+        ritualesHechos: rituales.filter(x => x.completado).length,
+        ritualesTotal: rituales.length,
+        mazmorras: reliquias.mazmorras.filter(x => x.completada).length,
+        mazmorrasTotal: reliquias.mazmorras.length,
+        laberintos: reliquias.laberintos.filter(x => x.completada).length,
+        laberintosTotal: reliquias.laberintos.length,
+        eventosResueltos: eventos.length
+      }
+    };
+  }
+
+  function codiceDecisiones(heroeEst, world) {
+    const caps = capitulosDe(world);
+    const p = (heroeEst && heroeEst.principal) ? heroeEst.principal : { paso: 0 };
+    const paso = p.paso || 0;
+    const decisiones = (heroeEst && heroeEst.decisiones) || {};
+    const rep = (heroeEst && heroeEst.reputacion) || {};
+    const pueblo = Number(rep.pueblo) || 0;
+    const sombra = Number(rep.sombra) || 0;
+    const senda = pueblo >= sombra + 2 ? 'guardia' : (sombra >= pueblo + 2 ? 'sombra' : 'equilibrio');
+    const sendaNombre = senda === 'guardia' ? 'Senda del Alba' : (senda === 'sombra' ? 'Senda de la Sombra' : 'Senda del Equilibrio');
+
+    const nums = Object.keys(DECISIONES_CAPITULO).map(Number).sort((a, b) => a - b);
+    const lista = nums.map(capNum => {
+      const dec = DECISIONES_CAPITULO[capNum];
+      const cap = caps[capNum - 1];
+      const eid = decisiones[dec.id];
+      const opt = eid ? (dec.opciones || []).find(o => o.id === eid) || null : null;
+      const estado = opt ? 'decidida' : (paso >= capNum ? 'pendiente' : 'bloqueada');
+      return {
+        capNum,
+        id: dec.id,
+        titulo: (cap && cap.titulo) || ('Capítulo ' + capNum),
+        pregunta: dec.pregunta,
+        contexto: dec.contexto,
+        estado,
+        opcionElegida: opt ? { id: opt.id, etiqueta: opt.etiqueta, tendencia: opt.tendencia } : null,
+        consecuencia: opt ? opt.consecuencia : null
+      };
+    });
+
+    return {
+      lista,
+      decididas: lista.filter(x => x.estado === 'decidida').length,
+      total: lista.length,
+      epilogo: epilogoDe(heroeEst, world),
+      senda,
+      sendaNombre
+    };
+  }
+
   const api = {
     CAPITULOS,
     ACTOS,
     HITOS_NARRATIVOS,
     MATERIALES_FORJA,
     DIALOGOS_NPC,
+    DECISIONES_CAPITULO,
+    EPILOGOS_FINALES,
+    PERSONAJES_CODICE,
     capitulosDe,
     actosDe,
     hitosDe,
@@ -941,6 +2318,21 @@
     monopolioRoto,
     materialDeCapitulo,
     fraseContextualNpc,
+    decisionDeCapitulo,
+    aplicarDecision,
+    epilogoDe,
+    dialogoInteractivoNpc,
+    resolverOpcionDialogo,
+    subtituloVivo,
+    codicePersonajes,
+    codiceInvestigacion,
+    codiceDecisiones,
+    pistasDeCapitulo,
+    inspeccionarPista,
+    ritualDeSecreto,
+    recompensaReliquiaHistoria,
+    generarEventoCamino,
+    resolverEventoCamino,
     resolverObjetivo,
     reajustarObjetivoCercano,
     objetivoValido,

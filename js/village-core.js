@@ -1564,13 +1564,11 @@
       const m = new THREE.MeshStandardMaterial({
         map: tex || null,
         bumpMap: tex || null,
-        bumpScale: 0.06,
+        bumpScale: 0.14,
         color: '#ffffff',
-        alphaTest: 0.40,
-        alphaToCoverage: true,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
         vertexColors: true,
-        roughness: 0.86,
+        roughness: 0.90,
         metalness: 0.02
       });
       hedgeMatCache.set(texId, m);
@@ -4918,7 +4916,35 @@
               const f = ((t % 2) + 2) % 2;
               return f <= 1 ? f : 2 - f;
             };
-            // Núcleo orgánico de 5 masas arbustivas superpuestas e irregulares (sin forma de caja)
+            // Volúmenes orgánicos opacos (sin cartas alfa que generen punteado con MSAA/GTAO)
+            const addVolumetricCluster = (cx, cy, cz, rx, ry, rz, phase, wSeg, hSeg, amp = 1.0) => {
+              const g = new THREE.SphereGeometry(1, wSeg, hSeg);
+              const pos = g.attributes.position;
+              const uv = g.attributes.uv;
+              for (let i = 0; i < pos.count; i++) {
+                const dx = pos.getX(i) * rx;
+                const dy = pos.getY(i) * ry;
+                const dz = pos.getZ(i) * rz;
+                let wx = cx + dx;
+                let wy = cy + dy;
+                let wz = cz + dz;
+                const n = 0.87
+                  + (0.15 * amp) * Math.sin(wx * 4.4 + wz * 3.1 + phase) * Math.cos(wy * 5.1 + wx * 1.8)
+                  + (0.08 * amp) * Math.sin(wz * 7.8 + wy * 6.3 - phase);
+                wx = cx + dx * n;
+                wy = cy + dy * n;
+                wz = cz + dz * n;
+                if (wy < 0.05) wy = 0.02 + Math.max(0, wy) * 0.25;
+                pos.setXYZ(i, wx, wy, wz);
+                // Muestrea únicamente el núcleo denso [0.22..0.78] evitando bordes claros/transparentes
+                uv.setXY(i, 0.22 + 0.56 * tri(wx * 0.72 + wz * 0.42), 0.22 + 0.56 * tri(wy * 0.92 + wz * 0.48));
+              }
+              pos.needsUpdate = true;
+              uv.needsUpdate = true;
+              g.computeVertexNormals();
+              parts.push(g);
+            };
+            // Núcleo de 5 masas arbustivas superpuestas e irregulares
             const lobes = [
               { x: -0.96, y: 0.41, z: -0.05, rx: 0.54, ry: 0.45, rz: 0.40, p: 0.4 },
               { x: -0.48, y: 0.47, z:  0.07, rx: 0.56, ry: 0.53, rz: 0.45, p: 1.7 },
@@ -4926,70 +4952,22 @@
               { x:  0.50, y: 0.45, z:  0.06, rx: 0.55, ry: 0.50, rz: 0.43, p: 4.1 },
               { x:  0.96, y: 0.40, z: -0.05, rx: 0.53, ry: 0.44, rz: 0.39, p: 5.3 }
             ];
-            lobes.forEach(l => {
-              const g = new THREE.SphereGeometry(1, 10, 7);
-              const pos = g.attributes.position;
-              const uv = g.attributes.uv;
-              for (let i = 0; i < pos.count; i++) {
-                const dx = pos.getX(i) * l.rx;
-                const dy = pos.getY(i) * l.ry;
-                const dz = pos.getZ(i) * l.rz;
-                let wx = l.x + dx;
-                let wy = l.y + dy;
-                let wz = l.z + dz;
-                const n = 0.87
-                  + 0.15 * Math.sin(wx * 4.4 + wz * 3.1 + l.p) * Math.cos(wy * 5.1 + wx * 1.8)
-                  + 0.08 * Math.sin(wz * 7.8 + wy * 6.3 - l.p);
-                wx = l.x + dx * n;
-                wy = l.y + dy * n;
-                wz = l.z + dz * n;
-                if (wy < 0.05) wy = 0.02 + Math.max(0, wy) * 0.25;
-                pos.setXYZ(i, wx, wy, wz);
-                // Mapea el núcleo dentro del centro opaco [0.24..0.76] para evitar huecos interiores
-                uv.setXY(i, 0.24 + 0.52 * tri(wx * 0.72 + wz * 0.42), 0.24 + 0.52 * tri(wy * 0.92 + wz * 0.48));
-              }
-              pos.needsUpdate = true;
-              uv.needsUpdate = true;
-              g.computeVertexNormals();
-              parts.push(g);
-            });
-
-            // Planos de follaje recortados por alfa que sobresalen en cresta, caras y extremos
-            const addTuftCard = (w, h, px, py, pz, rx, ry, rz, rot90, flipU) => {
-              const c = new THREE.PlaneGeometry(w, h);
-              const uv = c.attributes.uv;
-              for (let i = 0; i < uv.count; i++) {
-                let u = 0.02 + uv.getX(i) * 0.96;
-                let v = 0.02 + uv.getY(i) * 0.96;
-                if (flipU) u = 1.0 - u;
-                for (let k = 0; k < rot90; k++) { const tu = u; u = 1.0 - v; v = tu; }
-                uv.setXY(i, u, v);
-              }
-              uv.needsUpdate = true;
-              c.rotateX(rx);
-              c.rotateY(ry);
-              c.rotateZ(rz);
-              c.translate(px, py, pz);
-              c.computeVertexNormals();
-              parts.push(c);
-            };
-            // Cresta superior: hojas asomando de forma irregular
-            [-1.04, -0.68, -0.34, 0.0, 0.35, 0.70, 1.04].forEach((x, k) => {
-              addTuftCard(
-                0.92, 0.84, x, 0.62 + ((k % 3) - 1) * 0.05, (k % 2 ? 0.08 : -0.08),
-                (k % 2 ? 0.42 : -0.46), 0.45 + k * 0.73, (k % 3 - 1) * 0.16, k % 4, k % 2 === 1
-              );
-            });
-            // Caras frontal y trasera: silueta dentada de hojas laterales
-            [-0.90, -0.30, 0.30, 0.90].forEach((x, k) => {
-              addTuftCard(0.94, 0.88, x, 0.47,  0.34 + (k % 2) * 0.05, -0.24, (k % 2 ? 0.28 : -0.32), (k % 2 ? 0.12 : -0.10), (k + 1) % 4, false);
-              addTuftCard(0.94, 0.88, x, 0.47, -0.34 - (k % 2) * 0.05,  0.24, (k % 2 ? -0.30 : 0.26), (k % 2 ? -0.10 : 0.12), (k + 2) % 4, true);
-            });
-            // Remates izquierdo y derecho
-            addTuftCard(0.86, 0.84, -1.16, 0.45,  0.07, 0.18, Math.PI * 0.5 + 0.32,  0.10, 0, false);
-            addTuftCard(0.86, 0.84, -1.16, 0.45, -0.07, -0.18, Math.PI * 0.5 - 0.32, -0.10, 2, true);
-            addTuftCard(0.86, 0.84,  1.16, 0.45,  0.07, 0.18, Math.PI * 0.5 - 0.30, -0.10, 1, false);
-            addTuftCard(0.86, 0.84,  1.16, 0.45, -0.07, -0.18, Math.PI * 0.5 + 0.30,  0.10, 3, true);
+            lobes.forEach(l => addVolumetricCluster(l.x, l.y, l.z, l.rx, l.ry, l.rz, l.p, 9, 6, 1.0));
+            // Brotes secundarios asimétricos en cresta, caras laterales y extremos para silueta natural
+            const buds = [
+              [-0.86, 0.72,  0.10, 0.30, 0.25, 0.26, 0.9],
+              [-0.36, 0.80, -0.10, 0.33, 0.27, 0.27, 2.2],
+              [ 0.16, 0.82,  0.11, 0.32, 0.26, 0.28, 3.5],
+              [ 0.68, 0.76, -0.08, 0.31, 0.25, 0.26, 4.8],
+              [-0.70, 0.42,  0.34, 0.29, 0.27, 0.24, 1.3],
+              [ 0.14, 0.44,  0.37, 0.31, 0.28, 0.25, 3.1],
+              [ 0.82, 0.39,  0.32, 0.27, 0.25, 0.23, 5.1],
+              [-0.62, 0.41, -0.34, 0.28, 0.26, 0.24, 2.7],
+              [ 0.26, 0.45, -0.36, 0.30, 0.27, 0.25, 4.4],
+              [-1.24, 0.34,  0.04, 0.28, 0.26, 0.27, 0.6],
+              [ 1.24, 0.33, -0.04, 0.28, 0.25, 0.27, 5.9]
+            ];
+            buds.forEach(b => addVolumetricCluster(b[0], b[1], b[2], b[3], b[4], b[5], b[6], 6, 4, 1.15));
 
             const merged = mergeGeometriesList(parts);
             const mPos = merged.attributes.position;
@@ -4997,7 +4975,7 @@
             for (let i = 0; i < mPos.count; i++) {
               const y = mPos.getY(i);
               const t = Math.max(0, Math.min(1, y / 1.02));
-              const ao = 0.70 + 0.34 * t;
+              const ao = 0.68 + 0.36 * t;
               colArr[i * 3] = ao;
               colArr[i * 3 + 1] = ao;
               colArr[i * 3 + 2] = ao * 0.96;

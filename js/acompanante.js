@@ -326,6 +326,7 @@
       defensa: arq.defensa,
       dano: arq.dano,
       combatesLuchados: 0,
+      talentoAplicado: false,
       skillsCatalogo: clonarSkillsCatalogo(arq.skillsCatalogo),
       skillsEquipadas: arq.skillsEquipadas.slice(0, 3)
     };
@@ -350,6 +351,7 @@
           roster[k].defensa = typeof r.defensa === 'number' ? r.defensa : roster[k].defensa;
           roster[k].dano = typeof r.dano === 'number' ? r.dano : roster[k].dano;
           roster[k].combatesLuchados = typeof r.combatesLuchados === 'number' ? r.combatesLuchados : 0;
+          roster[k].talentoAplicado = !!r.talentoAplicado;
           if (Array.isArray(r.skillsCatalogo)) roster[k].skillsCatalogo = clonarSkillsCatalogo(r.skillsCatalogo);
           if (Array.isArray(r.skillsEquipadas)) roster[k].skillsEquipadas = r.skillsEquipadas.slice(0, 3);
         }
@@ -392,6 +394,7 @@
       defensa: arqData.defensa,
       dano: arqData.dano,
       combatesLuchados: arqData.combatesLuchados || 0,
+      talentoAplicado: !!arqData.talentoAplicado,
       inconsciente: false,
       // Inventario propio de 20 ranuras para equipamiento y pociones automáticas (compartido por la cuadrilla)
       inventario: Array.isArray(config.inventario) ? config.inventario.slice(0, MAX_SLOTS_INVENTARIO) : [],
@@ -448,6 +451,7 @@
     r.defensa = acompanante.defensa;
     r.dano = acompanante.dano;
     r.combatesLuchados = acompanante.combatesLuchados || 0;
+    r.talentoAplicado = !!acompanante.talentoAplicado;
     r.skillsCatalogo = acompanante.skillsCatalogo;
     r.skillsEquipadas = acompanante.skillsEquipadas;
   }
@@ -487,6 +491,7 @@
     acompanante.defensa = nuevo.defensa;
     acompanante.dano = nuevo.dano;
     acompanante.combatesLuchados = nuevo.combatesLuchados || 0;
+    acompanante.talentoAplicado = !!nuevo.talentoAplicado;
     acompanante.skillsCatalogo = nuevo.skillsCatalogo;
     acompanante.skillsEquipadas = nuevo.skillsEquipadas.slice(0, 3);
     acompanante.buffsActivos = [];
@@ -1556,10 +1561,321 @@
     return null;
   }
 
+  // Bloque H3: Misiones personales de los 4 compañeros y talento único permanente
+  const MISIONES_COMPANERO = {
+    rowan: {
+      titulo: 'La Promesa de la Aldea',
+      talento: {
+        id: 'juramento_alba',
+        nombre: 'Juramento del Alba',
+        icono: '🛡️',
+        desc: '+40 HP máx., +8 Ataque, +5 Defensa y +15% potencia de habilidades.',
+        bonos: { maxHp: 40, dano: 8, defensa: 5, pctSkills: 0.15 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'rowan_1',
+          titulo: 'Cenizas en la Fragua',
+          desc: 'Abate 8 criaturas junto a Rowan para templar su acero.',
+          historia: 'Rowan rememora las noches aprendiendo forja junto a su padre antes de que el consejo prohibiera las armas libres.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'rowan_2',
+          titulo: 'Huellas de los Desaparecidos',
+          desc: 'Inspecciona 2 pistas de historia, secretos, eventos de camino o rastros de cabaña.',
+          historia: 'Entre listas confiscadas y sellos de bronce, Rowan descubre que su propio primo figuraba entre los convoyes retenidos.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'rowan_3',
+          titulo: 'Escudo Ante el Abismo',
+          desc: 'Derrota 2 élites, jefes, líderes de cabaña o mazmorras juntos.',
+          historia: 'Rowan sella el Juramento del Alba prometiendo que ninguna aldea volverá a someterse por miedo.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    },
+    lyra: {
+      titulo: 'Cuentas de la Sombra',
+      talento: {
+        id: 'filo_fantasma',
+        nombre: 'Filo Fantasma',
+        icono: '🗡️',
+        desc: '+25 HP máx., +12 Ataque, +3 Defensa y +15% potencia de habilidades.',
+        bonos: { maxHp: 25, dano: 12, defensa: 3, pctSkills: 0.15 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'lyra_1',
+          titulo: 'Sombras en el Camino',
+          desc: 'Abate 8 criaturas luchando codo con codo con Lyra.',
+          historia: 'Lyra desertó de los exploradores contratados por el cónclave al descubrir qué transportaban realmente sus escoltas.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'lyra_2',
+          titulo: 'Códigos del Gremio Roto',
+          desc: 'Investiga 2 pistas de capítulo, rituales, eventos de camino o rastros fronterizos.',
+          historia: 'Descifrando los sellos interceptados, Lyra borra su viejo contrato de sangre y localiza a sus antiguos perseguidores.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'lyra_3',
+          titulo: 'Deuda Saldada',
+          desc: 'Abate 2 élites, jefes, líderes alfa o mazmorras junto a Lyra.',
+          historia: 'Con los ejecutores del cónclave abatidos, Lyra empuña sus dagas por elección propia y despierta su Filo Fantasma.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    },
+    elian: {
+      titulo: 'Luz de los Antiguos Reyes',
+      talento: {
+        id: 'gracia_reyes',
+        nombre: 'Gracia de los Reyes',
+        icono: '✨',
+        desc: '+35 HP máx., +6 Ataque, +7 Defensa y +18% potencia de habilidades.',
+        bonos: { maxHp: 35, dano: 6, defensa: 7, pctSkills: 0.18 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'elian_1',
+          titulo: 'Ecos del Primer Juramento',
+          desc: 'Derrota 8 bestias corrompidas junto a Elian.',
+          historia: 'Elian fue acólito de las bibliotecas cerradas antes de negarse a adulterar los textos de la antigua luz.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'elian_2',
+          titulo: 'Runas Sin Censura',
+          desc: 'Examina 2 pistas, rituales secretos, eventos de camino o rastros en el campo.',
+          historia: 'Al contrastar los glifos reales con el aceite gris, Elian recupera el cántico original de protección.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'elian_3',
+          titulo: 'Luz Contra el Óxido',
+          desc: 'Vence en 2 encuentros contra élites, jefes, líderes de cabaña o mazmorras.',
+          historia: 'Las barreras arcanas de Elian resplandecen sin trabas, otorgándole la Gracia de los Reyes.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    },
+    brenda: {
+      titulo: 'Forja de Furia Libre',
+      talento: {
+        id: 'corazon_inquebrantable',
+        nombre: 'Corazón Inquebrantable',
+        icono: '🪓',
+        desc: '+60 HP máx., +8 Ataque, +6 Defensa y +15% potencia de habilidades.',
+        bonos: { maxHp: 60, dano: 8, defensa: 6, pctSkills: 0.15 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'brenda_1',
+          titulo: 'Prueba de Acero Vivo',
+          desc: 'Abate 8 enemigos con Brenda en vanguardia.',
+          historia: 'Brenda sobrevivió al cierre de la última guarnición del norte negándose a entregar el hacha familiar al cónclave.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'brenda_2',
+          titulo: 'Marcas de la Vieja Horda',
+          desc: 'Registra 2 pistas de campaña, secretos, eventos de camino o rastros fronterizos.',
+          historia: 'Siguiendo las viejas rutas militares, Brenda confirma que el consejo fundía armaduras de sus antiguos camaradas.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'brenda_3',
+          titulo: 'Romper al Coloso',
+          desc: 'Aplasta a 2 élites, jefes, líderes alfa o guardianes de mazmorra.',
+          historia: 'El rugido de Brenda desata un temple inamovible en primera línea: Corazón Inquebrantable.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    }
+  };
+
+  function estadoMisionCompanero(heroeEst, arquetipo) {
+    const arq = MISIONES_COMPANERO[arquetipo] ? arquetipo : 'rowan';
+    const def = MISIONES_COMPANERO[arq];
+    const saved = (heroeEst && heroeEst.companeroMisiones && heroeEst.companeroMisiones[arq]) || null;
+    const etapa = saved ? Math.max(0, Math.min(3, Math.floor(saved.etapa || 0))) : 0;
+    const completada = etapa >= 3;
+    const talentoDesbloqueado = !!(completada || (saved && saved.talentoDesbloqueado));
+    const activa = !completada && !!(saved && saved.activa);
+    const etapaActual = !completada ? def.etapas[etapa] : null;
+    const progreso = (!completada && saved && etapaActual) ? Math.min(etapaActual.cantidad, Math.max(0, Math.floor(saved.progreso || 0))) : 0;
+    const numHistorias = completada ? 3 : (activa ? Math.min(3, etapa + 1) : etapa);
+
+    return {
+      arquetipo: arq,
+      titulo: def.titulo,
+      etapa,
+      completada,
+      activa,
+      talentoDesbloqueado,
+      talento: def.talento,
+      etapaActual,
+      progreso,
+      total: etapaActual ? etapaActual.cantidad : 0,
+      historiasDesbloqueadas: def.etapas.slice(0, numHistorias).map(e => ({ numero: e.numero, titulo: e.titulo, historia: e.historia })),
+      etapas: def.etapas
+    };
+  }
+
+  function aceptarMisionCompanero(heroeEst, arquetipo) {
+    const arq = MISIONES_COMPANERO[arquetipo] ? arquetipo : 'rowan';
+    if (!heroeEst || typeof heroeEst !== 'object') {
+      return { iniciada: false, yaCompleta: false, estado: estadoMisionCompanero(heroeEst, arq) };
+    }
+    heroeEst.companeroMisiones = heroeEst.companeroMisiones || {};
+    const prev = heroeEst.companeroMisiones[arq];
+    if (prev && prev.etapa >= 3) {
+      return { iniciada: false, yaCompleta: true, estado: estadoMisionCompanero(heroeEst, arq) };
+    }
+    const yaActiva = !!(prev && prev.activa);
+    if (!prev || typeof prev !== 'object') {
+      heroeEst.companeroMisiones[arq] = { etapa: 0, progreso: 0, activa: true, talentoDesbloqueado: false };
+    } else {
+      prev.etapa = Math.max(0, Math.min(3, Math.floor(prev.etapa || 0)));
+      prev.progreso = Math.max(0, Math.floor(prev.progreso || 0));
+      prev.activa = true;
+    }
+    return {
+      iniciada: true,
+      yaCompleta: false,
+      yaActiva,
+      estado: estadoMisionCompanero(heroeEst, arq)
+    };
+  }
+
+  function aplicarTalentoCompaneroSiCorresponde(acompanante, heroeEst) {
+    if (!acompanante || !heroeEst || !heroeEst.companeroMisiones) return [];
+    const aplicados = [];
+    const roster = acompanante.roster || {};
+    Object.keys(MISIONES_COMPANERO).forEach(arqKey => {
+      const mEst = heroeEst.companeroMisiones[arqKey];
+      if (!mEst || (!mEst.talentoDesbloqueado && (mEst.etapa || 0) < 3)) return;
+      const def = MISIONES_COMPANERO[arqKey];
+      const bonos = def.talento.bonos;
+      const esActivo = acompanante.arquetipo === arqKey;
+      const rEntry = roster[arqKey];
+      const target = esActivo ? acompanante : rEntry;
+      if (!target || target.talentoAplicado) return;
+
+      target.talentoAplicado = true;
+      target.maxHp = Math.round((target.maxHp || 150) + (bonos.maxHp || 0));
+      target.hp = Math.min(target.maxHp, Math.round((target.hp || target.maxHp) + (bonos.maxHp || 0)));
+      target.dano = Math.round((target.dano || 20) + (bonos.dano || 0));
+      target.defensa = Math.round((target.defensa || 10) + (bonos.defensa || 0));
+      if (Array.isArray(target.skillsCatalogo) && bonos.pctSkills) {
+        target.skillsCatalogo.forEach(sk => {
+          sk.potencia = Math.round((sk.potencia || 10) * (1 + bonos.pctSkills));
+        });
+      }
+      if (esActivo && rEntry) sincronizarArquetipoActivo(acompanante);
+      aplicados.push({ arquetipo: arqKey, talento: def.talento });
+    });
+    return aplicados;
+  }
+
+  function registrarProgresoCompanero(heroeEst, acompanante, tipoEvento, cantidad = 1) {
+    const arq = (acompanante && MISIONES_COMPANERO[acompanante.arquetipo]) ? acompanante.arquetipo : 'rowan';
+    if (!heroeEst || !heroeEst.companeroMisiones || !heroeEst.companeroMisiones[arq]) {
+      return { avanzo: false, arquetipo: arq };
+    }
+    const entry = heroeEst.companeroMisiones[arq];
+    if (!entry.activa || entry.etapa >= 3) return { avanzo: false, arquetipo: arq };
+
+    const def = MISIONES_COMPANERO[arq];
+    const etapaDef = def.etapas[entry.etapa];
+    if (!etapaDef || etapaDef.tipo !== tipoEvento) return { avanzo: false, arquetipo: arq };
+
+    const inc = Math.max(1, Math.floor(cantidad || 1));
+    entry.progreso = Math.min(etapaDef.cantidad, (entry.progreso || 0) + inc);
+    let etapaCompletada = null;
+    let talentoDesbloqueado = null;
+    let premio = null;
+
+    if (entry.progreso >= etapaDef.cantidad) {
+      etapaCompletada = etapaDef;
+      premio = Object.assign({}, etapaDef.premio || {});
+      entry.etapa += 1;
+      entry.progreso = 0;
+
+      if (premio.vinculo) {
+        heroeEst.reputacion = heroeEst.reputacion || { pueblo: 0, sombra: 0, vinculo: 0 };
+        heroeEst.reputacion.vinculo = Math.max(-20, Math.min(50, Math.trunc((heroeEst.reputacion.vinculo || 0) + premio.vinculo)));
+      }
+      if (acompanante) {
+        if (premio.xpComp) ganarXpAcompanante(acompanante, premio.xpComp);
+        if (premio.puntosComp) acompanante.puntosCompanero = (acompanante.puntosCompanero || 0) + premio.puntosComp;
+        sincronizarArquetipoActivo(acompanante);
+      }
+      if (entry.etapa >= 3) {
+        entry.activa = false;
+        entry.talentoDesbloqueado = true;
+        talentoDesbloqueado = def.talento;
+        if (acompanante) aplicarTalentoCompaneroSiCorresponde(acompanante, heroeEst);
+      }
+    }
+
+    return {
+      avanzo: true,
+      arquetipo: arq,
+      etapaCompletada,
+      nuevaEtapa: entry.etapa,
+      talentoDesbloqueado,
+      progreso: entry.progreso,
+      total: etapaDef.cantidad,
+      premio,
+      estado: estadoMisionCompanero(heroeEst, arq)
+    };
+  }
+
   const api = {
     EQUIPO_ALDEANO,
     FRASES,
     COMPANEROS,
+    MISIONES_COMPANERO,
     MAX_SLOTS_INVENTARIO,
     elegirFrase,
     crearAcompanante,
@@ -1568,6 +1884,10 @@
     subirNivelSkill,
     ganarXpAcompanante,
     aplicarDopeActivo,
+    estadoMisionCompanero,
+    aceptarMisionCompanero,
+    aplicarTalentoCompaneroSiCorresponde,
+    registrarProgresoCompanero,
     construirModeloAcompanante,
     instalarModeloGLBAcompanante,
     reproducirAnimacionGLB,
