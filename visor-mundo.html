@@ -2200,8 +2200,8 @@
   <script type="module" src="js/decorado.js?v=20261114e"></script>
   <script defer src="js/decorado-mundo.js?v=20261118c"></script>
   <script type="module" src="js/character.js?v=20261119h"></script>
-  <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
-  <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
+  <script type="module" src="js/enemigos-optimizar.js?v=20261119a"></script>
+  <script type="module" src="js/enemigos-combate.js?v=20261119a"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
   <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
@@ -7090,10 +7090,9 @@
     }
     const clonRig = EnemyOpt.clonarRig(THREE, proto.rig);
     const clonFx = EnemyFx ? EnemyFx.crear(clonRig, m.enemigo) : null;
-    // Núcleo y proyectil mágico brillan (resplandor selectivo)
+    // El núcleo conserva su emisivo moderado al optimizar; solo el proyectil mágico activa resplandor extra
     const coreMesh = clonRig.parts && clonRig.parts.coreMesh;
     const bolaMesh = clonFx && clonFx.bola;
-    marcarResplandor(coreMesh);
     if (bolaMesh) marcarResplandor(bolaMesh);
     const detalle = [];
     clonRig.rootGroup.traverse(o => {
@@ -7172,6 +7171,9 @@
   function prototipoGlb(entrada) {
     let p = protoGlbCache.get(entrada.ruta);
     if (!p) {
+      if (window.EnemyOpt && typeof EnemyOpt.sanearModeloEnemigo === 'function') {
+        EnemyOpt.sanearModeloEnemigo(entrada.escena);
+      }
       aplicarEntorno(entrada.escena);   // materiales compartidos: se aplica una vez
       p = { altura: new THREE.Box3().setFromObject(entrada.escena).max.y };
       protoGlbCache.set(entrada.ruta, p);
@@ -7212,7 +7214,14 @@
       rig = { rootGroup: raiz, glb: EnemyGlb.crearReproductor(THREE, raiz, entrada.clips), ruta: entrada.ruta };
     }
     apoyarEnSuelo(rig.rootGroup);
-    return { rig, fx: null, detalle: [], barHeight: p.altura * e + 0.9 };
+    if (!rig.detalle) {
+      const det = [];
+      rig.rootGroup.traverse(o => {
+        if (o.isMesh && DETALLE_RE.test((o.name || '') + ' ' + ((o.material && o.material.name) || ''))) det.push(o);
+      });
+      rig.detalle = det;
+    }
+    return { rig, fx: null, detalle: rig.detalle, barHeight: p.altura * e + 0.9 };
   }
 
   function crearFallbackTokenMonstruo(m) {
@@ -10864,14 +10873,48 @@
         mat.userData = mat.userData || {};
         mat.userData._hdrGlow = true;
         if (mat.emissive && mat.emissiveIntensity !== undefined) {
-          mat.emissiveIntensity = Math.max(mat.emissiveIntensity || 1.0, 2.5);
+          mat.emissiveIntensity = Math.min(2.0, Math.max(mat.emissiveIntensity || 1.0, 1.55));
         } else if (mat.color) {
           const lum = 0.2126 * mat.color.r + 0.7152 * mat.color.g + 0.0722 * mat.color.b;
-          const mult = lum > 0.01 ? Math.min(5.0, Math.max(1.85, 1.48 / lum)) : 2.0;
+          const mult = lum > 0.01 ? Math.min(2.2, Math.max(1.35, 1.28 / lum)) : 1.5;
           mat.color.multiplyScalar(mult);
         }
       });
     });
+  }
+  function blindarFiltroBloom(pass, maxLum = 2.4) {
+    const mat = pass && pass.materialHighPassFilter;
+    if (!mat || !mat.uniforms) return;
+    mat.uniforms.uMaxBloomLum = { value: maxLum };
+    mat.fragmentShader = /* glsl */`
+      uniform sampler2D tDiffuse;
+      uniform vec3 defaultColor;
+      uniform float defaultOpacity;
+      uniform float luminosityThreshold;
+      uniform float smoothWidth;
+      uniform float uMaxBloomLum;
+      varying vec2 vUv;
+
+      void main() {
+        vec4 texel = texture2D(tDiffuse, vUv);
+        if (!(texel.r >= 0.0 && texel.r <= 65000.0) || !(texel.g >= 0.0 && texel.g <= 65000.0) || !(texel.b >= 0.0 && texel.b <= 65000.0)) {
+          texel.rgb = vec3(0.0);
+        }
+        texel.a = (texel.a >= 0.0 && texel.a <= 65000.0) ? min(texel.a, 1.0) : 1.0;
+        float v = dot(texel.rgb, vec3(0.2126, 0.7152, 0.0722));
+        if (!(v >= 0.0 && v <= 65000.0)) {
+          texel.rgb = vec3(0.0);
+          v = 0.0;
+        } else if (v > uMaxBloomLum) {
+          texel.rgb *= uMaxBloomLum / v;
+          v = uMaxBloomLum;
+        }
+        vec4 outputColor = vec4(defaultColor.rgb, defaultOpacity);
+        float alpha = smoothstep(luminosityThreshold, luminosityThreshold + smoothWidth, v);
+        gl_FragColor = mix(outputColor, texel, alpha);
+      }
+    `;
+    mat.needsUpdate = true;
   }
   function crearResplandor() {
     const tam = renderer.getSize(new THREE.Vector2());
@@ -10896,7 +10939,8 @@
         }
       });
     };
-    bloomPass = new UnrealBloomPass(new THREE.Vector2(tam.x, tam.y), 0.32, 0.40, 1.08);
+    bloomPass = new UnrealBloomPass(new THREE.Vector2(tam.x, tam.y), 0.28, 0.36, 1.12);
+    blindarFiltroBloom(bloomPass, 2.4);
     compositorBase = new EffectComposer(renderer);
     compositorBase.addPass(new RenderPass(scene, camera));
     compositorBase.addPass(gtaoPass);

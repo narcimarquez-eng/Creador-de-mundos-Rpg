@@ -32,12 +32,21 @@
       rig.rootGroup.traverse(o => { if (o.isMesh && o.material === armadura) mallasArmadura.push(o); });
     }
     const nucleo = rig.parts.coreMesh && rig.parts.coreMesh.material;
+    let nucleoIntensidad = null;
+    if (nucleo && typeof nucleo.emissiveIntensity === 'number') {
+      nucleo.userData = nucleo.userData || {};
+      if (typeof nucleo.userData._baseEmissiveIntensity !== 'number') {
+        nucleo.userData._baseEmissiveIntensity = Math.min(nucleo.emissiveIntensity, 1.25);
+      }
+      nucleoIntensidad = Math.min(nucleo.userData._baseEmissiveIntensity, 1.25);
+    }
     return {
       rig, bola, accion: null, inicio: 0, offsets: new Map(), destello: false,
       armadura, mallasArmadura, matDestello: null,
       armaduraEmisivo: armadura ? { color: armadura.emissive.clone(), intensidad: armadura.emissiveIntensity } : null,
-      nucleoIntensidad: nucleo && nucleo.emissiveIntensity !== undefined ? nucleo.emissiveIntensity : null,
+      nucleoIntensidad,
       nucleo,
+      _magiaActiva: false,
       origen: new THREE.Vector3(),
     };
   }
@@ -100,7 +109,15 @@
       sumar(fx, p.leftArmGroup, -1.9 * magia, 0, 0);
       sumar(fx, p.headGroup, -0.15 * magia, 0, 0);
     }
-    if (fx.nucleo && fx.nucleoIntensidad !== null) fx.nucleo.emissiveIntensity = fx.nucleoIntensidad * (1 + 2 * magia);
+    if (fx.nucleo && fx.nucleoIntensidad !== null) {
+      if (magia > 0) {
+        fx.nucleo.emissiveIntensity = Math.min(1.85, fx.nucleoIntensidad * (1 + 0.65 * magia));
+        fx._magiaActiva = true;
+      } else if (fx._magiaActiva) {
+        fx.nucleo.emissiveIntensity = fx.nucleoIntensidad;
+        fx._magiaActiva = false;
+      }
+    }
 
     // Proyectil: sale de la mano y avanza hacia delante (eje +z del enemigo, que mira al héroe al perseguir)
     if (a === 'magia' && q > 0.35 && q < 0.9) {
