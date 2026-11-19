@@ -1386,7 +1386,10 @@
     const matPlaza = new THREE.MeshStandardMaterial({
       roughness: 0.74,
       metalness: 0.08,
-      bumpScale: 0.08
+      bumpScale: 0.08,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -2
     });
     const matCurb = new THREE.MeshStandardMaterial({ color: '#94a3b8', roughness: 0.85 });
     const waterU = {
@@ -1513,9 +1516,18 @@
     ];
     const streetTexCache = new Map();
     const streetMatCache = new Map();
-    const getStreetMaterialById = (texId) => {
+    const resolveStreetTextureId = (cfg) => {
+      const sel = (cfg && cfg.streetTexture) || 'auto';
+      if (sel === 'atlas') return 'atlas';
+      if (sel !== 'auto') return sel;
+      const prng = new PRNG(((cfg && cfg.seed) || 77420) ^ 0x5f3759df);
+      return STREET_TEXTURES[Math.floor(prng.next() * STREET_TEXTURES.length)].id;
+    };
+    const getStreetMaterialById = (texId, opts = {}) => {
       if (!texId || texId === 'atlas') return matAtlas;
-      if (streetMatCache.has(texId)) return streetMatCache.get(texId);
+      const alphaBorde = opts.alphaBorde !== false;
+      const cacheKey = texId + (alphaBorde ? ':borde' : ':solido');
+      if (streetMatCache.has(cacheKey)) return streetMatCache.get(cacheKey);
       const entry = STREET_TEXTURES.find(t => t.id === texId);
       if (!entry) return matAtlas;
       let tex = streetTexCache.get(texId);
@@ -1526,26 +1538,62 @@
         if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
         streetTexCache.set(texId, tex);
       }
+      if (!tex && typeof THREE !== 'undefined' && THREE.DataTexture) {
+        tex = new THREE.DataTexture(new Uint8Array([165, 158, 148, 255]), 1, 1);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.needsUpdate = true;
+      }
       const MatCallePbr = THREE.MeshPhysicalMaterial || THREE.MeshStandardMaterial;
-      const m = new MatCallePbr(Object.assign({
+      const matOpts = Object.assign({
         map: tex || null,
         bumpMap: tex || null,
         bumpScale: 0.24,
         color: '#e2e8f0',
-        roughness: 0.82,
-        metalness: 0.04,
+        roughness: 0.84,
+        metalness: 0.03,
         side: THREE.DoubleSide
-      }, THREE.MeshPhysicalMaterial ? { clearcoat: 0.14, clearcoatRoughness: 0.28 } : {}));
-      streetMatCache.set(texId, m);
+      }, THREE.MeshPhysicalMaterial ? { clearcoat: 0.14, clearcoatRoughness: 0.28 } : {},
+      alphaBorde ? {
+        transparent: true,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -4
+      } : {});
+      const m = new MatCallePbr(matOpts);
+      if (alphaBorde) {
+        m.userData = Object.assign(m.userData || {}, { alphaBorde: true, texId });
+        m.customProgramCacheKey = () => 'calle-urbana-borde-' + texId;
+        m.onBeforeCompile = shader => {
+          shader.vertexShader = shader.vertexShader
+            .replace('#include <common>', '#include <common>\nattribute float aCalleFade;\nvarying vec3 vCalleWorld;\nvarying vec2 vCalleUv;\nvarying float vCalleFade;')
+            .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCalleWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCalleUv = uv;\nvCalleFade = aCalleFade;');
+          shader.fragmentShader = shader.fragmentShader
+            .replace('#include <common>', [
+              '#include <common>',
+              'varying vec3 vCalleWorld;',
+              'varying vec2 vCalleUv;',
+              'varying float vCalleFade;',
+              'float calleHash2(vec2 p) { p = fract(p * vec2(127.1, 311.7)); p += dot(p, p + 43.21); return fract(p.x * p.y); }',
+              'float calleNoise2(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f); return mix(mix(calleHash2(i), calleHash2(i + vec2(1.0, 0.0)), u.x), mix(calleHash2(i + vec2(0.0, 1.0)), calleHash2(i + vec2(1.0, 1.0)), u.x), u.y); }'
+            ].join('\n'))
+            .replace('#include <color_fragment>', [
+              '#include <color_fragment>',
+              'float dB = min(vCalleUv.x, 1.0 - vCalleUv.x);',
+              'float nB = (calleNoise2(vCalleWorld.xz * 0.65 + 1.7) * 0.65 + calleNoise2(vCalleWorld.xz * 2.1 - 3.4) * 0.35 - 0.5) * 0.095;',
+              'float edgeAlpha = smoothstep(0.015, 0.145, dB + nB) * clamp(vCalleFade, 0.0, 1.0);',
+              'float dustMix = smoothstep(0.22, 0.04, dB) * 0.28;',
+              'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.56, 0.52, 0.45), dustMix);',
+              'diffuseColor.a *= edgeAlpha;'
+            ].join('\n'));
+        };
+      }
+      streetMatCache.set(cacheKey, m);
       return m;
     };
-    const materialCallePara = (cfg) => {
-      const sel = (cfg && cfg.streetTexture) || 'auto';
-      if (sel === 'atlas') return matAtlas;
-      if (sel !== 'auto') return getStreetMaterialById(sel);
-      const prng = new PRNG(((cfg && cfg.seed) || 77420) ^ 0x5f3759df);
-      const pick = STREET_TEXTURES[Math.floor(prng.next() * STREET_TEXTURES.length)];
-      return getStreetMaterialById(pick.id);
+    const materialCallePara = (cfg, opts = {}) => {
+      const texId = resolveStreetTextureId(cfg);
+      return texId === 'atlas' ? matAtlas : getStreetMaterialById(texId, opts);
     };
     const hedgeTexCache = new Map();
     const hedgeMatCache = new Map();
@@ -1660,10 +1708,10 @@
       return getStoneMaterialById(texId);
     };
     const getBridgeRoadMaterial = (cfg) => {
-      const m = materialCallePara(cfg);
-      if (m && m !== matAtlas) return m;
+      const texId = resolveStreetTextureId(cfg);
+      if (texId && texId !== 'atlas') return getStreetMaterialById(texId, { alphaBorde: false });
       const seed = Math.abs(Math.floor((cfg && cfg.seed) || 1));
-      return getStreetMaterialById(STREET_TEXTURES[seed % STREET_TEXTURES.length].id);
+      return getStreetMaterialById(STREET_TEXTURES[seed % STREET_TEXTURES.length].id, { alphaBorde: false });
     };
     const pickHouseRoof = (h, idx) => {
       const pal = STYLE_ROOF_VARIANTS[styleKey] || STYLE_ROOF_VARIANTS.l2_fantasy;
@@ -2463,7 +2511,7 @@
         if (this.cfg && this.cfg.hasRiver && this.bridgeBounds) {
           const b = this.bridgeBounds;
           if (x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ && this.bridgeTopAt) {
-            return this.bridgeTopAt((x - b.minX) / (b.maxX - b.minX)) + 0.18;
+            return this.bridgeTopAt((x - b.minX) / (b.maxX - b.minX)) + 0.04;
           }
         }
         for (const br of this.extraBridges) {
@@ -2473,19 +2521,19 @@
           if (Math.abs(v) > br.hv) continue;
           const au = Math.abs(u);
           const s01 = Math.min(1, Math.max(0, (u + br.hu) / (2 * br.hu)));
-          if (au <= br.hu) return br.topAt(s01) + 0.18;
+          if (au <= br.hu) return br.topAt(s01) + 0.04;
           if (au <= br.hu + 3.0) {
-            const borde = br.topAt(u > 0 ? 1 : 0) + 0.18;
-            const ground = this.getTerrainHeight(x, z) + 0.18;
+            const borde = br.topAt(u > 0 ? 1 : 0) + 0.04;
+            const ground = this.getTerrainHeight(x, z) + 0.035;
             const t = (au - br.hu) / 3.0;
             return borde + (ground - borde) * t;
           }
         }
-        const ground = this.getTerrainHeight(x, z) + 0.18;
+        const ground = this.getTerrainHeight(x, z) + 0.035;
         const rDist = Math.hypot(x, z);
         if (rDist <= 18.0) {
           const plazaY = this.getTerrainHeight(0, 0);
-          const plazaTop = plazaY + 0.34;
+          const plazaTop = plazaY + 0.048;
           if (rDist <= 15.5) {
             return plazaTop;
           } else {
@@ -2514,35 +2562,48 @@
         return Math.abs(x - rx) < (this.riverWidth * 0.5 + radius);
       }
 
-      // Calzada con grosor: la superficie usa la textura de calle elegida (o el atlas) y los bordes bajan por debajo del terreno,
-      // así no queda como una lámina sobre el suelo. Sigue el terreno (subdividido cada 1 m) con su altura real.
-      buildConformingRoadMesh(puntos, width, yOffset = 0.16, matCalle = null) {
+      // Calzada enrasada al nivel del suelo: subdividida transversalmente (segW = 4) con perfil abombado
+      // suave y bordes prácticamente a cota cero (sin muros verticales laterales).
+      buildConformingRoadMesh(puntos, width, yOffset = 0.034, matCalle = null, opts = {}) {
         const surfMat = matCalle || matAtlas;
         const usesTileTex = surfMat !== matAtlas;
         const points = [];
         for (let i = 0; i < puntos.length; i++) {
           if (i > 0) {
             const a = puntos[i - 1], b = puntos[i];
-            const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z)));
-            for (let k = 1; k < n; k++) points.push({ x: a.x + (b.x - a.x) * k / n, z: a.z + (b.z - a.z) * k / n });
+            const az = a.z !== undefined ? a.z : a.y;
+            const bz = b.z !== undefined ? b.z : b.y;
+            const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, bz - az)));
+            for (let k = 1; k < n; k++) points.push({ x: a.x + (b.x - a.x) * k / n, z: az + (bz - az) * k / n });
           }
-          points.push(puntos[i]);
+          const pz = puntos[i].z !== undefined ? puntos[i].z : puntos[i].y;
+          points.push({ x: puntos[i].x, z: pz });
         }
         const segs = points.length - 1;
-        const positions = new Float32Array((segs + 1) * 2 * 3);
-        const uvs = new Float32Array((segs + 1) * 2 * 2);
+        const segW = 4;
+        const cols = segW + 1;
+        const positions = new Float32Array((segs + 1) * cols * 3);
+        const uvs = new Float32Array((segs + 1) * cols * 2);
+        const fades = new Float32Array((segs + 1) * cols);
         const indices = [];
-        const bordes = [];
 
-        let accLen = 0;
+        const cumLen = new Float32Array(segs + 1);
+        for (let i = 1; i <= segs; i++) {
+          cumLen[i] = cumLen[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].z - points[i - 1].z);
+        }
+        const totalLen = cumLen[segs] || 1;
+        const fadeStart = !!(opts && opts.fadeStart);
+        const fadeEnd = !!(opts && opts.fadeEnd);
+
         for (let i = 0; i <= segs; i++) {
           const p = points[i];
           const pPrev = points[Math.max(0, i - 1)];
           const pNext = points[Math.min(segs, i + 1)];
+          const accLen = cumLen[i];
 
-          if (i > 0) {
-            accLen += Math.hypot(p.x - pPrev.x, p.z - pPrev.z);
-          }
+          let endAlpha = 1.0;
+          if (fadeStart && accLen < 2.2) endAlpha = Math.min(endAlpha, Math.max(0, accLen / 2.2));
+          if (fadeEnd && (totalLen - accLen) < 2.2) endAlpha = Math.min(endAlpha, Math.max(0, (totalLen - accLen) / 2.2));
 
           const tx = pNext.x - pPrev.x;
           const tz = pNext.z - pPrev.z;
@@ -2550,85 +2611,106 @@
           const nx = -tz / len;
           const nz = tx / len;
 
-          const lx = p.x + nx * (width * 0.5);
-          const lz = p.z + nz * (width * 0.5);
-          const rx = p.x - nx * (width * 0.5);
-          const rz = p.z - nz * (width * 0.5);
+          const vTile = usesTileTex ? (accLen / Math.max(3.5, width)) : (0.25 + 0.25 * ((accLen * 0.2) % 1));
 
-          const ly = this.getTerrainHeight(lx, lz) + yOffset;
-          const ry = this.getTerrainHeight(rx, rz) + yOffset;
+          for (let j = 0; j <= segW; j++) {
+            const u = j / segW;
+            const uSigned = u * 2 - 1;       // -1 (izquierda) .. +1 (derecha)
+            const halfDist = -uSigned * (width * 0.5); // u=0 -> +width/2 (izq), u=1 -> -width/2 (der)
+            const wx = p.x + nx * halfDist;
+            const wz = p.z + nz * halfDist;
+            const crown = Math.max(0, 1 - uSigned * uSigned);
+            const elev = 0.004 + Math.max(0, yOffset - 0.004) * Math.pow(crown, 0.75);
+            const wy = this.getTerrainHeight(wx, wz) + elev;
 
-          const vIdx = i * 2;
-          positions[vIdx * 3] = lx;
-          positions[vIdx * 3 + 1] = ly;
-          positions[vIdx * 3 + 2] = lz;
-
-          positions[(vIdx + 1) * 3] = rx;
-          positions[(vIdx + 1) * 3 + 1] = ry;
-          positions[(vIdx + 1) * 3 + 2] = rz;
-
-          // Piedra de sillería del atlas (0.25..0.50) o textura tileable completa (0..N)
-          if (usesTileTex) {
-            const vTile = accLen / Math.max(3.5, width);
-            uvs[vIdx * 2] = 0;
+            const vIdx = i * cols + j;
+            positions[vIdx * 3] = wx;
+            positions[vIdx * 3 + 1] = wy;
+            positions[vIdx * 3 + 2] = wz;
+            uvs[vIdx * 2] = u;
             uvs[vIdx * 2 + 1] = vTile;
-            uvs[(vIdx + 1) * 2] = 1;
-            uvs[(vIdx + 1) * 2 + 1] = vTile;
-          } else {
-            const v = 0.25 + 0.25 * ((accLen * 0.2) % 1);
-            uvs[vIdx * 2] = 0;
-            uvs[vIdx * 2 + 1] = v;
-            uvs[(vIdx + 1) * 2] = 1;
-            uvs[(vIdx + 1) * 2 + 1] = v;
+            fades[vIdx] = endAlpha;
           }
 
           if (i < segs) {
-            const a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, d = (i + 1) * 2 + 1;
-            // Orden antihorario visto desde arriba: la cara de arriba es la que se ve y tiene la normal correcta
-            indices.push(a, c, b, b, c, d);
+            for (let j = 0; j < segW; j++) {
+              const a = i * cols + j;
+              const b = a + 1;
+              const c = (i + 1) * cols + j;
+              const d = c + 1;
+              indices.push(a, c, b, b, c, d);
+            }
           }
-
-          const vBorde = 0.25 + 0.25 * ((accLen * 0.2) % 1);
-          const bajo = (x, z, y) => Math.min(y, this.getTerrainHeight(x, z)) - 0.9;
-          bordes.push({
-            l: [lx, ly, lz], r: [rx, ry, rz],
-            lb: [lx, bajo(lx, lz, ly), lz], rb: [rx, bajo(rx, rz, ry), rz], v: vBorde
-          });
         }
 
         const geom = new THREE.BufferGeometry();
         geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         geom.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        geom.setAttribute('aCalleFade', new THREE.BufferAttribute(fades, 1));
         geom.setIndex(indices);
         geom.computeVertexNormals();
 
         const grupo = new THREE.Group();
         const superficie = new THREE.Mesh(geom, surfMat);
         superficie.receiveShadow = true;
+        superficie.userData.roadTopOffset = yOffset;
         grupo.add(superficie);
-
-        // Paredes de los dos bordes: caras en los dos sentidos para que se vean desde cualquier lado
-        const wPos = [], wUv = [], wIdx = [];
-        const cara = (p, q, pb, qb, vp, vq) => {
-          const base = wPos.length / 3;
-          wPos.push(...p, ...q, ...qb, ...pb);
-          wUv.push(0, vp, 1, vq, 1, vq, 0, vp);
-          wIdx.push(base, base + 1, base + 2, base, base + 2, base + 3, base, base + 2, base + 1, base, base + 3, base + 2);
-        };
-        for (let i = 0; i < segs; i++) {
-          const A = bordes[i], B = bordes[i + 1];
-          cara(A.l, B.l, A.lb, B.lb, A.v, B.v);
-          cara(A.r, B.r, A.rb, B.rb, A.v, B.v);
-        }
-        const wGeom = new THREE.BufferGeometry();
-        wGeom.setAttribute('position', new THREE.Float32BufferAttribute(wPos, 3));
-        wGeom.setAttribute('uv', new THREE.Float32BufferAttribute(wUv, 2));
-        wGeom.setIndex(wIdx);
-        wGeom.computeVertexNormals();
-        const paredes = new THREE.Mesh(wGeom, matAtlas);
-        paredes.receiveShadow = true;
-        grupo.add(paredes);
+        grupo.userData.roadTopOffset = yOffset;
         return grupo;
+      }
+
+      // Integra el suelo del pueblo (terrainMesh standalone) eliminando micro-relieve bajo calles
+      // y tiñendo los márgenes hacia grava/tierra compactada del estilo.
+      integrarTerrenoConCalles(terrainMesh, streets, exitPaths, cfg, styleObj) {
+        if (!terrainMesh || !terrainMesh.geometry || typeof indiceCalles2D !== 'function') return;
+        const pos = terrainMesh.geometry.attributes && terrainMesh.geometry.attributes.position;
+        const col = terrainMesh.geometry.attributes && terrainMesh.geometry.attributes.color;
+        if (!pos || !col) return;
+        const humAttr = terrainMesh.geometry.attributes.aHumedad;
+        const idxCalles = indiceCalles2D(streets, exitPaths, (cfg && cfg.roadWidth) || 6);
+        if (!idxCalles) return;
+
+        const gravelHex = (styleObj && styleObj.curbHex) || '#7c7365';
+        const colGravel = new THREE.Color('#7c7365').lerp(new THREE.Color(gravelHex), 0.35);
+        const colVerge = new THREE.Color('#6b6355');
+        const tmp = new THREE.Color();
+        let modificado = false;
+
+        for (let i = 0; i < pos.count; i++) {
+          const vx = pos.getX(i), vz = pos.getZ(i);
+          const hit = idxCalles.distInfo(vx, vz, 12);
+          if (!hit || hit.dist > hit.halfW + 3.4) continue;
+          const d = hit.dist, hw = hit.halfW;
+
+          // Suprime bultos de micro-relieve suavemente bajo la calzada para evitar atravesar la malla enrasada
+          const flatMargin = hw + 1.8;
+          if (d < flatMargin) {
+            const baseY = this.getTerrainHeight(vx, vz);
+            const curY = pos.getY(i);
+            const wFlat = 1 - Math.max(0, Math.min(1, d / flatMargin));
+            const smoothFlat = wFlat * wFlat * (3 - 2 * wFlat);
+            pos.setY(i, curY + (baseY - curY) * smoothFlat);
+          }
+
+          // Mezcla orgánica hacia grava bajo el camino y tierra pisada en el arcén
+          const u = Math.max(0, Math.min(1, (d - hw * 0.65) / 3.4));
+          const blend = (1 - u * u * (3 - 2 * u)) * 0.72;
+          tmp.setRGB(col.getX(i), col.getY(i), col.getZ(i));
+          const shoulderMix = u < 0.45 ? colGravel : colVerge;
+          tmp.lerp(shoulderMix, blend);
+          col.setXYZ(i, tmp.r, tmp.g, tmp.b);
+
+          if (humAttr && d > hw * 0.85 && d < hw + 1.8) {
+            humAttr.setX(i, Math.max(humAttr.getX(i), 0.18 * (1 - u)));
+          }
+          modificado = true;
+        }
+        if (modificado) {
+          pos.needsUpdate = true;
+          col.needsUpdate = true;
+          if (humAttr) humAttr.needsUpdate = true;
+          terrainMesh.geometry.computeVertexNormals();
+        }
       }
 
       buildSpecialBuilding(type, x, z, rotY, group) {
@@ -2960,8 +3042,8 @@
               const ux = dx / L, uz = dz / L;
               const esMadera = (width < cfg.roadWidth * 0.85) || (Math.abs(Math.round(mid.z)) % 2 === 1);
               const bridgeId = esMadera ? 'puente3' : 'puente0';
-              const hA = this.getTerrainHeight(a.x, a.z) + 0.16;
-              const hB = this.getTerrainHeight(b.x, b.z) + 0.16;
+              const hA = this.getTerrainHeight(a.x, a.z) + 0.04;
+              const hB = this.getTerrainHeight(b.x, b.z) + 0.04;
               const spec = calcularPuenteGLB(bridgeId, a, b, hA, hB, width, { waterLevel: -0.65 });
               this.construirPuenteGLBEn(spec, cfg, roadsGroup, width);
               const vx = -uz, vz = ux;
@@ -3224,7 +3306,7 @@
                   if (houses.length === 1) this.sampleHousePos.set(px, hy, pz);
                   this.colliders.push({ type: 'circle', house: true, id: key, x: px, z: pz, r: 4.5 });
                   const frente = P(cm, CASA_FONDO - 3.9);
-                  addStreet('acceso-' + key, [frente, P(cm, -H)], 2.2, 0.13);
+                  addStreet('acceso-' + key, [frente, P(cm, -H)], 2.2, 0.030);
                   if (!adosadas && hasGardens && !moved && w >= 10.5) {
                     if (!cfg.hasFences || !conVALLA) {
                       if (cm - margenPuerta - c0 >= 2.8) ponerSeto('hj' + key + 'f1', (c0 + cm - margenPuerta) * 0.5, -0.35);
@@ -3471,7 +3553,7 @@
           const bSpan = RIVER_WIDTH + 8.0;
           const halfS = bSpan * 0.5 + 3.5;
           const pA = { x: bx - halfS, z: 0 }, pB = { x: bx + halfS, z: 0 };
-          const hA = this.getTerrainHeight(pA.x, pA.z) + 0.16, hB = this.getTerrainHeight(pB.x, pB.z) + 0.16;
+          const hA = this.getTerrainHeight(pA.x, pA.z) + 0.04, hB = this.getTerrainHeight(pB.x, pB.z) + 0.04;
 
           bridgeGroup = new THREE.Group();
           if (bridgeStyle === 'principal') {
@@ -3615,7 +3697,7 @@
             const off = edit.movedStreets.get(id);
             const final = off ? pts.map(q => ({ x: q.x + off.dx, z: q.z + off.dz })) : pts;
             this.splitAtRiver(cfg, final, width, roadsGroup, matAtlas).forEach(pc => {
-              if (pc.length > 1) pushRoad(id, pc, width, 0.15);
+              if (pc.length > 1) pushRoad(id, pc, width, 0.034);
             });
           };
           const n = Math.ceil(2 * g.R / 3.5);
@@ -3657,7 +3739,7 @@
             const zClamped = Math.min(z, zEndMain);
             mainRoadPts.push({ x: this.getMainRoadX(zClamped), z: zClamped });
           }
-          addStreet('principal', mainRoadPts, cfg.roadWidth, 0.16);
+          addStreet('principal', mainRoadPts, cfg.roadWidth, 0.036);
 
           const eastWestPtsLeft = [];
           const xStartW = hasCardinalExit('W') ? -townRadius : -roadExtent;
@@ -3668,7 +3750,7 @@
             const xc = Math.min(x, bridgeStopX);
             eastWestPtsLeft.push({ x: xc, z: Math.sin(xc * 0.04) * (cfg.curve * 0.35) * Math.min(1, Math.abs(xc) / 20) });
           }
-          addStreet('este-oeste-izq', eastWestPtsLeft, cfg.roadWidth * 0.9, 0.15);
+          addStreet('este-oeste-izq', eastWestPtsLeft, cfg.roadWidth * 0.9, 0.034);
 
           if (cfg.hasRiver) {
             const eastWestPtsRight = [];
@@ -3678,7 +3760,7 @@
               eastWestPtsRight.push({ x: Math.min(x, xEndE), z: 0 });
             }
             if (eastWestPtsRight.length > 1) {
-              addStreet('este-oeste-der', eastWestPtsRight, cfg.roadWidth * 0.9, 0.15);
+              addStreet('este-oeste-der', eastWestPtsRight, cfg.roadWidth * 0.9, 0.034);
             }
           }
 
@@ -3690,7 +3772,7 @@
               secPts.push({ x: x, z: curveZ });
             }
             if (secPts.length > 1) {
-              addStreet('anillo:' + rz, secPts, cfg.roadWidth * 0.72, 0.14);
+              addStreet('anillo:' + rz, secPts, cfg.roadWidth * 0.72, 0.031);
             }
           });
         }
@@ -3699,13 +3781,16 @@
         const exitPieces = this.buildExitRoadPieces(cfg, this.exitPaths, roadsGroup, matCalle);
         const anchoSalida = manzanas ? cfg.roadWidth * 0.9 : cfg.roadWidth * 0.92;
         exitPieces.forEach(pts => {
-          roadsGroup.add(this.buildConformingRoadMesh(pts, anchoSalida, 0.16, matCalle));
+          const lastP = pts[pts.length - 1];
+          const zLast = lastP ? (lastP.z !== undefined ? lastP.z : lastP.y) : 0;
+          const enBordePueblo = lastP ? Math.hypot(lastP.x, zLast) > townRadius + 12 : false;
+          roadsGroup.add(this.buildConformingRoadMesh(pts, anchoSalida, 0.034, matCalle, { fadeEnd: enBordePueblo }));
         });
         if (this.exitPaths.length) this.addExitSigns(roadsGroup, this.exitPaths);
 
-        // 4. GRAN PLAZA CENTRAL CON MOSAICO RADIAL Y MONUMENTO / GATEKEEPER
+        // 4. GRAN PLAZA CENTRAL CON MOSAICO RADIAL ENRASADA Y MONUMENTO / GATEKEEPER
         const plazaY = this.getTerrainHeight(0, 0);
-        const plazaDiscG = new THREE.CylinderGeometry(15.5, 16.2, 0.32, 48);
+        const plazaDiscG = new THREE.CylinderGeometry(15.5, 16.4, 0.10, 48);
         if (plazaDiscG.attributes && plazaDiscG.attributes.position && plazaDiscG.attributes.uv) {
           const pPos = plazaDiscG.attributes.position;
           const pNorm = plazaDiscG.attributes.normal;
@@ -3720,12 +3805,12 @@
           pUv.needsUpdate = true;
         }
         const plazaDiscM = new THREE.Mesh(plazaDiscG, matPlaza.map ? matPlaza : matAtlas);
-        plazaDiscM.position.set(0, plazaY + 0.16, 0);
+        plazaDiscM.position.set(0, plazaY - 0.005, 0);
         plazaDiscM.receiveShadow = true;
         roadsGroup.add(plazaDiscM);
 
         const monumentGroup = new THREE.Group();
-        monumentGroup.position.set(0, plazaY + 0.3, 0);
+        monumentGroup.position.set(0, plazaY + 0.045, 0);
 
         const basinG = new THREE.CylinderGeometry(3.4, 3.8, 0.85, 16);
         mapUVBand(basinG, 0.25, 0.50);
@@ -4349,7 +4434,7 @@
             { x: (sp.x + roadTargetX) * 0.5, z: sp.z * 0.7 },
             { x: roadTargetX, z: sp.z * 0.5 }
           ];
-          addStreet('especial-' + i, spurPts, 3.4, 0.14);
+          addStreet('especial-' + i, spurPts, 3.4, 0.031);
         }
 
         // 7. VIVIENDAS CON ACCESOS Y ELEMENTOS DECORATIVOS
@@ -4366,7 +4451,7 @@
             const ang = (i / 6) * Math.PI * 2 + 0.4;
             const sx = Math.cos(ang) * 12.2;
             const sz = Math.sin(ang) * 12.2;
-            const sy = this.getTerrainHeight(0, 0) + 0.32;
+            const sy = this.getTerrainHeight(0, 0) + 0.045;
             stalls.push({ x: sx, y: sy, z: sz, rot: -ang + Math.PI / 2, color: i % 2 === 0 ? 0x8b5a2b : 0xa16207 });
             barrels.push({ x: sx + 1.6, y: sy, z: sz + 0.8 });
           }
@@ -4480,7 +4565,7 @@
                     { x: px + doorDirX * 3.5, z: pz + doorDirZ * 3.5 },
                     { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
                   ];
-                  addStreet('acceso-' + slot, pathPts, 2.2, 0.13);
+                  addStreet('acceso-' + slot, pathPts, 2.2, 0.030);
                 }
 
                 if (cfg.hasProps && rng.next() > 0.45 && !removed) {
@@ -4546,7 +4631,7 @@
           addStreet('acceso-' + ad.id, [
             { x: px + doorDirX * 3.5, z: pz + doorDirZ * 3.5 },
             { x: px + doorDirX * 7.2, z: pz + doorDirZ * 7.2 }
-          ], 2.2, 0.13);
+          ], 2.2, 0.030);
           addFrontEnclosure(ad.id, px, pz, hRot, ar);
         });
         this.editables.houses = houses.map(h => ({ id: h.id, x: h.x, z: h.z }));
@@ -4560,9 +4645,14 @@
           const width = PuebloEdits.widthFor(us.kind, cfg.roadWidth);
           const pts = PuebloEdits.curvePts(ctrl, 3.5);
           this.splitAtRiver(cfg, pts, width, roadsGroup, matAtlas).forEach(pc => {
-            if (pc.length > 1) pushRoad(id, pc, width, 0.15, { user: true, kind: us.kind, ctrl: ctrl });
+            if (pc.length > 1) pushRoad(id, pc, width, 0.033, { user: true, kind: us.kind, ctrl: ctrl });
           });
         });
+
+        // Enrasar el suelo standalone del pueblo con el trazado final de calles y salidas
+        if (this.terrainMesh) {
+          this.integrarTerrenoConCalles(this.terrainMesh, this.editables.streets, this.exitPaths, cfg, styleObj);
+        }
 
         if (cfg.hasLamps) {
           const cercaDeCasa = (x, z) => houses.some(h => Math.hypot(h.x - x, h.z - z) < 5.6);
@@ -5522,6 +5612,250 @@
     return v - Math.floor(v);
   }
 
+  // Traza en coordenadas locales del pueblo la ruta completa desde el borde de la plaza (r = 16.5 m)
+  // por la calle interior y el eje exacto de la puerta de muralla hasta el camino exterior del mundo.
+  function computeExitRouteLocal(cfg, roadId) {
+    const exits = Array.isArray(cfg && cfg.exits) ? cfg.exits : [];
+    if (!exits.length || !roadId) return [];
+
+    const size = (cfg && cfg.size) || 3;
+    const townRadius = 42 + size * 14;
+    const WORLD_SIZE = Math.max(240, (townRadius + 65) * 2);
+    const half = WORLD_SIZE / 2 - 1.5;
+    const manzanas = cfg.trazado === 'manzanas' || cfg.trazado === 'adosadas';
+    const curve = Number(cfg.curve) || 0;
+    const rp = riverParamsFor(cfg);
+    const riverWidth = rp.riverWidth;
+    const getRiverX = z => 34 + (size - 2) * 8 + Math.sin(z * 0.04) * curve;
+    const getMainRoadX = z => Math.sin(z * 0.035) * curve * Math.min(1.0, Math.abs(z) / 22.0);
+
+    let gR = 0, pManz = 1, AM = 0, kManz = 0;
+    const W = (u, v) => ({ x: u + AM * Math.sin(kManz * v), z: v + AM * Math.sin(kManz * u) });
+    let wallAnchors = null;
+    if (manzanas) {
+      gR = townRadius - 22;
+      const m = Math.max(1, Math.round(gR / 42));
+      pManz = gR / m;
+      AM = Math.min(curve * 0.7, pManz * 0.2);
+      kManz = Math.PI / pManz;
+      wallAnchors = {
+        N: { inner: W(0, -gR), gate: { x: 0, z: -townRadius }, dir: { x: 0, z: -1 } },
+        S: { inner: W(0, gR),  gate: { x: 0, z:  townRadius }, dir: { x: 0, z:  1 } },
+        W: { inner: W(-gR, 0), gate: { x: -townRadius, z: 0 }, dir: { x: -1, z: 0 } },
+        E: { inner: W(gR, 0),  gate: { x:  townRadius, z: 0 }, dir: { x:  1, z: 0 } }
+      };
+    } else {
+      const zCurveW = Math.sin(-townRadius * 0.04) * (curve * 0.35);
+      wallAnchors = {
+        N: { inner: { x: getMainRoadX(-townRadius), z: -townRadius }, gate: { x: getMainRoadX(-townRadius), z: -townRadius }, dir: { x: 0, z: -1 } },
+        S: { inner: { x: getMainRoadX(townRadius),  z:  townRadius }, gate: { x: getMainRoadX(townRadius),  z:  townRadius }, dir: { x: 0, z:  1 } },
+        W: { inner: { x: -townRadius, z: zCurveW },                   gate: { x: -townRadius, z: zCurveW },                   dir: { x: -1, z: 0 } },
+        E: (!cfg.hasRiver || (getRiverX(0) + riverWidth * 0.65) < townRadius - 4)
+          ? { inner: { x: townRadius, z: 0 }, gate: { x: townRadius, z: 0 }, dir: { x: 1, z: 0 } }
+          : null
+      };
+    }
+
+    // Replicar el emparejamiento de buildExitPaths en el mismo orden de cfg.exits
+    const CARDINAL_ANG = { E: 0, S: Math.PI / 2, W: Math.PI, N: Math.PI * 1.5 };
+    const claimed = new Set();
+    let targetEx = null, targetAng = 0, matchedKey = null;
+    for (let ei = 0; ei < exits.length; ei++) {
+      const ex = exits[ei];
+      const a = ((Number(ex.angle) || 0) % 360 + 360) % 360 * Math.PI / 180;
+      let mk = null;
+      let bestDiff = 0.68;
+      ['E', 'S', 'W', 'N'].forEach(key => {
+        if (claimed.has(key) || !wallAnchors[key]) return;
+        let diff = Math.abs(a - CARDINAL_ANG[key]);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        if (diff < bestDiff) { bestDiff = diff; mk = key; }
+      });
+      if (mk) claimed.add(mk);
+      if (ex.roadId === roadId) {
+        targetEx = ex;
+        targetAng = a;
+        matchedKey = mk;
+        break;
+      }
+    }
+    if (!targetEx) return [];
+
+    const ca = Math.cos(targetAng), sa = Math.sin(targetAng);
+    const tHalf = half / Math.max(Math.abs(ca), Math.abs(sa));
+    const end = { x: ca * tHalf, z: sa * tHalf };
+    const outer = { x: ca * (tHalf + 12), z: sa * (tHalf + 12) };
+    const bx = getRiverX(0);
+    const halfBr = (riverWidth + 8.0) * 0.5 + 3.5;
+
+    const raw = [];
+    if (matchedKey) {
+      const anc = wallAnchors[matchedKey];
+      const PLAZA_EDGE = 16.5;
+      const innerLimit = manzanas ? gR : Math.max(PLAZA_EDGE + 4, townRadius - 6);
+      const span = Math.max(0, innerLimit - PLAZA_EDGE);
+      const nIn = Math.max(1, Math.ceil(span / 10));
+      let bridgeDone = false;
+      const pushBridge = () => {
+        if (bridgeDone) return;
+        bridgeDone = true;
+        raw.push({ x: bx - halfBr - 2, z: 0, puerta: true });
+        raw.push({ x: bx, z: 0, puerta: true });
+        raw.push({ x: bx + halfBr + 2, z: 0, puerta: true });
+      };
+
+      for (let i = 0; i <= nIn; i++) {
+        const s = PLAZA_EDGE + span * (i / nIn);
+        if (manzanas) {
+          if (matchedKey === 'N') raw.push(W(0, -s));
+          else if (matchedKey === 'S') raw.push(W(0, s));
+          else if (matchedKey === 'W') raw.push(W(-s, 0));
+          else {
+            if (cfg.hasRiver && s >= bx - halfBr - 3 && s <= bx + halfBr + 3) {
+              pushBridge();
+            } else {
+              if (cfg.hasRiver && !bridgeDone && s > bx + halfBr + 3) pushBridge();
+              raw.push(W(s, 0));
+            }
+          }
+        } else {
+          if (matchedKey === 'N') raw.push({ x: getMainRoadX(-s), z: -s });
+          else if (matchedKey === 'S') raw.push({ x: getMainRoadX(s), z: s });
+          else if (matchedKey === 'W') raw.push({ x: -s, z: Math.sin(-s * 0.04) * (curve * 0.35) * Math.min(1, s / 20) });
+          else {
+            if (cfg.hasRiver && s >= bx - halfBr - 3 && s <= bx + halfBr + 3) {
+              pushBridge();
+            } else {
+              if (cfg.hasRiver && !bridgeDone && s > bx + halfBr + 3) pushBridge();
+              const zz = (cfg.hasRiver && s > bx) ? 0 : Math.sin(s * 0.04) * (curve * 0.35) * Math.min(1, s / 20);
+              raw.push({ x: s, z: zz });
+            }
+          }
+        }
+      }
+
+      // Enfoque recto y cruce exacto de la puerta de muralla (evita pilares laterales)
+      raw.push({ x: anc.gate.x - anc.dir.x * 6, z: anc.gate.z - anc.dir.z * 6, puerta: true });
+      raw.push({ x: anc.gate.x, z: anc.gate.z, puerta: true });
+      raw.push({ x: anc.gate.x + anc.dir.x * 6, z: anc.gate.z + anc.dir.z * 6, puerta: true });
+
+      // Curva Bezier exterior idéntica a buildExitPaths hasta el borde del recinto (end)
+      const extL = Math.hypot(end.x - anc.gate.x, end.z - anc.gate.z);
+      const p1 = { x: anc.gate.x + anc.dir.x * extL * 0.35, z: anc.gate.z + anc.dir.z * extL * 0.35 };
+      const p2 = { x: end.x - ca * extL * 0.35, z: end.z - sa * extL * 0.35 };
+      const nBez = Math.max(2, Math.ceil(extL / 10));
+      for (let i = 1; i <= nBez; i++) {
+        const t = i / nBez, u = 1 - t;
+        const qx = u * u * u * anc.gate.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * end.x;
+        const qz = u * u * u * anc.gate.z + 3 * u * u * t * p1.z + 3 * u * t * t * p2.z + t * t * t * end.z;
+        if (i < nBez && Math.hypot(qx - anc.gate.x, qz - anc.gate.z) < 6.5) continue;
+        raw.push({ x: qx, z: qz });
+      }
+      raw.push(outer);
+    } else {
+      // Salida diagonal radial: muestreo cada ~14 m + puntos de puerta marcados
+      const stops = [];
+      for (let r = 16.5; r < tHalf - 1; r += 14) stops.push({ r, puerta: false });
+      [Math.max(18, townRadius - 6), townRadius, townRadius + 6].forEach(gr => {
+        if (gr < tHalf) stops.push({ r: gr, puerta: true });
+      });
+      stops.sort((a, b) => a.r - b.r);
+      for (let i = 0; i < stops.length; i++) {
+        const st = stops[i];
+        const pt = { x: ca * st.r, z: sa * st.r };
+        if (st.puerta) pt.puerta = true;
+        raw.push(pt);
+      }
+      raw.push(end);
+      raw.push(outer);
+    }
+
+    // Limpiar puntos muy próximos (< 3.5 m) manteniendo siempre las marcas de puerta y el punto final exterior
+    const out = [];
+    for (let i = 0; i < raw.length; i++) {
+      const pt = raw[i];
+      const isLast = i === raw.length - 1;
+      if (!out.length) {
+        out.push(pt);
+        continue;
+      }
+      const prev = out[out.length - 1];
+      const d = Math.hypot(pt.x - prev.x, pt.z - prev.z);
+      if (d < 3.5) {
+        if (isLast) {
+          if (prev.puerta && !pt.puerta) pt.puerta = true;
+          out[out.length - 1] = pt;
+        } else if (pt.puerta && !prev.puerta) {
+          out[out.length - 1] = pt;
+        }
+      } else {
+        out.push(pt);
+      }
+    }
+    return out;
+  }
+
+  // Índice espacial rápido de tramos de calle locales para consultar distancia y semiancho en O(1)
+  function indiceCalles2D(streets, exitPaths, defaultW = 6.0) {
+    const CELDA = 16;
+    const mapa = new Map();
+    const segs = [];
+    const addPoly = (pts, halfW) => {
+      if (!pts || pts.length < 2) return;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const az = a.z !== undefined ? a.z : a.y;
+        const bz = b.z !== undefined ? b.z : b.y;
+        const dx = b.x - a.x, dz = bz - az;
+        const s = { ax: a.x, az, dx, dz, len2: dx * dx + dz * dz, halfW };
+        segs.push(s);
+        const pad = halfW + 14;
+        const cx0 = Math.floor((Math.min(a.x, b.x) - pad) / CELDA), cx1 = Math.floor((Math.max(a.x, b.x) + pad) / CELDA);
+        const cz0 = Math.floor((Math.min(az, bz) - pad) / CELDA), cz1 = Math.floor((Math.max(az, bz) + pad) / CELDA);
+        for (let cx = cx0; cx <= cx1; cx++) {
+          for (let cz = cz0; cz <= cz1; cz++) {
+            const k = (cx << 16) ^ (cz & 0xffff);
+            let arr = mapa.get(k);
+            if (!arr) { arr = []; mapa.set(k, arr); }
+            arr.push(s);
+          }
+        }
+      }
+    };
+    if (Array.isArray(streets)) {
+      streets.forEach(st => {
+        if (st && st.pts) addPoly(st.pts, (st.width || defaultW) * 0.5);
+      });
+    }
+    if (Array.isArray(exitPaths)) {
+      exitPaths.forEach(ep => {
+        if (ep && ep.points) addPoly(ep.points, defaultW * 0.46);
+      });
+    }
+    return {
+      totalSegs: segs.length,
+      distInfo(x, z, maxR = 14) {
+        if (!segs.length) return null;
+        const cx = Math.floor(x / CELDA), cz = Math.floor(z / CELDA);
+        const arr = mapa.get((cx << 16) ^ (cz & 0xffff));
+        if (!arr || !arr.length) return null;
+        let bestD = Infinity, bestHw = defaultW * 0.5, bestMargin = Infinity;
+        for (let i = 0; i < arr.length; i++) {
+          const s = arr[i];
+          const t = s.len2 > 0 ? Math.max(0, Math.min(1, ((x - s.ax) * s.dx + (z - s.az) * s.dz) / s.len2)) : 0;
+          const px = x - (s.ax + s.dx * t), pz = z - (s.az + s.dz * t);
+          const d = Math.hypot(px, pz);
+          if (d <= maxR && (d - s.halfW) < bestMargin) {
+            bestMargin = d - s.halfW;
+            bestD = d;
+            bestHw = s.halfW;
+          }
+        }
+        return bestMargin < Infinity ? { dist: bestD, halfW: bestHw } : null;
+      }
+    };
+  }
+
   window.VillageLib = {
     PRNG,
     ARCHITECTURAL_STYLES,
@@ -5547,6 +5881,8 @@
     calcularPuenteGLB,
     cargarPuenteGLB,
     preloadPuentesGLB,
+    computeExitRouteLocal,
+    indiceCalles2D,
     HEDGE_TEXTURES,
     ROOF_TEXTURES,
     STYLE_ROOF_VARIANTS,

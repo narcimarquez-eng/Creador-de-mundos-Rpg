@@ -217,4 +217,330 @@ t('CharacterController.caminarADestino esquiva preventivamente un colisionador f
   }
 });
 
+t('detecta muros finos (2.4 m) tanto en segmentoLibre como en calcularRuta', () => {
+  const esBloqueado = (x, y) => Math.abs(x) <= 1.2 && Math.abs(y) <= 30;
+  assert.strictEqual(R.segmentoLibre({ x: -20, y: 0 }, { x: 20, y: 0 }, { esBloqueado }), false);
+  const ruta = R.calcularRuta(MUNDO, { x: -20, y: 0 }, { x: 20, y: 0 }, Object.assign({}, OPC, { esBloqueado }));
+  assert.ok(ruta.length > 1, 'Debe rodear el muro fino de 2.4 m');
+  let prev = { x: -20, y: 0 };
+  for (const p of ruta) {
+    assert.ok(R.segmentoLibre(prev, p, { esBloqueado }), `El tramo (${prev.x.toFixed(1)},${prev.y.toFixed(1)})->(${p.x.toFixed(1)},${p.y.toFixed(1)}) cruza el muro fino`);
+    prev = p;
+  }
+});
+
+t('buscarRodeoLocal no corta esquinas diagonales entre bloques tocándose en vértice', () => {
+  const esBloqueado = (x, y) =>
+    (x >= 0 && x <= 14 && y >= 0 && y <= 14) ||
+    (x >= -14 && x <= 0 && y >= -14 && y <= 0);
+  const origen = { x: -10, y: 10 };
+  const dest = { x: 10, y: -10 };
+  const ruta = R.calcularRuta(MUNDO, origen, dest, Object.assign({}, OPC, { esBloqueado }));
+  assert.ok(ruta.length >= 2, 'Debe rodear por fuera de los bloques sin atravesar la unión diagonal');
+  let prev = origen;
+  for (const p of ruta) {
+    for (let s = 1; s <= 24; s++) {
+      const mx = prev.x + (p.x - prev.x) * (s / 24);
+      const my = prev.y + (p.y - prev.y) * (s / 24);
+      assert.ok(!esBloqueado(mx, my), `Cortó esquina diagonal en (${mx.toFixed(2)}, ${my.toFixed(2)})`);
+    }
+    prev = p;
+  }
+});
+
+t('pueblo amurallado con salida a 34° de la puerta cardinal: sale por la puerta real sin chocar con la muralla', () => {
+  const R_WALL = 98;
+  const angExt = 124 * Math.PI / 180; // 34° al oeste respecto al Sur (90°)
+  const end = { x: Math.cos(angExt) * 120, y: Math.sin(angExt) * 120 };
+  const outer = { x: Math.cos(angExt) * 132, y: Math.sin(angExt) * 132 };
+  const wallBlocked = (x, y) => {
+    const r = Math.hypot(x, y);
+    if (r >= R_WALL - 2.2 && r <= R_WALL + 2.2) {
+      if (y > 0 && Math.abs(x) < 4.4) return false;
+      return true;
+    }
+    return false;
+  };
+  const mundoRotado = {
+    towns: [A, B],
+    roads: [{ id: 'ab', from: 'A', to: 'B', points: [{ x: 0, y: 0 }, end, outer, { x: Math.cos(angExt) * 400, y: Math.sin(angExt) * 400 }, B] }]
+  };
+  const opcMuralla = {
+    mitad: () => 120,
+    radioMuro: () => R_WALL + 4,
+    esBloqueado: wallBlocked,
+    salida: (idPueblo) => {
+      if (idPueblo !== 'A') return [];
+      return [
+        { x: 0, y: 18 },
+        { x: 0, y: 55 },
+        { x: 0, y: 92, puerta: true },
+        { x: 0, y: 98, puerta: true },
+        { x: 0, y: 104, puerta: true },
+        end,
+        outer
+      ];
+    }
+  };
+  const destino = { x: Math.cos(angExt) * 320, y: Math.sin(angExt) * 320 };
+  const ruta = R.calcularRuta(mundoRotado, { x: 0, y: 8 }, destino, opcMuralla);
+  const idxPuerta = ruta.findIndex(p => p.puerta && Math.hypot(p.x - 0, p.y - 98) < 4);
+  assert.ok(idxPuerta >= 0, 'La ruta debe cruzar exactamente por la puerta Sur marcada con puerta:true');
+  let prev = { x: 0, y: 8 };
+  for (const p of ruta) {
+    assert.ok(R.segmentoLibre(prev, p, { esBloqueado: wallBlocked }), `Atravesó la muralla en (${prev.x.toFixed(1)},${prev.y.toFixed(1)})->(${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+    prev = p;
+  }
+});
+
+t('héroe fuera de la muralla pero dentro de tileHalf (R+4 < r < tileHalf): no retrocede atravesando el muro', () => {
+  const R_WALL = 98;
+  const wallBlocked = (x, y) => {
+    const r = Math.hypot(x, y);
+    return r >= R_WALL - 2.2 && r <= R_WALL + 2.2 && !(Math.abs(y) < 4.4 && x > 0);
+  };
+  const desdeFuera = { x: 108, y: 12 };
+  const dest = { x: 450, y: 0 };
+  const opcMuralla = Object.assign({}, OPC, {
+    mitad: () => 120,
+    radioMuro: () => R_WALL + 4,
+    esBloqueado: wallBlocked
+  });
+  const ruta = R.calcularRuta(MUNDO, desdeFuera, dest, opcMuralla);
+  assert.ok(ruta.every(p => Math.hypot(p.x, p.y) > R_WALL), 'No debe volver hacia la plaza dentro de la muralla');
+});
+
+t('héroe ya encaminado por la calle interior de salida: sigue hacia la puerta sin volver a la plaza', () => {
+  const opcMulti = {
+    mitad: () => 120,
+    radioMuro: () => 102,
+    salida: (id) => {
+      if (id !== 'A') return [{ x: 900, y: 0 }, { x: 888, y: 0 }];
+      return [
+        { x: 18, y: 0 },
+        { x: 40, y: 0 },
+        { x: 65, y: 0 },
+        { x: 92, y: 0, puerta: true },
+        { x: 98, y: 0, puerta: true },
+        { x: 104, y: 0, puerta: true },
+        { x: 120, y: 0 },
+        { x: 132, y: 0 }
+      ];
+    }
+  };
+  const ruta = R.calcularRuta(MUNDO, { x: 60, y: 4 }, { x: 500, y: 0 }, opcMulti);
+  assert.ok(!ruta.some(p => p.plaza), 'No debe retroceder a la plaza si ya está junto a la calle de salida');
+  assert.ok(ruta.every(p => p.x >= 58), 'Debe avanzar hacia la puerta Este y el destino');
+});
+
+t('plaza con fuente central bloqueada (r = 4.65): rodea la fuente sin atravesarla', () => {
+  const esBloqueado = (x, y) => Math.hypot(x, y) < 4.65;
+  const opcFuente = {
+    mitad: () => 120,
+    radioMuro: () => 102,
+    esBloqueado,
+    salida: (id) => id === 'A'
+      ? [{ x: 18, y: 0 }, { x: 50, y: 0 }, { x: 92, y: 0, puerta: true }, { x: 98, y: 0, puerta: true }, { x: 104, y: 0, puerta: true }, { x: 120, y: 0 }, { x: 132, y: 0 }]
+      : [{ x: 900, y: 0 }, { x: 888, y: 0 }]
+  };
+  const origen = { x: -50, y: 0 };
+  const ruta = R.calcularRuta(MUNDO, origen, { x: 500, y: 0 }, opcFuente);
+  let prev = origen;
+  for (const p of ruta) {
+    assert.ok(!esBloqueado(p.x, p.y), `Punto sobre la fuente en (${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+    assert.ok(R.segmentoLibre(prev, p, { esBloqueado }), 'Un tramo atravesó la fuente central de la plaza');
+    prev = p;
+  }
+});
+
+t('integración Valdris + VillageLib: los 5 pueblos amurallados salen por sus puertas sin chocar con muros ni atascarse', () => {
+  const prevWin = global.window;
+  const prevThree = global.THREE;
+  global.window = global;
+  class Vec3 {
+    constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+    clone() { return new Vec3(this.x, this.y, this.z); }
+    distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  }
+  class Quat {
+    constructor() { this.x = 0; this.y = 0; this.z = 0; this.w = 1; }
+    setFromAxisAngle(axis, angle) {
+      const s = Math.sin(angle / 2);
+      this.x = axis.x * s; this.y = axis.y * s; this.z = axis.z * s; this.w = Math.cos(angle / 2);
+      return this;
+    }
+    slerp() { return this; }
+  }
+  class Group {
+    constructor() { this.position = new Vec3(); this.rotation = { order: 'XYZ', y: 0 }; this.quaternion = new Quat(); this.scale = new Vec3(1, 1, 1); this.children = []; }
+    add(...a) { this.children.push(...a); }
+    remove() {}
+    traverse() {}
+  }
+  class Mat { constructor() { this.opacity = 1; this.transparent = false; } }
+  class Geo { translate() {} }
+  global.THREE = {
+    Vector3: Vec3, Quaternion: Quat, Group, Mesh: Group,
+    BoxGeometry: Geo, MeshStandardMaterial: Mat, Matrix4: class {}, Color: class {}
+  };
+  global.window.addEventListener = () => {};
+  try {
+    require('../js/village-core.js');
+    const CharLib = require('../js/character.js');
+    const valdris = require('../mundos/valdris.mundo.json');
+    const DEG = Math.PI / 180;
+    const CARD_ANG = { E: 0, S: Math.PI / 2, W: Math.PI, N: Math.PI * 1.5 };
+    const halfTown = t => Math.max(240, (42 + ((t.cfg && t.cfg.size) || 3) * 14 + 65) * 2) / 2;
+    const wallR = t => 42 + ((t.cfg && t.cfg.size) || 3) * 14;
+
+    const buildTownCols = (t) => {
+      const rot = ((t.cfg && t.cfg.rotation) || 0) * DEG;
+      const cr = Math.cos(rot), sr = Math.sin(rot);
+      const W2 = (lx, lz) => ({ x: t.x + lx * cr - lz * sr, z: t.y + lx * sr + lz * cr });
+      const cols = [];
+      const f = W2(0, 0);
+      cols.push({ type: 'circle', x: f.x, z: f.z, r: 3.8 });
+      if (t.cfg && t.cfg.hasProps) {
+        for (let i = 0; i < 6; i++) {
+          const ang = (i / 6) * Math.PI * 2 + 0.4;
+          const sp = W2(Math.cos(ang) * 12.2, Math.sin(ang) * 12.2);
+          cols.push({ type: 'circle', x: sp.x, z: sp.z, r: 1.74 });
+        }
+      }
+      const Rw = wallR(t);
+      const claimed = new Set();
+      const gateAngles = [];
+      (t.cfg.exits || []).forEach(ex => {
+        const a = ((Number(ex.angle) || 0) % 360 + 360) % 360 * DEG;
+        let mk = null, bestDiff = 0.68;
+        ['E', 'S', 'W', 'N'].forEach(key => {
+          if (claimed.has(key)) return;
+          let d = Math.abs(a - CARD_ANG[key]);
+          if (d > Math.PI) d = Math.PI * 2 - d;
+          if (d < bestDiff) { bestDiff = d; mk = key; }
+        });
+        const ga = mk ? CARD_ANG[mk] : a;
+        if (mk) claimed.add(mk);
+        gateAngles.push(ga);
+        const halfClear = Math.max(4.4, (t.cfg.roadWidth || 7) * 0.92 * 0.56);
+        const gx = Math.cos(ga) * Rw, gz = Math.sin(ga) * Rw;
+        const pxVec = -Math.sin(ga), pzVec = Math.cos(ga);
+        [-1, 1].forEach(sd => {
+          const pw = W2(gx + pxVec * (halfClear + 1.2) * sd, gz + pzVec * (halfClear + 1.2) * sd);
+          cols.push({ type: 'circle', x: pw.x, z: pw.z, r: 1.5, wall: true });
+        });
+      });
+      const halfOpen = Math.max(4.4, (t.cfg.roadWidth || 7) * 0.92 * 0.56) / Rw;
+      for (let a = 0; a < Math.PI * 2; a += 2.0 / Rw) {
+        const nearGate = gateAngles.some(ga => {
+          let d = Math.abs(a - ga);
+          if (d > Math.PI) d = Math.PI * 2 - d;
+          return d < halfOpen;
+        });
+        if (nearGate) continue;
+        const wp = W2(Math.cos(a) * Rw, Math.sin(a) * Rw);
+        cols.push({ type: 'circle', x: wp.x, z: wp.z, r: 1.3, wall: true });
+      }
+      return cols;
+    };
+
+    const walled = valdris.towns.filter(t => t.cfg && t.cfg.hasWalls);
+    assert.strictEqual(walled.length, 5, 'Valdris tiene 5 pueblos amurallados');
+    const townColsMap = new Map(valdris.towns.map(t => [t.id, buildTownCols(t)]));
+
+    const getColliders = (x, z) => {
+      const out = [];
+      for (const t of valdris.towns) {
+        if (Math.hypot(x - t.x, z - t.y) > halfTown(t) * 1.5) continue;
+        const cs = townColsMap.get(t.id);
+        for (let i = 0; i < cs.length; i++) out.push(cs[i]);
+      }
+      return out;
+    };
+    const esBloqueado = (x, z) => {
+      const cols = getColliders(x, z);
+      for (let i = 0; i < cols.length; i++) {
+        const c = cols[i];
+        if (Math.hypot(x - c.x, z - c.z) < c.r + 0.85) return true;
+      }
+      return false;
+    };
+    const opcionesValdris = {
+      mitad: id => halfTown(valdris.towns.find(t => t.id === id)),
+      radioMuro: id => wallR(valdris.towns.find(t => t.id === id)) + 4,
+      salida: (idPueblo, idCamino) => {
+        const t = valdris.towns.find(x => x.id === idPueblo);
+        const rot = ((t.cfg && t.cfg.rotation) || 0) * DEG;
+        const cr = Math.cos(rot), sr = Math.sin(rot);
+        const pts = global.window.VillageLib.computeExitRouteLocal(t.cfg, idCamino);
+        return pts.map(p => {
+          const w = { x: t.x + p.x * cr - p.z * sr, y: t.y + p.x * sr + p.z * cr };
+          if (p.puerta) w.puerta = true;
+          return w;
+        });
+      },
+      esBloqueado,
+      pasoSondeo: 1.2
+    };
+
+    // Calentamiento previo de JIT antes de medir latencia real en estado estacionario
+    if (walled.length && valdris.zones.length) {
+      const tw = walled[0], zw = valdris.zones[0];
+      R.calcularRuta(valdris, { x: tw.x, y: tw.y + 7 }, { x: zw.x, y: zw.y }, opcionesValdris);
+    }
+
+    walled.forEach(t => {
+      const rot = ((t.cfg && t.cfg.rotation) || 0) * DEG;
+      const cr = Math.cos(rot), sr = Math.sin(rot);
+      const z = valdris.zones.slice().sort((a, b) => Math.hypot(a.x - t.x, a.y - t.y) - Math.hypot(b.x - t.x, b.y - t.y))[0];
+      const desde = { x: t.x - 10 * cr, y: t.y - 10 * sr };
+      const t0 = Date.now();
+      const ruta = R.calcularRuta(valdris, desde, { x: z.x, y: z.y }, opcionesValdris);
+      const elapsed = Date.now() - t0;
+      assert.ok(elapsed < 50, `${t.name} -> ${z.name} demasiado lento: ${elapsed} ms`);
+      assert.ok(ruta.some(p => p.puerta), `${t.name} debe marcar puntos de puerta en la ruta`);
+
+      const ctrl = new CharLib.CharacterController({
+        scene: new Group(), camera: { position: new Vec3(0, 5, -10) }, controls: { target: new Vec3() },
+        world: { getWalkableHeight: () => 0, getColliders, isWaterHazard: () => false }, glbUrl: null
+      });
+      ctrl.root.position.set(desde.x, 0, desde.y);
+      const cols = townColsMap.get(t.id);
+      let idx = 0, exited = false;
+      for (let step = 0; step < 600; step++) {
+        const px = ctrl.root.position.x, pz = ctrl.root.position.z;
+        if (Math.hypot(px - t.x, pz - t.y) > wallR(t) + 18) { exited = true; break; }
+        let w = ruta[idx];
+        const ultimo = idx === ruta.length - 1;
+        const d = Math.hypot(w.x - px, w.y - pz);
+        const radioPaso = w.plaza ? (esBloqueado(w.x, w.y) ? 8.5 : 4.5) : (w.puerta ? 2.2 : 3.2);
+        let avanzar = !ultimo && d <= radioPaso;
+        if (!avanzar && !ultimo) {
+          const sig = ruta[idx + 1];
+          const dotSig = (sig.x - w.x) * (px - w.x) + (sig.y - w.y) * (pz - w.y);
+          if (dotSig > 0) {
+            const masCercaSig = Math.hypot(sig.x - px, sig.y - pz) < Math.hypot(sig.x - w.x, sig.y - w.y);
+            const segOk = R.segmentoLibre({ x: px, y: pz }, sig, opcionesValdris);
+            if (w.puerta ? (d <= 6 && masCercaSig && segOk) : (d <= 12 && (esBloqueado(w.x, w.y) || masCercaSig) && segOk)) avanzar = true;
+          }
+        }
+        if (avanzar) { idx++; w = ruta[idx]; }
+        ctrl.destino = { x: w.x, z: w.y, parar: idx === ruta.length - 1 ? 6 : 0.5 };
+        ctrl.caminarADestino(0.05, false);
+        assert.ok(!ctrl.atascado, `${t.name} se atascó en paso ${step}`);
+        for (const c of cols) {
+          if (c.wall) {
+            assert.ok(Math.hypot(ctrl.root.position.x - c.x, ctrl.root.position.z - c.z) >= c.r + ctrl.radius - 0.02, `${t.name} rozó muralla/pilar`);
+          }
+        }
+      }
+      assert.ok(exited, `${t.name} no salió fuera de la muralla`);
+    });
+  } finally {
+    global.window = prevWin;
+    global.THREE = prevThree;
+  }
+});
+
 console.log(`\n${n} pruebas de la ruta superadas.`);

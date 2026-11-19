@@ -172,6 +172,7 @@
     .dmg-dodge { color: #22d3ee; font-size: 14px; letter-spacing: .5px; text-shadow: 0 0 8px rgba(34,211,238,.65), 0 2px 3px #000; }
     .dmg-poison { color: #4ade80; font-size: 13px; text-shadow: 0 0 6px rgba(74,222,128,.6), 0 2px 3px #000; }
     .dmg-shield { color: #c084fc; font-size: 13px; text-shadow: 0 0 8px rgba(192,132,252,.65), 0 2px 3px #000; }
+    .dmg-skill { color: #fde047; font-size: 13px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; text-shadow: 0 0 10px rgba(245,158,11,.9), 0 2px 4px #000; }
     .dmg-heal { color: #4ade80; font-size: 15px; }
     #dmg-vignette { position: fixed; inset: 0; pointer-events: none; z-index: 21; box-shadow: inset 0 0 70px rgba(220,38,38,0); transition: box-shadow .16s ease-out; }
     #dmg-vignette.hit { box-shadow: inset 0 0 85px rgba(220,38,38,0.55); }
@@ -1688,6 +1689,10 @@
       <label><input type="checkbox" id="chk-water" checked> Agua</label>
       <label title="Un solo ajuste: texturas, sombras, reflejos, detalle de monstruos, pueblos y decoración">Calidad gráfica <select id="sel-quality"><option value="muybajo">Muy baja</option><option value="bajo">Baja</option><option value="medio">Media</option><option value="alto">Alta</option></select></label>
       <label title="Oclusión ambiental (SSAO) para sombras de contacto en piedras, muros y depresiones"><input type="checkbox" id="chk-ssao" checked> Oclusión (SSAO)</label>
+      <label title="Estética pastoral luminosa, sombras de nubes, lejanía celeste y tonos vibrantes"><input type="checkbox" id="chk-zelda" checked> Estilo Zelda (nubes y luz)</label>
+      <label title="Alcance de los prados, trigales y flores (doble anillo LOD para conservar FPS)">Campos y praderas <select id="sel-campos"><option value="desactivado">Desactivado</option><option value="cercano">Cercano (36 m)</option><option value="amplio">Amplio (68 m)</option><option value="enorme">Enorme (92 m)</option></select></label>
+      <label title="Riachuelos cristalinos vadeables con cantos rodados y orillas floridas"><input type="checkbox" id="chk-riachuelos" checked> Riachuelos</label>
+      <label title="Ráfagas de brisa y polen flotante sobre praderas"><input type="checkbox" id="chk-brisa" checked> Brisa y polen</label>
       <label title="Pelo y escamas de los monstruos: son la mayor parte de sus polígonos">Pelo y escamas <select id="sel-pelo"><option value="completo">Completo (hasta 30 m)</option><option value="ligero">Ligero (hasta 8 m)</option><option value="nada">Sin detalle</option></select></label>
       <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
       <label title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
@@ -2177,7 +2182,7 @@
   <script defer src="js/heroe.js?v=20261119e"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
   <script defer src="js/mapa.js?v=20251029"></script>
-  <script defer src="js/ruta.js?v=20251029"></script>
+  <script defer src="js/ruta.js?v=20261119g"></script>
   <script defer src="js/fusionar-modelo.js?v=20251029"></script>
   <script defer src="js/puestos-datos.js?v=20261103"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
@@ -2185,14 +2190,16 @@
   <script type="module" src="js/arboles.js?v=20251029"></script>
   <script type="module" src="js/pueblo-edits.js?v=20261113b"></script>
   <script defer src="js/casas-glb.js?v=20261114a"></script>
-  <script type="module" src="js/village-core.js?v=20261118c"></script>
+  <script type="module" src="js/village-core.js?v=20261119h"></script>
   <script type="module" src="js/combat.js?v=20261119e"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
-  <script type="module" src="js/terreno.js?v=20261115a"></script>
+  <script type="module" src="js/terreno.js?v=20261119b"></script>
+  <script type="module" src="js/pradera-atlas.js?v=20261119b"></script>
+  <script type="module" src="js/riachuelos.js?v=20261119a"></script>
   <script type="module" src="js/decorado.js?v=20261114e"></script>
   <script defer src="js/decorado-mundo.js?v=20261118c"></script>
-  <script type="module" src="js/character.js?v=20261119d"></script>
+  <script type="module" src="js/character.js?v=20261119h"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261030b"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261030b"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
@@ -2289,6 +2296,10 @@
   const terrainU = {
     tCapas: { value: null }, tHierbas: { value: null }, uHierbaMix: { value: 0 }, uTexOn: { value: 0 },
     uHumedad: { value: 1.0 }, uBumpFuerza: { value: 1.2 },
+    uPraderaSeed: { value: new THREE.Vector2(0, 0) },
+    uNubesSombra: { value: 1.0 },
+    uEstiloZelda: { value: 1.0 },
+    uAtmoHorizonte: { value: new THREE.Color('#a9e5f8') },
     uRecorte: { value: new THREE.Vector4(0, 0, 0, 0) },
     uSunDir: { value: new THREE.Vector3(0.45, 0.72, 0.35) },
     uSunColor: { value: new THREE.Color('#fffdf2') },
@@ -2340,16 +2351,18 @@
   //   de pueblos completos · decor: multiplicador de la distancia de ocultación de la decoración del campo
   const QUALITY = {
     muybajo: { radius: 600, shadows: 0, pixel: 0.75, far: 4, sombra: 0, texturas: false, reflejos: false, malla: 0.35,
-      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, ssao: false, humedad: 0.0, bump: 0.65, hierbaMax: 0 },
+      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, ssao: false, humedad: 0.0, bump: 0.65, hierbaMax: 0, camposLejos: 'desactivado', brisa: false, nubesSombra: 0.0 },
     bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0, texturas: true, reflejos: true, malla: 0.6,
-      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, ssao: false, humedad: 0.25, bump: 0.85, hierbaMax: 450 },
+      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, ssao: false, humedad: 0.25, bump: 0.85, hierbaMax: 450, camposLejos: 'cercano', brisa: false, nubesSombra: 0.6 },
     medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120, texturas: true, reflejos: true, malla: 0.8,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, ssao: false, humedad: 0.88, bump: 1.05, hierbaMax: 900 },
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, ssao: false, humedad: 0.88, bump: 1.05, hierbaMax: 900, camposLejos: 'amplio', brisa: true, nubesSombra: 1.0 },
     alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160, texturas: true, reflejos: true, malla: 1,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, ssao: true, humedad: 1.0, bump: 1.25, hierbaMax: 1350 }
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, ssao: true, humedad: 1.0, bump: 1.25, hierbaMax: 1350, camposLejos: 'enorme', brisa: true, nubesSombra: 1.0 }
   };
   let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
+  let estiloZelda = true, camposNivel = 'enorme', riachuelosActivo = true, brisaActiva = true;
+  let riachuelosMundo = null, riachuelosObj = null, brisaZelda = null;
   let monsters = [];
   let timeOfDay = 'day';
   let curTown = null, curZone = null;
@@ -2566,6 +2579,9 @@
         return aplicarSplatRio(w, Math.abs(lx - o.ground.getRiverX(lz)), dCauce, dBanco);
       }
     }
+    if (riachuelosMundo && riachuelosMundo.indice && typeof RiachuelosLib !== 'undefined') {
+      w = RiachuelosLib.aplicarSplat(riachuelosMundo.indice, x, z, w);
+    }
     return w;
   }
   // Suelo del pueblo en (lx, lz); donde el mundo está bajo el mar se mantiene el mar, como en el mapa
@@ -2708,6 +2724,9 @@
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
     h = LagosLib.aplicar(lagosMundo, x, z, h);
+    if (riachuelosMundo && riachuelosMundo.indice && typeof RiachuelosLib !== 'undefined') {
+      h = RiachuelosLib.aplicarAltura(riachuelosMundo.indice, x, z, h);
+    }
     // Hondonada y aplanado topográfico para las cabañas en pendiente (sin suelo artificial)
     if (typeof LugaresSecretosLib !== 'undefined' && LugaresSecretosLib.aplicarRebajeCabanas) {
       if ((!lugaresSecretos || !lugaresSecretos.length) && world) {
@@ -2765,15 +2784,17 @@
   // ===========================================================================
   // Constructor de mallas con colores por vértice y coordenadas UV
   // ===========================================================================
-  function MB() { this.p = []; this.c = []; this.u = []; this.n = []; }
-  MB.prototype.tri = function (a, b, c, col, ua, ub, uc, na, nb, nc) {
+  function MB() { this.p = []; this.c = []; this.u = []; this.n = []; this.f = []; }
+  MB.prototype.tri = function (a, b, c, col, ua, ub, uc, na, nb, nc, fa, fb, fc) {
     const uvs = ua ? [ua, ub, uc] : [[a[0] * 0.35, a[2] * 0.35], [b[0] * 0.35, b[2] * 0.35], [c[0] * 0.35, c[2] * 0.35]];
     const nrms = na ? [na, nb, nc] : null;
+    const fades = fa !== undefined ? [fa, fb, fc] : null;
     [a, b, c].forEach((v, idx) => {
       this.p.push(v[0], v[1], v[2]);
       this.c.push(col[0], col[1], col[2]);
       this.u.push(uvs[idx][0], uvs[idx][1]);
       if (nrms) this.n.push(nrms[idx][0], nrms[idx][1], nrms[idx][2]);
+      this.f.push(fades ? fades[idx] : 1.0);
     });
   };
   MB.prototype.quad = function (a, b, c, d, col) { this.tri(a, b, c, col); this.tri(a, c, d, col); };
@@ -2847,13 +2868,16 @@
       return;
     }
     const sTot = D[D.length - 1] || 1;
+    const fadeEnds = !(opts && opts.fadeEnds === false);
     const M = pts.length, N = segW + 1;
     const gridPos = new Array(M);
     const gridCol = new Array(M);
+    const gridFade = new Array(M);
     for (let i = 0; i < M; i++) {
       const e = ejes[i];
       const s = D[i];
       const endFade = smooth(0, 5.5, s) * smooth(0, 5.5, sTot - s);
+      gridFade[i] = fadeEnds ? (smooth(0, 2.4, s) * smooth(0, 2.4, sTot - s)) : 1.0;
       gridPos[i] = new Array(N);
       gridCol[i] = new Array(N);
       for (let j = 0; j < N; j++) {
@@ -2863,6 +2887,7 @@
         const wx = e.px + e.nx * signo;
         const wz = e.pz + e.nz * signo;
         const edgeFade = 1.0 - smooth(0.60, 0.98, Math.abs(uSigned));
+        const offPerfil = off * (0.18 + 0.82 * edgeFade);
         let rioFade = 1.0;
         if (typeof rioCercano === 'function') {
           const r = rioCercano(wx, wz);
@@ -2877,7 +2902,7 @@
             ? (0.45 * bache - 0.30 * rut * (0.6 + 0.4 * onda) + corona * 0.5)
             : (-0.95 * rut * (0.65 + 0.35 * onda) + 0.42 * bache + corona)
         );
-        gridPos[i][j] = [wx, altura(wx, wz) + off + dy, wz];
+        gridPos[i][j] = [wx, altura(wx, wz) + offPerfil + dy, wz];
         const kTint = 1.0 - 0.10 * rut * endFade * (0.65 + 0.35 * Math.max(0, -onda));
         gridCol[i][j] = [col[0] * kTint, col[1] * kTint, col[2] * kTint];
       }
@@ -2904,13 +2929,14 @@
     }
     for (let i = 0; i < M - 1; i++) {
       const v0 = D[i] / 6.0, v1 = D[i + 1] / 6.0;
+      const f0 = gridFade[i], f1 = gridFade[i + 1];
       for (let j = 0; j < segW; j++) {
         const u0 = j / segW, u1 = (j + 1) / segW;
         const a = gridPos[i][j], b = gridPos[i][j + 1], c = gridPos[i + 1][j + 1], d = gridPos[i + 1][j];
         const na = gridNrm[i][j], nb = gridNrm[i][j + 1], nc = gridNrm[i + 1][j + 1], nd = gridNrm[i + 1][j];
         const ca = gridCol[i][j];
-        this.tri(a, b, c, ca, [u0, v0], [u1, v0], [u1, v1], na, nb, nc);
-        this.tri(a, c, d, ca, [u0, v0], [u1, v1], [u0, v1], na, nc, nd);
+        this.tri(a, b, c, ca, [u0, v0], [u1, v0], [u1, v1], na, nb, nc, f0, f0, f1);
+        this.tri(a, c, d, ca, [u0, v0], [u1, v1], [u0, v1], na, nc, nd, f0, f1, f1);
       }
     }
   };
@@ -2923,6 +2949,9 @@
       g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3));
     } else {
       g.computeVertexNormals();
+    }
+    if (this.f && this.f.length === this.p.length / 3) {
+      g.setAttribute('aEndFade', new THREE.Float32BufferAttribute(this.f, 1));
     }
     return g;
   };
@@ -3343,23 +3372,63 @@
     [roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing].forEach(m => {
       if (m) { scene.remove(m); if (m.geometry) m.geometry.dispose(); }
     });
+    if (riachuelosObj && riachuelosObj.grupo) {
+      scene.remove(riachuelosObj.grupo);
+      riachuelosObj.grupo.traverse(ch => { if (ch.geometry) ch.geometry.dispose(); });
+    }
+    riachuelosObj = null;
+    riachuelosMundo = null;
     zoneLines.forEach(l => { scene.remove(l); l.geometry.dispose(); });
     zoneLines.length = 0;
     zoneLabels.concat(townLabels).forEach(l => l.el.remove());
     zoneLabels.length = 0; townLabels.length = 0;
     selectRing = null;
     _hierbaHeroX = Infinity; _hierbaHeroZ = Infinity;
-    if (hierbaCampoMesh) { hierbaCampoMesh.count = 0; hierbaCampoMesh.visible = false; }
+    _hierbaFarHeroX = Infinity; _hierbaFarHeroZ = Infinity;
+    _capasCampoTodas().forEach(m => {
+      m.count = 0;
+      m.visible = false;
+    });
+    if (brisaZelda && brisaZelda.grupo) brisaZelda.grupo.visible = false;
   }
 
-  // Hierba 3D instanciada alrededor del héroe en biomas verdes (fija a celdas del mundo para que no baile)
-  const HIERBA_CAMPO_MAX = 1350;
-  let hierbaCampoMesh = null;
+  // Tres atlas botánicos 3D en doble anillo LOD (cercano 36 m + lejano hasta 92 m): campos enormes con 6 draw calls
+  const HIERBA_CAMPO_MAX = 1800;
+  const HIERBA_LEJOS_MAX = 1600;
+  let hierbaCampoMesh = null, trigoCampoMesh = null, floresCampoMesh = null;
+  let hierbaLejosMesh = null, trigoLejosMesh = null, floresLejosMesh = null, _capasLejasCtrl = null;
   let _hierbaHeroX = Infinity, _hierbaHeroZ = Infinity;
+  let _hierbaFarHeroX = Infinity, _hierbaFarHeroZ = Infinity;
   const _hM4 = new THREE.Matrix4(), _hPos = new THREE.Vector3(), _hQuat = new THREE.Quaternion(), _hSc = new THREE.Vector3(), _hYAxis = new THREE.Vector3(0, 1, 0), _hCol = new THREE.Color();
+
+  function _capasCampoPradera() {
+    return [hierbaCampoMesh, trigoCampoMesh, floresCampoMesh].filter(Boolean);
+  }
+  function _capasCampoLejas() {
+    return [hierbaLejosMesh, trigoLejosMesh, floresLejosMesh].filter(Boolean);
+  }
+  function _capasCampoTodas() {
+    return _capasCampoPradera().concat(_capasCampoLejas());
+  }
 
   function initHierbaCampo() {
     if (hierbaCampoMesh || !scene) return;
+    if (typeof PraderaAtlasLib !== 'undefined') {
+      const capas = PraderaAtlasLib.crearCapasPradera(THREE, HIERBA_CAMPO_MAX, terrainU, renderer);
+      hierbaCampoMesh = capas.hierba;
+      trigoCampoMesh = capas.trigo;
+      floresCampoMesh = capas.flores;
+      _capasCampoPradera().forEach(m => scene.add(m));
+
+      if (typeof PraderaAtlasLib.crearCapasPraderaLejana === 'function') {
+        _capasLejasCtrl = PraderaAtlasLib.crearCapasPraderaLejana(THREE, HIERBA_LEJOS_MAX, terrainU, renderer, capas);
+        hierbaLejosMesh = _capasLejasCtrl.hierba;
+        trigoLejosMesh = _capasLejasCtrl.trigo;
+        floresLejosMesh = _capasLejasCtrl.flores;
+        _capasCampoLejas().forEach(m => scene.add(m));
+      }
+      return;
+    }
     const P = [], Nn = [], C = [];
     const blades = 5;
     for (let b = 0; b < blades; b++) {
@@ -3399,81 +3468,178 @@
     scene.add(hierbaCampoMesh);
   }
 
-  function actualizarHierbaCampo(forzar = false) {
-    if (!world || !terrain || !character || !character.root || !scene) return;
-    const enInterior = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
-    const maxCount = (QUALITY[quality] && QUALITY[quality].hierbaMax) || 0;
-    if (enInterior || maxCount <= 0) {
-      if (hierbaCampoMesh) hierbaCampoMesh.visible = false;
-      return;
-    }
-    if (!hierbaCampoMesh) initHierbaCampo();
-    const hx = character.root.position.x, hz = character.root.position.z;
-    terrainU.uHeroXZ.value.set(hx, hz);
-    if (!forzar && Math.hypot(hx - _hierbaHeroX, hz - _hierbaHeroZ) < 3.4) {
-      hierbaCampoMesh.visible = hierbaCampoMesh.count > 0;
-      return;
-    }
-    _hierbaHeroX = hx;
-    _hierbaHeroZ = hz;
+  function _poblarAnilloPradera(cfg) {
+    const { hx, hz, step, radMin, radMax, maxTotal, maxCap, escalaDens, mallas, seed, esAnilloLejos } = cfg;
+    const rMin2 = radMin * radMin;
+    const rMax2 = radMax * radMax;
+    const gx0 = Math.floor((hx - radMax) / step), gx1 = Math.ceil((hx + radMax) / step);
+    const gz0 = Math.floor((hz - radMax) / step), gz1 = Math.ceil((hz + radMax) / step);
+    const contadores = { hierba: 0, trigo: 0, flores: 0 };
+    const conAtlas = typeof PraderaAtlasLib !== 'undefined' && mallas.trigo && mallas.flores;
+    const indRiachuelo = riachuelosMundo && riachuelosMundo.indice ? riachuelosMundo.indice : null;
+    let total = 0;
 
-    const STEP = 1.6, RAD = 31.5, RAD2 = RAD * RAD;
-    const gx0 = Math.floor((hx - RAD) / STEP), gx1 = Math.ceil((hx + RAD) / STEP);
-    const gz0 = Math.floor((hz - RAD) / STEP), gz1 = Math.ceil((hz + RAD) / STEP);
-    const escalaDens = Math.min(1, maxCount / 1000);
-    const seed = (world.seed || 1) | 0;
-    let n = 0;
-
-    for (let gz = gz0; gz <= gz1 && n < maxCount; gz++) {
-      for (let gx = gx0; gx <= gx1 && n < maxCount; gx++) {
-        let h = (Math.imul(gx, 73856093) ^ Math.imul(gz, 19349663) ^ seed) >>> 0;
+    for (let gz = gz0; gz <= gz1 && total < maxTotal; gz++) {
+      for (let gx = gx0; gx <= gx1 && total < maxTotal; gx++) {
+        let h = (Math.imul(gx, 73856093) ^ Math.imul(gz, 19349663) ^ seed ^ (esAnilloLejos ? 0x9e377 : 0)) >>> 0;
         h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
         const r1 = (h & 1023) / 1024;
         const r2 = ((h >>> 10) & 1023) / 1024;
         const r3 = ((h >>> 20) & 1023) / 1024;
         const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
 
-        const x = (gx + 0.15 + r1 * 0.70) * STEP;
-        const z = (gz + 0.15 + r2 * 0.70) * STEP;
+        const x = (gx + 0.15 + r1 * 0.70) * step;
+        const z = (gz + 0.15 + r2 * 0.70) * step;
         const dx = x - hx, dz = z - hz;
-        if (dx * dx + dz * dz > RAD2) continue;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < rMin2 || d2 > rMax2) continue;
 
         const elev = terrain.elevation(x, z);
         if (elev < SEA + 0.05) continue;
         const bio = terrain.biomeAt(x, z, elev);
-        const prob = bio === 'pradera' ? 0.88 : bio === 'bosque' ? 0.76 : bio === 'pantano' ? 0.60 : bio === 'taiga' ? 0.48 : bio === 'tundra' ? 0.24 : bio === 'costa' ? 0.14 : 0;
-        if (r3 > prob * escalaDens) continue;
 
-        if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 5.2)) continue;
+        if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 3.8)) continue;
         if (LagosLib.enAgua(lagosMundo, x, z)) continue;
         if (typeof rioCercano === 'function') {
           const rio = rioCercano(x, z);
           if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) continue;
         }
+        let enOrillaRiachuelo = false;
+        if (indRiachuelo) {
+          const hitR = indRiachuelo.cerca(x, z);
+          if (hitR) {
+            if (hitR.d < hitR.halfW + 0.4) continue;
+            if (hitR.d < hitR.bankW + 2.5) enOrillaRiachuelo = true;
+          }
+        }
         const y = H(x, z);
-        const dh = Math.abs(H(x + 1.2, z) - H(x - 1.2, z)) + Math.abs(H(x, z + 1.2) - H(x, z - 1.2));
+        const dStep = esAnilloLejos ? 2.2 : 1.2;
+        const dhRaw = Math.abs(H(x + dStep, z) - H(x - dStep, z)) + Math.abs(H(x, z + dStep) - H(x, z - dStep));
+        const dh = esAnilloLejos ? dhRaw * (1.2 / dStep) : dhRaw;
         if (dh > 1.75) continue;
 
-        const sc = 0.78 + r4 * 0.54;
-        _hQuat.setFromAxisAngle(_hYAxis, r1 * 6.28318);
-        _hSc.set(sc, sc * (0.85 + r2 * 0.35), sc);
-        _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
-        hierbaCampoMesh.setMatrixAt(n, _hM4);
+        if (conAtlas) {
+          const inst = PraderaAtlasLib.elegirInstanciaPradera(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens, { enOrillaRiachuelo });
+          if (!inst) continue;
+          const mesh = mallas[inst.atlas] || mallas.hierba;
+          const idx = contadores[inst.atlas];
+          if (!mesh || idx >= maxCap) continue;
 
-        const lum = 0.85 + r3 * 0.28;
-        if (bio === 'taiga' || bio === 'pantano') _hCol.setRGB(lum * 0.74, lum * 0.88, lum * 0.74);
-        else if (bio === 'tundra' || bio === 'costa') _hCol.setRGB(lum * 1.04, lum * 0.96, lum * 0.70);
-        else if (bio === 'bosque') _hCol.setRGB(lum * 0.82, lum * 0.96, lum * 0.76);
-        else _hCol.setRGB(lum * 0.92, lum * 1.02, lum * 0.84);
-        hierbaCampoMesh.setColorAt(n, _hCol);
-        n++;
+          _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+          _hSc.set(inst.sx, inst.sy, inst.sz);
+          _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
+          mesh.setMatrixAt(idx, _hM4);
+          _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+          mesh.setColorAt(idx, _hCol);
+          const aCell = mesh.geometry && mesh.geometry.getAttribute('aCell');
+          if (aCell) aCell.setXY(idx, inst.col, inst.row);
+          contadores[inst.atlas] = idx + 1;
+          total++;
+        } else if (!esAnilloLejos && mallas.hierba) {
+          const prob = bio === 'pradera' ? 0.88 : bio === 'bosque' ? 0.76 : bio === 'pantano' ? 0.60 : bio === 'taiga' ? 0.48 : bio === 'tundra' ? 0.24 : bio === 'costa' ? 0.14 : 0;
+          if (r3 > prob * escalaDens) continue;
+          const sc = 0.78 + r4 * 0.54;
+          _hQuat.setFromAxisAngle(_hYAxis, r1 * 6.28318);
+          _hSc.set(sc, sc * (0.85 + r2 * 0.35), sc);
+          _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
+          mallas.hierba.setMatrixAt(contadores.hierba, _hM4);
+          const lum = 0.85 + r3 * 0.28;
+          if (bio === 'taiga' || bio === 'pantano') _hCol.setRGB(lum * 0.74, lum * 0.88, lum * 0.74);
+          else if (bio === 'tundra' || bio === 'costa') _hCol.setRGB(lum * 1.04, lum * 0.96, lum * 0.70);
+          else if (bio === 'bosque') _hCol.setRGB(lum * 0.82, lum * 0.96, lum * 0.76);
+          else _hCol.setRGB(lum * 0.92, lum * 1.02, lum * 0.84);
+          mallas.hierba.setColorAt(contadores.hierba, _hCol);
+          contadores.hierba++;
+          total++;
+        }
       }
     }
-    hierbaCampoMesh.count = n;
-    hierbaCampoMesh.visible = n > 0;
-    if (n > 0) {
-      hierbaCampoMesh.instanceMatrix.needsUpdate = true;
-      if (hierbaCampoMesh.instanceColor) hierbaCampoMesh.instanceColor.needsUpdate = true;
+
+    if (conAtlas) {
+      for (const tipo of ['hierba', 'trigo', 'flores']) {
+        const mesh = mallas[tipo];
+        const cnt = contadores[tipo];
+        if (!mesh) continue;
+        mesh.count = cnt;
+        mesh.visible = cnt > 0;
+        if (cnt > 0) {
+          mesh.instanceMatrix.needsUpdate = true;
+          if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+          const aCell = mesh.geometry && mesh.geometry.getAttribute('aCell');
+          if (aCell) aCell.needsUpdate = true;
+        }
+      }
+    } else if (mallas.hierba) {
+      mallas.hierba.count = contadores.hierba;
+      mallas.hierba.visible = contadores.hierba > 0;
+      if (contadores.hierba > 0) {
+        mallas.hierba.instanceMatrix.needsUpdate = true;
+        if (mallas.hierba.instanceColor) mallas.hierba.instanceColor.needsUpdate = true;
+      }
+    }
+  }
+
+  function actualizarHierbaCampo(forzar = false) {
+    if (!world || !terrain || !character || !character.root || !scene) return;
+    const enInterior = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
+    const maxCount = (QUALITY[quality] && QUALITY[quality].hierbaMax) || 0;
+    if (enInterior || camposNivel === 'desactivado' || maxCount <= 0) {
+      _capasCampoTodas().forEach(m => { m.visible = false; });
+      return;
+    }
+    if (!hierbaCampoMesh) initHierbaCampo();
+    const hx = character.root.position.x, hz = character.root.position.z;
+    terrainU.uHeroXZ.value.set(hx, hz);
+
+    const seed = (world.seed || 1) | 0;
+    const needNear = forzar || Math.hypot(hx - _hierbaHeroX, hz - _hierbaHeroZ) >= 3.2;
+    if (needNear) {
+      _hierbaHeroX = hx;
+      _hierbaHeroZ = hz;
+      const conAtlas = typeof PraderaAtlasLib !== 'undefined' && trigoCampoMesh && floresCampoMesh;
+      _poblarAnilloPradera({
+        hx, hz,
+        step: conAtlas ? 1.45 : 1.6,
+        radMin: 0,
+        radMax: conAtlas ? 36.0 : 31.5,
+        maxTotal: conAtlas ? Math.min(HIERBA_CAMPO_MAX, Math.round(maxCount * 1.35)) : maxCount,
+        maxCap: HIERBA_CAMPO_MAX,
+        escalaDens: conAtlas ? Math.min(1, maxCount / 1100) : Math.min(1, maxCount / 1000),
+        mallas: { hierba: hierbaCampoMesh, trigo: trigoCampoMesh, flores: floresCampoMesh },
+        seed,
+        esAnilloLejos: false
+      });
+    } else {
+      _capasCampoPradera().forEach(m => { m.visible = m.count > 0; });
+    }
+
+    const usarLejos = (camposNivel === 'amplio' || camposNivel === 'enorme') && hierbaLejosMesh && trigoLejosMesh && floresLejosMesh;
+    if (!usarLejos) {
+      _capasCampoLejas().forEach(m => { m.visible = false; });
+      return;
+    }
+
+    const rLejos = camposNivel === 'amplio' ? 68.0 : 92.0;
+    if (_capasLejasCtrl && _capasLejasCtrl.actualizarRadios) _capasLejasCtrl.actualizarRadios(rLejos);
+    const needFar = forzar || Math.hypot(hx - _hierbaFarHeroX, hz - _hierbaFarHeroZ) >= 6.5;
+    if (needFar) {
+      _hierbaFarHeroX = hx;
+      _hierbaFarHeroZ = hz;
+      const farCap = camposNivel === 'amplio' ? 950 : HIERBA_LEJOS_MAX;
+      _poblarAnilloPradera({
+        hx, hz,
+        step: 3.1,
+        radMin: 24.5,
+        radMax: rLejos,
+        maxTotal: farCap,
+        maxCap: HIERBA_LEJOS_MAX,
+        escalaDens: Math.min(1, (maxCount / 1100) * 1.1),
+        mallas: { hierba: hierbaLejosMesh, trigo: trigoLejosMesh, flores: floresLejosMesh },
+        seed,
+        esAnilloLejos: true
+      });
+    } else {
+      _capasCampoLejas().forEach(m => { m.visible = m.count > 0; });
     }
   }
 
@@ -3490,6 +3656,10 @@
       world.dungeons.push(MazmorrasLib.generarMazmorraPorDefecto(world, dX, dY));
     }
     terrain = W.getTerrain(world.seed);
+    if (typeof PraderaAtlasLib !== 'undefined' && terrainU.uPraderaSeed) {
+      const [ox, oz] = PraderaAtlasLib.semillaOffset(world.seed);
+      terrainU.uPraderaSeed.value.set(ox, oz);
+    }
     selected = null;
     hideInfo();
     hero = CombatLib.newHero();
@@ -3568,6 +3738,31 @@
       rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; }
     });
 
+    // Riachuelos cristalinos vadeables a través de praderas y valles (antes de la malla para excavar lecho)
+    riachuelosMundo = (typeof RiachuelosLib !== 'undefined') ? RiachuelosLib.planearRiachuelos({
+      seed: world.seed,
+      bounds,
+      alturaBase: (x, z) => (terrain.elevation(x, z) - SEA) * HEIGHT_SCALE,
+      bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
+      libre: (x, z, m) => {
+        if (enMargenPueblo(x, z, BLEND_OUT + m, true)) return false;
+        if (rejillaCaminosMundo(x, z, m)) return false;
+        if (world && world.zones && world.zones.some(zn => {
+          const zR = (zn.relieve && (zn.relieve.radio || zn.relieve.R)) || zn.radius || 120;
+          const zy = zn.y !== undefined ? zn.y : zn.z;
+          return Math.hypot(x - zn.x, z - zy) < zR + m + 24;
+        })) return false;
+        if (lugaresSecretos && lugaresSecretos.some(s => Math.hypot(x - s.x, z - s.z) < (s.radioRebaje || 42) + m + 12)) return false;
+        return true;
+      },
+      rioDist: (x, z) => { const r = rioCercano(x, z); return r ? r.d : Infinity; },
+      lagoDist: (x, z) => {
+        let md = Infinity;
+        for (let i = 0; i < lagosMundo.length; i++) md = Math.min(md, Math.hypot(x - lagosMundo[i].x, z - lagosMundo[i].z) - lagosMundo[i].R);
+        return md;
+      }
+    }) : null;
+
     // Recintos de laberinto: su forma entra en Hgen (terreno, física, decoración y mapa la ven igual)
     prepararRecintos();
 
@@ -3585,6 +3780,7 @@
     buildTowns();
     buildRoads();
     buildRios();
+    buildRiachuelos();
     buildLagos();
     buildZones();
     buildMonsters();
@@ -3686,24 +3882,48 @@
         pos[k] = wx; pos[k + 1] = y; pos[k + 2] = wz;
       }
       // Color y texturas con las mismas reglas que la malla del mundo (pendiente, altura y tinte),
-      // así no hay un cambio brusco entre el suelo del pueblo y el terreno de alrededor
+      // mezclando grava/tierra bajo la plaza y todas las calles internas del pueblo.
       const heightAt = (i, j) => pos[(j * N + i) * 3 + 1];
+      const idxCalles = (typeof VillageLib !== 'undefined' && VillageLib.indiceCalles2D && o.village && o.village.editables)
+        ? VillageLib.indiceCalles2D(o.village.editables.streets, o.village.exitPaths, cfg.roadWidth)
+        : null;
       for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
         const lx = -half + i * step, lz = -half + j * step;
         const kk = j * N + i, k = kk * 3;
         const nv = TerrainLib.nodeNormal(heightAt, i, j, SEG, step);
-        const w = TerrainLib.splatFor(o.t.biome, 1 - nv[1], heightAt(i, j));
+        const baseW = TerrainLib.splatFor(o.t.biome, 1 - nv[1], heightAt(i, j));
         let c = [1 - 0.55 * (1 - gc[0] / 255), 1 - 0.55 * (1 - gc[1] / 255), 1 - 0.55 * (1 - gc[2] / 255)];
-        let sp = w.splat, sn = w.snow;
-        if (Math.hypot(lx, lz) < 16.5) { c = [0.8, 0.84, 0.88]; sp = [0, 1, 0, 0]; sn = 0; }          // plaza: tierra
-        else if (cfg.hasRiver) {
-          const rw = aplicarSplatRio(
-            { splat: sp, snow: sn },
-            Math.abs(lx - o.ground.getRiverX(lz)),
-            o.ground.riverCauce || 9.0,
-            o.ground.riverBanco || 27.0
-          );
-          sp = rw.splat; sn = rw.snow;
+        let sp = baseW.splat, sn = baseW.snow;
+        const rPlaza = Math.hypot(lx, lz);
+        if (rPlaza < 15.2) {
+          c = [0.8, 0.84, 0.88]; sp = [0, 1, 0, 0]; sn = 0;
+        } else {
+          if (cfg.hasRiver) {
+            const rw = aplicarSplatRio(
+              { splat: sp, snow: sn },
+              Math.abs(lx - o.ground.getRiverX(lz)),
+              o.ground.riverCauce || 9.0,
+              o.ground.riverBanco || 27.0
+            );
+            sp = rw.splat; sn = rw.snow;
+          }
+          if (rPlaza < 19.8 && TerrainLib.splatWithRoad) {
+            const kP = 1 - smooth(15.2, 19.8, rPlaza);
+            c = [c[0] + (0.80 - c[0]) * kP, c[1] + (0.84 - c[1]) * kP, c[2] + (0.88 - c[2]) * kP];
+            const pw = TerrainLib.splatWithRoad({ splat: sp, snow: sn }, rPlaza - 14.8, { halfWidth: 0.4, bandWidth: 4.6 });
+            sp = pw.splat; sn = pw.snow;
+          }
+          if (idxCalles && TerrainLib.splatWithRoad) {
+            const hitC = idxCalles.distInfo(lx, lz, 12);
+            if (hitC && hitC.dist < hitC.halfW + 4.5) {
+              const cw = TerrainLib.splatWithRoad(
+                { splat: sp, snow: sn },
+                hitC.dist,
+                { halfWidth: Math.max(1.8, hitC.halfW * 0.72), bandWidth: 3.8 }
+              );
+              sp = cw.splat; sn = cw.snow;
+            }
+          }
         }
         col[k] = c[0]; col[k + 1] = c[1]; col[k + 2] = c[2];
         splat.set(sp, kk * 4); snowA[kk] = sn;
@@ -3784,7 +4004,7 @@
       w = splatRioEn(x, z, w);
       if (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function' && TerrainLib.splatWithRoad) {
         const dCam = rejillaCaminosMundo.dist(x, z, 13);
-        if (dCam < 13) w = TerrainLib.splatWithRoad(w, dCam, { halfWidth: 3.4, bandWidth: 7.5 });
+        if (dCam < 13) w = TerrainLib.splatWithRoad(w, dCam, { halfWidth: 3.0, bandWidth: 6.5 });
       }
       splat.set(w.splat, k * 4);
       snowA[k] = w.snow;
@@ -3902,13 +4122,27 @@
     return false;
   }
 
+  function trozoConCamino(cx, cz) {
+    if (!terrainGrid || !rejillaCaminosMundo || typeof rejillaCaminosMundo.enCaja !== 'function') return false;
+    const g0 = terrainGrid, T = CHUNK * g0.step;
+    const xa = g0.x0 + cx * T, za = g0.z0 + cz * T;
+    return rejillaCaminosMundo.enCaja(xa - 16, za - 16, xa + T + 16, za + T + 16);
+  }
+
+  function trozoConRiachuelo(cx, cz) {
+    if (!terrainGrid || !riachuelosMundo || !riachuelosMundo.indice) return false;
+    const g0 = terrainGrid, T = CHUNK * g0.step;
+    const xa = g0.x0 + cx * T, za = g0.z0 + cz * T;
+    return riachuelosMundo.indice.enCaja(xa - 16, za - 16, xa + T + 16, za + T + 16);
+  }
+
   function buildNear(cx, cz) {
     const g0 = terrainGrid;
     const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
     const p = character.root.position, t = controls.target;
     const relieve = Math.hypot(xc - p.x, zc - p.z) < RELIEVE_M || Math.hypot(xc - t.x, zc - t.z) < RELIEVE_M;
     if (trozoConRecinto(cx, cz)) return buildFineNear(cx, cz, relieve, FINO_RECINTO);
-    if (relieve || trozoConRio(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz)) return buildFineNear(cx, cz, relieve);
+    if (relieve || trozoConRio(cx, cz) || trozoConRiachuelo(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz) || trozoConCamino(cx, cz)) return buildFineNear(cx, cz, relieve);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
@@ -4043,6 +4277,9 @@
     }
     ssaoActivo = !!Q.ssao;
     if ($('chk-ssao')) $('chk-ssao').checked = ssaoActivo;
+    if (Q.camposLejos) setCamposNivel(Q.camposLejos, false);
+    if (typeof Q.brisa === 'boolean') setBrisaActiva(Q.brisa, false);
+    if (terrainU.uNubesSombra) terrainU.uNubesSombra.value = Q.nubesSombra != null ? Q.nubesSombra : 1.0;
     LOAD_R = Q.pueblo[0]; UNLOAD_R = Q.pueblo[1]; MAX_LOADED = Q.pueblosMax; ARBOLES_CERCA_M = Q.arbolesCerca;
     MONSTRUO_VISIBLE = Q.monstruoVisible; MONSTRUO_ANIMA = Q.monstruoAnima; MONSTRUO_ANIMA_LENTO = Q.monstruoVisible; MONSTRUO_DESCARGA = Q.monstruoDescarga;
     // Los modelos de monstruos se reconstruyen con la nueva resolución (se hacen de nuevo al acercarse)
@@ -4142,6 +4379,10 @@
     agua += vec3(0.04 * fino + smoothstep(1.4, 1.9, o1 + 0.5 * o2) * 0.08);
     #ifdef USE_COLOR
       if (uOrillas > 0.5) {
+        if (vColor.b > 0.5) {
+          vec3 aguaCristalina = mix(vec3(0.11, 0.54, 0.66), vec3(0.38, 0.86, 0.90), rizo) * (1.0 + 0.14 * dot(nrm, vec2(0.7, 0.7)));
+          agua = mix(agua, aguaCristalina, clamp(vColor.b, 0.0, 1.0));
+        }
         float espumaOrilla = smoothstep(0.42, 0.98, vColor.r) * (0.65 + 0.35 * sin(p.x * 0.75 + p.y * 0.65 + uTime * 1.5 + nrm.x * 2.5));
         agua = mix(agua, vec3(0.92, 0.97, 1.0), clamp(espumaOrilla, 0.0, 1.0));
       }
@@ -4209,7 +4450,8 @@
     for (let j = -1; j <= NJ; j++) for (let i = -1; i <= NI; i++) {
       const x = xo + i * fs, z = zo + j * fs;
       let attenRuido = 1.0;
-      if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 7.5)) attenRuido = 0.0;
+      const dCamR = (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function') ? rejillaCaminosMundo.dist(x, z, 14) : 999;
+      if (dCamR < 14) attenRuido *= smooth(4.5, 13.5, dCamR);
       // Dentro del recinto la forma es exacta (la comparte la malla del interior): sin ruido añadido
       if (recTrozo && attenRuido > 0 && RelieveZonaLib.puntoEnRecinto(recTrozo, x, z, 6)) attenRuido = 0.0;
       alt[(j + 1) * M + i + 1] = Hgen(x, z) + (relieve ? relieveAt(x, z, xo, zo, T) * attenRuido : 0);
@@ -4230,7 +4472,7 @@
       w = splatRioEn(x, z, w);
       if (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function' && TerrainLib.splatWithRoad) {
         const dCam = rejillaCaminosMundo.dist(x, z, 13);
-        if (dCam < 13) w = TerrainLib.splatWithRoad(w, dCam, { halfWidth: 3.4, bandWidth: 7.5 });
+        if (dCam < 13) w = TerrainLib.splatWithRoad(w, dCam, { halfWidth: 3.0, bandWidth: 6.5 });
       }
       if (recTrozo) {
         w = RelieveZonaLib.splatRecinto(recTrozo, x, z, 1 - nv[1], h, w);
@@ -4359,14 +4601,14 @@
         const ca = Math.cos(e.a), sa = Math.sin(e.a);
         const tEnd = (o.tileHalf - 1.5) / Math.max(Math.abs(ca), Math.abs(sa));
         const pts = subdivide([{ x: ca * 16, y: sa * 16 }, { x: ca * tEnd, y: sa * tEnd }], 8).map(q => L2W(q.x, q.z));
-        mb.ribbon(pts, rw * 0.85, rgb('#d6b27a'), 0.45);
+        mb.ribbon(pts, rw * 0.85, rgb('#d6b27a'), 0.12);
       });
 
       // Ejes principales (cruz de la plaza)
       [[1, 0], [0, 1], [-1, 0], [0, -1]].forEach(([ax, az]) => {
         const far = R + 20;
         const pts = subdivide([{ x: ax * 16, y: az * 16 }, { x: ax * far, y: az * far }], 8).map(q => L2W(q.x, q.z));
-        mb.ribbon(pts, rw, rgb('#d6b27a'), 0.45);
+        mb.ribbon(pts, rw, rgb('#d6b27a'), 0.12);
       });
 
       // Casas: misma rejilla que el Creador de Pueblos
@@ -4598,13 +4840,13 @@
 
     const aplicarPbrCamino = (mat, modo, baseBump) => {
       mat.userData = Object.assign(mat.userData || {}, { baseBump });
-      mat.customProgramCacheKey = () => 'camino-pbr-' + modo;
+      mat.customProgramCacheKey = () => 'camino-pbr2-' + modo;
       mat.onBeforeCompile = shader => {
         shader.uniforms.uHumedad = caminoU.uHumedad;
         shader.uniforms.uBumpFuerza = caminoU.uBumpFuerza;
         shader.vertexShader = shader.vertexShader
-          .replace('#include <common>', '#include <common>\nvarying vec3 vCamWorld;\nvarying float vUAncho;')
-          .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCamWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvUAncho = uv.x;');
+          .replace('#include <common>', '#include <common>\nattribute float aEndFade;\nvarying vec3 vCamWorld;\nvarying float vUAncho;\nvarying float vEndFade;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCamWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvUAncho = uv.x;\nvEndFade = aEndFade;');
         const usarRut = modo === 'tierra' || modo === 'calzada' || modo === 'senda';
         const usarAlphaBorde = modo === 'tierra' || modo === 'calzada' || modo === 'senda';
         shader.fragmentShader = shader.fragmentShader
@@ -4614,6 +4856,7 @@
             'uniform float uBumpFuerza;',
             'varying vec3 vCamWorld;',
             'varying float vUAncho;',
+            'varying float vEndFade;',
             'float ruidoCam(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453); float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.5453); float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.5453); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }'
           ].join('\n'))
           .replace('#include <color_fragment>', [
@@ -4625,7 +4868,13 @@
             'float depC = (1.0 - nC1 * 0.65 - nC2 * 0.35) * 0.65 + rutC * 0.45;',
             'float charcoCam = uHumedad * innerC * smoothstep(' + (modo === 'tierra' ? '0.66, 0.82' : '0.72, 0.87') + ', depC);',
             'float humCam = uHumedad * innerC * smoothstep(0.46, 0.72, depC);',
-            'float aoBordeC = ' + (usarAlphaBorde ? 'mix(0.84, 1.0, smoothstep(0.06, 0.22, min(vUAncho, 1.0 - vUAncho)))' : '1.0') + ';',
+            usarAlphaBorde ? [
+              'float dBordeC = min(vUAncho, 1.0 - vUAncho);',
+              'float nBordeC = (ruidoCam(vCamWorld.xz * 0.45 + 1.9) * 0.65 + ruidoCam(vCamWorld.xz * 1.45 - 4.3) * 0.35 - 0.5) * 0.14;',
+              'float alphaBordeC = smoothstep(0.025, 0.24, dBordeC + nBordeC) * clamp(vEndFade, 0.0, 1.0);',
+              'diffuseColor.a *= alphaBordeC;'
+            ].join('\n') : '',
+            'float aoBordeC = 1.0;',
             'diffuseColor.rgb *= aoBordeC * mix(1.0, 0.66, clamp(charcoCam * 0.82 + humCam * 0.22, 0.0, 0.86));',
             'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 0.20, 0.24), charcoCam * 0.24);'
           ].join('\n'))
@@ -4653,7 +4902,7 @@
         roughness: 0.90, metalness: 0.0,
         clearcoat: 0.9, clearcoatRoughness: 0.08,
         vertexColors: true, side: THREE.DoubleSide,
-        polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -2
+        polygonOffset: true, polygonOffsetFactor: -2.0, polygonOffsetUnits: -4.0
       });
       return aplicarPbrCamino(mat, modo, bumpScale);
     };
@@ -4676,11 +4925,11 @@
       mat.bumpScale = relieve * caminoU.uBumpFuerza.value;
       mat.needsUpdate = true;
     });
-    // Bordes suaves: el camino se funde con el terreno en el último 12 % de cada lado
+    // Bordes suaves: solo apagan el 4 % exterior mientras el shader recorta con ruido orgánico irregular
     const bordes = new Uint8Array(64 * 4);
     for (let i = 0; i < 64; i++) {
       const u = (i + 0.5) / 64, d = Math.min(u, 1 - u);
-      const a = Math.round(255 * Math.min(1, Math.max(0, (d - 0.01) / 0.11)));
+      const a = Math.round(255 * Math.min(1, Math.max(0, (d - 0.005) / 0.04)));
       bordes.set([a, a, a, 255], i * 4);
     }
     const texBordes = new THREE.DataTexture(bordes, 64, 1);
@@ -4701,7 +4950,7 @@
   function pintarCalzada(mb, linea, alt) {
     const w = roadWidth('calzada');
     // La foto ya trae los bordes de piedra y hierba: sin bordillos aparte
-    mb.ribbon(linea, w, rgb('#f4f1ec'), 0.10, alt, { segW: 6, amp: 0.024, esCalzada: true });
+    mb.ribbon(linea, w, rgb('#f4f1ec'), 0.028, alt, { segW: 6, amp: 0.020, esCalzada: true });
   }
 
   // Empedrado: hileras de anchura variable y piedras de largo variable, cada una con su altura y su tono.
@@ -4709,7 +4958,7 @@
   // de la cámara (ver actualizarPiedras). Lejos, la calzada conserva la textura labrada de su base.
   const TRAMO_PIEDRA = 20, PIEDRA_VISIBLE_M = 80;
   function pintarLadrillos(linea, alt, w) {
-    const PASO = 0.2, desdeCalzada = 0.08, JUNTA = 0.05;
+    const PASO = 0.2, desdeCalzada = 0.020, JUNTA = 0.05;
     const matLosa = obtenerMaterialesCaminos().ladrillos;
     // Muestras de la línea cada PASO metros: posición, normal hacia la izquierda y distancia recorrida
     const m = [];
@@ -4758,7 +5007,7 @@
             const fam = azar();
             piedras.push({
               sa, sb, ta, tb,
-              h: (esEjeCentral ? 0.032 : 0.008) + azar() * 0.048,
+              h: (esEjeCentral ? 0.022 : 0.006) + azar() * 0.026,
               gris: 0.56 + azar() * 0.26,
               fam,
               esEje: esEjeCentral,
@@ -4850,13 +5099,52 @@
     const a = (Number(ex.angle) || 0) * DEG;
     const ca = Math.cos(a), sa = Math.sin(a);
     const toMundo = (lx, lz) => ({ x: o.t.x + lx * o.cr - lz * o.sr, y: o.t.y + lx * o.sr + lz * o.cr });
-    const t = (o.tileHalf - 1.5) / Math.max(Math.abs(ca), Math.abs(sa));
+    const t = (o.tileHalf - 3.2) / Math.max(Math.abs(ca), Math.abs(sa));
     return [toMundo(ca * t, sa * t), toMundo(ca * (t + 12), sa * (t + 12))];
   }
 
-  // Altura de un camino: sobre el cauce de un río se tiende como puente, un poco por encima del agua
+  // Trazado completo de salida para navegación automática: calle interior -> puerta real de muralla -> camino exterior
+  function rutaSalidaDePueblo(o, road) {
+    if (typeof VillageLib !== 'undefined' && typeof VillageLib.computeExitRouteLocal === 'function') {
+      const pts = VillageLib.computeExitRouteLocal(o.cfg, road.id);
+      if (pts && pts.length) {
+        return pts.map(p => {
+          const w = {
+            x: o.t.x + p.x * o.cr - p.z * o.sr,
+            y: o.t.y + p.x * o.sr + p.z * o.cr
+          };
+          if (p.puerta) w.puerta = true;
+          return w;
+        });
+      }
+    }
+    return salidaDePueblo(o, road);
+  }
+
+  // Altura interpolada sobre la misma triangulación fina de la malla del terreno (paso fs = step / FINO)
+  function alturaMallaFina(x, z) {
+    if (townContains(x, z)) return (typeof H === 'function') ? H(x, z) : Hgen(x, z);
+    if (!terrainGrid) return (typeof Hgen === 'function') ? Hgen(x, z) : 0;
+    const fs = terrainGrid.step / FINO;
+    const fx = (x - terrainGrid.x0) / fs;
+    const fz = (z - terrainGrid.z0) / fs;
+    const i = Math.floor(fx), j = Math.floor(fz);
+    const u = Math.max(0, Math.min(1, fx - i));
+    const v = Math.max(0, Math.min(1, fz - j));
+    const wx0 = terrainGrid.x0 + i * fs, wz0 = terrainGrid.z0 + j * fs;
+    const yb = Hgen(wx0 + fs, wz0);
+    const yc = Hgen(wx0, wz0 + fs);
+    if (u + v <= 1) {
+      const ya = Hgen(wx0, wz0);
+      return ya + (yb - ya) * u + (yc - ya) * v;
+    }
+    const yd = Hgen(wx0 + fs, wz0 + fs);
+    return yd + (yb - yd) * (1 - v) + (yc - yd) * (1 - u);
+  }
+
+  // Altura de un camino: coplanar con la malla fina del terreno, y sobre cauces/riachuelos tiende vado o puente suave
   function alturaCamino(x, z) {
-    let h = (typeof Hgen === 'function') ? Hgen(x, z) : ((typeof H === 'function') ? H(x, z) : 0);
+    let h = alturaMallaFina(x, z);
     const r = (typeof rioCercano === 'function') ? rioCercano(x, z) : null;
     if (r && r.d < RIO_BANCO * (r.w || 1)) {
       const dCauce = RIO_CAUCE * (r.w || 1);
@@ -4867,6 +5155,18 @@
         const t = (r.d - dCauce) / Math.max(1, (RIO_BANCO * (r.w || 1) - dCauce));
         const hPuente = (r.nivel + 0.75) * (1 - t) + h * t;
         if (hPuente > h) h = hPuente;
+      }
+    } else if (riachuelosMundo && riachuelosMundo.indice) {
+      const hitR = riachuelosMundo.indice.cerca(x, z);
+      if (hitR && hitR.d < hitR.bankW) {
+        const vado = hitR.nivel + 0.12;
+        if (hitR.d <= hitR.halfW) {
+          if (vado > h) h = vado;
+        } else {
+          const t = smooth(hitR.halfW, hitR.bankW, hitR.d);
+          const hv = vado * (1 - t) + h * t;
+          if (hv > h) h = hv;
+        }
       }
     }
     return h;
@@ -5074,8 +5374,8 @@
           pintarCalzada(mbCalzada, tramo, alturaCamino);
           pintarLadrillos(tramo, alturaCamino, roadWidth('calzada'));
         } else {
-          const ampCam = r.kind === 'sendero' ? 0.028 : 0.038;
-          mb.ribbon(tramo, roadWidth(r.kind), roadColor(r.kind), 0.10, alturaCamino, { segW: 6, amp: ampCam, esCalzada: false });
+          const ampCam = r.kind === 'sendero' ? 0.020 : 0.026;
+          mb.ribbon(tramo, roadWidth(r.kind), roadColor(r.kind), 0.028, alturaCamino, { segW: 6, amp: ampCam, esCalzada: false });
         }
       });
     });
@@ -5102,7 +5402,7 @@
           const q = RelieveZonaLib.puntoEjeEn(rec, e.s);
           return Math.min(Hgen(x, z), Hgen(q.x, q.z));
         };
-        mbS.ribbon(curvePath(eje, 1.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.12, alturaSuelo, { segW: 6, amp: 0.020, esCalzada: true });
+        mbS.ribbon(curvePath(eje, 1.5), Math.min(9, rec.cfg.anchoPasillo * 0.5), rgb('#f4f1ec'), 0.034, alturaSuelo, { segW: 6, amp: 0.018, esCalzada: true });
       });
       sendasRecintoMesh = new THREE.Mesh(mbS.geom(), matsCamino.senda);
       sendasRecintoMesh.receiveShadow = true;
@@ -5176,6 +5476,20 @@
     });
     riosMesh = new THREE.Mesh(mb.geom(), aguaMaterial(true, 0.9, true));
     scene.add(riosMesh);
+  }
+
+  function buildRiachuelos() {
+    if (riachuelosObj && riachuelosObj.grupo) {
+      scene.remove(riachuelosObj.grupo);
+      riachuelosObj.grupo.traverse(ch => { if (ch.geometry) ch.geometry.dispose(); });
+    }
+    riachuelosObj = null;
+    if (!riachuelosMundo || typeof RiachuelosLib === 'undefined') return;
+    riachuelosObj = RiachuelosLib.construirMallas(THREE, riachuelosMundo, aguaMaterial(true, 0.84, true));
+    if (riachuelosObj && riachuelosObj.grupo) {
+      riachuelosObj.grupo.visible = !!riachuelosActivo;
+      scene.add(riachuelosObj.grupo);
+    }
   }
 
   function zoneColor(z) {
@@ -5302,6 +5616,7 @@
   // Rejilla espacial de segmentos de camino para comprobar distancias en O(1) sin recorrer todo el mapa
   let rejillaCaminosMundo = () => false;
   rejillaCaminosMundo.dist = () => Infinity;
+  rejillaCaminosMundo.enCaja = () => false;
   function crearRejillaCaminos(roads) {
     const CELDA = 64;
     const mapa = new Map();
@@ -5328,6 +5643,7 @@
     if (!numSegs) {
       const fnVacia = () => false;
       fnVacia.dist = () => Infinity;
+      fnVacia.enCaja = () => false;
       return fnVacia;
     }
     function cercaDeCamino(x, z, m) {
@@ -5366,6 +5682,17 @@
         }
       }
       return best2 < maxR * maxR ? Math.sqrt(best2) : Infinity;
+    };
+    cercaDeCamino.enCaja = function (x0, z0, x1, z1) {
+      const cx0 = Math.floor(x0 / CELDA), cx1 = Math.floor(x1 / CELDA);
+      const cz0 = Math.floor(z0 / CELDA), cz1 = Math.floor(z1 / CELDA);
+      for (let cx = cx0; cx <= cx1; cx++) {
+        for (let cz = cz0; cz <= cz1; cz++) {
+          const arr = mapa.get((cx << 16) ^ (cz & 0xffff));
+          if (arr && arr.length) return true;
+        }
+      }
+      return false;
     };
     return cercaDeCamino;
   }
@@ -5968,6 +6295,19 @@
       o.village = village; o.group = group; o.kit = kit;
       createPatch(o);
       o.worldCols = toWorldColliders(o);
+      if (ruta && ruta.destino && character && character.root) {
+        const tocaPueblo = ruta.puntos && ruta.puntos.some((pt, idx) =>
+          idx >= ruta.i && Math.hypot(pt.x - o.t.x, pt.y - o.t.y) < o.tileHalf + 25
+        );
+        if (tocaPueblo) {
+          const rec = calcularRutaMundo({ x: character.root.position.x, y: character.root.position.z }, ruta.destino, opcionesRuta());
+          if (rec && rec.length) {
+            ruta.puntos = rec;
+            ruta.i = 0;
+            ruta.intentos = 0;
+          }
+        }
+      }
       o.rise = 0;
       group.scale.y = 0.02;
     } catch (errTown) {
@@ -6152,7 +6492,7 @@
         const hBr = (b.topAt ? b.topAt(t) : (b.hA + (b.hB - b.hA) * t + b.arco * Math.sin(t * Math.PI))) + 0.06;
         if (hBr > groundH) groundH = hBr;
       } else if (typeof rejillaCaminosMundo === 'function' && rejillaCaminosMundo(x, z, 3.8)) {
-        const hCam = (typeof alturaCamino === 'function' ? alturaCamino(x, z) : groundH) + 0.10;
+        const hCam = (typeof alturaCamino === 'function' ? alturaCamino(x, z) : groundH) + 0.030;
         if (hCam > groundH) groundH = hCam;
       }
       // Plataforma transitable de las cabañas y su explanada aterrazada
@@ -6259,6 +6599,7 @@
         if (_enPuenteMundo(px, pz)) return false;
         const v = visorWorld.villageAt(px, pz);
         if (v) return v.o.village.isWaterHazard(v.lx, v.lz, 0.25);
+        if (riachuelosMundo && riachuelosMundo.indice && terrain && terrain.elevation(px, pz) > SEA + 0.12 && riachuelosMundo.indice.cerca(px, pz)) return false;
         return visorWorld.getWalkableHeight(px, pz) < 0.2 || enLago(px, pz);
       });
     }
@@ -6272,13 +6613,21 @@
     golden: { bg: '#38224e', fog: '#c97654', fogD: 0.00052, hemi: '#fdba74', ground: '#2a223b', hemiI: 0.48, sun: '#fb923c', sunI: 1.85, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.75, pool: 0.85, plaza: 1.6, forge: 2.1, night: 0.25 },
     night:  { bg: '#050a18', fog: '#0b1528', fogD: 0.00048, hemi: '#38bdf8', ground: '#030816', hemiI: 0.25, sun: '#7dd3fc', sunI: 0.55, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.9, forge: 2.3, night: 1 }
   };
+  const ATMO_ZELDA = {
+    day:    { bg: '#43aaf7', fog: '#a9e5f8', fogD: 0.00044, hemi: '#d6f3ff', ground: '#557d44', hemiI: 0.72, sun: '#fffbe6', sunI: 2.05, sunPos: [950, 1380, 680],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5, night: 0 },
+    golden: { bg: '#4b2663', fog: '#df8558', fogD: 0.00040, hemi: '#fed7aa', ground: '#382745', hemiI: 0.54, sun: '#fb923c', sunI: 1.95, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.75, pool: 0.85, plaza: 1.6, forge: 2.1, night: 0.25 },
+    night:  { bg: '#071128', fog: '#10203d', fogD: 0.00040, hemi: '#38bdf8', ground: '#071022', hemiI: 0.28, sun: '#93c5fd', sunI: 0.62, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.9, forge: 2.3, night: 1 }
+  };
   const ATMO_ICON = { day: '☀', golden: '🌇', night: '🌙' };
   const ATMO_C = {};
-  Object.keys(ATMO).forEach(k => {
-    const a = ATMO[k];
-    ATMO_C[k] = Object.assign({}, a, {
-      bgC: new THREE.Color(a.bg), fogC: new THREE.Color(a.fog), hemiC: new THREE.Color(a.hemi),
-      groundC: new THREE.Color(a.ground), sunC: new THREE.Color(a.sun), sunV: new THREE.Vector3(...a.sunPos)
+  const ATMO_ZELDA_C = {};
+  [[ATMO, ATMO_C], [ATMO_ZELDA, ATMO_ZELDA_C]].forEach(([src, dst]) => {
+    Object.keys(src).forEach(k => {
+      const a = src[k];
+      dst[k] = Object.assign({}, a, {
+        bgC: new THREE.Color(a.bg), fogC: new THREE.Color(a.fog), hemiC: new THREE.Color(a.hemi),
+        groundC: new THREE.Color(a.ground), sunC: new THREE.Color(a.sun), sunV: new THREE.Vector3(...a.sunPos)
+      });
     });
   });
   const atmoNow = {
@@ -6305,7 +6654,7 @@
       return;
     }
     if (cielo && !cielo.visible) cielo.visible = true;
-    const T = ATMO_C[timeOfDay];
+    const T = (estiloZelda ? ATMO_ZELDA_C : ATMO_C)[timeOfDay];
     const k = 1 - Math.exp(-dt * 2.2);
     atmoNow.bg.lerp(T.bgC, k); atmoNow.fog.lerp(T.fogC, k);
     atmoNow.hemi.lerp(T.hemiC, k); atmoNow.ground.lerp(T.groundC, k); atmoNow.sun.lerp(T.sunC, k);
@@ -6322,6 +6671,12 @@
     AGUA_U.uSunColor.value.copy(atmoNow.sun).multiplyScalar(Math.min(1.2, atmoNow.sunI * 0.6));
     terrainU.uSunDir.value.copy(AGUA_U.uSunDir.value);
     terrainU.uSunColor.value.copy(AGUA_U.uSunColor.value);
+    if (terrainU.uAtmoHorizonte) terrainU.uAtmoHorizonte.value.copy(atmoNow.fog);
+    if (terrainU.uEstiloZelda) terrainU.uEstiloZelda.value = estiloZelda ? 1.0 : 0.0;
+    if (terrainU.uNubesSombra) {
+      const baseNube = QUALITY[quality] && QUALITY[quality].nubesSombra != null ? QUALITY[quality].nubesSombra : 1.0;
+      terrainU.uNubesSombra.value = estiloZelda ? baseNube * Math.max(0.25, 1.0 - atmoNow.night * 0.75) : 0.0;
+    }
     if (cielo) {
       if (camera) cielo.position.set(camera.position.x, 0, camera.position.z);
       const u = cielo.material.uniforms;
@@ -9442,40 +9797,144 @@
     });
   }
 
-  // Aura inmediata de conjuro / preparación al lanzar una habilidad
+  // Aura inmediata de conjuro / preparación al lanzar una habilidad (Fase 1 visible desde t = 0)
   function lanzarAuraConjuro(name) {
-    if (!character || !character.root || name === 'attack' || name === 'disparo') return;
+    if (!character || !character.root || name === 'attack' || name === 'disparo' || name === 'orbe_arcano') return;
     const p = character.root.position;
+    const sk = CombatLib.SKILLS[name] || {};
     const col = colorDeHabilidad(name);
+    if (sk.nombre) {
+      lanzarNumeroFlotante(
+        { x: p.x, y: p.y + 2.35, z: p.z },
+        (sk.icono || '⚔') + ' ' + sk.nombre,
+        'dmg-skill',
+        { vy: 1.15, dur: 0.95 }
+      );
+    }
+
     const g = new THREE.Group();
     g.position.set(p.x, p.y + 0.18, p.z);
     const anillo = new THREE.Mesh(
-      new THREE.RingGeometry(0.68, 0.98, 32),
-      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      new THREE.RingGeometry(0.68, 1.05, 32),
+      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
     );
     anillo.rotation.x = -Math.PI / 2;
     g.add(anillo);
+
     const motas = [];
-    const sk = CombatLib.SKILLS[name] || {};
-    const nMotas = sk.elemento ? 8 : 5;
+    const esFuria = name === 'furia';
+    const esEscudo = name === 'contraataque' || name === 'escudo_espiritu';
+    const esGiro = name === 'torbellino' || name === 'tajo' || name === 'tornillo' || name === 'juicio_relampago';
+    const esSalto = name === 'sismo' || name === 'salto_demoledor' || name === 'sentencia_titan';
+    const esCorte = name === 'corte_cruzado' || name === 'hendidura' || name === 'ascendente';
+    const nMotas = (sk.elemento || esFuria || esSalto) ? 10 : 6;
     for (let i = 0; i < nMotas; i++) {
       const m = new THREE.Mesh(
-        sk.elemento === 'hielo' ? new THREE.OctahedronGeometry(0.11, 0) : new THREE.SphereGeometry(0.085, 6, 6),
-        new THREE.MeshBasicMaterial({ color: sk.elemento === 'hielo' ? 0xbae6fd : col, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending })
+        sk.elemento === 'hielo' ? new THREE.OctahedronGeometry(0.11, 0) : new THREE.SphereGeometry(0.095, 6, 6),
+        new THREE.MeshBasicMaterial({ color: sk.elemento === 'hielo' ? 0xbae6fd : col, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending })
       );
       g.add(m);
       motas.push({ mesh: m, a0: (i / nMotas) * Math.PI * 2 });
     }
+
+    let auraExtra = null;
+    let escudoGrp = null;
+    let anilloZona = null;
+    let aroGiro1 = null, aroGiro2 = null;
+
+    if (esFuria) {
+      auraExtra = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.98, 0.52, 2.25, 16, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.52, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      auraExtra.position.y = 0.95;
+      g.add(auraExtra);
+    } else if (esEscudo) {
+      escudoGrp = new THREE.Group();
+      const disco = new THREE.Mesh(
+        new THREE.CircleGeometry(1.12, 6),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      const borde = new THREE.Mesh(
+        new THREE.RingGeometry(1.0, 1.24, 6),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.92, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      escudoGrp.add(disco, borde);
+      escudoGrp.position.set(0, 1.0, 1.05);
+      g.add(escudoGrp);
+    } else if (esGiro) {
+      aroGiro1 = new THREE.Mesh(
+        new THREE.TorusGeometry(1.38, 0.06, 6, 26),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending })
+      );
+      aroGiro1.position.y = 0.95;
+      aroGiro1.rotation.x = Math.PI * 0.42;
+      aroGiro1.rotation.y = 0.4;
+      aroGiro2 = new THREE.Mesh(
+        new THREE.TorusGeometry(1.15, 0.055, 6, 24),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.82, blending: THREE.AdditiveBlending })
+      );
+      aroGiro2.position.y = 1.25;
+      aroGiro2.rotation.x = Math.PI * 0.58;
+      aroGiro2.rotation.y = -0.45;
+      g.add(aroGiro1, aroGiro2);
+    } else if (esSalto) {
+      auraExtra = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.45, 0.96, 3.2, 16, 1, true),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.48, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      auraExtra.position.y = 1.45;
+      g.add(auraExtra);
+      const rngZona = Math.max(1.8, sk.range || 5.0);
+      anilloZona = new THREE.Mesh(
+        new THREE.RingGeometry(rngZona * 0.84, rngZona, 36),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.58, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      anilloZona.rotation.x = -Math.PI / 2;
+      g.add(anilloZona);
+    } else if (esCorte) {
+      auraExtra = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.76, 0.76, 1.9, 14, 1, true),
+        new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.44, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      auraExtra.position.y = 0.9;
+      g.add(auraExtra);
+    }
+
     marcarResplandor(g);
-    const dur = Math.min(0.45, Math.max(0.24, (sk.lock || 0.5) * 0.55));
+    const dur = Math.min(1.15, Math.max(0.38, (sk.lock || 0.7) * 0.85));
     efecto(g, dur, k => {
-      g.position.set(character.root.position.x, character.root.position.y + 0.18, character.root.position.z);
-      anillo.scale.setScalar(0.85 + k * 0.65);
-      anillo.material.opacity = 0.85 * (1 - k);
+      const rp = character.root.position;
+      g.position.set(rp.x, rp.y + 0.18, rp.z);
+      if (escudoGrp) {
+        const yaw = character.anguloY();
+        g.rotation.y = yaw;
+      }
+      anillo.scale.setScalar(0.85 + k * 0.75);
+      anillo.material.opacity = 0.88 * (1 - k);
+      if (auraExtra) {
+        auraExtra.rotation.y = k * 6.0;
+        auraExtra.scale.set(0.9 + k * 0.35, 0.85 + Math.sin(k * Math.PI) * 0.45, 0.9 + k * 0.35);
+        auraExtra.material.opacity = (esFuria ? 0.55 : 0.46) * (1 - k * 0.85);
+      }
+      if (escudoGrp) {
+        escudoGrp.scale.setScalar(0.85 + Math.sin(k * Math.PI) * 0.28);
+        escudoGrp.children.forEach((ch, idx) => { ch.material.opacity = (idx === 0 ? 0.38 : 0.92) * (1 - k * 0.65); });
+      }
+      if (aroGiro1 && aroGiro2) {
+        aroGiro1.rotation.z = k * 14.0;
+        aroGiro2.rotation.z = -k * 16.0;
+        aroGiro1.material.opacity = 0.85 * (1 - k * 0.75);
+        aroGiro2.material.opacity = 0.82 * (1 - k * 0.75);
+      }
+      if (anilloZona) {
+        anilloZona.scale.setScalar(0.45 + k * 0.58);
+        anilloZona.material.opacity = 0.62 * (1 - k * 0.5);
+      }
       motas.forEach(it => {
-        const ang = it.a0 + k * 5.0;
-        const rad = 0.85 * (1 - k * 0.35);
-        it.mesh.position.set(Math.cos(ang) * rad, 0.25 + k * 1.45, Math.sin(ang) * rad);
+        const ang = it.a0 + k * 6.0;
+        const rad = 0.92 * (1 - k * 0.25);
+        it.mesh.position.set(Math.cos(ang) * rad, 0.25 + k * 1.65, Math.sin(ang) * rad);
         it.mesh.material.opacity = 1 - k;
       });
     });
@@ -9754,66 +10213,147 @@
       const g = new THREE.Group();
       g.position.set(p.x, p.y + 1.0, p.z);
       const dome = new THREE.Mesh(
-        new THREE.SphereGeometry(2.2, 16, 12),
-        new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.36, wireframe: true, blending: THREE.AdditiveBlending })
+        new THREE.SphereGeometry(2.35, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.42, wireframe: true, blending: THREE.AdditiveBlending })
       );
       const halo = new THREE.Mesh(
-        new THREE.RingGeometry(1.5, 2.4, 32),
-        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+        new THREE.RingGeometry(1.5, 2.55, 32),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
       );
       halo.rotation.x = -Math.PI / 2;
       halo.position.y = -0.82;
       g.add(dome, halo);
+      const escudos = [];
+      for (let i = 0; i < 4; i++) {
+        const sc = new THREE.Mesh(
+          new THREE.CircleGeometry(0.55, 6),
+          new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xfacc15 : 0xfef08a, transparent: true, opacity: 0.86, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        g.add(sc);
+        escudos.push({ mesh: sc, a0: (i / 4) * Math.PI * 2 });
+      }
       marcarResplandor(g);
-      efecto(g, 0.45, k => {
-        dome.rotation.y = k * 3.0;
-        dome.scale.setScalar(0.9 + k * 0.35);
-        dome.material.opacity = 0.4 * (1 - k);
-        halo.scale.setScalar(0.8 + k * 1.3);
-        halo.material.opacity = 0.85 * (1 - k);
+      ondaSismica(sk.range || 3.4, 0xfacc15);
+      activarSacudida(0.22, 0.16);
+      efecto(g, 0.48, k => {
+        dome.rotation.y = k * 3.5;
+        dome.scale.setScalar(0.9 + k * 0.45);
+        dome.material.opacity = 0.44 * (1 - k);
+        halo.scale.setScalar(0.8 + k * 1.4);
+        halo.material.opacity = 0.88 * (1 - k);
+        escudos.forEach(it => {
+          const ang = it.a0 + k * 4.5;
+          const r = 1.4 + k * 1.5;
+          it.mesh.position.set(Math.cos(ang) * r, 0.15, Math.sin(ang) * r);
+          it.mesh.rotation.y = -ang + Math.PI / 2;
+          it.mesh.material.opacity = 0.86 * (1 - k);
+        });
       });
       return;
     }
 
     if (name === 'sismo' || name === 'salto_demoledor' || name === 'sentencia_titan' || name === 'nova') {
       const rng = sk.range || 5.0;
-      ondaSismica(rng, name === 'nova' ? 0xfbbf24 : (name === 'sentencia_titan' ? 0xa855f7 : 0xf59e0b));
+      const esTitan = name === 'sentencia_titan';
+      const esNova = name === 'nova';
+      const colMain = esNova ? 0xfbbf24 : (esTitan ? 0xc084fc : 0xf59e0b);
+      ondaSismica(rng, colMain);
+      if (esTitan) ondaSismica(rng * 0.7, 0xfef08a);
+
       const g = new THREE.Group();
       g.position.set(p.x, p.y, p.z);
       const spikes = [];
-      const count = name === 'nova' ? 10 : 8;
+      const count = (esTitan || esNova) ? 12 : 10;
       for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2;
-        const r = rng * 0.55;
+        const r = rng * (esTitan ? 0.62 : 0.56);
         const mesh = new THREE.Mesh(
-          new THREE.ConeGeometry(0.35, 2.2, 5),
-          new THREE.MeshBasicMaterial({ color: name === 'nova' ? 0xfef08a : 0xd97706, transparent: true, opacity: 0.88 })
+          new THREE.ConeGeometry(esTitan ? 0.42 : 0.36, esTitan ? 2.8 : 2.3, 5),
+          new THREE.MeshBasicMaterial({ color: (esNova || esTitan) ? (i % 2 === 0 ? 0xfef08a : colMain) : (i % 2 === 0 ? 0xf59e0b : 0xd97706), transparent: true, opacity: 0.9 })
         );
         mesh.position.set(Math.cos(a) * r, -0.8, Math.sin(a) * r);
         g.add(mesh);
         spikes.push(mesh);
       }
-      if (name === 'nova' || name === 'sentencia_titan') {
-        const core = new THREE.Mesh(
-          new THREE.SphereGeometry(1.1, 14, 10),
-          new THREE.MeshBasicMaterial({ color: name === 'nova' ? 0xfef08a : 0xc084fc, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending })
+
+      const grietas = [];
+      if (!esNova) {
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 + 0.25;
+          const gr = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.26, rng * 0.92),
+            new THREE.MeshBasicMaterial({ color: esTitan ? 0xe9d5ff : 0xfef08a, transparent: true, opacity: 0.88, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+          );
+          gr.rotation.x = -Math.PI / 2;
+          gr.rotation.z = -a;
+          gr.position.set(Math.sin(a) * (rng * 0.45), 0.14, Math.cos(a) * (rng * 0.45));
+          g.add(gr);
+          grietas.push(gr);
+        }
+      }
+
+      let pilar = null, core = null, espada = null;
+      if (esNova || esTitan) {
+        core = new THREE.Mesh(
+          new THREE.SphereGeometry(esTitan ? 1.35 : 1.15, 14, 10),
+          new THREE.MeshBasicMaterial({ color: esNova ? 0xfef08a : 0xc084fc, transparent: true, opacity: 0.78, depthWrite: false, blending: THREE.AdditiveBlending })
         );
         core.position.y = 1.0;
-        g.add(core);
-        spikes.push(core);
+        pilar = new THREE.Mesh(
+          new THREE.CylinderGeometry(esTitan ? 1.1 : 0.75, esTitan ? 2.2 : 1.4, esTitan ? 16 : 10, 20, 1, true),
+          new THREE.MeshBasicMaterial({ color: esTitan ? 0xfbbf24 : 0xfde047, transparent: true, opacity: 0.56, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        pilar.position.y = esTitan ? 8.0 : 5.0;
+        g.add(core, pilar);
       }
+
+      if (esTitan) {
+        espada = new THREE.Group();
+        const hoja = new THREE.Mesh(
+          new THREE.BoxGeometry(0.38, 4.6, 0.14),
+          new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+        );
+        const filo = new THREE.Mesh(
+          new THREE.BoxGeometry(0.62, 4.9, 0.08),
+          new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.72, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        const guarda = new THREE.Mesh(
+          new THREE.BoxGeometry(1.55, 0.24, 0.28),
+          new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.95 })
+        );
+        guarda.position.y = 2.3;
+        espada.add(hoja, filo, guarda);
+        espada.position.set(fx * 1.4, 15.0, fz * 1.4);
+        espada.rotation.y = character.anguloY();
+        g.add(espada);
+      }
+
       marcarResplandor(g);
-      efecto(g, 0.48, k => {
+      activarSacudida(esTitan ? 0.42 : (esNova ? 0.30 : 0.32), esTitan ? 0.30 : 0.24);
+      if (blancos && blancos.length) activarHitstop(esTitan ? 0.055 : 0.04);
+      efecto(g, esTitan ? 0.65 : 0.50, k => {
         const lift = Math.sin(k * Math.PI);
-        spikes.forEach((s, idx) => {
-          if (idx < count) {
-            s.position.y = -0.6 + lift * 1.45;
-            s.material.opacity = 0.9 * (1 - k * 0.7);
-          } else {
-            s.scale.setScalar(0.8 + k * (rng * 0.55));
-            s.material.opacity = 0.75 * (1 - k);
-          }
+        spikes.forEach(s => {
+          s.position.y = -0.6 + lift * (esTitan ? 1.85 : 1.55);
+          s.material.opacity = 0.9 * (1 - k * 0.7);
         });
+        grietas.forEach(gr => {
+          gr.material.opacity = 0.88 * (1 - k);
+        });
+        if (core) {
+          core.scale.setScalar(0.8 + k * (rng * 0.6));
+          core.material.opacity = 0.78 * (1 - k);
+        }
+        if (pilar) {
+          pilar.scale.set(1 + k * 0.7, 1, 1 + k * 0.7);
+          pilar.material.opacity = 0.56 * (1 - k);
+        }
+        if (espada) {
+          const drop = Math.min(1, k * 2.4);
+          espada.position.y = 15.0 * (1 - drop * drop) + 1.8;
+          const alpha = 1 - Math.max(0, (k - 0.5) * 2.0);
+          espada.children.forEach(c => { if (c.material) c.material.opacity = alpha * 0.92; });
+        }
       });
       return;
     }
@@ -9990,14 +10530,149 @@
       return;
     }
 
-    if (name === 'corte_cruzado') { lanzarArcoCorte(0xfef08a, 0.55, 2.2, true); return; }
-    if (name === 'furia') { lanzarArcoCorte(0xef4444, 0.35, 2.5, true); return; }
-    if (name === 'tajo' || name === 'torbellino' || name === 'tornillo') {
-      ondaSismica(sk.range || 4.0, name === 'tornillo' ? 0xa855f7 : 0x38bdf8);
-      lanzarArcoCorte(name === 'tornillo' ? 0xc084fc : 0x7dd3fc, 0.15, (sk.range || 3.8) * 0.68, true);
+    if (name === 'corte_cruzado') {
+      const angZ = primero ? 0.62 : -0.62;
+      lanzarArcoCorte(0xfef08a, angZ, primero ? 2.75 : 2.85, true);
+      if (!primero) {
+        const g = new THREE.Group();
+        const yaw = character.anguloY();
+        g.position.set(p.x + fx * 1.8, p.y + 1.18, p.z + fz * 1.8);
+        g.rotation.y = yaw;
+        const bar1 = new THREE.Mesh(
+          new THREE.PlaneGeometry(3.4, 0.26),
+          new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        bar1.rotation.z = Math.PI / 4;
+        const bar2 = bar1.clone();
+        bar2.rotation.z = -Math.PI / 4;
+        g.add(bar1, bar2);
+        marcarResplandor(g);
+        efecto(g, 0.26, k => {
+          g.scale.setScalar(0.8 + k * 0.65);
+          bar1.material.opacity = 0.95 * (1 - k);
+          bar2.material.opacity = 0.95 * (1 - k);
+        });
+      }
+      (blancos || []).forEach(m => {
+        if (m && m.alive) destelloImpacto(new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.0, m.z), 0xfef08a, 1.05);
+      });
       return;
     }
-    if (name === 'hendidura' || name === 'ascendente') { lanzarArcoCorte(0xfbbf24, 1.1, 2.2, false); return; }
+    if (name === 'furia') {
+      lanzarArcoCorte(0xef4444, 0.35, 2.8, true);
+      lanzarArcoCorte(0xf97316, -0.25, 2.35, true);
+      ondaSismica(sk.range || 3.6, 0xef4444);
+      const g = new THREE.Group();
+      g.position.set(p.x + fx * 1.9, p.y + 1.08, p.z + fz * 1.9);
+      g.rotation.y = character.anguloY();
+      const cono = new THREE.Mesh(
+        new THREE.ConeGeometry(1.25, 3.6, 12, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.56, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      cono.rotation.x = -Math.PI / 2;
+      g.add(cono);
+      marcarResplandor(g);
+      activarSacudida(0.24, 0.18);
+      efecto(g, 0.32, k => {
+        cono.scale.set(0.85 + k * 0.7, 0.8 + k * 0.5, 0.85 + k * 0.7);
+        cono.material.opacity = 0.56 * (1 - k);
+      });
+      return;
+    }
+    if (name === 'tajo' || name === 'torbellino' || name === 'tornillo') {
+      const colC = name === 'tornillo' ? 0xa855f7 : 0x38bdf8;
+      const rngT = sk.range || 4.0;
+      ondaSismica(rngT, colC);
+      lanzarArcoCorte(name === 'tornillo' ? 0xc084fc : 0x7dd3fc, 0.15, rngT * 0.74, true);
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y + 0.95, p.z);
+      const disc = new THREE.Mesh(
+        new THREE.RingGeometry(Math.max(1.1, rngT * 0.52), rngT, 32),
+        new THREE.MeshBasicMaterial({ color: colC, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      disc.rotation.x = -Math.PI / 2;
+      disc.position.y = -0.68;
+      const halo = new THREE.Mesh(
+        new THREE.TorusGeometry(rngT * 0.68, 0.085, 6, 28),
+        new THREE.MeshBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending })
+      );
+      halo.rotation.x = Math.PI * 0.45;
+      g.add(disc, halo);
+      let haloAlto = null;
+      if (name === 'torbellino' || name === 'tornillo') {
+        haloAlto = new THREE.Mesh(
+          new THREE.TorusGeometry(rngT * 0.54, 0.075, 6, 26),
+          new THREE.MeshBasicMaterial({ color: colC, transparent: true, opacity: 0.82, blending: THREE.AdditiveBlending })
+        );
+        haloAlto.rotation.x = Math.PI * 0.52;
+        haloAlto.position.y = 0.75;
+        g.add(haloAlto);
+      }
+      marcarResplandor(g);
+      efecto(g, 0.42, k => {
+        const rp = character.root.position;
+        g.position.set(rp.x, rp.y + 0.95, rp.z);
+        g.rotation.y = k * 14.0;
+        disc.material.opacity = 0.55 * (1 - k);
+        halo.scale.setScalar(0.85 + k * 0.45);
+        halo.material.opacity = 0.88 * (1 - k);
+        if (haloAlto) {
+          haloAlto.scale.setScalar(0.8 + k * 0.6);
+          haloAlto.material.opacity = 0.82 * (1 - k);
+        }
+      });
+      return;
+    }
+    if (name === 'hendidura') {
+      lanzarArcoCorte(0xfbbf24, 1.15, 2.55, false);
+      const yaw = character.anguloY();
+      const g = new THREE.Group();
+      g.position.set(p.x, p.y, p.z);
+      g.rotation.y = yaw;
+      const hojaVert = new THREE.Mesh(
+        new THREE.TorusGeometry(2.65, 0.12, 6, 24, Math.PI * 0.95),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      hojaVert.rotation.y = Math.PI / 2;
+      hojaVert.position.set(0, 1.35, 1.35);
+      const grieta = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.45, 4.6),
+        new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.92, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      grieta.rotation.x = -Math.PI / 2;
+      grieta.position.set(0, 0.16, 2.35);
+      g.add(hojaVert, grieta);
+      marcarResplandor(g);
+      activarSacudida(0.28, 0.20);
+      efecto(g, 0.42, k => {
+        hojaVert.rotation.z = -0.7 - k * 1.45;
+        hojaVert.material.opacity = 0.95 * (1 - k);
+        grieta.scale.set(1 + k * 0.6, 1, 1);
+        grieta.material.opacity = 0.92 * (1 - k);
+      });
+      return;
+    }
+    if (name === 'ascendente') {
+      lanzarArcoCorte(0xfbbf24, 0.95, 2.35, false);
+      const yaw = character.anguloY();
+      const g = new THREE.Group();
+      g.position.set(p.x + fx * 1.6, p.y + 0.35, p.z + fz * 1.6);
+      g.rotation.y = yaw;
+      const luna = new THREE.Mesh(
+        new THREE.TorusGeometry(1.75, 0.11, 6, 22, Math.PI * 0.85),
+        new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.94, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      luna.rotation.y = Math.PI / 2;
+      luna.rotation.z = -0.35;
+      g.add(luna);
+      marcarResplandor(g);
+      efecto(g, 0.34, k => {
+        g.position.y = p.y + 0.35 + k * 3.1;
+        luna.rotation.z = -0.35 + k * 1.3;
+        luna.material.opacity = 0.94 * (1 - k);
+      });
+      return;
+    }
     if (name === 'attack') { lanzarArcoCorte(0xfef08a, 0.25, 1.7, false); }
   }
   function crearFlecha3D(colorAstil = 0xd6b47a, colorPluma = 0xfef3c7, colorEstela = 0xfde047) {
@@ -10238,6 +10913,32 @@
     ssaoActivo = !!on;
     if ($('chk-ssao')) $('chk-ssao').checked = ssaoActivo;
     if (gtaoPass) gtaoPass.enabled = ssaoActivo;
+  }
+  function setEstiloZelda(on, save) {
+    estiloZelda = !!on;
+    if ($('chk-zelda')) $('chk-zelda').checked = estiloZelda;
+    if (terrainU.uEstiloZelda) terrainU.uEstiloZelda.value = estiloZelda ? 1.0 : 0.0;
+    if (save && store) store.setItem('rpgMundo.zelda', estiloZelda ? '1' : '0');
+    updateAtmosphere(2.0);
+  }
+  function setCamposNivel(nivel, save) {
+    if (!['desactivado', 'cercano', 'amplio', 'enorme'].includes(nivel)) nivel = 'enorme';
+    camposNivel = nivel;
+    if ($('sel-campos')) $('sel-campos').value = camposNivel;
+    if (save && store) store.setItem('rpgMundo.campos', camposNivel);
+    if (typeof actualizarHierbaCampo === 'function' && world) actualizarHierbaCampo(true);
+  }
+  function setRiachuelosActivo(on, save) {
+    riachuelosActivo = !!on;
+    if ($('chk-riachuelos')) $('chk-riachuelos').checked = riachuelosActivo;
+    if (riachuelosObj && riachuelosObj.grupo) riachuelosObj.grupo.visible = riachuelosActivo;
+    if (save && store) store.setItem('rpgMundo.riachuelos', riachuelosActivo ? '1' : '0');
+  }
+  function setBrisaActiva(on, save) {
+    brisaActiva = !!on;
+    if ($('chk-brisa')) $('chk-brisa').checked = brisaActiva;
+    if (!brisaActiva && brisaZelda && brisaZelda.grupo) brisaZelda.grupo.visible = false;
+    if (save && store) store.setItem('rpgMundo.brisa', brisaActiva ? '1' : '0');
   }
   function renderFrame() {
     const usarBloom = !!QUALITY[quality].resplandor;
@@ -13911,16 +14612,29 @@
     return false;
   }
 
+  function segmentoLibreRuta(a, b) {
+    if (typeof RutaLib !== 'undefined' && typeof RutaLib.segmentoLibre === 'function') {
+      return RutaLib.segmentoLibre(a, b, {
+        esBloqueado: puntoBloqueadoRuta,
+        altura: (x, y) => visorWorld.getWalkableHeight(x, y),
+        pasoSondeo: 1.2
+      });
+    }
+    return true;
+  }
+
   // Puertas y tamaño de los pueblos, los mismos con los que se dibujan los caminos, más mapa de colisiones y relieve
   function opcionesRuta() {
     return {
       mitad: id => { const o = towns.find(x => x.t.id === id); return o ? o.tileHalf : null; },
+      radioMuro: id => { const o = towns.find(x => x.t.id === id); return o ? o.R + 4 : null; },
       salida: (idPueblo, idCamino) => {
         const o = towns.find(x => x.t.id === idPueblo), r = world.roads.find(x => x.id === idCamino);
-        return o && r ? salidaDePueblo(o, r) : [];
+        return o && r ? rutaSalidaDePueblo(o, r) : [];
       },
       altura: (x, y) => visorWorld.getWalkableHeight(x, y),
-      esBloqueado: (x, y) => puntoBloqueadoRuta(x, y)
+      esBloqueado: (x, y) => puntoBloqueadoRuta(x, y),
+      pasoSondeo: 1.2
     };
   }
 
@@ -13953,24 +14667,34 @@
     actualizarMision();
   }
 
-  // Cada fotograma: va de punto en punto (la plaza se da por alcanzada a 8 m, por si hay una fuente en su centro);
-  // si un punto intermedio se rebasa rodeando o queda sobre una colisión, avanza o recalcula un rodeo limpio.
+  // Cada fotograma: va de punto en punto (nunca recorta sobre puertas o murallas);
+  // si un punto intermedio se rebasa con línea de visión despejada o queda sobre una colisión, avanza o recalcula.
   let _lastContadorRuta = 0;
   function seguirRuta() {
     if (!ruta) return;
     if (character.cancelado) { character.cancelado = false; detenerRuta('Ruta parada: has tomado el control'); return; }
     if (hero.dead) { detenerRuta(); return; }
     const pos = character.root.position;
+    const pos2 = { x: pos.x, y: pos.z };
     let w = ruta.puntos[ruta.i];
     let ultimo = ruta.i === ruta.puntos.length - 1;
     const d = Math.hypot(w.x - pos.x, w.y - pos.z);
     if (ultimo && d <= ruta.parar + 0.5) { llegada(); return; }
-    let avanzar = !ultimo && d <= (w.plaza ? 9 : 4.0);
-    if (!avanzar && !ultimo && d <= 12) {
+    const radioPaso = w.plaza
+      ? (puntoBloqueadoRuta(w.x, w.y) ? 8.5 : 4.5)
+      : (w.puerta ? 2.2 : 3.2);
+    let avanzar = !ultimo && d <= radioPaso;
+    if (!avanzar && !ultimo) {
       const sig = ruta.puntos[ruta.i + 1];
       const dotSig = (sig.x - w.x) * (pos.x - w.x) + (sig.y - w.y) * (pos.z - w.y);
-      if (dotSig > 0 && puntoBloqueadoRuta(w.x, w.y)) avanzar = true;
-      else if (dotSig > 0 && Math.hypot(sig.x - pos.x, sig.y - pos.z) < Math.hypot(sig.x - w.x, sig.y - w.y)) avanzar = true;
+      if (dotSig > 0) {
+        const masCercaSig = Math.hypot(sig.x - pos.x, sig.y - pos.z) < Math.hypot(sig.x - w.x, sig.y - w.y);
+        if (w.puerta) {
+          if (d <= 6 && masCercaSig && segmentoLibreRuta(pos2, sig)) avanzar = true;
+        } else if (d <= 12 && (puntoBloqueadoRuta(w.x, w.y) || masCercaSig) && segmentoLibreRuta(pos2, sig)) {
+          avanzar = true;
+        }
+      }
     }
     if (avanzar) {
       ruta.i++;
@@ -13981,23 +14705,45 @@
     if (character.atascado) {
       character.atascado = false;
       ruta.intentos++;
-      if (ruta.intentos === 2 && ruta.destino) {
-        const rec = calcularRutaMundo({ x: pos.x, y: pos.z }, ruta.destino, opcionesRuta());
+      if ((ruta.intentos === 1 || ruta.intentos === 3 || ruta.intentos === 5) && ruta.destino) {
+        const rec = calcularRutaMundo(pos2, ruta.destino, opcionesRuta());
         if (rec && rec.length) {
           ruta.puntos = rec;
           ruta.i = 0;
           w = ruta.puntos[0];
           ultimo = ruta.puntos.length === 1;
         }
+      } else if (ruta.intentos === 2 || ruta.intentos === 4) {
+        const dx = w.x - pos.x, dz = w.y - pos.z;
+        const baseAng = Math.atan2(dz, dx);
+        const angs = [0.78, -0.78, 1.57, -1.57, 2.35, -2.35, Math.PI];
+        const radios = [4.5, 8.0, 12.0];
+        let mejorEsc = null, mejorScore = Infinity;
+        for (let ri = 0; ri < radios.length; ri++) {
+          const rad = radios[ri];
+          for (let ai = 0; ai < angs.length; ai++) {
+            const ang = baseAng + angs[ai];
+            const cx = pos.x + Math.cos(ang) * rad;
+            const cz = pos.z + Math.sin(ang) * rad;
+            if (puntoBloqueadoRuta(cx, cz)) continue;
+            const cand = { x: cx, y: cz };
+            if (!segmentoLibreRuta(pos2, cand)) continue;
+            const libreAlObj = segmentoLibreRuta(cand, w);
+            const score = Math.hypot(w.x - cx, w.y - cz) - (libreAlObj ? 40 : 0);
+            if (score < mejorScore) {
+              mejorScore = score;
+              mejorEsc = cand;
+            }
+          }
+        }
+        if (mejorEsc) {
+          ruta.puntos.splice(ruta.i, 0, mejorEsc);
+          w = ruta.puntos[ruta.i];
+          ultimo = false;
+        }
       } else if (ruta.intentos > 5) {
         detenerRuta('El paso está bloqueado. Muévete un poco y vuelve a pulsar la misión.');
         return;
-      } else {
-        const dx = w.x - pos.x, dz = w.y - pos.z, L = Math.hypot(dx, dz) || 1, lado = ruta.intentos % 2 ? 1 : -1;
-        const radioDesvio = 6 + ruta.intentos * 2.5;
-        ruta.puntos.splice(ruta.i, 0, { x: pos.x - dz / L * radioDesvio * lado + dx / L * 2, y: pos.z + dx / L * radioDesvio * lado + dz / L * 2 });
-        w = ruta.puntos[ruta.i];
-        ultimo = false;
       }
     }
     character.destino = { x: w.x, z: w.y, parar: ultimo ? ruta.parar : 0.5 };
@@ -14742,6 +15488,8 @@
         if (farMesh) farMesh.visible = false;
         if (waterMesh) waterMesh.visible = false;
         if (riosMesh) riosMesh.visible = false;
+        if (riachuelosObj && riachuelosObj.grupo) riachuelosObj.grupo.visible = false;
+        if (brisaZelda && brisaZelda.grupo) brisaZelda.grupo.visible = false;
         if (lagosGroup) lagosGroup.visible = false;
         if (roadMesh) roadMesh.visible = false;
         if (calzadaMesh) calzadaMesh.visible = false;
@@ -14822,6 +15570,7 @@
         if (farMesh) farMesh.visible = true;
         if (waterMesh) waterMesh.visible = est.waterVis !== undefined ? est.waterVis : ($('chk-water') ? $('chk-water').checked : true);
         if (riosMesh) riosMesh.visible = est.riosVis !== undefined ? est.riosVis : true;
+        if (riachuelosObj && riachuelosObj.grupo) riachuelosObj.grupo.visible = !!riachuelosActivo;
         if (lagosGroup) lagosGroup.visible = est.lagosVis !== undefined ? est.lagosVis : true;
         if (roadMesh) roadMesh.visible = est.roadVis !== undefined ? est.roadVis : true;
         if (calzadaMesh) calzadaMesh.visible = est.calzadaVis !== undefined ? est.calzadaVis : true;
@@ -15101,6 +15850,9 @@
     const uRec = { value: new THREE.Vector4(rec.zx, rec.zz, 0, -1) };   // radio 0 y modo fuera: no dibuja nada
     const mat = TerrainLib.createTerrainMaterial(THREE, {
       tCapas: terrainU.tCapas, tHierbas: terrainU.tHierbas, uHierbaMix: terrainU.uHierbaMix,
+      uPraderaSeed: terrainU.uPraderaSeed,
+      uTime: terrainU.uTime, uNubesSombra: terrainU.uNubesSombra,
+      uEstiloZelda: terrainU.uEstiloZelda, uAtmoHorizonte: terrainU.uAtmoHorizonte,
       uTexOn: terrainU.uTexOn, uRecorte: uRec, uSunDir: terrainU.uSunDir, uSunColor: terrainU.uSunColor
     }, { triplanar: true });
     // En la franja donde se solapa con el terreno del mundo, gana el mundo (sin parpadeo)
@@ -15217,7 +15969,7 @@
       const [cx, cz] = k.split(',').map(Number);
       if (!trozoConRecinto(cx, cz)) ocultar(m);
     });
-    [waterMesh, riosMesh, lagosGroup, roadMesh, calzadaMesh, zoneMesh, selectRing, decorGroup,
+    [waterMesh, riosMesh, riachuelosObj && riachuelosObj.grupo, brisaZelda && brisaZelda.grupo, lagosGroup, roadMesh, calzadaMesh, zoneMesh, selectRing, decorGroup,
      decorMundo && decorMundo.grupo,
      grupoInteractivosHistoria,
      _grupoSecretosCache || scene.getObjectByName('LugaresSecretosMundo'),
@@ -16704,6 +17456,10 @@
   $('tam-enemigos').oninput = e => { escalaEnemigosPanel = parseFloat(e.target.value); aplicarEscalaEnemigos(); };
   $('chk-water').onchange = e => { if (waterMesh) waterMesh.visible = e.target.checked; };
   if ($('chk-ssao')) $('chk-ssao').onchange = e => setSsao(e.target.checked);
+  if ($('chk-zelda')) $('chk-zelda').onchange = e => setEstiloZelda(e.target.checked, true);
+  if ($('sel-campos')) $('sel-campos').onchange = e => setCamposNivel(e.target.value, true);
+  if ($('chk-riachuelos')) $('chk-riachuelos').onchange = e => setRiachuelosActivo(e.target.checked, true);
+  if ($('chk-brisa')) $('chk-brisa').onchange = e => setBrisaActiva(e.target.checked, true);
 
   // ===========================================================================
   // Bucle de render
@@ -16768,6 +17524,14 @@
       actualizarVisibilidadEstructuras(now, false);
     }
     actualizarHierbaCampo(false);
+    if (!brisaZelda && typeof PraderaAtlasLib !== 'undefined' && PraderaAtlasLib.crearSistemaBrisaZelda && scene) {
+      brisaZelda = PraderaAtlasLib.crearSistemaBrisaZelda(THREE, terrainU);
+      scene.add(brisaZelda.grupo);
+    }
+    if (brisaZelda && character && character.root) {
+      const rp = character.root.position;
+      brisaZelda.actualizar(dt, nowSecLoop, rp.x, rp.y, rp.z, brisaActiva && !enDungeon && !enRecinto);
+    }
     if (cielo) {
       if (enDungeon) {
         cielo.visible = false;
@@ -17181,6 +17945,17 @@
       }
     } catch (e) {}
     applyQuality(saved || (movil ? 'bajo' : 'alto'), false);
+    try {
+      const zPref = localStorage.getItem('rpgMundo.zelda');
+      if (zPref !== null) setEstiloZelda(zPref !== '0', false);
+      else setEstiloZelda(true, false);
+      const cPref = localStorage.getItem('rpgMundo.campos');
+      if (cPref) setCamposNivel(cPref, false);
+      const rPref = localStorage.getItem('rpgMundo.riachuelos');
+      if (rPref !== null) setRiachuelosActivo(rPref !== '0', false);
+      const bPref = localStorage.getItem('rpgMundo.brisa');
+      if (bPref !== null) setBrisaActiva(bPref !== '0', false);
+    } catch (e) {}
     let pelo = null;
     try { pelo = localStorage.getItem('rpgMundo.pelo'); } catch (e) { /* nada */ }
     fijarDetalle(pelo || 'ligero', false);

@@ -4,7 +4,7 @@ const THREE = require('../tools/node_modules/three/build/three.cjs');
 globalThis.THREE = THREE;
 globalThis.window = { addEventListener() {} };
 
-const { CharacterController } = require('../js/character.js');
+const { CharacterController, SKILL_MOTION } = require('../js/character.js');
 
 let n = 0;
 function t(nombre, fn) { fn(); n++; console.log('ok -', nombre); }
@@ -97,6 +97,167 @@ t('startDodge cancela el bloqueo, avanza en su dirección, respeta muros y termi
   assert.strictEqual(ch.isDodging(), false, 'al finalizar duration debe salir de estado dodge');
   assert.ok(ch.root.position.x > 1.5, 'debe haberse desplazado hacia el muro');
   assert.ok(ch.root.position.x <= 3.5 - ch.radius + 0.05, 'la esquiva no debe atravesar el muro (x=' + ch.root.position.x.toFixed(2) + ')');
+});
+
+t('evasión suave sin oscilación alrededor de un muro frontal', () => {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera();
+  const controls = { target: new THREE.Vector3() };
+  const wall = { type: 'box', minX: -5, maxX: 5, minZ: 5, maxZ: 7 };
+  const world = { getWalkableHeight: () => 0, colliders: [wall] };
+  const ch = new CharacterController({ scene, camera, controls, world, glbUrl: null });
+  ch.root.position.set(0, 0, 0);
+  ch.destino = { x: 0, z: 18, parar: 0.6 };
+
+  let lastDx = 0, flips = 0;
+  for (let i = 0; i < 100; i++) {
+    const px = ch.root.position.x;
+    ch.caminarADestino(0.05, false);
+    const dx = ch.root.position.x - px;
+    if (Math.abs(dx) > 0.05) {
+      if (lastDx !== 0 && Math.sign(dx) !== Math.sign(lastDx)) flips++;
+      lastDx = dx;
+    }
+    if (Math.hypot(ch.root.position.x, ch.root.position.z - 18) <= 0.7) break;
+  }
+  assert.ok(!ch.atascado, 'no debe atascarse al rodear un muro de 10 m');
+  assert.ok(Math.hypot(ch.root.position.x, ch.root.position.z - 18) <= 0.8, 'debe alcanzar el destino detrás del muro');
+  assert.ok(flips <= 2, 'no debe oscilar repetidamente contra el muro (flips=' + flips + ')');
+});
+
+t('detecta atasco por falta de progreso neto al deslizarse lateralmente por un muro largo', () => {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera();
+  const controls = { target: new THREE.Vector3() };
+  const longWall = { type: 'box', minX: -120, maxX: 120, minZ: 5, maxZ: 7 };
+  const world = { getWalkableHeight: () => 0, colliders: [longWall] };
+  const ch = new CharacterController({ scene, camera, controls, world, glbUrl: null });
+  ch.root.position.set(0, 0, 0);
+  ch.destino = { x: 0, z: 22, parar: 0.5 };
+
+  let stuckAt = -1;
+  for (let i = 0; i < 60; i++) { // 3.0 s máx
+    if (ch.destino) ch.caminarADestino(0.05, false);
+    if (ch.atascado) { stuckAt = (i + 1) * 0.05; break; }
+  }
+  assert.strictEqual(ch.atascado, true, 'debe marcar atascado al deslizarse sin acercarse al destino');
+  assert.ok(stuckAt > 0 && stuckAt < 3.0, 'debe detectar el atasco antes de 3 s (t=' + stuckAt.toFixed(2) + 's)');
+});
+
+function crearControladorConMallaGLB(extraClips = []) {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera();
+  const controls = { target: new THREE.Vector3() };
+  const world = { getWalkableHeight: () => 0, colliders: [] };
+  const ch = new CharacterController({ scene, camera, controls, world, glbUrl: null });
+
+  const bone = new THREE.Bone();
+  bone.name = 'Hips';
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.0, 0.4), new THREE.MeshStandardMaterial());
+  const model = new THREE.Group();
+  model.add(bone, body);
+  const clip = (name, dur) => new THREE.AnimationClip(name, dur, [
+    new THREE.VectorKeyframeTrack('Hips.position', [0, dur], [0, 0, 0, 0, 0.1, 0])
+  ]);
+  ch._instalarGLTF({
+    scene: model,
+    animations: [
+      clip('idle', 2.4),
+      clip('walk', 1.1),
+      clip('run', 0.68),
+      clip('punch', 1.5)
+    ].concat(extraClips.map(n => clip(n, 2.5)))
+  }, 'guerrero');
+  return ch;
+}
+
+t('SKILL_MOTION cubre todas las habilidades activas del guerrero', () => {
+  const guerreroSkills = [
+    'sismo', 'nova', 'tajo', 'ascendente', 'hendidura', 'contraataque',
+    'torbellino', 'corte_cruzado', 'furia', 'escudo_espiritu', 'salto_demoledor', 'sentencia_titan'
+  ];
+  guerreroSkills.forEach(id => {
+    assert.ok(SKILL_MOTION && SKILL_MOTION[id], 'falta SKILL_MOTION para ' + id);
+    assert.ok(SKILL_MOTION[id].dur > 0, 'duración positiva para ' + id);
+  });
+});
+
+t('skills del guerrero ejecutan animación especial procedimental sobre model, respetan frente() y restauran pose base', () => {
+  const ch = crearControladorConMallaGLB(['whirlwind', 'overhead_cleave', 'ultimate_slam', 'ultimate_nova']);
+  ch.mirarHacia(1, 0);
+  const frenteIni = ch.frente();
+
+  const probarSkill = (id, validarPicos) => {
+    ch.playOneShot(id);
+    const dur = SKILL_MOTION[id].dur;
+    const stats = { maxDy: -Infinity, minDy: Infinity, maxDz: -Infinity, minDz: Infinity, maxAbsRy: 0, maxAbsRz: 0, maxRx: -Infinity, minRx: Infinity };
+    const steps = Math.ceil((dur + 0.15) / 0.03);
+    for (let i = 0; i < steps; i++) {
+      ch.update(0.03);
+      const dy = ch.model.position.y - ch._baseModelY;
+      stats.maxDy = Math.max(stats.maxDy, dy);
+      stats.minDy = Math.min(stats.minDy, dy);
+      stats.maxDz = Math.max(stats.maxDz, ch.model.position.z);
+      stats.minDz = Math.min(stats.minDz, ch.model.position.z);
+      stats.maxAbsRy = Math.max(stats.maxAbsRy, Math.abs(ch.model.rotation.y));
+      stats.maxAbsRz = Math.max(stats.maxAbsRz, Math.abs(ch.model.rotation.z));
+      stats.maxRx = Math.max(stats.maxRx, ch.model.rotation.x);
+      stats.minRx = Math.min(stats.minRx, ch.model.rotation.x);
+      // Orientación de root intacta
+      const f = ch.frente();
+      assert.ok(Math.hypot(f.x - frenteIni.x, f.z - frenteIni.z) < 1e-6, `frente() alterado durante ${id}`);
+    }
+    validarPicos(stats);
+    // Pose exactamente restaurada al terminar
+    assert.ok(Math.abs(ch.model.position.x) < 1e-6 && Math.abs(ch.model.position.z) < 1e-6, `${id}: x/z restaurados`);
+    assert.ok(Math.abs(ch.model.position.y - ch._baseModelY) < 1e-6, `${id}: y base restaurado`);
+    assert.ok(Math.abs(ch.model.rotation.x) < 1e-6 && Math.abs(ch.model.rotation.y) < 1e-6 && Math.abs(ch.model.rotation.z) < 1e-6, `${id}: rotación restaurada`);
+    assert.ok(Math.abs(ch.model.scale.y - ch._baseModelScale) < 1e-6, `${id}: escala base restaurada`);
+  };
+
+  probarSkill('salto_demoledor', s => assert.ok(s.maxDy > 1.8, 'salto_demoledor sube > 1.8m: ' + s.maxDy.toFixed(2)));
+  probarSkill('torbellino', s => assert.ok(s.maxAbsRy > Math.PI * 2, 'torbellino gira > 360°: ' + s.maxAbsRy.toFixed(2)));
+  probarSkill('furia', s => assert.ok(s.maxDz > 0.6, 'furia arremete hacia delante > 0.6m: ' + s.maxDz.toFixed(2)));
+  probarSkill('corte_cruzado', s => {
+    assert.ok(s.maxDz > 0.6, 'corte_cruzado avanza: ' + s.maxDz.toFixed(2));
+    assert.ok(s.maxAbsRz > 0.2, 'corte_cruzado inclina en diagonal: ' + s.maxAbsRz.toFixed(2));
+  });
+  probarSkill('hendidura', s => {
+    assert.ok(s.maxDy > 1.0 && s.maxRx > 0.3, 'hendidura salta y parte hacia delante');
+  });
+  probarSkill('sentencia_titan', s => assert.ok(s.maxDy > 2.0, 'sentencia_titan asciende > 2.0m: ' + s.maxDy.toFixed(2)));
+
+  // Verificar limpieza inmediata al cortar con _cortarOneShot(true) o startDodge()
+  ch.playOneShot('salto_demoledor');
+  for (let i = 0; i < 12; i++) ch.update(0.03);
+  assert.ok(Math.abs(ch.model.position.y - ch._baseModelY) > 0.5, 'en mitad del salto está elevado');
+  ch._cortarOneShot(true);
+  assert.strictEqual(ch._skillAnim, null, '_cortarOneShot(true) limpia _skillAnim');
+  assert.ok(Math.abs(ch.model.position.y - ch._baseModelY) < 1e-6, 'restaura pose tras _cortarOneShot(true)');
+
+  ch.playOneShot('torbellino');
+  for (let i = 0; i < 10; i++) ch.update(0.03);
+  assert.ok(Math.abs(ch.model.rotation.y) > 0.2, 'en mitad del torbellino está rotando');
+  ch.startDodge({ dirX: 0, dirZ: 1 });
+  assert.strictEqual(ch._skillAnim, null, 'startDodge limpia _skillAnim');
+  assert.ok(Math.abs(ch.model.rotation.y) < 1e-6, 'startDodge restaura rotación base de model');
+});
+
+t('cuando al GLB le falta el clip específico de una skill, recurre al clip attack sin congelarse en idle y aplica animación especial', () => {
+  const ch = crearControladorConMallaGLB([]); // sin ultimate_slam ni whirlwind en el GLB
+  assert.ok(ch.oneShots.salto_demoledor, 'salto_demoledor hereda fallback de attack');
+  assert.strictEqual(ch.oneShots.salto_demoledor.fallbackClip, true);
+  assert.strictEqual(ch.oneShots.salto_demoledor.action, ch.oneShots.attack.action);
+
+  ch.playOneShot('salto_demoledor');
+  assert.strictEqual(ch.activeState, 'oneshot', 'no se queda congelado en idle');
+  assert.strictEqual(ch.currentAction, ch.oneShots.attack.action);
+  let maxDy = 0;
+  for (let i = 0; i < 45; i++) {
+    ch.update(0.03);
+    maxDy = Math.max(maxDy, ch.model.position.y - ch._baseModelY);
+  }
+  assert.ok(maxDy > 1.8, 'mantiene gran salto procedimental incluso sin clip dedicado (' + maxDy.toFixed(2) + 'm)');
 });
 
 console.log('\n' + n + ' pruebas de movimiento y puntería automática superadas.');

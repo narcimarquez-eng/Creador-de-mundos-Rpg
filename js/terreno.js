@@ -91,11 +91,20 @@
     const conHierbas = !!(uniforms && uniforms.tHierbas);
     const conSol = !!(uniforms && uniforms.uSunDir);
     m.userData = Object.assign(m.userData || {}, { pbrHumedo: usarPbr });
-    m.customProgramCacheKey = () => 'terreno' + (usarPbr ? '-pbr2' : '') + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb' : '') + (conSol ? '-sol' : '');
+    m.customProgramCacheKey = () => 'terreno' + (usarPbr ? '-pbr2' : '') + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb3' : '-z1') + (conSol ? '-sol' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
       if (!shader.uniforms.uHumedad) shader.uniforms.uHumedad = { value: usarPbr ? 1.0 : 0.0 };
       if (!shader.uniforms.uBumpFuerza) shader.uniforms.uBumpFuerza = { value: 1.0 };
+      if (!shader.uniforms.uTime) shader.uniforms.uTime = { value: 0.0 };
+      if (!shader.uniforms.uNubesSombra) shader.uniforms.uNubesSombra = { value: 0.0 };
+      if (!shader.uniforms.uEstiloZelda) shader.uniforms.uEstiloZelda = { value: 0.0 };
+      if (!shader.uniforms.uAtmoHorizonte) {
+        shader.uniforms.uAtmoHorizonte = { value: typeof THREE.Color === 'function' ? new THREE.Color('#a8e4f7') : { r: 0.66, g: 0.89, b: 0.97 } };
+      }
+      if (conHierbas && !shader.uniforms.uPraderaSeed) {
+        shader.uniforms.uPraderaSeed = { value: typeof THREE.Vector2 === 'function' ? new THREE.Vector2(0, 0) : { x: 0, y: 0 } };
+      }
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nattribute vec4 aSplat;\nattribute float aSnow;\nvarying vec4 vSplat;\nvarying float vSnow;\nvarying vec3 vTWorld;\nvarying vec3 vTViewPos;\nvarying vec3 vNWorld;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSplat = aSplat;\nvSnow = aSnow;\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvNWorld = normalize(mat3(modelMatrix) * objectNormal);')
@@ -107,7 +116,11 @@
           'uniform float uTexOn;',
           'uniform float uHumedad;',
           'uniform float uBumpFuerza;',
-          conHierbas ? 'uniform highp sampler2DArray tHierbas;\nuniform float uHierbaMix;' : '',
+          'uniform float uTime;',
+          'uniform float uNubesSombra;',
+          'uniform float uEstiloZelda;',
+          'uniform vec3 uAtmoHorizonte;',
+          conHierbas ? 'uniform highp sampler2DArray tHierbas;\nuniform float uHierbaMix;\nuniform vec2 uPraderaSeed;' : '',
           conRecorte ? 'uniform vec4 uRecorte;' : '',
           conSol ? 'uniform vec3 uSunDir;\nuniform vec3 uSunColor;' : '',
           'varying vec3 vNWorld;',
@@ -181,6 +194,30 @@
             '      if (pFrio > 0.01) hMix = mix(hMix, texture(tHierbas, vec3(uvH * 0.95 + 0.73, 7.0)).rgb, pFrio * 0.75);',
             '      cHierba = mix(cHierba, hMix, uHierbaMix * (1.0 - 0.55 * tL));',
             '    }',
+            '    float praderaPlana = smoothstep(0.92, 0.99, vSplat.x) * (1.0 - smoothstep(0.015, 0.085, vSplat.y + vSplat.z + vSplat.w)) * (1.0 - smoothstep(0.02, 0.10, vSnow)) * smoothstep(0.93, 0.98, abs(nrmW.y));',
+            '    if (praderaPlana > 0.01) {',
+            '      vec2 pT = vTWorld.xz * 0.0092 + uPraderaSeed;',
+            '      float nT = ruidoValor(pT) * 0.72 + ruidoValor(pT * 2.13 + vec2(7.3, 4.1)) * 0.28;',
+            '      float wTrigo = smoothstep(0.55, 0.70, nT) * praderaPlana;',
+            '      vec2 pF = vTWorld.xz * 0.0118 + uPraderaSeed * 1.37 + vec2(31.7, -19.4);',
+            '      float nF = ruidoValor(pF) * 0.70 + ruidoValor(pF * 2.27 + vec2(3.9, 11.2)) * 0.30;',
+            '      float wFlores = smoothstep(0.54, 0.69, nF) * (1.0 - wTrigo * 0.92) * praderaPlana;',
+            '      if (wTrigo > 0.01) {',
+            '        float surco = 0.5 + 0.5 * sin((vTWorld.x * 0.82 + vTWorld.z * 0.57) * 2.6 + ruidoValor(vTWorld.xz * 0.08) * 1.4);',
+            '        vec3 colTrigo = mix(vec3(0.68, 0.50, 0.19), vec3(0.96, 0.74, 0.28), 0.35 + 0.65 * surco);',
+            '        float lHierba = dot(cHierba, vec3(0.299, 0.587, 0.114));',
+            '        colTrigo *= (0.72 + 0.55 * lHierba);',
+            '        cHierba = mix(cHierba, colTrigo, wTrigo * (0.64 - 0.18 * tL));',
+            '      }',
+            '      if (wFlores > 0.01) {',
+            '        float nPal = ruidoValor(vTWorld.xz * 0.018 + uPraderaSeed * 0.61 + vec2(-14.2, 27.5));',
+            '        float nMota = ruidoValor(vTWorld.xz * 0.85 + uPraderaSeed * 1.7);',
+            '        float mota = smoothstep(0.66, 0.84, nMota);',
+            '        vec3 tintFlor = nPal < 0.34 ? vec3(0.98, 0.96, 0.78) : (nPal < 0.67 ? vec3(0.92, 0.28, 0.22) : vec3(0.62, 0.44, 0.92));',
+            '        cHierba = mix(cHierba, cHierba * vec3(0.94, 1.07, 0.88), wFlores * 0.35);',
+            '        cHierba = mix(cHierba, tintFlor, wFlores * mota * (0.48 - 0.26 * tL));',
+            '      }',
+            '    }',
             '    tex += cHierba * vSplat.x;',
             '  }'
           ].join('\n') : '  if (vSplat.x > 0.001) tex += claseLejos(0.0, vTWorld.xz, 1.3, tC, tL) * vSplat.x;',
@@ -222,12 +259,28 @@
           'diffuseColor.rgb *= mix(vec3(1.0), tex * 1.35, uTexOn) * macro * micro * tinte * sombraRoca * (1.0 + bisel) * mix(1.0, aoMicro, (1.0 - tL) * 0.60);',
           'diffuseColor.rgb *= mix(1.0, 0.72, clamp(charcoMask * 0.75 + humedadMask * 0.25, 0.0, 0.85));',
           'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.16, 0.23, 0.28), charcoMask * 0.26);',
+          'if (uNubesSombra > 0.01) {',
+          '  float nCb1 = ruidoValor(vTWorld.xz * 0.0036 + vec2(uTime * 0.016, uTime * 0.009));',
+          '  float nCb2 = ruidoValor(vTWorld.xz * 0.0085 - vec2(uTime * 0.011, -uTime * 0.007));',
+          '  float cloudSh = smoothstep(0.46, 0.78, nCb1 * 0.72 + nCb2 * 0.28) * uNubesSombra;',
+          '  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.75, 0.80, 0.90), cloudSh);',
+          '}',
+          'if (uEstiloZelda > 0.01) {',
+          '  float zLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));',
+          '  vec3 zPastoral = clamp(vec3(zLum) + (diffuseColor.rgb - vec3(zLum)) * (1.22 - 0.12 * tL), 0.0, 1.35);',
+          '  zPastoral = mix(zPastoral, zPastoral * vec3(0.99, 1.06, 0.92), vSplat.x * 0.65);',
+          '  diffuseColor.rgb = mix(diffuseColor.rgb, zPastoral, uEstiloZelda * 0.70);',
+          '}',
           conSol ? [
             'vec3 sunD = normalize(uSunDir);',
             'vec3 viewW = normalize(cameraPosition - vTWorld);',
             'float sunRim = pow(1.0 - clamp(dot(nrmW, viewW), 0.0, 1.0), 2.8) * clamp(dot(nrmW, sunD) * 0.7 + 0.3, 0.0, 1.0);',
             'diffuseColor.rgb += uSunColor * sunRim * (0.13 * vSplat.z + 0.09 * vSnow + 0.03 * vSplat.x) * (1.0 - tL * 0.6);'
-          ].join('\n') : ''
+          ].join('\n') : '',
+          'if (uEstiloZelda > 0.01) {',
+          '  float aerial = smoothstep(140.0, 950.0, dCam) * 0.42 * uEstiloZelda;',
+          '  diffuseColor.rgb = mix(diffuseColor.rgb, uAtmoHorizonte * 0.96, aerial);',
+          '}'
         ].join('\n'));
       if (usarPbr) {
         shader.fragmentShader = shader.fragmentShader
