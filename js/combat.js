@@ -251,15 +251,29 @@
     const w = (opts.weapon || '').toLowerCase();
     const n = ((opts.name || '') + ' ' + (opts.archetype || '') + ' ' + (opts.id || '')).toLowerCase();
     if (w.includes('bow') || w.includes('arco') || n.includes('archer') || n.includes('arquero') || n.includes('bowman')) return 'arquero';
-    if (opts.raceCategory === 'magical' || w.includes('staff') || w.includes('baston') || w.includes('varita') || w.includes('dragon_breath') || w.includes('frost_breath') || n.includes('mago') || n.includes('mage') || n.includes('shaman') || n.includes('chaman') || n.includes('brujo') || n.includes('archimago') || n.includes('sorcerer') || n.includes('wizard') || n.includes('hechicero')) return 'mago';
+    if (opts.raceCategory === 'magical' || w.includes('staff') || w.includes('baston') || w.includes('varita') || w.includes('dragon_breath') || w.includes('frost_breath') || n.includes('mago') || n.includes('mage') || n.includes('shaman') || n.includes('chaman') || n.includes('brujo') || n.includes('archimago') || n.includes('sorcerer') || n.includes('wizard') || n.includes('hechicero') || n.includes('piromante')) return 'mago';
     return 'melee';
   }
 
+  // Detecta afinidad elemental ('fuego', 'hielo', 'arcano' o null) para proyectiles y ataques especiales enemigos
+  function detectarElemento(opts) {
+    if (!opts) return null;
+    if (opts.elemento === 'fuego' || opts.elemento === 'hielo' || opts.elemento === 'arcano') return opts.elemento;
+    const w = (opts.weapon || '').toLowerCase();
+    const txt = ((opts.name || '') + ' ' + (opts.archetype || '') + ' ' + (opts.id || '') + ' ' + (opts.zonaNombre || '') + ' ' + (opts.bioma || '')).toLowerCase();
+    if (w.includes('dragon_breath') || /fuego|llama|brasa|magma|obsidiana|volc|ceniza|infernal|piromante|salamandra|cerbero|balrog|quebrado|marea roja|yunque|solar|ardiente/i.test(txt)) return 'fuego';
+    if (w.includes('frost_breath') || /hielo|escarcha|glacial|ventisca|boreal|ártico|artico|helad|frost|cryo|nieve|invierno/i.test(txt)) return 'hielo';
+    if (opts.raceCategory === 'magical' || w.includes('staff') || w.includes('baston') || /arcano|vacío|vacio|astral|djinn|liche|nigromante|espectr|hechicero|brujo|chamán|chaman|mago|maldito|sombra|oscur|rúnico|runico|spriggan|savia/i.test(txt)) return 'arcano';
+    return null;
+  }
+
   const SPECIAL_ATTACKS = {
-    slam:      { nombre: 'Onda Sísmica',      tipo: 'slam',      radius: 5.5, bossRadius: 7.2, duration: 1.25, dmgMult: 1.75, bossDmgMult: 2.05 },
-    charge:    { nombre: 'Embestida Brutal',  tipo: 'charge',    length: 10.5, bossLength: 13.0, halfWidth: 1.55, duration: 1.15, dmgMult: 1.75, bossDmgMult: 2.0 },
-    cone:      { nombre: 'Barrido Devastador', tipo: 'cone',     radius: 6.5, bossRadius: 8.0, halfAngle: 0.62, duration: 1.2, dmgMult: 1.7, bossDmgMult: 1.95 },
-    nova_orbs: { nombre: 'Lluvia Arcana',     tipo: 'nova_orbs', orbCount: 3, fase2Count: 4, orbRadius: 2.9, duration: 1.3, dmgMult: 1.6 }
+    slam:        { nombre: 'Onda Sísmica',       tipo: 'slam',        radius: 5.5, bossRadius: 7.2, duration: 1.25, dmgMult: 1.75, bossDmgMult: 2.05 },
+    charge:      { nombre: 'Embestida Brutal',   tipo: 'charge',      length: 10.5, bossLength: 13.0, halfWidth: 1.55, duration: 1.15, dmgMult: 1.75, bossDmgMult: 2.0 },
+    cone:        { nombre: 'Barrido Devastador', tipo: 'cone',        radius: 6.5, bossRadius: 8.0, halfAngle: 0.62, duration: 1.2, dmgMult: 1.7, bossDmgMult: 1.95 },
+    nova_orbs:   { nombre: 'Lluvia Arcana',      tipo: 'nova_orbs',   orbCount: 3, eliteCount: 2, fase2Count: 4, orbRadius: 2.8, duration: 1.3, dmgMult: 1.55, bossDmgMult: 1.75 },
+    fire_orbs:   { nombre: 'Bolas de Fuego',     tipo: 'fire_orbs',   orbCount: 3, eliteCount: 2, fase2Count: 4, orbRadius: 2.6, duration: 1.32, dmgMult: 1.50, bossDmgMult: 1.85 },
+    fire_breath: { nombre: 'Aliento de Fuego',   tipo: 'fire_breath', radius: 6.2, bossRadius: 8.0, halfAngle: 0.56, duration: 1.28, dmgMult: 1.55, bossDmgMult: 1.90 }
   };
 
   // Un monstruo vivo: posición de origen, estado, rol de ataque y temporizador
@@ -272,6 +286,8 @@
     const defaultSpeed = opts.boss ? MONSTER.bossChaseSpeed : MONSTER.chaseSpeed;
     const rAtaque = opts.attackRange || (esDist ? MONSTER.rangedAttackRange : MONSTER.attackRange);
     const esJefe = !!opts.boss || eliteMult >= 8;
+    const elemento = opts.elemento || detectarElemento(opts);
+    const conEfectosEspeciales = !!opts.conEfectosEspeciales;
     return {
       level: opts.level, boss: !!opts.boss,
       rangoElite: eliteMult,
@@ -280,9 +296,11 @@
       leash: opts.leash || 40,
       state: 'idle', attackTimer: 0,
       fase: 1, telegraph: null, specialIdx: 0,
-      specialCd: esJefe ? 2.8 : (eliteMult >= 2 ? 4.0 : 999),
+      specialCd: esJefe ? 2.8 : (eliteMult >= 2 ? 3.5 : (conEfectosEspeciales ? 3.8 : 999)),
       tipoRango: tipoRango,
       esADistancia: esDist,
+      elemento,
+      conEfectosEspeciales,
       attackRange: rAtaque,
       attackCd: opts.attackCd || MONSTER.attackCd,
       aggro: opts.aggro || (esDist ? Math.max(22, defaultAggro) : defaultAggro),
@@ -294,39 +312,58 @@
 
   function crearTelegrafiado(m, hx, hz) {
     const esJefe = !!m.boss || (m.rangoElite || 1) >= 8;
+    const esElite = (m.rangoElite || 1) >= 2;
+    const esNormalConEfectos = !esJefe && !esElite && !!m.conEfectosEspeciales;
     const enFase2 = (m.fase || 1) >= 2;
+    const elem = m.elemento || detectarElemento(m);
     const dx = hx - m.x, dz = hz - m.z;
     const dHero = Math.hypot(dx, dz) || 1;
     const ux = dx / dHero, uz = dz / dHero;
 
-    const lista = esJefe
-      ? (enFase2 ? ['slam', 'nova_orbs', 'charge', 'cone'] : ['slam', 'charge', 'cone', 'nova_orbs'])
-      : ['slam', 'cone', 'charge'];
+    let lista;
+    if (esNormalConEfectos) {
+      lista = (elem === 'arcano' || elem === 'hielo')
+        ? ['nova_orbs', 'fire_orbs', 'fire_breath']
+        : ['fire_orbs', 'fire_breath', 'nova_orbs'];
+    } else if (esJefe) {
+      lista = enFase2
+        ? ['fire_orbs', 'nova_orbs', 'fire_breath', 'slam', 'charge']
+        : ['fire_orbs', 'slam', 'nova_orbs', 'fire_breath', 'charge', 'cone'];
+    } else {
+      lista = (elem === 'arcano' || elem === 'hielo' || m.tipoRango === 'mago')
+        ? ['nova_orbs', 'fire_orbs', 'fire_breath', 'slam', 'charge']
+        : ['fire_orbs', 'fire_breath', 'nova_orbs', 'slam', 'charge'];
+    }
+
     const idx = m.specialIdx || 0;
     m.specialIdx = idx + 1;
     let tipo = lista[idx % lista.length];
-    if (idx === 0) {
+    if (idx === 0 && !esNormalConEfectos && !elem && m.tipoRango !== 'mago') {
       if (dHero <= 5.5) tipo = 'slam';
       else if (dHero >= 7.5) tipo = 'charge';
     }
 
     const spec = SPECIAL_ATTACKS[tipo];
-    const duration = Math.max(0.85, spec.duration * (enFase2 ? 0.85 : 1.0));
-    const dmgMult = esJefe ? (spec.bossDmgMult || spec.dmgMult) : spec.dmgMult;
+    const baseDur = esNormalConEfectos ? Math.max(spec.duration, 1.42) : spec.duration;
+    const duration = Math.max(0.85, baseDur * (enFase2 ? 0.85 : 1.0));
+    const dmgMult = esNormalConEfectos ? 1.15 : (esJefe ? (spec.bossDmgMult || spec.dmgMult) : spec.dmgMult);
+    const elementoTg = (tipo === 'fire_orbs' || tipo === 'fire_breath')
+      ? 'fuego'
+      : (tipo === 'nova_orbs' ? (elem === 'hielo' ? 'hielo' : 'arcano') : (elem || 'fuego'));
 
     if (tipo === 'slam') {
       return {
-        tipo: 'slam', nombre: spec.nombre,
+        tipo: 'slam', nombre: spec.nombre, elemento: elementoTg,
         x: m.x, z: m.z,
         radius: esJefe ? spec.bossRadius : spec.radius,
         duration, elapsed: 0, dmgMult
       };
     }
-    if (tipo === 'cone') {
+    if (tipo === 'cone' || tipo === 'fire_breath') {
       return {
-        tipo: 'cone', nombre: spec.nombre,
+        tipo, nombre: spec.nombre, elemento: elementoTg,
         x: m.x, z: m.z, dirX: ux, dirZ: uz,
-        radius: esJefe ? spec.bossRadius : spec.radius,
+        radius: esNormalConEfectos ? Math.min(spec.radius, 5.2) : (esJefe ? spec.bossRadius : spec.radius),
         halfAngle: spec.halfAngle,
         duration, elapsed: 0, dmgMult
       };
@@ -334,22 +371,26 @@
     if (tipo === 'charge') {
       const len = esJefe ? spec.bossLength : spec.length;
       return {
-        tipo: 'charge', nombre: spec.nombre,
+        tipo: 'charge', nombre: spec.nombre, elemento: elementoTg,
         x: m.x, z: m.z, dirX: ux, dirZ: uz,
         length: len, endX: m.x + ux * len, endZ: m.z + uz * len,
         halfWidth: spec.halfWidth,
         duration, elapsed: 0, dmgMult
       };
     }
-    const count = enFase2 ? spec.fase2Count : spec.orbCount;
-    const zones = [{ x: hx, z: hz, radius: spec.orbRadius }];
+    const count = esNormalConEfectos
+      ? 2
+      : (enFase2 ? spec.fase2Count : (esJefe || (m.rangoElite || 1) >= 3 ? spec.orbCount : (spec.eliteCount || 2)));
+    const orbR = esNormalConEfectos ? Math.min(spec.orbRadius, 2.3) : spec.orbRadius;
+    const zones = [{ x: hx, z: hz, radius: orbR }];
     const baseAng = idx * 1.1;
     for (let i = 1; i < count; i++) {
-      const a = baseAng + ((i - 1) * Math.PI * 2) / (count - 1);
-      zones.push({ x: hx + Math.cos(a) * 4.2, z: hz + Math.sin(a) * 4.2, radius: spec.orbRadius });
+      const a = baseAng + ((i - 1) * Math.PI * 2) / Math.max(1, count - 1);
+      const distZ = count === 2 ? 3.6 : 4.2;
+      zones.push({ x: hx + Math.cos(a) * distZ, z: hz + Math.sin(a) * distZ, radius: orbR });
     }
     return {
-      tipo: 'nova_orbs', nombre: spec.nombre,
+      tipo, nombre: spec.nombre, elemento: elementoTg,
       x: m.x, z: m.z, zones,
       duration, elapsed: 0, dmgMult
     };
@@ -360,7 +401,7 @@
     if (tg.tipo === 'slam') {
       return Math.hypot(hx - tg.x, hz - tg.z) <= tg.radius;
     }
-    if (tg.tipo === 'cone') {
+    if (tg.tipo === 'cone' || tg.tipo === 'fire_breath') {
       const dx = hx - tg.x, dz = hz - tg.z;
       const d = Math.hypot(dx, dz);
       if (d > tg.radius) return false;
@@ -373,7 +414,7 @@
       const perp = Math.abs(-dx * tg.dirZ + dz * tg.dirX);
       return along >= -0.5 && along <= tg.length + 0.6 && perp <= tg.halfWidth;
     }
-    if (tg.tipo === 'nova_orbs') {
+    if (tg.tipo === 'nova_orbs' || tg.tipo === 'fire_orbs') {
       return (tg.zones || []).some(z => Math.hypot(hx - z.x, hz - z.z) <= z.radius);
     }
     return false;
@@ -387,7 +428,7 @@
     const dHero = Math.hypot(hx - m.x, hz - m.z);
     const dSpawn = Math.hypot(m.spawnX - m.x, m.spawnZ - m.z);
     const esJefe = !!m.boss || (m.rangoElite || 1) >= 8;
-    const esEspecial = esJefe || (m.rangoElite || 1) >= 2;
+    const esEspecial = esJefe || (m.rangoElite || 1) >= 2 || !!m.conEfectosEspeciales;
 
     if (esJefe && (m.fase || 1) < 2 && m.hp > 0 && m.hp <= m.maxHp * 0.5) {
       m.fase = 2;
@@ -410,14 +451,15 @@
         if (m.telegraph.elapsed >= m.telegraph.duration) {
           out.specialRelease = m.telegraph;
           m.telegraph = null;
-          m.specialCd = esJefe ? ((m.fase || 1) >= 2 ? 4.4 : 6.2) : 8.0;
+          m.specialCd = esJefe ? ((m.fase || 1) >= 2 ? 4.4 : 6.2) : ((m.rangoElite || 1) >= 2 ? 7.2 : 7.8);
           m.attackTimer = Math.max(m.attackTimer || 0, 1.0);
         }
         return out;
       }
       if (esEspecial) {
-        m.specialCd = Math.max(0, (m.specialCd !== undefined ? m.specialCd : (esJefe ? 2.8 : 4.0)) - dt);
-        if (m.specialCd <= 0 && !hero.dead && dHero <= 13.5 && (typeof dy !== 'number' || dy < 5.0)) {
+        const defCd = esJefe ? 2.8 : ((m.rangoElite || 1) >= 2 ? 3.5 : 3.8);
+        m.specialCd = Math.max(0, (m.specialCd !== undefined ? m.specialCd : defCd) - dt);
+        if (m.specialCd <= 0 && !hero.dead && dHero <= 15.0 && (typeof dy !== 'number' || dy < 5.0)) {
           m.telegraph = crearTelegrafiado(m, hx, hz);
           out.specialStart = m.telegraph;
           return out;
@@ -510,7 +552,7 @@
     canUse, useSkill, isInvulnerable, canDodge, startDodge, checkEnemyHitAvoided,
     crearTelegrafiado, inTelegraphArea,
     monsterStats, monsterDamage, takeHit, tickHero,
-    die, respawn, newMonster, monsterTick, inSkillArea, impactos, detectarRol
+    die, respawn, newMonster, monsterTick, inSkillArea, impactos, detectarRol, detectarElemento
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CombatLib = api;

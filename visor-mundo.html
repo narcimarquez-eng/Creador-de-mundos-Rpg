@@ -2283,7 +2283,7 @@
   <script type="module" src="js/pueblo-edits.js?v=20261113b"></script>
   <script defer src="js/casas-glb.js?v=20261114a"></script>
   <script type="module" src="js/village-core.js?v=20261119h"></script>
-  <script type="module" src="js/combat.js?v=20261120b"></script>
+  <script type="module" src="js/combat.js?v=20261120d"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20261119b"></script>
@@ -8292,9 +8292,9 @@
             let rangoElite = 1;
             if (!info.boss) {
               const roll = rng.range(0, 100);
-              if (roll < 6) rangoElite = 4;
-              else if (roll < 18) rangoElite = 3;
-              else if (roll < 38) rangoElite = 2;
+              if (roll < 8) rangoElite = 4;
+              else if (roll < 22) rangoElite = 3;
+              else if (roll < 46) rangoElite = 2;
             }
 
             // Distribuir en pequeñas manadas o patrullas de 2-4 miembros por foco en la zona
@@ -8308,6 +8308,15 @@
             const spawnZ = z.y + Math.sin(aCluster) * rCluster + offZ;
 
             const rolDetectado = CombatLib.detectarRol(enemigoVariedad || info);
+            const elemDetectado = CombatLib.detectarElemento ? CombatLib.detectarElemento({
+              name: info.name,
+              weapon: enemigoVariedad ? enemigoVariedad.weapon : (info.weapon || ''),
+              archetype: enemigoVariedad ? (enemigoVariedad.archetype || enemigoVariedad.id) : (info.archetype || ''),
+              raceCategory: enemigoVariedad ? enemigoVariedad.raceCategory : info.raceCategory,
+              zonaNombre: z.name
+            }) : null;
+            const elementoExt = elemDetectado || ['fuego', 'arcano', 'fuego', 'hielo'][(mi + k) % 4];
+            const conEfectosEspeciales = !info.boss && rangoElite === 1 && (k % 2 === 0);
             const m = CombatLib.newMonster({
               level: info.level,
               boss: info.boss,
@@ -8317,6 +8326,8 @@
               leash: z.radius + 25,
               tipoRango: rolDetectado,
               esADistancia: rolDetectado === 'arquero' || rolDetectado === 'mago',
+              elemento: elementoExt,
+              conEfectosEspeciales,
               weapon: enemigoVariedad ? enemigoVariedad.weapon : (info.weapon || ''),
               archetype: enemigoVariedad ? (enemigoVariedad.archetype || enemigoVariedad.id) : (info.archetype || ''),
               name: info.name
@@ -8400,12 +8411,25 @@
           const grupoX = pt.x + perpX * distMargen * lado;
           const grupoZ = pt.y + perpZ * distMargen * lado;
 
-          // Generar una manada pequeña (2-3 criaturas/bandidos)
+          // Generar una manada pequeña (2-3 criaturas/bandidos/conjuradores)
           const cantManada = rngWild.int(2, 3);
           const nivelWild = Math.max(1, Math.min(18, Math.round(1 + (pi / rd.points.length) * 8)));
-          const tiposWild = ['lobo', 'bandido', 'arana', 'esqueleto'];
+          const tiposWild = ['lobo', 'piromante', 'bandido', 'arana', 'hechicero', 'esqueleto'];
           const tipoElegido = tiposWild[(rIdx + pi) % tiposWild.length];
-          const rolWild = (tipoElegido === 'bandido' && pi % 2 === 1) ? 'arquero' : 'melee';
+          const esMagoWild = (tipoElegido === 'piromante' || tipoElegido === 'hechicero');
+          const rolWild = esMagoWild ? 'mago' : ((tipoElegido === 'bandido' && pi % 2 === 1) ? 'arquero' : 'melee');
+          const nombreBaseWild = tipoElegido === 'lobo'
+            ? 'Lobo Silvestre'
+            : (tipoElegido === 'piromante'
+              ? 'Piromante de los Caminos'
+              : (tipoElegido === 'bandido'
+                ? 'Forajido de los Caminos'
+                : (tipoElegido === 'arana'
+                  ? 'Araña Acechadora'
+                  : (tipoElegido === 'hechicero' ? 'Hechicero Errante' : 'Vagabundo Esqueleto'))));
+          const claseWild = rolWild === 'mago'
+            ? 'mago'
+            : (rolWild === 'arquero' ? 'arquero' : ((tipoElegido === 'lobo' || tipoElegido === 'arana') ? 'rapido' : 'guerrero'));
 
           for (let wi = 0; wi < cantManada; wi++) {
             const offWx = (wi === 0) ? 0 : rngWild.range(-6, 6);
@@ -8413,20 +8437,35 @@
             const wX = grupoX + offWx;
             const wZ = grupoZ + offWz;
             const sueloWildY = H(wX, wZ);
+            const elementoWild = tipoElegido === 'piromante'
+              ? 'fuego'
+              : ((tipoElegido === 'hechicero' || tipoElegido === 'esqueleto')
+                ? 'arcano'
+                : ((rIdx + pi) % 2 === 0 ? 'fuego' : 'arcano'));
+            const esLiderPatrulla = (wi === 0);
+            const rangoEliteWild = (esLiderPatrulla && (rIdx + pi) % 4 === 0) ? 2 : 1;
+            const conEfectosWild = esLiderPatrulla || rolWild === 'mago';
 
             const m = CombatLib.newMonster({
               level: nivelWild,
               boss: false,
-              rangoElite: 1,
+              rangoElite: rangoEliteWild,
               x: wX,
               z: wZ,
               leash: 55,
               tipoRango: rolWild,
-              esADistancia: rolWild === 'arquero',
-              weapon: rolWild === 'arquero' ? 'bow' : (tipoElegido === 'bandido' ? 'dagger' : 'sword'),
-              name: (tipoElegido === 'lobo' ? 'Lobo Silvestre' : (tipoElegido === 'bandido' ? 'Forajido de los Caminos' : (tipoElegido === 'arana' ? 'Araña Acechadora' : 'Vagabundo Esqueleto')))
+              esADistancia: rolWild === 'arquero' || rolWild === 'mago',
+              elemento: elementoWild,
+              conEfectosEspeciales: conEfectosWild,
+              weapon: esMagoWild ? 'arcane_staff' : (rolWild === 'arquero' ? 'bow' : (tipoElegido === 'bandido' ? 'dagger' : 'sword')),
+              name: nombreBaseWild
             });
-            m.name = m.name || 'Criatura Salvaje';
+            if (rangoEliteWild >= 2) {
+              m.esElite = true;
+              m.name = '⭐ [Élite ×2] ' + nombreBaseWild;
+            } else {
+              m.name = nombreBaseWild || 'Criatura Salvaje';
+            }
             m.zone = null;
             m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rngWild.range(0, 6);
             m.recibirDano = (dmg, fuente = 'hero') => damageMonster(m, dmg, fuente);
@@ -8435,14 +8474,15 @@
             m.turno = monsters.length % 4;
 
             if (window.EnemyLib) {
-              m.enemigo = elegirEnemigoPorClase(rolWild === 'arquero' ? 'arquero' : (tipoElegido === 'lobo' || tipoElegido === 'arana' ? 'rapido' : 'guerrero'), nivelWild, rngWild, false);
+              m.enemigo = elegirEnemigoPorClase(claseWild, nivelWild, rngWild, false);
             } else {
-              m._pendEnemigo = { info: { esLaberinto: true, clase: (rolWild === 'arquero' ? 'arquero' : (tipoElegido === 'lobo' || tipoElegido === 'arana' ? 'rapido' : 'guerrero')), level: nivelWild, boss: false, name: m.name }, s: rngWild.s };
+              m._pendEnemigo = { info: { esLaberinto: true, clase: claseWild, level: nivelWild, boss: false, name: m.name }, s: rngWild.s };
               m.enemigo = null;
             }
 
             m.group = new THREE.Group();
             m.group.userData.monstruo = m;
+            if (rangoEliteWild >= 2) m.group.scale.setScalar(1.14);
             m.group.position.set(wX, sueloWildY, wZ);
             m.rig = null;
             m.versiones = {};
@@ -8451,10 +8491,10 @@
 
             m.bar = new THREE.Group();
             const bg = new THREE.Mesh(barGeo, bgMat);
-            m.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: '#f97316', depthTest: false }));
+            m.fg = new THREE.Mesh(fgGeo, new THREE.MeshBasicMaterial({ color: rangoEliteWild >= 2 ? '#eab308' : '#f97316', depthTest: false }));
             m.fg.position.z = 0.01;
             m.bar.add(bg, m.fg);
-            m.barHeight = 2.6;
+            m.barHeight = rangoEliteWild >= 2 ? 2.95 : 2.6;
             m.bar.position.set(wX, sueloWildY + m.barHeight, wZ);
             m.bar.visible = false;
             scene.add(m.bar);
@@ -8472,7 +8512,7 @@
     m.alive = true; m.hp = m.maxHp; m.x = m.spawnX; m.z = m.spawnZ; m.state = 'idle'; m.attackTimer = 0;
     m.fase = 1; m.telegraph = null; m._charge = null;
     const esJefe = !!m.boss || (m.rangoElite || 1) >= 8;
-    m.specialCd = esJefe ? 2.8 : ((m.rangoElite || 1) >= 2 ? 4.0 : 999);
+    m.specialCd = esJefe ? 2.8 : ((m.rangoElite || 1) >= 2 ? 3.5 : (m.conEfectosEspeciales ? 3.8 : 999));
     m.danoPorFuente = { hero: 0, acompanante: 0 };
     m.danoTotal = 0;
     if (m.questRing) m.questRing.visible = !!m.esDeMision;
@@ -8698,7 +8738,12 @@
       if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo({ pan: panM });
     } else if (rol === 'mago' || tipo === 'magia') {
       tiempoImpacto = magiaMonstruo(m, hp);
-      if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo({ pan: panM });
+      const elemM = m.elemento || (CombatLib.detectarElemento ? CombatLib.detectarElemento(m.enemigo || m) : null);
+      if (typeof Sonidos !== 'undefined') {
+        if (elemM === 'fuego' && Sonidos.fuego) Sonidos.fuego({ pan: panM });
+        else if (elemM === 'hielo' && Sonidos.hielo) Sonidos.hielo({ pan: panM });
+        else if (Sonidos.disparo) Sonidos.disparo({ pan: panM });
+      }
     } else {
       tiempoImpacto = EnemyFx.momentoImpacto(tipo);
     }
@@ -9070,7 +9115,7 @@
       root.add(mFill, mBorder);
       fills.push({ mesh: mFill, mode: 'xz' });
       borders.push(mBorder);
-    } else if (tg.tipo === 'cone') {
+    } else if (tg.tipo === 'cone' || tg.tipo === 'fire_breath') {
       root.position.set(tg.x, yBase, tg.z);
       root.rotation.y = Math.atan2(-tg.dirZ, tg.dirX);
       const r = tg.radius || 6.5, ha = tg.halfAngle || 0.62;
@@ -9078,8 +9123,9 @@
       gBorder.rotateX(-Math.PI / 2);
       const gFill = new THREE.CircleGeometry(r, 28, -ha, ha * 2);
       gFill.rotateX(-Math.PI / 2);
-      const mBorder = new THREE.Mesh(gBorder, crearMatTelegrafiado(0xef4444, 0.85));
-      const mFill = new THREE.Mesh(gFill, crearMatTelegrafiado(0xdc2626, 0.30));
+      const esAliento = tg.tipo === 'fire_breath';
+      const mBorder = new THREE.Mesh(gBorder, crearMatTelegrafiado(esAliento ? 0xf97316 : 0xef4444, 0.85));
+      const mFill = new THREE.Mesh(gFill, crearMatTelegrafiado(esAliento ? 0xea580c : 0xdc2626, esAliento ? 0.32 : 0.30));
       mFill.scale.set(0.05, 1, 0.05);
       mFill.position.y = -0.02;
       root.add(mFill, mBorder);
@@ -9111,7 +9157,10 @@
       const mTip = new THREE.Mesh(gTip, crearMatTelegrafiado(0xef4444, 0.85));
       root.add(mTip);
       borders.push(mTip);
-    } else if (tg.tipo === 'nova_orbs') {
+    } else if (tg.tipo === 'nova_orbs' || tg.tipo === 'fire_orbs') {
+      const elemOrbe = tg.tipo === 'fire_orbs' ? 'fuego' : (tg.elemento === 'hielo' ? 'hielo' : 'arcano');
+      const colBorde = elemOrbe === 'fuego' ? 0xf97316 : (elemOrbe === 'hielo' ? 0x38bdf8 : 0xa855f7);
+      const colRell = elemOrbe === 'fuego' ? 0xea580c : (elemOrbe === 'hielo' ? 0x0284c7 : 0x7c3aed);
       (tg.zones || []).forEach(z => {
         const sub = new THREE.Group();
         const zy = alturaSueloMonstruo(z.x, z.z, m, enMaz) + 0.16;
@@ -9121,14 +9170,15 @@
         gBorder.rotateX(-Math.PI / 2);
         const gFill = new THREE.CircleGeometry(r, 32);
         gFill.rotateX(-Math.PI / 2);
-        const mBorder = new THREE.Mesh(gBorder, crearMatTelegrafiado(0xef4444, 0.88));
-        const mFill = new THREE.Mesh(gFill, crearMatTelegrafiado(0xdc2626, 0.30));
+        const mBorder = new THREE.Mesh(gBorder, crearMatTelegrafiado(colBorde, 0.88));
+        const mFill = new THREE.Mesh(gFill, crearMatTelegrafiado(colRell, 0.30));
         mFill.scale.set(0.05, 1, 0.05);
         mFill.position.y = -0.02;
         sub.add(mFill, mBorder);
         root.add(sub);
         fills.push({ mesh: mFill, mode: 'xz' });
         borders.push(mBorder);
+        lanzarOrbeTelegrafiado(m, { x: z.x, y: zy, z: z.z }, tg.duration || 1.25, elemOrbe);
       });
     }
 
@@ -9169,30 +9219,166 @@
     });
   }
 
+  function lanzarOrbeTelegrafiado(m, destino, duracion, elemento = 'fuego') {
+    if (!m || !destino) return;
+    const mx = m.x || 0, mz = m.z || 0;
+    const baseY = m.group ? m.group.position.y : 0;
+    const altSalida = Math.min(2.6, Math.max(1.2, (m.barHeight || 2.4) * 0.55));
+    const desde = new THREE.Vector3(mx, baseY + altSalida, mz);
+    const hasta = new THREE.Vector3(destino.x, (destino.y || 0) + 0.25, destino.z);
+    const esFuego = elemento === 'fuego';
+    const esHielo = elemento === 'hielo';
+    const colMain = esFuego ? 0xf97316 : (esHielo ? 0x38bdf8 : 0xa855f7);
+    const colCore = esFuego ? 0xfef08a : (esHielo ? 0xe0f2fe : 0xf3e8ff);
+    const colCola = esFuego ? 0xef4444 : (esHielo ? 0x0284c7 : 0x7c3aed);
+
+    const g = new THREE.Group();
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.24, 10, 8),
+      new THREE.MeshBasicMaterial({ color: colCore, transparent: true, opacity: 0.92 })
+    );
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.42, 10, 8),
+      new THREE.MeshBasicMaterial({ color: colMain, transparent: true, opacity: 0.58, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    g.add(core, halo);
+    let aro = null;
+    if (esFuego) {
+      const cola = new THREE.Mesh(
+        new THREE.ConeGeometry(0.26, 1.05, 8),
+        new THREE.MeshBasicMaterial({ color: colCola, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      cola.rotation.x = Math.PI;
+      cola.position.y = -0.62;
+      g.add(cola);
+    } else {
+      aro = new THREE.Mesh(
+        new THREE.TorusGeometry(0.36, 0.032, 6, 18),
+        new THREE.MeshBasicMaterial({ color: colCola, transparent: true, opacity: 0.62, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      aro.rotation.x = Math.PI * 0.4;
+      g.add(aro);
+    }
+    marcarResplandor(core);
+    g.position.copy(desde);
+
+    const dur = Math.max(0.35, Number(duracion) || 1.25);
+    const up = new THREE.Vector3(0, 1, 0);
+    const prev = desde.clone();
+    const dir = new THREE.Vector3();
+    const arco = Math.min(4.2, Math.max(1.8, desde.distanceTo(hasta) * 0.34));
+
+    efecto(g, dur, k => {
+      if (m && (!m.alive || m.state === 'return')) {
+        g.visible = false;
+        return;
+      }
+      g.position.lerpVectors(desde, hasta, k);
+      g.position.y += Math.sin(k * Math.PI) * arco;
+      if (esFuego) {
+        dir.copy(g.position).sub(prev);
+        if (dir.lengthSq() > 1e-6) {
+          dir.normalize();
+          g.quaternion.setFromUnitVectors(up, dir);
+        }
+        prev.copy(g.position);
+      } else if (aro) {
+        aro.rotation.z += 0.28;
+        aro.rotation.y += 0.14;
+      }
+    });
+  }
+
+  function lanzarAlientoFuegoEnemigo(tg, yBase) {
+    if (!tg) return;
+    const g = new THREE.Group();
+    g.position.set(tg.x, yBase + 1.05, tg.z);
+    const baseAng = Math.atan2(tg.dirX || 0, tg.dirZ || 1);
+    const halfAng = tg.halfAngle || 0.56;
+    const radio = tg.radius || 6.2;
+    const llamas = [];
+    for (let i = 0; i < 6; i++) {
+      const t = i / 5 - 0.5;
+      const ang = baseAng + t * halfAng * 1.75;
+      const core = new THREE.Mesh(
+        new THREE.SphereGeometry(0.22, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfef08a, transparent: true, opacity: 0.78 })
+      );
+      const aura = new THREE.Mesh(
+        new THREE.SphereGeometry(0.40, 8, 8),
+        new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xf97316 : 0xef4444, transparent: true, opacity: 0.52, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      const nodo = new THREE.Group();
+      nodo.add(core, aura);
+      marcarResplandor(core);
+      g.add(nodo);
+      llamas.push({ nodo, coreMat: core.material, auraMat: aura.material, dx: Math.sin(ang), dz: Math.cos(ang), lat: (i % 3 - 1) * 0.14 });
+    }
+    efecto(g, 0.48, k => {
+      const dist = 0.6 + k * (radio * 0.92);
+      const sc = 0.7 + k * 1.05;
+      const fade = 1 - Math.pow(k, 1.5);
+      for (let i = 0; i < llamas.length; i++) {
+        const ll = llamas[i];
+        ll.nodo.position.set(ll.dx * dist, Math.sin(k * Math.PI) * (0.35 + Math.abs(ll.lat)) - 0.25 * k, ll.dz * dist);
+        ll.nodo.scale.setScalar(sc);
+        ll.coreMat.opacity = 0.78 * fade;
+        ll.auraMat.opacity = 0.52 * fade;
+      }
+    });
+  }
+
   function ejecutarEspecialMonstruo(m, tg, enMaz) {
     limpiarTelegrafiado(m);
     if (!tg) return;
     const yBase = alturaSueloMonstruo(tg.x, tg.z, m, enMaz);
+    const pan = panDePosicion(m.x, m.z);
+    const esJefeOElite = !!(m.boss || (m.rangoElite || 1) >= 2);
 
     if (tg.tipo === 'charge') {
       m._charge = { tx: tg.endX, tz: tg.endZ, t: 0, dur: 0.22 };
       if (m.group) m.group.rotation.y = Math.atan2(tg.dirX, tg.dirZ);
       const midX = (tg.x + tg.endX) * 0.5, midZ = (tg.z + tg.endZ) * 0.5;
       destelloImpacto(new THREE.Vector3(midX, alturaSueloMonstruo(midX, midZ, m, enMaz) + 1.1, midZ), 0xf97316, 1.7);
-    } else if (tg.tipo === 'nova_orbs') {
+      if (esJefeOElite && window.Sonidos && window.Sonidos.rugidoJefe) window.Sonidos.rugidoJefe();
+    } else if (tg.tipo === 'fire_orbs') {
       (tg.zones || []).forEach(z => {
         const zy = alturaSueloMonstruo(z.x, z.z, m, enMaz);
-        ondaDetonacion(z.x, zy, z.z, z.radius || 2.9, 0xa855f7);
-        destelloImpacto(new THREE.Vector3(z.x, zy + 1.0, z.z), 0xe879f9, 1.6);
+        ondaDetonacion(z.x, zy, z.z, z.radius || 2.6, 0xf97316);
+        lanzarEstallidoElemental(new THREE.Vector3(z.x, zy + 0.85, z.z), 'fuego', Math.min(3.2, (z.radius || 2.6) * 0.82));
       });
+      if (window.Sonidos && window.Sonidos.fuego) window.Sonidos.fuego({ pan });
+      if (esJefeOElite && window.Sonidos && window.Sonidos.rugidoJefe) window.Sonidos.rugidoJefe();
+    } else if (tg.tipo === 'fire_breath') {
+      lanzarAlientoFuegoEnemigo(tg, yBase);
+      ondaDetonacion(tg.x + tg.dirX * 2.0, yBase, tg.z + tg.dirZ * 2.0, Math.min(4.2, (tg.radius || 6) * 0.62), 0xf97316);
+      if (window.Sonidos && window.Sonidos.fuego) window.Sonidos.fuego({ pan });
+      if (esJefeOElite && window.Sonidos && window.Sonidos.rugidoJefe) window.Sonidos.rugidoJefe();
+    } else if (tg.tipo === 'nova_orbs') {
+      const esHielo = tg.elemento === 'hielo';
+      const colOnda = esHielo ? 0x38bdf8 : 0xa855f7;
+      const tipoEst = esHielo ? 'hielo' : 'rayo';
+      (tg.zones || []).forEach(z => {
+        const zy = alturaSueloMonstruo(z.x, z.z, m, enMaz);
+        ondaDetonacion(z.x, zy, z.z, z.radius || 2.8, colOnda);
+        lanzarEstallidoElemental(new THREE.Vector3(z.x, zy + 0.85, z.z), tipoEst, Math.min(3.0, (z.radius || 2.8) * 0.78));
+      });
+      if (window.Sonidos) {
+        if (esHielo && window.Sonidos.hielo) window.Sonidos.hielo({ pan });
+        else if (!esHielo && window.Sonidos.rayo) window.Sonidos.rayo({ pan });
+      }
+      if (esJefeOElite && window.Sonidos && window.Sonidos.rugidoJefe) window.Sonidos.rugidoJefe();
     } else {
       ondaDetonacion(tg.x, yBase, tg.z, tg.radius || 5.5, 0xef4444);
       destelloImpacto(new THREE.Vector3(tg.x, yBase + 1.0, tg.z), 0xf97316, tg.tipo === 'slam' ? 2.1 : 1.5);
+      if (esJefeOElite && window.Sonidos && window.Sonidos.rugidoJefe) window.Sonidos.rugidoJefe();
     }
 
     marcarCombateAudio();
-    activarSacudida(m.boss ? 0.34 : 0.22, 0.22);
-    if (window.Sonidos && window.Sonidos.rugidoJefe) window.Sonidos.rugidoJefe();
+    activarSacudida(m.boss ? 0.34 : (esJefeOElite ? 0.22 : 0.13), 0.22);
+    if (!esJefeOElite && window.Sonidos && window.Sonidos.enemigo) {
+      window.Sonidos.enemigo('ataque', { name: m.name, boss: false, rangoElite: 1, tipoRango: m.tipoRango, pan });
+    }
 
     const heroPos = character && character.root ? character.root.position : null;
     if (!heroPos || hero.dead) return;
@@ -9227,8 +9413,8 @@
       if (murio) onHeroDeath(performance.now());
     } else {
       let distCerca = Infinity;
-      if (tg.tipo === 'nova_orbs') {
-        (tg.zones || []).forEach(z => { distCerca = Math.min(distCerca, Math.hypot(heroPos.x - z.x, heroPos.z - z.z) - (z.radius || 2.9)); });
+      if (tg.tipo === 'nova_orbs' || tg.tipo === 'fire_orbs') {
+        (tg.zones || []).forEach(z => { distCerca = Math.min(distCerca, Math.hypot(heroPos.x - z.x, heroPos.z - z.z) - (z.radius || 2.8)); });
       } else if (tg.tipo === 'charge') {
         const dx = heroPos.x - tg.x, dz = heroPos.z - tg.z;
         const along = dx * tg.dirX + dz * tg.dirZ;
@@ -9403,7 +9589,10 @@
           if (r.specialStart) {
             limpiarTelegrafiado(m);
             crearTelegrafiadoMesh(r.specialStart, m, enMazmorra);
-            if (window.Sonidos && window.Sonidos.avisoJefe) window.Sonidos.avisoJefe();
+            if (window.Sonidos) {
+              if ((m.boss || (m.rangoElite || 1) >= 2) && window.Sonidos.avisoJefe) window.Sonidos.avisoJefe();
+              else if (window.Sonidos.enemigo) window.Sonidos.enemigo('ataque', { name: m.name, boss: false, rangoElite: 1, tipoRango: m.tipoRango, pan: panDePosicion(m.x, m.z) });
+            }
             lanzarNumeroFlotante(posCabezaMonstruo(m), '⚠️ ' + r.specialStart.nombre, 'dmg-hero', { dur: 1.0, disp: 0.15 });
           }
           if (m.telegraph) actualizarTelegrafiadoMesh(m);
@@ -10972,53 +11161,92 @@
     const desde = new THREE.Vector3(m.x, my, m.z);
     const hasta = new THREE.Vector3(p.x, p.y + 1.1, p.z);
     const dist = hasta.distanceTo(desde) || 1;
-    const colorHex = (m.enemigo && m.enemigo.materials && m.enemigo.materials.emissiveColor) ? m.enemigo.materials.emissiveColor : 0x7dd3fc;
+    const elemM = m.elemento || (CombatLib.detectarElemento ? CombatLib.detectarElemento(m.enemigo || m) : null);
+    const esFuego = elemM === 'fuego';
+    const esHielo = elemM === 'hielo';
+    const esArcano = elemM === 'arcano';
+    const baseEmissive = (m.enemigo && m.enemigo.materials && m.enemigo.materials.emissiveColor) ? m.enemigo.materials.emissiveColor : 0x7dd3fc;
+    const colorHex = esFuego ? 0xf97316 : (esHielo ? 0x38bdf8 : (esArcano ? 0xa855f7 : baseEmissive));
+    const colCore = esFuego ? 0xfef08a : (esHielo ? 0xe0f2fe : (esArcano ? 0xe879f9 : 0xffffff));
+
     const g = new THREE.Group();
     const nucleo = new THREE.Mesh(
       new THREE.SphereGeometry(0.24, 12, 10),
-      new THREE.MeshBasicMaterial({ color: 0xffffff })
+      new THREE.MeshBasicMaterial({ color: colCore })
     );
     const halo = new THREE.Mesh(
       new THREE.SphereGeometry(0.45, 12, 10),
-      new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending })
+      new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: esFuego ? 0.58 : 0.36, depthWrite: false, blending: THREE.AdditiveBlending })
     );
-    const aro1 = new THREE.Mesh(
-      new THREE.TorusGeometry(0.44, 0.03, 6, 22),
-      new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending })
-    );
-    const aro2 = new THREE.Mesh(
-      new THREE.TorusGeometry(0.36, 0.025, 6, 20),
-      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending })
-    );
-    aro1.rotation.x = Math.PI * 0.35;
-    aro2.rotation.y = Math.PI * 0.4;
-    g.add(nucleo, halo, aro1, aro2);
+    g.add(nucleo, halo);
+
+    let aro1 = null, aro2 = null;
+    if (esFuego) {
+      const cola = new THREE.Mesh(
+        new THREE.ConeGeometry(0.28, 1.15, 8),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending })
+      );
+      cola.rotation.x = Math.PI;
+      cola.position.y = -0.68;
+      g.add(cola);
+    } else {
+      aro1 = new THREE.Mesh(
+        new THREE.TorusGeometry(0.44, 0.03, 6, 22),
+        new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending })
+      );
+      aro2 = new THREE.Mesh(
+        new THREE.TorusGeometry(0.36, 0.025, 6, 20),
+        new THREE.MeshBasicMaterial({ color: colCore, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending })
+      );
+      aro1.rotation.x = Math.PI * 0.35;
+      aro2.rotation.y = Math.PI * 0.4;
+      g.add(aro1, aro2);
+    }
+
     const chispas = [];
     const geoCh = new THREE.SphereGeometry(0.065, 6, 6);
-    const matCh = new THREE.MeshBasicMaterial({ color: colorHex, blending: THREE.AdditiveBlending });
+    const matCh = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.62, blending: THREE.AdditiveBlending });
     for (let i = 0; i < 4; i++) {
       const ch = new THREE.Mesh(geoCh, matCh);
       g.add(ch);
       chispas.push(ch);
     }
     g.position.copy(desde);
-    marcarResplandor(aro1);
+    marcarResplandor(esFuego ? nucleo : aro1);
     const dur = Math.max(0.15, Math.min(0.85, dist / 26));
+    const up = new THREE.Vector3(0, 1, 0);
+    const prev = desde.clone();
+    const dir = new THREE.Vector3();
     let impactoHecho = false;
     efecto(g, dur, k => {
       g.position.lerpVectors(desde, hasta, k);
       g.position.y += Math.sin(k * Math.PI) * 0.5;
-      aro1.rotation.z += 0.28;
-      aro1.rotation.y += 0.14;
-      aro2.rotation.x -= 0.24;
-      aro2.rotation.z += 0.16;
+      if (esFuego) {
+        dir.copy(g.position).sub(prev);
+        if (dir.lengthSq() > 1e-6) {
+          dir.normalize();
+          g.quaternion.setFromUnitVectors(up, dir);
+        }
+        prev.copy(g.position);
+      } else {
+        aro1.rotation.z += 0.28;
+        aro1.rotation.y += 0.14;
+        aro2.rotation.x -= 0.24;
+        aro2.rotation.z += 0.16;
+      }
       const pulso = 1.0 + Math.sin(k * 18) * 0.2;
       halo.scale.setScalar(pulso);
       for (let i = 0; i < chispas.length; i++) {
         const ang = k * 14 + (i * Math.PI * 2) / chispas.length;
         chispas[i].position.set(Math.cos(ang) * 0.48, Math.sin(ang * 1.5) * 0.24, Math.sin(ang) * 0.48);
       }
-      if (k >= 0.96 && !impactoHecho) { impactoHecho = true; destelloImpacto(hasta, colorHex, 1.3); }
+      if (k >= 0.96 && !impactoHecho) {
+        impactoHecho = true;
+        if (esFuego) lanzarEstallidoElemental(hasta, 'fuego', 2.0);
+        else if (esHielo) lanzarEstallidoElemental(hasta, 'hielo', 1.8);
+        else if (esArcano) lanzarEstallidoElemental(hasta, 'rayo', 1.9);
+        else destelloImpacto(hasta, colorHex, 1.3);
+      }
     });
     return dur;
   }

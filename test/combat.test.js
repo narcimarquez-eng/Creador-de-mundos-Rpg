@@ -434,4 +434,79 @@ t('nuevas habilidades por profesión, escalado poderMagico, regen de maná y rec
   assert.strictEqual(C.heroDamage(hHielo, 'tajo', 15), C.heroDamage(hBase, 'tajo', 15));
 });
 
+t('efectos exteriores de fuego y bolas: detectarElemento, fire_orbs, fire_breath y conEfectosEspeciales', () => {
+  assert.strictEqual(C.detectarRol({ name: 'Piromante de los Caminos' }), 'mago');
+  assert.strictEqual(C.detectarElemento({ name: 'Piromante de los Caminos' }), 'fuego');
+  assert.strictEqual(C.detectarElemento({ weapon: 'dragon_breath_maw' }), 'fuego');
+  assert.strictEqual(C.detectarElemento({ weapon: 'frost_breath_maw' }), 'hielo');
+  assert.strictEqual(C.detectarElemento({ name: 'Lobo Ventisca Glacial' }), 'hielo');
+  assert.strictEqual(C.detectarElemento({ weapon: 'arcane_staff' }), 'arcano');
+  assert.strictEqual(C.detectarElemento({ name: 'Jabalí Silvestre', weapon: 'ram_charge' }), null);
+
+  assert.ok(C.SPECIAL_ATTACKS.fire_orbs && C.SPECIAL_ATTACKS.fire_breath, 'deben existir fire_orbs y fire_breath');
+
+  const tgOrbs = {
+    tipo: 'fire_orbs',
+    x: 0,
+    z: 0,
+    zones: [{ x: 10, z: 10, radius: 2.3 }, { x: 14, z: 10, radius: 2.3 }]
+  };
+  assert.strictEqual(C.inTelegraphArea(tgOrbs, 10.5, 10.2), true);
+  assert.strictEqual(C.inTelegraphArea(tgOrbs, 0, 0), false);
+
+  const tgBreath = { tipo: 'fire_breath', x: 0, z: 0, dirX: 1, dirZ: 0, radius: 5.2, halfAngle: 0.56 };
+  assert.strictEqual(C.inTelegraphArea(tgBreath, 3.5, 0), true);
+  assert.strictEqual(C.inTelegraphArea(tgBreath, 3.5, 4.0), false);
+  assert.strictEqual(C.inTelegraphArea(tgBreath, -2.0, 0), false);
+
+  const h = C.newHero();
+
+  // Normal sin conEfectosEspeciales: sigue sin lanzar telegrafiados
+  const sinFx = C.newMonster({ level: 3, x: 0, z: 0, leash: 60 });
+  assert.strictEqual(sinFx.conEfectosEspeciales, false);
+  for (let i = 0; i < 60; i++) {
+    const r = C.monsterTick(sinFx, h, 4, 0, 0.1);
+    assert.strictEqual(r.specialStart, null);
+  }
+
+  // Normal exterior con conEfectosEspeciales + elemento 'fuego': dispara fire_orbs moderado (2 zonas, <= 1.25x daño)
+  const conFx = C.newMonster({ level: 3, x: 0, z: 0, leash: 60, conEfectosEspeciales: true, elemento: 'fuego' });
+  assert.strictEqual(conFx.conEfectosEspeciales, true);
+  conFx.specialCd = 0.05;
+  let inicio = null;
+  for (let i = 0; i < 5 && !inicio; i++) {
+    const r = C.monsterTick(conFx, h, 6, 0, 0.1);
+    if (r.specialStart) inicio = r.specialStart;
+  }
+  assert.ok(inicio, 'normal con conEfectosEspeciales debe lanzar specialStart');
+  assert.strictEqual(inicio.tipo, 'fire_orbs');
+  assert.strictEqual(inicio.elemento, 'fuego');
+  assert.strictEqual(inicio.zones.length, 2);
+  inicio.zones.forEach(z => {
+    assert.ok(Number.isFinite(z.x) && Number.isFinite(z.z) && Number.isFinite(z.radius));
+  });
+  assert.ok(inicio.dmgMult <= 1.25, `dmgMult de bicho normal debe estar acotado (${inicio.dmgMult})`);
+
+  let suelta = null;
+  for (let i = 0; i < 30 && !suelta; i++) {
+    const r = C.monsterTick(conFx, h, 6, 0, 0.1);
+    if (r.specialRelease) suelta = r.specialRelease;
+  }
+  assert.ok(suelta && suelta.tipo === 'fire_orbs', 'debe completar fire_orbs en specialRelease');
+
+  // Élite exterior de fuego: debe rotar incluyendo fire_orbs / fire_breath / nova_orbs
+  const eliteFuego = C.newMonster({ level: 5, rangoElite: 2, x: 0, z: 0, leash: 60, elemento: 'fuego' });
+  const tiposVistos = new Set();
+  for (let k = 0; k < 5; k++) {
+    eliteFuego.specialCd = 0.01;
+    let st = null;
+    for (let i = 0; i < 3 && !st; i++) st = C.monsterTick(eliteFuego, h, 5, 0, 0.1).specialStart;
+    assert.ok(st);
+    tiposVistos.add(st.tipo);
+    eliteFuego.telegraph = null;
+  }
+  assert.ok(tiposVistos.has('fire_orbs') && tiposVistos.has('fire_breath') && tiposVistos.has('nova_orbs'),
+    'élite de fuego debe lanzar fire_orbs, fire_breath y nova_orbs: ' + [...tiposVistos].join(','));
+});
+
 console.log(`\n${n} pruebas correctas`);
