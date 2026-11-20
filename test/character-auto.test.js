@@ -262,17 +262,17 @@ t('cuando al GLB le falta el clip específico de una skill, recurre al clip atta
   assert.ok(maxDy > 1.8, 'mantiene gran salto procedimental incluso sin clip dedicado (' + maxDy.toFixed(2) + 'm)');
 });
 
-t('playOneShot("attack") y habilidades mantienen velocidad legible sin acelerar por encima de 1.28x', () => {
+t('playOneShot("attack") y habilidades mantienen velocidad legible sin acelerar en exceso', () => {
   const ch = crearControladorConMallaGLB(['spin_slash']);
   const durAtk = ch.playOneShot('attack');
   const tsAtk = ch.oneShots.attack.action.getEffectiveTimeScale();
-  assert.ok(tsAtk <= 1.28 + 1e-6, `attack no debe superar 1.28x (fue ${tsAtk})`);
-  assert.ok(durAtk >= 0.9, `duración visible de attack >= 0.9s (fue ${durAtk})`);
+  assert.ok(tsAtk <= 0.95 + 1e-6, `attack no debe superar 0.95x (fue ${tsAtk})`);
+  assert.ok(durAtk >= 1.1, `duración visible de attack >= 1.1s (fue ${durAtk})`);
 
   const durCorte = ch.playOneShot('corte_cruzado');
   const tsCorte = ch.oneShots.corte_cruzado.action.getEffectiveTimeScale();
-  assert.ok(tsCorte <= 1.28 + 1e-6, `corte_cruzado no debe superar 1.28x (fue ${tsCorte})`);
-  assert.ok(durCorte >= 0.9, `duración visible de corte_cruzado >= 0.9s (fue ${durCorte})`);
+  assert.ok(tsCorte <= 0.82 + 1e-6, `corte_cruzado no debe superar 0.82x (fue ${tsCorte})`);
+  assert.ok(durCorte >= 1.4, `duración visible de corte_cruzado >= 1.4s (fue ${durCorte})`);
 });
 
 console.log('\n' + n + ' pruebas de movimiento y puntería automática superadas.');

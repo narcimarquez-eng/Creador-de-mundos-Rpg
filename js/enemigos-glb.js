@@ -90,7 +90,7 @@
       (estado === 'run' ? (rep.acciones.walk || rep.acciones.idle) :
       (estado === 'walk' || estado === 'attack') ? rep.acciones.idle : null);
     if (accion && typeof accion.setEffectiveTimeScale === 'function') {
-      accion.setEffectiveTimeScale(estado === 'attack' ? 0.72 : 1.0);
+      accion.setEffectiveTimeScale(estado === 'attack' ? 0.60 : 1.0);
     }
     if (accion && accion !== rep.actual) {
       accion.reset().play();

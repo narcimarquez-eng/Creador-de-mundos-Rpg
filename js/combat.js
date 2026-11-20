@@ -24,43 +24,43 @@
   // unico: golpea solo al monstruo más cercano del área (las flechas).
   // Cada habilidad usa la animación del mismo nombre del personaje (ver js/character.js).
   const SKILLS = {
-    attack:      { nombre: 'Combo de ataque', icono: '⚔', cd: 1.05, lock: 0.85, range: 3.0, arc: 0.5, mult: 1.0, mp: 0 },
-    sismo:       { nombre: 'Impacto sísmico', icono: '🪨', cd: 5.0, lock: 1.45, range: 4.5, arc: -1, mult: 2.0, mp: 18, impacto: 1.1 },
-    nova:        { nombre: 'Explosión nova', icono: '💥', cd: 12, lock: 1.3, range: 7.0, arc: -1, mult: 2.5, mp: 30 },
+    attack:      { nombre: 'Combo de ataque', icono: '⚔', cd: 1.30, lock: 1.00, range: 3.0, arc: 0.5, mult: 1.0, mp: 0 },
+    sismo:       { nombre: 'Impacto sísmico', icono: '🪨', cd: 5.0, lock: 1.80, range: 4.5, arc: -1, mult: 2.0, mp: 18, impacto: 1.35 },
+    nova:        { nombre: 'Explosión nova', icono: '💥', cd: 12, lock: 1.65, range: 7.0, arc: -1, mult: 2.5, mp: 30, impacto: 0.55 },
     // Técnicas de arma (animaciones de ataque especial del estudio)
-    tajo:        { nombre: 'Tajo giratorio', icono: '🌀', cd: 5, lock: 1.3, range: 3.5, arc: -1, mult: 1.8, mp: 12, impacto: 0.75, arma: 'cuerpo' },
-    estocada:    { nombre: 'Estocada a fondo', icono: '🗡', cd: 4, lock: 1.1, range: 5.0, arc: 0.9, mult: 2.2, mp: 10, impacto: 0.58, arma: 'cuerpo' },
-    ascendente:  { nombre: 'Tajo ascendente', icono: '⤴', cd: 5, lock: 1.2, range: 3.2, arc: 0.5, mult: 2.0, mp: 12, impacto: 0.65, arma: 'cuerpo' },
-    hendidura:   { nombre: 'Hendidura vertical', icono: '🪓', cd: 7, lock: 1.3, range: 3.5, arc: 0.7, mult: 2.6, mp: 16, impacto: 0.85, arma: 'cuerpo' },
-    contraataque:{ nombre: 'Parada y contraataque', icono: '🛡', cd: 9, lock: 1.2, range: 3.0, arc: 0.5, mult: 2.8, mp: 15, impacto: 1.1, arma: 'cuerpo' },
-    torbellino:  { nombre: 'Torbellino', icono: '🌪', cd: 9, lock: 1.6, range: 4.0, arc: -1, mult: 1.4, mp: 24, impacto: [0.7, 1.5], arma: 'cuerpo' },
-    voltereta:   { nombre: 'Voltereta mortal', icono: '🤸', cd: 8, lock: 1.2, range: 3.0, arc: -1, mult: 1.6, mp: 14, impacto: 1.0, arma: 'cuerpo' },
-    tornillo:    { nombre: 'Tornillo triple', icono: '🌩', cd: 15, lock: 1.8, range: 4.5, arc: -1, mult: 3.4, mp: 35, impacto: 1.5, arma: 'cuerpo' },
+    tajo:        { nombre: 'Tajo giratorio', icono: '🌀', cd: 5, lock: 1.60, range: 3.5, arc: -1, mult: 1.8, mp: 12, impacto: 0.92, arma: 'cuerpo' },
+    estocada:    { nombre: 'Estocada a fondo', icono: '🗡', cd: 4, lock: 1.40, range: 5.0, arc: 0.9, mult: 2.2, mp: 10, impacto: 0.72, arma: 'cuerpo' },
+    ascendente:  { nombre: 'Tajo ascendente', icono: '⤴', cd: 5, lock: 1.50, range: 3.2, arc: 0.5, mult: 2.0, mp: 12, impacto: 0.82, arma: 'cuerpo' },
+    hendidura:   { nombre: 'Hendidura vertical', icono: '🪓', cd: 7, lock: 1.65, range: 3.5, arc: 0.7, mult: 2.6, mp: 16, impacto: 1.05, arma: 'cuerpo' },
+    contraataque:{ nombre: 'Parada y contraataque', icono: '🛡', cd: 9, lock: 1.50, range: 3.0, arc: 0.5, mult: 2.8, mp: 15, impacto: 1.25, arma: 'cuerpo' },
+    torbellino:  { nombre: 'Torbellino', icono: '🌪', cd: 9, lock: 2.00, range: 4.0, arc: -1, mult: 1.4, mp: 24, impacto: [0.85, 1.80], arma: 'cuerpo' },
+    voltereta:   { nombre: 'Voltereta mortal', icono: '🤸', cd: 8, lock: 1.50, range: 3.0, arc: -1, mult: 1.6, mp: 14, impacto: 1.20, arma: 'cuerpo' },
+    tornillo:    { nombre: 'Tornillo triple', icono: '🌩', cd: 15, lock: 2.20, range: 4.5, arc: -1, mult: 3.4, mp: 35, impacto: 1.75, arma: 'cuerpo' },
     // Nuevas habilidades añadidas (desbloqueables por subida de nivel)
-    corte_cruzado: { nombre: 'Corte en Cruz', icono: '⚔️', cd: 4.5, lock: 1.15, range: 3.5, arc: 0.7, mult: 1.9, mp: 10, impacto: [0.45, 0.92], arma: 'cuerpo' },
-    rafaga:      { nombre: 'Ráfaga de Viento', icono: '💨', cd: 6.0, lock: 1.1, range: 7.0, arc: 0.6, mult: 2.1, mp: 14, impacto: 0.65, arma: 'cuerpo' },
-    furia:       { nombre: 'Furia Sangrienta', icono: '🔥', cd: 7.5, lock: 1.2, range: 3.6, arc: 0.8, mult: 2.5, mp: 18, impacto: 0.75, arma: 'cuerpo' },
-    escudo_espiritu: { nombre: 'Escudo del Bastión', icono: '🛡️', cd: 10.0, lock: 1.2, range: 3.4, arc: 0.6, mult: 2.3, mp: 20, impacto: 0.65, arma: 'cuerpo' },
-    salto_demoledor: { nombre: 'Salto Demoledor', icono: '⚡', cd: 11.0, lock: 1.55, range: 5.5, arc: -1, mult: 2.8, mp: 26, impacto: 1.05, arma: 'cuerpo' },
-    lluvia_proyectiles: { nombre: 'Lluvia de Flechas', icono: '🎯', cd: 9.0, lock: 1.5, range: 25.0, arc: -1, mult: 2.5, mp: 22, impacto: [0.6, 1.1], arma: 'arco', unico: true },
-    juicio_relampago: { nombre: 'Filo Relámpago', icono: '⚡', cd: 12.0, lock: 1.4, range: 4.2, arc: 0.8, mult: 3.2, mp: 30, impacto: 0.9, arma: 'cuerpo' },
-    sentencia_titan: { nombre: 'Sentencia del Titán', icono: '💥', cd: 16.0, lock: 1.6, range: 6.5, arc: -1, mult: 4.0, mp: 42, impacto: 1.2, arma: 'cuerpo' },
+    corte_cruzado: { nombre: 'Corte en Cruz', icono: '⚔️', cd: 4.5, lock: 1.50, range: 3.5, arc: 0.7, mult: 1.9, mp: 10, impacto: [0.58, 1.18], arma: 'cuerpo' },
+    rafaga:      { nombre: 'Ráfaga de Viento', icono: '💨', cd: 6.0, lock: 1.40, range: 7.0, arc: 0.6, mult: 2.1, mp: 14, impacto: 0.82, arma: 'cuerpo' },
+    furia:       { nombre: 'Furia Sangrienta', icono: '🔥', cd: 7.5, lock: 1.55, range: 3.6, arc: 0.8, mult: 2.5, mp: 18, impacto: 0.95, arma: 'cuerpo' },
+    escudo_espiritu: { nombre: 'Escudo del Bastión', icono: '🛡️', cd: 10.0, lock: 1.50, range: 3.4, arc: 0.6, mult: 2.3, mp: 20, impacto: 0.82, arma: 'cuerpo' },
+    salto_demoledor: { nombre: 'Salto Demoledor', icono: '⚡', cd: 11.0, lock: 1.90, range: 5.5, arc: -1, mult: 2.8, mp: 26, impacto: 1.30, arma: 'cuerpo' },
+    lluvia_proyectiles: { nombre: 'Lluvia de Flechas', icono: '🎯', cd: 9.0, lock: 1.85, range: 25.0, arc: -1, mult: 2.5, mp: 22, impacto: [0.75, 1.40], arma: 'arco', unico: true },
+    juicio_relampago: { nombre: 'Filo Relámpago', icono: '⚡', cd: 12.0, lock: 1.75, range: 4.2, arc: 0.8, mult: 3.2, mp: 30, impacto: 1.12, arma: 'cuerpo' },
+    sentencia_titan: { nombre: 'Sentencia del Titán', icono: '💥', cd: 16.0, lock: 2.00, range: 6.5, arc: -1, mult: 4.0, mp: 42, impacto: 1.45, arma: 'cuerpo' },
     // Arco: el tiro sustituye al combo cuando el arma es un arco
-    disparo:     { nombre: 'Tiro con arco', icono: '🏹', cd: 1.45, lock: 1.1, range: 24, arc: 0.95, mult: 1.2, mp: 0, impacto: 1.05, arma: 'arco', unico: true },
-    suspension:  { nombre: 'Flecha en suspensión', icono: '🎯', cd: 8, lock: 2.0, range: 26, arc: 0.9, mult: 2.6, mp: 20, impacto: 1.5, arma: 'arco', unico: true },
+    disparo:     { nombre: 'Tiro con arco', icono: '🏹', cd: 1.65, lock: 1.25, range: 24, arc: 0.95, mult: 1.2, mp: 0, impacto: 1.15, arma: 'arco', unico: true },
+    suspension:  { nombre: 'Flecha en suspensión', icono: '🎯', cd: 8, lock: 2.30, range: 26, arc: 0.9, mult: 2.6, mp: 20, impacto: 1.75, arma: 'arco', unico: true },
     // Magia elemental (fuego, hielo y tormenta arcana; usable con cualquier arma)
-    bola_fuego:       { nombre: 'Bola de Fuego', icono: '🔥', cd: 3.5, lock: 0.9, range: 22, arc: 0.65, mult: 2.1, mp: 12, impacto: 0.35, elemento: 'fuego', proyectil: true, splash: 3.8 },
-    lanza_hielo:      { nombre: 'Lanza de Hielo', icono: '❄️', cd: 4.0, lock: 0.9, range: 22, arc: 0.65, mult: 1.9, mp: 12, impacto: 0.32, elemento: 'hielo', proyectil: true, splash: 3.4, slow: 4.5, slowMult: 0.45 },
-    ventisca_glacial: { nombre: 'Ventisca Glacial', icono: '🌨️', cd: 10.0, lock: 1.15, range: 7.5, arc: -1, mult: 2.4, mp: 24, impacto: [0.35, 0.75], elemento: 'hielo', slow: 5.5, slowMult: 0.35 },
-    tormenta_fuego:   { nombre: 'Lluvia de Meteoros', icono: '☄️', cd: 12.0, lock: 1.2, range: 8.5, arc: -1, mult: 3.1, mp: 28, impacto: [0.45, 0.9], elemento: 'fuego' },
-    rayo_arcano:      { nombre: 'Tormenta Eléctrica', icono: '🌩️', cd: 11.0, lock: 1.1, range: 9.0, arc: -1, mult: 3.3, mp: 30, impacto: 0.4, elemento: 'rayo' },
+    bola_fuego:       { nombre: 'Bola de Fuego', icono: '🔥', cd: 3.5, lock: 1.20, range: 22, arc: 0.65, mult: 2.1, mp: 12, impacto: 0.50, elemento: 'fuego', proyectil: true, splash: 3.8 },
+    lanza_hielo:      { nombre: 'Lanza de Hielo', icono: '❄️', cd: 4.0, lock: 1.20, range: 22, arc: 0.65, mult: 1.9, mp: 12, impacto: 0.48, elemento: 'hielo', proyectil: true, splash: 3.4, slow: 4.5, slowMult: 0.45 },
+    ventisca_glacial: { nombre: 'Ventisca Glacial', icono: '🌨️', cd: 10.0, lock: 1.50, range: 7.5, arc: -1, mult: 2.4, mp: 24, impacto: [0.50, 1.05], elemento: 'hielo', slow: 5.5, slowMult: 0.35 },
+    tormenta_fuego:   { nombre: 'Lluvia de Meteoros', icono: '☄️', cd: 12.0, lock: 1.55, range: 8.5, arc: -1, mult: 3.1, mp: 28, impacto: [0.60, 1.20], elemento: 'fuego' },
+    rayo_arcano:      { nombre: 'Tormenta Eléctrica', icono: '🌩️', cd: 11.0, lock: 1.45, range: 9.0, arc: -1, mult: 3.3, mp: 30, impacto: 0.58, elemento: 'rayo' },
     // Habilidades específicas por profesión (Báculo / Cazador / Mago / Pícaro)
-    orbe_arcano:       { nombre: 'Orbe Arcano', icono: '🔮', cd: 1.15, lock: 0.85, range: 22, arc: 0.85, mult: 1.15, mp: 0, impacto: 0.35, arma: 'baculo', proyectil: true, splash: 1.4, elemento: 'rayo' },
-    flecha_perforante: { nombre: 'Flecha Perforante', icono: '🏹', cd: 4.5, lock: 1.1, range: 26, arc: 0.88, mult: 2.2, mp: 12, impacto: 0.55, arma: 'arco' },
-    trampa_espinas:    { nombre: 'Trampa de Espinas', icono: '🌿', cd: 9.0, lock: 0.95, range: 12, arc: -1, mult: 2.1, mp: 18, impacto: 0.35, arma: 'arco', slow: 5.0, slowMult: 0.4 },
-    escudo_mana:       { nombre: 'Escudo de Maná', icono: '💠', cd: 11.0, lock: 0.9, range: 6.0, arc: -1, mult: 1.7, mp: 20, impacto: 0.3, arma: 'baculo', elemento: 'rayo', escudoPct: 0.28, escudoDur: 8.0 },
-    paso_sombrio:      { nombre: 'Paso Sombrío', icono: '🌑', cd: 6.5, lock: 0.9, range: 11.0, arc: 0.7, mult: 2.35, mp: 14, impacto: 0.3, arma: 'cuerpo', dashToTarget: true, bonusCrit: 0.25 },
-    hoja_veneno:       { nombre: 'Hoja Envenenada', icono: '☠️', cd: 7.0, lock: 1.0, range: 3.6, arc: 0.7, mult: 2.1, mp: 14, impacto: 0.4, arma: 'cuerpo', venenoPct: 0.24, venenoDur: 5.0 }
+    orbe_arcano:       { nombre: 'Orbe Arcano', icono: '🔮', cd: 1.35, lock: 1.00, range: 22, arc: 0.85, mult: 1.15, mp: 0, impacto: 0.48, arma: 'baculo', proyectil: true, splash: 1.4, elemento: 'rayo' },
+    flecha_perforante: { nombre: 'Flecha Perforante', icono: '🏹', cd: 4.5, lock: 1.40, range: 26, arc: 0.88, mult: 2.2, mp: 12, impacto: 0.72, arma: 'arco' },
+    trampa_espinas:    { nombre: 'Trampa de Espinas', icono: '🌿', cd: 9.0, lock: 1.25, range: 12, arc: -1, mult: 2.1, mp: 18, impacto: 0.50, arma: 'arco', slow: 5.0, slowMult: 0.4 },
+    escudo_mana:       { nombre: 'Escudo de Maná', icono: '💠', cd: 11.0, lock: 1.20, range: 6.0, arc: -1, mult: 1.7, mp: 20, impacto: 0.45, arma: 'baculo', elemento: 'rayo', escudoPct: 0.28, escudoDur: 8.0 },
+    paso_sombrio:      { nombre: 'Paso Sombrío', icono: '🌑', cd: 6.5, lock: 1.20, range: 11.0, arc: 0.7, mult: 2.35, mp: 14, impacto: 0.45, arma: 'cuerpo', dashToTarget: true, bonusCrit: 0.25 },
+    hoja_veneno:       { nombre: 'Hoja Envenenada', icono: '☠️', cd: 7.0, lock: 1.30, range: 3.6, arc: 0.7, mult: 2.1, mp: 14, impacto: 0.55, arma: 'cuerpo', venenoPct: 0.24, venenoDur: 5.0 }
   };
 
   // Momentos de golpe de una habilidad (segundos desde que empieza); [0] = al instante
@@ -75,7 +75,7 @@
     xpPerLevel: 10,
     bossMult: { hp: 6, dmg: 1.8, xp: 6 },
     aggro: 16, bossAggro: 20,
-    attackRange: 2.2, rangedAttackRange: 18.0, attackCd: 1.5,
+    attackRange: 2.2, rangedAttackRange: 18.0, attackCd: 1.85,
     chaseSpeed: 10.5, bossChaseSpeed: 8.5,            // velocidad de persecución similar a la carrera del héroe (12 m/s)
     returnSpeed: 5.5,
     regenPerSec: 0.1                                  // fracción de la vida máxima por segundo al volver

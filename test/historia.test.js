@@ -386,14 +386,15 @@ t('visor-mundo.html integra UI interactiva de decisiones, banner narrativo y des
   const fs = require('fs'), path = require('path');
   const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
   ['cap-decision', 'banner-narrativo', 'npc-conv-box', 'Sonidos.desbloquear',
-   'HistoriaLib.aplicarDecision', 'HistoriaLib.dialogoInteractivoNpc', 'HeroeLib.bonosReputacion'].forEach(tok => {
+   'HistoriaLib.aplicarDecision', 'HistoriaLib.dialogoInteractivoNpc', 'HeroeLib.bonosReputacion',
+   'banner-derrota', 'banner-zona', 'Sonidos.golpeVeloz', '#hint { display: none !important; }'].forEach(tok => {
     assert.ok(html.includes(tok), `visor-mundo.html debe incluir ${tok}`);
   });
 });
 
 t('sonidos.js desbloquea AudioContext, crea ambiente y arranca/detiene el secuenciador de música', () => {
   const vm = require('vm'), fs = require('fs'), path = require('path');
-  let resumed = false, suspended = false, intervals = 0, cleared = 0, oscCount = 0;
+  let resumed = false, suspended = false, intervals = 0, cleared = 0, oscCount = 0, srcCount = 0;
   function makeParam(v = 0) {
     return { value: v, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} };
   }
@@ -402,7 +403,7 @@ t('sonidos.js desbloquea AudioContext, crea ambiente y arranca/detiene el secuen
     createGain() { return { gain: makeParam(1), connect() {} }; }
     createBiquadFilter() { return { type: 'lowpass', frequency: makeParam(400), Q: makeParam(0.7), connect() {} }; }
     createBuffer(ch, len) { return { getChannelData: () => new Float32Array(len) }; }
-    createBufferSource() { return { buffer: null, loop: false, connect() {}, start() {}, stop() {} }; }
+    createBufferSource() { srcCount++; return { buffer: null, loop: false, connect() {}, start() {}, stop() {} }; }
     createOscillator() { oscCount++; return { type: 'sine', frequency: makeParam(440), connect() {}, start() {}, stop() {} }; }
     resume() { resumed = true; this.state = 'running'; return { then(cb) { cb(); return this; }, catch() { return this; } }; }
     suspend() { suspended = true; this.state = 'suspended'; return { then(cb) { if (cb) cb(); return this; }, catch() { return this; } }; }
@@ -421,6 +422,14 @@ t('sonidos.js desbloquea AudioContext, crea ambiente y arranca/detiene el secuen
   assert.ok(resumed, 'desbloquear debe llamar a resume()');
   assert.ok(intervals >= 1, 'Debe arrancar el temporizador de música ambiente');
   assert.ok(oscCount >= 2, 'Debe crear osciladores para LFO ambiental y notas musicales');
+  assert.strictEqual(typeof sb.Sonidos.golpeVeloz, 'function', 'Debe exponer Sonidos.golpeVeloz');
+  const oscAntes = oscCount, srcAntes = srcCount;
+  sb.Sonidos.golpeVeloz(1.0);
+  assert.ok(oscCount > oscAntes && srcCount > srcAntes, 'golpeVeloz debe crear nodos de barrido e impacto');
+  const oscTrasPrimero = oscCount, srcTrasPrimero = srcCount;
+  sb.Sonidos.golpeVeloz(1.0);
+  assert.strictEqual(oscCount, oscTrasPrimero, 'golpeVeloz debe respetar throttle sin saturar en el mismo instante');
+  assert.strictEqual(srcCount, srcTrasPrimero, 'golpeVeloz throttle también limita bufferSources');
   sb.Sonidos.activar(false);
   assert.ok(suspended && cleared >= 1, 'activar(false) debe suspender audio y detener música');
 });

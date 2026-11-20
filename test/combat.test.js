@@ -63,10 +63,16 @@ t('habilidades: el héroe nuevo tiene enfriamiento de todas; los golpes llegan e
   const h = C.newHero();
   Object.keys(C.SKILLS).forEach(k => assert.strictEqual(h.cd[k], 0, k));
   assert.deepStrictEqual(C.impactos('attack'), [0]);
-  assert.deepStrictEqual(C.impactos('torbellino'), [0.7, 1.5]);
+  assert.deepStrictEqual(C.impactos('torbellino'), [0.85, 1.80]);
   assert.ok(C.SKILLS.disparo.unico && C.SKILLS.disparo.range > 20);
   assert.ok(C.inSkillArea('disparo', 0, 0, 0, 1, 0, 20));
   assert.ok(!C.inSkillArea('disparo', 0, 0, 0, 1, 8, 2));   // fuera del cono estrecho
+  Object.keys(C.SKILLS).forEach(k => {
+    if (k !== 'attack' && k !== 'disparo' && k !== 'orbe_arcano') {
+      assert.ok(C.SKILLS[k].lock >= 1.2, `habilidad activa ${k} debe tener lock >= 1.2s (fue ${C.SKILLS[k].lock})`);
+    }
+  });
+  assert.ok(C.MONSTER.attackCd >= 1.8, `MONSTER.attackCd debe ser >= 1.8s (fue ${C.MONSTER.attackCd})`);
 });
 
 t('muerte: pierde 5 % del XP y reaparece con vida completa', () => {

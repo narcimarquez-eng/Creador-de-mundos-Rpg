@@ -527,7 +527,7 @@
         defensaTimer: 0
       },
       rangoAtaque: 2.2,
-      cooldownAtaque: 1.25,
+      cooldownAtaque: 1.65,
       tiempoSiguienteAtaque: 0,
       x: config.x || 0,
       y: config.y || 0,

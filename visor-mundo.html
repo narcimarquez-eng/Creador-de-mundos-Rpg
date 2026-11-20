@@ -121,6 +121,11 @@
     .trow.start { border-color: var(--gold); }
     .layers { padding: 8px 12px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); }
     .layers label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    .audio-mixer { width: 100%; border-top: 1px dashed var(--line); padding-top: 7px; margin-top: 2px; display: flex; flex-direction: column; gap: 5px; }
+    .audio-mixer .am-tit { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: .04em; text-transform: uppercase; }
+    .audio-mixer .am-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--muted); }
+    .audio-mixer .am-row input[type="range"] { width: 92px; accent-color: var(--accent); cursor: pointer; }
+    .audio-mixer .am-val { min-width: 30px; text-align: right; color: var(--gold); font-variant-numeric: tabular-nums; font-size: 10.5px; }
 
     #info { position: absolute; top: 54px; right: 8px; width: 300px; max-height: calc(100% - 70px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; z-index: 18; display: none; box-shadow: 0 20px 45px rgba(0,0,0,.6); }
     #info.show { display: block; }
@@ -135,13 +140,19 @@
 
     #joystick-zone { position: absolute; bottom: 24px; right: 24px; width: 110px; height: 110px; border-radius: 50%; background: rgba(15, 23, 42, 0.55); border: 2px solid rgba(56, 189, 248, 0.5); z-index: 25; touch-action: none; display: flex; align-items: center; justify-content: center; }
     #joystick-knob { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle, #38bdf8, #0284c7); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6); pointer-events: none; transform: translate(0px, 0px); }
-    #banner { position: absolute; top: 132px; left: 50%; transform: translateX(-50%); z-index: 30; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .4s; max-width: calc(100vw - 300px); }
+    #banner { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 30; background: rgba(15, 23, 42, 0.86); border: 1px solid var(--line); border-radius: 9px; padding: 6px 12px; text-align: center; pointer-events: none; opacity: 0; transition: opacity .3s; max-width: min(440px, calc(100vw - 260px)); }
     #banner.show { opacity: 1; }
-    #banner b { color: #fde68a; font-size: 15px; }
-    #banner small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
-    #zona-marca { display: none; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 12px; white-space: nowrap; max-width: 100%; }
+    #banner b { color: #fde68a; font-size: 13.5px; line-height: 1.2; }
+    #banner small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; line-height: 1.25; }
+    #banner.banner-zona { top: 56px; padding: 4px 12px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 7px; max-width: min(400px, calc(100vw - 260px)); background: rgba(15, 23, 42, 0.78); }
+    #banner.banner-zona b { font-size: 12.5px; }
+    #banner.banner-zona small { display: inline; margin-top: 0; font-size: 10.5px; }
+    #banner.banner-derrota { top: 62px; padding: 4px 11px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 7px; max-width: min(380px, calc(100vw - 260px)); background: rgba(15, 23, 42, 0.80); }
+    #banner.banner-derrota b { font-size: 12px; }
+    #banner.banner-derrota small { display: inline; margin-top: 0; font-size: 10.5px; color: #cbd5e1; }
+    #zona-marca { display: none; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 3px 8px; font-size: 11px; white-space: nowrap; max-width: 100%; }
     #zona-marca.show { display: flex; }
-    #zona-marca i { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--zona, #fde68a); box-shadow: 0 0 6px var(--zona, #fde68a); }
+    #zona-marca i { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--zona, #fde68a); box-shadow: 0 0 6px var(--zona, #fde68a); }
     #zona-marca span { overflow: hidden; text-overflow: ellipsis; }
     #minimap { position: absolute; top: 52px; right: 14px; width: 105px !important; height: 105px !important; max-width: 105px !important; max-height: 105px !important; border-radius: 50%; border: 2px solid var(--line); background: rgba(11,17,30,.88); z-index: 18; box-shadow: 0 8px 22px rgba(0,0,0,.55); cursor: pointer; }
     #hud { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 24; width: min(560px, calc(100vw - 220px)); display: flex; flex-direction: column; gap: 6px; align-items: center; }
@@ -880,13 +891,42 @@
         left: 160px;
         right: 90px;
         max-width: calc(100vw - 256px);
+        padding: 2px 7px;
+        font-size: 10px;
+        gap: 5px;
+        border-radius: 6px;
         z-index: 21;
       }
+      #zona-marca i { width: 7px; height: 7px; }
       #banner {
-        top: 164px;
-        max-width: calc(100vw - 20px);
+        top: 116px;
+        padding: 4px 9px;
+        border-radius: 8px;
+        max-width: min(265px, calc(100vw - 32px));
+        background: rgba(15, 23, 42, 0.80);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.45);
         z-index: 30;
       }
+      #banner b { font-size: 11px; line-height: 1.15; }
+      #banner small { font-size: 9.5px; margin-top: 1px; line-height: 1.2; }
+      #banner.banner-zona {
+        top: 110px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        max-width: min(255px, calc(100vw - 36px));
+      }
+      #banner.banner-zona b { font-size: 10.5px; }
+      #banner.banner-zona small { font-size: 9px; }
+      #banner.banner-derrota {
+        top: 114px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        max-width: min(255px, calc(100vw - 36px));
+      }
+      #banner.banner-derrota b { font-size: 10.5px; }
+      #banner.banner-derrota small { font-size: 9.5px; }
+      #bocadillo-rowan { padding: 3px 8px; font-size: 10.5px; max-width: 190px; border-width: 1px; }
+      body #banner-narrativo { padding: 5px 10px; font-size: 11px; max-width: min(360px, calc(100vw - 24px)); }
       #dungeon-boss-hud {
         top: 48px !important;
         width: min(340px, calc(100vw - 16px)) !important;
@@ -1341,6 +1381,51 @@
         padding: 2px 8px !important;
       }
       #zona-marca { display: none !important; }
+      #hint { display: none !important; }
+      #banner {
+        top: 96px !important;
+        padding: 3px 9px !important;
+        border-radius: 8px !important;
+        max-width: min(260px, calc(100vw - 210px)) !important;
+        background: rgba(15, 23, 42, 0.80) !important;
+        z-index: 30 !important;
+      }
+      #banner b { font-size: 10.5px !important; line-height: 1.15 !important; }
+      #banner small { font-size: 9px !important; margin-top: 1px !important; }
+      #banner.banner-zona {
+        top: 96px !important;
+        bottom: auto !important;
+        padding: 2px 9px !important;
+        border-radius: 999px !important;
+        max-width: min(250px, calc(100vw - 220px)) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+      }
+      #banner.banner-zona b { font-size: 10.5px !important; }
+      #banner.banner-zona small { display: inline !important; margin-top: 0 !important; font-size: 9px !important; }
+      #banner.banner-derrota {
+        top: auto !important;
+        bottom: 10px !important;
+        left: 46% !important;
+        transform: translateX(-50%) !important;
+        padding: 3px 9px !important;
+        border-radius: 999px !important;
+        max-width: min(260px, calc(100vw - 280px)) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-wrap: wrap !important;
+        gap: 2px 6px !important;
+        background: rgba(15, 23, 42, 0.78) !important;
+      }
+      #banner.banner-derrota b { font-size: 10.5px !important; }
+      #banner.banner-derrota small { display: inline !important; margin-top: 0 !important; font-size: 9.5px !important; }
+      #toast { bottom: 42px !important; padding: 4px 10px !important; font-size: 11px !important; }
+      #bocadillo-rowan { padding: 3px 8px !important; font-size: 10px !important; max-width: 185px !important; border-width: 1px !important; }
+      body #banner-narrativo { bottom: 46px !important; padding: 5px 10px !important; font-size: 11px !important; max-width: min(360px, calc(100vw - 24px)) !important; }
 
       /* 5. El Rayo ⚡ (Menú flotante ordenado idéntico a vertical, bajo el HUD) */
       #sk-menu-toggle {
@@ -1696,6 +1781,13 @@
       <label title="Pelo y escamas de los monstruos: son la mayor parte de sus polígonos">Pelo y escamas <select id="sel-pelo"><option value="completo">Completo (hasta 30 m)</option><option value="ligero">Ligero (hasta 8 m)</option><option value="nada">Sin detalle</option></select></label>
       <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
       <label title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
+      <div id="audio-mixer" class="audio-mixer">
+        <div class="am-tit">🔊 Mezclador de Audio</div>
+        <label class="am-row"><span>General</span><span><input type="range" id="vol-master" min="0" max="100" value="90"> <b class="am-val" id="vol-master-v">90%</b></span></label>
+        <label class="am-row"><span>Música</span><span><input type="range" id="vol-musica" min="0" max="100" value="62"> <b class="am-val" id="vol-musica-v">62%</b></span></label>
+        <label class="am-row"><span>Efectos (SFX)</span><span><input type="range" id="vol-sfx" min="0" max="100" value="78"> <b class="am-val" id="vol-sfx-v">78%</b></span></label>
+        <label class="am-row"><span>Ambiente</span><span><input type="range" id="vol-ambiente" min="0" max="100" value="55"> <b class="am-val" id="vol-ambiente-v">55%</b></span></label>
+      </div>
     </div>
   </aside>
 
@@ -2178,7 +2270,7 @@
   <script defer src="js/texturas-lib.js?v=4"></script>
   <script defer src="js/dungeon-generator.js?v=20261114w"></script>
   <script defer src="js/mazmorras.js?v=20261114c"></script>
-  <script defer src="js/acompanante.js?v=20261119e"></script>
+  <script defer src="js/acompanante.js?v=20261120b"></script>
   <script defer src="js/heroe.js?v=20261119e"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
   <script defer src="js/mapa.js?v=20251029"></script>
@@ -2191,7 +2283,7 @@
   <script type="module" src="js/pueblo-edits.js?v=20261113b"></script>
   <script defer src="js/casas-glb.js?v=20261114a"></script>
   <script type="module" src="js/village-core.js?v=20261119h"></script>
-  <script type="module" src="js/combat.js?v=20261120a"></script>
+  <script type="module" src="js/combat.js?v=20261120b"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20261119b"></script>
@@ -2199,14 +2291,15 @@
   <script type="module" src="js/riachuelos.js?v=20261119a"></script>
   <script type="module" src="js/decorado.js?v=20261114e"></script>
   <script defer src="js/decorado-mundo.js?v=20261118c"></script>
-  <script type="module" src="js/character.js?v=20261120a"></script>
+  <script type="module" src="js/character.js?v=20261120b"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261120a"></script>
-  <script type="module" src="js/enemigos-combate.js?v=20261120a"></script>
+  <script type="module" src="js/enemigos-combate.js?v=20261120b"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
   <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
-  <script type="module" src="js/enemigos-glb.js?v=20261120a"></script>
-  <script src="js/sonidos.js?v=20261119a"></script>
+  <script type="module" src="js/enemigos-glb.js?v=20261120b"></script>
+  <script src="js/musica-rpg.js?v=20261120c"></script>
+  <script src="js/sonidos.js?v=20261120c"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js";
@@ -2364,6 +2457,21 @@
   let estiloZelda = true, camposNivel = 'enorme', riachuelosActivo = true, brisaActiva = true;
   let riachuelosMundo = null, riachuelosObj = null, brisaZelda = null;
   let monsters = [];
+  let ultimoCombateMs = 0;
+  function marcarCombateAudio() { ultimoCombateMs = performance.now(); }
+  function panDePosicion(x, z) {
+    if (!camera || !character || !character.root || !Number.isFinite(x) || !Number.isFinite(z)) return 0;
+    const dx = x - character.root.position.x, dz = z - character.root.position.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 0.3) return 0;
+    const e = camera.matrixWorld && camera.matrixWorld.elements;
+    if (!e) return 0;
+    const rx = e[0], rz = e[2];
+    const rLen = Math.hypot(rx, rz);
+    if (rLen < 1e-5) return 0;
+    const dot = (dx * rx + dz * rz) / (dist * rLen);
+    return Math.max(-0.85, Math.min(0.85, dot * 0.85));
+  }
   let timeOfDay = 'day';
   let curTown = null, curZone = null;
   let lastMinimap = 0;
@@ -8376,6 +8484,9 @@
     m.telegraph = null;
     m._charge = null;
     m.alive = false; m.hp = 0;
+    if (window.Sonidos && window.Sonidos.enemigo) {
+      window.Sonidos.enemigo('muerte', { name: m.name, boss: m.boss, rangoElite: m.rangoElite, tipoRango: m.tipoRango, pan: panDePosicion(m.x, m.z) });
+    }
     if (typeof objetivo !== 'undefined' && objetivo === m) objetivo = null;
     m.respawnAt = m.esEvento ? Infinity : (performance.now() + Math.max(5, (m.zone && m.zone.respawnSec) || 60) * 1000);
     m.muriendo = performance.now() + 1000;
@@ -8503,36 +8614,39 @@
     }
     aplicarStats();
     if (levels) { hero.hp = hero.maxHp; hero.mp = hero.maxMp; actualizarMision(); }
-    let loot = ItemsLib.addLoot(inv, ItemsLib.rollLoot(m.level, m.boss, Math.random));
+    const botin = ItemsLib.rollLoot(m.level, m.boss, Math.random);
     if (m.rangoElite && m.rangoElite >= 2) {
       const extraOro = Math.round(ItemsLib.monsterGold(m.level, false) * (m.rangoElite - 1));
-      if (extraOro > 0) {
-        inv.gold = (inv.gold || 0) + extraOro;
-        loot += ' · 🪙 extra élite +' + extraOro;
-      }
+      if (extraOro > 0) botin.gold += extraOro;
     }
-    // Objetos del personaje: cotas (hasta nivel 5) y armas, cada uno con su estado
+    const partesDrop = [];
+    if (xpHeroe > 0) partesDrop.push('+' + xpHeroe + ' XP');
+    const txtBotin = ItemsLib.addLoot(inv, botin);
+    if (txtBotin) partesDrop.push(txtBotin);
+    // Objetos del personaje: cotas (hasta nivel 5) y armas
     const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
-    if (obj) loot += ' · 🎁 ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)';
+    if (obj) partesDrop.push('🎁 ' + obj.nombre);
     const arena = EquipoLib.soltarArena(m.level, m.boss, Math.random);
-    if (arena) { inv.arena = (inv.arena || 0) + arena; loot += ' · 🧱 arena ×' + arena; }
+    if (arena) { inv.arena = (inv.arena || 0) + arena; partesDrop.push('+' + arena + ' 🧱'); }
     const hoja = personajeActual && catalogoPiezas ? EquipoLib.soltarHoja(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
-    if (hoja) loot += ' · 📜 ' + hoja.nombre;
-    else if (personajeActual && EquipoLib.llena(personajeActual)) loot += ' · 🎒 inventario lleno';
+    if (hoja) partesDrop.push('📜 ' + hoja.nombre);
+    else if (personajeActual && EquipoLib.llena(personajeActual)) partesDrop.push('🎒 Lleno');
     renderInvCard();
-    const txtXp = xpHeroe > 0
-      ? ('+' + xpHeroe + ' XP' + (factorHeroe < 1.0 ? ' (-' + Math.round((1 - factorHeroe) * 100) + '%)' : ''))
-      : '0 XP (nivel bajo)';
-    const txtXpComp = xpComp > 0
-      ? (' (+' + xpComp + ' para ' + acompanante.nombre + ')')
-      : (compLuchando && (acompanante.nivel || hero.level) - m.level >= 7 ? ' (0 XP comp.)' : '');
+    const dropSimple = partesDrop.join(' · ');
+    if (window.Sonidos) {
+      if (obj || hoja) { if (window.Sonidos.botinObjeto) window.Sonidos.botinObjeto(); }
+      else if (botin.gold > 0 || arena > 0) { if (window.Sonidos.monedas) window.Sonidos.monedas(); }
+    }
     if (m.boss) {
       character.playOneShot('victory', lastNowSec);
-      announce('👑 ¡Jefe derrotado!', m.name + ' · ' + txtXp + txtXpComp + ' · ' + loot);
-      if (window.Sonidos && window.Sonidos.mision) window.Sonidos.mision();
+      announce('👑 ' + m.name, dropSimple, '#fde68a', { tipo: 'derrota', durMs: 2800 });
+      if (window.Sonidos) {
+        if (window.Sonidos.victoriaJefe) window.Sonidos.victoriaJefe();
+        else if (window.Sonidos.mision) window.Sonidos.mision();
+      }
       if (typeof lanzarSubtituloEvento === 'function') lanzarSubtituloEvento({ tipo: 'jefe_caido', nombre: m.name }, true);
     } else {
-      announce('⚔ Derrotado: ' + m.name, 'Nivel ' + m.level + ' · ' + txtXp + txtXpComp + ' · ' + loot);
+      announce('⚔ ' + m.name, dropSimple, null, { tipo: 'derrota', durMs: 2100 });
     }
     if (levels) {
       if (window.Sonidos && window.Sonidos.subirNivel) window.Sonidos.subirNivel();
@@ -8547,6 +8661,7 @@
 
   function damageMonster(m, dmg, fuente = 'hero') {
     if (!m || !m.alive) return;
+    marcarCombateAudio();
     if (!m.danoPorFuente) m.danoPorFuente = { hero: 0, acompanante: 0 };
     const fKey = (fuente === 'acompanante' || fuente === 'companero' || fuente === 'companero_skill') ? 'acompanante' : 'hero';
     m.danoPorFuente[fKey] = (m.danoPorFuente[fKey] || 0) + dmg;
@@ -8558,24 +8673,32 @@
     }
     if (m.fx) EnemyFx.disparar(m.fx, 'hit', performance.now() / 1000);
     if (m.state !== 'chase') m.state = 'chase';
+    if (m.hp > 0 && window.Sonidos && window.Sonidos.enemigo) {
+      window.Sonidos.enemigo('golpeado', { name: m.name, boss: m.boss, rangoElite: m.rangoElite, tipoRango: m.tipoRango, pan: panDePosicion(m.x, m.z) });
+    }
     if (m.hp <= 0) killMonster(m);
   }
 
   // El enemigo ataca: arqueros y magos lanzan a distancia; el daño llega cuando el proyectil alcanza al héroe
   function monsterHitsHero(m) {
+    marcarCombateAudio();
     const rol = m.tipoRango || (m.enemigo ? CombatLib.detectarRol(m.enemigo) : 'melee');
     const tipo = rol === 'arquero' ? 'disparo' : (rol === 'mago' ? 'magia' : (m.enemigo ? EnemyFx.tipoAtaque(m.enemigo) : 'golpe'));
     const hp = (character && character.root) ? character.root.position : { x: m.x, y: 0, z: m.z };
     const d = Math.hypot(m.x - hp.x, m.z - hp.z);
     const ranged = rol === 'arquero' || rol === 'mago' || tipo === 'disparo' || tipo === 'magia';
     let tiempoImpacto = 0.25;
+    const panM = panDePosicion(m.x, m.z);
+    if (window.Sonidos && window.Sonidos.enemigo) {
+      window.Sonidos.enemigo('ataque', { name: m.name, boss: m.boss, rangoElite: m.rangoElite, tipoRango: rol, pan: panM });
+    }
 
     if (rol === 'arquero' || tipo === 'disparo') {
       tiempoImpacto = flechaMonstruo(m, hp);
-      if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo();
+      if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo({ pan: panM });
     } else if (rol === 'mago' || tipo === 'magia') {
       tiempoImpacto = magiaMonstruo(m, hp);
-      if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo();
+      if (typeof Sonidos !== 'undefined' && Sonidos.disparo) Sonidos.disparo({ pan: panM });
     } else {
       tiempoImpacto = EnemyFx.momentoImpacto(tipo);
     }
@@ -8598,12 +8721,13 @@
   }
 
   function aplicarDanoEnemigo(m) {
+    marcarCombateAudio();
     const atk = m.ataquePendiente;
     m.ataquePendiente = null;
     const heroPos = character && character.root ? character.root.position : null;
     if (CombatLib.isInvulnerable(hero)) {
       if (heroPos) lanzarNumeroFlotante({ x: heroPos.x, y: heroPos.y + 2.1, z: heroPos.z }, 'ESQUIVADO', 'dmg-dodge');
-      if (typeof Sonidos !== 'undefined' && Sonidos.esquiva) Sonidos.esquiva();
+      if (typeof Sonidos !== 'undefined' && Sonidos.esquiva) Sonidos.esquiva(true);
       return;
     }
     if (heroPos && atk && CombatLib.checkEnemyHitAvoided(atk, heroPos.x, heroPos.z, heroPos.y)) {
@@ -8622,14 +8746,18 @@
     if (hero.poisonThorns && m && m.alive) {
       damageMonster(m, dmg * 0.35, 'hero');
     }
-    if (m && m.tipoRango === 'arquero') {
-      if (typeof Sonidos !== 'undefined' && Sonidos.impacto) Sonidos.impacto('flecha');
-    } else if (m && m.tipoRango === 'mago') {
-      if (typeof Sonidos !== 'undefined' && Sonidos.impacto) Sonidos.impacto('sordo');
-    } else if (typeof Sonidos !== 'undefined' && Sonidos.danoHeroe) {
-      Sonidos.danoHeroe();
-    }
     const dmgReal = absorberConEscudoArcano(dmg, heroPos);
+    const escudoAbs = dmgReal < dmg - 0.5;
+    if (typeof Sonidos !== 'undefined') {
+      const panH = m ? panDePosicion(m.x, m.z) : 0;
+      if (m && m.tipoRango === 'arquero' && Sonidos.impacto) Sonidos.impacto('flecha', { pan: panH });
+      else if (m && m.tipoRango === 'mago' && Sonidos.impacto) Sonidos.impacto('sordo', { pan: panH });
+      if (escudoAbs && Sonidos.escudoAbsorbe) Sonidos.escudoAbsorbe();
+      if (bloqueado && Sonidos.bloqueo) Sonidos.bloqueo();
+      if (Sonidos.danoHeroe && (dmgReal > 0 || !escudoAbs)) {
+        Sonidos.danoHeroe({ tipo: (m && m.boss) ? 'jefe' : ((m && m.tipoRango) || 'melee'), bloqueado });
+      }
+    }
     const murio = dmgReal > 0 ? CombatLib.takeHit(hero, dmgReal) : false;
     if (heroPos && (dmgReal > 0 || bloqueado)) {
       const txtD = bloqueado ? ('🛡 -' + Math.round(dmgReal)) : ('-' + Math.round(dmgReal));
@@ -8679,6 +8807,7 @@
     cancelarImpactosPendientes();
     accionEncolada = null;
     if (character) character.dodgeState = null;
+    if (window.Sonidos && window.Sonidos.muerteHeroe) window.Sonidos.muerteHeroe();
     if (gestorMazmorras && gestorMazmorras.enMazmorra) {
       reaparecerEnPuertaMazmorra();
       return;
@@ -8716,6 +8845,7 @@
     hero.resting = true;
     restPos = { x: character.root.position.x, z: character.root.position.z };
     restPrevSinceHit = hero.sinceHit;
+    if (window.Sonidos && window.Sonidos.descanso) window.Sonidos.descanso();
     toast('Descansando en la posada…');
   }
 
@@ -8733,14 +8863,17 @@
     if (Math.hypot(p.x - restPos.x, p.z - restPos.z) > 0.3) return stopRest('Descanso interrumpido');
     if (hero.sinceHit < restPrevSinceHit) return stopRest('Te han golpeado: descanso interrumpido');
     restPrevSinceHit = hero.sinceHit;
-    if (ItemsLib.restTick(hero, dt, 4)) stopRest('Vida y maná completos');
+    if (ItemsLib.restTick(hero, dt, 4)) {
+      if (window.Sonidos && window.Sonidos.descanso) window.Sonidos.descanso();
+      stopRest('Vida y maná completos');
+    }
   }
 
   function drink(kind) {
     if (hero.dead) return;
     const hpAntes = hero.hp;
     if (ItemsLib.usePotion(hero, inv, kind)) {
-      if (window.Sonidos && window.Sonidos.pocion) window.Sonidos.pocion();
+      if (window.Sonidos && window.Sonidos.pocion) window.Sonidos.pocion(kind);
       toast(ItemsLib.ITEMS[kind].name + ' usada');
       const curado = Math.round(hero.hp - hpAntes);
       if (kind === 'vida' && curado >= 2 && character && character.root) {
@@ -8818,7 +8951,10 @@
     if (!curTown) { toast('La tienda está en los pueblos'); return; }
     const br = bonoRepActual();
     const precio = precioConReputacion(ItemsLib.ITEMS[kind].price, 'tienda');
-    if (ItemsLib.buy(inv, kind, br.descuentoTienda || 0)) toast('Comprada: ' + ItemsLib.ITEMS[kind].name);
+    if (ItemsLib.buy(inv, kind, br.descuentoTienda || 0)) {
+      if (window.Sonidos && window.Sonidos.monedas) window.Sonidos.monedas();
+      toast('Comprada: ' + ItemsLib.ITEMS[kind].name);
+    }
     else toast(inv.gold < precio ? 'No tienes suficiente oro' : 'Pila llena');
     renderShop();
   }
@@ -9054,6 +9190,7 @@
       destelloImpacto(new THREE.Vector3(tg.x, yBase + 1.0, tg.z), 0xf97316, tg.tipo === 'slam' ? 2.1 : 1.5);
     }
 
+    marcarCombateAudio();
     activarSacudida(m.boss ? 0.34 : 0.22, 0.22);
     if (window.Sonidos && window.Sonidos.rugidoJefe) window.Sonidos.rugidoJefe();
 
@@ -9063,7 +9200,7 @@
 
     if (dentro && CombatLib.isInvulnerable(hero)) {
       lanzarNumeroFlotante({ x: heroPos.x, y: heroPos.y + 2.15, z: heroPos.z }, '¡ESQUIVA PERFECTA!', 'dmg-dodge', { dur: 1.0 });
-      if (window.Sonidos && window.Sonidos.esquiva) window.Sonidos.esquiva();
+      if (window.Sonidos && window.Sonidos.esquiva) window.Sonidos.esquiva(true);
       return;
     }
 
@@ -9072,6 +9209,7 @@
       let bloqueado = false;
       if (Math.random() < statsHeroe.bloqueo) { dmg *= 0.5; bloqueado = true; }
       const dmgReal = absorberConEscudoArcano(dmg, heroPos);
+      const escudoAbs = dmgReal < dmg - 0.5;
       const murio = dmgReal > 0 ? CombatLib.takeHit(hero, dmgReal) : false;
       if (dmgReal > 0 || bloqueado) {
         const txtD = bloqueado ? ('🛡 -' + Math.round(dmgReal)) : ('-' + Math.round(dmgReal));
@@ -9079,7 +9217,13 @@
       }
       activarSacudida(bloqueado ? 0.20 : 0.36, 0.24);
       pulsarVinetaDano();
-      if (window.Sonidos && window.Sonidos.danoHeroe) window.Sonidos.danoHeroe();
+      if (window.Sonidos) {
+        if (escudoAbs && window.Sonidos.escudoAbsorbe) window.Sonidos.escudoAbsorbe();
+        if (bloqueado && window.Sonidos.bloqueo) window.Sonidos.bloqueo();
+        if (window.Sonidos.danoHeroe && (dmgReal > 0 || !escudoAbs)) {
+          window.Sonidos.danoHeroe({ tipo: (m && m.boss) ? 'jefe' : 'melee', bloqueado });
+        }
+      }
       if (murio) onHeroDeath(performance.now());
     } else {
       let distCerca = Infinity;
@@ -9241,7 +9385,14 @@
             monY = typeof m._cachedY === 'number' ? m._cachedY : (m.group ? m.group.position.y : 0);
           }
           const dy = Math.abs(monY - heroY);
+          const prevState = m.state;
           const r = CombatLib.monsterTick(m, hero, px, pz, dt, dy);
+          if (prevState !== 'chase' && m.state === 'chase' && d < 26) {
+            marcarCombateAudio();
+            if (window.Sonidos && window.Sonidos.enemigo) {
+              window.Sonidos.enemigo('aggro', { name: m.name, boss: m.boss, rangoElite: m.rangoElite, tipoRango: m.tipoRango, pan: panDePosicion(m.x, m.z) });
+            }
+          }
           if (r.fase2) {
             announce('🔥 ' + (m.name || 'Jefe') + ' · FASE 2', 'Sus ataques se vuelven más rápidos e intensos', '#ef4444');
             activarSacudida(0.30, 0.25);
@@ -9267,6 +9418,7 @@
               m._venenoTick -= 1.0;
               const dmgVen = Math.max(1, m.venenoDps || 4);
               damageMonster(m, dmgVen, 'hero');
+              if (window.Sonidos && window.Sonidos.venenoTick) window.Sonidos.venenoTick();
               if (m.group && m.group.visible) lanzarNumeroFlotante(posCabezaMonstruo(m), '☠ -' + dmgVen, 'dmg-poison');
             }
           }
@@ -9606,8 +9758,10 @@
     }
     character.playOneShot(name, lastNowSec);
     lanzarAuraConjuro(name);
+    marcarCombateAudio();
     if (window.Sonidos) {
-      if (sk.elemento === 'fuego' || name === 'furia') window.Sonidos.fuego();
+      if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'inicio');
+      else if (sk.elemento === 'fuego' || name === 'furia') window.Sonidos.fuego();
       else if (sk.elemento === 'hielo') window.Sonidos.hielo();
       else if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo') window.Sonidos.rayo();
       else if (name !== 'attack' && name !== 'disparo' && window.Sonidos.habilidad) window.Sonidos.habilidad();
@@ -9669,8 +9823,15 @@
       const blancos = diana
         ? candidatos.filter(m => m.alive && m.hp > 0 && (enDungeon ? !!m.dungeonInfoRef : !m.dungeonInfoRef) && (m === diana || Math.hypot(m.x - diana.x, m.z - diana.z) <= radioSplash))
         : [];
-      if (window.Sonidos) window.Sonidos.disparo();
+      const panP = diana ? panDePosicion(diana.x, diana.z) : 0;
+      if (window.Sonidos) {
+        window.Sonidos.disparo({ pan: panP });
+        if (name !== 'orbe_arcano' && window.Sonidos.golpeVeloz) window.Sonidos.golpeVeloz(0.75, { pan: panP });
+      }
       lanzarProyectilElemental(name, destinoPos, diana, () => {
+        if (window.Sonidos && typeof window.Sonidos.skill === 'function') {
+          window.Sonidos.skill(name, 'impacto', { pan: panDePosicion(destinoPos.x, destinoPos.z) });
+        }
         blancos.forEach(m => {
           if (!m.alive || m.hp <= 0) return;
           if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
@@ -9716,8 +9877,19 @@
     }
     lanzarVFXHabilidad(name, blancos, primero);
     if (primero && !sk.unico && !sk.proyectil) lanzarEstelaArma(name);
-    // Sonido: silbido al disparar; al impactar, flecha si es disparo, metal con arma o golpe sordo sin arma
-    if (sk.unico && blancos.length && window.Sonidos) window.Sonidos.disparo();
+    // Sonido: firma específica de la habilidad al impactar + golpe de velocidad en técnicas y ataques
+    const panB = blancos.length ? panDePosicion(blancos[0].x, blancos[0].z) : 0;
+    if (sk.unico && blancos.length && window.Sonidos) window.Sonidos.disparo({ pan: panB });
+    if (window.Sonidos) {
+      if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'impacto', { pan: panB });
+      if (window.Sonidos.golpeVeloz) {
+        if (!sk.unico) {
+          window.Sonidos.golpeVeloz(name === 'attack' ? 0.62 : (sk.mult >= 2.4 ? 1.2 : 1.0), { pan: panB });
+        } else if (name !== 'disparo') {
+          window.Sonidos.golpeVeloz(0.85, { pan: panB });
+        }
+      }
+    }
     blancos.forEach(m => {
       if (sk.unico) flecha(m);
       if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
@@ -9767,7 +9939,7 @@
     arco.add(giro);
     g.add(arco);
     const sweepStart = dir * 0.85, sweepEnd = -dir * 0.92;
-    efecto(g, 0.42, k => {
+    efecto(g, 0.56, k => {
       g.position.set(character.root.position.x, character.root.position.y + 1.12, character.root.position.z);
       giro.rotation.z = sweepStart + (sweepEnd - sweepStart) * k;
       const s = 0.88 + k * 0.28;
@@ -9794,7 +9966,7 @@
     r2.rotation.x = -Math.PI / 2;
     grupo.add(r1, r2);
     marcarResplandor(r1);
-    efecto(grupo, 0.48, k => {
+    efecto(grupo, 0.62, k => {
       const s1 = 0.6 + k * (alcance - 0.6);
       const s2 = 0.4 + k * (alcance * 0.72 - 0.4);
       r1.scale.setScalar(s1);
@@ -9909,7 +10081,7 @@
     }
 
     marcarResplandor(g);
-    const dur = Math.min(1.15, Math.max(0.38, (sk.lock || 0.7) * 0.85));
+    const dur = Math.min(1.55, Math.max(0.55, (sk.lock || 1.0) * 0.88));
     efecto(g, dur, k => {
       const rp = character.root.position;
       g.position.set(rp.x, rp.y + 0.18, rp.z);
@@ -10091,7 +10263,7 @@
       g.add(a2);
     }
     marcarResplandor(g);
-    efecto(g, 0.46, k => {
+    efecto(g, 0.62, k => {
       g.rotation.y = yaw - 0.8 + k * 1.65;
       a1.scale.setScalar(0.85 + k * 0.35);
       a1.material.opacity = 0.62 * (1 - k);
@@ -10208,7 +10380,7 @@
         ring.position.set(tgt.x, tgt.y + 0.18, tgt.z);
         g.add(ring);
         marcarResplandor(g);
-        efecto(g, 0.32, k => {
+        efecto(g, 0.46, k => {
           g.traverse(c => { if (c.material) c.material.opacity = (1 - k) * (0.75 + 0.25 * Math.sin(k * 40)); });
           ring.scale.setScalar(0.8 + k * 1.4);
         });
@@ -10242,7 +10414,7 @@
       marcarResplandor(g);
       ondaSismica(sk.range || 3.4, 0xfacc15);
       activarSacudida(0.22, 0.16);
-      efecto(g, 0.48, k => {
+      efecto(g, 0.64, k => {
         dome.rotation.y = k * 3.5;
         dome.scale.setScalar(0.9 + k * 0.45);
         dome.material.opacity = 0.44 * (1 - k);
@@ -10338,7 +10510,7 @@
       marcarResplandor(g);
       activarSacudida(esTitan ? 0.42 : (esNova ? 0.30 : 0.32), esTitan ? 0.30 : 0.24);
       if (blancos && blancos.length) activarHitstop(esTitan ? 0.055 : 0.04);
-      efecto(g, esTitan ? 0.65 : 0.50, k => {
+      efecto(g, esTitan ? 0.82 : 0.66, k => {
         const lift = Math.sin(k * Math.PI);
         spikes.forEach(s => {
           s.position.y = -0.6 + lift * (esTitan ? 1.85 : 1.55);
@@ -10377,7 +10549,7 @@
       g.position.copy(desde);
       g.rotation.y = character.anguloY() - Math.PI * 0.42;
       marcarResplandor(g);
-      efecto(g, 0.34, k => {
+      efecto(g, 0.48, k => {
         g.position.set(desde.x + fx * k * 6.8, desde.y, desde.z + fz * k * 6.8);
         arc.scale.setScalar(0.8 + k * 0.7);
         arc.material.opacity = 0.92 * (1 - k);
@@ -10396,7 +10568,7 @@
       beam.rotation.x = Math.PI / 2;
       g.add(beam);
       marcarResplandor(g);
-      efecto(g, 0.40, k => {
+      efecto(g, 0.54, k => {
         beam.scale.set(1 - k * 0.4, 0.6 + k * 0.6, 1 - k * 0.4);
         beam.material.opacity = 0.9 * (1 - k);
       });
@@ -10504,7 +10676,7 @@
       g.add(halo1, halo2);
       marcarResplandor(g);
       lanzarArcoCorte(0xa855f7, 0.4, 2.3, true);
-      efecto(g, 0.42, k => {
+      efecto(g, 0.56, k => {
         halo1.scale.setScalar(0.8 + k * 1.4);
         halo1.material.opacity = 0.85 * (1 - k);
         halo2.position.y = 0.4 + k * 1.2;
@@ -10551,7 +10723,7 @@
         bar2.rotation.z = -Math.PI / 4;
         g.add(bar1, bar2);
         marcarResplandor(g);
-        efecto(g, 0.42, k => {
+        efecto(g, 0.56, k => {
           g.scale.setScalar(0.8 + k * 0.65);
           bar1.material.opacity = 0.95 * (1 - k);
           bar2.material.opacity = 0.95 * (1 - k);
@@ -10574,7 +10746,7 @@
       g.add(cono);
       marcarResplandor(g);
       activarSacudida(0.24, 0.18);
-      efecto(g, 0.48, k => {
+      efecto(g, 0.64, k => {
         cono.scale.set(0.85 + k * 0.7, 0.8 + k * 0.5, 0.85 + k * 0.7);
         cono.material.opacity = 0.56 * (1 - k);
       });
@@ -10610,7 +10782,7 @@
         g.add(haloAlto);
       }
       marcarResplandor(g);
-      efecto(g, 0.42, k => {
+      efecto(g, 0.58, k => {
         const rp = character.root.position;
         g.position.set(rp.x, rp.y + 0.95, rp.z);
         g.rotation.y = k * 14.0;
@@ -10645,7 +10817,7 @@
       g.add(hojaVert, grieta);
       marcarResplandor(g);
       activarSacudida(0.28, 0.20);
-      efecto(g, 0.55, k => {
+      efecto(g, 0.70, k => {
         hojaVert.rotation.z = -0.7 - k * 1.45;
         hojaVert.material.opacity = 0.95 * (1 - k);
         grieta.scale.set(1 + k * 0.6, 1, 1);
@@ -10667,7 +10839,7 @@
       luna.rotation.z = -0.35;
       g.add(luna);
       marcarResplandor(g);
-      efecto(g, 0.48, k => {
+      efecto(g, 0.62, k => {
         g.position.y = p.y + 0.35 + k * 3.1;
         luna.rotation.z = -0.35 + k * 1.3;
         luna.material.opacity = 0.94 * (1 - k);
@@ -11172,12 +11344,17 @@
   // Anuncios de pueblo y zona, y minimapa
   // ===========================================================================
   let bannerTimer = null;
-  function announce(title, sub, color) {
+  function announce(title, sub, color, opts) {
     const el = $('banner');
+    const cfg = opts || {};
+    const tipo = cfg.tipo || 'aviso';
+    const durMs = cfg.durMs || (tipo === 'derrota' ? 2100 : (tipo === 'zona' ? 2400 : 3400));
+    el.classList.remove('banner-derrota', 'banner-zona', 'banner-aviso');
+    el.classList.add('banner-' + tipo);
     el.innerHTML = '<b' + (color ? ' style="color:' + color + '"' : '') + '>' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '');
     el.classList.add('show');
     clearTimeout(bannerTimer);
-    bannerTimer = setTimeout(() => el.classList.remove('show'), 3800);
+    bannerTimer = setTimeout(() => el.classList.remove('show'), durMs);
   }
 
   let _lastRegionCheck = 0, _lastRegX = Infinity, _lastRegZ = Infinity;
@@ -11195,7 +11372,8 @@
       if (!town) closeShop();
       if (town) {
         const size = (town.cfg && town.cfg.size) || 3;
-        announce('🏘 ' + town.t.name, 'Nivel ' + town.t.level + ' · ' + (SIZE_NAMES[size] || '') + (town.t.isStart ? ' · pueblo inicial' : ''));
+        announce('🏘 ' + town.t.name, 'Nv ' + town.t.level + (SIZE_NAMES[size] ? ' · ' + SIZE_NAMES[size] : ''), null, { tipo: 'zona', durMs: 2400 });
+        if (window.Sonidos && window.Sonidos.zonaNueva) window.Sonidos.zonaNueva(true);
         if (!visited.has(town.t.id)) {
           visited.add(town.t.id);
           buildUI();
@@ -11223,7 +11401,8 @@
       if (zone) {
         const type = (W.ZONE_TYPES[zone.type] || {}).name || zone.type;
         const color = '#' + zoneColor(zone).getHexString();
-        announce('⚔ ' + zone.name, 'Nivel ' + zone.levelMin + '–' + zone.levelMax + ' · ' + type, color);
+        announce('⚔ ' + zone.name, 'Nv ' + zone.levelMin + '–' + zone.levelMax + ' · ' + type, color, { tipo: 'zona', durMs: 2400 });
+        if (window.Sonidos && window.Sonidos.zonaNueva) window.Sonidos.zonaNueva(false);
         // Marcador fijo mientras estás dentro: solo zonas con monstruos, del mismo color que la zona en el mapa
         const conMonstruos = zone.monsters && zone.monsters.length;
         marca.style.setProperty('--zona', color);
@@ -12066,6 +12245,7 @@
 
   // Ataque automático: camina hasta el monstruo elegido y ataca hasta matarlo (o hasta que el jugador se mueva)
   let objetivo = null;
+  let autoSiguienteAtaqueMs = 0;
   const ALCANCE_ATAQUE = 2.4;
   function atacarObjetivo() {
     if (character.cancelado) {
@@ -12073,14 +12253,21 @@
       if (autoZona) pararAuto('Ataque automático parado: has tomado el control');
       else if (objetivo) toast('Ataque cancelado');
       objetivo = null;
+      autoSiguienteAtaqueMs = 0;
     }
     if (!objetivo) return;
-    if (!objetivo.alive || objetivo.hp <= 0 || (objetivo.muriendo && performance.now() < objetivo.muriendo) || hero.dead) { objetivo = null; character.destino = null; return; }
+    if (!objetivo.alive || objetivo.hp <= 0 || (objetivo.muriendo && performance.now() < objetivo.muriendo) || hero.dead) {
+      objetivo = null;
+      autoSiguienteAtaqueMs = 0;
+      character.destino = null;
+      return;
+    }
     if (character.atascado) {
       character.atascado = false;
       if (autoZona) autoInalcanzables.set(objetivo, performance.now() + 20000);   // otro, y este luego
       else toast('No hay camino hasta él');
       objetivo = null;
+      autoSiguienteAtaqueMs = 0;
       return;
     }
     const cx = character.root.position.x, cz = character.root.position.z;
@@ -12096,10 +12283,22 @@
       // Ya está en distancia de ataque: planta los pies, encara continuamente al monstruo y ataca sin micro-deslizarse
       character.destino = null;
       character.mirarHacia(objetivo.x - cx, objetivo.z - cz);
-      // En automático, primero una habilidad de la barra que esté lista y le alcance; si no, el golpe normal
-      const habilidad = autoZona && habilidadLista(objetivo);
-      if (habilidad) useSkill(habilidad, objetivo);
-      else if (CombatLib.canUse(hero, golpe)) useSkill(golpe, objetivo);
+      const ahoraAuto = autoZona ? performance.now() : 0;
+      if (!autoZona || ahoraAuto >= autoSiguienteAtaqueMs) {
+        // En automático, primero una habilidad de la barra que esté lista y le alcance; si no, el golpe normal
+        const habilidad = autoZona && habilidadLista(objetivo);
+        if (habilidad) {
+          useSkill(habilidad, objetivo);
+          const skLock = (CombatLib.SKILLS[habilidad] && CombatLib.SKILLS[habilidad].lock) || 1.2;
+          autoSiguienteAtaqueMs = ahoraAuto + Math.round(skLock * 1000) + 340;
+        } else if (CombatLib.canUse(hero, golpe)) {
+          useSkill(golpe, objetivo);
+          if (autoZona) {
+            const gLock = (CombatLib.SKILLS[golpe] && CombatLib.SKILLS[golpe].lock) || 1.0;
+            autoSiguienteAtaqueMs = ahoraAuto + Math.round(gLock * 1000) + 220;
+          }
+        }
+      }
     } else {
       character.destino = { x: objetivo.x, z: objetivo.z, parar: esRango ? alcance * 0.9 : alcance * 0.8 };
     }
@@ -12155,6 +12354,7 @@
     if (!autoZona) return;
     autoZona = null;
     objetivo = null;
+    autoSiguienteAtaqueMs = 0;
     character.destino = null;
     $('sk-auto').classList.remove('gold');
     if (aviso) toast(aviso);
@@ -12171,7 +12371,7 @@
     if (hero.hp < hero.maxHp * 0.35 && inv.vida > 0) {
       const hpAntes = hero.hp;
       if (ItemsLib.usePotion(hero, inv, 'vida')) {
-        if (window.Sonidos && window.Sonidos.pocion) window.Sonidos.pocion();
+        if (window.Sonidos && window.Sonidos.pocion) window.Sonidos.pocion('vida');
         toast('🧪 Poción de vida (automática)');
         const curado = Math.round(hero.hp - hpAntes);
         if (curado >= 2 && character && character.root) {
@@ -12211,6 +12411,7 @@
     }
     autoEsperando = false;
     objetivo = mejor;
+    autoSiguienteAtaqueMs = 0;
   }
 
   // Estadísticas del héroe: nivel, equipo (con sus especiales) y habilidades pasivas. Se recalculan al cambiar
@@ -12327,10 +12528,12 @@
       }
     }
 
+    marcarCombateAudio();
     damageMonster(m, dmg, 'hero');
     if (window.Sonidos) {
-      window.Sonidos.impacto(sonido);
-      if (opts.crit && window.Sonidos.critico) window.Sonidos.critico();
+      const panG = m ? panDePosicion(m.x, m.z) : 0;
+      window.Sonidos.impacto(sonido, { pan: panG });
+      if (opts.crit && window.Sonidos.critico) window.Sonidos.critico({ pan: panG });
     }
   }
 
@@ -12912,6 +13115,7 @@
     if (!b) return;
     try {
       EquipoLib.equipar(personajeActual, b.dataset.equipar, hero.level, catalogoPiezas);
+      if (window.Sonidos && window.Sonidos.equipar) window.Sonidos.equipar();
       aplicarStats();
       renderObjetos();
       toast('Equipado');
@@ -13342,25 +13546,38 @@
     if (fhist) accionNpc(() => {
       if (!heroeEst || !heroeEst.forjaPendiente) return;
       heroeEst.forjaPendiente = null;
+      if (window.Sonidos && window.Sonidos.forja) window.Sonidos.forja();
       cerrarCapitulo();
       cerrarNpc();
       toast('🔨 ¡El Herrero Brann ha forjado tu pieza de historia!');
     });
     const fh = e.target.closest('button[data-forjar-hoja]');
-    if (fh) accionNpc(() => { inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0); avanzarHistoria({ tipo: 'forjar' }); toast('Forjada con su hoja'); });
+    if (fh) accionNpc(() => {
+      inv.arena -= EquipoLib.forjarConHoja(pj, catalogoPiezas, fh.dataset.forjarHoja, hero.level, inv.arena || 0);
+      if (window.Sonidos && window.Sonidos.forja) window.Sonidos.forja();
+      avanzarHistoria({ tipo: 'forjar' });
+      toast('Forjada con su hoja');
+    });
     const f = e.target.closest('button[data-fabricar]'), c = e.target.closest('button[data-comprar]'), v = e.target.closest('button[data-vender]');
     if (f) accionNpc(() => {
       if (hero.level < 12) throw new Error('Se requiere nivel 12 para fabricar equipo directamente en el herrero');
       inv.gold -= EquipoLib.fabricar(pj, catalogoPiezas, f.dataset.fabricar, hero.level, inv.gold, bonoRepActual().descuentoTienda || 0);
+      if (window.Sonidos && window.Sonidos.forja) window.Sonidos.forja();
       toast('Fabricada');
       avanzarHistoria({ tipo: 'forjar' });
     });
     if (c) accionNpc(() => {
       if (hero.level < 12) throw new Error('Se requiere nivel 12 para comprar equipo en el mercader');
       inv.gold -= EquipoLib.comprar(pj, catalogoPiezas, c.dataset.comprar, hero.level, inv.gold, bonoRepActual().descuentoTienda || 0);
+      if (window.Sonidos && window.Sonidos.monedas) window.Sonidos.monedas();
       toast('Comprada');
     });
-    if (v) accionNpc(() => { const oro = EquipoLib.vender(pj, v.dataset.vender); inv.gold += oro; toast('Vendido por ' + oro + ' 🪙'); });
+    if (v) accionNpc(() => {
+      const oro = EquipoLib.vender(pj, v.dataset.vender);
+      inv.gold += oro;
+      if (window.Sonidos && window.Sonidos.monedas) window.Sonidos.monedas();
+      toast('Vendido por ' + oro + ' 🪙');
+    });
 
     // Informante Clandestino (Varek "El Ojo Tuerto")
     const infElite = e.target.closest('button[data-informante-elite]');
@@ -15868,6 +16085,7 @@
     if (entGrp) entGrp.visible = false;
 
     if (typeof lanzarSubtituloEvento === 'function') lanzarSubtituloEvento({ tipo: 'mazmorra', nombre: dungeon.name || 'la mazmorra' });
+    if (window.Sonidos && window.Sonidos.mazmorraEntrada) window.Sonidos.mazmorraEntrada();
     gestorMazmorras.iniciarInstancia(dungeon, {
       onIniciarHUD: (boss, d) => {
         const hud = $('dungeon-boss-hud');
@@ -16092,6 +16310,7 @@
       this.interior.uRec.value.set(rec.zx, rec.zz, rec.Rcorte + 3, -1);
       this.interior.extras.visible = true;
       this.spawnMonstruos(rec);
+      if (window.Sonidos && window.Sonidos.mazmorraEntrada) window.Sonidos.mazmorraEntrada();
     }
 
     desactivarInterior() {
@@ -17426,6 +17645,40 @@
     const btn = $('btn-sound');
     if (!btn || !window.Sonidos) return;
     let on = store.getItem('rpgMundo.sonido') !== '0';
+
+    const canales = ['master', 'musica', 'sfx', 'ambiente'];
+    const guardarCfgAudio = () => {
+      if (window.Sonidos.getVolumenes) store.setItem('rpgMundo.audioCfg', JSON.stringify(window.Sonidos.getVolumenes()));
+    };
+    const aplicarCfgGuardada = () => {
+      try {
+        const raw = store.getItem('rpgMundo.audioCfg');
+        if (raw && window.Sonidos.setVolumen) {
+          const parsed = JSON.parse(raw);
+          canales.forEach(c => {
+            if (typeof parsed[c] === 'number' && Number.isFinite(parsed[c])) window.Sonidos.setVolumen(c, parsed[c]);
+          });
+        }
+      } catch (_) {}
+      const vols = window.Sonidos.getVolumenes ? window.Sonidos.getVolumenes() : {};
+      canales.forEach(c => {
+        const inp = $('vol-' + c);
+        const valEl = $('vol-' + c + '-v');
+        const pct = Math.round((typeof vols[c] === 'number' ? vols[c] : 0.8) * 100);
+        if (inp) {
+          inp.value = String(pct);
+          inp.oninput = () => {
+            const nuevo = Math.max(0, Math.min(100, Number(inp.value) || 0));
+            if (valEl) valEl.textContent = nuevo + '%';
+            if (window.Sonidos && window.Sonidos.setVolumen) window.Sonidos.setVolumen(c, nuevo / 100);
+            guardarCfgAudio();
+            if (on && nuevo > 0) activarAudioAhora();
+          };
+        }
+        if (valEl) valEl.textContent = pct + '%';
+      });
+    };
+
     const activarAudioAhora = () => {
       if (!on || !window.Sonidos) return;
       if (window.Sonidos.desbloquear) window.Sonidos.desbloquear();
@@ -17436,6 +17689,7 @@
       btn.textContent = on ? '🔊' : '🔇';
       btn.title = on ? 'Sonido y música activados (pulsa para silenciar)' : 'Sonido y música silenciados (pulsa para activar)';
     };
+    aplicarCfgGuardada();
     sync();
     const desbloquearPorGesto = () => {
       if (!on) return;
@@ -17523,16 +17777,43 @@
   let fotogramaModal = 0;
   let _lastSecretCheck = 0;
   let _lastAmbCheck = 0;
+  let _pasoPrevX = null, _pasoPrevZ = null, _distPasos = 0;
   function actualizarAmbienteSonoro(now, enDungeon, forzar = false) {
     if (!window.Sonidos || !window.Sonidos.setAmbiente || (!forzar && now - _lastAmbCheck < 500)) return;
     _lastAmbCheck = now;
-    if (enDungeon) { window.Sonidos.setAmbiente('mazmorra', timeOfDay); return; }
-    if (curTown) { window.Sonidos.setAmbiente('pueblo', timeOfDay); return; }
-    if (character && character.root && visorWorld && visorWorld.isWaterHazard(character.root.position.x, character.root.position.z, 18)) {
+    const enRecinto = !!(gestorLaberintos && gestorLaberintos.enLaberinto);
+    const enMaz = !!(enDungeon || enRecinto);
+    if (enMaz) {
+      window.Sonidos.setAmbiente('mazmorra', timeOfDay);
+    } else if (curTown) {
+      window.Sonidos.setAmbiente('pueblo', timeOfDay);
+    } else if (character && character.root && visorWorld && visorWorld.isWaterHazard(character.root.position.x, character.root.position.z, 18)) {
       window.Sonidos.setAmbiente('agua', timeOfDay);
-      return;
+    } else {
+      window.Sonidos.setAmbiente('campo', timeOfDay);
     }
-    window.Sonidos.setAmbiente('campo', timeOfDay);
+
+    if (window.Sonidos.setCombate) {
+      const listaC = enMaz ? monstruosMazmorra : monsters;
+      const hx = character && character.root ? character.root.position.x : 0;
+      const hz = character && character.root ? character.root.position.z : 0;
+      let enComb = (now - ultimoCombateMs) < 3500 && !hero.dead;
+      let hayJefe = false, jefeFase2 = false;
+      for (let i = 0, len = listaC.length; i < len; i++) {
+        const m = listaC[i];
+        if (!m || !m.alive || m.hp <= 0) continue;
+        if (enMaz ? !m.dungeonInfoRef : !!m.dungeonInfoRef) continue;
+        const dx = m.x - hx, dz = m.z - hz;
+        if (dx * dx + dz * dz <= 784 && m.state === 'chase') {
+          enComb = true;
+          if (m.boss || (m.rangoElite || 1) >= 8) {
+            hayJefe = true;
+            if ((m.fase || 1) >= 2) jefeFase2 = true;
+          }
+        }
+      }
+      window.Sonidos.setCombate(enComb && !hero.dead, hayJefe, jefeFase2);
+    }
   }
   function loop(now) {
     requestAnimationFrame(loop);
@@ -17616,6 +17897,29 @@
     if (hero.roadSpeedBuffTimer > 0) hero.roadSpeedBuffTimer -= dt;
 
     character.update(dt, now / 1000);
+    if (character && character.root && window.Sonidos && window.Sonidos.paso) {
+      const cp = character.root.position;
+      if (_pasoPrevX !== null && !hero.dead && !(character.isDodging && character.isDodging()) && hero.lock <= 0) {
+        const dp = Math.hypot(cp.x - _pasoPrevX, cp.z - _pasoPrevZ);
+        if (dp > 0.002 && dp < 2.5) {
+          _distPasos += dp;
+          const corriendo = (dp / Math.max(0.004, dt)) > 7.8;
+          if (_distPasos >= (corriendo ? 2.65 : 2.05)) {
+            _distPasos = 0;
+            let sup = 'hierba';
+            if (enDungeon || enRecinto) sup = 'mazmorra';
+            else if (riachuelosMundo && riachuelosMundo.indice) {
+              const hitR = riachuelosMundo.indice.cerca(cp.x, cp.z);
+              if (hitR && hitR.d <= (hitR.halfW || 2.0) + 0.5) sup = 'agua';
+              else if (curTown) sup = 'piedra';
+            } else if (curTown) sup = 'piedra';
+            window.Sonidos.paso(sup, corriendo);
+          }
+        }
+      }
+      _pasoPrevX = cp.x;
+      _pasoPrevZ = cp.z;
+    }
     actualizarEfectos(dt);
     if (!enDungeon && !enRecinto) actualizarGurus(dt, now / 1000);
     if (acompanante && acompanante.activo && typeof AcompananteLib !== 'undefined') {
@@ -17632,6 +17936,7 @@
         { hp: hero.hp, maxHp: hero.maxHp, objetivoMision: (typeof destinoDeMision === 'function') ? destinoDeMision() : null },
         (tipoSkill, infoSkill) => {
           const compNom = (acompanante && acompanante.nombre) || 'Compañero';
+          if (window.Sonidos && window.Sonidos.companeroSkill) window.Sonidos.companeroSkill(tipoSkill);
           if (tipoSkill === 'cura') {
             const hpAntes = hero.hp;
             hero.hp = Math.min(hero.maxHp, hero.hp + (infoSkill.potencia || 45));

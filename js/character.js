@@ -67,38 +67,38 @@
   // Duración de cada acción de un solo uso (segundos) y tiempo en que bloquea el movimiento
   // (los bloqueos de las habilidades son los mismos que en js/combat.js; las pruebas lo comprueban)
   const ONE_SHOT = {
-    attack: { lock: 0.85 },
-    sismo: { lock: 1.45 },
-    nova: { lock: 1.3 },
-    tajo: { lock: 1.3 },
-    estocada: { lock: 1.1 },
-    ascendente: { lock: 1.2 },
-    hendidura: { lock: 1.3 },
-    contraataque: { lock: 1.2 },
-    torbellino: { lock: 1.6 },
-    voltereta: { lock: 1.2 },
-    tornillo: { lock: 1.8 },
-    disparo: { lock: 1.1 },
-    suspension: { lock: 2.0 },
-    corte_cruzado: { lock: 1.15 },
-    rafaga: { lock: 1.1 },
-    furia: { lock: 1.2 },
-    escudo_espiritu: { lock: 1.2 },
-    salto_demoledor: { lock: 1.55 },
-    lluvia_proyectiles: { lock: 1.5 },
-    juicio_relampago: { lock: 1.4 },
-    sentencia_titan: { lock: 1.6 },
-    bola_fuego: { lock: 0.9 },
-    lanza_hielo: { lock: 0.9 },
-    ventisca_glacial: { lock: 1.15 },
-    tormenta_fuego: { lock: 1.2 },
-    rayo_arcano: { lock: 1.1 },
-    orbe_arcano: { lock: 0.85 },
-    flecha_perforante: { lock: 1.1 },
-    trampa_espinas: { lock: 0.95 },
-    escudo_mana: { lock: 0.9 },
-    paso_sombrio: { lock: 0.9 },
-    hoja_veneno: { lock: 1.0 },
+    attack: { lock: 1.00 },
+    sismo: { lock: 1.80 },
+    nova: { lock: 1.65 },
+    tajo: { lock: 1.60 },
+    estocada: { lock: 1.40 },
+    ascendente: { lock: 1.50 },
+    hendidura: { lock: 1.65 },
+    contraataque: { lock: 1.50 },
+    torbellino: { lock: 2.00 },
+    voltereta: { lock: 1.50 },
+    tornillo: { lock: 2.20 },
+    disparo: { lock: 1.25 },
+    suspension: { lock: 2.30 },
+    corte_cruzado: { lock: 1.50 },
+    rafaga: { lock: 1.40 },
+    furia: { lock: 1.55 },
+    escudo_espiritu: { lock: 1.50 },
+    salto_demoledor: { lock: 1.90 },
+    lluvia_proyectiles: { lock: 1.85 },
+    juicio_relampago: { lock: 1.75 },
+    sentencia_titan: { lock: 2.00 },
+    bola_fuego: { lock: 1.20 },
+    lanza_hielo: { lock: 1.20 },
+    ventisca_glacial: { lock: 1.50 },
+    tormenta_fuego: { lock: 1.55 },
+    rayo_arcano: { lock: 1.45 },
+    orbe_arcano: { lock: 1.00 },
+    flecha_perforante: { lock: 1.40 },
+    trampa_espinas: { lock: 1.25 },
+    escudo_mana: { lock: 1.20 },
+    paso_sombrio: { lock: 1.20 },
+    hoja_veneno: { lock: 1.30 },
     jump: { lock: 0.0 },
     dodge: { lock: 0.0 },
     victory: { lock: 0.0 }
@@ -118,32 +118,32 @@
 
   // Animación corporal especial procedimental por habilidad (complementa e independiza del clip del estudio)
   const SKILL_MOTION = {
-    corte_cruzado:   { dur: 1.15, tipo: 'corte_cruzado' },
-    tajo:            { dur: 1.30, tipo: 'giro', vueltas: 1, salto: 0.65, inclinacion: 0.24 },
-    torbellino:      { dur: 1.55, tipo: 'giro', vueltas: 2.5, salto: 0.55, inclinacion: 0.28 },
-    furia:           { dur: 1.20, tipo: 'furia' },
-    ascendente:      { dur: 1.20, tipo: 'ascendente' },
-    hendidura:       { dur: 1.30, tipo: 'hendidura' },
-    contraataque:    { dur: 1.20, tipo: 'contraataque' },
-    escudo_espiritu: { dur: 1.20, tipo: 'bastion' },
-    sismo:           { dur: 1.45, tipo: 'salto_golpe', altura: 1.75, tPico: 0.45, tImpacto: 0.79, avance: 0.45 },
-    salto_demoledor: { dur: 1.55, tipo: 'salto_golpe', altura: 2.45, tPico: 0.42, tImpacto: 0.69, avance: 0.95, giroAire: 1 },
-    sentencia_titan: { dur: 1.60, tipo: 'titan' },
-    nova:            { dur: 1.30, tipo: 'nova' },
-    estocada:        { dur: 1.10, tipo: 'estocada' },
-    paso_sombrio:    { dur: 0.90, tipo: 'estocada' },
-    hoja_veneno:     { dur: 1.00, tipo: 'corte_cruzado' },
-    voltereta:       { dur: 1.20, tipo: 'salto_golpe', altura: 1.50, tPico: 0.45, tImpacto: 0.83, avance: 0.75, giroAire: 1 },
-    tornillo:        { dur: 1.80, tipo: 'giro', vueltas: 2, salto: 1.15, inclinacion: 0.22 },
-    juicio_relampago:{ dur: 1.40, tipo: 'giro', vueltas: 2, salto: 1.15, inclinacion: 0.22 },
-    rafaga:          { dur: 1.10, tipo: 'furia' },
-    bola_fuego:      { dur: 0.90, tipo: 'conjuro' },
-    lanza_hielo:     { dur: 0.90, tipo: 'conjuro' },
-    orbe_arcano:     { dur: 0.85, tipo: 'conjuro' },
-    ventisca_glacial:{ dur: 1.15, tipo: 'conjuro' },
-    tormenta_fuego:  { dur: 1.20, tipo: 'conjuro' },
-    rayo_arcano:     { dur: 1.10, tipo: 'conjuro' },
-    escudo_mana:     { dur: 0.90, tipo: 'conjuro' }
+    corte_cruzado:   { dur: 1.50, tipo: 'corte_cruzado' },
+    tajo:            { dur: 1.60, tipo: 'giro', vueltas: 1, salto: 0.65, inclinacion: 0.24 },
+    torbellino:      { dur: 2.00, tipo: 'giro', vueltas: 2.5, salto: 0.55, inclinacion: 0.28 },
+    furia:           { dur: 1.55, tipo: 'furia' },
+    ascendente:      { dur: 1.50, tipo: 'ascendente' },
+    hendidura:       { dur: 1.65, tipo: 'hendidura' },
+    contraataque:    { dur: 1.50, tipo: 'contraataque' },
+    escudo_espiritu: { dur: 1.50, tipo: 'bastion' },
+    sismo:           { dur: 1.80, tipo: 'salto_golpe', altura: 1.75, tPico: 0.45, tImpacto: 0.79, avance: 0.45 },
+    salto_demoledor: { dur: 1.90, tipo: 'salto_golpe', altura: 2.45, tPico: 0.42, tImpacto: 0.69, avance: 0.95, giroAire: 1 },
+    sentencia_titan: { dur: 2.00, tipo: 'titan' },
+    nova:            { dur: 1.65, tipo: 'nova' },
+    estocada:        { dur: 1.40, tipo: 'estocada' },
+    paso_sombrio:    { dur: 1.20, tipo: 'estocada' },
+    hoja_veneno:     { dur: 1.30, tipo: 'corte_cruzado' },
+    voltereta:       { dur: 1.50, tipo: 'salto_golpe', altura: 1.50, tPico: 0.45, tImpacto: 0.83, avance: 0.75, giroAire: 1 },
+    tornillo:        { dur: 2.20, tipo: 'giro', vueltas: 2, salto: 1.15, inclinacion: 0.22 },
+    juicio_relampago:{ dur: 1.75, tipo: 'giro', vueltas: 2, salto: 1.15, inclinacion: 0.22 },
+    rafaga:          { dur: 1.40, tipo: 'furia' },
+    bola_fuego:      { dur: 1.20, tipo: 'conjuro' },
+    lanza_hielo:     { dur: 1.20, tipo: 'conjuro' },
+    orbe_arcano:     { dur: 1.00, tipo: 'conjuro' },
+    ventisca_glacial:{ dur: 1.50, tipo: 'conjuro' },
+    tormenta_fuego:  { dur: 1.55, tipo: 'conjuro' },
+    rayo_arcano:     { dur: 1.45, tipo: 'conjuro' },
+    escudo_mana:     { dur: 1.20, tipo: 'conjuro' }
   };
 
   function _smooth01(a, b, x) {
@@ -1183,15 +1183,14 @@
       const rawDuration = shot ? shot.duration : (kind === 'victory' ? 3 : 0.6);
       // Mantiene velocidades naturales y legibles para ataques y técnicas
       let escala = 1;
-      if (shot && kind === 'disparo' && rawDuration > 1.8) {
-        escala = Math.min(1.55, 2.35 / 1.45);
+      if (shot && kind === 'disparo') {
+        if (rawDuration > 2.2) escala = Math.min(1.25, rawDuration / 1.75);
+        else escala = Math.min(0.95, Math.max(0.65, rawDuration / 1.65));
       } else if (shot && kind === 'attack') {
-        if (rawDuration > 1.25) escala = Math.min(1.28, rawDuration / 1.08);
-        else if (rawDuration < 0.85) escala = 0.78;
+        escala = Math.min(0.95, Math.max(0.62, rawDuration / 1.30));
       } else if (shot && info.lock > 0) {
-        const targetDur = Math.max(info.lock * 1.12, 1.2);
-        if (rawDuration > targetDur * 1.15) escala = Math.min(1.28, rawDuration / targetDur);
-        else if (rawDuration < 0.9) escala = 0.8;
+        const targetDur = Math.max(info.lock * 1.08, 1.55);
+        escala = Math.min(0.82, Math.max(0.55, rawDuration / targetDur));
       }
       const duration = rawDuration / escala;
       if (info.lock > 0) this.lockUntil = this.tiempo + info.lock;
@@ -1206,8 +1205,8 @@
         shot.action.enabled = true;
         shot.action.setEffectiveTimeScale(escala);
         shot.action.setEffectiveWeight(1);
-        shot.action.reset().fadeIn(0.12).play();
-        if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.12);
+        shot.action.reset().fadeIn(0.14).play();
+        if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.14);
         this.currentAction = shot.action;
         this.activeState = 'oneshot';
       } else {

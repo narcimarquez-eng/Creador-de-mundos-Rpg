@@ -7,7 +7,7 @@
 (function (root) {
   'use strict';
 
-  const DURACION = { golpe: 0.80, magia: 1.05, disparo: 0.95, hit: 0.36 };
+  const DURACION = { golpe: 1.00, magia: 1.25, disparo: 1.15, hit: 0.40 };
   let bolaGeoCompartida = null;
 
   // Qué gesto usa cada enemigo al atacar
@@ -54,9 +54,9 @@
   // Momento (segundos desde el inicio del gesto) en que el ataque llega al héroe: el proyectil al llegar,
   // y en el golpe, cuando el brazo está en lo alto
   function momentoImpacto(accion) {
-    if (accion === 'disparo') return 0.55;
-    if (accion === 'magia') return 0.80;
-    return (DURACION[accion] || 0.80) * 0.5;
+    if (accion === 'disparo') return 0.68;
+    if (accion === 'magia') return 0.95;
+    return (DURACION[accion] || 1.00) * 0.5;
   }
 
   // Empieza un efecto. ahora: segundos, con el mismo reloj que actualizar().
