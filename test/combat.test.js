@@ -92,8 +92,12 @@ t('vida: no regenera hasta pasados 6 s sin golpes', () => {
 });
 
 t('monstruo: vida y daño según el nivel; jefes más fuertes', () => {
-  assert.strictEqual(C.monsterStats(1, false).maxHp, 63);
-  assert.strictEqual(C.monsterStats(1, true).maxHp, 378);
+  assert.strictEqual(C.monsterStats(1, false).maxHp, 95);
+  assert.strictEqual(C.monsterStats(1, true).maxHp, 570);
+  assert.strictEqual(C.monsterStats(1, false).dmg, 5.7);
+  assert.strictEqual(C.monsterStats(2, false).dmg, 7.6);
+  assert.strictEqual(C.monsterStats(3, false).dmg, 9.5);
+  assert.strictEqual(C.monsterStats(4, false).dmg, 11.4);
   assert.ok(C.monsterStats(5, true).dmg > C.monsterStats(5, false).dmg);
   assert.ok(C.monsterDamage(6, false, 1) > C.monsterDamage(1, false, 6));
 });

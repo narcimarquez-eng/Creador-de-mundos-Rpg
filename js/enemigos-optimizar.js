@@ -12,10 +12,10 @@
   // transmisión en doble pasada, sheen/clearcoat y emisivos HDR altos) en rigs o GLB de enemigos.
   function sanearModeloEnemigo(raiz, opts = {}) {
     const {
-      maxEmisivo = 1.25,
-      maxEmisivoFx = 1.05,
-      minRoughness = 0.22,
-      maxColorBasic = 1.35,
+      maxEmisivo = 0.75,
+      maxEmisivoFx = 0.55,
+      minRoughness = 0.30,
+      maxColorBasic = 1.1,
       quitarLuces = true,
       materialesExtra = null
     } = opts || {};
@@ -79,13 +79,17 @@
         mat.roughness = minRoughness;
       }
       if (typeof mat.emissiveIntensity === 'number') {
-        const lim = FX_EMISIVO_RE.test(mat.name || '') ? maxEmisivoFx : maxEmisivo;
+        const esFx = FX_EMISIVO_RE.test(mat.name || '');
+        const lim = esFx ? maxEmisivoFx : maxEmisivo;
         if (!Number.isFinite(mat.emissiveIntensity) || mat.emissiveIntensity > lim) {
           mat.emissiveIntensity = lim;
           emisivosRecortados++;
         }
         mat.userData = mat.userData || {};
         mat.userData._baseEmissiveIntensity = mat.emissiveIntensity;
+        if (esFx && mat.transparent && typeof mat.opacity === 'number' && mat.opacity > 0.55) {
+          mat.opacity = 0.55;
+        }
       }
       if ((mat.isMeshBasicMaterial || mat.isPointsMaterial) && mat.color) {
         const maxC = Math.max(mat.color.r, mat.color.g, mat.color.b);

@@ -4,7 +4,7 @@ const THREE = require('../tools/node_modules/three/build/three.cjs');
 globalThis.THREE = THREE;
 globalThis.window = { addEventListener() {} };
 
-const { CharacterController, SKILL_MOTION } = require('../js/character.js');
+const { CharacterController, SKILL_MOTION, ONE_SHOT } = require('../js/character.js');
 
 let n = 0;
 function t(nombre, fn) { fn(); n++; console.log('ok -', nombre); }
@@ -57,22 +57,24 @@ t('tras disparar arco o atacar, en cuanto termina el bloqueo y corre hacia otro 
   const ch = crearControladorPrueba();
   ch.root.position.set(0, 0, 0);
 
-  // Caso 1: tiro con arco (clip de 3.4 s, bloqueo de 0.8 s)
+  // Caso 1: tiro con arco (clip de 3.4 s, bloqueo según ONE_SHOT.disparo.lock)
   ch.playOneShot('disparo');
   assert.strictEqual(ch.activeState, 'oneshot');
   ch.destino = { x: 25, z: -25, parar: 2 };
-  for (let i = 0; i < 15; i++) ch.update(0.05); // 0.75 s: aún bloqueado, no debe haberse movido
+  const pasosLockDisparo = Math.floor((ONE_SHOT.disparo.lock - 0.02) / 0.05);
+  for (let i = 0; i < pasosLockDisparo; i++) ch.update(0.05); // aún bloqueado, no debe haberse movido
   assert.ok(Math.hypot(ch.root.position.x, ch.root.position.z) < 1e-4, 'durante el bloqueo no se desplaza');
 
-  ch.update(0.1); // 0.85 s: termina el bloqueo y da el primer paso
+  ch.update(0.1); // termina el bloqueo y da el primer paso
   assert.ok(Math.hypot(ch.root.position.x, ch.root.position.z) > 0.1, 'empieza a avanzar hacia el objetivo');
   assert.strictEqual(ch.activeState, 'run', 'al avanzar cambia inmediatamente a animación de correr (sin deslizarse)');
   assert.strictEqual(ch.currentAction, ch.actions.run);
   assert.ok(ch.actions.run.isRunning());
 
-  // Caso 2: golpe cuerpo a cuerpo (clip de 1.5 s, bloqueo de 0.5 s)
+  // Caso 2: golpe cuerpo a cuerpo (clip de 1.5 s, bloqueo según ONE_SHOT.attack.lock)
   ch.playOneShot('attack');
-  for (let i = 0; i < 11; i++) ch.update(0.05); // 0.55 s: termina el bloqueo
+  const pasosLockAttack = Math.ceil((ONE_SHOT.attack.lock + 0.05) / 0.05);
+  for (let i = 0; i < pasosLockAttack; i++) ch.update(0.05); // termina el bloqueo
   assert.strictEqual(ch.activeState, 'run', 'tras golpe cuerpo a cuerpo vuelve a correr en cuanto se desplaza');
 });
 
@@ -258,6 +260,19 @@ t('cuando al GLB le falta el clip específico de una skill, recurre al clip atta
     maxDy = Math.max(maxDy, ch.model.position.y - ch._baseModelY);
   }
   assert.ok(maxDy > 1.8, 'mantiene gran salto procedimental incluso sin clip dedicado (' + maxDy.toFixed(2) + 'm)');
+});
+
+t('playOneShot("attack") y habilidades mantienen velocidad legible sin acelerar por encima de 1.28x', () => {
+  const ch = crearControladorConMallaGLB(['spin_slash']);
+  const durAtk = ch.playOneShot('attack');
+  const tsAtk = ch.oneShots.attack.action.getEffectiveTimeScale();
+  assert.ok(tsAtk <= 1.28 + 1e-6, `attack no debe superar 1.28x (fue ${tsAtk})`);
+  assert.ok(durAtk >= 0.9, `duración visible de attack >= 0.9s (fue ${durAtk})`);
+
+  const durCorte = ch.playOneShot('corte_cruzado');
+  const tsCorte = ch.oneShots.corte_cruzado.action.getEffectiveTimeScale();
+  assert.ok(tsCorte <= 1.28 + 1e-6, `corte_cruzado no debe superar 1.28x (fue ${tsCorte})`);
+  assert.ok(durCorte >= 0.9, `duración visible de corte_cruzado >= 0.9s (fue ${durCorte})`);
 });
 
 console.log('\n' + n + ' pruebas de movimiento y puntería automática superadas.');

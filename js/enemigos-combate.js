@@ -7,7 +7,7 @@
 (function (root) {
   'use strict';
 
-  const DURACION = { golpe: 0.5, magia: 0.85, disparo: 0.75, hit: 0.3 };
+  const DURACION = { golpe: 0.80, magia: 1.05, disparo: 0.95, hit: 0.36 };
   let bolaGeoCompartida = null;
 
   // Qué gesto usa cada enemigo al atacar
@@ -36,9 +36,9 @@
     if (nucleo && typeof nucleo.emissiveIntensity === 'number') {
       nucleo.userData = nucleo.userData || {};
       if (typeof nucleo.userData._baseEmissiveIntensity !== 'number') {
-        nucleo.userData._baseEmissiveIntensity = Math.min(nucleo.emissiveIntensity, 1.25);
+        nucleo.userData._baseEmissiveIntensity = Math.min(nucleo.emissiveIntensity, 0.75);
       }
-      nucleoIntensidad = Math.min(nucleo.userData._baseEmissiveIntensity, 1.25);
+      nucleoIntensidad = Math.min(nucleo.userData._baseEmissiveIntensity, 0.75);
     }
     return {
       rig, bola, accion: null, inicio: 0, offsets: new Map(), destello: false,
@@ -54,9 +54,9 @@
   // Momento (segundos desde el inicio del gesto) en que el ataque llega al héroe: el proyectil al llegar,
   // y en el golpe, cuando el brazo está en lo alto
   function momentoImpacto(accion) {
-    if (accion === 'disparo') return 0.45;
-    if (accion === 'magia') return 0.7;
-    return (DURACION[accion] || 0.5) * 0.5;
+    if (accion === 'disparo') return 0.55;
+    if (accion === 'magia') return 0.80;
+    return (DURACION[accion] || 0.80) * 0.5;
   }
 
   // Empieza un efecto. ahora: segundos, con el mismo reloj que actualizar().
@@ -111,7 +111,7 @@
     }
     if (fx.nucleo && fx.nucleoIntensidad !== null) {
       if (magia > 0) {
-        fx.nucleo.emissiveIntensity = Math.min(1.85, fx.nucleoIntensidad * (1 + 0.65 * magia));
+        fx.nucleo.emissiveIntensity = Math.min(1.15, fx.nucleoIntensidad * (1 + 0.45 * magia));
         fx._magiaActiva = true;
       } else if (fx._magiaActiva) {
         fx.nucleo.emissiveIntensity = fx.nucleoIntensidad;
