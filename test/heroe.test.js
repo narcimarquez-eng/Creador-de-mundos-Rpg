@@ -404,4 +404,19 @@ t('subclases (Nv. 15) y pasivas exclusivas por profesión + limpieza al cambiar 
   assert.strictEqual(h.subclase, null);
 });
 
+t('habilidades por arma, sincronización de barra y desbloqueo progresivo al subir de nivel', () => {
+  assert.ok(H.CLASES_ARMA_DE_PROFESION && Array.isArray(H.CLASES_ARMA_DE_PROFESION.guerrero));
+  const hEspada = H.habilidadesDeArma('espadas');
+  assert.ok(hEspada.length >= 6 && hEspada.includes('sw_iaido'));
+  const st = H.nuevoHeroe();
+  H.aplicarBarraDeClase(st, 'guerrero');
+  H.sincronizarBarraConArma(st, 'mandobles', 'guerrero');
+  assert.ok(Object.values(st.barra).some(id => id && id.startsWith('gs_')), 'Al equipar mandoble la barra sincroniza habilidades gs_*');
+  assert.strictEqual(st.armaClaseActual, 'mandobles');
+  H.sincronizarBarraConArma(st, 'espadas', 'guerrero');
+  assert.ok(Object.values(st.barra).some(id => id && id.startsWith('sw_')), 'Al volver a espada recupera habilidades sw_*');
+  const nuevas = H.nuevasHabilidadesAlSubirNivel(1, 30, 'guerrero', 'espadas');
+  assert.ok(nuevas.length >= 3, 'Entre Nv.1 y Nv.30 deben aprenderse varias técnicas nuevas');
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

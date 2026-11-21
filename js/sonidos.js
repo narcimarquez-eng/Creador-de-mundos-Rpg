@@ -876,9 +876,23 @@
           SONIDOS.magia(t, o);
         }
         break;
-      default:
+      default: {
+        const s = String(id || '');
+        if (s.startsWith('sw_')) return dispararSkillSfx(t, 'corte_cruzado', fase, o);
+        if (s.startsWith('gs_')) return dispararSkillSfx(t, 'hendidura', fase, o);
+        if (s.startsWith('dg_')) return dispararSkillSfx(t, 'paso_sombrio', fase, o);
+        if (s.startsWith('ax_') || s.startsWith('a2_')) return dispararSkillSfx(t, 'torbellino', fase, o);
+        if (s.startsWith('mc_')) return dispararSkillSfx(t, 'sismo', fase, o);
+        if (s.startsWith('ln_')) return dispararSkillSfx(t, 'tajo', fase, o);
+        if (s.startsWith('bw_')) return dispararSkillSfx(t, 'disparo', fase, o);
+        if (s.startsWith('st_')) {
+          if (/hielo|escarcha|geli/.test(s)) return dispararSkillSfx(t, 'lanza_hielo', fase, o);
+          if (/rayo|relampago|tormenta|arcano/.test(s)) return dispararSkillSfx(t, 'juicio_relampago', fase, o);
+          return dispararSkillSfx(t, 'bola_fuego', fase, o);
+        }
         SONIDOS.habilidad(t, o);
         break;
+      }
     }
   }
 

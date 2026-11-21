@@ -219,7 +219,9 @@
     raiz.traverse(m => {
       if (!m.isMesh || m.isInstancedMesh || !m.visible || Array.isArray(m.material)) return;
       const matNom = m.material && m.material.name ? m.material.name : '';
-      if (matNom.startsWith('Cabello_') || (m.name && m.name.includes('Cabello'))) {
+      const esRostroOTransp = matNom.startsWith('Rostro_') || (m.name && m.name.includes('face_tex_overlay'))
+        || (m.material && m.material.transparent) || (m.geometry && m.geometry.attributes.color && m.geometry.attributes.color.itemSize === 4);
+      if (matNom.startsWith('Cabello_') || (m.name && m.name.includes('Cabello')) || esRostroOTransp) {
         const gCab = m.geometry;
         const totCab = gCab && gCab.attributes.position ? (gCab.index ? gCab.index.count : gCab.attributes.position.count) / 3 : 0;
         antes += totCab; despues += totCab;

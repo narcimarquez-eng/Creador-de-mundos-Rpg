@@ -69,11 +69,11 @@
       cols: 2,
       rows: 2,
       tam: 512,
-      anchoBase: 0.90,
-      altoBase: 2.35,
-      swayAmp: 0.145,
-      swayFreq: 1.50,
-      pushAmp: 0.26,
+      anchoBase: 0.72,
+      altoBase: 1.28,
+      swayAmp: 0.115,
+      swayFreq: 1.65,
+      pushAmp: 0.24,
       celdas: ['bambu_esmeralda', 'bambu_jade_denso', 'bambu_dorado', 'bambu_brote_tupido']
     }
   };
@@ -191,6 +191,51 @@
     };
   }
 
+  // Grados coherentes de tupido (0=ralo .. 4=muy_tupido) para variar parches densos y claros abiertos
+  const GRADOS_TUPIDO = ['ralo', 'ligero', 'medio', 'espeso', 'muy_tupido'];
+
+  function gradoTupidoEn(x, z, bio, seed, opts = {}) {
+    const [ox, oz] = semillaOffset(seed);
+    const nMacro = ruidoValor(x * 0.0085 + ox * 0.72 + 12.4, z * 0.0085 + oz * 0.72 - 19.8);
+    const nMedia = ruidoValor(x * 0.028 - ox * 1.15 - 7.3, z * 0.028 + oz * 0.91 + 33.1);
+    const nFina = ruidoValor(x * 0.085 + ox * 0.43 + 51.7, z * 0.085 - oz * 0.67 + 8.9);
+    let raw = nMacro * 0.54 + nMedia * 0.30 + nFina * 0.16;
+
+    const factorBioma = (bio === 'pradera' || bio === 'bosque' || bio === 'pantano')
+      ? 1.0
+      : (bio === 'taiga' ? 0.85 : ((bio === 'tundra' || bio === 'costa') ? 0.62 : 0.50));
+    raw *= factorBioma;
+    if (opts && opts.enOrillaRiachuelo) raw += 0.26;
+    raw -= smoothstep(0.55, 1.55, (opts && opts.pendiente) || 0) * 0.45;
+    raw = clamp01(raw);
+
+    const contraste = smoothstep(0.16, 0.84, raw);
+    const tupido = clamp01(contraste * 0.70 + raw * 0.30);
+
+    let grado = 4;
+    let multProb = 1.30;
+    let multEscala = 1.24;
+    let extras = 2;
+    if (tupido < 0.22) {
+      grado = 0; multProb = 0.26; multEscala = 0.74; extras = 0;
+    } else if (tupido < 0.44) {
+      grado = 1; multProb = 0.58; multEscala = 0.88; extras = 0;
+    } else if (tupido < 0.68) {
+      grado = 2; multProb = 0.90; multEscala = 1.00; extras = 0;
+    } else if (tupido < 0.85) {
+      grado = 3; multProb = 1.14; multEscala = 1.14; extras = 1;
+    }
+
+    return {
+      tupido,
+      grado,
+      etiqueta: GRADOS_TUPIDO[grado],
+      multProb,
+      multEscala,
+      extras
+    };
+  }
+
   // Decide atlas, celda, escala, rotación y color de una mata en coordenadas del mundo
   function elegirInstanciaPradera(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens = 1, opts = {}) {
     if (escalaDens <= 0) return null;
@@ -199,6 +244,7 @@
 
     const enOrilla = !!(opts && opts.enOrillaRiachuelo);
     const zona = zonaPraderaEn(x, z, seed, { bio, pendiente: dh });
+    const dens = gradoTupidoEn(x, z, bio, seed, { pendiente: dh, enOrillaRiachuelo: enOrilla });
     const wFloresEf = enOrilla && bio === 'pradera' ? Math.max(zona.wFlores, 0.58) : zona.wFlores;
     let prob = probBase;
     if (bio === 'pradera') {
@@ -206,7 +252,8 @@
     } else if (enOrilla && bio === 'bosque') {
       prob = Math.max(prob, 0.90);
     }
-    if (r3 > prob * escalaDens) return null;
+    const multDens = (bio === 'pradera' && zona.wTrigo > 0.35) ? Math.max(0.65, dens.multProb) : dens.multProb;
+    if (r3 > Math.min(0.98, prob * multDens) * escalaDens) return null;
 
     const rMix = (r1 * 0.37 + r2 * 0.29 + r4 * 0.53) % 1;
     const rSub = (r2 * 0.61 + r4 * 0.39) % 1;
@@ -214,18 +261,19 @@
 
     let atlas = 'hierba';
     let cellIndex = 0;
-    let sx = 0.84 + r4 * 0.42;
+    let sx = (0.84 + r4 * 0.42) * dens.multEscala;
     let sz = sx;
-    let sy = 0.78 + r2 * 0.40;
+    let sy = (0.78 + r2 * 0.40) * dens.multEscala;
     let rotY = r1 * 6.2831853;
     let color;
 
     if (bio === 'pradera' && zona.wTrigo > 0.08 && !enOrilla && rMix < zona.wTrigo * 0.96) {
       atlas = 'trigo';
       cellIndex = rSub < 0.40 ? 0 : rSub < 0.68 ? 1 : rSub < 0.92 ? 2 : 3;
-      sx = 0.86 + r4 * 0.34;
+      const escT = 0.88 + dens.tupido * 0.22;
+      sx = (0.86 + r4 * 0.34) * escT;
       sz = sx;
-      sy = 0.80 + r2 * 0.32;
+      sy = Math.max(0.70, Math.min(1.19, (0.80 + r2 * 0.32) * escT));
       rotY = 0.52 + (r1 - 0.5) * 1.15;
       const tone = 0.93 + zona.surco * 0.09 + (r3 - 0.5) * 0.08;
       color = [
@@ -247,9 +295,9 @@
       } else {
         cellIndex = rSub < 0.58 ? 2 : rSub < 0.88 ? 0 : 3;
       }
-      sx = 0.82 + r4 * 0.36;
+      sx = (0.82 + r4 * 0.36) * dens.multEscala;
       sz = sx;
-      sy = 0.78 + r2 * 0.36;
+      sy = (0.78 + r2 * 0.36) * dens.multEscala;
       const neut = 0.93 + r3 * 0.14;
       color = [clamp01(neut * 1.02), clamp01(neut * 1.02), clamp01(neut)];
     } else {
@@ -273,10 +321,10 @@
     }
 
     const { col, row } = celdaUV(cellIndex);
-    return { atlas, cellIndex, col, row, sx, sy, sz, rotY, color };
+    return { atlas, cellIndex, col, row, sx, sy, sz, rotY, color, tupido: dens.tupido, grado: dens.grado, extras: dens.extras };
   }
 
-  // Decide parches de hierba alta (~1 m) y bosquecillos muy tupidos de bambú
+  // Decide parches de hierba alta (~1 m) y rodales bajos/tupidos de bambú según grados de tupido
   function elegirInstanciaAlta(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens = 1, opts = {}) {
     if (escalaDens <= 0) return null;
     if (bio !== 'pradera' && bio !== 'bosque' && bio !== 'pantano' && bio !== 'taiga') return null;
@@ -284,48 +332,52 @@
     const [ox, oz] = semillaOffset(seed);
     const enOrilla = !!(opts && opts.enOrillaRiachuelo);
     const zona = zonaPraderaEn(x, z, seed, { bio, pendiente: dh });
+    const dens = gradoTupidoEn(x, z, bio, seed, { pendiente: dh, enOrillaRiachuelo: enOrilla });
     const rSub = (r2 * 0.61 + r4 * 0.39) % 1;
     const rotY = r1 * 6.2831853;
 
-    if (bio === 'bosque' || bio === 'pradera' || bio === 'pantano') {
+    if ((bio === 'bosque' || bio === 'pradera' || bio === 'pantano') && (dens.tupido >= 0.48 || enOrilla)) {
       const pBx = x * 0.017 + ox * 0.85 - 23.4;
       const pBz = z * 0.017 + oz * 0.85 + 18.7;
-      const nB = ruidoValor(pBx, pBz) * 0.72 + ruidoValor(pBx * 2.3 + 5.1, pBz * 2.3 - 8.2) * 0.28 + (enOrilla ? 0.14 : 0);
-      const wBambu = smoothstep(bio === 'pradera' ? 0.56 : 0.51, bio === 'pradera' ? 0.70 : 0.66, nB) * (1 - smoothstep(0.85, 1.45, dh));
-      if (wBambu > 0.14 && zona.wTrigo < 0.35) {
-        const probB = (0.52 + wBambu * 0.46) * escalaDens;
+      const nB = ruidoValor(pBx, pBz) * 0.72 + ruidoValor(pBx * 2.3 + 5.1, pBz * 2.3 - 8.2) * 0.28 + (enOrilla ? 0.16 : 0);
+      const wBambu = smoothstep(bio === 'pradera' ? 0.62 : 0.55, bio === 'pradera' ? 0.76 : 0.69, nB) * (1 - smoothstep(0.85, 1.40, dh));
+      if (wBambu > 0.20 && zona.wTrigo < 0.30) {
+        const probB = Math.min(0.96, (0.36 + wBambu * 0.48) * (0.72 + dens.tupido * 0.42)) * escalaDens;
         if (r3 <= probB) {
           const cellIndex = rSub < 0.28 ? 0 : rSub < 0.58 ? 1 : rSub < 0.82 ? 2 : 3;
-          const sx = 0.86 + r4 * 0.42;
+          const sx = (0.82 + r4 * 0.34) * (0.88 + dens.tupido * 0.22);
           const sz = sx;
-          const sy = 0.90 + r2 * 0.40;
-          const lum = 0.88 + r3 * 0.20;
+          const sy = (0.78 + r2 * 0.38) * Math.min(1.08, 0.86 + wBambu * 0.22);
+          const lum = 0.86 + r3 * 0.20;
           const color = bio === 'pantano'
             ? [lum * 0.78, lum * 0.92, lum * 0.76]
-            : (bio === 'bosque' ? [lum * 0.86, lum * 1.00, lum * 0.80] : [lum * 0.92, lum * 1.04, lum * 0.84]);
+            : (bio === 'bosque' ? [lum * 0.86, lum * 1.00, lum * 0.80] : [lum * 0.90, lum * 1.02, lum * 0.82]);
           const { col, row } = celdaUV(cellIndex);
-          return { atlas: 'bambu', cellIndex, col, row, sx, sy, sz, rotY, color, denso: wBambu > 0.55 };
+          const extras = (wBambu > 0.52 && dens.grado >= 4) ? 2 : (wBambu > 0.45 || dens.grado >= 3) ? 1 : 0;
+          return { atlas: 'bambu', cellIndex, col, row, sx, sy, sz, rotY, color, tupido: dens.tupido, grado: dens.grado, denso: wBambu > 0.48 || dens.grado >= 3, extras };
         }
       }
     }
 
-    const pAx = x * 0.014 - ox * 1.12 + 41.2;
-    const pAz = z * 0.014 + oz * 0.93 - 11.6;
-    const nA = ruidoValor(pAx, pAz) * 0.70 + ruidoValor(pAx * 2.1 - 3.7, pAz * 2.1 + 9.4) * 0.30;
-    const wAlta = Math.max(smoothstep(0.46, 0.66, nA), enOrilla ? 0.55 : 0) * (1 - smoothstep(1.05, 1.55, dh));
-    if (wAlta > 0.12 && zona.wTrigo < 0.45) {
-      const probA = (0.36 + wAlta * 0.44) * escalaDens;
-      if (r3 <= probA) {
-        const cellIndex = rSub < 0.28 ? 0 : rSub < 0.56 ? 1 : rSub < 0.80 ? 2 : 3;
-        const sx = 0.88 + r4 * 0.34;
-        const sz = sx;
-        const sy = 0.90 + r2 * 0.24;
-        const lum = 0.88 + r3 * 0.22;
-        const color = (bio === 'taiga' || bio === 'pantano')
-          ? [lum * 0.78, lum * 0.91, lum * 0.76]
-          : (bio === 'bosque' ? [lum * 0.85, lum * 0.98, lum * 0.78] : [lum * 0.94, lum * 1.04, lum * 0.86]);
-        const { col, row } = celdaUV(cellIndex);
-        return { atlas: 'hierbaAlta', cellIndex, col, row, sx, sy, sz, rotY, color };
+    if (dens.tupido >= 0.38 || enOrilla) {
+      const pAx = x * 0.014 - ox * 1.12 + 41.2;
+      const pAz = z * 0.014 + oz * 0.93 - 11.6;
+      const nA = ruidoValor(pAx, pAz) * 0.70 + ruidoValor(pAx * 2.1 - 3.7, pAz * 2.1 + 9.4) * 0.30;
+      const wAlta = Math.max(smoothstep(0.46, 0.66, nA), enOrilla ? 0.55 : 0) * (1 - smoothstep(1.05, 1.55, dh));
+      if (wAlta > 0.12 && zona.wTrigo < 0.45) {
+        const probA = Math.min(0.95, (0.32 + wAlta * 0.44) * dens.multProb) * escalaDens;
+        if (r3 <= probA) {
+          const cellIndex = rSub < 0.28 ? 0 : rSub < 0.56 ? 1 : rSub < 0.80 ? 2 : 3;
+          const sx = (0.86 + r4 * 0.32) * (0.90 + dens.tupido * 0.22);
+          const sz = sx;
+          const sy = Math.max(0.86, Math.min(1.18, (0.86 + r2 * 0.24) * (0.92 + dens.tupido * 0.14)));
+          const lum = 0.88 + r3 * 0.22;
+          const color = (bio === 'taiga' || bio === 'pantano')
+            ? [lum * 0.78, lum * 0.91, lum * 0.76]
+            : (bio === 'bosque' ? [lum * 0.85, lum * 0.98, lum * 0.78] : [lum * 0.94, lum * 1.04, lum * 0.86]);
+          const { col, row } = celdaUV(cellIndex);
+          return { atlas: 'hierbaAlta', cellIndex, col, row, sx, sy, sz, rotY, color, tupido: dens.tupido, grado: dens.grado, extras: dens.grado >= 3 ? 1 : 0 };
+        }
       }
     }
 
@@ -341,19 +393,23 @@
     const fBio = probBaseBioma(bio);
     if (fBio <= 0) return null;
 
+    const dens = gradoTupidoEn(x, z, bio, seed);
+    const multProb = 0.42 + dens.tupido * 0.85;
+    const multEsc = 0.80 + dens.tupido * 0.34;
+
     let sx, sy;
     if (distCamino >= hw * 0.66 && distCamino <= hw + 0.95) {
-      const prob = 0.74 * fBio * escalaDens;
+      const prob = Math.min(0.95, 0.74 * fBio * multProb) * escalaDens;
       if (r3 > prob) return null;
-      sx = 0.72 + r4 * 0.42;
-      sy = 0.64 + r2 * 0.44;
+      sx = (0.72 + r4 * 0.42) * multEsc;
+      sy = (0.64 + r2 * 0.44) * multEsc;
     } else if (distCamino <= hw * 0.28) {
       const nCentro = ruidoValor(x * 0.18 + 9.1, z * 0.18 - 4.7);
       if (nCentro <= 0.42) return null;
-      const prob = 0.42 * fBio * escalaDens;
+      const prob = Math.min(0.88, 0.42 * fBio * multProb) * escalaDens;
       if (r3 > prob) return null;
-      sx = 0.54 + r4 * 0.32;
-      sy = 0.48 + r2 * 0.34;
+      sx = (0.54 + r4 * 0.32) * multEsc;
+      sy = (0.48 + r2 * 0.34) * multEsc;
     } else {
       return null;
     }
@@ -365,7 +421,8 @@
       ? [lum * 0.98, lum * 0.90, lum * 0.68]
       : ((bio === 'taiga' || bio === 'pantano') ? [lum * 0.78, lum * 0.86, lum * 0.70] : [lum * 0.92, lum * 0.97, lum * 0.76]);
     const { col, row } = celdaUV(cellIndex);
-    return { atlas: 'camino', cellIndex, col, row, sx, sy, sz: sx, rotY: r1 * 6.2831853, color };
+    const extras = (distCamino >= hw * 0.66 && dens.grado >= 3) ? 1 : 0;
+    return { atlas: 'camino', cellIndex, col, row, sx, sy, sz: sx, rotY: r1 * 6.2831853, color, tupido: dens.tupido, grado: dens.grado, extras };
   }
 
   // Dilata RGB desde píxeles con alfa hacia píxeles transparentes adyacentes para evitar bordes negros en mipmaps
@@ -855,63 +912,66 @@
 
     for (let i = 0; i < nCanas; i++) {
       const f = i / Math.max(1, nCanas - 1);
-      const bx = x0 + s * (0.14 + f * 0.72 + (rng() - 0.5) * 0.04);
-      const alto = s * (0.78 + rng() * 0.19 - Math.abs(f - 0.5) * 0.10);
-      const lean = (f - 0.5) * s * 0.12 + (rng() - 0.5) * s * 0.07;
-      const tx = Math.max(x0 + 14, Math.min(x0 + s - 14, bx + lean));
-      const ty = Math.max(y0 + 8, base - alto);
-      const cx = bx + lean * 0.35;
-      const cy = base - alto * 0.52;
-      const grosor = 5.4 + rng() * 3.4;
+      const centroDist = Math.abs(f - 0.5) * 2;
+      const bx = x0 + s * (0.16 + f * 0.68 + (rng() - 0.5) * 0.04);
+      // Silueta orgánica en cúpula: cañas centrales más altas, exteriores más bajas y arqueadas
+      const hMin = 0.72 - centroDist * 0.24;
+      const alto = s * (hMin + rng() * 0.20);
+      const lean = (f - 0.5) * s * 0.24 + (rng() - 0.5) * s * 0.08;
+      const tx = Math.max(x0 + 12, Math.min(x0 + s - 12, bx + lean));
+      const ty = Math.max(y0 + 10, base - alto);
+      const cx = bx + lean * 0.36;
+      const cy = base - alto * 0.54;
+      const grosor = 3.2 + rng() * 2.2;
 
       trazarTalloFino(ctx, bx, base, cx, cy, tx, ty, grosor, i % 2 === 0 ? pal.b : pal.m);
-      trazarTalloFino(ctx, bx + 1.2, base, cx + 1.2, cy, tx + 1.0, ty, grosor * 0.45, pal.c);
+      trazarTalloFino(ctx, bx + 1.0, base, cx + 1.0, cy, tx + 0.8, ty, grosor * 0.44, pal.c);
 
-      // Anillos nudosos horizontales característicos de la caña de bambú
-      const pasosNudo = 6;
+      // Anillos nudosos horizontales nítidos en la caña
+      const pasosNudo = 5;
       for (let n = 1; n < pasosNudo; n++) {
         const u = n / pasosNudo;
         const mu = 1 - u;
         const nx = mu * mu * bx + 2 * mu * u * cx + u * u * tx;
         const ny = mu * mu * base + 2 * mu * u * cy + u * u * ty;
         ctx.strokeStyle = pal.nudo;
-        ctx.lineWidth = 2.0;
+        ctx.lineWidth = 1.7;
         ctx.beginPath();
-        ctx.moveTo(nx - grosor * 0.62, ny);
-        ctx.lineTo(nx + grosor * 0.62, ny);
+        ctx.moveTo(nx - grosor * 0.68, ny);
+        ctx.lineTo(nx + grosor * 0.68, ny);
         ctx.stroke();
         ctx.strokeStyle = pal.b;
-        ctx.lineWidth = 1.2;
+        ctx.lineWidth = 1.0;
         ctx.beginPath();
-        ctx.moveTo(nx - grosor * 0.58, ny + 1.8);
-        ctx.lineTo(nx + grosor * 0.58, ny + 1.8);
+        ctx.moveTo(nx - grosor * 0.62, ny + 1.5);
+        ctx.lineTo(nx + grosor * 0.62, ny + 1.5);
         ctx.stroke();
         if (n >= 2) canas.push({ nx, ny, u, dir: (n + i) % 2 === 0 ? 1 : -1 });
       }
     }
 
-    // Ramitas tupidas de hojas lanceoladas largas saliendo de cada nudo medio/alto
+    // Ramilletes tupidos de hojas lanceoladas arqueadas en los 2/3 superiores
     canas.forEach(nd => {
-      const hojasEnNudo = 2 + Math.floor(rng() * 2);
+      const hojasEnNudo = 3 + Math.floor(rng() * 2);
       for (let h = 0; h < hojasEnNudo; h++) {
         const lado = h % 2 === 0 ? nd.dir : -nd.dir;
-        const largoH = s * (0.14 + rng() * 0.14);
-        const angV = 0.25 + rng() * 0.85;
-        const lx = Math.max(x0 + 6, Math.min(x0 + s - 6, nd.nx + lado * largoH * Math.cos(angV * 0.5)));
-        const ly = Math.max(y0 + 6, nd.ny - largoH * Math.sin(angV) * 0.55 + rng() * 14);
+        const largoH = s * (0.13 + rng() * 0.13);
+        const angV = 0.20 + rng() * 0.80;
+        const lx = Math.max(x0 + 6, Math.min(x0 + s - 6, nd.nx + lado * largoH * Math.cos(angV * 0.45)));
+        const ly = Math.max(y0 + 6, nd.ny - largoH * Math.sin(angV) * 0.42 + rng() * 14);
         const mx = (nd.nx + lx) * 0.5;
-        const my = Math.min(nd.ny, ly) - 8 - rng() * 10;
-        trazarHojaCurva(ctx, nd.nx, nd.ny, lx, ly, mx, my, 4.6 + rng() * 2.8, pal.hojaB, h === 0 ? pal.hojaP : pal.c);
+        const my = Math.min(nd.ny, ly) - 7 - rng() * 9;
+        trazarHojaCurva(ctx, nd.nx, nd.ny, lx, ly, mx, my, 4.2 + rng() * 2.4, pal.hojaB, h === 0 ? pal.hojaP : pal.c);
       }
     });
 
-    // Relleno de hojas en la parte baja para densidad tupida continua desde la raíz
-    for (let k = 0; k < 14; k++) {
-      const t = k / 13;
-      const bx = x0 + s * (0.16 + t * 0.68);
-      const alto = s * (0.20 + rng() * 0.20);
-      const lean = (t - 0.5) * s * 0.26 + (rng() - 0.5) * 16;
-      trazarHojaCurva(ctx, bx, base, bx + lean, base - alto, bx + lean * 0.45, base - alto * 0.65, 5.2, pal.hojaB, pal.m);
+    // Brotes bajos suaves para anclar el pie con la pradera
+    for (let k = 0; k < 12; k++) {
+      const t = k / 11;
+      const bx = x0 + s * (0.18 + t * 0.64);
+      const alto = s * (0.18 + rng() * 0.16);
+      const lean = (t - 0.5) * s * 0.24 + (rng() - 0.5) * 14;
+      trazarHojaCurva(ctx, bx, base, bx + lean, base - alto, bx + lean * 0.45, base - alto * 0.65, 4.6, pal.hojaB, pal.m);
     }
   }
 
@@ -1040,14 +1100,14 @@
     return geo;
   }
 
-  // Geometría muy tupida de 4 planos cruzados y 3 tramos verticales para cañas y bambú alargado
+  // Geometría muy tupida de 4 planos cruzados y 3 tramos verticales para cañas y bambú compacto
   function crearGeometriaBambuTupido(THREE, ancho, alto, maxInstancias = 450) {
     const P = [], N = [], U = [], C = [], I = [];
     const niveles = [
-      { rad: ancho * 0.44, y: 0, v: 0, col: [0.64, 0.68, 0.58] },
-      { rad: ancho * 0.48, y: alto * 0.35, v: 0.35, col: [0.86, 0.90, 0.82] },
-      { rad: ancho * 0.52, y: alto * 0.70, v: 0.70, col: [0.98, 1.00, 0.95] },
-      { rad: ancho * 0.56, y: alto, v: 1, col: [1.07, 1.08, 1.02] }
+      { rad: ancho * 0.36, y: 0, v: 0, col: [0.58, 0.64, 0.54] },
+      { rad: ancho * 0.42, y: alto * 0.35, v: 0.35, col: [0.84, 0.89, 0.80] },
+      { rad: ancho * 0.49, y: alto * 0.70, v: 0.70, col: [0.97, 1.00, 0.94] },
+      { rad: ancho * 0.54, y: alto, v: 1, col: [1.06, 1.07, 1.01] }
     ];
 
     for (let p = 0; p < 4; p++) {
@@ -1191,6 +1251,7 @@
           'float inF = smoothstep(uFadeInStart, uFadeInEnd, dHeroG);',
           'float edgeF = inF * (1.0 - smoothstep(uFadeStart, uFadeEnd, dHeroG));',
           'transformed.y *= edgeF;',
+          'transformed.xz *= (0.45 + 0.55 * edgeF);',
           'float pN1 = praderaRuido(wPosG.xz * 0.0036 + vec2(uTime * 0.016, uTime * 0.009));',
           'float pN2 = praderaRuido(wPosG.xz * 0.0085 - vec2(uTime * 0.011, -uTime * 0.007));',
           'vNubeSombra = smoothstep(0.46, 0.78, pN1 * 0.72 + pN2 * 0.28) * uNubesSombra;',
@@ -1300,25 +1361,25 @@
     if (fadeInEnd != null) fu.uFadeInEnd.value = fadeInEnd;
   }
 
-  // Capas altas de 1 m (hierbaAlta) y bambú tupido (bambu) con radios ajustables según calidad
+  // Capas altas de 1 m (hierbaAlta) y bambú compacto (bambu) con radios ajustables según calidad
   function crearCapasVegetacionAlta(THREE, maxHierbaAlta = 480, maxBambu = 380, terrainU = {}, renderer = null) {
     const hierbaAlta = crearCapaPradera(THREE, 'hierbaAlta', maxHierbaAlta, terrainU, renderer, {
-      fadeStart: 21.5,
-      fadeEnd: 30.0
+      fadeStart: 16.0,
+      fadeEnd: 26.0
     });
     const bambu = crearCapaPradera(THREE, 'bambu', maxBambu, terrainU, renderer, {
-      fadeStart: 27.0,
-      fadeEnd: 38.0
+      fadeStart: 14.0,
+      fadeEnd: 24.0
     });
     return {
       hierbaAlta,
       bambu,
-      actualizarRadios(rAlta = 30.0, rBambu = 38.0) {
+      actualizarRadios(rAlta = 26.0, rBambu = 24.0) {
         const eA = Math.max(10.0, rAlta);
-        const sA = Math.max(8.0, eA * 0.72);
+        const sA = Math.max(6.0, eA * 0.62);
         actualizarFadeCapa(hierbaAlta, sA, eA);
-        const eB = Math.max(12.0, rBambu);
-        const sB = Math.max(8.0, eB * 0.72);
+        const eB = Math.max(10.0, rBambu);
+        const sB = Math.max(6.0, eB * 0.58);
         actualizarFadeCapa(bambu, sB, eB);
       }
     };
@@ -1463,9 +1524,11 @@
     ATLAS_ALTOS_TIPOS,
     ATLAS_ALTOS_META,
     CAMINO_HIERBA_META,
+    GRADOS_TUPIDO,
     smoothstep,
     semillaOffset,
     ruidoValor,
+    gradoTupidoEn,
     zonaPraderaEn,
     celdaUV,
     elegirInstanciaPradera,

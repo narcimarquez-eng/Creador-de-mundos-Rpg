@@ -12,8 +12,8 @@ test('los gurús, el herrero y el mercader se instancian correctamente incluso c
   ];
 
   const SERVICIOS = [
-    { id: 'serv-herrero', modelo: 'guru-4', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
-    { id: 'serv-mercader', modelo: 'guru-5', nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' }
+    { id: 'serv-herrero', modelo: 'npc/aldeanos/herrero.glb', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
+    { id: 'serv-mercader', modelo: 'npc/aldeanos/mercader.glb', nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' }
   ];
 
   const RADIO_GURUS = 6;
@@ -40,13 +40,13 @@ test('los gurús, el herrero y el mercader se instancian correctamente incluso c
     return entrada;
   }
 
-  // Paso 1: Iniciar lugares secretos (5 cabañas con aldeano) ANTES de colocar gurús
+  // Paso 1: Iniciar lugares secretos (5 cabañas con aldeano medieval) ANTES de colocar gurús
   for (let c = 1; c <= 5; c++) {
     instanciarNpc({
       id: 'cabana-' + c,
       nombre: 'Aldeano Cabaña ' + c,
       servicio: 'cabana'
-    }, 'guru-1', c * 50, c * 50, 0, 0);
+    }, 'npc/aldeanos/campesino.glb', c * 50, c * 50, 0, 0);
   }
 
   assert.strictEqual(gurus.length, 5, 'Hay 5 aldeanos de cabaña registrados');
@@ -138,12 +138,11 @@ test('los gurús, el herrero y el mercader se instancian correctamente incluso c
   assert.strictEqual(servCercanoMercader.info.nombre, 'Mercader Tovi');
 });
 
-test('los 5 gurús usan armaduras auténticas rango SR y los servicios conservan tintes diferenciados sin blancos lavados', () => {
+test('solo los 5 gurús usan armaduras supremas rango SR y servicios/aldeanos/cabañas usan GLBs medievales de npc/aldeanos/', () => {
   const fs = require('fs');
   const path = require('path');
   const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
 
-  // Extraer bloque ESTILOS_NPC de visor-mundo.html
   const iStart = html.indexOf('const ESTILOS_NPC = {');
   assert.ok(iStart > 0, 'Debe existir ESTILOS_NPC en visor-mundo.html');
   const iEnd = html.indexOf('function personalizarEstiloNpc', iStart);
@@ -160,6 +159,12 @@ test('los 5 gurús usan armaduras auténticas rango SR y los servicios conservan
     'guru-5': 'Serafín Ligero de Mithril'
   };
 
+  // Exclusividad SR: ningún otro estilo en ESTILOS_NPC tiene rango SR
+  Object.entries(ESTILOS_NPC).forEach(([id, estilo]) => {
+    if (SETS_SR_ESPERADOS[id]) assert.strictEqual(estilo.rango, 'SR', id + ' es Gurú SR');
+    else assert.notStrictEqual(estilo.rango, 'SR', 'Solo los Gurús llevan SR: ' + id);
+  });
+
   Object.entries(SETS_SR_ESPERADOS).forEach(([id, setEsperado]) => {
     const estilo = ESTILOS_NPC[id];
     assert.ok(estilo, 'Existe entrada para ' + id);
@@ -168,7 +173,6 @@ test('los 5 gurús usan armaduras auténticas rango SR y los servicios conservan
     assert.strictEqual(estilo.set, setEsperado, id + ' corresponde al set ' + setEsperado);
     assert.strictEqual(estilo.armadura, undefined, id + ' no debe sobreescribirse con color inventado');
 
-    // Verificar también que el GLB real y su versión -cerca tienen texturas PBR reales embebidas
     for (const suf of ['', '-cerca', '-lejos']) {
       const glbPath = path.join(__dirname, '..', 'npc', 'gurus', id + suf + '.glb');
       const buf = fs.readFileSync(glbPath);
@@ -178,23 +182,40 @@ test('los 5 gurús usan armaduras auténticas rango SR y los servicios conservan
     }
   });
 
-  // Servicios mantienen tintes de rol diferenciados y ninguno blanco lavado
-  const COLORES_BLANCOS_LAVADOS = new Set([
-    0xffffff, 0xf8fafc, 0xf1f5f9, 0xfffbeb, 0xfdf4ff, 0xe2e8f0, 0xe0f2fe, 0xcbd5e1, 0xf0f9ff
-  ]);
-  for (const id of ['serv-herrero', 'serv-mercader', 'serv-informante', 'serv-boticaria', 'serv-comandante', 'serv-hereje']) {
-    const estilo = ESTILOS_NPC[id];
-    assert.ok(estilo && typeof estilo.armadura === 'number' && typeof estilo.tela === 'number', 'Servicio ' + id + ' tiene estilo numérico');
-    assert.ok(!COLORES_BLANCOS_LAVADOS.has(estilo.armadura), 'La armadura de ' + id + ' no debe ser blanca');
-    assert.ok(!COLORES_BLANCOS_LAVADOS.has(estilo.tela), 'La tela de ' + id + ' no debe ser blanca');
+  // Todos los servicios y aldeanos usan modelo de npc/aldeanos/*.glb
+  const iServ = html.indexOf('const SERVICIOS = [');
+  const iServEnd = html.indexOf('function colocarGurus(', iServ);
+  assert.ok(iServ > 0 && iServEnd > iServ, 'Debe existir SERVICIOS en visor-mundo.html');
+  const SERVICIOS_REAL = new Function(html.substring(iServ, iServEnd) + '\nreturn SERVICIOS;')();
+  assert.ok(SERVICIOS_REAL.length >= 6);
+  SERVICIOS_REAL.forEach(sv => {
+    assert.ok(String(sv.modelo).startsWith('npc/aldeanos/') && sv.modelo.endsWith('.glb'), `${sv.id} debe usar modelo de aldeano (${sv.modelo})`);
+    assert.ok(!String(sv.modelo).includes('guru-'), `${sv.id} no puede usar modelo de Gurú`);
+    const est = ESTILOS_NPC[sv.id];
+    assert.ok(est && est.rolAldeano === true && est.rango === 'Aldeano', `${sv.id} debe tener rango Aldeano`);
+  });
+
+  // Todos los 10 GLB de aldeanos existen con texturas y clips idle + walk
+  const aldeanosEsperados = ['herrero.glb', 'mercader.glb', 'herbolario.glb', 'informante.glb', 'tabernero.glb', 'campesino.glb', 'lenador.glb', 'cazador.glb', 'aldeana.glb', 'aldeano.glb'];
+  for (const file of aldeanosEsperados) {
+    const glbPath = path.join(__dirname, '..', 'npc', 'aldeanos', file);
+    assert.ok(fs.existsSync(glbPath), 'Falta GLB de aldeano: ' + file);
+    const buf = fs.readFileSync(glbPath);
+    assert.strictEqual(buf.toString('ascii', 0, 4), 'glTF', file + ' cabecera válida');
+    const gltf = JSON.parse(buf.subarray(20, 20 + buf.readUInt32LE(12)).toString('utf8'));
+    const anims = (gltf.animations || []).map(a => a.name);
+    assert.ok(anims.includes('idle') && anims.includes('walk'), `${file} necesita idle y walk (${anims.join(',')})`);
+    assert.ok((gltf.images || []).length >= 1, `${file} debe contener texturas embebidas`);
   }
 
-  assert.strictEqual(ESTILOS_NPC['serv-herrero'].armadura, 0x1f2937, 'Herrero usa hierro forjado oscuro');
-  assert.strictEqual(ESTILOS_NPC['serv-herrero'].ribete, 0xea580c, 'Herrero tiene reflejos de fragua incandescente');
-  assert.strictEqual(ESTILOS_NPC['serv-mercader'].tela, 0x047857, 'Mercader viste sedas verde esmeralda');
+  // Encargos de zona y cabañas secretas usan npc/aldeanos/*.glb (nunca guru-*)
+  const MisionZonaLib = require('../js/mision-zona.js');
+  assert.ok(MisionZonaLib.MODELOS.every(m => String(m).startsWith('npc/aldeanos/') && !String(m).includes('guru-')));
+  const LugaresSecretosLib = require('../js/lugares-secretos.js');
+  assert.ok(LugaresSecretosLib.CABANAS_GLB.every(c => String(c.aldeanoModelo).startsWith('npc/aldeanos/') && !String(c.aldeanoModelo).includes('guru-')));
 });
 
-test('personalizarEstiloNpc preserva intactas las armaduras SR de los gurús y aplica tintes solo a servicios', () => {
+test('personalizarEstiloNpc preserva intactas las armaduras SR de los gurús y los trajes reales de los aldeanos', () => {
   const fs = require('fs');
   const path = require('path');
   const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
@@ -235,20 +256,19 @@ test('personalizarEstiloNpc preserva intactas las armaduras SR de los gurús y a
   }
 
   const meshes = [
-    makeMockMesh('Material_12', 0xf26776),   // armadura SR auténtica
-    makeMockMesh('Material_16', 0x0e7c5a),   // tela SR auténtica
-    makeMockMesh('Material_9', 0xc91e3a),    // ribete metálico SR
-    makeMockMesh('Material_18', 0x3b2114),   // faldón/capa SR
-    makeMockMesh('Material_20', 0xffaa00),   // detalle emisivo/botas
-    makeMockMesh('Cabello_14', 0xdde2ea),    // cabello
-    makeMockMesh('Material_5', 0x995533)     // piel
+    makeMockMesh('Material_12', 0xf26776),
+    makeMockMesh('Material_16', 0x0e7c5a),
+    makeMockMesh('Material_9', 0xc91e3a),
+    makeMockMesh('Material_18', 0x3b2114),
+    makeMockMesh('Material_20', 0xffaa00),
+    makeMockMesh('Cabello_14', 0xdde2ea),
+    makeMockMesh('Material_5', 0x995533)
   ];
 
   const mockModel = {
     traverse(cb) { meshes.forEach(cb); }
   };
 
-  // Probar con los 5 gurús: ninguno debe ver sobreescritos sus colores originales del GLB SR
   for (let i = 1; i <= 5; i++) {
     const entradaGuru = { info: { id: 'guru-' + i, nombre: 'Gurú ' + i }, nombreModelo: 'guru-' + i };
     personalizarEstiloNpc(entradaGuru, mockModel);
@@ -259,13 +279,10 @@ test('personalizarEstiloNpc preserva intactas las armaduras SR de los gurús y a
     assert.strictEqual(meshes[5].material.color.hex, 0xdde2ea, `guru-${i} no altera cabello`);
   }
 
-  // Probar con Herrero Brann (serv-herrero): sí recibe su tinte de servicio
-  const entradaHerrero = { info: { id: 'serv-herrero', nombre: 'Herrero Brann', servicio: 'herrero' }, nombreModelo: 'guru-4' };
+  // Aldeanos y servicios conservan también sus texturas medievales reales sin tintes encima
+  const entradaHerrero = { info: { id: 'serv-herrero', nombre: 'Herrero Brann', servicio: 'herrero', esAldeano: true }, nombreModelo: 'npc/aldeanos/herrero.glb' };
   personalizarEstiloNpc(entradaHerrero, mockModel);
-
-  assert.strictEqual(meshes[0].material.color.hex, 0x1f2937, 'Herrero: Armadura de hierro forjado oscuro');
-  assert.strictEqual(meshes[1].material.color.hex, 0x292524, 'Herrero: Mandil de cuero ahumado');
-  assert.strictEqual(meshes[2].material.color.hex, 0xea580c, 'Herrero: Reflejos de fragua naranja fuego');
-  assert.strictEqual(meshes[4].material.color.hex, 0x0c0a09, 'Herrero: Botas pesadas');
+  assert.strictEqual(meshes[0].material.color.hex, 0xf26776, 'Aldeano herrero conserva sus materiales originales');
+  assert.strictEqual(meshes[1].material.color.hex, 0x0e7c5a, 'Aldeano herrero conserva su ropa medieval original');
 });
 

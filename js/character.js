@@ -59,6 +59,56 @@
     escudo_mana: ['guard_counter', 'ultimate_nova', 'escudo'],
     paso_sombrio: ['thrust_lunge', 'spin_slash', 'dodge'],
     hoja_veneno: ['spin_slash', 'thrust_lunge', 'punch'],
+    // Skills de arma del nuevo estudio (con fallback a clips clásicos para GLBs previos)
+    sw_iaido: ['blink_iaido', 'thrust_lunge', 'punch'],
+    sw_solar: ['sword_heavy_cleave', 'overhead_cleave', 'spin_slash'],
+    sw_blitz: ['sword_blitz_rush', 'thrust_lunge', 'dodge'],
+    sw_cross: ['sword_double_cross', 'spin_slash', 'punch'],
+    sw_lightning: ['sword_crescent_draw', 'rising_slash', 'spin_slash'],
+    sw_celestial: ['sword_sky_breaker', 'ultimate_slam', 'overhead_cleave'],
+    gs_sweep: ['polearm_wide_sweep', 'whirlwind', 'spin_slash'],
+    gs_titan: ['greataxe_titan_arc', 'overhead_cleave', 'spin_slash'],
+    gs_cross: ['sword_double_cross', 'spin_slash', 'punch'],
+    gs_colossus: ['colossus_cleave', 'overhead_cleave', 'ultimate_slam'],
+    gs_crescent: ['sword_crescent_draw', 'rising_slash', 'spin_slash'],
+    gs_skybreak: ['sword_sky_breaker', 'ultimate_slam', 'overhead_cleave'],
+    dg_dash: ['dagger_shadow_dash', 'thrust_lunge', 'dodge'],
+    dg_blink: ['blink_iaido', 'spin_slash', 'punch'],
+    dg_rush: ['dagger_backstab_rush', 'thrust_lunge', 'spin_slash'],
+    dg_venom: ['dragon_helix', 'whirlwind', 'spin_slash'],
+    dg_shadow: ['phantom_flurry', 'spin_slash', 'punch'],
+    dg_zigzag: ['dagger_zigzag_blitz', 'triple_corkscrew', 'spin_slash'],
+    ax_thunder: ['attack', 'punch', 'spin_slash'],
+    ax_inferno: ['spin_slash', 'whirlwind', 'punch'],
+    ax_berserk: ['aerial_plunge', 'ultimate_slam', 'jump'],
+    ax_reap: ['vortex_reaper', 'whirlwind', 'spin_slash'],
+    ax_nordic: ['celestial_judgment', 'ultimate_slam', 'nova'],
+    a2_sweep: ['polearm_wide_sweep', 'whirlwind', 'spin_slash'],
+    a2_titan: ['greataxe_titan_arc', 'overhead_cleave', 'spin_slash'],
+    a2_colossus: ['colossus_cleave', 'overhead_cleave', 'ultimate_slam'],
+    a2_vortex: ['vortex_reaper', 'whirlwind', 'spin_slash'],
+    a2_demolish: ['earthshaker_combo', 'ultimate_slam', 'slam'],
+    mc_storm: ['overhead_cleave', 'spin_slash', 'punch'],
+    mc_crush: ['colossus_cleave', 'overhead_cleave', 'slam'],
+    mc_seismic: ['earthshaker_combo', 'ultimate_slam', 'slam'],
+    mc_titan: ['ultimate_slam', 'slam', 'overhead_cleave'],
+    mc_judgment: ['celestial_judgment', 'ultimate_slam', 'nova'],
+    ln_sweep: ['polearm_wide_sweep', 'spin_slash', 'whirlwind'],
+    ln_skewer: ['lance_extended_skewer', 'thrust_lunge', 'punch'],
+    ln_phalanx: ['colossus_cleave', 'overhead_cleave', 'spin_slash'],
+    ln_valkyrie: ['lance_impale_vault', 'aerial_plunge', 'thrust_lunge'],
+    ln_dragon: ['dragon_helix', 'triple_corkscrew', 'whirlwind'],
+    bw_bolt: ['archery', 'disparo'],
+    bw_double: ['bow_double_shot', 'archery', 'disparo'],
+    bw_frost: ['bow_frost_shot', 'archery', 'disparo'],
+    bw_aerial: ['aerial_shot', 'archery', 'disparo'],
+    bw_barrage: ['bow_barrage', 'aerial_shot', 'archery'],
+    bw_prism: ['bow_prism_rain', 'aerial_shot', 'archery'],
+    st_tempest: ['arcane_tempest', 'ultimate_nova', 'nova'],
+    st_meteor: ['meteor_barrage', 'ultimate_slam', 'nova'],
+    st_judgment: ['celestial_judgment', 'ultimate_beam', 'nova'],
+    st_solar: ['ultimate_beam', 'nova', 'punch'],
+    st_nova: ['ultimate_nova', 'nova', 'blast'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
     dodge: ['dodge', 'esquiv', 'roll', 'rodar', 'dash', 'salto', 'acrobat', 'jump'],
@@ -99,6 +149,25 @@
     escudo_mana: { lock: 1.20 },
     paso_sombrio: { lock: 1.20 },
     hoja_veneno: { lock: 1.30 },
+    // Nuevas skills de arma (lock idéntico a CombatLib.SKILLS)
+    sw_iaido: { lock: 1.45 }, sw_solar: { lock: 1.60 }, sw_blitz: { lock: 1.50 },
+    sw_cross: { lock: 1.80 }, sw_lightning: { lock: 1.75 }, sw_celestial: { lock: 1.95 },
+    gs_sweep: { lock: 1.65 }, gs_titan: { lock: 1.75 }, gs_cross: { lock: 1.85 },
+    gs_colossus: { lock: 1.85 }, gs_crescent: { lock: 1.85 }, gs_skybreak: { lock: 2.00 },
+    dg_dash: { lock: 1.35 }, dg_blink: { lock: 1.40 }, dg_rush: { lock: 1.50 },
+    dg_venom: { lock: 1.60 }, dg_shadow: { lock: 1.75 }, dg_zigzag: { lock: 1.85 },
+    ax_thunder: { lock: 1.40 }, ax_inferno: { lock: 1.55 }, ax_berserk: { lock: 1.75 },
+    ax_reap: { lock: 1.80 }, ax_nordic: { lock: 1.95 },
+    a2_sweep: { lock: 1.65 }, a2_titan: { lock: 1.75 }, a2_colossus: { lock: 1.85 },
+    a2_vortex: { lock: 1.85 }, a2_demolish: { lock: 2.05 },
+    mc_storm: { lock: 1.50 }, mc_crush: { lock: 1.75 }, mc_seismic: { lock: 1.95 },
+    mc_titan: { lock: 1.90 }, mc_judgment: { lock: 2.05 },
+    ln_sweep: { lock: 1.60 }, ln_skewer: { lock: 1.65 }, ln_phalanx: { lock: 1.75 },
+    ln_valkyrie: { lock: 1.85 }, ln_dragon: { lock: 1.85 },
+    bw_bolt: { lock: 1.35 }, bw_double: { lock: 1.55 }, bw_frost: { lock: 1.60 },
+    bw_aerial: { lock: 2.00 }, bw_barrage: { lock: 1.95 }, bw_prism: { lock: 2.10 },
+    st_tempest: { lock: 1.45 }, st_meteor: { lock: 1.65 }, st_judgment: { lock: 1.75 },
+    st_solar: { lock: 1.85 }, st_nova: { lock: 2.00 },
     jump: { lock: 0.0 },
     dodge: { lock: 0.0 },
     victory: { lock: 0.0 }
@@ -113,7 +182,19 @@
     bola_fuego: { conjuro: true }, lanza_hielo: { conjuro: true },
     ventisca_glacial: { salto: 0.5, conjuro: true }, tormenta_fuego: { salto: 0.7, conjuro: true }, rayo_arcano: { salto: 0.6, conjuro: true },
     orbe_arcano: { conjuro: true }, flecha_perforante: { arco: true }, trampa_espinas: { arco: true },
-    escudo_mana: { salto: 0.35, conjuro: true }, paso_sombrio: { vueltas: 1 }, hoja_veneno: { vueltas: 1 }
+    escudo_mana: { salto: 0.35, conjuro: true }, paso_sombrio: { vueltas: 1 }, hoja_veneno: { vueltas: 1 },
+    sw_iaido: { vueltas: 1 }, sw_solar: { vueltas: 1 }, sw_blitz: { salto: 0.4 }, sw_cross: { vueltas: 1 },
+    sw_lightning: { vueltas: 1, conjuro: true }, sw_celestial: { salto: 1.0, conjuro: true },
+    gs_sweep: { vueltas: 1 }, gs_titan: { vueltas: 1 }, gs_cross: { vueltas: 1 }, gs_colossus: { salto: 0.6 },
+    gs_crescent: { conjuro: true }, gs_skybreak: { salto: 1.2, conjuro: true },
+    dg_dash: { vueltas: 1 }, dg_blink: { vueltas: 1 }, dg_rush: { vueltas: 1 }, dg_venom: { vueltas: 2 },
+    dg_shadow: { vueltas: 2 }, dg_zigzag: { vueltas: 2, salto: 0.6 },
+    ax_thunder: { vueltas: 1 }, ax_inferno: { vueltas: 2 }, ax_berserk: { salto: 1.3 }, ax_reap: { vueltas: 2 }, ax_nordic: { salto: 1.2, conjuro: true },
+    a2_sweep: { vueltas: 1 }, a2_titan: { vueltas: 1 }, a2_colossus: { salto: 0.6 }, a2_vortex: { vueltas: 2 }, a2_demolish: { salto: 1.4 },
+    mc_storm: { vueltas: 1 }, mc_crush: { salto: 0.7 }, mc_seismic: { salto: 1.2 }, mc_titan: { salto: 1.5 }, mc_judgment: { salto: 1.3, conjuro: true },
+    ln_sweep: { vueltas: 1 }, ln_skewer: { salto: 0.3 }, ln_phalanx: { vueltas: 1 }, ln_valkyrie: { salto: 1.4 }, ln_dragon: { vueltas: 2 },
+    bw_bolt: { arco: true }, bw_double: { arco: true }, bw_frost: { arco: true }, bw_aerial: { salto: 1.3, arco: true }, bw_barrage: { arco: true, conjuro: true }, bw_prism: { salto: 0.8, arco: true, conjuro: true },
+    st_tempest: { conjuro: true }, st_meteor: { salto: 0.5, conjuro: true }, st_judgment: { salto: 0.6, conjuro: true }, st_solar: { conjuro: true }, st_nova: { salto: 0.8, conjuro: true }
   };
 
   // Animación corporal especial procedimental por habilidad (complementa e independiza del clip del estudio)
@@ -143,7 +224,56 @@
     ventisca_glacial:{ dur: 1.50, tipo: 'conjuro' },
     tormenta_fuego:  { dur: 1.55, tipo: 'conjuro' },
     rayo_arcano:     { dur: 1.45, tipo: 'conjuro' },
-    escudo_mana:     { dur: 1.20, tipo: 'conjuro' }
+    escudo_mana:     { dur: 1.20, tipo: 'conjuro' },
+    sw_iaido:        { dur: 1.45, tipo: 'estocada' },
+    sw_solar:        { dur: 1.60, tipo: 'hendidura' },
+    sw_blitz:        { dur: 1.50, tipo: 'furia' },
+    sw_cross:        { dur: 1.80, tipo: 'corte_cruzado' },
+    sw_lightning:    { dur: 1.75, tipo: 'ascendente' },
+    sw_celestial:    { dur: 1.95, tipo: 'titan' },
+    gs_sweep:        { dur: 1.65, tipo: 'giro', vueltas: 1, salto: 0.35, inclinacion: 0.22 },
+    gs_titan:        { dur: 1.75, tipo: 'hendidura' },
+    gs_cross:        { dur: 1.85, tipo: 'corte_cruzado' },
+    gs_colossus:     { dur: 1.85, tipo: 'hendidura' },
+    gs_crescent:     { dur: 1.85, tipo: 'furia' },
+    gs_skybreak:     { dur: 2.00, tipo: 'titan' },
+    dg_dash:         { dur: 1.35, tipo: 'estocada' },
+    dg_blink:        { dur: 1.40, tipo: 'corte_cruzado' },
+    dg_rush:         { dur: 1.50, tipo: 'estocada' },
+    dg_venom:        { dur: 1.60, tipo: 'giro', vueltas: 2, salto: 0.45, inclinacion: 0.22 },
+    dg_shadow:       { dur: 1.75, tipo: 'corte_cruzado' },
+    dg_zigzag:       { dur: 1.85, tipo: 'giro', vueltas: 2, salto: 0.70, inclinacion: 0.25 },
+    ax_thunder:      { dur: 1.40, tipo: 'furia' },
+    ax_inferno:      { dur: 1.55, tipo: 'giro', vueltas: 1.5, salto: 0.55, inclinacion: 0.25 },
+    ax_berserk:      { dur: 1.75, tipo: 'salto_golpe', altura: 1.85, tPico: 0.42, tImpacto: 0.72, avance: 0.85, giroAire: 1 },
+    ax_reap:         { dur: 1.80, tipo: 'giro', vueltas: 2, salto: 0.50, inclinacion: 0.26 },
+    ax_nordic:       { dur: 1.95, tipo: 'titan' },
+    a2_sweep:        { dur: 1.65, tipo: 'giro', vueltas: 1, salto: 0.35, inclinacion: 0.22 },
+    a2_titan:        { dur: 1.75, tipo: 'hendidura' },
+    a2_colossus:     { dur: 1.85, tipo: 'hendidura' },
+    a2_vortex:       { dur: 1.85, tipo: 'giro', vueltas: 2, salto: 0.55, inclinacion: 0.26 },
+    a2_demolish:     { dur: 2.05, tipo: 'titan' },
+    mc_storm:        { dur: 1.50, tipo: 'hendidura' },
+    mc_crush:        { dur: 1.75, tipo: 'hendidura' },
+    mc_seismic:      { dur: 1.95, tipo: 'salto_golpe', altura: 1.75, tPico: 0.44, tImpacto: 0.76, avance: 0.65 },
+    mc_titan:        { dur: 1.90, tipo: 'salto_golpe', altura: 2.15, tPico: 0.42, tImpacto: 0.70, avance: 0.80 },
+    mc_judgment:     { dur: 2.05, tipo: 'titan' },
+    ln_sweep:        { dur: 1.60, tipo: 'giro', vueltas: 1, salto: 0.30, inclinacion: 0.18 },
+    ln_skewer:       { dur: 1.65, tipo: 'estocada' },
+    ln_phalanx:      { dur: 1.75, tipo: 'hendidura' },
+    ln_valkyrie:     { dur: 1.85, tipo: 'salto_golpe', altura: 1.95, tPico: 0.44, tImpacto: 0.74, avance: 0.90 },
+    ln_dragon:       { dur: 1.85, tipo: 'giro', vueltas: 2, salto: 0.65, inclinacion: 0.24 },
+    bw_bolt:         { dur: 1.35, tipo: 'conjuro' },
+    bw_double:       { dur: 1.55, tipo: 'conjuro' },
+    bw_frost:        { dur: 1.60, tipo: 'conjuro' },
+    bw_aerial:       { dur: 2.00, tipo: 'salto_golpe', altura: 1.40, tPico: 0.45, tImpacto: 0.72, avance: 0.20, giroAire: 1 },
+    bw_barrage:      { dur: 1.95, tipo: 'conjuro' },
+    bw_prism:        { dur: 2.10, tipo: 'nova' },
+    st_tempest:      { dur: 1.45, tipo: 'conjuro' },
+    st_meteor:       { dur: 1.65, tipo: 'conjuro' },
+    st_judgment:     { dur: 1.75, tipo: 'conjuro' },
+    st_solar:        { dur: 1.85, tipo: 'conjuro' },
+    st_nova:         { dur: 2.00, tipo: 'nova' }
   };
 
   function _smooth01(a, b, x) {
@@ -1280,7 +1410,7 @@
       if (this.cameraMode === 'follow') this.colocarCamara();
       this.modoCamaraAnterior = this.cameraMode;
 
-      // Desvanecimiento suave del avatar si la cámara está demasiado cerca (< 2.6m) para que NUNCA tape la pantalla
+      // Desvanecimiento suave del avatar si la cámara está demasiado cerca (< 2.6m) preservando transparencias nativas (rostro/córnea)
       if (this.camera && this.model) {
         const dCam = this.camera.position.distanceTo(this.root.position);
         const opacidad = dCam < 1.1 ? 0.0 : (dCam < 2.6 ? Math.max(0.08, (dCam - 1.1) / 1.5) : 1.0);
@@ -1288,13 +1418,23 @@
           if (child.isMesh && child.material) {
             const mats = Array.isArray(child.material) ? child.material : [child.material];
             mats.forEach(m => {
+              if (!m.userData) m.userData = {};
+              if (!m.userData._origFade) {
+                m.userData._origFade = {
+                  transparent: !!m.transparent,
+                  opacity: typeof m.opacity === 'number' ? m.opacity : 1.0,
+                  depthWrite: m.depthWrite !== undefined ? m.depthWrite : true
+                };
+              }
+              const orig = m.userData._origFade;
               if (opacidad < 0.98) {
-                m.transparent = true;
-                m.opacity = opacidad;
+                if (!m.transparent) { m.transparent = true; m.needsUpdate = true; }
+                m.opacity = orig.opacity * opacidad;
                 child.visible = opacidad > 0.05;
               } else {
-                m.transparent = false;
-                m.opacity = 1.0;
+                if (m.transparent !== orig.transparent) { m.transparent = orig.transparent; m.needsUpdate = true; }
+                m.opacity = orig.opacity;
+                m.depthWrite = orig.depthWrite;
                 child.visible = true;
               }
             });

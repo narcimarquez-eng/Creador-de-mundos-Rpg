@@ -203,12 +203,37 @@ t('profesiones real (catalogo.json): perfilesClase, armas iniciales, compatibili
   m.inventario.push(petoPesado);
   assert.throws(() => E.equipar(m, petoPesado.uid, 10, cat), /compatible/i);
 
-  // Forjar pieza básica en ranura futura de Mago antes de meter túnicas hace fallback a ranura compatible
-  const forjaMagoFallback = E.forjarPiezaBasica(m, cat, 'torso', () => 0);
+  // Con las nuevas túnicas de Armaduras-glb, Mago SÍ tiene armaduras dedicadas por grado (D..SR)
+  const tieneTipoMago = p => Array.isArray(p.tipoArmadura) ? p.tipoArmadura.includes('mago') : p.tipoArmadura === 'mago';
+  const torsosMago = cat.ranuras.torso.filter(tieneTipoMago);
+  assert.ok(torsosMago.length >= 6, 'El catálogo incluye túnicas dedicadas para Mago');
+  const magoTodas = E.piezasDeClase(cat, 'mago');
+  for (const gChk of ['D', 'C', 'B', 'A', 'S', 'SR']) {
+    assert.ok(magoTodas.some(p => E.gradoDePieza(p) === gChk && p.ranura !== 'weapon'), `Mago debe tener armadura dedicada en grado ${gChk}`);
+  }
+  const forjaMagoDirecto = E.forjarPiezaBasica(m, cat, 'torso', () => 0);
+  assert.ok(forjaMagoDirecto && forjaMagoDirecto.ranura === 'torso' && tieneTipoMago(forjaMagoDirecto), 'Forja básica de Mago en torso produce túnica dedicada');
+
+  // Fallback si un catálogo aislado no tuviera torso/guantes/hombreras/escarcelas/musleras/rodilleras para Mago
+  const catSinMago = JSON.parse(JSON.stringify(cat));
+  ['torso', 'gloves', 'shoulders', 'tassets', 'cuisses', 'knees'].forEach(r => {
+    if (catSinMago.ranuras[r]) catSinMago.ranuras[r] = catSinMago.ranuras[r].filter(p => !tieneTipoMago(p));
+  });
+  const forjaMagoFallback = E.forjarPiezaBasica(m, catSinMago, 'torso', () => 0);
   assert.ok(forjaMagoFallback && !['torso', 'gloves', 'shoulders', 'tassets', 'cuisses', 'knees'].includes(forjaMagoFallback.ranura));
+
+  // Grados D..SR y escalado de estadísticas + clase de arma + escudos
+  assert.deepStrictEqual(Object.keys(E.GRADOS), ['D', 'C', 'B', 'A', 'S', 'SR']);
+  const espadaInst = E.piezasDeClase(cat, 'guerrero').find(w => w.ranura === 'weapon' && w.claseArma === 'espadas');
+  assert.ok(espadaInst && E.claseArmaDePieza(espadaInst, cat) === 'espadas');
+  const torsoD = E.instancia({ id: 'torso.t1', ranura: 'torso', idx: 1, nombre: 'Pet D', nivel: 10, grado: 'D', tipoArmadura: 'pesada' }, 1);
+  const torsoSR = E.instancia({ id: 'torso.t2', ranura: 'torso', idx: 2, nombre: 'Pet SR', nivel: 10, grado: 'SR', tipoArmadura: 'pesada' }, 1);
+  assert.ok(torsoSR.defensa > torsoD.defensa, 'Grado SR debe dar más defensa que D a igual nivel');
+  assert.ok(Array.isArray(cat.ranuras.shield) && cat.ranuras.shield.length >= 1, 'Escudos disponibles en el catálogo');
 
   // Al añadir futuras armaduras etiquetadas con tipoArmadura, aparecen automáticamente solo para su clase y se priorizan
   const catFut = JSON.parse(JSON.stringify(cat));
+  catFut.ranuras.underlayer = catFut.ranuras.underlayer.filter(p => !tieneTipoMago(p));
   catFut.ranuras.torso.push({ idx: 99, nombre: 'Túnica Astral de Prueba', nivel: 1, archivo: 'piezas/torso/99.glb', tipoArmadura: 'mago' });
   catFut.ranuras.underlayer.push({ idx: 98, nombre: 'Túnica Base de Aprendiz', nivel: 1, archivo: 'piezas/underlayer/98.glb', tipoArmadura: 'mago' });
 

@@ -239,10 +239,20 @@
     #partidas .slot .info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #partidas .muted { color: var(--muted); font-size: 12px; }
     #partidas .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    #crear { position: absolute; inset: 0; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; z-index: 58; padding: 12px; }
-    #crear.show { display: flex; }
-    #crear .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(1140px, 96vw); max-width: 100%; max-height: 96vh; overflow-y: auto; }
-    #crear h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
+    #crear, #crear-aldeano { position: absolute; inset: 0; background: rgba(2,6,23,.85); display: none; align-items: center; justify-content: center; z-index: 58; padding: 12px; }
+    #crear.show, #crear-aldeano.show { display: flex; }
+    #crear .box, #crear-aldeano .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(1140px, 96vw); max-width: 100%; max-height: 96vh; overflow-y: auto; }
+    #crear-aldeano { z-index: 59; }
+    #crear-aldeano .box { width: min(560px, 96vw); }
+    #crear h2, #crear-aldeano h2 { margin: 0 0 8px; color: var(--gold); font-size: 16px; }
+    .grado-tag { display: inline-block; padding: 1px 6px; border-radius: 5px; font-size: 10px; font-weight: 800; letter-spacing: 0.4px; margin-right: 4px; vertical-align: middle; border: 1px solid rgba(255,255,255,0.22); }
+    .grado-D { background: #334155; color: #e2e8f0; }
+    .grado-C { background: #166534; color: #bbf7d0; border-color: #4ade80; }
+    .grado-B { background: #1d4ed8; color: #dbeafe; border-color: #60a5fa; }
+    .grado-A { background: #7e22ce; color: #f3e8ff; border-color: #c084fc; }
+    .grado-S { background: #b45309; color: #fef3c7; border-color: #fbbf24; }
+    .grado-SR { background: linear-gradient(135deg,#dc2626,#d97706); color: #fffbeb; border-color: #fde047; }
+    .clase-arm-tag { display: inline-block; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 600; background: rgba(56,189,248,0.16); color: #bae6fd; border: 1px solid rgba(56,189,248,0.35); margin-right: 4px; }
     #objetos { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
     #objetos.show { display: flex; }
     #objetos .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 620px; max-width: 96vw; max-height: 90vh; overflow-y: auto; }
@@ -371,16 +381,26 @@
       #capitulo .btns, #cronica .btns { margin-top: 8px; gap: 4px; }
       #capitulo .btns button, #cronica .btns button { padding: 4px 8px; font-size: 11px; }
     }
-    #mapa-mundo { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 46; padding: 12px; }
+    #mapa-mundo { position: absolute; inset: 0; background: rgba(2,6,23,.82); display: none; align-items: center; justify-content: center; z-index: 46; padding: 10px; }
     #mapa-mundo.show { display: flex; }
-    #mapa-mundo .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 14px; width: min(760px, 100%); max-height: 96vh; overflow-y: auto; }
-    #mapa-mundo h2 { margin: 0 0 8px; color: var(--gold); font-size: 17px; }
-    #mapa-lienzo { display: block; width: min(100%, max(260px, calc(100vh - 250px))); aspect-ratio: 1; margin: 0 auto; border-radius: 8px; border: 1px solid #1e293b; cursor: crosshair; touch-action: none; }
-    #mapa-cursor { margin: 8px 0 6px; font-size: 13px; color: #e2e8f0; min-height: 18px; }
+    #mapa-mundo .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px 14px; width: min(1120px, 96vw); height: min(88dvh, 840px); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 60px rgba(2,6,23,.85); }
+    #mapa-mundo .mapa-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex: none; }
+    #mapa-mundo h2 { margin: 0; color: var(--gold); font-size: 17px; }
+    #mapa-mundo .mapa-ctrls { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    #mapa-mundo .mapa-ctrls button { padding: 5px 9px; font-size: 12px; border-radius: 7px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; }
+    #mapa-mundo .mapa-ctrls button:hover { border-color: #38bdf8; background: #26354d; }
+    #mapa-mundo .mapa-ctrls button.activo { border-color: #fde047; background: #334155; color: #fde68a; }
+    #mapa-mundo .mapa-wrap { position: relative; flex: 1; min-height: 220px; background: #1e3a5f; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden; }
+    #mapa-lienzo { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    #mapa-lienzo:active { cursor: grabbing; }
+    #mapa-norte { position: absolute; top: 10px; right: 12px; pointer-events: none; background: rgba(15,23,42,.82); border: 1px solid #334155; color: #e2e8f0; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: .5px; }
+    #mapa-escala { position: absolute; left: 12px; bottom: 10px; pointer-events: none; background: rgba(15,23,42,.82); border: 1px solid #334155; padding: 4px 8px; border-radius: 6px; font-size: 11px; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
+    #mapa-escala-bar { display: inline-block; height: 5px; border: 2px solid #e2e8f0; border-top: 0; min-width: 18px; }
+    #mapa-cursor { margin: 7px 0 4px; font-size: 12px; color: #cbd5e1; min-height: 17px; flex: none; }
     #mapa-mundo .muted { color: var(--muted); font-size: 12px; }
-    #mapa-mundo .leyenda { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+    #mapa-mundo .leyenda { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); flex: none; }
     #mapa-mundo .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
-    #mapa-mundo .btns { display: flex; gap: 6px; margin-top: 10px; }
+    #mapa-mundo .btns { display: flex; gap: 6px; margin-top: 8px; flex: none; }
     #inv-card { position: absolute; top: 54px; right: 8px; width: 285px; max-width: calc(100vw - 16px); z-index: 20; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 11px; }
     #inv-card.oculta { display: none; }
     #inv-card .ic-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
@@ -420,10 +440,12 @@
     #objetos .slot .info { flex: 1; min-width: 0; }
     #objetos .muted { color: var(--muted); font-size: 12px; }
     #objetos .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    #crear label { display: block; color: var(--muted); font-size: 12px; margin: 6px 0; }
-    #crear input, #crear select { width: 100%; margin-top: 3px; }
-    #crear .muted { color: var(--muted); font-size: 12px; }
-    #crear .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    #crear label, #crear-aldeano label { display: block; color: var(--muted); font-size: 12px; margin: 6px 0; }
+    #crear input, #crear select, #crear-aldeano input, #crear-aldeano select { width: 100%; margin-top: 3px; }
+    #crear .muted, #crear-aldeano .muted { color: var(--muted); font-size: 12px; }
+    #crear .btns, #crear-aldeano .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    #crear-aldeano .slot { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: rgba(15,23,42,0.75); border: 1px solid #334155; margin-top: 6px; font-size: 12px; }
+    #crear-aldeano .slot .info { flex: 1; min-width: 0; }
     #deadmsg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(69,10,10,.45); z-index: 45; font-size: 22px; font-weight: 700; color: #fecaca; pointer-events: none; }
     #deadmsg.show { display: flex; }
     #deadmsg small { font-size: 14px; color: #fca5a5; margin-top: 6px; font-weight: 600; }
@@ -1661,15 +1683,19 @@
         overflow-y: auto !important;
       }
       #mapa-mundo .box {
-        max-width: calc(100vw - 24px) !important;
-        max-height: calc(100dvh - 20px) !important;
-        padding: 10px 12px !important;
+        width: calc(100vw - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        height: calc(100dvh - 14px) !important;
+        max-height: calc(100dvh - 14px) !important;
+        padding: 8px 10px !important;
+      }
+      #mapa-mundo .mapa-ctrls button {
+        padding: 4px 7px !important;
+        font-size: 11px !important;
       }
       #mapa-lienzo {
-        max-width: min(88vw, calc(100dvh - 96px)) !important;
-        max-height: calc(100dvh - 96px) !important;
-        width: auto !important;
-        height: auto !important;
+        width: 100% !important;
+        height: 100% !important;
       }
     }
     /* Bloque H1: decisiones interactivas, conversaciones NPC, reputación y subtítulos vivos */
@@ -1886,6 +1912,7 @@
         <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
         <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
         <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
+        <button id="sk-aldeanos" title="Crear y colocar aldeano">🧑‍🌾<small>Ald</small></button>
       </div>
     </div>
   </div>
@@ -1922,22 +1949,34 @@
     <div class="btns"><button id="heroe-cerrar">Cerrar</button></div>
   </div></div>
   <div id="mapa-mundo"><div class="box">
-    <h2>🗺 Mapa del mundo</h2>
-    <canvas id="mapa-lienzo" width="800" height="800"></canvas>
-    <div id="mapa-cursor" class="muted">Pasa el ratón o toca el mapa para ver coordenadas (x e y en metros).</div>
+    <div class="mapa-top">
+      <h2>🗺 Mapa del mundo</h2>
+      <div class="mapa-ctrls">
+        <button id="mapa-zoom-out" title="Alejar">−</button>
+        <button id="mapa-zoom-in" title="Acercar">+</button>
+        <button id="mapa-centrar-tu" title="Centrar en tu posición">📍 Tú</button>
+        <button id="mapa-ver-todo" title="Ver todo el mundo">🌍 Todo</button>
+        <button id="mapa-rejilla-btn" title="Mostrar u ocultar rejilla"># Rejilla</button>
+        <button id="mapa-modo-btn" style="display:none;background:#1e3a5f;color:#e0f2fe;border:1px solid #38bdf8">🌀 Ver laberinto</button>
+        <button id="mapa-cerrar" title="Cerrar">✕</button>
+      </div>
+    </div>
+    <div class="mapa-wrap">
+      <canvas id="mapa-lienzo" width="1024" height="720"></canvas>
+      <div id="mapa-norte">N ↑</div>
+      <div id="mapa-escala"><span id="mapa-escala-bar"></span><span id="mapa-escala-lbl">500 m</span></div>
+    </div>
+    <div id="mapa-cursor" class="muted">Arrastra para mover · Rueda o pinza para zoom · Toca o pasa el cursor para ver coordenadas.</div>
     <div class="leyenda">
       <span><i style="background:#fbbf24"></i>Pueblo inicial</span>
       <span><i style="background:#e2e8f0"></i>Pueblo</span>
-      <span><i style="background:#a16207"></i>Camino</span>
-      <span><i style="background:#a3e635"></i>Zona de caza</span>
-      <span><i style="background:#c084fc"></i>Élite</span>
+      <span><i style="background:#d6b27a"></i>Camino</span>
+      <span><i style="background:#38bdf8"></i>Río / Mar</span>
+      <span><i style="background:#a3e635"></i>Caza</span>
+      <span><i style="background:#c084fc"></i>Élite / 🗝 Mazmorra</span>
       <span><i style="background:#f87171"></i>Jefe</span>
-      <span><i style="background:#67e8f9"></i>Zona segura</span>
-      <span><i style="background:#fde047"></i>Tú (la flecha marca hacia dónde miras)</span>
-    </div>
-    <div class="btns">
-      <button id="mapa-modo-btn" style="display:none;background:#1e3a5f;color:#e0f2fe;border:1px solid #38bdf8">🌍 Ver mapa del mundo</button>
-      <button id="mapa-cerrar">Cerrar</button>
+      <span><i style="background:#67e8f9"></i>Segura</span>
+      <span><i style="background:#fde047"></i>Tú</span>
     </div>
   </div></div>
   <div id="objetos"><div class="box">
@@ -1970,10 +2009,72 @@
       <option value="picaro">🗡️ Pícaro · Armadura ligera</option>
     </select></label>
     <div id="crear-clase-info" style="margin-top:6px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,0.75);border:1px solid rgba(148,163,184,0.28);font-size:12px;line-height:1.45"></div>
-    <div class="muted">Ajusta el cuerpo en el estudio: las armaduras iniciales se generan con esas proporciones.</div>
+    <div id="crear-rostro-box" style="margin-top:6px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,0.75);border:1px solid rgba(148,163,184,0.28)">
+      <div style="display:flex;gap:10px;align-items:center">
+        <img id="crear-rostro-prev" alt="Rostro" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid rgba(250,204,21,0.45);background:#0b1120;flex:0 0 auto">
+        <div style="flex:1;min-width:0;display:grid;grid-template-columns:130px 1fr;gap:8px">
+          <label style="margin:0">Género
+            <select id="crear-genero">
+              <option value="hombre">Hombre</option>
+              <option value="mujer">Mujer</option>
+            </select>
+          </label>
+          <label style="margin:0">Textura de rostro
+            <select id="crear-rostro"></select>
+          </label>
+        </div>
+      </div>
+      <div id="crear-rostro-aviso" class="muted" style="margin-top:5px;color:#fbbf24">🔒 El rostro elegido queda fijado al iniciar el personaje y no cambiará después.</div>
+    </div>
+    <div class="muted" style="margin-top:6px">Ajusta el cuerpo en el estudio: las armaduras iniciales se generan con esas proporciones y rostro.</div>
     <iframe id="crear-frame" title="Estudio de armaduras" style="width:100%;height:min(620px,68vh);border:0;border-radius:8px;margin-top:6px;background:#070a13"></iframe>
     <div id="crear-estado" class="muted" style="margin-top:6px"></div>
     <div class="btns"><button id="crear-ok" class="gold">✅ Crear personaje</button><button id="crear-cancel">Cancelar</button></div>
+  </div></div>
+  <div id="crear-aldeano"><div class="box">
+    <h2>🧑‍🌾 Crear y colocar aldeano</h2>
+    <div class="muted">Diseña un aldeano y colócalo estratégicamente para ambientar pueblos, muelles, entradas o misiones. Solo los 5 Gurús llevan armaduras rango SR.</div>
+    <label>Nombre <input type="text" id="ald-nombre" value="Aldeano de Aden"></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <label>Oficio
+        <select id="ald-oficio">
+          <option value="campesino">🌾 Campesino</option>
+          <option value="aldeana">🧺 Aldeana / Tejedora</option>
+          <option value="mercader">💰 Mercader</option>
+          <option value="herrero">🔨 Herrero</option>
+          <option value="herbolario">🌿 Herbolario</option>
+          <option value="tabernero">🍺 Tabernero</option>
+          <option value="lenador">🪓 Leñador</option>
+          <option value="cazador">🏹 Cazador</option>
+        </select>
+      </label>
+      <label>Género
+        <select id="ald-genero">
+          <option value="hombre">Hombre</option>
+          <option value="mujer">Mujer</option>
+        </select>
+      </label>
+    </div>
+    <label>Ubicación estratégica
+      <select id="ald-ubicacion">
+        <option value="aqui">📍 Aquí (posición actual del héroe)</option>
+        <option value="plaza">🏘️ Pueblo más cercano</option>
+        <option value="muelle">⚓ Muelle del puerto principal</option>
+        <option value="mazmorra">🗝️ Entrada de mazmorra cercana</option>
+      </select>
+    </label>
+    <label>Frase o pista <input type="text" id="ald-dialogo" value="Las rutas guardan secretos para quienes vigilan cada cruce."></label>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px">
+      <input type="checkbox" id="ald-estudio" style="width:auto;margin:0">
+      <span>Generar apariencia única desde el estudio (exportación GLB en vivo)</span>
+    </label>
+    <div id="ald-estado" class="muted" style="margin-top:6px"></div>
+    <div class="btns">
+      <button id="ald-crear-btn" class="gold">✅ Colocar aldeano</button>
+      <button id="ald-cerrar">Cerrar</button>
+    </div>
+    <h3 style="margin:12px 0 4px;font-size:13px;color:var(--gold)">Aldeanos colocados</h3>
+    <div id="ald-lista" style="max-height:180px;overflow-y:auto"></div>
   </div></div>
   <div id="partidas"><div class="box">
     <h2>💾 Partidas de este mundo</h2>
@@ -2273,7 +2374,7 @@
   <script defer src="js/acompanante.js?v=20261120b"></script>
   <script defer src="js/heroe.js?v=20261119e"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
-  <script defer src="js/mapa.js?v=20251029"></script>
+  <script defer src="js/mapa.js?v=20261121b"></script>
   <script defer src="js/ruta.js?v=20261119g"></script>
   <script defer src="js/fusionar-modelo.js?v=20251029"></script>
   <script defer src="js/puestos-datos.js?v=20261103"></script>
@@ -2287,9 +2388,9 @@
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20261119b"></script>
-  <script type="module" src="js/pradera-atlas.js?v=20261121a"></script>
+  <script type="module" src="js/pradera-atlas.js?v=20261121b"></script>
   <script type="module" src="js/riachuelos.js?v=20261119a"></script>
-  <script type="module" src="js/decorado.js?v=20261114e"></script>
+  <script type="module" src="js/decorado.js?v=20261121b"></script>
   <script defer src="js/decorado-mundo.js?v=20261118c"></script>
   <script type="module" src="js/character.js?v=20261120b"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261120a"></script>
@@ -2302,7 +2403,7 @@
   <script src="js/sonidos.js?v=20261120c"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
-  import * as PV from "./js/props-variados.js";
+  import * as PV from "./js/props-variados.js?v=20261121b";
   import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
   import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
   import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
@@ -2446,11 +2547,11 @@
     muybajo: { radius: 600, shadows: 0, pixel: 0.75, far: 4, sombra: 0, texturas: false, reflejos: false, malla: 0.35,
       versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, ssao: false, humedad: 0.0, bump: 0.65, hierbaMax: 0, hierbaDistCerca: 0, hierbaDistLejos: 0, hierbaAltaDist: 0, bambuDist: 0, hierbaCaminoDist: 0, hierbaAltaMax: 0, bambuMax: 0, hierbaCaminoMax: 0, camposLejos: 'desactivado', brisa: false, nubesSombra: 0.0 },
     bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0, texturas: true, reflejos: true, malla: 0.6,
-      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, ssao: false, humedad: 0.25, bump: 0.85, hierbaMax: 450, hierbaDistCerca: 22, hierbaDistLejos: 42, hierbaAltaDist: 18, bambuDist: 22, hierbaCaminoDist: 18, hierbaAltaMax: 140, bambuMax: 110, hierbaCaminoMax: 140, camposLejos: 'cercano', brisa: false, nubesSombra: 0.6 },
+      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, ssao: false, humedad: 0.25, bump: 0.85, hierbaMax: 460, hierbaDistCerca: 22, hierbaDistLejos: 42, hierbaAltaDist: 15, bambuDist: 14, hierbaCaminoDist: 15, hierbaAltaMax: 130, bambuMax: 95, hierbaCaminoMax: 140, camposLejos: 'cercano', brisa: false, nubesSombra: 0.6 },
     medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120, texturas: true, reflejos: true, malla: 0.8,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, ssao: false, humedad: 0.88, bump: 1.05, hierbaMax: 900, hierbaDistCerca: 28, hierbaDistLejos: 56, hierbaAltaDist: 24, bambuDist: 30, hierbaCaminoDist: 24, hierbaAltaMax: 300, bambuMax: 240, hierbaCaminoMax: 260, camposLejos: 'amplio', brisa: true, nubesSombra: 1.0 },
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, ssao: false, humedad: 0.88, bump: 1.05, hierbaMax: 920, hierbaDistCerca: 28, hierbaDistLejos: 56, hierbaAltaDist: 20, bambuDist: 19, hierbaCaminoDist: 20, hierbaAltaMax: 280, bambuMax: 200, hierbaCaminoMax: 260, camposLejos: 'amplio', brisa: true, nubesSombra: 1.0 },
     alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160, texturas: true, reflejos: true, malla: 1,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, ssao: true, humedad: 1.0, bump: 1.25, hierbaMax: 1350, hierbaDistCerca: 34, hierbaDistLejos: 76, hierbaAltaDist: 30, bambuDist: 38, hierbaCaminoDist: 30, hierbaAltaMax: 480, bambuMax: 380, hierbaCaminoMax: 400, camposLejos: 'enorme', brisa: true, nubesSombra: 1.0 }
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, ssao: true, humedad: 1.0, bump: 1.25, hierbaMax: 1400, hierbaDistCerca: 34, hierbaDistLejos: 76, hierbaAltaDist: 26, bambuDist: 24, hierbaCaminoDist: 26, hierbaAltaMax: 460, bambuMax: 320, hierbaCaminoMax: 400, camposLejos: 'enorme', brisa: true, nubesSombra: 1.0 }
   };
   let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
@@ -3265,7 +3366,34 @@
       joystick: { zone: $('joystick-zone'), knob: $('joystick-knob') },
       glbUrl: null
     });
-    character.alCargarModelo = modelo => { aplicarEntorno(modelo); aligerarPersonaje(modelo); };
+    function arreglarMaterialesRostro(modelo) {
+      if (!modelo || !modelo.traverse) return;
+      modelo.traverse(o => {
+        if (!o.isMesh || !o.material) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(m => {
+          if (!m) return;
+          const nom = String(m.name || '');
+          const esRostro = nom.startsWith('Rostro_') || (m.transparent && m.map && !m.alphaTest);
+          if (esRostro) {
+            m.depthWrite = false;
+            m.polygonOffset = true;
+            m.polygonOffsetFactor = -2;
+            m.polygonOffsetUnits = -2;
+            m.needsUpdate = true;
+            o.renderOrder = Math.max(o.renderOrder || 0, 2);
+          } else if (m.transparent && typeof m.opacity === 'number' && m.opacity < 0.98) {
+            m.depthWrite = false;
+            o.renderOrder = Math.max(o.renderOrder || 0, 1);
+          }
+        });
+      });
+    }
+    character.alCargarModelo = modelo => {
+      aplicarEntorno(modelo);
+      arreglarMaterialesRostro(modelo);
+      aligerarPersonaje(modelo);
+    };
     envolverTeleportRecintos();
 
     renderer.domElement.addEventListener('pointerdown', onDown);
@@ -3450,6 +3578,8 @@
     gurus.forEach(g => scene.remove(g.raiz));
     gurus.length = 0;
     gurusColocados = false;
+    if (typeof aldeanosEstrategicosColocados !== 'undefined') aldeanosEstrategicosColocados = false;
+    if (typeof aldeanosCustom !== 'undefined' && Array.isArray(aldeanosCustom)) aldeanosCustom.length = 0;
     lugaresSecretosIniciados = false;
     lugaresSecretos = [];
     _grupoSecretosCache = null;
@@ -3494,6 +3624,10 @@
     _hierbaHeroX = Infinity; _hierbaHeroZ = Infinity;
     _hierbaFarHeroX = Infinity; _hierbaFarHeroZ = Infinity;
     _hierbaAltaHeroX = Infinity; _hierbaAltaHeroZ = Infinity;
+    if (typeof mapaChunkCache !== 'undefined' && mapaChunkCache) {
+      mapaChunkCache.clear();
+      mapaChunkSeed = null;
+    }
     _capasCampoTodas().forEach(m => {
       m.count = 0;
       m.visible = false;
@@ -3501,11 +3635,11 @@
     if (brisaZelda && brisaZelda.grupo) brisaZelda.grupo.visible = false;
   }
 
-  // Tres atlas botánicos 3D en doble anillo LOD + tarjetas altas (1 m), bambú tupido y hierba en caminos
-  const HIERBA_CAMPO_MAX = 1800;
+  // Tres atlas botánicos 3D en doble anillo LOD + tarjetas altas (1 m), bambú compacto y hierba en caminos
+  const HIERBA_CAMPO_MAX = 2200;
   const HIERBA_LEJOS_MAX = 1600;
   const HIERBA_ALTA_MAX = 480;
-  const BAMBU_MAX = 380;
+  const BAMBU_MAX = 320;
   const HIERBA_CAMINO_MAX = 420;
   let hierbaCampoMesh = null, trigoCampoMesh = null, floresCampoMesh = null;
   let hierbaLejosMesh = null, trigoLejosMesh = null, floresLejosMesh = null, _capasLejasCtrl = null;
@@ -3598,92 +3732,132 @@
     scene.add(hierbaCampoMesh);
   }
 
+  // Recorre celdas de la rejilla por anillos concéntricos desde (cx, cz) para priorizar siempre las cercanas al héroe
+  function _recorrerCeldasRadial(cx, cz, rMaxCeldas, rMinCeldas, fn) {
+    const rIni = Math.max(0, rMinCeldas | 0);
+    const rFin = Math.max(rIni, rMaxCeldas | 0);
+    if (rIni === 0 && fn(cx, cz) === false) return;
+    for (let ring = Math.max(1, rIni); ring <= rFin; ring++) {
+      for (let i = -ring; i < ring; i++) {
+        if (fn(cx + i, cz - ring) === false) return;
+        if (fn(cx + ring, cz + i) === false) return;
+        if (fn(cx - i, cz + ring) === false) return;
+        if (fn(cx - ring, cz - i) === false) return;
+      }
+    }
+  }
+
   function _poblarAnilloPradera(cfg) {
     const { hx, hz, step, radMin, radMax, maxTotal, maxCap, escalaDens, mallas, seed, esAnilloLejos } = cfg;
     const rMin2 = radMin * radMin;
     const rMax2 = radMax * radMax;
-    const gx0 = Math.floor((hx - radMax) / step), gx1 = Math.ceil((hx + radMax) / step);
-    const gz0 = Math.floor((hz - radMax) / step), gz1 = Math.ceil((hz + radMax) / step);
+    const gcx = Math.round(hx / step);
+    const gcz = Math.round(hz / step);
+    const rMaxCeldas = Math.ceil(radMax / step) + 1;
+    const rMinCeldas = esAnilloLejos ? Math.max(0, Math.floor(radMin / step) - 1) : 0;
     const contadores = { hierba: 0, trigo: 0, flores: 0 };
     const conAtlas = typeof PraderaAtlasLib !== 'undefined' && mallas.trigo && mallas.flores;
     const indRiachuelo = riachuelosMundo && riachuelosMundo.indice ? riachuelosMundo.indice : null;
     let total = 0;
 
-    for (let gz = gz0; gz <= gz1 && total < maxTotal; gz++) {
-      for (let gx = gx0; gx <= gx1 && total < maxTotal; gx++) {
-        let h = (Math.imul(gx, 73856093) ^ Math.imul(gz, 19349663) ^ seed ^ (esAnilloLejos ? 0x9e377 : 0)) >>> 0;
-        h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
-        const r1 = (h & 1023) / 1024;
-        const r2 = ((h >>> 10) & 1023) / 1024;
-        const r3 = ((h >>> 20) & 1023) / 1024;
-        const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
+    _recorrerCeldasRadial(gcx, gcz, rMaxCeldas, rMinCeldas, (gx, gz) => {
+      if (total >= maxTotal) return false;
+      let h = (Math.imul(gx, 73856093) ^ Math.imul(gz, 19349663) ^ seed ^ (esAnilloLejos ? 0x9e377 : 0)) >>> 0;
+      h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+      const r1 = (h & 1023) / 1024;
+      const r2 = ((h >>> 10) & 1023) / 1024;
+      const r3 = ((h >>> 20) & 1023) / 1024;
+      const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
 
-        const x = (gx + 0.15 + r1 * 0.70) * step;
-        const z = (gz + 0.15 + r2 * 0.70) * step;
-        const dx = x - hx, dz = z - hz;
-        const d2 = dx * dx + dz * dz;
-        if (d2 < rMin2 || d2 > rMax2) continue;
+      const x = (gx + 0.15 + r1 * 0.70) * step;
+      const z = (gz + 0.15 + r2 * 0.70) * step;
+      const dx = x - hx, dz = z - hz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < rMin2 || d2 > rMax2) return;
 
-        const elev = terrain.elevation(x, z);
-        if (elev < SEA + 0.05) continue;
-        const bio = terrain.biomeAt(x, z, elev);
+      const elev = terrain.elevation(x, z);
+      if (elev < SEA + 0.006) return;
+      const bio = terrain.biomeAt(x, z, elev);
 
-        if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 3.8)) continue;
-        if (LagosLib.enAgua(lagosMundo, x, z)) continue;
-        if (typeof rioCercano === 'function') {
-          const rio = rioCercano(x, z);
-          if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) continue;
-        }
-        let enOrillaRiachuelo = false;
-        if (indRiachuelo) {
-          const hitR = indRiachuelo.cerca(x, z);
-          if (hitR) {
-            if (hitR.d < hitR.halfW + 0.4) continue;
-            if (hitR.d < hitR.bankW + 2.5) enOrillaRiachuelo = true;
-          }
-        }
-        const y = H(x, z);
-        const dStep = esAnilloLejos ? 2.2 : 1.2;
-        const dhRaw = Math.abs(H(x + dStep, z) - H(x - dStep, z)) + Math.abs(H(x, z + dStep) - H(x, z - dStep));
-        const dh = esAnilloLejos ? dhRaw * (1.2 / dStep) : dhRaw;
-        if (dh > 1.75) continue;
-
-        if (conAtlas) {
-          const inst = PraderaAtlasLib.elegirInstanciaPradera(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens, { enOrillaRiachuelo });
-          if (!inst) continue;
-          const mesh = mallas[inst.atlas] || mallas.hierba;
-          const idx = contadores[inst.atlas];
-          if (!mesh || idx >= maxCap) continue;
-
-          _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
-          _hSc.set(inst.sx, inst.sy, inst.sz);
-          _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
-          mesh.setMatrixAt(idx, _hM4);
-          _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
-          mesh.setColorAt(idx, _hCol);
-          const aCell = mesh.geometry && mesh.geometry.getAttribute('aCell');
-          if (aCell) aCell.setXY(idx, inst.col, inst.row);
-          contadores[inst.atlas] = idx + 1;
-          total++;
-        } else if (!esAnilloLejos && mallas.hierba) {
-          const prob = bio === 'pradera' ? 0.88 : bio === 'bosque' ? 0.76 : bio === 'pantano' ? 0.60 : bio === 'taiga' ? 0.48 : bio === 'tundra' ? 0.24 : bio === 'costa' ? 0.14 : 0;
-          if (r3 > prob * escalaDens) continue;
-          const sc = 0.78 + r4 * 0.54;
-          _hQuat.setFromAxisAngle(_hYAxis, r1 * 6.28318);
-          _hSc.set(sc, sc * (0.85 + r2 * 0.35), sc);
-          _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
-          mallas.hierba.setMatrixAt(contadores.hierba, _hM4);
-          const lum = 0.85 + r3 * 0.28;
-          if (bio === 'taiga' || bio === 'pantano') _hCol.setRGB(lum * 0.74, lum * 0.88, lum * 0.74);
-          else if (bio === 'tundra' || bio === 'costa') _hCol.setRGB(lum * 1.04, lum * 0.96, lum * 0.70);
-          else if (bio === 'bosque') _hCol.setRGB(lum * 0.82, lum * 0.96, lum * 0.76);
-          else _hCol.setRGB(lum * 0.92, lum * 1.02, lum * 0.84);
-          mallas.hierba.setColorAt(contadores.hierba, _hCol);
-          contadores.hierba++;
-          total++;
+      if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 3.8)) return;
+      if (LagosLib.enAgua(lagosMundo, x, z)) return;
+      if (typeof rioCercano === 'function') {
+        const rio = rioCercano(x, z);
+        if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) return;
+      }
+      let enOrillaRiachuelo = false;
+      if (indRiachuelo) {
+        const hitR = indRiachuelo.cerca(x, z);
+        if (hitR) {
+          if (hitR.d < hitR.halfW + 0.4) return;
+          if (hitR.d < hitR.bankW + 2.5) enOrillaRiachuelo = true;
         }
       }
-    }
+      const y = H(x, z);
+      const dStep = esAnilloLejos ? 2.2 : 1.2;
+      const dhRaw = Math.abs(H(x + dStep, z) - H(x - dStep, z)) + Math.abs(H(x, z + dStep) - H(x, z - dStep));
+      const dh = esAnilloLejos ? dhRaw * (1.2 / dStep) : dhRaw;
+      if (dh > 1.75) return;
+
+      if (conAtlas) {
+        const inst = PraderaAtlasLib.elegirInstanciaPradera(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens, { enOrillaRiachuelo });
+        if (!inst) return;
+        const mesh = mallas[inst.atlas] || mallas.hierba;
+        let idx = contadores[inst.atlas];
+        if (!mesh || idx >= maxCap) return;
+
+        _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+        _hSc.set(inst.sx, inst.sy, inst.sz);
+        _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
+        mesh.setMatrixAt(idx, _hM4);
+        _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+        mesh.setColorAt(idx, _hCol);
+        const aCell = mesh.geometry && mesh.geometry.getAttribute('aCell');
+        if (aCell) aCell.setXY(idx, inst.col, inst.row);
+        idx++;
+        contadores[inst.atlas] = idx;
+        total++;
+
+        // En zonas espesas o muy tupidas añadimos matas compañeras entrelazadas (solo anillo cercano)
+        const nExtra = !esAnilloLejos ? (inst.extras || 0) : 0;
+        for (let k = 0; k < nExtra && total < maxTotal && idx < maxCap; k++) {
+          const ang = r4 * 6.2831853 + k * 2.39996;
+          const dist = 0.40 + ((k === 0 ? r1 : r2) * 0.32);
+          const ex = x + Math.cos(ang) * dist;
+          const ez = z + Math.sin(ang) * dist;
+          if (townContains(ex, ez) || rejillaCaminosMundo(ex, ez, 3.8) || LagosLib.enAgua(lagosMundo, ex, ez)) continue;
+          const ey = H(ex, ez);
+          const escK = 0.84 + ((k === 0 ? r2 : r3) * 0.24);
+          const uvE = PraderaAtlasLib.celdaUV((inst.cellIndex + k + 1) & 3);
+          _hQuat.setFromAxisAngle(_hYAxis, inst.rotY + 1.3 * (k + 1));
+          _hSc.set(inst.sx * escK, inst.sy * escK, inst.sz * escK);
+          _hM4.compose(_hPos.set(ex, ey - 0.03, ez), _hQuat, _hSc);
+          mesh.setMatrixAt(idx, _hM4);
+          _hCol.setRGB(inst.color[0] * 0.96, inst.color[1] * 0.99, inst.color[2] * 0.96);
+          mesh.setColorAt(idx, _hCol);
+          if (aCell) aCell.setXY(idx, uvE.col, uvE.row);
+          idx++;
+          contadores[inst.atlas] = idx;
+          total++;
+        }
+      } else if (!esAnilloLejos && mallas.hierba) {
+        const prob = bio === 'pradera' ? 0.88 : bio === 'bosque' ? 0.76 : bio === 'pantano' ? 0.60 : bio === 'taiga' ? 0.48 : bio === 'tundra' ? 0.24 : bio === 'costa' ? 0.14 : 0;
+        if (r3 > prob * escalaDens) return;
+        const sc = 0.78 + r4 * 0.54;
+        _hQuat.setFromAxisAngle(_hYAxis, r1 * 6.28318);
+        _hSc.set(sc, sc * (0.85 + r2 * 0.35), sc);
+        _hM4.compose(_hPos.set(x, y - 0.03, z), _hQuat, _hSc);
+        mallas.hierba.setMatrixAt(contadores.hierba, _hM4);
+        const lum = 0.85 + r3 * 0.28;
+        if (bio === 'taiga' || bio === 'pantano') _hCol.setRGB(lum * 0.74, lum * 0.88, lum * 0.74);
+        else if (bio === 'tundra' || bio === 'costa') _hCol.setRGB(lum * 1.04, lum * 0.96, lum * 0.70);
+        else if (bio === 'bosque') _hCol.setRGB(lum * 0.82, lum * 0.96, lum * 0.76);
+        else _hCol.setRGB(lum * 0.92, lum * 1.02, lum * 0.84);
+        mallas.hierba.setColorAt(contadores.hierba, _hCol);
+        contadores.hierba++;
+        total++;
+      }
+    });
 
     if (conAtlas) {
       for (const tipo of ['hierba', 'trigo', 'flores']) {
@@ -3721,87 +3895,105 @@
     if (rMaxAB > 0 && (maxAlta > 0 || maxBambu > 0) && (hierbaAltaMesh || bambuMesh)) {
       const step = 1.35;
       const rAlta2 = rAlta * rAlta, rBambu2 = rBambu * rBambu, rMax2 = rMaxAB * rMaxAB;
-      const gx0 = Math.floor((hx - rMaxAB) / step), gx1 = Math.ceil((hx + rMaxAB) / step);
-      const gz0 = Math.floor((hz - rMaxAB) / step), gz1 = Math.ceil((hz + rMaxAB) / step);
-      for (let gz = gz0; gz <= gz1 && (cntAlta < maxAlta || cntBambu < maxBambu); gz++) {
-        for (let gx = gx0; gx <= gx1 && (cntAlta < maxAlta || cntBambu < maxBambu); gx++) {
-          let h = (Math.imul(gx, 92821) ^ Math.imul(gz, 68917) ^ seed ^ 0x51a7b) >>> 0;
-          h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
-          const r1 = (h & 1023) / 1024;
-          const r2 = ((h >>> 10) & 1023) / 1024;
-          const r3 = ((h >>> 20) & 1023) / 1024;
-          const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
+      const gcx = Math.round(hx / step), gcz = Math.round(hz / step);
+      const rMaxCeldas = Math.ceil(rMaxAB / step) + 1;
 
-          const x = (gx + 0.15 + r1 * 0.70) * step;
-          const z = (gz + 0.15 + r2 * 0.70) * step;
-          const dx = x - hx, dz = z - hz;
-          const d2 = dx * dx + dz * dz;
-          if (d2 > rMax2) continue;
+      _recorrerCeldasRadial(gcx, gcz, rMaxCeldas, 0, (gx, gz) => {
+        if (cntAlta >= maxAlta && cntBambu >= maxBambu) return false;
+        let h = (Math.imul(gx, 92821) ^ Math.imul(gz, 68917) ^ seed ^ 0x51a7b) >>> 0;
+        h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+        const r1 = (h & 1023) / 1024;
+        const r2 = ((h >>> 10) & 1023) / 1024;
+        const r3 = ((h >>> 20) & 1023) / 1024;
+        const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
 
-          const elev = terrain.elevation(x, z);
-          if (elev < SEA + 0.05) continue;
-          const bio = terrain.biomeAt(x, z, elev);
-          if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 4.4)) continue;
-          if (LagosLib.enAgua(lagosMundo, x, z)) continue;
-          if (typeof rioCercano === 'function') {
-            const rio = rioCercano(x, z);
-            if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) continue;
-          }
-          let enOrillaRiachuelo = false;
-          if (indRiachuelo) {
-            const hitR = indRiachuelo.cerca(x, z);
-            if (hitR) {
-              if (hitR.d < hitR.halfW + 0.45) continue;
-              if (hitR.d < hitR.bankW + 2.5) enOrillaRiachuelo = true;
-            }
-          }
-          const y = H(x, z);
-          const dh = Math.abs(H(x + 1.2, z) - H(x - 1.2, z)) + Math.abs(H(x, z + 1.2) - H(x, z - 1.2));
-          if (dh > 1.55) continue;
+        const x = (gx + 0.15 + r1 * 0.70) * step;
+        const z = (gz + 0.15 + r2 * 0.70) * step;
+        const dx = x - hx, dz = z - hz;
+        const d2 = dx * dx + dz * dz;
+        if (d2 > rMax2) return;
 
-          const inst = PraderaAtlasLib.elegirInstanciaAlta(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens, { enOrillaRiachuelo });
-          if (!inst) continue;
-
-          if (inst.atlas === 'bambu' && bambuMesh && d2 <= rBambu2 && cntBambu < maxBambu) {
-            _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
-            _hSc.set(inst.sx, inst.sy, inst.sz);
-            _hM4.compose(_hPos.set(x, y - 0.04, z), _hQuat, _hSc);
-            bambuMesh.setMatrixAt(cntBambu, _hM4);
-            _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
-            bambuMesh.setColorAt(cntBambu, _hCol);
-            if (aCellBambu) aCellBambu.setXY(cntBambu, inst.col, inst.row);
-            cntBambu++;
-
-            if (inst.denso && cntBambu < maxBambu) {
-              const ang2 = r4 * 6.2831853;
-              const bx2 = x + Math.cos(ang2) * 0.52;
-              const bz2 = z + Math.sin(ang2) * 0.52;
-              if (!rejillaCaminosMundo(bx2, bz2, 4.0) && !townContains(bx2, bz2) && !LagosLib.enAgua(lagosMundo, bx2, bz2)) {
-                const by2 = H(bx2, bz2);
-                const cell2 = (inst.cellIndex + 1 + (gx & 1)) & 3;
-                const uv2 = PraderaAtlasLib.celdaUV(cell2);
-                _hQuat.setFromAxisAngle(_hYAxis, inst.rotY + 1.15);
-                _hSc.set(inst.sx * 0.92, inst.sy * (0.86 + r1 * 0.22), inst.sz * 0.92);
-                _hM4.compose(_hPos.set(bx2, by2 - 0.04, bz2), _hQuat, _hSc);
-                bambuMesh.setMatrixAt(cntBambu, _hM4);
-                _hCol.setRGB(inst.color[0] * 0.95, inst.color[1] * 0.98, inst.color[2] * 0.95);
-                bambuMesh.setColorAt(cntBambu, _hCol);
-                if (aCellBambu) aCellBambu.setXY(cntBambu, uv2.col, uv2.row);
-                cntBambu++;
-              }
-            }
-          } else if (inst.atlas === 'hierbaAlta' && hierbaAltaMesh && d2 <= rAlta2 && cntAlta < maxAlta) {
-            _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
-            _hSc.set(inst.sx, inst.sy, inst.sz);
-            _hM4.compose(_hPos.set(x, y - 0.04, z), _hQuat, _hSc);
-            hierbaAltaMesh.setMatrixAt(cntAlta, _hM4);
-            _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
-            hierbaAltaMesh.setColorAt(cntAlta, _hCol);
-            if (aCellAlta) aCellAlta.setXY(cntAlta, inst.col, inst.row);
-            cntAlta++;
+        const elev = terrain.elevation(x, z);
+        if (elev < SEA + 0.006) return;
+        const bio = terrain.biomeAt(x, z, elev);
+        if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 4.4)) return;
+        if (LagosLib.enAgua(lagosMundo, x, z)) return;
+        if (typeof rioCercano === 'function') {
+          const rio = rioCercano(x, z);
+          if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) return;
+        }
+        let enOrillaRiachuelo = false;
+        if (indRiachuelo) {
+          const hitR = indRiachuelo.cerca(x, z);
+          if (hitR) {
+            if (hitR.d < hitR.halfW + 0.45) return;
+            if (hitR.d < hitR.bankW + 2.5) enOrillaRiachuelo = true;
           }
         }
-      }
+        const y = H(x, z);
+        const dh = Math.abs(H(x + 1.2, z) - H(x - 1.2, z)) + Math.abs(H(x, z + 1.2) - H(x, z - 1.2));
+        if (dh > 1.55) return;
+
+        const inst = PraderaAtlasLib.elegirInstanciaAlta(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens, { enOrillaRiachuelo });
+        if (!inst) return;
+
+        if (inst.atlas === 'bambu' && bambuMesh && d2 <= rBambu2 && cntBambu < maxBambu) {
+          _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+          _hSc.set(inst.sx, inst.sy, inst.sz);
+          _hM4.compose(_hPos.set(x, y - 0.04, z), _hQuat, _hSc);
+          bambuMesh.setMatrixAt(cntBambu, _hM4);
+          _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+          bambuMesh.setColorAt(cntBambu, _hCol);
+          if (aCellBambu) aCellBambu.setXY(cntBambu, inst.col, inst.row);
+          cntBambu++;
+
+          const nExtB = inst.extras != null ? inst.extras : (inst.denso ? 1 : 0);
+          for (let k = 0; k < nExtB && cntBambu < maxBambu; k++) {
+            const ang2 = r4 * 6.2831853 + k * 2.2;
+            const sepB = 0.42 + (k === 0 ? r1 : r2) * 0.24;
+            const bx2 = x + Math.cos(ang2) * sepB;
+            const bz2 = z + Math.sin(ang2) * sepB;
+            if (!rejillaCaminosMundo(bx2, bz2, 4.0) && !townContains(bx2, bz2) && !LagosLib.enAgua(lagosMundo, bx2, bz2)) {
+              const by2 = H(bx2, bz2);
+              const uv2 = PraderaAtlasLib.celdaUV((inst.cellIndex + 1 + k + (gx & 1)) & 3);
+              _hQuat.setFromAxisAngle(_hYAxis, inst.rotY + 1.15 * (k + 1));
+              _hSc.set(inst.sx * 0.90, inst.sy * (0.82 + r1 * 0.20), inst.sz * 0.90);
+              _hM4.compose(_hPos.set(bx2, by2 - 0.04, bz2), _hQuat, _hSc);
+              bambuMesh.setMatrixAt(cntBambu, _hM4);
+              _hCol.setRGB(inst.color[0] * 0.95, inst.color[1] * 0.98, inst.color[2] * 0.95);
+              bambuMesh.setColorAt(cntBambu, _hCol);
+              if (aCellBambu) aCellBambu.setXY(cntBambu, uv2.col, uv2.row);
+              cntBambu++;
+            }
+          }
+        } else if (inst.atlas === 'hierbaAlta' && hierbaAltaMesh && d2 <= rAlta2 && cntAlta < maxAlta) {
+          _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+          _hSc.set(inst.sx, inst.sy, inst.sz);
+          _hM4.compose(_hPos.set(x, y - 0.04, z), _hQuat, _hSc);
+          hierbaAltaMesh.setMatrixAt(cntAlta, _hM4);
+          _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+          hierbaAltaMesh.setColorAt(cntAlta, _hCol);
+          if (aCellAlta) aCellAlta.setXY(cntAlta, inst.col, inst.row);
+          cntAlta++;
+
+          if (inst.extras > 0 && cntAlta < maxAlta) {
+            const angA = r4 * 6.2831853 + 1.7;
+            const ax2 = x + Math.cos(angA) * 0.48, az2 = z + Math.sin(angA) * 0.48;
+            if (!rejillaCaminosMundo(ax2, az2, 4.0) && !townContains(ax2, az2) && !LagosLib.enAgua(lagosMundo, ax2, az2)) {
+              const ay2 = H(ax2, az2);
+              const uvA2 = PraderaAtlasLib.celdaUV((inst.cellIndex + 2) & 3);
+              _hQuat.setFromAxisAngle(_hYAxis, inst.rotY + 1.4);
+              _hSc.set(inst.sx * 0.90, inst.sy * 0.88, inst.sz * 0.90);
+              _hM4.compose(_hPos.set(ax2, ay2 - 0.04, az2), _hQuat, _hSc);
+              hierbaAltaMesh.setMatrixAt(cntAlta, _hM4);
+              _hCol.setRGB(inst.color[0] * 0.96, inst.color[1] * 0.99, inst.color[2] * 0.96);
+              hierbaAltaMesh.setColorAt(cntAlta, _hCol);
+              if (aCellAlta) aCellAlta.setXY(cntAlta, uvA2.col, uvA2.row);
+              cntAlta++;
+            }
+          }
+        }
+      });
     }
 
     let cntCamino = 0;
@@ -3813,54 +4005,71 @@
     ) {
       const stepC = 1.05;
       const rCam2 = rCamino * rCamino;
-      const gx0 = Math.floor((hx - rCamino) / stepC), gx1 = Math.ceil((hx + rCamino) / stepC);
-      const gz0 = Math.floor((hz - rCamino) / stepC), gz1 = Math.ceil((hz + rCamino) / stepC);
-      for (let gz = gz0; gz <= gz1 && cntCamino < maxCamino; gz++) {
-        for (let gx = gx0; gx <= gx1 && cntCamino < maxCamino; gx++) {
-          let h = (Math.imul(gx, 48611) ^ Math.imul(gz, 83492791) ^ seed ^ 0x3c6ef) >>> 0;
-          h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
-          const r1 = (h & 1023) / 1024;
-          const r2 = ((h >>> 10) & 1023) / 1024;
-          const r3 = ((h >>> 20) & 1023) / 1024;
-          const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
+      const gcxC = Math.round(hx / stepC), gczC = Math.round(hz / stepC);
+      const rCamCeldas = Math.ceil(rCamino / stepC) + 1;
 
-          const x = (gx + 0.15 + r1 * 0.70) * stepC;
-          const z = (gz + 0.15 + r2 * 0.70) * stepC;
-          const dx = x - hx, dz = z - hz;
-          if (dx * dx + dz * dz > rCam2) continue;
+      _recorrerCeldasRadial(gcxC, gczC, rCamCeldas, 0, (gx, gz) => {
+        if (cntCamino >= maxCamino) return false;
+        let h = (Math.imul(gx, 48611) ^ Math.imul(gz, 83492791) ^ seed ^ 0x3c6ef) >>> 0;
+        h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+        const r1 = (h & 1023) / 1024;
+        const r2 = ((h >>> 10) & 1023) / 1024;
+        const r3 = ((h >>> 20) & 1023) / 1024;
+        const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
 
-          const hitCam = rejillaCaminosMundo.info(x, z, 5.2);
-          if (!hitCam) continue;
-          if (townContains(x, z) || recintoEn(x, z, 2)) continue;
-          if (LagosLib.enAgua(lagosMundo, x, z)) continue;
-          if (typeof rioCercano === 'function') {
-            const rio = rioCercano(x, z);
-            if (rio && rio.d < RIO_CAUCE * (rio.w || 1) * 1.45 + 1.0) continue;
-          }
-          if (indRiachuelo) {
-            const hitR = indRiachuelo.cerca(x, z);
-            if (hitR && hitR.d < hitR.halfW + 0.4) continue;
-          }
+        const x = (gx + 0.15 + r1 * 0.70) * stepC;
+        const z = (gz + 0.15 + r2 * 0.70) * stepC;
+        const dx = x - hx, dz = z - hz;
+        if (dx * dx + dz * dz > rCam2) return;
 
-          const elev = terrain.elevation(x, z);
-          if (elev < SEA + 0.05) continue;
-          const bio = terrain.biomeAt(x, z, elev);
-          const inst = PraderaAtlasLib.elegirInstanciaCamino(x, z, bio, hitCam.d, hitCam.halfW, seed, r1, r2, r3, r4, escalaDens);
-          if (!inst) continue;
-
-          const y = hitCam.d <= hitCam.halfW && typeof alturaCamino === 'function'
-            ? (alturaCamino(x, z) + 0.015)
-            : (H(x, z) - 0.02);
-          _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
-          _hSc.set(inst.sx, inst.sy, inst.sz);
-          _hM4.compose(_hPos.set(x, y, z), _hQuat, _hSc);
-          hierbaCaminoMesh.setMatrixAt(cntCamino, _hM4);
-          _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
-          hierbaCaminoMesh.setColorAt(cntCamino, _hCol);
-          if (aCellCam) aCellCam.setXY(cntCamino, inst.col, inst.row);
-          cntCamino++;
+        const hitCam = rejillaCaminosMundo.info(x, z, 5.2);
+        if (!hitCam) return;
+        if (townContains(x, z) || recintoEn(x, z, 2)) return;
+        if (LagosLib.enAgua(lagosMundo, x, z)) return;
+        if (typeof rioCercano === 'function') {
+          const rio = rioCercano(x, z);
+          if (rio && rio.d < RIO_CAUCE * (rio.w || 1) * 1.45 + 1.0) return;
         }
-      }
+        if (indRiachuelo) {
+          const hitR = indRiachuelo.cerca(x, z);
+          if (hitR && hitR.d < hitR.halfW + 0.4) return;
+        }
+
+        const elev = terrain.elevation(x, z);
+        if (elev < SEA + 0.006) return;
+        const bio = terrain.biomeAt(x, z, elev);
+        const inst = PraderaAtlasLib.elegirInstanciaCamino(x, z, bio, hitCam.d, hitCam.halfW, seed, r1, r2, r3, r4, escalaDens);
+        if (!inst) return;
+
+        const y = hitCam.d <= hitCam.halfW && typeof alturaCamino === 'function'
+          ? (alturaCamino(x, z) + 0.015)
+          : (H(x, z) - 0.02);
+        _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+        _hSc.set(inst.sx, inst.sy, inst.sz);
+        _hM4.compose(_hPos.set(x, y, z), _hQuat, _hSc);
+        hierbaCaminoMesh.setMatrixAt(cntCamino, _hM4);
+        _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+        hierbaCaminoMesh.setColorAt(cntCamino, _hCol);
+        if (aCellCam) aCellCam.setXY(cntCamino, inst.col, inst.row);
+        cntCamino++;
+
+        if (inst.extras > 0 && cntCamino < maxCamino) {
+          const cx2 = x + (r1 - 0.5) * 0.55, cz2 = z + (r2 - 0.5) * 0.55;
+          const hit2 = rejillaCaminosMundo.info(cx2, cz2, 5.2);
+          if (hit2 && hit2.d >= hit2.halfW * 0.62 && !townContains(cx2, cz2) && !LagosLib.enAgua(lagosMundo, cx2, cz2)) {
+            const cy2 = hit2.d <= hit2.halfW && typeof alturaCamino === 'function' ? (alturaCamino(cx2, cz2) + 0.015) : (H(cx2, cz2) - 0.02);
+            const uvC2 = PraderaAtlasLib.celdaUV((inst.cellIndex + 1) & 3);
+            _hQuat.setFromAxisAngle(_hYAxis, inst.rotY + 1.7);
+            _hSc.set(inst.sx * 0.85, inst.sy * 0.85, inst.sz * 0.85);
+            _hM4.compose(_hPos.set(cx2, cy2, cz2), _hQuat, _hSc);
+            hierbaCaminoMesh.setMatrixAt(cntCamino, _hM4);
+            _hCol.setRGB(inst.color[0] * 0.96, inst.color[1] * 0.99, inst.color[2] * 0.96);
+            hierbaCaminoMesh.setColorAt(cntCamino, _hCol);
+            if (aCellCam) aCellCam.setXY(cntCamino, uvC2.col, uvC2.row);
+            cntCamino++;
+          }
+        }
+      });
     }
 
     [
@@ -4117,6 +4326,7 @@
     buildRios();
     buildRiachuelos();
     buildLagos();
+    colocarMuelles();
     buildZones();
     buildMonsters();
     buildDecorado();
@@ -4149,6 +4359,7 @@
     iniciarMazmorras();
     colocarGurus();
     colocarEncargos();
+    colocarAldeanosEstrategicos();
     actualizarMision();
   }
 
@@ -5655,6 +5866,240 @@
     });
   }
 
+  // ===========================================================================
+  // Muelle del puerto en el mar más cercano al pueblo principal (glb/muelle_*.glb).
+  // Cadena: normal (tramo de tierra, 16 m) → recto (12 m) → dos curvos seguidos (22,5° cada uno, radio ≈ 30,4 m).
+  // Las tres piezas avanzan por su eje +X local con el tablero a 2,26 m sobre su base y 3,7 m de ancho.
+  // ===========================================================================
+  const MUELLE_PIEZAS = {
+    normal: { ruta: 'glb/muelle_riotinto_odiel_juego_web.glb', largo: 16 },
+    recto:  { ruta: 'glb/muelle_recto_juego_web.glb', largo: 12 },
+    curvo:  { ruta: 'glb/muelle_curvo_juego_web.glb', largo: 12, giro: 22.5 * DEG, radio: 30.4 }
+  };
+  const MUELLE_TABLERO = 2.26;      // altura del tablero sobre la base de los modelos
+  const MUELLE_MEDIO_ANCHO = 1.8;   // semiancho transitable del tablero
+  let muelleGroup = null;
+  let muelleInfo = null;
+  let _muelleLoaderP = null;
+
+  function _muelleLoader() {
+    if (!_muelleLoaderP) {
+      _muelleLoaderP = Promise.all([
+        import('three/addons/loaders/GLTFLoader.js'),
+        import('three/addons/libs/meshopt_decoder.module.js')
+      ]).then(([{ GLTFLoader }, { MeshoptDecoder }]) => {
+        const l = new GLTFLoader();
+        l.setMeshoptDecoder(MeshoptDecoder);   // los muelles vienen comprimidos con EXT_meshopt_compression
+        return l;
+      });
+    }
+    return _muelleLoaderP;
+  }
+
+  // Trazado de las piezas desde el extremo de tierra (ax, az) con rumbo (dx, dz); lado = +1 / -1 decide
+  // hacia dónde giran los curvos (con -1 se reflejan en Z). Cada pieza lleva tramos rectos transitables.
+  function _trazarMuelle(ax, az, dx, dz, lado) {
+    const piezas = [];
+    let px = ax, pz = az, hx = dx, hz = dz;
+    const recta = (tipo) => {
+      const L = MUELLE_PIEZAS[tipo].largo;
+      const cx = px + hx * L / 2, cz = pz + hz * L / 2;
+      piezas.push({ tipo, x: cx, z: cz, yaw: Math.atan2(-hz, hx), espejo: false,
+        tramos: [{ cx, cz, ux: hx, uz: hz, hu: L / 2 + 0.1 }] });
+      px += hx * L; pz += hz * L;
+    };
+    recta('normal');
+    recta('recto');
+    const C = MUELLE_PIEZAS.curvo, K = 4;
+    for (let n = 0; n < 2; n++) {
+      const yaw = Math.atan2(-hz, hx);
+      const nx = Math.sin(yaw) * lado, nz = Math.cos(yaw) * lado;   // eje +Z local (o -Z reflejado) en el mundo
+      const pts = [];
+      for (let k = 0; k <= K; k++) {
+        const a = C.giro * k / K;
+        const f = C.radio * Math.sin(a), s = C.radio * (1 - Math.cos(a));
+        pts.push({ x: px + hx * f + nx * s, z: pz + hz * f + nz * s });
+      }
+      const tramos = [];
+      for (let k = 0; k < K; k++) {
+        const p0 = pts[k], p1 = pts[k + 1], L = Math.hypot(p1.x - p0.x, p1.z - p0.z) || 1;
+        tramos.push({ cx: (p0.x + p1.x) / 2, cz: (p0.z + p1.z) / 2, ux: (p1.x - p0.x) / L, uz: (p1.z - p0.z) / L, hu: L / 2 + 0.15 });
+      }
+      // El origen del modelo está 6 m por delante del inicio de la pieza
+      piezas.push({ tipo: 'curvo', x: px + hx * 6, z: pz + hz * 6, yaw, espejo: lado < 0, tramos });
+      px = pts[K].x; pz = pts[K].z;
+      const c = Math.cos(C.giro), s = Math.sin(C.giro);
+      const nhx = hx * c + nx * s, nhz = hz * c + nz * s, nl = Math.hypot(nhx, nhz) || 1;
+      hx = nhx / nl; hz = nhz / nl;
+    }
+    return { piezas, finX: px, finZ: pz };
+  }
+
+  // Busca la costa más cercana al pueblo principal con mar abierto delante y coloca allí el muelle
+  function colocarMuelles() {
+    if (muelleGroup) { scene.remove(muelleGroup); muelleGroup = null; }
+    muelleInfo = null;
+    if (!world || !terrain) return;
+    const start = W.findTown(world, world.startTownId) || world.towns[0];
+    if (!start) return;
+    const oStart = towns.find(o => o.t === start);
+    const r0 = oStart ? oStart.tileHalf * 1.2 : 30;
+    const esMar = (x, z) => terrain.elevation(x, z) < SEA && Hgen(x, z) < -0.4 &&
+      !(typeof LagosLib !== 'undefined' && lagosMundo && lagosMundo.length && LagosLib.enAgua(lagosMundo, x, z));
+
+    // 1. Puntos de mar abierto alrededor del pueblo (el primero de cada rumbo), ordenados por distancia
+    const candidatos = [];
+    for (let ang = 0; ang < 360; ang += 3) {
+      const dx = Math.cos(ang * DEG), dz = Math.sin(ang * DEG);
+      for (let r = r0; r < 2600; r += 6) {
+        const x = start.x + dx * r, z = start.y + dz * r;
+        if (!esMar(x, z)) continue;
+        if (esMar(x + dx * 35, z + dz * 35) && esMar(x + dx * 70, z + dz * 70)) candidatos.push({ dx, dz, r });
+        break;
+      }
+    }
+    candidatos.sort((a, b) => a.r - b.r);
+    if (!candidatos.length) { console.warn('Muelle: no hay mar cerca del pueblo principal'); return; }
+
+    let mejor = null;
+    for (let ci = 0; ci < Math.min(28, candidatos.length); ci++) {
+      const cand = candidatos[ci];
+      let dx = cand.dx, dz = cand.dz;
+      // 2. Orilla: retrocede desde el mar hacia el pueblo hasta pisar tierra
+      let cx = start.x + dx * cand.r, cz = start.y + dz * cand.r, pasos = 0;
+      while (Hgen(cx, cz) < 0 && pasos++ < 80) { cx -= dx * 0.5; cz -= dz * 0.5; }
+      // El muelle sale perpendicular a la costa (contra la pendiente), si no se aleja demasiado del rumbo
+      const e = 3, gx = Hgen(cx + e, cz) - Hgen(cx - e, cz), gz = Hgen(cx, cz + e) - Hgen(cx, cz - e), gl = Math.hypot(gx, gz);
+      if (gl > 1e-4) {
+        const px = -gx / gl, pz = -gz / gl;
+        if (px * dx + pz * dz > 0.35) { const sx = dx + px, sz = dz + pz, sl = Math.hypot(sx, sz); dx = sx / sl; dz = sz / sl; }
+      }
+      // 3. Extremo de tierra: tierra adentro hasta ~1,7 m de altura (sin entrar en el pueblo)
+      let ax = cx, az = cz;
+      for (let k = 0; k < 44; k++) {
+        const nx = ax - dx * 0.5, nz = az - dz * 0.5;
+        if (townContains(nx, nz) || _enPuenteMundo(nx, nz)) break;
+        ax = nx; az = nz;
+        if (Hgen(ax, az) >= 1.7) break;
+      }
+      const deck = Math.max(0.9, Math.min(3.2, Hgen(ax, az) + 0.05));
+      ax -= dx * 0.6; az -= dz * 0.6;   // el arranque se apoya un poco en la tierra
+      // 4. Prueba los dos sentidos de giro: tramos de recto y curvos sobre el mar, sin pueblos ni puentes
+      for (const lado of [1, -1]) {
+        const tr = _trazarMuelle(ax, az, dx, dz, lado);
+        let total = 0, agua = 0, malos = 0;
+        tr.piezas.forEach((p, ip) => p.tramos.forEach(t => {
+          const vx = -t.uz, vz = t.ux;
+          for (let u = -t.hu; u <= t.hu; u += 1.5) {
+            for (const v of [-MUELLE_MEDIO_ANCHO, 0, MUELLE_MEDIO_ANCHO]) {
+              const x = t.cx + t.ux * u + vx * v, z = t.cz + t.uz * u + vz * v;
+              if (townContains(x, z) || _enPuenteMundo(x, z)) malos++;
+              if (ip === 0) continue;
+              total++;
+              if (esMar(x, z) && Hgen(x, z) < deck - 1.2) agua++;
+            }
+          }
+        }));
+        const fondo = Hgen(tr.finX, tr.finZ);
+        const nota = (total ? agua / total : 0) - malos * 0.05 - (fondo < -1 ? 0 : 0.2);
+        if (!mejor || nota > mejor.nota) mejor = { nota, tr, deck, ax, az, dx, dz, lado, dist: cand.r };
+      }
+      if (mejor && mejor.nota >= 0.97) break;   // el más cercano con todo el muelle sobre el mar
+    }
+    if (!mejor) return;
+
+    // 5. Modelos y tablero transitable
+    const g = new THREE.Group();
+    g.name = 'MuellePuerto';
+    muelleGroup = g;
+    scene.add(g);
+    const baseY = mejor.deck - MUELLE_TABLERO;
+    const topY = mejor.deck - 0.04;
+    mejor.tr.piezas.forEach(p => {
+      const holder = new THREE.Group();
+      holder.name = 'Muelle_' + p.tipo;
+      holder.position.set(p.x, baseY, p.z);
+      holder.rotation.y = p.yaw;
+      if (p.espejo) holder.scale.z = -1;   // three invierte la cara visible con determinante negativo
+      g.add(holder);
+      _muelleLoader()
+        .then(l => GLTFPool.cargar(l, MUELLE_PIEZAS[p.tipo].ruta))
+        .then(base => {
+          if (muelleGroup !== g) return;
+          const inst = base.scene.clone(true);
+          const sombras = ((QUALITY[quality] || QUALITY.alto).shadows || 0) > 0;
+          inst.traverse(o => { if (o.isMesh) { o.castShadow = sombras; o.receiveShadow = sombras; } });
+          holder.add(inst);
+        })
+        .catch(err => console.warn('Muelle no cargado:', MUELLE_PIEZAS[p.tipo].ruta, err));
+      p.tramos.forEach(t => puentesMundoWalkables.push({
+        cx: t.cx, cz: t.cz, ux: t.ux, uz: t.uz, hu: t.hu, hv: MUELLE_MEDIO_ANCHO,
+        bridgeId: 'muelle', spec: { muelle: true }, topAt: () => topY
+      }));
+    });
+    muelleInfo = { x: mejor.ax, z: mejor.az, dx: mejor.dx, dz: mejor.dz, deck: mejor.deck, lado: mejor.lado,
+      nota: +mejor.nota.toFixed(3), distPueblo: Math.round(mejor.dist), piezas: mejor.tr.piezas.map(p => p.tipo) };
+    window.muelleInfo = muelleInfo;
+    _aguaMuelle(mejor.tr);
+  }
+
+  // La malla general del mar es gruesa (96 celdas) y deja sin agua la orilla baja: alrededor del muelle se
+  // completa con celdas de 2 m donde el suelo queda bajo el nivel del mar y la malla general no llega.
+  let _aguaMuellePatch = null;
+  function _aguaMuelle(tr) {
+    if (_aguaMuellePatch) {
+      if (_aguaMuellePatch.parent) _aguaMuellePatch.parent.remove(_aguaMuellePatch);
+      _aguaMuellePatch.geometry.dispose();
+      _aguaMuellePatch = null;
+    }
+    if (!bounds || !terrain) return;
+    const ext = bounds.size * 1.4, segs = 96, paso = ext / segs;
+    const gx0 = bounds.cx - ext / 2, gz0 = bounds.cz - ext / 2;
+    const cubierto = (x, z) => {   // misma prueba de celda que buildWater
+      const i = Math.floor((x - gx0) / paso), j = Math.floor((z - gz0) / paso);
+      let n = 0;
+      for (let di = 0; di <= 1; di++) for (let dj = 0; dj <= 1; dj++) {
+        if (terrain.elevation(gx0 + (i + di) * paso, gz0 + (j + dj) * paso) <= SEA + 0.008) n++;
+      }
+      return n >= 2 && terrain.elevation(gx0 + (i + 0.5) * paso, gz0 + (j + 0.5) * paso) <= SEA + 0.004;
+    };
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    tr.piezas.forEach(p => p.tramos.forEach(t => {
+      x0 = Math.min(x0, t.cx); x1 = Math.max(x1, t.cx); z0 = Math.min(z0, t.cz); z1 = Math.max(z1, t.cz);
+    }));
+    // Celdas finas alineadas con las del mar general (cada celda gruesa se parte en n×n) para que no se solapen
+    const M = 60, nDiv = Math.max(1, Math.round(paso / 2)), s = paso / nDiv;
+    x0 = gx0 + Math.floor((x0 - M - gx0) / paso) * paso; z0 = gz0 + Math.floor((z0 - M - gz0) / paso) * paso;
+    x1 += M; z1 += M;
+    const nI = Math.ceil((x1 - x0) / s), nJ = Math.ceil((z1 - z0) / s);
+    const P = [], I = [], vid = new Map();
+    const v = (i, j) => {
+      const k = j * (nI + 1) + i;
+      if (!vid.has(k)) { vid.set(k, P.length / 3); P.push(x0 + i * s, 0, z0 + j * s); }
+      return vid.get(k);
+    };
+    for (let j = 0; j < nJ; j++) {
+      for (let i = 0; i < nI; i++) {
+        const cx = x0 + (i + 0.5) * s, cz = z0 + (j + 0.5) * s;
+        if (cubierto(cx, cz)) continue;
+        const bajo = Hgen(x0 + i * s, z0 + j * s) < 0.05 || Hgen(x0 + (i + 1) * s, z0 + j * s) < 0.05 ||
+          Hgen(x0 + i * s, z0 + (j + 1) * s) < 0.05 || Hgen(x0 + (i + 1) * s, z0 + (j + 1) * s) < 0.05;
+        if (!bajo || terrain.elevation(cx, cz) > SEA + 0.004) continue;
+        const a = v(i, j), b = v(i + 1, j), c = v(i, j + 1), d = v(i + 1, j + 1);
+        I.push(a, c, b, b, c, d);
+      }
+    }
+    if (!I.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    geo.setIndex(I);
+    geo.computeVertexNormals();
+    _aguaMuellePatch = new THREE.Mesh(geo, waterMesh ? waterMesh.material : aguaMaterial(false, 0.82));
+    _aguaMuellePatch.name = 'AguaMuelle';
+    // Hija del mar general: se oculta y se muestra con él (casilla de agua, mazmorras)
+    (waterMesh || muelleGroup || scene).add(_aguaMuellePatch);
+  }
+
   function buildRoads() {
     if (puentesMundoGroup) { scene.remove(puentesMundoGroup); puentesMundoGroup = null; }
     puentesMundoWalkables.length = 0;
@@ -6135,8 +6580,22 @@
                 }
               }
             }
-            if (biomaAdmiteHierba(bio) && rng.next() < 0.75) {
-              matas.push({ x: px + nx * 0.35 * lado, y: y - 0.02, z: pz + nz * 0.35 * lado, sc: 0.8 + rng.next() * 0.55, ry: rng.next() * 6.28, bio });
+            if (biomaAdmiteHierba(bio)) {
+              const tupM = (typeof PraderaAtlasLib !== 'undefined' && PraderaAtlasLib.gradoTupidoEn)
+                ? PraderaAtlasLib.gradoTupidoEn(px, pz, bio, (world.seed || 1) | 0)
+                : null;
+              const probM = tupM ? Math.min(0.95, 0.75 * tupM.multProb) : 0.75;
+              const escM = tupM ? tupM.multEscala : 1.0;
+              if (rng.next() < probM) {
+                const mx = px + nx * 0.35 * lado, mz = pz + nz * 0.35 * lado;
+                matas.push({ x: mx, y: y - 0.02, z: mz, sc: (0.8 + rng.next() * 0.55) * escM, ry: rng.next() * 6.28, bio });
+                if (tupM && tupM.extras > 0) {
+                  const mx2 = mx + tx * (rng.next() - 0.5) * 0.9, mz2 = mz + tz * (rng.next() - 0.5) * 0.9;
+                  if (!cercaCamino(mx2, mz2, halfW + 0.08)) {
+                    matas.push({ x: mx2, y: H(mx2, mz2) - 0.02, z: mz2, sc: (0.7 + rng.next() * 0.45) * escM, ry: rng.next() * 6.28, bio });
+                  }
+                }
+              }
             }
           }
         }
@@ -6160,7 +6619,17 @@
           piedras.push({ x: px, y: y - 0.07, z: pz, sx: 0.90 + rng.next() * 1.25, sy: 0.50 + rng.next() * 0.65, sz: 0.90 + rng.next() * 1.25, ry: rng.next() * 6.28, bio });
         }
         if (biomaAdmiteHierba(bio)) {
-          matas.push({ x: px + (rng.next() - 0.5) * 1.4, y: y - 0.02, z: pz + (rng.next() - 0.5) * 1.4, sc: 0.9 + rng.next() * 0.6, ry: rng.next() * 6.28, bio });
+          const tupP = (typeof PraderaAtlasLib !== 'undefined' && PraderaAtlasLib.gradoTupidoEn)
+            ? PraderaAtlasLib.gradoTupidoEn(px, pz, bio, (world.seed || 1) | 0)
+            : null;
+          const escP = tupP ? tupP.multEscala : 1.0;
+          if (!tupP || rng.next() < Math.min(0.96, 0.82 * tupP.multProb)) {
+            matas.push({ x: px + (rng.next() - 0.5) * 1.4, y: y - 0.02, z: pz + (rng.next() - 0.5) * 1.4, sc: (0.9 + rng.next() * 0.6) * escP, ry: rng.next() * 6.28, bio });
+            if (tupP && tupP.extras > 0) {
+              const px2 = px + (rng.next() - 0.5) * 1.6, pz2 = pz + (rng.next() - 0.5) * 1.6;
+              matas.push({ x: px2, y: H(px2, pz2) - 0.02, z: pz2, sc: (0.8 + rng.next() * 0.5) * escP, ry: rng.next() * 6.28, bio });
+            }
+          }
         }
       }
     });
@@ -8851,6 +9320,7 @@
       xpComp = Math.round(xpComp * factorComp);
     }
 
+    const nivelPrevHeroe = hero.level;
     const levels = CombatLib.gainXp(hero, xpHeroe);
     if (xpComp > 0 && typeof AcompananteLib !== 'undefined' && AcompananteLib.ganarXpAcompanante) {
       const rComp = AcompananteLib.ganarXpAcompanante(acompanante, xpComp);
@@ -8937,7 +9407,7 @@
     if (txtBotin) partesDrop.push(txtBotin);
     // Objetos del personaje: cotas (hasta nivel 5) y armas
     const obj = personajeActual && catalogoPiezas ? EquipoLib.soltarPieza(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
-    if (obj) partesDrop.push('🎁 ' + obj.nombre);
+    if (obj) partesDrop.push('🎁 ' + (obj.grado ? '[' + obj.grado + '] ' : '') + obj.nombre);
     const arena = EquipoLib.soltarArena(m.level, m.boss, Math.random);
     if (arena) { inv.arena = (inv.arena || 0) + arena; partesDrop.push('+' + arena + ' 🧱'); }
     const hoja = personajeActual && catalogoPiezas ? EquipoLib.soltarHoja(personajeActual, catalogoPiezas, m.level, m.boss, Math.random) : null;
@@ -8962,6 +9432,7 @@
     }
     if (levels) {
       if (window.Sonidos && window.Sonidos.subirNivel) window.Sonidos.subirNivel();
+      notificarNuevasHabilidadesNivel(nivelPrevHeroe, hero.level);
       setTimeout(() => announce('⭐ Nivel ' + hero.level, 'Vida y maná completos'), 2300);
     }
   }
@@ -9215,12 +9686,14 @@
   function otorgarXpHistoria(xp) {
     const gain = Math.max(0, Math.round(Number(xp) || 0));
     if (!gain || typeof CombatLib === 'undefined') return;
+    const nivelPrevHist = hero.level;
     const lvls = CombatLib.gainXp(hero, gain);
     if (lvls) {
       hero.hp = hero.maxHp;
       hero.mp = hero.maxMp;
       aplicarStats();
       if (window.Sonidos && window.Sonidos.subirNivel) window.Sonidos.subirNivel();
+      notificarNuevasHabilidadesNivel(nivelPrevHist, hero.level);
       announce('⭐ Nivel ' + hero.level, 'Vida y maná completos');
     }
     updateStats();
@@ -10110,6 +10583,15 @@
   function atajosActivos() {
     return HeroeLib.atajosDeClase(claseHeroe());
   }
+  function claseArmaDelHeroe(pj = personajeActual) {
+    const arma = pj && pj.equipo && EquipoLib.objeto(pj, pj.equipo.weapon);
+    if (arma && typeof EquipoLib !== 'undefined' && EquipoLib.claseArmaDePieza) {
+      const det = EquipoLib.claseArmaDePieza(arma, catalogoPiezas);
+      if (det) return det;
+    }
+    const lista = (HeroeLib.CLASES_ARMA_DE_PROFESION && HeroeLib.CLASES_ARMA_DE_PROFESION[claseHeroe()]) || ['espadas'];
+    return lista[0];
+  }
   function armaDelHeroe() {
     const arma = personajeActual && EquipoLib.objeto(personajeActual, personajeActual.equipo.weapon);
     if (HeroeLib.esArco(arma)) return 'arco';
@@ -10120,11 +10602,21 @@
   function bloqueada(name) { return !!HeroeLib.HABILIDADES[name] && !HeroeLib.disponible(heroeEst, name, hero.level, claseHeroe()); }
   // Por qué no se puede usar con el arma que lleva ('' si se puede)
   function faltaArma(name) {
-    const req = CombatLib.SKILLS[name].arma;
+    const sk = CombatLib.SKILLS[name];
+    if (!sk) return '';
+    const ac = sk.armaClase || sk.claseArma;
+    if (ac) {
+      const act = claseArmaDelHeroe();
+      if (ac !== act) {
+        const nomReq = (HeroeLib.NOMBRES_CLASE_ARMA && HeroeLib.NOMBRES_CLASE_ARMA[ac]) || ac;
+        return 'Requiere ' + nomReq;
+      }
+    }
+    const req = sk.arma;
     if (!req || req === armaDelHeroe()) return '';
     if (req === 'arco') return 'Necesitas un arco';
     if (req === 'baculo') return 'Necesitas un báculo o cetro';
-    return (armaDelHeroe() === 'arco' ? 'Con el arco' : 'Con báculo') + ' no puedes usar ' + CombatLib.SKILLS[name].nombre.toLowerCase();
+    return (armaDelHeroe() === 'arco' ? 'Con el arco' : 'Con báculo') + ' no puedes usar ' + sk.nombre.toLowerCase();
   }
   function usarHueco(tecla) {
     const id = heroeEst.barra[tecla];
@@ -10135,6 +10627,9 @@
   function colorDeHabilidad(name) {
     const sk = CombatLib.SKILLS[name];
     if (!sk) return 0xf59e0b;
+    if (Array.isArray(sk.colores) && typeof sk.colores[0] === 'string' && /^#[0-9a-f]{6}$/i.test(sk.colores[0])) {
+      return parseInt(sk.colores[0].slice(1), 16);
+    }
     if (sk.elemento === 'fuego' || name === 'furia') return 0xf97316;
     if (sk.elemento === 'hielo') return 0x38bdf8;
     if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo' || name === 'paso_sombrio') return 0xa855f7;
@@ -10143,6 +10638,33 @@
     if (name === 'rafaga') return 0x67e8f9;
     if (name === 'nova' || name === 'sentencia_titan') return 0xfbbf24;
     return 0xf59e0b;
+  }
+
+  function notificarNuevasHabilidadesNivel(nivelPrev, nivelNuevo) {
+    if (!heroeEst || typeof HeroeLib.nuevasHabilidadesAlSubirNivel !== 'function' || !(nivelNuevo > nivelPrev)) return [];
+    const nuevas = HeroeLib.nuevasHabilidadesAlSubirNivel(nivelPrev, nivelNuevo, claseHeroe(), claseArmaDelHeroe());
+    if (!nuevas.length) return [];
+    let autoPuestas = 0;
+    nuevas.forEach(item => {
+      const id = typeof item === 'string' ? item : (item && item.id);
+      if (!id) return;
+      const huecoLibre = HeroeLib.TECLAS.find(t => !heroeEst.barra[t]);
+      const h = HeroeLib.HABILIDADES[id];
+      if (huecoLibre && h && h.tipo === 'activa') {
+        HeroeLib.asignar(heroeEst, huecoLibre, id, claseHeroe());
+        autoPuestas++;
+      }
+    });
+    if (autoPuestas) aplicarStats();
+    const nombres = nuevas.map(item => {
+      const id = typeof item === 'string' ? item : (item && item.id);
+      const sk = id && CombatLib.SKILLS && CombatLib.SKILLS[id];
+      const h = id && HeroeLib.HABILIDADES[id];
+      return ((sk && sk.icono) || '✨') + ' ' + ((sk && sk.nombre) || (h && h.nombre) || (item && item.nombre) || id);
+    }).join(', ');
+    toast('✨ ¡Nueva habilidad aprendida!: ' + nombres, 5200);
+    setTimeout(() => announce('✨ Nuevas técnicas aprendidas (Nv.' + nivelNuevo + ')', nombres, '#7dd3fc'), 1200);
+    return nuevas;
   }
 
   function useSkill(name, blancoFijado = null) {
@@ -10462,16 +10984,18 @@
     g.add(anillo);
 
     const motas = [];
-    const esFuria = name === 'furia';
-    const esEscudo = name === 'contraataque' || name === 'escudo_espiritu';
-    const esGiro = name === 'torbellino' || name === 'tajo' || name === 'tornillo' || name === 'juicio_relampago';
-    const esSalto = name === 'sismo' || name === 'salto_demoledor' || name === 'sentencia_titan';
-    const esCorte = name === 'corte_cruzado' || name === 'hendidura' || name === 'ascendente';
+    const colSec = (Array.isArray(sk.colores) && typeof sk.colores[1] === 'string' && /^#[0-9a-f]{6}$/i.test(sk.colores[1]))
+      ? parseInt(sk.colores[1].slice(1), 16) : col;
+    const esFuria = name === 'furia' || /_furia|_berserk|_ira|_sobrecarga/.test(name);
+    const esEscudo = name === 'contraataque' || name === 'escudo_espiritu' || /_escudo|_guardia|_parada|_egida|_barrera|_muro|_baluarte/.test(name);
+    const esGiro = name === 'torbellino' || name === 'tajo' || name === 'tornillo' || name === 'juicio_relampago' || /_remolino|_ciclon|_huracan|_espiral|_molinete|_torbellino|_danza|_giro|_barrido/.test(name);
+    const esSalto = name === 'sismo' || name === 'salto_demoledor' || name === 'sentencia_titan' || /_salto|_martillo|_meteoro|_terremoto|_caida|_impacto|_aplastamiento|_tempestad/.test(name);
+    const esCorte = name === 'corte_cruzado' || name === 'hendidura' || name === 'ascendente' || /_corte|_taj|_hendidura|_estocada|_punzada|_relampago|_flecha|_lluvia|_rayo|_llama/.test(name);
     const nMotas = (sk.elemento || esFuria || esSalto) ? 10 : 6;
     for (let i = 0; i < nMotas; i++) {
       const m = new THREE.Mesh(
         sk.elemento === 'hielo' ? new THREE.OctahedronGeometry(0.11, 0) : new THREE.SphereGeometry(0.095, 6, 6),
-        new THREE.MeshBasicMaterial({ color: sk.elemento === 'hielo' ? 0xbae6fd : col, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending })
+        new THREE.MeshBasicMaterial({ color: sk.elemento === 'hielo' ? 0xbae6fd : (i % 2 === 1 ? colSec : col), transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending })
       );
       g.add(m);
       motas.push({ mesh: m, a0: (i / nMotas) * Math.PI * 2 });
@@ -12418,18 +12942,161 @@
     g.restore(); // Fin del clip circular
   }
 
-  // Mapa del mundo (esquema): se abre al pulsar el minimapa. Pueblos, caminos, zonas, lugares y tu posición.
-  let mapaT = null;   // transformación del esquema abierto, para leer coordenadas con el ratón
+  // ===========================================================================
+  // Mapa del mundo estilo Creador de Mundos (terreno por chunks LOD, relieve,
+  // biomas, zonas, caminos, ríos, lagos, pueblos, mazmorras y posición en vivo)
+  // ===========================================================================
+  const MAPA_CHUNK = (window.MapaLib && MapaLib.CHUNK_TERRENO) || 64;
+  let mapaT = null;
   let mapaForzarMundo = false;
+  let mapaVerRejilla = false;
+  let mapaView = { cx: 0, cy: 0, scale: 0.12 };
+  let mapaViewIniciado = false;
+  let mapaModoAnterior = null;
+  let mapaCssW = 800, mapaCssH = 600, mapaDpr = 1;
+  let mapaChunkCache = new Map();
+  let mapaChunkSeed = null;
+  let mapaRafId = 0;
+  let lastMapaLiveDraw = 0;
+
   function etiqueta(g, texto, x, y, color) {
     g.lineWidth = 4; g.strokeStyle = '#0b1220'; g.strokeText(texto, x, y);
     g.fillStyle = color; g.fillText(texto, x, y);
   }
+
+  function resizeMapaLienzo() {
+    const cv = $('mapa-lienzo');
+    if (!cv) return false;
+    const w = cv.clientWidth || 800;
+    const h = cv.clientHeight || 600;
+    if (w <= 0 || h <= 0) return false;
+    mapaDpr = Math.min(window.devicePixelRatio || 1, 2);
+    mapaCssW = w;
+    mapaCssH = h;
+    const rw = Math.round(w * mapaDpr), rh = Math.round(h * mapaDpr);
+    if (cv.width !== rw || cv.height !== rh) {
+      cv.width = rw;
+      cv.height = rh;
+      return true;
+    }
+    return false;
+  }
+
+  function ajustarVistaMapa(modoLab, centrarEnHeroe) {
+    resizeMapaLienzo();
+    if (centrarEnHeroe && character && character.root) {
+      const p = character.root.position;
+      mapaView.cx = p.x;
+      mapaView.cy = p.z;
+      if (mapaView.scale < 0.25) mapaView.scale = modoLab ? 2.2 : 0.45;
+      return;
+    }
+    const recActivo = (gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto) ? gestorLaberintos.recinto : null;
+    if (modoLab && recActivo) {
+      const rLab = Math.max(recActivo.rMax || 130, recActivo.Rint || 100) + 18;
+      const limLab = { minX: recActivo.zx - rLab, maxX: recActivo.zx + rLab, minY: recActivo.zz - rLab, maxY: recActivo.zz + rLab };
+      mapaView = MapaLib.encajarVista(limLab, mapaCssW, mapaCssH, 32);
+    } else if (world) {
+      mapaView = MapaLib.encajarVista(MapaLib.limites(world), mapaCssW, mapaCssH, 36);
+    }
+    mapaViewIniciado = true;
+  }
+
+  function requestDrawMapaMundo() {
+    if (mapaRafId || !$('mapa-mundo') || !$('mapa-mundo').classList.contains('show')) return;
+    mapaRafId = requestAnimationFrame(() => {
+      mapaRafId = 0;
+      if ($('mapa-mundo') && $('mapa-mundo').classList.contains('show')) drawMapaMundo();
+    });
+  }
+
+  function renderMapaChunk(lod, cx, cy) {
+    const c = document.createElement('canvas');
+    c.width = MAPA_CHUNK;
+    c.height = MAPA_CHUNK;
+    const cctx = c.getContext('2d');
+    const img = cctx.createImageData(MAPA_CHUNK, MAPA_CHUNK);
+    const pix = MapaLib.muestrearChunkTerreno(terrain, W, lod, cx, cy, MAPA_CHUNK);
+    img.data.set(pix);
+    cctx.putImageData(img, 0, 0);
+    return c;
+  }
+
+  function drawMapaTerreno(g, T) {
+    if (!terrain || !world) return;
+    if (mapaChunkSeed !== world.seed) {
+      mapaChunkCache.clear();
+      mapaChunkSeed = world.seed;
+    }
+    const lod = Math.max(-1, Math.ceil(Math.log2(1.6 / Math.max(0.004, mapaView.scale))));
+    const mpp = Math.pow(2, lod);
+    const cw = MAPA_CHUNK * mpp;
+    const tl = T.toWorld(0, 0), br = T.toWorld(mapaCssW, mapaCssH);
+    const cx0 = Math.floor(tl.x / cw), cx1 = Math.floor(br.x / cw);
+    const cy0 = Math.floor(tl.y / cw), cy1 = Math.floor(br.y / cw);
+    const midX = (cx0 + cx1) / 2, midY = (cy0 + cy1) / 2;
+    const list = [];
+    for (let cy = cy0; cy <= cy1; cy++) {
+      for (let cx = cx0; cx <= cx1; cx++) list.push([cx, cy]);
+    }
+    list.sort((a, b) => Math.hypot(a[0] - midX, a[1] - midY) - Math.hypot(b[0] - midX, b[1] - midY));
+
+    let budget = 12, missing = false;
+    const sizePx = cw * mapaView.scale;
+    g.imageSmoothingEnabled = true;
+    for (let idx = 0; idx < list.length; idx++) {
+      const cx = list[idx][0], cy = list[idx][1];
+      const key = lod + '|' + cx + '|' + cy;
+      let c = mapaChunkCache.get(key);
+      if (!c && budget > 0) {
+        c = renderMapaChunk(lod, cx, cy);
+        mapaChunkCache.set(key, c);
+        budget--;
+      }
+      const s = T.toScreen(cx * cw, cy * cw);
+      if (c) {
+        g.drawImage(c, s.x, s.y, sizePx + 0.6, sizePx + 0.6);
+      } else {
+        missing = true;
+        const pc = mapaChunkCache.get((lod + 1) + '|' + Math.floor(cx / 2) + '|' + Math.floor(cy / 2));
+        if (pc) {
+          const sx = (cx - 2 * Math.floor(cx / 2)) * MAPA_CHUNK / 2;
+          const sy = (cy - 2 * Math.floor(cy / 2)) * MAPA_CHUNK / 2;
+          g.drawImage(pc, sx, sy, MAPA_CHUNK / 2, MAPA_CHUNK / 2, s.x, s.y, sizePx + 0.6, sizePx + 0.6);
+        } else {
+          g.fillStyle = '#4b6b45';
+          g.fillRect(s.x, s.y, sizePx + 0.6, sizePx + 0.6);
+        }
+      }
+    }
+    if (mapaChunkCache.size > 700) {
+      const keys = [...mapaChunkCache.keys()].slice(0, 200);
+      keys.forEach(k => mapaChunkCache.delete(k));
+    }
+    if (missing) requestDrawMapaMundo();
+  }
+
+  function actualizarBarraEscalaMapa() {
+    const bar = $('mapa-escala-bar'), lbl = $('mapa-escala-lbl');
+    if (!bar || !lbl || !MapaLib.escalaBonita) return;
+    const esc = MapaLib.escalaBonita(mapaView.scale);
+    bar.style.width = Math.max(16, esc.px) + 'px';
+    lbl.textContent = esc.texto;
+  }
+
   function drawMapaMundo() {
-    const cv = $('mapa-lienzo'), g = cv.getContext('2d');
-    const L = cv.width;
+    const cv = $('mapa-lienzo');
+    if (!cv || !world) return;
+    resizeMapaLienzo();
+    const g = cv.getContext('2d');
     const recActivo = (gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto) ? gestorLaberintos.recinto : null;
     const modoLab = !!(recActivo && !mapaForzarMundo);
+
+    if (!mapaViewIniciado || mapaModoAnterior !== modoLab) {
+      mapaModoAnterior = modoLab;
+      ajustarVistaMapa(modoLab, false);
+    }
+
     const btnModo = $('mapa-modo-btn');
     const tituloEl = document.querySelector('#mapa-mundo h2');
     if (btnModo) {
@@ -12437,31 +13104,48 @@
       btnModo.textContent = modoLab ? '🌍 Ver mapa del mundo' : '🌀 Ver laberinto';
     }
     if (tituloEl) {
-      tituloEl.textContent = modoLab ? ('🌀 ' + ((recActivo.zona && recActivo.zona.name) || 'Laberinto')) : '🗺 Mapa del mundo';
+      tituloEl.textContent = modoLab ? ('🌀 ' + ((recActivo.zona && recActivo.zona.name) || 'Laberinto')) : '🗺 ' + (world.name || 'Mapa del mundo');
     }
 
-    const rLab = recActivo ? (Math.max(recActivo.rMax || 130, recActivo.Rint || 100) + 18) : 130;
-    const lim = modoLab
-      ? { minX: recActivo.zx - rLab, maxX: recActivo.zx + rLab, minY: recActivo.zz - rLab, maxY: recActivo.zz + rLab }
-      : MapaLib.limites(world);
-    const T = MapaLib.encajar(lim, L, L, 40);
+    const T = MapaLib.crearTransformacionVista(mapaView, mapaCssW, mapaCssH);
     mapaT = T;
     const p = character.root.position;
+
+    g.setTransform(mapaDpr, 0, 0, mapaDpr, 0, 0);
     g.setLineDash([]);
-    g.fillStyle = '#0b1220'; g.fillRect(0, 0, L, L);
-    // Rejilla con coordenadas en metros
-    const paso = MapaLib.pasoRejilla(Math.max(lim.maxX - lim.minX, lim.maxY - lim.minY));
-    g.font = '15px sans-serif'; g.textAlign = 'left'; g.fillStyle = '#64748b';
-    g.lineWidth = 1; g.strokeStyle = 'rgba(148,163,184,.14)';
-    for (let x = Math.ceil(lim.minX / paso) * paso; x <= lim.maxX; x += paso) {
-      g.beginPath(); g.moveTo(T.px(x), 0); g.lineTo(T.px(x), L); g.stroke();
-      g.fillText(String(x), T.px(x) + 4, 17);
+    g.fillStyle = modoLab ? '#0b1220' : '#1e3a5f';
+    g.fillRect(0, 0, mapaCssW, mapaCssH);
+
+    if (!modoLab) {
+      drawMapaTerreno(g, T);
     }
-    for (let y = Math.ceil(lim.minY / paso) * paso; y <= lim.maxY; y += paso) {
-      g.beginPath(); g.moveTo(0, T.py(y)); g.lineTo(L, T.py(y)); g.stroke();
-      g.fillText(String(y), 6, T.py(y) - 5);
+
+    // Rejilla opcional (idéntica a la del Creador de Mundos)
+    if (mapaVerRejilla || modoLab) {
+      const step = mapaView.scale > 0.15 ? (modoLab ? 50 : 500) : mapaView.scale > 0.03 ? 1000 : 5000;
+      const tl = T.toWorld(0, 0), br = T.toWorld(mapaCssW, mapaCssH);
+      g.strokeStyle = modoLab ? 'rgba(148,163,184,0.16)' : 'rgba(255,255,255,0.14)';
+      g.lineWidth = 1;
+      g.font = '11px sans-serif';
+      g.textAlign = 'left';
+      g.fillStyle = modoLab ? '#64748b' : 'rgba(226,232,240,0.65)';
+      g.beginPath();
+      for (let gx = Math.floor(tl.x / step) * step; gx <= br.x; gx += step) {
+        const s = T.toScreen(gx, 0);
+        g.moveTo(s.x, 0); g.lineTo(s.x, mapaCssH);
+      }
+      for (let gy = Math.floor(tl.y / step) * step; gy <= br.y; gy += step) {
+        const s = T.toScreen(0, gy);
+        g.moveTo(0, s.y); g.lineTo(mapaCssW, s.y);
+      }
+      g.stroke();
+      for (let gx = Math.ceil(tl.x / step) * step; gx <= br.x; gx += step) {
+        g.fillText(String(gx), T.px(gx) + 3, 13);
+      }
+      for (let gy = Math.ceil(tl.y / step) * step; gy <= br.y; gy += step) {
+        g.fillText(String(gy), 4, T.py(gy) - 3);
+      }
     }
-    g.textAlign = 'right'; g.fillText('norte ↑', L - 10, L - 10);
 
     if (modoLab) {
       dibujarRecintoEnCanvas(g, T, recActivo, { compacto: false });
@@ -12491,110 +13175,392 @@
         g.beginPath(); g.arc(T.px(acompanante.x), T.py(acompanante.z), 5.5, 0, Math.PI * 2); g.fill();
       }
     } else {
-      // Zonas de combate, del mismo color que en el 3D
-    world.zones.forEach(z => {
-      const color = '#' + zoneColor(z).getHexString();
-      g.beginPath(); g.arc(T.px(z.x), T.py(z.y), z.radius * T.escala, 0, Math.PI * 2);
-      g.globalAlpha = 0.2; g.fillStyle = color; g.fill();
-      g.globalAlpha = 0.9; g.strokeStyle = color; g.lineWidth = 2; g.stroke();
-      g.globalAlpha = 1;
-      if (z.relieve && z.relieve.activo) {
-        const culm = z.relieve.culminacion || 'oasis';
-        const icon = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES[culm] && window.RelieveZonaLib.CULMINACIONES[culm].icono) || '🏔️';
-        g.font = '16px sans-serif';
-        g.textAlign = 'center';
-        g.textBaseline = 'middle';
-        g.fillText(icon, T.px(z.x), T.py(z.y));
-      }
-    });
-    // Caminos
-    g.strokeStyle = '#a16207'; g.lineWidth = 3; g.lineJoin = 'round';
-    world.roads.forEach(r => {
-      if (!r.points.length) return;
-      g.beginPath();
-      r.points.forEach((q, i) => { if (i) g.lineTo(T.px(q.x), T.py(q.y)); else g.moveTo(T.px(q.x), T.py(q.y)); });
-      g.stroke();
-    });
-    // Nombres de zona (en su centro) y lugares de interés
-    g.textAlign = 'center'; g.font = '13px sans-serif';
-    world.zones.forEach(z => etiqueta(g, z.name + ' · Nv ' + z.levelMin + '–' + z.levelMax, T.px(z.x), T.py(z.y), '#fde68a'));
-    g.font = '18px sans-serif'; g.textBaseline = 'middle';
-    (world.pois || []).forEach(q => {
-      const tipo = W.POI_TYPES[q.type] || {};
-      g.fillText(tipo.icon || '•', T.px(q.x), T.py(q.y));
-    });
-    g.textBaseline = 'alphabetic';
-    // Cabañas especiales y lugares secretos en el mapa del mundo
-    if (lugaresSecretos && lugaresSecretos.length) {
-      lugaresSecretos.forEach(s => {
-        const x = T.px(s.x), y = T.py(s.z);
-        if (s.tipo === 'cabana') {
-          const m = s.misionCabana || {};
-          const est = (typeof LugaresSecretosLib !== 'undefined' && typeof LugaresSecretosLib.estadoMisionCabana === 'function')
-            ? LugaresSecretosLib.estadoMisionCabana(s) : null;
-          const cant = est ? est.total : (m.cantidad || 100);
-          const prog = est ? est.progreso : (m.progreso || 0);
-          const entregada = est ? est.entregada : (m.entregada || m.cumplida);
-          const completada = est ? est.completada : (m.completada || prog >= cant);
-          const colorCab = entregada ? '#86efac' : (completada ? '#facc15' : '#38bdf8');
-          g.fillStyle = colorCab;
-          g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.fill();
-          g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.stroke();
-          const txtProg = entregada ? ' ✓' : (completada ? ' ¡LISTA!' : (m.aceptada && est ? ` [${est.resumenCorto}]` : ` [${prog}/${cant}]`));
-          etiqueta(g, '🏡 ' + s.nombre + txtProg, x + 10, y + 4, colorCab);
-        } else if (s.descubierto) {
-          g.fillStyle = s.tipo === 'fuente' ? '#38bdf8' : (s.tipo === 'altar' ? '#c084fc' : '#fbbf24');
-          g.beginPath(); g.arc(x, y, 5, 0, Math.PI * 2); g.fill();
-          etiqueta(g, (s.icono || '✦') + ' ' + s.nombre, x + 8, y + 4, '#cbd5e1');
+      // 1. Zonas con contorno orgánico W.zoneOutline y laberintos 2D (igual que index.html)
+      world.zones.forEach(z => {
+        const col = '#' + zoneColor(z).getHexString();
+        const pts = W.zoneOutline(z, 44);
+        g.beginPath();
+        pts.forEach((pt, idx) => {
+          const s = T.toScreen(pt.x, pt.y);
+          if (idx) g.lineTo(s.x, s.y); else g.moveTo(s.x, s.y);
+        });
+        g.closePath();
+        g.globalAlpha = z.type === 'segura' ? 0.14 : 0.20;
+        g.fillStyle = col;
+        g.fill();
+        g.globalAlpha = 0.9;
+        g.setLineDash(z.type === 'caza' ? [8, 6] : []);
+        g.lineWidth = 2;
+        g.strokeStyle = col;
+        g.stroke();
+        g.setLineDash([]);
+        g.globalAlpha = 1;
+
+        if (z.relieve && z.relieve.activo && window.RelieveZonaLib && window.RelieveZonaLib.dibujarLaberinto2D) {
+          window.RelieveZonaLib.dibujarLaberinto2D(g, z, T.toScreen, mapaView.scale, false);
         }
       });
+
+      // 2. Caminos con reborde oscuro y trazo por tipo (calzada, sendero, camino)
+      const wRoad = Math.max(2.5, 7 * mapaView.scale);
+      world.roads.forEach(r => {
+        if (!r.points || r.points.length < 2) return;
+        g.beginPath();
+        r.points.forEach((q, idx) => {
+          const s = T.toScreen(q.x, q.y);
+          if (idx) g.lineTo(s.x, s.y); else g.moveTo(s.x, s.y);
+        });
+        g.lineCap = 'round'; g.lineJoin = 'round';
+        g.strokeStyle = 'rgba(41,24,10,0.85)';
+        g.lineWidth = wRoad + 2.5;
+        g.stroke();
+        g.strokeStyle = r.kind === 'calzada' ? '#cbd5e1' : r.kind === 'sendero' ? '#a8865a' : '#d6b27a';
+        g.lineWidth = wRoad;
+        if (r.kind === 'sendero') g.setLineDash([wRoad * 2, wRoad * 1.5]);
+        g.stroke();
+        g.setLineDash([]);
+      });
+
+      // 3. Lagos/oasis y ríos de pueblos (como drawRios de index.html)
+      if (typeof lagosMundo !== 'undefined' && lagosMundo && lagosMundo.length) {
+        lagosMundo.forEach(l => {
+          const s = T.toScreen(l.x, l.z);
+          const rad = Math.max(3, (l.R || 22) * mapaView.scale);
+          g.beginPath(); g.arc(s.x, s.y, rad, 0, Math.PI * 2);
+          g.fillStyle = l.tipo === 'oasis' ? 'rgba(45,140,160,0.85)' : 'rgba(56,189,248,0.68)';
+          g.fill();
+          g.strokeStyle = '#0284c7'; g.lineWidth = 1.5; g.stroke();
+        });
+      }
+      const wRio = Math.max(2, 26 * mapaView.scale);
+      world.towns.forEach(t => {
+        const rio = t.cfg && t.cfg.rio;
+        if (!rio || !rio.pts || rio.pts.length < 2) return;
+        const rotR = (t.cfg.rotation || 0) * Math.PI / 180;
+        const cr = Math.cos(rotR), sr = Math.sin(rotR);
+        g.beginPath();
+        rio.pts.forEach((pt, idx) => {
+          const s = T.toScreen(t.x + pt.x * cr - pt.z * sr, t.y + pt.x * sr + pt.z * cr);
+          if (idx) g.lineTo(s.x, s.y); else g.moveTo(s.x, s.y);
+        });
+        g.lineCap = 'round'; g.lineJoin = 'round';
+        g.strokeStyle = 'rgba(2,6,23,0.7)'; g.lineWidth = wRio + 2.5; g.stroke();
+        g.strokeStyle = rio.mar ? '#38bdf8' : '#7dd3fc'; g.lineWidth = wRio; g.stroke();
+      });
+
+      // 4. POIs y mazmorras (mismo aspecto que index.html)
+      (world.pois || []).forEach(q => {
+        const s = T.toScreen(q.x, q.y);
+        const def = W.POI_TYPES[q.type];
+        g.beginPath(); g.arc(s.x, s.y, 11, 0, Math.PI * 2);
+        g.fillStyle = q.type === 'jefe' ? '#7f1d1d' : (q.type === 'santuario' || q.type === 'portal' ? '#155e75' : '#292524');
+        g.fill();
+        g.lineWidth = 2; g.strokeStyle = '#e7e5e4'; g.stroke();
+        g.fillStyle = '#fff'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(def ? def.icon : '?', s.x, s.y + 1);
+      });
+
+      (world.dungeons || []).forEach(d => {
+        const s = T.toScreen(d.x, d.y);
+        const rHex = 13.5;
+        g.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const ang = (i / 6) * Math.PI * 2;
+          const hx = s.x + Math.cos(ang) * rHex, hy = s.y + Math.sin(ang) * rHex;
+          if (i === 0) g.moveTo(hx, hy); else g.lineTo(hx, hy);
+        }
+        g.closePath();
+        g.fillStyle = d.completada ? '#14532d' : '#581c87';
+        g.fill();
+        g.lineWidth = 2; g.strokeStyle = '#c084fc'; g.stroke();
+        g.fillStyle = '#f8fafc'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('🗝', s.x, s.y);
+      });
+
+      // 5. Muelle del puerto, cabañas y lugares secretos descubiertos
+      if (muelleInfo) {
+        const sm = T.toScreen(muelleInfo.x, muelleInfo.z);
+        const se = T.toScreen(muelleInfo.x + muelleInfo.dx * 50, muelleInfo.z + muelleInfo.dz * 50);
+        g.beginPath(); g.moveTo(sm.x, sm.y); g.lineTo(se.x, se.y);
+        g.strokeStyle = '#92400e'; g.lineWidth = Math.max(3, 5 * mapaView.scale); g.lineCap = 'round'; g.stroke();
+        g.fillStyle = '#38bdf8'; g.font = '13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('⚓', sm.x, sm.y);
+      }
+
+      const cabanasEtq = [];
+      if (lugaresSecretos && lugaresSecretos.length) {
+        lugaresSecretos.forEach(s => {
+          const pt = T.toScreen(s.x, s.z);
+          if (s.tipo === 'cabana') {
+            const m = s.misionCabana || {};
+            const est = (typeof LugaresSecretosLib !== 'undefined' && typeof LugaresSecretosLib.estadoMisionCabana === 'function')
+              ? LugaresSecretosLib.estadoMisionCabana(s) : null;
+            const cant = est ? est.total : (m.cantidad || 100);
+            const prog = est ? est.progreso : (m.progreso || 0);
+            const entregada = est ? est.entregada : (m.entregada || m.cumplida);
+            const completada = est ? est.completada : (m.completada || prog >= cant);
+            const colorCab = entregada ? '#86efac' : (completada ? '#facc15' : '#38bdf8');
+            g.fillStyle = colorCab;
+            g.beginPath(); g.arc(pt.x, pt.y, 7, 0, Math.PI * 2); g.fill();
+            g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.stroke();
+            const txtProg = entregada ? ' ✓' : (completada ? ' ¡LISTA!' : (m.aceptada && est ? ` [${est.resumenCorto}]` : ` [${prog}/${cant}]`));
+            cabanasEtq.push({ texto: '🏡 ' + s.nombre + txtProg, x: pt.x, y: pt.y + 15, color: colorCab });
+          } else if (s.descubierto) {
+            g.fillStyle = s.tipo === 'fuente' ? '#38bdf8' : (s.tipo === 'altar' ? '#c084fc' : '#fbbf24');
+            g.beginPath(); g.arc(pt.x, pt.y, 5, 0, Math.PI * 2); g.fill();
+            cabanasEtq.push({ texto: (s.icono || '✦') + ' ' + s.nombre, x: pt.x, y: pt.y + 13, color: '#cbd5e1' });
+          }
+        });
+      }
+
+      // 6. Pueblos (mismo círculo doble, muralla, techo, icono y estrella que index.html)
+      world.towns.forEach(t => {
+        const s = T.toScreen(t.x, t.y);
+        const r = Math.max(11, (t.radius || 45) * mapaView.scale);
+        const cfg = t.cfg || {};
+        g.beginPath(); g.arc(s.x, s.y, r, 0, Math.PI * 2);
+        g.fillStyle = 'rgba(15,23,42,0.55)'; g.fill();
+        g.lineWidth = cfg.hasWalls ? 4 : 2;
+        g.strokeStyle = t.isStart ? '#fde047' : (cfg.hasWalls ? '#cbd5e1' : '#a8a29e');
+        g.stroke();
+        g.beginPath(); g.arc(s.x, s.y, r * 0.62, 0, Math.PI * 2);
+        g.fillStyle = ROOF[cfg.style] || '#1d4ed8'; g.fill();
+        g.fillStyle = '#fff';
+        g.font = Math.round(Math.max(11, r * 0.75)) + 'px sans-serif';
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText((cfg.size || 2) >= 4 ? '🏰' : '🏠', s.x, s.y + 1);
+        if (t.isStart) {
+          g.font = '14px sans-serif';
+          g.fillText('⭐', s.x + r * 0.8, s.y - r * 0.8);
+        }
+      });
+
+      // Ruta activa de autoguía y compañero en el mundo
+      if (ruta && ruta.length >= 2) {
+        g.save();
+        g.strokeStyle = '#38bdf8'; g.lineWidth = 3; g.setLineDash([7, 5]);
+        g.beginPath();
+        ruta.forEach((q, idx) => {
+          const qz = q.z !== undefined ? q.z : q.y;
+          if (idx) g.lineTo(T.px(q.x), T.py(qz)); else g.moveTo(T.px(q.x), T.py(qz));
+        });
+        g.stroke();
+        g.restore();
+      }
+      if (acompanante && acompanante.activo) {
+        g.fillStyle = '#22c55e';
+        g.beginPath(); g.arc(T.px(acompanante.x), T.py(acompanante.z), 5.5, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#0f172a'; g.lineWidth = 1.5; g.stroke();
+      }
+
+      // 7. Etiquetas anti-solapamiento (prioridad igual que index.html)
+      const labelRects = [];
+      const drawEtq = (texto, sub, x, y, color, size, force) => {
+        g.font = '600 ' + size + 'px sans-serif';
+        const w = Math.max(g.measureText(texto).width, sub ? sub.length * 6 : 0) + 6;
+        const h = size + (sub ? 13 : 2);
+        const r = { x: x - w / 2, y: y - size / 2 - 1, w, h };
+        if (!force && labelRects.some(o => r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y)) return;
+        labelRects.push(r);
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.lineWidth = 3.5; g.strokeStyle = 'rgba(2,6,23,0.88)';
+        g.strokeText(texto, x, y); g.fillStyle = color; g.fillText(texto, x, y);
+        if (sub) {
+          g.font = '11px sans-serif';
+          g.strokeText(sub, x, y + size * 0.95); g.fillStyle = '#e2e8f0'; g.fillText(sub, x, y + size * 0.95);
+        }
+      };
+
+      world.towns.forEach(t => {
+        const s = T.toScreen(t.x, t.y);
+        const r = Math.max(11, (t.radius || 45) * mapaView.scale);
+        drawEtq((t.isStart ? '⭐ ' : '') + t.name, 'Nv ' + t.level, s.x, s.y + r + 11, '#fde68a', 13, !!t.isStart);
+      });
+      (world.dungeons || []).forEach(d => {
+        const s = T.toScreen(d.x, d.y);
+        drawEtq(d.name, 'Nv. ' + d.level + (d.completada ? ' · Superada' : ' · Mazmorra'), s.x, s.y + 20, '#e9d5ff', 11, false);
+      });
+      if (mapaView.scale > 0.025) {
+        world.zones.forEach(z => {
+          const s = T.toScreen(z.x, z.y);
+          drawEtq(z.name, 'Nv ' + z.levelMin + '–' + z.levelMax, s.x, s.y - 6, '#' + zoneColor(z).getHexString(), 12, false);
+        });
+      }
+      cabanasEtq.forEach(c => drawEtq(c.texto, null, c.x, c.y, c.color, 11, false));
+      if (mapaView.scale > 0.06) {
+        (world.pois || []).forEach(q => {
+          const s = T.toScreen(q.x, q.y);
+          drawEtq(q.name, null, s.x, s.y + 20, '#f5f5f4', 11, false);
+        });
+      }
     }
 
-    // Pueblos: cuadrado y nombre (el inicial, destacado)
-    g.font = 'bold 15px sans-serif'; g.textAlign = 'left';
-    world.towns.forEach(t => {
-      const x = T.px(t.x), y = T.py(t.y);
-      g.fillStyle = t.isStart ? '#fbbf24' : '#e2e8f0';
-      g.fillRect(x - 6, y - 6, 12, 12);
-      etiqueta(g, (t.isStart ? '⭐ ' : '') + t.name, x + 10, y + 5, t.isStart ? '#fde68a' : '#f8fafc');
-    });
-    } // fin de modo mapa del mundo
-    // Tú: un círculo y una flecha que indica hacia dónde miras
+    // 8. Posición y orientación del jugador en tiempo real ("Tú") siempre visible encima de todo
     const f = MapaLib.frente(character.anguloY());
-    const x = T.px(p.x), y = T.py(p.z);
-    g.beginPath(); g.arc(x, y, 16, 0, Math.PI * 2); g.fillStyle = 'rgba(253,224,71,.25)'; g.fill();
+    const pxHero = T.px(p.x), pyHero = T.py(p.z);
+    const pulso = 0.5 + 0.5 * Math.sin(performance.now() * 0.006);
+    g.beginPath(); g.arc(pxHero, pyHero, 14 + pulso * 7, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(253,224,71,' + (0.18 + 0.14 * pulso).toFixed(2) + ')'; g.fill();
+    g.beginPath(); g.arc(pxHero, pyHero, 11, 0, Math.PI * 2);
+    g.strokeStyle = 'rgba(253,224,71,0.75)'; g.lineWidth = 1.8; g.stroke();
     g.beginPath();
-    g.moveTo(x + f.dx * 22, y + f.dy * 22);
-    g.lineTo(x - f.dx * 8 - f.dy * 9, y - f.dy * 8 + f.dx * 9);
-    g.lineTo(x - f.dx * 8 + f.dy * 9, y - f.dy * 8 - f.dx * 9);
+    g.moveTo(pxHero + f.dx * 18, pyHero + f.dy * 18);
+    g.lineTo(pxHero - f.dx * 7 - f.dy * 8, pyHero - f.dy * 7 + f.dx * 8);
+    g.lineTo(pxHero - f.dx * 7 + f.dy * 8, pyHero - f.dy * 7 - f.dx * 8);
     g.closePath();
-    g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2; g.fill(); g.stroke();
-    g.font = 'bold 15px sans-serif'; g.textAlign = 'left';
-    etiqueta(g, 'Tú', x + 18, y - 12, '#fde047');
+    g.fillStyle = '#fde047'; g.strokeStyle = '#0f172a'; g.lineWidth = 2.5; g.fill(); g.stroke();
+    g.font = 'bold 14px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    etiqueta(g, 'Tú (' + Math.round(p.x) + ', ' + Math.round(p.z) + ')', pxHero + 15, pyHero - 12, '#fde047');
+
+    actualizarBarraEscalaMapa();
+  }
+
+  function actualizarCursorMapa(mx, my) {
+    const p = character && character.root ? character.root.position : { x: 0, z: 0 };
+    const cerca = MapaLib.puebloCercano(world, mx, my);
+    const b = terrain ? terrain.biomeAt(mx, my) : null;
+    const bNom = b && W.BIOMES && W.BIOMES[b] ? W.BIOMES[b].name : (b || '');
+    const tuTxt = ` · Tú: (${Math.round(p.x)}, ${Math.round(p.z)})`;
+    $('mapa-cursor').textContent = 'x ' + Math.round(mx) + ' · y ' + Math.round(my) +
+      (bNom ? ' · ' + bNom : '') +
+      (cerca ? ' · ' + cerca.town.name + ' a ' + Math.round(cerca.d) + ' m' : '') +
+      tuTxt;
   }
 
   function abrirMapaMundo() {
     mapaForzarMundo = false;
-    $('mapa-cursor').textContent = 'Pasa el ratón o toca el mapa para ver coordenadas (x e y en metros).';
+    mapaViewIniciado = false;
+    mapaModoAnterior = null;
     $('mapa-mundo').classList.add('show');
+    const recActivo = (gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto) ? gestorLaberintos.recinto : null;
+    ajustarVistaMapa(!!(recActivo && !mapaForzarMundo), false);
+    if (character && character.root) actualizarCursorMapa(character.root.position.x, character.root.position.z);
     drawMapaMundo();
   }
-  function cerrarMapaMundo() { $('mapa-mundo').classList.remove('show'); }
+  function cerrarMapaMundo() {
+    if (mapaRafId) { cancelAnimationFrame(mapaRafId); mapaRafId = 0; }
+    $('mapa-mundo').classList.remove('show');
+  }
   $('minimap').onclick = abrirMapaMundo;
   $('mapa-cerrar').onclick = cerrarMapaMundo;
   if ($('mapa-modo-btn')) {
-    $('mapa-modo-btn').onclick = () => { mapaForzarMundo = !mapaForzarMundo; drawMapaMundo(); };
+    $('mapa-modo-btn').onclick = () => {
+      mapaForzarMundo = !mapaForzarMundo;
+      mapaViewIniciado = false;
+      drawMapaMundo();
+    };
   }
-  // Coordenadas bajo el dedo o el ratón, y el pueblo más cercano
+  if ($('mapa-zoom-in')) {
+    $('mapa-zoom-in').onclick = () => {
+      mapaView = MapaLib.zoomVistaEn(mapaView, mapaCssW, mapaCssH, mapaCssW / 2, mapaCssH / 2, 1.45);
+      drawMapaMundo();
+    };
+  }
+  if ($('mapa-zoom-out')) {
+    $('mapa-zoom-out').onclick = () => {
+      mapaView = MapaLib.zoomVistaEn(mapaView, mapaCssW, mapaCssH, mapaCssW / 2, mapaCssH / 2, 1 / 1.45);
+      drawMapaMundo();
+    };
+  }
+  if ($('mapa-centrar-tu')) {
+    $('mapa-centrar-tu').onclick = () => {
+      const recActivo = (gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto) ? gestorLaberintos.recinto : null;
+      ajustarVistaMapa(!!(recActivo && !mapaForzarMundo), true);
+      if (character && character.root) actualizarCursorMapa(character.root.position.x, character.root.position.z);
+      drawMapaMundo();
+    };
+  }
+  if ($('mapa-ver-todo')) {
+    $('mapa-ver-todo').onclick = () => {
+      const recActivo = (gestorLaberintos && gestorLaberintos.enLaberinto && gestorLaberintos.recinto) ? gestorLaberintos.recinto : null;
+      ajustarVistaMapa(!!(recActivo && !mapaForzarMundo), false);
+      drawMapaMundo();
+    };
+  }
+  if ($('mapa-rejilla-btn')) {
+    $('mapa-rejilla-btn').onclick = () => {
+      mapaVerRejilla = !mapaVerRejilla;
+      $('mapa-rejilla-btn').classList.toggle('activo', mapaVerRejilla);
+      drawMapaMundo();
+    };
+  }
+
+  // Pan, zoom por rueda y pinza táctil en #mapa-lienzo (estilo Creador de Mundos)
+  const mapaPointers = new Map();
+  let mapaPinch = null, mapaDrag = null;
   function leerCoordenadas(e) {
-    if (!mapaT) return;
+    if (!mapaT || !world) return;
     const cv = $('mapa-lienzo'), r = cv.getBoundingClientRect();
-    const m = mapaT.mundo((e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height);
-    const cerca = MapaLib.puebloCercano(world, m.x, m.y);
-    $('mapa-cursor').textContent = 'x ' + Math.round(m.x) + ' · y ' + Math.round(m.y) + (cerca ? ' · ' + cerca.town.name + ' a ' + Math.round(cerca.d) + ' m' : '');
+    const sx = (e.clientX - r.left) * (mapaCssW / Math.max(1, r.width));
+    const sy = (e.clientY - r.top) * (mapaCssH / Math.max(1, r.height));
+    const m = mapaT.mundo(sx, sy);
+    actualizarCursorMapa(m.x, m.y);
   }
-  $('mapa-lienzo').addEventListener('pointermove', leerCoordenadas);
-  $('mapa-lienzo').addEventListener('pointerdown', leerCoordenadas);
+  $('mapa-lienzo').addEventListener('pointerdown', e => {
+    const cv = $('mapa-lienzo'), r = cv.getBoundingClientRect();
+    const sx = (e.clientX - r.left) * (mapaCssW / Math.max(1, r.width));
+    const sy = (e.clientY - r.top) * (mapaCssH / Math.max(1, r.height));
+    cv.setPointerCapture(e.pointerId);
+    mapaPointers.set(e.pointerId, { x: sx, y: sy });
+    if (mapaPointers.size === 2) {
+      const [a, b] = [...mapaPointers.values()];
+      mapaPinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+      mapaDrag = null;
+      return;
+    }
+    mapaDrag = { lx: sx, ly: sy };
+    leerCoordenadas(e);
+  });
+  $('mapa-lienzo').addEventListener('pointermove', e => {
+    const cv = $('mapa-lienzo'), r = cv.getBoundingClientRect();
+    const sx = (e.clientX - r.left) * (mapaCssW / Math.max(1, r.width));
+    const sy = (e.clientY - r.top) * (mapaCssH / Math.max(1, r.height));
+    if (mapaPointers.has(e.pointerId)) mapaPointers.set(e.pointerId, { x: sx, y: sy });
+    if (mapaPinch && mapaPointers.size >= 2) {
+      const [a, b] = [...mapaPointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      mapaView.cx -= (mx - mapaPinch.mx) / mapaView.scale;
+      mapaView.cy -= (my - mapaPinch.my) / mapaView.scale;
+      mapaView = MapaLib.zoomVistaEn(mapaView, mapaCssW, mapaCssH, mx, my, d / (mapaPinch.d || d));
+      mapaPinch = { d, mx, my };
+      requestDrawMapaMundo();
+      return;
+    }
+    if (mapaDrag && mapaPointers.size === 1) {
+      mapaView.cx -= (sx - mapaDrag.lx) / mapaView.scale;
+      mapaView.cy -= (sy - mapaDrag.ly) / mapaView.scale;
+      mapaDrag.lx = sx;
+      mapaDrag.ly = sy;
+      requestDrawMapaMundo();
+    }
+    leerCoordenadas(e);
+  });
+  const _finMapaPtr = e => {
+    mapaPointers.delete(e.pointerId);
+    if (mapaPointers.size < 2) mapaPinch = null;
+    if (mapaPointers.size === 0) mapaDrag = null;
+  };
+  $('mapa-lienzo').addEventListener('pointerup', _finMapaPtr);
+  $('mapa-lienzo').addEventListener('pointercancel', _finMapaPtr);
+  $('mapa-lienzo').addEventListener('wheel', e => {
+    e.preventDefault();
+    const cv = $('mapa-lienzo'), r = cv.getBoundingClientRect();
+    const sx = (e.clientX - r.left) * (mapaCssW / Math.max(1, r.width));
+    const sy = (e.clientY - r.top) * (mapaCssH / Math.max(1, r.height));
+    mapaView = MapaLib.zoomVistaEn(mapaView, mapaCssW, mapaCssH, sx, sy, e.deltaY < 0 ? 1.18 : 1 / 1.18);
+    drawMapaMundo();
+  }, { passive: false });
+  $('mapa-lienzo').addEventListener('dblclick', e => {
+    const cv = $('mapa-lienzo'), r = cv.getBoundingClientRect();
+    const sx = (e.clientX - r.left) * (mapaCssW / Math.max(1, r.width));
+    const sy = (e.clientY - r.top) * (mapaCssH / Math.max(1, r.height));
+    mapaView = MapaLib.zoomVistaEn(mapaView, mapaCssW, mapaCssH, sx, sy, 1.7);
+    drawMapaMundo();
+  });
+  window.addEventListener('resize', () => {
+    if ($('mapa-mundo') && $('mapa-mundo').classList.contains('show')) requestDrawMapaMundo();
+  });
 
   // ===========================================================================
   // Partidas: guardado separado del mundo (js/partida.js)
@@ -12616,7 +13582,8 @@
       where: nearestTownName(),
       player: character.root.position, yaw: character.anguloY(),
       hero, inv, visited: [...visited], timeOfDay,
-      personaje: personajeActual, heroe: heroeEst
+      personaje: personajeActual, heroe: heroeEst,
+      aldeanosCustom: typeof aldeanosCustom !== 'undefined' ? aldeanosCustom : []
     });
     const act = activePartida();
     if (prologoVistoActual || (act && act.prologoVisto)) snap.prologoVisto = true;
@@ -12670,7 +13637,16 @@
     r.visited.forEach(id => visited.add(id));
     setTimeOfDay(r.timeOfDay);
     personajeActual = r.personaje;
+    if (personajeActual && personajeActual.rostro && !personajeActual.rostro.bloqueado && typeof PartidaLib.fijarRostroInmutable === 'function') {
+      PartidaLib.fijarRostroInmutable(personajeActual, personajeActual.rostro);
+    }
     heroeEst = HeroeLib.limpiarHeroe(r.heroe);
+    if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
+      HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(personajeActual), claseHeroe());
+    }
+    if (typeof restaurarAldeanosCustom === 'function') {
+      restaurarAldeanosCustom(r.aldeanosCustom || []);
+    }
     aplicarStats();
     ruta = null;
     renderInvCard();
@@ -13143,8 +14119,10 @@
   // ===========================================================================
   // Personaje: el estudio de armaduras (embebido) ajusta las proporciones y genera las piezas
   // ===========================================================================
-  const ESTUDIO_URL = 'estudio-armaduras/index.html?v=20261031';
+  const ESTUDIO_URL = 'estudio-armaduras/index.html?v=20261121';
   let catalogoPiezas = null;
+  let catalogoRostros = null;
+  let rostroCrearBloqueado = false;
   let personajeActual = null;   // personaje de la partida activa (ver js/partida.js)
   let heroeEst = HeroeLib.nuevoHeroe();                        // puntos, misiones y habilidades (ver js/heroe.js)
   let statsHeroe = HeroeLib.estadisticas(heroeEst, 1, []);    // estadísticas actuales: las recalcula aplicarStats()
@@ -13157,8 +14135,31 @@
   let estudioListo = null;      // promesa: el maniquí del estudio está listo
   const esperando = {};         // respuestas pendientes del estudio, por clave
 
+  function badgeGradoHtml(o) {
+    if (!o) return '';
+    const g = o.grado || (typeof EquipoLib !== 'undefined' && EquipoLib.gradoDePieza ? EquipoLib.gradoDePieza(o) : null);
+    const taRaw = Array.isArray(o.tipoArmadura) ? o.tipoArmadura.join('/') : (o.tipoArmadura || '');
+    const ta = taRaw === 'mago' ? 'Mago' : (taRaw === 'ligera' ? 'Ligera' : (taRaw === 'pesada' ? 'Pesada' : taRaw.replace(/mago/g, 'Mago').replace(/ligera/g, 'Ligera').replace(/pesada/g, 'Pesada')));
+    const gTag = g ? `<span class="grado-tag grado-${esc(g)}">${esc(g)}</span>` : '';
+    const tTag = ta ? `<span class="clase-arm-tag">${esc(ta)}</span>` : '';
+    return gTag + tTag;
+  }
+  function gradoActivoHeroe(pj) {
+    if (!pj || !pj.equipo) return 'D';
+    const ref = EquipoLib.objeto(pj, pj.equipo.torso)
+      || Object.values(pj.equipo).map(uid => EquipoLib.objeto(pj, uid)).find(Boolean);
+    if (!ref) return 'D';
+    return ref.grado || (EquipoLib.gradoDePieza ? EquipoLib.gradoDePieza(ref) : 'D') || 'D';
+  }
+  function armorLookActivoHeroe(pj) {
+    if (!pj || !pj.equipo) return null;
+    const ref = EquipoLib.objeto(pj, pj.equipo.torso)
+      || Object.values(pj.equipo).map(uid => EquipoLib.objeto(pj, uid)).find(Boolean);
+    return (ref && ref.armorLook != null) ? ref.armorLook : null;
+  }
+
   // Caché persistente en IndexedDB del GLB exportado del héroe para cargar la partida al instante sin abrir el estudio
-  const DB_HEROE = 'rpg-heroe-glb-v2';
+  const DB_HEROE = 'rpg-heroe-glb-v3';
   let dbHeroePromesa = null;
   function abrirDbHeroe() {
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);
@@ -13180,6 +14181,9 @@
       ta: (typeof EquipoLib !== 'undefined' && EquipoLib.tipoArmaduraDeClase)
         ? EquipoLib.tipoArmaduraDeClase(catalogoPiezas, pj.clase)
         : 'pesada',
+      g: gradoActivoHeroe(pj),
+      lk: armorLookActivoHeroe(pj),
+      r: pj.rostro ? { id: pj.rostro.id || '', g: pj.rostro.gender || 'hombre' } : null,
       f: pj.fit || {},
       h: pj.pelo || null,
       e: EquipoLib.equipoPorIdx(pj)
@@ -13230,25 +14234,95 @@
     return new Promise((res, rej) => {
       // Exportar una pieza o el cuerpo tarda; 4 minutos de margen
       const t = setTimeout(() => { delete esperando[clave]; rej(new Error('El estudio no respondió a tiempo')); }, 240000);
-      esperando[clave] = v => { clearTimeout(t); res(v); };
-      enviarAlEstudio(datos);
+      esperando[clave] = {
+        res: v => { clearTimeout(t); res(v); },
+        rej: err => { clearTimeout(t); rej(err instanceof Error ? err : new Error(String(err))); }
+      };
+      enviarAlEstudio(Object.assign({ id: clave }, datos));
     });
+  }
+
+  function resolverEsperaEstudio(clave, valor) {
+    const h = esperando[clave];
+    if (!h) return false;
+    delete esperando[clave];
+    if (typeof h === 'function') h(valor);
+    else if (h && h.res) h.res(valor);
+    return true;
+  }
+
+  function rechazarEsperaEstudio(clave, err) {
+    const h = esperando[clave];
+    if (!h) return false;
+    delete esperando[clave];
+    if (h && h.rej) h.rej(err);
+    return true;
   }
 
   window.addEventListener('message', e => {
     const d = e.data;
     if (!d || d.origen !== 'armadura-estudio') return;
-    if (d.tipo === 'listo' && esperando.listo) { esperando.listo(); delete esperando.listo; pausarEstudioSiOculto(); }
-    if (d.tipo === 'proporciones' && esperando.proporciones) { esperando.proporciones({ fit: d.fit, hair: d.hair || null }); delete esperando.proporciones; }
-    if (d.tipo === 'glb' && esperando[d.id]) {
-      esperando[d.id](d.buffer);
-      delete esperando[d.id];
+    if (d.tipo === 'listo') {
+      if (Array.isArray(d.rostros) && d.rostros.length) {
+        catalogoRostros = d.rostros;
+        resolverEsperaEstudio('rostros', catalogoRostros);
+        if (typeof poblarSelectRostros === 'function') poblarSelectRostros();
+        if ($('crear') && $('crear').classList.contains('show')) {
+          enviarAlEstudio({ tipo: 'cambiar-pestana', tab: 'armadura' });
+          enviarAlEstudio({ tipo: 'bloquear-rostro', bloqueado: rostroCrearBloqueado });
+          if (!rostroCrearBloqueado && $('crear-rostro') && $('crear-rostro').value) {
+            aplicarSeleccionRostroAlEstudio();
+          }
+        }
+      } else if (!catalogoRostros) {
+        enviarAlEstudio({ tipo: 'listar-rostros', id: 'rostros' });
+      }
+      if (esperando.listo) {
+        const fn = esperando.listo;
+        delete esperando.listo;
+        if (typeof fn === 'function') fn();
+        else if (fn && fn.res) fn.res();
+      }
+      pausarEstudioSiOculto();
+      return;
+    }
+    if (d.tipo === 'proporciones') {
+      resolverEsperaEstudio(d.id || 'proporciones', {
+        fit: d.fit,
+        hair: d.hair || null,
+        rostro: d.rostro || null,
+        villager: d.villager || null
+      });
+      return;
+    }
+    if (d.tipo === 'rostros') {
+      catalogoRostros = d.rostros || [];
+      resolverEsperaEstudio(d.id || 'rostros', catalogoRostros);
+      if (typeof poblarSelectRostros === 'function') poblarSelectRostros();
+      return;
+    }
+    if (d.tipo === 'rostro-cambiado' && d.rostro) {
+      if (!rostroCrearBloqueado && typeof sincronizarPreviewRostro === 'function') {
+        sincronizarPreviewRostro(d.rostro);
+      }
+      return;
+    }
+    if (d.tipo === 'glb') {
+      const clave = d.id || 'cuerpo';
+      const val = String(clave).startsWith('aldeano_')
+        ? { buffer: d.buffer, nombre: d.nombre, rostro: d.rostro || null, villager: d.villager || null }
+        : d.buffer;
+      resolverEsperaEstudio(clave, val);
+      return;
+    }
+    if (d.tipo === 'error' && d.id) {
+      rechazarEsperaEstudio(d.id, d.error || 'Error en estudio');
     }
   });
 
   async function cargarCatalogoPiezas() {
     if (!catalogoPiezas) {
-      const r = await fetch('estudio-armaduras/catalogo.json?v=20261119d');
+      const r = await fetch('estudio-armaduras/catalogo.json?v=20261121');
       if (!r.ok) throw new Error('No se pudo leer el catálogo de piezas');
       catalogoPiezas = await r.json();
     }
@@ -13256,10 +14330,98 @@
   }
 
   // Personaje nuevo: cota inicial y arma básica (js/equipo.js) con las proporciones que tenga el estudio ahora
-  function prepararPersonaje(nombre, clase, fit) {
+  function prepararPersonaje(nombre, clase, fit, rostro) {
     const pj = EquipoLib.crearPersonaje(catalogoPiezas, clase, nombre);
     pj.fit = fit;
+    if (rostro && typeof PartidaLib !== 'undefined' && typeof PartidaLib.fijarRostroInmutable === 'function') {
+      PartidaLib.fijarRostroInmutable(pj, rostro);
+    } else if (rostro) {
+      pj.rostro = Object.assign({}, rostro, { bloqueado: true });
+    }
     return pj;
+  }
+
+  function actualizarPreviewRostroUrl(def) {
+    const prev = $('crear-rostro-prev');
+    if (!prev) return;
+    if (def && def.url) {
+      prev.src = def.url.startsWith('http') || def.url.startsWith('data:') || def.url.startsWith('estudio-armaduras/')
+        ? def.url : ('estudio-armaduras/' + def.url);
+      prev.style.display = '';
+    } else {
+      prev.removeAttribute('src');
+    }
+  }
+
+  function poblarSelectRostros(preferId) {
+    const selGen = $('crear-genero'), selRos = $('crear-rostro');
+    if (!selGen || !selRos || !Array.isArray(catalogoRostros)) return;
+    const gen = selGen.value || 'hombre';
+    const filtrados = catalogoRostros.filter(r => (r.gender || 'hombre') === gen);
+    const lista = filtrados.length ? filtrados : catalogoRostros;
+    const prevVal = preferId !== undefined ? preferId : selRos.value;
+    selRos.innerHTML = lista.map(r => `<option value="${esc(r.id)}">${esc(r.label || r.id)}</option>`).join('');
+    const elegir = lista.find(r => r.id === prevVal) || lista[0] || null;
+    if (elegir) {
+      selRos.value = elegir.id;
+      actualizarPreviewRostroUrl(elegir);
+    }
+  }
+
+  function sincronizarPreviewRostro(rostro) {
+    if (!rostro || !Array.isArray(catalogoRostros)) return;
+    const selGen = $('crear-genero'), selRos = $('crear-rostro');
+    if (rostro.gender && selGen && selGen.value !== rostro.gender) {
+      selGen.value = rostro.gender;
+      poblarSelectRostros(rostro.id || '');
+    } else if (rostro.id && selRos && selRos.value !== rostro.id) {
+      selRos.value = rostro.id;
+    }
+    const def = catalogoRostros.find(r => r.id === (rostro.id || (selRos && selRos.value)));
+    if (def) actualizarPreviewRostroUrl(def);
+    else if (rostro.url) actualizarPreviewRostroUrl(rostro);
+  }
+
+  function fijarBloqueoSelectorRostro(bloqueado) {
+    rostroCrearBloqueado = !!bloqueado;
+    const selGen = $('crear-genero'), selRos = $('crear-rostro'), aviso = $('crear-rostro-aviso');
+    if (selGen) selGen.disabled = rostroCrearBloqueado;
+    if (selRos) selRos.disabled = rostroCrearBloqueado;
+    if (aviso) {
+      aviso.textContent = rostroCrearBloqueado
+        ? '🔒 Rostro fijado permanentemente para este personaje: ya no se puede cambiar.'
+        : '🔒 El rostro elegido queda fijado al iniciar el personaje y no cambiará después.';
+      aviso.style.color = rostroCrearBloqueado ? '#f87171' : '#fbbf24';
+    }
+  }
+
+  function aplicarSeleccionRostroAlEstudio() {
+    if (rostroCrearBloqueado) return;
+    const selGen = $('crear-genero'), selRos = $('crear-rostro');
+    if (!selGen || !selRos) return;
+    const id = selRos.value || '';
+    const gen = selGen.value || 'hombre';
+    const def = Array.isArray(catalogoRostros) ? catalogoRostros.find(r => r.id === id) : null;
+    if (def) actualizarPreviewRostroUrl(def);
+    enviarAlEstudio({
+      tipo: 'proporciones',
+      rostro: { id, gender: (def && def.gender) || gen, label: (def && def.label) || id, url: def && def.url },
+      rostroBloqueado: false
+    });
+  }
+
+  if ($('crear-genero')) {
+    $('crear-genero').addEventListener('change', () => {
+      if (rostroCrearBloqueado) return;
+      poblarSelectRostros('');
+      aplicarSeleccionRostroAlEstudio();
+    });
+  }
+  if ($('crear-rostro')) {
+    $('crear-rostro').addEventListener('change', () => {
+      if (rostroCrearBloqueado) return;
+      aplicarSeleccionRostroAlEstudio();
+    });
   }
 
   const esperarPrimerPintadoMundo = () => new Promise(ok => {
@@ -13287,21 +14449,41 @@
   }
   if ($('crear-clase')) $('crear-clase').addEventListener('change', actualizarInfoClaseCrear);
 
-  async function openCrearPersonaje(alCrearFn) {
+  async function openCrearPersonaje(alCrearFn, opts) {
     alCrear = alCrearFn || crearPartida;
+    const esEdicionFijada = !!(opts && opts.bloquearRostro) || (!alCrearFn && personajeActual && personajeActual.rostro && personajeActual.rostro.bloqueado);
+    fijarBloqueoSelectorRostro(esEdicionFijada);
     actualizarInfoClaseCrear();
     $('crear-estado').textContent = 'Cargando el estudio…';
     $('crear').classList.add('show');
     estudioCargando = true;
     try {
       frameEstudio();
-      const timeoutListo = new Promise(res => setTimeout(res, 4000));
+      const timeoutListo = new Promise(res => setTimeout(res, 15000));
       await Promise.all([
         cargarCatalogoPiezas().catch(e => console.warn('Catálogo piezas:', e)),
         Promise.race([estudioListo, timeoutListo])
       ]);
       pausarEstudioSiOculto();
-      $('crear-estado').textContent = 'Ajusta el cuerpo y pulsa «Crear personaje».';
+      enviarAlEstudio({ tipo: 'cambiar-pestana', tab: 'armadura' });
+      enviarAlEstudio({ tipo: 'bloquear-rostro', bloqueado: rostroCrearBloqueado });
+      if (!catalogoRostros) {
+        try {
+          await Promise.race([
+            pedirAlEstudio('rostros', { tipo: 'listar-rostros', id: 'rostros' }),
+            new Promise(res => setTimeout(res, 2500))
+          ]);
+        } catch (e) {}
+      } else {
+        poblarSelectRostros();
+      }
+      if (!rostroCrearBloqueado && $('crear-rostro') && $('crear-rostro').value) {
+        aplicarSeleccionRostroAlEstudio();
+      } else if (rostroCrearBloqueado && personajeActual && personajeActual.rostro) {
+        sincronizarPreviewRostro(personajeActual.rostro);
+        enviarAlEstudio({ tipo: 'proporciones', rostro: personajeActual.rostro, rostroBloqueado: true });
+      }
+      $('crear-estado').textContent = 'Ajusta cuerpo, rostro y estilo y pulsa «Crear personaje».';
     } catch (err) {
       $('crear-estado').textContent = err.message || 'Listo';
     } finally {
@@ -13313,8 +14495,8 @@
     const ok = $('crear-ok');
     ok.disabled = true;
     try {
-      $('crear-estado').textContent = 'Tomando las proporciones…';
-      let fit = null, pelo = null;
+      $('crear-estado').textContent = 'Tomando las proporciones y fijando el rostro…';
+      let fit = null, pelo = null, rostroEst = null;
       try {
         const resp = await Promise.race([
           pedirAlEstudio('proporciones', { tipo: 'pedir-proporciones' }),
@@ -13322,25 +14504,41 @@
         ]);
         fit = (resp && resp.fit) ? resp.fit : resp;
         pelo = (resp && resp.hair) ? resp.hair : null;
+        rostroEst = (resp && resp.rostro) ? resp.rostro : null;
       } catch (e) {
         fit = { muscular: 0.5, torso: 1.0, legs: 1.0, arms: 1.0 };
       }
+      const selRosId = $('crear-rostro') ? $('crear-rostro').value : '';
+      const selGenVal = $('crear-genero') ? $('crear-genero').value : 'hombre';
+      const defLista = Array.isArray(catalogoRostros) ? catalogoRostros.find(r => r.id === selRosId) : null;
+      const rostroElegido = Object.assign(
+        { id: selRosId, gender: (defLista && defLista.gender) || selGenVal, label: (defLista && defLista.label) || selRosId, url: defLista && defLista.url },
+        rostroEst || {},
+        { bloqueado: true }
+      );
+      if (!rostroElegido.id && selRosId) rostroElegido.id = selRosId;
+      if (!rostroElegido.url && defLista && defLista.url) rostroElegido.url = defLista.url;
+
       const nombrePj = ($('crear-nombre').value.trim()) || 'Aventurero';
       const clasePj = $('crear-clase').value || 'guerrero';
-      const pj = prepararPersonaje(nombrePj, clasePj, fit);
+      const pj = prepararPersonaje(nombrePj, clasePj, fit, rostroElegido);
       if (pelo) pj.pelo = pelo;
       $('crear-estado').textContent = 'Preparando personaje…';
       $('crear').classList.remove('show');
       pausarEstudioSiOculto();
       if (typeof alCrear === 'function') alCrear(pj);
+      if (heroeEst && typeof HeroeLib.sincronizarBarraConArma === 'function') {
+        HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), pj.clase);
+        aplicarStats();
+      }
       try {
         await Promise.race([
           mostrarCuerpo(pj),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_cuerpo')), 25000))
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout_cuerpo')), 90000))
         ]);
       } catch (errCuerpo) {
         console.warn('Fallback a modelo estándar de personaje:', errCuerpo);
-        if (character && character.loadGLB) character.loadGLB('./personaje.glb', pj.nombre);
+        if (character && character.loadGLB) character.loadGLB('./npc/aldeanos/aldeano.glb', pj.nombre);
       }
     } catch (err) {
       console.error('Error al crear personaje:', err);
@@ -13361,8 +14559,11 @@
     }
   };
 
-  // Muestra al personaje con su armadura: usa la caché persistente si existe; si no, lo exporta desde el estudio y lo guarda
+  // Muestra al personaje con su armadura y rostro fijado: usa caché si existe; si no, lo exporta desde el estudio y lo guarda
   async function mostrarCuerpo(pj) {
+    if (pj && pj.rostro && !pj.rostro.bloqueado && typeof PartidaLib !== 'undefined' && typeof PartidaLib.fijarRostroInmutable === 'function') {
+      PartidaLib.fijarRostroInmutable(pj, pj.rostro);
+    }
     const clave = claveModeloHeroe(pj);
     const cacheado = await leerModeloHeroeCache(clave);
     if (cacheado) {
@@ -13371,14 +14572,25 @@
     }
     frameEstudio();
     await Promise.race([estudioListo, new Promise(res => setTimeout(res, 4000))]);
-    enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit, hair: pj.pelo || null });
     const claseArmadura = EquipoLib.tipoArmaduraDeClase(catalogoPiezas, pj.clase);
+    const grado = gradoActivoHeroe(pj);
+    const armorLook = armorLookActivoHeroe(pj);
+    const rostro = pj.rostro || null;
+    const rostroBloqueado = !!(rostro && rostro.bloqueado);
+    enviarAlEstudio({ tipo: 'proporciones', fit: pj.fit, hair: pj.pelo || null, rostro, rostroBloqueado, claseArmadura, grado, armorLook });
     const buffer = await pedirAlEstudio('cuerpo', {
       tipo: 'exportar-personaje',
       id: 'cuerpo',
       equipo: EquipoLib.equipoPorIdx(pj),
       claseArmadura,
-      fit: pj.fit || null
+      grado,
+      armorLook,
+      rostro,
+      rostroBloqueado,
+      hair: pj.pelo || null,
+      fit: pj.fit || null,
+      fps: 10,
+      maxTex: 384
     });
     pausarEstudioSiOculto();
     guardarModeloHeroeCache(clave, buffer);
@@ -13386,7 +14598,7 @@
   }
 
   // Tarjeta del inventario: dibujo del personaje con las piezas equipadas, equipo y huecos
-  const ZONA_NOMBRE = { underlayer: 'Cota', helmet: 'Casco', shoulders: 'Hombreras', torso: 'Torso', gloves: 'Guanteletes', belt: 'Cinturón', tassets: 'Escarcelas', cuisses: 'Musleras', knees: 'Rodilleras', boots: 'Botas', weapon: 'Arma' };
+  const ZONA_NOMBRE = { underlayer: 'Cota', helmet: 'Casco', shoulders: 'Hombreras', torso: 'Torso', gloves: 'Guanteletes', belt: 'Cinturón', tassets: 'Escarcelas', cuisses: 'Musleras', knees: 'Rodilleras', boots: 'Botas', weapon: 'Arma', shield: 'Escudo' };
 
   // Dibujo esquemático: cada pieza equipada se pinta en su zona del cuerpo
   function dibujarPersonaje(pj, id = 'ic-doll') {
@@ -13572,7 +14784,7 @@
           + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
       return `<div class="slot ${esEq ? 'eq' : ''}" data-uid="${esc(o.uid)}">
         <div class="item-thumb" title="${esc(o.nombre)}">${iconoItemSvg(o, 30)}</div>
-        <div class="info"><b>${esc(o.nombre)}</b>
+        <div class="info"><b>${badgeGradoHtml(o)}${esc(o.nombre)}</b>
         <span class="muted">${esc(ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : ''))} · nivel ${o.nivel} · estado ${Math.round((o.estado != null ? o.estado : 1) * 100)}%${stat ? ' · ' + stat : ''}</span></div>
         ${accion}
       </div>`;
@@ -13614,11 +14826,21 @@
     const b = e.target.closest('button[data-equipar]');
     if (!b) return;
     try {
-      EquipoLib.equipar(personajeActual, b.dataset.equipar, hero.level, catalogoPiezas);
+      const uidEq = b.dataset.equipar;
+      const objEq = EquipoLib.objeto(personajeActual, uidEq);
+      EquipoLib.equipar(personajeActual, uidEq, hero.level, catalogoPiezas);
+      if (objEq && objEq.ranura === 'weapon' && typeof HeroeLib.sincronizarBarraConArma === 'function') {
+        const clsArma = claseArmaDelHeroe(personajeActual);
+        HeroeLib.sincronizarBarraConArma(heroeEst, clsArma, claseHeroe());
+        const nomArma = (HeroeLib.NOMBRES_CLASE_ARMA && HeroeLib.NOMBRES_CLASE_ARMA[clsArma]) || clsArma;
+        toast('⚔️ Barra sincronizada con habilidades de ' + nomArma);
+      } else {
+        toast('Equipado');
+      }
       if (window.Sonidos && window.Sonidos.equipar) window.Sonidos.equipar();
       aplicarStats();
       renderObjetos();
-      toast('Equipado');
+      if (typeof saveActive === 'function') saveActive(true);
       await mostrarCuerpo(personajeActual);
     } catch (err) { toast(err.message); }
   });
@@ -13799,7 +15021,7 @@
         const descPctF = Math.round((bonoRepActual().descuentoTienda || 0) * 100);
         html += `<h3 class="npc-h">Fabricar (estado perfecto)${descPctF > 0 ? ` · <span style="color:#4ade80">-${descPctF}% Pueblo</span>` : ''}</h3>` + avisoForja + (piezas.map(p => {
           const coste = precioConReputacion(EquipoLib.FORJA_ORO * p.nivel, 'tienda');
-          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
+          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${badgeGradoHtml(p)}${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
             <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
         }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
       }
@@ -13827,14 +15049,14 @@
         const descPctC = Math.round((bonoRepActual().descuentoTienda || 0) * 100);
         html = `<h3 class="npc-h">Comprar${descPctC > 0 ? ` · <span style="color:#4ade80">-${descPctC}% Pueblo</span>` : ''}</h3>` + avisoCom + (piezas.map(p => {
           const coste = precioConReputacion(EquipoLib.COMPRA_ORO * p.nivel, 'tienda');
-          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
+          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${badgeGradoHtml(p)}${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
             <button data-comprar="${esc(p.id)}" ${inv.gold < coste || EquipoLib.llena(pj) ? 'disabled' : ''}>${coste} 🪙</button></div>`;
         }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
       }
       const equipados = new Set(Object.values(pj.equipo));
       const vendibles = pj.inventario.filter(o => !equipados.has(o.uid));
       html += '<h3 class="npc-h">Vender</h3>' + (vendibles.map(o => `
-        <div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel} · ${Math.round(o.estado * 100)}%</span></div>
+        <div class="slot"><div class="item-thumb">${iconoItemSvg(o, 28)}</div><div class="info"><b>${badgeGradoHtml(o)}${esc(o.nombre)}</b><span class="muted">nivel ${o.nivel} · ${Math.round(o.estado * 100)}%</span></div>
         <button data-vender="${esc(o.uid)}">${EquipoLib.precioVenta(pj, o)} 🪙</button></div>`).join('') || '<div class="muted">No tienes objetos que vender.</div>');
     }
     $('npc-lista').innerHTML = html;
@@ -14033,6 +15255,9 @@
           HeroeLib.reiniciarPuntos(heroeEst);
           HeroeLib.aplicarBarraDeClase(heroeEst, nuevaClase);
           const arma = EquipoLib.asegurarArmaDeClase(pj, catalogoPiezas, nuevaClase, hero.level);
+          if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
+            HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), nuevaClase);
+          }
           aplicarStats();
           renderObjetos();
           renderInvCard();
@@ -14449,17 +15674,27 @@
     const prof = H.profesionDe(cls);
     const subActiva = H.subclaseDe ? H.subclaseDe(heroeEst, cls) : null;
     const subclases = H.subclasesDeClase ? H.subclasesDeClase(cls) : [];
+    const clsArmaAct = claseArmaDelHeroe();
     const fila = id => {
       const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
+      const ac = hab.armaClase || hab.claseArma;
+      const nomCa = ac ? ((H.NOMBRES_CLASE_ARMA && H.NOMBRES_CLASE_ARMA[ac]) || ac) : '';
+      const esArmaAct = ac && ac === clsArmaAct;
+      const caTag = nomCa ? `<span class="clase-arm-tag" style="${esArmaAct ? 'border-color:#facc15;color:#fde047' : ''}">${esc(nomCa)} · Nv.${hab.nivel || 1}</span>` : '';
       let accion;
       if (!H.disponible(heroeEst, id, hero.level, cls)) accion = '<span class="muted">🔒 ' + esc(H.requisito(id, cls)) + '</span>';
       else if (nivel >= hab.max) accion = '<span class="muted">máximo</span>';
       else accion = '<button data-mejorar="' + id + '" ' + (heroeEst.puntos < 1 ? 'disabled' : '') + '>Mejorar</button>';
-      return '<div class="slot"><div class="info"><b>' + esc(hab.nombre) + '</b> <span class="muted">' + nivel + '/' + hab.max + '</span><div class="muted">' + esc(hab.desc) + '</div></div>' + accion + '</div>';
+      return '<div class="slot"><div class="info"><b>' + caTag + esc(hab.nombre) + '</b> <span class="muted">' + nivel + '/' + hab.max + '</span><div class="muted">' + esc(hab.desc) + '</div></div>' + accion + '</div>';
     };
     const ids = Object.keys(H.HABILIDADES);
     const pasivasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'pasiva' && H.habilidadDeClase(i, cls));
-    const activasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'activa' && H.habilidadDeClase(i, cls));
+    const activasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'activa' && H.habilidadDeClase(i, cls))
+      .sort((a, b) => {
+        const ha = H.HABILIDADES[a], hb = H.HABILIDADES[b];
+        const ma = (ha.armaClase || ha.claseArma) === clsArmaAct ? 0 : 1, mb = (hb.armaClase || hb.claseArma) === clsArmaAct ? 0 : 1;
+        return ma - mb || (ha.nivel || 1) - (hb.nivel || 1);
+      });
     const totalGastados = Object.values(heroeEst.gastados || {}).reduce((a, b) => a + (Number(b) || 0), 0);
     const subclasesHtml = subclases.map(sub => {
       const esAct = subActiva && subActiva.id === sub.id;
@@ -14509,22 +15744,41 @@
     const equipo = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
     const equipoHtml = equipo.map(o => {
       const f = H.ficha(o);
-      return '<div class="fila"><span><b>' + esc(o.nombre) + '</b> <span class="muted">' + f.tipo + ' · nivel ' + o.nivel + ' · estado ' + Math.round(o.estado * 100) + ' %</span></span></div>'
+      return '<div class="fila"><span><b>' + badgeGradoHtml(o) + esc(o.nombre) + '</b> <span class="muted">' + f.tipo + ' · nivel ' + o.nivel + ' · estado ' + Math.round(o.estado * 100) + ' %</span></span></div>'
         + f.lineas.map(l => '<div class="muted">· ' + esc(l) + '</div>').join('')
         + f.especiales.map(e => '<div class="muted">✦ ' + esc(e.nombre) + ': ' + esc(e.texto) + '</div>').join('');
     }).join('') || '<div class="muted">Sin equipo.</div>';
-    // Pasivas y activas filtradas por profesión con su área, coste y huecos Q/E/Z/V
-    const habs = Object.keys(H.HABILIDADES).map(id => {
-      const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
-      if (!H.habilidadDeClase(id, cls)) return '';
-      if (hab.tipo !== 'activa') return '<div class="fila"><span>' + esc(hab.nombre) + '<br><span class="muted">' + esc(hab.desc) + '</span></span><b>' + nivel + '/' + hab.max + '</b></div>';
-      const sk = CombatLib.SKILLS[id];
-      const armaNota = hab.arma === 'arco' ? ' · con arco' : (hab.arma === 'baculo' ? ' · con báculo' : '');
-      const datos = (sk.arc <= -1 ? 'alrededor' : 'delante') + ', ' + sk.range + ' m · ' + sk.mp + ' maná · recarga ' + sk.cd + ' s' + armaNota;
-      const huecos = H.TECLAS.map(t => '<button class="hueco-b' + (heroeEst.barra[t] === id ? ' gold' : '') + '" data-asignar="' + id + '" data-tecla="' + t + '">' + t.toUpperCase() + '</button>').join('');
-      return '<div class="fila"><span>' + sk.icono + ' ' + esc(hab.nombre) + ' <span class="muted">' + nivel + '/' + hab.max + '</span><br><span class="muted">' + esc(datos)
-        + (H.disponible(heroeEst, id, hero.level, cls) ? '' : ' · 🔒 ' + esc(H.requisito(id, cls))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
-    }).join('');
+    // Pasivas y activas filtradas por profesión (resaltando las de tu arma equipada)
+    const clsArmaAct = claseArmaDelHeroe();
+    const nomArmaAct = (H.NOMBRES_CLASE_ARMA && H.NOMBRES_CLASE_ARMA[clsArmaAct]) || clsArmaAct;
+    const rostroPj = personajeActual && personajeActual.rostro;
+    const rostroUrl = rostroPj && rostroPj.url ? (rostroPj.url.startsWith('http') || rostroPj.url.startsWith('data:') || rostroPj.url.startsWith('estudio-armaduras/') ? rostroPj.url : 'estudio-armaduras/' + rostroPj.url) : '';
+    const rostroHtml = rostroPj
+      ? '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(148,163,184,0.22)">'
+        + (rostroUrl ? `<img src="${esc(rostroUrl)}" alt="Rostro" style="width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid rgba(250,204,21,0.45)">` : '')
+        + `<div style="font-size:11.5px"><b>Rostro:</b> ${esc(rostroPj.label || rostroPj.id || 'Base')} · <span style="color:#fbbf24">🔒 Rostro fijado permanentemente</span></div></div>`
+      : '';
+    const habs = Object.keys(H.HABILIDADES).filter(id => H.habilidadDeClase(id, cls))
+      .sort((a, b) => {
+        const ha = H.HABILIDADES[a], hb = H.HABILIDADES[b];
+        if (ha.tipo !== hb.tipo) return ha.tipo === 'pasiva' ? -1 : 1;
+        const ma = (ha.armaClase || ha.claseArma) === clsArmaAct ? 0 : 1, mb = (hb.armaClase || hb.claseArma) === clsArmaAct ? 0 : 1;
+        return ma - mb || (ha.nivel || 1) - (hb.nivel || 1);
+      })
+      .map(id => {
+        const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
+        if (hab.tipo !== 'activa') return '<div class="fila"><span>' + esc(hab.nombre) + '<br><span class="muted">' + esc(hab.desc) + '</span></span><b>' + nivel + '/' + hab.max + '</b></div>';
+        const sk = CombatLib.SKILLS[id];
+        const ac = hab.armaClase || hab.claseArma;
+        const nomCa = ac ? ((H.NOMBRES_CLASE_ARMA && H.NOMBRES_CLASE_ARMA[ac]) || ac) : '';
+        const esArmaAct = ac && ac === clsArmaAct;
+        const caTag = nomCa ? `<span class="clase-arm-tag" style="${esArmaAct ? 'border-color:#facc15;color:#fde047' : ''}">${esc(nomCa)}</span> ` : '';
+        const armaNota = hab.arma === 'arco' ? ' · con arco' : (hab.arma === 'baculo' ? ' · con báculo' : '');
+        const datos = (sk.arc <= -1 ? 'alrededor' : 'delante') + ', ' + sk.range + ' m · ' + sk.mp + ' maná · recarga ' + sk.cd + ' s' + armaNota;
+        const huecos = H.TECLAS.map(t => '<button class="hueco-b' + (heroeEst.barra[t] === id ? ' gold' : '') + '" data-asignar="' + id + '" data-tecla="' + t + '">' + t.toUpperCase() + '</button>').join('');
+        return '<div class="fila"><span>' + caTag + sk.icono + ' ' + esc(hab.nombre) + ' <span class="muted">' + nivel + '/' + hab.max + '</span><br><span class="muted">' + esc(datos)
+          + (H.disponible(heroeEst, id, hero.level, cls) ? '' : ' · 🔒 ' + esc(H.requisito(id, cls))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
+      }).join('');
     const pr = heroeEst.principal, capsLista = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
     const capAct = HistoriaLib.capituloActual(pr, world), total = capsLista.length;
     const acto = typeof HistoriaLib.actoActual === 'function' ? HistoriaLib.actoActual(pr, world) : null;
@@ -14550,8 +15804,9 @@
       '<div style="margin:0 0 8px;padding:8px 10px;border-radius:8px;background:rgba(15,23,42,0.72);border:1px solid rgba(56,189,248,0.35)">'
       + '<div><b>' + prof.icono + ' ' + esc(prof.nombre) + '</b>'
       + (subActiva ? (' · <span style="color:#facc15">' + subActiva.icono + ' ' + esc(subActiva.nombre) + '</span>') : (' · <span class="muted">Especialización en Nv ' + (H.NIVEL_SUBCLASE || 15) + '</span>'))
-      + ' · <span class="muted">' + esc(prof.rol) + ' · Armadura: ' + esc(nombreTa) + '</span></div>'
-      + '<div class="muted" style="font-size:11.5px;margin-top:2px">' + esc(subActiva ? subActiva.desc : prof.pasiva) + '</div></div>'
+      + ' · <span class="muted">' + esc(prof.rol) + ' · Armadura: ' + esc(nombreTa) + ' · Arma activa: <b>' + esc(nomArmaAct) + '</b></span></div>'
+      + '<div class="muted" style="font-size:11.5px;margin-top:2px">' + esc(subActiva ? subActiva.desc : prof.pasiva) + '</div>'
+      + rostroHtml + '</div>'
       + '<div class="muted">Nivel ' + hero.level + ' · puntos de habilidad: <b>' + heroeEst.puntos + '</b> · monstruos derrotados: ' + heroeEst.kills + ' (siguiente punto en ' + (H.PUNTOS_KILLS - heroeEst.kills % H.PUNTOS_KILLS) + ')</div>'
       + '<h3>Estadísticas</h3>' + filas.map(f => '<div class="fila"><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('')
       + '<h3>Equipo</h3>' + equipoHtml
@@ -15659,6 +16914,9 @@
     hero = CombatLib.newHero();
     heroeEst = HeroeLib.nuevoHeroe();
     HeroeLib.aplicarBarraDeClase(heroeEst, pj.clase);
+    if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
+      HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), pj.clase);
+    }
     aplicarStats();
     renderInvCard();
     inv = ItemsLib.newInventory();
@@ -15701,6 +16959,18 @@
   const DISTANCIA_NPC_LEJOS = 35;  // más lejos de la cámara, su versión simplificada (npc/gurus/*-lejos.glb)
   const npcProtoCerca = {};        // modelo → promesa de { proto, idle } fusionado una sola vez
   const npcProtoLejos = {};        // modelo → promesa de { proto, idle } lejano (se pide solo al alejarse)
+  const npcCustomBuffers = {};     // clave 'custom:<oficio>:<id>' → ArrayBuffer GLB exportado en vivo desde el estudio
+  let aldeanosEstrategicosColocados = false;
+  const aldeanosCustom = [];
+
+  function fallbackModeloNpc(nombreModelo) {
+    const s = String(nombreModelo || 'npc/aldeanos/campesino.glb');
+    if (s.startsWith('custom:')) {
+      const oficio = s.split(':')[1] || 'campesino';
+      return 'npc/aldeanos/' + oficio + '.glb';
+    }
+    return 'npc/aldeanos/aldeano.glb';
+  }
 
   function prepararPrototipoNpc(gltf) {
     if (!gltf || !gltf.scene) return null;
@@ -15713,7 +16983,17 @@
     proto.traverse(o => {
       if (!o.isMesh || !o.material) return;
       (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
-        if (m && m.map && m.map.anisotropy < maxAniso) { m.map.anisotropy = maxAniso; m.map.needsUpdate = true; }
+        if (!m) return;
+        if (m.map && m.map.anisotropy < maxAniso) { m.map.anisotropy = maxAniso; m.map.needsUpdate = true; }
+        const nom = String(m.name || '');
+        if (nom.startsWith('Rostro_') || (m.transparent && m.map && !m.alphaTest)) {
+          m.depthWrite = false;
+          m.polygonOffset = true;
+          m.polygonOffsetFactor = -2;
+          m.polygonOffsetUnits = -2;
+          m.needsUpdate = true;
+          o.renderOrder = Math.max(o.renderOrder || 0, 2);
+        }
       });
     });
     FusionLib.fusionarPorMaterial(THREE, proto);   // se une una única vez; todos los clones comparten su geometría y textura
@@ -15727,6 +17007,17 @@
       npcProtoCerca[nombreModelo] = new Promise(res => {
         const loader = new THREE.GLTFLoader();
         const baseNombre = String(nombreModelo || 'guru-1');
+        if (baseNombre.startsWith('custom:')) {
+          const buf = npcCustomBuffers[baseNombre];
+          if (buf instanceof ArrayBuffer) {
+            loader.parse(buf.slice(0), '', gltf => res(prepararPrototipoNpc(gltf)), () => {
+              loader.load(fallbackModeloNpc(baseNombre), gltf => res(prepararPrototipoNpc(gltf)), undefined, () => res(null));
+            });
+            return;
+          }
+          loader.load(fallbackModeloNpc(baseNombre), gltf => res(prepararPrototipoNpc(gltf)), undefined, () => loader.load('npc/aldeanos/aldeano.glb', gltf => res(prepararPrototipoNpc(gltf)), undefined, () => res(null)));
+          return;
+        }
         const rutaBase = baseNombre.includes('/') ? baseNombre : ('npc/gurus/' + baseNombre);
         loader.load(
           rutaBase.endsWith('.glb') ? rutaBase : (rutaBase + '-cerca.glb'),
@@ -15750,6 +17041,17 @@
       npcProtoLejos[nombreModelo] = new Promise(res => {
         const loader = new THREE.GLTFLoader();
         const baseNombre = String(nombreModelo || 'guru-1');
+        if (baseNombre.startsWith('custom:')) {
+          const buf = npcCustomBuffers[baseNombre];
+          if (buf instanceof ArrayBuffer) {
+            loader.parse(buf.slice(0), '', gltf => res(prepararPrototipoNpc(gltf)), () => {
+              loader.load(fallbackModeloNpc(baseNombre), gltf => res(prepararPrototipoNpc(gltf)), undefined, () => res(null));
+            });
+            return;
+          }
+          loader.load(fallbackModeloNpc(baseNombre), gltf => res(prepararPrototipoNpc(gltf)), undefined, () => res(null));
+          return;
+        }
         const rutaBase = baseNombre.includes('/') ? baseNombre : ('npc/gurus/' + baseNombre);
         loader.load(
           rutaBase.endsWith('.glb') ? rutaBase : (rutaBase + '-lejos.glb'),
@@ -15767,95 +17069,27 @@
     return npcProtoLejos[nombreModelo];
   }
 
-  // Los 5 gurús conservan intactas sus armaduras auténticas rango SR exportadas desde estudio-armaduras
-  // (sin reescribir sus texturas ni colores con tintes inventados). Los NPCs de servicio mantienen tintes de rol.
+  // SOLO los 5 gurús (guru-1..guru-5) visten armaduras supremas rango SR desde npc/gurus/.
+  // Herreros, mercaderes, posaderos, cabañas y demás aldeanos usan trajes medievales desde npc/aldeanos/.
   const ESTILOS_NPC = {
     'guru-1': { autentica: true, rango: 'SR', set: 'Dinastía Celestial' },           // Sabia Elara (Historia del Reino)
     'guru-2': { autentica: true, rango: 'SR', set: 'Fénix Ígneo Ligero' },           // Maestro Oren (Los Caminos)
     'guru-3': { autentica: true, rango: 'SR', set: 'Archimago Cósmico' },            // Hermana Ysolde (Las Runas y Entrenamiento)
     'guru-4': { autentica: true, rango: 'SR', set: 'Soberano de Vacío' },            // Viejo Tamsin (Los Monstruos)
     'guru-5': { autentica: true, rango: 'SR', set: 'Serafín Ligero de Mithril' },    // Erudita Mirel (El Equipo)
-    'serv-herrero': { // Herrero Brann (La Forja)
-      armadura: 0x1f2937, // Peto de hierro pesado forjado ennegrecido
-      metalness: 0.55,
-      roughness: 0.65,
-      ribete: 0xea580c,   // Reflejos incandescentes de fragua
-      tela: 0x292524,     // Mandil y ropas de cuero ahumado resistente al fuego
-      faldon: 0x44403c,   // Delantal de forja
-      capa: 0x7c2d12,     // Refuerzos de cuero pesado
-      botas: 0x0c0a09,    // Botas de hierro y cuero de trabajo
-      cabello: 0x18181b   // Pelo y barba negros de carbón
-    },
-    'serv-mercader': { // Mercader Tovi (El Comercio)
-      armadura: 0xfacc15, // Alhajas y adornos de oro
-      metalness: 0.60,
-      roughness: 0.50,
-      ribete: 0x10b981,   // Filigranas de jade y esmeralda
-      tela: 0x047857,     // Seda verde esmeralda de mercader
-      faldon: 0x065f46,   // Brocado verde oscuro
-      capa: 0x0f766e,     // Manto de terciopelo verde azulado
-      botas: 0x78350f,    // Cuero fino repujado
-      cabello: 0xd97706   // Castaño dorado
-    },
-    'cabana': { // Aldeanos de cabañas remotas
-      armadura: 0x57534e, // Cuero y refuerzos rústicos
-      metalness: 0.35,
-      roughness: 0.70,
-      ribete: 0x854d0e,   // Cuero ocre
-      tela: 0x3f6212,     // Lona verde oliva y tierra
-      faldon: 0x365314,   // Piel de bosque
-      capa: 0x44403c,     // Manto rústico
-      botas: 0x292524,    // Botas de montaña
-      cabello: 0x78350f   // Castaño silvestre
-    },
-    'serv-informante': { // Varek "El Ojo Tuerto" (Mercado Negro y Pistas)
-      armadura: 0x1e293b, // Cuero negro gastado y parches
-      metalness: 0.35,
-      roughness: 0.70,
-      ribete: 0xd97706,   // Hebillas de oro viejo
-      tela: 0x334155,     // Capucha y jubón gris pizarra oscuro
-      faldon: 0x0f172a,   // Faldón oscuro de ladrón
-      capa: 0x09090b,     // Capa raída azabache
-      botas: 0x1c1917,    // Botas sigilosas de cuero blando
-      cabello: 0x27272a   // Cabello negro ceniza
-    },
-    'serv-boticaria': { // Madre Cynthia (Alquimia de Sangre)
-      armadura: 0x3b0764, // Púrpura ponzoñoso
-      metalness: 0.25,
-      roughness: 0.65,
-      ribete: 0x10b981,   // Jade ácido / verde esmeralda
-      tela: 0x064e3b,     // Túnica verde bosque ponzoñoso
-      faldon: 0x14532d,   // Mandil de boticaria manchado de extractos
-      capa: 0x581c87,     // Manto amatista oscuro
-      botas: 0x3f2e1a,    // Calzado de pantano
-      cabello: 0x94a3b8   // Mechones grises platino
-    },
-    'serv-comandante': { // Comandante Kaelen (Orden Militar y Guardia)
-      armadura: 0x94a3b8, // Acero bruñido heráldico brillante
-      metalness: 0.85,
-      roughness: 0.30,
-      ribete: 0xf59e0b,   // Borde dorado de gala
-      tela: 0x1d4ed8,     // Azul cobalto militar
-      faldon: 0x1e40af,   // Faldón azul imperial
-      capa: 0x172554,     // Capa pesada de oficial
-      botas: 0x475569,    // Grebas de acero reluciente
-      cabello: 0x451a03   // Castaño oscuro militar rapado
-    },
-    'serv-hereje': { // Saelen el Desollador (Forja Maldita)
-      armadura: 0x450a0a, // Hierro al rojo oxidado y sangre seca
-      metalness: 0.65,
-      roughness: 0.55,
-      ribete: 0xef4444,   // Runas carmesí incandescentes
-      tela: 0x18181b,     // Delantal de cuero ennegrecido al fuego
-      faldon: 0x27272a,   // Faldón de forja chamuscado
-      capa: 0x7f1d1d,     // Capa carmesí desgarrada
-      botas: 0x09090b,    // Botas de fundidor
-      cabello: 0xb91c1c   // Cabello cobrizo encendido
-    }
+    'serv-herrero': { autentica: true, rolAldeano: true, rango: 'Aldeano' },
+    'serv-mercader': { autentica: true, rolAldeano: true, rango: 'Aldeano' },
+    'cabana': { autentica: true, rolAldeano: true, rango: 'Aldeano' },
+    'serv-informante': { autentica: true, rolAldeano: true, rango: 'Aldeano' },
+    'serv-boticaria': { autentica: true, rolAldeano: true, rango: 'Aldeano' },
+    'serv-comandante': { autentica: true, rolAldeano: true, rango: 'Aldeano' },
+    'serv-hereje': { autentica: true, rolAldeano: true, rango: 'Aldeano' }
   };
 
   function personalizarEstiloNpc(entrada, modelo3D) {
     if (!entrada || !modelo3D || !entrada.info) return;
+    const mod = String(entrada.nombreModelo || '');
+    if (mod.startsWith('npc/aldeanos/') || mod.startsWith('custom:') || entrada.info.esAldeano) return;
     const info = entrada.info;
     const key = (info.servicio === 'herrero' || (info.id && String(info.id).includes('herrero')))
       ? 'serv-herrero'
@@ -15976,12 +17210,13 @@
     gurus.push(entrada);
     if (camera && camera.position.distanceTo(raiz.position) <= DISTANCIA_NPC_LEJOS + 25) asegurarVersionCercanaNpc(entrada);
     else asegurarVersionLejanaNpc(entrada);
+    return entrada;
   }
 
-  // Red de NPCs de Servicio y Facciones: herrero, mercader, informante clandestino, boticaria, comandante y hereje
+  // Red de NPCs de Servicio y Facciones: todos visten ropa medieval de aldeanos (npc/aldeanos/)
   // Texto de cada servicio: tipo, botón del panel del NPC e icono
   const TEXTO_SERVICIO = {
-    dialogo: { tipo: 'Sabio del Reino', boton: '💬 Hablar', icono: '💬' },
+    dialogo: { tipo: 'Aldeano del Reino', boton: '💬 Hablar', icono: '💬' },
     herrero: { tipo: 'Herrero', boton: '🔨 Forjar', icono: '🔨' },
     mercader: { tipo: 'Mercader', boton: '🧺 Comerciar', icono: '🧺' },
     entrenador: { tipo: 'Entrenador', boton: '🎓 Entrenar', icono: '🎓' },
@@ -15993,12 +17228,12 @@
     hereje: { tipo: 'Herrero Hereje Proscrito', boton: '💀 Forja Maldita', icono: '💀' }
   };
   const SERVICIOS = [
-    { id: 'serv-herrero', modelo: 'guru-4', nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
-    { id: 'serv-mercader', modelo: 'guru-5', nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' },
-    { id: 'serv-informante', modelo: 'guru-2', nombre: 'Varek "El Ojo Tuerto"', tema: 'el mercado negro', servicio: 'informante', frase: 'El oro compra silencio, pero las monedas sucias compran la verdad. Acércate.' },
-    { id: 'serv-boticaria', modelo: 'guru-3', nombre: 'Madre Cynthia', tema: 'la alquimia de sangre', servicio: 'boticaria', frase: 'La medicina oficial es para cobardes. Mis destilados curan o matan con prisa.' },
-    { id: 'serv-comandante', modelo: 'guru-1', nombre: 'Comandante Kaelen', tema: 'el orden militar', servicio: 'comandante', frase: 'La ley se cumple o se paga en sangre. Tráeme pruebas de los Sabios o apártate.' },
-    { id: 'serv-hereje', modelo: 'guru-4', nombre: 'Saelen el Desollador', tema: 'la forja prohibida', servicio: 'hereje', frase: 'Brann es un cobarde que teme al poder verdadero. El metal clama por runas vivas.' }
+    { id: 'serv-herrero', modelo: 'npc/aldeanos/herrero.glb', esAldeano: true, nombre: 'Herrero Brann', tema: 'la forja', servicio: 'herrero', frase: 'Traigo el hierro; tú traes oro. Fabrico lo que tu nivel permita.' },
+    { id: 'serv-mercader', modelo: 'npc/aldeanos/mercader.glb', esAldeano: true, nombre: 'Mercader Tovi', tema: 'el comercio', servicio: 'mercader', frase: 'Compro lo que encuentres y vendo lo que te haga falta. Pulsa H.' },
+    { id: 'serv-informante', modelo: 'npc/aldeanos/informante.glb', esAldeano: true, nombre: 'Varek "El Ojo Tuerto"', tema: 'el mercado negro', servicio: 'informante', frase: 'El oro compra silencio, pero las monedas sucias compran la verdad. Acércate.' },
+    { id: 'serv-boticaria', modelo: 'npc/aldeanos/herbolario.glb', esAldeano: true, nombre: 'Madre Cynthia', tema: 'la alquimia de sangre', servicio: 'boticaria', frase: 'La medicina oficial es para cobardes. Mis destilados curan o matan con prisa.' },
+    { id: 'serv-comandante', modelo: 'npc/aldeanos/lenador.glb', esAldeano: true, nombre: 'Comandante Kaelen', tema: 'el orden militar', servicio: 'comandante', frase: 'La ley se cumple o se paga en sangre. Tráeme pruebas de los Sabios o apártate.' },
+    { id: 'serv-hereje', modelo: 'npc/aldeanos/herrero.glb', esAldeano: true, nombre: 'Saelen el Desollador', tema: 'la forja prohibida', servicio: 'hereje', frase: 'Brann es un cobarde que teme al poder verdadero. El metal clama por runas vivas.' }
   ];
 
   function colocarGurus() {
@@ -16055,6 +17290,308 @@
         const info = { id: m.npc.id, nombre: m.npc.nombre, tema: m.npc.tema, frase: m.npc.frase, servicio: 'encargo', mision: m };
         encargosPendientes.push({ info, modelo: m.npc.modelo, pos });
       });
+    });
+  }
+
+  function existeNpcPorId(id) {
+    return gurus.some(g => g.info && g.info.id === id);
+  }
+
+  // Aldeanos estratégicos por pueblos, muelle principal, entradas de mazmorra y bocas de laberinto
+  function colocarAldeanosEstrategicos() {
+    if (!world || !towns.length) return;
+    aldeanosEstrategicosColocados = true;
+
+    // 1. Vigías, taberneros y vecinas en calles/puertas de los pueblos
+    const rolesPueblo = [
+      { sufijo: 'vigia', modelo: 'npc/aldeanos/lenador.glb', nombre: 'Guardia de Puerta', tema: 'rutas y peligros', frase: 'Las puertas de piedra siguen en pie, pero las bestias acechan apenas salgas de la muralla.' },
+      { sufijo: 'vecina', modelo: 'npc/aldeanos/aldeana.glb', nombre: 'Tejedora del Burgo', tema: 'la vida en el burgo', frase: 'Si buscas equipo nuevo, visita al herrero Brann o lleva hojas de forja desde el campo de batalla.' },
+      { sufijo: 'campesino', modelo: 'npc/aldeanos/campesino.glb', nombre: 'Labrador de Afueras', tema: 'caminos y granjas', frase: 'Sigue las sendas empedradas si no quieres toparte con manadas hambrientas.' }
+    ];
+    towns.forEach((o, ti) => {
+      const lim = Math.min(o.tileHalf * 0.65, RADIO_PUESTOS + 5.5);
+      for (let k = 0; k < (o.t.isStart ? 3 : 2); k++) {
+        const rp = rolesPueblo[(ti + k) % rolesPueblo.length];
+        const id = `ald-pueblo-${o.t.id || ti}-${rp.sufijo}`;
+        if (existeNpcPorId(id)) continue;
+        const ang = (k / 3) * Math.PI * 2 + 0.55 + ti * 0.7;
+        const x = o.t.x + Math.cos(ang) * lim;
+        const z = o.t.y + Math.sin(ang) * lim;
+        instanciarNpc({ id, nombre: `${rp.nombre} (${o.t.name})`, tema: rp.tema, frase: rp.frase, servicio: 'dialogo', esAldeano: true }, rp.modelo, x, z, o.t.x, o.t.y);
+      }
+    });
+
+    // 2. Aldeanos junto al muelle del puerto principal
+    if (muelleInfo && isFinite(muelleInfo.x) && isFinite(muelleInfo.z)) {
+      const mx = muelleInfo.x - (muelleInfo.dx || 0) * 4.2;
+      const mz = muelleInfo.z - (muelleInfo.dz || 0) * 4.2;
+      const lx = - (muelleInfo.dz || 0), lz = (muelleInfo.dx || 0);
+      if (!existeNpcPorId('ald-muelle-estibador')) {
+        instanciarNpc({
+          id: 'ald-muelle-estibador',
+          nombre: 'Estibador del Muelle',
+          tema: 'los barcos y la costa',
+          frase: 'Los navíos traen provisiones desde el mar, pero las criaturas merodean por la orilla sur.',
+          servicio: 'dialogo', esAldeano: true
+        }, 'npc/aldeanos/mercader.glb', mx + lx * 2.4, mz + lz * 2.4, muelleInfo.x, muelleInfo.z);
+      }
+      if (!existeNpcPorId('ald-muelle-pescadora')) {
+        instanciarNpc({
+          id: 'ald-muelle-pescadora',
+          nombre: 'Redes de Bajamar',
+          tema: 'la pesca en el embarcadero',
+          frase: 'El muelle aguanta cualquier oleaje. Si exploras la costa, encontrarás una cabaña sobre pilotes.',
+          servicio: 'dialogo', esAldeano: true
+        }, 'npc/aldeanos/aldeana.glb', mx - lx * 2.4, mz - lz * 2.4, muelleInfo.x, muelleInfo.z);
+      }
+    }
+
+    // 3. Exploradores junto a las entradas de mazmorras
+    (world.dungeons || []).forEach((d, di) => {
+      const id = 'ald-mazmorra-' + (d.id || di);
+      if (existeNpcPorId(id) || !isFinite(d.x) || !isFinite(d.y)) return;
+      const ang = d.rotacion || 0;
+      const ax = d.x + Math.sin(ang) * 9.5 + Math.cos(ang) * 5.2;
+      const az = d.y + Math.cos(ang) * 9.5 - Math.sin(ang) * 5.2;
+      const mod = (di % 2 === 0) ? 'npc/aldeanos/cazador.glb' : 'npc/aldeanos/herbolario.glb';
+      instanciarNpc({
+        id,
+        nombre: di % 2 === 0 ? 'Batidor de Criptas' : 'Curandera de Umbral',
+        tema: 'la mazmorra «' + (d.name || 'Sima Arcana') + '»',
+        frase: 'No entres sin pociones ni armadura revisada: dentro de ' + (d.name || 'esta mazmorra') + ' aguardan guardianes y un jefe.',
+        servicio: 'dialogo', esAldeano: true
+      }, mod, ax, az, d.x, d.y);
+    });
+
+    // 4. Informantes junto a la boca de cada laberinto
+    (recintosMundo || []).forEach((rec, ri) => {
+      if (!rec || !rec.llegada || !isFinite(rec.llegada.x) || !isFinite(rec.llegada.z)) return;
+      const id = 'ald-laberinto-' + ((rec.zona && rec.zona.id) || ri);
+      if (existeNpcPorId(id)) return;
+      const ax = rec.llegada.x + 5.5, az = rec.llegada.z + 5.5;
+      instanciarNpc({
+        id,
+        nombre: 'Guía del Caño Rocoso',
+        tema: 'el laberinto de «' + ((rec.zona && rec.zona.name) || 'Aden') + '»',
+        frase: 'Solo hay un pasillo que cruza los muros de piedra. Memoriza los giros y cuidado con las bolas de fuego.',
+        servicio: 'dialogo', esAldeano: true
+      }, 'npc/aldeanos/informante.glb', ax, az, rec.llegada.x, rec.llegada.z);
+    });
+  }
+
+  function calcularDestinoAldeano(ubicacion) {
+    const px = character && character.root ? character.root.position.x : 0;
+    const pz = character && character.root ? character.root.position.z : 0;
+    const yaw = character ? character.anguloY() : 0;
+    if (ubicacion === 'muelle' && muelleInfo && isFinite(muelleInfo.x)) {
+      return {
+        x: muelleInfo.x - (muelleInfo.dx || 0) * 3.5,
+        z: muelleInfo.z - (muelleInfo.dz || 0) * 3.5,
+        lookX: muelleInfo.x, lookZ: muelleInfo.z,
+        zona: 'Muelle del puerto'
+      };
+    }
+    if (ubicacion === 'mazmorra' && world && Array.isArray(world.dungeons) && world.dungeons.length) {
+      let best = world.dungeons[0], bd = Infinity;
+      world.dungeons.forEach(d => {
+        const dist = Math.hypot(d.x - px, d.y - pz);
+        if (dist < bd) { bd = dist; best = d; }
+      });
+      const ang = best.rotacion || 0;
+      return {
+        x: best.x + Math.sin(ang) * 8.5, z: best.y + Math.cos(ang) * 8.5,
+        lookX: best.x, lookZ: best.y,
+        zona: 'Mazmorra: ' + (best.name || 'Entrada')
+      };
+    }
+    if (ubicacion === 'plaza' && towns.length) {
+      let best = towns[0], bd = Infinity;
+      towns.forEach(o => {
+        const dist = Math.hypot(o.t.x - px, o.t.y - pz);
+        if (dist < bd) { bd = dist; best = o; }
+      });
+      const ang = (aldeanosCustom.length * 1.15) + 0.4;
+      return {
+        x: best.t.x + Math.cos(ang) * (RADIO_PUESTOS + 3.5),
+        z: best.t.y + Math.sin(ang) * (RADIO_PUESTOS + 3.5),
+        lookX: best.t.x, lookZ: best.t.y,
+        zona: 'Pueblo: ' + best.t.name
+      };
+    }
+    return {
+      x: px + Math.sin(yaw) * 2.4,
+      z: pz + Math.cos(yaw) * 2.4,
+      lookX: px, lookZ: pz,
+      zona: nearestTownName() || 'Posición del héroe'
+    };
+  }
+
+  function spawnearAldeanoCustomEnEscena(def, modeloKey) {
+    if (!def || existeNpcPorId(def.id)) return null;
+    const mod = modeloKey || def.modelo || ('npc/aldeanos/' + (def.oficio || 'campesino') + '.glb');
+    const lookX = def.x + Math.sin(def.yaw || 0) * 5;
+    const lookZ = def.z + Math.cos(def.yaw || 0) * 5;
+    return instanciarNpc({
+      id: def.id,
+      nombre: def.nombre,
+      tema: def.oficio || 'aldeano',
+      frase: def.dialogo || 'Saludos, viajero.',
+      servicio: 'dialogo',
+      esAldeano: true,
+      esCustom: true
+    }, mod, def.x, def.z, lookX, lookZ);
+  }
+
+  function restaurarAldeanosCustom(lista) {
+    for (let i = gurus.length - 1; i >= 0; i--) {
+      if (gurus[i].info && gurus[i].info.esCustom) {
+        scene.remove(gurus[i].raiz);
+        gurus.splice(i, 1);
+      }
+    }
+    aldeanosCustom.length = 0;
+    (Array.isArray(lista) ? lista : []).forEach(a => {
+      aldeanosCustom.push(a);
+      spawnearAldeanoCustomEnEscena(a);
+    });
+    if (typeof renderListaAldeanosCustom === 'function') renderListaAldeanosCustom();
+  }
+
+  function renderListaAldeanosCustom() {
+    const el = $('ald-lista');
+    if (!el) return;
+    if (!aldeanosCustom.length) {
+      el.innerHTML = '<div class="muted">Todavía no has colocado aldeanos personalizados en esta partida.</div>';
+      return;
+    }
+    el.innerHTML = aldeanosCustom.map(a => `
+      <div class="slot">
+        <div class="info">
+          <b>${esc(a.nombre)}</b>
+          <div class="muted">${esc(a.oficio)} · ${esc(a.zona || (Math.round(a.x) + ', ' + Math.round(a.z)))}</div>
+        </div>
+        <button data-ir-aldeano="${esc(a.id)}" title="Ir hasta él">🧭</button>
+        <button data-borrar-aldeano="${esc(a.id)}" title="Retirar aldeano">🗑</button>
+      </div>
+    `).join('');
+  }
+
+  async function crearAldeanoEnMundo(opts) {
+    opts = opts || {};
+    const oficio = opts.oficio || 'campesino';
+    const gender = opts.gender || (oficio === 'aldeana' ? 'mujer' : 'hombre');
+    const nombre = String(opts.nombre || 'Aldeano de Aden').trim() || 'Aldeano de Aden';
+    const dialogo = String(opts.dialogo || 'Buen viaje por Aden, aventurero.').trim();
+    const pos = isFinite(opts.x) && isFinite(opts.z)
+      ? { x: Number(opts.x), z: Number(opts.z), lookX: Number(opts.x), lookZ: Number(opts.z) + 4, zona: opts.zona || 'Coordenadas exactas' }
+      : calcularDestinoAldeano(opts.ubicacion || 'aqui');
+    const id = 'ald-custom-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 1000);
+    let modeloKey = 'npc/aldeanos/' + oficio + '.glb';
+    let metaExtra = null;
+
+    if (opts.desdeEstudio) {
+      frameEstudio();
+      await Promise.race([estudioListo, new Promise(res => setTimeout(res, 4000))]);
+      const resp = await pedirAlEstudio('aldeano_' + id, {
+        tipo: 'exportar-aldeano',
+        id: 'aldeano_' + id,
+        professionId: oficio,
+        gender,
+        build: 'esbelto',
+        fps: 12,
+        maxTex: 384
+      });
+      pausarEstudioSiOculto();
+      if (resp && resp.buffer instanceof ArrayBuffer) {
+        const customKey = 'custom:' + oficio + ':' + id;
+        npcCustomBuffers[customKey] = resp.buffer;
+        modeloKey = customKey;
+        metaExtra = resp;
+      }
+    }
+
+    const def = {
+      id,
+      nombre,
+      oficio,
+      modelo: 'npc/aldeanos/' + oficio + '.glb',
+      zona: pos.zona,
+      x: Math.round(pos.x * 10) / 10,
+      z: Math.round(pos.z * 10) / 10,
+      yaw: Math.atan2((pos.lookX - pos.x), (pos.lookZ - pos.z)) || 0,
+      dialogo,
+      outfit: (metaExtra && metaExtra.villager) || undefined,
+      rostro: (metaExtra && metaExtra.rostro) || undefined
+    };
+    aldeanosCustom.push(def);
+    spawnearAldeanoCustomEnEscena(def, modeloKey);
+    renderListaAldeanosCustom();
+    if (typeof saveActive === 'function') saveActive(true);
+    return def;
+  }
+
+  if ($('sk-aldeanos')) {
+    $('sk-aldeanos').onclick = () => {
+      renderListaAldeanosCustom();
+      $('ald-estado').textContent = '';
+      $('crear-aldeano').classList.add('show');
+    };
+  }
+  if ($('ald-oficio') && $('ald-genero')) {
+    $('ald-oficio').addEventListener('change', () => {
+      if ($('ald-oficio').value === 'aldeana') $('ald-genero').value = 'mujer';
+    });
+  }
+  if ($('ald-cerrar')) $('ald-cerrar').onclick = () => $('crear-aldeano').classList.remove('show');
+  if ($('ald-crear-btn')) {
+    $('ald-crear-btn').onclick = async () => {
+      const btn = $('ald-crear-btn');
+      btn.disabled = true;
+      $('ald-estado').textContent = $('ald-estudio').checked ? 'Exportando aldeano único desde el estudio…' : 'Colocando aldeano…';
+      try {
+        const def = await crearAldeanoEnMundo({
+          nombre: $('ald-nombre').value,
+          oficio: $('ald-oficio').value,
+          gender: $('ald-genero').value,
+          ubicacion: $('ald-ubicacion').value,
+          dialogo: $('ald-dialogo').value,
+          desdeEstudio: !!$('ald-estudio').checked
+        });
+        $('ald-estado').textContent = '✅ Colocado en ' + def.zona;
+        toast('🧑‍🌾 Aldeano «' + def.nombre + '» colocado en ' + def.zona);
+      } catch (err) {
+        $('ald-estado').textContent = 'Error: ' + (err.message || err);
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  }
+  if ($('ald-lista')) {
+    $('ald-lista').addEventListener('click', e => {
+      const ir = e.target.closest('button[data-ir-aldeano]');
+      if (ir) {
+        const a = aldeanosCustom.find(x => x.id === ir.dataset.irAldeano);
+        if (a && character) {
+          character.teleport(a.x + 1.8, a.z + 1.8);
+          $('crear-aldeano').classList.remove('show');
+          toast('🧭 Llevado junto a ' + a.nombre);
+        }
+        return;
+      }
+      const del = e.target.closest('button[data-borrar-aldeano]');
+      if (del) {
+        const id = del.dataset.borrarAldeano;
+        const idx = aldeanosCustom.findIndex(x => x.id === id);
+        if (idx >= 0) aldeanosCustom.splice(idx, 1);
+        for (let i = gurus.length - 1; i >= 0; i--) {
+          if (gurus[i].info && gurus[i].info.id === id) {
+            scene.remove(gurus[i].raiz);
+            gurus.splice(i, 1);
+          }
+        }
+        renderListaAldeanosCustom();
+        if (typeof saveActive === 'function') saveActive(true);
+      }
     });
   }
 
@@ -16172,7 +17709,10 @@
             const nz = s.z - Math.cos(rot) * 1.2;
             const lookX = s.x + Math.sin(rot) * 8.0;
             const lookZ = s.z + Math.cos(rot) * 8.0;
-            instanciarNpc(npcInfo, (typeof s.aldeano === 'object' && s.aldeano.modelo) ? s.aldeano.modelo : 'guru-1', nx, nz, lookX, lookZ);
+            const modCabana = (typeof s.aldeano === 'object' && s.aldeano.modelo)
+              ? s.aldeano.modelo
+              : (s.aldeanoModelo || 'npc/aldeanos/campesino.glb');
+            instanciarNpc(npcInfo, modCabana, nx, nz, lookX, lookZ);
           }
         } catch (eSec) {
           console.warn('Lugar secreto:', s.id, eSec);
@@ -17898,6 +19438,7 @@
     iniciarMazmorras();
     colocarGurus();
     colocarEncargos();
+    colocarAldeanosEstrategicos();
     actualizarMision();
     let list = PartidaLib.readList(store, worldId);
     let active = activePartida();
@@ -18496,6 +20037,10 @@
     if (!enDungeon) checkRegions(now);
     if (!enDungeon && !enRecinto) actualizarInteractivosHistoria(dt, now);
     drawMinimap(now);
+    if ($('mapa-mundo') && $('mapa-mundo').classList.contains('show') && now - lastMapaLiveDraw > 120) {
+      lastMapaLiveDraw = now;
+      requestDrawMapaMundo();
+    }
     updateMazmorras(dt, now);
     if (!enDungeon && typeof actualizarDecoracionesCulminacion === 'function') {
       actualizarDecoracionesCulminacion(dt, now);
@@ -18928,7 +20473,7 @@
       ensureScene();
       $('load').classList.add('show');
     }
-    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, ESTILOS_NPC, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   })();
   </script>
 </body>

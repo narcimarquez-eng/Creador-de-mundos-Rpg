@@ -9,7 +9,7 @@
 (function (root) {
   "use strict";
 
-  const RANURAS = ['underlayer', 'helmet', 'shoulders', 'torso', 'gloves', 'belt', 'tassets', 'cuisses', 'knees', 'boots', 'weapon'];
+  const RANURAS = ['underlayer', 'helmet', 'shoulders', 'torso', 'gloves', 'belt', 'tassets', 'cuisses', 'knees', 'boots', 'weapon', 'shield'];
   const DROP_NORMAL = 0.12;     // probabilidad de que un monstruo normal suelte algo
   const RANGO_DROP = 2;         // el monstruo suelta piezas de su nivel o de 2 niveles por debajo
   const NIVEL_SOLO_COTAS = 5;   // hasta este nivel de monstruo solo caen cotas
@@ -23,12 +23,69 @@
   const ARENA_FORJA = 2;        // arena por nivel de la pieza al forjarla con su hoja
   const CAPACIDAD = 50;         // huecos del inventario (los equipados también ocupan hueco)
 
+  const GRADOS = {
+    D:  { id: 'D',  nombre: 'Grado D',  nivelMin: 1,  mult: 1.00, color: '#94a3b8' },
+    C:  { id: 'C',  nombre: 'Grado C',  nivelMin: 8,  mult: 1.15, color: '#34d399' },
+    B:  { id: 'B',  nombre: 'Grado B',  nivelMin: 15, mult: 1.35, color: '#38bdf8' },
+    A:  { id: 'A',  nombre: 'Grado A',  nivelMin: 23, mult: 1.60, color: '#a78bfa' },
+    S:  { id: 'S',  nombre: 'Grado S',  nivelMin: 31, mult: 1.90, color: '#fbbf24' },
+    SR: { id: 'SR', nombre: 'Grado SR', nivelMin: 40, mult: 2.30, color: '#fb7185' }
+  };
+
+  function gradoDeNivel(nivel) {
+    const n = Number(nivel) || 1;
+    if (n >= 40) return 'SR';
+    if (n >= 31) return 'S';
+    if (n >= 23) return 'A';
+    if (n >= 15) return 'B';
+    if (n >= 8) return 'C';
+    return 'D';
+  }
+
+  function gradoDePieza(pieza) {
+    if (!pieza) return 'D';
+    if (pieza.grado && GRADOS[pieza.grado]) return pieza.grado;
+    return gradoDeNivel(pieza.nivel);
+  }
+
+  function multGrado(pieza) {
+    return (pieza && pieza.grado && GRADOS[pieza.grado]) ? GRADOS[pieza.grado].mult : 1.0;
+  }
+
   const esArma = ranura => ranura === 'weapon';
   const esCota = pieza => /cota/i.test(pieza.nombre);
 
-  // Estadísticas base de una pieza según su nivel
-  function ataqueBase(pieza) { return 2 + 1.5 * pieza.nivel; }
-  function defensaBase(pieza) { return 1 + 0.5 * pieza.nivel; }
+  function claseArmaDePieza(pieza, catalogo = null) {
+    if (!pieza || !esArma(pieza.ranura)) return null;
+    if (pieza.claseArma) return pieza.claseArma;
+    if (catalogo && catalogo.ranuras && Array.isArray(catalogo.ranuras.weapon)) {
+      const raw = catalogo.ranuras.weapon.find(w => w.idx === pieza.idx);
+      if (raw && raw.claseArma) return raw.claseArma;
+      const famRaw = raw && raw.familia;
+      const fam = String(pieza.familia || famRaw || '').toLowerCase();
+      if (fam === 'arco') return 'arcos';
+      if (fam === 'baculo' || fam === 'cetro') return 'bastones';
+      if (fam === 'daga') return 'dagas';
+      if (fam === 'lanza') return 'lanzas';
+      if (fam === 'maza') return 'mazas';
+      if (fam === 'mandoble') return 'mandobles';
+      if (fam === 'hacha') return /\(2M\)|torre|hoz|guadaña|verdugo|doble/i.test(pieza.nombre || '') ? 'hachas_2m' : 'hachas';
+      if (fam === 'espada' || fam === 'legado') return /mandoble|montante|claymore/i.test(pieza.nombre || '') ? 'mandobles' : 'espadas';
+    }
+    const nom = String(pieza.nombre || '');
+    if (/\barco\b/i.test(nom)) return 'arcos';
+    if (/b[aá]culo|cetro|vara|bast[oó]n/i.test(nom)) return 'bastones';
+    if (/daga|kris|cuchillo|misericordia|punz[oó]n/i.test(nom)) return 'dagas';
+    if (/lanza|alabarda|pica|tridente|glaive|partesana|bisarma/i.test(nom)) return 'lanzas';
+    if (/maza|martillo|mangual|macuahuitl|porra/i.test(nom)) return 'mazas';
+    if (/hacha|labrys|tomahawk|hoz|guadaña/i.test(nom)) return /\(2M\)|torre|hoz|guadaña|verdugo|doble/i.test(nom) ? 'hachas_2m' : 'hachas';
+    if (/mandoble|montante|claymore/i.test(nom)) return 'mandobles';
+    return 'espadas';
+  }
+
+  // Estadísticas base de una pieza según su nivel y grado (D..SR)
+  function ataqueBase(pieza) { return Math.round((2 + 1.5 * pieza.nivel) * multGrado(pieza) * 10) / 10; }
+  function defensaBase(pieza) { return Math.round((1 + 0.5 * pieza.nivel) * multGrado(pieza) * 10) / 10; }
 
   // Estado de 0 (malo) a 1 (perfecto). Un objeto malo rinde la mitad que uno perfecto.
   function factorEstado(estado) { return 0.5 + 0.5 * estado; }
@@ -58,8 +115,13 @@
     const tipoClase = tipoArmaduraDeClase(catalogo, clase);
     if (pieza.tipoArmadura && !tieneTipoArmadura(pieza, tipoClase)) return false;
     const perfil = perfilDeClase(catalogo, clase);
-    if (pieza.ranura === 'weapon' && perfil && Array.isArray(perfil.familiasArma) && pieza.familia) {
-      return perfil.familiasArma.includes(pieza.familia);
+    if (pieza.ranura === 'weapon' && perfil) {
+      if (Array.isArray(perfil.clasesArma) && pieza.claseArma) {
+        return perfil.clasesArma.includes(pieza.claseArma);
+      }
+      if (Array.isArray(perfil.familiasArma) && pieza.familia) {
+        return perfil.familiasArma.includes(pieza.familia);
+      }
     }
     if (perfil && pieza.ranura && !esArma(pieza.ranura)) {
       const enActuales = Array.isArray(perfil.ranuras) && perfil.ranuras.includes(pieza.ranura);
@@ -106,7 +168,7 @@
   }
 
   let contador = 0;
-  // Instancia de una pieza: un objeto concreto con estado y estadísticas
+  // Instancia de una pieza: un objeto concreto con estado, estadísticas y grado (D..SR)
   function instancia(pieza, estado) {
     contador += 1;
     const f = factorEstado(estado);
@@ -115,6 +177,11 @@
       piezaId: pieza.id, ranura: pieza.ranura, idx: pieza.idx,
       nombre: pieza.nombre, nivel: pieza.nivel, estado
     };
+    if (pieza.grado && GRADOS[pieza.grado]) obj.grado = pieza.grado;
+    if (pieza.tipoArmadura) obj.tipoArmadura = pieza.tipoArmadura;
+    if (pieza.armorLook != null) obj.armorLook = pieza.armorLook;
+    if (pieza.familia) obj.familia = pieza.familia;
+    if (pieza.claseArma) obj.claseArma = pieza.claseArma;
     if (esArma(pieza.ranura)) obj.ataque = Math.round(ataqueBase(pieza) * f * 10) / 10;
     else obj.defensa = Math.round(defensaBase(pieza) * f * 10) / 10;
     return obj;
@@ -265,10 +332,13 @@
     return hoja;
   }
 
-  // Herrero: forja una pieza básica de entrada (nivel 1-2) para una ranura específica y la guarda en inventario.
+  // Herrero: forja una pieza básica de entrada (Grado D / nivel 1-2) para una ranura específica y la guarda en inventario.
   function forjarPiezaBasica(personaje, catalogo, ranura, rnd = Math.random) {
     const piezas = piezasDeClase(catalogo, personaje.clase);
-    let candidatas = piezas.filter(p => p.ranura === ranura && p.nivel <= 2);
+    let candidatas = piezas.filter(p => p.ranura === ranura && (p.grado === 'D' || p.nivel <= 2) && p.nivel <= 7);
+    if (!candidatas.length) {
+      candidatas = piezas.filter(p => p.ranura === ranura && p.nivel <= 2);
+    }
     if (!candidatas.length) {
       candidatas = piezas.filter(p => p.ranura === ranura);
     }
@@ -276,7 +346,7 @@
       candidatas = ((catalogo.ranuras && catalogo.ranuras[ranura]) || []).filter(p => p.nivel <= 2).map(p => Object.assign({ ranura, id: ranura + '.' + p.idx }, p));
     }
     if (!candidatas.length) {
-      candidatas = piezas.filter(p => !esArma(p.ranura) && p.nivel <= 2);
+      candidatas = piezas.filter(p => !esArma(p.ranura) && (p.grado === 'D' || p.nivel <= 2));
     }
     if (!candidatas.length) {
       candidatas = piezas.filter(p => !esArma(p.ranura));
@@ -403,7 +473,8 @@
   }
 
   const api = {
-    RANURAS, DROP_NORMAL, FORJA_ORO, COMPRA_ORO, NIVEL_SOLO_COTAS, CAPACIDAD,
+    RANURAS, GRADOS, DROP_NORMAL, FORJA_ORO, COMPRA_ORO, NIVEL_SOLO_COTAS, CAPACIDAD,
+    gradoDeNivel, gradoDePieza, claseArmaDePieza,
     perfilDeClase, tipoArmaduraDeClase, esPiezaCompatible, asegurarArmaDeClase,
     piezasDeClase, instancia, crearPersonaje, objeto, equipoPorIdx, equipar,
     armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota, forjarPiezaBasica,

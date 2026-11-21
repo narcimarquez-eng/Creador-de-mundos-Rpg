@@ -11,6 +11,25 @@
 
   const PUNTOS_KILLS = 20;   // cada 20 monstruos derrotados, 1 punto de lucha
 
+  const CLASES_ARMA_DE_PROFESION = {
+    guerrero: ['espadas', 'mandobles', 'hachas', 'hachas_2m', 'mazas', 'lanzas'],
+    cazador:  ['arcos', 'lanzas', 'dagas'],
+    mago:     ['bastones'],
+    picaro:   ['dagas', 'espadas']
+  };
+
+  const NOMBRES_CLASE_ARMA = {
+    espadas:   'Espada (1M)',
+    mandobles: 'Mandoble (2M)',
+    dagas:     'Dagas',
+    hachas:    'Hacha (1M)',
+    hachas_2m: 'Hacha / Guadaña (2M)',
+    mazas:     'Maza / Martillo',
+    lanzas:    'Lanza (2M)',
+    arcos:     'Arco (2M)',
+    bastones:  'Báculo / Cetro (2M)'
+  };
+
   // Profesiones jugables: cada una define silueta de armadura, familias de arma, estadísticas base y barra inicial
   const PROFESIONES = {
     guerrero: {
@@ -19,9 +38,10 @@
       icono: '🛡️',
       rol: 'Vanguardia · Cuerpo a cuerpo',
       desc: 'Maestro de armas pesadas y escudo. Alta resistencia y golpes demoledores en primera línea.',
-      pasiva: '+20 vida base, +3 vida/nivel, +5 % reducción de daño; espada, hacha, maza y lanza.',
+      pasiva: '+20 vida base, +3 vida/nivel, +5 % reducción de daño; espada, mandoble, hacha, maza y lanza.',
       tipoArmadura: 'pesada',
-      familiasArma: ['legado', 'espada', 'hacha', 'maza', 'lanza'],
+      familiasArma: ['legado', 'espada', 'mandoble', 'hacha', 'maza', 'lanza'],
+      clasesArma: CLASES_ARMA_DE_PROFESION.guerrero,
       vidaBase: 120, vidaNivel: 15,
       manaBase: 45, manaNivel: 5,
       ataqueBase: 2,
@@ -29,18 +49,19 @@
       criticoBase: 0.05,
       reduccionBonus: 0.05, velocidadBonus: 0, velAtaqueBonus: 0,
       dodgeCdMult: 1.0, mpRegenMult: 1.0,
-      barraInicial: { q: 'sismo', e: 'nova', z: 'tajo', v: 'corte_cruzado' },
-      atajos: ['corte_cruzado', 'furia', 'salto_demoledor']
+      barraInicial: { q: 'sw_iaido', e: 'sw_solar', z: 'sw_blitz', v: 'sw_cross' },
+      atajos: ['sw_iaido', 'sw_blitz', 'sw_celestial']
     },
     cazador: {
       id: 'cazador',
       nombre: 'Cazador',
       icono: '🏹',
       rol: 'Tirador · Combate a distancia',
-      desc: 'Rastreador ágil con arco largo y dagas. Dispara desde lejos, atrapa presas y esquiva con soltura.',
-      pasiva: '+4 % crítico base, +6 % velocidad de movimiento, -15 % recarga de esquiva; arcos y dagas.',
+      desc: 'Rastreador ágil con arco largo, lanza y dagas. Dispara desde lejos, atrapa presas y esquiva con soltura.',
+      pasiva: '+4 % crítico base, +6 % velocidad de movimiento, -15 % recarga de esquiva; arcos, lanzas y dagas.',
       tipoArmadura: 'ligera',
-      familiasArma: ['arco', 'daga'],
+      familiasArma: ['arco', 'lanza', 'daga'],
+      clasesArma: CLASES_ARMA_DE_PROFESION.cazador,
       vidaBase: 95, vidaNivel: 11,
       manaBase: 55, manaNivel: 7,
       ataqueBase: 1,
@@ -48,8 +69,8 @@
       criticoBase: 0.09,
       reduccionBonus: 0.01, velocidadBonus: 0.06, velAtaqueBonus: 0.05,
       dodgeCdMult: 0.85, mpRegenMult: 1.1,
-      barraInicial: { q: 'sismo', e: 'nova', z: 'flecha_perforante', v: 'suspension' },
-      atajos: ['flecha_perforante', 'trampa_espinas', 'lluvia_proyectiles']
+      barraInicial: { q: 'bw_bolt', e: 'bw_double', z: 'bw_frost', v: 'bw_aerial' },
+      atajos: ['bw_bolt', 'bw_barrage', 'bw_prism']
     },
     mago: {
       id: 'mago',
@@ -57,9 +78,10 @@
       icono: '🔮',
       rol: 'Arcanista · Conjuros elementales',
       desc: 'Portador de báculo y magia elemental. Menor defensa física, pero gran maná y conjuros devastadores.',
-      pasiva: '+40 maná base, +50 % regen de maná y Poder Mágico (+1.5/nivel y +2.5/Intelecto); solo báculos.',
+      pasiva: '+40 maná base, +50 % regen de maná y Poder Mágico (+1.5/nivel y +2.5/Intelecto); báculos y cetros.',
       tipoArmadura: 'mago',
-      familiasArma: ['baculo'],
+      familiasArma: ['baculo', 'cetro'],
+      clasesArma: CLASES_ARMA_DE_PROFESION.mago,
       vidaBase: 80, vidaNivel: 9,
       manaBase: 90, manaNivel: 12,
       ataqueBase: 0,
@@ -67,8 +89,8 @@
       criticoBase: 0.06,
       reduccionBonus: 0, velocidadBonus: 0.02, velAtaqueBonus: 0,
       dodgeCdMult: 0.95, mpRegenMult: 1.5,
-      barraInicial: { q: 'bola_fuego', e: 'lanza_hielo', z: 'escudo_mana', v: 'nova' },
-      atajos: ['bola_fuego', 'lanza_hielo', 'tormenta_fuego']
+      barraInicial: { q: 'st_tempest', e: 'st_meteor', z: 'bola_fuego', v: 'lanza_hielo' },
+      atajos: ['st_tempest', 'st_meteor', 'st_nova']
     },
     picaro: {
       id: 'picaro',
@@ -79,6 +101,7 @@
       pasiva: '+7 % crítico base, +8 % velocidad, +10 % vel. ataque y -30 % recarga de esquiva; dagas y espadas.',
       tipoArmadura: 'ligera',
       familiasArma: ['daga', 'espada'],
+      clasesArma: CLASES_ARMA_DE_PROFESION.picaro,
       vidaBase: 95, vidaNivel: 11,
       manaBase: 50, manaNivel: 6,
       ataqueBase: 1,
@@ -86,8 +109,8 @@
       criticoBase: 0.12,
       reduccionBonus: 0.02, velocidadBonus: 0.08, velAtaqueBonus: 0.10,
       dodgeCdMult: 0.7, mpRegenMult: 1.15,
-      barraInicial: { q: 'sismo', e: 'nova', z: 'corte_cruzado', v: 'paso_sombrio' },
-      atajos: ['corte_cruzado', 'paso_sombrio', 'hoja_veneno']
+      barraInicial: { q: 'dg_dash', e: 'dg_blink', z: 'dg_rush', v: 'dg_venom' },
+      atajos: ['dg_dash', 'dg_venom', 'dg_zigzag']
     }
   };
 
@@ -180,7 +203,66 @@
     lanza_hielo: { tipo: 'activa', nombre: 'Lanza de Hielo', desc: '+25 % de daño por nivel · proyectil glacial que ralentiza enemigos', max: 3, nivel: 1, clases: ['mago'] },
     ventisca_glacial: { tipo: 'activa', nombre: 'Ventisca Glacial', desc: '+25 % de daño por nivel · tormenta helada en área que congela', max: 3, nivel: 6, clases: ['mago'] },
     tormenta_fuego: { tipo: 'activa', nombre: 'Lluvia de Meteoros', desc: '+25 % de daño por nivel · bombardeo meteórico en área', max: 3, nivel: 8, clases: ['mago'] },
-    rayo_arcano: { tipo: 'activa', nombre: 'Tormenta Eléctrica', desc: '+25 % de daño por nivel · relámpagos arcanos alrededor', max: 3, nivel: 12, clases: ['mago'] }
+    rayo_arcano: { tipo: 'activa', nombre: 'Tormenta Eléctrica', desc: '+25 % de daño por nivel · relámpagos arcanos alrededor', max: 3, nivel: 12, clases: ['mago'] },
+    // ===== Nuevas Skills por clase de arma (aprendizaje progresivo) =====
+    // Espadas (1M)
+    sw_iaido:     { tipo: 'activa', nombre: 'Desenvaine Veloz',       desc: '+25 % daño/nv · estocada eléctrica veloz con espada', max: 5, nivel: 1,  arma: 'cuerpo', armaClase: 'espadas', clases: ['guerrero', 'picaro'] },
+    sw_solar:     { tipo: 'activa', nombre: 'Tajo de Fuego Solar',    desc: '+25 % daño/nv · corte ascendente ardiente con espada', max: 5, nivel: 4,  arma: 'cuerpo', armaClase: 'espadas', clases: ['guerrero', 'picaro'] },
+    sw_blitz:     { tipo: 'activa', nombre: 'Asalto Relámpago',       desc: '+25 % daño/nv · embestida eléctrica hacia el enemigo', max: 5, nivel: 7,  arma: 'cuerpo', armaClase: 'espadas', clases: ['guerrero', 'picaro'] },
+    sw_cross:     { tipo: 'activa', nombre: 'Doble Tajo en Cruz',     desc: '+25 % daño/nv · doble corte arcano en X', max: 5, nivel: 11, arma: 'cuerpo', armaClase: 'espadas', clases: ['guerrero', 'picaro'] },
+    sw_lightning: { tipo: 'activa', nombre: 'Corte Relámpago',        desc: '+25 % daño/nv · creciente eléctrica a distancia', max: 5, nivel: 16, arma: 'cuerpo', armaClase: 'espadas', clases: ['guerrero', 'picaro'] },
+    sw_celestial: { tipo: 'activa', nombre: 'Espada Celestial',       desc: '+25 % daño/nv · tajo sagrado rompecielos', max: 5, nivel: 22, arma: 'cuerpo', armaClase: 'espadas', clases: ['guerrero', 'picaro'] },
+    // Mandobles (2M)
+    gs_sweep:     { tipo: 'activa', nombre: 'Gran Barrido (2M)',      desc: '+25 % daño/nv · amplio arco eléctrico con mandoble', max: 5, nivel: 1,  arma: 'cuerpo', armaClase: 'mandobles', clases: ['guerrero'] },
+    gs_titan:     { tipo: 'activa', nombre: 'Tajo Titánico (2M)',     desc: '+25 % daño/nv · golpe ígneo pesado de dos manos', max: 5, nivel: 4,  arma: 'cuerpo', armaClase: 'mandobles', clases: ['guerrero'] },
+    gs_cross:     { tipo: 'activa', nombre: 'Doble Cruz del Dragón',  desc: '+25 % daño/nv · doble corte dracónico de fuego', max: 5, nivel: 8,  arma: 'cuerpo', armaClase: 'mandobles', clases: ['guerrero'] },
+    gs_colossus:  { tipo: 'activa', nombre: 'Hendidura Colosal (2M)', desc: '+25 % daño/nv · hendidura de magma y acero', max: 5, nivel: 12, arma: 'cuerpo', armaClase: 'mandobles', clases: ['guerrero'] },
+    gs_crescent:  { tipo: 'activa', nombre: 'Onda de Titanio (2M)',   desc: '+25 % daño/nv · onda relámpago de largo alcance', max: 5, nivel: 17, arma: 'cuerpo', armaClase: 'mandobles', clases: ['guerrero'] },
+    gs_skybreak:  { tipo: 'activa', nombre: 'Tajo Rompecielos (2M)',  desc: '+25 % daño/nv · impacto celestial definitivo de mandoble', max: 5, nivel: 24, arma: 'cuerpo', armaClase: 'mandobles', clases: ['guerrero'] },
+    // Dagas
+    dg_dash:      { tipo: 'activa', nombre: 'Paso de Sombra',         desc: '+25 % daño/nv · teletransporte sombrío y golpe crítico', max: 5, nivel: 1,  arma: 'cuerpo', armaClase: 'dagas', clases: ['picaro', 'cazador'] },
+    dg_blink:     { tipo: 'activa', nombre: 'Corte Fantasma',         desc: '+25 % daño/nv · corte fugaz con dagas', max: 5, nivel: 4,  arma: 'cuerpo', armaClase: 'dagas', clases: ['picaro', 'cazador'] },
+    dg_rush:      { tipo: 'activa', nombre: 'Asalto Asesino',         desc: '+25 % daño/nv · carga por la espalda con +25 % crítico', max: 5, nivel: 7,  arma: 'cuerpo', armaClase: 'dagas', clases: ['picaro', 'cazador'] },
+    dg_venom:     { tipo: 'activa', nombre: 'Hélice Venenosa',        desc: '+25 % daño/nv · giro tóxico que envenena 5 s', max: 5, nivel: 11, arma: 'cuerpo', armaClase: 'dagas', clases: ['picaro', 'cazador'] },
+    dg_shadow:    { tipo: 'activa', nombre: 'Ráfaga Sombría',         desc: '+25 % daño/nv · ráfaga múltiple de cortes sombríos', max: 5, nivel: 16, arma: 'cuerpo', armaClase: 'dagas', clases: ['picaro', 'cazador'] },
+    dg_zigzag:    { tipo: 'activa', nombre: 'Zigzag Relámpago',       desc: '+25 % daño/nv · triple impacto eléctrico en área', max: 5, nivel: 22, arma: 'cuerpo', armaClase: 'dagas', clases: ['picaro', 'cazador'] },
+    // Hachas (1M)
+    ax_thunder:   { tipo: 'activa', nombre: 'Furia del Trueno',       desc: '+25 % daño/nv · golpe cargado de trueno con hacha', max: 5, nivel: 1,  arma: 'cuerpo', armaClase: 'hachas', clases: ['guerrero'] },
+    ax_inferno:   { tipo: 'activa', nombre: 'Tornado Ígneo',          desc: '+25 % daño/nv · giro ardiente 360°', max: 5, nivel: 5,  arma: 'cuerpo', armaClase: 'hachas', clases: ['guerrero'] },
+    ax_berserk:   { tipo: 'activa', nombre: 'Salto Berserker',        desc: '+25 % daño/nv · salto demoledor contra el objetivo', max: 5, nivel: 10, arma: 'cuerpo', armaClase: 'hachas', clases: ['guerrero'] },
+    ax_reap:      { tipo: 'activa', nombre: 'Siega Salvaje',          desc: '+25 % daño/nv · doble segado eléctrico giratorio', max: 5, nivel: 15, arma: 'cuerpo', armaClase: 'hachas', clases: ['guerrero'] },
+    ax_nordic:    { tipo: 'activa', nombre: 'Juicio Nórdico',         desc: '+25 % daño/nv · tormenta eléctrica de área', max: 5, nivel: 22, arma: 'cuerpo', armaClase: 'hachas', clases: ['guerrero'] },
+    // Hachas 2M
+    a2_sweep:     { tipo: 'activa', nombre: 'Barrido Segador (2M)',   desc: '+25 % daño/nv · barrido del vacío con hacha 2M', max: 5, nivel: 1,  arma: 'cuerpo', armaClase: 'hachas_2m', clases: ['guerrero'] },
+    a2_titan:     { tipo: 'activa', nombre: 'Tajo Titánico Hacha (2M)', desc: '+25 % daño/nv · arco demoledor de fuego', max: 5, nivel: 5, arma: 'cuerpo', armaClase: 'hachas_2m', clases: ['guerrero'] },
+    a2_colossus:  { tipo: 'activa', nombre: 'Hendidura Hacha (2M)',   desc: '+25 % daño/nv · golpe colosal ígneo', max: 5, nivel: 10, arma: 'cuerpo', armaClase: 'hachas_2m', clases: ['guerrero'] },
+    a2_vortex:    { tipo: 'activa', nombre: 'Guadaña del Vacío (2M)', desc: '+25 % daño/nv · vórtice abisal de doble impacto', max: 5, nivel: 16, arma: 'cuerpo', armaClase: 'hachas_2m', clases: ['guerrero'] },
+    a2_demolish:  { tipo: 'activa', nombre: 'Triple Demolición (2M)', desc: '+25 % daño/nv · triple impacto prismático sísmico', max: 5, nivel: 22, arma: 'cuerpo', armaClase: 'hachas_2m', clases: ['guerrero'] },
+    // Mazas y Martillos
+    mc_storm:     { tipo: 'activa', nombre: 'Martillo de Tormenta',   desc: '+25 % daño/nv · descarga eléctrica vertical', max: 5, nivel: 1,  arma: 'cuerpo', armaClase: 'mazas', clases: ['guerrero'] },
+    mc_crush:     { tipo: 'activa', nombre: 'Aplastamiento Colosal',  desc: '+25 % daño/nv · impacto contundente de trueno', max: 5, nivel: 5,  arma: 'cuerpo', armaClase: 'mazas', clases: ['guerrero'] },
+    mc_seismic:   { tipo: 'activa', nombre: 'Furia Sísmica',          desc: '+25 % daño/nv · doble onda de magma en área', max: 5, nivel: 10, arma: 'cuerpo', armaClase: 'mazas', clases: ['guerrero'] },
+    mc_titan:     { tipo: 'activa', nombre: 'Impacto Titán',          desc: '+25 % daño/nv · salto sagrado devastador', max: 5, nivel: 16, arma: 'cuerpo', armaClase: 'mazas', clases: ['guerrero'] },
+    mc_judgment:  { tipo: 'activa', nombre: 'Juicio del Trueno',      desc: '+25 % daño/nv · pilar celestial eléctrico', max: 5, nivel: 22, arma: 'cuerpo', armaClase: 'mazas', clases: ['guerrero'] },
+    // Lanzas (2M)
+    ln_sweep:     { tipo: 'activa', nombre: 'Gran Barrido de Asta',   desc: '+25 % daño/nv · barrido amplio con lanza 2M', max: 5, nivel: 1,  arma: 'cuerpo', armaClase: 'lanzas', clases: ['guerrero', 'cazador'] },
+    ln_skewer:    { tipo: 'activa', nombre: 'Empalamiento Total (2M)',desc: '+25 % daño/nv · estocada eléctrica de largo alcance', max: 5, nivel: 5,  arma: 'cuerpo', armaClase: 'lanzas', clases: ['guerrero', 'cazador'] },
+    ln_phalanx:   { tipo: 'activa', nombre: 'Barrido de Falange (2M)',desc: '+25 % daño/nv · tajo glacial que ralentiza', max: 5, nivel: 10, arma: 'cuerpo', armaClase: 'lanzas', clases: ['guerrero', 'cazador'] },
+    ln_valkyrie:  { tipo: 'activa', nombre: 'Salto de Valquiria (2M)',desc: '+25 % daño/nv · salto con pértiga hacia el objetivo', max: 5, nivel: 16, arma: 'cuerpo', armaClase: 'lanzas', clases: ['guerrero', 'cazador'] },
+    ln_dragon:    { tipo: 'activa', nombre: 'Lanza del Dragón (2M)',  desc: '+25 % daño/nv · ciclón eléctrico doble', max: 5, nivel: 22, arma: 'cuerpo', armaClase: 'lanzas', clases: ['guerrero', 'cazador'] },
+    // Arcos (2M)
+    bw_bolt:      { tipo: 'activa', nombre: 'Flecha de Relámpago',    desc: '+25 % daño/nv · disparo eléctrico preciso', max: 5, nivel: 1,  arma: 'arco', armaClase: 'arcos', clases: ['cazador'] },
+    bw_double:    { tipo: 'activa', nombre: 'Doble Shot',             desc: '+25 % daño/nv · descarga doble veloz', max: 5, nivel: 4,  arma: 'arco', armaClase: 'arcos', clases: ['cazador'] },
+    bw_frost:     { tipo: 'activa', nombre: 'Flecha Glacial',         desc: '+25 % daño/nv · flecha helada que ralentiza', max: 5, nivel: 8,  arma: 'arco', armaClase: 'arcos', clases: ['cazador'] },
+    bw_aerial:    { tipo: 'activa', nombre: 'Mortal Celestial',       desc: '+25 % daño/nv · tiro acrobático aéreo arcano', max: 5, nivel: 12, arma: 'arco', armaClase: 'arcos', clases: ['cazador'] },
+    bw_barrage:   { tipo: 'activa', nombre: 'Descarga de Meteoros',   desc: '+25 % daño/nv · salva ígnea explosiva en área', max: 5, nivel: 17, arma: 'arco', armaClase: 'arcos', clases: ['cazador'] },
+    bw_prism:     { tipo: 'activa', nombre: 'Lluvia Prisma',          desc: '+25 % daño/nv · lluvia prismática de área total', max: 5, nivel: 23, arma: 'arco', armaClase: 'arcos', clases: ['cazador'] },
+    // Bastones y cetros (Mago)
+    st_tempest:   { tipo: 'activa', nombre: 'Tempestad Arcana (2M)',  desc: '+25 % daño/nv · descarga arcana con báculo', max: 5, nivel: 1,  arma: 'baculo', armaClase: 'bastones', clases: ['mago'] },
+    st_meteor:    { tipo: 'activa', nombre: 'Meteoros Astrales',      desc: '+25 % daño/nv · impacto dual de meteoros ígneos', max: 5, nivel: 5,  arma: 'baculo', armaClase: 'bastones', clases: ['mago'] },
+    st_judgment:  { tipo: 'activa', nombre: 'Juicio Celestial (2M)',  desc: '+25 % daño/nv · pilar de luz sagrada', max: 5, nivel: 10, arma: 'baculo', armaClase: 'bastones', clases: ['mago'] },
+    st_solar:     { tipo: 'activa', nombre: 'Cañón Solar',            desc: '+25 % daño/nv · haz de energía solar concentrada', max: 5, nivel: 16, arma: 'baculo', armaClase: 'bastones', clases: ['mago'] },
+    st_nova:      { tipo: 'activa', nombre: 'Supernova Astral',       desc: '+25 % daño/nv · explosión prismática suprema', max: 5, nivel: 22, arma: 'baculo', armaClase: 'bastones', clases: ['mago'] }
   };
 
   // Huecos de la barra de habilidades y lo que llevan al empezar
@@ -259,6 +341,65 @@
     return Object.keys(HABILIDADES).filter(id => HABILIDADES[id].tipo === 'activa' && habilidadDeClase(id, clase));
   }
 
+  function habilidadesDeArma(claseArma, clase = null) {
+    if (!claseArma) return [];
+    return Object.keys(HABILIDADES)
+      .filter(id => HABILIDADES[id].tipo === 'activa' && HABILIDADES[id].armaClase === claseArma && (!clase || habilidadDeClase(id, clase)))
+      .sort((a, b) => (HABILIDADES[a].nivel || 1) - (HABILIDADES[b].nivel || 1));
+  }
+
+  function barraInicialDeArma(claseArma, clase = null) {
+    const ids = habilidadesDeArma(claseArma, clase);
+    if (!ids.length) return barraInicialDeClase(clase);
+    const barra = { q: null, e: null, z: null, v: null };
+    TECLAS.forEach((t, i) => { if (ids[i]) barra[t] = ids[i]; });
+    return barra;
+  }
+
+  function sincronizarBarraConArma(h, claseArma, nivelHeroe = 1, clase = null) {
+    if (!h) return {};
+    if (!h.barrasPorArma || typeof h.barrasPorArma !== 'object') h.barrasPorArma = {};
+    if (h.armaClaseActual && NOMBRES_CLASE_ARMA[h.armaClaseActual]) {
+      h.barrasPorArma[h.armaClaseActual] = Object.assign({}, h.barra);
+    }
+    if (!claseArma || !NOMBRES_CLASE_ARMA[claseArma]) return h.barra;
+    const guardada = h.barrasPorArma[claseArma];
+    if (guardada && typeof guardada === 'object') {
+      const nueva = { q: null, e: null, z: null, v: null };
+      const usadas = new Set();
+      TECLAS.forEach(t => {
+        const id = guardada[t];
+        if (id && HABILIDADES[id] && HABILIDADES[id].tipo === 'activa' && !usadas.has(id) && (!clase || habilidadDeClase(id, clase))) {
+          nueva[t] = id;
+          usadas.add(id);
+        }
+      });
+      h.barra = nueva;
+    } else {
+      h.barra = barraInicialDeArma(claseArma, clase);
+    }
+    h.armaClaseActual = claseArma;
+    h.barrasPorArma[claseArma] = Object.assign({}, h.barra);
+    return h.barra;
+  }
+
+  function nuevasHabilidadesAlSubirNivel(nivelAntes, nivelDespues, clase = null, claseArma = null) {
+    const a = Number(nivelAntes) || 1;
+    const b = Number(nivelDespues) || 1;
+    if (b <= a) return [];
+    const out = [];
+    Object.keys(HABILIDADES).forEach(id => {
+      const hab = HABILIDADES[id];
+      if (!hab || hab.tipo !== 'activa' || !hab.nivel) return;
+      if (hab.nivel > a && hab.nivel <= b) {
+        if (clase && !habilidadDeClase(id, clase)) return;
+        if (claseArma && hab.armaClase && hab.armaClase !== claseArma) return;
+        out.push({ id, nombre: hab.nombre, nivel: hab.nivel, armaClase: hab.armaClase || null });
+      }
+    });
+    return out.sort((x, y) => x.nivel - y.nivel);
+  }
+
   function atajosDeClase(clase) {
     const p = PROFESIONES[clase];
     return p && Array.isArray(p.atajos) ? p.atajos.slice() : ['bola_fuego', 'lanza_hielo', 'tormenta_fuego'];
@@ -303,6 +444,9 @@
   function aplicarBarraDeClase(h, clase) {
     if (!h) return {};
     h.barra = barraInicialDeClase(clase);
+    h.barrasPorArma = {};
+    const defArma = (CLASES_ARMA_DE_PROFESION[clase] && CLASES_ARMA_DE_PROFESION[clase][0]) || null;
+    h.armaClaseActual = defArma;
     if (h.subclase && SUBCLASES[h.subclase] && SUBCLASES[h.subclase].clase !== clase) {
       h.subclase = null;
     }
@@ -329,6 +473,7 @@
 
   function nuevoHeroe() {
     return { puntos: 0, kills: 0, gastados: {}, desbloqueadas: {}, zonas: {}, titulos: [], barra: Object.assign({}, BARRA_INICIAL),
+      barrasPorArma: {}, armaClaseActual: null,
       subclase: null,
       principal: { paso: 0, progreso: 0, objetivo: null },
       reputacion: { pueblo: 0, sombra: 0, vinculo: 0 },
@@ -359,6 +504,21 @@
         const id = RENOMBRADAS[h.barra[t]] || h.barra[t];
         base.barra[t] = HABILIDADES[id] && HABILIDADES[id].tipo === 'activa' && !usadas.has(id) ? id : null;
         if (base.barra[t]) usadas.add(base.barra[t]);
+      });
+    }
+    if (typeof h.armaClaseActual === 'string' && NOMBRES_CLASE_ARMA[h.armaClaseActual]) {
+      base.armaClaseActual = h.armaClaseActual;
+    }
+    if (h.barrasPorArma && typeof h.barrasPorArma === 'object') {
+      Object.keys(h.barrasPorArma).forEach(wc => {
+        if (!NOMBRES_CLASE_ARMA[wc] || !h.barrasPorArma[wc] || typeof h.barrasPorArma[wc] !== 'object') return;
+        const b = {}, usadas = new Set();
+        TECLAS.forEach(t => {
+          const id = RENOMBRADAS[h.barrasPorArma[wc][t]] || h.barrasPorArma[wc][t];
+          b[t] = HABILIDADES[id] && HABILIDADES[id].tipo === 'activa' && !usadas.has(id) ? id : null;
+          if (b[t]) usadas.add(b[t]);
+        });
+        base.barrasPorArma[wc] = b;
       });
     }
     Object.keys(h.zonas || {}).forEach(k => {
@@ -671,8 +831,11 @@
     return { tipo: tipoDe(obj), lineas, especiales };
   }
 
-  const api = { PROFESIONES, NIVEL_SUBCLASE, SUBCLASES, HABILIDADES, ESPECIALES, PUNTOS_KILLS, TECLAS, BARRA_INICIAL, nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
+  const api = { PROFESIONES, NIVEL_SUBCLASE, SUBCLASES, HABILIDADES, ESPECIALES, PUNTOS_KILLS, TECLAS, BARRA_INICIAL,
+    CLASES_ARMA_DE_PROFESION, NOMBRES_CLASE_ARMA,
+    nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
     disponible, requisito, asignar, esArco, esBaculo, esDaga, profesionDe, barraInicialDeClase, habilidadDeClase, habilidadesDeClase, atajosDeClase,
+    habilidadesDeArma, barraInicialDeArma, sincronizarBarraConArma, nuevasHabilidadesAlSubirNivel,
     subclasesDeClase, subclaseDe, elegirSubclase, reiniciarPuntos, aplicarBarraDeClase, bonosReputacion,
     aceptarZona, registrarZona, entregarZona,
     mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };

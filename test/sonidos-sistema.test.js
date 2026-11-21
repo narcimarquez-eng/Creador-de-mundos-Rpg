@@ -205,13 +205,13 @@ t('los 6 temas musicales arrancan y programan notas; setCombate cambia a batalla
   env.limpiar();
 });
 
-t('todas las 32 habilidades de CombatLib.SKILLS generan audio distinto en inicio e impacto', () => {
+t('todas las habilidades de CombatLib.SKILLS (incluidas las 49 skills por arma) generan audio distinto en inicio e impacto', () => {
   const env = crearEntornoAudio({ full: true });
   const S = env.sb.Sonidos;
   S.desbloquear();
 
   const skillIds = Object.keys(C.SKILLS);
-  assert.strictEqual(skillIds.length, 32, 'deben comprobarse las 32 habilidades');
+  assert.ok(skillIds.length >= 81, 'deben comprobarse al menos las 81 habilidades');
 
   skillIds.forEach(id => {
     env.avanzarTiempo(0.2);

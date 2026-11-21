@@ -1,6 +1,9 @@
 // Pruebas de la geometría del mapa: límites, escalas, orientación y rejilla. Ejecutar: node test/mapa.test.js
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const M = require('../js/mapa.js');
+const RPGWorld = require('../js/world-core.js');
 
 let n = 0;
 function t(name, fn) { fn(); n++; console.log('ok -', name); }
@@ -62,6 +65,67 @@ t('pueblo más cercano: elige el de menor distancia y da la distancia en metros'
   assert.strictEqual(r.town.name, 'Vasa');
   assert.ok(Math.abs(r.d - 100) < 1e-9);
   assert.strictEqual(M.puebloCercano({ towns: [] }, 0, 0), null);
+});
+
+t('cámara del mapa grande: encajarVista, zoomVistaEn y escalaBonita conservan punto bajo cursor', () => {
+  const lim = M.limites(MUNDO);
+  const v = M.encajarVista(lim, 1000, 700, 36);
+  assert.ok(v.scale >= 0.004 && v.scale <= 1.5);
+  assert.strictEqual(v.cx, (lim.minX + lim.maxX) / 2);
+  assert.strictEqual(v.cy, (lim.minY + lim.maxY) / 2);
+
+  const T0 = M.crearTransformacionVista(v, 1000, 700);
+  const focoAntes = T0.toWorld(310, 220);
+  const vZoom = M.zoomVistaEn(v, 1000, 700, 310, 220, 2.5);
+  assert.ok(vZoom.scale > v.scale);
+  const T1 = M.crearTransformacionVista(vZoom, 1000, 700);
+  const focoDespues = T1.toWorld(310, 220);
+  assert.ok(Math.abs(focoAntes.x - focoDespues.x) < 1e-6 && Math.abs(focoAntes.y - focoDespues.y) < 1e-6);
+
+  const esc = M.escalaBonita(vZoom.scale, 110);
+  assert.ok(esc.metros >= 10 && esc.px > 0 && / (m|km)$/.test(esc.texto));
+});
+
+t('muestrearChunkTerreno replica el sombreado de biomas y elevación estilo Creador de Mundos', () => {
+  const terrain = RPGWorld.getTerrain(4242);
+  const chunk = M.muestrearChunkTerreno(terrain, RPGWorld, 2, 0, 0, 64);
+  assert.strictEqual(chunk.length, 64 * 64 * 4);
+  let vioAgua = false, vioTierra = false;
+  for (let j = 0; j < 64 && (!vioAgua || !vioTierra); j++) {
+    for (let i = 0; i < 64 && (!vioAgua || !vioTierra); i++) {
+      const mpp = 4;
+      const e = terrain.elevation(i * mpp, j * mpp);
+      const b = terrain.biomeAt(i * mpp, j * mpp, e);
+      const o = (j * 64 + i) * 4;
+      assert.strictEqual(chunk[o + 3], 255);
+      if (RPGWorld.BIOMES[b].water) {
+        vioAgua = true;
+        assert.ok(chunk[o + 2] >= chunk[o], 'píxel de agua debe predominar azul/cian');
+      } else {
+        vioTierra = true;
+      }
+    }
+  }
+  assert.ok(vioTierra || vioAgua, 'debe muestrear píxeles válidos');
+  // Verificar contraste directo buscando una zona mixta de océano y tierra si no tocó en (0,0)
+  let cAgua = null, cTierra = null;
+  for (let cx = -3; cx <= 3 && (!cAgua || !cTierra); cx++) {
+    for (let cy = -3; cy <= 3 && (!cAgua || !cTierra); cy++) {
+      const mx = cx * 256 + 128, my = cy * 256 + 128;
+      const e = terrain.elevation(mx, my);
+      const b = terrain.biomeAt(mx, my, e);
+      if (RPGWorld.BIOMES[b].water && !cAgua) cAgua = M.muestrearChunkTerreno(terrain, RPGWorld, 2, cx, cy, 64);
+      if (!RPGWorld.BIOMES[b].water && !cTierra) cTierra = M.muestrearChunkTerreno(terrain, RPGWorld, 2, cx, cy, 64);
+    }
+  }
+  assert.ok(cAgua && cTierra, 'el terreno debe generar tanto chunks con agua como de tierra');
+});
+
+t('visor-mundo.html integra mapa agrandado interactivo con chunks LOD y marcador en vivo', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  ['drawMapaTerreno', 'renderMapaChunk', 'mapa-centrar-tu', 'mapa-ver-todo', 'mapa-zoom-in',
+    'mapa-zoom-out', 'MapaLib.muestrearChunkTerreno', 'MapaLib.encajarVista', 'MapaLib.zoomVistaEn']
+    .forEach(tok => assert.ok(html.includes(tok), 'Falta en visor-mundo.html: ' + tok));
 });
 
 console.log(`\n${n} pruebas del mapa superadas.`);

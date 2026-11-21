@@ -307,12 +307,38 @@
     if (!opciones.length) opciones.push({ partes: [{ geo: new THREE.IcosahedronGeometry(1, 0), mat: material({ flatShading: true }) }], base: 0.2, alto: 0.7, tinta: true });
     const matorrales = [];
     const cantMatorrales = Math.min(6000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 450));
+    const hashV = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+    const ruidoSuave = (x, z, f) => {
+      const px = x * f, pz = z * f, ix = Math.floor(px), iz = Math.floor(pz);
+      const ux = (px - ix) * (px - ix) * (3 - 2 * (px - ix)), uz = (pz - iz) * (pz - iz) * (3 - 2 * (pz - iz));
+      const a = hashV(ix, iz), b = hashV(ix + 1, iz), c = hashV(ix, iz + 1), d = hashV(ix + 1, iz + 1);
+      return a + (b - a) * ux + (c - a + (a - b - c + d) * ux) * uz;
+    };
+    const tupidoMatorral = (x, z) => ruidoSuave(x + 17.3, z - 29.1, 0.011) * 0.65 + ruidoSuave(x - 41.7, z + 13.8, 0.036) * 0.35;
     for (let k = 0; k < cantMatorrales * 3 && matorrales.length < cantMatorrales; k++) {
       const x = L.minX + rng.next() * (L.maxX - L.minX), z = L.minZ + rng.next() * (L.maxZ - L.minZ);
       if (o.agua(x, z) || !o.libre(x, z)) continue;
       const b = o.bioma(x, z);
-      if (!rng.chance((MATORRAL_BIOMA[b] || 0) * (1 - Math.min(0.8, pendiente(x, z) * 2)))) continue;
-      matorrales.push({ x, z, o: Math.floor(rng.next() * opciones.length), color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)], tam: 0.8 + rng.next() * 1.4, ry: rng.next() * 6.28 });
+      const tup = tupidoMatorral(x, z);
+      const probM = Math.min(0.95, (MATORRAL_BIOMA[b] || 0) * (1 - Math.min(0.8, pendiente(x, z) * 2)) * (0.25 + tup * 1.25));
+      if (!rng.chance(probM)) continue;
+      const opIdx = Math.floor(rng.next() * opciones.length);
+      const escTup = 0.72 + tup * 0.52;
+      matorrales.push({ x, z, o: opIdx, color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)], tam: (0.8 + rng.next() * 1.4) * escTup, ry: rng.next() * 6.28 });
+      if (tup > 0.66 && matorrales.length < cantMatorrales) {
+        const nSat = 1 + Math.floor(rng.next() * 3);
+        for (let sIdx = 0; sIdx < nSat && matorrales.length < cantMatorrales; sIdx++) {
+          const ang = rng.next() * 6.2831853, dist = 1.4 + rng.next() * 2.4;
+          const sx = x + Math.cos(ang) * dist, sz = z + Math.sin(ang) * dist;
+          if (o.agua(sx, sz) || !o.libre(sx, sz)) continue;
+          matorrales.push({
+            x: sx, z: sz, o: opIdx,
+            color: MATORRAL_COLOR[Math.floor(rng.next() * MATORRAL_COLOR.length)],
+            tam: (0.7 + rng.next() * 1.1) * escTup,
+            ry: rng.next() * 6.28
+          });
+        }
+      }
     }
     // Cada celda tiene su malla cercana (ez-tree) y una silueta lejana; el visor alterna entre ellas
     const lodCeldas = [];

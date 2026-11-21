@@ -80,4 +80,10 @@ t('contextoNarrativoZona adapta el contexto de los encargos vecinales según el 
   assert.ok(M.contextoNarrativoZona(m, 16).includes('Lorrin'));
 });
 
+t('todos los encargados de zona usan modelos de aldeanos medievales y nunca armaduras de gurú', () => {
+  assert.ok(M.MODELOS.every(mod => String(mod).startsWith('npc/aldeanos/') && !String(mod).includes('guru-')));
+  const m = M.misionDeZona(zona('ald', 'caza'), PUEBLOS[0]);
+  assert.ok(String(m.npc.modelo).startsWith('npc/aldeanos/'), m.npc.modelo);
+});
+
 console.log(`\n${n} pruebas de encargos de zona superadas.`);

@@ -7,22 +7,31 @@
 (function (root) {
   "use strict";
 
-  // Personajes de los encargos: nombre, oficio y el modelo de npc/gurus/ que usan
+  // Personajes de los encargos: nombre, oficio y modelo de aldeano medieval (npc/aldeanos/)
   const PERSONAJES = [
-    { nombre: 'Doña Hilde', tema: 'remendona de botas, la que cose hasta las piedras' },
-    { nombre: 'Tomasa Pico', tema: 'pastora de gansos con mal genio' },
-    { nombre: 'Ferran el Cojo', tema: 'cazador jubilado que aún cuenta las huellas' },
-    { nombre: 'Mara la Tuerta', tema: 'vendedora de rumores en la plaza' },
-    { nombre: 'Abuelo Ruvo', tema: 'criador de gallinas muy valientes' },
-    { nombre: 'Brisa Tamborilera', tema: 'músico ambulante que conoce todos los caminos' },
-    { nombre: 'Teo Remiendos', tema: 'aprendiz de tintorero con las manos teñidas' },
-    { nombre: 'Sol Ardida', tema: 'molinera que oye los trigales de noche' },
-    { nombre: 'Peregrino Ilan', tema: 'viajero que perdió los zapatos en el bosque' },
-    { nombre: 'Nina Latón', tema: 'cocinera del mesón, dueña de los chismes' },
-    { nombre: 'Bruno el Cuervo', tema: 'guardia de la empalizada con muy buena vista' },
-    { nombre: 'Clemencia Dedal', tema: 'costurera de capas para los aventureros' }
+    { nombre: 'Doña Hilde', tema: 'remendona de botas, la que cose hasta las piedras', modelo: 'npc/aldeanos/aldeana.glb' },
+    { nombre: 'Tomasa Pico', tema: 'pastora de gansos con mal genio', modelo: 'npc/aldeanos/aldeana.glb' },
+    { nombre: 'Ferran el Cojo', tema: 'cazador jubilado que aún cuenta las huellas', modelo: 'npc/aldeanos/cazador.glb' },
+    { nombre: 'Mara la Tuerta', tema: 'vendedora de rumores en la plaza', modelo: 'npc/aldeanos/informante.glb' },
+    { nombre: 'Abuelo Ruvo', tema: 'criador de gallinas muy valientes', modelo: 'npc/aldeanos/campesino.glb' },
+    { nombre: 'Brisa Tamborilera', tema: 'músico ambulante que conoce todos los caminos', modelo: 'npc/aldeanos/tabernero.glb' },
+    { nombre: 'Teo Remiendos', tema: 'aprendiz de tintorero con las manos teñidas', modelo: 'npc/aldeanos/mercader.glb' },
+    { nombre: 'Sol Ardida', tema: 'molinera que oye los trigales de noche', modelo: 'npc/aldeanos/herbolario.glb' },
+    { nombre: 'Peregrino Ilan', tema: 'viajero que perdió los zapatos en el bosque', modelo: 'npc/aldeanos/campesino.glb' },
+    { nombre: 'Nina Latón', tema: 'cocinera del mesón, dueña de los chismes', modelo: 'npc/aldeanos/aldeana.glb' },
+    { nombre: 'Bruno el Cuervo', tema: 'guardia de la empalizada con muy buena vista', modelo: 'npc/aldeanos/lenador.glb' },
+    { nombre: 'Clemencia Dedal', tema: 'costurera de capas para los aventureros', modelo: 'npc/aldeanos/herbolario.glb' }
   ];
-  const MODELOS = ['guru-1', 'guru-2', 'guru-3', 'guru-4', 'guru-5'];
+  const MODELOS = [
+    'npc/aldeanos/aldeana.glb',
+    'npc/aldeanos/campesino.glb',
+    'npc/aldeanos/cazador.glb',
+    'npc/aldeanos/mercader.glb',
+    'npc/aldeanos/tabernero.glb',
+    'npc/aldeanos/herbolario.glb',
+    'npc/aldeanos/lenador.glb',
+    'npc/aldeanos/informante.glb'
+  ];
 
   // Encargos por tipo de zona. {zona} y {n} se sustituyen por el nombre de la zona y la cantidad.
   const ENCARGOS = {
@@ -103,7 +112,7 @@
         id: 'enc-' + zona.id,
         nombre: persona.nombre,
         tema: persona.tema,
-        modelo: MODELOS[(h >>> 8) % MODELOS.length],
+        modelo: persona.modelo || MODELOS[(h >>> 8) % MODELOS.length],
         frase: sustituir(plantilla.frase, zona.name, objetivo.cantidad)
       },
       titulo: plantilla.titulo,

@@ -509,4 +509,26 @@ t('efectos exteriores de fuego y bolas: detectarElemento, fire_orbs, fire_breath
     'élite de fuego debe lanzar fire_orbs, fire_breath y nova_orbs: ' + [...tiposVistos].join(','));
 });
 
+t('las 49 habilidades por clase de arma existen con animación, bloqueo >= 1.2s, colores y claseArma', () => {
+  assert.ok(C.WEAPON_SKILLS_BY_CLASS, 'Debe exportarse WEAPON_SKILLS_BY_CLASS');
+  const clases = Object.keys(C.WEAPON_SKILLS_BY_CLASS);
+  assert.strictEqual(clases.length, 9, 'Deben existir 9 clases de arma');
+  let total = 0;
+  clases.forEach(cls => {
+    const lista = C.WEAPON_SKILLS_BY_CLASS[cls];
+    assert.ok(Array.isArray(lista) && lista.length >= 5, `La clase de arma ${cls} debe tener habilidades`);
+    lista.forEach(id => {
+      total++;
+      const sk = C.SKILLS[id];
+      assert.ok(sk, `Skill ${id} debe existir en SKILLS`);
+      assert.strictEqual(sk.armaClase, cls, `${id} debe declarar armaClase=${cls}`);
+      assert.ok(sk.lock >= 1.2, `${id} lock debe ser >= 1.2s`);
+      assert.ok(sk.cd > 0 && sk.mp >= 0 && sk.mult > 0, `${id} requiere cd/mp/mult válidos`);
+      assert.ok(Array.isArray(sk.colores) && sk.colores.length >= 1, `${id} requiere paleta de colores`);
+      assert.ok(CH.CLIP_KEYWORDS[id], `${id} debe estar mapeada en CLIP_KEYWORDS`);
+    });
+  });
+  assert.strictEqual(total, 49, 'Deben contabilizarse exactamente las 49 habilidades por arma');
+});
+
 console.log(`\n${n} pruebas correctas`);
