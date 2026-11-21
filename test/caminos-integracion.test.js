@@ -172,4 +172,38 @@ t('visor-mundo.html integra trozoConCamino, alturaMallaFina, offPerfil, aEndFade
   assert.ok(html.includes('alturaCamino(x, z) : groundH) + 0.030'), 'getWalkableHeight debe coincidir con la nueva cota enrasada');
 });
 
+t('MB.prototype.ribbon emite triángulos antihorarios hacia +Y (sin invertir normales en DoubleSide) y armoniza PBR exterior con ciudades', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  assert.ok(html.includes('this.tri(a, c, b, ca, [u0, v0], [u1, v1], [u1, v0], na, nc, nb'), 'MB.ribbon debe usar winding CCW (a, c, b)');
+  assert.ok(html.includes('this.tri(a, d, c, ca, [u0, v0], [u0, v1], [u1, v1], na, nd, nc'), 'MB.ribbon debe usar winding CCW (a, d, c)');
+  assert.ok(html.includes('this.quadUV(L[i], L[i + 1], R[i + 1], R[i]'), 'MB.ribbon sin subdivisión debe usar winding CCW');
+  assert.ok(html.includes('aplicarEntorno(roadMesh)') && html.includes('aplicarEntorno(calzadaMesh)'), 'Debe aplicar envMap de cielo a caminos y calzadas exteriores');
+
+  // Comprobación matemática: producto vectorial de la geometría CCW debe tener componente Y > 0 en cualquier rumbo
+  const direcciones = [
+    [1, 0], [0, 1], [-1, 0], [0, -1], [0.6, 0.8], [-0.8, 0.6]
+  ];
+  const crossY = (p0, p1, p2) => {
+    const u = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+    const v = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+    return u[2] * v[0] - u[0] * v[2];
+  };
+  direcciones.forEach(([tx, tz]) => {
+    const l = Math.hypot(tx, tz) || 1;
+    const dx = tx / l, dz = tz / l;
+    const nx = -dz * 3, nz = dx * 3;
+    const a = [nx, 0, nz];
+    const b = [-nx, 0, -nz];
+    const c = [dx * 2 - nx, 0, dz * 2 - nz];
+    const d = [dx * 2 + nx, 0, dz * 2 + nz];
+    assert.ok(crossY(a, c, b) > 0, `tri(a,c,b) debe apuntar a +Y para dir (${tx},${tz})`);
+    assert.ok(crossY(a, d, c) > 0, `tri(a,d,c) debe apuntar a +Y para dir (${tx},${tz})`);
+  });
+
+  // Comprobar bump suave coherente con calles urbanas (<= 0.25)
+  const bumps = [...html.matchAll(/ponerFoto\(C\.\w+,\s*'[^']+',\s*[\d.]+,\s*[\d.]+,\s*([\d.]+)\)/g)].map(m => Number(m[1]));
+  assert.ok(bumps.length >= 4, 'Debe configurar baseBump para tierra, calzada, senda y ladrillos');
+  bumps.forEach(b => assert.ok(b <= 0.25, `baseBump de camino exterior debe ser moderado (<= 0.25, fue ${b})`));
+});
+
 console.log(`\n${n} pruebas de integración de caminos superadas`);

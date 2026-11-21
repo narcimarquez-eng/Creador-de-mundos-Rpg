@@ -2287,7 +2287,7 @@
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20261119b"></script>
-  <script type="module" src="js/pradera-atlas.js?v=20261119b"></script>
+  <script type="module" src="js/pradera-atlas.js?v=20261121a"></script>
   <script type="module" src="js/riachuelos.js?v=20261119a"></script>
   <script type="module" src="js/decorado.js?v=20261114e"></script>
   <script defer src="js/decorado-mundo.js?v=20261118c"></script>
@@ -2444,13 +2444,13 @@
   //   de pueblos completos · decor: multiplicador de la distancia de ocultación de la decoración del campo
   const QUALITY = {
     muybajo: { radius: 600, shadows: 0, pixel: 0.75, far: 4, sombra: 0, texturas: false, reflejos: false, malla: 0.35,
-      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, ssao: false, humedad: 0.0, bump: 0.65, hierbaMax: 0, camposLejos: 'desactivado', brisa: false, nubesSombra: 0.0 },
+      versionCerca: false, monstruoVisible: 70, monstruoAnima: 30, monstruoDescarga: 100, arbolesCerca: 0, pueblo: [120, 170], pueblosMax: 2, decor: 0.3, resplandor: false, ssao: false, humedad: 0.0, bump: 0.65, hierbaMax: 0, hierbaDistCerca: 0, hierbaDistLejos: 0, hierbaAltaDist: 0, bambuDist: 0, hierbaCaminoDist: 0, hierbaAltaMax: 0, bambuMax: 0, hierbaCaminoMax: 0, camposLejos: 'desactivado', brisa: false, nubesSombra: 0.0 },
     bajo: { radius: 800, shadows: 0, pixel: 1, far: 4, sombra: 0, texturas: true, reflejos: true, malla: 0.6,
-      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, ssao: false, humedad: 0.25, bump: 0.85, hierbaMax: 450, camposLejos: 'cercano', brisa: false, nubesSombra: 0.6 },
+      versionCerca: false, monstruoVisible: 100, monstruoAnima: 45, monstruoDescarga: 130, arbolesCerca: 25, pueblo: [160, 220], pueblosMax: 3, decor: 0.6, resplandor: false, ssao: false, humedad: 0.25, bump: 0.85, hierbaMax: 450, hierbaDistCerca: 22, hierbaDistLejos: 42, hierbaAltaDist: 18, bambuDist: 22, hierbaCaminoDist: 18, hierbaAltaMax: 140, bambuMax: 110, hierbaCaminoMax: 140, camposLejos: 'cercano', brisa: false, nubesSombra: 0.6 },
     medio: { radius: 1000, shadows: 1024, pixel: 1.5, far: 2, sombra: 120, texturas: true, reflejos: true, malla: 0.8,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, ssao: false, humedad: 0.88, bump: 1.05, hierbaMax: 900, camposLejos: 'amplio', brisa: true, nubesSombra: 1.0 },
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 0.85, resplandor: true, ssao: false, humedad: 0.88, bump: 1.05, hierbaMax: 900, hierbaDistCerca: 28, hierbaDistLejos: 56, hierbaAltaDist: 24, bambuDist: 30, hierbaCaminoDist: 24, hierbaAltaMax: 300, bambuMax: 240, hierbaCaminoMax: 260, camposLejos: 'amplio', brisa: true, nubesSombra: 1.0 },
     alto: { radius: 1200, shadows: 2048, pixel: 2, far: 2, sombra: 160, texturas: true, reflejos: true, malla: 1,
-      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, ssao: true, humedad: 1.0, bump: 1.25, hierbaMax: 1350, camposLejos: 'enorme', brisa: true, nubesSombra: 1.0 }
+      versionCerca: true, monstruoVisible: 120, monstruoAnima: 60, monstruoDescarga: 160, arbolesCerca: 40, pueblo: [200, 300], pueblosMax: 4, decor: 1, resplandor: true, ssao: true, humedad: 1.0, bump: 1.25, hierbaMax: 1350, hierbaDistCerca: 34, hierbaDistLejos: 76, hierbaAltaDist: 30, bambuDist: 38, hierbaCaminoDist: 30, hierbaAltaMax: 480, bambuMax: 380, hierbaCaminoMax: 400, camposLejos: 'enorme', brisa: true, nubesSombra: 1.0 }
   };
   let sombraMitad = 0;   // medio lado actual de la caja de sombras
   let quality = 'alto';
@@ -2971,7 +2971,7 @@
       }
       for (let i = 0; i < ejes.length - 1; i++) {
         const v0 = D[i] / 6.0, v1 = D[i + 1] / 6.0;
-        this.quadUV(L[i], R[i], R[i + 1], L[i + 1], col, [0, v0], [1, v0], [1, v1], [0, v1]);
+        this.quadUV(L[i], L[i + 1], R[i + 1], R[i], col, [0, v0], [0, v1], [1, v1], [1, v0]);
       }
       return;
     }
@@ -3043,8 +3043,8 @@
         const a = gridPos[i][j], b = gridPos[i][j + 1], c = gridPos[i + 1][j + 1], d = gridPos[i + 1][j];
         const na = gridNrm[i][j], nb = gridNrm[i][j + 1], nc = gridNrm[i + 1][j + 1], nd = gridNrm[i + 1][j];
         const ca = gridCol[i][j];
-        this.tri(a, b, c, ca, [u0, v0], [u1, v0], [u1, v1], na, nb, nc, f0, f0, f1);
-        this.tri(a, c, d, ca, [u0, v0], [u1, v1], [u0, v1], na, nc, nd, f0, f1, f1);
+        this.tri(a, c, b, ca, [u0, v0], [u1, v1], [u1, v0], na, nc, nb, f0, f1, f0);
+        this.tri(a, d, c, ca, [u0, v0], [u0, v1], [u1, v1], na, nd, nc, f0, f1, f1);
       }
     }
   };
@@ -3493,6 +3493,7 @@
     selectRing = null;
     _hierbaHeroX = Infinity; _hierbaHeroZ = Infinity;
     _hierbaFarHeroX = Infinity; _hierbaFarHeroZ = Infinity;
+    _hierbaAltaHeroX = Infinity; _hierbaAltaHeroZ = Infinity;
     _capasCampoTodas().forEach(m => {
       m.count = 0;
       m.visible = false;
@@ -3500,13 +3501,19 @@
     if (brisaZelda && brisaZelda.grupo) brisaZelda.grupo.visible = false;
   }
 
-  // Tres atlas botánicos 3D en doble anillo LOD (cercano 36 m + lejano hasta 92 m): campos enormes con 6 draw calls
+  // Tres atlas botánicos 3D en doble anillo LOD + tarjetas altas (1 m), bambú tupido y hierba en caminos
   const HIERBA_CAMPO_MAX = 1800;
   const HIERBA_LEJOS_MAX = 1600;
+  const HIERBA_ALTA_MAX = 480;
+  const BAMBU_MAX = 380;
+  const HIERBA_CAMINO_MAX = 420;
   let hierbaCampoMesh = null, trigoCampoMesh = null, floresCampoMesh = null;
   let hierbaLejosMesh = null, trigoLejosMesh = null, floresLejosMesh = null, _capasLejasCtrl = null;
+  let hierbaAltaMesh = null, bambuMesh = null, _capasAltasCtrl = null;
+  let hierbaCaminoMesh = null, _capaCaminoCtrl = null;
   let _hierbaHeroX = Infinity, _hierbaHeroZ = Infinity;
   let _hierbaFarHeroX = Infinity, _hierbaFarHeroZ = Infinity;
+  let _hierbaAltaHeroX = Infinity, _hierbaAltaHeroZ = Infinity;
   const _hM4 = new THREE.Matrix4(), _hPos = new THREE.Vector3(), _hQuat = new THREE.Quaternion(), _hSc = new THREE.Vector3(), _hYAxis = new THREE.Vector3(0, 1, 0), _hCol = new THREE.Color();
 
   function _capasCampoPradera() {
@@ -3515,8 +3522,11 @@
   function _capasCampoLejas() {
     return [hierbaLejosMesh, trigoLejosMesh, floresLejosMesh].filter(Boolean);
   }
+  function _capasCampoExtras() {
+    return [hierbaAltaMesh, bambuMesh, hierbaCaminoMesh].filter(Boolean);
+  }
   function _capasCampoTodas() {
-    return _capasCampoPradera().concat(_capasCampoLejas());
+    return _capasCampoPradera().concat(_capasCampoLejas(), _capasCampoExtras());
   }
 
   function initHierbaCampo() {
@@ -3534,6 +3544,18 @@
         trigoLejosMesh = _capasLejasCtrl.trigo;
         floresLejosMesh = _capasLejasCtrl.flores;
         _capasCampoLejas().forEach(m => scene.add(m));
+      }
+      if (typeof PraderaAtlasLib.crearCapasVegetacionAlta === 'function') {
+        _capasAltasCtrl = PraderaAtlasLib.crearCapasVegetacionAlta(THREE, HIERBA_ALTA_MAX, BAMBU_MAX, terrainU, renderer);
+        hierbaAltaMesh = _capasAltasCtrl.hierbaAlta;
+        bambuMesh = _capasAltasCtrl.bambu;
+        if (hierbaAltaMesh) scene.add(hierbaAltaMesh);
+        if (bambuMesh) scene.add(bambuMesh);
+      }
+      if (typeof PraderaAtlasLib.crearCapaHierbaCamino === 'function') {
+        _capaCaminoCtrl = PraderaAtlasLib.crearCapaHierbaCamino(THREE, HIERBA_CAMINO_MAX, terrainU, renderer, capas);
+        hierbaCaminoMesh = _capaCaminoCtrl.camino;
+        if (hierbaCaminoMesh) scene.add(hierbaCaminoMesh);
       }
       return;
     }
@@ -3687,10 +3709,181 @@
     }
   }
 
+  function _poblarVegetacionAltaYCamino(cfg) {
+    if (typeof PraderaAtlasLib === 'undefined') return;
+    const { hx, hz, rAlta, rBambu, rCamino, maxAlta, maxBambu, maxCamino, escalaDens, seed } = cfg;
+    const indRiachuelo = riachuelosMundo && riachuelosMundo.indice ? riachuelosMundo.indice : null;
+
+    let cntAlta = 0, cntBambu = 0;
+    const aCellAlta = hierbaAltaMesh && hierbaAltaMesh.geometry && hierbaAltaMesh.geometry.getAttribute('aCell');
+    const aCellBambu = bambuMesh && bambuMesh.geometry && bambuMesh.geometry.getAttribute('aCell');
+    const rMaxAB = Math.max(rAlta, rBambu);
+    if (rMaxAB > 0 && (maxAlta > 0 || maxBambu > 0) && (hierbaAltaMesh || bambuMesh)) {
+      const step = 1.35;
+      const rAlta2 = rAlta * rAlta, rBambu2 = rBambu * rBambu, rMax2 = rMaxAB * rMaxAB;
+      const gx0 = Math.floor((hx - rMaxAB) / step), gx1 = Math.ceil((hx + rMaxAB) / step);
+      const gz0 = Math.floor((hz - rMaxAB) / step), gz1 = Math.ceil((hz + rMaxAB) / step);
+      for (let gz = gz0; gz <= gz1 && (cntAlta < maxAlta || cntBambu < maxBambu); gz++) {
+        for (let gx = gx0; gx <= gx1 && (cntAlta < maxAlta || cntBambu < maxBambu); gx++) {
+          let h = (Math.imul(gx, 92821) ^ Math.imul(gz, 68917) ^ seed ^ 0x51a7b) >>> 0;
+          h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+          const r1 = (h & 1023) / 1024;
+          const r2 = ((h >>> 10) & 1023) / 1024;
+          const r3 = ((h >>> 20) & 1023) / 1024;
+          const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
+
+          const x = (gx + 0.15 + r1 * 0.70) * step;
+          const z = (gz + 0.15 + r2 * 0.70) * step;
+          const dx = x - hx, dz = z - hz;
+          const d2 = dx * dx + dz * dz;
+          if (d2 > rMax2) continue;
+
+          const elev = terrain.elevation(x, z);
+          if (elev < SEA + 0.05) continue;
+          const bio = terrain.biomeAt(x, z, elev);
+          if (townContains(x, z) || recintoEn(x, z, 2) || rejillaCaminosMundo(x, z, 4.4)) continue;
+          if (LagosLib.enAgua(lagosMundo, x, z)) continue;
+          if (typeof rioCercano === 'function') {
+            const rio = rioCercano(x, z);
+            if (rio && rio.d < RIO_CAUCE * (rio.w || 1) + 1.8) continue;
+          }
+          let enOrillaRiachuelo = false;
+          if (indRiachuelo) {
+            const hitR = indRiachuelo.cerca(x, z);
+            if (hitR) {
+              if (hitR.d < hitR.halfW + 0.45) continue;
+              if (hitR.d < hitR.bankW + 2.5) enOrillaRiachuelo = true;
+            }
+          }
+          const y = H(x, z);
+          const dh = Math.abs(H(x + 1.2, z) - H(x - 1.2, z)) + Math.abs(H(x, z + 1.2) - H(x, z - 1.2));
+          if (dh > 1.55) continue;
+
+          const inst = PraderaAtlasLib.elegirInstanciaAlta(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens, { enOrillaRiachuelo });
+          if (!inst) continue;
+
+          if (inst.atlas === 'bambu' && bambuMesh && d2 <= rBambu2 && cntBambu < maxBambu) {
+            _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+            _hSc.set(inst.sx, inst.sy, inst.sz);
+            _hM4.compose(_hPos.set(x, y - 0.04, z), _hQuat, _hSc);
+            bambuMesh.setMatrixAt(cntBambu, _hM4);
+            _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+            bambuMesh.setColorAt(cntBambu, _hCol);
+            if (aCellBambu) aCellBambu.setXY(cntBambu, inst.col, inst.row);
+            cntBambu++;
+
+            if (inst.denso && cntBambu < maxBambu) {
+              const ang2 = r4 * 6.2831853;
+              const bx2 = x + Math.cos(ang2) * 0.52;
+              const bz2 = z + Math.sin(ang2) * 0.52;
+              if (!rejillaCaminosMundo(bx2, bz2, 4.0) && !townContains(bx2, bz2) && !LagosLib.enAgua(lagosMundo, bx2, bz2)) {
+                const by2 = H(bx2, bz2);
+                const cell2 = (inst.cellIndex + 1 + (gx & 1)) & 3;
+                const uv2 = PraderaAtlasLib.celdaUV(cell2);
+                _hQuat.setFromAxisAngle(_hYAxis, inst.rotY + 1.15);
+                _hSc.set(inst.sx * 0.92, inst.sy * (0.86 + r1 * 0.22), inst.sz * 0.92);
+                _hM4.compose(_hPos.set(bx2, by2 - 0.04, bz2), _hQuat, _hSc);
+                bambuMesh.setMatrixAt(cntBambu, _hM4);
+                _hCol.setRGB(inst.color[0] * 0.95, inst.color[1] * 0.98, inst.color[2] * 0.95);
+                bambuMesh.setColorAt(cntBambu, _hCol);
+                if (aCellBambu) aCellBambu.setXY(cntBambu, uv2.col, uv2.row);
+                cntBambu++;
+              }
+            }
+          } else if (inst.atlas === 'hierbaAlta' && hierbaAltaMesh && d2 <= rAlta2 && cntAlta < maxAlta) {
+            _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+            _hSc.set(inst.sx, inst.sy, inst.sz);
+            _hM4.compose(_hPos.set(x, y - 0.04, z), _hQuat, _hSc);
+            hierbaAltaMesh.setMatrixAt(cntAlta, _hM4);
+            _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+            hierbaAltaMesh.setColorAt(cntAlta, _hCol);
+            if (aCellAlta) aCellAlta.setXY(cntAlta, inst.col, inst.row);
+            cntAlta++;
+          }
+        }
+      }
+    }
+
+    let cntCamino = 0;
+    const aCellCam = hierbaCaminoMesh && hierbaCaminoMesh.geometry && hierbaCaminoMesh.geometry.getAttribute('aCell');
+    if (
+      hierbaCaminoMesh && rCamino > 0 && maxCamino > 0 &&
+      rejillaCaminosMundo && typeof rejillaCaminosMundo.info === 'function' &&
+      rejillaCaminosMundo.enCaja && rejillaCaminosMundo.enCaja(hx - rCamino - 6, hz - rCamino - 6, hx + rCamino + 6, hz + rCamino + 6)
+    ) {
+      const stepC = 1.05;
+      const rCam2 = rCamino * rCamino;
+      const gx0 = Math.floor((hx - rCamino) / stepC), gx1 = Math.ceil((hx + rCamino) / stepC);
+      const gz0 = Math.floor((hz - rCamino) / stepC), gz1 = Math.ceil((hz + rCamino) / stepC);
+      for (let gz = gz0; gz <= gz1 && cntCamino < maxCamino; gz++) {
+        for (let gx = gx0; gx <= gx1 && cntCamino < maxCamino; gx++) {
+          let h = (Math.imul(gx, 48611) ^ Math.imul(gz, 83492791) ^ seed ^ 0x3c6ef) >>> 0;
+          h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+          const r1 = (h & 1023) / 1024;
+          const r2 = ((h >>> 10) & 1023) / 1024;
+          const r3 = ((h >>> 20) & 1023) / 1024;
+          const r4 = (((Math.imul(h, 2654435761) >>> 0) >>> 22) & 1023) / 1024;
+
+          const x = (gx + 0.15 + r1 * 0.70) * stepC;
+          const z = (gz + 0.15 + r2 * 0.70) * stepC;
+          const dx = x - hx, dz = z - hz;
+          if (dx * dx + dz * dz > rCam2) continue;
+
+          const hitCam = rejillaCaminosMundo.info(x, z, 5.2);
+          if (!hitCam) continue;
+          if (townContains(x, z) || recintoEn(x, z, 2)) continue;
+          if (LagosLib.enAgua(lagosMundo, x, z)) continue;
+          if (typeof rioCercano === 'function') {
+            const rio = rioCercano(x, z);
+            if (rio && rio.d < RIO_CAUCE * (rio.w || 1) * 1.45 + 1.0) continue;
+          }
+          if (indRiachuelo) {
+            const hitR = indRiachuelo.cerca(x, z);
+            if (hitR && hitR.d < hitR.halfW + 0.4) continue;
+          }
+
+          const elev = terrain.elevation(x, z);
+          if (elev < SEA + 0.05) continue;
+          const bio = terrain.biomeAt(x, z, elev);
+          const inst = PraderaAtlasLib.elegirInstanciaCamino(x, z, bio, hitCam.d, hitCam.halfW, seed, r1, r2, r3, r4, escalaDens);
+          if (!inst) continue;
+
+          const y = hitCam.d <= hitCam.halfW && typeof alturaCamino === 'function'
+            ? (alturaCamino(x, z) + 0.015)
+            : (H(x, z) - 0.02);
+          _hQuat.setFromAxisAngle(_hYAxis, inst.rotY);
+          _hSc.set(inst.sx, inst.sy, inst.sz);
+          _hM4.compose(_hPos.set(x, y, z), _hQuat, _hSc);
+          hierbaCaminoMesh.setMatrixAt(cntCamino, _hM4);
+          _hCol.setRGB(inst.color[0], inst.color[1], inst.color[2]);
+          hierbaCaminoMesh.setColorAt(cntCamino, _hCol);
+          if (aCellCam) aCellCam.setXY(cntCamino, inst.col, inst.row);
+          cntCamino++;
+        }
+      }
+    }
+
+    [
+      [hierbaAltaMesh, cntAlta, aCellAlta],
+      [bambuMesh, cntBambu, aCellBambu],
+      [hierbaCaminoMesh, cntCamino, aCellCam]
+    ].forEach(([mesh, cnt, aCell]) => {
+      if (!mesh) return;
+      mesh.count = cnt;
+      mesh.visible = cnt > 0;
+      if (cnt > 0) {
+        mesh.instanceMatrix.needsUpdate = true;
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+        if (aCell) aCell.needsUpdate = true;
+      }
+    });
+  }
+
   function actualizarHierbaCampo(forzar = false) {
     if (!world || !terrain || !character || !character.root || !scene) return;
     const enInterior = !!(gestorMazmorras && gestorMazmorras.enMazmorra) || !!(gestorLaberintos && gestorLaberintos.enLaberinto);
-    const maxCount = (QUALITY[quality] && QUALITY[quality].hierbaMax) || 0;
+    const Q = QUALITY[quality] || QUALITY.alto;
+    const maxCount = Q.hierbaMax || 0;
     if (enInterior || camposNivel === 'desactivado' || maxCount <= 0) {
       _capasCampoTodas().forEach(m => { m.visible = false; });
       return;
@@ -3700,16 +3893,22 @@
     terrainU.uHeroXZ.value.set(hx, hz);
 
     const seed = (world.seed || 1) | 0;
+    const conAtlas = typeof PraderaAtlasLib !== 'undefined' && trigoCampoMesh && floresCampoMesh;
+    const rCerca = conAtlas ? (Q.hierbaDistCerca || 34.0) : Math.min(31.5, Q.hierbaDistCerca || 31.5);
+    if (conAtlas && typeof PraderaAtlasLib.actualizarFadeCapa === 'function') {
+      const fStart = Math.max(10.0, rCerca * 0.72);
+      _capasCampoPradera().forEach(m => PraderaAtlasLib.actualizarFadeCapa(m, fStart, rCerca));
+    }
+
     const needNear = forzar || Math.hypot(hx - _hierbaHeroX, hz - _hierbaHeroZ) >= 3.2;
     if (needNear) {
       _hierbaHeroX = hx;
       _hierbaHeroZ = hz;
-      const conAtlas = typeof PraderaAtlasLib !== 'undefined' && trigoCampoMesh && floresCampoMesh;
       _poblarAnilloPradera({
         hx, hz,
         step: conAtlas ? 1.45 : 1.6,
         radMin: 0,
-        radMax: conAtlas ? 36.0 : 31.5,
+        radMax: rCerca,
         maxTotal: conAtlas ? Math.min(HIERBA_CAMPO_MAX, Math.round(maxCount * 1.35)) : maxCount,
         maxCap: HIERBA_CAMPO_MAX,
         escalaDens: conAtlas ? Math.min(1, maxCount / 1100) : Math.min(1, maxCount / 1000),
@@ -3721,14 +3920,42 @@
       _capasCampoPradera().forEach(m => { m.visible = m.count > 0; });
     }
 
-    const usarLejos = (camposNivel === 'amplio' || camposNivel === 'enorme') && hierbaLejosMesh && trigoLejosMesh && floresLejosMesh;
+    const rAlta = Q.hierbaAltaDist || 0;
+    const rBambu = Q.bambuDist || 0;
+    const rCamino = Q.hierbaCaminoDist || 0;
+    const maxAlta = Math.min(HIERBA_ALTA_MAX, Q.hierbaAltaMax || 0);
+    const maxBambu = Math.min(BAMBU_MAX, Q.bambuMax || 0);
+    const maxCamino = Math.min(HIERBA_CAMINO_MAX, Q.hierbaCaminoMax || 0);
+    if (_capasAltasCtrl && _capasAltasCtrl.actualizarRadios) _capasAltasCtrl.actualizarRadios(rAlta, rBambu);
+    if (_capaCaminoCtrl && _capaCaminoCtrl.actualizarRadio) _capaCaminoCtrl.actualizarRadio(rCamino);
+    const needAltas = forzar || Math.hypot(hx - _hierbaAltaHeroX, hz - _hierbaAltaHeroZ) >= 2.6;
+    if (needAltas) {
+      _hierbaAltaHeroX = hx;
+      _hierbaAltaHeroZ = hz;
+      _poblarVegetacionAltaYCamino({
+        hx, hz,
+        rAlta, rBambu, rCamino,
+        maxAlta, maxBambu, maxCamino,
+        escalaDens: Math.min(1, maxCount / 1100),
+        seed
+      });
+    } else {
+      _capasCampoExtras().forEach(m => { m.visible = m.count > 0; });
+    }
+
+    const rLejosBase = camposNivel === 'amplio' ? 68.0 : 92.0;
+    const rLejos = Math.min(rLejosBase, Q.hierbaDistLejos || rLejosBase);
+    const usarLejos = (camposNivel === 'amplio' || camposNivel === 'enorme') && hierbaLejosMesh && trigoLejosMesh && floresLejosMesh && rLejos > rCerca + 4;
     if (!usarLejos) {
       _capasCampoLejas().forEach(m => { m.visible = false; });
       return;
     }
 
-    const rLejos = camposNivel === 'amplio' ? 68.0 : 92.0;
     if (_capasLejasCtrl && _capasLejasCtrl.actualizarRadios) _capasLejasCtrl.actualizarRadios(rLejos);
+    if (typeof PraderaAtlasLib !== 'undefined' && typeof PraderaAtlasLib.actualizarFadeCapa === 'function') {
+      const inStart = Math.max(12.0, rCerca * 0.72);
+      _capasCampoLejas().forEach(m => PraderaAtlasLib.actualizarFadeCapa(m, null, null, inStart, rCerca));
+    }
     const needFar = forzar || Math.hypot(hx - _hierbaFarHeroX, hz - _hierbaFarHeroZ) >= 6.5;
     if (needFar) {
       _hierbaFarHeroX = hx;
@@ -3737,7 +3964,7 @@
       _poblarAnilloPradera({
         hx, hz,
         step: 3.1,
-        radMin: 24.5,
+        radMin: Math.max(14.0, rCerca * 0.72),
         radMax: rLejos,
         maxTotal: farCap,
         maxCap: HIERBA_LEJOS_MAX,
@@ -4948,10 +5175,13 @@
 
     const aplicarPbrCamino = (mat, modo, baseBump) => {
       mat.userData = Object.assign(mat.userData || {}, { baseBump });
-      mat.customProgramCacheKey = () => 'camino-pbr2-' + modo;
+      mat.customProgramCacheKey = () => 'camino-pbr3-' + modo;
       mat.onBeforeCompile = shader => {
         shader.uniforms.uHumedad = caminoU.uHumedad;
         shader.uniforms.uBumpFuerza = caminoU.uBumpFuerza;
+        shader.uniforms.uTime = terrainU.uTime;
+        shader.uniforms.uNubesSombra = terrainU.uNubesSombra;
+        shader.uniforms.uEstiloZelda = terrainU.uEstiloZelda;
         shader.vertexShader = shader.vertexShader
           .replace('#include <common>', '#include <common>\nattribute float aEndFade;\nvarying vec3 vCamWorld;\nvarying float vUAncho;\nvarying float vEndFade;')
           .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCamWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvUAncho = uv.x;\nvEndFade = aEndFade;');
@@ -4962,6 +5192,9 @@
             '#include <common>',
             'uniform float uHumedad;',
             'uniform float uBumpFuerza;',
+            'uniform float uTime;',
+            'uniform float uNubesSombra;',
+            'uniform float uEstiloZelda;',
             'varying vec3 vCamWorld;',
             'varying float vUAncho;',
             'varying float vEndFade;',
@@ -4980,16 +5213,24 @@
               'float dBordeC = min(vUAncho, 1.0 - vUAncho);',
               'float nBordeC = (ruidoCam(vCamWorld.xz * 0.45 + 1.9) * 0.65 + ruidoCam(vCamWorld.xz * 1.45 - 4.3) * 0.35 - 0.5) * 0.14;',
               'float alphaBordeC = smoothstep(0.025, 0.24, dBordeC + nBordeC) * clamp(vEndFade, 0.0, 1.0);',
+              'float dustCam = smoothstep(0.24, 0.05, dBordeC) * 0.24;',
+              'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.56, 0.52, 0.45), dustCam);',
               'diffuseColor.a *= alphaBordeC;'
             ].join('\n') : '',
             'float aoBordeC = 1.0;',
-            'diffuseColor.rgb *= aoBordeC * mix(1.0, 0.66, clamp(charcoCam * 0.82 + humCam * 0.22, 0.0, 0.86));',
-            'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 0.20, 0.24), charcoCam * 0.24);'
+            'diffuseColor.rgb *= 1.14 * aoBordeC * mix(1.0, 0.84, clamp(charcoCam * 0.72 + humCam * 0.18, 0.0, 0.75));',
+            'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.38, 0.44, 0.48), charcoCam * 0.18);',
+            'if (uNubesSombra > 0.01) {',
+            '  float nCamCb1 = ruidoCam(vCamWorld.xz * 0.0036 + vec2(uTime * 0.016, uTime * 0.009));',
+            '  float nCamCb2 = ruidoCam(vCamWorld.xz * 0.0085 - vec2(uTime * 0.011, -uTime * 0.007));',
+            '  float cloudShC = smoothstep(0.46, 0.78, nCamCb1 * 0.72 + nCamCb2 * 0.28) * uNubesSombra;',
+            '  diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.76, 0.81, 0.90), cloudShC);',
+            '}'
           ].join('\n'))
           .replace('#include <roughnessmap_fragment>', [
             '#include <roughnessmap_fragment>',
-            'float baseRC = ' + (modo === 'ladrillos' ? '0.84' : '0.90') + ';',
-            'roughnessFactor = mix(baseRC, mix(0.28, 0.09, charcoCam), clamp(max(charcoCam, humCam * 0.65), 0.0, 1.0));'
+            'float baseRC = ' + (modo === 'ladrillos' ? '0.82' : '0.86') + ';',
+            'roughnessFactor = mix(baseRC, mix(0.42, 0.24, charcoCam), clamp(max(charcoCam, humCam * 0.65), 0.0, 1.0));'
           ].join('\n'))
           .replace('#include <normal_fragment_maps>', [
             '#include <normal_fragment_maps>',
@@ -4997,8 +5238,8 @@
           ].join('\n'))
           .replace('#include <lights_physical_fragment>', [
             '#include <lights_physical_fragment>',
-            'material.clearcoat = uHumedad * clamp(charcoCam * 0.92 + humCam * 0.20, 0.0, 0.92);',
-            'material.clearcoatRoughness = clamp(mix(0.32, 0.06, charcoCam), 0.0525, 1.0);'
+            'material.clearcoat = uHumedad * clamp(charcoCam * 0.36 + humCam * 0.12, 0.0, 0.38);',
+            'material.clearcoatRoughness = clamp(mix(0.36, 0.18, charcoCam), 0.12, 1.0);'
           ].join('\n'));
       };
       return mat;
@@ -5007,8 +5248,8 @@
     const crearMatCamino = (map, bump, bumpScale, modo) => {
       const mat = new THREE.MeshPhysicalMaterial({
         map, bumpMap: bump, bumpScale,
-        roughness: 0.90, metalness: 0.0,
-        clearcoat: 0.9, clearcoatRoughness: 0.08,
+        roughness: 0.86, metalness: 0.0,
+        clearcoat: 0.16, clearcoatRoughness: 0.28,
         vertexColors: true, side: THREE.DoubleSide,
         polygonOffset: true, polygonOffsetFactor: -2.0, polygonOffsetUnits: -4.0
       });
@@ -5016,9 +5257,9 @@
     };
 
     _materialesCaminosCache = {
-      tierra: crearMatCamino(texTierra.map, texTierra.bump, 0.45, 'tierra'),
-      calzada: crearMatCamino(texCalzada.map, texCalzada.bump, 0.56, 'calzada'),
-      ladrillos: crearMatCamino(texLosa3D.map, texLosa3D.bump, 0.40, 'ladrillos')
+      tierra: crearMatCamino(texTierra.map, texTierra.bump, 0.20, 'tierra'),
+      calzada: crearMatCamino(texCalzada.map, texCalzada.bump, 0.24, 'calzada'),
+      ladrillos: crearMatCamino(texLosa3D.map, texLosa3D.bump, 0.18, 'ladrillos')
     };
     // Fotos de suelo (assets/texturas/suelo y piedra): sustituyen a las texturas dibujadas en cuanto cargan.
     // u recorre el ancho del camino (0–1) y v su largo (1 cada 6 m); repetir ajusta el tamaño de la piedra.
@@ -5046,11 +5287,11 @@
     const C = _materialesCaminosCache;
     suavizar(C.tierra); suavizar(C.calzada);
     // Senda empedrada de las entradas de los laberintos (la misma foto que la calzada)
-    C.senda = aplicarPbrCamino(suavizar(C.calzada.clone()), 'senda', 0.54);
-    ponerFoto(C.tierra, 'assets/texturas/suelo/t03.jpg', 2, 2, 0.44);        // tierra con grava y bump alto
-    ponerFoto(C.calzada, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.58);    // senda empedrada con hierba
-    ponerFoto(C.senda, 'assets/texturas/suelo/t05.jpg', 1, 0.75, 0.54);      // senda de laberinto con musgo y piedra
-    ponerFoto(C.ladrillos, 'assets/texturas/piedra/t02.jpg', 0.6, 0.6, 0.36); // losas en relieve: sillar claro
+    C.senda = aplicarPbrCamino(suavizar(C.calzada.clone()), 'senda', 0.22);
+    ponerFoto(C.tierra, 'assets/texturas/suelo/t03.jpg', 2, 2, 0.20);        // tierra con grava natural
+    ponerFoto(C.calzada, 'assets/texturas/suelo/t08.jpg', 1, 0.75, 0.24);    // senda empedrada con hierba
+    ponerFoto(C.senda, 'assets/texturas/suelo/t05.jpg', 1, 0.75, 0.22);      // senda de laberinto con musgo y piedra
+    ponerFoto(C.ladrillos, 'assets/texturas/piedra/t02.jpg', 0.6, 0.6, 0.18); // losas en relieve: sillar claro
     return _materialesCaminosCache;
   }
 
@@ -5490,9 +5731,11 @@
     const matsCamino = obtenerMaterialesCaminos();
     roadMesh = new THREE.Mesh(mb.geom(), matsCamino.tierra);
     roadMesh.receiveShadow = true;
+    aplicarEntorno(roadMesh);
     scene.add(roadMesh);
     calzadaMesh = new THREE.Mesh(mbCalzada.geom(), matsCamino.calzada);
     calzadaMesh.receiveShadow = true;
+    aplicarEntorno(calzadaMesh);
     scene.add(calzadaMesh);
 
     // Senda empedrada por el pasillo de cada laberinto, desde la llegada hasta la celda de entrada. Va aparte de
@@ -5515,6 +5758,7 @@
       sendasRecintoMesh = new THREE.Mesh(mbS.geom(), matsCamino.senda);
       sendasRecintoMesh.receiveShadow = true;
       sendasRecintoMesh.name = 'SendasRecintos';
+      aplicarEntorno(sendasRecintoMesh);
       scene.add(sendasRecintoMesh);
     }
   }
@@ -5725,6 +5969,7 @@
   let rejillaCaminosMundo = () => false;
   rejillaCaminosMundo.dist = () => Infinity;
   rejillaCaminosMundo.enCaja = () => false;
+  rejillaCaminosMundo.info = () => null;
   function crearRejillaCaminos(roads) {
     const CELDA = 64;
     const mapa = new Map();
@@ -5732,10 +5977,11 @@
     for (let r = 0; r < roads.length; r++) {
       const pts = roads[r].points;
       if (!pts || pts.length < 2) continue;
+      const halfW = roadWidth(roads[r].kind) * 0.5;
       for (let i = 0; i < pts.length - 1; i++) {
         const a = pts[i], b = pts[i + 1];
         const dx = b.x - a.x, dz = b.y - a.y;
-        const s = { id: numSegs++, ax: a.x, az: a.y, dx, dz, len2: dx * dx + dz * dz };
+        const s = { id: numSegs++, ax: a.x, az: a.y, dx, dz, len2: dx * dx + dz * dz, halfW };
         const x0 = Math.floor(Math.min(a.x, b.x) / CELDA), x1 = Math.floor(Math.max(a.x, b.x) / CELDA);
         const z0 = Math.floor(Math.min(a.y, b.y) / CELDA), z1 = Math.floor(Math.max(a.y, b.y) / CELDA);
         for (let cx = x0; cx <= x1; cx++) {
@@ -5752,6 +5998,7 @@
       const fnVacia = () => false;
       fnVacia.dist = () => Infinity;
       fnVacia.enCaja = () => false;
+      fnVacia.info = () => null;
       return fnVacia;
     }
     function cercaDeCamino(x, z, m) {
@@ -5790,6 +6037,31 @@
         }
       }
       return best2 < maxR * maxR ? Math.sqrt(best2) : Infinity;
+    };
+    cercaDeCamino.info = function (x, z, maxR = 6) {
+      let best2 = maxR * maxR;
+      let bestHalfW = 3.0;
+      let hit = false;
+      const x0 = Math.floor((x - maxR) / CELDA), x1 = Math.floor((x + maxR) / CELDA);
+      const z0 = Math.floor((z - maxR) / CELDA), z1 = Math.floor((z + maxR) / CELDA);
+      for (let cx = x0; cx <= x1; cx++) {
+        for (let cz = z0; cz <= z1; cz++) {
+          const arr = mapa.get((cx << 16) ^ (cz & 0xffff));
+          if (!arr) continue;
+          for (let i = 0; i < arr.length; i++) {
+            const s = arr[i];
+            const t = s.len2 > 0 ? Math.max(0, Math.min(1, ((x - s.ax) * s.dx + (z - s.az) * s.dz) / s.len2)) : 0;
+            const px = x - (s.ax + s.dx * t), pz = z - (s.az + s.dz * t);
+            const d2 = px * px + pz * pz;
+            if (d2 < best2) {
+              best2 = d2;
+              bestHalfW = s.halfW;
+              hit = true;
+            }
+          }
+        }
+      }
+      return hit ? { d: Math.sqrt(best2), halfW: bestHalfW } : null;
     };
     cercaDeCamino.enCaja = function (x0, z0, x1, z1) {
       const cx0 = Math.floor(x0 / CELDA), cx1 = Math.floor(x1 / CELDA);

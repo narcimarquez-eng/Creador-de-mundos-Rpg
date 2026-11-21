@@ -257,4 +257,107 @@ t('visor-mundo.html integra js/pradera-atlas.js, los 3 InstancedMesh y uPraderaS
   );
 });
 
+t('vegetación alta (hierba 1 m, bambú alargado y muy tupido) y hierba en caminos', () => {
+  assert.deepStrictEqual(PraderaAtlasLib.ATLAS_ALTOS_TIPOS, ['hierbaAlta', 'bambu']);
+  assert.strictEqual(PraderaAtlasLib.ATLAS_ALTOS_META.hierbaAlta.altoBase, 1.0);
+  const bambuMeta = PraderaAtlasLib.ATLAS_ALTOS_META.bambu;
+  assert.ok(bambuMeta.altoBase >= 2.2, 'bambú debe superar 2.2 m de altura');
+  assert.ok(bambuMeta.altoBase / bambuMeta.anchoBase >= 2.2, 'bambú debe tener proporción alargada');
+
+  const geoBambu = PraderaAtlasLib.crearGeometriaBambuTupido(THREE, bambuMeta.anchoBase, bambuMeta.altoBase, 64);
+  assert.ok(geoBambu.index.count / 3 >= 24, 'bambú tupido debe usar >= 24 triángulos en 4 planos cruzados');
+  assert.ok(geoBambu.getAttribute('aCell'), 'geometría de bambú debe incluir aCell');
+
+  const prevDoc = global.document;
+  global.document = { createElement: makeFakeCanvasFactory() };
+  try {
+    ['hierbaAlta', 'bambu'].forEach(tipo => {
+      const c = PraderaAtlasLib.crearAtlasCanvas(tipo, 512);
+      assert.strictEqual(c.width, 512);
+      assert.strictEqual(c.height, 512);
+    });
+
+    const terrainU = { uTime: { value: 0 }, uHeroXZ: { value: new THREE.Vector2(0, 0) } };
+    const capasCerca = PraderaAtlasLib.crearCapasPradera(THREE, 80, terrainU, null);
+    const altas = PraderaAtlasLib.crearCapasVegetacionAlta(THREE, 90, 70, terrainU, null);
+    assert.ok(altas.hierbaAlta.isInstancedMesh && altas.bambu.isInstancedMesh);
+    altas.actualizarRadios(24, 30);
+    assert.strictEqual(altas.hierbaAlta.material.userData.fadeUniforms.uFadeEnd.value, 24);
+    assert.strictEqual(altas.bambu.material.userData.fadeUniforms.uFadeEnd.value, 30);
+
+    const cam = PraderaAtlasLib.crearCapaHierbaCamino(THREE, 80, terrainU, null, capasCerca);
+    assert.ok(cam.camino.isInstancedMesh);
+    assert.strictEqual(cam.camino.material.map, capasCerca.hierba.material.map, 'hierba de caminos debe compartir textura');
+    PraderaAtlasLib.actualizarFadeCapa(cam.camino, 12, 18);
+    assert.strictEqual(cam.camino.material.userData.fadeUniforms.uFadeStart.value, 12);
+    assert.strictEqual(cam.camino.material.userData.fadeUniforms.uFadeEnd.value, 18);
+  } finally {
+    global.document = prevDoc;
+  }
+
+  // Distribución de hierba de ~1 m y bambú alto en muestras de pradera/bosque
+  let cntAlta = 0, cntBambu = 0;
+  for (let i = 0; i < 1800; i++) {
+    const x = ((i * 29) % 700) - 350;
+    const z = (Math.floor(i / 28) * 14) - 350;
+    const r1 = ((i * 73) % 997) / 997;
+    const r2 = ((i * 191) % 991) / 991;
+    const r3 = ((i * 37) % 811) / 811;
+    const r4 = ((i * 127) % 787) / 787;
+    const bio = (i % 2 === 0) ? 'pradera' : 'bosque';
+    const inst = PraderaAtlasLib.elegirInstanciaAlta(x, z, bio, 0.15, 313, r1, r2, r3 * 0.65, r4, 1);
+    if (!inst) continue;
+    if (inst.atlas === 'hierbaAlta') {
+      const h = PraderaAtlasLib.ATLAS_ALTOS_META.hierbaAlta.altoBase * inst.sy;
+      assert.ok(h >= 0.85 && h <= 1.20, 'hierba alta esperada en torno a 1 m, obtuvo ' + h);
+      cntAlta++;
+    } else if (inst.atlas === 'bambu') {
+      const h = PraderaAtlasLib.ATLAS_ALTOS_META.bambu.altoBase * inst.sy;
+      assert.ok(h >= 2.0, 'bambú alargado esperado >= 2.0 m, obtuvo ' + h);
+      cntBambu++;
+    }
+  }
+  assert.ok(cntAlta > 40 && cntBambu > 30, `debe instanciar hierbaAlta (${cntAlta}) y bambu (${cntBambu})`);
+
+  // Distribución en caminos: brota en bordes y junta central, nunca sobre rodadas ni lejos
+  let cntBorde = 0, cntJunta = 0;
+  for (let i = 0; i < 400; i++) {
+    const r1 = ((i * 61) % 997) / 997;
+    const r2 = ((i * 131) % 991) / 991;
+    const r3 = ((i * 23) % 811) / 811 * 0.45;
+    const r4 = ((i * 107) % 787) / 787;
+    assert.strictEqual(PraderaAtlasLib.elegirInstanciaCamino(i * 3, i * 2, 'pradera', 1.4, 3.0, 7, r1, r2, r3, r4, 1), null, 'las rodadas deben quedar libres');
+    assert.strictEqual(PraderaAtlasLib.elegirInstanciaCamino(i * 3, i * 2, 'pradera', 5.0, 3.0, 7, r1, r2, r3, r4, 1), null, 'lejos del camino no brota hierba de camino');
+    if (PraderaAtlasLib.elegirInstanciaCamino(i * 3, i * 2, 'pradera', 2.8, 3.0, 7, r1, r2, r3, r4, 1)) cntBorde++;
+    if (PraderaAtlasLib.elegirInstanciaCamino(i * 3, i * 2, 'pradera', 0.25, 3.0, 7, r1, r2, r3, r4, 1)) cntJunta++;
+  }
+  assert.ok(cntBorde > 50 && cntJunta > 20, `debe instanciar hierba en bordes (${cntBorde}) y junta (${cntJunta}) de caminos`);
+});
+
+t('visor-mundo.html integra hierbaAlta, bambú, hierba en caminos y distancias por calidad decrecientes', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  ['hierbaAltaMesh', 'bambuMesh', 'hierbaCaminoMesh', 'crearCapasVegetacionAlta', 'crearCapaHierbaCamino', '_poblarVegetacionAltaYCamino']
+    .forEach(tok => assert.ok(html.includes(tok), 'Falta integración en visor-mundo.html: ' + tok));
+
+  const niveles = ['alto', 'medio', 'bajo', 'muybajo'];
+  const qCfg = {};
+  niveles.forEach(nv => {
+    const m = html.match(new RegExp('\\b' + nv + ':\\s*\\{([\\s\\S]*?)\\n\\s*\\},?'));
+    assert.ok(m, 'falta bloque QUALITY.' + nv);
+    qCfg[nv] = {};
+    ['hierbaDistCerca', 'hierbaDistLejos', 'hierbaAltaDist', 'bambuDist', 'hierbaCaminoDist'].forEach(k => {
+      const km = m[1].match(new RegExp(k + ':\\s*(\\d+(?:\\.\\d+)?)'));
+      assert.ok(km, `falta ${k} en QUALITY.${nv}`);
+      qCfg[nv][k] = Number(km[1]);
+    });
+  });
+
+  ['hierbaDistCerca', 'hierbaDistLejos', 'hierbaAltaDist', 'bambuDist', 'hierbaCaminoDist'].forEach(k => {
+    assert.ok(
+      qCfg.alto[k] > qCfg.medio[k] && qCfg.medio[k] > qCfg.bajo[k] && qCfg.bajo[k] > qCfg.muybajo[k],
+      `${k} debe disminuir estrictamente de alto -> medio -> bajo -> muybajo (${niveles.map(nv => qCfg[nv][k]).join(' > ')})`
+    );
+  });
+});
+
 console.log(`\n${n} pruebas de atlas de pradera superadas`);

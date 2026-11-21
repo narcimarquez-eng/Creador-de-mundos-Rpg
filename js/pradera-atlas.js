@@ -47,6 +47,51 @@
     }
   };
 
+  const ATLAS_ALTOS_TIPOS = ['hierbaAlta', 'bambu'];
+
+  const ATLAS_ALTOS_META = {
+    hierbaAlta: {
+      id: 'hierbaAlta',
+      nombre: 'Hierba Alta (1 m)',
+      cols: 2,
+      rows: 2,
+      tam: 512,
+      anchoBase: 1.06,
+      altoBase: 1.00,
+      swayAmp: 0.165,
+      swayFreq: 1.85,
+      pushAmp: 0.34,
+      celdas: ['herbazal_1m', 'carrizo_alto', 'graminea_alta', 'pradera_tupida_1m']
+    },
+    bambu: {
+      id: 'bambu',
+      nombre: 'Bambú Tupido',
+      cols: 2,
+      rows: 2,
+      tam: 512,
+      anchoBase: 0.90,
+      altoBase: 2.35,
+      swayAmp: 0.145,
+      swayFreq: 1.50,
+      pushAmp: 0.26,
+      celdas: ['bambu_esmeralda', 'bambu_jade_denso', 'bambu_dorado', 'bambu_brote_tupido']
+    }
+  };
+
+  const CAMINO_HIERBA_META = {
+    id: 'camino',
+    nombre: 'Hierba Baja de Caminos',
+    cols: 2,
+    rows: 2,
+    tam: 512,
+    anchoBase: 0.56,
+    altoBase: 0.28,
+    swayAmp: 0.042,
+    swayFreq: 2.45,
+    pushAmp: 0.14,
+    celdas: ATLAS_META.hierba.celdas
+  };
+
   const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
   function smoothstep(a, b, x) {
@@ -229,6 +274,98 @@
 
     const { col, row } = celdaUV(cellIndex);
     return { atlas, cellIndex, col, row, sx, sy, sz, rotY, color };
+  }
+
+  // Decide parches de hierba alta (~1 m) y bosquecillos muy tupidos de bambú
+  function elegirInstanciaAlta(x, z, bio, dh, seed, r1, r2, r3, r4, escalaDens = 1, opts = {}) {
+    if (escalaDens <= 0) return null;
+    if (bio !== 'pradera' && bio !== 'bosque' && bio !== 'pantano' && bio !== 'taiga') return null;
+
+    const [ox, oz] = semillaOffset(seed);
+    const enOrilla = !!(opts && opts.enOrillaRiachuelo);
+    const zona = zonaPraderaEn(x, z, seed, { bio, pendiente: dh });
+    const rSub = (r2 * 0.61 + r4 * 0.39) % 1;
+    const rotY = r1 * 6.2831853;
+
+    if (bio === 'bosque' || bio === 'pradera' || bio === 'pantano') {
+      const pBx = x * 0.017 + ox * 0.85 - 23.4;
+      const pBz = z * 0.017 + oz * 0.85 + 18.7;
+      const nB = ruidoValor(pBx, pBz) * 0.72 + ruidoValor(pBx * 2.3 + 5.1, pBz * 2.3 - 8.2) * 0.28 + (enOrilla ? 0.14 : 0);
+      const wBambu = smoothstep(bio === 'pradera' ? 0.56 : 0.51, bio === 'pradera' ? 0.70 : 0.66, nB) * (1 - smoothstep(0.85, 1.45, dh));
+      if (wBambu > 0.14 && zona.wTrigo < 0.35) {
+        const probB = (0.52 + wBambu * 0.46) * escalaDens;
+        if (r3 <= probB) {
+          const cellIndex = rSub < 0.28 ? 0 : rSub < 0.58 ? 1 : rSub < 0.82 ? 2 : 3;
+          const sx = 0.86 + r4 * 0.42;
+          const sz = sx;
+          const sy = 0.90 + r2 * 0.40;
+          const lum = 0.88 + r3 * 0.20;
+          const color = bio === 'pantano'
+            ? [lum * 0.78, lum * 0.92, lum * 0.76]
+            : (bio === 'bosque' ? [lum * 0.86, lum * 1.00, lum * 0.80] : [lum * 0.92, lum * 1.04, lum * 0.84]);
+          const { col, row } = celdaUV(cellIndex);
+          return { atlas: 'bambu', cellIndex, col, row, sx, sy, sz, rotY, color, denso: wBambu > 0.55 };
+        }
+      }
+    }
+
+    const pAx = x * 0.014 - ox * 1.12 + 41.2;
+    const pAz = z * 0.014 + oz * 0.93 - 11.6;
+    const nA = ruidoValor(pAx, pAz) * 0.70 + ruidoValor(pAx * 2.1 - 3.7, pAz * 2.1 + 9.4) * 0.30;
+    const wAlta = Math.max(smoothstep(0.46, 0.66, nA), enOrilla ? 0.55 : 0) * (1 - smoothstep(1.05, 1.55, dh));
+    if (wAlta > 0.12 && zona.wTrigo < 0.45) {
+      const probA = (0.36 + wAlta * 0.44) * escalaDens;
+      if (r3 <= probA) {
+        const cellIndex = rSub < 0.28 ? 0 : rSub < 0.56 ? 1 : rSub < 0.80 ? 2 : 3;
+        const sx = 0.88 + r4 * 0.34;
+        const sz = sx;
+        const sy = 0.90 + r2 * 0.24;
+        const lum = 0.88 + r3 * 0.22;
+        const color = (bio === 'taiga' || bio === 'pantano')
+          ? [lum * 0.78, lum * 0.91, lum * 0.76]
+          : (bio === 'bosque' ? [lum * 0.85, lum * 0.98, lum * 0.78] : [lum * 0.94, lum * 1.04, lum * 0.86]);
+        const { col, row } = celdaUV(cellIndex);
+        return { atlas: 'hierbaAlta', cellIndex, col, row, sx, sy, sz, rotY, color };
+      }
+    }
+
+    return null;
+  }
+
+  // Decide pequeñas tarjetas de hierba en bordes y franja central de caminos, dejando libres las rodadas
+  function elegirInstanciaCamino(x, z, bio, distCamino, halfW, seed, r1, r2, r3, r4, escalaDens = 1) {
+    if (escalaDens <= 0) return null;
+    if (bio !== 'pradera' && bio !== 'bosque' && bio !== 'pantano' && bio !== 'taiga' && bio !== 'tundra' && bio !== 'costa') return null;
+
+    const hw = Math.max(1.2, halfW || 3.0);
+    const fBio = probBaseBioma(bio);
+    if (fBio <= 0) return null;
+
+    let sx, sy;
+    if (distCamino >= hw * 0.66 && distCamino <= hw + 0.95) {
+      const prob = 0.74 * fBio * escalaDens;
+      if (r3 > prob) return null;
+      sx = 0.72 + r4 * 0.42;
+      sy = 0.64 + r2 * 0.44;
+    } else if (distCamino <= hw * 0.28) {
+      const nCentro = ruidoValor(x * 0.18 + 9.1, z * 0.18 - 4.7);
+      if (nCentro <= 0.42) return null;
+      const prob = 0.42 * fBio * escalaDens;
+      if (r3 > prob) return null;
+      sx = 0.54 + r4 * 0.32;
+      sy = 0.48 + r2 * 0.34;
+    } else {
+      return null;
+    }
+
+    const rSub = (r2 * 0.61 + r4 * 0.39) % 1;
+    const cellIndex = rSub < 0.38 ? 0 : rSub < 0.72 ? 2 : 3;
+    const lum = 0.84 + r3 * 0.20;
+    const color = (bio === 'tundra' || bio === 'costa')
+      ? [lum * 0.98, lum * 0.90, lum * 0.68]
+      : ((bio === 'taiga' || bio === 'pantano') ? [lum * 0.78, lum * 0.86, lum * 0.70] : [lum * 0.92, lum * 0.97, lum * 0.76]);
+    const { col, row } = celdaUV(cellIndex);
+    return { atlas: 'camino', cellIndex, col, row, sx, sy, sz: sx, rotY: r1 * 6.2831853, color };
   }
 
   // Dilata RGB desde píxeles con alfa hacia píxeles transparentes adyacentes para evitar bordes negros en mipmaps
@@ -654,6 +791,130 @@
     }
   }
 
+  function pintarCeldaHierbaAlta(ctx, x0, y0, s, idx, rng) {
+    const base = y0 + s - 2;
+    const paletas = [
+      { b: '#1d4619', m: '#3c7a26', p: '#7fc246', sp: '#b7df68' },
+      { b: '#2b521f', m: '#568d2e', p: '#a4d354', sp: '#dce078' },
+      { b: '#1a4220', m: '#367432', p: '#73bc52', sp: '#cee38c' },
+      { b: '#254c1c', m: '#4b862c', p: '#91c94c', sp: '#d2e27a' }
+    ];
+    const pal = paletas[idx & 3];
+    // Relleno basal frondoso para que el pie del herbazal no parezca hueco
+    for (let i = 0; i < 14; i++) {
+      const t = i / 13;
+      const bx = x0 + s * (0.14 + t * 0.72);
+      const alto = s * (0.28 + rng() * 0.20);
+      const lean = (t - 0.5) * s * 0.24 + (rng() - 0.5) * 14;
+      trazarHojaCurva(ctx, bx, base, bx + lean, base - alto, bx + lean * 0.4, base - alto * 0.62, 8.2, pal.b, pal.m);
+    }
+
+    // 30-34 briznas altas arqueadas cubriendo hasta 82-96 % de la celda (~1 m real)
+    const nBriznas = idx === 3 ? 34 : 30;
+    for (let i = 0; i < nBriznas; i++) {
+      const t = (i + 0.5) / nBriznas;
+      const bx = x0 + s * (0.12 + t * 0.76 + (rng() - 0.5) * 0.04);
+      const alto = s * (0.76 + rng() * 0.20 - Math.abs(t - 0.5) * 0.14);
+      const lean = (t - 0.5) * s * 0.42 + (rng() - 0.5) * s * 0.18;
+      const tx = Math.max(x0 + 8, Math.min(x0 + s - 8, bx + lean));
+      const ty = Math.max(y0 + 6, base - alto);
+      const cx = bx + lean * 0.34;
+      const cy = base - alto * 0.60;
+      const ancho = 5.5 + rng() * 4.2;
+      trazarHojaCurva(ctx, bx, base, tx, ty, cx, cy, ancho, i % 3 === 0 ? pal.b : pal.m, i % 2 === 0 ? pal.p : pal.sp);
+    }
+
+    // Tallos finos con penachos plumosos en carrizo y gramínea alta
+    if (idx === 1 || idx === 2) {
+      for (let k = 0; k < 5; k++) {
+        const bx = x0 + s * (0.22 + k * 0.14 + (rng() - 0.5) * 0.04);
+        const tx = bx + (k - 2) * 14 + (rng() - 0.5) * 10;
+        const ty = y0 + 10 + rng() * 20;
+        trazarTalloFino(ctx, bx, base, (bx + tx) * 0.5, base - s * 0.52, tx, ty, 3.0, pal.m);
+        for (let g = 0; g < 6; g++) {
+          ctx.fillStyle = g < 3 ? pal.sp : pal.p;
+          ctx.beginPath();
+          ctx.ellipse(tx + (g % 2 ? 3.5 : -3.5), ty + g * 5.2, 3.4, 5.2, g % 2 ? 0.28 : -0.28, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+  }
+
+  function pintarCeldaBambu(ctx, x0, y0, s, idx, rng) {
+    const base = y0 + s - 2;
+    const paletas = [
+      { b: '#1e4a1c', m: '#3c7a2c', c: '#6cb342', nudo: '#d9ebb3', hojaB: '#255a20', hojaP: '#84cc4a' },
+      { b: '#164224', m: '#2c6b3b', c: '#54a259', nudo: '#c8e6bd', hojaB: '#1c4f2b', hojaP: '#6dc465' },
+      { b: '#3d581c', m: '#6e8c28', c: '#a4be42', nudo: '#eef3a8', hojaB: '#44651c', hojaP: '#b8d452' },
+      { b: '#1a4a22', m: '#387d38', c: '#70b854', nudo: '#d8f0b8', hojaB: '#235e28', hojaP: '#95d95e' }
+    ];
+    const pal = paletas[idx & 3];
+    const nCanas = idx === 1 || idx === 3 ? 9 : 7;
+    const canas = [];
+
+    for (let i = 0; i < nCanas; i++) {
+      const f = i / Math.max(1, nCanas - 1);
+      const bx = x0 + s * (0.14 + f * 0.72 + (rng() - 0.5) * 0.04);
+      const alto = s * (0.78 + rng() * 0.19 - Math.abs(f - 0.5) * 0.10);
+      const lean = (f - 0.5) * s * 0.12 + (rng() - 0.5) * s * 0.07;
+      const tx = Math.max(x0 + 14, Math.min(x0 + s - 14, bx + lean));
+      const ty = Math.max(y0 + 8, base - alto);
+      const cx = bx + lean * 0.35;
+      const cy = base - alto * 0.52;
+      const grosor = 5.4 + rng() * 3.4;
+
+      trazarTalloFino(ctx, bx, base, cx, cy, tx, ty, grosor, i % 2 === 0 ? pal.b : pal.m);
+      trazarTalloFino(ctx, bx + 1.2, base, cx + 1.2, cy, tx + 1.0, ty, grosor * 0.45, pal.c);
+
+      // Anillos nudosos horizontales característicos de la caña de bambú
+      const pasosNudo = 6;
+      for (let n = 1; n < pasosNudo; n++) {
+        const u = n / pasosNudo;
+        const mu = 1 - u;
+        const nx = mu * mu * bx + 2 * mu * u * cx + u * u * tx;
+        const ny = mu * mu * base + 2 * mu * u * cy + u * u * ty;
+        ctx.strokeStyle = pal.nudo;
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        ctx.moveTo(nx - grosor * 0.62, ny);
+        ctx.lineTo(nx + grosor * 0.62, ny);
+        ctx.stroke();
+        ctx.strokeStyle = pal.b;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(nx - grosor * 0.58, ny + 1.8);
+        ctx.lineTo(nx + grosor * 0.58, ny + 1.8);
+        ctx.stroke();
+        if (n >= 2) canas.push({ nx, ny, u, dir: (n + i) % 2 === 0 ? 1 : -1 });
+      }
+    }
+
+    // Ramitas tupidas de hojas lanceoladas largas saliendo de cada nudo medio/alto
+    canas.forEach(nd => {
+      const hojasEnNudo = 2 + Math.floor(rng() * 2);
+      for (let h = 0; h < hojasEnNudo; h++) {
+        const lado = h % 2 === 0 ? nd.dir : -nd.dir;
+        const largoH = s * (0.14 + rng() * 0.14);
+        const angV = 0.25 + rng() * 0.85;
+        const lx = Math.max(x0 + 6, Math.min(x0 + s - 6, nd.nx + lado * largoH * Math.cos(angV * 0.5)));
+        const ly = Math.max(y0 + 6, nd.ny - largoH * Math.sin(angV) * 0.55 + rng() * 14);
+        const mx = (nd.nx + lx) * 0.5;
+        const my = Math.min(nd.ny, ly) - 8 - rng() * 10;
+        trazarHojaCurva(ctx, nd.nx, nd.ny, lx, ly, mx, my, 4.6 + rng() * 2.8, pal.hojaB, h === 0 ? pal.hojaP : pal.c);
+      }
+    });
+
+    // Relleno de hojas en la parte baja para densidad tupida continua desde la raíz
+    for (let k = 0; k < 14; k++) {
+      const t = k / 13;
+      const bx = x0 + s * (0.16 + t * 0.68);
+      const alto = s * (0.20 + rng() * 0.20);
+      const lean = (t - 0.5) * s * 0.26 + (rng() - 0.5) * 16;
+      trazarHojaCurva(ctx, bx, base, bx + lean, base - alto, bx + lean * 0.45, base - alto * 0.65, 5.2, pal.hojaB, pal.m);
+    }
+  }
+
   // Genera un lienzo HTML5 Canvas 2×2 (4 celdas botánicas) para el tipo indicado
   function crearAtlasCanvas(tipo, tam = 512) {
     if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
@@ -665,7 +926,7 @@
     if (typeof ctx.clearRect === 'function') ctx.clearRect(0, 0, tam, tam);
 
     const cell = Math.floor(tam / 2);
-    const seedBase = tipo === 'trigo' ? 4019 : tipo === 'flores' ? 7919 : 1307;
+    const seedBase = tipo === 'trigo' ? 4019 : tipo === 'flores' ? 7919 : tipo === 'hierbaAlta' ? 9137 : tipo === 'bambu' ? 12457 : 1307;
 
     for (let idx = 0; idx < 4; idx++) {
       const gx = idx & 1;
@@ -683,6 +944,8 @@
       }
       if (tipo === 'trigo') pintarCeldaTrigo(ctx, x0, y0, cell, idx, rng);
       else if (tipo === 'flores') pintarCeldaFlores(ctx, x0, y0, cell, idx, rng);
+      else if (tipo === 'hierbaAlta') pintarCeldaHierbaAlta(ctx, x0, y0, cell, idx, rng);
+      else if (tipo === 'bambu') pintarCeldaBambu(ctx, x0, y0, cell, idx, rng);
       else pintarCeldaHierba(ctx, x0, y0, cell, idx, rng);
       if (ctx.restore) ctx.restore();
     }
@@ -777,6 +1040,55 @@
     return geo;
   }
 
+  // Geometría muy tupida de 4 planos cruzados y 3 tramos verticales para cañas y bambú alargado
+  function crearGeometriaBambuTupido(THREE, ancho, alto, maxInstancias = 450) {
+    const P = [], N = [], U = [], C = [], I = [];
+    const niveles = [
+      { rad: ancho * 0.44, y: 0, v: 0, col: [0.64, 0.68, 0.58] },
+      { rad: ancho * 0.48, y: alto * 0.35, v: 0.35, col: [0.86, 0.90, 0.82] },
+      { rad: ancho * 0.52, y: alto * 0.70, v: 0.70, col: [0.98, 1.00, 0.95] },
+      { rad: ancho * 0.56, y: alto, v: 1, col: [1.07, 1.08, 1.02] }
+    ];
+
+    for (let p = 0; p < 4; p++) {
+      const ang = (p * Math.PI) / 4;
+      const ca = Math.cos(ang), sa = Math.sin(ang);
+      const desp = (p - 1.5) * ancho * 0.08;
+      const ox = -sa * desp, oz = ca * desp;
+      const baseV = p * 8;
+
+      for (let t = 0; t < niveles.length; t++) {
+        const nv = niveles[t];
+        for (let s = 0; s < 2; s++) {
+          const r = s === 0 ? -nv.rad : nv.rad;
+          const vx = ox + ca * r;
+          const vz = oz + sa * r;
+          const nx = vx * 0.22, ny = 0.97, nz = vz * 0.22;
+          const nl = Math.hypot(nx, ny, nz) || 1;
+          P.push(vx, nv.y, vz);
+          N.push(nx / nl, ny / nl, nz / nl);
+          U.push(s, nv.v);
+          C.push(nv.col[0], nv.col[1], nv.col[2]);
+        }
+      }
+
+      for (let t = 0; t < 3; t++) {
+        const b = baseV + t * 2;
+        I.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    geo.setIndex(I);
+    geo.setAttribute('aCell', new THREE.InstancedBufferAttribute(new Float32Array(maxInstancias * 2), 2));
+    geo.computeBoundingSphere();
+    return geo;
+  }
+
   function crearTexturaAtlas(THREE, tipo, renderer, tam = 512) {
     const canvas = crearAtlasCanvas(tipo, tam);
     let tex;
@@ -801,21 +1113,30 @@
   }
 
   function crearCapaPradera(THREE, tipo, maxInstancias, terrainU = {}, renderer = null, opts = {}) {
-    const meta = ATLAS_META[tipo] || ATLAS_META.hierba;
+    const meta = ATLAS_META[tipo] || ATLAS_ALTOS_META[tipo] || (tipo === 'camino' ? CAMINO_HIERBA_META : ATLAS_META.hierba);
     const esLejana = !!(opts && opts.esLejana);
-    const tex = (opts && opts.texCompartida) ? opts.texCompartida : crearTexturaAtlas(THREE, meta.id, renderer, meta.tam);
-    const geo = esLejana
-      ? crearGeometriaMataLejana(THREE, meta.anchoBase * 1.85, meta.altoBase * 1.15, maxInstancias)
-      : crearGeometriaMataAtlas(THREE, meta.anchoBase, meta.altoBase, maxInstancias);
+    const tex = (opts && opts.texCompartida) ? opts.texCompartida : crearTexturaAtlas(THREE, meta.id === 'camino' ? 'hierba' : meta.id, renderer, meta.tam);
+    let geo;
+    if (meta.id === 'bambu' && !esLejana) {
+      geo = crearGeometriaBambuTupido(THREE, meta.anchoBase, meta.altoBase, maxInstancias);
+    } else if (esLejana) {
+      geo = crearGeometriaMataLejana(THREE, meta.anchoBase * 1.85, meta.altoBase * 1.15, maxInstancias);
+    } else if (meta.id === 'camino') {
+      geo = crearGeometriaMataLejana(THREE, meta.anchoBase, meta.altoBase, maxInstancias);
+    } else {
+      geo = crearGeometriaMataAtlas(THREE, meta.anchoBase, meta.altoBase, maxInstancias);
+    }
+    const alphaTest = opts.alphaTest != null ? opts.alphaTest : (esLejana ? 0.30 : (meta.id === 'bambu' ? 0.32 : 0.34));
     const mat = new THREE.MeshLambertMaterial({
       map: tex,
       vertexColors: true,
       side: THREE.DoubleSide,
-      alphaTest: esLejana ? 0.30 : 0.34
+      alphaTest
     });
 
     const altoUniform = esLejana ? meta.altoBase * 1.15 : meta.altoBase;
     const swayUniform = esLejana ? meta.swayAmp * 1.15 : meta.swayAmp;
+    const pushAmp = (opts && opts.pushAmp != null) ? opts.pushAmp : (meta.pushAmp || 0.22);
     const uFadeInStart = { value: opts.fadeInStart != null ? opts.fadeInStart : -2.0 };
     const uFadeInEnd = { value: opts.fadeInEnd != null ? opts.fadeInEnd : -1.0 };
     const uFadeStart = { value: opts.fadeStart != null ? opts.fadeStart : (esLejana ? 72.0 : 25.5) };
@@ -826,7 +1147,7 @@
     mat.userData = Object.assign(mat.userData || {}, {
       fadeUniforms: { uFadeInStart, uFadeInEnd, uFadeStart, uFadeEnd }
     });
-    mat.customProgramCacheKey = () => 'pradera-atlas-v2-' + meta.id + (esLejana ? '-far' : '-near');
+    mat.customProgramCacheKey = () => 'pradera-atlas-v3-' + meta.id + (esLejana ? '-far' : '-near');
     mat.onBeforeCompile = shader => {
       shader.uniforms.uTime = terrainU.uTime || { value: 0 };
       shader.uniforms.uHeroXZ = terrainU.uHeroXZ || { value: new THREE.Vector2(0, 0) };
@@ -880,7 +1201,7 @@
           'vec2 worldShift = vec2(0.84, 0.54) * ((ola + rafaga) * uSwayAmp * bend);',
           esLejana ? '' : [
             'vec2 toG = wPosG.xz - uHeroXZ;',
-            'float pushH = (1.0 - smoothstep(0.20, 1.15, dHeroG)) * 0.22 * bend;',
+            `float pushH = (1.0 - smoothstep(0.20, 1.15, dHeroG)) * ${Number(pushAmp).toFixed(3)} * bend;`,
             'worldShift += (toG / max(dHeroG, 0.001)) * pushH;'
           ].join('\n'),
           'vec2 c0 = instanceMatrix[0].xz;',
@@ -968,6 +1289,56 @@
       }
     };
     return res;
+  }
+
+  function actualizarFadeCapa(mesh, fadeStart, fadeEnd, fadeInStart, fadeInEnd) {
+    const fu = mesh && mesh.material && mesh.material.userData && mesh.material.userData.fadeUniforms;
+    if (!fu) return;
+    if (fadeStart != null) fu.uFadeStart.value = fadeStart;
+    if (fadeEnd != null) fu.uFadeEnd.value = fadeEnd;
+    if (fadeInStart != null) fu.uFadeInStart.value = fadeInStart;
+    if (fadeInEnd != null) fu.uFadeInEnd.value = fadeInEnd;
+  }
+
+  // Capas altas de 1 m (hierbaAlta) y bambú tupido (bambu) con radios ajustables según calidad
+  function crearCapasVegetacionAlta(THREE, maxHierbaAlta = 480, maxBambu = 380, terrainU = {}, renderer = null) {
+    const hierbaAlta = crearCapaPradera(THREE, 'hierbaAlta', maxHierbaAlta, terrainU, renderer, {
+      fadeStart: 21.5,
+      fadeEnd: 30.0
+    });
+    const bambu = crearCapaPradera(THREE, 'bambu', maxBambu, terrainU, renderer, {
+      fadeStart: 27.0,
+      fadeEnd: 38.0
+    });
+    return {
+      hierbaAlta,
+      bambu,
+      actualizarRadios(rAlta = 30.0, rBambu = 38.0) {
+        const eA = Math.max(10.0, rAlta);
+        const sA = Math.max(8.0, eA * 0.72);
+        actualizarFadeCapa(hierbaAlta, sA, eA);
+        const eB = Math.max(12.0, rBambu);
+        const sB = Math.max(8.0, eB * 0.72);
+        actualizarFadeCapa(bambu, sB, eB);
+      }
+    };
+  }
+
+  // Pequeñas tarjetas de hierba en arcenes y junta de caminos (reutilizan la textura del atlas de hierba)
+  function crearCapaHierbaCamino(THREE, maxInstancias = 420, terrainU = {}, renderer = null, capasCerca = {}) {
+    const camino = crearCapaPradera(THREE, 'camino', maxInstancias, terrainU, renderer, {
+      texCompartida: capasCerca.hierba && capasCerca.hierba.userData && capasCerca.hierba.userData.atlasTex,
+      fadeStart: 21.5,
+      fadeEnd: 30.0
+    });
+    return {
+      camino,
+      actualizarRadio(rCam = 30.0) {
+        const e = Math.max(10.0, rCam);
+        const s = Math.max(8.0, e * 0.72);
+        actualizarFadeCapa(camino, s, e);
+      }
+    };
   }
 
   // Ráfagas de viento estilizadas y motas de polen flotantes alrededor del héroe (2 draw calls ligeros)
@@ -1089,20 +1460,29 @@
   const api = {
     ATLAS_TIPOS,
     ATLAS_META,
+    ATLAS_ALTOS_TIPOS,
+    ATLAS_ALTOS_META,
+    CAMINO_HIERBA_META,
     smoothstep,
     semillaOffset,
     ruidoValor,
     zonaPraderaEn,
     celdaUV,
     elegirInstanciaPradera,
+    elegirInstanciaAlta,
+    elegirInstanciaCamino,
     dilatarBordesAlpha,
     crearAtlasCanvas,
     crearGeometriaMataAtlas,
     crearGeometriaMataLejana,
+    crearGeometriaBambuTupido,
     crearTexturaAtlas,
     crearCapaPradera,
     crearCapasPradera,
     crearCapasPraderaLejana,
+    actualizarFadeCapa,
+    crearCapasVegetacionAlta,
+    crearCapaHierbaCamino,
     crearSistemaBrisaZelda
   };
 
