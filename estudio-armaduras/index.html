@@ -1621,9 +1621,11 @@
     ];
 
     // ¿El arma equipada deja una mano libre para el escudo?
+    const CLASES_ARMA_DOS_MANOS = new Set(['mandobles', 'hachas_2m', 'lanzas', 'arcos', 'bastones']);
     function weaponAllowsShield(idx) {
       const L = WEAPON_LOADOUT[idx];
-      return !!(L && L.hand === 'R' && L.manos === 1);
+      if (!L || L.hand !== 'R' || L.manos !== 1) return false;
+      return !CLASES_ARMA_DOS_MANOS.has(getWeaponClassId(idx));
     }
 
     // Clasificación por clase de arma (para separarlas en pestañas y secciones)
@@ -45014,18 +45016,24 @@ function resetCharacter() {
 
             const eq = d.equipo || {};
             Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = eq[k] || 0; });
-            if (look && look.cls === 'ligera' && eq.cuisses == null) STATE.equipment.cuisses = 0;
+            if (eq.pants > 0 && PANTS_PACKS[eq.pants]) {
+              const pk = PANTS_PACKS[eq.pants];
+              PANTS_SUB_SLOTS.forEach(k => {
+                if (!eq[k] && ITEMS_DB[k] && pk[k] < ITEMS_DB[k].length) STATE.equipment[k] = pk[k];
+              });
+            }
+            STATE.equipment.shoulders = 0;
+            if (!STATE.equipment.underlayer) {
+              STATE.equipment.underlayer = d.claseArmadura === 'pesada' ? 2 : 1;
+            }
+            if (look && look.cls === 'ligera' && eq.cuisses == null && !eq.pants) STATE.equipment.cuisses = 0;
 
             const wIdx = STATE.equipment.weapon || 0;
             const wLoad = WEAPON_LOADOUT[wIdx];
-            if (d.claseArmadura === 'mago') {
+            if (d.claseArmadura === 'mago' || !weaponAllowsShield(wIdx) || (wLoad && wLoad.fam === 'daga')) {
+              STATE.equipment.shield = 0;
+            } else {
               STATE.equipment.shield = (eq.shield && eq.shield > 0) ? eq.shield : 0;
-            } else if (wLoad && !wLoad.legacy && wLoad.manos === 2) {
-              STATE.equipment.shield = 0;
-            } else if (wLoad && wLoad.fam === 'daga') {
-              STATE.equipment.shield = 0;
-            } else if (eq.shield == null) {
-              STATE.equipment.shield = escudoPorDefecto(wIdx);
             }
 
             if (!look && Array.isArray(TEXTURE_PRESETS) && TEXTURE_PRESETS.length) {

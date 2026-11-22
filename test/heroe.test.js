@@ -443,4 +443,16 @@ t('modo estricto por arma: solo se generan, asignan y mejoran habilidades del ar
   for (const n2 of nuevas) assert.strictEqual(n2.armaClase, 'espadas');
 });
 
+t('ranura shield: tipoDe devuelve escudo y estadisticas suma bloqueo real y defensa', () => {
+  const h = H.nuevoHeroe();
+  const sh = { ranura: 'shield', nombre: 'Escudo Real Dracónico', piezaId: 'shield.13', nivel: 40, estado: 1, defensa: 20, bloqueo: 0.32 };
+  assert.strictEqual(H.tipoDe(sh), 'escudo');
+  const f = H.ficha(sh);
+  assert.strictEqual(f.tipo, 'escudo');
+  assert.ok(f.lineas.some(l => l.includes('32 %')), 'ficha muestra bloqueo real');
+  const s = H.estadisticas(h, 40, [sh], 'guerrero');
+  assert.ok(s.bloqueo >= 0.32, 'estadisticas suma bloqueo del escudo: ' + s.bloqueo);
+  assert.ok(s.defensa >= 20, 'estadisticas suma defensa del escudo');
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

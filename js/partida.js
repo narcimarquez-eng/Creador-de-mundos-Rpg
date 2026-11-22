@@ -128,6 +128,12 @@
       if (o.armorLook != null) obj.armorLook = o.armorLook;
       if (typeof o.familia === 'string' && o.familia) obj.familia = o.familia.slice(0, 24);
       if (typeof o.claseArma === 'string' && o.claseArma) obj.claseArma = o.claseArma.slice(0, 24);
+      if (o.manos === 1 || o.manos === 2) obj.manos = o.manos;
+      if (o.subpiezas && typeof o.subpiezas === 'object') {
+        const sp = {};
+        ['belt', 'tassets', 'cuisses', 'knees'].forEach(k => { if (isFinite(o.subpiezas[k])) sp[k] = Math.floor(o.subpiezas[k]); });
+        if (Object.keys(sp).length) obj.subpiezas = sp;
+      }
       if (o.especial && typeof o.especial === 'object') obj.especial = o.especial;
       if (o.esHoja) obj.esHoja = true;
       if (typeof o.paraRanura === 'string') obj.paraRanura = o.paraRanura;

@@ -2,7 +2,8 @@
   "version": 2,
   "maxNivel": 50,
   "inicial": {
-    "underlayer": 2
+    "torso": 1,
+    "shield": 1
   },
   "grados": {
     "D": {
@@ -503,7 +504,7 @@
       {
         "idx": 2,
         "nombre": "Coraza Real de Alianza (Cresta en V)",
-        "nivel": 4,
+        "nivel": 1,
         "grado": "D",
         "tipoArmadura": "ligera",
         "archivo": "piezas/torso/2.glb",
@@ -680,7 +681,7 @@
       {
         "idx": 21,
         "nombre": "Abrigo Abierto, Bandolera & Manto de Cuervo (Asimétrico)",
-        "nivel": 2,
+        "nivel": 1,
         "grado": "D",
         "tipoArmadura": "mago",
         "archivo": "piezas/torso/21.glb",
@@ -1434,93 +1435,103 @@
     "weapon": [
       {
         "idx": 1,
-        "nombre": "Espada Solar + Escudo Heráldico Sol",
+        "nombre": "Espada Solar",
         "nivel": 1,
         "grado": "D",
         "archivo": "piezas/weapon/1.glb",
         "familia": "legado",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 2,
-        "nombre": "Mandoble + Gran Escudo Torre Pavés Solar (D&D)",
+        "nombre": "Mandoble Solar (2M)",
         "nivel": 3,
         "grado": "D",
         "archivo": "piezas/weapon/2.glb",
         "familia": "mandoble",
-        "claseArma": "mandobles"
+        "claseArma": "mandobles",
+        "manos": 2
       },
       {
         "idx": 3,
-        "nombre": "Espada de Acero + Escudo de Espigas Eclipse (D&D)",
+        "nombre": "Espada de Acero Eclipse",
         "nivel": 2,
         "grado": "D",
         "archivo": "piezas/weapon/3.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 4,
-        "nombre": "Lanza Élfica + Rodela de Hierro / Buckler (D&D)",
+        "nombre": "Lanza Élfica (2M)",
         "nivel": 6,
         "grado": "D",
         "archivo": "piezas/weapon/4.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 5,
-        "nombre": "Espada Dinastía + Escudo Alado Oro Rosa (L2)",
+        "nombre": "Espada Dinastía Oro Rosa (L2)",
         "nivel": 6,
         "grado": "D",
         "archivo": "piezas/weapon/5.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 6,
-        "nombre": "Hacha de Torre de Doble Filo + Escudo Cometa de Caballero",
+        "nombre": "Hacha de Torre de Doble Filo (2M)",
         "nivel": 5,
         "grado": "D",
         "archivo": "piezas/weapon/6.glb",
         "familia": "hacha",
-        "claseArma": "hachas_2m"
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 7,
-        "nombre": "Maza Estrellada + Escudo Redondo Vikingo",
+        "nombre": "Maza Estrellada de Guerra",
         "nivel": 4,
         "grado": "D",
         "archivo": "piezas/weapon/7.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 8,
-        "nombre": "Estoque Élfico + Escudo Ojival Gótico",
+        "nombre": "Estoque Élfico",
         "nivel": 9,
         "grado": "C",
         "archivo": "piezas/weapon/8.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 9,
-        "nombre": "Hoz Abismal + Escudo Cuadrado de Escamas",
+        "nombre": "Hoz Abismal (2M)",
         "nivel": 16,
         "grado": "B",
         "archivo": "piezas/weapon/9.glb",
         "familia": "hacha",
-        "claseArma": "hachas_2m"
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 10,
-        "nombre": "Cetro de Mando Solar + Broquel Élfico de Hoja",
+        "nombre": "Cetro de Mando Solar (2M)",
         "nivel": 5,
         "grado": "D",
         "archivo": "piezas/weapon/10.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 11,
@@ -1529,7 +1540,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/11.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 12,
@@ -1538,7 +1550,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/12.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 13,
@@ -1547,7 +1560,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/13.glb",
         "familia": "mandoble",
-        "claseArma": "mandobles"
+        "claseArma": "mandobles",
+        "manos": 2
       },
       {
         "idx": 14,
@@ -1556,7 +1570,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/14.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 15,
@@ -1565,7 +1580,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/15.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 16,
@@ -1574,7 +1590,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/16.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 17,
@@ -1583,7 +1600,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/17.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 18,
@@ -1592,7 +1610,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/18.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 19,
@@ -1601,7 +1620,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/19.glb",
         "familia": "mandoble",
-        "claseArma": "mandobles"
+        "claseArma": "mandobles",
+        "manos": 2
       },
       {
         "idx": 20,
@@ -1610,7 +1630,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/20.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 21,
@@ -1619,7 +1640,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/21.glb",
         "familia": "hacha",
-        "claseArma": "hachas"
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 22,
@@ -1628,7 +1650,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/22.glb",
         "familia": "hacha",
-        "claseArma": "hachas_2m"
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 23,
@@ -1637,7 +1660,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/23.glb",
         "familia": "hacha",
-        "claseArma": "hachas"
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 24,
@@ -1646,7 +1670,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/24.glb",
         "familia": "hacha",
-        "claseArma": "hachas"
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 25,
@@ -1655,7 +1680,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/25.glb",
         "familia": "hacha",
-        "claseArma": "hachas"
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 26,
@@ -1664,7 +1690,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/26.glb",
         "familia": "hacha",
-        "claseArma": "hachas_2m"
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 27,
@@ -1673,7 +1700,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/27.glb",
         "familia": "hacha",
-        "claseArma": "hachas_2m"
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 28,
@@ -1682,7 +1710,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/28.glb",
         "familia": "hacha",
-        "claseArma": "hachas"
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 29,
@@ -1691,7 +1720,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/29.glb",
         "familia": "hacha",
-        "claseArma": "hachas_2m"
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 30,
@@ -1700,7 +1730,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/30.glb",
         "familia": "hacha",
-        "claseArma": "hachas"
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 31,
@@ -1709,7 +1740,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/31.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 32,
@@ -1718,7 +1750,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/32.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 33,
@@ -1727,7 +1760,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/33.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 2
       },
       {
         "idx": 34,
@@ -1736,7 +1770,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/34.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 35,
@@ -1745,7 +1780,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/35.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 36,
@@ -1754,7 +1790,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/36.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 37,
@@ -1763,7 +1800,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/37.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 2
       },
       {
         "idx": 38,
@@ -1772,7 +1810,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/38.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 39,
@@ -1781,7 +1820,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/39.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 40,
@@ -1790,7 +1830,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/40.glb",
         "familia": "maza",
-        "claseArma": "mazas"
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 41,
@@ -1799,7 +1840,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/41.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 42,
@@ -1808,7 +1850,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/42.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 43,
@@ -1817,7 +1860,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/43.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 44,
@@ -1826,7 +1870,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/44.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 45,
@@ -1835,7 +1880,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/45.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 46,
@@ -1844,7 +1890,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/46.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 47,
@@ -1853,7 +1900,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/47.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 48,
@@ -1862,7 +1910,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/48.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 49,
@@ -1871,7 +1920,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/49.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 50,
@@ -1880,7 +1930,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/50.glb",
         "familia": "daga",
-        "claseArma": "dagas"
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 51,
@@ -1889,7 +1940,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/51.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 52,
@@ -1898,7 +1950,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/52.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 53,
@@ -1907,7 +1960,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/53.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 54,
@@ -1916,7 +1970,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/54.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 55,
@@ -1925,7 +1980,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/55.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 56,
@@ -1934,7 +1990,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/56.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 57,
@@ -1943,7 +2000,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/57.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 58,
@@ -1952,7 +2010,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/58.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 59,
@@ -1961,7 +2020,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/59.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 60,
@@ -1970,7 +2030,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/60.glb",
         "familia": "lanza",
-        "claseArma": "lanzas"
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 61,
@@ -1979,7 +2040,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/61.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 62,
@@ -1988,7 +2050,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/62.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 63,
@@ -1997,7 +2060,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/63.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 64,
@@ -2006,7 +2070,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/64.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 65,
@@ -2015,7 +2080,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/65.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 66,
@@ -2024,7 +2090,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/66.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 67,
@@ -2033,7 +2100,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/67.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 68,
@@ -2042,7 +2110,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/68.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 69,
@@ -2051,7 +2120,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/69.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 70,
@@ -2060,7 +2130,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/70.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 71,
@@ -2069,7 +2140,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/71.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 72,
@@ -2078,7 +2150,8 @@
         "grado": "D",
         "archivo": "piezas/weapon/72.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 73,
@@ -2087,7 +2160,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/73.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 74,
@@ -2096,7 +2170,8 @@
         "grado": "C",
         "archivo": "piezas/weapon/74.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 75,
@@ -2105,7 +2180,8 @@
         "grado": "B",
         "archivo": "piezas/weapon/75.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 76,
@@ -2114,7 +2190,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/76.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 77,
@@ -2123,7 +2200,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/77.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 78,
@@ -2132,7 +2210,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/78.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 79,
@@ -2141,7 +2220,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/79.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 80,
@@ -2150,7 +2230,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/80.glb",
         "familia": "arco",
-        "claseArma": "arcos"
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 81,
@@ -2159,7 +2240,8 @@
         "grado": "A",
         "archivo": "piezas/weapon/81.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 82,
@@ -2168,7 +2250,8 @@
         "grado": "S",
         "archivo": "piezas/weapon/82.glb",
         "familia": "hacha",
-        "claseArma": "hachas_2m"
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 83,
@@ -2177,7 +2260,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/83.glb",
         "familia": "mandoble",
-        "claseArma": "mandobles"
+        "claseArma": "mandobles",
+        "manos": 2
       },
       {
         "idx": 84,
@@ -2186,7 +2270,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/84.glb",
         "familia": "espada",
-        "claseArma": "espadas"
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 85,
@@ -2195,7 +2280,8 @@
         "grado": "SR",
         "archivo": "piezas/weapon/85.glb",
         "familia": "baculo",
-        "claseArma": "bastones"
+        "claseArma": "bastones",
+        "manos": 2
       }
     ],
     "shield": [
@@ -2205,7 +2291,8 @@
         "nivel": 1,
         "grado": "D",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/1.glb"
+        "archivo": "piezas/shield/1.glb",
+        "bloqueo": 0.15
       },
       {
         "idx": 2,
@@ -2213,7 +2300,8 @@
         "nivel": 8,
         "grado": "C",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/2.glb"
+        "archivo": "piezas/shield/2.glb",
+        "bloqueo": 0.18
       },
       {
         "idx": 3,
@@ -2221,7 +2309,8 @@
         "nivel": 15,
         "grado": "B",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/3.glb"
+        "archivo": "piezas/shield/3.glb",
+        "bloqueo": 0.22
       },
       {
         "idx": 4,
@@ -2229,7 +2318,8 @@
         "nivel": 5,
         "grado": "D",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/4.glb"
+        "archivo": "piezas/shield/4.glb",
+        "bloqueo": 0.15
       },
       {
         "idx": 5,
@@ -2237,7 +2327,8 @@
         "nivel": 23,
         "grado": "A",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/5.glb"
+        "archivo": "piezas/shield/5.glb",
+        "bloqueo": 0.25
       },
       {
         "idx": 6,
@@ -2245,7 +2336,8 @@
         "nivel": 12,
         "grado": "C",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/6.glb"
+        "archivo": "piezas/shield/6.glb",
+        "bloqueo": 0.18
       },
       {
         "idx": 7,
@@ -2253,7 +2345,8 @@
         "nivel": 10,
         "grado": "C",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/7.glb"
+        "archivo": "piezas/shield/7.glb",
+        "bloqueo": 0.18
       },
       {
         "idx": 8,
@@ -2261,7 +2354,8 @@
         "nivel": 18,
         "grado": "B",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/8.glb"
+        "archivo": "piezas/shield/8.glb",
+        "bloqueo": 0.22
       },
       {
         "idx": 9,
@@ -2269,7 +2363,8 @@
         "nivel": 26,
         "grado": "A",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/9.glb"
+        "archivo": "piezas/shield/9.glb",
+        "bloqueo": 0.25
       },
       {
         "idx": 10,
@@ -2277,7 +2372,8 @@
         "nivel": 14,
         "grado": "C",
         "tipoArmadura": "mago",
-        "archivo": "piezas/shield/10.glb"
+        "archivo": "piezas/shield/10.glb",
+        "bloqueo": 0.18
       },
       {
         "idx": 11,
@@ -2285,7 +2381,8 @@
         "nivel": 28,
         "grado": "A",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/11.glb"
+        "archivo": "piezas/shield/11.glb",
+        "bloqueo": 0.25
       },
       {
         "idx": 12,
@@ -2293,7 +2390,8 @@
         "nivel": 32,
         "grado": "S",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/12.glb"
+        "archivo": "piezas/shield/12.glb",
+        "bloqueo": 0.28
       },
       {
         "idx": 13,
@@ -2301,7 +2399,8 @@
         "nivel": 40,
         "grado": "SR",
         "tipoArmadura": "pesada",
-        "archivo": "piezas/shield/13.glb"
+        "archivo": "piezas/shield/13.glb",
+        "bloqueo": 0.32
       },
       {
         "idx": 14,
@@ -2309,7 +2408,8 @@
         "nivel": 36,
         "grado": "S",
         "tipoArmadura": "ligera",
-        "archivo": "piezas/shield/14.glb"
+        "archivo": "piezas/shield/14.glb",
+        "bloqueo": 0.28
       },
       {
         "idx": 15,
@@ -2317,55 +2417,277 @@
         "nivel": 42,
         "grado": "SR",
         "tipoArmadura": "mago",
-        "archivo": "piezas/shield/15.glb"
+        "archivo": "piezas/shield/15.glb",
+        "bloqueo": 0.32
+      }
+    ],
+    "pants": [
+      {
+        "idx": 1,
+        "nombre": "Pantalones Paladín Solar",
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 0,
+        "subpiezas": {
+          "belt": 1,
+          "tassets": 1,
+          "cuisses": 1,
+          "knees": 1
+        }
+      },
+      {
+        "idx": 2,
+        "nombre": "Pantalones Real Heráldico",
+        "nivel": 10,
+        "grado": "C",
+        "tipoArmadura": [
+          "pesada",
+          "mago"
+        ],
+        "armorLook": 2,
+        "subpiezas": {
+          "belt": 2,
+          "tassets": 5,
+          "cuisses": 5,
+          "knees": 5
+        }
+      },
+      {
+        "idx": 3,
+        "nombre": "Pantalones de Guerra con Malla",
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": [
+          "pesada",
+          "ligera",
+          "mago"
+        ],
+        "armorLook": 0,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 3,
+          "cuisses": 7,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 4,
+        "nombre": "Pantalones Gótico Abisal",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "armorLook": 11,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 2,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 5,
+        "nombre": "Pantalones de Comandante",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 5,
+        "subpiezas": {
+          "belt": 5,
+          "tassets": 3,
+          "cuisses": 3,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 6,
+        "nombre": "Pantalones Dinastía L2",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": [
+          "pesada",
+          "ligera",
+          "mago"
+        ],
+        "armorLook": 10,
+        "subpiezas": {
+          "belt": 6,
+          "tassets": 6,
+          "cuisses": 6,
+          "knees": 6
+        }
+      },
+      {
+        "idx": 7,
+        "nombre": "Pantalones de Brigantina",
+        "nivel": 12,
+        "grado": "C",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "armorLook": 12,
+        "subpiezas": {
+          "belt": 7,
+          "tassets": 8,
+          "cuisses": 7,
+          "knees": 7
+        }
+      },
+      {
+        "idx": 8,
+        "nombre": "Pantalones Dark Crystal L2",
+        "nivel": 24,
+        "grado": "A",
+        "tipoArmadura": [
+          "pesada",
+          "mago"
+        ],
+        "armorLook": 57,
+        "subpiezas": {
+          "belt": 8,
+          "tassets": 9,
+          "cuisses": 8,
+          "knees": 8
+        }
+      },
+      {
+        "idx": 9,
+        "nombre": "Pantalones Segador Ravenbone",
+        "nivel": 28,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 43,
+        "subpiezas": {
+          "belt": 9,
+          "tassets": 10,
+          "cuisses": 9,
+          "knees": 9
+        }
+      },
+      {
+        "idx": 10,
+        "nombre": "Pantalones Soberano Dracónico",
+        "nivel": 32,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 24,
+        "subpiezas": {
+          "belt": 10,
+          "tassets": 11,
+          "cuisses": 10,
+          "knees": 10
+        }
+      },
+      {
+        "idx": 11,
+        "nombre": "Pantalones Cazador Silvano",
+        "nivel": 34,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 25,
+        "subpiezas": {
+          "belt": 11,
+          "tassets": 12,
+          "cuisses": 11,
+          "knees": 11
+        }
+      },
+      {
+        "idx": 12,
+        "nombre": "Pantalones Archimago Serafín",
+        "nivel": 33,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 26,
+        "subpiezas": {
+          "belt": 12,
+          "tassets": 13,
+          "cuisses": 12,
+          "knees": 12
+        }
+      },
+      {
+        "idx": 13,
+        "nombre": "Pantalones Élfico Biselado",
+        "nivel": 36,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 25,
+        "subpiezas": {
+          "belt": 14,
+          "tassets": 4,
+          "cuisses": 4,
+          "knees": 5
+        }
+      },
+      {
+        "idx": 14,
+        "nombre": "Pantalones Garras Abisales",
+        "nivel": 42,
+        "grado": "SR",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "armorLook": 30,
+        "subpiezas": {
+          "belt": 16,
+          "tassets": 14,
+          "cuisses": 13,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 15,
+        "nombre": "Pantalones Túnica de Mago",
+        "nivel": 42,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 32,
+        "subpiezas": {
+          "belt": 15,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
       }
     ]
   },
   "clases": {
     "guerrero": [
-      "underlayer",
-      "torso",
       "helmet",
-      "shoulders",
+      "torso",
       "gloves",
-      "belt",
-      "tassets",
-      "cuisses",
-      "knees",
+      "pants",
       "boots",
       "weapon",
       "shield"
     ],
     "cazador": [
-      "underlayer",
-      "torso",
       "helmet",
-      "shoulders",
+      "torso",
       "gloves",
-      "belt",
-      "tassets",
-      "knees",
+      "pants",
       "boots",
       "weapon"
     ],
     "mago": [
-      "underlayer",
-      "torso",
       "helmet",
+      "torso",
       "gloves",
-      "belt",
+      "pants",
       "boots",
-      "weapon",
-      "shield"
+      "weapon"
     ],
     "picaro": [
-      "underlayer",
-      "torso",
       "helmet",
+      "torso",
       "gloves",
-      "belt",
-      "tassets",
-      "knees",
+      "pants",
       "boots",
       "weapon"
     ]
@@ -2374,15 +2696,10 @@
     "guerrero": {
       "tipoArmadura": "pesada",
       "ranuras": [
-        "underlayer",
-        "torso",
         "helmet",
-        "shoulders",
+        "torso",
         "gloves",
-        "belt",
-        "tassets",
-        "cuisses",
-        "knees",
+        "pants",
         "boots",
         "weapon",
         "shield"
@@ -2406,20 +2723,17 @@
       ],
       "armaInicialFamilia": "legado",
       "inicial": {
-        "underlayer": 2
+        "torso": 1,
+        "shield": 1
       }
     },
     "cazador": {
       "tipoArmadura": "ligera",
       "ranuras": [
-        "underlayer",
-        "torso",
         "helmet",
-        "shoulders",
+        "torso",
         "gloves",
-        "belt",
-        "tassets",
-        "knees",
+        "pants",
         "boots",
         "weapon"
       ],
@@ -2436,24 +2750,20 @@
       ],
       "armaInicialFamilia": "arco",
       "inicial": {
-        "underlayer": 1
+        "torso": 2
       }
     },
     "mago": {
       "tipoArmadura": "mago",
       "ranuras": [
-        "underlayer",
-        "torso",
         "helmet",
+        "torso",
         "gloves",
-        "belt",
+        "pants",
         "boots",
-        "weapon",
-        "shield"
+        "weapon"
       ],
-      "ranurasFuturas": [
-        "shoulders"
-      ],
+      "ranurasFuturas": [],
       "familiasArma": [
         "baculo",
         "cetro"
@@ -2463,19 +2773,16 @@
       ],
       "armaInicialFamilia": "baculo",
       "inicial": {
-        "underlayer": 1
+        "torso": 21
       }
     },
     "picaro": {
       "tipoArmadura": "ligera",
       "ranuras": [
-        "underlayer",
-        "torso",
         "helmet",
+        "torso",
         "gloves",
-        "belt",
-        "tassets",
-        "knees",
+        "pants",
         "boots",
         "weapon"
       ],
@@ -2490,7 +2797,7 @@
       ],
       "armaInicialFamilia": "daga",
       "inicial": {
-        "underlayer": 1
+        "torso": 2
       }
     }
   }

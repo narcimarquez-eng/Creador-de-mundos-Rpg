@@ -301,9 +301,10 @@
     return h;
   }
 
-  // Tipo de objeto: un arma con «Escudo» en el nombre es un escudo; el resto de armas son armas
+  // Tipo de objeto: ranura shield o arma legada con «Escudo» en el nombre es un escudo; el resto de armas son armas
   function tipoDe(obj) {
-    if (obj.ranura === 'weapon') return /Escudo/i.test(obj.nombre) ? 'escudo' : 'arma';
+    if (obj && obj.ranura === 'shield') return 'escudo';
+    if (obj && obj.ranura === 'weapon') return /Escudo/i.test(obj.nombre) ? 'escudo' : 'arma';
     return 'armadura';
   }
 
@@ -841,7 +842,10 @@
     equipados.forEach(obj => {
       if (obj.defensa) defensaArmadura += obj.defensa;
       if (obj.ataque) ataqueArma += obj.ataque;
-      if (tipoDe(obj) === 'escudo') s.bloqueo += 0.15 * (obj.estado || 1);
+      if (tipoDe(obj) === 'escudo') {
+        const blk = (typeof obj.bloqueo === 'number' && isFinite(obj.bloqueo)) ? obj.bloqueo : (0.15 * (obj.estado || 1));
+        s.bloqueo += blk;
+      }
       especialesDe(obj).forEach(e => {
         Object.keys(e.efecto).forEach(k => {
           if (k === 'critico') s.critico += e.efecto[k];
@@ -884,9 +888,15 @@
   // Texto de las estadísticas y especiales de un objeto, para el panel
   function ficha(obj) {
     const lineas = [];
-    if (obj.ataque) lineas.push('Ataque ' + obj.ataque);
+    if (obj.ataque) {
+      const manosTxt = obj.manos === 2 ? ' (2 manos)' : (obj.manos === 1 ? ' (1 mano)' : '');
+      lineas.push('Ataque ' + obj.ataque + manosTxt);
+    }
     if (obj.defensa) lineas.push('Defensa ' + obj.defensa);
-    if (tipoDe(obj) === 'escudo') lineas.push('Bloqueo ' + Math.round(15 * (obj.estado || 1)) + ' %');
+    if (tipoDe(obj) === 'escudo') {
+      const blk = (typeof obj.bloqueo === 'number' && isFinite(obj.bloqueo)) ? obj.bloqueo : (0.15 * (obj.estado || 1));
+      lineas.push('Bloqueo ' + Math.round(blk * 100) + ' %');
+    }
     const especiales = especialesDe(obj).map(e => ({ nombre: e.nombre, texto: efectoTexto(e.efecto) }));
     return { tipo: tipoDe(obj), lineas, especiales };
   }

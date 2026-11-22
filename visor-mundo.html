@@ -2364,7 +2364,7 @@
   <script defer src="js/casa-madera.js?v=20261114e"></script>
   <script defer src="js/lagos.js?v=20261114a"></script>
   <script src="js/relieve-zona.js?v=20261114a"></script>
-  <script defer src="js/equipo.js?v=20261119d"></script>
+  <script defer src="js/equipo.js?v=20261122a"></script>
   <script defer src="js/historia.js?v=20261119e"></script>
   <script defer src="js/mundo-campana.js?v=20261114c"></script>
   <script defer src="js/lugares-secretos.js?v=20261119c"></script>
@@ -2372,7 +2372,7 @@
   <script defer src="js/dungeon-generator.js?v=20261114w"></script>
   <script defer src="js/mazmorras.js?v=20261114c"></script>
   <script defer src="js/acompanante.js?v=20261120b"></script>
-  <script defer src="js/heroe.js?v=20261119e"></script>
+  <script defer src="js/heroe.js?v=20261122a"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
   <script defer src="js/mapa.js?v=20261121b"></script>
   <script defer src="js/ruta.js?v=20261119g"></script>
@@ -13694,6 +13694,9 @@
       PartidaLib.fijarRostroInmutable(personajeActual, personajeActual.rostro);
     }
     heroeEst = HeroeLib.limpiarHeroe(r.heroe);
+    if (personajeActual && typeof EquipoLib !== 'undefined' && typeof EquipoLib.migrarEquipoA5Piezas === 'function') {
+      EquipoLib.migrarEquipoA5Piezas(personajeActual, catalogoPiezas, heroeEst && heroeEst.subclase);
+    }
     if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
       HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(personajeActual), hero.level, claseHeroe());
     }
@@ -13703,7 +13706,15 @@
     aplicarStats();
     ruta = null;
     renderInvCard();
-    if (personajeActual) cargarCatalogoPiezas().catch(() => {});
+    if (personajeActual) {
+      cargarCatalogoPiezas().then(() => {
+        if (personajeActual && EquipoLib.migrarEquipoA5Piezas && EquipoLib.migrarEquipoA5Piezas(personajeActual, catalogoPiezas, heroeEst && heroeEst.subclase)) {
+          aplicarStats();
+          renderInvCard();
+          if ($('objetos') && $('objetos').classList.contains('show')) renderObjetos();
+        }
+      }).catch(() => {});
+    }
     if (personajeActual) {
       mostrarCuerpo(personajeActual).catch(() => {});
     }
@@ -14212,7 +14223,7 @@
   }
 
   // Caché persistente en IndexedDB del GLB exportado del héroe para cargar la partida al instante sin abrir el estudio
-  const DB_HEROE = 'rpg-heroe-glb-v4';
+  const DB_HEROE = 'rpg-heroe-glb-v5';
   let dbHeroePromesa = null;
   function abrirDbHeroe() {
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);
@@ -14239,7 +14250,7 @@
       r: pj.rostro ? { id: pj.rostro.id || '', g: pj.rostro.gender || 'hombre' } : null,
       f: pj.fit || {},
       h: pj.pelo || null,
-      e: EquipoLib.equipoPorIdx(pj)
+      e: EquipoLib.equipoPorIdx(pj, catalogoPiezas)
     });
   }
   async function leerModeloHeroeCache(clave) {
@@ -14375,7 +14386,7 @@
 
   async function cargarCatalogoPiezas() {
     if (!catalogoPiezas) {
-      const r = await fetch('estudio-armaduras/catalogo.json?v=20261121');
+      const r = await fetch('estudio-armaduras/catalogo.json?v=20261122a');
       if (!r.ok) throw new Error('No se pudo leer el catálogo de piezas');
       catalogoPiezas = await r.json();
     }
@@ -14634,7 +14645,7 @@
     const buffer = await pedirAlEstudio('cuerpo', {
       tipo: 'exportar-personaje',
       id: 'cuerpo',
-      equipo: EquipoLib.equipoPorIdx(pj),
+      equipo: EquipoLib.equipoPorIdx(pj, catalogoPiezas),
       claseArmadura,
       grado,
       armorLook,
@@ -14650,8 +14661,8 @@
     character.loadGLBBuffer(buffer, pj.nombre);
   }
 
-  // Tarjeta del inventario: dibujo del personaje con las piezas equipadas, equipo y huecos
-  const ZONA_NOMBRE = { underlayer: 'Cota', helmet: 'Casco', shoulders: 'Hombreras', torso: 'Torso', gloves: 'Guanteletes', belt: 'Cinturón', tassets: 'Escarcelas', cuisses: 'Musleras', knees: 'Rodilleras', boots: 'Botas', weapon: 'Arma', shield: 'Escudo' };
+  // Tarjeta del inventario: sistema unificado de 5 piezas de armadura + arma + escudo (1M · Tanque/Hacha 1M)
+  const ZONA_NOMBRE = { underlayer: 'Cota', helmet: 'Casco', shoulders: 'Hombreras', torso: 'Peto', gloves: 'Guantes', pants: 'Pantalones', belt: 'Cinturón', tassets: 'Escarcelas', cuisses: 'Musleras', knees: 'Rodilleras', boots: 'Botas', weapon: 'Arma', shield: 'Escudo' };
 
   // Dibujo esquemático: cada pieza equipada se pinta en su zona del cuerpo
   function dibujarPersonaje(pj, id = 'ic-doll') {
@@ -14659,8 +14670,8 @@
     g.clearRect(0, 0, c.width, c.height);
     const eq = {};
     Object.keys(pj.equipo).forEach(r => { const o = pj.inventario.find(x => x.uid === pj.equipo[r]); if (o) eq[r] = o; });
-    const metal = '#94a3b8', oro = '#fbbf24', tela = '#334155';
-    const color = (r, def) => eq[r] ? (r === 'weapon' ? oro : (r === 'underlayer' ? '#cbd5e1' : metal)) : def;
+    const metal = '#94a3b8', oro = '#fbbf24', azulEsc = '#38bdf8', tela = '#334155';
+    const color = (r, def) => eq[r] ? (r === 'weapon' ? oro : (r === 'shield' ? azulEsc : (r === 'underlayer' ? '#cbd5e1' : metal))) : def;
     const cuerpo = '#1e293b';
     g.lineWidth = 2;
     // Figura base
@@ -14670,18 +14681,24 @@
     g.fillRect(20, 48, 13, 58); g.fillRect(77, 48, 13, 58);                             // brazos
     g.fillRect(36, 108, 16, 74); g.fillRect(58, 108, 16, 74);                           // piernas
     g.fillRect(34, 182, 18, 10); g.fillRect(58, 182, 18, 10);                           // pies
-    // Piezas equipadas
+    // Piezas equipadas (5 piezas de armadura + arma + escudo)
+    g.fillStyle = color('underlayer', 'transparent'); if (eq.underlayer && !eq.torso) g.fillRect(40, 56, 30, 40);
     g.fillStyle = color('helmet', 'transparent'); if (eq.helmet) { g.beginPath(); g.arc(55, 22, 16, Math.PI, 0); g.fill(); }
-    g.fillStyle = color('shoulders', 'transparent'); if (eq.shoulders) { g.fillRect(16, 44, 20, 12); g.fillRect(74, 44, 20, 12); }
-    g.fillStyle = color('torso', 'transparent'); if (eq.torso) g.fillRect(36, 48, 38, 56);
-    g.fillStyle = color('underlayer', 'transparent'); if (eq.underlayer) g.fillRect(40, 56, 30, 40);
-    g.fillStyle = color('gloves', 'transparent'); if (eq.gloves) { g.fillRect(20, 102, 13, 10); g.fillRect(77, 102, 13, 10); }
-    g.fillStyle = color('belt', 'transparent'); if (eq.belt) g.fillRect(34, 104, 42, 6);
-    g.fillStyle = color('tassets', 'transparent'); if (eq.tassets) g.fillRect(36, 110, 38, 14);
-    g.fillStyle = color('cuisses', 'transparent'); if (eq.cuisses) { g.fillRect(36, 124, 16, 30); g.fillRect(58, 124, 16, 30); }
-    g.fillStyle = color('knees', 'transparent'); if (eq.knees) { g.fillRect(36, 156, 16, 8); g.fillRect(58, 156, 16, 8); }
-    g.fillStyle = color('boots', 'transparent'); if (eq.boots) { g.fillRect(34, 180, 18, 14); g.fillRect(58, 180, 18, 14); }
+    g.fillStyle = color('torso', 'transparent'); if (eq.torso) { g.fillRect(16, 44, 20, 12); g.fillRect(74, 44, 20, 12); g.fillRect(36, 48, 38, 56); }
+    g.fillStyle = color('shoulders', 'transparent'); if (eq.shoulders && !eq.torso) { g.fillRect(16, 44, 20, 12); g.fillRect(74, 44, 20, 12); }
+    g.fillStyle = color('gloves', 'transparent'); if (eq.gloves) { g.fillRect(20, 96, 13, 16); g.fillRect(77, 96, 13, 16); }
+    g.fillStyle = color('pants', 'transparent'); if (eq.pants) { g.fillRect(34, 104, 42, 14); g.fillRect(36, 118, 16, 42); g.fillRect(58, 118, 16, 42); }
+    g.fillStyle = color('belt', 'transparent'); if (eq.belt && !eq.pants) g.fillRect(34, 104, 42, 6);
+    g.fillStyle = color('tassets', 'transparent'); if (eq.tassets && !eq.pants) g.fillRect(36, 110, 38, 14);
+    g.fillStyle = color('cuisses', 'transparent'); if (eq.cuisses && !eq.pants) { g.fillRect(36, 124, 16, 30); g.fillRect(58, 124, 16, 30); }
+    g.fillStyle = color('knees', 'transparent'); if (eq.knees && !eq.pants) { g.fillRect(36, 156, 16, 8); g.fillRect(58, 156, 16, 8); }
+    g.fillStyle = color('boots', 'transparent'); if (eq.boots) { g.fillRect(34, 174, 18, 20); g.fillRect(58, 174, 18, 20); }
     if (eq.weapon) { g.strokeStyle = oro; g.beginPath(); g.moveTo(92, 110); g.lineTo(104, 30); g.stroke(); }
+    if (eq.shield) {
+      g.fillStyle = '#1e3a8a'; g.strokeStyle = azulEsc;
+      g.beginPath(); g.moveTo(6, 74); g.lineTo(24, 74); g.lineTo(23, 98); g.lineTo(15, 110); g.lineTo(7, 98); g.closePath();
+      g.fill(); g.stroke();
+    }
     g.strokeStyle = tela; g.strokeRect(0.5, 0.5, c.width - 1, c.height - 1);
   }
 
@@ -14737,6 +14754,15 @@
     } else if (ranura === 'boots') {
       inner = '<path d="M8 7 L13 7 L12 18 L15 20 L15 24 L6 24 L6 18 Z" fill="#78350f" stroke="#451a03" stroke-width="1.2"/><path d="M8 7 L13 7 L12.5 13 L7.5 13 Z" fill="#94a3b8" stroke="#334155" stroke-width="1"/><rect x="6" y="22" width="9" height="2.5" fill="#451a03"/>'
         + '<path d="M19 7 L24 7 L26 18 L26 24 L17 24 L17 20 L20 18 Z" fill="#78350f" stroke="#451a03" stroke-width="1.2"/><path d="M19 7 L24 7 L24.5 13 L19.5 13 Z" fill="#94a3b8" stroke="#334155" stroke-width="1"/><rect x="17" y="22" width="9" height="2.5" fill="#451a03"/>';
+    } else if (ranura === 'shield') {
+      inner = '<path d="M7 5 L25 5 L24 17 C24 23, 16 28, 16 29 C16 28, 8 23, 8 17 Z" fill="#1e3a8a" stroke="#38bdf8" stroke-width="1.5"/>'
+        + '<path d="M16 7 L16 26 M9 14 L23 14" stroke="#fbbf24" stroke-width="1.6"/>'
+        + '<circle cx="16" cy="14" r="2.2" fill="#fde047"/>';
+    } else if (ranura === 'pants') {
+      inner = '<rect x="7" y="5" width="18" height="4" rx="1" fill="#78350f" stroke="#f59e0b" stroke-width="1"/>'
+        + '<path d="M8 9 L15 9 L14 27 L8 27 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>'
+        + '<path d="M17 9 L24 9 L24 27 L18 27 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>'
+        + '<circle cx="11" cy="20" r="1.8" fill="#f59e0b"/><circle cx="21" cy="20" r="1.8" fill="#f59e0b"/>';
     } else if (ranura === 'underlayer') {
       inner = '<path d="M10 6 L14 5 L16 8 L18 5 L22 6 L27 12 L23 15 L21 13 L21 26 L11 26 L11 13 L9 15 L5 12 Z" fill="#64748b" stroke="#334155" stroke-width="1.2"/>'
         + '<line x1="13" y1="12" x2="19" y2="12" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/><line x1="12" y1="16" x2="20" y2="16" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/><line x1="12" y1="20" x2="20" y2="20" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/><line x1="13" y1="24" x2="19" y2="24" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5,1.5"/>';
@@ -14773,10 +14799,22 @@
     dibujarPersonaje(pj);
     const equipados = new Set(Object.values(pj.equipo));
     $('ic-huecos').textContent = pj.inventario.length + '/' + EquipoLib.CAPACIDAD;
-    $('ic-equip').innerHTML = Object.keys(pj.equipo).map(r => {
-      const o = pj.inventario.find(x => x.uid === pj.equipo[r]);
-      return o ? `<div>${ZONA_NOMBRE[r] || r}: <b>${esc(o.nombre)}</b></div>` : '';
-    }).join('') || '<span class="muted">Sin equipo</span>';
+    const subActual = heroeEst && heroeEst.subclase;
+    const shPermitido = EquipoLib.puedeUsarEscudo ? EquipoLib.puedeUsarEscudo(pj, catalogoPiezas, subActual) : { ok: true, motivo: '' };
+    const armaObj = pj.equipo && pj.equipo.weapon ? pj.inventario.find(x => x.uid === pj.equipo.weapon) : null;
+    const ranuras5 = ['helmet', 'torso', 'gloves', 'pants', 'boots'];
+    const equipLineas = ranuras5.map(r => {
+      const o = pj.equipo && pj.equipo[r] ? pj.inventario.find(x => x.uid === pj.equipo[r]) : null;
+      return `<div>${ZONA_NOMBRE[r]}: ${o ? `<b>${esc(o.nombre)}</b>` : '<span class="muted">— vacío —</span>'}</div>`;
+    });
+    const yaManos = armaObj && /\((?:1M|2M)\)/i.test(armaObj.nombre || '');
+    const manosArmaTxt = (armaObj && !yaManos) ? ` <span class="muted">(${EquipoLib.manosDeArma(armaObj, catalogoPiezas) === 2 ? '2M' : '1M'})</span>` : '';
+    equipLineas.push(`<div>${ZONA_NOMBRE.weapon}: ${armaObj ? `<b>${esc(armaObj.nombre)}</b>${manosArmaTxt}` : '<span class="muted">— vacío —</span>'}</div>`);
+    const shObj = pj.equipo && pj.equipo.shield ? pj.inventario.find(x => x.uid === pj.equipo.shield) : null;
+    equipLineas.push(`<div>${ZONA_NOMBRE.shield}: ${shObj
+      ? `<b>${esc(shObj.nombre)}</b> <span style="color:#38bdf8">(${Math.round(((shObj.bloqueo != null ? shObj.bloqueo : 0.15 * (shObj.estado || 1))) * 100)}% bloq)</span>`
+      : (shPermitido.ok ? '<span class="muted">— vacío (1M) —</span>' : `<span class="muted">🔒 ${esc(shPermitido.motivo)}</span>`)}</div>`);
+    $('ic-equip').innerHTML = equipLineas.join('');
 
     let celdas = '';
     for (let i = 0; i < EquipoLib.CAPACIDAD; i++) {
@@ -14787,7 +14825,7 @@
       }
       const esEq = equipados.has(o.uid);
       const esHoja = o.tipo === 'hoja' || /^hoja/i.test(o.nombre);
-      const stat = o.ataque ? `Atq +${o.ataque}` : (o.defensa ? `Def +${o.defensa}` : '');
+      const stat = o.ataque ? `Atq +${o.ataque}` : (o.bloqueo ? `Def +${o.defensa || 0} · Bloq ${Math.round(o.bloqueo * 100)}%` : (o.defensa ? `Def +${o.defensa}` : ''));
       const desc = `${o.nombre}\nNivel ${o.nivel} · ${ZONA_NOMBRE[o.ranura] || o.ranura || (esHoja ? 'Plano' : '')}${stat ? ' · ' + stat : ''}${o.estado != null ? ' · Estado ' + Math.round(o.estado * 100) + '%' : ''}${esEq ? '\n[EQUIPADO]' : ''}`;
       celdas += `<div class="cell lleno ${esEq ? 'eq' : ''} ${esHoja ? 'hoja' : ''}" data-ver="${esc(o.uid)}" title="${esc(desc)}">`
         + (esEq ? '<span class="cell-eq">E</span>' : '')
@@ -14825,20 +14863,29 @@
     renderInvCard();
     if (!pj) { $('obj-lista').innerHTML = '<div class="muted">Esta partida no tiene personaje.</div>'; return; }
     const equipados = new Set(Object.values(pj.equipo));
+    const subActual = heroeEst && heroeEst.subclase;
+    const chkEscudo = EquipoLib.puedeUsarEscudo ? EquipoLib.puedeUsarEscudo(pj, catalogoPiezas, subActual) : { ok: true, motivo: '' };
     $('obj-huecos').textContent = pj.inventario.length + ' / ' + EquipoLib.CAPACIDAD + ' huecos · arena ' + (inv.arena || 0) + ' 🧱';
     $('obj-lista').innerHTML = pj.inventario.map(o => {
-      const stat = o.ataque ? 'ataque ' + o.ataque : (o.defensa ? 'defensa ' + o.defensa : '');
+      const manosTxt = o.ranura === 'weapon' ? (EquipoLib.manosDeArma(o, catalogoPiezas) === 2 ? ' · 2 manos' : ' · 1 mano') : '';
+      const bloqTxt = (o.ranura === 'shield' && o.bloqueo) ? ` · bloq ${Math.round(o.bloqueo * 100)}%` : '';
+      const stat = (o.ataque ? 'ataque ' + o.ataque : (o.defensa ? 'defensa ' + o.defensa : '')) + bloqTxt;
       const esEq = equipados.has(o.uid);
-      const accion = esEq ? '<span class="muted">✅ equipado</span>'
+      let eqBtn = '';
+      if (o.nivel > hero.level) eqBtn = `<span class="muted">🔒 nivel ${o.nivel}</span>`;
+      else if (o.ranura === 'shield' && !chkEscudo.ok) eqBtn = `<span class="muted" title="${esc(chkEscudo.motivo)}">🔒 ${esc(chkEscudo.motivo)}</span>`;
+      else eqBtn = `<button data-equipar="${esc(o.uid)}">Equipar</button>`;
+      const accion = esEq
+        ? '<span class="muted">✅ equipado</span>' + (o.ranura !== 'weapon' ? ` <button data-desequipar="${esc(o.ranura)}" title="Quitar pieza">Quitar</button>` : '')
         : o.tipo === 'hoja' ? '<span class="muted">📜 forja en el herrero</span>'
-        : (o.nivel <= hero.level ? `<button data-equipar="${esc(o.uid)}">Equipar</button>` : `<span class="muted">🔒 nivel ${o.nivel}</span>`)
+        : eqBtn
           + ` <button data-dar-rowan="${esc(o.uid)}" title="Transferir al inventario de Rowan">🤝 Rowan</button>`
           + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
           + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
       return `<div class="slot ${esEq ? 'eq' : ''}" data-uid="${esc(o.uid)}">
         <div class="item-thumb" title="${esc(o.nombre)}">${iconoItemSvg(o, 30)}</div>
         <div class="info"><b>${badgeGradoHtml(o)}${esc(o.nombre)}</b>
-        <span class="muted">${esc(ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : ''))} · nivel ${o.nivel} · estado ${Math.round((o.estado != null ? o.estado : 1) * 100)}%${stat ? ' · ' + stat : ''}</span></div>
+        <span class="muted">${esc(ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : ''))}${manosTxt} · nivel ${o.nivel} · estado ${Math.round((o.estado != null ? o.estado : 1) * 100)}%${stat ? ' · ' + stat : ''}</span></div>
         ${accion}
       </div>`;
     }).join('') || '<div class="muted">No tienes objetos.</div>';
@@ -14876,17 +14923,34 @@
       }
       return;
     }
+    const deq = e.target.closest('button[data-desequipar]');
+    if (deq) {
+      const ran = deq.dataset.desequipar;
+      if (EquipoLib.desequipar && EquipoLib.desequipar(personajeActual, ran)) {
+        aplicarStats();
+        renderObjetos();
+        if ($('heroe') && $('heroe').classList.contains('show')) renderHeroe();
+        if (typeof updateHud === 'function') updateHud(performance.now());
+        if (typeof saveActive === 'function') saveActive(true);
+        toast('Pieza desequipada');
+        await mostrarCuerpo(personajeActual);
+      }
+      return;
+    }
     const b = e.target.closest('button[data-equipar]');
     if (!b) return;
     try {
       const uidEq = b.dataset.equipar;
       const objEq = EquipoLib.objeto(personajeActual, uidEq);
-      EquipoLib.equipar(personajeActual, uidEq, hero.level, catalogoPiezas);
+      const optsEq = { subclase: heroeEst && heroeEst.subclase };
+      EquipoLib.equipar(personajeActual, uidEq, hero.level, catalogoPiezas, optsEq);
       if (objEq && objEq.ranura === 'weapon' && typeof HeroeLib.sincronizarBarraConArma === 'function') {
         const clsArma = claseArmaDelHeroe(personajeActual);
         HeroeLib.sincronizarBarraConArma(heroeEst, clsArma, hero.level, claseHeroe());
         const nomArma = (HeroeLib.NOMBRES_CLASE_ARMA && HeroeLib.NOMBRES_CLASE_ARMA[clsArma]) || clsArma;
-        toast('⚔️ Barra sincronizada con habilidades de ' + nomArma);
+        toast(optsEq.escudoDesequipado
+          ? ('⚔️ Barra sincronizada con ' + nomArma + ' · 🛡️ Escudo desequipado: ' + optsEq.escudoDesequipado)
+          : ('⚔️ Barra sincronizada con habilidades de ' + nomArma));
       } else {
         toast('Equipado');
       }
@@ -15293,8 +15357,21 @@
     const esub = e.target.closest('button[data-elegir-subclase]');
     if (esub) accionNpc(() => {
       const sub = HeroeLib.elegirSubclase(heroeEst, esub.dataset.elegirSubclase, hero.level, claseHeroe());
+      let escQuitado = '';
+      if (pj && pj.equipo && pj.equipo.shield && EquipoLib.puedeUsarEscudo) {
+        const chkSh = EquipoLib.puedeUsarEscudo(pj, catalogoPiezas, sub.id);
+        if (!chkSh.ok) {
+          EquipoLib.desequipar ? EquipoLib.desequipar(pj, 'shield') : delete pj.equipo.shield;
+          escQuitado = chkSh.motivo;
+        }
+      }
       aplicarStats();
-      toast('🌟 ¡Especialización desbloqueada: ' + sub.icono + ' ' + sub.nombre + '!');
+      renderObjetos();
+      renderInvCard();
+      if (escQuitado) mostrarCuerpo(pj);
+      toast(escQuitado
+        ? ('🌟 ' + sub.icono + ' ' + sub.nombre + ' · 🛡️ Escudo desequipado: ' + escQuitado)
+        : ('🌟 ¡Especialización desbloqueada: ' + sub.icono + ' ' + sub.nombre + '!'));
     });
     const rs = e.target.closest('button[data-respec-heroe]');
     if (rs) accionNpc(() => {
@@ -15309,7 +15386,7 @@
         accionNpc(() => {
           HeroeLib.reiniciarPuntos(heroeEst);
           HeroeLib.aplicarBarraDeClase(heroeEst, nuevaClase);
-          const arma = EquipoLib.asegurarArmaDeClase(pj, catalogoPiezas, nuevaClase, hero.level);
+          const arma = EquipoLib.asegurarArmaDeClase(pj, catalogoPiezas, nuevaClase, hero.level, heroeEst && heroeEst.subclase);
           if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
             HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), hero.level, nuevaClase);
           }
@@ -16187,7 +16264,7 @@
       await cargarCatalogoPiezas();
       const obj = EquipoLib.forjarPiezaBasica(pj, catalogoPiezas, ranura, Math.random);
       if (obj) {
-        EquipoLib.equipar(pj, obj.uid, hero.level, catalogoPiezas);
+        EquipoLib.equipar(pj, obj.uid, hero.level, catalogoPiezas, { subclase: heroeEst && heroeEst.subclase });
         aplicarStats();
         renderObjetos();
         renderInvCard();
