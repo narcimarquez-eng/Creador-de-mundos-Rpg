@@ -1218,9 +1218,15 @@
         hero.deadUntil = 0;
         hero.hp = hero.maxHp || 250;
         if (typeof hero.maxMp === 'number') hero.mp = hero.maxMp;
-        if (this.ctx.acompanante && this.ctx.acompanante.debilitado) {
-          this.ctx.acompanante.debilitado = false;
-          this.ctx.acompanante.hp = this.ctx.acompanante.maxHp || 180;
+        if (this.ctx.acompanante && (this.ctx.acompanante.debilitado || this.ctx.acompanante.inconsciente)) {
+          if (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.revivirAcompanante === 'function') {
+            AcompananteLib.revivirAcompanante(this.ctx.acompanante, 1.0);
+          } else {
+            this.ctx.acompanante.debilitado = false;
+            this.ctx.acompanante.inconsciente = false;
+            this.ctx.acompanante.hp = this.ctx.acompanante.maxHp || 180;
+            if (this.ctx.acompanante.estado === 'debilitado') this.ctx.acompanante.estado = 'idle';
+          }
         }
       }
 

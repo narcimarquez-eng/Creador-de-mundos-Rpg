@@ -281,11 +281,36 @@ t('sistema de 5 piezas (helmet, torso, gloves, pants, boots) + expansión pants 
   assert.strictEqual(idx.knees, pantsPz.subpiezas.knees);
   assert.strictEqual(idx.shoulders, 0, 'Hombreras integradas en el peto');
 
-  // Historia Cap 1 ('belt') y Cap 6 ('shoulders') traducen al sistema de 5 piezas
+  // Historia Cap 1 ('belt' legado) y Cap 6 ('shoulders' legado) traducen al sistema de 5 piezas
   const forjaPants = E.forjarPiezaBasica(g, cat, 'belt', () => 0);
   assert.strictEqual(forjaPants.ranura, 'pants');
   const forjaTorso = E.forjarPiezaBasica(g, cat, 'shoulders', () => 0);
   assert.strictEqual(forjaTorso.ranura, 'torso');
+
+  // Progresión de historia de 5 piezas con nivelHeroe: completa set D_1 en huecos vacíos, mejora torso si hay nivel y templa al 100 %
+  for (const cls of ['guerrero', 'cazador', 'mago', 'picaro']) {
+    const pj = E.crearPersonaje(cat, cls, cls);
+    const setInicial = E.objeto(pj, pj.equipo.torso).setId;
+    for (const [slot, nv] of [['pants', 1], ['boots', 2], ['gloves', 3], ['helmet', 4]]) {
+      const o = E.forjarPiezaBasica(pj, cat, slot, () => 0, { nivelHeroe: nv });
+      assert.strictEqual(o.ranura, slot);
+      assert.strictEqual(o.setId, setInicial, `${cls} completa su set inicial ${setInicial} en ${slot}`);
+      assert.ok(o.nivel <= nv);
+      E.equipar(pj, o.uid, nv, cat);
+    }
+    const torsoMejora = E.forjarPiezaBasica(pj, cat, 'torso', () => 0, { nivelHeroe: 4 });
+    assert.strictEqual(torsoMejora.ranura, 'torso');
+    assert.ok(torsoMejora.nivel > 1 && torsoMejora.nivel <= 4, `${cls} recibe mejora de torso en Cap 4`);
+    E.equipar(pj, torsoMejora.uid, 4, cat);
+
+    const armaCap7 = E.forjarPiezaBasica(pj, cat, 'weapon', () => 0, { nivelHeroe: 8 });
+    assert.strictEqual(armaCap7.ranura, 'weapon');
+    assert.ok(armaCap7.nivel <= 8 && armaCap7.nivel >= 1);
+
+    const templadas = E.templarArmaduraEquipada(pj, cat);
+    assert.strictEqual(templadas.length, 5, `${cls} tiene 5 piezas de armadura templables`);
+    templadas.forEach(pz => assert.strictEqual(pz.estado, 1));
+  }
 });
 
 t('regla del escudo: solo 1M para guerreros tanques y quien usa hacha de una mano', () => {

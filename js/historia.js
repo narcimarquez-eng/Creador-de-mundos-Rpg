@@ -14,11 +14,11 @@
   // {lugar} es el nombre del objetivo (zona, pueblo, NPC o lugar secreto) y {n} la cantidad.
   const CAPITULOS = [
     {
-      id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Pieles de caza y el primer cinturón',
-      encargo: 'El Herrero Brann tose sangre sobre el yunque tras la emboscada: «¡Nos han tendido una trampa! Esas aberraciones con injertos de metal venían a silenciar mi forja. Rowan, sácale de aquí antes de que la guardia cierre la empalizada. Id a {lugar} y abated a {n} de esas criaturas alteradas; traedme sus correas de cuero y placas de hierro para forjar tu primer cinturón reforzado antes de que nos cacen».',
-      texto: 'Rowan y tú regresáis cubiertos de ceniza y fango. Brann remacha la hebilla de bronce con manos temblorosas y te entrega el cinturón: «Entre los restos de esas bestias había un sello de bronce de los Sabios de la plaza... La plaga no es salvaje: alguien la está fabricando en secreto desde dentro de nuestras propias murallas». Has forjado tu primer cinturón básico.',
+      id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'Pieles de caza y los pantalones reforzados',
+      encargo: 'El Herrero Brann tose sangre sobre el yunque tras la emboscada: «¡Nos han tendido una trampa! Esas aberraciones con injertos de metal venían a silenciar mi forja. Rowan, sácale de aquí antes de que la guardia cierre la empalizada. Id a {lugar} y abated a {n} de esas criaturas alteradas; traedme sus correas de cuero y placas de pierna para forjar tus primeros pantalones reforzados antes de que nos cacen».',
+      texto: 'Rowan y tú regresáis cubiertos de ceniza y fango. Brann remacha las correas, escarcelas y protecciones de pierna con manos temblorosas y te entrega tus nuevos pantalones reforzados: «Entre los restos de esas bestias había un sello de bronce de los Sabios de la plaza... La plaga no es salvaje: alguien la está fabricando en secreto desde dentro de nuestras propias murallas». Has forjado la primera pieza de tu conjunto de cinco piezas.',
       mision: { tipo: 'matar', cantidad: 8, nivel: 1 },
-      recompensa: { puntos: 1, forjarPieza: 'belt', desbloquea: 'acompanante' }
+      recompensa: { puntos: 1, forjarPieza: 'pants', desbloquea: 'acompanante' }
     },
     {
       id: 'c2', nivel: 1, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'El camino agreste y las botas de marcha',
@@ -37,23 +37,23 @@
     {
       id: 'c4', nivel: 4, sabio: 'Viejo Tamsin', npc: 'guru-4', titulo: 'Planchas de caparazón y el peto de acero',
       encargo: 'El Viejo Tamsin te intercepta en la penumbra de la taberna: «La fundición clandestina de {lugar} devora a los aldeanos secuestrados. Destrozad a {n} autómatas de caparazón blindado allí y traedme sus resistentes placas pectorales; os enseñaré a partir la tierra antes de que sea tarde». Rowan y tú marcháis al asalto.',
-      texto: 'Con las duras planchas de caparazón recogidas tras el combate, Brann martilla un sólido peto sobre el yunque. Tamsin sonríe con amargura y os enseña a canalizar la fuerza al golpear el suelo: ¡has desbloqueado el impacto sísmico (Q) y equipado tu nuevo peto! Pero una proyección espectral de Elara os advierte: cada golpe alimenta el despertar subterráneo.',
+      texto: 'Con las duras planchas de caparazón recogidas tras el combate, Brann martilla sobre el yunque un sólido peto con hombreras integradas. Tamsin sonríe con amargura y os enseña a canalizar la fuerza al golpear el suelo: ¡has desbloqueado el impacto sísmico (Q) y equipado tu nuevo peto! Pero una proyección espectral de Elara os advierte: cada golpe alimenta el despertar subterráneo.',
       mision: { tipo: 'matar', cantidad: 18, nivel: 4 },
       recompensa: { puntos: 2, forjarPieza: 'torso', desbloquea: 'sismo' }
     },
     {
       id: 'c5', nivel: 4, sabio: 'Erudita Mirel', npc: 'guru-5', titulo: 'Astas de hueso y el yelmo protector',
       encargo: 'La Erudita Mirel os observa con frialdad analítica: «Los susurros del Óxido penetran por los oídos descubiertos. Si queréis conservar la cordura, cazad a {n} criaturas corrompidas en {lugar} y recolectad sus astas óseas para blindar vuestra cabeza contra la telepatía de los Siete».',
-      texto: 'Brann encaja los refuerzos óseos en una corona de hierro acolchada. Al colocarte el yelmo sientes cómo el zumbido mental de los Sabios se amortigua al instante. Tu cabeza queda protegida de los golpes y la influencia oculta.',
+      texto: 'Brann encaja los refuerzos óseos en una corona de hierro acolchada. Al colocarte el yelmo sientes cómo el zumbido mental de los Sabios se amortigua al instante: con esta quinta pieza queda completo tu conjunto de armadura forjado por Brann.',
       mision: { tipo: 'matar', cantidad: 20, nivel: 4 },
       recompensa: { puntos: 2, forjarPieza: 'helmet' }
     },
     {
-      id: 'c6', nivel: 5, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'La fuente arcana y las hombreras benditas',
-      encargo: 'Elara finge colaborar entregándoos un vial vacío: «Para que vuestras hombreras soporten las cuchillas de los verdugos debéis templar las placas en la mística {lugar}». Rowan desconfía: «Es una trampa o el laboratorio donde extraen su elixir. Vayamos armados hasta los dientes».',
-      texto: 'Al pie de la fuente arcana sumergís las hombreras forjadas en sus aguas luminiscentes. Las placas absorben el fulgor místico, dotándolas de una resistencia prodigiosa para proteger vuestros hombros. En el fondo del agua descubrís jaulas sumergidas con el emblema de la Corona.',
+      id: 'c6', nivel: 5, sabio: 'Sabia Elara', npc: 'guru-1', titulo: 'La fuente arcana y el templado del conjunto',
+      encargo: 'Elara finge colaborar entregándoos un vial vacío: «Para que vuestra armadura soporte las cuchillas de los verdugos debéis templar sus cinco piezas en la mística {lugar}». Rowan desconfía: «Es una trampa o el laboratorio donde extraen su elixir. Vayamos armados hasta los dientes».',
+      texto: 'Al pie de la fuente arcana sumergís vuestra armadura de cinco piezas en sus aguas luminiscentes. El agua mística templa las cinco piezas al máximo esplendor y resistencia. En el fondo descubrís jaulas sumergidas con el emblema de la Corona.',
       mision: { tipo: 'secreto', secreto: 'fuente' },
-      recompensa: { puntos: 3, forjarPieza: 'shoulders' }
+      recompensa: { puntos: 3, templarArmadura: true }
     },
     {
       id: 'c7', nivel: 8, sabio: 'Maestro Oren', npc: 'guru-2', titulo: 'Mineral salvaje y la forja del arma',
@@ -347,7 +347,7 @@
       numero: 1,
       id: 'acto-1',
       nombre: 'Acto I · Emboscada y Forja Clandestina',
-      resumen: 'Huidos tras el ataque a Brann, tú y Rowan recogéis piezas en la caza para forjar equipo sin depender del monopolio de los Sabios.',
+      resumen: 'Huidos tras el ataque a Brann, tú y Rowan recogéis materiales en la caza para forjar las cinco piezas de tu armadura sin depender del monopolio de los Sabios.',
       desdePaso: 0,
       hastaPaso: 4
     },
@@ -355,7 +355,7 @@
       numero: 2,
       id: 'acto-2',
       nombre: 'Acto II · Reliquias y Poder Antiguo',
-      resumen: 'Templas tu armadura en la Fuente Arcana, despiertas la Nova de los reyes antiguos y hallas el diario que incrimina a los Sabios.',
+      resumen: 'Templas tu armadura de cinco piezas en la Fuente Arcana, despiertas la Nova de los reyes antiguos y hallas el diario que incrimina a los Sabios.',
       desdePaso: 5,
       hastaPaso: 9
     },
@@ -377,43 +377,45 @@
     }
   ];
 
+  function normalizarRanuraHistoria(ranura) {
+    if (ranura === 'belt' || ranura === 'tassets' || ranura === 'cuisses' || ranura === 'knees') return 'pants';
+    if (ranura === 'shoulders') return 'torso';
+    return ranura;
+  }
+
   // Materiales narrativos que explican por qué cada capítulo de caza alimenta la forja de Brann
   const MATERIALES_FORJA = {
-    belt: 'correas de cuero y placas de hierro',
+    pants: 'correas de cuero y placas de pierna',
     boots: 'tendones y cuero de marcha',
     gloves: 'garras y escamas acorazadas',
     torso: 'planchas de caparazón blindado',
     helmet: 'astas óseas anti-telepatía',
-    shoulders: 'hombreras templadas en agua arcana',
     weapon: 'hierro salvaje de veta pura'
   };
 
   const MATERIALES_FORJA_CLASE = {
     mago: {
-      belt: 'hebras rúnicas y broches de bronce',
+      pants: 'hebras rúnicas y broches de faldón',
       boots: 'cuero fino y runas de paso',
       gloves: 'seda canalizadora y esquirlas arcanas',
       torso: 'cristales de éter y tejido denso',
       helmet: 'diadema ósea anti-telepatía',
-      shoulders: 'hombreras ligeras grabadas al éter',
       weapon: 'madera fósil y núcleo de maná'
     },
     cazador: {
-      belt: 'pieles curtidas y correas flexibles',
+      pants: 'pieles curtidas y correas de calzas',
       boots: 'suela silenciosa y tendones ágiles',
       gloves: 'cuero de presa y refuerzo ligero',
       torso: 'cuero endurecido y escamas ligeras',
       helmet: 'capucha forrada anti-telepatía',
-      shoulders: 'hombreras ágiles templadas',
       weapon: 'acero ligero y veta de tejo'
     },
     picaro: {
-      belt: 'pieles oscuras y hebillas silenciosas',
+      pants: 'pieles oscuras y hebillas de calzas',
       boots: 'suela de sigilo y tendones ágiles',
       gloves: 'cuero fino y remaches ligeros',
       torso: 'brigantina ligera de sombras',
       helmet: 'capucha forrada anti-telepatía',
-      shoulders: 'hombreras compactas de asalto',
       weapon: 'acero templado de filo fino'
     }
   };
@@ -421,42 +423,38 @@
   const FORJA_POR_CLASE = {
     guerrero: {
       nombreClase: 'Guerrero',
-      belt: 'Cinturón de Placas',
-      boots: 'Grebas y Botas de Marcha',
+      pants: 'Grebas y Escarcelas',
+      boots: 'Escarpes y Botas de Marcha',
       gloves: 'Guanteletes de Combate',
       torso: 'Peto de Placas',
       helmet: 'Yelmo de Acero',
-      shoulders: 'Hombreras de Vanguardia',
       weapon: 'Arma de Acero'
     },
     cazador: {
       nombreClase: 'Cazador',
-      belt: 'Cinturón de Rastreador',
-      boots: 'Botas de Senda',
-      gloves: 'Guantes de Tirador',
+      pants: 'Calzas Reforzadas',
+      boots: 'Botas de Caza',
+      gloves: 'Brazales de Tirador',
       torso: 'Jubón de Cuero Reforzado',
       helmet: 'Capucha de Explorador',
-      shoulders: 'Hombreras de Caza',
       weapon: 'Arco de Caza'
     },
     mago: {
       nombreClase: 'Mago',
-      belt: 'Fajín Rúnico',
-      boots: 'Botas de Erudito',
-      gloves: 'Brazales Arcanos',
+      pants: 'Faldón de Túnica',
+      boots: 'Calzado Ritual',
+      gloves: 'Mangas y Guantes Arcanos',
       torso: 'Túnica Arcana',
-      helmet: 'Tiara / Capucha Rúnica',
-      shoulders: 'Manto de Runas',
+      helmet: 'Diadema / Tiara Arcana',
       weapon: 'Báculo Arcano'
     },
     picaro: {
       nombreClase: 'Pícaro',
-      belt: 'Cinturón de Sombras',
+      pants: 'Calzas de Sombras',
       boots: 'Botas Silenciosas',
-      gloves: 'Mitones Reforzados',
+      gloves: 'Brazales de Sombras',
       torso: 'Coraza Ligera de Sombras',
       helmet: 'Capucha de Asesino',
-      shoulders: 'Hombreras Ligeras',
       weapon: 'Daga Templada'
     }
   };
@@ -464,7 +462,8 @@
   function textoForjaClase(ranura, clase = 'guerrero') {
     const cKey = FORJA_POR_CLASE[clase] ? clase : 'guerrero';
     const tabla = FORJA_POR_CLASE[cKey];
-    const nombrePieza = tabla[ranura] || 'Pieza de Equipo';
+    const ranuraNorm = normalizarRanuraHistoria(ranura);
+    const nombrePieza = tabla[ranuraNorm] || 'Pieza de Equipo';
     let fraseBrann;
     if (cKey === 'mago') {
       fraseBrann = `«¡Estas hebras e ingredientes de éter son oro puro para tu oficio de Mago! Cosamos los broches en el yunque y grabemos las runas para entregarte tu ${nombrePieza}.»`;
@@ -474,7 +473,7 @@
       fraseBrann = `«¡Has traído las pieles y el hierro necesarios! Calentemos la fragua y martillemos sin descanso para forjar tu ${nombrePieza}.»`;
     }
     const premioTexto = ` · 🔨 forja de ${nombrePieza} (${tabla.nombreClase})`;
-    return { ranura, clase: cKey, nombreClase: tabla.nombreClase, nombrePieza, fraseBrann, premioTexto };
+    return { ranura: ranuraNorm, clase: cKey, nombreClase: tabla.nombreClase, nombrePieza, fraseBrann, premioTexto };
   }
 
   function actoActual(p, world) {
@@ -504,7 +503,7 @@
 
   function materialDeCapitulo(cap, clase = null) {
     if (!cap || !cap.recompensa || !cap.recompensa.forjarPieza) return null;
-    const ranura = cap.recompensa.forjarPieza;
+    const ranura = normalizarRanuraHistoria(cap.recompensa.forjarPieza);
     if (clase && MATERIALES_FORJA_CLASE[clase] && MATERIALES_FORJA_CLASE[clase][ranura]) {
       return MATERIALES_FORJA_CLASE[clase][ranura];
     }
@@ -794,11 +793,11 @@
     const capitulos = [
       {
         id: 'c1', nivel: 1, sabio: 'Sabia Elara', npc: 'guru-1',
-        titulo: `Cenizas en ${pIni.name} y el primer cinturón`,
-        encargo: `El Herrero Brann tose sangre sobre el yunque de ${pIni.name} tras la emboscada: «¡Nos han tendido una trampa en nuestras propias murallas! Id a {lugar} y abated a {n} criaturas alteradas; traedme sus correas de cuero y placas de hierro para forjar tu cinturón antes de que la guardia cierre las puertas».`,
-        texto: `Regresas de {lugar} cubierto de hollín. Brann remacha la hebilla del cinturón y señala el sello hallado entre los despojos: «Alguien en ${pIni.name} está forjando monstruos con hierro militar».`,
+        titulo: `Cenizas en ${pIni.name} y los pantalones reforzados`,
+        encargo: `El Herrero Brann tose sangre sobre el yunque de ${pIni.name} tras la emboscada: «¡Nos han tendido una trampa en nuestras propias murallas! Id a {lugar} y abated a {n} criaturas alteradas; traedme sus correas de cuero y placas de pierna para forjar tus pantalones reforzados antes de que la guardia cierre las puertas».`,
+        texto: `Regresas de {lugar} cubierto de hollín. Brann remacha tus pantalones reforzados y señala el sello hallado entre los despojos: «Alguien en ${pIni.name} está forjando monstruos con hierro militar».`,
         mision: { tipo: 'matar', cantidad: 8, nivel: (z1 && z1.levelMin) || 1, zona: z1 && z1.id },
-        recompensa: { puntos: 1, forjarPieza: 'belt', desbloquea: 'acompanante' }
+        recompensa: { puntos: 1, forjarPieza: 'pants', desbloquea: 'acompanante' }
       },
       {
         id: 'c2', nivel: (z2 && z2.levelMin) || 2, sabio: 'Maestro Oren', npc: 'guru-2',
@@ -820,7 +819,7 @@
         id: 'c4', nivel: (z4 && z4.levelMin) || 6, sabio: 'Viejo Tamsin', npc: 'guru-4',
         titulo: `El cerco de ${nZ(3)} y el peto de acero`,
         encargo: `El Viejo Tamsin señala hacia ${nZ(3)}: «Los capataces del cónclave esconden sus remesas tras los muros de {lugar}.${labMsg(z4)}Destroza a {n} guardianes allí y trae sus placas para forjar tu peto; te enseñaré a partir la tierra con Impacto Sísmico (Q)».`,
-        texto: `Con las planchas recogidas en {lugar}, Brann martilla un peto macizo y Tamsin despierta en tu brazo el Impacto Sísmico (Q).`,
+        texto: `Con las planchas recogidas en {lugar}, Brann martilla un peto macizo con hombreras integradas y Tamsin despierta en tu brazo el Impacto Sísmico (Q).`,
         mision: { tipo: 'matar', cantidad: 18, nivel: (z4 && z4.levelMin) || 6, zona: idZ(3) },
         recompensa: { puntos: 2, forjarPieza: 'torso', desbloquea: 'sismo' }
       },
@@ -828,17 +827,17 @@
         id: 'c5', nivel: (z5 && z5.levelMin) || 8, sabio: 'Erudita Mirel', npc: 'guru-5',
         titulo: 'Susurros en la bruma y el yelmo protector',
         encargo: `La Erudita Mirel examina los mapas de ${pMid.name}: «Las emanaciones cercanas a {lugar} doblan la voluntad de los viajeros. Abate a {n} criaturas allí para recolectar refuerzos óseos con los que sellar tu yelmo».`,
-        texto: `Al ajustar el yelmo forjado con piezas de {lugar}, las voces telepáticas del cónclave se apagan al instante. Estás listo para seguir su rastro hacia los santuarios ocultos.`,
+        texto: `Al ajustar el yelmo forjado con piezas de {lugar}, las voces telepáticas del cónclave se apagan al instante y completas las cinco piezas de tu armadura. Estás listo para seguir su rastro hacia los santuarios ocultos.`,
         mision: { tipo: 'matar', cantidad: 20, nivel: (z5 && z5.levelMin) || 8, zona: idZ(4) },
         recompensa: { puntos: 2, forjarPieza: 'helmet' }
       },
       {
         id: 'c6', nivel: 9, sabio: 'Sabia Elara', npc: 'guru-1',
-        titulo: 'La fuente arcana y las hombreras templadas',
-        encargo: `Elara te entrega un mapa cifrado hacia {lugar}: «Sumerge tus placas de hombro en la fuente luminiscente para resistir el acero rúnico, pero mantente alerta: el agua guarda secretos de la Corona».`,
-        texto: `En {lugar}, las hombreras absorben un fulgor azulado indestructible. Bajo la superficie descubres jaulas selladas con emblemas idénticos a los de las patrullas corruptas.`,
+        titulo: 'La fuente arcana y la armadura templada',
+        encargo: `Elara te entrega un mapa cifrado hacia {lugar}: «Sumerge tu armadura de cinco piezas en la fuente luminiscente para resistir el acero rúnico, pero mantente alerta: el agua guarda secretos de la Corona».`,
+        texto: `En {lugar}, las cinco piezas de tu armadura absorben un fulgor azulado indestructible. Bajo la superficie descubres jaulas selladas con emblemas idénticos a los de las patrullas corruptas.`,
         mision: { tipo: 'secreto', secreto: 'fuente', secretoId: secFuente && secFuente.id },
-        recompensa: { puntos: 3, forjarPieza: 'shoulders' }
+        recompensa: { puntos: 3, templarArmadura: true }
       },
       {
         id: 'c7', nivel: (z6 && z6.levelMin) || 10, sabio: 'Maestro Oren', npc: 'guru-2',
@@ -926,13 +925,13 @@
       {
         numero: 1, id: 'acto-1',
         nombre: `Acto I · Asedio en ${pIni.name} y Forja Clandestina`,
-        resumen: `Tras la emboscada en ${pIni.name}, reúnes cuero, tendones, garras y acero desde ${nZ(0)} hasta ${nZ(4)} para equiparte sin el permiso del cónclave.`,
+        resumen: `Tras la emboscada en ${pIni.name}, reúnes materiales desde ${nZ(0)} hasta ${nZ(4)} para que Brann forje en secreto las cinco piezas de tu armadura sin el permiso del cónclave.`,
         desdePaso: 0, hastaPaso: 4
       },
       {
         numero: 2, id: 'acto-2',
         nombre: `Acto II · Savia, Laberintos y Secretos de ${nombreMundo}`,
-        resumen: `Templas tu armadura en la fuente arcana, despiertas la Explosión Nova y descubres las pruebas escritas de la conspiración entre ${p2.name} y ${pMid.name}.`,
+        resumen: `Templas tu armadura de cinco piezas en la fuente arcana, despiertas la Explosión Nova y descubres las pruebas escritas de la conspiración entre ${p2.name} y ${pMid.name}.`,
         desdePaso: 5, hastaPaso: 9
       },
       {
@@ -1152,7 +1151,7 @@
       id: 'd_c6_fuente',
       capitulo: 6,
       pregunta: 'Bajo las aguas luminiscentes yacen jaulas con el sello de la Corona llenas de aceite oscuro.',
-      contexto: 'Las hombreras ya están templadas; aún puedes decidir qué hacer con el hallazgo sumergido.',
+      contexto: 'Tu armadura de cinco piezas ya está templada; aún puedes decidir qué hacer con el hallazgo sumergido.',
       opciones: [
         {
           id: 'liberar',
@@ -1701,7 +1700,7 @@
           ? '«Con las fraguas abiertas y medio consejo acorralado, cada paso nos acerca al juicio final.»'
           : (acto.numero === 2
             ? '«Entre fuentes arcanas y diarios ocultos, el cerco de mentiras de Elara se agrieta.»'
-            : '«Brann confió en nosotros al darnos aquel primer cinturón. No le fallaremos.»'));
+            : '«Brann confió en nosotros desde la primera pieza que forjó en la fragua. No le fallaremos.»'));
       return {
         hablante: comp,
         icono: '🥾',
@@ -1881,10 +1880,10 @@
       tipo: 'fuente',
       titulo: 'Templado en la Fuente Arcana',
       pasos: [
-        { id: 'sumergir', dx: 0, dz: 2.6, icono: '⛲', etiqueta: 'Sumergir las placas en la Fuente' }
+        { id: 'sumergir', dx: 0, dz: 2.6, icono: '⛲', etiqueta: 'Sumergir la armadura en la Fuente' }
       ],
       emboscada: { cantidad: 2, nombre: 'Inquisidor de la Fuente', nivelMin: 5 },
-      textoFin: 'Las hombreras absorben el fulgor arcano tras repeler a los inquisidores.'
+      textoFin: 'Tu armadura de cinco piezas absorbe el fulgor arcano tras repeler a los inquisidores.'
     };
   }
 
@@ -2407,6 +2406,57 @@
     };
   }
 
+  function migrarHistoriaA5Piezas(world) {
+    if (!world || !world.historia || !Array.isArray(world.historia.capitulos)) return false;
+    let cambiado = false;
+    world.historia.capitulos.forEach(c => {
+      if (!c || typeof c !== 'object' || !c.recompensa) return;
+      const fp = c.recompensa.forjarPieza;
+      if (fp === 'belt' || fp === 'tassets' || fp === 'cuisses' || fp === 'knees') {
+        c.recompensa.forjarPieza = 'pants';
+        if (typeof c.titulo === 'string') {
+          c.titulo = c.titulo.replace(/el primer cintur[oó]n/gi, 'los pantalones reforzados').replace(/cintur[oó]n/gi, 'pantalones');
+        }
+        if (typeof c.encargo === 'string') {
+          c.encargo = c.encargo
+            .replace(/placas de hierro para forjar tu primer cintur[oó]n reforzado/gi, 'placas de pierna para forjar tus primeros pantalones reforzados')
+            .replace(/placas de hierro para forjar tu cintur[oó]n/gi, 'placas de pierna para forjar tus pantalones reforzados')
+            .replace(/primer cintur[oó]n/gi, 'primeros pantalones reforzados')
+            .replace(/tu cintur[oó]n/gi, 'tus pantalones reforzados');
+        }
+        if (typeof c.texto === 'string') {
+          c.texto = c.texto
+            .replace(/remacha la hebilla del cintur[oó]n/gi, 'remacha tus pantalones reforzados')
+            .replace(/remacha la hebilla de bronce con manos temblorosas y te entrega el cintur[oó]n/gi, 'remacha las correas, escarcelas y protecciones de pierna con manos temblorosas y te entrega tus nuevos pantalones reforzados')
+            .replace(/tu primer cintur[oó]n b[aá]sico/gi, 'la primera pieza de tu conjunto de cinco piezas');
+        }
+        cambiado = true;
+      } else if (fp === 'shoulders') {
+        delete c.recompensa.forjarPieza;
+        c.recompensa.templarArmadura = true;
+        if (typeof c.titulo === 'string') {
+          c.titulo = c.titulo.replace(/las hombreras (templadas|benditas)/gi, 'la armadura templada');
+        }
+        if (typeof c.encargo === 'string') {
+          c.encargo = c.encargo
+            .replace(/tus placas de hombro/gi, 'tu armadura de cinco piezas')
+            .replace(/vuestras hombreras soporten las cuchillas de los verdugos deb[eé]is templar las placas/gi, 'vuestra armadura soporte las cuchillas de los verdugos debéis templar sus cinco piezas');
+        }
+        if (typeof c.texto === 'string') {
+          c.texto = c.texto
+            .replace(/las hombreras absorben/gi, 'las cinco piezas de tu armadura absorben')
+            .replace(/las hombreras forjadas/gi, 'vuestra armadura de cinco piezas');
+        }
+        cambiado = true;
+      }
+    });
+    if (Array.isArray(world.historia.actos) && world.historia.actos[0] && typeof world.historia.actos[0].resumen === 'string' && !world.historia.actos[0].resumen.includes('cinco piezas')) {
+      world.historia.actos[0].resumen = world.historia.actos[0].resumen.replace(/para equiparte sin el permiso/gi, 'para que Brann forje en secreto las cinco piezas de tu armadura sin el permiso');
+      cambiado = true;
+    }
+    return cambiado;
+  }
+
   const api = {
     CAPITULOS,
     ACTOS,
@@ -2423,6 +2473,7 @@
     dialogosDe,
     prologoDe,
     generarHistoriaParaMundo,
+    migrarHistoriaA5Piezas,
     nuevaPrincipal,
     terminada,
     capituloActual,

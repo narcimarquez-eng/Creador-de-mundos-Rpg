@@ -49,14 +49,14 @@ function cumplir(p, w) {
   return H.completar(p);
 }
 
-t('empieza de 0: capítulo 1, cazar criaturas nivel 1 para forjar cinturón, sin progreso', () => {
+t('empieza de 0: capítulo 1, cazar criaturas nivel 1 para forjar pantalones reforzados, sin progreso', () => {
   const p = H.nuevaPrincipal();
   const o = H.asegurarObjetivo(p, mundo());
   assert.strictEqual(p.paso, 0);
   assert.strictEqual(p.progreso, 0);
   assert.strictEqual(o.tipo, 'matar');
   assert.strictEqual(o.cantidad, 8);
-  assert.strictEqual(H.CAPITULOS[0].recompensa.forjarPieza, 'belt');
+  assert.strictEqual(H.CAPITULOS[0].recompensa.forjarPieza, 'pants');
 });
 
 t('uno a uno: lo que pide un capítulo futuro no cuenta hasta que llega su turno', () => {
@@ -71,15 +71,18 @@ t('uno a uno: lo que pide un capítulo futuro no cuenta hasta que llega su turno
   assert.strictEqual(H.registrar(p, { tipo: 'matar', zona: 'z1' }), true);
   const r = H.completar(p);
   assert.strictEqual(r.numero, 1);
-  assert.strictEqual(r.capitulo.titulo, 'Pieles de caza y el primer cinturón');
-  assert.strictEqual(r.recompensa.forjarPieza, 'belt');
+  assert.strictEqual(r.capitulo.titulo, 'Pieles de caza y los pantalones reforzados');
+  assert.strictEqual(r.recompensa.forjarPieza, 'pants');
   assert.strictEqual(p.paso, 1);
   assert.strictEqual(p.objetivo, null);
 });
 
-t('los primeros 7 capítulos otorgan las 7 piezas de equipo básico completo', () => {
-  const ranuras = H.CAPITULOS.slice(0, 7).map(c => c.recompensa.forjarPieza);
-  assert.deepStrictEqual(ranuras, ['belt', 'boots', 'gloves', 'torso', 'helmet', 'shoulders', 'weapon']);
+t('los primeros 7 capítulos otorgan las 5 piezas de armadura, su templado y el arma', () => {
+  const ranuras1a5 = H.CAPITULOS.slice(0, 5).map(c => c.recompensa.forjarPieza);
+  assert.deepStrictEqual(ranuras1a5, ['pants', 'boots', 'gloves', 'torso', 'helmet']);
+  assert.strictEqual(H.CAPITULOS[5].recompensa.templarArmadura, true);
+  assert.strictEqual(H.CAPITULOS[5].recompensa.forjarPieza, undefined);
+  assert.strictEqual(H.CAPITULOS[6].recompensa.forjarPieza, 'weapon');
 });
 
 t('cada capítulo nuevo empieza con su progreso a 0, aunque antes hubiera luchado', () => {
@@ -741,6 +744,35 @@ t('P4 historia: textoForjaClase, materialDeCapitulo y fraseContextualNpc se adap
   const npcSin = H.fraseContextualNpc('serv-herrero-t1', est, w, null);
   const npcMago = H.fraseContextualNpc('serv-herrero-t1', est, w, null, 'mago');
   assert.ok(npcMago.frase.length > npcSin.frase.length && npcMago.frase.includes('Mago'));
+
+  // Las 4 profesiones resuelven las 5 piezas + arma y traducen alias legados (belt -> pants, shoulders -> torso)
+  for (const cls of ['guerrero', 'cazador', 'mago', 'picaro']) {
+    for (const r of ['pants', 'boots', 'gloves', 'torso', 'helmet', 'weapon']) {
+      const f = H.textoForjaClase(r, cls);
+      assert.strictEqual(f.ranura, r);
+      assert.notStrictEqual(f.nombrePieza, 'Pieza de Equipo', `${cls}.${r} debe tener nombre específico`);
+    }
+    assert.strictEqual(H.textoForjaClase('belt', cls).ranura, 'pants');
+    assert.strictEqual(H.textoForjaClase('shoulders', cls).ranura, 'torso');
+  }
+});
+
+t('migrarHistoriaA5Piezas actualiza mundos guardados con belt/shoulders al sistema de 5 piezas', () => {
+  const wAntiguo = {
+    historia: {
+      actos: [{ numero: 1, resumen: 'Huidos, reúnes materiales para equiparte sin el permiso del consejo.' }],
+      capitulos: [
+        { id: 'c1', titulo: 'Cenizas y el primer cinturón', encargo: 'Traedme placas de hierro para forjar tu cinturón', texto: 'Brann remacha la hebilla del cinturón.', recompensa: { puntos: 1, forjarPieza: 'belt' } },
+        { id: 'c6', titulo: 'La fuente arcana y las hombreras templadas', encargo: 'Sumerge tus placas de hombro', texto: 'En {lugar}, las hombreras absorben luz.', recompensa: { puntos: 3, forjarPieza: 'shoulders' } }
+      ]
+    }
+  };
+  assert.strictEqual(H.migrarHistoriaA5Piezas(wAntiguo), true);
+  assert.strictEqual(wAntiguo.historia.capitulos[0].recompensa.forjarPieza, 'pants');
+  assert.ok(wAntiguo.historia.capitulos[0].titulo.includes('pantalones'));
+  assert.strictEqual(wAntiguo.historia.capitulos[1].recompensa.forjarPieza, undefined);
+  assert.strictEqual(wAntiguo.historia.capitulos[1].recompensa.templarArmadura, true);
+  assert.strictEqual(H.migrarHistoriaA5Piezas(wAntiguo), false, 'Segunda pasada es idempotente');
 });
 
 console.log(`\n${n} pruebas de la historia superadas.`);

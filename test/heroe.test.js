@@ -455,4 +455,14 @@ t('ranura shield: tipoDe devuelve escudo y estadisticas suma bloqueo real y defe
   assert.ok(s.defensa >= 20, 'estadisticas suma defensa del escudo');
 });
 
+t('forjaPendiente: nuevoHeroe la inicia en null y limpiarHeroe normaliza belt/shoulders a 5 piezas', () => {
+  const h = H.nuevoHeroe();
+  assert.strictEqual(h.forjaPendiente, null);
+  const leg = H.limpiarHeroe({ forjaPendiente: { ranura: 'belt', capIndex: 0, sabio: 'Sabia Elara', titulo: 'Cap 1' } });
+  assert.strictEqual(leg.forjaPendiente.ranura, 'pants');
+  const legSh = H.limpiarHeroe({ forjaPendiente: { ranura: 'shoulders', capIndex: 5 } });
+  assert.strictEqual(legSh.forjaPendiente.ranura, 'torso');
+  assert.strictEqual(H.limpiarHeroe({ forjaPendiente: { ranura: 'invalida' } }).forjaPendiente, null);
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

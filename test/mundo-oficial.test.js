@@ -83,6 +83,13 @@ t('la crónica oficial de Valdris resuelve 16 capítulos de principio a fin sin 
   const w = MundoOficial.clonar();
   assert.ok(w.historia && w.historia.titulo.includes('Valdris'));
   assert.strictEqual(w.historia.tituloFinal, 'Libertadores de Valdris');
+  assert.ok((w.campaignVersion || 1) >= 3, 'campaignVersion debe ser >= 3');
+  const capsHist = w.historia.capitulos;
+  assert.deepStrictEqual(capsHist.slice(0, 5).map(c => c.recompensa.forjarPieza), ['pants', 'boots', 'gloves', 'torso', 'helmet']);
+  assert.strictEqual(capsHist[5].recompensa.templarArmadura, true);
+  assert.strictEqual(capsHist[5].recompensa.forjarPieza, undefined);
+  assert.strictEqual(capsHist[6].recompensa.forjarPieza, 'weapon');
+  assert.ok(!capsHist.some(c => c.recompensa && (c.recompensa.forjarPieza === 'belt' || c.recompensa.forjarPieza === 'shoulders')));
 
   const p = H.nuevaPrincipal();
   let caps = 0;

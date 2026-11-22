@@ -6,8 +6,8 @@
   "seed": 271828,
   "rngState": 443490413,
   "nextId": 108,
-  "created": "2026-11-14T13:11:00.686Z",
-  "updated": "2026-11-14T13:11:00.686Z",
+  "created": "2026-11-22T21:16:02.883Z",
+  "updated": "2026-11-22T21:16:02.883Z",
   "settings": {
     "townCount": 7,
     "spacing": 1400,
@@ -3609,13 +3609,14 @@
   ],
   "id": "valdris-sol-quebrado-v1",
   "campaignId": "valdris-sol-quebrado-v1",
-  "campaignVersion": 2,
+  "campaignVersion": 3,
   "secretPlaces": [
     {
       "id": "cabana-1-clasica",
       "tipo": "cabana",
       "nombre": "Cabaña de Troncos del Bosque",
       "aldeano": "Garek el Trampero",
+      "aldeanoModelo": "npc/aldeanos/cazador.glb",
       "frase": "Las bestias del bosque no dejan de proliferar. Despeja a 100 de ellas y te daré un generoso pago y equipo.",
       "modeloGLB": "glb/cabanas/cabana_1_troncos_clasica.glb",
       "esMar": false,
@@ -3647,6 +3648,19 @@
         "entregada": false,
         "cumplida": false,
         "completada": false,
+        "modalidad": null,
+        "faseActual": 1,
+        "cantidadFases": 15,
+        "rastroEncontrado": false,
+        "liderDerrotado": false,
+        "multiplicadorPremio": 1,
+        "rastroNombre": "Trampa Destrozada con Sello de Bronce",
+        "rastroLore": "El lazo de acero partido conserva el punzón de las fundiciones clandestinas.",
+        "liderNombre": "Colmillo de Ceniza",
+        "rastroOffset": {
+          "dx": 12.2,
+          "dz": -31.7
+        },
         "recompensa": {
           "oroMin": 1,
           "oroMax": 2000,
@@ -3664,6 +3678,7 @@
       "tipo": "cabana",
       "nombre": "Posada Solitaria del Sendero",
       "aldeano": "Borgan el Guardián del Paso",
+      "aldeanoModelo": "npc/aldeanos/tabernero.glb",
       "frase": "Los viajeros temen ser devorados por los caminos. Ayúdame abatiendo a 100 de esas criaturas.",
       "modeloGLB": "glb/cabanas/cabana_2_posada_dos_plantas.glb",
       "esMar": false,
@@ -3695,6 +3710,19 @@
         "entregada": false,
         "cumplida": false,
         "completada": false,
+        "modalidad": null,
+        "faseActual": 1,
+        "cantidadFases": 15,
+        "rastroEncontrado": false,
+        "liderDerrotado": false,
+        "multiplicadorPremio": 1,
+        "rastroNombre": "Carreta Volcada del Paso",
+        "rastroLore": "Rastros frescos de zarpas blindadas conducen al acecho del alfa de la ruta.",
+        "liderNombre": "Merodeador del Paso",
+        "rastroOffset": {
+          "dx": 27.4,
+          "dz": 5.8
+        },
         "recompensa": {
           "oroMin": 1,
           "oroMax": 2000,
@@ -3712,6 +3740,7 @@
       "tipo": "cabana",
       "nombre": "Cabaña de Pescador de la Costa",
       "aldeano": "Kyle el Pescador de Bajamar",
+      "aldeanoModelo": "npc/aldeanos/campesino.glb",
       "frase": "Las criaturas costeras asaltan las redes y la orilla. Acaba con 100 y compartiré los tesoros de la marea.",
       "modeloGLB": "glb/cabanas/cabana_3_pescador_pilotes.glb",
       "esMar": true,
@@ -3743,6 +3772,19 @@
         "entregada": false,
         "cumplida": false,
         "completada": false,
+        "modalidad": null,
+        "faseActual": 1,
+        "cantidadFases": 15,
+        "rastroEncontrado": false,
+        "liderDerrotado": false,
+        "multiplicadorPremio": 1,
+        "rastroNombre": "Jaula Sumergida Varada en la Orilla",
+        "rastroLore": "Los hierros traídos por la marea llevan el mismo sello que viste en la Fuente Arcana.",
+        "liderNombre": "Acechador de Bajamar",
+        "rastroOffset": {
+          "dx": -11.4,
+          "dz": -25.6
+        },
         "recompensa": {
           "oroMin": 1,
           "oroMax": 2000,
@@ -3760,6 +3802,7 @@
       "tipo": "cabana",
       "nombre": "Torre Vigía de la Avanzada",
       "aldeano": "Varek el Centinela del Alto",
+      "aldeanoModelo": "npc/aldeanos/lenador.glb",
       "frase": "Desde lo alto diviso manadas salvajes cercando el paso norte. Derrota a 100 antes de que avancen.",
       "modeloGLB": "glb/cabanas/cabana_4_torre_de_vigia.glb",
       "esMar": false,
@@ -3791,6 +3834,19 @@
         "entregada": false,
         "cumplida": false,
         "completada": false,
+        "modalidad": null,
+        "faseActual": 1,
+        "cantidadFases": 15,
+        "rastroEncontrado": false,
+        "liderDerrotado": false,
+        "multiplicadorPremio": 1,
+        "rastroNombre": "Estandarte Acorazado de la Avanzada",
+        "rastroLore": "El guion ensangrentado señala el punto donde aguarda el alfa de vanguardia.",
+        "liderNombre": "Acorazado de la Cumbre",
+        "rastroOffset": {
+          "dx": 26,
+          "dz": 20.3
+        },
         "recompensa": {
           "oroMin": 1,
           "oroMax": 2000,
@@ -3808,6 +3864,7 @@
       "tipo": "cabana",
       "nombre": "Cabaña Redonda del Erudito",
       "aldeano": "Olorin el Herbolario Silvano",
+      "aldeanoModelo": "npc/aldeanos/herbolario.glb",
       "frase": "Mis cultivos de raíces arcanas son pisoteados por las bestias. Elimina a 100 de ellas para proteger el bosque.",
       "modeloGLB": "glb/cabanas/cabana_5_redonda.glb",
       "esMar": false,
@@ -3839,6 +3896,19 @@
         "entregada": false,
         "cumplida": false,
         "completada": false,
+        "modalidad": null,
+        "faseActual": 1,
+        "cantidadFases": 15,
+        "rastroEncontrado": false,
+        "liderDerrotado": false,
+        "multiplicadorPremio": 1,
+        "rastroNombre": "Raíz Arcana Contaminada",
+        "rastroLore": "Savia negra brota entre los surcos alimentando a una criatura alfa mutada.",
+        "liderNombre": "Espora Corrupta Alfa",
+        "rastroOffset": {
+          "dx": -18.5,
+          "dz": -23.6
+        },
         "recompensa": {
           "oroMin": 1,
           "oroMax": 2000,
@@ -3893,7 +3963,7 @@
     "subtitulo": "Campaña épica de 4 Actos · Desde Albaferro hasta el Cráter del Sol Quebrado",
     "mundoNombre": "Valdris",
     "tituloFinal": "Libertadores de Valdris",
-    "generadaEn": "2026-11-14T13:11:00.760Z",
+    "generadaEn": "2026-11-22T21:16:03.020Z",
     "prologo": {
       "titulo": "🔥 Prólogo · La Emboscada en Albaferro",
       "parrafo1": "La noche cae sobre las murallas de <b>Albaferro</b>, puerta de entrada a <b>Valdris</b>. Mientras el <b>Herrero Brann</b> forja a escondidas del cónclave, un estruendo quiebra las vigas: bestias alteradas con placas de hierro remachadas irrumpen desde la oscuridad.",
@@ -3904,7 +3974,7 @@
         "numero": 1,
         "id": "acto-1",
         "nombre": "Acto I · Asedio en Albaferro y Forja Clandestina",
-        "resumen": "Tras la emboscada en Albaferro, reúnes cuero, tendones, garras y acero desde Prados del Yunque Roto hasta Marismas del Silencio para equiparte sin el permiso del cónclave.",
+        "resumen": "Tras la emboscada en Albaferro, reúnes materiales desde Prados del Yunque Roto hasta Marismas del Silencio para que Brann forje en secreto las cinco piezas de tu armadura sin el permiso del cónclave.",
         "desdePaso": 0,
         "hastaPaso": 4
       },
@@ -3912,7 +3982,7 @@
         "numero": 2,
         "id": "acto-2",
         "nombre": "Acto II · Savia, Laberintos y Secretos de Valdris",
-        "resumen": "Templas tu armadura en la fuente arcana, despiertas la Explosión Nova y descubres las pruebas escritas de la conspiración entre Puerto Brisal y Ámbar de Dunas.",
+        "resumen": "Templas tu armadura de cinco piezas en la fuente arcana, despiertas la Explosión Nova y descubres las pruebas escritas de la conspiración entre Puerto Brisal y Ámbar de Dunas.",
         "desdePaso": 5,
         "hastaPaso": 9
       },
@@ -3943,9 +4013,9 @@
         "nivel": 1,
         "sabio": "Sabia Elara",
         "npc": "guru-1",
-        "titulo": "Cenizas en Albaferro y el primer cinturón",
-        "encargo": "El Herrero Brann tose sangre sobre el yunque de Albaferro tras la emboscada: «¡Nos han tendido una trampa en nuestras propias murallas! Id a {lugar} y abated a {n} criaturas alteradas; traedme sus correas de cuero y placas de hierro para forjar tu cinturón antes de que la guardia cierre las puertas».",
-        "texto": "Regresas de {lugar} cubierto de hollín. Brann remacha la hebilla del cinturón y señala el sello hallado entre los despojos: «Alguien en Albaferro está forjando monstruos con hierro militar».",
+        "titulo": "Cenizas en Albaferro y los pantalones reforzados",
+        "encargo": "El Herrero Brann tose sangre sobre el yunque de Albaferro tras la emboscada: «¡Nos han tendido una trampa en nuestras propias murallas! Id a {lugar} y abated a {n} criaturas alteradas; traedme sus correas de cuero y placas de pierna para forjar tus pantalones reforzados antes de que la guardia cierre las puertas».",
+        "texto": "Regresas de {lugar} cubierto de hollín. Brann remacha tus pantalones reforzados y señala el sello hallado entre los despojos: «Alguien en Albaferro está forjando monstruos con hierro militar».",
         "mision": {
           "tipo": "matar",
           "cantidad": 8,
@@ -3954,7 +4024,7 @@
         },
         "recompensa": {
           "puntos": 1,
-          "forjarPieza": "belt",
+          "forjarPieza": "pants",
           "desbloquea": "acompanante"
         }
       },
@@ -4004,7 +4074,7 @@
         "npc": "guru-4",
         "titulo": "El cerco de Laberinto del Seto Maldito y el peto de acero",
         "encargo": "El Viejo Tamsin señala hacia Laberinto del Seto Maldito: «Los capataces del cónclave esconden sus remesas tras los muros de {lugar}. Adéntrate en el laberinto natural y Destroza a {n} guardianes allí y trae sus placas para forjar tu peto; te enseñaré a partir la tierra con Impacto Sísmico (Q)».",
-        "texto": "Con las planchas recogidas en {lugar}, Brann martilla un peto macizo y Tamsin despierta en tu brazo el Impacto Sísmico (Q).",
+        "texto": "Con las planchas recogidas en {lugar}, Brann martilla un peto macizo con hombreras integradas y Tamsin despierta en tu brazo el Impacto Sísmico (Q).",
         "mision": {
           "tipo": "matar",
           "cantidad": 18,
@@ -4024,7 +4094,7 @@
         "npc": "guru-5",
         "titulo": "Susurros en la bruma y el yelmo protector",
         "encargo": "La Erudita Mirel examina los mapas de Ámbar de Dunas: «Las emanaciones cercanas a {lugar} doblan la voluntad de los viajeros. Abate a {n} criaturas allí para recolectar refuerzos óseos con los que sellar tu yelmo».",
-        "texto": "Al ajustar el yelmo forjado con piezas de {lugar}, las voces telepáticas del cónclave se apagan al instante. Estás listo para seguir su rastro hacia los santuarios ocultos.",
+        "texto": "Al ajustar el yelmo forjado con piezas de {lugar}, las voces telepáticas del cónclave se apagan al instante y completas las cinco piezas de tu armadura. Estás listo para seguir su rastro hacia los santuarios ocultos.",
         "mision": {
           "tipo": "matar",
           "cantidad": 20,
@@ -4041,9 +4111,9 @@
         "nivel": 9,
         "sabio": "Sabia Elara",
         "npc": "guru-1",
-        "titulo": "La fuente arcana y las hombreras templadas",
-        "encargo": "Elara te entrega un mapa cifrado hacia {lugar}: «Sumerge tus placas de hombro en la fuente luminiscente para resistir el acero rúnico, pero mantente alerta: el agua guarda secretos de la Corona».",
-        "texto": "En {lugar}, las hombreras absorben un fulgor azulado indestructible. Bajo la superficie descubres jaulas selladas con emblemas idénticos a los de las patrullas corruptas.",
+        "titulo": "La fuente arcana y la armadura templada",
+        "encargo": "Elara te entrega un mapa cifrado hacia {lugar}: «Sumerge tu armadura de cinco piezas en la fuente luminiscente para resistir el acero rúnico, pero mantente alerta: el agua guarda secretos de la Corona».",
+        "texto": "En {lugar}, las cinco piezas de tu armadura absorben un fulgor azulado indestructible. Bajo la superficie descubres jaulas selladas con emblemas idénticos a los de las patrullas corruptas.",
         "mision": {
           "tipo": "secreto",
           "secreto": "fuente",
@@ -4051,7 +4121,7 @@
         },
         "recompensa": {
           "puntos": 3,
-          "forjarPieza": "shoulders"
+          "templarArmadura": true
         }
       },
       {

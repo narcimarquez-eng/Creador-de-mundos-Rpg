@@ -9,6 +9,12 @@
 (function (root) {
   "use strict";
 
+  let _ArmadurasLib = root && root.ArmadurasLib ? root.ArmadurasLib : null;
+  if (!_ArmadurasLib && typeof require === 'function') {
+    try { _ArmadurasLib = require('./armaduras.js'); } catch (e) { _ArmadurasLib = null; }
+  }
+  const getArmadurasLib = () => _ArmadurasLib || (root && root.ArmadurasLib) || null;
+
   const RANURAS_ARMADURA_5 = ['helmet', 'torso', 'gloves', 'pants', 'boots'];
   const RANURAS_PRINCIPALES = ['helmet', 'torso', 'gloves', 'pants', 'boots', 'weapon', 'shield'];
   const RANURAS = ['underlayer', 'helmet', 'shoulders', 'torso', 'gloves', 'pants', 'belt', 'tassets', 'cuisses', 'knees', 'boots', 'weapon', 'shield'];
@@ -155,9 +161,15 @@
     return ranura;
   }
 
-  // Estadísticas base de una pieza según su nivel y grado (D..SR)
+  // Estadísticas base de una pieza según su nivel, grado (D..SR) y clase de armadura
   function ataqueBase(pieza) { return Math.round((2 + 1.5 * pieza.nivel) * multGrado(pieza) * 10) / 10; }
-  function defensaBase(pieza) { return Math.round((1 + 0.5 * pieza.nivel) * multGrado(pieza) * 10) / 10; }
+  function defensaBase(pieza) {
+    const ArmLib = getArmadurasLib();
+    if (ArmLib && pieza && !esEscudo(pieza.ranura) && !esArma(pieza.ranura) && typeof pieza.tipoArmadura === 'string') {
+      return ArmLib.statsDePieza(pieza, 1).defensa;
+    }
+    return Math.round((1 + 0.5 * pieza.nivel) * multGrado(pieza) * 10) / 10;
+  }
 
   // Estado de 0 (malo) a 1 (perfecto). Un objeto malo rinde la mitad que uno perfecto.
   function factorEstado(estado) { return 0.5 + 0.5 * estado; }
@@ -223,7 +235,7 @@
     ranuras.forEach(r => {
       vistas.add(r);
       const compatibles = ((catalogo.ranuras && catalogo.ranuras[r]) || [])
-        .map(p => Object.assign({ ranura: r, id: r + '.' + p.idx }, p))
+        .map(p => Object.assign({ ranura: r, id: p.id || (r + '.' + p.idx) }, p))
         .filter(p => esPiezaCompatible(p, clase, catalogo));
       if (!esArma(r)) {
         const dedicadas = compatibles.filter(p => tieneTipoArmadura(p, tipoClase));
@@ -236,7 +248,7 @@
       perfil.ranurasFuturas.forEach(r => {
         if (vistas.has(r)) return;
         ((catalogo.ranuras && catalogo.ranuras[r]) || [])
-          .map(p => Object.assign({ ranura: r, id: r + '.' + p.idx }, p))
+          .map(p => Object.assign({ ranura: r, id: p.id || (r + '.' + p.idx) }, p))
           .filter(p => (p.tipoArmadura || Array.isArray(p.clases)) && esPiezaCompatible(p, clase, catalogo))
           .forEach(p => lista.push(p));
       });
@@ -257,6 +269,8 @@
     if (pieza.grado && GRADOS[pieza.grado]) obj.grado = pieza.grado;
     if (pieza.tipoArmadura) obj.tipoArmadura = pieza.tipoArmadura;
     if (pieza.armorLook != null) obj.armorLook = pieza.armorLook;
+    if (pieza.setId) obj.setId = pieza.setId;
+    if (pieza.setNombre) obj.setNombre = pieza.setNombre;
     if (pieza.familia) obj.familia = pieza.familia;
     if (pieza.claseArma) obj.claseArma = pieza.claseArma;
     if (pieza.subpiezas && typeof pieza.subpiezas === 'object') {
@@ -266,7 +280,16 @@
       obj.manos = manosDeArma(pieza);
       obj.ataque = Math.round(ataqueBase(pieza) * f * 10) / 10;
     } else {
-      obj.defensa = Math.round(defensaBase(pieza) * f * 10) / 10;
+      const ArmLib = getArmadurasLib();
+      if (ArmLib && !esEscudo(pieza.ranura) && (pieza.tipoArmadura || pieza.setId)) {
+        const stArm = ArmLib.statsDePieza(pieza, estado);
+        obj.defensa = stArm.defensa;
+        if (stArm.stats && Object.keys(stArm.stats).length) {
+          obj.statsArmadura = Object.assign({}, stArm.stats);
+        }
+      } else {
+        obj.defensa = Math.round(defensaBase(pieza) * f * 10) / 10;
+      }
       if (esEscudo(pieza.ranura)) {
         const blkBase = (typeof pieza.bloqueo === 'number' && isFinite(pieza.bloqueo))
           ? pieza.bloqueo
@@ -285,10 +308,12 @@
     const equipo = {};
     const iniciales = (perfil && perfil.inicial) || catalogo.inicial || {};
     const armorKeys = Object.keys(iniciales).filter(r => r !== 'shield');
+    const tipoInicial = tipoArmaduraDeClase(catalogo, clase);
     armorKeys.forEach(r => {
-      const pieza = todas.find(p => p.ranura === r && p.idx === iniciales[r])
+      const pieza = todas.find(p => p.ranura === r && p.idx === iniciales[r] && tieneTipoArmadura(p, tipoInicial))
+        || todas.find(p => p.ranura === r && p.idx === iniciales[r])
         || ((catalogo.ranuras && catalogo.ranuras[r]) || [])
-          .map(p => Object.assign({ ranura: r, id: r + '.' + p.idx }, p))
+          .map(p => Object.assign({ ranura: r, id: p.id || (r + '.' + p.idx) }, p))
           .find(p => p.idx === iniciales[r] && esPiezaCompatible(p, clase, catalogo));
       if (!pieza) return;
       const obj = instancia(pieza, 1);
@@ -333,8 +358,10 @@
       if (!o) return;
       out[r] = o.idx;
       if (r === 'pants' && o.idx > 0) {
-        const catPants = catalogo && catalogo.ranuras && Array.isArray(catalogo.ranuras.pants)
-          ? catalogo.ranuras.pants.find(p => p.idx === o.idx)
+        const listaPants = catalogo && catalogo.ranuras && Array.isArray(catalogo.ranuras.pants) ? catalogo.ranuras.pants : null;
+        const catPants = listaPants
+          ? (listaPants.find(p => (o.piezaId && (p.id === o.piezaId || ('pants.' + p.idx) === o.piezaId)) || (o.setId && p.setId === o.setId))
+            || listaPants.find(p => p.idx === o.idx))
           : null;
         const sub = o.subpiezas || (catPants && catPants.subpiezas) || PANTS_SUBPIEZAS[o.idx];
         if (sub) {
@@ -365,8 +392,10 @@
     if (nivelHeroe < o.nivel) throw new Error(o.nombre + ' requiere nivel ' + o.nivel);
     const subclase = (opts && opts.subclase) || null;
     if (catalogo && personaje.clase) {
-      const raw = ((catalogo.ranuras && catalogo.ranuras[o.ranura]) || []).find(p => p.idx === o.idx);
-      const pieza = raw ? Object.assign({ ranura: o.ranura, id: o.ranura + '.' + raw.idx }, raw) : { ranura: o.ranura, idx: o.idx, nombre: o.nombre, nivel: o.nivel, claseArma: o.claseArma, manos: o.manos };
+      const listaRanura = (catalogo.ranuras && catalogo.ranuras[o.ranura]) || [];
+      const raw = listaRanura.find(p => (o.piezaId && (p.id === o.piezaId || (o.ranura + '.' + p.idx) === o.piezaId)) || (o.setId && p.setId === o.setId))
+        || listaRanura.find(p => p.idx === o.idx);
+      const pieza = raw ? Object.assign({ ranura: o.ranura, id: raw.id || (o.ranura + '.' + raw.idx) }, raw) : { ranura: o.ranura, idx: o.idx, nombre: o.nombre, nivel: o.nivel, claseArma: o.claseArma, manos: o.manos, tipoArmadura: o.tipoArmadura, setId: o.setId };
       if (!esPiezaCompatible(pieza, personaje.clase, catalogo)) {
         throw new Error(o.nombre + ' no es compatible con tu profesión');
       }
@@ -468,32 +497,138 @@
     return hoja;
   }
 
-  // Herrero: forja una pieza básica de entrada (Grado D / nivel 1-2) para una ranura específica y la guarda en inventario.
-  function forjarPiezaBasica(personaje, catalogo, ranura, rnd = Math.random) {
+  function setDominanteEquipado(personaje) {
+    if (!personaje || !personaje.equipo) return null;
+    const conteo = {};
+    const orden = {};
+    RANURAS_ARMADURA_5.forEach((r, idx) => {
+      const uid = personaje.equipo[r];
+      if (!uid) return;
+      const o = objeto(personaje, uid);
+      if (!o || !o.setId) return;
+      conteo[o.setId] = (conteo[o.setId] || 0) + 1;
+      if (orden[o.setId] == null || r === 'torso') {
+        orden[o.setId] = r === 'torso' ? -1 : idx;
+      }
+    });
+    const ids = Object.keys(conteo);
+    if (!ids.length) return null;
+    ids.sort((a, b) => conteo[b] - conteo[a] || (orden[a] - orden[b]));
+    return ids[0];
+  }
+
+  // Herrero: forja una pieza básica de entrada (Grado D / nivel adecuado) para una ranura específica y la guarda en inventario.
+  function forjarPiezaBasica(personaje, catalogo, ranura, rnd = Math.random, opts = null) {
     const ranuraObj = normalizarRanura5(ranura, catalogo, personaje.clase);
+    const nivelHeroe = opts && isFinite(opts.nivelHeroe) ? Math.max(1, Math.floor(opts.nivelHeroe)) : null;
     const piezas = piezasDeClase(catalogo, personaje.clase);
-    let candidatas = piezas.filter(p => p.ranura === ranuraObj && (p.grado === 'D' || p.nivel <= 2) && p.nivel <= 7);
-    if (!candidatas.length) {
-      candidatas = piezas.filter(p => p.ranura === ranuraObj && p.nivel <= 2);
+    const perfil = perfilDeClase(catalogo, personaje.clase);
+    let candidatas = [];
+    let esRespaldo = false;
+
+    if (esArma(ranuraObj)) {
+      candidatas = piezas.filter(p => esArma(p.ranura));
+      if (nivelHeroe != null && candidatas.length) {
+        const maxTope = Math.min(nivelHeroe, 10);
+        const eqp = candidatas.filter(p => p.nivel <= maxTope);
+        if (eqp.length) {
+          const maxNv = Math.max(...eqp.map(p => p.nivel));
+          candidatas = eqp.filter(p => p.nivel === maxNv);
+        } else {
+          const minNv = Math.min(...candidatas.map(p => p.nivel));
+          candidatas = candidatas.filter(p => p.nivel === minNv);
+        }
+        const armaActual = personaje.equipo && personaje.equipo.weapon ? objeto(personaje, personaje.equipo.weapon) : null;
+        const famPref = (armaActual && armaActual.familia) || (perfil && perfil.armaInicialFamilia) || null;
+        if (famPref) {
+          const deFam = candidatas.filter(p => p.familia === famPref);
+          if (deFam.length) candidatas = deFam;
+        }
+      } else {
+        let basicas = candidatas.filter(p => (p.grado === 'D' || p.nivel <= 2) && p.nivel <= 7);
+        if (!basicas.length) basicas = candidatas.filter(p => p.nivel <= 2);
+        if (basicas.length) candidatas = basicas;
+      }
+    } else {
+      candidatas = piezas.filter(p => p.ranura === ranuraObj && (p.grado === 'D' || p.nivel <= 7));
+      if (!candidatas.length) candidatas = piezas.filter(p => p.ranura === ranuraObj);
+      if (!candidatas.length && !perfil) {
+        candidatas = ((catalogo.ranuras && catalogo.ranuras[ranuraObj]) || [])
+          .filter(p => p.nivel <= 2)
+          .map(p => Object.assign({ ranura: ranuraObj, id: ranuraObj + '.' + p.idx }, p));
+      }
+      if (!candidatas.length) {
+        candidatas = piezas.filter(p => !esArma(p.ranura) && !esEscudo(p.ranura) && (p.grado === 'D' || p.nivel <= 2));
+      }
+      if (!candidatas.length) {
+        candidatas = piezas.filter(p => !esArma(p.ranura) && !esEscudo(p.ranura));
+      }
+      if (!candidatas.length) return null;
+
+      if (nivelHeroe != null) {
+        const eqp = candidatas.filter(p => p.nivel <= nivelHeroe);
+        if (eqp.length) {
+          candidatas = eqp;
+        } else {
+          const minNv = Math.min(...candidatas.map(p => p.nivel));
+          candidatas = candidatas.filter(p => p.nivel === minNv);
+        }
+      }
+
+      const setDom = setDominanteEquipado(personaje);
+      const actualEq = personaje.equipo && personaje.equipo[ranuraObj] ? objeto(personaje, personaje.equipo[ranuraObj]) : null;
+      if (actualEq) {
+        const mejoras = candidatas.filter(p => p.nivel > actualEq.nivel);
+        if (mejoras.length) {
+          const sigNv = Math.min(...mejoras.map(p => p.nivel));
+          candidatas = mejoras.filter(p => p.nivel === sigNv);
+        } else {
+          esRespaldo = true;
+          if (setDom) {
+            const delSet = candidatas.filter(p => p.setId === setDom);
+            if (delSet.length) candidatas = delSet;
+          }
+        }
+      } else if (setDom) {
+        const delSet = candidatas.filter(p => p.setId === setDom);
+        if (delSet.length) candidatas = delSet;
+      } else if (nivelHeroe == null) {
+        const nv2 = candidatas.filter(p => p.nivel <= 2);
+        if (nv2.length) candidatas = nv2;
+      }
     }
-    if (!candidatas.length) {
-      candidatas = piezas.filter(p => p.ranura === ranuraObj);
-    }
-    if (!candidatas.length && !perfilDeClase(catalogo, personaje.clase)) {
-      candidatas = ((catalogo.ranuras && catalogo.ranuras[ranuraObj]) || []).filter(p => p.nivel <= 2).map(p => Object.assign({ ranura: ranuraObj, id: ranuraObj + '.' + p.idx }, p));
-    }
-    if (!candidatas.length) {
-      candidatas = piezas.filter(p => !esArma(p.ranura) && !esEscudo(p.ranura) && (p.grado === 'D' || p.nivel <= 2));
-    }
-    if (!candidatas.length) {
-      candidatas = piezas.filter(p => !esArma(p.ranura) && !esEscudo(p.ranura));
-    }
+
     if (!candidatas.length) return null;
     const pieza = candidatas[Math.floor(rnd() * candidatas.length)];
-    const calidad = Math.round((0.85 + rnd() * 0.15) * 100) / 100;
+    const calidad = esRespaldo ? 1 : Math.round((0.85 + rnd() * 0.15) * 100) / 100;
     const obj = instancia(pieza, calidad);
     guardar(personaje, obj);
     return obj;
+  }
+
+  // Templa al 100 % las piezas de armadura equipadas en el sistema de 5 piezas
+  function templarArmaduraEquipada(personaje, catalogo = null) {
+    if (!personaje || !personaje.equipo) return [];
+    const ArmLib = getArmadurasLib();
+    const templadas = [];
+    RANURAS_ARMADURA_5.forEach(r => {
+      const uid = personaje.equipo[r];
+      if (!uid) return;
+      const obj = objeto(personaje, uid);
+      if (!obj || esArma(obj.ranura) || esEscudo(obj.ranura)) return;
+      obj.estado = 1;
+      if (ArmLib && (obj.tipoArmadura || obj.setId)) {
+        const stArm = ArmLib.statsDePieza(obj, 1);
+        obj.defensa = stArm.defensa;
+        if (stArm.stats && Object.keys(stArm.stats).length) {
+          obj.statsArmadura = Object.assign({}, stArm.stats);
+        }
+      } else {
+        obj.defensa = Math.round(defensaBase(obj) * 10) / 10;
+      }
+      templadas.push(obj);
+    });
+    return templadas;
   }
 
   // Asegura un arma (y desequipar piezas incompatibles / escudo no permitido) al cambiar o inicializar profesión
@@ -504,8 +639,10 @@
       const uid = personaje.equipo[r];
       const obj = objeto(personaje, uid);
       if (!obj) { delete personaje.equipo[r]; return; }
-      const raw = ((catalogo.ranuras && catalogo.ranuras[obj.ranura]) || []).find(p => p.idx === obj.idx);
-      const pieza = raw ? Object.assign({ ranura: obj.ranura, id: obj.ranura + '.' + raw.idx }, raw) : obj;
+      const listaRan = (catalogo.ranuras && catalogo.ranuras[obj.ranura]) || [];
+      const raw = listaRan.find(p => (obj.piezaId && (p.id === obj.piezaId || (obj.ranura + '.' + p.idx) === obj.piezaId)) || (obj.setId && p.setId === obj.setId))
+        || listaRan.find(p => p.idx === obj.idx);
+      const pieza = raw ? Object.assign({ ranura: obj.ranura, id: raw.id || (obj.ranura + '.' + raw.idx) }, raw) : obj;
       if (!esPiezaCompatible(pieza, clase, catalogo)) delete personaje.equipo[r];
     });
     let armaActual = null;
@@ -654,7 +791,7 @@
     gradoDeNivel, gradoDePieza, claseArmaDePieza, manosDeArma, esGuerreroTanque, puedeUsarEscudo, normalizarRanura5,
     perfilDeClase, tipoArmaduraDeClase, esPiezaCompatible, asegurarArmaDeClase, migrarEquipoA5Piezas,
     piezasDeClase, instancia, crearPersonaje, objeto, equipoPorIdx, equipar, desequipar,
-    armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota, forjarPiezaBasica,
+    armasDeDrop, candidatasDrop, soltarPieza, fabricar, esCota, forjarPiezaBasica, templarArmaduraEquipada,
     soltarArena, soltarHoja, forjarConHoja, HOJA_NIVEL, ARENA_FORJA,
     llena, huecosLibres, piezasDeTienda, comprar, precioVenta, tirar, vender
   };

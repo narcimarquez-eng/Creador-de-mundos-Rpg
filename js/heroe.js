@@ -9,6 +9,12 @@
 (function (root) {
   "use strict";
 
+  let _ArmadurasLib = root && root.ArmadurasLib ? root.ArmadurasLib : null;
+  if (!_ArmadurasLib && typeof require === 'function') {
+    try { _ArmadurasLib = require('./armaduras.js'); } catch (e) { _ArmadurasLib = null; }
+  }
+  const getArmadurasLib = () => _ArmadurasLib || (root && root.ArmadurasLib) || null;
+
   const PUNTOS_KILLS = 20;   // cada 20 monstruos derrotados, 1 punto de lucha
 
   const CLASES_ARMA_DE_PROFESION = {
@@ -289,6 +295,27 @@
       { id: 'ligera', nombre: 'Ligera', efecto: { velocidad: 0.05 } },
       { id: 'espinas', nombre: 'Espinas', efecto: { reflejo: 0.05 } }
     ],
+    armadura_pesada: [
+      { id: 'acero', nombre: 'Piel de acero', efecto: { defensa: 0.10 } },
+      { id: 'vigia', nombre: 'Vigía', efecto: { vida: 18 } },
+      { id: 'espinas', nombre: 'Espinas', efecto: { reflejo: 0.05 } },
+      { id: 'bastion', nombre: 'Bastión firme', efecto: { reduccion: 0.03 } },
+      { id: 'bloqueo_pesado', nombre: 'Guardia de hierro', efecto: { bloqueo: 0.04 } }
+    ],
+    armadura_ligera: [
+      { id: 'paso_veloz', nombre: 'Paso veloz', efecto: { velocidad: 0.05 } },
+      { id: 'reflejos', nombre: 'Reflejos ágiles', efecto: { velocidadAtaque: 0.06 } },
+      { id: 'instinto', nombre: 'Instinto crítico', efecto: { critico: 0.04 } },
+      { id: 'esquiva_felina', nombre: 'Esquiva felina', efecto: { dodgeCdRed: 0.06 } },
+      { id: 'filo_toxico', nombre: 'Filo tóxico', efecto: { venenoMult: 0.10 } }
+    ],
+    armadura_mago: [
+      { id: 'fuente_arcana', nombre: 'Fuente arcana', efecto: { mana: 22 } },
+      { id: 'foco_elem', nombre: 'Foco elemental', efecto: { poderMagico: 5 } },
+      { id: 'flujo_etereo', nombre: 'Flujo etéreo', efecto: { mpRegenBonus: 0.14 } },
+      { id: 'barrera_runica', nombre: 'Barrera rúnica', efecto: { escudoBonusPct: 0.05 } },
+      { id: 'chispa_astral', nombre: 'Chispa astral', efecto: { critico: 0.04 } }
+    ],
     escudo: [
       { id: 'bloqueo', nombre: 'Bloqueo firme', efecto: { bloqueo: 0.05 } },
       { id: 'solar', nombre: 'Escudo solar', efecto: { vida: 10 } }
@@ -512,7 +539,11 @@
 
   // Especiales de un objeto: deterministas (no hace falta guardarlas)
   function especialesDe(obj) {
-    const lista = ESPECIALES[tipoDe(obj)];
+    const tipo = tipoDe(obj);
+    let lista = ESPECIALES[tipo];
+    if (tipo === 'armadura' && obj && typeof obj.tipoArmadura === 'string' && ESPECIALES['armadura_' + obj.tipoArmadura]) {
+      lista = ESPECIALES['armadura_' + obj.tipoArmadura];
+    }
     const n = Math.min(cantidadEspeciales(obj.nivel), lista.length);
     const h = hash(obj.piezaId || obj.nombre);
     const out = [];
@@ -528,12 +559,27 @@
       barrasPorArma: {}, armaClaseActual: null,
       subclase: null,
       principal: { paso: 0, progreso: 0, objetivo: null },
+      forjaPendiente: null,
       reputacion: { pueblo: 0, sombra: 0, vinculo: 0 },
       decisiones: {},
       finalId: null,
       dialogosVistos: {},
       hitosMundo: {},
       companeroMisiones: {} };
+  }
+
+  function limpiarForjaPendiente(fp) {
+    if (!fp || typeof fp !== 'object' || typeof fp.ranura !== 'string') return null;
+    let r = fp.ranura.trim();
+    if (r === 'belt' || r === 'tassets' || r === 'cuisses' || r === 'knees') r = 'pants';
+    else if (r === 'shoulders') r = 'torso';
+    if (!['helmet', 'torso', 'gloves', 'pants', 'boots', 'weapon'].includes(r)) return null;
+    return {
+      ranura: r,
+      capIndex: isFinite(fp.capIndex) && fp.capIndex >= 0 ? Math.floor(fp.capIndex) : 0,
+      sabio: typeof fp.sabio === 'string' ? fp.sabio.slice(0, 60) : '',
+      titulo: typeof fp.titulo === 'string' ? fp.titulo.slice(0, 100) : ''
+    };
   }
 
   // Sanea el estado guardado en una partida (campos desconocidos o dañados se descartan)
@@ -587,6 +633,7 @@
       base.principal.objetivo = limpiarObjetivo(pr.objetivo);
       base.principal.progreso = base.principal.objetivo ? Math.min(base.principal.objetivo.cantidad, num(pr.progreso)) : 0;
     }
+    base.forjaPendiente = limpiarForjaPendiente(h.forjaPendiente);
     // Reputación, decisiones narrativas, diálogos vistos y final elegido
     if (h.reputacion && typeof h.reputacion === 'object') {
       base.reputacion.pueblo = repNum(h.reputacion.pueblo);
@@ -838,7 +885,35 @@
       mult: {}   // daño de cada habilidad activa: +25 % por punto
     };
     Object.keys(HABILIDADES).forEach(id => { if (HABILIDADES[id].tipo === 'activa') s.mult[id] = 1 + 0.25 * (h.gastados[id] || 0); });
+    const ArmLib = getArmadurasLib();
     let defensaArmadura = 0, ataqueArma = 0;
+    let bonusReduccionArm = 0, bonusMpRegen = 0, bonusDodgeCdRed = 0;
+    const aplicarEfectoMap = ef => {
+      if (!ef || typeof ef !== 'object') return;
+      Object.keys(ef).forEach(k => {
+        const v = Number(ef[k]) || 0;
+        if (!v) return;
+        if (k === 'critico') s.critico += v;
+        else if (k === 'danio') s.danio += v;
+        else if (k === 'velocidadAtaque') s.velocidadAtaque += v;
+        else if (k === 'robo') s.robo += v;
+        else if (k === 'reflejo') s.reflejo += v;
+        else if (k === 'velocidad') s.velocidad += v;
+        else if (k === 'vida') s.vida += v;
+        else if (k === 'mana') s.maná += v;
+        else if (k === 'poderMagico') s.poderMagico += v;
+        else if (k === 'bloqueo') s.bloqueo += v;
+        else if (k === 'reduccion') bonusReduccionArm += v;
+        else if (k === 'mpRegenBonus') bonusMpRegen += v;
+        else if (k === 'dodgeCdRed') bonusDodgeCdRed += v;
+        else if (k === 'escudoBonusPct') s.escudoBonusPct += v;
+        else if (k === 'fuegoMult') s.fuegoMult += v;
+        else if (k === 'hieloMult') s.hieloMult += v;
+        else if (k === 'venenoMult') s.venenoMult += v;
+        else if (k === 'multSlowBonus') s.multSlowBonus += v;
+        else if (k === 'defensa' || k === 'defensaPct') defensaArmadura *= 1 + v;
+      });
+    };
     equipados.forEach(obj => {
       if (obj.defensa) defensaArmadura += obj.defensa;
       if (obj.ataque) ataqueArma += obj.ataque;
@@ -846,23 +921,24 @@
         const blk = (typeof obj.bloqueo === 'number' && isFinite(obj.bloqueo)) ? obj.bloqueo : (0.15 * (obj.estado || 1));
         s.bloqueo += blk;
       }
-      especialesDe(obj).forEach(e => {
-        Object.keys(e.efecto).forEach(k => {
-          if (k === 'critico') s.critico += e.efecto[k];
-          else if (k === 'danio') s.danio += e.efecto[k];
-          else if (k === 'velocidadAtaque') s.velocidadAtaque += e.efecto[k];
-          else if (k === 'robo') s.robo += e.efecto[k];
-          else if (k === 'reflejo') s.reflejo += e.efecto[k];
-          else if (k === 'velocidad') s.velocidad += e.efecto[k];
-          else if (k === 'vida') s.vida += e.efecto[k];
-          else if (k === 'bloqueo') s.bloqueo += e.efecto[k];
-          else if (k === 'defensa') defensaArmadura *= 1 + e.efecto[k];
-        });
-      });
+      if (tipoDe(obj) === 'armadura') {
+        const stArm = (obj.statsArmadura && typeof obj.statsArmadura === 'object')
+          ? obj.statsArmadura
+          : (ArmLib && (obj.setId || typeof obj.tipoArmadura === 'string') ? ArmLib.statsDePieza(obj, obj.estado == null ? 1 : obj.estado).stats : null);
+        if (stArm) aplicarEfectoMap(stArm);
+      }
+      especialesDe(obj).forEach(e => aplicarEfectoMap(e.efecto));
     });
+    const conj = ArmLib ? ArmLib.bonosDeConjuntos(equipados) : { sets: [], totales: {}, habilidadesActivas: [] };
+    aplicarEfectoMap(conj.totales);
+    s.armaduraSets = conj.sets;
+    s.habilidadesArmadura = conj.habilidadesActivas || [];
     s.ataque += ataqueArma;
+    s.poderMagico = Math.round(s.poderMagico * 10) / 10;
     s.defensa = Math.round(defensaArmadura * 10) / 10;
-    s.reduccion = Math.min(0.7, defensaArmadura / (defensaArmadura + 60) + 0.01 * pas('entereza') + 0.015 * pAcero + br.bonusDefensa + redBonus + (sb.reduccion || 0));
+    s.mpRegenMult = Math.round(s.mpRegenMult * (1 + bonusMpRegen) * 1000) / 1000;
+    s.dodgeCdMult = Math.max(0.5, Math.round(s.dodgeCdMult * Math.max(0.5, 1 - bonusDodgeCdRed) * 1000) / 1000);
+    s.reduccion = Math.min(0.7, defensaArmadura / (defensaArmadura + 60) + 0.01 * pas('entereza') + 0.015 * pAcero + br.bonusDefensa + redBonus + (sb.reduccion || 0) + bonusReduccionArm);
     s.bloqueo = Math.min(0.6, s.bloqueo);
     s.critico = Math.min(0.75, s.critico + br.bonusCritico + br.bonusCriticoFinal);
     return s;
@@ -870,6 +946,11 @@
 
   // Texto de un efecto de habilidad especial («+10 % de daño», «vida máxima +15», ...)
   function efectoTexto(efecto) {
+    const ArmLib = getArmadurasLib();
+    if (ArmLib && typeof ArmLib.efectoTexto === 'function') {
+      const txt = ArmLib.efectoTexto(efecto);
+      if (txt) return txt;
+    }
     const pct = v => Math.round(v * 100) + ' %';
     const frases = {
       critico: v => '+' + pct(v) + ' de crítico',
@@ -879,15 +960,27 @@
       reflejo: v => 'devuelve ' + pct(v) + ' del daño recibido',
       velocidad: v => '+' + pct(v) + ' de velocidad',
       vida: v => 'vida máxima +' + v,
+      mana: v => 'maná máximo +' + v,
+      poderMagico: v => '+' + v + ' Poder Mágico',
       bloqueo: v => '+' + pct(v) + ' de bloqueo',
-      defensa: v => '+' + pct(v) + ' de defensa'
+      reduccion: v => '+' + pct(v) + ' reducción de daño',
+      mpRegenBonus: v => '+' + pct(v) + ' regen de maná',
+      dodgeCdRed: v => '-' + pct(v) + ' recarga de esquiva',
+      escudoBonusPct: v => '+' + pct(v) + ' escudo arcano',
+      fuegoMult: v => '+' + pct(v) + ' daño de fuego',
+      hieloMult: v => '+' + pct(v) + ' daño de hielo',
+      venenoMult: v => '+' + pct(v) + ' daño de veneno',
+      multSlowBonus: v => '+' + pct(v) + ' daño a ralentizados',
+      defensa: v => '+' + pct(v) + ' de defensa',
+      defensaPct: v => '+' + pct(v) + ' de defensa'
     };
-    return Object.keys(efecto).map(k => frases[k](efecto[k])).join(', ');
+    return Object.keys(efecto || {}).filter(k => frases[k]).map(k => frases[k](efecto[k])).join(', ');
   }
 
   // Texto de las estadísticas y especiales de un objeto, para el panel
   function ficha(obj) {
     const lineas = [];
+    const ArmLib = getArmadurasLib();
     if (obj.ataque) {
       const manosTxt = obj.manos === 2 ? ' (2 manos)' : (obj.manos === 1 ? ' (1 mano)' : '');
       lineas.push('Ataque ' + obj.ataque + manosTxt);
@@ -897,8 +990,28 @@
       const blk = (typeof obj.bloqueo === 'number' && isFinite(obj.bloqueo)) ? obj.bloqueo : (0.15 * (obj.estado || 1));
       lineas.push('Bloqueo ' + Math.round(blk * 100) + ' %');
     }
+    if (tipoDe(obj) === 'armadura') {
+      const stArm = (obj.statsArmadura && typeof obj.statsArmadura === 'object')
+        ? obj.statsArmadura
+        : (ArmLib && (obj.setId || typeof obj.tipoArmadura === 'string') ? ArmLib.statsDePieza(obj, obj.estado == null ? 1 : obj.estado).stats : null);
+      if (stArm && Object.keys(stArm).length) {
+        const txtStats = efectoTexto(stArm);
+        if (txtStats) lineas.push(txtStats);
+      }
+    }
     const especiales = especialesDe(obj).map(e => ({ nombre: e.nombre, texto: efectoTexto(e.efecto) }));
-    return { tipo: tipoDe(obj), lineas, especiales };
+    const setObj = ArmLib ? (obj.setId ? ArmLib.setPorId(obj.setId) : (obj.armorLook != null ? ArmLib.setPorLook(obj.armorLook) : null)) : null;
+    const habilidadesSet = setObj ? setObj.habilidades.map(h => ({ piezasReq: h.piezasReq, nombre: h.nombre, desc: h.desc })) : [];
+    return {
+      tipo: tipoDe(obj),
+      claseArmadura: typeof obj.tipoArmadura === 'string' ? obj.tipoArmadura : null,
+      grado: obj.grado || null,
+      setId: setObj ? setObj.id : (obj.setId || null),
+      setNombre: setObj ? setObj.nombre : (obj.setNombre || null),
+      lineas,
+      especiales,
+      habilidadesSet
+    };
   }
 
   const api = { PROFESIONES, NIVEL_SUBCLASE, SUBCLASES, HABILIDADES, ESPECIALES, PUNTOS_KILLS, TECLAS, BARRA_INICIAL,

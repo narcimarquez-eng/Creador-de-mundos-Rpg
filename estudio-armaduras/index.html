@@ -2658,7 +2658,13 @@
       { rank: 'S', cls: 'mago', origin: 'l2c', sig: 'l2c_mage_eclipse', halfArm: 'l2c_eclipse_necro', monolithBoot: 'mono_pilar',
         sigDesc: 'Cúpula gótica de terciopelo negro con cuernos en media luna de plata y lazadas en X (Nightmare Robe)',
         name: 'L2 Cáliz del Eclipse', tex: 'forge_l2c_eclipse_violet', cape: 'none',
-        gear: { underlayer: 20, helmet: 13, torso: 20, gloves: 9, belt: 16, tassets: 0, cuisses: 0, knees: 0, boots: 16, weapon: 85 } }
+        gear: { underlayer: 20, helmet: 13, torso: 20, gloves: 9, belt: 16, tassets: 0, cuisses: 0, knees: 0, boots: 16, weapon: 85 } },
+      { rank: 'D', cls: 'mago', name: 'Erudito de Lino Azul & Latón', tex: 'padded_gambeson',
+        gear: { underlayer: 1, helmet: 0, torso: 21, gloves: 1, belt: 3, tassets: 0, cuisses: 0, knees: 0, boots: 5, weapon: 10 } },
+      { rank: 'C', cls: 'mago', name: 'Hechicero de Terciopelo Púrpura & Oro', tex: 'royal_brocade_velvet',
+        gear: { underlayer: 15, helmet: 3, torso: 6, gloves: 1, belt: 2, tassets: 0, cuisses: 0, knees: 0, boots: 14, weapon: 10 } },
+      { rank: 'B', cls: 'mago', name: 'L2 Blue Wolf Robe (Túnica Estelar de Cobalto)', tex: 'celestial_astral_constellation',
+        gear: { underlayer: 15, helmet: 5, torso: 4, gloves: 3, belt: 6, tassets: 0, cuisses: 0, knees: 0, boots: 9, weapon: 10 } }
     ];
 
     // Aplica una armadura por clase y rango: equipo, ajuste, overrides de forma y material
@@ -44938,6 +44944,25 @@ function resetCharacter() {
           window.CreadorHumano.resetCharacter();
           fijarBloqueoRostroUI(false);
         }
+        return;
+      }
+      if (d.tipo === 'preview-armadura') {
+        STATE.fit.villagerOutfit = null;
+        STATE.useGlobalMaterial = false;
+        Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
+        const lk = resolverArmorLook(d.armorLook, d.claseArmadura, d.grado);
+        if (lk) applyArmorLook(lk);
+        if (d.ocultarUi) {
+          const hdr = document.querySelector('header');
+          const asd = document.querySelector('aside');
+          const leftBar = document.querySelector('body > div.absolute.left-3');
+          if (hdr) hdr.style.display = 'none';
+          if (asd) asd.style.display = 'none';
+          if (leftBar) leftBar.style.display = 'none';
+        }
+        syncFitSlidersUI();
+        updateWardrobePieces();
+        fijarPausaRender(false);
         return;
       }
       if (d.tipo === 'proporciones') {

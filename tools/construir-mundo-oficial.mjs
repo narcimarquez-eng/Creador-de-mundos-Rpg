@@ -50,7 +50,7 @@ function build() {
 
   world.id = 'valdris-sol-quebrado-v1';
   world.campaignId = 'valdris-sol-quebrado-v1';
-  world.campaignVersion = 2;
+  world.campaignVersion = 3;
   world.version = 1;
   world.nextId = 100;
 

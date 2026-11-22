@@ -126,6 +126,16 @@
       if (typeof o.grado === 'string' && o.grado) obj.grado = o.grado.slice(0, 8);
       if (typeof o.tipoArmadura === 'string' && o.tipoArmadura) obj.tipoArmadura = o.tipoArmadura.slice(0, 24);
       if (o.armorLook != null) obj.armorLook = o.armorLook;
+      if (typeof o.setId === 'string' && o.setId) obj.setId = o.setId.slice(0, 48);
+      if (typeof o.setNombre === 'string' && o.setNombre) obj.setNombre = o.setNombre.slice(0, 80);
+      if (o.statsArmadura && typeof o.statsArmadura === 'object') {
+        const sa = {};
+        Object.keys(o.statsArmadura).forEach(k => {
+          const val = Number(o.statsArmadura[k]);
+          if (isFinite(val) && val !== 0) sa[k] = val;
+        });
+        if (Object.keys(sa).length) obj.statsArmadura = sa;
+      }
       if (typeof o.familia === 'string' && o.familia) obj.familia = o.familia.slice(0, 24);
       if (typeof o.claseArma === 'string' && o.claseArma) obj.claseArma = o.claseArma.slice(0, 24);
       if (o.manos === 1 || o.manos === 2) obj.manos = o.manos;

@@ -208,12 +208,47 @@
     #modal-companero { position: absolute; inset: 0; background: rgba(2,6,23,.75); display: none; align-items: center; justify-content: center; z-index: 44; padding: 16px; }
     #modal-companero.show { display: flex; }
     #modal-companero .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; width: 560px; max-width: 100%; color: #f1f5f9; max-height: 92vh; overflow-y: auto; }
-    #hud-dopes { position: absolute; top: 76px; right: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 35; pointer-events: none; }
-    .dope-item { display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.90); border: 1px solid #3b82f6; border-radius: 8px; padding: 5px 10px; color: #f8fafc; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); min-width: 180px; }
+    #hud-dopes { position: absolute; top: 168px; right: 14px; display: flex; flex-direction: column; gap: 5px; z-index: 35; pointer-events: none; max-width: 245px; }
+    .dope-item { display: flex; flex-direction: column; gap: 3px; background: rgba(15, 23, 42, 0.92); border: 1px solid #3b82f6; border-radius: 8px; padding: 5px 9px; color: #f8fafc; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.55); min-width: 196px; }
     .dope-item.buff { border-color: #3b82f6; }
     .dope-item.cura { border-color: #22c55e; }
+    .dope-item.defensa { border-color: #38bdf8; }
+    .dope-item.berserker { border-color: #f97316; }
     .dope-item.debuff { border-color: #ef4444; }
-    .dope-timer { font-weight: bold; font-size: 12px; color: #facc15; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+    .dope-head { display: flex; align-items: center; gap: 6px; }
+    .dope-sub { font-size: 10px; color: #93c5fd; line-height: 1.25; }
+    .dope-item.cura .dope-sub { color: #86efac; }
+    .dope-item.berserker .dope-sub { color: #fdba74; }
+    .dope-item.debuff .dope-sub { color: #fca5a5; }
+    .dope-bar { height: 3px; background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden; }
+    .dope-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #60a5fa, #facc15); transition: width 0.12s linear; }
+    .dope-item.cura .dope-bar > i { background: linear-gradient(90deg, #22c55e, #86efac); }
+    .dope-item.berserker .dope-bar > i { background: linear-gradient(90deg, #f97316, #ef4444); }
+    .dope-item.debuff .dope-bar > i { background: linear-gradient(90deg, #ef4444, #f97316); }
+    .dope-timer { font-weight: bold; font-size: 11px; color: #facc15; background: rgba(0,0,0,0.45); padding: 1px 6px; border-radius: 4px; margin-left: auto; }
+    .dope-stats-box { background: rgba(15, 23, 42, 0.94); border: 1px solid rgba(74, 222, 128, 0.55); border-radius: 8px; padding: 6px 9px; font-size: 10.5px; color: #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.55); }
+    .dope-stats-box b.tit { display: block; color: #4ade80; font-size: 10.5px; margin-bottom: 3px; letter-spacing: 0.2px; }
+    .dope-stat-row { display: flex; justify-content: space-between; gap: 8px; line-height: 1.35; }
+    .dope-stat-val { color: #4ade80; font-weight: 700; }
+    #hud-companero { position: absolute; bottom: 124px; left: 14px; width: 236px; background: rgba(15, 23, 42, 0.90); border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 10px; padding: 8px 10px; color: #f8fafc; z-index: 23; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5); backdrop-filter: blur(6px); display: none; transition: border-color 0.2s; }
+    #hud-companero:hover { border-color: #facc15; }
+    #hud-companero.luchando { border-color: rgba(245, 158, 11, 0.75); }
+    #hud-companero.caido { border-color: rgba(239, 68, 68, 0.75); opacity: 0.9; }
+    .hc-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+    .hc-av { font-size: 20px; line-height: 1; }
+    .hc-info { flex: 1; min-width: 0; }
+    .hc-nom { font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hc-estado { font-size: 10px; color: #93c5fd; }
+    .hc-hp { height: 7px; background: #1e293b; border-radius: 4px; overflow: hidden; margin-bottom: 4px; position: relative; }
+    .hc-hp > i { display: block; height: 100%; background: #22c55e; transition: width 0.15s; }
+    .hc-furia { height: 4px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-bottom: 4px; display: none; }
+    .hc-furia > i { display: block; height: 100%; background: linear-gradient(90deg, #f97316, #ef4444); transition: width 0.15s; }
+    .hc-stats { display: flex; justify-content: space-between; font-size: 10px; color: #cbd5e1; margin-bottom: 5px; }
+    .hc-stats .up { color: #4ade80; font-weight: 700; }
+    .hc-skills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .hc-sk { background: rgba(255,255,255,0.05); border: 1px solid #334155; border-radius: 5px; padding: 2px 4px; font-size: 9.5px; display: flex; align-items: center; justify-content: space-between; gap: 3px; }
+    .hc-sk.activo { border-color: #facc15; background: rgba(250, 204, 21, 0.14); color: #fde047; }
+    .hc-sk.listo { border-color: rgba(34, 197, 94, 0.55); color: #bbf7d0; }
     #modal-portada { position: absolute; inset: 0; background: radial-gradient(circle at 50% 35%, rgba(30,41,59,0.78), rgba(2,6,23,0.95)); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 56; padding: 16px; }
     #modal-portada.show { display: flex; }
     #modal-portada .box { background: linear-gradient(180deg, rgba(15,23,42,0.97), rgba(9,13,26,0.98)); border: 1px solid rgba(234,179,8,0.65); border-radius: 16px; padding: 26px 24px; width: 520px; max-width: 96vw; max-height: 94vh; overflow-y: auto; color: #f8fafc; box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 30px rgba(234,179,8,0.12); text-align: center; }
@@ -253,6 +288,28 @@
     .grado-S { background: #b45309; color: #fef3c7; border-color: #fbbf24; }
     .grado-SR { background: linear-gradient(135deg,#dc2626,#d97706); color: #fffbeb; border-color: #fde047; }
     .clase-arm-tag { display: inline-block; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 600; background: rgba(56,189,248,0.16); color: #bae6fd; border: 1px solid rgba(56,189,248,0.35); margin-right: 4px; }
+    #armaduras-modal { position: absolute; inset: 0; background: rgba(2,6,23,.82); display: none; align-items: center; justify-content: center; z-index: 48; padding: 14px; }
+    #armaduras-modal.show { display: flex; }
+    #armaduras-modal .box { background: #0f172a; border: 1px solid #334155; border-radius: 14px; padding: 16px; width: min(1080px, 96vw); max-width: 100%; max-height: 92vh; overflow-y: auto; }
+    #armaduras-modal h2 { margin: 0 0 6px; color: var(--gold); font-size: 18px; }
+    .arm-clases-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; margin: 10px 0; }
+    .arm-clase-card { background: rgba(15,23,42,0.86); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; font-size: 12px; line-height: 1.4; }
+    .arm-clase-card.activa { border-color: #facc15; box-shadow: 0 0 0 1px rgba(250,204,21,0.35); }
+    .arm-filtros { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 10px; background: rgba(15,23,42,0.72); border: 1px solid #1e293b; border-radius: 10px; margin-bottom: 10px; }
+    .arm-pill { padding: 4px 9px; border-radius: 8px; font-size: 11.5px; font-weight: 600; background: #1e293b; border: 1px solid #334155; color: #cbd5e1; cursor: pointer; }
+    .arm-pill.on { background: rgba(250,204,21,0.18); border-color: #facc15; color: #fef08a; }
+    .arm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 10px; margin-top: 8px; }
+    .arm-card { background: rgba(15,23,42,0.92); border: 1px solid #334155; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .arm-card.equipada { border-color: #22c55e; box-shadow: 0 0 0 1px rgba(34,197,94,0.35); }
+    .arm-card-top { display: flex; gap: 10px; align-items: flex-start; }
+    .arm-swatches { display: flex; gap: 4px; margin-top: 4px; }
+    .arm-swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.28); display: inline-block; }
+    .arm-habs { display: flex; flex-direction: column; gap: 4px; background: rgba(2,6,23,0.55); border: 1px solid #1e293b; border-radius: 8px; padding: 6px 8px; font-size: 11.5px; }
+    .arm-hab-row { line-height: 1.35; }
+    .arm-hab-req { display: inline-block; padding: 0 5px; border-radius: 4px; font-size: 10px; font-weight: 700; background: #1e293b; color: #fde047; margin-right: 4px; }
+    .arm-hab-row.activa .arm-hab-req { background: #166534; color: #bbf7d0; }
+    #arm-preview-3d { display: none; margin: 10px 0; border: 1px solid #38bdf8; border-radius: 12px; background: #070a13; overflow: hidden; }
+    #arm-preview-3d.show { display: block; }
     #objetos { position: absolute; inset: 0; background: rgba(2,6,23,.7); display: none; align-items: center; justify-content: center; z-index: 43; padding: 16px; }
     #objetos.show { display: flex; }
     #objetos .box { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; width: 620px; max-width: 96vw; max-height: 90vh; overflow-y: auto; }
@@ -903,8 +960,17 @@
         position: absolute;
         top: 130px;
         right: max(8px, env(safe-area-inset-right));
+        max-width: 210px;
         z-index: 22;
       }
+      #hud-companero {
+        top: 52px;
+        left: max(8px, env(safe-area-inset-left));
+        bottom: auto;
+        width: 148px;
+        padding: 5px 7px;
+      }
+      #hud-companero .hc-skills { display: none; }
 
       /* Zona, Anuncios y Jefes */
       #zona-marca {
@@ -1364,10 +1430,19 @@
         position: absolute !important;
         top: 114px !important;
         right: max(8px, env(safe-area-inset-right)) !important;
+        max-width: 195px !important;
         gap: 2px !important;
         font-size: 8.5px !important;
         z-index: 22 !important;
       }
+      #hud-companero {
+        top: 42px !important;
+        left: max(8px, env(safe-area-inset-left)) !important;
+        bottom: auto !important;
+        width: 145px !important;
+        padding: 4px 6px !important;
+      }
+      #hud-companero .hc-skills { display: none !important; }
 
       /* 4. Tarjeta de Misión Principal y Secundarias junto al mapa */
       #mision {
@@ -1677,7 +1752,7 @@
         max-height: calc(100dvh - 42px) !important;
         z-index: 40 !important;
       }
-      #npc, #heroe, #shop, #partidas, #cronica, #modal-companero, #mapa-mundo {
+      #npc, #heroe, #armaduras-modal, #shop, #partidas, #cronica, #modal-companero, #mapa-mundo {
         max-height: calc(100vh - 16px) !important;
         max-height: calc(100dvh - 16px) !important;
         overflow-y: auto !important;
@@ -1760,6 +1835,7 @@
     <button id="btn-overview" title="Vista del mapa (M)">🗺<span class="long"> Mapa</span></button>
     <button id="btn-save" title="Partidas y guardado">💾</button>
     <button id="btn-pj" title="Crear o configurar personaje (P)">🧙<span class="long"> Personaje</span></button>
+    <button id="btn-armaduras" title="Información de armaduras, diseños y habilidades (U)">🛡️<span class="long"> Armaduras</span></button>
   <button id="btn-view-plaza" title="Plaza del pueblo más cercano">⛲<span class="long"> Plaza</span></button>
     <button id="btn-view-detail" title="Fachada del pueblo más cercano">🏠<span class="long"> Fachada</span></button>
     <button id="btn-follow" title="Seguir al personaje (F)">🧍<span class="long"> Seguir</span></button>
@@ -1912,6 +1988,7 @@
         <button id="sk-rest" title="Descansar en el pueblo (R)">💤<small>R</small></button>
         <button id="sk-cronica" title="Crónica del pueblo (C)">📜<small>C</small></button>
         <button id="sk-heroe" title="Estadísticas del héroe (P)">🧬<small>P</small></button>
+        <button id="sk-armaduras" title="Armaduras, diseños y habilidades (U)">🛡️<small>U</small></button>
         <button id="sk-aldeanos" title="Crear y colocar aldeano">🧑‍🌾<small>Ald</small></button>
       </div>
     </div>
@@ -1947,6 +2024,23 @@
     <h2>🧬 Héroe</h2>
     <div id="heroe-cuerpo"></div>
     <div class="btns"><button id="heroe-cerrar">Cerrar</button></div>
+  </div></div>
+  <div id="armaduras-modal"><div class="box">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2>🛡️ Armaduras: Clases, Niveles, Diseños y Habilidades</h2>
+      <button id="arm-cerrar">✕ Cerrar</button>
+    </div>
+    <div class="muted" style="margin-bottom:6px">Al menos 3 conjuntos completos por cada clase (<b>Pesada</b>, <b>Ligera</b>, <b>Mago</b>) y grado (<b>D · C · B · A · S · SR</b>). Equipa 1, 3 o 5 piezas de un mismo diseño para desbloquear sus habilidades.</div>
+    <div id="arm-clases-resumen" class="arm-clases-grid"></div>
+    <div id="arm-preview-3d">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#0f172a;border-bottom:1px solid #1e293b;font-size:12px">
+        <span id="arm-preview-titulo" style="color:#fde047;font-weight:700">👁️ Vista 3D del diseño</span>
+        <button id="arm-preview-cerrar" type="button" style="padding:2px 8px;font-size:11px">Ocultar 3D</button>
+      </div>
+      <iframe id="arm-preview-frame" title="Vista 3D de Armadura" style="width:100%;height:340px;border:0;display:block;background:#070a13"></iframe>
+    </div>
+    <div id="arm-filtros" class="arm-filtros"></div>
+    <div id="arm-catalogo-cuerpo"></div>
   </div></div>
   <div id="mapa-mundo"><div class="box">
     <div class="mapa-top">
@@ -2093,6 +2187,8 @@
   </div></div>
   <!-- HUD de Dopes y Buffs Activos en Pantalla -->
   <div id="hud-dopes"></div>
+  <!-- HUD Compacto de Combate del Acompañante -->
+  <div id="hud-companero" title="Pulsa para abrir la ficha y habilidades de tu compañero (O)"></div>
 
   <!-- Pantalla de Título / Portada del Juego Completo -->
   <div id="modal-portada"><div class="box">
@@ -2124,7 +2220,7 @@
           Brann logra abatir a la primera bestia antes de caer herido sobre el yunque, apretando en su mano un <b>sello de bronce perteneciente al cónclave de la plaza</b>. <i>«Nos han tendido una trampa… alguien fabrica estas aberraciones desde dentro de nuestras propias murallas»</i>, jadea.
         </p>
         <p style="margin:0;color:#fde047">
-          Antes de que la guardia cierre las empalizadas, debes escapar hacia <b id="prologo-zona">las tierras de caza</b> y recuperar pieles y placas de hierro para forjar tu primer cinturón de supervivencia.
+          Antes de que la guardia cierre las empalizadas, debes escapar hacia <b id="prologo-zona">las tierras de caza</b> y recuperar pieles y placas de pierna para forjar tus primeros pantalones reforzados.
         </p>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -2152,7 +2248,7 @@
         <div class="comp-card selected" data-arquetipo="rowan">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
             <span style="font-size:26px">🧑‍🌾</span>
-            <div><b>Rowan el Guardián</b> <small class="muted" style="display:block">Dopes de Ataque & Motivación</small></div>
+            <div><b>Rowan el Guardián</b> <small class="muted" style="display:block">Dopes de Ataque & Motivación · 🛡️ Armadura Pesada</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
             Aldeano leal de la fragua que anima los corazones en batalla. Proporciona dopes masivos de daño (+25% ataque), golpes demoledores y velocidad bélica.
@@ -2164,7 +2260,7 @@
         <div class="comp-card" data-arquetipo="lyra">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
             <span style="font-size:26px">🧝‍♀️</span>
-            <div><b>Lyra de las Sombras</b> <small class="muted" style="display:block">DPS Rápido con Dagas</small></div>
+            <div><b>Lyra de las Sombras</b> <small class="muted" style="display:block">DPS Rápido con Dagas · 🥋 Armadura Ligera</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
             Rápida y letal con sus dos dagas. Asesta golpes críticos consecutivos, aplica sangrado profundo y unta veneno para desgarrar a los monstruos.
@@ -2176,7 +2272,7 @@
         <div class="comp-card" data-arquetipo="elian">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
             <span style="font-size:26px">🧙‍♂️</span>
-            <div><b>Elian el Teúrgo</b> <small class="muted" style="display:block">Mago de Apoyo & Protección</small></div>
+            <div><b>Elian el Teúrgo</b> <small class="muted" style="display:block">Mago de Apoyo & Protección · 🧙 Túnica de Mago</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
             Devoto de la luz celestial. Despliega baluartes protectores (-35% daño), cura heridas críticas y aniquila con daño sacro triple a criaturas no-muertas.
@@ -2188,7 +2284,7 @@
         <div class="comp-card" data-arquetipo="brenda">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
             <span style="font-size:26px">👩‍🦰</span>
-            <div><b>Brenda la Berserker</b> <small class="muted" style="display:block">Tanque & Furia Berserker</small></div>
+            <div><b>Brenda la Berserker</b> <small class="muted" style="display:block">Tanque & Furia Berserker · 🥋 Armadura Ligera</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
             Tanque indómita con gran vitalidad. Provoca a los enemigos para absorber golpes y activa el modo Berserker ganando daño y resistencia salvaje ante el dolor.
@@ -2364,15 +2460,16 @@
   <script defer src="js/casa-madera.js?v=20261114e"></script>
   <script defer src="js/lagos.js?v=20261114a"></script>
   <script src="js/relieve-zona.js?v=20261114a"></script>
-  <script defer src="js/equipo.js?v=20261122a"></script>
+  <script defer src="js/armaduras.js?v=20261122a"></script>
+  <script defer src="js/equipo.js?v=20261122b"></script>
   <script defer src="js/historia.js?v=20261119e"></script>
   <script defer src="js/mundo-campana.js?v=20261114c"></script>
   <script defer src="js/lugares-secretos.js?v=20261119c"></script>
   <script defer src="js/texturas-lib.js?v=4"></script>
   <script defer src="js/dungeon-generator.js?v=20261114w"></script>
   <script defer src="js/mazmorras.js?v=20261114c"></script>
-  <script defer src="js/acompanante.js?v=20261120b"></script>
-  <script defer src="js/heroe.js?v=20261122a"></script>
+  <script defer src="js/acompanante.js?v=20261122b"></script>
+  <script defer src="js/heroe.js?v=20261122b"></script>
   <script defer src="js/mision-zona.js?v=20251029"></script>
   <script defer src="js/mapa.js?v=20261121b"></script>
   <script defer src="js/ruta.js?v=20261119g"></script>
@@ -2387,7 +2484,7 @@
   <script type="module" src="js/combat.js?v=20261120d"></script>
   <script defer src="js/combat-vfx-estudio.js?v=20261121a"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
-  <script type="module" src="js/partida.js?v=20251029"></script>
+  <script type="module" src="js/partida.js?v=20261122b"></script>
   <script type="module" src="js/terreno.js?v=20261119b"></script>
   <script type="module" src="js/pradera-atlas.js?v=20261121b"></script>
   <script type="module" src="js/riachuelos.js?v=20261119a"></script>
@@ -9448,7 +9545,7 @@
     return { x: m.x, y: my + (m.barHeight || 2.1), z: m.z };
   }
 
-  function damageMonster(m, dmg, fuente = 'hero') {
+  function damageMonster(m, dmg, fuente = 'hero', opts = null) {
     if (!m || !m.alive) return;
     marcarCombateAudio();
     if (!m.danoPorFuente) m.danoPorFuente = { hero: 0, acompanante: 0 };
@@ -9458,7 +9555,9 @@
     m.hp = Math.max(0, m.hp - dmg);
     m.flashUntil = performance.now() + 120;
     if (fKey === 'acompanante' && dmg >= 1) {
-      lanzarNumeroFlotante(posCabezaMonstruo(m), String(Math.round(dmg)), 'dmg-comp', { disp: 0.55 });
+      const txtF = (opts && opts.txt) ? opts.txt : String(Math.round(dmg));
+      const clsF = (opts && opts.cls) ? opts.cls : 'dmg-comp';
+      lanzarNumeroFlotante(posCabezaMonstruo(m), txtF, clsF, { disp: 0.55 });
     }
     if (m.fx) EnemyFx.disparar(m.fx, 'hit', performance.now() / 1000);
     if (m.state !== 'chase') m.state = 'chase';
@@ -9514,10 +9613,69 @@
     m.impactoEn = performance.now() + tiempoImpacto * 1000;
   }
 
+  function monsterHitsCompanion(m) {
+    if (!m || !acompanante || !acompanante.activo || acompanante.inconsciente || acompanante.debilitado) return;
+    marcarCombateAudio();
+    const rol = m.tipoRango || (m.enemigo ? CombatLib.detectarRol(m.enemigo) : 'melee');
+    const tipo = rol === 'arquero' ? 'disparo' : (rol === 'mago' ? 'magia' : (m.enemigo ? EnemyFx.tipoAtaque(m.enemigo) : 'golpe'));
+    const cPos = { x: acompanante.x, y: acompanante.y || 0, z: acompanante.z };
+    const d = Math.hypot(m.x - cPos.x, m.z - cPos.z);
+    const ranged = rol === 'arquero' || rol === 'mago' || tipo === 'disparo' || tipo === 'magia';
+    let tiempoImpacto = 0.25;
+    const panM = panDePosicion(m.x, m.z);
+    if (window.Sonidos && window.Sonidos.enemigo) {
+      window.Sonidos.enemigo('ataque', { name: m.name, boss: m.boss, rangoElite: m.rangoElite, tipoRango: rol, pan: panM });
+    }
+    if (rol === 'arquero' || tipo === 'disparo') {
+      tiempoImpacto = flechaMonstruo(m, cPos);
+    } else if (rol === 'mago' || tipo === 'magia') {
+      tiempoImpacto = magiaMonstruo(m, cPos);
+    } else {
+      tiempoImpacto = EnemyFx.momentoImpacto(tipo);
+    }
+    m.ataquePendiente = {
+      targetCompanion: true,
+      ranged,
+      tipo,
+      targetX: cPos.x,
+      targetZ: cPos.z,
+      attackerX: m.x,
+      attackerZ: m.z,
+      attackerY: m.group ? m.group.position.y : 0,
+      hitRadius: rol === 'mago' ? 2.0 : (rol === 'arquero' ? 1.6 : (m.boss ? 4.4 : 3.3))
+    };
+    if (m.fx) {
+      EnemyFx.disparar(m.fx, tipo, performance.now() / 1000, d);
+    }
+    m.impactoEn = performance.now() + tiempoImpacto * 1000;
+  }
+
   function aplicarDanoEnemigo(m) {
     marcarCombateAudio();
     const atk = m.ataquePendiente;
     m.ataquePendiente = null;
+
+    // Ataque dirigido directamente al acompañante (por provocación o vanguardia)
+    if (atk && atk.targetCompanion) {
+      if (acompanante && acompanante.activo && !acompanante.inconsciente && !acompanante.debilitado && typeof AcompananteLib !== 'undefined') {
+        const distA = atk.ranged
+          ? Math.hypot(acompanante.x - atk.targetX, acompanante.z - atk.targetZ)
+          : Math.hypot(acompanante.x - atk.attackerX, acompanante.z - atk.attackerZ);
+        if (distA <= (atk.hitRadius || 3.5) + 0.8) {
+          const rawDmg = CombatLib.monsterDamage(m.level, m.boss, acompanante.nivel || hero.level);
+          const dmgComp = AcompananteLib.recibirDanoAcompanante(acompanante, rawDmg);
+          if (dmgComp > 0) {
+            lanzarNumeroFlotante({ x: acompanante.x, y: (acompanante.y || 0) + 2.0, z: acompanante.z }, '🛡 -' + Math.round(dmgComp), 'dmg-block');
+          }
+          aplicarStats();
+          if (acompanante.debilitado || acompanante.inconsciente) {
+            toast(`⚠️ ¡${acompanante.nombre || 'Tu compañero'} ha caído debilitado! Protégelo o dale pociones para recuperarse.`);
+          }
+        }
+      }
+      return;
+    }
+
     const heroPos = character && character.root ? character.root.position : null;
     if (CombatLib.isInvulnerable(hero)) {
       if (heroPos) lanzarNumeroFlotante({ x: heroPos.x, y: heroPos.y + 2.1, z: heroPos.z }, 'ESQUIVADO', 'dmg-dodge');
@@ -9560,12 +9718,16 @@
     activarSacudida(bloqueado ? 0.12 : 0.26, 0.18);
     pulsarVinetaDano();
     if (murio) onHeroDeath(performance.now());
-    if (acompanante && acompanante.activo && !acompanante.debilitado && typeof AcompananteLib !== 'undefined') {
+    if (acompanante && acompanante.activo && !acompanante.debilitado && !acompanante.inconsciente && typeof AcompananteLib !== 'undefined') {
       const dAcomp = Math.hypot(m.x - acompanante.x, m.z - acompanante.z);
       if (dAcomp < 5.0) {
-        AcompananteLib.recibirDanoAcompanante(acompanante, dmg * 0.75);
-        if (acompanante.debilitado) {
-          toast('⚠️ ¡Rowan ha caído debilitado! Protégelo o dale pociones para recuperarse.');
+        const dmgCol = AcompananteLib.recibirDanoAcompanante(acompanante, CombatLib.monsterDamage(m.level, m.boss, hero.level) * 0.65);
+        if (dmgCol > 0) {
+          lanzarNumeroFlotante({ x: acompanante.x, y: (acompanante.y || 0) + 1.95, z: acompanante.z }, '-' + Math.round(dmgCol), 'dmg-block');
+        }
+        aplicarStats();
+        if (acompanante.debilitado || acompanante.inconsciente) {
+          toast(`⚠️ ¡${acompanante.nombre || 'Tu compañero'} ha caído debilitado! Protégelo o dale pociones para recuperarse.`);
         }
       }
     }
@@ -9582,10 +9744,14 @@
     if (deadEl) deadEl.classList.remove('show');
     deadTimerShown = false;
     CombatLib.respawn(hero);
-    if (acompanante && acompanante.debilitado) {
+    if (acompanante && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.revivirAcompanante === 'function') {
+      AcompananteLib.revivirAcompanante(acompanante, 1.0);
+    } else if (acompanante && (acompanante.debilitado || acompanante.inconsciente)) {
       acompanante.debilitado = false;
+      acompanante.inconsciente = false;
       acompanante.hp = acompanante.maxHp || 180;
     }
+    aplicarStats();
     if (character) {
       character.lockUntil = 0;
       character.destino = null;
@@ -9621,6 +9787,10 @@
     let best = null, bd = Infinity;
     towns.forEach(o => { const d = Math.hypot(p.x - o.t.x, p.z - o.t.y); if (d < bd) { bd = d; best = o; } });
     CombatLib.respawn(hero);
+    if (acompanante && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.revivirAcompanante === 'function') {
+      AcompananteLib.revivirAcompanante(acompanante, 1.0);
+    }
+    aplicarStats();
     character.lockUntil = 0;
     $('deadmsg').classList.remove('show');
     deadTimerShown = false;
@@ -9658,6 +9828,10 @@
     if (hero.sinceHit < restPrevSinceHit) return stopRest('Te han golpeado: descanso interrumpido');
     restPrevSinceHit = hero.sinceHit;
     if (ItemsLib.restTick(hero, dt, 4)) {
+      if (acompanante && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.revivirAcompanante === 'function') {
+        AcompananteLib.revivirAcompanante(acompanante, 1.0);
+        aplicarStats();
+      }
       if (window.Sonidos && window.Sonidos.descanso) window.Sonidos.descanso();
       stopRest('Vida y maná completos');
     }
@@ -10177,6 +10351,17 @@
         lanzarNumeroFlotante({ x: heroPos.x, y: heroPos.y + 2.1, z: heroPos.z }, 'ESQUIVADO', 'dmg-dodge');
       }
     }
+
+    if (acompanante && acompanante.activo && !acompanante.inconsciente && !acompanante.debilitado && typeof AcompananteLib !== 'undefined') {
+      if (CombatLib.inTelegraphArea(tg, acompanante.x, acompanante.z)) {
+        const rawEsp = CombatLib.monsterDamage(m.level, m.boss, acompanante.nivel || hero.level) * (tg.dmgMult || 1.75) * 0.75;
+        const dmgEsp = AcompananteLib.recibirDanoAcompanante(acompanante, rawEsp);
+        if (dmgEsp > 0) {
+          lanzarNumeroFlotante({ x: acompanante.x, y: (acompanante.y || 0) + 2.0, z: acompanante.z }, '-' + Math.round(dmgEsp), 'dmg-block');
+        }
+        aplicarStats();
+      }
+    }
   }
 
   function absorberConEscudoArcano(dmg, pos) {
@@ -10223,6 +10408,53 @@
         character._manaShieldMesh.rotation.y += dt * 1.9;
       } else if (character._manaShieldMesh) {
         character._manaShieldMesh.visible = false;
+      }
+
+      // Aura visual sutil en los pies del héroe cuando hay potenciadores activos del acompañante
+      const hayBuffComp = !!(statsHeroe.bonosCompActivos && (
+        statsHeroe.bonosCompActivos.danioPct > 0 ||
+        statsHeroe.bonosCompActivos.velocidadPct > 0 ||
+        statsHeroe.bonosCompActivos.reduccionPct > 0 ||
+        statsHeroe.bonosCompActivos.venenoBonus > 0 ||
+        statsHeroe.bonosCompActivos.roboPct > 0 ||
+        statsHeroe.bonosCompActivos.hpRegenPorSeg > 0
+      ));
+      if (!hero.dead && hayBuffComp) {
+        if (!character._compBuffAura) {
+          const ag = new THREE.Group();
+          const rA = new THREE.Mesh(
+            new THREE.RingGeometry(0.68, 0.90, 28),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+          );
+          rA.rotation.x = -Math.PI / 2;
+          rA.position.y = 0.06;
+          ag.add(rA);
+          character.root.add(ag);
+          character._compBuffAura = { grupo: ag, mat: rA.material };
+        }
+        const bAct = statsHeroe.bonosCompActivos;
+        const colAura = bAct.venenoBonus > 0 ? 0x4ade80 : (bAct.reduccionPct > 0 ? 0x38bdf8 : (bAct.roboPct > 0 ? 0xf87171 : 0xfacc15));
+        character._compBuffAura.mat.color.setHex(colAura);
+        character._compBuffAura.grupo.visible = true;
+        character._compBuffAura.grupo.rotation.y += dt * 1.6;
+      } else if (character._compBuffAura) {
+        character._compBuffAura.grupo.visible = false;
+      }
+    }
+
+    // Regeneración continua por Manantial Místico (u otros potenciadores de regeneración) sobre el héroe
+    if (!hero.dead && (statsHeroe.hpRegenBonus > 0 || statsHeroe.mpRegenBonus > 0)) {
+      const hpPrevR = hero.hp;
+      const mpPrevR = hero.mp;
+      if (statsHeroe.hpRegenBonus > 0) hero.hp = Math.min(hero.maxHp, hero.hp + statsHeroe.hpRegenBonus * dt);
+      if (statsHeroe.mpRegenBonus > 0) hero.mp = Math.min(hero.maxMp, hero.mp + statsHeroe.mpRegenBonus * dt);
+      hero._compRegenTick = (hero._compRegenTick || 0) + dt;
+      if (hero._compRegenTick >= 1.0) {
+        hero._compRegenTick -= 1.0;
+        const hpG = Math.round(hero.hp - hpPrevR > 0 ? statsHeroe.hpRegenBonus : 0);
+        if (hpG > 0 && hpPrevR < hero.maxHp && character && character.root) {
+          lanzarNumeroFlotante({ x: character.root.position.x, y: character.root.position.y + 2.0, z: character.root.position.z }, '+' + hpG + ' HP', 'dmg-heal', { disp: 0.25 });
+        }
       }
     }
     if (accionEncolada) {
@@ -10322,8 +10554,12 @@
             monY = typeof m._cachedY === 'number' ? m._cachedY : (m.group ? m.group.position.y : 0);
           }
           const dy = Math.abs(monY - heroY);
+          const compVivo = !!(acompanante && acompanante.activo && !acompanante.inconsciente && !acompanante.debilitado);
+          const atacaAComp = compVivo && m.tauntedTimer > 0 && m.tauntedBy === 'acompanante';
+          const tgtX = atacaAComp ? acompanante.x : px;
+          const tgtZ = atacaAComp ? acompanante.z : pz;
           const prevState = m.state;
-          const r = CombatLib.monsterTick(m, hero, px, pz, dt, dy);
+          const r = CombatLib.monsterTick(m, hero, tgtX, tgtZ, dt, dy);
           if (prevState !== 'chase' && m.state === 'chase' && d < 26) {
             marcarCombateAudio();
             if (window.Sonidos && window.Sonidos.enemigo) {
@@ -10348,9 +10584,12 @@
           }
           if (m.telegraph) actualizarTelegrafiadoMesh(m);
           if (r.specialRelease) ejecutarEspecialMonstruo(m, r.specialRelease, enMazmorra);
-          // Solo golpea al héroe si no hay un desnivel vertical abismal (arqueros/magos hasta 8m) y el modelo está visible
+          // Solo golpea si no hay un desnivel vertical abismal (arqueros/magos hasta 8m) y el modelo está visible
           const maxDyPermitido = m.esADistancia ? 8.0 : 4.0;
-          if (r.attack && !hero.dead && dy < maxDyPermitido && m.group && m.group.visible) monsterHitsHero(m);
+          if (r.attack && !hero.dead && dy < maxDyPermitido && m.group && m.group.visible) {
+            if (atacaAComp) monsterHitsCompanion(m);
+            else monsterHitsHero(m);
+          }
           if (m.venenoTimer > 0 && m.alive && m.hp > 0) {
             m.venenoTimer = Math.max(0, m.venenoTimer - dt);
             m._venenoTick = (m._venenoTick || 0) + dt;
@@ -10418,7 +10657,11 @@
             my = m._cachedY;
           }
           m.group.position.set(m.x, my, m.z);
-          if (m.state === 'chase') m.group.rotation.y = Math.atan2(px - m.x, pz - m.z);
+          if (m.state === 'chase') {
+            const lookX = (m.tauntedTimer > 0 && m.tauntedBy === 'acompanante' && acompanante && acompanante.activo && !acompanante.inconsciente) ? acompanante.x : px;
+            const lookZ = (m.tauntedTimer > 0 && m.tauntedBy === 'acompanante' && acompanante && acompanante.activo && !acompanante.inconsciente) ? acompanante.z : pz;
+            m.group.rotation.y = Math.atan2(lookX - m.x, lookZ - m.z);
+          }
           else if (m.state === 'idle' && m.caminando && typeof m.rumbo === 'number') {
             // Patrulla de mazmorra: gira suavemente hacia donde camina
             let dr = m.rumbo - m.group.rotation.y;
@@ -12376,6 +12619,7 @@
     $('sk-shop').disabled = hero.dead || !curTown;
     if ($('shop').classList.contains('show')) renderShop();
     actualizarHudDopes();
+    actualizarHudCompanero();
     if (now - _lastHudMisionDist > 250) {
       _lastHudMisionDist = now;
       if (typeof actualizarContadorRuta === 'function') actualizarContadorRuta();
@@ -12384,36 +12628,189 @@
 
   let _lastHudMisionDist = 0;
 
-  // Renderiza en pantalla el HUD de dopes y buffs activos con tiempo regresivo (solo toca el DOM si cambia)
+  // Renderiza en pantalla el HUD de potenciadores activos, barra de duración y aumento real de estadísticas
   let _ultimaClaveDopes = '';
   function actualizarHudDopes() {
     const el = $('hud-dopes');
     if (!el) return;
-    if (!acompanante || !acompanante.buffsActivos || !acompanante.buffsActivos.length) {
+    const bonos = (acompanante && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.calcularBonosActivos === 'function')
+      ? AcompananteLib.calcularBonosActivos(acompanante)
+      : null;
+    const arr = (acompanante && Array.isArray(acompanante.buffsActivos)) ? acompanante.buffsActivos : [];
+    const hayFuria = !!(bonos && bonos.companero && bonos.companero.furiaBonusPct > 0.01);
+
+    if (!acompanante || !acompanante.activo || (!arr.length && !hayFuria)) {
       if (_ultimaClaveDopes !== '') {
         _ultimaClaveDopes = '';
         el.innerHTML = '';
       }
       return;
     }
-    let clave = '';
-    const arr = acompanante.buffsActivos;
-    for (let i = 0; i < arr.length; i++) {
-      const b = arr[i];
-      clave += (b.id || b.nombre) + ':' + Math.max(0, Math.ceil(b.timer || 0)) + '|';
-    }
+
+    const clave = arr.map(b => (b.id || b.nombre) + ':' + Math.max(0, Math.ceil(b.timer || 0)) + ':' + (b.valor || 0)).join('|')
+      + '|' + (bonos ? bonos.clave : '') + '|' + Math.round(statsHeroe.ataqueEfectivo || 0) + '|' + Math.round(hero.level || 1);
     if (clave === _ultimaClaveDopes) return;
     _ultimaClaveDopes = clave;
-    el.innerHTML = arr.map(b => {
+
+    const itemsHtml = arr.map(b => {
       const segs = Math.max(0, Math.ceil(b.timer || 0));
-      const tipoClase = b.efecto === 'cura_regen' ? 'cura' : b.efecto === 'defensa' ? 'debuff' : 'buff';
+      const maxT = Math.max(1, b.maxTimer || segs || 1);
+      const pctBar = Math.max(0, Math.min(100, Math.round(((b.timer || 0) / maxT) * 100)));
+      const tipoClase = b.efecto === 'cura_regen' || b.efecto === 'cura'
+        ? 'cura'
+        : (b.efecto === 'defensa' ? 'defensa' : (b.efecto === 'berserker' ? 'berserker' : (b.efecto === 'debuff' ? 'debuff' : 'buff')));
+      const subTxt = b.statResumen || b.desc || '';
       return `<div class="dope-item ${tipoClase}">
-        <span class="dope-icon">${b.icono || '⚡'}</span>
-        <span class="dope-name">${esc(b.nombre)}</span>
-        <span class="dope-timer">${segs}s</span>
+        <div class="dope-head">
+          <span class="dope-icon">${b.icono || '⚡'}</span>
+          <span class="dope-name"><b>${esc(b.nombre)}</b></span>
+          <span class="dope-timer">${segs}s</span>
+        </div>
+        ${subTxt ? `<div class="dope-sub">${esc(subTxt)}</div>` : ''}
+        <div class="dope-bar"><i style="width:${pctBar}%"></i></div>
       </div>`;
     }).join('');
+
+    const filasStats = [];
+    if (bonos) {
+      const bH = bonos.hero;
+      const bC = bonos.companero;
+      const bE = bonos.enemigo;
+      const sBase = statsHeroe.base || statsHeroe;
+      if (bH.danioPct > 0) {
+        const atqBase = Math.round(statsHeroe.ataqueEfectivoBase || sBase.ataque || 10);
+        const atqReal = Math.round(statsHeroe.ataqueEfectivo || atqBase);
+        filasStats.push(`<span>⚔️ Daño Héroe</span><span class="dope-stat-val">${atqBase} → ${atqReal} (+${Math.round(bH.danioPct * 100)}%)</span>`);
+      }
+      if (bH.velocidadAtaquePct > 0) {
+        const vBase = Math.round((sBase.velocidadAtaque || 0) * 100);
+        const vReal = Math.round((statsHeroe.velocidadAtaque || 0) * 100);
+        filasStats.push(`<span>⚡ Vel. Ataque</span><span class="dope-stat-val">+${vBase}% → +${vReal}%</span>`);
+      }
+      if (bH.velocidadPct > 0) {
+        const mBase = Math.round((sBase.velocidad || 0) * 100);
+        const mReal = Math.round((statsHeroe.velocidad || 0) * 100);
+        filasStats.push(`<span>🏃 Velocidad</span><span class="dope-stat-val">+${mBase}% → +${mReal}%</span>`);
+      }
+      if (bH.reduccionPct > 0) {
+        const rBase = Math.round((sBase.reduccion || 0) * 100);
+        const rReal = Math.round((statsHeroe.reduccion || 0) * 100);
+        filasStats.push(`<span>🛡️ Mitigación</span><span class="dope-stat-val">${rBase}% → ${rReal}%</span>`);
+      }
+      if (bH.venenoBonus > 0) {
+        filasStats.push(`<span>🧪 Veneno</span><span class="dope-stat-val">+${Math.round(bH.venenoBonus)} / golpe</span>`);
+      }
+      if (bH.roboPct > 0) {
+        const rbBase = Math.round((sBase.robo || 0) * 100);
+        const rbReal = Math.round((statsHeroe.robo || 0) * 100);
+        filasStats.push(`<span>🩸 Robo Vida</span><span class="dope-stat-val">${rbBase}% → ${rbReal}%</span>`);
+      }
+      if (bH.hpRegenPorSeg > 0 || bH.mpRegenPorSeg > 0) {
+        filasStats.push(`<span>💧 Manantial</span><span class="dope-stat-val">+${Math.round(bH.hpRegenPorSeg)} HP/MP s</span>`);
+      }
+      if (bC.furiaBonusPct > 0.01) {
+        const efC = AcompananteLib.estadisticasEfectivasAcompanante(acompanante);
+        filasStats.push(`<span>🔥 ${esc((acompanante.nombre || 'Compañero').split(' ')[0])} Furia</span><span class="dope-stat-val">${acompanante.dano} → ${efC ? efC.danoEfectivo : acompanante.dano} ATQ</span>`);
+      }
+      if (bE.defDebuffPct > 0) {
+        filasStats.push(`<span>🪓 Enemigo</span><span class="dope-stat-val" style="color:#fca5a5">-${Math.round(bE.defDebuffPct * 100)}% Defensa</span>`);
+      }
+      if (bE.sangradoDps > 0) {
+        filasStats.push(`<span>🩸 Hemorragia</span><span class="dope-stat-val" style="color:#fca5a5">${Math.round(bE.sangradoDps)} daño/s</span>`);
+      }
+    }
+
+    const statsBoxHtml = filasStats.length
+      ? `<div class="dope-stats-box"><b class="tit">📈 Estadísticas Potenciadas</b>${filasStats.map(r => `<div class="dope-stat-row">${r}</div>`).join('')}</div>`
+      : '';
+
+    el.innerHTML = itemsHtml + statsBoxHtml;
   }
+
+  let _ultimaClaveHudComp = '';
+  function actualizarHudCompanero() {
+    const el = $('hud-companero');
+    if (!el) return;
+    if (!acompanante || !acompanante.activo) {
+      if (el.style.display !== 'none') el.style.display = 'none';
+      _ultimaClaveHudComp = '';
+      return;
+    }
+    if (el.style.display !== 'block') el.style.display = 'block';
+
+    const ef = (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.estadisticasEfectivasAcompanante === 'function')
+      ? AcompananteLib.estadisticasEfectivasAcompanante(acompanante)
+      : null;
+    const bonos = (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.calcularBonosActivos === 'function')
+      ? AcompananteLib.calcularBonosActivos(acompanante)
+      : null;
+
+    const caido = !!(acompanante.inconsciente || acompanante.debilitado || acompanante.hp <= 0);
+    const provocando = !!(bonos && bonos.companero && bonos.companero.provocando);
+    const frenesiOn = !!(acompanante.buffsActivos || []).some(b => b.id === 'frenesi');
+    const enCombate = !!(acompanante.objetivoActual || acompanante._enCombateActivo || acompanante.estado === 'attack');
+
+    const estadoTxt = caido
+      ? '💀 Caído (pulsa O)'
+      : (provocando ? '📢 Tanqueando' : (frenesiOn ? '🔥 Berserker' : (enCombate ? '⚔️ Luchando' : ((acompanante.buffsActivos && acompanante.buffsActivos.length) ? '✨ Apoyando' : '🛡️ Listo'))));
+
+    const hpAct = Math.max(0, Math.ceil(acompanante.hp || 0));
+    const hpMax = Math.max(1, Math.ceil(acompanante.maxHp || 180));
+    const furiaAct = Math.round(acompanante.furia || 0);
+    const atqEf = ef ? ef.danoEfectivo : (acompanante.dano || 20);
+    const defEf = ef ? ef.defensaEfectiva : (acompanante.defensa || 12);
+
+    const skEq = acompanante.skillsEquipadas || [];
+    const skCat = acompanante.skillsCatalogo || [];
+    const buffsIds = new Set((acompanante.buffsActivos || []).map(b => b.id));
+    const skClave = skEq.map(id => {
+      const s = skCat.find(x => x.id === id);
+      return id + ':' + (s ? Math.ceil(s.timer || 0) : 0) + ':' + (buffsIds.has(id) ? 1 : 0);
+    }).join(',');
+
+    const clave = `${acompanante.arquetipo}|${acompanante.nivel}|${hpAct}/${hpMax}|${furiaAct}|${atqEf}|${defEf}|${estadoTxt}|${skClave}`;
+    if (clave === _ultimaClaveHudComp) return;
+    _ultimaClaveHudComp = clave;
+
+    el.classList.toggle('luchando', !caido && enCombate);
+    el.classList.toggle('caido', caido);
+
+    const hpPct = Math.max(0, Math.min(100, Math.round((hpAct / hpMax) * 100)));
+    const hpCol = hpPct > 50 ? '#22c55e' : (hpPct > 25 ? '#eab308' : '#ef4444');
+    const esBrenda = acompanante.arquetipo === 'brenda';
+    const atqSube = ef && ef.danoEfectivo > ef.danoBase;
+    const defSube = ef && ef.defensaEfectiva > ef.defensaBase;
+
+    const skHtml = [0, 1, 2].map(i => {
+      const id = skEq[i];
+      const s = id ? skCat.find(x => x.id === id) : null;
+      if (!s) return '<div class="hc-sk"><span>·</span><span>-</span></div>';
+      const activo = buffsIds.has(s.id);
+      const cd = Math.ceil(s.timer || 0);
+      const clsSk = activo ? 'activo' : (cd <= 0 ? 'listo' : '');
+      const lbl = activo ? 'ON' : (cd > 0 ? cd + 's' : 'OK');
+      return `<div class="hc-sk ${clsSk}" title="${esc(s.nombre)}"><span>${s.icono || '✨'}</span><span>${lbl}</span></div>`;
+    }).join('');
+
+    const armEtiqueta = acompanante.etiquetaArmadura || (acompanante.arquetipoInfo && acompanante.arquetipoInfo.etiquetaArmadura) || '';
+    el.innerHTML = `
+      <div class="hc-top">
+        <div class="hc-av">${acompanante.avatar || '🧑‍🌾'}</div>
+        <div class="hc-info">
+          <div class="hc-nom" title="${esc(armEtiqueta)}">${esc(acompanante.nombre || 'Compañero')} <small style="color:#facc15">Nv.${acompanante.nivel || 1}</small></div>
+          <div class="hc-estado" title="${esc(armEtiqueta)}">${estadoTxt} · ${hpAct}/${hpMax} HP</div>
+        </div>
+      </div>
+      <div class="hc-hp"><i style="width:${hpPct}%;background:${hpCol}"></i></div>
+      <div class="hc-furia" style="display:${esBrenda ? 'block' : 'none'}"><i style="width:${Math.min(100, furiaAct)}%"></i></div>
+      <div class="hc-stats">
+        <span>⚔️ ATQ: <b class="${atqSube ? 'up' : ''}">${atqSube ? `${ef.danoBase}→${atqEf}` : atqEf}</b></span>
+        <span>🛡️ DEF: <b class="${defSube ? 'up' : ''}">${defSube ? `${ef.defensaBase}→${defEf}` : defEf}</b></span>
+      </div>
+      <div class="hc-skills">${skHtml}</div>
+    `;
+  }
+  if ($('hud-companero')) $('hud-companero').onclick = abrirModalCompanero;
 
 
 
@@ -13960,7 +14357,8 @@
     const cls = claseHeroe();
     const equipados = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
     statsHeroe = HeroeLib.estadisticas(heroeEst, hero.level, equipados, cls);
-    if (acompanante && acompanante.activo && !acompanante.debilitado && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.sinergiaConProfesion === 'function') {
+    const compVivo = !!(acompanante && acompanante.activo && !acompanante.inconsciente && !acompanante.debilitado);
+    if (compVivo && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.sinergiaConProfesion === 'function') {
       const sin = AcompananteLib.sinergiaConProfesion(acompanante.arquetipo, cls);
       const b = sin.bonos || {};
       if (b.vida) statsHeroe.vida += b.vida;
@@ -13977,6 +14375,49 @@
     } else {
       statsHeroe.sinergiaComp = null;
     }
+
+    // Guardar snapshot base (incluye nivel, equipo, pasivas y sinergia) antes de aplicar potenciadores temporales
+    const baseSnapshot = {
+      vida: statsHeroe.vida,
+      maná: statsHeroe.maná,
+      ataque: statsHeroe.ataque,
+      poderMagico: statsHeroe.poderMagico || 0,
+      defensa: statsHeroe.defensa,
+      reduccion: statsHeroe.reduccion,
+      bloqueo: statsHeroe.bloqueo,
+      critico: statsHeroe.critico,
+      danio: statsHeroe.danio,
+      robo: statsHeroe.robo,
+      reflejo: statsHeroe.reflejo,
+      velocidad: statsHeroe.velocidad,
+      velocidadAtaque: statsHeroe.velocidadAtaque
+    };
+    statsHeroe.base = baseSnapshot;
+
+    const poderBaseHero = CombatLib.HERO.baseDamage + CombatLib.HERO.damagePerLevel * hero.level + (statsHeroe.ataque || 0);
+    statsHeroe.ataqueEfectivoBase = Math.round(poderBaseHero * (1 + (baseSnapshot.danio || 0)));
+
+    // Sumar potenciadores reales activos del acompañante
+    if (compVivo && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.calcularBonosActivos === 'function') {
+      const bonos = AcompananteLib.calcularBonosActivos(acompanante);
+      const bH = bonos.hero;
+      if (bH.danioPct) statsHeroe.danio += bH.danioPct;
+      if (bH.velocidadPct) statsHeroe.velocidad += bH.velocidadPct;
+      if (bH.velocidadAtaquePct) statsHeroe.velocidadAtaque += bH.velocidadAtaquePct;
+      if (bH.reduccionPct) statsHeroe.reduccion = Math.min(0.85, statsHeroe.reduccion + bH.reduccionPct);
+      if (bH.roboPct) statsHeroe.robo = Math.min(0.80, (statsHeroe.robo || 0) + bH.roboPct);
+      statsHeroe.venenoBonus = bH.venenoBonus || 0;
+      statsHeroe.hpRegenBonus = bH.hpRegenPorSeg || 0;
+      statsHeroe.mpRegenBonus = bH.mpRegenPorSeg || 0;
+      statsHeroe.bonosCompActivos = bH;
+    } else {
+      statsHeroe.venenoBonus = 0;
+      statsHeroe.hpRegenBonus = 0;
+      statsHeroe.mpRegenBonus = 0;
+      statsHeroe.bonosCompActivos = null;
+    }
+    statsHeroe.ataqueEfectivo = Math.round(poderBaseHero * (1 + (statsHeroe.danio || 0)));
+
     hero.maxHp = statsHeroe.vida;
     hero.maxMp = statsHeroe.maná;
     hero.hp = Math.min(hero.hp, hero.maxHp);
@@ -13996,15 +14437,15 @@
   }
 
   const CRITICO = 1.5;   // multiplicador del golpe crítico
-  // Daño de una habilidad: arma, daño extra, la propia habilidad mejorada con puntos, crítico y buffs de NPCs
+  // Daño de una habilidad: arma, daño extra, la propia habilidad mejorada con puntos, crítico y buffs/debuffs
   function calcularDanioHeroe(name, targetLevel, bonusCrit = 0, targetMonster = null) {
     let dmg = CombatLib.heroDamage(hero, name, targetLevel) * (1 + statsHeroe.danio);
     dmg *= statsHeroe.mult[name] || 1;
     if (targetMonster && targetMonster.slowTimer > 0 && hero.multSlowBonus) {
       dmg *= (1 + hero.multSlowBonus);
     }
-    if (acompanante && acompanante.buffs && acompanante.buffs.ataqueTimer > 0) {
-      dmg *= (acompanante.buffs.multAtaque || 1.25);
+    if (targetMonster && targetMonster.defDebuffTimer > 0 && targetMonster.defDebuffPct > 0) {
+      dmg *= (1 + targetMonster.defDebuffPct);
     }
     if (hero.bloodFuryTimer > 0) {
       dmg *= 1.35;
@@ -14022,7 +14463,7 @@
   function danioDelHeroe(name, targetLevel) {
     return calcularDanioHeroe(name, targetLevel).dmg;
   }
-  // Un golpe del héroe: con robo de vida recupera parte del daño y sed de maná del hereje
+  // Un golpe del héroe: con robo de vida recupera parte del daño, veneno activo y sed de maná del hereje
   function golpear(m, dmg, sonido = 'metal', opts = {}) {
     const heroPos = character && character.root ? character.root.position : null;
     if (statsHeroe.robo) {
@@ -14070,6 +14511,15 @@
 
     marcarCombateAudio();
     damageMonster(m, dmg, 'hero');
+    if (statsHeroe.venenoBonus > 0 && m && m.alive && m.hp > 0) {
+      const extraVen = Math.max(1, Math.round(statsHeroe.venenoBonus * (1 + (hero.venenoMult || 0))));
+      damageMonster(m, extraVen, 'hero');
+      lanzarNumeroFlotante(posCabezaMonstruo(m), '☠ +' + extraVen, 'dmg-poison', { disp: 0.45 });
+      if (m.alive && m.hp > 0) {
+        m.venenoTimer = Math.max(m.venenoTimer || 0, 3.0);
+        m.venenoDps = Math.max(m.venenoDps || 0, Math.max(3, Math.round(extraVen * 0.45)));
+      }
+    }
     if (window.Sonidos) {
       const panG = m ? panDePosicion(m.x, m.z) : 0;
       window.Sonidos.impacto(sonido, { pan: panG });
@@ -14183,7 +14633,7 @@
   // ===========================================================================
   // Personaje: el estudio de armaduras (embebido) ajusta las proporciones y genera las piezas
   // ===========================================================================
-  const ESTUDIO_URL = 'estudio-armaduras/index.html?v=20261121';
+  const ESTUDIO_URL = 'estudio-armaduras/index.html?v=20261122b';
   let catalogoPiezas = null;
   let catalogoRostros = null;
   let rostroCrearBloqueado = false;
@@ -14197,6 +14647,7 @@
   let encargosColocados = false;
   let alCrear = null;
   let estudioListo = null;      // promesa: el maniquí del estudio está listo
+  let armPreviewListo = null;   // promesa independiente del visor 3D del catálogo de armaduras
   const esperando = {};         // respuestas pendientes del estudio, por clave
 
   function badgeGradoHtml(o) {
@@ -14215,11 +14666,23 @@
     if (!ref) return 'D';
     return ref.grado || (EquipoLib.gradoDePieza ? EquipoLib.gradoDePieza(ref) : 'D') || 'D';
   }
+  function setDominanteHeroe(pj) {
+    if (!pj || !pj.equipo || typeof ArmadurasLib === 'undefined') return null;
+    const eqObjs = Object.values(pj.equipo).map(uid => EquipoLib.objeto(pj, uid)).filter(Boolean);
+    const conj = ArmadurasLib.bonosDeConjuntos(eqObjs);
+    return (conj.sets && conj.sets.length) ? conj.sets[0] : null;
+  }
   function armorLookActivoHeroe(pj) {
     if (!pj || !pj.equipo) return null;
-    const ref = EquipoLib.objeto(pj, pj.equipo.torso)
-      || Object.values(pj.equipo).map(uid => EquipoLib.objeto(pj, uid)).find(Boolean);
-    return (ref && ref.armorLook != null) ? ref.armorLook : null;
+    const dom = setDominanteHeroe(pj);
+    if (dom && dom.equipadas >= 3 && dom.set && dom.set.armorLook != null) return dom.set.armorLook;
+    const torso = EquipoLib.objeto(pj, pj.equipo.torso);
+    if (torso && torso.armorLook != null) return torso.armorLook;
+    const armaduras = Object.values(pj.equipo)
+      .map(uid => EquipoLib.objeto(pj, uid))
+      .filter(o => o && o.ranura !== 'weapon' && o.ranura !== 'shield' && o.armorLook != null)
+      .sort((a, b) => (b.nivel || 0) - (a.nivel || 0));
+    return armaduras.length ? armaduras[0].armorLook : null;
   }
 
   // Caché persistente en IndexedDB del GLB exportado del héroe para cargar la partida al instante sin abrir el estudio
@@ -14240,6 +14703,7 @@
     return dbHeroePromesa;
   }
   function claveModeloHeroe(pj) {
+    const dom = setDominanteHeroe(pj);
     return JSON.stringify({
       c: pj.clase || 'guerrero',
       ta: (typeof EquipoLib !== 'undefined' && EquipoLib.tipoArmaduraDeClase)
@@ -14247,6 +14711,7 @@
         : 'pesada',
       g: gradoActivoHeroe(pj),
       lk: armorLookActivoHeroe(pj),
+      sid: dom ? dom.set.id : null,
       r: pj.rostro ? { id: pj.rostro.id || '', g: pj.rostro.gender || 'hombre' } : null,
       f: pj.fit || {},
       h: pj.pelo || null,
@@ -14326,6 +14791,13 @@
   window.addEventListener('message', e => {
     const d = e.data;
     if (!d || d.origen !== 'armadura-estudio') return;
+    const fPrev = $('arm-preview-frame');
+    if (fPrev && fPrev.contentWindow && e.source === fPrev.contentWindow) {
+      if (d.tipo === 'listo' && typeof resolverEsperaEstudio === 'function') {
+        resolverEsperaEstudio('arm_preview_listo', true);
+      }
+      return;
+    }
     if (d.tipo === 'listo') {
       if (Array.isArray(d.rostros) && d.rostros.length) {
         catalogoRostros = d.rostros;
@@ -14386,7 +14858,7 @@
 
   async function cargarCatalogoPiezas() {
     if (!catalogoPiezas) {
-      const r = await fetch('estudio-armaduras/catalogo.json?v=20261122a');
+      const r = await fetch('estudio-armaduras/catalogo.json?v=20261122b');
       if (!r.ok) throw new Error('No se pudo leer el catálogo de piezas');
       catalogoPiezas = await r.json();
     }
@@ -14498,7 +14970,9 @@
     if (!el || typeof HeroeLib === 'undefined' || !HeroeLib.profesionDe) return;
     const cls = ($('crear-clase') && $('crear-clase').value) || 'guerrero';
     const prof = HeroeLib.profesionDe(cls);
-    const taNom = prof.tipoArmadura === 'mago' ? 'Mágica (túnicas/ligera arcana)' : (prof.tipoArmadura === 'ligera' ? 'Ligera' : 'Pesada');
+    const armCls = (typeof ArmadurasLib !== 'undefined' && ArmadurasLib.CLASES_ARMADURA && ArmadurasLib.CLASES_ARMADURA[prof.tipoArmadura]) || null;
+    const taNom = armCls ? `${armCls.icono} ${armCls.nombre}` : (prof.tipoArmadura === 'mago' ? 'Mágica (túnicas/ligera arcana)' : (prof.tipoArmadura === 'ligera' ? 'Ligera' : 'Pesada'));
+    const armRasgos = armCls ? armCls.rasgos.join(' · ') : '';
     const armasNom = (prof.familiasArma || []).join(', ');
     const barra = HeroeLib.TECLAS.map(t => {
       const id = prof.barraInicial && prof.barraInicial[t];
@@ -14508,6 +14982,7 @@
     el.innerHTML = '<div><b>' + prof.icono + ' ' + esc(prof.nombre) + '</b> · <span style="color:#38bdf8">' + esc(prof.rol) + '</span></div>'
       + '<div class="muted" style="margin:3px 0">' + esc(prof.desc) + '</div>'
       + '<div><b>Armadura:</b> ' + esc(taNom) + ' · <b>Armas afines:</b> ' + esc(armasNom) + '</div>'
+      + (armRasgos ? '<div class="muted" style="color:#fde047"><b>Rasgos de armadura (D → SR):</b> ' + esc(armRasgos) + '</div>' : '')
       + '<div><b>Pasiva innata:</b> ' + esc(prof.pasiva) + '</div>'
       + '<div class="muted" style="margin-top:2px"><b>Barra inicial:</b> ' + barra + '</div>';
   }
@@ -14870,6 +15345,16 @@
       const manosTxt = o.ranura === 'weapon' ? (EquipoLib.manosDeArma(o, catalogoPiezas) === 2 ? ' · 2 manos' : ' · 1 mano') : '';
       const bloqTxt = (o.ranura === 'shield' && o.bloqueo) ? ` · bloq ${Math.round(o.bloqueo * 100)}%` : '';
       const stat = (o.ataque ? 'ataque ' + o.ataque : (o.defensa ? 'defensa ' + o.defensa : '')) + bloqTxt;
+      const fichaObj = (typeof HeroeLib !== 'undefined' && HeroeLib.ficha) ? HeroeLib.ficha(o) : null;
+      const extraArmTxt = (fichaObj && fichaObj.tipo === 'armadura' && fichaObj.lineas.length > 1)
+        ? ' · ' + fichaObj.lineas.slice(1).join(' · ')
+        : '';
+      const habTip = (fichaObj && fichaObj.habilidadesSet && fichaObj.habilidadesSet.length)
+        ? `${fichaObj.setNombre}\n` + fichaObj.habilidadesSet.map(h => `[${h.piezasReq} pzas] ${h.nombre}: ${h.desc}`).join('\n')
+        : o.nombre;
+      const setTag = (fichaObj && fichaObj.setNombre)
+        ? `<span class="muted" style="display:block;font-size:10.5px;color:#93c5fd">🛡️ ${esc(fichaObj.setNombre)}${fichaObj.habilidadesSet.length ? ' · ' + esc(fichaObj.habilidadesSet.map(h => h.piezasReq + 'p: ' + h.nombre).join(' | ')) : ''}</span>`
+        : '';
       const esEq = equipados.has(o.uid);
       let eqBtn = '';
       if (o.nivel > hero.level) eqBtn = `<span class="muted">🔒 nivel ${o.nivel}</span>`;
@@ -14883,9 +15368,9 @@
           + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
           + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
       return `<div class="slot ${esEq ? 'eq' : ''}" data-uid="${esc(o.uid)}">
-        <div class="item-thumb" title="${esc(o.nombre)}">${iconoItemSvg(o, 30)}</div>
+        <div class="item-thumb" title="${esc(habTip)}">${iconoItemSvg(o, 30)}</div>
         <div class="info"><b>${badgeGradoHtml(o)}${esc(o.nombre)}</b>
-        <span class="muted">${esc(ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : ''))}${manosTxt} · nivel ${o.nivel} · estado ${Math.round((o.estado != null ? o.estado : 1) * 100)}%${stat ? ' · ' + stat : ''}</span></div>
+        <span class="muted">${esc(ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : ''))}${manosTxt} · nivel ${o.nivel} · estado ${Math.round((o.estado != null ? o.estado : 1) * 100)}%${stat ? ' · ' + stat : ''}${esc(extraArmTxt)}</span>${setTag}</div>
         ${accion}
       </div>`;
     }).join('') || '<div class="muted">No tienes objetos.</div>';
@@ -15096,12 +15581,11 @@
           ? HistoriaLib.textoForjaClase(fp.ranura, claseHeroe())
           : null;
         const nombrePieza = (forjaTxt && forjaTxt.nombrePieza) || ({
-          belt: 'Cinturón de Cuero Reforzado',
+          pants: 'Pantalones Reforzados',
           boots: 'Botas de Viajero',
           gloves: 'Brazales / Guantes Curtidos',
           torso: 'Peto de Cuero y Mallas',
           helmet: 'Yelmo de Explorador',
-          shoulders: 'Hombreras de Caza',
           weapon: 'Arma de Combate de Acero'
         }[fp.ranura] || 'Pieza de Equipo');
         const fraseBrann = (forjaTxt && forjaTxt.fraseBrann)
@@ -15140,7 +15624,12 @@
         const descPctF = Math.round((bonoRepActual().descuentoTienda || 0) * 100);
         html += `<h3 class="npc-h">Fabricar (estado perfecto)${descPctF > 0 ? ` · <span style="color:#4ade80">-${descPctF}% Pueblo</span>` : ''}</h3>` + avisoForja + (piezas.map(p => {
           const coste = precioConReputacion(EquipoLib.FORJA_ORO * p.nivel, 'tienda');
-          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${badgeGradoHtml(p)}${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}</span></div>
+          const stP = (typeof ArmadurasLib !== 'undefined' && p.ranura !== 'weapon' && p.ranura !== 'shield' && (p.tipoArmadura || p.setId))
+            ? ArmadurasLib.statsDePieza(p, 1) : null;
+          const detP = stP ? ` · Def ${stP.defensa}${Object.keys(stP.stats).length ? ' · ' + ArmadurasLib.efectoTexto(stP.stats) : ''}` : '';
+          const setP = (typeof ArmadurasLib !== 'undefined' && p.setId) ? ArmadurasLib.setPorId(p.setId) : null;
+          const tipP = setP ? `${setP.nombre}\n` + setP.habilidades.map(h => `[${h.piezasReq}p] ${h.nombre}: ${h.desc}`).join('\n') : p.nombre;
+          return `<div class="slot"><div class="item-thumb" title="${esc(tipP)}">${iconoItemSvg(p, 28)}</div><div class="info"><b>${badgeGradoHtml(p)}${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel}${esc(detP)}</span></div>
             <button data-fabricar="${esc(p.id)}" ${inv.gold < coste ? 'disabled' : ''}>${coste} 🪙</button></div>`;
         }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
       }
@@ -15168,7 +15657,12 @@
         const descPctC = Math.round((bonoRepActual().descuentoTienda || 0) * 100);
         html = `<h3 class="npc-h">Comprar${descPctC > 0 ? ` · <span style="color:#4ade80">-${descPctC}% Pueblo</span>` : ''}</h3>` + avisoCom + (piezas.map(p => {
           const coste = precioConReputacion(EquipoLib.COMPRA_ORO * p.nivel, 'tienda');
-          return `<div class="slot"><div class="item-thumb">${iconoItemSvg(p, 28)}</div><div class="info"><b>${badgeGradoHtml(p)}${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar</span></div>
+          const stP = (typeof ArmadurasLib !== 'undefined' && p.ranura !== 'weapon' && p.ranura !== 'shield' && (p.tipoArmadura || p.setId))
+            ? ArmadurasLib.statsDePieza(p, 0.75) : null;
+          const detP = stP ? ` · Def ${stP.defensa}${Object.keys(stP.stats).length ? ' · ' + ArmadurasLib.efectoTexto(stP.stats) : ''}` : '';
+          const setP = (typeof ArmadurasLib !== 'undefined' && p.setId) ? ArmadurasLib.setPorId(p.setId) : null;
+          const tipP = setP ? `${setP.nombre}\n` + setP.habilidades.map(h => `[${h.piezasReq}p] ${h.nombre}: ${h.desc}`).join('\n') : p.nombre;
+          return `<div class="slot"><div class="item-thumb" title="${esc(tipP)}">${iconoItemSvg(p, 28)}</div><div class="info"><b>${badgeGradoHtml(p)}${esc(p.nombre)}</b><span class="muted">nivel ${p.nivel} · calidad estándar${esc(detP)}</span></div>
             <button data-comprar="${esc(p.id)}" ${inv.gold < coste || EquipoLib.llena(pj) ? 'disabled' : ''}>${coste} 🪙</button></div>`;
         }).join('') || '<div class="muted">Aún no hay piezas a tu nivel.</div>');
       }
@@ -15854,29 +16348,77 @@
 
   // Panel del héroe (tecla P): todas las estadísticas aunque valgan 0, equipo con sus especiales, habilidades y misiones
   function renderHeroe() {
-    const H = HeroeLib, s = statsHeroe;
+    const H = HeroeLib, s = statsHeroe, sb = s.base || s;
     const cls = claseHeroe(), prof = H.profesionDe(cls);
     const subActiva = H.subclaseDe ? H.subclaseDe(heroeEst, cls) : null;
     const nombreTa = prof.tipoArmadura === 'mago' ? 'Mágica' : (prof.tipoArmadura === 'ligera' ? 'Ligera' : 'Pesada');
     const pct = v => Math.round(v * 100) + ' %';
     const mas = v => '+' + pct(v);
+    const fmtPctPot = (baseVal, actVal, prefMas = false) => {
+      const fn = prefMas ? mas : pct;
+      if (Math.round((actVal - baseVal) * 100) > 0) {
+        return `<span style="color:#4ade80">${fn(baseVal)} → ${fn(actVal)} (+${Math.round((actVal - baseVal) * 100)}%)</span>`;
+      }
+      return fn(actVal);
+    };
+    const atqBase = s.ataqueEfectivoBase || s.ataque;
+    const atqAct = s.ataqueEfectivo || atqBase;
+    const atqEfectivoTxt = atqAct > atqBase
+      ? `<span style="color:#4ade80">${atqBase} → ${atqAct}</span>`
+      : String(atqAct);
     const filas = [
       ['Vida máxima', s.vida], ['Maná máximo', s.maná], ['Ataque (arma + fuerza)', s.ataque],
+      ['Poder de ataque efectivo', atqEfectivoTxt],
       ...(s.poderMagico > 0 ? [['Poder mágico', '+' + s.poderMagico]] : []),
       ...(s.sinergiaComp ? [['Sinergia con compañero', s.sinergiaComp.titulo]] : []),
       ['Defensa de armadura', s.defensa],
-      ['Reducción de daño', pct(s.reduccion)], ['Bloqueo (escudo)', pct(s.bloqueo)], ['Crítico (daño ×' + CRITICO + ')', pct(s.critico)],
-      ['Daño extra', mas(s.danio)], ['Robo de vida', pct(s.robo)], ['Reflejo (espinas)', pct(s.reflejo)],
-      ['Velocidad de movimiento', mas(s.velocidad)], ['Velocidad de ataque', mas(s.velocidadAtaque)],
+      ['Reducción de daño', fmtPctPot(sb.reduccion || 0, s.reduccion || 0, false)],
+      ['Bloqueo (escudo)', pct(s.bloqueo)],
+      ['Crítico (daño ×' + CRITICO + ')', pct(s.critico)],
+      ['Daño extra', fmtPctPot(sb.danio || 0, s.danio || 0, true)],
+      ['Robo de vida', fmtPctPot(sb.robo || 0, s.robo || 0, false)],
+      ['Reflejo (espinas)', pct(s.reflejo)],
+      ['Velocidad de movimiento', fmtPctPot(sb.velocidad || 0, s.velocidad || 0, true)],
+      ['Velocidad de ataque', fmtPctPot(sb.velocidadAtaque || 0, s.velocidadAtaque || 0, true)],
+      ...(s.venenoBonus > 0 ? [['🧪 Veneno Letal (potenciador)', `<span style="color:#4ade80">+${Math.round(s.venenoBonus)} / golpe</span>`]] : []),
+      ...(s.hpRegenBonus > 0 || s.mpRegenBonus > 0 ? [['💧 Manantial Místico (potenciador)', `<span style="color:#4ade80">+${Math.round(s.hpRegenBonus)} HP/s · +${Math.round(s.mpRegenBonus)} MP/s</span>`]] : []),
       ...H.TECLAS.filter(t => heroeEst.barra[t] && CombatLib.SKILLS[heroeEst.barra[t]]).map(t => [t.toUpperCase() + ' · ' + CombatLib.SKILLS[heroeEst.barra[t]].nombre + ', daño', pct(s.mult[heroeEst.barra[t]] || 1)])
     ];
     const equipo = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
     const equipoHtml = equipo.map(o => {
       const f = H.ficha(o);
+      const habsSetHtml = (f.habilidadesSet && f.habilidadesSet.length)
+        ? '<div class="muted" style="font-size:11px;color:#93c5fd">🛡️ ' + esc(f.setNombre || '') + ': ' + esc(f.habilidadesSet.map(x => `${x.piezasReq}p ${x.nombre}`).join(' · ')) + '</div>'
+        : '';
       return '<div class="fila"><span><b>' + badgeGradoHtml(o) + esc(o.nombre) + '</b> <span class="muted">' + f.tipo + ' · nivel ' + o.nivel + ' · estado ' + Math.round(o.estado * 100) + ' %</span></span></div>'
         + f.lineas.map(l => '<div class="muted">· ' + esc(l) + '</div>').join('')
-        + f.especiales.map(e => '<div class="muted">✦ ' + esc(e.nombre) + ': ' + esc(e.texto) + '</div>').join('');
+        + f.especiales.map(e => '<div class="muted">✦ ' + esc(e.nombre) + ': ' + esc(e.texto) + '</div>').join('')
+        + habsSetHtml;
     }).join('') || '<div class="muted">Sin equipo.</div>';
+    let armadurasActivasHtml = '';
+    if (typeof ArmadurasLib !== 'undefined') {
+      const taCls = prof.tipoArmadura || 'pesada';
+      const armInfo = ArmadurasLib.CLASES_ARMADURA[taCls];
+      const setsActivos = Array.isArray(s.armaduraSets) ? s.armaduraSets : [];
+      const setsHtml = setsActivos.length
+        ? setsActivos.map(item => `
+          <div style="display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:8px;background:rgba(15,23,42,0.75);border:1px solid #334155;margin-top:6px">
+            ${ArmadurasLib.disenoSvgHtml(item.set, { size: 54 })}
+            <div style="flex:1;min-width:0;font-size:11.5px">
+              <div><b>${badgeGradoHtml({ grado: item.set.grado, tipoArmadura: item.set.claseArmadura })}${esc(item.set.nombre)}</b> <span style="color:#4ade80;font-weight:700">(${item.equipadas}/5 piezas)</span></div>
+              <div class="muted" style="font-size:11px">${esc(item.set.diseno)}</div>
+              ${item.set.habilidades.map(hb => {
+                const on = item.equipadas >= hb.piezasReq;
+                return `<div style="margin-top:2px;color:${on ? '#fde047' : '#64748b'}">${on ? '✅' : '🔒'} <b>[${hb.piezasReq}p] ${esc(hb.nombre)}:</b> ${esc(hb.desc)}</div>`;
+              }).join('')}
+            </div>
+          </div>`).join('')
+        : '<div class="muted">Equipa piezas de un conjunto para activar sus habilidades de 1, 3 y 5 piezas.</div>';
+      armadurasActivasHtml = `<h3>🛡️ Armadura de ${esc(armInfo ? armInfo.nombre : nombreTa)} y Habilidades de Conjunto</h3>`
+        + (armInfo ? `<div class="muted" style="font-size:11.5px">${armInfo.icono} ${esc(armInfo.resumen)} <span style="color:#bae6fd">(${esc(armInfo.rasgos.join(' · '))})</span></div>` : '')
+        + setsHtml
+        + `<div style="margin-top:6px"><button type="button" id="btn-heroe-ver-armaduras" class="gold" style="font-size:11.5px;padding:4px 10px">🛡️ Ver Diseños y Habilidades de Armadura (54)</button></div>`;
+    }
     // Pasivas de clase + activas EXCLUSIVAMENTE del arma equipada
     const clsArmaAct = claseArmaDelHeroe();
     const nomArmaAct = (H.NOMBRES_CLASE_ARMA && H.NOMBRES_CLASE_ARMA[clsArmaAct]) || clsArmaAct;
@@ -15926,7 +16468,7 @@
         : '<div class="muted">Crónica completa · Epílogo abierto.</div>')
       + '<div class="muted">Capítulos contados: ' + Math.min(pr.paso, total) + ' / ' + total + ' (los cuenta la crónica, tecla C)</div>'
       + titulosHtml;
-    const posibles = Object.keys(H.ESPECIALES).map(tipo => '<div class="muted"><b>' + tipo + '</b>: ' + H.ESPECIALES[tipo].map(e => esc(e.nombre) + ' (' + esc(H.efectoTexto(e.efecto)) + ')').join(' · ') + '</div>').join('');
+    const posibles = Object.keys(H.ESPECIALES).map(tipo => '<div class="muted"><b>' + esc(tipo.replace('armadura_', 'armadura ')) + '</b>: ' + H.ESPECIALES[tipo].map(e => esc(e.nombre) + ' (' + esc(H.efectoTexto(e.efecto)) + ')').join(' · ') + '</div>').join('');
     const encargos = Object.keys(heroeEst.zonas).map(id => {
       const z = heroeEst.zonas[id], m = misionPorZona[id];
       const estado = z.entregada ? '✅ entregado' : z.lista ? '📦 listo para entregar' : z.progreso + ' / ' + z.cantidad;
@@ -15941,6 +16483,7 @@
       + rostroHtml + '</div>'
       + '<div class="muted">Nivel ' + hero.level + ' · puntos de habilidad: <b>' + heroeEst.puntos + '</b> · monstruos derrotados: ' + heroeEst.kills + ' (siguiente punto en ' + (H.PUNTOS_KILLS - heroeEst.kills % H.PUNTOS_KILLS) + ')</div>'
       + '<h3>Estadísticas</h3>' + filas.map(f => '<div class="fila"><span>' + f[0] + '</span><b>' + f[1] + '</b></div>').join('')
+      + armadurasActivasHtml
       + '<h3>Equipo</h3>' + equipoHtml
       + '<h3>Habilidades · pulsa Q, E, Z o V para ponerla en ese hueco de la barra</h3>' + habs
       + '<h3>Historia</h3>' + historia
@@ -16044,8 +16587,8 @@
         ? HistoriaLib.textoForjaClase(fp.ranura, claseHeroe())
         : null;
       const ranurasNombres = {
-        belt: 'cinturón', boots: 'botas', gloves: 'guantes/brazales',
-        torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
+        pants: 'pantalones', boots: 'botas', gloves: 'guantes/brazales',
+        torso: 'peto', helmet: 'yelmo', weapon: 'arma de combate'
       };
       const nPieza = (forjaTxt && forjaTxt.nombrePieza) || ranurasNombres[fp.ranura] || 'pieza';
       $('mision-cap').textContent = '📜 ' + actoTag + 'Cap. ' + (p.paso + 1) + ' · ' + cap.titulo;
@@ -16262,13 +16805,17 @@
     if (!pj) return;
     try {
       await cargarCatalogoPiezas();
-      const obj = EquipoLib.forjarPiezaBasica(pj, catalogoPiezas, ranura, Math.random);
+      const obj = EquipoLib.forjarPiezaBasica(pj, catalogoPiezas, ranura, Math.random, { nivelHeroe: hero.level });
       if (obj) {
-        EquipoLib.equipar(pj, obj.uid, hero.level, catalogoPiezas, { subclase: heroeEst && heroeEst.subclase });
+        if (hero.level >= obj.nivel) {
+          EquipoLib.equipar(pj, obj.uid, hero.level, catalogoPiezas, { subclase: heroeEst && heroeEst.subclase });
+          toast('🔨 ¡Pieza forjada y equipada: ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)!');
+        } else {
+          toast('🔨 ¡Pieza forjada y guardada en tu inventario: ' + obj.nombre + ' (requiere Nv. ' + obj.nivel + ')!');
+        }
         aplicarStats();
         renderObjetos();
         renderInvCard();
-        toast('🔨 ¡Pieza forjada y equipada: ' + obj.nombre + ' (' + Math.round(obj.estado * 100) + '%)!');
         await mostrarCuerpo(pj);
       }
     } catch (err) {
@@ -16288,6 +16835,14 @@
     }
     if (r.recompensa.forjarPieza) {
       entregarPiezaCapitulo(r.recompensa.forjarPieza);
+    }
+    if (r.recompensa.templarArmadura && personajeActual && typeof EquipoLib.templarArmaduraEquipada === 'function') {
+      const templadas = EquipoLib.templarArmaduraEquipada(personajeActual, catalogoPiezas);
+      if (templadas.length) {
+        renderObjetos();
+        renderInvCard();
+        toast('✨ ¡Tu armadura de 5 piezas ha sido templada al 100 % en la Fuente Arcana!');
+      }
     }
     if (acompanante) {
       acompanante.puntosCompanero = (acompanante.puntosCompanero || 0) + 1;
@@ -16424,11 +16979,14 @@
         premio += forjaTxt.premioTexto;
       } else {
         const ranurasNombres = {
-          belt: 'cinturón', boots: 'botas', gloves: 'guantes/brazales',
-          torso: 'peto', helmet: 'yelmo', shoulders: 'hombreras', weapon: 'arma de combate'
+          pants: 'pantalones', boots: 'botas', gloves: 'guantes/brazales',
+          torso: 'peto', helmet: 'yelmo', weapon: 'arma de combate'
         };
         premio += ' · 🔨 forja de ' + (ranurasNombres[r.recompensa.forjarPieza] || r.recompensa.forjarPieza) + ' aleatorio';
       }
+    }
+    if (r.recompensa.templarArmadura) {
+      premio += ' · ✨ armadura de 5 piezas templada (100 %)';
     }
     if (r.recompensa.desbloquea) {
       const hab = HeroeLib.HABILIDADES[r.recompensa.desbloquea];
@@ -16515,11 +17073,26 @@
         { id: 'cronica', txt: '📜 Crónica' },
         { id: 'personajes', txt: `🕵️ Personajes (${nPers})` },
         { id: 'pistas', txt: `🔍 Pistas e Hitos (${nPist})` },
-        { id: 'decisiones', txt: `⚖️ Decisiones (${nDec})` }
+        { id: 'decisiones', txt: `⚖️ Decisiones (${nDec})` },
+        { id: 'armaduras', txt: `🛡️ Armaduras (${typeof ArmadurasLib !== 'undefined' ? ArmadurasLib.SETS_ARMADURA.length : 54})` }
       ];
       tabsEl.innerHTML = defs.map(d =>
         `<button type="button" class="cro-tab${tabCronicaActual === d.id ? ' act' : ''}" data-cro-tab="${d.id}">${d.txt}</button>`
       ).join('');
+    }
+
+    if (tabCronicaActual === 'armaduras' && typeof ArmadurasLib !== 'undefined') {
+      const clsPj = (typeof HeroeLib !== 'undefined' && HeroeLib.profesionDe) ? HeroeLib.profesionDe(claseHeroe()).tipoArmadura : 'pesada';
+      const lista = ArmadurasLib.SETS_ARMADURA.slice().sort((a, b) => (a.claseArmadura === clsPj ? -1 : b.claseArmadura === clsPj ? 1 : 0) || a.nivel - b.nivel);
+      $('cro-lista').innerHTML = `
+        <div class="rep-panel" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <div><b style="color:#fde047">🛡️ Catálogo de Armaduras (54 Conjuntos · D → SR)</b><div class="muted" style="font-size:11.5px">3 diseños por clase (Pesada, Ligera, Mago) en cada grado. Pulsa «Abrir Visor 3D» para inspeccionarlos a pantalla completa.</div></div>
+          <button type="button" class="gold" data-accion="abrir-armaduras" style="font-size:12px;padding:5px 12px">🛡️ Abrir Visor de Armaduras</button>
+        </div>
+        ${renderResumenClasesArmaduraHtml(clsPj)}
+        <div class="arm-grid">${renderTarjetasSetsArmaduraHtml(lista, { sinPreviewBtn: false })}</div>
+      `;
+      return;
     }
 
     if (tabCronicaActual === 'personajes' && codPers) {
@@ -16978,6 +17551,215 @@
     }
   };
 
+  // ===========================================================================
+  // Visor de Armaduras: Clases (Pesada, Ligera, Mago), Grados (D..SR), Diseños y Habilidades
+  // ===========================================================================
+  let filtroArmadura = { clase: 'todas', grado: 'todos', soloMiClase: false, texto: '' };
+
+  function conteoSetsEnPersonaje() {
+    const eqMap = Object.create(null);
+    const invMap = Object.create(null);
+    if (!personajeActual || typeof ArmadurasLib === 'undefined') return { eqMap, invMap };
+    const equipados = new Set(Object.values(personajeActual.equipo || {}));
+    (personajeActual.inventario || []).forEach(o => {
+      if (!o || o.ranura === 'weapon' || o.ranura === 'shield') return;
+      const setObj = o.setId ? ArmadurasLib.setPorId(o.setId) : (o.armorLook != null ? ArmadurasLib.setPorLook(o.armorLook) : null);
+      if (!setObj) return;
+      if (equipados.has(o.uid)) eqMap[setObj.id] = (eqMap[setObj.id] || 0) + 1;
+      else invMap[setObj.id] = (invMap[setObj.id] || 0) + 1;
+    });
+    return { eqMap, invMap };
+  }
+
+  function renderResumenClasesArmaduraHtml(claseActiva) {
+    if (typeof ArmadurasLib === 'undefined') return '';
+    return `<div class="arm-clases-grid">${['pesada', 'ligera', 'mago'].map(k => {
+      const c = ArmadurasLib.CLASES_ARMADURA[k];
+      const esAct = claseActiva === k;
+      return `<div class="arm-clase-card${esAct ? ' activa' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+          <b style="color:${esc(c.color)}">${c.icono} ${esc(c.nombre)}</b>
+          ${esAct ? '<span class="clase-arm-tag" style="border-color:#facc15;color:#fde047">Tu clase</span>' : ''}
+        </div>
+        <div class="muted" style="margin-top:3px;font-size:11.5px">${esc(c.resumen)}</div>
+        <div style="margin-top:4px;font-size:11px;color:#e2e8f0"><b>Rasgos:</b> ${esc(c.rasgos.join(' · '))}</div>
+        <div class="muted" style="margin-top:2px;font-size:10.5px"><b>Diseño:</b> ${esc(c.silueta)}</div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function renderTarjetasSetsArmaduraHtml(lista, opts = {}) {
+    if (typeof ArmadurasLib === 'undefined') return '';
+    const { eqMap, invMap } = conteoSetsEnPersonaje();
+    return lista.map(s => {
+      const nEq = eqMap[s.id] || 0;
+      const nInv = invMap[s.id] || 0;
+      const stComp = ArmadurasLib.statsCompletosSet(s.id, 1);
+      const tot = stComp ? stComp.statsPiezas : {};
+      const resumenPiezas = [`Def ${stComp ? stComp.defensaTotal : 0}`];
+      const txtExtra = ArmadurasLib.efectoTexto(tot);
+      if (txtExtra) resumenPiezas.push(txtExtra);
+      const orig = ArmadurasLib.ORIGENES_INFO[s.origin] || ArmadurasLib.ORIGENES_INFO.clasico;
+      const gInfo = ArmadurasLib.GRADOS_INFO[s.grado] || ArmadurasLib.GRADOS_INFO.D;
+      const sw = [s.paleta.primary, s.paleta.secondary, s.paleta.cloth, s.paleta.glow]
+        .filter(Boolean)
+        .map(col => `<span class="arm-swatch" style="background:${esc(col)}" title="Paleta ${esc(col)}"></span>`).join('');
+      const estadoHtml = nEq > 0
+        ? `<span style="color:#4ade80;font-weight:700;font-size:11px">✅ Equipada ${nEq}/5</span>`
+        : (nInv > 0 ? `<span style="color:#38bdf8;font-size:11px">🎒 ${nInv} pza(s) en mochila</span>` : '');
+      const habsHtml = s.habilidades.map(hb => {
+        const activa = nEq >= hb.piezasReq;
+        return `<div class="arm-hab-row${activa ? ' activa' : ''}"><span class="arm-hab-req">${hb.piezasReq}p</span><b>${esc(hb.nombre)}:</b> <span class="muted">${esc(hb.desc)}</span></div>`;
+      }).join('');
+      const piezasNom = ArmadurasLib.piezasDeSet(s.id).map(p => ArmadurasLib.NOMBRES_RANURA_SET[p.ranura]).join(' · ');
+      return `<div class="arm-card${nEq > 0 ? ' equipada' : ''}">
+        <div class="arm-card-top">
+          ${ArmadurasLib.disenoSvgHtml(s, { size: 76 })}
+          <div style="flex:1;min-width:0">
+            <div><span class="grado-tag grado-${esc(s.grado)}">${esc(s.grado)}</span><span class="clase-arm-tag">${esc(s.claseNombre.replace('Armadura de ', '').replace('Armadura ', ''))}</span><span class="muted" style="font-size:11px">Nv.${s.nivel} · <span style="color:${esc(orig.color)}">${esc(orig.nombre)}</span></span></div>
+            <div style="font-weight:700;font-size:13px;color:#f8fafc;margin-top:2px">${esc(s.nombre)}</div>
+            <div class="arm-swatches">${sw}</div>
+          </div>
+        </div>
+        <div class="muted" style="font-size:11.5px;line-height:1.35">${esc(s.diseno)}</div>
+        <div style="font-size:11px;color:#bae6fd"><b>Set 5 piezas (${esc(gInfo.rangoNivel)}):</b> ${esc(resumenPiezas.join(' · '))}</div>
+        <div class="muted" style="font-size:10.5px">Piezas: ${esc(piezasNom)}</div>
+        <div class="arm-habs">${habsHtml}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:auto">
+          <div>${estadoHtml || '<span class="muted" style="font-size:10.5px">Forja / Drop Nv.' + s.nivel + '+</span>'}</div>
+          ${opts.sinPreviewBtn ? '' : `<button type="button" data-preview-armadura="${esc(s.id)}" style="font-size:11px;padding:4px 9px">👁️ Ver diseño 3D</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function mostrarPreview3DArmadura(setId) {
+    if (typeof ArmadurasLib === 'undefined') return;
+    const s = ArmadurasLib.setPorId(setId);
+    if (!s) return;
+    const wrap = $('arm-preview-3d');
+    const fr = $('arm-preview-frame');
+    const tit = $('arm-preview-titulo');
+    if (!wrap || !fr) return;
+    wrap.classList.add('show');
+    if (tit) tit.textContent = `👁️ Diseño 3D · [${s.grado}] ${s.nombre} (${s.claseNombre})`;
+    if (!fr.getAttribute('src')) {
+      armPreviewListo = new Promise(res => { esperando.arm_preview_listo = res; });
+      fr.setAttribute('src', ESTUDIO_URL);
+      await Promise.race([armPreviewListo, new Promise(res => setTimeout(res, 6000))]);
+    }
+    if (fr.contentWindow) {
+      fr.contentWindow.postMessage({
+        origen: 'juego-armaduras',
+        tipo: 'preview-armadura',
+        armorLook: s.armorLook,
+        claseArmadura: s.claseArmadura,
+        grado: s.grado,
+        ocultarUi: true
+      }, '*');
+    }
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function renderModalArmaduras(opts = {}) {
+    if (typeof ArmadurasLib === 'undefined') return;
+    const prof = (typeof HeroeLib !== 'undefined' && HeroeLib.profesionDe) ? HeroeLib.profesionDe(claseHeroe()) : null;
+    const clasePj = (prof && prof.tipoArmadura) || 'pesada';
+    if (!opts.soloLista) {
+      if ($('arm-clases-resumen')) $('arm-clases-resumen').innerHTML = renderResumenClasesArmaduraHtml(clasePj);
+
+      const filEl = $('arm-filtros');
+      if (filEl) {
+        const clOpts = [
+          ['todas', `Todas (${ArmadurasLib.SETS_ARMADURA.length})`],
+          ['pesada', `🛡️ Pesada (${ArmadurasLib.setsPorClase('pesada').length})`],
+          ['ligera', `🏹 Ligera (${ArmadurasLib.setsPorClase('ligera').length})`],
+          ['mago', `🔮 Mago (${ArmadurasLib.setsPorClase('mago').length})`]
+        ];
+        const grOpts = ['todos'].concat(ArmadurasLib.GRADOS_ORDEN);
+        filEl.innerHTML = clOpts.map(([id, lbl]) => `<button type="button" class="arm-pill${filtroArmadura.clase === id ? ' on' : ''}" data-arm-cls="${id}">${lbl}</button>`).join('')
+          + '<span style="width:1px;height:18px;background:#334155;margin:0 2px"></span>'
+          + grOpts.map(g => `<button type="button" class="arm-pill${filtroArmadura.grado === g ? ' on' : ''}" data-arm-grado="${g}">${g === 'todos' ? 'Todos Grados' : 'Grado ' + g}</button>`).join('')
+          + `<label style="display:flex;align-items:center;gap:4px;font-size:11.5px;margin-left:auto;cursor:pointer"><input type="checkbox" id="arm-chk-mia" ${filtroArmadura.soloMiClase ? 'checked' : ''} style="width:auto;margin:0"> Solo mi clase</label>`
+          + `<input type="search" id="arm-buscar" value="${esc(filtroArmadura.texto)}" placeholder="Buscar diseño o habilidad..." style="width:185px;padding:4px 8px;border-radius:7px;background:#0f172a;border:1px solid #334155;color:#f8fafc;font-size:11.5px">`;
+      }
+    }
+
+    const claseEfectiva = filtroArmadura.soloMiClase ? clasePj : filtroArmadura.clase;
+    const lista = ArmadurasLib.filtrarSets({
+      claseArmadura: claseEfectiva,
+      grado: filtroArmadura.grado,
+      texto: filtroArmadura.texto
+    });
+    const cuerpo = $('arm-catalogo-cuerpo');
+    if (!cuerpo) return;
+    if (!lista.length) {
+      cuerpo.innerHTML = '<div class="muted" style="padding:16px;text-align:center">No hay diseños de armadura que coincidan con los filtros.</div>';
+      return;
+    }
+    const gruposHtml = ArmadurasLib.GRADOS_ORDEN.map(g => {
+      const sub = lista.filter(s => s.grado === g);
+      if (!sub.length) return '';
+      const gInfo = ArmadurasLib.GRADOS_INFO[g];
+      return `<div style="margin-top:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #1e293b">
+          <span class="grado-tag grado-${esc(g)}">${esc(gInfo.nombre)}</span>
+          <span class="muted" style="font-size:12px">${esc(gInfo.rangoNivel)} · ${sub.length} diseño(s)</span>
+        </div>
+        <div class="arm-grid">${renderTarjetasSetsArmaduraHtml(sub)}</div>
+      </div>`;
+    }).join('');
+    cuerpo.innerHTML = gruposHtml;
+  }
+
+  function abrirModalArmaduras(opts = {}) {
+    if (opts.clase) filtroArmadura.clase = opts.clase;
+    if (opts.grado) filtroArmadura.grado = opts.grado;
+    if (opts.soloMiClase != null) filtroArmadura.soloMiClase = !!opts.soloMiClase;
+    renderModalArmaduras();
+    if ($('armaduras-modal')) $('armaduras-modal').classList.add('show');
+  }
+
+  function cerrarModalArmaduras() {
+    if ($('armaduras-modal')) $('armaduras-modal').classList.remove('show');
+    const fr = $('arm-preview-frame');
+    if (fr && fr.getAttribute('src') && fr.contentWindow) {
+      fr.contentWindow.postMessage({ origen: 'juego-armaduras', tipo: 'pausar', pausa: true }, '*');
+    }
+  }
+
+  if ($('btn-armaduras')) $('btn-armaduras').onclick = () => abrirModalArmaduras();
+  if ($('sk-armaduras')) $('sk-armaduras').onclick = () => abrirModalArmaduras();
+  if ($('arm-cerrar')) $('arm-cerrar').onclick = cerrarModalArmaduras;
+  if ($('armaduras-modal')) $('armaduras-modal').addEventListener('click', e => { if (e.target === $('armaduras-modal')) cerrarModalArmaduras(); });
+  if ($('arm-preview-cerrar')) $('arm-preview-cerrar').onclick = () => {
+    if ($('arm-preview-3d')) $('arm-preview-3d').classList.remove('show');
+    const fr = $('arm-preview-frame');
+    if (fr && fr.getAttribute('src') && fr.contentWindow) {
+      fr.contentWindow.postMessage({ origen: 'juego-armaduras', tipo: 'pausar', pausa: true }, '*');
+    }
+  };
+  if ($('arm-filtros')) {
+    $('arm-filtros').addEventListener('click', e => {
+      const bCls = e.target.closest('button[data-arm-cls]');
+      if (bCls) { filtroArmadura.clase = bCls.dataset.armCls; filtroArmadura.soloMiClase = false; renderModalArmaduras(); return; }
+      const bGr = e.target.closest('button[data-arm-grado]');
+      if (bGr) { filtroArmadura.grado = bGr.dataset.armGrado; renderModalArmaduras(); }
+    });
+    $('arm-filtros').addEventListener('change', e => {
+      if (e.target && e.target.id === 'arm-chk-mia') { filtroArmadura.soloMiClase = !!e.target.checked; renderModalArmaduras(); }
+    });
+    $('arm-filtros').addEventListener('input', e => {
+      if (e.target && e.target.id === 'arm-buscar') { filtroArmadura.texto = e.target.value || ''; renderModalArmaduras({ soloLista: true }); }
+    });
+  }
+  if ($('arm-catalogo-cuerpo')) {
+    $('arm-catalogo-cuerpo').addEventListener('click', e => {
+      const bPrev = e.target.closest('button[data-preview-armadura]');
+      if (bPrev) mostrarPreview3DArmadura(bPrev.dataset.previewArmadura);
+    });
+  }
+
   $('sk-cronica').onclick = () => { renderCronica(); $('cronica').classList.add('show'); };
   if ($('cro-tabs')) {
     $('cro-tabs').onclick = e => {
@@ -16989,10 +17771,20 @@
   }
   $('cro-cerrar').onclick = () => $('cronica').classList.remove('show');
   $('cro-lista').onclick = e => {
+    const prevArm = e.target.closest('button[data-preview-armadura]');
+    if (prevArm) {
+      $('cronica').classList.remove('show');
+      abrirModalArmaduras();
+      mostrarPreview3DArmadura(prevArm.dataset.previewArmadura);
+      return;
+    }
     const btn = e.target.closest('button[data-accion]');
     if (!btn) return;
     const accion = btn.dataset.accion;
-    if (accion === 'ir') {
+    if (accion === 'abrir-armaduras') {
+      $('cronica').classList.remove('show');
+      abrirModalArmaduras();
+    } else if (accion === 'ir') {
       $('cronica').classList.remove('show');
       irAMision();
     } else if (accion === 'saltar') {
@@ -17027,6 +17819,12 @@
   $('heroe-cerrar').onclick = () => $('heroe').classList.remove('show');
   // Poner una habilidad en un hueco de la barra (si ya estaba en otro, se intercambian)
   $('heroe-cuerpo').addEventListener('click', e => {
+    const verArm = e.target.closest('#btn-heroe-ver-armaduras');
+    if (verArm) {
+      $('heroe').classList.remove('show');
+      abrirModalArmaduras({ soloMiClase: true });
+      return;
+    }
     const b = e.target.closest('button[data-asignar]');
     if (!b) return;
     try {
@@ -18919,13 +19717,105 @@
     }
   }
 
+  const _cacheBufferCompaneros = {};
+  let _seqExportComp = 0;
+  let _colaExportComp = Promise.resolve();
+
+  function claveModeloCompanero(perfil) {
+    return 'comp-clase-v1:' + JSON.stringify(perfil);
+  }
+
+  function instalarBufferGLBCompanante(arquetipoId, buffer) {
+    if (!buffer || typeof THREE === 'undefined' || typeof THREE.GLTFLoader === 'undefined') return;
+    new THREE.GLTFLoader().parse(buffer, '', gltf => {
+      if (!acompanante || !acompanante.activo || acompanante.arquetipo !== arquetipoId) return;
+      acompanante._gltfPorArq = acompanante._gltfPorArq || {};
+      acompanante._gltfPorArq[arquetipoId] = gltf;
+      AcompananteLib.instalarModeloGLBAcompanante(acompanante, gltf, THREE, { esModeloClaseEstudio: true });
+    }, err => {
+      console.warn('Error al parsear GLB de clase para acompañante:', arquetipoId, err);
+    });
+  }
+
+  async function esperarEstudioDisponibleParaCompanero() {
+    while ($('crear') && $('crear').classList.contains('show')) {
+      await new Promise(res => setTimeout(res, 600));
+    }
+    while (esperando.cuerpo) {
+      await new Promise(res => setTimeout(res, 250));
+    }
+  }
+
+  function cargarModeloEstudioAcompanante(arquetipoId) {
+    if (typeof AcompananteLib === 'undefined' || typeof AcompananteLib.perfilEstudioAcompanante !== 'function') return;
+    const arq = arquetipoId || (acompanante && acompanante.arquetipo) || 'rowan';
+    const seq = ++_seqExportComp;
+
+    const ejecutar = async () => {
+      try {
+        if (!acompanante || !acompanante.activo || acompanante.arquetipo !== arq || seq !== _seqExportComp) return;
+        const cacheMem = _cacheBufferCompaneros[arq];
+        if (cacheMem) {
+          instalarBufferGLBCompanante(arq, cacheMem);
+          return;
+        }
+        const perfil = AcompananteLib.perfilEstudioAcompanante(arq);
+        const clave = claveModeloCompanero(perfil);
+        const cacheDb = await leerModeloHeroeCache(clave);
+        if (cacheDb) {
+          _cacheBufferCompaneros[arq] = cacheDb;
+          if (!acompanante || !acompanante.activo || acompanante.arquetipo !== arq || seq !== _seqExportComp) return;
+          instalarBufferGLBCompanante(arq, cacheDb);
+          return;
+        }
+        await esperarEstudioDisponibleParaCompanero();
+        if (!acompanante || !acompanante.activo || acompanante.arquetipo !== arq || seq !== _seqExportComp) return;
+        frameEstudio();
+        await Promise.race([estudioListo, new Promise(res => setTimeout(res, 5000))]);
+        await esperarEstudioDisponibleParaCompanero();
+        if (!acompanante || !acompanante.activo || acompanante.arquetipo !== arq || seq !== _seqExportComp) return;
+
+        const reqId = 'comp-' + arq + '-' + seq;
+        const buffer = await pedirAlEstudio(reqId, {
+          tipo: 'exportar-personaje',
+          id: reqId,
+          equipo: perfil.equipo,
+          claseArmadura: perfil.claseArmadura,
+          grado: perfil.grado,
+          armorLook: perfil.armorLook,
+          rostro: perfil.rostro,
+          rostroBloqueado: perfil.rostroBloqueado !== false,
+          hair: perfil.hair || null,
+          fit: perfil.fit || null,
+          fps: 10,
+          maxTex: 384
+        });
+        pausarEstudioSiOculto();
+        if (buffer) {
+          _cacheBufferCompaneros[arq] = buffer;
+          guardarModeloHeroeCache(clave, buffer);
+          if (acompanante && acompanante.activo && acompanante.arquetipo === arq && seq === _seqExportComp) {
+            instalarBufferGLBCompanante(arq, buffer);
+          }
+        }
+      } catch (err) {
+        pausarEstudioSiOculto();
+        console.warn('Estudio GLB acompañante (' + arq + '), usando modelo 3D de clase:', err);
+      }
+    };
+
+    _colaExportComp = _colaExportComp.then(ejecutar, ejecutar);
+    return _colaExportComp;
+  }
+
   function refrescarModeloAcompanante() {
     if (!acompanante || typeof AcompananteLib === 'undefined') return;
-    if (acompanante._gltfBase) {
-      AcompananteLib.instalarModeloGLBAcompanante(acompanante, acompanante._gltfBase, THREE);
+    const arq = acompanante.arquetipo || 'rowan';
+    if (acompanante._gltfPorArq && acompanante._gltfPorArq[arq]) {
+      AcompananteLib.instalarModeloGLBAcompanante(acompanante, acompanante._gltfPorArq[arq], THREE, { esModeloClaseEstudio: true });
       return;
     }
-    const m3d = AcompananteLib.construirModeloAcompanante(THREE, acompanante.arquetipo);
+    const m3d = AcompananteLib.construirModeloAcompanante(THREE, arq);
     if (acompanante.mesh) {
       m3d.root.position.copy(acompanante.mesh.position);
       m3d.root.rotation.copy(acompanante.mesh.rotation);
@@ -18937,6 +19827,13 @@
     }
     acompanante.mesh = m3d.root;
     acompanante.limbs = m3d.limbs;
+    acompanante.mixer = null;
+    acompanante.actions = null;
+    acompanante.accionActual = null;
+    acompanante.nombreAnimActual = null;
+    acompanante._esModeloClaseEstudio = false;
+    acompanante._gltfBase = null;
+    cargarModeloEstudioAcompanante(arq);
   }
 
   function asegurarAcompananteActivo(arquetipoId, roster) {
@@ -18971,16 +19868,8 @@
     scene.add(m3d.root);
     toast('🤝 ' + (acompanante.nombre || 'Rowan') + ' se ha unido a tu expedición');
 
-    // Cargar modelo HD con mallas de cuero, cinturón y botas generado con el Estudio de Armaduras
-    if (typeof THREE.GLTFLoader !== 'undefined') {
-      new THREE.GLTFLoader().load('npc/aldeanos/aldeano.glb', gltf => {
-        if (acompanante && acompanante.activo) {
-          AcompananteLib.instalarModeloGLBAcompanante(acompanante, gltf, THREE);
-        }
-      }, undefined, err => {
-        console.warn('Carga aldeano.glb:', err);
-      });
-    }
+    // Exportar y aplicar modelo HD de la clase real del acompañante con el Estudio de Armaduras
+    cargarModeloEstudioAcompanante(acompanante.arquetipo);
   }
 
   const _projVec = new THREE.Vector3();
@@ -19044,6 +19933,12 @@
   function renderCompanero() {
     if (!acompanante) return;
     const nomComp = acompanante.nombre || 'Compañero';
+    const ef = (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.estadisticasEfectivasAcompanante === 'function')
+      ? AcompananteLib.estadisticasEfectivasAcompanante(acompanante)
+      : null;
+    const buffsMap = new Map((acompanante.buffsActivos || []).map(b => [b.id, b]));
+    const caido = !!(acompanante.inconsciente || acompanante.debilitado || acompanante.hp <= 0);
+
     if ($('comp-modal-titulo')) $('comp-modal-titulo').textContent = '🛡️ Ficha de ' + nomComp;
     if ($('comp-puntos-txt')) $('comp-puntos-txt').textContent = '🧬 ' + (acompanante.puntosCompanero || 0) + ' Puntos de Maestría';
     if ($('comp-avatar')) $('comp-avatar').textContent = acompanante.avatar || '🧑‍🌾';
@@ -19051,17 +19946,40 @@
     const xpReq = 100 * (acompanante.nivel || 1);
     if ($('comp-nivel')) $('comp-nivel').innerHTML = 'Nivel <b>' + (acompanante.nivel || 1) + '</b> <span style="font-size:11px;color:#94a3b8">(' + (acompanante.xp || 0) + ' / ' + xpReq + ' XP)</span>';
     const combatesTxt = acompanante.combatesLuchados ? ' · ' + acompanante.combatesLuchados + ' combates' : '';
-    if ($('comp-rol-tag')) $('comp-rol-tag').textContent = (acompanante.rol || 'Compañero de viaje') + combatesTxt;
+    const perfilC = acompanante.perfilCombate || (acompanante.arquetipoInfo && acompanante.arquetipoInfo.perfilCombate) || {};
+    const armEtiqueta = acompanante.etiquetaArmadura || (acompanante.arquetipoInfo && acompanante.arquetipoInfo.etiquetaArmadura) || '';
+    const armTagTxt = armEtiqueta ? ' · ' + armEtiqueta : '';
+    const rolMeta = `${acompanante.rol || 'Compañero de viaje'}${armTagTxt}${combatesTxt} · Alcance ${acompanante.rangoAtaque || perfilC.rangoAtaque || 2.4}m · Ritmo ${ef ? ef.cooldownAtaqueEfectivo : (acompanante.cooldownAtaque || 1.5)}s · Crit ${Math.round((perfilC.probCritico || 0.14) * 100)}%`;
+    if ($('comp-rol-tag')) $('comp-rol-tag').textContent = rolMeta;
 
-    const hpPct = Math.max(0, Math.min(100, (acompanante.hp / acompanante.maxHp) * 100));
+    const hpPct = Math.max(0, Math.min(100, (acompanante.hp / Math.max(1, acompanante.maxHp)) * 100));
     if ($('comp-hp-bar')) {
       $('comp-hp-bar').style.width = hpPct + '%';
       $('comp-hp-bar').style.background = hpPct > 50 ? '#22c55e' : hpPct > 20 ? '#eab308' : '#ef4444';
     }
-    if ($('comp-hp-txt')) $('comp-hp-txt').textContent = Math.ceil(acompanante.hp) + ' / ' + Math.ceil(acompanante.maxHp);
-    if ($('comp-dano')) $('comp-dano').textContent = acompanante.dano;
-    if ($('comp-defensa')) $('comp-defensa').textContent = acompanante.defensa;
+    if ($('comp-hp-txt')) $('comp-hp-txt').textContent = Math.ceil(acompanante.hp) + ' / ' + Math.ceil(acompanante.maxHp) + (caido ? ' (Caído)' : '');
+    if ($('comp-dano')) {
+      if (ef && ef.danoEfectivo > ef.danoBase) {
+        $('comp-dano').innerHTML = `<span style="color:#4ade80">${ef.danoBase} → ${ef.danoEfectivo}</span>`;
+      } else {
+        $('comp-dano').textContent = acompanante.dano;
+      }
+    }
+    if ($('comp-defensa')) {
+      if (ef && ef.defensaEfectiva > ef.defensaBase) {
+        $('comp-defensa').innerHTML = `<span style="color:#4ade80">${ef.defensaBase} → ${ef.defensaEfectiva} (${ef.reduccionPct}% mit.)</span>`;
+      } else {
+        $('comp-defensa').textContent = ef ? `${acompanante.defensa} (${ef.reduccionPct}% mit.)` : acompanante.defensa;
+      }
+    }
     if ($('comp-slots-txt')) $('comp-slots-txt').textContent = (acompanante.inventario ? acompanante.inventario.length : 0) + ' / ' + (AcompananteLib.MAX_SLOTS_INVENTARIO || 20);
+
+    const btnPocion1 = $('btn-comp-dar-pocion');
+    if (btnPocion1) {
+      btnPocion1.textContent = caido
+        ? '🧪 Revivir ahora con 1 Poción de Salud'
+        : '🧪 Dar 1 Poción de Salud (auto-toma si HP < 50%)';
+    }
 
     const misCont = $('comp-mision-personal');
     if (misCont && typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.estadoMisionCompanero === 'function') {
@@ -19149,11 +20067,15 @@
         const slotEl = document.createElement('div');
         slotEl.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid #475569;border-radius:6px;padding:6px;text-align:center;font-size:11px;position:relative';
         if (skInfo) {
-          const cd = skInfo.timer > 0 ? `<span style="color:#facc15;font-weight:bold">${Math.ceil(skInfo.timer)}s</span>` : `<span style="color:#22c55e">Listo</span>`;
+          const buffAct = buffsMap.get(skInfo.id);
+          const badgeAct = buffAct
+            ? `<span style="color:#facc15;font-weight:bold">ACTIVO ${Math.ceil(buffAct.timer || 0)}s</span>`
+            : (skInfo.timer > 0 ? `<span style="color:#94a3b8;font-weight:bold">CD ${Math.ceil(skInfo.timer)}s</span>` : `<span style="color:#22c55e">Listo</span>`);
+          if (buffAct) slotEl.style.borderColor = '#facc15';
           slotEl.innerHTML = `
             <div style="font-size:18px">${skInfo.icono || '✨'}</div>
             <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(skInfo.nombre)}</b>
-            <div style="font-size:10px;color:#94a3b8">Nv. ${skInfo.nivel || 1} · ${cd}</div>
+            <div style="font-size:10px;color:#94a3b8">Nv. ${skInfo.nivel || 1} · ${badgeAct}</div>
             <button data-desequipar-slot="${i}" style="margin-top:4px;font-size:9px;padding:2px 4px;border-radius:4px" title="Quitar habilidad">Desequipar</button>
           `;
         } else {
@@ -19177,6 +20099,9 @@
         const card = document.createElement('div');
         const estaEquipada = equipadasSet.has(sk.id);
         const puedeSubir = (acompanante.puntosCompanero || 0) >= 1 && sk.nivel < (sk.maxNivel || 5);
+        const descFormateada = (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.formatearDescripcionSkill === 'function')
+          ? AcompananteLib.formatearDescripcionSkill(sk)
+          : (sk.desc || '').replace(/\{potencia\}/g, sk.potencia || 0).replace(/\{duracion\}/g, sk.duracion || 0);
         card.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid #334155;border-radius:6px;padding:6px 8px;display:flex;align-items:center;justify-content:space-between;gap:8px';
         card.innerHTML = `
           <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
@@ -19187,7 +20112,7 @@
                 <span style="font-size:10px;color:#38bdf8;background:rgba(56,189,248,0.1);padding:1px 4px;border-radius:4px">Nv. ${sk.nivel}/${sk.maxNivel || 5}</span>
                 ${estaEquipada ? '<span style="font-size:10px;color:#4ade80;background:rgba(74,222,128,0.1);padding:1px 4px;border-radius:4px">✓ Equipada</span>' : ''}
               </div>
-              <div style="font-size:11px;color:#94a3b8;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(sk.desc)}</div>
+              <div style="font-size:11px;color:#94a3b8;line-height:1.3" title="${esc(descFormateada)}">${esc(descFormateada)}</div>
             </div>
           </div>
           <div style="display:flex;gap:4px;flex:none">
@@ -19243,6 +20168,8 @@
       }
       aplicarStats();
       refrescarModeloAcompanante();
+      actualizarHudDopes();
+      actualizarHudCompanero();
       renderCompanero();
       toast(`🤝 Ahora te acompaña ${acompanante.nombre} (${acompanante.rol})`);
       saveActive(true);
@@ -19271,6 +20198,7 @@
         const id = bSubir.dataset.subirSkill;
         if (AcompananteLib.subirNivelSkill(acompanante, id)) {
           toast(`✨ ¡Habilidad mejorada al Nivel ${(acompanante.skillsCatalogo.find(s=>s.id===id)||{}).nivel}!`);
+          actualizarHudCompanero();
           renderCompanero();
           saveActive(true);
         } else {
@@ -19284,6 +20212,7 @@
         if (idx === -1) idx = (acompanante.skillsEquipadas && acompanante.skillsEquipadas.length < 3) ? acompanante.skillsEquipadas.length : 0;
         AcompananteLib.equiparSkill(acompanante, idx, id);
         toast(`Equipada en ranura ${idx + 1}`);
+        actualizarHudCompanero();
         renderCompanero();
         saveActive(true);
       }
@@ -19298,6 +20227,7 @@
         const idx = Number(bDes.dataset.desequiparSlot);
         if (!isNaN(idx) && acompanante.skillsEquipadas) {
           acompanante.skillsEquipadas.splice(idx, 1);
+          actualizarHudCompanero();
           renderCompanero();
           saveActive(true);
         }
@@ -19310,8 +20240,15 @@
       if (!inv.vida || inv.vida <= 0) { toast('No tienes pociones de salud en tu inventario'); return; }
       asegurarAcompananteActivo();
       inv.vida--;
-      AcompananteLib.darPocionesVidaAcompanante(acompanante, 1);
-      toast(`🧪 1 poción entregada a ${acompanante.nombre} (se tomará automáticamente si su HP < 50%)`);
+      if (acompanante.inconsciente || acompanante.debilitado || acompanante.hp <= 0) {
+        AcompananteLib.revivirAcompanante(acompanante, 0.50);
+        aplicarStats();
+        actualizarHudCompanero();
+        toast(`🌿 ¡${acompanante.nombre} ha sido revivido con una poción de salud!`);
+      } else {
+        AcompananteLib.darPocionesVidaAcompanante(acompanante, 1);
+        toast(`🧪 1 poción entregada a ${acompanante.nombre} (se tomará automáticamente si su HP < 50%)`);
+      }
       updateStats();
       renderCompanero();
     };
@@ -19456,7 +20393,7 @@
       $('prologo-emboscada-texto').innerHTML =
         `<p style="margin:0 0 10px">${pr.parrafo1}</p>` +
         `<p style="margin:0 0 10px">${pr.parrafo2}</p>` +
-        `<p style="margin:0;color:#fde047">Antes de que la guardia cierre las empalizadas de <b id="prologo-pueblo">${esc(nombrePueblo)}</b>, debes escapar hacia <b id="prologo-zona">${esc(nombreZona)}</b> y recuperar pieles y placas de hierro para forjar tu primer cinturón de supervivencia.</p>`;
+        `<p style="margin:0;color:#fde047">Antes de que la guardia cierre las empalizadas de <b id="prologo-pueblo">${esc(nombrePueblo)}</b>, debes escapar hacia <b id="prologo-zona">${esc(nombreZona)}</b> y recuperar pieles y placas de pierna para forjar tus primeros pantalones reforzados.</p>`;
     } else {
       if ($('prologo-pueblo')) $('prologo-pueblo').textContent = nombrePueblo;
       if ($('prologo-zona')) $('prologo-zona').textContent = nombreZona;
@@ -19702,6 +20639,7 @@
     if (k === 'h') abrirServicioCercano();
     if (k === 'c') { renderCronica(); $('cronica').classList.add('show'); }
     if (k === 'p') { renderHeroe(); $('heroe').classList.add('show'); }
+    if (k === 'u') { if ($('armaduras-modal') && $('armaduras-modal').classList.contains('show')) cerrarModalArmaduras(); else abrirModalArmaduras(); }
     if (k === 'o') { if ($('modal-companero') && $('modal-companero').classList.contains('show')) cerrarModalCompanero(); else abrirModalCompanero(); }
     if (k === 'y') interactuarConAcompanante();
     if (k === 'x') jump();
@@ -19723,11 +20661,12 @@
         ($('partidas') && $('partidas').classList.contains('show')) ||
         ($('cronica') && $('cronica').classList.contains('show')) ||
         ($('heroe') && $('heroe').classList.contains('show')) ||
+        ($('armaduras-modal') && $('armaduras-modal').classList.contains('show')) ||
         ($('modal-companero') && $('modal-companero').classList.contains('show')) ||
         ($('mapa-mundo-modal') && $('mapa-mundo-modal').classList.contains('show')) ||
         ($('info') && $('info').classList.contains('show'));
       if (hayModalAbierto) {
-        showSelection(null); closeShop(); closePartidas(); cerrarMapaMundo(); cerrarModalCompanero();
+        showSelection(null); closeShop(); closePartidas(); cerrarMapaMundo(); cerrarModalCompanero(); cerrarModalArmaduras();
         if ($('cronica')) $('cronica').classList.remove('show');
         if ($('heroe')) $('heroe').classList.remove('show');
       } else if (esPantallaCompletaActiva()) {
@@ -19993,6 +20932,79 @@
       window.Sonidos.setCombate(enComb && !hero.dead, hayJefe, jefeFase2);
     }
   }
+  let _ultimaClaveBonosCompLoop = '';
+  function lanzarVfxCompanero(tipoSkill, infoSkill) {
+    if (!scene || !THREE || !acompanante) return;
+    const compPos = new THREE.Vector3(acompanante.x || 0, (acompanante.y || 0) + 1.0, acompanante.z || 0);
+    const tgt = infoSkill && infoSkill.target;
+    const tgtPos = (tgt && typeof tgt.x === 'number')
+      ? new THREE.Vector3(tgt.x, (tgt.group ? tgt.group.position.y : compPos.y - 1.0) + 1.0, tgt.z)
+      : null;
+
+    if (tipoSkill === 'ataque_basico' && tgtPos) {
+      // Proyectil de luz de Elian el Teúrgo
+      const g = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending })
+      );
+      g.position.copy(compPos);
+      efecto(g, 0.24, k => {
+        g.position.lerpVectors(compPos, tgtPos, k);
+        g.position.y += Math.sin(k * Math.PI) * 0.45;
+        if (k >= 0.95) destelloImpacto(tgtPos, 0x38bdf8, 0.9);
+      });
+      return;
+    }
+
+    if (tipoSkill === 'ataque_skill' && tgtPos) {
+      const idSk = infoSkill && infoSkill.id;
+      if (idSk === 'purificacion') {
+        const colP = infoSkill.esNoMuerto ? 0xfef08a : 0x38bdf8;
+        const beam = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.45, 0.65, 6.0, 14),
+          new THREE.MeshBasicMaterial({ color: colP, transparent: true, opacity: 0.72, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        beam.position.set(tgtPos.x, tgtPos.y + 2.0, tgtPos.z);
+        efecto(beam, 0.42, k => {
+          beam.material.opacity = 0.72 * (1 - k);
+          beam.scale.set(1 + k * 0.5, 1, 1 + k * 0.5);
+        });
+        destelloImpacto(tgtPos, colP, infoSkill.esNoMuerto ? 1.8 : 1.1);
+      } else if (idSk === 'danza_dagas') {
+        destelloImpacto(tgtPos, 0xc084fc, 1.45);
+      } else if (idSk === 'remate') {
+        destelloImpacto(tgtPos, 0xfacc15, 1.75);
+      } else if (idSk === 'torbellino') {
+        ondaDetonacion(acompanante.x, acompanante.y || 0, acompanante.z, 4.8, 0xef4444);
+      } else {
+        destelloImpacto(tgtPos, 0xf97316, 1.25);
+      }
+      return;
+    }
+
+    if (tipoSkill === 'provocacion') {
+      ondaDetonacion(acompanante.x, acompanante.y || 0, acompanante.z, 8.5, 0xf97316);
+      return;
+    }
+
+    const colMap = {
+      cura: 0x4ade80,
+      grito: 0xfacc15,
+      fervor: 0xf97316,
+      veneno: 0x22c55e,
+      baluarte_luz: 0x38bdf8,
+      manantial: 0x2dd4bf,
+      frenesi: 0xef4444,
+      sed_sangre: 0xf43f5e
+    };
+    const col = colMap[tipoSkill] || 0xfacc15;
+    ondaDetonacion(acompanante.x, acompanante.y || 0, acompanante.z, 3.2, col);
+    if (character && character.root) {
+      const rp = character.root.position;
+      ondaDetonacion(rp.x, rp.y || 0, rp.z, 2.8, col);
+    }
+  }
+
   function loop(now) {
     requestAnimationFrame(loop);
     if (!world) return;
@@ -20107,34 +21119,87 @@
         dt,
         character.root.position,
         character.anguloY ? character.anguloY() : 0,
-        enDungeon ? monstruosMazmorra : monsters,
+        (enDungeon || enRecinto) ? monstruosMazmorra : monsters,
         typeof objetivo !== 'undefined' ? objetivo : null,
         (x, z) => visorWorld.getWalkableHeight(x, z),
         ev => avanzarHistoria(ev),
-        (m, dmg) => damageMonster(m, Math.max(1, Math.round(dmg * (1 + (bonoRepActual().bonusDanioComp || 0)))), 'acompanante'),
-        { hp: hero.hp, maxHp: hero.maxHp, objetivoMision: (typeof destinoDeMision === 'function') ? destinoDeMision() : null },
+        (m, dmg, meta) => {
+          const dmgFinal = Math.max(1, Math.round(dmg * (1 + (bonoRepActual().bonusDanioComp || 0))));
+          let txtF = String(dmgFinal);
+          let clsF = 'dmg-comp';
+          if (meta && meta.tipo === 'sangrado') {
+            txtF = '🩸 -' + dmgFinal;
+            clsF = 'dmg-hero';
+          } else if (meta && meta.esEjecucion) {
+            txtF = '⚡ ' + dmgFinal + '!';
+            clsF = 'dmg-crit';
+          } else if (meta && meta.esNoMuerto) {
+            txtF = '☀️ ' + dmgFinal + '!';
+            clsF = 'dmg-crit';
+          } else if (meta && meta.crit) {
+            txtF = '💥 ' + dmgFinal + '!';
+            clsF = 'dmg-crit';
+          }
+          damageMonster(m, dmgFinal, (meta && meta.fuente) || 'acompanante', { txt: txtF, cls: clsF });
+        },
+        { hp: hero.hp, maxHp: hero.maxHp, mp: hero.mp, maxMp: hero.maxMp, objetivoMision: (typeof destinoDeMision === 'function') ? destinoDeMision() : null },
         (tipoSkill, infoSkill) => {
           const compNom = (acompanante && acompanante.nombre) || 'Compañero';
-          if (window.Sonidos && window.Sonidos.companeroSkill) window.Sonidos.companeroSkill(tipoSkill);
+          const skInfo = infoSkill || {};
+          if (tipoSkill !== 'ataque_basico' && window.Sonidos && window.Sonidos.companeroSkill) {
+            window.Sonidos.companeroSkill(skInfo.tipoSonido || tipoSkill);
+          }
+          lanzarVfxCompanero(tipoSkill, skInfo);
+          if (tipoSkill === 'ataque_basico') return;
+
           if (tipoSkill === 'cura') {
+            const curaH = skInfo.curaHeroe || skInfo.potencia || 50;
             const hpAntes = hero.hp;
-            hero.hp = Math.min(hero.maxHp, hero.hp + (infoSkill.potencia || 45));
+            hero.hp = Math.min(hero.maxHp, hero.hp + curaH);
             const curado = Math.round(hero.hp - hpAntes);
-            if (curado >= 2 && character && character.root) {
+            if (curado >= 1 && character && character.root) {
               lanzarNumeroFlotante({ x: character.root.position.x, y: character.root.position.y + 2.0, z: character.root.position.z }, '+' + curado, 'dmg-heal');
             }
-            toast(`🌿 ${compNom} lanza ${infoSkill.nombre}: +${infoSkill.potencia || 45} HP`);
-          } else if (tipoSkill === 'ataque' || tipoSkill === 'buff') {
-            toast(`⚔️ ${compNom} lanza ${infoSkill.nombre}: dope activo (${Math.ceil(infoSkill.duracion || 12)}s)`);
-          } else if (tipoSkill === 'defensa') {
-            toast(`🛡️ ${compNom} activa ${infoSkill.nombre}: escudo defensivo`);
+            toast(`🌿 ${compNom} lanza ${skInfo.nombre}: +${curaH} HP`);
+          } else if (tipoSkill === 'ataque_skill') {
+            if (skInfo.empuje && skInfo.target && skInfo.target.alive && !skInfo.target.boss) {
+              const dxE = skInfo.target.x - (acompanante.x || 0);
+              const dzE = skInfo.target.z - (acompanante.z || 0);
+              const dE = Math.hypot(dxE, dzE) || 1;
+              skInfo.target._kbVx = (dxE / dE) * (skInfo.empuje * 2.5);
+              skInfo.target._kbVz = (dzE / dE) * (skInfo.empuje * 2.5);
+              skInfo.target._kbDur = 0.16;
+              skInfo.target._kbT = 0.16;
+            }
+            if (skInfo.esNoMuerto) {
+              toast(`☀️ ${compNom} purifica al no-muerto con ${skInfo.nombre} (${skInfo.dano} daño ×3)`);
+            } else if (skInfo.esEjecucion) {
+              toast(`⚡ ${compNom} ejecuta con ${skInfo.nombre} (${skInfo.dano} daño)`);
+            }
           } else if (tipoSkill === 'debuff') {
-            toast(`💫 ${compNom} lanza ${infoSkill.nombre}: debuff al enemigo`);
+            toast(`${skInfo.icono || '🩸'} ${compNom} aplica ${skInfo.nombre}: ${skInfo.statResumen || 'debuff al enemigo'}`);
+          } else {
+            toast(`${skInfo.icono || '⚔️'} ${compNom} activa ${skInfo.nombre}: ${skInfo.statResumen || ('potenciador ' + Math.ceil(skInfo.duracion || 8) + 's')}`);
           }
+          aplicarStats();
           actualizarHudDopes();
+          actualizarHudCompanero();
+          if ($('heroe') && $('heroe').classList.contains('show')) renderHeroe();
           if ($('modal-companero') && $('modal-companero').classList.contains('show')) renderCompanero();
         }
       );
+
+      if (typeof AcompananteLib.calcularBonosActivos === 'function') {
+        const claveBonos = AcompananteLib.calcularBonosActivos(acompanante).clave;
+        if (claveBonos !== _ultimaClaveBonosCompLoop) {
+          _ultimaClaveBonosCompLoop = claveBonos;
+          aplicarStats();
+          actualizarHudDopes();
+          actualizarHudCompanero();
+          if ($('heroe') && $('heroe').classList.contains('show')) renderHeroe();
+          if ($('modal-companero') && $('modal-companero').classList.contains('show')) renderCompanero();
+        }
+      }
       actualizarBocadilloAcompanante();
     }
     if (!enDungeon && now - _lastSecretCheck > 200 && lugaresSecretos && lugaresSecretos.length && typeof AcompananteLib !== 'undefined') {
@@ -20421,21 +21486,25 @@
   }
 
   function migrarValdrisSiAntiguo(w) {
-    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 2) return false;
+    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 3) return false;
     if (typeof window.clonarMundoOficial !== 'function') return false;
     const fresh = window.clonarMundoOficial();
-    const byId = new Map((fresh.towns || []).map(t => [t.id, t]));
-    (w.towns || []).forEach(t => {
-      const ft = byId.get(t.id);
-      if (ft) {
-        const prevEdits = t.cfg && t.cfg.edits;
-        t.cfg = Object.assign({}, ft.cfg);
-        if (prevEdits) t.cfg.edits = prevEdits;
-        if (typeof ft.size === 'number') t.size = ft.size;
-        if (typeof ft.radius === 'number') t.radius = ft.radius;
-      }
-    });
-    w.campaignVersion = fresh.campaignVersion || 2;
+    const ver = w.campaignVersion || 1;
+    if (ver < 2) {
+      const byId = new Map((fresh.towns || []).map(t => [t.id, t]));
+      (w.towns || []).forEach(t => {
+        const ft = byId.get(t.id);
+        if (ft) {
+          const prevEdits = t.cfg && t.cfg.edits;
+          t.cfg = Object.assign({}, ft.cfg);
+          if (prevEdits) t.cfg.edits = prevEdits;
+          if (typeof ft.size === 'number') t.size = ft.size;
+          if (typeof ft.radius === 'number') t.radius = ft.radius;
+        }
+      });
+    }
+    if (fresh.historia) w.historia = fresh.historia;
+    w.campaignVersion = fresh.campaignVersion || 3;
     return true;
   }
 
@@ -20447,7 +21516,8 @@
       // Si el mundo era antiguo y sin ediciones manuales de monstruos, migra sin tocar pueblos ni niveles.
       const migMons = (typeof W.migrarMonstruosSiAntiguo === 'function' && W.migrarMonstruosSiAntiguo(w));
       const migVald = migrarValdrisSiAntiguo(w);
-      if (migMons || migVald) {
+      const migHist = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.migrarHistoriaA5Piezas === 'function' && HistoriaLib.migrarHistoriaA5Piezas(w));
+      if (migMons || migVald || migHist) {
         try { if (worldId) registrarSesionMundo(worldId, w, W.serialize(w)); } catch (e) { /* sin guardar */ }
       }
       buildWorld(w);

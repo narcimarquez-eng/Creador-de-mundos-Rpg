@@ -95,12 +95,12 @@ de recolección, se forja la pieza correspondiente en el Herrero Brann) y empiez
 
 | # | Acto | Capítulo | Sabio | Qué pide | Recompensa |
 |---|---|---|---|---|---|
-| 1 | I | Pieles de caza y el primer cinturón | Elara | 8 criaturas (nv 1) + forja | 1 pt, cinturón (`belt`) y Rowan |
+| 1 | I | Pieles de caza y los pantalones reforzados | Elara | 8 criaturas (nv 1) + forja | 1 pt, pantalones (`pants`) y Rowan |
 | 2 | I | El camino agreste y las botas de marcha | Oren | 12 criaturas (nv 1) + forja | 2 pts y botas (`boots`) |
 | 3 | I | Garras de bestia y el aldeano leal | Ysolde | 15 criaturas (nv 2) + forja | 2 pts, guantes (`gloves`) y apoyo de Rowan |
 | 4 | I | Planchas de caparazón y el peto de acero | Tamsin | 18 criaturas (nv 4) + forja | 2 pts, peto (`torso`) e Impacto sísmico |
 | 5 | I | Astas de hueso y el yelmo protector | Mirel | 20 criaturas (nv 4) + forja | 2 pts y yelmo (`helmet`) |
-| 6 | II | La fuente arcana y las hombreras benditas | Elara | Descubrir Fuente Arcana | 3 pts y hombreras (`shoulders`) |
+| 6 | II | La fuente arcana y el templado del conjunto | Elara | Descubrir Fuente Arcana | 3 pts y templado 100 % de las 5 piezas |
 | 7 | II | Mineral salvaje y la forja del arma | Oren | 22 criaturas (nv 8) + forja | 3 pts y arma (`weapon`) |
 | 8 | II | El sello de la nova | Ysolde | 25 criaturas (nv 10) | 3 pts y Explosión nova |
 | 9 | II | La cabaña en la espesura | Tamsin | Descubrir Cabaña del Ermitaño | 3 pts |
