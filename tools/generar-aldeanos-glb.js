@@ -1,7 +1,7 @@
 /**
  * tools/generar-aldeanos-glb.js
  * Genera los 10 modelos GLB de aldeanos medievales reales desde estudio-armaduras/index.html
- * usando el generador de aldeanos (ropas de tela/cuero, texturas de rostro reales y clips idle/walk).
+ * usando el generador de aldeanos (ropas de tela/cuero sin armadura, rostro 3D limpio sin textura foto y clips idle/walk).
  */
 import http from 'node:http';
 import fs from 'node:fs';
@@ -26,25 +26,25 @@ const TYPES = {
   '.webp': 'image/webp'
 };
 
-// Especificación de los 10 aldeanos que necesita el mundo RPG
+// Especificación de los 10 aldeanos que necesita el mundo RPG (sin armadura y sin texturas fotográficas en la cara)
 const ALDEANOS_SPEC = [
-  { file: 'herrero.glb',    professionId: 'herrero',    gender: 'hombre', build: 'fornido',  faceIdx: 0 },
-  { file: 'mercader.glb',   professionId: 'mercader',   gender: 'hombre', build: 'natural',  faceIdx: 1 },
-  { file: 'herbolario.glb', professionId: 'herbolario', gender: 'mujer',  build: 'esbelto',  faceIdx: 0 },
+  { file: 'herrero.glb',    professionId: 'herrero',    gender: 'hombre', build: 'fornido' },
+  { file: 'mercader.glb',   professionId: 'mercader',   gender: 'hombre', build: 'natural' },
+  { file: 'herbolario.glb', professionId: 'herbolario', gender: 'mujer',  build: 'esbelto' },
   {
-    file: 'informante.glb', professionId: 'campesino',  gender: 'hombre', build: 'esbelto',  faceIdx: 2,
+    file: 'informante.glb', professionId: 'campesino',  gender: 'hombre', build: 'esbelto',
     outfit: {
       torso: 'merchant_doublet', lower: 'wool_trousers', sleeves: 'long_linen',
       belt: 'leather_pouch', boots: 'laced_boot', head: 'cloth_cowl',
       shirtColor: '#cfc9be', leatherColor: '#432d23', pantsColor: '#2c303c', accentColor: '#36465e'
     }
   },
-  { file: 'tabernero.glb',  professionId: 'tabernero',  gender: 'hombre', build: 'robusto',  faceIdx: 3 },
-  { file: 'campesino.glb',  professionId: 'campesino',  gender: 'hombre', build: 'esbelto',  faceIdx: 4 },
-  { file: 'lenador.glb',    professionId: 'lenador',    gender: 'hombre', build: 'fornido',  faceIdx: 5 },
-  { file: 'cazador.glb',    professionId: 'cazador',    gender: 'hombre', build: 'esbelto',  faceIdx: 6 },
-  { file: 'aldeana.glb',    professionId: 'aldeana',    gender: 'mujer',  build: 'esbelto',  faceIdx: 1 },
-  { file: 'aldeano.glb',    professionId: 'campesino',  gender: 'hombre', build: 'natural',  faceIdx: 7,
+  { file: 'tabernero.glb',  professionId: 'tabernero',  gender: 'hombre', build: 'robusto' },
+  { file: 'campesino.glb',  professionId: 'campesino',  gender: 'hombre', build: 'esbelto' },
+  { file: 'lenador.glb',    professionId: 'lenador',    gender: 'hombre', build: 'fornido' },
+  { file: 'cazador.glb',    professionId: 'cazador',    gender: 'hombre', build: 'esbelto' },
+  { file: 'aldeana.glb',    professionId: 'aldeana',    gender: 'mujer',  build: 'esbelto' },
+  { file: 'aldeano.glb',    professionId: 'campesino',  gender: 'hombre', build: 'natural',
     outfit: {
       torso: 'peasant_tunic', lower: 'puttees_breeches', sleeves: 'rolled',
       belt: 'rope_pouch', boots: 'turnshoe', head: 'none',
@@ -64,7 +64,14 @@ function parseGlbInfo(buf) {
   const anims = (json.animations || []).map(a => a.name);
   const imgs = (json.images || []).length;
   const meshes = (json.meshes || []).length;
-  return { anims, imgs, meshes };
+  const mats = json.materials || [];
+  const faceOverlayMats = mats.filter(m =>
+    /rostro/i.test(m.name || '') ||
+    (m.alphaMode === 'BLEND' && !!(m.pbrMetallicRoughness && m.pbrMetallicRoughness.baseColorTexture))
+  );
+  const nodes = (json.nodes || []).map(n => n.name || '');
+  const armorNodes = nodes.filter(n => /armor|helmet|pauldron|cuirass|gauntlet|greave|shield|weapon|tasset/i.test(n));
+  return { anims, imgs, meshes, faceOverlayMats, armorNodes };
 }
 
 const server = http.createServer((req, res) => {
@@ -166,20 +173,11 @@ try {
   await page.goto(`http://localhost:${PORT}/harness-aldeanos.html`, { waitUntil: 'load', timeout: 60000 });
   await page.waitForFunction(() => window.__studioReady === true, { timeout: 60000 });
 
-  await page.evaluate(() => window.pedirRostros());
-  await page.waitForFunction(() => Array.isArray(window.__rostros) && window.__rostros.length > 0, { timeout: 30000 });
-  const rostros = await page.evaluate(() => window.__rostros);
-  const hombres = rostros.filter(r => r.gender === 'hombre');
-  const mujeres = rostros.filter(r => r.gender === 'mujer');
-  console.log(`Rostros cargados: ${rostros.length} (${hombres.length} H / ${mujeres.length} M)`);
-
   fs.mkdirSync(DEST_DIR, { recursive: true });
 
   for (const spec of ALDEANOS_SPEC) {
-    const pool = spec.gender === 'mujer' ? (mujeres.length ? mujeres : rostros) : (hombres.length ? hombres : rostros);
-    const chosenFace = pool[spec.faceIdx % pool.length];
     const exportId = 'ald_' + spec.file.replace('.glb', '');
-    console.log(`Exportando ${spec.file} (${spec.professionId}, ${spec.gender}, rostro=${chosenFace.id})...`);
+    console.log(`Exportando ${spec.file} (${spec.professionId}, ${spec.gender}, rostro=3D limpio, sin armadura)...`);
 
     await page.evaluate((payload) => window.exportarUno(payload), {
       id: exportId,
@@ -187,7 +185,7 @@ try {
       gender: spec.gender,
       build: spec.build,
       outfit: spec.outfit || null,
-      rostro: chosenFace ? { id: chosenFace.id, gender: chosenFace.gender } : null,
+      sinRostroTextura: true,
       fps: 12,
       maxTex: 384
     });
@@ -202,11 +200,17 @@ try {
       throw new Error(`${spec.file} no contiene clips idle/walk (${info.anims.join(', ')})`);
     }
     if (info.imgs < 1) {
-      throw new Error(`${spec.file} no contiene texturas embebidas`);
+      throw new Error(`${spec.file} no contiene texturas de ropa/cabello embebidas`);
+    }
+    if (info.faceOverlayMats.length > 0) {
+      throw new Error(`${spec.file} todavía contiene textura fotográfica de rostro (${info.faceOverlayMats.map(m => m.name).join(', ')})`);
+    }
+    if (info.armorNodes.length > 0) {
+      throw new Error(`${spec.file} contiene nodos de armadura/arma (${info.armorNodes.join(', ')})`);
     }
     const outPath = path.join(DEST_DIR, spec.file);
     fs.writeFileSync(outPath, buf);
-    console.log(`  OK ${spec.file}: ${(buf.length / 1024).toFixed(1)} KB, mallas=${info.meshes}, texturas=${info.imgs}, anims=[${info.anims.join(',')}]`);
+    console.log(`  OK ${spec.file}: ${(buf.length / 1024).toFixed(1)} KB, mallas=${info.meshes}, texturas=${info.imgs}, rostroFoto=0, armadura=0, anims=[${info.anims.join(',')}]`);
   }
 
   console.log('Todos los aldeanos GLB generados y verificados correctamente.');

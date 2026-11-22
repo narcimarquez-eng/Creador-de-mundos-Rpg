@@ -1156,7 +1156,7 @@
     if (perfil.sinBarba && typeof root.traverse === 'function') {
       root.traverse(o => {
         const nom = (o.name || '').toLowerCase();
-        if (nom === 'head_material_6' || nom.includes('beard') || nom.includes('barba')) {
+        if (nom.includes('beard') || nom.includes('barba')) {
           o.visible = false;
         }
       });

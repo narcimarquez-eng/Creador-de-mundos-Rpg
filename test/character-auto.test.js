@@ -184,8 +184,17 @@ t('SKILL_MOTION cubre todas las habilidades activas del guerrero', () => {
   });
 });
 
-t('skills del guerrero ejecutan animación especial procedimental sobre model, respetan frente() y restauran pose base', () => {
+t('con clip nativo del Estudio la skill usa su animación horneada sin desplazar el modelo de forma procedimental', () => {
   const ch = crearControladorConMallaGLB(['whirlwind', 'overhead_cleave', 'ultimate_slam', 'ultimate_nova']);
+  ch.playOneShot('salto_demoledor');
+  assert.ok(ch.oneShots.salto_demoledor && !ch.oneShots.salto_demoledor.fallbackClip, 'usa clip nativo');
+  let maxDy = 0;
+  for (let i = 0; i < 40; i++) { ch.update(0.03); maxDy = Math.max(maxDy, Math.abs(ch.model.position.y - ch._baseModelY)); }
+  assert.ok(maxDy < 1e-6, 'sin doble movimiento procedimental sobre el clip nativo: ' + maxDy);
+});
+
+t('skills del guerrero ejecutan animación especial procedimental sobre model, respetan frente() y restauran pose base', () => {
+  const ch = crearControladorConMallaGLB([]); // sin clips nativos: animación procedimental de respaldo
   ch.mirarHacia(1, 0);
   const frenteIni = ch.frente();
 
@@ -209,7 +218,13 @@ t('skills del guerrero ejecutan animación especial procedimental sobre model, r
       const f = ch.frente();
       assert.ok(Math.hypot(f.x - frenteIni.x, f.z - frenteIni.z) < 1e-6, `frente() alterado durante ${id}`);
     }
-    validarPicos(stats);
+    const shot = ch.oneShots[id];
+    if (shot && !shot.fallbackClip) {
+      // Con clip nativo (p.ej. 'punch' del GLB) la animación horneada manda: sin desplazamiento procedimental
+      assert.ok(Math.abs(stats.maxDy) < 1e-6 && Math.abs(stats.maxDz) < 1e-6, `${id}: clip nativo sin movimiento procedimental`);
+    } else {
+      validarPicos(stats);
+    }
     // Pose exactamente restaurada al terminar
     assert.ok(Math.abs(ch.model.position.x) < 1e-6 && Math.abs(ch.model.position.z) < 1e-6, `${id}: x/z restaurados`);
     assert.ok(Math.abs(ch.model.position.y - ch._baseModelY) < 1e-6, `${id}: y base restaurado`);

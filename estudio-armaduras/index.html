@@ -18609,12 +18609,12 @@
         id: 'herrero',
         name: 'Herrero de Forja',
         tag: 'Forja',
-        desc: 'Camisa arremangada, mandil flexible de cuero engrasado con tirantes, pantalón de trabajo con rodilleras y guantes',
+        desc: 'Camisa de lino arremangada, mandil sencillo de cuero con tirantes y pantalón grueso de trabajo (sin armadura)',
         prefGender: 'hombre',
         prefBuild: 'esbelto',
         forearmBoost: 1.06,
         outfit: {
-          torso: 'blacksmith_apron', lower: 'work_breeches', sleeves: 'forge_gloves',
+          torso: 'blacksmith_apron', lower: 'work_breeches', sleeves: 'rolled',
           belt: 'blacksmith_tools', boots: 'cuff_boot', head: 'kerchief',
           shirtColor: '#a89f93', leatherColor: '#482b1d', pantsColor: '#36302c', accentColor: '#5c3422'
         }
@@ -18662,12 +18662,12 @@
         id: 'lenador',
         name: 'Leñador / Carpintero',
         tag: 'Bosque',
-        desc: 'Chaleco de cuero crudo con cuello de borrego, pantalón grueso de lana, hombrera de carga, brazales y odre',
+        desc: 'Chaleco rústico con cuello de borrego, camisa arremangada, pantalón grueso de lana y odre (sin armadura)',
         prefGender: 'hombre',
         prefBuild: 'esbelto',
         forearmBoost: 1.05,
         outfit: {
-          torso: 'woodcutter_fur_vest', lower: 'wool_trousers', sleeves: 'leather_bracers',
+          torso: 'woodcutter_fur_vest', lower: 'wool_trousers', sleeves: 'rolled',
           belt: 'waterskin_knife', boots: 'laced_boot', head: 'none',
           shirtColor: '#cbbda7', leatherColor: '#5e3b25', pantsColor: '#443a2e', accentColor: '#7a5233'
         }
@@ -18676,11 +18676,11 @@
         id: 'cazador',
         name: 'Cazador / Curtidor',
         tag: 'Senda',
-        desc: 'Jubón y pantalones de cuero curtido con costuras, brazales atados, odre con cuchillo, capucha caída y botas altas',
+        desc: 'Jubón sencillo de ante y pantalones de paño, mangas largas de lino, odre con cuchillo y capucha caída (sin armadura)',
         prefGender: 'any',
         prefBuild: 'esbelto',
         outfit: {
-          torso: 'leather_jerkin', lower: 'leather_trousers', sleeves: 'leather_bracers',
+          torso: 'leather_jerkin', lower: 'wool_trousers', sleeves: 'long_linen',
           belt: 'waterskin_knife', boots: 'laced_boot', head: 'cloth_cowl',
           shirtColor: '#b7bda5', leatherColor: '#523825', pantsColor: '#423629', accentColor: '#415239'
         }
@@ -18938,13 +18938,6 @@
             lace.position.set(0, yy, zF + 0.004 * sc);
             jerkGrp.add(lace);
           }
-          // Pequeñas lengüetas de cuero cosidas en los hombros (discretas, artesanales)
-          [-1, 1].forEach(sgn => {
-            const tab = new THREE.Mesh(new THREE.BoxGeometry(0.058 * sc, 0.010 * sc, 0.088 * sc), darkLeatherMat);
-            tab.position.set(sgn * (tSize.x * 0.46), tSize.y * 0.42, 0);
-            tab.rotation.z = -sgn * 0.36;
-            jerkGrp.add(tab);
-          });
           attachOrnamentWorld(armorSockets.torso, jerkGrp, tc, torsoQuat, 'torso');
         } else if (tStyle === 'tavern_bodice') {
           // Corpiño / Chaleco ceñido acordonado + delantal flexible de tela anudado a la cintura
@@ -19113,15 +19106,6 @@
             furPts.push(new THREE.Vector3(Math.sin(ang) * rX, yOff, Math.cos(ang) * rZ));
           }
           furGrp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(furPts, true), 40, 0.028 * sc, 10, true), furMat));
-          // Almohadilla asimétrica de cuero cosido en el hombro derecho para cargar troncos
-          const padSurf = (u, v) => {
-            const a = (u - 0.5) * 1.35;
-            const rX = tSize.x * 0.52 + v * 0.048 * sc;
-            const yP = tSize.y * 0.46 - v * 0.075 * sc - Math.pow(a, 2) * 0.03 * sc;
-            return new THREE.Vector3(rX, yP, Math.sin(a) * tSize.z * 0.58);
-          };
-          const padGeo = createArmorPlatePatch(padSurf, { uSegs: 14, vSegs: 8, thickness: 0.006 * sc, refCenter: new THREE.Vector3(tSize.x * 0.25, tSize.y * 0.30, 0) });
-          furGrp.add(new THREE.Mesh(padGeo, darkLeatherMat));
           attachOrnamentWorld(armorSockets.torso, furGrp, tc, torsoQuat, 'torso');
         }
       }
@@ -19199,20 +19183,6 @@
                 thicknessRatio: (isLooseWool ? 0.056 : 0.044) * lBulk,
                 yMin: 0.06, yMax: 0.14, flareBottom: 0.05,
                 ridgeCenterZ: 0.01, foldStyle: 'none', bevelRadius: 0.003
-              });
-            }
-            // Rodilleras reforzadas de ante/cuero + correa bajo la rodilla en pantalones de trabajo y cuero
-            if (mode === 'work' || isLeatherP) {
-              createFormFittedShell(sMesh, isLeatherP ? darkLeatherMat : suedeMat, {
-                targetPart: 'shin_' + side, slotName: 'knees',
-                thicknessRatio: (isLeatherP ? 0.044 : 0.052) * lBulk,
-                yMin: 0.72, yMax: 0.97, angleMin: -Math.PI * 0.44, angleMax: Math.PI * 0.44,
-                ridgeCenterZ: 0.02, foldStyle: 'none', bevelRadius: 0.004
-              });
-              createFormFittedShell(sMesh, darkLeatherMat, {
-                targetPart: 'shin_' + side, slotName: 'knees',
-                thicknessRatio: (isLeatherP ? 0.047 : 0.055) * lBulk,
-                yMin: 0.68, yMax: 0.74, ridgeCenterZ: 0.01, foldStyle: 'none', bevelRadius: 0.003
               });
             }
           });
@@ -34588,7 +34558,8 @@
             const sm = bowSamples.get(n);
             sm.pos.push(n.position.x, n.position.y, n.position.z);
             sm.quat.push(n.quaternion.x, n.quaternion.y, n.quaternion.z, n.quaternion.w);
-            const k = (n === tmpArrow) ? (t < hideAt ? 1 : 1e-4) : null;    // 1e-4: glTF no admite escala 0
+            const arrowVis = typeof opts.arrowVisible === 'function' ? opts.arrowVisible(t) : (t < hideAt);
+            const k = (n === tmpArrow) ? (arrowVis ? 1 : 1e-4) : null;    // 1e-4: glTF no admite escala 0
             if (k !== null) sm.scl.push(k, k, k); else sm.scl.push(n.scale.x, n.scale.y, n.scale.z);
           });
         }
@@ -34643,6 +34614,89 @@
       });
     }
 
+    // Horneado de los 4 clips dedicados de habilidades de arco (Doble Shot, Descarga Meteoros, Lluvia Prisma, Flecha Glacial)
+    function bakeBowSkillClip(fps = 15, mode) {
+      if (!archeryRig || !mannequinRoot || !bonesMap.Pelvis) return null;
+      if (mode === 'bow_double_shot') {
+        const CYCLE = 3.15;
+        const S1_AIM = 0.42, S1_DRAW = 0.96, S1_REL = 1.12;
+        const S2_START = 1.38, S2_DRAW = 2.02, S2_REL = 2.22, S2_RELAX = 2.55;
+        return bakeArcheryClip(fps, {
+          name: 'bow_double_shot',
+          duration: CYCLE,
+          hideAt: S2_REL,
+          arrowVisible: t => (t < S1_REL) || (t >= S2_START - 0.04 && t < S2_REL),
+          poseAt: (r, t) => {
+            const u = Math.min(t, CYCLE - 1e-4);
+            let aim = 1, pull = 0, vib = 0, charge = 0;
+            if (u < S1_AIM) { aim = smooth01(u / S1_AIM); charge = aim * 0.38; }
+            else if (u < S1_DRAW) { pull = smooth01((u - S1_AIM) / (S1_DRAW - S1_AIM)); charge = 0.38 + pull * 0.62; }
+            else if (u < S1_REL) { pull = 1; charge = 1.0; }
+            else if (u < S2_START) { const d = u - S1_REL; pull = Math.max(0, 1 - smooth01(d / 0.14)); vib = Math.sin(d * 72) * 0.017 * Math.exp(-d * 10); charge = Math.max(0.28, 1 - d * 3.5); }
+            else if (u < S2_DRAW) { pull = smooth01((u - S2_START) / (S2_DRAW - S2_START)); charge = 0.45 + pull * 0.65; }
+            else if (u < S2_REL) { pull = 1; charge = 1.12; }
+            else { const d = u - S2_REL; pull = Math.max(0, 1 - smooth01(d / 0.16)); vib = (d < 0.55) ? Math.sin(d * 68) * 0.018 * Math.exp(-d * 8.5) : 0; if (u >= S2_RELAX) aim = Math.max(0, 1 - smooth01((u - S2_RELAX) / (CYCLE - S2_RELAX - 0.08))); charge = Math.max(0, 0.5 - d * 2.5); }
+            archeryApplyPose(r, 0, { overrideAim: aim, overridePull: pull, overrideVib: vib, overrideCharge: charge });
+          }
+        });
+      }
+      if (mode === 'bow_barrage') {
+        const CYCLE = 3.25;
+        const T_AIM = 0.65, T_DRAW = 1.75, T_REL = 2.18, T_RELAX = 2.62;
+        return bakeArcheryClip(fps, {
+          name: 'bow_barrage',
+          duration: CYCLE,
+          hideAt: T_REL,
+          poseAt: (r, t) => {
+            const u = Math.min(t, CYCLE - 1e-4);
+            let aim = 1, pull = 0, vib = 0, charge = 0;
+            if (u < T_AIM) { aim = smooth01(u / T_AIM); charge = aim * 0.35; }
+            else if (u < T_DRAW) { pull = smooth01((u - T_AIM) / (T_DRAW - T_AIM)); charge = 0.35 + pull * 0.65; }
+            else if (u < T_REL) { pull = 1; charge = 1.0 + 0.18 * Math.sin((u - T_DRAW) * 24); vib = Math.sin((u - T_DRAW) * 55) * 0.005; }
+            else { const d = u - T_REL; pull = Math.max(0, 1 - smooth01(d / 0.16)); vib = (d < 0.6) ? Math.sin(d * 66) * 0.020 * Math.exp(-d * 8) : 0; if (u >= T_RELAX) aim = Math.max(0, 1 - smooth01((u - T_RELAX) / (CYCLE - T_RELAX - 0.1))); charge = Math.max(0, 0.45 - d * 2.5); }
+            archeryApplyPose(r, 0, { overrideAim: aim, overridePull: pull, overrideVib: vib, overrideCharge: charge, pitchRad: 0.08 * aim });
+          }
+        });
+      }
+      if (mode === 'bow_prism_rain') {
+        const CYCLE = 4.25;
+        const T_AIM = 0.76, T_DRAW = 1.82, T_REL = 2.18, T_RELAX = 2.95;
+        return bakeArcheryClip(fps, {
+          name: 'bow_prism_rain',
+          duration: CYCLE,
+          hideAt: T_REL,
+          poseAt: (r, t) => {
+            const u = Math.min(t, CYCLE - 1e-4);
+            let aim = 1, pull = 0, vib = 0, charge = 0;
+            if (u < T_AIM) { aim = smooth01(u / T_AIM); charge = aim * 0.42; }
+            else if (u < T_DRAW) { pull = smooth01((u - T_AIM) / (T_DRAW - T_AIM)); charge = 0.42 + pull * 0.65; }
+            else if (u < T_REL) { pull = 1; charge = 1.15; vib = Math.sin((u - T_DRAW) * 58) * 0.005; }
+            else { const d = u - T_REL; pull = Math.max(0, 1 - smooth01(d / 0.17)); vib = (d < 0.6) ? Math.sin(d * 64) * 0.020 * Math.exp(-d * 8) : 0; if (u >= T_RELAX) aim = Math.max(0, 1 - smooth01((u - T_RELAX) / (CYCLE - T_RELAX - 0.12))); charge = Math.max(0, 0.55 - d * 2.2); }
+            archeryApplyPose(r, 0, { overrideAim: aim, overridePull: pull, overrideVib: vib, overrideCharge: charge, pitchRad: 1.06 * aim });
+          }
+        });
+      }
+      if (mode === 'bow_frost_shot') {
+        const CYCLE = 3.25;
+        const T_AIM = 0.72, T_DRAW = 1.85, T_REL = 2.28, T_RELAX = 2.70;
+        return bakeArcheryClip(fps, {
+          name: 'bow_frost_shot',
+          duration: CYCLE,
+          hideAt: T_REL,
+          poseAt: (r, t) => {
+            const u = Math.min(t, CYCLE - 1e-4);
+            let aim = 1, pull = 0, vib = 0, charge = 0;
+            if (u < T_AIM) { aim = smooth01(u / T_AIM); charge = aim * 0.35; }
+            else if (u < T_DRAW) { pull = smooth01((u - T_AIM) / (T_DRAW - T_AIM)); charge = 0.35 + pull * 0.70; }
+            else if (u < T_REL) { pull = 1; charge = 1.12; vib = Math.sin((u - T_DRAW) * 52) * 0.004; }
+            else { const d = u - T_REL; pull = Math.max(0, 1 - smooth01(d / 0.16)); vib = (d < 0.6) ? Math.sin(d * 64) * 0.018 * Math.exp(-d * 8.5) : 0; if (u >= T_RELAX) aim = Math.max(0, 1 - smooth01((u - T_RELAX) / (CYCLE - T_RELAX - 0.10))); charge = Math.max(0, 0.45 - d * 2.4); }
+            archeryApplyPose(r, 0, { overrideAim: aim, overridePull: pull, overrideVib: vib, overrideCharge: charge });
+          }
+        });
+      }
+      return null;
+    }
+
     // Para que las pistas de la flecha tengan a quién animar, el .GLB necesita un nodo 'BowArrow'
     // en el arco aunque en el visor no haya flecha montada. Se añade uno oculto (escala ~0: sólo se
     // ve mientras suena el clip de tiro) y se retira la flecha viva, que se devuelve al terminar.
@@ -34657,23 +34711,65 @@
       return () => { rig.bow.remove(ex); if (live && !live.parent) rig.bow.add(live); };
     }
 
-    // Añade (o reemplaza) el ciclo de tiro con arco en la lista de clips que va al .GLB
-    function withArcheryClip(clips, fps) {
+    // Anclajes exactos del arma (WeaponBase/WeaponTip) y del arco (BowTop/BowBot/BowNock)
+    // para que visor-mundo siga con precisión el filo o la cuerda durante cualquier animación horneada.
+    function prepareWeaponMarkersForExport() {
+      if (!mannequinRoot) return () => {};
+      mannequinRoot.updateMatrixWorld(true);
+      const added = [];
+      const addMarker = (parent, name, localPos) => {
+        if (!parent || !localPos) return;
+        const m = new THREE.Group();
+        m.name = name;
+        m.position.copy(localPos);
+        parent.add(m);
+        added.push([parent, m]);
+      };
+      const span = (!archeryRig) ? getBladeSpanWorld() : null;
+      if (span && bonesMap.Wrist_R) {
+        bonesMap.Wrist_R.updateWorldMatrix(true, false);
+        addMarker(bonesMap.Wrist_R, 'WeaponBase', bonesMap.Wrist_R.worldToLocal(span.base.clone()));
+        addMarker(bonesMap.Wrist_R, 'WeaponTip', bonesMap.Wrist_R.worldToLocal(span.tip.clone()));
+      }
+      if (archeryRig && archeryRig.bow) {
+        const st = archeryRig.stringState;
+        if (st && st.tUp && st.tLo && st.nock) {
+          addMarker(archeryRig.bow, 'BowTop', st.tUp);
+          addMarker(archeryRig.bow, 'BowBot', st.tLo);
+          addMarker(archeryRig.bow, 'BowNock', st.nock);
+        }
+      }
+      return () => {
+        added.forEach(([parent, m]) => { if (m.parent === parent) parent.remove(m); });
+      };
+    }
+
+    // Añade (o reemplaza) el ciclo de tiro con arco + las 4 skills de arco en la lista de clips del .GLB
+    function withArcheryClip(clips, fps, clipFilter = null) {
       let out = clips;
-      const ar = bakeArcheryClip(fps);
-      if (ar) out = out.filter(c => c.name !== 'archery').concat(ar);
-      // El clip de salto del motor no lleva arco: se sustituye por el horneado completo
-      const ae = bakeAerialShotClip(fps);
-      if (ae) out = out.filter(c => c.name !== 'aerial_shot').concat(ae);
+      const keepName = (name) => (typeof clipFilter !== 'function') || clipFilter({ name });
+      if (keepName('archery')) {
+        const ar = bakeArcheryClip(fps);
+        if (ar) out = out.filter(c => c.name !== 'archery').concat(ar);
+      }
+      if (keepName('aerial_shot')) {
+        const ae = bakeAerialShotClip(fps);
+        if (ae) out = out.filter(c => c.name !== 'aerial_shot').concat(ae);
+      }
+      ['bow_double_shot', 'bow_barrage', 'bow_prism_rain', 'bow_frost_shot'].forEach(mode => {
+        if (!keepName(mode)) return;
+        const bc = bakeBowSkillClip(fps, mode);
+        if (bc) out = out.filter(c => c.name !== mode).concat(bc);
+      });
       return out;
     }
 
-    function getLightExportClips(fps) {
-      if (typeof gltfClips !== 'undefined' && gltfClips && gltfClips.length > 0) return withArcheryClip(gltfClips, fps);
+    function getLightExportClips(fps, clipFilter = null) {
+      if (typeof gltfClips !== 'undefined' && gltfClips && gltfClips.length > 0) return withArcheryClip(gltfClips, fps, clipFilter);
       if (window.CreadorHumano && mannequinRoot && mannequinRoot.userData.isCreadorNative) {
-        try { return withArcheryClip(window.CreadorHumano.bakeAllGameAnimationClips(fps), fps); } catch (e) { console.warn(e); }
+        try { return withArcheryClip(window.CreadorHumano.bakeAllGameAnimationClips(fps, clipFilter), fps, clipFilter); } catch (e) { console.warn(e); }
       }
-      return withArcheryClip([], fps);
+      return withArcheryClip([], fps, clipFilter);
     }
 
     function buildLightweightExportScene(opts = {}) {
@@ -34681,8 +34777,8 @@
       const root = mannequinRoot;
       root.updateMatrixWorld(true);
 
-      // Nodos a conservar: raíz + objetivos de las pistas de animación + todos sus ancestros
-      const targets = new Set();
+      // Nodos a conservar: raíz + objetivos de las pistas de animación + marcadores de arma/arco + todos sus ancestros
+      const targets = new Set(['WeaponBase', 'WeaponTip', 'BowTop', 'BowBot', 'BowNock']);
       clips.forEach(c => c.tracks.forEach(t => targets.add(t.name.split('.')[0])));
       const keep = new Set([root]);
       root.traverse(n => {
@@ -35170,12 +35266,14 @@
       const fps = opts.fps || 15;
       return loadMeshoptSimplifier().then((MS) => {
         const restoreBow = prepareBowForExport();
+        const restoreMarkers = armorOnly ? () => {} : prepareWeaponMarkersForExport();
         try {
           if (typeof restoreBindPose === 'function') restoreBindPose();
           if (typeof restoreAllClothRestPose === 'function') restoreAllClothRestPose();
-          let clips = getLightExportClips(fps);
+          let clips = getLightExportClips(fps, opts.clipFilter || null);
           if (typeof opts.clipFilter === 'function') clips = clips.filter(opts.clipFilter);
           const built = buildLightweightExportScene({ armorOnly, maxTex, clips, simplifyRatio: MS ? 0.5 : 1.0, simplifyError: opts.simplifyError || 0.0025 });
+          restoreMarkers();
           restoreBow();                      // la escena ligera ya es una copia: el arco del visor vuelve a su sitio
           return new Promise((resolve) => {
             const exporter = new THREE.GLTFExporter();
@@ -35189,6 +35287,7 @@
             }, (err) => { console.error(err); showToast('Error al exportar GLB ligero'); resolve(null); }, { binary: true, animations: clips, maxTextureSize: maxTex });
           });
         } catch (err) {
+          restoreMarkers();
           restoreBow();
           console.error(err);
           showToast("Error al exportar GLB ligero");
@@ -42183,7 +42282,7 @@ function evaluateGameAnimation(animKey, time, fallbackPoseKey = 'apose') {
  * Hornea todas las animaciones de juego en objetos THREE.AnimationClip estándar
  * para que al exportar a .GLB el modelo lleve embebidas todas las pistas de animación.
  */
-function bakeAllGameAnimationClips(fps = 30) {
+function bakeAllGameAnimationClips(fps = 30, clipFilter = null) {
   const clips = [];
   const euler = new THREE.Euler();
   const quat = new THREE.Quaternion();
@@ -42209,6 +42308,7 @@ function bakeAllGameAnimationClips(fps = 30) {
 
   Object.entries(GAME_ANIMATIONS).forEach(([animKey, meta]) => {
     if (animKey === 'none') return;
+    if (typeof clipFilter === 'function' && !clipFilter({ name: animKey })) return;
 
     const duration = meta.duration;
     const steps = Math.max(12, Math.round(duration * fps));
@@ -44322,9 +44422,9 @@ function resetCharacter() {
         ? ['tavern_bodice', 'peasant_tunic', 'leather_jerkin', 'merchant_doublet']
         : ['peasant_tunic', 'blacksmith_apron', 'leather_jerkin', 'tavern_bodice', 'merchant_doublet', 'woodcutter_fur_vest'];
       const lowers = isFem
-        ? ['peasant_skirt', 'peasant_skirt', 'tunic_skirt', 'wool_trousers', 'leather_trousers', 'work_breeches']
-        : ['wool_trousers', 'wool_trousers', 'leather_trousers', 'work_breeches', 'puttees_breeches', 'tunic_skirt'];
-      const sleeves = ['rolled', 'long_linen', 'leather_bracers', 'forge_gloves'];
+        ? ['peasant_skirt', 'peasant_skirt', 'tunic_skirt', 'wool_trousers', 'work_breeches']
+        : ['wool_trousers', 'wool_trousers', 'work_breeches', 'puttees_breeches', 'tunic_skirt'];
+      const sleeves = ['rolled', 'long_linen'];
       const belts = ['leather_pouch', 'rope_pouch', 'blacksmith_tools', 'herbalist_satchel', 'waterskin_knife', 'tavern_towel'];
       const boots = ['turnshoe', 'cuff_boot', 'laced_boot', 'legwraps'];
       const heads = ['none', 'none', 'straw_hat', 'merchant_beret', 'cloth_cowl', 'kerchief'];
@@ -44334,8 +44434,8 @@ function resetCharacter() {
         professionId: 'custom',
         professionName: `Aldean${isFem ? 'a' : 'o'} · ${pal.name}`,
         torso,
-        lower: torso === 'blacksmith_apron' ? pick(['work_breeches', 'wool_trousers', 'leather_trousers']) : pick(lowers),
-        sleeves: torso === 'blacksmith_apron' ? pick(['rolled', 'forge_gloves']) : pick(sleeves),
+        lower: torso === 'blacksmith_apron' ? pick(['work_breeches', 'wool_trousers']) : pick(lowers),
+        sleeves: pick(sleeves),
         belt: torso === 'blacksmith_apron' ? 'blacksmith_tools' : pick(belts),
         boots: pick(boots),
         head: pick(heads),
@@ -44432,34 +44532,25 @@ function resetCharacter() {
       CH.CONFIG.cara.noseTipTilt = rRange(-0.03, 0.03);
       if (CH.syncMaterialColors) CH.syncMaterialColors();
 
-      // Sincronizar textura facial según género y edad (priorizando rostros humanos naturales de aldea)
+      // Aldeanos SIEMPRE usan rostro 3D esculpido sin textura fotográfica facial
+      // (las texturas de cara quedan reservadas únicamente para el personaje principal).
+      const sinRostroTextura = (opts.sinRostroTextura !== false);
       const faceArch = isElder ? (isFem ? 'anciana' : 'anciano') : (isFem ? 'mujer' : 'hombre');
       if (window.__syncFaceTextureGender) window.__syncFaceTextureGender(faceArch);
       const faceSel = document.getElementById('face-texture-select');
       const faceBaseChk = document.getElementById('face-tex-base');
-      if (faceSel && !(faceBaseChk && faceBaseChk.checked) && CH.FACE_TEXTURES) {
-        const expectedG = isFem ? 'mujer' : 'hombre';
-        const allG = Object.entries(CH.FACE_TEXTURES).filter(([k, v]) => v && v.gender === expectedG);
-        const naturalPool = allG.filter(([k, v]) => !/oscuro|orco|demonio|pintado|elfo_oscuro|vampiro/i.test(k + ' ' + (v.label || '')));
-        const elderPool = naturalPool.filter(([k, v]) => /anciano|viejo/i.test(k + ' ' + (v.label || '')));
-        const finalPool = (isElder && elderPool.length) ? elderPool : (naturalPool.length ? naturalPool : allG);
-        if (finalPool.length) {
-          const chosenFaceKey = pick(finalPool)[0];
-          const def = CH.getFaceTextureDef ? CH.getFaceTextureDef(chosenFaceKey, CH.CONFIG.cara) : CH.FACE_TEXTURES[chosenFaceKey];
-          CH.CONFIG.cara.faceTexture = chosenFaceKey;
-          if (CH.CONFIG.cara._beardBeforeTex === undefined) CH.CONFIG.cara._beardBeforeTex = CH.CONFIG.cara.beardStyle;
-          CH.CONFIG.cara.beardStyle = 'ninguna';
-          if (def && def.colors) {
-            if (def.colors.skin) CH.CONFIG.colors.skin = def.colors.skin;
-            if (def.colors.lips) CH.CONFIG.colors.lips = def.colors.lips;
-            if (def.colors.eyes) CH.CONFIG.colors.eyes = def.colors.eyes;
-            if (CH.syncMaterialColors) CH.syncMaterialColors();
-          }
-          faceSel.value = chosenFaceKey;
+      if (sinRostroTextura) {
+        CH.CONFIG.cara.faceTexture = null;
+        if (CH.CONFIG.cara._beardBeforeTex !== undefined) {
+          CH.CONFIG.cara.beardStyle = CH.CONFIG.cara._beardBeforeTex;
+          delete CH.CONFIG.cara._beardBeforeTex;
         }
+        if (isFem) CH.CONFIG.cara.beardStyle = 'ninguna';
+        if (faceSel) faceSel.value = '';
+        if (faceBaseChk) faceBaseChk.checked = true;
       }
 
-      // Reconstruir malla humana preservando nuestra configuración esbelta y rostro natural recién elegidos
+      // Reconstruir malla humana preservando nuestra configuración esbelta y rostro 3D limpio
       generateCreador3DHumanoGLB('keep', false, activePose);
 
       // Peinado natural de aldea y paleta capilar realista (castaño, negro, rubio trigo, cobrizo o plata en ancianos)
@@ -44955,10 +45046,33 @@ function resetCharacter() {
               window.CreadorHumano.CONFIG.items.animation = 'none';
             }
             updateWardrobePieces();
+            const wpExport = typeof getEquippedWeaponCombatProfile === 'function' ? getEquippedWeaponCombatProfile() : null;
+            if (window.CreadorHumano && window.CreadorHumano.CONFIG && window.CreadorHumano.CONFIG.items && wpExport) {
+              window.CreadorHumano.CONFIG.items.weaponStyle = wpExport.style || 'sword_1h';
+              window.CreadorHumano.CONFIG.items.twoHanded = !!wpExport.twoHanded;
+              window.CreadorHumano.CONFIG.items.hasShield = !!wpExport.hasShield;
+              window.CreadorHumano.CONFIG.items.weaponLength = wpExport.length || 0.9;
+              window.CreadorHumano.CONFIG.items.weaponWeight = wpExport.weight || 0.7;
+            }
+            const wClsExport = typeof getWeaponClassId === 'function' ? getWeaponClassId(STATE.equipment.weapon || 0) : 'espadas';
+            const clipSetExport = new Set([
+              'idle', 'walk', 'run', 'jump', 'dodge', 'hit', 'death', 'victory',
+              'punch', 'kick', 'attack', 'spin_slash', 'overhead_cleave', 'thrust_lunge',
+              'rising_slash', 'guard_counter', 'whirlwind', 'ultimate_slam', 'ultimate_nova', 'ultimate_beam'
+            ]);
+            const skillsArmaExport = (typeof WEAPON_CLASS_SKILLS !== 'undefined' && WEAPON_CLASS_SKILLS[wClsExport]) || [];
+            skillsArmaExport.forEach(s => { if (s && s.anim) clipSetExport.add(s.anim); });
+            if (wClsExport === 'arcos' || archeryRig) {
+              ['archery', 'aerial_shot', 'bow_double_shot', 'bow_barrage', 'bow_prism_rain', 'bow_frost_shot'].forEach(n => clipSetExport.add(n));
+            }
             await esperarTexturaRostro(3000);
             _exportIdPendiente = d.id;
             _exportMetaPendiente = { rostro: capturarRostroEstado() };
-            const res = await exportLightweightGLB(false, { fps: d.fps || 12, maxTex: d.maxTex || 512 });
+            const res = await exportLightweightGLB(false, {
+              fps: d.fps || 15,
+              maxTex: d.maxTex || 512,
+              clipFilter: c => clipSetExport.has(c.name)
+            });
             if (!res && _exportIdPendiente === d.id) {
               _exportIdPendiente = null; _exportMetaPendiente = null;
               window.parent.postMessage({ origen: 'armadura-estudio', tipo: 'error', id: d.id, error: 'Error al exportar personaje' }, '*');
@@ -44974,29 +45088,52 @@ function resetCharacter() {
       if (d.tipo === 'exportar-aldeano') {
         encolarExportEstudio(async () => {
           try {
+            // Limpiar cualquier resto de armadura, arma, textura de metal o rostro fotográfico antes de exportar aldeano
+            Object.keys(STATE.equipment).forEach(k => { STATE.equipment[k] = 0; });
+            STATE.useGlobalMaterial = false;
+            Object.keys(STATE.slotTextures).forEach(k => { STATE.slotTextures[k] = null; });
+            STATE.fit.signatureStyle = null;
+            STATE.fit.capeStyle = 'none';
+            STATE.fit.halfArmPauldron = 'none';
+            STATE.fit.monolithBoot = 'none';
+            STATE.fit.rankTier = 'D';
+            STATE.fit.simpleLeatherMode = false;
+
             if (window.CreadorHumano && window.CreadorHumano.CONFIG) {
               window.CreadorHumano.CONFIG.items.pose = 'apose';
               window.CreadorHumano.CONFIG.items.animation = 'none';
+              if (window.CreadorHumano.CONFIG.cara) {
+                window.CreadorHumano.CONFIG.cara.faceTexture = null;
+              }
             }
             const poseSel = document.getElementById('human-pose-select');
             if (poseSel) poseSel.value = 'apose';
+            const faceSelAld = document.getElementById('face-texture-select');
+            if (faceSelAld) faceSelAld.value = '';
+            const faceBaseAld = document.getElementById('face-tex-base');
+            if (faceBaseAld) faceBaseAld.checked = true;
+
             if (d.professionId || !STATE.fit.villagerOutfit || !d.mantenerActual) {
               generateVillagerCharacter({
                 professionId: d.professionId || 'campesino',
                 gender: d.gender || 'random',
-                build: d.build || 'esbelto'
+                build: d.build || 'esbelto',
+                sinRostroTextura: true
               });
+            } else if (typeof window.__applyFaceTextureKey === 'function') {
+              window.__applyFaceTextureKey('', true);
+            }
+            // Garantizar que los aldeanos nunca llevan textura fotográfica facial
+            if (window.CreadorHumano && window.CreadorHumano.CONFIG && window.CreadorHumano.CONFIG.cara && window.CreadorHumano.CONFIG.cara.faceTexture) {
+              window.CreadorHumano.CONFIG.cara.faceTexture = null;
+              generateCreador3DHumanoGLB('keep', false, 'apose');
             }
             const outfitActual = d.outfit ? Object.assign({}, STATE.fit.villagerOutfit || {}, d.outfit) : (STATE.fit.villagerOutfit ? Object.assign({}, STATE.fit.villagerOutfit) : null);
-            if (d.rostro) {
-              aplicarEstadoRostro(d.rostro, false);
-            }
             if (d.hair) aplicarEstadoPelo(d.hair);
             if (outfitActual) applyVillagerOutfit(outfitActual);
             else updateWardrobePieces();
-            await esperarTexturaRostro(3000);
             _exportIdPendiente = d.id;
-            _exportMetaPendiente = { villager: STATE.fit.villagerOutfit ? Object.assign({}, STATE.fit.villagerOutfit) : null, rostro: capturarRostroEstado() };
+            _exportMetaPendiente = { villager: STATE.fit.villagerOutfit ? Object.assign({}, STATE.fit.villagerOutfit) : null, rostro: null };
             const res = await exportLightweightGLB(false, {
               fps: d.fps || 12,
               maxTex: d.maxTex || 512,

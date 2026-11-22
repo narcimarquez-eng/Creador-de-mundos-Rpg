@@ -2385,6 +2385,7 @@
   <script defer src="js/casas-glb.js?v=20261114a"></script>
   <script type="module" src="js/village-core.js?v=20261119h"></script>
   <script type="module" src="js/combat.js?v=20261120d"></script>
+  <script defer src="js/combat-vfx-estudio.js?v=20261121a"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20261119b"></script>
@@ -2477,6 +2478,7 @@
   let townMesh, roadMesh, calzadaMesh, riosMesh, zoneMesh, waterMesh, selectRing = null;
   let ladrillosTramos = [];   // tramos del empedrado de las calzadas: { malla, x, z }
   let character = null;
+  let studioVfx = null;
   let hemiLight = null, sunLight = null, fillLight = null, luzPlazaMundo = null, luzForjaMundo = null, luzSecretoMundo = null, luzMazmorraExtMundo = null;
   let terrenoVersion = 1;
   let _grupoSecretosCache = null, _grupoEntradasCache = null;
@@ -3366,6 +3368,9 @@
       joystick: { zone: $('joystick-zone'), knob: $('joystick-knob') },
       glbUrl: null
     });
+    if (typeof StudioCombatVFX !== 'undefined' && typeof StudioCombatVFX.Manager === 'function') {
+      studioVfx = new StudioCombatVFX.Manager(scene, THREE);
+    }
     function arreglarMaterialesRostro(modelo) {
       if (!modelo || !modelo.traverse) return;
       modelo.traverse(o => {
@@ -3393,6 +3398,7 @@
       aplicarEntorno(modelo);
       arreglarMaterialesRostro(modelo);
       aligerarPersonaje(modelo);
+      if (studioVfx) studioVfx.bindHeroModel(modelo, character.root);
     };
     envolverTeleportRecintos();
 
@@ -10581,6 +10587,9 @@
     return (personajeActual && personajeActual.clase) || 'guerrero';
   }
   function atajosActivos() {
+    if (typeof HeroeLib.atajosDeArma === 'function') {
+      return HeroeLib.atajosDeArma(claseArmaDelHeroe(), claseHeroe());
+    }
     return HeroeLib.atajosDeClase(claseHeroe());
   }
   function claseArmaDelHeroe(pj = personajeActual) {
@@ -10598,18 +10607,21 @@
     if (HeroeLib.esBaculo(arma)) return 'baculo';
     return 'cuerpo';
   }
-  // Las de la historia, hasta su capítulo; las técnicas, hasta su nivel y profesión (ver js/heroe.js)
-  function bloqueada(name) { return !!HeroeLib.HABILIDADES[name] && !HeroeLib.disponible(heroeEst, name, hero.level, claseHeroe()); }
+  // Cada personaje solo aprende, asigna y usa las skills del arma equipada (más pasivas y ataque básico)
+  function bloqueada(name) {
+    return !!HeroeLib.HABILIDADES[name] && !HeroeLib.disponible(heroeEst, name, hero.level, claseHeroe(), claseArmaDelHeroe());
+  }
   // Por qué no se puede usar con el arma que lleva ('' si se puede)
   function faltaArma(name) {
     const sk = CombatLib.SKILLS[name];
     if (!sk) return '';
-    const ac = sk.armaClase || sk.claseArma;
-    if (ac) {
+    if (name !== 'attack' && name !== 'disparo' && name !== 'orbe_arcano') {
       const act = claseArmaDelHeroe();
+      const nomAct = (HeroeLib.NOMBRES_CLASE_ARMA && HeroeLib.NOMBRES_CLASE_ARMA[act]) || act;
+      const ac = sk.armaClase || sk.claseArma;
       if (ac !== act) {
-        const nomReq = (HeroeLib.NOMBRES_CLASE_ARMA && HeroeLib.NOMBRES_CLASE_ARMA[ac]) || ac;
-        return 'Requiere ' + nomReq;
+        const nomReq = ac ? ((HeroeLib.NOMBRES_CLASE_ARMA && HeroeLib.NOMBRES_CLASE_ARMA[ac]) || ac) : null;
+        return nomReq ? ('Requiere ' + nomReq) : ('Exclusiva de otra arma (llevas ' + nomAct + ')');
       }
     }
     const req = sk.arma;
@@ -10651,7 +10663,7 @@
       const huecoLibre = HeroeLib.TECLAS.find(t => !heroeEst.barra[t]);
       const h = HeroeLib.HABILIDADES[id];
       if (huecoLibre && h && h.tipo === 'activa') {
-        HeroeLib.asignar(heroeEst, huecoLibre, id, claseHeroe());
+        HeroeLib.asignar(heroeEst, huecoLibre, id, claseHeroe(), claseArmaDelHeroe());
         autoPuestas++;
       }
     });
@@ -10674,7 +10686,7 @@
       if (a === 'arco') name = 'disparo';
       else if (a === 'baculo') name = 'orbe_arcano';
     }
-    if (bloqueada(name)) { toast('🔒 ' + CombatLib.SKILLS[name].nombre + ': ' + HeroeLib.requisito(name, claseHeroe())); return; }
+    if (bloqueada(name)) { toast('🔒 ' + CombatLib.SKILLS[name].nombre + ': ' + HeroeLib.requisito(name, claseHeroe(), claseArmaDelHeroe())); return; }
     const falta = faltaArma(name);
     if (falta) { toast(falta); return; }
     const esquivando = !!(character && character.isDodging && character.isDodging());
@@ -10739,8 +10751,27 @@
         }
       }
     }
-    character.playOneShot(name, lastNowSec);
-    lanzarAuraConjuro(name);
+    const durAnim = character.playOneShot(name, lastNowSec);
+    if (!studioVfx && typeof StudioCombatVFX !== 'undefined' && scene) {
+      studioVfx = new StudioCombatVFX.Manager(scene, THREE);
+      if (character && character.model) studioVfx.bindHeroModel(character.model, character.root);
+    }
+    let vfxEstudioActivo = false;
+    if (studioVfx && studioVfx.hasProfile(name) && character && character.root) {
+      const rp = character.root.position;
+      const fr = character.frente();
+      const tPos = (blanco && blanco.alive)
+        ? new THREE.Vector3(blanco.x, (blanco.group ? blanco.group.position.y : rp.y) + 1.05, blanco.z)
+        : new THREE.Vector3(rp.x + fr.x * Math.min(sk.range || 10, 16), rp.y + 1.0, rp.z + fr.z * Math.min(sk.range || 10, 16));
+      vfxEstudioActivo = studioVfx.startSkill(name, sk, {
+        duration: durAnim || sk.lock,
+        target: blanco,
+        targetPos: tPos,
+        heroRoot: character.root,
+        getGroundY: (gx, gz) => ((!gestorMazmorras || !gestorMazmorras.enMazmorra) && typeof meshHeight === 'function' ? meshHeight(gx, gz) : rp.y)
+      });
+    }
+    if (!vfxEstudioActivo) lanzarAuraConjuro(name);
     marcarCombateAudio();
     if (window.Sonidos) {
       if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'inicio');
@@ -10811,9 +10842,13 @@
         window.Sonidos.disparo({ pan: panP });
         if (name !== 'orbe_arcano' && window.Sonidos.golpeVeloz) window.Sonidos.golpeVeloz(0.75, { pan: panP });
       }
-      lanzarProyectilElemental(name, destinoPos, diana, () => {
+      const aplicarImpactoProyectil = () => {
+        if (hero.dead) return;
         if (window.Sonidos && typeof window.Sonidos.skill === 'function') {
           window.Sonidos.skill(name, 'impacto', { pan: panDePosicion(destinoPos.x, destinoPos.z) });
+        }
+        if (studioVfx && studioVfx.hasProfile(name)) {
+          studioVfx.spawnImpact(destinoPos, name);
         }
         blancos.forEach(m => {
           if (!m.alive || m.hp <= 0) return;
@@ -10821,7 +10856,19 @@
           const res = calcularDanioHeroe(name, m.level, sk.bonusCrit || 0, m);
           golpear(m, res.dmg, 'sordo', { crit: res.crit, skill: name });
         });
-      });
+      };
+      if (studioVfx && studioVfx.hasProfile(name)) {
+        const distV = Math.hypot(destinoPos.x - p.x, destinoPos.z - p.z) || 1;
+        const flyMs = Math.round(Math.max(140, Math.min(440, (distV / 36) * 1000)));
+        const tidP = setTimeout(() => {
+          const idxP = habilidadTimeoutsPendientes.indexOf(tidP);
+          if (idxP >= 0) habilidadTimeoutsPendientes.splice(idxP, 1);
+          aplicarImpactoProyectil();
+        }, flyMs);
+        habilidadTimeoutsPendientes.push(tidP);
+      } else {
+        lanzarProyectilElemental(name, destinoPos, diana, aplicarImpactoProyectil);
+      }
       return;
     }
 
@@ -10858,8 +10905,9 @@
       const { x: fx, z: fz } = character.frente();
       blancos = candidatos.filter(m => m.alive && (enDungeon ? !!m.dungeonInfoRef : !m.dungeonInfoRef) && CombatLib.inSkillArea(name, p.x, p.z, fx, fz, m.x, m.z));
     }
-    lanzarVFXHabilidad(name, blancos, primero);
-    if (primero && !sk.unico && !sk.proyectil) lanzarEstelaArma(name);
+    const usaEstudioVfx = !!(studioVfx && studioVfx.hasProfile(name));
+    if (!usaEstudioVfx) lanzarVFXHabilidad(name, blancos, primero);
+    if (primero && !sk.unico && !sk.proyectil && !usaEstudioVfx) lanzarEstelaArma(name);
     // Sonido: firma específica de la habilidad al impactar + golpe de velocidad en técnicas y ataques
     const panB = blancos.length ? panDePosicion(blancos[0].x, blancos[0].z) : 0;
     if (sk.unico && blancos.length && window.Sonidos) window.Sonidos.disparo({ pan: panB });
@@ -10874,7 +10922,8 @@
       }
     }
     blancos.forEach(m => {
-      if (sk.unico) flecha(m);
+      if (sk.unico && !usaEstudioVfx) flecha(m);
+      if (usaEstudioVfx) studioVfx.spawnImpact(new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.0, m.z), name);
       if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
       const res = calcularDanioHeroe(name, m.level, sk.bonusCrit || 0, m);
       golpear(m, res.dmg, sk.unico ? 'flecha' : (conArma ? 'metal' : 'sordo'), { crit: res.crit, skill: name });
@@ -12140,12 +12189,16 @@
     const origOverrideVis = gtaoPass._overrideVisibility.bind(gtaoPass);
     gtaoPass._overrideVisibility = function () {
       origOverrideVis();
-      [cielo, zoneMesh, selectRing].forEach(obj => {
+      const ocultar = obj => {
         if (obj && obj.visible) {
           obj.visible = false;
           this._visibilityCache.push(obj);
         }
-      });
+      };
+      [cielo, zoneMesh, selectRing, studioVfx && studioVfx.group, brisaZelda && brisaZelda.grupo].forEach(ocultar);
+      if (Array.isArray(efectos)) {
+        for (let i = 0; i < efectos.length; i++) ocultar(efectos[i] && efectos[i].malla);
+      }
     };
     bloomPass = new UnrealBloomPass(new THREE.Vector2(tam.x, tam.y), 0.16, 0.24, 1.25);
     blindarFiltroBloom(bloomPass, 1.75);
@@ -12262,7 +12315,7 @@
     const cdEl = btn._cdEl || (btn._cdEl = btn.querySelector('.cd'));
     const nuevoIco = CombatLib.SKILLS[id].icono;
     if (icoEl.textContent !== nuevoIco) icoEl.textContent = nuevoIco;
-    const nuevoTit = titulo + (bloq ? ' · ' + HeroeLib.requisito(id, claseHeroe()) : falta ? ' · ' + falta : '');
+    const nuevoTit = titulo + (bloq ? ' · ' + HeroeLib.requisito(id, claseHeroe(), claseArmaDelHeroe()) : falta ? ' · ' + falta : '');
     if (btn.title !== nuevoTit) btn.title = nuevoTit;
     const deshab = hero.dead || bloq || !!falta || cd > 0 || hero.mp < CombatLib.SKILLS[id].mp;
     if (btn.disabled !== deshab) btn.disabled = deshab;
@@ -13642,7 +13695,7 @@
     }
     heroeEst = HeroeLib.limpiarHeroe(r.heroe);
     if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
-      HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(personajeActual), claseHeroe());
+      HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(personajeActual), hero.level, claseHeroe());
     }
     if (typeof restaurarAldeanosCustom === 'function') {
       restaurarAldeanosCustom(r.aldeanosCustom || []);
@@ -14159,7 +14212,7 @@
   }
 
   // Caché persistente en IndexedDB del GLB exportado del héroe para cargar la partida al instante sin abrir el estudio
-  const DB_HEROE = 'rpg-heroe-glb-v3';
+  const DB_HEROE = 'rpg-heroe-glb-v4';
   let dbHeroePromesa = null;
   function abrirDbHeroe() {
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);
@@ -14528,7 +14581,7 @@
       pausarEstudioSiOculto();
       if (typeof alCrear === 'function') alCrear(pj);
       if (heroeEst && typeof HeroeLib.sincronizarBarraConArma === 'function') {
-        HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), pj.clase);
+        HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), hero.level, pj.clase);
         aplicarStats();
       }
       try {
@@ -14831,7 +14884,7 @@
       EquipoLib.equipar(personajeActual, uidEq, hero.level, catalogoPiezas);
       if (objEq && objEq.ranura === 'weapon' && typeof HeroeLib.sincronizarBarraConArma === 'function') {
         const clsArma = claseArmaDelHeroe(personajeActual);
-        HeroeLib.sincronizarBarraConArma(heroeEst, clsArma, claseHeroe());
+        HeroeLib.sincronizarBarraConArma(heroeEst, clsArma, hero.level, claseHeroe());
         const nomArma = (HeroeLib.NOMBRES_CLASE_ARMA && HeroeLib.NOMBRES_CLASE_ARMA[clsArma]) || clsArma;
         toast('⚔️ Barra sincronizada con habilidades de ' + nomArma);
       } else {
@@ -14840,6 +14893,8 @@
       if (window.Sonidos && window.Sonidos.equipar) window.Sonidos.equipar();
       aplicarStats();
       renderObjetos();
+      if ($('heroe') && $('heroe').classList.contains('show')) renderHeroe();
+      if (typeof updateHud === 'function') updateHud(performance.now());
       if (typeof saveActive === 'function') saveActive(true);
       await mostrarCuerpo(personajeActual);
     } catch (err) { toast(err.message); }
@@ -15234,7 +15289,7 @@
       toast('Encargo entregado: +' + m.recompensa.oro + ' 🪙');
     });
     const mj = e.target.closest('button[data-mejorar]');
-    if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar, hero.level, claseHeroe()); aplicarStats(); toast('Habilidad mejorada'); });
+    if (mj) accionNpc(() => { HeroeLib.mejorar(heroeEst, mj.dataset.mejorar, hero.level, claseHeroe(), claseArmaDelHeroe()); aplicarStats(); toast('Habilidad mejorada'); });
     const esub = e.target.closest('button[data-elegir-subclase]');
     if (esub) accionNpc(() => {
       const sub = HeroeLib.elegirSubclase(heroeEst, esub.dataset.elegirSubclase, hero.level, claseHeroe());
@@ -15256,7 +15311,7 @@
           HeroeLib.aplicarBarraDeClase(heroeEst, nuevaClase);
           const arma = EquipoLib.asegurarArmaDeClase(pj, catalogoPiezas, nuevaClase, hero.level);
           if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
-            HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), nuevaClase);
+            HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), hero.level, nuevaClase);
           }
           aplicarStats();
           renderObjetos();
@@ -15682,19 +15737,16 @@
       const esArmaAct = ac && ac === clsArmaAct;
       const caTag = nomCa ? `<span class="clase-arm-tag" style="${esArmaAct ? 'border-color:#facc15;color:#fde047' : ''}">${esc(nomCa)} · Nv.${hab.nivel || 1}</span>` : '';
       let accion;
-      if (!H.disponible(heroeEst, id, hero.level, cls)) accion = '<span class="muted">🔒 ' + esc(H.requisito(id, cls)) + '</span>';
+      if (!H.disponible(heroeEst, id, hero.level, cls, clsArmaAct)) accion = '<span class="muted">🔒 ' + esc(H.requisito(id, cls, clsArmaAct)) + '</span>';
       else if (nivel >= hab.max) accion = '<span class="muted">máximo</span>';
       else accion = '<button data-mejorar="' + id + '" ' + (heroeEst.puntos < 1 ? 'disabled' : '') + '>Mejorar</button>';
       return '<div class="slot"><div class="info"><b>' + caTag + esc(hab.nombre) + '</b> <span class="muted">' + nivel + '/' + hab.max + '</span><div class="muted">' + esc(hab.desc) + '</div></div>' + accion + '</div>';
     };
     const ids = Object.keys(H.HABILIDADES);
     const pasivasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'pasiva' && H.habilidadDeClase(i, cls));
-    const activasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'activa' && H.habilidadDeClase(i, cls))
-      .sort((a, b) => {
-        const ha = H.HABILIDADES[a], hb = H.HABILIDADES[b];
-        const ma = (ha.armaClase || ha.claseArma) === clsArmaAct ? 0 : 1, mb = (hb.armaClase || hb.claseArma) === clsArmaAct ? 0 : 1;
-        return ma - mb || (ha.nivel || 1) - (hb.nivel || 1);
-      });
+    const activasClase = ids.filter(i => H.HABILIDADES[i].tipo === 'activa' && H.habilidadDeClase(i, cls) && (H.HABILIDADES[i].armaClase === clsArmaAct))
+      .sort((a, b) => (H.HABILIDADES[a].nivel || 1) - (H.HABILIDADES[b].nivel || 1));
+    const nomArmaEnt = (H.NOMBRES_CLASE_ARMA && H.NOMBRES_CLASE_ARMA[clsArmaAct]) || clsArmaAct;
     const totalGastados = Object.values(heroeEst.gastados || {}).reduce((a, b) => a + (Number(b) || 0), 0);
     const subclasesHtml = subclases.map(sub => {
       const esAct = subActiva && subActiva.id === sub.id;
@@ -15713,7 +15765,7 @@
       + '<div class="muted" style="margin-top:3px">' + esc(prof.pasiva) + '</div></div>'
       + '<div class="muted">Puntos de habilidad: <b>' + heroeEst.puntos + '</b>. Se ganan con misiones y cada ' + H.PUNTOS_KILLS + ' monstruos derrotados.</div>'
       + '<h3 class="npc-h">Pasivas</h3>' + pasivasClase.map(fila).join('')
-      + '<h3 class="npc-h">Activas de ' + esc(prof.nombre) + '</h3>' + activasClase.map(fila).join('')
+      + '<h3 class="npc-h">Activas de ' + esc(nomArmaEnt) + ' (' + esc(prof.nombre) + ')</h3>' + activasClase.map(fila).join('')
       + '<h3 class="npc-h">🌟 Especialización de Profesión (Nivel ' + (H.NIVEL_SUBCLASE || 15) + ')</h3>' + subclasesHtml
       + '<h3 class="npc-h">🔄 Especialidad y Profesión</h3>'
       + '<div class="muted" style="margin-bottom:6px">Reinicia tus puntos gastados o cambia de profesión manteniendo tu nivel y progreso (recibes un arma acorde).</div>'
@@ -15739,7 +15791,7 @@
       ['Reducción de daño', pct(s.reduccion)], ['Bloqueo (escudo)', pct(s.bloqueo)], ['Crítico (daño ×' + CRITICO + ')', pct(s.critico)],
       ['Daño extra', mas(s.danio)], ['Robo de vida', pct(s.robo)], ['Reflejo (espinas)', pct(s.reflejo)],
       ['Velocidad de movimiento', mas(s.velocidad)], ['Velocidad de ataque', mas(s.velocidadAtaque)],
-      ...H.TECLAS.filter(t => heroeEst.barra[t]).map(t => [t.toUpperCase() + ' · ' + CombatLib.SKILLS[heroeEst.barra[t]].nombre + ', daño', pct(s.mult[heroeEst.barra[t]])])
+      ...H.TECLAS.filter(t => heroeEst.barra[t] && CombatLib.SKILLS[heroeEst.barra[t]]).map(t => [t.toUpperCase() + ' · ' + CombatLib.SKILLS[heroeEst.barra[t]].nombre + ', daño', pct(s.mult[heroeEst.barra[t]] || 1)])
     ];
     const equipo = personajeActual ? Object.values(personajeActual.equipo).map(uid => EquipoLib.objeto(personajeActual, uid)).filter(Boolean) : [];
     const equipoHtml = equipo.map(o => {
@@ -15748,7 +15800,7 @@
         + f.lineas.map(l => '<div class="muted">· ' + esc(l) + '</div>').join('')
         + f.especiales.map(e => '<div class="muted">✦ ' + esc(e.nombre) + ': ' + esc(e.texto) + '</div>').join('');
     }).join('') || '<div class="muted">Sin equipo.</div>';
-    // Pasivas y activas filtradas por profesión (resaltando las de tu arma equipada)
+    // Pasivas de clase + activas EXCLUSIVAMENTE del arma equipada
     const clsArmaAct = claseArmaDelHeroe();
     const nomArmaAct = (H.NOMBRES_CLASE_ARMA && H.NOMBRES_CLASE_ARMA[clsArmaAct]) || clsArmaAct;
     const rostroPj = personajeActual && personajeActual.rostro;
@@ -15758,12 +15810,16 @@
         + (rostroUrl ? `<img src="${esc(rostroUrl)}" alt="Rostro" style="width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid rgba(250,204,21,0.45)">` : '')
         + `<div style="font-size:11.5px"><b>Rostro:</b> ${esc(rostroPj.label || rostroPj.id || 'Base')} · <span style="color:#fbbf24">🔒 Rostro fijado permanentemente</span></div></div>`
       : '';
-    const habs = Object.keys(H.HABILIDADES).filter(id => H.habilidadDeClase(id, cls))
+    const habs = Object.keys(H.HABILIDADES).filter(id => {
+      const hab = H.HABILIDADES[id];
+      if (!H.habilidadDeClase(id, cls)) return false;
+      if (hab.tipo === 'activa') return hab.armaClase === clsArmaAct;
+      return hab.tipo === 'pasiva';
+    })
       .sort((a, b) => {
         const ha = H.HABILIDADES[a], hb = H.HABILIDADES[b];
         if (ha.tipo !== hb.tipo) return ha.tipo === 'pasiva' ? -1 : 1;
-        const ma = (ha.armaClase || ha.claseArma) === clsArmaAct ? 0 : 1, mb = (hb.armaClase || hb.claseArma) === clsArmaAct ? 0 : 1;
-        return ma - mb || (ha.nivel || 1) - (hb.nivel || 1);
+        return (ha.nivel || 1) - (hb.nivel || 1);
       })
       .map(id => {
         const hab = H.HABILIDADES[id], nivel = heroeEst.gastados[id] || 0;
@@ -15771,13 +15827,12 @@
         const sk = CombatLib.SKILLS[id];
         const ac = hab.armaClase || hab.claseArma;
         const nomCa = ac ? ((H.NOMBRES_CLASE_ARMA && H.NOMBRES_CLASE_ARMA[ac]) || ac) : '';
-        const esArmaAct = ac && ac === clsArmaAct;
-        const caTag = nomCa ? `<span class="clase-arm-tag" style="${esArmaAct ? 'border-color:#facc15;color:#fde047' : ''}">${esc(nomCa)}</span> ` : '';
+        const caTag = nomCa ? `<span class="clase-arm-tag" style="border-color:#facc15;color:#fde047">${esc(nomCa)} · Nv.${hab.nivel || 1}</span> ` : '';
         const armaNota = hab.arma === 'arco' ? ' · con arco' : (hab.arma === 'baculo' ? ' · con báculo' : '');
         const datos = (sk.arc <= -1 ? 'alrededor' : 'delante') + ', ' + sk.range + ' m · ' + sk.mp + ' maná · recarga ' + sk.cd + ' s' + armaNota;
         const huecos = H.TECLAS.map(t => '<button class="hueco-b' + (heroeEst.barra[t] === id ? ' gold' : '') + '" data-asignar="' + id + '" data-tecla="' + t + '">' + t.toUpperCase() + '</button>').join('');
         return '<div class="fila"><span>' + caTag + sk.icono + ' ' + esc(hab.nombre) + ' <span class="muted">' + nivel + '/' + hab.max + '</span><br><span class="muted">' + esc(datos)
-          + (H.disponible(heroeEst, id, hero.level, cls) ? '' : ' · 🔒 ' + esc(H.requisito(id, cls))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
+          + (H.disponible(heroeEst, id, hero.level, cls, clsArmaAct) ? '' : ' · 🔒 ' + esc(H.requisito(id, cls, clsArmaAct))) + '</span></span><span class="huecos">' + huecos + '</span></div>';
       }).join('');
     const pr = heroeEst.principal, capsLista = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
     const capAct = HistoriaLib.capituloActual(pr, world), total = capsLista.length;
@@ -16897,10 +16952,15 @@
   $('heroe-cuerpo').addEventListener('click', e => {
     const b = e.target.closest('button[data-asignar]');
     if (!b) return;
-    HeroeLib.asignar(heroeEst, b.dataset.tecla, b.dataset.asignar, claseHeroe());
-    toast(CombatLib.SKILLS[b.dataset.asignar].nombre + ' en el hueco ' + b.dataset.tecla.toUpperCase());
-    renderHeroe();
-    saveActive(true);
+    try {
+      HeroeLib.asignar(heroeEst, b.dataset.tecla, b.dataset.asignar, claseHeroe(), claseArmaDelHeroe());
+      toast(CombatLib.SKILLS[b.dataset.asignar].nombre + ' en el hueco ' + b.dataset.tecla.toUpperCase());
+      renderHeroe();
+      if (typeof updateHud === 'function') updateHud(performance.now());
+      saveActive(true);
+    } catch (err) {
+      toast(err.message || err);
+    }
   });
 
   // Partida nueva con el personaje elegido
@@ -16915,7 +16975,7 @@
     heroeEst = HeroeLib.nuevoHeroe();
     HeroeLib.aplicarBarraDeClase(heroeEst, pj.clase);
     if (typeof HeroeLib.sincronizarBarraConArma === 'function') {
-      HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), pj.clase);
+      HeroeLib.sincronizarBarraConArma(heroeEst, claseArmaDelHeroe(pj), hero.level, pj.clase);
     }
     aplicarStats();
     renderInvCard();
@@ -17498,6 +17558,7 @@
         professionId: oficio,
         gender,
         build: 'esbelto',
+        sinRostroTextura: true,
         fps: 12,
         maxTex: 384
       });
@@ -17520,8 +17581,7 @@
       z: Math.round(pos.z * 10) / 10,
       yaw: Math.atan2((pos.lookX - pos.x), (pos.lookZ - pos.z)) || 0,
       dialogo,
-      outfit: (metaExtra && metaExtra.villager) || undefined,
-      rostro: (metaExtra && metaExtra.rostro) || undefined
+      outfit: (metaExtra && metaExtra.villager) || undefined
     };
     aldeanosCustom.push(def);
     spawnearAldeanoCustomEnEscena(def, modeloKey);
@@ -19962,6 +20022,7 @@
       _pasoPrevZ = cp.z;
     }
     actualizarEfectos(dt);
+    if (studioVfx) studioVfx.update(dt, camera, character && character.getActiveOneShotState ? character.getActiveOneShotState() : null);
     if (!enDungeon && !enRecinto) actualizarGurus(dt, now / 1000);
     if (acompanante && acompanante.activo && typeof AcompananteLib !== 'undefined') {
       AcompananteLib.actualizarAcompanante(
@@ -20473,7 +20534,7 @@
       ensureScene();
       $('load').classList.add('show');
     }
-    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, atajosActivos, useSkill, faltaArma, bloqueada, renderHeroe, renderEntrenador, get studioVfx() { return studioVfx; }, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   })();
   </script>
 </body>

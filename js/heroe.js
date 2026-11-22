@@ -89,7 +89,7 @@
       criticoBase: 0.06,
       reduccionBonus: 0, velocidadBonus: 0.02, velAtaqueBonus: 0,
       dodgeCdMult: 0.95, mpRegenMult: 1.5,
-      barraInicial: { q: 'st_tempest', e: 'st_meteor', z: 'bola_fuego', v: 'lanza_hielo' },
+      barraInicial: { q: 'st_tempest', e: 'st_meteor', z: 'st_judgment', v: 'st_solar' },
       atajos: ['st_tempest', 'st_meteor', 'st_nova']
     },
     picaro: {
@@ -348,36 +348,87 @@
       .sort((a, b) => (HABILIDADES[a].nivel || 1) - (HABILIDADES[b].nivel || 1));
   }
 
-  function barraInicialDeArma(claseArma, clase = null) {
+  function habilidadDeArma(id, claseArma) {
+    const hab = HABILIDADES[id];
+    if (!hab) return false;
+    if (!claseArma) return true;
+    if (hab.tipo !== 'activa') return true;
+    return hab.armaClase === claseArma;
+  }
+
+  function atajosDeArma(claseArma, clase = null) {
+    const ids = habilidadesDeArma(claseArma, clase);
+    if (!ids.length) return atajosDeClase(clase);
+    const pickIdx = ids.length >= 6 ? [2, 4, 5]
+      : ids.length === 5 ? [1, 3, 4]
+      : [0, Math.min(1, ids.length - 1), ids.length - 1];
+    const out = [];
+    pickIdx.forEach(i => { if (ids[i] && !out.includes(ids[i])) out.push(ids[i]); });
+    ids.forEach(id => { if (out.length < 3 && !out.includes(id)) out.push(id); });
+    return out.slice(0, 3);
+  }
+
+  function barraInicialDeArma(claseArma, clase = null, nivelHeroe = null) {
     const ids = habilidadesDeArma(claseArma, clase);
     if (!ids.length) return barraInicialDeClase(clase);
+    const ordenadas = (typeof nivelHeroe === 'number' && isFinite(nivelHeroe))
+      ? ids.slice().sort((a, b) => {
+          const da = (HABILIDADES[a].nivel || 1) <= nivelHeroe ? 0 : 1;
+          const db = (HABILIDADES[b].nivel || 1) <= nivelHeroe ? 0 : 1;
+          return da - db || (HABILIDADES[a].nivel || 1) - (HABILIDADES[b].nivel || 1);
+        })
+      : ids;
     const barra = { q: null, e: null, z: null, v: null };
-    TECLAS.forEach((t, i) => { if (ids[i]) barra[t] = ids[i]; });
+    TECLAS.forEach((t, i) => { if (ordenadas[i]) barra[t] = ordenadas[i]; });
     return barra;
   }
 
   function sincronizarBarraConArma(h, claseArma, nivelHeroe = 1, clase = null) {
     if (!h) return {};
+    if (typeof nivelHeroe === 'string' && !clase) {
+      clase = nivelHeroe;
+      nivelHeroe = 99;
+    }
     if (!h.barrasPorArma || typeof h.barrasPorArma !== 'object') h.barrasPorArma = {};
     if (h.armaClaseActual && NOMBRES_CLASE_ARMA[h.armaClaseActual]) {
-      h.barrasPorArma[h.armaClaseActual] = Object.assign({}, h.barra);
+      const prevLimpia = { q: null, e: null, z: null, v: null };
+      const prevUsadas = new Set();
+      TECLAS.forEach(t => {
+        const id = h.barra && h.barra[t];
+        const hab = id && HABILIDADES[id];
+        if (hab && hab.tipo === 'activa' && hab.armaClase === h.armaClaseActual && !prevUsadas.has(id)) {
+          prevLimpia[t] = id;
+          prevUsadas.add(id);
+        }
+      });
+      h.barrasPorArma[h.armaClaseActual] = prevLimpia;
     }
     if (!claseArma || !NOMBRES_CLASE_ARMA[claseArma]) return h.barra;
     const guardada = h.barrasPorArma[claseArma];
+    const idsArma = habilidadesDeArma(claseArma, clase);
+    const nuevas = { q: null, e: null, z: null, v: null };
+    const usadas = new Set();
     if (guardada && typeof guardada === 'object') {
-      const nueva = { q: null, e: null, z: null, v: null };
-      const usadas = new Set();
       TECLAS.forEach(t => {
         const id = guardada[t];
-        if (id && HABILIDADES[id] && HABILIDADES[id].tipo === 'activa' && !usadas.has(id) && (!clase || habilidadDeClase(id, clase))) {
-          nueva[t] = id;
+        const hab = id && HABILIDADES[id];
+        if (hab && hab.tipo === 'activa' && hab.armaClase === claseArma && !usadas.has(id) && (!clase || habilidadDeClase(id, clase))) {
+          nuevas[t] = id;
           usadas.add(id);
         }
       });
-      h.barra = nueva;
-    } else {
-      h.barra = barraInicialDeArma(claseArma, clase);
     }
+    // Completar los huecos vacíos estrictamente con habilidades del arma equipada
+    TECLAS.forEach(t => {
+      if (!nuevas[t]) {
+        const sig = idsArma.find(id => !usadas.has(id));
+        if (sig) {
+          nuevas[t] = sig;
+          usadas.add(sig);
+        }
+      }
+    });
+    h.barra = nuevas;
     h.armaClaseActual = claseArma;
     h.barrasPorArma[claseArma] = Object.assign({}, h.barra);
     return h.barra;
@@ -393,7 +444,7 @@
       if (!hab || hab.tipo !== 'activa' || !hab.nivel) return;
       if (hab.nivel > a && hab.nivel <= b) {
         if (clase && !habilidadDeClase(id, clase)) return;
-        if (claseArma && hab.armaClase && hab.armaClase !== claseArma) return;
+        if (claseArma && hab.armaClase !== claseArma) return;
         out.push({ id, nombre: hab.nombre, nivel: hab.nivel, armaClase: hab.armaClase || null });
       }
     });
@@ -677,18 +728,19 @@
     return true;
   }
 
-  // ¿Se puede usar ya? Las de la historia, al cumplir su capítulo; las técnicas, desde su nivel (y profesión si se indica)
-  function disponible(h, id, nivelHeroe, clase = null) {
+  // ¿Se puede usar ya? Si se indica claseArma, las activas deben pertenecer estrictamente a ese arma
+  function disponible(h, id, nivelHeroe, clase = null, claseArma = null) {
     const hab = HABILIDADES[id];
     if (!hab) return false;
     if (clase && !habilidadDeClase(id, clase)) return false;
     if (hab.tipo !== 'activa') return true;
+    if (claseArma && hab.armaClase !== claseArma) return false;
     if (hab.capitulo) return !!h.desbloqueadas[id];
     return nivelHeroe >= (hab.nivel || 1);
   }
 
   // Por qué no se puede usar aún (texto para la interfaz)
-  function requisito(id, clase = null) {
+  function requisito(id, clase = null, claseArma = null) {
     const hab = HABILIDADES[id];
     if (!hab) return '';
     if (clase && !habilidadDeClase(id, clase)) {
@@ -696,15 +748,23 @@
       return 'exclusiva de ' + (nombres || 'otra profesión');
     }
     if (hab.tipo !== 'activa') return '';
+    if (claseArma && hab.armaClase !== claseArma) {
+      return hab.armaClase
+        ? ('exclusiva de ' + (NOMBRES_CLASE_ARMA[hab.armaClase] || hab.armaClase))
+        : ('no pertenece a ' + (NOMBRES_CLASE_ARMA[claseArma] || claseArma));
+    }
     return hab.capitulo ? 'se desbloquea con la historia (capítulo ' + hab.capitulo + ')' : 'se aprende en el nivel ' + hab.nivel;
   }
 
   // Pone una habilidad activa en un hueco de la barra. Si ya estaba en otro, se intercambian.
-  function asignar(h, tecla, id, clase = null) {
+  function asignar(h, tecla, id, clase = null, claseArma = null) {
     if (!TECLAS.includes(tecla)) throw new Error('Hueco desconocido: ' + tecla);
     if (id !== null && (!HABILIDADES[id] || HABILIDADES[id].tipo !== 'activa')) throw new Error('Esa habilidad no va en la barra');
     if (id !== null && clase && !habilidadDeClase(id, clase)) {
       throw new Error(HABILIDADES[id].nombre + ' no pertenece a esta profesión');
+    }
+    if (id !== null && claseArma && HABILIDADES[id].armaClase !== claseArma) {
+      throw new Error(HABILIDADES[id].nombre + ' no pertenece al arma equipada');
     }
     const otra = TECLAS.find(t => t !== tecla && h.barra[t] === id);
     if (otra) h.barra[otra] = h.barra[tecla];
@@ -713,10 +773,10 @@
   }
 
   // Gasta un punto en una habilidad. nivelHeroe: para las técnicas, que piden un nivel.
-  function mejorar(h, id, nivelHeroe = Infinity, clase = null) {
+  function mejorar(h, id, nivelHeroe = Infinity, clase = null, claseArma = null) {
     const hab = HABILIDADES[id];
     if (!hab) throw new Error('Habilidad desconocida: ' + id);
-    if (!disponible(h, id, nivelHeroe, clase)) { const r = requisito(id, clase); throw new Error(r.charAt(0).toUpperCase() + r.slice(1)); }
+    if (!disponible(h, id, nivelHeroe, clase, claseArma)) { const r = requisito(id, clase, claseArma); throw new Error(r.charAt(0).toUpperCase() + r.slice(1)); }
     const nivel = h.gastados[id] || 0;
     if (nivel >= hab.max) throw new Error(hab.nombre + ' ya está al máximo');
     if (h.puntos < 1) throw new Error('No tienes puntos de habilidad');
@@ -835,7 +895,7 @@
     CLASES_ARMA_DE_PROFESION, NOMBRES_CLASE_ARMA,
     nuevoHeroe, limpiarHeroe, recompensar, registrarMuerte,
     disponible, requisito, asignar, esArco, esBaculo, esDaga, profesionDe, barraInicialDeClase, habilidadDeClase, habilidadesDeClase, atajosDeClase,
-    habilidadesDeArma, barraInicialDeArma, sincronizarBarraConArma, nuevasHabilidadesAlSubirNivel,
+    habilidadDeArma, atajosDeArma, habilidadesDeArma, barraInicialDeArma, sincronizarBarraConArma, nuevasHabilidadesAlSubirNivel,
     subclasesDeClase, subclaseDe, elegirSubclase, reiniciarPuntos, aplicarBarraDeClase, bonosReputacion,
     aceptarZona, registrarZona, entregarZona,
     mejorar, estadisticas, ficha, especialesDe, tipoDe, cantidadEspeciales, efectoTexto };

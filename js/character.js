@@ -515,9 +515,15 @@
     return out;
   }
 
-  // Índice de la primera animación cuyo nombre contiene alguna palabra clave; -1 si no hay
+  // Índice de la primera animación coincidente (prioriza coincidencia exacta antes de subcadena); -1 si no hay
   function findClipIndex(names, keywords) {
-    return names.findIndex(n => keywords.some(k => n.toLowerCase().includes(k)));
+    if (!Array.isArray(keywords) || !keywords.length) return -1;
+    for (let k = 0; k < keywords.length; k++) {
+      const kw = String(keywords[k]).toLowerCase();
+      const exact = names.findIndex(n => String(n).toLowerCase() === kw);
+      if (exact >= 0) return exact;
+    }
+    return names.findIndex(n => keywords.some(k => String(n).toLowerCase().includes(String(k).toLowerCase())));
   }
 
   function getColliders(world, x, z) {
@@ -583,7 +589,11 @@
       this.modoCamaraAnterior = 'free';
       this.oneShots = {};
       this.oneShotKind = null;
+      this.oneShotStart = 0;
+      this.oneShotDuration = 0;
       this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
+      this.oneShotClipName = null;
+      this.oneShotHasNative = false;
       this.lockUntil = 0;        // mientras dure, el personaje no se mueve
       this.alCargarModelo = null; // función(modelo) que se llama al cargar un GLB (p. ej. para retocar sus materiales)
       this.destino = null;       // { x, z, parar }: camina solo hasta ese punto (p. ej. hacia un monstruo)
@@ -763,7 +773,7 @@
             const action = this.mixer.clipAction(clips[i]);
             action.setLoop(THREE.LoopOnce, 1);
             action.clampWhenFinished = true;
-            this.oneShots[kind] = { action, duration: clips[i].duration };
+            this.oneShots[kind] = { action, duration: clips[i].duration, clipName: clips[i].name };
           }
         });
         const fallbackAttack = this.oneShots.attack;
@@ -773,6 +783,7 @@
               this.oneShots[kind] = {
                 action: fallbackAttack.action,
                 duration: fallbackAttack.duration,
+                clipName: fallbackAttack.clipName,
                 fallbackClip: true
               };
             }
@@ -1325,10 +1336,17 @@
       const duration = rawDuration / escala;
       if (info.lock > 0) this.lockUntil = this.tiempo + info.lock;
       this.oneShotKind = kind;
+      this.oneShotStart = this.tiempo;
+      this.oneShotDuration = duration;
       this.oneShotUntil = this.tiempo + duration;
-      const motionCfg = SKILL_MOTION[kind];
+      this.oneShotClipName = (shot && shot.clipName) || kind;
+      this.oneShotHasNative = !!(shot && !shot.fallbackClip);
+      // Solo superponer SKILL_MOTION en avatar de respaldo o cuando el GLB no trae clip nativo del estudio
+      const usarMotionRespaldo = this.isFallbackAvatar || !shot || !!shot.fallbackClip;
+      if (this._skillAnim) this._resetModelPose();
+      this._skillAnim = null;
+      const motionCfg = usarMotionRespaldo ? SKILL_MOTION[kind] : null;
       if (motionCfg) {
-        if (this._skillAnim) this._resetModelPose();
         this._skillAnim = { kind, cfg: motionCfg, start: this.tiempo, duration: motionCfg.dur };
       }
       if (shot && this.mixer) {
@@ -1343,6 +1361,23 @@
         this.fallbackAct = { kind, start: this.tiempo, duration };
       }
       return duration;
+    }
+
+    getActiveOneShotState() {
+      if (!this.oneShotKind || this.tiempo >= this.oneShotUntil || this.oneShotDuration <= 0) {
+        return { active: false, kind: null, clipName: null, elapsed: 0, duration: 0, u: 0, hasNative: false };
+      }
+      const elapsed = Math.max(0, this.tiempo - this.oneShotStart);
+      const u = Math.max(0, Math.min(1, elapsed / this.oneShotDuration));
+      return {
+        active: true,
+        kind: this.oneShotKind,
+        clipName: this.oneShotClipName,
+        elapsed,
+        duration: this.oneShotDuration,
+        u,
+        hasNative: this.oneShotHasNative
+      };
     }
 
     update(dt) {

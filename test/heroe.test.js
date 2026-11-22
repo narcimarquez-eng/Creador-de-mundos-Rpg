@@ -419,4 +419,28 @@ t('habilidades por arma, sincronización de barra y desbloqueo progresivo al sub
   assert.ok(nuevas.length >= 3, 'Entre Nv.1 y Nv.30 deben aprenderse varias técnicas nuevas');
 });
 
+t('modo estricto por arma: solo se generan, asignan y mejoran habilidades del arma equipada', () => {
+  const bi = H.PROFESIONES.mago.barraInicial;
+  for (const id of Object.values(bi)) {
+    assert.ok(H.HABILIDADES[id], 'existe ' + id);
+    assert.strictEqual(H.HABILIDADES[id].armaClase, 'bastones', id + ' debe ser de bastón');
+  }
+  assert.strictEqual(H.habilidadDeArma('sw_iaido', 'espadas'), true);
+  assert.strictEqual(H.habilidadDeArma('sw_iaido', 'arcos'), false);
+  const at = H.atajosDeArma('espadas', 'guerrero');
+  assert.strictEqual(at.length, 3);
+  for (const id of at) assert.strictEqual(H.HABILIDADES[id].armaClase, 'espadas');
+  const st = H.nuevoHeroe();
+  H.aplicarBarraDeClase(st, 'guerrero');
+  H.sincronizarBarraConArma(st, 'espadas', 60, 'guerrero');
+  for (const id of Object.values(st.barra)) if (id) assert.strictEqual(H.HABILIDADES[id].armaClase, 'espadas', 'barra solo espadas: ' + id);
+  const ajena = H.habilidadesDeArma('mandobles')[0];
+  assert.strictEqual(H.disponible(st, ajena, 99, 'guerrero', 'espadas'), false, 'arma ajena no disponible');
+  assert.throws(() => H.asignar(st, 'q', ajena, 'guerrero', 'espadas'));
+  assert.throws(() => H.mejorar(st, ajena, 99, 'guerrero', 'espadas'));
+  const nuevas = H.nuevasHabilidadesAlSubirNivel(1, 99, 'guerrero', 'espadas');
+  assert.ok(nuevas.length > 0);
+  for (const n2 of nuevas) assert.strictEqual(n2.armaClase, 'espadas');
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);
