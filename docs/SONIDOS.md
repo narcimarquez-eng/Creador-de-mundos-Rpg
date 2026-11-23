@@ -25,6 +25,26 @@ También se pueden pegar los prompts a mano en la web de ElevenLabs (Sound Effec
 - Para capas, genera por separado (swing + impacto + chispa) y combínalos en el juego.
 - Duraciones cortas (0,6–1,5 s) para golpes; 2–3 s para hechizos grandes.
 
+## Sonniss (gratis, sin API)
+
+El GDC Game Audio Bundle de Sonniss es gratis y se puede usar en juegos, también comerciales. La web tiene protección
+anti-bots, así que se descarga a mano desde el navegador: gdc.sonniss.com. Basta con los años que te interesen;
+cada uno pesa varios GB.
+
+Después de descomprimirlo:
+
+```
+node tools/importar-sonniss.mjs ~/Descargas/Sonniss            # lista candidatos en sfx/sonniss-candidatos.md
+node tools/importar-sonniss.mjs ~/Descargas/Sonniss --copiar 3 # además copia los 3 mejores de cada efecto
+```
+
+El script busca por el nombre del archivo y por la carpeta: «sword clash», «thunder crack», las categorías UCS
+(`WEAPSwrd`, `ELECArc`, `MAGElem`…). Con ffmpeg los pasa a `.ogg` mono, de 4 s como máximo, en
+`sfx/<categoria>/sonniss/`. Escucha los candidatos y borra los que no encajen.
+
+Licencia: no se puede redistribuir la librería tal cual. Sube solo los sonidos que use el juego, y mejor si el
+repositorio es privado.
+
 ## Audo AI
 
 Audo no genera efectos: limpia audio (quita ruido, eco, zumbidos). Sirve para grabaciones propias (foley con metal
