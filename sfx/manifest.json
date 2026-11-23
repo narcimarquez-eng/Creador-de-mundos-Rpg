@@ -1,0 +1,96 @@
+{
+  "choque_metal": [
+    "sfx/espadas/choque_metal_01.ogg"
+  ],
+  "choque_corte": [
+    "sfx/espadas/choque_corte_01.ogg",
+    "sfx/espadas/choque_corte_02.ogg",
+    "sfx/espadas/choque_corte_03.ogg",
+    "sfx/espadas/choque_corte_04.ogg",
+    "sfx/espadas/choque_corte_05.ogg",
+    "sfx/espadas/choque_corte_06.ogg"
+  ],
+  "rayo_carga": [
+    "sfx/rayos/rayo_carga_01.ogg"
+  ],
+  "rayo_cadena": [
+    "sfx/rayos/rayo_cadena_01.ogg"
+  ],
+  "chispazo": [
+    "sfx/rayos/chispazo_01.ogg",
+    "sfx/rayos/chispazo_02.ogg",
+    "sfx/rayos/chispazo_03.ogg"
+  ],
+  "tajo_aire": [
+    "sfx/espadas/tajo_aire_01.ogg"
+  ],
+  "golpe_cuerpo": [
+    "sfx/golpes/golpe_cuerpo_01.ogg",
+    "sfx/golpes/golpe_cuerpo_02.ogg",
+    "sfx/golpes/golpe_cuerpo_03.ogg",
+    "sfx/golpes/golpe_cuerpo_04.ogg"
+  ],
+  "golpe_crujiente": [
+    "sfx/golpes/golpe_crujiente_01.ogg"
+  ],
+  "torbellino_viento": [
+    "sfx/espadas/torbellino_01.ogg",
+    "sfx/espadas/torbellino_02.ogg"
+  ],
+  "nova_explosion": [
+    "sfx/magia/nova_explosion_01.ogg",
+    "sfx/magia/nova_explosion_02.ogg"
+  ],
+  "impacto_sismico": [
+    "sfx/magia/impacto_sismico_01.ogg",
+    "sfx/magia/impacto_sismico_02.ogg"
+  ],
+  "baculo_proyectil": [
+    "sfx/magia/baculo_proyectil_01.ogg",
+    "sfx/magia/baculo_proyectil_02.ogg"
+  ],
+  "curacion": [
+    "sfx/magia/curacion_01.ogg",
+    "sfx/magia/curacion_02.ogg"
+  ],
+  "fuego_bola": [
+    "sfx/magia/fuego_bola_01.ogg",
+    "sfx/magia/fuego_bola_02.ogg"
+  ],
+  "fuego_explosion": [
+    "sfx/magia/fuego_explosion_01.ogg",
+    "sfx/magia/fuego_explosion_02.ogg"
+  ],
+  "hielo_lanza": [
+    "sfx/magia/hielo_lanza_01.ogg",
+    "sfx/magia/hielo_lanza_02.ogg"
+  ],
+  "hielo_ventisca": [
+    "sfx/magia/hielo_ventisca_01.ogg",
+    "sfx/magia/hielo_ventisca_02.ogg"
+  ],
+  "escudo_magico": [
+    "sfx/magia/escudo_magico_01.ogg",
+    "sfx/magia/escudo_magico_02.ogg"
+  ],
+  "sombra_paso": [
+    "sfx/magia/sombra_paso_01.ogg",
+    "sfx/magia/sombra_paso_02.ogg"
+  ],
+  "veneno_burbuja": [
+    "sfx/magia/veneno_burbuja_01.ogg",
+    "sfx/magia/veneno_burbuja_02.ogg"
+  ],
+  "arco_disparo": [
+    "sfx/arcos/arco_disparo_01.ogg",
+    "sfx/arcos/arco_disparo_02.ogg"
+  ],
+  "flecha_impacto": [
+    "sfx/arcos/flecha_impacto_01.ogg",
+    "sfx/arcos/flecha_impacto_02.ogg"
+  ],
+  "lluvia_flechas": [
+    "sfx/arcos/lluvia_flechas_01.ogg",
+    "sfx/arcos/lluvia_flechas_02.ogg"
+  ]
+}

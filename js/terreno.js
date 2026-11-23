@@ -90,12 +90,14 @@
     const conRecorte = !!(uniforms && uniforms.uRecorte);
     const conHierbas = !!(uniforms && uniforms.tHierbas);
     const conSol = !!(uniforms && uniforms.uSunDir);
-    m.userData = Object.assign(m.userData || {}, { pbrHumedo: usarPbr });
-    m.customProgramCacheKey = () => 'terreno' + (usarPbr ? '-pbr2' : '') + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb3' : '-z1') + (conSol ? '-sol' : '');
+    const conPbrAtlas = !!(uniforms && uniforms.tCapasNR);
+    m.userData = Object.assign(m.userData || {}, { pbrHumedo: usarPbr, pbrAtlas: conPbrAtlas });
+    m.customProgramCacheKey = () => 'terreno' + (usarPbr ? '-pbr2' : '') + (tri ? '-tri2' : '') + (conRecorte ? '-rec' : '') + (conHierbas ? '-hb3' : '-z1') + (conSol ? '-sol' : '') + (conPbrAtlas ? '-pbrA' : '');
     m.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, uniforms);
       if (!shader.uniforms.uHumedad) shader.uniforms.uHumedad = { value: usarPbr ? 1.0 : 0.0 };
       if (!shader.uniforms.uBumpFuerza) shader.uniforms.uBumpFuerza = { value: 1.0 };
+      if (conPbrAtlas && !shader.uniforms.uPbrTexOn) shader.uniforms.uPbrTexOn = { value: 0.0 };
       if (!shader.uniforms.uTime) shader.uniforms.uTime = { value: 0.0 };
       if (!shader.uniforms.uNubesSombra) shader.uniforms.uNubesSombra = { value: 0.0 };
       if (!shader.uniforms.uEstiloZelda) shader.uniforms.uEstiloZelda = { value: 0.0 };
@@ -121,6 +123,7 @@
           'uniform float uEstiloZelda;',
           'uniform vec3 uAtmoHorizonte;',
           conHierbas ? 'uniform highp sampler2DArray tHierbas;\nuniform float uHierbaMix;\nuniform vec2 uPraderaSeed;' : '',
+          conPbrAtlas ? 'uniform highp sampler2DArray tCapasNR;\nuniform float uPbrTexOn;' : '',
           conRecorte ? 'uniform vec4 uRecorte;' : '',
           conSol ? 'uniform vec3 uSunDir;\nuniform vec3 uSunColor;' : '',
           'varying vec3 vNWorld;',
@@ -154,7 +157,8 @@
           '  }',
           '  if (tL > 0.001) c += claseTex(base, xz, sem, 1.0 / 32.0) * tL;',
           '  return c;',
-          '}'
+          '}',
+          conPbrAtlas ? 'vec4 clasePbr(float base, vec2 xz, float tile) { return texture(tCapasNR, vec3(xz * tile, base)); }' : ''
         ].join('\n'))
         .replace('#include <clipping_planes_fragment>', [
           '#include <clipping_planes_fragment>',
@@ -240,6 +244,25 @@
           '  if (vSplat.w > 0.001) tex += claseLejos(9.0, vTWorld.xz, 5.5, tC, tL) * vSplat.w;',
           '  if (vSnow > 0.001) tex += claseLejos(12.0, vTWorld.xz, 9.2, tC, tL) * vSnow;',
           '}',
+          conPbrAtlas ? [
+            'vec3 pbrNrm = vec3(0.0, 0.0, 1.0);',
+            'float pbrRough = 0.88;',
+            'if (uPbrTexOn > 0.5 && tL < 0.95) {',
+            '  vec3 pbrNrmAcc = vec3(0.0);',
+            '  float pbrRoughAcc = 0.0;',
+            '  float pbrW = 0.0;',
+            '  float pbrTile = 1.0 / 8.0;',
+            '  if (vSplat.x > 0.01) { vec4 s0 = clasePbr(0.0, vTWorld.xz, pbrTile); pbrNrmAcc += s0.rgb * vSplat.x; pbrRoughAcc += s0.a * vSplat.x; pbrW += vSplat.x; }',
+            '  if (vSplat.y > 0.01) { vec4 s1 = clasePbr(3.0, vTWorld.xz, pbrTile); pbrNrmAcc += s1.rgb * vSplat.y; pbrRoughAcc += s1.a * vSplat.y; pbrW += vSplat.y; }',
+            '  if (vSplat.z > 0.01) { vec4 s2 = clasePbr(6.0, vTWorld.xz, pbrTile); pbrNrmAcc += s2.rgb * vSplat.z; pbrRoughAcc += s2.a * vSplat.z; pbrW += vSplat.z; }',
+            '  if (vSplat.w > 0.01) { vec4 s3 = clasePbr(9.0, vTWorld.xz, pbrTile); pbrNrmAcc += s3.rgb * vSplat.w; pbrRoughAcc += s3.a * vSplat.w; pbrW += vSplat.w; }',
+            '  if (vSnow > 0.01) { vec4 s4 = clasePbr(12.0, vTWorld.xz, pbrTile); pbrNrmAcc += s4.rgb * vSnow; pbrRoughAcc += s4.a * vSnow; pbrW += vSnow; }',
+            '  if (pbrW > 0.01) {',
+            '    pbrNrm = normalize((pbrNrmAcc / pbrW) * 2.0 - 1.0);',
+            '    pbrRough = pbrRoughAcc / pbrW;',
+            '  }',
+            '}'
+          ].join('\n') : '',
           'float macro = 0.84 + 0.22 * ruidoValor(vTWorld.xz * 0.0045) + 0.1 * ruidoValor(vTWorld.xz * 0.03);',
           'float micro = 1.0 + tC * ((ruidoValor(vTWorld.xz * 3.4) - 0.5) * 0.16 + (ruidoValor(vTWorld.xz * 9.6 + 5.1) - 0.5) * 0.10);',
           'float hBumpTerreno = (uTexOn > 0.5 ? dot(tex, vec3(0.30, 0.52, 0.18)) : 0.5) + (ruidoValor(vTWorld.xz * 2.1) - 0.5) * 0.18;',
@@ -287,6 +310,7 @@
           .replace('#include <roughnessmap_fragment>', [
             '#include <roughnessmap_fragment>',
             'float dryRough = mix(0.92, 0.80, vSplat.z);',
+            conPbrAtlas ? 'dryRough = mix(dryRough, clamp(pbrRough, 0.45, 0.97), uPbrTexOn * (1.0 - tL));' : '',
             'float wetRough = mix(0.30, 0.09, charcoMask);',
             'roughnessFactor = mix(dryRough, wetRough, clamp(max(charcoMask, humedadMask * 0.75), 0.0, 1.0));'
           ].join('\n'))
@@ -299,7 +323,15 @@
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <normal_fragment_maps>', [
           '#include <normal_fragment_maps>',
-          'if (tL < 0.95) {',
+          conPbrAtlas ? [
+            'if (uPbrTexOn > 0.5 && tL < 0.95) {',
+            '  vec3 tW = normalize(abs(nrmW.x) < 0.9 ? (vec3(1.0, 0.0, 0.0) - nrmW * nrmW.x) : (vec3(0.0, 0.0, 1.0) - nrmW * nrmW.z));',
+            '  vec3 bW = normalize(cross(nrmW, tW));',
+            '  vec3 tV = normalize((viewMatrix * vec4(tW, 0.0)).xyz);',
+            '  vec3 bV = normalize((viewMatrix * vec4(bW, 0.0)).xyz);',
+            '  normal = normalize(normal + (tV * pbrNrm.x + bV * pbrNrm.y) * (0.65 * uBumpFuerza * (1.0 - tL) * (1.0 - charcoMask * 0.90)));',
+            '} else if (tL < 0.95) {'
+          ].join('\n') : 'if (tL < 0.95) {',
           '  vec3 dPosX = dFdx(vTViewPos);',
           '  vec3 dPosY = dFdy(vTViewPos);',
           '  float dHx = dFdx(hBumpTerreno);',
@@ -359,6 +391,48 @@
     });
     const imgData = ctx.getImageData(0, 0, tam, tam * imgs.length);
     return { datos: new Uint8Array(imgData.data.buffer), tam, capas: imgs.length };
+  }
+
+  // Empaqueta hoja de normales (RGB) y roughness (A) en un Uint8Array RGBA de `capas` niveles
+  function capasNormalesDesdeImagenes(imgNormal, imgRough, cols = 5, rows = 3, capas = 15) {
+    const tile = Math.floor(imgNormal.width / cols);
+    const cvN = document.createElement('canvas');
+    cvN.width = imgNormal.width;
+    cvN.height = imgNormal.height;
+    const ctxN = cvN.getContext('2d', { willReadFrequently: true });
+    ctxN.drawImage(imgNormal, 0, 0);
+    const datN = ctxN.getImageData(0, 0, cvN.width, cvN.height).data;
+
+    let datR = null;
+    if (imgRough) {
+      const cvR = document.createElement('canvas');
+      cvR.width = cvN.width;
+      cvR.height = cvN.height;
+      const ctxR = cvR.getContext('2d', { willReadFrequently: true });
+      ctxR.drawImage(imgRough, 0, 0, cvR.width, cvR.height);
+      datR = ctxR.getImageData(0, 0, cvR.width, cvR.height).data;
+    }
+
+    const totalPorCapa = tile * tile * 4;
+    const datos = new Uint8Array(totalPorCapa * capas);
+    for (let l = 0; l < capas; l++) {
+      const c = l % cols;
+      const r = Math.floor(l / cols);
+      if (r >= rows) break;
+      const x0 = c * tile;
+      const y0 = r * tile;
+      for (let y = 0; y < tile; y++) {
+        for (let x = 0; x < tile; x++) {
+          const srcIdx = ((y0 + y) * cvN.width + (x0 + x)) * 4;
+          const dstIdx = l * totalPorCapa + (y * tile + x) * 4;
+          datos[dstIdx] = datN[srcIdx];
+          datos[dstIdx + 1] = datN[srcIdx + 1];
+          datos[dstIdx + 2] = datN[srcIdx + 2];
+          datos[dstIdx + 3] = datR ? datR[srcIdx] : 224;
+        }
+      }
+    }
+    return { datos, tam: tile, capas };
   }
 
   // Malla de una rejilla de nodos. grid: { x0, z0, step, n, N, pos, col, splat, snow, nrm }.
@@ -435,7 +509,7 @@
     return [-dx / l, 1 / l, -dz / l];
   }
 
-  const api = { splatFor, splatWithRoad, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, capasDesdeListaImagenes, CAPAS, buildGridGeometry, nodeNormal, smooth };
+  const api = { splatFor, splatWithRoad, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, capasDesdeListaImagenes, capasNormalesDesdeImagenes, CAPAS, buildGridGeometry, nodeNormal, smooth };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TerrainLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

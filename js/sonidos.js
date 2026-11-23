@@ -336,7 +336,8 @@
     golpe_crujiente: ['sfx/golpes/golpe_crujiente_01.ogg']
   };
   const muestrasBuf = {};
-  function cargarMuestras() {
+  let manifestConsultado = false;
+  function precargarListaMuestras() {
     if (typeof fetch !== 'function' || !ac) return;
     Object.keys(MUESTRAS).forEach(k => MUESTRAS[k].forEach(ruta => {
       if (ruta in muestrasBuf) return;
@@ -347,6 +348,29 @@
         .then(b => { muestrasBuf[ruta] = b; })
         .catch(() => {});
     }));
+  }
+  function cargarMuestras() {
+    if (typeof fetch !== 'function' || !ac) return;
+    if (!manifestConsultado) {
+      manifestConsultado = true;
+      fetch('sfx/manifest.json')
+        .then(r => (r.ok ? r.json() : null))
+        .then(man => {
+          if (man && typeof man === 'object') {
+            Object.keys(man).forEach(k => {
+              if (!Array.isArray(man[k])) return;
+              const prev = Array.isArray(MUESTRAS[k]) ? MUESTRAS[k] : [];
+              const combinados = prev.slice();
+              man[k].forEach(ruta => { if (typeof ruta === 'string' && !combinados.includes(ruta)) combinados.push(ruta); });
+              if (combinados.length) MUESTRAS[k] = combinados;
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => precargarListaMuestras());
+      return;
+    }
+    precargarListaMuestras();
   }
   // Reproduce una variante al azar con el tono un poco cambiado. Devuelve { parar(fundido) } o null si no está cargada.
   function muestra(nombre, t, opts) {
@@ -565,14 +589,17 @@
       tono(t, variar(155, 0.08), 54, 0.14, 0.36, opts);
     },
     flecha(t, opts) {
+      if (muestra('flecha_impacto', t, opts)) return;
       tono(t, variar(190, 0.08), 68, 0.11, 0.30, opts);
       rafaga(t, 0.045, 'highpass', 2600, 1750, 1.2, 0.26, opts);
     },
     magia(t, opts) {
+      if (muestra('baculo_proyectil', t, opts)) return;
       rafaga(t, 0.16, 'bandpass', 1800, 520, 1.6, 0.42, Object.assign({ wet: 0.28 }, opts));
       tono(t, variar(520, 0.1), 180, 0.18, 0.22, Object.assign({ wave: 'triangle', wet: 0.32 }, opts));
     },
     disparo(t, opts) {
+      if (muestra('arco_disparo', t, opts)) return;
       tono(t, variar(165, 0.06), 110, 0.09, 0.18, Object.assign({ wave: 'triangle' }, opts));
       rafaga(t, 0.26, 'bandpass', 850, 2750, 2.1, 0.29, Object.assign({ wet: 0.18 }, opts));
     },
@@ -606,15 +633,18 @@
       tono(t, 180, 70, 0.12, 0.28);
     },
     escudoAbsorbe(t) {
+      if (muestra('escudo_magico', t, { vol: 0.7 })) return;
       tono(t, 880, 1320, 0.16, 0.16, { wave: 'sine', wet: 0.36 });
       tono(t + 0.03, 1320, 1760, 0.20, 0.12, { wave: 'sine', wet: 0.40 });
       rafaga(t, 0.12, 'highpass', 3600, 5800, 1.6, 0.24, { wet: 0.30 });
     },
     fuego(t, opts) {
+      if (muestra('fuego_bola', t, opts)) return;
       rafaga(t, 0.34, 'lowpass', 1050, 140, 1.1, 0.56, Object.assign({ buffer: 'rosa', wet: 0.24 }, opts));
       tono(t, 135, 44, 0.28, 0.26, opts);
     },
     hielo(t, opts) {
+      if (muestra('hielo_lanza', t, opts)) return;
       rafaga(t, 0.18, 'highpass', 3200, 5600, 1.4, 0.28, Object.assign({ wet: 0.34 }, opts));
       tono(t, 2200, 1950, 0.12, 0.12, Object.assign({ wet: 0.34 }, opts));
       tono(t + 0.04, 2950, 2600, 0.12, 0.11, Object.assign({ wet: 0.34 }, opts));
@@ -723,6 +753,7 @@
       tono(t, 120, 44, 0.32, 0.30, { wave: 'triangle', wet: 0.25 });
     },
     venenoTick(t) {
+      if (muestra('veneno_burbuja', t, { vol: 0.55 })) return;
       rafaga(t, 0.12, 'bandpass', 2400, 4200, 3.0, 0.14, { wet: 0.2 });
       tono(t + 0.02, 620, 410, 0.09, 0.08);
     },
@@ -731,8 +762,10 @@
     },
     companeroSkill(t, tipo) {
       if (tipo === 'cura') {
+        if (muestra('curacion', t, { vol: 0.65 })) return;
         [523.25, 659.25, 783.99].forEach((f, i) => tono(t + i * 0.06, f, f * 1.01, 0.24, 0.12, { wet: 0.34 }));
       } else if (tipo === 'defensa') {
+        if (muestra('escudo_magico', t, { vol: 0.55 })) return;
         tono(t, 440, 587.33, 0.22, 0.13, { wave: 'triangle', wet: 0.30 });
       } else if (tipo === 'debuff') {
         tono(t, 460, 260, 0.22, 0.14, { wave: 'sawtooth', lp: 1100, wet: 0.28 });
@@ -787,6 +820,7 @@
         break;
       case 'paso_sombrio':
         if (!imp) {
+          if (muestra('sombra_paso', t, o)) break;
           rafaga(t, 0.24, 'bandpass', 1800, 260, 2.2, 0.46, Object.assign({ buffer: 'rosa', wet: 0.36 }, o));
           tono(t, 380, 95, 0.22, 0.22, Object.assign({ wave: 'triangle', wet: 0.36 }, o));
         } else {
@@ -815,6 +849,7 @@
         break;
       case 'torbellino':
         if (!imp) {
+          if (muestra('torbellino_viento', t, o)) break;
           barridoVelocidad(t, 0.30, 380, 2800, 640, 2.0, 0.46, o);
           barridoVelocidad(t + 0.24, 0.28, 420, 3000, 680, 2.0, 0.42, o);
         } else {
@@ -844,6 +879,7 @@
           barridoVelocidad(t, 0.30, 240, 1200, 320, 1.3, 0.46, o);
           tono(t, 110, 180, 0.26, 0.24, Object.assign({ wave: 'triangle' }, o));
         } else {
+          if (muestra('impacto_sismico', t, o)) break;
           tono(t, 92, 28, 0.40, 0.48, Object.assign({ wet: 0.36 }, o));
           rafaga(t, 0.32, 'lowpass', 640, 90, 1.1, 0.68, Object.assign({ buffer: 'marron', wet: 0.34 }, o));
         }
@@ -853,6 +889,7 @@
           barridoVelocidad(t, 0.32, 320, 2600, 680, 1.8, 0.48, o);
           tono(t, 220, 480, 0.28, 0.20, Object.assign({ wave: 'triangle', wet: 0.28 }, o));
         } else {
+          if (muestra('impacto_sismico', t, Object.assign({}, o, { velocidad: 1.08 }))) break;
           tono(t, 104, 30, 0.38, 0.46, Object.assign({ wet: 0.34 }, o));
           rafaga(t, 0.26, 'bandpass', 3600, 320, 1.6, 0.56, Object.assign({ wet: 0.36 }, o));
         }
@@ -864,6 +901,7 @@
           });
           barridoVelocidad(t + 0.06, 0.36, 300, 2400, 480, 1.6, 0.46, o);
         } else {
+          if (muestra('impacto_sismico', t, Object.assign({}, o, { velocidad: 0.92 }))) break;
           tono(t, 88, 26, 0.52, 0.50, Object.assign({ wet: 0.44 }, o));
           rafaga(t, 0.40, 'lowpass', 1200, 110, 1.2, 0.68, Object.assign({ buffer: 'marron', wet: 0.44 }, o));
           [587.33, 880, 1174.66].forEach(f => tono(t, f, f * 0.99, 0.44, 0.12, Object.assign({ wet: 0.48 }, o)));
@@ -874,6 +912,7 @@
           tono(t, 280, 760, 0.36, 0.22, Object.assign({ wave: 'triangle', atk: 0.05, wet: 0.42 }, o));
           rafaga(t, 0.32, 'bandpass', 700, 2800, 1.8, 0.34, Object.assign({ wet: 0.38 }, o));
         } else {
+          if (muestra('nova_explosion', t, o)) break;
           rafaga(t, 0.38, 'bandpass', 3200, 220, 1.2, 0.64, Object.assign({ buffer: 'rosa', wet: 0.42 }, o));
           tono(t, 160, 38, 0.36, 0.40, Object.assign({ wet: 0.38 }, o));
           tono(t, 1046.5, 523.25, 0.30, 0.16, Object.assign({ wet: 0.45 }, o));
@@ -891,6 +930,7 @@
         break;
       case 'escudo_mana':
         if (!imp) {
+          if (muestra('escudo_magico', t, o)) break;
           [523.25, 659.25, 783.99].forEach((f, idx) => tono(t + idx * 0.05, f, f * 1.12, 0.28, 0.13, Object.assign({ wet: 0.42 }, o)));
         } else {
           SONIDOS.escudoAbsorbe(t);
@@ -898,6 +938,7 @@
         break;
       case 'rafaga':
         if (!imp) {
+          if (muestra('torbellino_viento', t, Object.assign({}, o, { velocidad: 1.12 }))) break;
           barridoVelocidad(t, 0.26, 620, 3600, 980, 2.2, 0.48, Object.assign({ wet: 0.28 }, o));
         } else {
           rafaga(t, 0.20, 'bandpass', 2800, 620, 1.8, 0.46, Object.assign({ wet: 0.30 }, o));
@@ -934,6 +975,7 @@
         break;
       case 'lluvia_proyectiles':
         if (!imp) {
+          if (muestra('lluvia_flechas', t, o)) break;
           for (let k = 0; k < 3; k++) rafaga(t + k * 0.06, 0.18, 'bandpass', 950, 2900, 2.2, 0.22, o);
         } else {
           for (let k = 0; k < 4; k++) SONIDOS.flecha(t + k * 0.055, o);
@@ -959,6 +1001,7 @@
         if (!imp) {
           rafaga(t, 0.40, 'lowpass', 820, 180, 1.2, 0.50, Object.assign({ buffer: 'rosa', wet: 0.36 }, o));
         } else {
+          if (muestra('fuego_explosion', t, o)) break;
           for (let k = 0; k < 3; k++) {
             SONIDOS.fuego(t + k * 0.09, o);
             tono(t + k * 0.09, 120 - k * 12, 36, 0.26, 0.28, Object.assign({ wet: 0.32 }, o));
@@ -974,6 +1017,7 @@
         break;
       case 'ventisca_glacial':
         if (!imp) {
+          if (muestra('hielo_ventisca', t, o)) break;
           rafaga(t, 0.44, 'bandpass', 2400, 1100, 1.4, 0.42, Object.assign({ buffer: 'rosa', wet: 0.44 }, o));
           SONIDOS.hielo(t, o);
         } else {
@@ -993,6 +1037,7 @@
         break;
       case 'orbe_arcano':
         if (!imp) {
+          if (muestra('baculo_proyectil', t, o)) break;
           tono(t, 520, 880, 0.14, 0.14, Object.assign({ wave: 'sine', wet: 0.32 }, o));
           rafaga(t, 0.12, 'bandpass', 1400, 2600, 2.0, 0.18, Object.assign({ wet: 0.28 }, o));
         } else {

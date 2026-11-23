@@ -1,0 +1,548 @@
+[
+  {
+    "id": "sk_sismo",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Impacto sísmico!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sismo.ogg"
+  },
+  {
+    "id": "sk_nova",
+    "personaje": "heroe_mago",
+    "texto": "¡Explosión nova!",
+    "archivo_audio": "assets/audio/voces/skills/sk_nova.ogg"
+  },
+  {
+    "id": "sk_tajo",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tajo giratorio!",
+    "archivo_audio": "assets/audio/voces/skills/sk_tajo.ogg"
+  },
+  {
+    "id": "sk_estocada",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Estocada a fondo!",
+    "archivo_audio": "assets/audio/voces/skills/sk_estocada.ogg"
+  },
+  {
+    "id": "sk_ascendente",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tajo ascendente!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ascendente.ogg"
+  },
+  {
+    "id": "sk_hendidura",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Hendidura vertical!",
+    "archivo_audio": "assets/audio/voces/skills/sk_hendidura.ogg"
+  },
+  {
+    "id": "sk_contraataque",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Parada y contraataque!",
+    "archivo_audio": "assets/audio/voces/skills/sk_contraataque.ogg"
+  },
+  {
+    "id": "sk_torbellino",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Torbellino!",
+    "archivo_audio": "assets/audio/voces/skills/sk_torbellino.ogg"
+  },
+  {
+    "id": "sk_voltereta",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Voltereta mortal!",
+    "archivo_audio": "assets/audio/voces/skills/sk_voltereta.ogg"
+  },
+  {
+    "id": "sk_tornillo",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tornillo triple!",
+    "archivo_audio": "assets/audio/voces/skills/sk_tornillo.ogg"
+  },
+  {
+    "id": "sk_corte_cruzado",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Corte en Cruz!",
+    "archivo_audio": "assets/audio/voces/skills/sk_corte_cruzado.ogg"
+  },
+  {
+    "id": "sk_rafaga",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Ráfaga de Viento!",
+    "archivo_audio": "assets/audio/voces/skills/sk_rafaga.ogg"
+  },
+  {
+    "id": "sk_furia",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Furia Sangrienta!",
+    "archivo_audio": "assets/audio/voces/skills/sk_furia.ogg"
+  },
+  {
+    "id": "sk_escudo_espiritu",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Escudo del Bastión!",
+    "archivo_audio": "assets/audio/voces/skills/sk_escudo_espiritu.ogg"
+  },
+  {
+    "id": "sk_salto_demoledor",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Salto Demoledor!",
+    "archivo_audio": "assets/audio/voces/skills/sk_salto_demoledor.ogg"
+  },
+  {
+    "id": "sk_lluvia_proyectiles",
+    "personaje": "heroe_cazador",
+    "texto": "¡Lluvia de Flechas!",
+    "archivo_audio": "assets/audio/voces/skills/sk_lluvia_proyectiles.ogg"
+  },
+  {
+    "id": "sk_juicio_relampago",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Filo Relámpago!",
+    "archivo_audio": "assets/audio/voces/skills/sk_juicio_relampago.ogg"
+  },
+  {
+    "id": "sk_sentencia_titan",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Sentencia del Titán!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sentencia_titan.ogg"
+  },
+  {
+    "id": "sk_suspension",
+    "personaje": "heroe_cazador",
+    "texto": "¡Flecha en suspensión!",
+    "archivo_audio": "assets/audio/voces/skills/sk_suspension.ogg"
+  },
+  {
+    "id": "sk_bola_fuego",
+    "personaje": "heroe_mago",
+    "texto": "¡Bola de Fuego!",
+    "archivo_audio": "assets/audio/voces/skills/sk_bola_fuego.ogg"
+  },
+  {
+    "id": "sk_lanza_hielo",
+    "personaje": "heroe_mago",
+    "texto": "¡Lanza de Hielo!",
+    "archivo_audio": "assets/audio/voces/skills/sk_lanza_hielo.ogg"
+  },
+  {
+    "id": "sk_ventisca_glacial",
+    "personaje": "heroe_mago",
+    "texto": "¡Ventisca Glacial!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ventisca_glacial.ogg"
+  },
+  {
+    "id": "sk_tormenta_fuego",
+    "personaje": "heroe_mago",
+    "texto": "¡Lluvia de Meteoros!",
+    "archivo_audio": "assets/audio/voces/skills/sk_tormenta_fuego.ogg"
+  },
+  {
+    "id": "sk_rayo_arcano",
+    "personaje": "heroe_mago",
+    "texto": "¡Tormenta Eléctrica!",
+    "archivo_audio": "assets/audio/voces/skills/sk_rayo_arcano.ogg"
+  },
+  {
+    "id": "sk_orbe_arcano",
+    "personaje": "heroe_mago",
+    "texto": "¡Orbe Arcano!",
+    "archivo_audio": "assets/audio/voces/skills/sk_orbe_arcano.ogg"
+  },
+  {
+    "id": "sk_flecha_perforante",
+    "personaje": "heroe_cazador",
+    "texto": "¡Flecha Perforante!",
+    "archivo_audio": "assets/audio/voces/skills/sk_flecha_perforante.ogg"
+  },
+  {
+    "id": "sk_trampa_espinas",
+    "personaje": "heroe_cazador",
+    "texto": "¡Trampa de Espinas!",
+    "archivo_audio": "assets/audio/voces/skills/sk_trampa_espinas.ogg"
+  },
+  {
+    "id": "sk_escudo_mana",
+    "personaje": "heroe_mago",
+    "texto": "¡Escudo de Maná!",
+    "archivo_audio": "assets/audio/voces/skills/sk_escudo_mana.ogg"
+  },
+  {
+    "id": "sk_paso_sombrio",
+    "personaje": "heroe_picaro",
+    "texto": "¡Paso Sombrío!",
+    "archivo_audio": "assets/audio/voces/skills/sk_paso_sombrio.ogg"
+  },
+  {
+    "id": "sk_hoja_veneno",
+    "personaje": "heroe_picaro",
+    "texto": "¡Hoja Envenenada!",
+    "archivo_audio": "assets/audio/voces/skills/sk_hoja_veneno.ogg"
+  },
+  {
+    "id": "sk_sw_iaido",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Desenvaine Veloz!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sw_iaido.ogg"
+  },
+  {
+    "id": "sk_sw_solar",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tajo de Fuego Solar!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sw_solar.ogg"
+  },
+  {
+    "id": "sk_sw_blitz",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Asalto Relámpago!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sw_blitz.ogg"
+  },
+  {
+    "id": "sk_sw_cross",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Doble Tajo en Cruz!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sw_cross.ogg"
+  },
+  {
+    "id": "sk_sw_lightning",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Corte Relámpago!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sw_lightning.ogg"
+  },
+  {
+    "id": "sk_sw_celestial",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Espada Celestial!",
+    "archivo_audio": "assets/audio/voces/skills/sk_sw_celestial.ogg"
+  },
+  {
+    "id": "sk_gs_sweep",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Gran Barrido!",
+    "archivo_audio": "assets/audio/voces/skills/sk_gs_sweep.ogg"
+  },
+  {
+    "id": "sk_gs_titan",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tajo Titánico!",
+    "archivo_audio": "assets/audio/voces/skills/sk_gs_titan.ogg"
+  },
+  {
+    "id": "sk_gs_cross",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Doble Cruz del Dragón!",
+    "archivo_audio": "assets/audio/voces/skills/sk_gs_cross.ogg"
+  },
+  {
+    "id": "sk_gs_colossus",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Hendidura Colosal!",
+    "archivo_audio": "assets/audio/voces/skills/sk_gs_colossus.ogg"
+  },
+  {
+    "id": "sk_gs_crescent",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Onda de Titanio!",
+    "archivo_audio": "assets/audio/voces/skills/sk_gs_crescent.ogg"
+  },
+  {
+    "id": "sk_gs_skybreak",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tajo Rompecielos!",
+    "archivo_audio": "assets/audio/voces/skills/sk_gs_skybreak.ogg"
+  },
+  {
+    "id": "sk_dg_dash",
+    "personaje": "heroe_picaro",
+    "texto": "¡Paso de Sombra!",
+    "archivo_audio": "assets/audio/voces/skills/sk_dg_dash.ogg"
+  },
+  {
+    "id": "sk_dg_blink",
+    "personaje": "heroe_picaro",
+    "texto": "¡Corte Fantasma!",
+    "archivo_audio": "assets/audio/voces/skills/sk_dg_blink.ogg"
+  },
+  {
+    "id": "sk_dg_rush",
+    "personaje": "heroe_picaro",
+    "texto": "¡Asalto Asesino!",
+    "archivo_audio": "assets/audio/voces/skills/sk_dg_rush.ogg"
+  },
+  {
+    "id": "sk_dg_venom",
+    "personaje": "heroe_picaro",
+    "texto": "¡Hélice Venenosa!",
+    "archivo_audio": "assets/audio/voces/skills/sk_dg_venom.ogg"
+  },
+  {
+    "id": "sk_dg_shadow",
+    "personaje": "heroe_picaro",
+    "texto": "¡Ráfaga Sombría!",
+    "archivo_audio": "assets/audio/voces/skills/sk_dg_shadow.ogg"
+  },
+  {
+    "id": "sk_dg_zigzag",
+    "personaje": "heroe_picaro",
+    "texto": "¡Zigzag Relámpago!",
+    "archivo_audio": "assets/audio/voces/skills/sk_dg_zigzag.ogg"
+  },
+  {
+    "id": "sk_ax_thunder",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Furia del Trueno!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ax_thunder.ogg"
+  },
+  {
+    "id": "sk_ax_inferno",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tornado Ígneo!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ax_inferno.ogg"
+  },
+  {
+    "id": "sk_ax_berserk",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Salto Berserker!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ax_berserk.ogg"
+  },
+  {
+    "id": "sk_ax_reap",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Siega Salvaje!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ax_reap.ogg"
+  },
+  {
+    "id": "sk_ax_nordic",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Juicio Nórdico!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ax_nordic.ogg"
+  },
+  {
+    "id": "sk_a2_sweep",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Barrido Segador!",
+    "archivo_audio": "assets/audio/voces/skills/sk_a2_sweep.ogg"
+  },
+  {
+    "id": "sk_a2_titan",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Tajo Titánico Hacha!",
+    "archivo_audio": "assets/audio/voces/skills/sk_a2_titan.ogg"
+  },
+  {
+    "id": "sk_a2_colossus",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Hendidura Hacha!",
+    "archivo_audio": "assets/audio/voces/skills/sk_a2_colossus.ogg"
+  },
+  {
+    "id": "sk_a2_vortex",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Guadaña del Vacío!",
+    "archivo_audio": "assets/audio/voces/skills/sk_a2_vortex.ogg"
+  },
+  {
+    "id": "sk_a2_demolish",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Triple Demolición!",
+    "archivo_audio": "assets/audio/voces/skills/sk_a2_demolish.ogg"
+  },
+  {
+    "id": "sk_mc_storm",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Martillo de Tormenta!",
+    "archivo_audio": "assets/audio/voces/skills/sk_mc_storm.ogg"
+  },
+  {
+    "id": "sk_mc_crush",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Aplastamiento Colosal!",
+    "archivo_audio": "assets/audio/voces/skills/sk_mc_crush.ogg"
+  },
+  {
+    "id": "sk_mc_seismic",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Furia Sísmica!",
+    "archivo_audio": "assets/audio/voces/skills/sk_mc_seismic.ogg"
+  },
+  {
+    "id": "sk_mc_titan",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Impacto Titán!",
+    "archivo_audio": "assets/audio/voces/skills/sk_mc_titan.ogg"
+  },
+  {
+    "id": "sk_mc_judgment",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Juicio del Trueno!",
+    "archivo_audio": "assets/audio/voces/skills/sk_mc_judgment.ogg"
+  },
+  {
+    "id": "sk_ln_sweep",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Gran Barrido de Asta!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ln_sweep.ogg"
+  },
+  {
+    "id": "sk_ln_skewer",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Empalamiento Total!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ln_skewer.ogg"
+  },
+  {
+    "id": "sk_ln_phalanx",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Barrido de Falange!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ln_phalanx.ogg"
+  },
+  {
+    "id": "sk_ln_valkyrie",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Salto de Valquiria!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ln_valkyrie.ogg"
+  },
+  {
+    "id": "sk_ln_dragon",
+    "personaje": "heroe_guerrero",
+    "texto": "¡Lanza del Dragón!",
+    "archivo_audio": "assets/audio/voces/skills/sk_ln_dragon.ogg"
+  },
+  {
+    "id": "sk_bw_bolt",
+    "personaje": "heroe_cazador",
+    "texto": "¡Flecha de Relámpago!",
+    "archivo_audio": "assets/audio/voces/skills/sk_bw_bolt.ogg"
+  },
+  {
+    "id": "sk_bw_double",
+    "personaje": "heroe_cazador",
+    "texto": "¡Doble disparo!",
+    "archivo_audio": "assets/audio/voces/skills/sk_bw_double.ogg"
+  },
+  {
+    "id": "sk_bw_frost",
+    "personaje": "heroe_cazador",
+    "texto": "¡Flecha Glacial!",
+    "archivo_audio": "assets/audio/voces/skills/sk_bw_frost.ogg"
+  },
+  {
+    "id": "sk_bw_aerial",
+    "personaje": "heroe_cazador",
+    "texto": "¡Mortal Celestial!",
+    "archivo_audio": "assets/audio/voces/skills/sk_bw_aerial.ogg"
+  },
+  {
+    "id": "sk_bw_barrage",
+    "personaje": "heroe_cazador",
+    "texto": "¡Descarga de Meteoros!",
+    "archivo_audio": "assets/audio/voces/skills/sk_bw_barrage.ogg"
+  },
+  {
+    "id": "sk_bw_prism",
+    "personaje": "heroe_cazador",
+    "texto": "¡Lluvia Prisma!",
+    "archivo_audio": "assets/audio/voces/skills/sk_bw_prism.ogg"
+  },
+  {
+    "id": "sk_st_tempest",
+    "personaje": "heroe_mago",
+    "texto": "¡Tempestad Arcana!",
+    "archivo_audio": "assets/audio/voces/skills/sk_st_tempest.ogg"
+  },
+  {
+    "id": "sk_st_meteor",
+    "personaje": "heroe_mago",
+    "texto": "¡Meteoros Astrales!",
+    "archivo_audio": "assets/audio/voces/skills/sk_st_meteor.ogg"
+  },
+  {
+    "id": "sk_st_judgment",
+    "personaje": "heroe_mago",
+    "texto": "¡Juicio Celestial!",
+    "archivo_audio": "assets/audio/voces/skills/sk_st_judgment.ogg"
+  },
+  {
+    "id": "sk_st_solar",
+    "personaje": "heroe_mago",
+    "texto": "¡Cañón Solar!",
+    "archivo_audio": "assets/audio/voces/skills/sk_st_solar.ogg"
+  },
+  {
+    "id": "sk_st_nova",
+    "personaje": "heroe_mago",
+    "texto": "¡Supernova Astral!",
+    "archivo_audio": "assets/audio/voces/skills/sk_st_nova.ogg"
+  },
+  {
+    "id": "comp_rowan_buff",
+    "personaje": "rowan",
+    "texto": "¡Aguanta conmigo, camarada!",
+    "archivo_audio": "assets/audio/voces/skills/comp_rowan_buff.ogg"
+  },
+  {
+    "id": "comp_rowan_ataque",
+    "personaje": "rowan",
+    "texto": "¡Cubro tu flanco!",
+    "archivo_audio": "assets/audio/voces/skills/comp_rowan_ataque.ogg"
+  },
+  {
+    "id": "comp_rowan_defensa",
+    "personaje": "rowan",
+    "texto": "¡Escudos arriba!",
+    "archivo_audio": "assets/audio/voces/skills/comp_rowan_defensa.ogg"
+  },
+  {
+    "id": "comp_lyra_ataque",
+    "personaje": "lyra",
+    "texto": "¡Te tengo en la mira!",
+    "archivo_audio": "assets/audio/voces/skills/comp_lyra_ataque.ogg"
+  },
+  {
+    "id": "comp_lyra_debuff",
+    "personaje": "lyra",
+    "texto": "¡Desangra al objetivo!",
+    "archivo_audio": "assets/audio/voces/skills/comp_lyra_debuff.ogg"
+  },
+  {
+    "id": "comp_lyra_buff",
+    "personaje": "lyra",
+    "texto": "¡Velocidad mortal!",
+    "archivo_audio": "assets/audio/voces/skills/comp_lyra_buff.ogg"
+  },
+  {
+    "id": "comp_elian_cura",
+    "personaje": "elian",
+    "texto": "¡Que la luz cierre tus heridas!",
+    "archivo_audio": "assets/audio/voces/skills/comp_elian_cura.ogg"
+  },
+  {
+    "id": "comp_elian_defensa",
+    "personaje": "elian",
+    "texto": "¡Barrera sagrada!",
+    "archivo_audio": "assets/audio/voces/skills/comp_elian_defensa.ogg"
+  },
+  {
+    "id": "comp_elian_ataque",
+    "personaje": "elian",
+    "texto": "¡Luz purificadora!",
+    "archivo_audio": "assets/audio/voces/skills/comp_elian_ataque.ogg"
+  },
+  {
+    "id": "comp_brenda_ataque",
+    "personaje": "brenda",
+    "texto": "¡Aplástalos a todos!",
+    "archivo_audio": "assets/audio/voces/skills/comp_brenda_ataque.ogg"
+  },
+  {
+    "id": "comp_brenda_buff",
+    "personaje": "brenda",
+    "texto": "¡Sangre y furia!",
+    "archivo_audio": "assets/audio/voces/skills/comp_brenda_buff.ogg"
+  },
+  {
+    "id": "comp_brenda_defensa",
+    "personaje": "brenda",
+    "texto": "¡Nada me derriba!",
+    "archivo_audio": "assets/audio/voces/skills/comp_brenda_defensa.ogg"
+  }
+]

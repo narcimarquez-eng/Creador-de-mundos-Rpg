@@ -510,6 +510,13 @@
       m.bumpScale = (mat.userData && mat.userData.esSueloMazmorra) ? Math.max(mat.bumpScale || 0.26, 0.28) : Math.min(m.bumpScale || 1, 1.2);
     }
     if (m.normalMap) m.normalMap = null;
+    if (typeof window !== 'undefined' && window.PbrLib) {
+      window.PbrLib.aplicarEnMaterial(ThreeLib, m, id, {
+        repetir: rep,
+        normalScale: 0.95,
+        conservarBump: !!(mat.userData && mat.userData.esSueloMazmorra)
+      });
+    }
     if (sinRepetir) m.userData = Object.assign({}, m.userData, { mosaicoUnico: true, muralUnico: String(id).startsWith('murales/') });
     m.needsUpdate = true;
     _matTexCache.set(clave, m);

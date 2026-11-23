@@ -1588,6 +1588,9 @@
             ].join('\n'));
         };
       }
+      if (typeof window !== 'undefined' && window.PbrLib) {
+        window.PbrLib.aplicarEnMaterial(THREE, m, entry.path, { normalScale: 0.9 });
+      }
       streetMatCache.set(cacheKey, m);
       return m;
     };
@@ -1669,6 +1672,9 @@
           );
         };
       }
+      if (typeof window !== 'undefined' && window.PbrLib) {
+        window.PbrLib.aplicarEnMaterial(THREE, m, entry.path, { normalScale: 0.85 });
+      }
       roofMatCache.set(clave, m);
       return m;
     };
@@ -1700,6 +1706,9 @@
         roughness: 0.85,
         metalness: 0.06
       });
+      if (typeof window !== 'undefined' && window.PbrLib) {
+        window.PbrLib.aplicarEnMaterial(THREE, m, entry.path, { normalScale: 0.95 });
+      }
       stoneMatCache.set(id, m);
       return m;
     };

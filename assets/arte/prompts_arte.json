@@ -1,0 +1,415 @@
+{
+  "estilo_base": "dark medieval fantasy oil painting, Lineage 2 concept art style, dramatic chiaroscuro lighting, rich painterly brushwork, moody atmospheric depth, intricate armor and fabric textures, high contrast, masterpiece",
+  "negative_prompt": "text, watermark, signature, logo, ui frame, border, modern clothing, sci-fi, deformed face, extra fingers, blurry, lowres, oversaturated neon, chibi, 3d plastic render",
+  "portada": [
+    {
+      "id": "portada_valdris",
+      "archivo": "portada/portada_valdris.webp",
+      "width": 1024,
+      "height": 576,
+      "gen_width": 1024,
+      "gen_height": 576,
+      "seed": 4101,
+      "prompt": "epic dark medieval fantasy oil painting landscape of an ancient citadel kingdom in mist, grand Gothic stone towers on a cliff overlooking a dark pine valley, glowing golden runes on a stone shrine at dusk, solitary armored knight silhouette gazing toward the castle, dramatic volumetric clouds and warm torchlight, Lineage 2 concept art wide banner, no text"
+    }
+  ],
+  "retratos": [
+    {
+      "id": "guru-1",
+      "nombre": "Sabia Elara",
+      "archivo": "retratos/guru-1.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5101,
+      "prompt": "fantasy character portrait bust of a wise noble elven-featured archmage woman in her 40s wearing deep sapphire and gold embroidered scholar robes, silver hairpin, soft warm arcane lantern glow illuminating her calm knowing eyes, dark stone library background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "guru-2",
+      "nombre": "Maestro Oren",
+      "archivo": "retratos/guru-2.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5102,
+      "prompt": "fantasy character portrait bust of a seasoned veteran master-at-arms man in his 50s with short grey beard, weathered determined face, etched steel gorget over burgundy wool tunic, warm campfire rim light, dark medieval hall background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "guru-3",
+      "nombre": "Hermana Ysolde",
+      "archivo": "retratos/guru-3.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5103,
+      "prompt": "fantasy character portrait bust of a serene medieval sanctuary priestess in ivory and bronze-trimmed ceremonial veil and vestments, faint golden halo of candlelight around her shoulders, compassionate stern expression, dark cathedral shadow background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "guru-4",
+      "nombre": "Viejo Tamsin",
+      "archivo": "retratos/guru-4.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5104,
+      "prompt": "fantasy character portrait bust of an old forest elder woodsman with long tousled silver beard, fur-lined olive cloak, carved wooden staff tip visible, deep wise wrinkles, misty dark pine woods background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "guru-5",
+      "nombre": "Erudita Mirel",
+      "archivo": "retratos/guru-5.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5105,
+      "prompt": "fantasy character portrait bust of a keen young medieval chronicler woman wearing brass spectacles perched slightly low, emerald velvet mantle with bronze clasp, holding leather parchment scroll, warm candlelight, dark archive background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "serv-herrero",
+      "nombre": "Herrero",
+      "archivo": "retratos/serv-herrero.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5106,
+      "prompt": "fantasy character portrait bust of a brawny medieval master blacksmith with soot-smudged brow, braided dark beard, thick leather apron over heavy iron pauldrons, bright orange forge embers illuminating his face, dark smithy background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "serv-mercader",
+      "nombre": "Mercader",
+      "archivo": "retratos/serv-mercader.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5107,
+      "prompt": "fantasy character portrait bust of a shrewd medieval guild merchant wearing fur-collared crimson brocade coat, gold signet rings, warm brass lantern glow from below, subtle knowing smile, dark twilight market background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "serv-comandante",
+      "nombre": "Comandante",
+      "archivo": "retratos/serv-comandante.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5108,
+      "prompt": "fantasy character portrait bust of a battle-hardened medieval citadel commander in tarnished dark steel plate armor with gold lion insignia, slight cheek scar, stern commanding gaze, stormy twilight ramparts background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "serv-informante",
+      "nombre": "Informante",
+      "archivo": "retratos/serv-informante.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5109,
+      "prompt": "fantasy character portrait bust of a mysterious medieval spymaster informant under a deep charcoal velvet hood, half-shadowed sharp eyes reflecting a single tavern candle flame, dark leather collar and silver dagger hilt, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "serv-boticaria",
+      "nombre": "Boticaria",
+      "archivo": "retratos/serv-boticaria.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5110,
+      "prompt": "fantasy character portrait bust of a skilled medieval apothecary alchemist woman wearing dark leather satchel straps with miniature glass vials, aubergine shawl, soft emerald potion glow on her cheekbones, shadowy herb shelves background, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "serv-hereje",
+      "nombre": "Hereje",
+      "archivo": "retratos/serv-hereje.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5111,
+      "prompt": "fantasy character portrait bust of an enigmatic exiled dark mystic in tattered obsidian-purple vestments etched with faint silver runes, pale intense eyes, eerie violet arcane mist swirling behind, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "rowan",
+      "nombre": "Rowan",
+      "archivo": "retratos/rowan.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5112,
+      "prompt": "fantasy character portrait bust of Rowan a loyal young vanguard knight companion in burnished steel chestplate and royal blue cloak clasp, short chestnut hair, steady heroic expression, warm sunset citadel light, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "lyra",
+      "nombre": "Lyra",
+      "archivo": "retratos/lyra.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5113,
+      "prompt": "fantasy character portrait bust of Lyra an agile forest ranger archer woman with hooded mossy green cloak, quiver strap over supple brown leather armor, sharp amber eyes, dappled twilight woodland light, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "elian",
+      "nombre": "Elian",
+      "archivo": "retratos/elian.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5114,
+      "prompt": "fantasy character portrait bust of Elian a refined young battle-mage scholar in midnight blue and silver rune coat, faint sapphire arcane spark near shoulder, silver-blonde swept hair, intellectual fierce gaze, Lineage 2 oil painting portrait"
+    },
+    {
+      "id": "brenda",
+      "nombre": "Brenda",
+      "archivo": "retratos/brenda.webp",
+      "width": 256,
+      "height": 256,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 5115,
+      "prompt": "fantasy character portrait bust of Brenda a fierce crimson-haired berserker warrior woman wearing heavy fur-mantled dark iron pauldrons, faint crimson war-paint streak on cheek, fearless wild grin, embers in dark air, Lineage 2 oil painting portrait"
+    }
+  ],
+  "iconos": [
+    {
+      "id": "espada_tajo",
+      "archivo": "iconos/espada_tajo.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6101,
+      "prompt": "RPG game ability skill icon of a gleaming medieval steel longsword diagonally slashing through a sharp silver motion arc, dark obsidian background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "espada_luz",
+      "archivo": "iconos/espada_luz.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6102,
+      "prompt": "RPG game ability skill icon of a radiant gilded runeblade emitting crackling golden-blue lightning arcs, dark indigo background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "mandoble",
+      "archivo": "iconos/mandoble.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6103,
+      "prompt": "RPG game ability skill icon of a massive heavy iron greatsword cleaving downward with fiery ember shockwave trail, dark slate background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "daga_sombra",
+      "archivo": "iconos/daga_sombra.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6104,
+      "prompt": "RPG game ability skill icon of twin curved assassin daggers crossed amid swirling violet shadow smoke, dark obsidian background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "hoja_veneno",
+      "archivo": "iconos/hoja_veneno.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6105,
+      "prompt": "RPG game ability skill icon of a wicked curved dagger dripping glowing emerald toxic venom droplets, dark murky background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "hacha_guerra",
+      "archivo": "iconos/hacha_guerra.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6106,
+      "prompt": "RPG game ability skill icon of a rune-etched Nordic battle axe swinging with glowing amber sparks, dark charcoal background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "maza_sismo",
+      "archivo": "iconos/maza_sismo.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6107,
+      "prompt": "RPG game ability skill icon of a spiked iron warhammer smashing cracked volcanic stone with glowing magma fissures, dark background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "lanza_valquiria",
+      "archivo": "iconos/lanza_valquiria.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6108,
+      "prompt": "RPG game ability skill icon of a silver-winged halberd spear thrusting forward with piercing cyan wind streaks, dark navy background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "arco_flecha",
+      "archivo": "iconos/arco_flecha.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6109,
+      "prompt": "RPG game ability skill icon of a carved recurve longbow drawn with a glowing golden-feathered piercing arrow, dark forest night background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "lluvia_flechas",
+      "archivo": "iconos/lluvia_flechas.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6110,
+      "prompt": "RPG game ability skill icon of a volley of five glowing steel-tipped arrows descending diagonally through dark storm clouds, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "trampa_espinas",
+      "archivo": "iconos/trampa_espinas.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6111,
+      "prompt": "RPG game ability skill icon of thorny enchanted forest briars erupting around spiked iron hunting jaws with faint green magic mist, dark soil background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "fuego_magia",
+      "archivo": "iconos/fuego_magia.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6112,
+      "prompt": "RPG game ability skill icon of a swirling blazing crimson-orange fireball orb with floating cinder sparks, deep black background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "hielo_escarcha",
+      "archivo": "iconos/hielo_escarcha.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6113,
+      "prompt": "RPG game ability skill icon of razor-sharp crystalline sapphire ice lances bursting upward with frost mist, dark midnight background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "rayo_arcano",
+      "archivo": "iconos/rayo_arcano.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6114,
+      "prompt": "RPG game ability skill icon of a jagged electric cyan-violet arcane lightning bolt surging from a glowing rune sigil, dark abyss background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "meteoro_cataclismo",
+      "archivo": "iconos/meteoro_cataclismo.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6115,
+      "prompt": "RPG game ability skill icon of a flaming molten meteor rock plunging through dark starry sky with golden shockwave ring, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "escudo_arcano",
+      "archivo": "iconos/escudo_arcano.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6116,
+      "prompt": "RPG game ability skill icon of a translucent luminous sapphire mana barrier shield inscribed with ancient golden runes, dark background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "torbellino_acero",
+      "archivo": "iconos/torbellino_acero.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6117,
+      "prompt": "RPG game ability skill icon of a spinning cyclone vortex of silver sword blades and wind gusts, dark slate background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "esquiva_sombra",
+      "archivo": "iconos/esquiva_sombra.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6118,
+      "prompt": "RPG game ability skill icon of a swift winged leather boot leaving a glowing cyan spectral motion dash trail, dark slate background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "pocion_vida",
+      "archivo": "iconos/pocion_vida.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6119,
+      "prompt": "RPG game item icon of an ornate filigree glass flask filled with glowing ruby red healing elixir, cork stopper and faint warm shimmer, dark slate background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "pocion_mana",
+      "archivo": "iconos/pocion_mana.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6120,
+      "prompt": "RPG game item icon of a crystal diamond-cut medieval flask filled with radiant cobalt blue mana potion, silver neck collar, dark slate background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "relampago_divino",
+      "archivo": "iconos/relampago_divino.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6121,
+      "prompt": "RPG game ability skill icon of a vertical pillar of divine golden storm lightning striking an ancient stone seal, dark clouds background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "furia_berserker",
+      "archivo": "iconos/furia_berserker.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6122,
+      "prompt": "RPG game ability skill icon of a roaring crimson warhelm aura with blazing red battle flames and crossed sparks, dark background, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    },
+    {
+      "id": "golpe_solar",
+      "archivo": "iconos/golpe_solar.webp",
+      "width": 128,
+      "height": 128,
+      "gen_width": 768,
+      "gen_height": 768,
+      "seed": 6123,
+      "prompt": "RPG game ability skill icon of a blazing golden sunburst crescent blade wave illuminating darkness, amber rays, painted Lineage 2 style square game icon, crisp centered composition, no text"
+    }
+  ]
+}

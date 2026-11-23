@@ -188,7 +188,19 @@
     #dmg-vignette { position: fixed; inset: 0; pointer-events: none; z-index: 21; box-shadow: inset 0 0 70px rgba(220,38,38,0); transition: box-shadow .16s ease-out; }
     #dmg-vignette.hit { box-shadow: inset 0 0 85px rgba(220,38,38,0.55); }
     .skills button:disabled { opacity: .5; }
-    .skills button .ico { font-weight: normal; }
+    .skills button .ico { font-weight: normal; display: flex; align-items: center; justify-content: center; min-height: 24px; }
+    .util button .ico { font-weight: normal; display: flex; align-items: center; justify-content: center; min-height: 22px; }
+    .art-skill-img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; display: block; box-shadow: 0 1px 4px rgba(0,0,0,0.7); border: 1px solid rgba(250,204,21,0.35); }
+    #portada-art-wrap { display: none; margin: -4px 0 12px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(234,179,8,0.45); box-shadow: 0 8px 24px rgba(0,0,0,0.65); background: #090d1a; }
+    #portada-art-wrap.show { display: block; }
+    #portada-art-wrap img { width: 100%; height: 176px; object-fit: cover; display: block; }
+    .npc-cab { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+    .art-retrato { width: 58px; height: 58px; border-radius: 10px; border: 1px solid rgba(234,179,8,0.55); overflow: hidden; flex-shrink: 0; background: #090d1a; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+    .art-retrato.tiene-arte { display: flex; }
+    .art-retrato-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .comp-av-ico { width: 38px; height: 38px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .comp-av-ico.tiene-arte { border: 1px solid rgba(234,179,8,0.6); box-shadow: 0 2px 8px rgba(0,0,0,0.55); }
+    #banner-narrativo .bn-ico.tiene-arte { width: 42px; height: 42px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(234,179,8,0.6); flex-shrink: 0; display: inline-flex; }
     .inv { font-size: 12px; color: var(--muted); display: flex; gap: 10px; justify-content: flex-end; }
     .inv b { color: #fde68a; }
     .util { display: flex; gap: 6px; }
@@ -1976,8 +1988,8 @@
       <button id="sk-jump" title="Esquivar / Rodar (X)"><b class="ico">💨</b><small>X</small><span class="cd"></span></button>
     </div>
     <div class="util">
-      <button id="sk-vida" title="Poción de vida (1)">🧪<small>1</small></button>
-      <button id="sk-mana" title="Poción de maná (2)">💧<small>2</small></button>
+      <button id="sk-vida" title="Poción de vida (1)"><b class="ico">🧪</b><small>1</small></button>
+      <button id="sk-mana" title="Poción de maná (2)"><b class="ico">💧</b><small>2</small></button>
       <button id="sk-auto" title="Ataque automático en la zona (K)">🤖<small>K</small></button>
       <button id="sk-guia-comp" title="Pedir orientación y consejo a tu compañero (Y)">🗣️<small>Y</small></button>
       <button id="sk-menu-toggle" type="button" title="Menú de utilidades (Mochila, Tienda, Rowan...)">⚡</button>
@@ -2002,8 +2014,13 @@
     <div id="ic-grid"></div>
   </div>
   <div id="capitulo"><div class="box">
-    <div id="cap-sabio" class="muted"></div>
-    <h2 id="cap-titulo"></h2>
+    <div class="npc-cab">
+      <div id="cap-retrato" class="art-retrato"></div>
+      <div style="min-width:0;flex:1">
+        <div id="cap-sabio" class="muted"></div>
+        <h2 id="cap-titulo"></h2>
+      </div>
+    </div>
     <div id="cap-hito" style="display:none;margin:8px 0 10px;padding:10px 12px;border-radius:8px;background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.45);font-size:12.5px;line-height:1.45"></div>
     <p id="cap-texto" style="line-height:1.6;margin:8px 0"></p>
     <div id="cap-decision" style="display:none;margin:10px 0"></div>
@@ -2086,8 +2103,13 @@
     <div class="btns"><button id="obj-cerrar">Cerrar</button></div>
   </div></div>
   <div id="npc"><div class="box">
-    <h2 id="npc-titulo"></h2>
-    <div id="npc-frase" class="muted" style="margin-bottom:6px"></div>
+    <div class="npc-cab">
+      <div id="npc-retrato" class="art-retrato"></div>
+      <div style="min-width:0;flex:1">
+        <h2 id="npc-titulo" style="margin:0 0 4px"></h2>
+        <div id="npc-frase" class="muted" style="margin-bottom:2px"></div>
+      </div>
+    </div>
     <div id="npc-conv-box" style="margin-bottom:8px"></div>
     <div class="muted">Oro: <b id="npc-oro"></b> 🪙</div>
     <div id="npc-lista"></div>
@@ -2192,6 +2214,7 @@
 
   <!-- Pantalla de Título / Portada del Juego Completo -->
   <div id="modal-portada"><div class="box">
+    <div id="portada-art-wrap"></div>
     <div id="portada-kicker" class="portada-kicker">⚔️ Crónica del Mundo · Juego Completo</div>
     <h1 id="portada-titulo">Creador de Mundos RPG</h1>
     <div id="portada-sub" class="portada-sub">
@@ -2247,7 +2270,7 @@
         <!-- Tarjeta 1: Rowan -->
         <div class="comp-card selected" data-arquetipo="rowan">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:26px">🧑‍🌾</span>
+            <span class="comp-av-ico" data-emoji="🧑‍🌾" style="font-size:26px">🧑‍🌾</span>
             <div><b>Rowan el Guardián</b> <small class="muted" style="display:block">Dopes de Ataque & Motivación · 🛡️ Armadura Pesada</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
@@ -2259,7 +2282,7 @@
         <!-- Tarjeta 2: Lyra -->
         <div class="comp-card" data-arquetipo="lyra">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:26px">🧝‍♀️</span>
+            <span class="comp-av-ico" data-emoji="🧝‍♀️" style="font-size:26px">🧝‍♀️</span>
             <div><b>Lyra de las Sombras</b> <small class="muted" style="display:block">DPS Rápido con Dagas · 🥋 Armadura Ligera</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
@@ -2271,7 +2294,7 @@
         <!-- Tarjeta 3: Elian -->
         <div class="comp-card" data-arquetipo="elian">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:26px">🧙‍♂️</span>
+            <span class="comp-av-ico" data-emoji="🧙‍♂️" style="font-size:26px">🧙‍♂️</span>
             <div><b>Elian el Teúrgo</b> <small class="muted" style="display:block">Mago de Apoyo & Protección · 🧙 Túnica de Mago</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
@@ -2283,7 +2306,7 @@
         <!-- Tarjeta 4: Brenda -->
         <div class="comp-card" data-arquetipo="brenda">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:26px">👩‍🦰</span>
+            <span class="comp-av-ico" data-emoji="👩‍🦰" style="font-size:26px">👩‍🦰</span>
             <div><b>Brenda la Berserker</b> <small class="muted" style="display:block">Tanque & Furia Berserker · 🥋 Armadura Ligera</small></div>
           </div>
           <div style="font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:6px">
@@ -2498,7 +2521,14 @@
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
   <script type="module" src="js/enemigos-glb.js?v=20261120b"></script>
   <script src="js/musica-rpg.js?v=20261120c"></script>
-  <script src="js/sonidos.js?v=20261123c"></script>
+  <script src="js/sonidos.js?v=20261123d"></script>
+  <script src="js/voces.js?v=20261123c"></script>
+  <script src="js/arte-ui.js?v=20261123a"></script>
+  <script src="js/pbr-lib.js?v=20261123a"></script>
+  <script>
+    if (window.ArteUI) window.ArteUI.cargarManifest('assets/arte/manifest.json');
+    if (window.PbrLib) window.PbrLib.cargarManifest('assets/pbr/manifest.json');
+  </script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js?v=20261121b";
@@ -2587,7 +2617,8 @@
   // uRecorte (x, z, radio, modo): al entrar en un recinto de laberinto el terreno del mundo cede su interior
   // a la malla detallada (modo 1 = no dibujar dentro del círculo)
   const terrainU = {
-    tCapas: { value: null }, tHierbas: { value: null }, uHierbaMix: { value: 0 }, uTexOn: { value: 0 },
+    tCapas: { value: null }, tCapasNR: { value: null }, tHierbas: { value: null },
+    uHierbaMix: { value: 0 }, uTexOn: { value: 0 }, uPbrTexOn: { value: 0 },
     uHumedad: { value: 1.0 }, uBumpFuerza: { value: 1.2 },
     uPraderaSeed: { value: new THREE.Vector2(0, 0) },
     uNubesSombra: { value: 1.0 },
@@ -3320,6 +3351,11 @@
     uniform vec3 uSunColor;
     uniform float uTime;
     uniform float uNight;
+    uniform float uGolden;
+    uniform float uSkyTexOn;
+    uniform sampler2D tSkyDay;
+    uniform sampler2D tSkyGolden;
+    uniform sampler2D tSkyNight;
     uniform float uBloomSky;
     varying vec3 vDir;
 
@@ -3352,6 +3388,19 @@
       vec3 dir = normalize(vDir);
       float h = clamp(dir.y, 0.0, 1.0);
       vec3 col = mix(uHorizonte, uCenit, pow(h, 0.45));
+
+      if (uSkyTexOn > 0.01) {
+        vec2 eqUv = vec2(atan(dir.z, dir.x) / 6.2831853 + 0.5, asin(clamp(dir.y, -1.0, 1.0)) / 3.14159265 + 0.5);
+        float wDay = max(0.0, 1.0 - uGolden - uNight);
+        float wSum = max(0.001, wDay + uGolden + uNight);
+        vec3 skyDia = texture2D(tSkyDay, eqUv).rgb;
+        vec3 skyOro = texture2D(tSkyGolden, eqUv).rgb;
+        vec3 skyNoche = texture2D(tSkyNight, eqUv).rgb;
+        vec3 skyTexCol = (skyDia * wDay + skyOro * uGolden + skyNoche * uNight) / wSum;
+        float horizMix = smoothstep(-0.04, 0.14, dir.y);
+        skyTexCol = mix(uHorizonte, skyTexCol, horizMix);
+        col = mix(col, skyTexCol, uSkyTexOn);
+      }
 
       vec3 sDir = normalize(uSunDir);
       float sDot = max(dot(dir, sDir), 0.0);
@@ -3413,6 +3462,8 @@
     scene = new THREE.Scene();
     scene.background = new THREE.Color('#7dd3fc');
     scene.fog = new THREE.FogExp2('#9bd9f5', 0.0009);
+    const skyFallbackTex = new THREE.DataTexture(new Uint8Array([125, 211, 252, 255]), 1, 1);
+    skyFallbackTex.needsUpdate = true;
     cielo = new THREE.Mesh(new THREE.SphereGeometry(30000, 32, 16), new THREE.ShaderMaterial({
       uniforms: {
         uCenit: { value: new THREE.Color('#2b6cb0') },
@@ -3421,6 +3472,11 @@
         uSunColor: { value: new THREE.Color('#fffdf2') },
         uTime: { value: 0 },
         uNight: { value: 0 },
+        uGolden: { value: 0 },
+        uSkyTexOn: { value: 0 },
+        tSkyDay: { value: skyFallbackTex },
+        tSkyGolden: { value: skyFallbackTex },
+        tSkyNight: { value: skyFallbackTex },
         uBloomSky: { value: 1 }
       },
       vertexShader: CIELO_VS, fragmentShader: CIELO_FS.replace('#include <colorspace_fragment>', THREE.ShaderChunk.colorspace_fragment), side: THREE.BackSide, depthWrite: false, fog: false
@@ -4668,6 +4724,38 @@
     const blanco = new THREE.DataArrayTexture(new Uint8Array(15 * 4).fill(255), 1, 1, 15);
     blanco.needsUpdate = true;
     terrainU.tCapas.value = blanco;
+    const pbrInit = new Uint8Array(15 * 4);
+    for (let i = 0; i < 15; i++) { pbrInit[i * 4] = 128; pbrInit[i * 4 + 1] = 128; pbrInit[i * 4 + 2] = 255; pbrInit[i * 4 + 3] = 224; }
+    const neutroNR = new THREE.DataArrayTexture(pbrInit, 1, 1, 15);
+    if (THREE.NoColorSpace) neutroNR.colorSpace = THREE.NoColorSpace;
+    neutroNR.needsUpdate = true;
+    terrainU.tCapasNR.value = neutroNR;
+    let _pbrTerrenoIniciado = false;
+    const cargarPbrTerreno = () => {
+      if (_pbrTerrenoIniciado || !window.PbrLib || typeof TerrainLib.capasNormalesDesdeImagenes !== 'function') return;
+      const info = window.PbrLib.terrenoUrls();
+      if (!info || !info.normal) return;
+      _pbrTerrenoIniciado = true;
+      const ldr = new THREE.ImageLoader();
+      ldr.load(info.normal, imgN => {
+        const finalizar = (imgR) => {
+          const p = TerrainLib.capasNormalesDesdeImagenes(imgN, imgR, info.cols || 5, info.rows || 3, 15);
+          const texNR = new THREE.DataArrayTexture(p.datos, p.tam, p.tam, p.capas);
+          texNR.wrapS = texNR.wrapT = THREE.RepeatWrapping;
+          texNR.minFilter = THREE.LinearMipmapLinearFilter;
+          texNR.magFilter = THREE.LinearFilter;
+          texNR.generateMipmaps = true;
+          if (THREE.NoColorSpace) texNR.colorSpace = THREE.NoColorSpace;
+          texNR.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+          texNR.needsUpdate = true;
+          terrainU.tCapasNR.value = texNR;
+          terrainU.uPbrTexOn.value = 1;
+        };
+        if (info.roughness) ldr.load(info.roughness, finalizar, undefined, () => finalizar(null));
+        else finalizar(null);
+      }, undefined, () => { _pbrTerrenoIniciado = false; });
+    };
+    if (window.PbrLib) window.PbrLib.onListo(cargarPbrTerreno);
     const blancoHierba = new THREE.DataArrayTexture(new Uint8Array(8 * 4).fill(255), 1, 1, 8);
     blancoHierba.needsUpdate = true;
     terrainU.tHierbas.value = blancoHierba;
@@ -7561,14 +7649,14 @@
   // Ambiente: día, atardecer y noche (valores del Creador de Pueblos, con transición)
   // ===========================================================================
   const ATMO = {
-    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.00078, hemi: '#e0f2fe', ground: '#4b634e', hemiI: 0.65, sun: '#fffdf2', sunI: 1.85, sunPos: [900, 1400, 700],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5, night: 0 },
-    golden: { bg: '#38224e', fog: '#c97654', fogD: 0.00052, hemi: '#fdba74', ground: '#2a223b', hemiI: 0.48, sun: '#fb923c', sunI: 1.85, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.75, pool: 0.85, plaza: 1.6, forge: 2.1, night: 0.25 },
-    night:  { bg: '#050a18', fog: '#0b1528', fogD: 0.00048, hemi: '#38bdf8', ground: '#030816', hemiI: 0.25, sun: '#7dd3fc', sunI: 0.55, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.9, forge: 2.3, night: 1 }
+    day:    { bg: '#7dd3fc', fog: '#9bd9f5', fogD: 0.00078, hemi: '#e0f2fe', ground: '#4b634e', hemiI: 0.65, sun: '#fffdf2', sunI: 1.85, sunPos: [900, 1400, 700],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5, night: 0, golden: 0 },
+    golden: { bg: '#38224e', fog: '#c97654', fogD: 0.00052, hemi: '#fdba74', ground: '#2a223b', hemiI: 0.48, sun: '#fb923c', sunI: 1.85, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.75, pool: 0.85, plaza: 1.6, forge: 2.1, night: 0.25, golden: 1 },
+    night:  { bg: '#050a18', fog: '#0b1528', fogD: 0.00048, hemi: '#38bdf8', ground: '#030816', hemiI: 0.25, sun: '#7dd3fc', sunI: 0.55, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.9, forge: 2.3, night: 1, golden: 0 }
   };
   const ATMO_ZELDA = {
-    day:    { bg: '#43aaf7', fog: '#a9e5f8', fogD: 0.00044, hemi: '#d6f3ff', ground: '#557d44', hemiI: 0.72, sun: '#fffbe6', sunI: 2.05, sunPos: [950, 1380, 680],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5, night: 0 },
-    golden: { bg: '#4b2663', fog: '#df8558', fogD: 0.00040, hemi: '#fed7aa', ground: '#382745', hemiI: 0.54, sun: '#fb923c', sunI: 1.95, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.75, pool: 0.85, plaza: 1.6, forge: 2.1, night: 0.25 },
-    night:  { bg: '#071128', fog: '#10203d', fogD: 0.00040, hemi: '#38bdf8', ground: '#071022', hemiI: 0.28, sun: '#93c5fd', sunI: 0.62, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.9, forge: 2.3, night: 1 }
+    day:    { bg: '#43aaf7', fog: '#a9e5f8', fogD: 0.00044, hemi: '#d6f3ff', ground: '#557d44', hemiI: 0.72, sun: '#fffbe6', sunI: 2.05, sunPos: [950, 1380, 680],  glow: 0.4, window: 0.1,  pool: 0,    plaza: 1.0, forge: 1.5, night: 0, golden: 0 },
+    golden: { bg: '#4b2663', fog: '#df8558', fogD: 0.00040, hemi: '#fed7aa', ground: '#382745', hemiI: 0.54, sun: '#fb923c', sunI: 1.95, sunPos: [1100, 380, 500],  glow: 1.4, window: 0.75, pool: 0.85, plaza: 1.6, forge: 2.1, night: 0.25, golden: 1 },
+    night:  { bg: '#071128', fog: '#10203d', fogD: 0.00040, hemi: '#38bdf8', ground: '#071022', hemiI: 0.28, sun: '#93c5fd', sunI: 0.62, sunPos: [-600, 850, -500], glow: 1.8, window: 0.9,  pool: 1.0,  plaza: 1.9, forge: 2.3, night: 1, golden: 0 }
   };
   const ATMO_ICON = { day: '☀', golden: '🌇', night: '🌙' };
   const ATMO_C = {};
@@ -7586,7 +7674,7 @@
     bg: new THREE.Color(ATMO.day.bg), fog: new THREE.Color(ATMO.day.fog), fogD: ATMO.day.fogD,
     hemi: new THREE.Color(ATMO.day.hemi), ground: new THREE.Color(ATMO.day.ground), hemiI: ATMO.day.hemiI,
     sun: new THREE.Color(ATMO.day.sun), sunI: ATMO.day.sunI, sunPos: new THREE.Vector3(...ATMO.day.sunPos),
-    glow: ATMO.day.glow, window: ATMO.day.window, pool: ATMO.day.pool, plaza: ATMO.day.plaza, forge: ATMO.day.forge, night: 0
+    glow: ATMO.day.glow, window: ATMO.day.window, pool: ATMO.day.pool, plaza: ATMO.day.plaza, forge: ATMO.day.forge, night: 0, golden: 0
   };
 
   function nextTimeOfDay(name) { return name === 'day' ? 'golden' : name === 'golden' ? 'night' : 'day'; }
@@ -7615,7 +7703,7 @@
     atmoNow.hemiI += (T.hemiI - atmoNow.hemiI) * k;
     if (materialesEntorno.size) { const ie = intensidadEntorno(); materialesEntorno.forEach(mat => { mat.envMapIntensity = ie; }); }
     atmoNow.sunI += (T.sunI - atmoNow.sunI) * k;
-    ['glow', 'window', 'pool', 'plaza', 'forge', 'night'].forEach(key => { atmoNow[key] += (T[key] - atmoNow[key]) * k; });
+    ['glow', 'window', 'pool', 'plaza', 'forge', 'night', 'golden'].forEach(key => { atmoNow[key] += (T[key] - atmoNow[key]) * k; });
 
     if (scene.background) scene.background.copy(atmoNow.bg);
     AGUA_U.uCielo.value.copy(atmoNow.fog);
@@ -7637,6 +7725,7 @@
       u.uSunDir.value.copy(AGUA_U.uSunDir.value);
       u.uSunColor.value.copy(atmoNow.sun);
       u.uNight.value = atmoNow.night;
+      if (u.uGolden) u.uGolden.value = atmoNow.golden;
       u.uTime.value = performance.now() * 0.001;
       if (u.uBloomSky) u.uBloomSky.value = (QUALITY[quality] && QUALITY[quality].resplandor) ? 1.0 : 0.0;
     }
@@ -7890,7 +7979,10 @@
   // Sin él, sus metales y barnices (materiales PBR) no tienen nada que reflejar y salen oscuros y pardos.
   // Solo se aplica a sus materiales: el terreno y los pueblos se ven igual que antes.
   let entornoActores = null;
+  let cieloPbrActivo = false;
+  let _cielosPbrIniciados = false;
   const entornosAtmo = {};
+  const entornosPbrRT = {};
   const materialesEntorno = new Set();
   const pendientesEntorno = [];
   function construirEnvExterior(pm, cfg) {
@@ -7926,10 +8018,55 @@
       entornoActores = entornosAtmo[timeOfDay] || entornosAtmo.day;
       pendientesEntorno.splice(0).forEach(aplicarEntorno);
       sincronizarEntornoAtmo(timeOfDay);
+      cargarCielosPbr();
     } catch (err) {
       console.warn('Sin entorno de reflejos exterior:', err);
     }
   }
+  function cargarCielosPbr() {
+    if (_cielosPbrIniciados || !renderer || !window.PbrLib) return;
+    const mapaUniform = { day: 'tSkyDay', golden: 'tSkyGolden', night: 'tSkyNight' };
+    const urls = { day: window.PbrLib.cieloUrl('day'), golden: window.PbrLib.cieloUrl('golden'), night: window.PbrLib.cieloUrl('night') };
+    if (!urls.day && !urls.golden && !urls.night) return;
+    _cielosPbrIniciados = true;
+    const ldr = new THREE.TextureLoader();
+    let algunaCargada = false;
+    ['day', 'golden', 'night'].forEach(k => {
+      const url = urls[k];
+      if (!url) return;
+      ldr.load(url, tex => {
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+        if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        if (cielo && cielo.material && cielo.material.uniforms) {
+          const u = cielo.material.uniforms;
+          u[mapaUniform[k]].value = tex;
+          if (!algunaCargada) {
+            algunaCargada = true;
+            ['day', 'golden', 'night'].forEach(otro => {
+              if (!urls[otro] || otro !== k && !entornosPbrRT[otro]) u[mapaUniform[otro]].value = tex;
+            });
+          }
+          if (u.uSkyTexOn) u.uSkyTexOn.value = 1.0;
+        }
+        try {
+          const pm = new THREE.PMREMGenerator(renderer);
+          pm.compileEquirectangularShader();
+          const rt = pm.fromEquirectangular(tex);
+          pm.dispose();
+          if (entornosPbrRT[k]) entornosPbrRT[k].dispose();
+          entornosPbrRT[k] = rt;
+          entornosAtmo[k] = rt.texture;
+          cieloPbrActivo = true;
+          if (k === timeOfDay) sincronizarEntornoAtmo(timeOfDay);
+        } catch (err) {
+          console.warn('PMREM cielo 360° falló para ' + k + ':', err);
+        }
+      });
+    });
+  }
+  if (window.PbrLib) window.PbrLib.onListo(() => { if (renderer) cargarCielosPbr(); });
   function sincronizarEntornoAtmo(name) {
     const tex = entornosAtmo[name];
     if (!tex) return;
@@ -7941,8 +8078,10 @@
       mat.needsUpdate = true;
     });
   }
-  // Más tenue al atardecer y de noche, como la luz ambiente
-  const intensidadEntorno = () => (QUALITY[quality].reflejos ? (atmoNow ? atmoNow.hemiI * 0.55 : 0.35) : 0);
+  // Más tenue al atardecer y de noche, como la luz ambiente; algo mayor con skybox equirectangular PMREM
+  const intensidadEntorno = () => (QUALITY[quality].reflejos
+    ? (cieloPbrActivo ? Math.max(0.28, (atmoNow ? atmoNow.hemiI : 0.6) * 0.85) : (atmoNow ? atmoNow.hemiI * 0.55 : 0.35))
+    : 0);
   function aplicarEntorno(obj) {
     if (!entornoActores) { pendientesEntorno.push(obj); return; }
     obj.traverse(o => {
@@ -9878,6 +10017,62 @@
     }
     updateStats();
   }
+  const VOZ_NPC_MAP = {
+    'guru-1': 'sabia_elara',
+    'guru-2': 'maestro_oren',
+    'guru-3': 'hermana_ysolde',
+    'guru-4': 'viejo_tamsin',
+    'guru-5': 'erudita_mirel',
+    'serv-herrero': 'herrero_brann',
+    'serv-mercader': 'mercader_tovi',
+    'serv-comandante': 'comandante_kaelen',
+    'serv-informante': 'varek_informante',
+    'serv-boticaria': 'madre_cynthia',
+    'serv-hereje': 'saelen_hereje'
+  };
+  const VOZ_CABANA_MAP = {
+    'cabana-1-clasica': 'cabana_1_garek',
+    'cabana-2-posada': 'cabana_2_borgan',
+    'cabana-3-pescador': 'cabana_3_kyle',
+    'cabana-4-vigia': 'cabana_4_varek',
+    'cabana-5-redonda': 'cabana_5_olorin'
+  };
+  function claveVozNpc(npcId) {
+    const raw = String(npcId || '');
+    if (VOZ_NPC_MAP[raw]) return VOZ_NPC_MAP[raw];
+    for (const k of Object.keys(VOZ_NPC_MAP)) {
+      if (raw.indexOf(k + '-') === 0) return VOZ_NPC_MAP[k];
+    }
+    return null;
+  }
+  function claveActoVoz() {
+    if (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.actoActual === 'function' && heroeEst && heroeEst.principal) {
+      const acto = HistoriaLib.actoActual(heroeEst.principal, world);
+      return acto.terminado ? 'fin' : String(acto.numero || 1);
+    }
+    return '1';
+  }
+  function idVozNpc(info) {
+    if (!info) return null;
+    const clave = claveVozNpc(info.id);
+    if (clave) return `${clave}_acto_${claveActoVoz()}`;
+    if (info.cabana && info.cabana.id && VOZ_CABANA_MAP[info.cabana.id]) {
+      return VOZ_CABANA_MAP[info.cabana.id];
+    }
+    const sid = String(info.id || '');
+    if (sid.endsWith('-vigia')) return 'ald_vigia';
+    if (sid.endsWith('-vecina')) return 'ald_vecina';
+    if (sid.endsWith('-campesino')) return 'ald_campesino';
+    if (sid === 'ald-muelle-estibador') return 'ald_estibador';
+    if (sid === 'ald-muelle-pescadora') return 'ald_pescadora';
+    if (sid.indexOf('ald-mazmorra-') === 0) return 'ald_mazmorra';
+    if (sid.indexOf('ald-laberinto-') === 0) return 'ald_laberinto';
+    return null;
+  }
+  function reproducirVozDialogo(id, texto, prioridad = 'alta') {
+    if (!window.Voces) return;
+    window.Voces.hablar(id || null, texto || null, { prioridad });
+  }
   let _bannerNarrTimer = null, _ultimoBannerNarrMs = 0;
   function mostrarBannerNarrativo(hablante, icono, texto, durMs = 5200, forzar = false, replica = null) {
     const el = $('banner-narrativo');
@@ -9889,9 +10084,11 @@
       ? `<div class="bn-rep"><b>${esc(replica.hablante || 'Héroe')}:</b> ${esc(replica.texto)}</div>`
       : '';
     el.innerHTML = `<span class="bn-ico">${esc(icono || '🗣️')}</span><div><div class="bn-nom">${esc(hablante || 'Rowan')}</div><div class="bn-txt">${esc(texto)}</div>${repHtml}</div>`;
+    if (window.ArteUI) window.ArteUI.aplicarRetrato(el.querySelector('.bn-ico'), hablante, icono || '🗣️');
     el.classList.add('show');
     if (_bannerNarrTimer) clearTimeout(_bannerNarrTimer);
     _bannerNarrTimer = setTimeout(() => { if (el) el.classList.remove('show'); }, durMs);
+    reproducirVozDialogo(null, texto, forzar ? 'normal' : 'baja');
   }
   function lanzarSubtituloEvento(ev, forzar = false) {
     if (typeof HistoriaLib === 'undefined' || typeof HistoriaLib.subtituloVivo !== 'function' || !world) return;
@@ -11022,6 +11219,9 @@
       else if (sk.elemento === 'hielo') window.Sonidos.hielo();
       else if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo') window.Sonidos.rayo();
       else if (name !== 'attack' && name !== 'disparo' && window.Sonidos.habilidad) window.Sonidos.habilidad();
+    }
+    if (window.Voces && typeof window.Voces.hablarSkill === 'function') {
+      window.Voces.hablarSkill(name, claseHeroe());
     }
     CombatLib.impactos(name).forEach((t, i) => {
       const golpe = () => {
@@ -12557,7 +12757,11 @@
     const icoEl = btn._icoEl || (btn._icoEl = btn.querySelector('.ico'));
     const cdEl = btn._cdEl || (btn._cdEl = btn.querySelector('.cd'));
     const nuevoIco = CombatLib.SKILLS[id].icono;
-    if (icoEl.textContent !== nuevoIco) icoEl.textContent = nuevoIco;
+    if (window.ArteUI) {
+      window.ArteUI.renderIconoEnElemento(icoEl, id, nuevoIco, claseArmaDelHeroe());
+    } else if (icoEl.textContent !== nuevoIco) {
+      icoEl.textContent = nuevoIco;
+    }
     const nuevoTit = titulo + (bloq ? ' · ' + HeroeLib.requisito(id, claseHeroe(), claseArmaDelHeroe()) : falta ? ' · ' + falta : '');
     if (btn.title !== nuevoTit) btn.title = nuevoTit;
     const deshab = hero.dead || bloq || !!falta || cd > 0 || hero.mp < CombatLib.SKILLS[id].mp;
@@ -12604,7 +12808,8 @@
       if (btn.title !== titVacio) btn.title = titVacio;
       const icoEl = btn._icoEl || (btn._icoEl = btn.querySelector('.ico'));
       const cdEl = btn._cdEl || (btn._cdEl = btn.querySelector('.cd'));
-      if (icoEl.textContent !== '·') icoEl.textContent = '·';
+      if (icoEl.dataset && icoEl.dataset.artKey !== 'txt:·') { icoEl.dataset.artKey = 'txt:·'; icoEl.textContent = '·'; }
+      else if (icoEl.textContent !== '·') icoEl.textContent = '·';
       if (cdEl.textContent !== '') cdEl.textContent = '';
     });
     $('inv-gold').textContent = inv.gold;
@@ -15470,7 +15675,10 @@
   }
 
   let _convDesplegadaNpc = false, _respConvNpc = '';
-  function cerrarNpc() { $('npc').classList.remove('show'); }
+  function cerrarNpc() {
+    $('npc').classList.remove('show');
+    if (window.Voces) window.Voces.detener();
+  }
 
   function abrirDialogoNpc(g) {
     if (!g || !g.info) return;
@@ -15478,13 +15686,16 @@
     npcActual = g.info;
     _convDesplegadaNpc = true;
     _respConvNpc = '';
+    const frase = fraseVivaNpc(g.info);
     $('npc-titulo').textContent = TEXTO_SERVICIO.dialogo.icono + ' ' + g.info.nombre;
-    $('npc-frase').textContent = '«' + fraseVivaNpc(g.info) + '»';
+    if (window.ArteUI) window.ArteUI.aplicarRetrato($('npc-retrato'), (g.info && (g.info.id || g.info.nombre)) || '');
+    $('npc-frase').textContent = '«' + frase + '»';
     $('npc-oro').textContent = inv.gold;
     renderBloqueConversacionNpc();
     $('npc-lista').innerHTML = `<div class="muted" style="margin-top:6px">Elige un tema arriba para conversar con ${esc(g.info.nombre)}.</div>`;
     $('npc').classList.add('show');
     if (window.Sonidos && window.Sonidos.dialogo) window.Sonidos.dialogo();
+    reproducirVozDialogo(idVozNpc(g.info), frase, 'alta');
   }
 
   function renderBloqueConversacionNpc() {
@@ -15544,6 +15755,14 @@
       _respConvNpc = `<div>«${esc(res.respuesta)}»</div>` + (extras.length ? `<div style="margin-top:4px;font-size:11px;color:#4ade80;font-weight:700">${esc(extras.join(' · '))}</div>` : '');
       renderBloqueConversacionNpc();
       if (window.Sonidos && window.Sonidos.dialogo) window.Sonidos.dialogo();
+      const clave = claveVozNpc(npcActual.id);
+      let vozOpId = null;
+      if (op.id === 'trama' && clave) vozOpId = `${clave}_trama_${claveActoVoz()}`;
+      else if (op.id === 'postura') {
+        const esSombra = /^(serv-informante|serv-boticaria|serv-hereje)/.test(npcActual.id);
+        vozOpId = esSombra ? 'postura_sombra' : 'postura_pueblo';
+      }
+      reproducirVozDialogo(vozOpId, res.respuesta, 'alta');
       saveActive(true);
     });
   }
@@ -15555,11 +15774,14 @@
       npcActual = g.info;
       _convDesplegadaNpc = false;
       _respConvNpc = '';
+      const frase = fraseVivaNpc(g.info);
       $('npc-titulo').textContent = (TEXTO_SERVICIO[servicioActual] ? TEXTO_SERVICIO[servicioActual].icono : '👤') + ' ' + g.info.nombre;
-      $('npc-frase').textContent = '«' + fraseVivaNpc(g.info) + '»';
+      if (window.ArteUI) window.ArteUI.aplicarRetrato($('npc-retrato'), (g.info && (g.info.id || g.info.nombre)) || '');
+      $('npc-frase').textContent = '«' + frase + '»';
       $('npc-oro').textContent = inv.gold;
       renderNpc(g.info.servicio);
       $('npc').classList.add('show');
+      reproducirVozDialogo(idVozNpc(g.info), frase, 'alta');
     }).catch(err => toast(err.message));
   }
 
@@ -16168,7 +16390,7 @@
       saveActive(true);
     });
   });
-  $('npc-cerrar').onclick = () => $('npc').classList.remove('show');
+  $('npc-cerrar').onclick = cerrarNpc;
 
   // Misión de cabaña especial (3 Fases cortas vs Cacería Mayor 100 monstruos)
   function renderCabana(s) {
@@ -16934,6 +17156,7 @@
           aplicarPremiosNarrativos(res.premio);
           if (window.Sonidos && window.Sonidos.eleccion) window.Sonidos.eleccion();
           if (res.opcion && res.opcion.reaccionRowan) {
+            reproducirVozDialogo('dec_c' + numero + '_' + optId, res.opcion.reaccionRowan, 'alta');
             lanzarSubtituloEvento({ tipo: 'decision', reaccion: res.opcion.reaccionRowan }, true);
           }
           if (res.epilogo) {
@@ -16952,6 +17175,7 @@
   function mostrarCapitulo(r) {
     if (window.Sonidos && window.Sonidos.mision) window.Sonidos.mision();
     $('cap-sabio').textContent = r.capitulo.sabio + ' cuenta:';
+    if (window.ArteUI) window.ArteUI.aplicarRetrato($('cap-retrato'), (r.capitulo && (r.capitulo.npc || r.capitulo.sabio)) || '');
     $('cap-titulo').textContent = 'Capítulo ' + r.numero + ' · ' + r.capitulo.titulo;
     const hitoEl = $('cap-hito');
     const hito = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.hitoDeCapituloCompletado === 'function')
@@ -17005,6 +17229,7 @@
     if (btnSaltar) btnSaltar.style.display = sig ? '' : 'none';
     renderDecisionCapitulo(r.numero, !!sig);
     $('capitulo').classList.add('show');
+    reproducirVozDialogo('cap_' + String(r.numero).padStart(2, '0') + '_texto', r.texto, 'alta');
   }
 
   function abrirDecisionDesdeCronica(numero) {
@@ -17025,6 +17250,7 @@
     if ($('cap-saltar')) $('cap-saltar').style.display = 'none';
     renderDecisionCapitulo(numero, false);
     $('capitulo').classList.add('show');
+    reproducirVozDialogo('dec_c' + numero + '_contexto', dec.contexto, 'alta');
   }
 
   // Ventana del encargo activo: qué pide el sabio y dónde
@@ -17045,9 +17271,10 @@
     const btnSaltar = $('cap-saltar');
     if (btnSaltar) btnSaltar.style.display = '';
     $('capitulo').classList.add('show');
+    reproducirVozDialogo('cap_' + String(p.paso + 1).padStart(2, '0') + '_encargo', o.encargo, 'alta');
     setTimeout(() => {
       if (typeof interactuarConAcompanante === 'function') {
-        interactuarConAcompanante();
+        interactuarConAcompanante(true);
       }
     }, 500);
   }
@@ -17535,10 +17762,17 @@
   };
   if ($('capitulo')) {
     $('capitulo').onclick = e => {
-      if (e.target === $('capitulo')) $('capitulo').classList.remove('show');
+      if (e.target === $('capitulo')) {
+        $('capitulo').classList.remove('show');
+        if (window.Voces) window.Voces.detener();
+      }
     };
   }
-  $('cap-ir').onclick = () => { $('capitulo').classList.remove('show'); irAMision(); };
+  $('cap-ir').onclick = () => {
+    $('capitulo').classList.remove('show');
+    if (window.Voces) window.Voces.detener();
+    irAMision();
+  };
   $('cap-saltar').onclick = () => {
     $('capitulo').classList.remove('show');
     const p = heroeEst.principal;
@@ -17814,7 +18048,10 @@
       }
     }
   };
-  $('cap-cerrar').onclick = () => $('capitulo').classList.remove('show');
+  $('cap-cerrar').onclick = () => {
+    $('capitulo').classList.remove('show');
+    if (window.Voces) window.Voces.detener();
+  };
   $('sk-heroe').onclick = () => { renderHeroe(); $('heroe').classList.add('show'); };
   $('heroe-cerrar').onclick = () => $('heroe').classList.remove('show');
   // Poner una habilidad en un hueco de la barra (si ya estaba en otro, se intercambian)
@@ -18586,7 +18823,9 @@
       }
       if (dHeroSq < DISTANCIA_HABLAR * DISTANCIA_HABLAR && !g.info.servicio && sec - g.dicho > 25) {
         g.dicho = sec;
-        toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + fraseVivaNpc(g.info) + '»');
+        const frase = fraseVivaNpc(g.info);
+        toast('💬 ' + g.info.nombre + ' (' + g.info.tema + '): «' + frase + '»');
+        reproducirVozDialogo(idVozNpc(g.info), frase, 'baja');
       }
     }
   }
@@ -19906,7 +20145,7 @@
   }
 
   // Interacción y diálogo directo con el acompañante: orientación de misión, distancia, rumbo y advertencias
-  function interactuarConAcompanante() {
+  function interactuarConAcompanante(silencioso = false) {
     asegurarAcompananteActivo();
     if (!acompanante || !character) return;
     const d = destinoDeMision();
@@ -19919,6 +20158,7 @@
       AcompananteLib.decirFrase(acompanante, textoLimpio, 6.0);
     }
     toast('🗣️ ' + consejo, 5500);
+    if (!silencioso) reproducirVozDialogo(null, textoLimpio, 'normal');
     actualizarBocadilloAcompanante();
     if (acompanante.mixer && typeof AcompananteLib !== 'undefined') {
       AcompananteLib.reproducirAnimacionGLB(acompanante, 'victory', 0.2);
@@ -20376,6 +20616,7 @@
     if (tit) tit.textContent = paso === 2
       ? '⚔️ Prólogo · El Juramento en la Plaza'
       : ((pr && pr.titulo) || '🔥 Prólogo · La Emboscada en la Fragua de Brann');
+    reproducirVozDialogo(paso === 2 ? 'prologo_02' : 'prologo_01', null, 'alta');
   }
 
   function rellenarContextoPrologo() {
@@ -20416,6 +20657,7 @@
   function cerrarPrologo() {
     const m = $('modal-prologo');
     if (m) m.classList.remove('show');
+    if (window.Voces) window.Voces.detener();
   }
 
   function finalizarPrologo(saltado) {
@@ -20778,6 +21020,7 @@
         }
       } catch (_) {}
       const vols = window.Sonidos.getVolumenes ? window.Sonidos.getVolumenes() : {};
+      if (window.Voces && typeof vols.master === 'number') window.Voces.setVolumen(vols.master);
       canales.forEach(c => {
         const inp = $('vol-' + c);
         const valEl = $('vol-' + c + '-v');
@@ -20788,6 +21031,7 @@
             const nuevo = Math.max(0, Math.min(100, Number(inp.value) || 0));
             if (valEl) valEl.textContent = nuevo + '%';
             if (window.Sonidos && window.Sonidos.setVolumen) window.Sonidos.setVolumen(c, nuevo / 100);
+            if (window.Voces && c === 'master') window.Voces.setVolumen(nuevo / 100);
             guardarCfgAudio();
             if (on && nuevo > 0) activarAudioAhora();
           };
@@ -20799,10 +21043,12 @@
     const activarAudioAhora = () => {
       if (!on || !window.Sonidos) return;
       if (window.Sonidos.desbloquear) window.Sonidos.desbloquear();
+      if (window.Voces && window.Voces.desbloquear) window.Voces.desbloquear();
       actualizarAmbienteSonoro(performance.now(), !!(gestorMazmorras && gestorMazmorras.enMazmorra), true);
     };
     const sync = () => {
       window.Sonidos.activar(on);
+      if (window.Voces && window.Voces.activar) window.Voces.activar(on);
       btn.textContent = on ? '🔊' : '🔇';
       btn.title = on ? 'Sonido y música activados (pulsa para silenciar)' : 'Sonido y música silenciados (pulsa para activar)';
     };
@@ -20823,6 +21069,7 @@
     window.addEventListener('touchstart', desbloquearPorGesto, { passive: true });
     document.addEventListener('visibilitychange', () => {
       if (window.Sonidos && window.Sonidos.setOculto) window.Sonidos.setOculto(document.hidden);
+      if (document.hidden && window.Voces) window.Voces.detener();
     });
     btn.onclick = () => {
       on = !on;

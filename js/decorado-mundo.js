@@ -30,7 +30,7 @@
     const texMuro = cargarTex(THREE, 'assets/texturas/mmuro/t04.jpg', 1.6, 1.6);
     const texArenisca = cargarTex(THREE, 'assets/texturas/piedra/t07.jpg', 1.6, 1.6);
     const texTela = cargarTex(THREE, 'assets/texturas/alfombras/a1.jpg', 1.5, 1.5);
-    return {
+    const mats = {
       madera: new THREE.MeshStandardMaterial({ color: texMadera ? 0xb88b61 : 0x6b4423, map: texMadera, bumpMap: texMadera, bumpScale: 0.05, roughness: 0.86 }),
       maderaOscura: new THREE.MeshStandardMaterial({ color: texMaderaOsc ? 0x916b4a : 0x3e2411, map: texMaderaOsc, bumpMap: texMaderaOsc, bumpScale: 0.05, roughness: 0.88 }),
       piedra: new THREE.MeshStandardMaterial({ color: texPiedra ? 0xb4bfcc : 0x64748b, map: texPiedra, bumpMap: texPiedra, bumpScale: 0.07, roughness: 0.88, metalness: 0.06 }),
@@ -47,6 +47,16 @@
       junco: new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.82 }),
       humo: new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 1.0, transparent: true, opacity: 0.36, depthWrite: false })
     };
+    if (typeof window !== 'undefined' && window.PbrLib) {
+      window.PbrLib.aplicarEnMaterial(THREE, mats.madera, 'madera/t02', { normalScale: 0.85 });
+      window.PbrLib.aplicarEnMaterial(THREE, mats.maderaOscura, 'madera/t06', { normalScale: 0.85 });
+      window.PbrLib.aplicarEnMaterial(THREE, mats.piedra, 'piedra/t02', { normalScale: 0.9 });
+      window.PbrLib.aplicarEnMaterial(THREE, mats.piedraOscura, 'mmuro/t04', { normalScale: 0.95 });
+      window.PbrLib.aplicarEnMaterial(THREE, mats.arenisca, 'piedra/t07', { normalScale: 0.9 });
+      window.PbrLib.aplicarEnMaterial(THREE, mats.lona, 'alfombras/a1', { normalScale: 0.65 });
+      window.PbrLib.aplicarEnMaterial(THREE, mats.estandarte, 'alfombras/a1', { normalScale: 0.65 });
+    }
+    return mats;
   }
 
   function agregarColumnaHumo(THREE, matHumo, addRel, animados, cx, cy, cz, faseBase, altura) {

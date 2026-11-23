@@ -85,3 +85,10 @@ repositorio es privado.
 
 Audo no genera efectos: limpia audio (quita ruido, eco, zumbidos). Sirve para grabaciones propias (foley con metal
 de verdad) antes de meterlas en `sfx/`.
+
+## Generación gratuita de SFX por IA (Google Colab + AudioLDM2) y voces de skills
+
+- **Manifiesto dinámico (`sfx/manifest.json`):** `js/sonidos.js` consulta `sfx/manifest.json` antes de precargar muestras, de modo que cualquier familia de habilidades que ya tenga `.ogg` en `sfx/` sustituye automáticamente al sonido sintetizado sin provocar errores 404 en las que aún no existen.
+- **Cuaderno Colab (`generar_sfx_colab.ipynb` + `tools/generar-sfx-ia.py`):** genera en GPU T4 gratuita los `.ogg` restantes de `sfx/prompts.json` (`magia`, `arcos`, `torbellino`, `escudo_magico`, `sombra_paso`, `veneno_burbuja`, `impacto_sismico`, `nova_explosion`, etc.) y reconstruye `sfx/manifest.json` automáticamente.
+- **Voces de combate para skills (`voces_skills.json` + `js/voces.js`):** 50 gritos de batalla y conjuros en español generados con `generar_voces.py` en `assets/audio/voces/skills/`, reproducidos con cooldown por `Voces.hablarSkill` y `Voces.hablarCompaneroSkill` sin interrumpir diálogos modales.
+- **Voces expresivas con pasión/desgarro (`generar_voces_chatterbox_colab.ipynb` + `tools/generar-voces-chatterbox.py`):** flujo alternativo en GPU T4 gratuita de Google Colab con **Chatterbox Multilingual** (`exaggeration`, `cfg_weight`, clonación con clips de 5–10 s y cadena `ffmpeg` de combate/drama) para sustituir los `.ogg` de `edge-tts` por interpretaciones con mayor intensidad emocional.

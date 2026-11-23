@@ -1,0 +1,1556 @@
+[
+  {
+    "id": "prologo_01",
+    "personaje": "narrador",
+    "texto": "La noche cae sobre las murallas de Albaferro, puerta de entrada a Valdris. Mientras el Herrero Brann forja a escondidas del cónclave, un estruendo quiebra las vigas: bestias alteradas con placas de hierro remachadas irrumpen desde la oscuridad. Brann abatió a la primera criatura antes de desplomarse herido junto al yunque, aferrando un sello de bronce del Consejo. Nos han traicionado desde dentro… alguien alimenta esta plaga más allá de Puerto Brisal y hasta Trono de Ceniza, susurra. Antes de que la guardia cierre las empalizadas de Albaferro, debes escapar hacia Prados del Yunque Roto y recuperar pieles y placas de pierna para forjar tus primeros pantalones reforzados.",
+    "archivo_audio": "assets/audio/voces/prologo_01.ogg"
+  },
+  {
+    "id": "prologo_02",
+    "personaje": "narrador",
+    "texto": "Junto a la arcada de la plaza, cuatro compañeros de confianza están dispuestos a romper el miedo y marchar contigo hacia Prados del Yunque Roto. Elige quién luchará a tu lado desde el primer paso.",
+    "archivo_audio": "assets/audio/voces/prologo_02.ogg"
+  },
+  {
+    "id": "cap_01_encargo",
+    "personaje": "sabia_elara",
+    "texto": "El Herrero Brann tose sangre sobre el yunque de Albaferro tras la emboscada: ¡Nos han tendido una trampa en nuestras propias murallas! Id a Prados del Yunque Roto y abated a 8 criaturas alteradas; traedme sus correas de cuero y placas de pierna para forjar tus pantalones reforzados antes de que la guardia cierre las puertas.",
+    "archivo_audio": "assets/audio/voces/cap_01_encargo.ogg"
+  },
+  {
+    "id": "cap_01_texto",
+    "personaje": "sabia_elara",
+    "texto": "Regresas de Prados del Yunque Roto cubierto de hollín. Brann remacha tus pantalones reforzados y señala el sello hallado entre los despojos: Alguien en Albaferro está forjando monstruos con hierro militar.",
+    "archivo_audio": "assets/audio/voces/cap_01_texto.ogg"
+  },
+  {
+    "id": "cap_02_encargo",
+    "personaje": "maestro_oren",
+    "texto": "El Maestro Oren te intercepta en el sendero de Albaferro: Un emisario de Puerto Brisal llevaba la lista real de sospechosos antes de desaparecer en Acantilados de la Marea Roja. Abate a 12 bestias allí y recupera sus tendones reforzados para que Brann te forje unas botas de marcha.",
+    "archivo_audio": "assets/audio/voces/cap_02_encargo.ogg"
+  },
+  {
+    "id": "cap_02_texto",
+    "personaje": "maestro_oren",
+    "texto": "En Acantilados de la Marea Roja recuperas tanto el cuero de marcha como una orden sellada con tu nombre rumbo a Puerto Brisal. Tus pasos ahora resisten cualquier calzada o risco.",
+    "archivo_audio": "assets/audio/voces/cap_02_texto.ogg"
+  },
+  {
+    "id": "cap_03_encargo",
+    "personaje": "hermana_ysolde",
+    "texto": "La Hermana Ysolde oculta un vial turbio bajo su túnica: Las caravanas que cruzan Claro de la Savia Oscura están cayendo en emboscadas. Abate a 15 criaturas alteradas allí y arráncales sus garras blindadas para forjar guantes de combate.",
+    "archivo_audio": "assets/audio/voces/cap_03_encargo.ogg"
+  },
+  {
+    "id": "cap_03_texto",
+    "personaje": "hermana_ysolde",
+    "texto": "Combates espalda con espalda con tu compañero en Claro de la Savia Oscura. Con las garras obtenidas, Brann templa tus guanteletes y sella la hermandad total con tu acompañante.",
+    "archivo_audio": "assets/audio/voces/cap_03_texto.ogg"
+  },
+  {
+    "id": "cap_04_encargo",
+    "personaje": "viejo_tamsin",
+    "texto": "El Viejo Tamsin señala hacia Laberinto del Seto Maldito: Los capataces del cónclave esconden sus remesas tras los muros de Laberinto del Seto Maldito. Adéntrate en el laberinto natural y Destroza a 18 guardianes allí y trae sus placas para forjar tu peto; te enseñaré a partir la tierra con Impacto Sísmico (Q).",
+    "archivo_audio": "assets/audio/voces/cap_04_encargo.ogg"
+  },
+  {
+    "id": "cap_04_texto",
+    "personaje": "viejo_tamsin",
+    "texto": "Con las planchas recogidas en Laberinto del Seto Maldito, Brann martilla un peto macizo con hombreras integradas y Tamsin despierta en tu brazo el Impacto Sísmico (Q).",
+    "archivo_audio": "assets/audio/voces/cap_04_texto.ogg"
+  },
+  {
+    "id": "cap_05_encargo",
+    "personaje": "erudita_mirel",
+    "texto": "La Erudita Mirel examina los mapas de Ámbar de Dunas: Las emanaciones cercanas a Marismas del Silencio doblan la voluntad de los viajeros. Abate a 20 criaturas allí para recolectar refuerzos óseos con los que sellar tu yelmo.",
+    "archivo_audio": "assets/audio/voces/cap_05_encargo.ogg"
+  },
+  {
+    "id": "cap_05_texto",
+    "personaje": "erudita_mirel",
+    "texto": "Al ajustar el yelmo forjado con piezas de Marismas del Silencio, las voces telepáticas del cónclave se apagan al instante y completas las cinco piezas de tu armadura. Estás listo para seguir su rastro hacia los santuarios ocultos.",
+    "archivo_audio": "assets/audio/voces/cap_05_texto.ogg"
+  },
+  {
+    "id": "cap_06_encargo",
+    "personaje": "sabia_elara",
+    "texto": "Elara te entrega un mapa cifrado hacia Fuente Arcana de la Esperanza: Sumerge tu armadura de cinco piezas en la fuente luminiscente para resistir el acero rúnico, pero mantente alerta: el agua guarda secretos de la Corona.",
+    "archivo_audio": "assets/audio/voces/cap_06_encargo.ogg"
+  },
+  {
+    "id": "cap_06_texto",
+    "personaje": "sabia_elara",
+    "texto": "En Fuente Arcana de la Esperanza, las cinco piezas de tu armadura absorben un fulgor azulado indestructible. Bajo la superficie descubres jaulas selladas con emblemas idénticos a los de las patrullas corruptas.",
+    "archivo_audio": "assets/audio/voces/cap_06_texto.ogg"
+  },
+  {
+    "id": "cap_07_encargo",
+    "personaje": "maestro_oren",
+    "texto": "Oren señala la ruta que une las tierras medias con Ámbar de Dunas: Las vetas de hierro puro en Desfiladero del Óxido están tomadas por escoltas renegados. Abate a 22 enemigos allí y recupera metal suficiente para forjar tu arma maestra.",
+    "archivo_audio": "assets/audio/voces/cap_07_encargo.ogg"
+  },
+  {
+    "id": "cap_07_texto",
+    "personaje": "maestro_oren",
+    "texto": "Con el mineral puro de Desfiladero del Óxido, Brann templa tu arma maestra entre chispas azules. Tu equipo completo de campaña queda forjado y unido bajo una sola voluntad.",
+    "archivo_audio": "assets/audio/voces/cap_07_texto.ogg"
+  },
+  {
+    "id": "cap_08_encargo",
+    "personaje": "hermana_ysolde",
+    "texto": "Ysolde rasga sus votos frente a ti: La energía encerrada en Cañón del Pacto de Arena. Adéntrate en el laberinto natural y pertenece a los reyes antiguos, no al cónclave. Derrota a 25 centinelas allí para liberar la Explosión Nova (E).",
+    "archivo_audio": "assets/audio/voces/cap_08_encargo.ogg"
+  },
+  {
+    "id": "cap_08_texto",
+    "personaje": "hermana_ysolde",
+    "texto": "Una onda expansiva dorada recorre Cañón del Pacto de Arena. Has desbloqueado la Explosión Nova (E) y confirmado que las reliquias de Valdris responden a los libres, no a los tiranos.",
+    "archivo_audio": "assets/audio/voces/cap_08_texto.ogg"
+  },
+  {
+    "id": "cap_09_encargo",
+    "personaje": "viejo_tamsin",
+    "texto": "Tamsin baja la voz: Antes de morir, el cronista escondió en Cabaña de Troncos del Bosque los planos de Cripta de las Raíces Negras y el registro de envíos hacia Trono de Ceniza. Llega hasta allí antes de que los inquisidores lo reduzcan a cenizas.",
+    "archivo_audio": "assets/audio/voces/cap_09_encargo.ogg"
+  },
+  {
+    "id": "cap_09_texto",
+    "personaje": "viejo_tamsin",
+    "texto": "En Cabaña de Troncos del Bosque hallas el diario completo: revela los nombres de los conspiradores, la red de monopolio mercantil y el despertar subterráneo bajo Trono de Ceniza.",
+    "archivo_audio": "assets/audio/voces/cap_09_texto.ogg"
+  },
+  {
+    "id": "cap_10_encargo",
+    "personaje": "sabia_elara",
+    "texto": "Los pasos fronterizos hacia Trono de Ceniza arden bajo patrullas de choque en Costa de las Brumas Boreales. Hay que romper el bloqueo ahora mismo: abatid a 25 enemigos en Costa de las Brumas Boreales para abrir paso al norte.",
+    "archivo_audio": "assets/audio/voces/cap_10_encargo.ogg"
+  },
+  {
+    "id": "cap_10_texto",
+    "personaje": "sabia_elara",
+    "texto": "El cerco de Costa de las Brumas Boreales se desmorona. Las caravanas rebeldes y los exploradores de Puerto Brisal y Ámbar de Dunas por fin tienen vía libre hacia la frontera.",
+    "archivo_audio": "assets/audio/voces/cap_10_texto.ogg"
+  },
+  {
+    "id": "cap_11_encargo",
+    "personaje": "maestro_oren",
+    "texto": "Oren te confía la llave rúnica: Consagra Altar Rúnico de los Sabios de la Bruma cerca de Ámbar de Dunas. Cuando caiga su sello eclesial, Brann y los mercaderes volverán a forjar y vender equipo superior (Nv. 12+) sin censura.",
+    "archivo_audio": "assets/audio/voces/cap_11_encargo.ogg"
+  },
+  {
+    "id": "cap_11_texto",
+    "personaje": "maestro_oren",
+    "texto": "Un haz luminoso parte el cielo sobre Altar Rúnico de los Sabios de la Bruma: ¡el monopolio mercantil del cónclave queda destruido! Las fraguas superiores y tiendas de todo Valdris reabren sus puertas.",
+    "archivo_audio": "assets/audio/voces/cap_11_texto.ogg"
+  },
+  {
+    "id": "cap_12_encargo",
+    "personaje": "hermana_ysolde",
+    "texto": "La ciudadela cercana a Trono de Ceniza resiste protegida por un velo arcano alimentado desde Garganta de Obsidiana. Derrota a 30 guardianes en Garganta de Obsidiana para derribar los pilares de resonancia.",
+    "archivo_audio": "assets/audio/voces/cap_12_encargo.ogg"
+  },
+  {
+    "id": "cap_12_texto",
+    "personaje": "hermana_ysolde",
+    "texto": "La cúpula energética colapsa con un rugido sobre Garganta de Obsidiana. El acceso al corazón mismo de la conspiración en Trono de Ceniza queda abierto.",
+    "archivo_audio": "assets/audio/voces/cap_12_texto.ogg"
+  },
+  {
+    "id": "cap_13_encargo",
+    "personaje": "sabia_elara",
+    "texto": "Elara te cita frente a los monolitos de Santuario de Piedra y Luz de las Estrellas: Contempla la fuente original que el cónclave intentó usurpar bajo Sanctum del Trono Quebrado. Descubre sus ruinas para localizar el núcleo del titán.",
+    "archivo_audio": "assets/audio/voces/cap_13_encargo.ogg"
+  },
+  {
+    "id": "cap_13_texto",
+    "personaje": "sabia_elara",
+    "texto": "En Santuario de Piedra y Luz de las Estrellas, las estelas revelan la verdad definitiva: el cónclave planeaba fusionar la savia corrupta con Aurelio, Titán del Sol Quebrado para someter todas las rutas de Valdris.",
+    "archivo_audio": "assets/audio/voces/cap_13_texto.ogg"
+  },
+  {
+    "id": "cap_14_encargo",
+    "personaje": "viejo_tamsin",
+    "texto": "Tamsin alza su mandoble hacia Cráter del Sol Quebrado, junto a Trono de Ceniza: Nadie ha vuelto vivo de los dominios de Aurelio, Titán del Sol Quebrado. Derriba al coloso en Cráter del Sol Quebrado antes de que despierte la última fragua abisal.",
+    "archivo_audio": "assets/audio/voces/cap_14_encargo.ogg"
+  },
+  {
+    "id": "cap_14_texto",
+    "personaje": "viejo_tamsin",
+    "texto": "En un combate épico en Cráter del Sol Quebrado, tu compañero desvía el golpe mortal y atraviesas el núcleo de Aurelio, Titán del Sol Quebrado. Las líneas de suministro de monstruos mecánicos se apagan para siempre.",
+    "archivo_audio": "assets/audio/voces/cap_14_texto.ogg"
+  },
+  {
+    "id": "cap_15_encargo",
+    "personaje": "hermana_ysolde",
+    "texto": "Con el titán derrotado, tu compañero te pide acudir una última vez a Fuente Arcana de la Esperanza para purificar los restos de aceite oscuro y sellar el pacto de los pueblos libres de Valdris.",
+    "archivo_audio": "assets/audio/voces/cap_15_encargo.ogg"
+  },
+  {
+    "id": "cap_15_texto",
+    "personaje": "hermana_ysolde",
+    "texto": "En Fuente Arcana de la Esperanza, la savia gris se disuelve en vapor limpio. Los ríos que alimentan Albaferro y Puerto Brisal vuelven a correr puros bajo el cielo abierto.",
+    "archivo_audio": "assets/audio/voces/cap_15_texto.ogg"
+  },
+  {
+    "id": "cap_16_encargo",
+    "personaje": "erudita_mirel",
+    "texto": "Regresa a la plaza de Albaferro. La Erudita Mirel, Brann y los enviados desde Puerto Brisal hasta Trono de Ceniza aguardan para juzgar al cónclave y grabar vuestro título en la crónica.",
+    "archivo_audio": "assets/audio/voces/cap_16_encargo.ogg"
+  },
+  {
+    "id": "cap_16_texto",
+    "personaje": "erudita_mirel",
+    "texto": "Entre vítores bajo la arcada de Albaferro, las campanas tañen desde Puerto Brisal hasta Trono de Ceniza. Vuestra gesta queda sellada para la eternidad: ¡sois los Libertadores de Valdris!",
+    "archivo_audio": "assets/audio/voces/cap_16_texto.ogg"
+  },
+  {
+    "id": "hito_05",
+    "personaje": "narrador",
+    "texto": "Mente Blindada ante la Corrupción. El yelmo óseo forjado con trofeos de Marismas del Silencio sella tu mente. Comienza la búsqueda de santuarios y pruebas.",
+    "archivo_audio": "assets/audio/voces/hito_05.ogg"
+  },
+  {
+    "id": "hito_08",
+    "personaje": "narrador",
+    "texto": "Despertar de la Explosión Nova. La Hermana Ysolde rompe en secreto la disciplina del cónclave y libera el poder antiguo en Cañón del Pacto de Arena.",
+    "archivo_audio": "assets/audio/voces/hito_08.ogg"
+  },
+  {
+    "id": "hito_10",
+    "personaje": "narrador",
+    "texto": "Frontera Desbloqueada. Cae el bloqueo hacia Trono de Ceniza y las regiones extremas de Valdris quedan a tu alcance.",
+    "archivo_audio": "assets/audio/voces/hito_10.ogg"
+  },
+  {
+    "id": "hito_11",
+    "personaje": "narrador",
+    "texto": "¡Monopolio Comercial Quebrado!. Las forjas de Brann y los mercaderes reabren todo el catálogo superior (Nv. 12+) en todos los pueblos.",
+    "archivo_audio": "assets/audio/voces/hito_11.ogg"
+  },
+  {
+    "id": "hito_14",
+    "personaje": "narrador",
+    "texto": "Caída de Aurelio, Titán del Sol Quebrado. Aurelio, Titán del Sol Quebrado yace derrotado junto a Trono de Ceniza. Solo resta purificar las aguas y regresar a Albaferro.",
+    "archivo_audio": "assets/audio/voces/hito_14.ogg"
+  },
+  {
+    "id": "hito_16",
+    "personaje": "narrador",
+    "texto": "Triunfo en la Plaza de Albaferro. Has completado la crónica de Valdris. Las mazmorras (Cripta de las Raíces Negras, Catacumbas del Sol Enterrado, Sanctum del Trono Quebrado) y las 5 cabañas quedan abiertas.",
+    "archivo_audio": "assets/audio/voces/hito_16.ogg"
+  },
+  {
+    "id": "sabia_elara_acto_1",
+    "personaje": "sabia_elara",
+    "texto": "En Albaferro todos vigilan lo que llevas al yunque de Brann. Empieza limpiando Prados del Yunque Roto.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_acto_1.ogg"
+  },
+  {
+    "id": "sabia_elara_acto_2",
+    "personaje": "sabia_elara",
+    "texto": "Las fuentes arcanas de Valdris guardan rastros de cargamentos desaparecidos entre Albaferro y Puerto Brisal.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_acto_2.ogg"
+  },
+  {
+    "id": "sabia_elara_acto_3",
+    "personaje": "sabia_elara",
+    "texto": "Si llegas al santuario cerca de Trono de Ceniza, entenderás por qué el cónclave temía tu avance.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_acto_3.ogg"
+  },
+  {
+    "id": "sabia_elara_acto_4",
+    "personaje": "sabia_elara",
+    "texto": "Aurelio, Titán del Sol Quebrado ha caído… quizá la voluntad de los pueblos libres valga más que todos nuestros sellos.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_acto_4.ogg"
+  },
+  {
+    "id": "sabia_elara_acto_fin",
+    "personaje": "sabia_elara",
+    "texto": "Tu nombre ya forma parte eterna de las crónicas de Valdris.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_acto_fin.ogg"
+  },
+  {
+    "id": "maestro_oren_acto_1",
+    "personaje": "maestro_oren",
+    "texto": "Sigue las calzadas entre Albaferro y Puerto Brisal; las patrullas corruptas vigilan cada bifurcación.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_acto_1.ogg"
+  },
+  {
+    "id": "maestro_oren_acto_2",
+    "personaje": "maestro_oren",
+    "texto": "Las vetas libres cerca de Ámbar de Dunas son vitales para templar tu arma maestra.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_acto_2.ogg"
+  },
+  {
+    "id": "maestro_oren_acto_3",
+    "personaje": "maestro_oren",
+    "texto": "¡Con el Altar Rúnico consagrado, los caminos entre Albaferro, Ámbar de Dunas y Trono de Ceniza vuelven a ser libres!",
+    "archivo_audio": "assets/audio/voces/maestro_oren_acto_3.ogg"
+  },
+  {
+    "id": "maestro_oren_acto_4",
+    "personaje": "maestro_oren",
+    "texto": "Las caravanas vuelven a circular sin miedo desde la costa hasta Trono de Ceniza.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_acto_4.ogg"
+  },
+  {
+    "id": "maestro_oren_acto_fin",
+    "personaje": "maestro_oren",
+    "texto": "Cada camino de Valdris lleva hoy la huella de los Libertadores de Valdris.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_acto_fin.ogg"
+  },
+  {
+    "id": "hermana_ysolde_acto_1",
+    "personaje": "hermana_ysolde",
+    "texto": "Entrena tus técnicas en silencio en Albaferro. Las runas antiguas no pertenecen al cónclave.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_acto_1.ogg"
+  },
+  {
+    "id": "hermana_ysolde_acto_2",
+    "personaje": "hermana_ysolde",
+    "texto": "Cuando alcances Cañón del Pacto de Arena, la Explosión Nova despertará ante tus manos.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_acto_2.ogg"
+  },
+  {
+    "id": "hermana_ysolde_acto_3",
+    "personaje": "hermana_ysolde",
+    "texto": "He roto mis votos definitivamente. Derriba la barrera que protege Trono de Ceniza.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_acto_3.ogg"
+  },
+  {
+    "id": "hermana_ysolde_acto_4",
+    "personaje": "hermana_ysolde",
+    "texto": "Purifica las aguas de Valdris para que ninguna otra forja oscura vuelva a nacer.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_acto_4.ogg"
+  },
+  {
+    "id": "hermana_ysolde_acto_fin",
+    "personaje": "hermana_ysolde",
+    "texto": "Las runas sirven ahora al pueblo libre, no a las sombras.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_acto_fin.ogg"
+  },
+  {
+    "id": "viejo_tamsin_acto_1",
+    "personaje": "viejo_tamsin",
+    "texto": "Aprende a partir la tierra: los constructos que merodean por Laberinto del Seto Maldito se quiebran con impacto sísmico.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_acto_1.ogg"
+  },
+  {
+    "id": "viejo_tamsin_acto_2",
+    "personaje": "viejo_tamsin",
+    "texto": "El diario de la cabaña contiene las rutas secretas hacia Cripta de las Raíces Negras.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_acto_2.ogg"
+  },
+  {
+    "id": "viejo_tamsin_acto_3",
+    "personaje": "viejo_tamsin",
+    "texto": "Cuando entres al territorio de Aurelio, Titán del Sol Quebrado, lleva contigo todo tu temple.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_acto_3.ogg"
+  },
+  {
+    "id": "viejo_tamsin_acto_4",
+    "personaje": "viejo_tamsin",
+    "texto": "Aurelio, Titán del Sol Quebrado ya no volverá a alzarse sobre Trono de Ceniza.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_acto_4.ogg"
+  },
+  {
+    "id": "viejo_tamsin_acto_fin",
+    "personaje": "viejo_tamsin",
+    "texto": "Las criptas como Sanctum del Trono Quebrado siguen guardando pruebas para guerreros legendarios.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_acto_fin.ogg"
+  },
+  {
+    "id": "erudita_mirel_acto_1",
+    "personaje": "erudita_mirel",
+    "texto": "Revisa siempre la durabilidad de tu equipo y blinda tu yelmo en cuanto llegues a Marismas del Silencio.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_acto_1.ogg"
+  },
+  {
+    "id": "erudita_mirel_acto_2",
+    "personaje": "erudita_mirel",
+    "texto": "Cada pieza recuperada demuestra quién financia estas aberraciones desde Ámbar de Dunas hasta Trono de Ceniza.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_acto_2.ogg"
+  },
+  {
+    "id": "erudita_mirel_acto_3",
+    "personaje": "erudita_mirel",
+    "texto": "Reúno todas las actas y testimonios para el juicio en la plaza de Albaferro.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_acto_3.ogg"
+  },
+  {
+    "id": "erudita_mirel_acto_4",
+    "personaje": "erudita_mirel",
+    "texto": "Todo Valdris aguarda en la plaza para escuchar vuestro veredicto.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_acto_4.ogg"
+  },
+  {
+    "id": "erudita_mirel_acto_fin",
+    "personaje": "erudita_mirel",
+    "texto": "Los anales de Albaferro honran por siempre a los Libertadores de Valdris.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_acto_fin.ogg"
+  },
+  {
+    "id": "herrero_brann_acto_1",
+    "personaje": "herrero_brann",
+    "texto": "Mi yunque en Albaferro sigue ardiendo a escondidas. Tráeme trofeos de Prados del Yunque Roto y Acantilados de la Marea Roja.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_acto_1.ogg"
+  },
+  {
+    "id": "herrero_brann_acto_2",
+    "personaje": "herrero_brann",
+    "texto": "En cuanto consigas hierro puro de Desfiladero del Óxido, forjaré tu arma definitiva.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_acto_2.ogg"
+  },
+  {
+    "id": "herrero_brann_acto_3",
+    "personaje": "herrero_brann",
+    "texto": "¡El monopolio cayó! Ya puedo trabajar equipo superior desde nivel 12 en toda Valdris.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_acto_3.ogg"
+  },
+  {
+    "id": "herrero_brann_acto_4",
+    "personaje": "herrero_brann",
+    "texto": "El acero sale limpio de la fragua; es hora de cerrar el juicio en Albaferro.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_acto_4.ogg"
+  },
+  {
+    "id": "herrero_brann_acto_fin",
+    "personaje": "herrero_brann",
+    "texto": "Para los Libertadores de Valdris, mi fragua siempre arderá con fuego perfecto.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_acto_fin.ogg"
+  },
+  {
+    "id": "mercader_tovi_acto_1",
+    "personaje": "mercader_tovi",
+    "texto": "Los inspectores bloquean las ventas superiores en Albaferro y Puerto Brisal hasta que rompas el monopolio (Nv. 12).",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_acto_1.ogg"
+  },
+  {
+    "id": "mercader_tovi_acto_2",
+    "personaje": "mercader_tovi",
+    "texto": "Tráeme el botín de las cacerías y aprovisiónate de pociones antes de cruzar hacia Ámbar de Dunas.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_acto_2.ogg"
+  },
+  {
+    "id": "mercader_tovi_acto_3",
+    "personaje": "mercader_tovi",
+    "texto": "¡Libre comercio al fin! Las rutas desde Puerto Brisal hasta Ámbar de Dunas vuelven a fluir.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_acto_3.ogg"
+  },
+  {
+    "id": "mercader_tovi_acto_4",
+    "personaje": "mercader_tovi",
+    "texto": "Las caravanas celebran vuestro triunfo en cada plaza.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_acto_4.ogg"
+  },
+  {
+    "id": "mercader_tovi_acto_fin",
+    "personaje": "mercader_tovi",
+    "texto": "¡El mercado de Valdris nunca había visto tanta abundancia!",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_acto_fin.ogg"
+  },
+  {
+    "id": "comandante_kaelen_acto_1",
+    "personaje": "comandante_kaelen",
+    "texto": "Tráeme pruebas del cónclave y no tendrás problemas con mi guarnición.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_acto_1.ogg"
+  },
+  {
+    "id": "comandante_kaelen_acto_2",
+    "personaje": "comandante_kaelen",
+    "texto": "Esos diarios incriminan a los jefes de plaza. Mis exploradores despejarán vuestra marcha hacia Ámbar de Dunas.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_acto_2.ogg"
+  },
+  {
+    "id": "comandante_kaelen_acto_3",
+    "personaje": "comandante_kaelen",
+    "texto": "La guardia está con vosotros para asegurar los flancos rumbo a Trono de Ceniza.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_acto_3.ogg"
+  },
+  {
+    "id": "comandante_kaelen_acto_4",
+    "personaje": "comandante_kaelen",
+    "texto": "Las murallas de Albaferro vuelven a servir al pueblo.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_acto_4.ogg"
+  },
+  {
+    "id": "comandante_kaelen_acto_fin",
+    "personaje": "comandante_kaelen",
+    "texto": "La guardia rinde honores a los Libertadores de Valdris.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_acto_fin.ogg"
+  },
+  {
+    "id": "varek_informante_acto_1",
+    "personaje": "varek_informante",
+    "texto": "Dicen que las cabañas cercanas a Albaferro esconden pistas sobre cargamentos perdidos.",
+    "archivo_audio": "assets/audio/voces/varek_informante_acto_1.ogg"
+  },
+  {
+    "id": "varek_informante_acto_2",
+    "personaje": "varek_informante",
+    "texto": "Entre Puerto Brisal y Ámbar de Dunas desaparecen caravanas enteras rumbo a Cripta de las Raíces Negras.",
+    "archivo_audio": "assets/audio/voces/varek_informante_acto_2.ogg"
+  },
+  {
+    "id": "varek_informante_acto_3",
+    "personaje": "varek_informante",
+    "texto": "Mis contactos ven humo saliendo cerca de Trono de Ceniza. Prepara tus mejores elixires.",
+    "archivo_audio": "assets/audio/voces/varek_informante_acto_3.ogg"
+  },
+  {
+    "id": "varek_informante_acto_4",
+    "personaje": "varek_informante",
+    "texto": "Con Aurelio, Titán del Sol Quebrado vencido, solo quedan tesoros ocultos en las criptas profundas.",
+    "archivo_audio": "assets/audio/voces/varek_informante_acto_4.ogg"
+  },
+  {
+    "id": "varek_informante_acto_fin",
+    "personaje": "varek_informante",
+    "texto": "Si buscas retos en Sanctum del Trono Quebrado, siempre tengo coordenadas frescas.",
+    "archivo_audio": "assets/audio/voces/varek_informante_acto_fin.ogg"
+  },
+  {
+    "id": "madre_cynthia_acto_1",
+    "personaje": "madre_cynthia",
+    "texto": "Mis destilados mantienen en pie a quien se atreve a entrar en Prados del Yunque Roto sin armadura completa.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_acto_1.ogg"
+  },
+  {
+    "id": "madre_cynthia_acto_2",
+    "personaje": "madre_cynthia",
+    "texto": "En los pantanos y bosques de Valdris la savia corrupta quema la piel: lleva fuego líquido.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_acto_2.ogg"
+  },
+  {
+    "id": "madre_cynthia_acto_3",
+    "personaje": "madre_cynthia",
+    "texto": "Contra Aurelio, Titán del Sol Quebrado necesitarás pociones de furia y temple.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_acto_3.ogg"
+  },
+  {
+    "id": "madre_cynthia_acto_4",
+    "personaje": "madre_cynthia",
+    "texto": "Purificar las aguas devolvió la pureza incluso a mis hierbas.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_acto_4.ogg"
+  },
+  {
+    "id": "madre_cynthia_acto_fin",
+    "personaje": "madre_cynthia",
+    "texto": "Las mazmorras de Valdris siguen exigiendo buenos brebajes.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_acto_fin.ogg"
+  },
+  {
+    "id": "saelen_hereje_acto_1",
+    "personaje": "saelen_hereje",
+    "texto": "Si buscas poder más allá de las leyes de Albaferro, mis runas esperan en la sombra.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_acto_1.ogg"
+  },
+  {
+    "id": "saelen_hereje_acto_2",
+    "personaje": "saelen_hereje",
+    "texto": "Ellos llaman herejía a mis grabados mientras infectan los bosques de Puerto Brisal.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_acto_2.ogg"
+  },
+  {
+    "id": "saelen_hereje_acto_3",
+    "personaje": "saelen_hereje",
+    "texto": "Graba furia en tu acero antes de enfrentarte a Aurelio, Titán del Sol Quebrado.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_acto_3.ogg"
+  },
+  {
+    "id": "saelen_hereje_acto_4",
+    "personaje": "saelen_hereje",
+    "texto": "Incluso en tiempos libres, alguien debe vigilar lo que duerme bajo tierra.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_acto_4.ogg"
+  },
+  {
+    "id": "saelen_hereje_acto_fin",
+    "personaje": "saelen_hereje",
+    "texto": "Mi yunque oscuro sigue abierto para quienes desciendan a Sanctum del Trono Quebrado.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_acto_fin.ogg"
+  },
+  {
+    "id": "sabia_elara_trama_1",
+    "personaje": "sabia_elara",
+    "texto": "El cónclave controla cada yunque desde la sombra. Si encuentras sellos de bronce entre las bestias, no confíes ni en tu propia sombra.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_trama_1.ogg"
+  },
+  {
+    "id": "sabia_elara_trama_2",
+    "personaje": "sabia_elara",
+    "texto": "Las jaulas bajo las fuentes se fabricaron con hierro de las minas reales antes del asedio.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_trama_2.ogg"
+  },
+  {
+    "id": "sabia_elara_trama_3",
+    "personaje": "sabia_elara",
+    "texto": "Ya no finjas obediencia: si llegas al santuario mayor entenderás qué intentábamos contener bajo el cráter.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_trama_3.ogg"
+  },
+  {
+    "id": "sabia_elara_trama_4",
+    "personaje": "sabia_elara",
+    "texto": "Solo un alma templada puede cerrar el juicio sin repetir nuestra caída.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_trama_4.ogg"
+  },
+  {
+    "id": "sabia_elara_trama_fin",
+    "personaje": "sabia_elara",
+    "texto": "La historia siempre olvida los nombres de quienes firman las leyes en secreto… pero recordará los vuestros.",
+    "archivo_audio": "assets/audio/voces/sabia_elara_trama_fin.ogg"
+  },
+  {
+    "id": "maestro_oren_trama_1",
+    "personaje": "maestro_oren",
+    "texto": "Cortamos los mapas de las calzadas para que los inquisidores perdieran el rastro de vuestros pasos.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_trama_1.ogg"
+  },
+  {
+    "id": "maestro_oren_trama_2",
+    "personaje": "maestro_oren",
+    "texto": "Las vetas fuera de la carretera principal escapan al recuento fiscal de los Sabios.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_trama_2.ogg"
+  },
+  {
+    "id": "maestro_oren_trama_3",
+    "personaje": "maestro_oren",
+    "texto": "Ahora que el Altar Rúnico arde libre, ningún comerciante pagará tributo al Óxido.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_trama_3.ogg"
+  },
+  {
+    "id": "maestro_oren_trama_4",
+    "personaje": "maestro_oren",
+    "texto": "Hasta los arrieros de las fronteras regresan cargados de especias y acero limpio.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_trama_4.ogg"
+  },
+  {
+    "id": "maestro_oren_trama_fin",
+    "personaje": "maestro_oren",
+    "texto": "Las siete rutas de comercio cantan baladas de vuestra travesía.",
+    "archivo_audio": "assets/audio/voces/maestro_oren_trama_fin.ogg"
+  },
+  {
+    "id": "hermana_ysolde_trama_1",
+    "personaje": "hermana_ysolde",
+    "texto": "Cada túnica blanca oculta manchas grises de aceite rúnico. Sigue entrenando tus técnicas.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_trama_1.ogg"
+  },
+  {
+    "id": "hermana_ysolde_trama_2",
+    "personaje": "hermana_ysolde",
+    "texto": "Cuando liberé el sello antiguo de la Nova supe que nuestro tiempo como consejo había terminado.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_trama_2.ogg"
+  },
+  {
+    "id": "hermana_ysolde_trama_3",
+    "personaje": "hermana_ysolde",
+    "texto": "No tengas piedad con los centinelas de élite de la cúpula; no son hombres, sino cascarones.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_trama_3.ogg"
+  },
+  {
+    "id": "hermana_ysolde_trama_4",
+    "personaje": "hermana_ysolde",
+    "texto": "Limpia la última mancha en la fuente y serás libre de todo juramento.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_trama_4.ogg"
+  },
+  {
+    "id": "hermana_ysolde_trama_fin",
+    "personaje": "hermana_ysolde",
+    "texto": "Por fin enseño las runas sin miedo a una purga.",
+    "archivo_audio": "assets/audio/voces/hermana_ysolde_trama_fin.ogg"
+  },
+  {
+    "id": "viejo_tamsin_trama_1",
+    "personaje": "viejo_tamsin",
+    "texto": "Llevo veinte inviernos oliendo esta corrupción. Las piezas de metal incrustadas en los lobos salen de un mismo crisol.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_trama_1.ogg"
+  },
+  {
+    "id": "viejo_tamsin_trama_2",
+    "personaje": "viejo_tamsin",
+    "texto": "En aquella cabaña dejé marcas en las vigas para que quien encontrara el diario supiera bajar hasta las criptas.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_trama_2.ogg"
+  },
+  {
+    "id": "viejo_tamsin_trama_3",
+    "personaje": "viejo_tamsin",
+    "texto": "Cuando cargues contra el titán, no golpees su escudo: espera al instante tras su impacto pesado.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_trama_3.ogg"
+  },
+  {
+    "id": "viejo_tamsin_trama_4",
+    "personaje": "viejo_tamsin",
+    "texto": "Al ver caer a aquel coloso respiré por primera vez sin sentir metal bajo los pies.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_trama_4.ogg"
+  },
+  {
+    "id": "viejo_tamsin_trama_fin",
+    "personaje": "viejo_tamsin",
+    "texto": "Si aún buscas desafíos de acero puro, desciende a Cripta de las Raíces Negras.",
+    "archivo_audio": "assets/audio/voces/viejo_tamsin_trama_fin.ogg"
+  },
+  {
+    "id": "erudita_mirel_trama_1",
+    "personaje": "erudita_mirel",
+    "texto": "Reviso las bajas de cada patrulla: hay envíos enteros de armaduras que nunca llegaron al frente.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_trama_1.ogg"
+  },
+  {
+    "id": "erudita_mirel_trama_2",
+    "personaje": "erudita_mirel",
+    "texto": "Con cada prueba que recoges, un nombre nuevo cae en mis actas de acusación.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_trama_2.ogg"
+  },
+  {
+    "id": "erudita_mirel_trama_3",
+    "personaje": "erudita_mirel",
+    "texto": "Falta poco para reunir al pueblo entero bajo la arcada y dictar sentencia.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_trama_3.ogg"
+  },
+  {
+    "id": "erudita_mirel_trama_4",
+    "personaje": "erudita_mirel",
+    "texto": "Cada testigo desde los muelles hasta el norte ha confirmado vuestro relato.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_trama_4.ogg"
+  },
+  {
+    "id": "erudita_mirel_trama_fin",
+    "personaje": "erudita_mirel",
+    "texto": "Vuestro nombre abre el primer tomo de la Nueva Crónica de Albaferro.",
+    "archivo_audio": "assets/audio/voces/erudita_mirel_trama_fin.ogg"
+  },
+  {
+    "id": "herrero_brann_trama_1",
+    "personaje": "herrero_brann",
+    "texto": "Cada coraza de bestia que deshago en la fragua tiene estampado el punzón del consejo.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_trama_1.ogg"
+  },
+  {
+    "id": "herrero_brann_trama_2",
+    "personaje": "herrero_brann",
+    "texto": "Dame mineral sin contaminar y haré saltar chispas azules hasta forjar tu arma.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_trama_2.ogg"
+  },
+  {
+    "id": "herrero_brann_trama_3",
+    "personaje": "herrero_brann",
+    "texto": "¡Qué descanso volver a golpear el yunque a plena luz del día!",
+    "archivo_audio": "assets/audio/voces/herrero_brann_trama_3.ogg"
+  },
+  {
+    "id": "herrero_brann_trama_4",
+    "personaje": "herrero_brann",
+    "texto": "Solo queda cerrar el juicio para que jamás cierren otra forja libre.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_trama_4.ogg"
+  },
+  {
+    "id": "herrero_brann_trama_fin",
+    "personaje": "herrero_brann",
+    "texto": "Mientras siga en pie, nunca te faltará acero.",
+    "archivo_audio": "assets/audio/voces/herrero_brann_trama_fin.ogg"
+  },
+  {
+    "id": "mercader_tovi_trama_1",
+    "personaje": "mercader_tovi",
+    "texto": "Me sellaron los cofres con lacre rojo; apenas puedo comerciar pociones y retales.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_trama_1.ogg"
+  },
+  {
+    "id": "mercader_tovi_trama_2",
+    "personaje": "mercader_tovi",
+    "texto": "Dicen en las posadas que pronto caerá algún altar grande cerca del camino.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_trama_2.ogg"
+  },
+  {
+    "id": "mercader_tovi_trama_3",
+    "personaje": "mercader_tovi",
+    "texto": "¡Libre comercio! Los precios vuelven a fluir y tengo mejor género listo.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_trama_3.ogg"
+  },
+  {
+    "id": "mercader_tovi_trama_4",
+    "personaje": "mercader_tovi",
+    "texto": "Las caravanas brindan por vuestra victoria en cada taberna.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_trama_4.ogg"
+  },
+  {
+    "id": "mercader_tovi_trama_fin",
+    "personaje": "mercader_tovi",
+    "texto": "Ningún sello prohibido volverá a cerrar nuestras tiendas.",
+    "archivo_audio": "assets/audio/voces/mercader_tovi_trama_fin.ogg"
+  },
+  {
+    "id": "comandante_kaelen_trama_1",
+    "personaje": "comandante_kaelen",
+    "texto": "Mis hombres obedecen órdenes selladas… pero no soy ciego: las desapariciones huelen mal.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_trama_1.ogg"
+  },
+  {
+    "id": "comandante_kaelen_trama_2",
+    "personaje": "comandante_kaelen",
+    "texto": "Ya tengo medio batallón listo para ignorar los avisos del cónclave cuando pases.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_trama_2.ogg"
+  },
+  {
+    "id": "comandante_kaelen_trama_3",
+    "personaje": "comandante_kaelen",
+    "texto": "Cubrimos las puertas de la plaza para que avances hacia las cumbres sin emboscadas por la espalda.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_trama_3.ogg"
+  },
+  {
+    "id": "comandante_kaelen_trama_4",
+    "personaje": "comandante_kaelen",
+    "texto": "La guarnición espera tu veredicto final con las lanzas firmes.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_trama_4.ogg"
+  },
+  {
+    "id": "comandante_kaelen_trama_fin",
+    "personaje": "comandante_kaelen",
+    "texto": "Un honor haber luchado del lado correcto de la muralla.",
+    "archivo_audio": "assets/audio/voces/comandante_kaelen_trama_fin.ogg"
+  },
+  {
+    "id": "varek_informante_trama_1",
+    "personaje": "varek_informante",
+    "texto": "Por aquí pasan demasiados mensajeros con bolsas pesadas y pocas respuestas.",
+    "archivo_audio": "assets/audio/voces/varek_informante_trama_1.ogg"
+  },
+  {
+    "id": "varek_informante_trama_2",
+    "personaje": "varek_informante",
+    "texto": "Si buscas cabañas o jaulas, sigue las huellas de carros sin marca oficial.",
+    "archivo_audio": "assets/audio/voces/varek_informante_trama_2.ogg"
+  },
+  {
+    "id": "varek_informante_trama_3",
+    "personaje": "varek_informante",
+    "texto": "Hasta mis espías celebran que rompieras el monopolio: hay más oro circulando para todos.",
+    "archivo_audio": "assets/audio/voces/varek_informante_trama_3.ogg"
+  },
+  {
+    "id": "varek_informante_trama_4",
+    "personaje": "varek_informante",
+    "texto": "Cuando acabe la fiesta en la plaza, los tesoros de Cripta de las Raíces Negras seguirán intactos.",
+    "archivo_audio": "assets/audio/voces/varek_informante_trama_4.ogg"
+  },
+  {
+    "id": "varek_informante_trama_fin",
+    "personaje": "varek_informante",
+    "texto": "Siempre seremos socios mientras quede un rincón oscuro por explorar.",
+    "archivo_audio": "assets/audio/voces/varek_informante_trama_fin.ogg"
+  },
+  {
+    "id": "madre_cynthia_trama_1",
+    "personaje": "madre_cynthia",
+    "texto": "Ese aceite oscuro que enloquece a las fieras es el mismo que destilan en secreto los templos.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_trama_1.ogg"
+  },
+  {
+    "id": "madre_cynthia_trama_2",
+    "personaje": "madre_cynthia",
+    "texto": "Si pisas los pantanos sin bálsamo, la savia te delatará a cien metros.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_trama_2.ogg"
+  },
+  {
+    "id": "madre_cynthia_trama_3",
+    "personaje": "madre_cynthia",
+    "texto": "El corazón del titán late con alquimia vieja: lleva pociones concentradas.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_trama_3.ogg"
+  },
+  {
+    "id": "madre_cynthia_trama_4",
+    "personaje": "madre_cynthia",
+    "texto": "Me alegra que eligieras purificar la fuente en lugar de quemarla.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_trama_4.ogg"
+  },
+  {
+    "id": "madre_cynthia_trama_fin",
+    "personaje": "madre_cynthia",
+    "texto": "Si bajas a las catacumbas, pasa primero por mis destilados.",
+    "archivo_audio": "assets/audio/voces/madre_cynthia_trama_fin.ogg"
+  },
+  {
+    "id": "saelen_hereje_trama_1",
+    "personaje": "saelen_hereje",
+    "texto": "Me desterraron por grabar runas de maná mientras ellos clavaban placas a lobos vivos.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_trama_1.ogg"
+  },
+  {
+    "id": "saelen_hereje_trama_2",
+    "personaje": "saelen_hereje",
+    "texto": "Cada vez que rompes uno de sus sellos, mis viejos planos cobran vida.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_trama_2.ogg"
+  },
+  {
+    "id": "saelen_hereje_trama_3",
+    "personaje": "saelen_hereje",
+    "texto": "Para tumbar al señor de las bestias hace falta filo oscuro, no rezos suaves.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_trama_3.ogg"
+  },
+  {
+    "id": "saelen_hereje_trama_4",
+    "personaje": "saelen_hereje",
+    "texto": "Incluso en un reino en paz alguien debe vigilar lo que respira bajo la roca.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_trama_4.ogg"
+  },
+  {
+    "id": "saelen_hereje_trama_fin",
+    "personaje": "saelen_hereje",
+    "texto": "Mi yunque no juzga bandos: solo tempera poder real.",
+    "archivo_audio": "assets/audio/voces/saelen_hereje_trama_fin.ogg"
+  },
+  {
+    "id": "postura_pueblo",
+    "personaje": "comandante_kaelen",
+    "texto": "Que así sea. Las gentes de estas tierras recordarán quién sostuvo el escudo por ellas.",
+    "archivo_audio": "assets/audio/voces/postura_pueblo.ogg"
+  },
+  {
+    "id": "postura_sombra",
+    "personaje": "varek_informante",
+    "texto": "Trato hecho. Quien mueve oro sin hacer ruido siempre encuentra puertas entreabiertas aquí.",
+    "archivo_audio": "assets/audio/voces/postura_sombra.ogg"
+  },
+  {
+    "id": "dec_c2_contexto",
+    "personaje": "narrador",
+    "texto": "La orden de ejecución oficial lleva vuestros nombres. ¿Qué haces con el pergamino sellado? La guardia patrulla la entrada del pueblo y el mercado negro puja por información del cónclave.",
+    "archivo_audio": "assets/audio/voces/dec_c2_contexto.ogg"
+  },
+  {
+    "id": "dec_c2_guardia",
+    "personaje": "rowan",
+    "texto": "Es arriesgado confiar en el uniforme, pero si Kaelen abre los ojos nos ahorrará muchas espadas en contra.",
+    "archivo_audio": "assets/audio/voces/dec_c2_guardia.ogg"
+  },
+  {
+    "id": "dec_c2_informante",
+    "personaje": "rowan",
+    "texto": "Oro sucio… pero en las calzadas necesitaremos cada frasco de cura y cada moneda.",
+    "archivo_audio": "assets/audio/voces/dec_c2_informante.ogg"
+  },
+  {
+    "id": "dec_c2_rowan",
+    "personaje": "rowan",
+    "texto": "Pase lo que pase, tú cubres mi flanco y yo el tuyo. No necesitamos permiso de nadie.",
+    "archivo_audio": "assets/audio/voces/dec_c2_rowan.ogg"
+  },
+  {
+    "id": "dec_c4_contexto",
+    "personaje": "narrador",
+    "texto": "La proyección espectral de la Sabia Elara vibra tras tu Impacto Sísmico. ¿Cómo respondes? El eco arcano aún conserva parte de su canalización entre las placas del bosque.",
+    "archivo_audio": "assets/audio/voces/dec_c4_contexto.ogg"
+  },
+  {
+    "id": "dec_c4_desafiar",
+    "personaje": "rowan",
+    "texto": "Eso le habrá dolido hasta la torre del consejo. Que sepan que no somos presa fácil.",
+    "archivo_audio": "assets/audio/voces/dec_c4_desafiar.ogg"
+  },
+  {
+    "id": "dec_c4_fingir",
+    "personaje": "rowan",
+    "texto": "Qué frío estuviste ahí… parece que ya les lees la mente mejor que Mirel.",
+    "archivo_audio": "assets/audio/voces/dec_c4_fingir.ogg"
+  },
+  {
+    "id": "dec_c4_preguntar_rowan",
+    "personaje": "rowan",
+    "texto": "Gracias por confiar en lo que vi. Ya no caminamos a ciegas entre sus trampas.",
+    "archivo_audio": "assets/audio/voces/dec_c4_preguntar_rowan.ogg"
+  },
+  {
+    "id": "dec_c6_contexto",
+    "personaje": "narrador",
+    "texto": "Bajo las aguas luminiscentes yacen jaulas con el sello de la Corona llenas de aceite oscuro. Tu armadura de cinco piezas ya está templada; aún puedes decidir qué hacer con el hallazgo sumergido.",
+    "archivo_audio": "assets/audio/voces/dec_c6_contexto.ogg"
+  },
+  {
+    "id": "dec_c6_liberar",
+    "personaje": "rowan",
+    "texto": "Las aguas vuelven a respirar. Por esto merece la pena aguantar tantos golpes.",
+    "archivo_audio": "assets/audio/voces/dec_c6_liberar.ogg"
+  },
+  {
+    "id": "dec_c6_extraer",
+    "personaje": "rowan",
+    "texto": "Saelen se frotará las manos con eso… solo prométeme que no dejarás que oscurezca tu filo.",
+    "archivo_audio": "assets/audio/voces/dec_c6_extraer.ogg"
+  },
+  {
+    "id": "dec_c9_contexto",
+    "personaje": "narrador",
+    "texto": "Tienes el diario completo que incrimina a los cinco Sabios. ¿Qué destino le das a la prueba? Están en juego tanto la revuelta popular como la caída silenciosa de la cúpula.",
+    "archivo_audio": "assets/audio/voces/dec_c9_contexto.ogg"
+  },
+  {
+    "id": "dec_c9_publicar",
+    "personaje": "rowan",
+    "texto": "Ahora sí que no pueden ocultarse tras togas doradas. Todo el reino sabe la verdad.",
+    "archivo_audio": "assets/audio/voces/dec_c9_publicar.ogg"
+  },
+  {
+    "id": "dec_c9_chantajear",
+    "personaje": "rowan",
+    "texto": "Les has hecho pagar por adelantado. Pero ten por seguro que enviarán asesinos más duros.",
+    "archivo_audio": "assets/audio/voces/dec_c9_chantajear.ogg"
+  },
+  {
+    "id": "dec_c9_confiar_ysolde",
+    "personaje": "rowan",
+    "texto": "Ganar a Ysolde dentro de su propio templo vale más que diez armerías.",
+    "archivo_audio": "assets/audio/voces/dec_c9_confiar_ysolde.ogg"
+  },
+  {
+    "id": "dec_c11_contexto",
+    "personaje": "narrador",
+    "texto": "La llama del Altar Rúnico acaba de quebrar el monopolio comercial. ¿A quién confías las runas? Las fraguas superiores acaban de abrirse; el poder restante del altar todavía vibra.",
+    "archivo_audio": "assets/audio/voces/dec_c11_contexto.ogg"
+  },
+  {
+    "id": "dec_c11_gremios",
+    "personaje": "rowan",
+    "texto": "¡Por fin Brann puede golpear acero de verdad sin esconderse tras un muro!",
+    "archivo_audio": "assets/audio/voces/dec_c11_gremios.ogg"
+  },
+  {
+    "id": "dec_c11_absorber",
+    "personaje": "rowan",
+    "texto": "¡Cuidado! Ese altar lleva siglos acumulando energía ajena… aunque reconozco tu fuerza.",
+    "archivo_audio": "assets/audio/voces/dec_c11_absorber.ogg"
+  },
+  {
+    "id": "dec_c13_contexto",
+    "personaje": "narrador",
+    "texto": "El cristal flotante del Santuario late sincronizado con el Titán mecánico. ¿Cómo actúas? Aún queda el combate decisivo contra la bestia titánica.",
+    "archivo_audio": "assets/audio/voces/dec_c13_contexto.ogg"
+  },
+  {
+    "id": "dec_c13_destruir",
+    "personaje": "rowan",
+    "texto": "Las rutas de abajo están a salvo. Ahora sí podemos encarar al coloso con la mente limpia.",
+    "archivo_audio": "assets/audio/voces/dec_c13_destruir.ogg"
+  },
+  {
+    "id": "dec_c13_drenar",
+    "personaje": "rowan",
+    "texto": "Ese pedazo late como si siguiera vivo… no tardes en acabar con su dueño.",
+    "archivo_audio": "assets/audio/voces/dec_c13_drenar.ogg"
+  },
+  {
+    "id": "dec_c16_contexto",
+    "personaje": "narrador",
+    "texto": "La plaza entera aguarda tu veredicto sobre los Sabios derrotados y el futuro del reino. Tu última elección sellará qué clase de leyenda cantarán las próximas generaciones.",
+    "archivo_audio": "assets/audio/voces/dec_c16_contexto.ogg"
+  },
+  {
+    "id": "dec_c16_luz",
+    "personaje": "rowan",
+    "texto": "¡Lo logramos de verdad! Hoy nadie volverá a mandar en la sombra sobre estas murallas.",
+    "archivo_audio": "assets/audio/voces/dec_c16_luz.ogg"
+  },
+  {
+    "id": "dec_c16_sombra",
+    "personaje": "rowan",
+    "texto": "Vaya silencio en la plaza… cumpliste nuestra promesa, pero ten cuidado en quién te conviertes.",
+    "archivo_audio": "assets/audio/voces/dec_c16_sombra.ogg"
+  },
+  {
+    "id": "dec_c16_equilibrio",
+    "personaje": "rowan",
+    "texto": "De aprendiz de aldea a Custodio del Pacto… ¡aún nos esperan muchas mazmorras juntos!",
+    "archivo_audio": "assets/audio/voces/dec_c16_equilibrio.ogg"
+  },
+  {
+    "id": "epilogo_luz",
+    "personaje": "narrador",
+    "texto": "Final del Alba · La Plaza Libre. Las antiguas jaulas y fraguas prohibidas fueron desmanteladas ante toda la ciudad. Brann encabeza un gremio abierto de artesanos, Kaelen patrulla rutas seguras y tu nombre abre todas las puertas sin miedo.",
+    "archivo_audio": "assets/audio/voces/epilogo_luz.ogg"
+  },
+  {
+    "id": "epilogo_sombra",
+    "personaje": "narrador",
+    "texto": "Final del Eclipse · El Nuevo Señorío. Los sellos del cónclave sobrevivieron bajo tu custodia. Varek y Saelen te rinden cuentas entre murmullos mientras nadie osa bloquear tus caravanas: el reino vive en paz, pero tiembla cuando desenvainas.",
+    "archivo_audio": "assets/audio/voces/epilogo_sombra.ogg"
+  },
+  {
+    "id": "epilogo_equilibrio",
+    "personaje": "narrador",
+    "texto": "Final del Pacto · Hermandad de los Caminos. Ni consejo oculto ni corona férrea: el poder volvió a los pueblos y a quienes protegen los senderos. Tú y Rowan seguís siendo los guardianes errantes de cada frontera, cabaña y cripta olvidada.",
+    "archivo_audio": "assets/audio/voces/epilogo_equilibrio.ogg"
+  },
+  {
+    "id": "cabana_1_garek",
+    "personaje": "trampero",
+    "texto": "Las bestias del bosque no dejan de proliferar. Despeja a 100 de ellas y te daré un generoso pago y equipo.",
+    "archivo_audio": "assets/audio/voces/cabana_1_garek.ogg"
+  },
+  {
+    "id": "cabana_2_borgan",
+    "personaje": "guardia",
+    "texto": "Los viajeros temen ser devorados por los caminos. Ayúdame abatiendo a 100 de esas criaturas.",
+    "archivo_audio": "assets/audio/voces/cabana_2_borgan.ogg"
+  },
+  {
+    "id": "cabana_3_kyle",
+    "personaje": "pescador",
+    "texto": "Las criaturas costeras asaltan las redes y la orilla. Acaba con 100 y compartiré los tesoros de la marea.",
+    "archivo_audio": "assets/audio/voces/cabana_3_kyle.ogg"
+  },
+  {
+    "id": "cabana_4_varek",
+    "personaje": "guardia",
+    "texto": "Desde lo alto diviso manadas salvajes cercando el paso norte. Derrota a 100 antes de que avancen.",
+    "archivo_audio": "assets/audio/voces/cabana_4_varek.ogg"
+  },
+  {
+    "id": "cabana_5_olorin",
+    "personaje": "herbolario",
+    "texto": "Mis cultivos de raíces arcanas son pisoteados por las bestias. Elimina a 100 de ellas para proteger el bosque.",
+    "archivo_audio": "assets/audio/voces/cabana_5_olorin.ogg"
+  },
+  {
+    "id": "acomp_secreto_fuente_01",
+    "personaje": "rowan",
+    "texto": "¡Mira allí! ¡El agua de esa fuente brilla con luz propia!",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_fuente_01.ogg"
+  },
+  {
+    "id": "acomp_secreto_fuente_02",
+    "personaje": "rowan",
+    "texto": "¡Increíble! Una fuente arcana perdida en la espesura. Dicen que sus aguas curan el cansancio.",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_fuente_02.ogg"
+  },
+  {
+    "id": "acomp_secreto_fuente_03",
+    "personaje": "rowan",
+    "texto": "Las leyendas de los ancianos eran ciertas... ¡La fuente sigue manando energía pura!",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_fuente_03.ogg"
+  },
+  {
+    "id": "acomp_secreto_cabana_01",
+    "personaje": "rowan",
+    "texto": "¡Una cabaña oculta entre la maleza! ¿Quién habrá vivido aquí tan lejos de las murallas?",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_cabana_01.ogg"
+  },
+  {
+    "id": "acomp_secreto_cabana_02",
+    "personaje": "rowan",
+    "texto": "Huele a leña vieja y pergaminos... Alguien se refugió en esta cabaña hace mucho tiempo.",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_cabana_02.ogg"
+  },
+  {
+    "id": "acomp_secreto_cabana_03",
+    "personaje": "rowan",
+    "texto": "¡Cuidado al entrar! Este refugio de ermitaño podría guardar provisiones o trampas.",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_cabana_03.ogg"
+  },
+  {
+    "id": "acomp_secreto_altar_01",
+    "personaje": "rowan",
+    "texto": "¡Siento una vibración en el suelo! Es un altar rúnico de los primeros reyes.",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_altar_01.ogg"
+  },
+  {
+    "id": "acomp_secreto_altar_02",
+    "personaje": "rowan",
+    "texto": "Las runas de esos monolitos coinciden con las de la muralla de la aldea...",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_altar_02.ogg"
+  },
+  {
+    "id": "acomp_secreto_altar_03",
+    "personaje": "rowan",
+    "texto": "¡Qué arquitectura tan imponente! Los sabios darían cualquier cosa por ver este altar.",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_altar_03.ogg"
+  },
+  {
+    "id": "acomp_secreto_santuario_01",
+    "personaje": "rowan",
+    "texto": "¡Por todos los cielos! ¡El santuario de los siete reinos! Jamás vi nada tan majestuoso.",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_santuario_01.ogg"
+  },
+  {
+    "id": "acomp_secreto_santuario_02",
+    "personaje": "rowan",
+    "texto": "Los pilares de luz siguen activos después de tantos siglos... ¡Qué hallazgo tan colosal!",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_santuario_02.ogg"
+  },
+  {
+    "id": "acomp_secreto_santuario_03",
+    "personaje": "rowan",
+    "texto": "¡Lo hemos logrado! La historia del pueblo se escribió bajo estos mismos arcos de piedra.",
+    "archivo_audio": "assets/audio/voces/acomp_secreto_santuario_03.ogg"
+  },
+  {
+    "id": "acomp_combate_inicio_01",
+    "personaje": "rowan",
+    "texto": "¡Cuidado, bestias al frente! ¡Te cubro la espalda!",
+    "archivo_audio": "assets/audio/voces/acomp_combate_inicio_01.ogg"
+  },
+  {
+    "id": "acomp_combate_inicio_02",
+    "personaje": "rowan",
+    "texto": "¡Por la aldea! ¡No dejaré que te rodeen!",
+    "archivo_audio": "assets/audio/voces/acomp_combate_inicio_02.ogg"
+  },
+  {
+    "id": "acomp_combate_inicio_03",
+    "personaje": "rowan",
+    "texto": "¡Saca el acero, que vienen con hambre!",
+    "archivo_audio": "assets/audio/voces/acomp_combate_inicio_03.ogg"
+  },
+  {
+    "id": "acomp_monstruo_duro_01",
+    "personaje": "rowan",
+    "texto": "¡Atento, esta criatura tiene una vitalidad y salud enormes! ¡Usa tus habilidades y combínalas con mis dopes!",
+    "archivo_audio": "assets/audio/voces/acomp_monstruo_duro_01.ogg"
+  },
+  {
+    "id": "acomp_monstruo_duro_02",
+    "personaje": "rowan",
+    "texto": "¡Vaya resistencia! Su barra de vida es descomunal: ¡no bajes la guardia y esquiva sus zarpazos!",
+    "archivo_audio": "assets/audio/voces/acomp_monstruo_duro_02.ogg"
+  },
+  {
+    "id": "acomp_monstruo_duro_03",
+    "personaje": "rowan",
+    "texto": "¡Es una bestia colosal! Yo potenciaré tu ataque mientras tú buscas su punto débil.",
+    "archivo_audio": "assets/audio/voces/acomp_monstruo_duro_03.ogg"
+  },
+  {
+    "id": "acomp_salud_baja_01",
+    "personaje": "rowan",
+    "texto": "¡Cuidado, camarada! Tu salud está peligrosamente baja. ¡Usa una poción o retrocede un momento!",
+    "archivo_audio": "assets/audio/voces/acomp_salud_baja_01.ogg"
+  },
+  {
+    "id": "acomp_salud_baja_02",
+    "personaje": "rowan",
+    "texto": "¡Aguanta, no caigas! ¡Toma una poción de vida antes del siguiente golpe!",
+    "archivo_audio": "assets/audio/voces/acomp_salud_baja_02.ogg"
+  },
+  {
+    "id": "acomp_salud_baja_03",
+    "personaje": "rowan",
+    "texto": "¡Peligro! Tu barra de vida flaquea. ¡Aléjate mientras yo entretengo al monstruo!",
+    "archivo_audio": "assets/audio/voces/acomp_salud_baja_03.ogg"
+  },
+  {
+    "id": "acomp_guia_camino_01",
+    "personaje": "rowan",
+    "texto": "¡Mantén el rumbo! El sabio nos indicó la dirección y los senderos de piedra nos llevarán a salvo.",
+    "archivo_audio": "assets/audio/voces/acomp_guia_camino_01.ogg"
+  },
+  {
+    "id": "acomp_guia_camino_02",
+    "personaje": "rowan",
+    "texto": "Si te sientes desorientado, pregúntame en cualquier momento y te señalaré hacia dónde ir.",
+    "archivo_audio": "assets/audio/voces/acomp_guia_camino_02.ogg"
+  },
+  {
+    "id": "acomp_guia_camino_03",
+    "personaje": "rowan",
+    "texto": "Caminar a tu lado me hace sentir seguro. ¿Seguimos hacia nuestro objetivo?",
+    "archivo_audio": "assets/audio/voces/acomp_guia_camino_03.ogg"
+  },
+  {
+    "id": "acomp_charla_inicial_01",
+    "personaje": "rowan",
+    "texto": "¡Por fin en marcha! No seremos más simples aldeanos: salvaremos las comarcas de Aden.",
+    "archivo_audio": "assets/audio/voces/acomp_charla_inicial_01.ogg"
+  },
+  {
+    "id": "acomp_charla_inicial_02",
+    "personaje": "rowan",
+    "texto": "Los sabios nos observan desde la muralla. Demostremos de qué pasta estamos hechos.",
+    "archivo_audio": "assets/audio/voces/acomp_charla_inicial_02.ogg"
+  },
+  {
+    "id": "acomp_charla_inicial_03",
+    "personaje": "rowan",
+    "texto": "Mi espada corta y mis dopes marciales están listos. ¡Dime a dónde vamos y te seguiré!",
+    "archivo_audio": "assets/audio/voces/acomp_charla_inicial_03.ogg"
+  },
+  {
+    "id": "acomp_combate_victoria_01",
+    "personaje": "rowan",
+    "texto": "¡Bien peleado! Una bestia menos que amenace los caminos.",
+    "archivo_audio": "assets/audio/voces/acomp_combate_victoria_01.ogg"
+  },
+  {
+    "id": "acomp_combate_victoria_02",
+    "personaje": "rowan",
+    "texto": "¡Qué golpe! Vas dominando el combate a la perfección.",
+    "archivo_audio": "assets/audio/voces/acomp_combate_victoria_02.ogg"
+  },
+  {
+    "id": "acomp_combate_victoria_03",
+    "personaje": "rowan",
+    "texto": "Despejado por ahora... Recuperemos el aliento y sigamos.",
+    "archivo_audio": "assets/audio/voces/acomp_combate_victoria_03.ogg"
+  },
+  {
+    "id": "acomp_ambiente_01",
+    "personaje": "rowan",
+    "texto": "El camino es largo, pero a tu lado me siento como un verdadero héroe.",
+    "archivo_audio": "assets/audio/voces/acomp_ambiente_01.ogg"
+  },
+  {
+    "id": "acomp_ambiente_02",
+    "personaje": "rowan",
+    "texto": "Mis botas de cuero están llenas de barro, pero vale la pena cada paso.",
+    "archivo_audio": "assets/audio/voces/acomp_ambiente_02.ogg"
+  },
+  {
+    "id": "acomp_ambiente_03",
+    "personaje": "rowan",
+    "texto": "¿Hacia qué rincón del mapa nos dirigiremos ahora?",
+    "archivo_audio": "assets/audio/voces/acomp_ambiente_03.ogg"
+  },
+  {
+    "id": "charla_lyra_normal",
+    "personaje": "lyra",
+    "texto": "No dejes que el cónclave marque el ritmo: golpeamos donde menos vigilan.",
+    "archivo_audio": "assets/audio/voces/charla_lyra_normal.ogg"
+  },
+  {
+    "id": "charla_lyra_sombra",
+    "personaje": "lyra",
+    "texto": "Sabes moverte entre los secretos de esta tierra mejor que mis antiguos informantes.",
+    "archivo_audio": "assets/audio/voces/charla_lyra_sombra.ogg"
+  },
+  {
+    "id": "charla_elian_inicio",
+    "personaje": "elian",
+    "texto": "Incluso en la espesura queda luz pura que el Óxido no ha logrado corromper.",
+    "archivo_audio": "assets/audio/voces/charla_elian_inicio.ogg"
+  },
+  {
+    "id": "charla_elian_acto3",
+    "personaje": "elian",
+    "texto": "Las runas antiguas ya responden limpias fuera del yugo de los Sabios.",
+    "archivo_audio": "assets/audio/voces/charla_elian_acto3.ogg"
+  },
+  {
+    "id": "charla_brenda",
+    "personaje": "brenda",
+    "texto": "¡Tanto rodeo de sellos y papeles! Donde entra el acero libre no queda trampa en pie.",
+    "archivo_audio": "assets/audio/voces/charla_brenda.ogg"
+  },
+  {
+    "id": "charla_rowan_acto1",
+    "personaje": "rowan",
+    "texto": "Brann confió en nosotros desde la primera pieza que forjó en la fragua. No le fallaremos.",
+    "archivo_audio": "assets/audio/voces/charla_rowan_acto1.ogg"
+  },
+  {
+    "id": "charla_rowan_acto2",
+    "personaje": "rowan",
+    "texto": "Entre fuentes arcanas y diarios ocultos, el cerco de mentiras de Elara se agrieta.",
+    "archivo_audio": "assets/audio/voces/charla_rowan_acto2.ogg"
+  },
+  {
+    "id": "charla_rowan_acto3",
+    "personaje": "rowan",
+    "texto": "Con las fraguas abiertas y medio consejo acorralado, cada paso nos acerca al juicio final.",
+    "archivo_audio": "assets/audio/voces/charla_rowan_acto3.ogg"
+  },
+  {
+    "id": "charla_rowan_fin",
+    "personaje": "rowan",
+    "texto": "Quién iba a decir al salir de la aldea que acabaríamos siendo leyenda en las rutas.",
+    "archivo_audio": "assets/audio/voces/charla_rowan_fin.ogg"
+  },
+  {
+    "id": "hora_day",
+    "personaje": "rowan",
+    "texto": "Amanece limpio sobre el camino. Sigamos adelante.",
+    "archivo_audio": "assets/audio/voces/hora_day.ogg"
+  },
+  {
+    "id": "hora_golden",
+    "personaje": "rowan",
+    "texto": "El cielo arde en oro; buen momento para explorar antes de que oscurezca.",
+    "archivo_audio": "assets/audio/voces/hora_golden.ogg"
+  },
+  {
+    "id": "hora_night",
+    "personaje": "rowan",
+    "texto": "Cae la noche sobre el valle… mantén las pociones a mano y los ojos en las sombras.",
+    "archivo_audio": "assets/audio/voces/hora_night.ogg"
+  },
+  {
+    "id": "ald_vigia",
+    "personaje": "guardia",
+    "texto": "Las puertas de piedra siguen en pie, pero las bestias acechan apenas salgas de la muralla.",
+    "archivo_audio": "assets/audio/voces/ald_vigia.ogg"
+  },
+  {
+    "id": "ald_vecina",
+    "personaje": "aldeano_mujer",
+    "texto": "Si buscas equipo nuevo, visita al herrero Brann o lleva hojas de forja desde el campo de batalla.",
+    "archivo_audio": "assets/audio/voces/ald_vecina.ogg"
+  },
+  {
+    "id": "ald_campesino",
+    "personaje": "aldeano_hombre",
+    "texto": "Sigue las sendas empedradas si no quieres toparte con manadas hambrientas.",
+    "archivo_audio": "assets/audio/voces/ald_campesino.ogg"
+  },
+  {
+    "id": "ald_estibador",
+    "personaje": "mercader",
+    "texto": "Los navíos traen provisiones desde el mar, pero las criaturas merodean por la orilla sur.",
+    "archivo_audio": "assets/audio/voces/ald_estibador.ogg"
+  },
+  {
+    "id": "ald_pescadora",
+    "personaje": "aldeano_mujer",
+    "texto": "El muelle aguanta cualquier oleaje. Si exploras la costa, encontrarás una cabaña sobre pilotes.",
+    "archivo_audio": "assets/audio/voces/ald_pescadora.ogg"
+  },
+  {
+    "id": "ald_laberinto",
+    "personaje": "varek_informante",
+    "texto": "Solo hay un pasillo que cruza los muros de piedra. Memoriza los giros y cuidado con las bolas de fuego.",
+    "archivo_audio": "assets/audio/voces/ald_laberinto.ogg"
+  },
+  {
+    "id": "ald_mazmorra",
+    "personaje": "guardia",
+    "texto": "No entres sin pociones ni armadura revisada: dentro de esta mazmorra aguardan guardianes y un jefe.",
+    "archivo_audio": "assets/audio/voces/ald_mazmorra.ogg"
+  },
+  {
+    "id": "encargo_caza_01_frase",
+    "personaje": "aldeano_hombre",
+    "texto": "Desde que se mudaron a esa comarca, ni las gallinas duermen. Mata varias bestias y te invito a sidra.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_01_frase.ogg"
+  },
+  {
+    "id": "encargo_caza_01_gracias",
+    "personaje": "aldeano_hombre",
+    "texto": "Así se hace. Las gallinas ya te deben una.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_01_gracias.ogg"
+  },
+  {
+    "id": "encargo_caza_02_frase",
+    "personaje": "aldeano_mujer",
+    "texto": "Las ovejas de esa comarca aprendieron a empujar las vallas. Enséñales modales: con varias bestias basta.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_02_frase.ogg"
+  },
+  {
+    "id": "encargo_caza_02_gracias",
+    "personaje": "aldeano_mujer",
+    "texto": "Hoy hay cordero para todos, y tú primero.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_02_gracias.ogg"
+  },
+  {
+    "id": "encargo_caza_03_frase",
+    "personaje": "aldeano_hombre",
+    "texto": "Me deben varias bestias cabezas de ganado y todas andan por esa comarca. Recupéralas a golpes, que es como se cobra aquí.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_03_frase.ogg"
+  },
+  {
+    "id": "encargo_caza_03_gracias",
+    "personaje": "aldeano_hombre",
+    "texto": "Cuentas claras y amistad larga. Toma tu paga.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_03_gracias.ogg"
+  },
+  {
+    "id": "encargo_caza_04_frase",
+    "personaje": "aldeano_mujer",
+    "texto": "Los viajeros ya no pasan por esa comarca sin escolta. Haz que vuelva a ser un paseo: varias bestias enemigos menos.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_04_frase.ogg"
+  },
+  {
+    "id": "encargo_caza_04_gracias",
+    "personaje": "aldeano_mujer",
+    "texto": "Mañana sale la primera carreta sin miedo.",
+    "archivo_audio": "assets/audio/voces/encargo_caza_04_gracias.ogg"
+  },
+  {
+    "id": "encargo_elite_01_frase",
+    "personaje": "aldeano_hombre",
+    "texto": "Los de esa comarca son más fuertes que los demás... y lo saben. Vence a varias bestias y el pueblo te deberá una.",
+    "archivo_audio": "assets/audio/voces/encargo_elite_01_frase.ogg"
+  },
+  {
+    "id": "encargo_elite_01_gracias",
+    "personaje": "aldeano_hombre",
+    "texto": "Esos capitanes ya no mandan en nadie.",
+    "archivo_audio": "assets/audio/voces/encargo_elite_01_gracias.ogg"
+  },
+  {
+    "id": "encargo_elite_02_frase",
+    "personaje": "aldeano_mujer",
+    "texto": "En esa comarca hay de los que se creen caballeros. Demuéstrales que no lo son: derrota a varias bestias.",
+    "archivo_audio": "assets/audio/voces/encargo_elite_02_frase.ogg"
+  },
+  {
+    "id": "encargo_elite_02_gracias",
+    "personaje": "aldeano_mujer",
+    "texto": "Nadie volverá a llamarlos caballeros.",
+    "archivo_audio": "assets/audio/voces/encargo_elite_02_gracias.ogg"
+  },
+  {
+    "id": "encargo_jefe_01_frase",
+    "personaje": "aldeano_hombre",
+    "texto": "El jefe de esa comarca se comió el carro del molino entero, con mula y todo. Tumbarlo sería el favor del año.",
+    "archivo_audio": "assets/audio/voces/encargo_jefe_01_frase.ogg"
+  },
+  {
+    "id": "encargo_jefe_01_gracias",
+    "personaje": "aldeano_hombre",
+    "texto": "Haremos una estatua de pan en tu honor.",
+    "archivo_audio": "assets/audio/voces/encargo_jefe_01_gracias.ogg"
+  },
+  {
+    "id": "encargo_jefe_02_frase",
+    "personaje": "aldeano_mujer",
+    "texto": "Un monstruo con corona de mimbre manda en esa comarca. Derrótalo y la plaza volverá a bailar.",
+    "archivo_audio": "assets/audio/voces/encargo_jefe_02_frase.ogg"
+  },
+  {
+    "id": "encargo_jefe_02_gracias",
+    "personaje": "aldeano_mujer",
+    "texto": "Hasta los niños han dejado de tener miedo.",
+    "archivo_audio": "assets/audio/voces/encargo_jefe_02_gracias.ogg"
+  },
+  {
+    "id": "encargo_pvp_01_frase",
+    "personaje": "aldeano_hombre",
+    "texto": "En esa comarca los jóvenes se retan a puñetazos con bestias. Gana varias bestias combates y te doy algo de oro.",
+    "archivo_audio": "assets/audio/voces/encargo_pvp_01_frase.ogg"
+  },
+  {
+    "id": "encargo_pvp_01_gracias",
+    "personaje": "aldeano_hombre",
+    "texto": "Eres el primero que vuelve con la nariz entera.",
+    "archivo_audio": "assets/audio/voces/encargo_pvp_01_gracias.ogg"
+  },
+  {
+    "id": "encargo_segura_01_frase",
+    "personaje": "aldeano_mujer",
+    "texto": "Ve hasta esa comarca, respira hondo y vuelve a contármelo. No hace falta nada más.",
+    "archivo_audio": "assets/audio/voces/encargo_segura_01_frase.ogg"
+  },
+  {
+    "id": "encargo_segura_01_gracias",
+    "personaje": "aldeano_mujer",
+    "texto": "Qué bien. Hasta yo quiero ir ahora.",
+    "archivo_audio": "assets/audio/voces/encargo_segura_01_gracias.ogg"
+  },
+  {
+    "id": "encargo_segura_02_frase",
+    "personaje": "aldeano_hombre",
+    "texto": "Quiero saber si esa comarca sigue en calma. Camina por ella y cuéntamelo.",
+    "archivo_audio": "assets/audio/voces/encargo_segura_02_frase.ogg"
+  },
+  {
+    "id": "encargo_segura_02_gracias",
+    "personaje": "aldeano_hombre",
+    "texto": "Pues sí, sigue en calma. Gracias por comprobarlo.",
+    "archivo_audio": "assets/audio/voces/encargo_segura_02_gracias.ogg"
+  }
+]

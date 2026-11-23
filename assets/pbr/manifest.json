@@ -1,0 +1,361 @@
+{
+  "version": "1.0.0",
+  "modelos": {
+    "pbr": "depth-anything/Depth-Anything-V2-Small-hf",
+    "cielo": "Lykon/dreamshaper-xl-v2-turbo"
+  },
+  "terreno": {
+    "normal": "assets/pbr/terreno/terreno_normal.webp",
+    "roughness": "assets/pbr/terreno/terreno_rough.webp",
+    "cols": 5,
+    "rows": 3,
+    "capas": [
+      5,
+      6,
+      3,
+      32,
+      34,
+      36,
+      70,
+      59,
+      62,
+      89,
+      24,
+      52,
+      90,
+      92,
+      99
+    ]
+  },
+  "texturas": {
+    "piedra/t01": {
+      "n": "assets/pbr/piedra/t01_n.webp",
+      "r": "assets/pbr/piedra/t01_r.webp"
+    },
+    "piedra/t02": {
+      "n": "assets/pbr/piedra/t02_n.webp",
+      "r": "assets/pbr/piedra/t02_r.webp"
+    },
+    "piedra/t03": {
+      "n": "assets/pbr/piedra/t03_n.webp",
+      "r": "assets/pbr/piedra/t03_r.webp"
+    },
+    "piedra/t04": {
+      "n": "assets/pbr/piedra/t04_n.webp",
+      "r": "assets/pbr/piedra/t04_r.webp"
+    },
+    "piedra/t05": {
+      "n": "assets/pbr/piedra/t05_n.webp",
+      "r": "assets/pbr/piedra/t05_r.webp"
+    },
+    "piedra/t06": {
+      "n": "assets/pbr/piedra/t06_n.webp",
+      "r": "assets/pbr/piedra/t06_r.webp"
+    },
+    "piedra/t07": {
+      "n": "assets/pbr/piedra/t07_n.webp",
+      "r": "assets/pbr/piedra/t07_r.webp"
+    },
+    "piedra/t08": {
+      "n": "assets/pbr/piedra/t08_n.webp",
+      "r": "assets/pbr/piedra/t08_r.webp"
+    },
+    "piedra/t09": {
+      "n": "assets/pbr/piedra/t09_n.webp",
+      "r": "assets/pbr/piedra/t09_r.webp"
+    },
+    "piedra/t10": {
+      "n": "assets/pbr/piedra/t10_n.webp",
+      "r": "assets/pbr/piedra/t10_r.webp"
+    },
+    "madera/t01": {
+      "n": "assets/pbr/madera/t01_n.webp",
+      "r": "assets/pbr/madera/t01_r.webp"
+    },
+    "madera/t02": {
+      "n": "assets/pbr/madera/t02_n.webp",
+      "r": "assets/pbr/madera/t02_r.webp"
+    },
+    "madera/t03": {
+      "n": "assets/pbr/madera/t03_n.webp",
+      "r": "assets/pbr/madera/t03_r.webp"
+    },
+    "madera/t04": {
+      "n": "assets/pbr/madera/t04_n.webp",
+      "r": "assets/pbr/madera/t04_r.webp"
+    },
+    "madera/t05": {
+      "n": "assets/pbr/madera/t05_n.webp",
+      "r": "assets/pbr/madera/t05_r.webp"
+    },
+    "madera/t06": {
+      "n": "assets/pbr/madera/t06_n.webp",
+      "r": "assets/pbr/madera/t06_r.webp"
+    },
+    "madera/t07": {
+      "n": "assets/pbr/madera/t07_n.webp",
+      "r": "assets/pbr/madera/t07_r.webp"
+    },
+    "madera/t08": {
+      "n": "assets/pbr/madera/t08_n.webp",
+      "r": "assets/pbr/madera/t08_r.webp"
+    },
+    "madera/t09": {
+      "n": "assets/pbr/madera/t09_n.webp",
+      "r": "assets/pbr/madera/t09_r.webp"
+    },
+    "madera/t10": {
+      "n": "assets/pbr/madera/t10_n.webp",
+      "r": "assets/pbr/madera/t10_r.webp"
+    },
+    "tejados/t01": {
+      "n": "assets/pbr/tejados/t01_n.webp",
+      "r": "assets/pbr/tejados/t01_r.webp"
+    },
+    "tejados/t02": {
+      "n": "assets/pbr/tejados/t02_n.webp",
+      "r": "assets/pbr/tejados/t02_r.webp"
+    },
+    "tejados/t03": {
+      "n": "assets/pbr/tejados/t03_n.webp",
+      "r": "assets/pbr/tejados/t03_r.webp"
+    },
+    "tejados/t04": {
+      "n": "assets/pbr/tejados/t04_n.webp",
+      "r": "assets/pbr/tejados/t04_r.webp"
+    },
+    "tejados/t05": {
+      "n": "assets/pbr/tejados/t05_n.webp",
+      "r": "assets/pbr/tejados/t05_r.webp"
+    },
+    "tejados/t06": {
+      "n": "assets/pbr/tejados/t06_n.webp",
+      "r": "assets/pbr/tejados/t06_r.webp"
+    },
+    "tejados/t07": {
+      "n": "assets/pbr/tejados/t07_n.webp",
+      "r": "assets/pbr/tejados/t07_r.webp"
+    },
+    "tejados/t08": {
+      "n": "assets/pbr/tejados/t08_n.webp",
+      "r": "assets/pbr/tejados/t08_r.webp"
+    },
+    "tejados/t09": {
+      "n": "assets/pbr/tejados/t09_n.webp",
+      "r": "assets/pbr/tejados/t09_r.webp"
+    },
+    "tejados/t10": {
+      "n": "assets/pbr/tejados/t10_n.webp",
+      "r": "assets/pbr/tejados/t10_r.webp"
+    },
+    "suelo/t01": {
+      "n": "assets/pbr/suelo/t01_n.webp",
+      "r": "assets/pbr/suelo/t01_r.webp"
+    },
+    "suelo/t02": {
+      "n": "assets/pbr/suelo/t02_n.webp",
+      "r": "assets/pbr/suelo/t02_r.webp"
+    },
+    "suelo/t03": {
+      "n": "assets/pbr/suelo/t03_n.webp",
+      "r": "assets/pbr/suelo/t03_r.webp"
+    },
+    "suelo/t04": {
+      "n": "assets/pbr/suelo/t04_n.webp",
+      "r": "assets/pbr/suelo/t04_r.webp"
+    },
+    "suelo/t05": {
+      "n": "assets/pbr/suelo/t05_n.webp",
+      "r": "assets/pbr/suelo/t05_r.webp"
+    },
+    "suelo/t06": {
+      "n": "assets/pbr/suelo/t06_n.webp",
+      "r": "assets/pbr/suelo/t06_r.webp"
+    },
+    "suelo/t07": {
+      "n": "assets/pbr/suelo/t07_n.webp",
+      "r": "assets/pbr/suelo/t07_r.webp"
+    },
+    "suelo/t08": {
+      "n": "assets/pbr/suelo/t08_n.webp",
+      "r": "assets/pbr/suelo/t08_r.webp"
+    },
+    "suelo/t09": {
+      "n": "assets/pbr/suelo/t09_n.webp",
+      "r": "assets/pbr/suelo/t09_r.webp"
+    },
+    "suelo/t10": {
+      "n": "assets/pbr/suelo/t10_n.webp",
+      "r": "assets/pbr/suelo/t10_r.webp"
+    },
+    "mpared/t01": {
+      "n": "assets/pbr/mpared/t01_n.webp",
+      "r": "assets/pbr/mpared/t01_r.webp"
+    },
+    "mpared/t02": {
+      "n": "assets/pbr/mpared/t02_n.webp",
+      "r": "assets/pbr/mpared/t02_r.webp"
+    },
+    "mpared/t03": {
+      "n": "assets/pbr/mpared/t03_n.webp",
+      "r": "assets/pbr/mpared/t03_r.webp"
+    },
+    "mpared/t04": {
+      "n": "assets/pbr/mpared/t04_n.webp",
+      "r": "assets/pbr/mpared/t04_r.webp"
+    },
+    "mpared/t05": {
+      "n": "assets/pbr/mpared/t05_n.webp",
+      "r": "assets/pbr/mpared/t05_r.webp"
+    },
+    "mpared/t06": {
+      "n": "assets/pbr/mpared/t06_n.webp",
+      "r": "assets/pbr/mpared/t06_r.webp"
+    },
+    "mpared/t07": {
+      "n": "assets/pbr/mpared/t07_n.webp",
+      "r": "assets/pbr/mpared/t07_r.webp"
+    },
+    "mpared/t08": {
+      "n": "assets/pbr/mpared/t08_n.webp",
+      "r": "assets/pbr/mpared/t08_r.webp"
+    },
+    "mpared/t09": {
+      "n": "assets/pbr/mpared/t09_n.webp",
+      "r": "assets/pbr/mpared/t09_r.webp"
+    },
+    "mpared/t10": {
+      "n": "assets/pbr/mpared/t10_n.webp",
+      "r": "assets/pbr/mpared/t10_r.webp"
+    },
+    "msuelo/t01": {
+      "n": "assets/pbr/msuelo/t01_n.webp",
+      "r": "assets/pbr/msuelo/t01_r.webp"
+    },
+    "msuelo/t02": {
+      "n": "assets/pbr/msuelo/t02_n.webp",
+      "r": "assets/pbr/msuelo/t02_r.webp"
+    },
+    "msuelo/t03": {
+      "n": "assets/pbr/msuelo/t03_n.webp",
+      "r": "assets/pbr/msuelo/t03_r.webp"
+    },
+    "msuelo/t04": {
+      "n": "assets/pbr/msuelo/t04_n.webp",
+      "r": "assets/pbr/msuelo/t04_r.webp"
+    },
+    "msuelo/t05": {
+      "n": "assets/pbr/msuelo/t05_n.webp",
+      "r": "assets/pbr/msuelo/t05_r.webp"
+    },
+    "msuelo/t06": {
+      "n": "assets/pbr/msuelo/t06_n.webp",
+      "r": "assets/pbr/msuelo/t06_r.webp"
+    },
+    "msuelo/t07": {
+      "n": "assets/pbr/msuelo/t07_n.webp",
+      "r": "assets/pbr/msuelo/t07_r.webp"
+    },
+    "msuelo/t08": {
+      "n": "assets/pbr/msuelo/t08_n.webp",
+      "r": "assets/pbr/msuelo/t08_r.webp"
+    },
+    "msuelo/t09": {
+      "n": "assets/pbr/msuelo/t09_n.webp",
+      "r": "assets/pbr/msuelo/t09_r.webp"
+    },
+    "msuelo/t10": {
+      "n": "assets/pbr/msuelo/t10_n.webp",
+      "r": "assets/pbr/msuelo/t10_r.webp"
+    },
+    "mmuro/t01": {
+      "n": "assets/pbr/mmuro/t01_n.webp",
+      "r": "assets/pbr/mmuro/t01_r.webp"
+    },
+    "mmuro/t02": {
+      "n": "assets/pbr/mmuro/t02_n.webp",
+      "r": "assets/pbr/mmuro/t02_r.webp"
+    },
+    "mmuro/t03": {
+      "n": "assets/pbr/mmuro/t03_n.webp",
+      "r": "assets/pbr/mmuro/t03_r.webp"
+    },
+    "mmuro/t04": {
+      "n": "assets/pbr/mmuro/t04_n.webp",
+      "r": "assets/pbr/mmuro/t04_r.webp"
+    },
+    "mmuro/t05": {
+      "n": "assets/pbr/mmuro/t05_n.webp",
+      "r": "assets/pbr/mmuro/t05_r.webp"
+    },
+    "mmuro/t06": {
+      "n": "assets/pbr/mmuro/t06_n.webp",
+      "r": "assets/pbr/mmuro/t06_r.webp"
+    },
+    "mmuro/t07": {
+      "n": "assets/pbr/mmuro/t07_n.webp",
+      "r": "assets/pbr/mmuro/t07_r.webp"
+    },
+    "mmuro/t08": {
+      "n": "assets/pbr/mmuro/t08_n.webp",
+      "r": "assets/pbr/mmuro/t08_r.webp"
+    },
+    "mmuro/t09": {
+      "n": "assets/pbr/mmuro/t09_n.webp",
+      "r": "assets/pbr/mmuro/t09_r.webp"
+    },
+    "mmuro/t10": {
+      "n": "assets/pbr/mmuro/t10_n.webp",
+      "r": "assets/pbr/mmuro/t10_r.webp"
+    },
+    "mlosa/t01": {
+      "n": "assets/pbr/mlosa/t01_n.webp",
+      "r": "assets/pbr/mlosa/t01_r.webp"
+    },
+    "mlosa/t02": {
+      "n": "assets/pbr/mlosa/t02_n.webp",
+      "r": "assets/pbr/mlosa/t02_r.webp"
+    },
+    "mlosa/t03": {
+      "n": "assets/pbr/mlosa/t03_n.webp",
+      "r": "assets/pbr/mlosa/t03_r.webp"
+    },
+    "mlosa/t04": {
+      "n": "assets/pbr/mlosa/t04_n.webp",
+      "r": "assets/pbr/mlosa/t04_r.webp"
+    },
+    "mlosa/t05": {
+      "n": "assets/pbr/mlosa/t05_n.webp",
+      "r": "assets/pbr/mlosa/t05_r.webp"
+    },
+    "mlosa/t06": {
+      "n": "assets/pbr/mlosa/t06_n.webp",
+      "r": "assets/pbr/mlosa/t06_r.webp"
+    },
+    "alfombras/a1": {
+      "n": "assets/pbr/alfombras/a1_n.webp",
+      "r": "assets/pbr/alfombras/a1_r.webp"
+    },
+    "alfombras/a2": {
+      "n": "assets/pbr/alfombras/a2_n.webp",
+      "r": "assets/pbr/alfombras/a2_r.webp"
+    },
+    "alfombras/a3": {
+      "n": "assets/pbr/alfombras/a3_n.webp",
+      "r": "assets/pbr/alfombras/a3_r.webp"
+    },
+    "alfombras/a4": {
+      "n": "assets/pbr/alfombras/a4_n.webp",
+      "r": "assets/pbr/alfombras/a4_r.webp"
+    },
+    "murales/m1": {
+      "n": "assets/pbr/murales/m1_n.webp",
+      "r": "assets/pbr/murales/m1_r.webp"
+    }
+  },
+  "cielos": {
+    "day": "assets/pbr/cielos/dia.webp",
+    "golden": "assets/pbr/cielos/atardecer.webp",
+    "night": "assets/pbr/cielos/noche.webp"
+  }
+}
