@@ -83,52 +83,137 @@
     };
   }
 
+  let _texVorticeCache = null;
+  function obtenerTexturaVortice(THREE) {
+    if (_texVorticeCache) return _texVorticeCache;
+    if (typeof document === 'undefined' || !THREE || typeof THREE.CanvasTexture !== 'function') return null;
+    const size = 256;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const cx = size * 0.5, cy = size * 0.5;
+    const grad = ctx.createRadialGradient(cx, cy, 8, cx, cy, size * 0.52);
+    grad.addColorStop(0.0, '#f5d0fe');
+    grad.addColorStop(0.25, '#a855f7');
+    grad.addColorStop(0.62, '#581c87');
+    grad.addColorStop(1.0, '#1e1b4b');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    // Anillos octogonales rúnicos y haces arcanos
+    [0.42, 0.30, 0.18].forEach((rf, idx) => {
+      const r = size * rf;
+      const ch = r * 0.414;
+      ctx.strokeStyle = idx === 1 ? 'rgba(245,208,254,0.85)' : 'rgba(192,132,252,0.65)';
+      ctx.lineWidth = idx === 0 ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - ch, cy - r); ctx.lineTo(cx + ch, cy - r);
+      ctx.lineTo(cx + r, cy - ch); ctx.lineTo(cx + r, cy + ch);
+      ctx.lineTo(cx + ch, cy + r); ctx.lineTo(cx - ch, cy + r);
+      ctx.lineTo(cx - r, cy + ch); ctx.lineTo(cx - r, cy - ch);
+      ctx.closePath();
+      ctx.stroke();
+    });
+    _texVorticeCache = new THREE.CanvasTexture(c);
+    if (THREE.SRGBColorSpace) _texVorticeCache.colorSpace = THREE.SRGBColorSpace;
+    return _texVorticeCache;
+  }
+
+  function aplicarUVBoxExt(geo, w, h, d, mx = 2.5, my = 2.5) {
+    if (!geo || !geo.attributes || !geo.attributes.uv) return geo;
+    const uv = geo.attributes.uv;
+    const escalas = [
+      [d / mx, h / my], [d / mx, h / my],
+      [w / mx, d / mx], [w / mx, d / mx],
+      [w / mx, h / my], [w / mx, h / my]
+    ];
+    for (let cara = 0; cara < 6; cara++) {
+      const [su, sv] = escalas[cara];
+      for (let v = 0; v < 4; v++) {
+        const idx = cara * 4 + v;
+        uv.setXY(idx, uv.getX(idx) * su, uv.getY(idx) * sv);
+      }
+    }
+    uv.needsUpdate = true;
+    return geo;
+  }
+
   /* --------------------------------------------------------------------------
    * 1. CONSTRUCCIÓN DE LA ENTRADA EXTERIOR 3D (Arco penetrable + 30m pasillo)
    * -------------------------------------------------------------------------- */
-  function construirEntradaExterior(THREE, dungeon, getWalkableHeightFn) {
+  function construirEntradaExterior(THREE, dungeon, getWalkableHeightFn, opciones) {
     if (!THREE) return null;
+    const sinLuces = !!(opciones && opciones.sinLucesPuntuales);
     const entradaGrupo = new THREE.Group();
     entradaGrupo.name = 'EntradaMazmorra_' + dungeon.id;
-    entradaGrupo.userData = { dungeonId: dungeon.id, tipo: 'entrada_dungeon', dungeonRef: dungeon };
 
     const ySuelo = (typeof getWalkableHeightFn === 'function')
       ? getWalkableHeightFn(dungeon.x, dungeon.y)
       : (typeof dungeon.alturaBase === 'number' ? dungeon.alturaBase : 0);
 
+    entradaGrupo.userData = {
+      dungeonId: dungeon.id,
+      tipo: 'entrada_dungeon',
+      dungeonRef: dungeon,
+      x: dungeon.x,
+      y: ySuelo,
+      z: dungeon.y,
+      rotacion: dungeon.rotacion || 0,
+      radioSombra: 34
+    };
+
     entradaGrupo.position.set(dungeon.x, ySuelo, dungeon.y);
     entradaGrupo.rotation.y = dungeon.rotacion || 0;
 
-    // Materiales de piedra ciclópea oscura rústica y runas
-    const matPiedraMuro = new THREE.MeshStandardMaterial({
+    // Resolver texturas procedurales de alta definición acordes al estilo de la mazmorra
+    const DG = (typeof window !== 'undefined' && window.DungeonGenerator)
+      || (typeof root !== 'undefined' && root.DungeonGenerator)
+      || null;
+    let kitExt = null;
+    let estObjExt = null;
+    if (DG && DG.ESTILOS_PIEDRA) {
+      const estKey = (dungeon && dungeon.estilo && DG.ESTILOS_PIEDRA[dungeon.estilo]) ? dungeon.estilo : 'cripta_gotica';
+      estObjExt = DG.ESTILOS_PIEDRA[estKey] || null;
+      if (typeof DG.crearKitMateriales === 'function' && typeof THREE.CanvasTexture === 'function' && estObjExt) {
+        kitExt = DG.crearKitMateriales(estObjExt, THREE);
+      }
+    }
+
+    const matPiedraMuro = (kitExt && kitExt.piedraMuro) || new THREE.MeshStandardMaterial({
       color: 0x272e39,
       roughness: 0.88,
       metalness: 0.12
     });
-    const matPiedraArco = new THREE.MeshStandardMaterial({
+    const matPiedraArco = (kitExt && kitExt.zocalo) || new THREE.MeshStandardMaterial({
       color: 0x3f4856,
       roughness: 0.80,
       metalness: 0.18
     });
-    const matSueloLosas = new THREE.MeshStandardMaterial({
+    const matSueloLosas = (kitExt && kitExt.sueloLosas) || new THREE.MeshStandardMaterial({
       color: 0x1e242c,
-      roughness: 0.94,
+      roughness: 0.90,
       metalness: 0.08
     });
+    const matMosaicoPasillo = (kitExt && kitExt.mosaicoSuelo) || matSueloLosas;
+    const matHierroExt = (kitExt && kitExt.hierro) || matPiedraArco;
+    const colorRuna = (estObjExt && estObjExt.luzJefe) ? estObjExt.luzJefe : 0x7c3aed;
+    const colorLlama = (estObjExt && estObjExt.luzAntorchas) ? estObjExt.luzAntorchas : 0xf97316;
     const matRunaPortal = new THREE.MeshStandardMaterial({
-      color: 0x7c3aed,
-      emissive: 0x6d28d9,
-      emissiveIntensity: 2.8,
+      color: colorRuna,
+      emissive: colorRuna,
+      emissiveIntensity: 2.6,
       roughness: 0.1,
       metalness: 0.4
     });
+    const texVortice = obtenerTexturaVortice(THREE);
     const matVortice = new THREE.MeshBasicMaterial({
-      color: 0x4c1d95,
+      color: texVortice ? (estObjExt && estObjExt.id !== 'cripta_gotica' ? colorRuna : 0xffffff) : colorRuna,
+      map: texVortice || undefined,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.88,
       side: THREE.DoubleSide
     });
-    const matFuego = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+    const matFuego = new THREE.MeshBasicMaterial({ color: colorLlama });
 
     // Dimensiones del corredor exterior entre muros
     const LONGITUD_CORREDOR = 30.0; // Exactamente 30 metros entre muros de piedra
@@ -137,31 +222,106 @@
     const GROSOR_MUROS = 1.0;       // Grosor de los bloques
     const X_MURO = (ANCHO_PASO / 2) + (GROSOR_MUROS / 2); // Distancia del eje al centro de cada muro
 
-    // A) SUELO EMPEDRADO A LO LARGO DE LOS 30 METROS
-    const geoSuelo = new THREE.BoxGeometry(ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR);
+    // A) SUELO EMPEDRADO DE LOSAS SUBDIVIDIDO (micro-relieve lateral, aZona PBR) Y ALFOMBRA CENTRAL DE MOSAICO
+    const geoSuelo = new THREE.BoxGeometry(ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR, 12, 1, 40);
+    if (geoSuelo.attributes && geoSuelo.attributes.uv && geoSuelo.attributes.normal && geoSuelo.attributes.position && typeof THREE.Float32BufferAttribute === 'function') {
+      const wS = ANCHO_PASO + 0.4, hS = 0.18, dS = LONGITUD_CORREDOR;
+      const uv = geoSuelo.attributes.uv;
+      const nrm = geoSuelo.attributes.normal;
+      const pos = geoSuelo.attributes.position;
+      const zonas = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) {
+        const nx = Math.abs(nrm.getX(i)), ny = Math.abs(nrm.getY(i));
+        let su = wS / 2.8, sv = hS / 0.5;
+        if (ny > 0.5) { su = wS / 2.8; sv = dS / 2.8; }
+        else if (nx > 0.5) { su = dS / 2.8; sv = hS / 0.5; }
+        uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv);
+
+        const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+        const absX = Math.abs(vx);
+        const bordeMask = Math.max(0, Math.min(1, (absX - 1.35) / 0.85));
+        const centroMask = Math.max(0, Math.min(1, (1.2 - absX) / 1.0));
+        let hondonada = 0;
+        if (vy > 0.06 && absX > 1.25) {
+          const wave = Math.sin(vz * 0.72 + vx * 1.1) * 0.6 + Math.cos(vz * 1.35) * 0.4;
+          const dy = (-0.012 + wave * 0.014) * bordeMask;
+          pos.setY(i, vy + dy);
+          hondonada = Math.max(0, Math.min(1, (-dy - 0.004) / 0.020));
+        }
+        zonas[i * 3] = bordeMask;
+        zonas[i * 3 + 1] = hondonada;
+        zonas[i * 3 + 2] = centroMask;
+      }
+      uv.needsUpdate = true;
+      pos.needsUpdate = true;
+      geoSuelo.setAttribute('aZona', new THREE.Float32BufferAttribute(zonas, 3));
+      if (typeof geoSuelo.computeVertexNormals === 'function') geoSuelo.computeVertexNormals();
+    } else {
+      aplicarUVBoxExt(geoSuelo, ANCHO_PASO + 0.4, 0.18, LONGITUD_CORREDOR, 2.8, 0.5);
+    }
     const sueloPasillo = new THREE.Mesh(geoSuelo, matSueloLosas);
     sueloPasillo.position.set(0, 0.09, LONGITUD_CORREDOR / 2);
     sueloPasillo.receiveShadow = true;
     entradaGrupo.add(sueloPasillo);
 
-    // B) MURO LATERAL IZQUIERDO (30 metros de piedra)
-    const geoMuro = new THREE.BoxGeometry(GROSOR_MUROS, ALTO_MUROS, LONGITUD_CORREDOR);
+    if (typeof THREE.DodecahedronGeometry === 'function') {
+      const geoCantoExt = new THREE.DodecahedronGeometry(0.16, 0);
+      if (geoCantoExt.attributes && geoCantoExt.attributes.position) {
+        const p = geoCantoExt.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+          const n = 0.84 + 0.16 * Math.sin(x * 11.1 + z * 7.3);
+          p.setXYZ(i, x * n * 1.2, y * n * 0.54, z * n * 0.96);
+        }
+        if (typeof geoCantoExt.computeVertexNormals === 'function') geoCantoExt.computeVertexNormals();
+      }
+      for (let idx = 0; idx < 10; idx++) {
+        const side = idx % 2 === 0 ? -1 : 1;
+        const cz = 2.5 + idx * 2.55;
+        const h = Math.abs(Math.sin(idx * 12.9898 + 4.1414) * 43758.5453) % 1;
+        const canto = new THREE.Mesh(geoCantoExt, matPiedraArco);
+        const sc = 0.72 + h * 0.75;
+        canto.position.set(side * (ANCHO_PASO * 0.5 - 0.14 - h * 0.18), 0.18 + 0.02 * sc, cz);
+        canto.rotation.set(0.1 * (h - 0.5), h * Math.PI * 2, 0.08 * (0.5 - h));
+        canto.scale.set(sc, sc * 0.82, sc);
+        canto.receiveShadow = true;
+        entradaGrupo.add(canto);
+      }
+    }
+
+    const anchoTapiz = ANCHO_PASO * 0.54;
+    const geoTapiz = aplicarUVBoxExt(new THREE.BoxGeometry(anchoTapiz, 0.025, LONGITUD_CORREDOR - 0.8), anchoTapiz, 0.025, LONGITUD_CORREDOR - 0.8, 2.4, 0.4);
+    const tapizPasillo = new THREE.Mesh(geoTapiz, matMosaicoPasillo);
+    tapizPasillo.position.set(0, 0.192, LONGITUD_CORREDOR / 2);
+    tapizPasillo.receiveShadow = true;
+    entradaGrupo.add(tapizPasillo);
+
+    // B) MURO LATERAL IZQUIERDO Y DERECHO (30 metros de cantería con UVs métricas y zócalo)
+    const geoMuro = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS, ALTO_MUROS, LONGITUD_CORREDOR), GROSOR_MUROS, ALTO_MUROS, LONGITUD_CORREDOR, 2.5, 2.5);
     const muroIzq = new THREE.Mesh(geoMuro, matPiedraMuro);
     muroIzq.position.set(-X_MURO, ALTO_MUROS / 2, LONGITUD_CORREDOR / 2);
     muroIzq.castShadow = true;
     muroIzq.receiveShadow = true;
     entradaGrupo.add(muroIzq);
 
-    // C) MURO LATERAL DERECHO (30 metros de piedra)
     const muroDer = new THREE.Mesh(geoMuro, matPiedraMuro);
     muroDer.position.set(X_MURO, ALTO_MUROS / 2, LONGITUD_CORREDOR / 2);
     muroDer.castShadow = true;
     muroDer.receiveShadow = true;
     entradaGrupo.add(muroDer);
 
-    // Albardillas / remates superiores almenados en ambos muros cada 3 metros
+    // Zócalos perimetrales labrados en la base de ambos muros
+    const geoZocExt = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS + 0.18, 0.72, LONGITUD_CORREDOR), GROSOR_MUROS + 0.18, 0.72, LONGITUD_CORREDOR, 2.5, 0.72);
+    [-X_MURO, X_MURO].forEach(zx => {
+      const zoc = new THREE.Mesh(geoZocExt, matPiedraArco);
+      zoc.position.set(zx, 0.36, LONGITUD_CORREDOR / 2);
+      zoc.receiveShadow = true;
+      entradaGrupo.add(zoc);
+    });
+
+    // Albardillas / remates superiores almenados en ambos muros cada 3 metros (geometría compartida)
+    const geoAlmena = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS + 0.2, 0.45, 1.4), GROSOR_MUROS + 0.2, 0.45, 1.4, 2.0, 0.7);
     for (let mz = 1.5; mz < LONGITUD_CORREDOR; mz += 3.0) {
-      const geoAlmena = new THREE.BoxGeometry(GROSOR_MUROS + 0.2, 0.45, 1.4);
       const almI = new THREE.Mesh(geoAlmena, matPiedraArco);
       almI.position.set(-X_MURO, ALTO_MUROS + 0.22, mz);
       entradaGrupo.add(almI);
@@ -172,16 +332,13 @@
     }
 
     // D) ARCO PENETRABLE DE ENTRADA (en z = 0, cota inicial)
-    // El personaje pasa a través del vano de 4.4m de ancho y 5.2m de altura
-    // Pilar Izquierdo del Arco
-    const geoPilar = new THREE.BoxGeometry(GROSOR_MUROS * 1.5, ALTO_MUROS + 0.8, GROSOR_MUROS * 1.5);
+    const geoPilar = aplicarUVBoxExt(new THREE.BoxGeometry(GROSOR_MUROS * 1.5, ALTO_MUROS + 0.8, GROSOR_MUROS * 1.5), GROSOR_MUROS * 1.5, ALTO_MUROS + 0.8, GROSOR_MUROS * 1.5, 2.2, 2.2);
     const pilarIzq = new THREE.Mesh(geoPilar, matPiedraArco);
     pilarIzq.position.set(-X_MURO, (ALTO_MUROS + 0.8) / 2, 0);
     pilarIzq.castShadow = true;
     pilarIzq.receiveShadow = true;
     entradaGrupo.add(pilarIzq);
 
-    // Pilar Derecho del Arco
     const pilarDer = new THREE.Mesh(geoPilar, matPiedraArco);
     pilarDer.position.set(X_MURO, (ALTO_MUROS + 0.8) / 2, 0);
     pilarDer.castShadow = true;
@@ -189,7 +346,8 @@
     entradaGrupo.add(pilarDer);
 
     // Dintel / Bóveda del Arco superior penetrable (a 5.4m de altura)
-    const geoDintel = new THREE.BoxGeometry(ANCHO_PASO + GROSOR_MUROS * 2.8, 1.2, GROSOR_MUROS * 1.6);
+    const wDintel = ANCHO_PASO + GROSOR_MUROS * 2.8;
+    const geoDintel = aplicarUVBoxExt(new THREE.BoxGeometry(wDintel, 1.2, GROSOR_MUROS * 1.6), wDintel, 1.2, GROSOR_MUROS * 1.6, 2.4, 1.2);
     const dintelArco = new THREE.Mesh(geoDintel, matPiedraArco);
     dintelArco.position.set(0, ALTO_MUROS + 0.8, 0);
     dintelArco.castShadow = true;
@@ -201,39 +359,46 @@
     claveRuna.position.set(0, ALTO_MUROS + 0.8, -0.6);
     entradaGrupo.add(claveRuna);
 
-    // Pebeteros de fuego crepitante flanqueando el arco de entrada
+    // Pebeteros de hierro forjado y fuego crepitante flanqueando el arco de entrada
+    const geoPebetero = new THREE.CylinderGeometry(0.45, 0.35, 1.1, 8);
+    const geoLlamaPeb = new THREE.ConeGeometry(0.35, 0.7, 6);
     [-X_MURO - 1.2, X_MURO + 1.2].forEach(px => {
-      const pebetero = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.35, 1.1, 8), matPiedraArco);
+      const pebetero = new THREE.Mesh(geoPebetero, matHierroExt);
       pebetero.position.set(px, 0.55, -0.8);
       entradaGrupo.add(pebetero);
 
-      const llama = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.7, 6), matFuego);
+      const llama = new THREE.Mesh(geoLlamaPeb, matFuego);
       llama.position.set(px, 1.35, -0.8);
       entradaGrupo.add(llama);
 
-      const luz = new THREE.PointLight(0xf97316, 2.0, 16, 1.8);
-      luz.position.set(px, 1.7, -0.8);
-      entradaGrupo.add(luz);
+      if (!sinLuces) {
+        const luz = new THREE.PointLight(0xf97316, 2.0, 16, 1.8);
+        luz.position.set(px, 1.7, -0.8);
+        entradaGrupo.add(luz);
+      }
     });
 
-    // E) ANTORCHAS EN LOS MUROS CADA 7.5 METROS A LO LARGO DE LOS 30 METROS
+    // E) ANTORCHAS EN LOS MUROS CADA 7.5 METROS A LO LARGO DE LOS 30 METROS (geometrías compartidas)
     const distAntorchas = [6.0, 13.5, 21.0, 28.0];
+    const geoBrazoAnt = new THREE.BoxGeometry(0.12, 0.12, 0.6);
+    const geoFuegoAnt = new THREE.ConeGeometry(0.18, 0.45, 5);
     distAntorchas.forEach(zPos => {
       [-X_MURO + 0.55, X_MURO - 0.55].forEach((xPos, sideIdx) => {
-        // Brazo de la antorcha
-        const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.6), matPiedraArco);
+        const brazo = new THREE.Mesh(geoBrazoAnt, matHierroExt);
         brazo.position.set(xPos, 2.8, zPos);
         entradaGrupo.add(brazo);
 
         // Llama
-        const antorchaFuego = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.45, 5), matFuego);
+        const antorchaFuego = new THREE.Mesh(geoFuegoAnt, matFuego);
         antorchaFuego.position.set(xPos + (sideIdx === 0 ? 0.25 : -0.25), 3.05, zPos);
         entradaGrupo.add(antorchaFuego);
 
         // Luz puntual tenue
-        const luzAnt = new THREE.PointLight(0xf97316, 1.4, 10, 1.8);
-        luzAnt.position.set(xPos + (sideIdx === 0 ? 0.35 : -0.35), 3.2, zPos);
-        entradaGrupo.add(luzAnt);
+        if (!sinLuces) {
+          const luzAnt = new THREE.PointLight(0xf97316, 1.4, 10, 1.8);
+          luzAnt.position.set(xPos + (sideIdx === 0 ? 0.35 : -0.35), 3.2, zPos);
+          entradaGrupo.add(luzAnt);
+        }
       });
     });
 
@@ -257,9 +422,13 @@
     vortice.position.set(0, (ALTO_MUROS + 0.2) / 2, LONGITUD_CORREDOR - 0.05);
     entradaGrupo.add(vortice);
 
-    const luzVortice = new THREE.PointLight(0x8b5cf6, 3.2, 14, 1.5);
-    luzVortice.position.set(0, 2.5, LONGITUD_CORREDOR - 0.6);
-    entradaGrupo.add(luzVortice);
+    entradaGrupo.userData.luzLocal = { x: 0, y: 2.5, z: 12.0, color: 0xf97316, intensity: 2.2, distance: 32 };
+    entradaGrupo.userData.luzPortalLocal = { x: 0, y: 2.5, z: LONGITUD_CORREDOR - 0.6, color: 0x8b5cf6, intensity: 3.0, distance: 18 };
+    if (!sinLuces) {
+      const luzVortice = new THREE.PointLight(0x8b5cf6, 3.2, 14, 1.5);
+      luzVortice.position.set(0, 2.5, LONGITUD_CORREDOR - 0.6);
+      entradaGrupo.add(luzVortice);
+    }
 
     // Información para colisiones y carga del portal
     entradaGrupo.userData.corredor = {
@@ -435,9 +604,29 @@
       // 2. Ocultar estrictamente el supramundo ("solo gráficamente debe estar la mazmorra")
       scene.visible = true;
       if (this.ctx.farMesh) this.ctx.farMesh.visible = false;
-      if (this.ctx.nearChunks) Object.values(this.ctx.nearChunks).forEach(c => { if (c && c.mesh) c.mesh.visible = false; });
-      if (this.ctx.lagos) Object.values(this.ctx.lagos).forEach(l => { if (l && l.mesh) l.mesh.visible = false; });
+      if (this.ctx.nearChunks) {
+        if (typeof this.ctx.nearChunks.forEach === 'function') {
+          this.ctx.nearChunks.forEach(c => {
+            const m = (c && c.mesh) ? c.mesh : c;
+            if (m && typeof m.visible === 'boolean') m.visible = false;
+          });
+        } else if (typeof this.ctx.nearChunks === 'object') {
+          Object.values(this.ctx.nearChunks).forEach(c => {
+            const m = (c && c.mesh) ? c.mesh : c;
+            if (m && typeof m.visible === 'boolean') m.visible = false;
+          });
+        }
+      }
+      if (this.ctx.lagos) {
+        if (typeof this.ctx.lagos.forEach === 'function') {
+          this.ctx.lagos.forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = false; });
+        } else if (typeof this.ctx.lagos === 'object') {
+          Object.values(this.ctx.lagos).forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = false; });
+        }
+      }
       if (this.ctx.waterMesh) this.ctx.waterMesh.visible = false;
+      if (this.ctx.decorGroup) this.ctx.decorGroup.visible = false;
+      if (Array.isArray(this.ctx.ladrillos)) this.ctx.ladrillos.forEach(t => { if (t && t.malla) t.malla.visible = false; });
       if (Array.isArray(this.ctx.towns)) this.ctx.towns.forEach(t => { if (t && t.group) t.group.visible = false; });
       if (this.ctx.terrenoGroup && this.ctx.terrenoGroup !== scene) this.ctx.terrenoGroup.visible = false;
       if (this.ctx.aguaMesh && this.ctx.aguaMesh !== scene) this.ctx.aguaMesh.visible = false;
@@ -458,32 +647,34 @@
       this.grupoInstancia.name = 'InstanciaMazmorra_' + dungeon.id;
       scene.add(this.grupoInstancia);
 
-      // Iluminación interior clara y atmosférica de mazmorra monumental
-      const luzAmbiente = new THREE.AmbientLight(0xffffff, 2.2);
-      this.grupoInstancia.add(luzAmbiente);
+      const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
+      const esProcedural = !!Gen && dungeon.tipoGeneracion !== 'glb';
+
+      // Iluminación interior clara y atmosférica (ligera en GPU: sin luces redundantes en modo procedural)
+      if (!esProcedural) {
+        const luzAmbiente = new THREE.AmbientLight(0xffffff, 1.5);
+        this.grupoInstancia.add(luzAmbiente);
+      }
 
       if (typeof THREE.HemisphereLight === 'function') {
-        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 1.4);
+        const hemiMazmorra = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, esProcedural ? 0.95 : 1.0);
         hemiMazmorra.position.set(0, 30.0, 0);
         this.grupoInstancia.add(hemiMazmorra);
       }
 
-      const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 2.2);
-      luzDirPasillo.position.set(0, 24.0, 42.0);
-      luzDirPasillo.target.position.set(0, 1.0, 16.0);
-      this.grupoInstancia.add(luzDirPasillo);
-      this.grupoInstancia.add(luzDirPasillo.target);
-
-      const Gen = (typeof DungeonGenerator !== 'undefined') ? DungeonGenerator : (typeof window !== 'undefined' ? window.DungeonGenerator : null);
-      const esProcedural = !!Gen && dungeon.tipoGeneracion !== 'glb';
-
-      // Antorchas fijas solo para el modelo GLB clásico; las mazmorras procedurales usan sus propias antorchas optimizadas
+      // Antorchas fijas y luz direccional solo para el modelo GLB clásico; las mazmorras procedurales usan pool de 4 luces optimizado
       if (!esProcedural) {
+        const luzDirPasillo = new THREE.DirectionalLight(0xffeedd, 1.5);
+        luzDirPasillo.position.set(0, 24.0, 42.0);
+        luzDirPasillo.target.position.set(0, 1.0, 16.0);
+        this.grupoInstancia.add(luzDirPasillo);
+        this.grupoInstancia.add(luzDirPasillo.target);
+
         const matLlama = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
         const geoLlama = new THREE.ConeGeometry(0.24, 0.65, 6);
         [-28.0, -16.0, -4.0, 8.0, 20.0, 32.0].forEach(zAnt => {
           [-3.1, 3.1].forEach(xAnt => {
-            const pLuz = new THREE.PointLight(0xf59e0b, 2.6, 22, 1.4);
+            const pLuz = new THREE.PointLight(0xf59e0b, 1.6, 20, 1.4);
             pLuz.position.set(xAnt, 4.8, zAnt);
             this.grupoInstancia.add(pLuz);
 
@@ -503,12 +694,18 @@
       let SPAWN_X = 0.0;
       let SPAWN_Y = 0.0;
       let SPAWN_Z = 46.0;
+      const cfgMonstruosProc = this.ctx.usarModelosCombateExternos ? { habilitados: false } : undefined;
 
       if (esProcedural && Gen) {
         proc = Gen.generarMazmorra(THREE, {
           seed: dungeon.seed || (Math.abs(dungeon.x || 0) * 1000 + Math.abs(dungeon.y || 0)) || 48291,
           estilo: dungeon.estilo || 'cripta_gotica',
           id: dungeon.id,
+          // Texturas de la biblioteca elegidas en el Creador de Mazmorras (toda la mazmorra; las de cada estancia van en salas)
+          texturaPared: dungeon.texturaPared,
+          texturaSuelo: dungeon.texturaSuelo,
+          texturaZocalo: dungeon.texturaZocalo,
+          texturaTecho: dungeon.texturaTecho,
           radio: dungeon.radio || 75,
           tamanoMedio: dungeon.tamanoMedio || 20,
           varianzaTamano: dungeon.varianzaTamano !== undefined ? dungeon.varianzaTamano : 0.4,
@@ -516,8 +713,13 @@
           ramificacion: dungeon.ramificacion !== undefined ? dungeon.ramificacion : 0.6,
           alturaTechos: dungeon.alturaTechos || 6.0,
           anchoPasillos: dungeon.anchoPasillos || 8.0,
+          salas: (Array.isArray(dungeon.salas) && dungeon.salas.length > 0) ? dungeon.salas : undefined,
           salasPersonalizadas: dungeon.salasPersonalizadas || [],
-          props: dungeon.props
+          props: dungeon.props,
+          modoJuegoRapido: true,
+          usarPoolLuces: true,
+          sinSombrasMallas: true,
+          monstruos: cfgMonstruosProc
         });
         this.instanciaProcedural = proc;
         if (this.grupoInstancia) this.grupoInstancia.add(proc.group);
@@ -548,7 +750,11 @@
               alturaTechos: dungeon.alturaTechos || 6.0,
               anchoPasillos: dungeon.anchoPasillos || 8.0,
               salasPersonalizadas: dungeon.salasPersonalizadas || [],
-              props: dungeon.props
+              props: dungeon.props,
+              modoJuegoRapido: true,
+              usarPoolLuces: true,
+              sinSombrasMallas: true,
+              monstruos: cfgMonstruosProc
             });
             this.instanciaProcedural = fallbackProc;
             if (this.grupoInstancia) this.grupoInstancia.add(fallbackProc.group);
@@ -690,6 +896,52 @@
       if (typeof callbacks.onIniciarHUD === 'function') {
         callbacks.onIniciarHUD(this.bossInstancia, dungeon);
       }
+
+      // 8. Culling inicial de estancias comunicadas y pool de luces
+      if (this.instanciaProcedural && typeof this.instanciaProcedural.actualizarVisibilidadEstancias === 'function') {
+        const proc = this.instanciaProcedural;
+        const salaInicio = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(SPAWN_X, SPAWN_Z) : null;
+        const idInicio = salaInicio ? salaInicio.id : null;
+        this._ultimaSalaHeroeId = idInicio;
+        this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idInicio, 2) : null;
+        if (this.estanciasVisibles) {
+          proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
+        }
+        if (typeof proc.actualizarPoolLuces === 'function') {
+          proc.actualizarPoolLuces(SPAWN_X, SPAWN_Z, this.estanciasVisibles);
+          this._luzPoolX = SPAWN_X;
+          this._luzPoolZ = SPAWN_Z;
+        }
+      }
+    }
+
+    // Actualización de oclusión de cámara: si una pared o techo se interpone entre la cámara y el personaje, desaparece
+    actualizarOclusionCamara() {
+      if (!this.enMazmorra || !this.instanciaProcedural) return;
+      const camera = this.ctx.camera;
+      const hero = this.ctx.hero;
+      const proc = this.instanciaProcedural;
+      if (!camera || !hero || typeof proc.actualizarOclusionCamara !== 'function') return;
+
+      const charCtrl = this.ctx.character;
+      const charPos = (charCtrl && charCtrl.root) ? charCtrl.root.position : hero;
+      const camPos = camera.position;
+      if (camPos && charPos && this._oclCache && this._oclCache.est === this.estanciasVisibles) {
+        const dCam = (camPos.x - this._oclCache.cx) ** 2 + (camPos.y - this._oclCache.cy) ** 2 + (camPos.z - this._oclCache.cz) ** 2;
+        const hx = typeof charPos.x === 'number' ? charPos.x : 0;
+        const hy = typeof charPos.y === 'number' ? charPos.y : 0;
+        const hz = typeof charPos.z === 'number' ? charPos.z : 0;
+        const dHero = (hx - this._oclCache.hx) ** 2 + (hy - this._oclCache.hy) ** 2 + (hz - this._oclCache.hz) ** 2;
+        if (dCam < 0.0004 && dHero < 0.0004) return;
+      }
+      if (camPos && charPos) {
+        this._oclCache = {
+          cx: camPos.x || 0, cy: camPos.y || 0, cz: camPos.z || 0,
+          hx: charPos.x || 0, hy: charPos.y || 0, hz: charPos.z || 0,
+          est: this.estanciasVisibles
+        };
+      }
+      proc.actualizarOclusionCamara(camera.position, charPos, this.estanciasVisibles);
     }
 
     // Actualización en cada frame dentro de la mazmorra
@@ -699,6 +951,91 @@
 
       if (this.instanciaProcedural && typeof this.instanciaProcedural.update === 'function') {
         this.instanciaProcedural.update(dt, (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000);
+      }
+
+      // Culling de estancias comunicadas y desaparición de paredes ante la cámara
+      if (this.instanciaProcedural && hero) {
+        const proc = this.instanciaProcedural;
+        const charCtrl = this.ctx.character;
+        const charPos = (charCtrl && charCtrl.root) ? charCtrl.root.position : hero;
+        const hx = (charPos && typeof charPos.x === 'number') ? charPos.x : ((typeof hero.x === 'number') ? hero.x : 0);
+        const hz = (charPos && typeof charPos.z === 'number') ? charPos.z : ((typeof hero.z === 'number') ? hero.z : 0);
+        const hy = (charPos && typeof charPos.y === 'number') ? charPos.y : ((typeof hero.y === 'number') ? hero.y : 0);
+        hero.x = hx; hero.y = hy; hero.z = hz;
+
+        const salaActual = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(hx, hz) : null;
+        const idActual = salaActual ? salaActual.id : null;
+
+        let cambioEstancia = false;
+        if (idActual !== this._ultimaSalaHeroeId || !this.estanciasVisibles) {
+          this._ultimaSalaHeroeId = idActual;
+          cambioEstancia = true;
+          this.estanciasVisibles = proc.obtenerEstanciasComunicadas ? proc.obtenerEstanciasComunicadas(idActual, 2) : null;
+          if (typeof proc.actualizarVisibilidadEstancias === 'function' && this.estanciasVisibles) {
+            proc.actualizarVisibilidadEstancias(this.estanciasVisibles);
+          }
+        }
+
+        if (typeof proc.actualizarPoolLuces === 'function') {
+          const dxPool = hx - (this._luzPoolX !== undefined ? this._luzPoolX : -9999);
+          const dzPool = hz - (this._luzPoolZ !== undefined ? this._luzPoolZ : -9999);
+          if (cambioEstancia || (dxPool * dxPool + dzPool * dzPool) > 0.36) {
+            proc.actualizarPoolLuces(hx, hz, this.estanciasVisibles);
+            this._luzPoolX = hx;
+            this._luzPoolZ = hz;
+          }
+        }
+
+        const obtenerSalaEntidad = ent => {
+          if (ent.combatRef) {
+            ent.x = ent.combatRef.x;
+            ent.z = ent.combatRef.z;
+          }
+          if (ent._salaCacheX === ent.x && ent._salaCacheZ === ent.z && ent._salaCacheInit) {
+            return ent._salaCache;
+          }
+          ent._salaCacheX = ent.x;
+          ent._salaCacheZ = ent.z;
+          ent._salaCacheInit = true;
+          ent._salaCache = proc.encontrarSalaEnPosicion ? proc.encontrarSalaEnPosicion(ent.x, ent.z) : null;
+          return ent._salaCache;
+        };
+
+        // Visibilidad dinámica de monstruos según pertenencia a estancias comunicadas
+        if (this.estanciasVisibles && Array.isArray(this.elitesInstancia)) {
+          for (let i = 0; i < this.elitesInstancia.length; i++) {
+            const el = this.elitesInstancia[i];
+            const sEl = obtenerSalaEntidad(el);
+            const vis = sEl ? this.estanciasVisibles.has(sEl.id) : true;
+            el._enEstanciaVisible = vis;
+            if (el.mesh) el.mesh.visible = vis;
+            if (el.group) el.group.visible = vis;
+            if (el.bar) el.bar.visible = vis;
+            if (el.barraHp) el.barraHp.visible = vis;
+            if (el.combatRef && !vis) {
+              if (el.combatRef.group) el.combatRef.group.visible = false;
+              if (el.combatRef.bar) el.combatRef.bar.visible = false;
+            }
+          }
+        }
+        if (this.estanciasVisibles && this.bossInstancia) {
+          const sBoss = obtenerSalaEntidad(this.bossInstancia);
+          const visBoss = sBoss ? this.estanciasVisibles.has(sBoss.id) : true;
+          this.bossInstancia._enEstanciaVisible = visBoss;
+          if (this.bossInstancia.mesh) this.bossInstancia.mesh.visible = visBoss;
+          if (this.bossInstancia.group) this.bossInstancia.group.visible = visBoss;
+          if (this.bossInstancia.bar) this.bossInstancia.bar.visible = visBoss;
+          if (this.bossInstancia.barraHp) this.bossInstancia.barraHp.visible = visBoss;
+          if (this.bossInstancia.combatRef && !visBoss) {
+            if (this.bossInstancia.combatRef.group) this.bossInstancia.combatRef.group.visible = false;
+            if (this.bossInstancia.combatRef.bar) this.bossInstancia.combatRef.bar.visible = false;
+          }
+        }
+
+        // Desaparición de paredes que se interponen entre la cámara y el personaje
+        if (!callbacks.omitirOclusionCamara) {
+          this.actualizarOclusionCamara();
+        }
       }
 
       // 1. Condición de fin: Victoria por muerte del Jefe de Mazmorra
@@ -734,44 +1071,53 @@
       const hero = this.ctx.hero;
       const d = this.dungeonActiva;
 
-      // 1. Eliminar grupo de la mazmorra y limpiar esbirros
-      if (this.grupoInstancia && scene) {
-        scene.remove(this.grupoInstancia);
-        this.grupoInstancia = null;
-      }
-      this.bossInstancia = null;
-      this.elitesInstancia = [];
+      // 1. Limpiar esbirros de combate y eliminar/liberar geometrías de la mazmorra
       if (typeof this.ctx.limpiarMonstruosMazmorra === 'function') {
         this.ctx.limpiarMonstruosMazmorra();
       }
-
-      // 2. Restaurar supramundo exterior
-      if (scene) scene.visible = true;
-      if (typeof this.ctx.restaurarDeMazmorra === 'function') {
-        this.ctx.restaurarDeMazmorra();
+      if (this.grupoInstancia && scene) {
+        scene.remove(this.grupoInstancia);
+        const liberarGeometrias = (nodo) => {
+          if (!nodo) return;
+          if (nodo.geometry && typeof nodo.geometry.dispose === 'function') {
+            nodo.geometry.dispose();
+          }
+          if (Array.isArray(nodo.children)) {
+            for (let i = 0; i < nodo.children.length; i++) liberarGeometrias(nodo.children[i]);
+          }
+        };
+        liberarGeometrias(this.grupoInstancia);
+        this.grupoInstancia = null;
       }
-      if (this.estadoPrevio && scene) {
-        scene.background = this.estadoPrevio.background;
-        scene.fog = this.estadoPrevio.fog;
-        if (this.ctx.farMesh) this.ctx.farMesh.visible = true;
-        if (this.ctx.nearChunks) Object.values(this.ctx.nearChunks).forEach(c => { if (c && c.mesh) c.mesh.visible = true; });
-        if (this.ctx.lagos) Object.values(this.ctx.lagos).forEach(l => { if (l && l.mesh) l.mesh.visible = true; });
-        if (this.ctx.waterMesh) this.ctx.waterMesh.visible = true;
-        if (Array.isArray(this.ctx.towns)) this.ctx.towns.forEach(t => { if (t && t.group) t.group.visible = true; });
-        if (this.ctx.terrenoGroup && this.ctx.terrenoGroup !== scene) this.ctx.terrenoGroup.visible = this.estadoPrevio.terrenoVisible;
-        if (this.ctx.aguaMesh && this.ctx.aguaMesh !== scene) this.ctx.aguaMesh.visible = this.estadoPrevio.aguaVisible;
-        if (this.ctx.pueblosGroup && this.ctx.pueblosGroup !== scene) this.ctx.pueblosGroup.visible = this.estadoPrevio.pueblosVisible;
-        if (this.ctx.cielo) this.ctx.cielo.visible = this.estadoPrevio.cieloVisible;
-      }
+      this.instanciaProcedural = null;
+      this._ultimaSalaHeroeId = null;
+      this._luzPoolX = undefined;
+      this._luzPoolZ = undefined;
+      this.estanciasVisibles = null;
+      this._oclCache = null;
+      this.bossInstancia = null;
+      this.elitesInstancia = [];
 
-      // 3. Teletransportar al héroe frente al arco exterior penetrable (z = -4m en coords locales)
+      // 2. Restaurar física del mundo exterior y teletransportar al héroe frente a la puerta exterior de la mazmorra
       const charCtrl = this.ctx.character;
       const camera = this.ctx.camera;
       const controls = this.ctx.controls;
 
+      if (charCtrl && charCtrl.world && this.estadoPrevio) {
+        if (this.estadoPrevio.origGetWalkableHeight) {
+          charCtrl.world.getWalkableHeight = this.estadoPrevio.origGetWalkableHeight;
+        }
+        if (this.estadoPrevio.origIsWaterHazard) {
+          charCtrl.world.isWaterHazard = this.estadoPrevio.origIsWaterHazard;
+        }
+        if (this.estadoPrevio.origGetColliders) {
+          charCtrl.world.getColliders = this.estadoPrevio.origGetColliders;
+        }
+      }
+
       if (d && hero) {
         const rot = d.rotacion || 0;
-        // Frente al arco de entrada mirando hacia afuera (alejándose de la entrada)
+        // Frente a la puerta/arco exterior de la mazmorra (z = -4.5m en coords locales)
         const offsetLocalZ = -4.5;
         const wx = d.x + Math.sin(rot) * offsetLocalZ;
         const wz = d.y + Math.cos(rot) * offsetLocalZ;
@@ -781,29 +1127,24 @@
           hero.y = this.ctx.getWalkableHeight(hero.x, hero.z);
         }
 
-        // Restaurar física del mundo exterior para el personaje
-        if (charCtrl && charCtrl.world && this.estadoPrevio) {
-          if (this.estadoPrevio.origGetWalkableHeight) {
-            charCtrl.world.getWalkableHeight = this.estadoPrevio.origGetWalkableHeight;
-          }
-          if (this.estadoPrevio.origIsWaterHazard) {
-            charCtrl.world.isWaterHazard = this.estadoPrevio.origIsWaterHazard;
-          }
-          if (this.estadoPrevio.origGetColliders) {
-            charCtrl.world.getColliders = this.estadoPrevio.origGetColliders;
-          }
-        }
-
-        // Teletransportar físicamente la malla 3D del personaje
+        // Teletransportar físicamente la malla 3D del personaje y desbloquear controles
         if (charCtrl && charCtrl.root) {
           charCtrl.root.position.set(wx, hero.y, wz);
           charCtrl.root.rotation.set(0, rot, 0);
+          if (typeof charCtrl.mirarAngulo === 'function') {
+            charCtrl.mirarAngulo(rot);
+          }
           if (charCtrl.target) charCtrl.target.set(wx, hero.y, wz);
           charCtrl.destino = null;
           charCtrl.sinAvance = 0;
+          charCtrl.lockUntil = 0;
         }
 
-        // Teletransportar cámara y controles al exterior y restaurar límites de zoom
+        if (charCtrl && this.estadoPrevio && this.estadoPrevio.charOffsetCamara) {
+          charCtrl.offsetCamara = this.estadoPrevio.charOffsetCamara;
+        }
+
+        // Teletransportar cámara y controles al exterior frente a la puerta y restaurar límites de zoom
         if (controls) {
           controls.target.set(wx, hero.y + 1.2, wz);
           if (this.estadoPrevio) {
@@ -813,10 +1154,10 @@
           if (camera) {
             camera.position.set(wx - Math.sin(rot) * 9.0, hero.y + 4.5, wz - Math.cos(rot) * 9.0);
             controls.update();
+            if (charCtrl && typeof camera.position.clone === 'function') {
+              charCtrl.camaraFinal = camera.position.clone();
+            }
           }
-        }
-        if (charCtrl && this.estadoPrevio && this.estadoPrevio.charOffsetCamara) {
-          charCtrl.offsetCamara = this.estadoPrevio.charOffsetCamara;
         }
 
         if (this.ctx.acompanante) {
@@ -832,10 +1173,61 @@
         }
       }
 
-      // Si fue derrota, restaurar la salud completa del personaje
+      // 3. Restaurar supramundo exterior (ya con el héroe y cámara situados ante la puerta exterior)
+      if (scene) scene.visible = true;
+      if (typeof this.ctx.restaurarDeMazmorra === 'function') {
+        this.ctx.restaurarDeMazmorra();
+      }
+      if (this.estadoPrevio && scene) {
+        scene.background = this.estadoPrevio.background;
+        scene.fog = this.estadoPrevio.fog;
+        if (this.ctx.farMesh) this.ctx.farMesh.visible = true;
+        if (this.ctx.nearChunks) {
+          if (typeof this.ctx.nearChunks.forEach === 'function') {
+            this.ctx.nearChunks.forEach(c => {
+              const m = (c && c.mesh) ? c.mesh : c;
+              if (m && typeof m.visible === 'boolean') m.visible = true;
+            });
+          } else if (typeof this.ctx.nearChunks === 'object') {
+            Object.values(this.ctx.nearChunks).forEach(c => {
+              const m = (c && c.mesh) ? c.mesh : c;
+              if (m && typeof m.visible === 'boolean') m.visible = true;
+            });
+          }
+        }
+        if (this.ctx.lagos) {
+          if (typeof this.ctx.lagos.forEach === 'function') {
+            this.ctx.lagos.forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = true; });
+          } else if (typeof this.ctx.lagos === 'object') {
+            Object.values(this.ctx.lagos).forEach(l => { const m = (l && l.mesh) ? l.mesh : l; if (m && typeof m.visible === 'boolean') m.visible = true; });
+          }
+        }
+        if (this.ctx.waterMesh) this.ctx.waterMesh.visible = true;
+        if (this.ctx.decorGroup) this.ctx.decorGroup.visible = true;
+        if (Array.isArray(this.ctx.ladrillos)) this.ctx.ladrillos.forEach(t => { if (t && t.malla) t.malla.visible = true; });
+        if (Array.isArray(this.ctx.towns)) this.ctx.towns.forEach(t => { if (t && t.group) t.group.visible = true; });
+        if (this.ctx.terrenoGroup && this.ctx.terrenoGroup !== scene) this.ctx.terrenoGroup.visible = this.estadoPrevio.terrenoVisible;
+        if (this.ctx.aguaMesh && this.ctx.aguaMesh !== scene) this.ctx.aguaMesh.visible = this.estadoPrevio.aguaVisible;
+        if (this.ctx.pueblosGroup && this.ctx.pueblosGroup !== scene) this.ctx.pueblosGroup.visible = this.estadoPrevio.pueblosVisible;
+        if (this.ctx.cielo) this.ctx.cielo.visible = this.estadoPrevio.cieloVisible;
+      }
+
+      // Si fue derrota, restaurar la salud completa del personaje y del acompañante
       if (!victoria && hero) {
         hero.dead = false;
+        hero.deadUntil = 0;
         hero.hp = hero.maxHp || 250;
+        if (typeof hero.maxMp === 'number') hero.mp = hero.maxMp;
+        if (this.ctx.acompanante && (this.ctx.acompanante.debilitado || this.ctx.acompanante.inconsciente)) {
+          if (typeof AcompananteLib !== 'undefined' && typeof AcompananteLib.revivirAcompanante === 'function') {
+            AcompananteLib.revivirAcompanante(this.ctx.acompanante, 1.0);
+          } else {
+            this.ctx.acompanante.debilitado = false;
+            this.ctx.acompanante.inconsciente = false;
+            this.ctx.acompanante.hp = this.ctx.acompanante.maxHp || 180;
+            if (this.ctx.acompanante.estado === 'debilitado') this.ctx.acompanante.estado = 'idle';
+          }
+        }
       }
 
       this.enMazmorra = false;
@@ -848,12 +1240,42 @@
     }
   }
 
+  // Contexto narrativo de cada Mazmorra Ancestral según el avance de la Crónica de Aden
+  function contextoNarrativoMazmorra(dungeon, principal) {
+    const paso = principal && typeof principal.paso === 'number' ? principal.paso : 0;
+    const nombre = (dungeon && dungeon.name) || 'Mazmorra Ancestral';
+    const bossNombre = (dungeon && dungeon.boss && dungeon.boss.name) || 'Señor del Trono Caído';
+    if (paso >= 16) {
+      return {
+        etiqueta: 'Epílogo · Purga de las Criptas Reales',
+        titulo: `${nombre} · Eco Final de los Siete Reinos`,
+        relato: `Aunque el juicio de la plaza depuso a los Sabios conspiradores, ${bossNombre} y sus guardianes de élite aún custodian en estas galerías reservas selladas de acero y arena de forja.`,
+        recompensaLore: 'Conquista esta bóveda ancestral para obtener arena de forja y reliquias dignas de los Campeones de Aden.'
+      };
+    }
+    if (paso >= 11) {
+      return {
+        etiqueta: 'Acto III–IV · Nodos de Energía del Cónclave',
+        titulo: `${nombre} · Cámara de Arena y Reliquias`,
+        relato: `Con el monopolio comercial roto, sabes por qué los Sabios sellaron estas criptas: ${bossNombre} concentra la energía rúnica y la arena de forja con la que intentaron alimentar al Titán.`,
+        recompensaLore: 'Derrota a la guardia élite (×4 / ×8) y reclama el botín oculto fuera del alcance del cónclave.'
+      };
+    }
+    return {
+      etiqueta: 'Bóveda Prohibida · Antes de la Ruptura',
+      titulo: `${nombre} · Tumba Sellada por los Sabios`,
+      relato: `El cónclave declaró malditas estas ruinas de los Siete Reinos para impedir que nadie forjara equipo superior fuera de su control. ${bossNombre} vigila su tesoro de guerra.`,
+      recompensaLore: 'Sobrevive a los centinelas de élite y recupera arena de forja clandestina.'
+    };
+  }
+
   const api = {
     LISTA_GLB_DISPONIBLES,
     MULTIPLICADORES_ELITE,
     generarMazmorraPorDefecto,
     construirEntradaExterior,
     cargarModeloMazmorra,
+    contextoNarrativoMazmorra,
     GestorMazmorras
   };
 

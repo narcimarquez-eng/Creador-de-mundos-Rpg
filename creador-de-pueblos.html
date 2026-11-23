@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Generador Procedural de Pueblos 3D HD - Estilo Lineage 2</title>
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -373,16 +373,30 @@
       <label>Trazado de Calles y Casas</label>
       <select id="inp-trazado">
         <option value="manzanas" selected>Manzanas con parcelas</option>
+        <option value="adosadas">Casas unidas (en hilera)</option>
         <option value="clasico">Clásico (aleatorio)</option>
       </select>
     </div>
 
     <div class="control-row">
-      <label>Tipo de casas</label>
+      <label>Tipo o Modelo de Casas</label>
       <select id="inp-casas">
-        <option value="original" selected>Casas de piedra y tejado (actuales)</option>
-        <option value="madera">Cabañas de madera</option>
-        <option value="mixta">Mixto (algunas cabañas de madera)</option>
+        <option value="variada" selected>Variado: entramado, cabañas y piedra</option>
+        <option value="glb">Solo Casas GLB (entramado + cabaña)</option>
+        <option value="casa_entramado">Un modelo: Solo Casa de Entramado (GLB)</option>
+        <option value="cabana">Un modelo: Solo Cabaña de Troncos (GLB)</option>
+        <option value="madera">Un modelo: Solo Cabaña de Madera (artesanal)</option>
+        <option value="original">Un modelo: Solo Casa de Piedra y Tejado</option>
+        <option value="mixta">Mixto (piedra y madera artesanal)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <label>Texturas, Tamaños y Orientación de Casas</label>
+      <select id="inp-casa-var">
+        <option value="alta" selected>Variada (10+ texturas, tamaños y giros)</option>
+        <option value="libre">Orientación libre (90°/360°), tamaños y texturas</option>
+        <option value="alineada">Alineadas a la calle (texturas y tamaños variados)</option>
       </select>
     </div>
 
@@ -417,6 +431,35 @@
     </div>
 
     <div class="control-row">
+      <label>Textura de Calles y Senderos</label>
+      <select id="inp-street-tex">
+        <option value="auto" selected>Aleatoria por Semilla</option>
+        <option value="atlas">Clásica del Estilo</option>
+        <option value="t01">Adoquín Río (T-01)</option>
+        <option value="t02">Loseta Cuadrada (T-02)</option>
+        <option value="t03">Tierra y Grava (T-03)</option>
+        <option value="t04">Sendero Rocoso (T-04)</option>
+        <option value="t05">Calzada con Musgo (T-05)</option>
+        <option value="t06">Empedrado Rústico (T-06)</option>
+        <option value="t07">Camino Polvoriento (T-07)</option>
+        <option value="t08">Calzada Antigua (T-08)</option>
+        <option value="t09">Lajas Grandes (T-09)</option>
+        <option value="t10">Piedra Rota (T-10)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
+      <label>Estilo del Puente Principal</label>
+      <select id="inp-bridge">
+        <option value="auto" selected>Automático por Semilla</option>
+        <option value="principal">Principal Piedra Texturizada</option>
+        <option value="puente0">Romano 2 Arcos (GLB)</option>
+        <option value="puente1">Medieval con Torreón (GLB)</option>
+        <option value="puente3">Madera con Arcos (GLB)</option>
+      </select>
+    </div>
+
+    <div class="control-row">
       <label>Sinuosidad de Calles y Río: <span id="lbl-curve">6.0</span></label>
       <input type="range" id="inp-curve" min="0" max="14" step="0.5" value="6.0">
     </div>
@@ -432,7 +475,8 @@
       <label class="checkbox-item"><input type="checkbox" id="chk-magic" checked> Cristales Mágicos</label>
       <label class="checkbox-item"><input type="checkbox" id="chk-props" checked> Puestos y Carros</label>
       <label class="checkbox-item"><input type="checkbox" id="chk-lamps" checked> Farolas / Antorchas</label>
-      <label class="checkbox-item"><input type="checkbox" id="chk-fences" checked> Vallas y Jardines</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-fences" checked> Vallas</label>
+      <label class="checkbox-item"><input type="checkbox" id="chk-gardens" checked> Jardines</label>
     </div>
 
     <div class="control-row">
@@ -509,12 +553,13 @@
     <b>WASD / Flechas / Joystick:</b> Mover Personaje &nbsp;|&nbsp; <b>Shift:</b> Correr &nbsp;|&nbsp; <b>Ratón / Táctil:</b> Rotar, Zoom y Desplazar
   </div>
 
-  <script defer src="js/casa-madera.js"></script>
+  <script defer src="js/casa-madera.js?v=20261114e"></script>
   <script defer src="js/puestos-datos.js"></script>
   <script type="module" src="js/three-puente.js"></script>
   <script type="module" src="js/arboles.js"></script>
   <script type="module" src="js/pueblo-edits.js"></script>
-  <script type="module" src="js/village-core.js"></script>
+  <script defer src="js/casas-glb.js?v=20261114a"></script>
+  <script type="module" src="js/village-core.js?v=20261118c"></script>
   <script type="module" src="js/character.js"></script>
   <script type="module">
     "use strict";
@@ -540,7 +585,7 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.15;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
@@ -552,10 +597,10 @@
     controls.maxDistance = 280;
     controls.target.set(0, 4, 0);
 
-    const hemiLight = new THREE.HemisphereLight('#e0f2fe', '#3a5a40', 0.75);
+    const hemiLight = new THREE.HemisphereLight('#e0f2fe', '#4b634e', 0.62);
     scene.add(hemiLight);
 
-    const sunLight = new THREE.DirectionalLight('#fffbeb', 1.45);
+    const sunLight = new THREE.DirectionalLight('#fffdf2', 1.75);
     sunLight.position.set(90, 120, 75);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
@@ -645,6 +690,7 @@
         terrainType: document.getElementById('inp-terrain-type').value,
         trazado: document.getElementById('inp-trazado').value,
         casas: document.getElementById('inp-casas').value,
+        casaVar: document.getElementById('inp-casa-var').value,
         relief: parseInt(document.getElementById('inp-relief').value, 10),
         seed: parseInt(document.getElementById('inp-seed').value, 10),
         size: parseInt(document.getElementById('inp-size').value, 10),
@@ -652,6 +698,8 @@
         specialCount: parseInt(document.getElementById('inp-special').value, 10),
         maxFloors: parseInt(document.getElementById('inp-floors').value, 10),
         roadWidth: parseFloat(document.getElementById('inp-road-w').value),
+        streetTexture: document.getElementById('inp-street-tex').value,
+        bridgeStyle: document.getElementById('inp-bridge').value,
         curve: parseFloat(document.getElementById('inp-curve').value),
         treeDensity: parseInt(document.getElementById('inp-trees').value, 10),
         hasWalls: document.getElementById('chk-walls').checked,
@@ -660,6 +708,7 @@
         hasProps: document.getElementById('chk-props').checked,
         hasLamps: document.getElementById('chk-lamps').checked,
         hasFences: document.getElementById('chk-fences').checked,
+        hasGardens: document.getElementById('chk-gardens').checked,
         time: document.getElementById('inp-time').value,
         rotation: currentRotation,
         exits: currentExits.map(e => Object.assign({}, e)),
@@ -704,9 +753,11 @@
       setVal('inp-special', cfg.specialCount);
       setVal('inp-floors', cfg.maxFloors);
       setVal('inp-road-w', cfg.roadWidth);
+      setVal('inp-street-tex', cfg.streetTexture || 'auto');
       setVal('inp-curve', cfg.curve);
       setVal('inp-trazado', cfg.trazado || 'clasico');
-      setVal('inp-casas', cfg.casas || 'original');
+      setVal('inp-casas', cfg.casas || 'variada');
+      setVal('inp-casa-var', cfg.casaVar || 'alta');
       setVal('inp-trees', cfg.treeDensity);
       setVal('inp-time', cfg.time);
       setChk('chk-walls', cfg.hasWalls);
@@ -715,6 +766,7 @@
       setChk('chk-props', cfg.hasProps);
       setChk('chk-lamps', cfg.hasLamps);
       setChk('chk-fences', cfg.hasFences);
+      setChk('chk-gardens', cfg.hasGardens !== false);
       currentExits = Array.isArray(cfg.exits) ? cfg.exits.map(e => Object.assign({}, e)) : [];
       currentRotation = cfg.rotation || 0;
       edits = cfg.edits && Array.isArray(cfg.edits.ops)
@@ -832,7 +884,7 @@
     document.querySelectorAll('#ui-panel input[type="range"]').forEach(el => {
       el.addEventListener('input', pedirRebuildUI);
     });
-    document.querySelectorAll('#ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time, #inp-trazado').forEach(el => {
+    document.querySelectorAll('#ui-panel input[type="checkbox"], #inp-terrain-type, #inp-time, #inp-trazado, #inp-street-tex, #inp-bridge, #inp-casa-var').forEach(el => {
       el.addEventListener('change', rebuildFromUI);
     });
 

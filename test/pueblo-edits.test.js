@@ -209,4 +209,10 @@ t('el trazado por manzanas sí es otra base', () => {
   assert.notStrictEqual(E.baseKey(Object.assign({}, cfg, { trazado: 'manzanas' })), E.baseKey(cfg));
 });
 
+t('el trazado de casas adosadas tiene su propia base', () => {
+  const bAdosadas = E.baseKey(Object.assign({}, cfg, { trazado: 'adosadas' }));
+  assert.notStrictEqual(bAdosadas, E.baseKey(cfg));
+  assert.notStrictEqual(bAdosadas, E.baseKey(Object.assign({}, cfg, { trazado: 'manzanas' })));
+});
+
 console.log('\n' + n + ' pruebas correctas');

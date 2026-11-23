@@ -187,4 +187,282 @@ t('encargos de zona: se guardan y se sanean al cargar la partida', () => {
   assert.strictEqual(dañado.zonas.b.progreso, 1);   // el progreso guardado se acota al total del encargo
 });
 
+t('títulos: recompensar guarda el título sin duplicados y limpiarHeroe lo sanea o desbloquea en el cap. 16', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.titulos, []);
+  H.recompensar(h, { puntos: 6, titulo: 'Campeones de Aden' });
+  H.recompensar(h, { puntos: 0, titulo: 'Campeones de Aden' });
+  assert.deepStrictEqual(h.titulos, ['Campeones de Aden']);
+
+  const saneado = H.limpiarHeroe({ titulos: ['  Héroe  ', 123, 'Héroe'], principal: { paso: 16, progreso: 0 } });
+  assert.deepStrictEqual(saneado.titulos, ['Héroe', 'Campeones de Aden']);
+});
+
+t('magia elemental: bola de fuego y lanza de hielo disponibles desde nivel 1 y asignables a Q/E/Z/V', () => {
+  const h = H.nuevoHeroe();
+  assert.ok(H.disponible(h, 'bola_fuego', 1));
+  assert.ok(H.disponible(h, 'lanza_hielo', 1));
+  assert.ok(!H.disponible(h, 'ventisca_glacial', 5));
+  assert.ok(H.disponible(h, 'ventisca_glacial', 6));
+  assert.ok(H.disponible(h, 'tormenta_fuego', 8));
+  assert.ok(H.disponible(h, 'rayo_arcano', 12));
+
+  h.puntos = 2;
+  assert.strictEqual(H.mejorar(h, 'bola_fuego', 1), 1);
+  assert.strictEqual(H.estadisticas(h, 1, []).mult.bola_fuego, 1.25);
+  H.asignar(h, 'q', 'bola_fuego');
+  H.asignar(h, 'e', 'lanza_hielo');
+  assert.strictEqual(h.barra.q, 'bola_fuego');
+  assert.strictEqual(h.barra.e, 'lanza_hielo');
+});
+
+t('reputación, decisiones, finalId y dialogosVistos se inicializan y sanean sin alterar principal', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.reputacion, { pueblo: 0, sombra: 0, vinculo: 0 });
+  assert.deepStrictEqual(h.decisiones, {});
+  assert.strictEqual(h.finalId, null);
+  assert.deepStrictEqual(h.dialogosVistos, {});
+  assert.deepStrictEqual(h.principal, { paso: 0, progreso: 0, objetivo: null });
+
+  const saneado = H.limpiarHeroe({
+    reputacion: { pueblo: 99, sombra: -99, vinculo: 'mal' },
+    decisiones: { d_c2_lista: 'guardia', '': 'invalido', mala: 123 },
+    finalId: 'no_existe',
+    dialogosVistos: { 'guru-1_trama_1': true, ignorar: false }
+  });
+  assert.deepStrictEqual(saneado.reputacion, { pueblo: 50, sombra: -20, vinculo: 0 });
+  assert.deepStrictEqual(saneado.decisiones, { d_c2_lista: 'guardia' });
+  assert.strictEqual(saneado.finalId, null);
+  assert.deepStrictEqual(saneado.dialogosVistos, { 'guru-1_trama_1': true });
+
+  const conFinal = H.limpiarHeroe({ finalId: 'equilibrio' });
+  assert.strictEqual(conFinal.finalId, 'equilibrio');
+});
+
+t('bonosReputacion calcula senda, descuentos y altera estadísticas reales del héroe', () => {
+  const hAlba = H.nuevoHeroe();
+  hAlba.reputacion = { pueblo: 10, sombra: 1, vinculo: 6 };
+  hAlba.finalId = 'luz';
+  const brAlba = H.bonosReputacion(hAlba);
+  assert.strictEqual(brAlba.senda, 'guardia');
+  assert.strictEqual(brAlba.sendaNombre, 'Senda del Alba');
+  assert.strictEqual(brAlba.descuentoTienda, 0.18);
+  assert.strictEqual(brAlba.bonusDefensa, 0.08);
+  assert.strictEqual(brAlba.bonusVida, 15 + 25);
+  assert.strictEqual(brAlba.bonusDanioComp, 0.20);
+
+  const statsAlba = H.estadisticas(hAlba, 1, []);
+  assert.strictEqual(statsAlba.vida, 100 + 40);
+  assert.strictEqual(statsAlba.reduccion, 0.08);
+
+  const hSombra = H.nuevoHeroe();
+  hSombra.reputacion = { pueblo: 0, sombra: 10, vinculo: 0 };
+  hSombra.finalId = 'sombra';
+  const brSombra = H.bonosReputacion(hSombra);
+  assert.strictEqual(brSombra.senda, 'sombra');
+  assert.strictEqual(brSombra.descuentoSombra, 0.30);
+  const statsSombra = H.estadisticas(hSombra, 1, []);
+  assert.ok(Math.abs(statsSombra.critico - (0.05 + 0.06 + 0.08)) < 1e-9);
+});
+
+t('hitosMundo se inicializa vacío sin alterar principal y limpiarHeroe lo sanea', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.principal, { paso: 0, progreso: 0, objetivo: null });
+  assert.deepStrictEqual(h.hitosMundo, {});
+
+  assert.deepStrictEqual(H.limpiarHeroe({}).hitosMundo, {});
+  assert.deepStrictEqual(H.limpiarHeroe({ hitosMundo: 'invalido' }).hitosMundo, {});
+
+  const limpio = H.limpiarHeroe({
+    hitosMundo: {
+      pista_c1_0: true,
+      dun_m1: 1,
+      falsa: false,
+      cero: 0,
+      nula: null,
+      vacia: '',
+    },
+  });
+  assert.deepStrictEqual(limpio.hitosMundo, {
+    pista_c1_0: true,
+    dun_m1: true,
+  });
+});
+
+t('companeroMisiones se inicializa vacío sin alterar principal y limpiarHeroe lo sanea', () => {
+  const h = H.nuevoHeroe();
+  assert.deepStrictEqual(h.principal, { paso: 0, progreso: 0, objetivo: null });
+  assert.deepStrictEqual(h.companeroMisiones, {});
+
+  assert.deepStrictEqual(H.limpiarHeroe({}).companeroMisiones, {});
+  assert.deepStrictEqual(H.limpiarHeroe({ companeroMisiones: 'invalido' }).companeroMisiones, {});
+
+  const limpio = H.limpiarHeroe({
+    companeroMisiones: {
+      rowan: { etapa: 1, progreso: 2, activa: true, talentoDesbloqueado: false },
+      lyra: { etapa: 9, progreso: 2500, activa: true, talentoDesbloqueado: false },
+      elian: { etapa: -3, progreso: -5, activa: 1, talentoDesbloqueado: true },
+      brenda: 'corrupto',
+      desconocido: { etapa: 2, progreso: 1, activa: true },
+    },
+  });
+
+  assert.deepStrictEqual(limpio.companeroMisiones, {
+    rowan: { etapa: 1, progreso: 2, activa: true, talentoDesbloqueado: false },
+    lyra: { etapa: 3, progreso: 999, activa: false, talentoDesbloqueado: true },
+    elian: { etapa: 0, progreso: 0, activa: true, talentoDesbloqueado: true },
+  });
+  assert.strictEqual(limpio.companeroMisiones.desconocido, undefined);
+});
+
+t('profesiones: estadisticas diferenciadas, filtrado de skills, atajos y reiniciarPuntos (Respec)', () => {
+  assert.ok(H.PROFESIONES && H.PROFESIONES.guerrero && H.PROFESIONES.cazador && H.PROFESIONES.mago && H.PROFESIONES.picaro);
+
+  const hMago = H.nuevoHeroe();
+  hMago.puntos = 6;
+  hMago.gastados.intelecto = 4;
+  const stMago = H.estadisticas(hMago, 10, [], 'mago');
+  const stGuer = H.estadisticas(H.nuevoHeroe(), 10, [], 'guerrero');
+  const stPic = H.estadisticas(H.nuevoHeroe(), 10, [], 'picaro');
+  const stCaz = H.estadisticas(H.nuevoHeroe(), 10, [], 'cazador');
+
+  assert.ok(stMago.poderMagico > 0, 'Mago debe generar Poder Mágico');
+  assert.ok(stMago['maná'] > stGuer['maná'] && stMago.mpRegenMult > 1);
+  assert.ok(stGuer.vida > stMago.vida && stGuer.reduccion > stMago.reduccion);
+  assert.ok(stPic.critico > stGuer.critico && stPic.dodgeCdMult < 1 && stPic.velocidad > 0);
+  assert.ok(stCaz.critico > stGuer.critico && stCaz.dodgeCdMult < 1 && stCaz.velocidad > 0);
+
+  // Filtrado de habilidades por clase (y universales de historia)
+  assert.strictEqual(H.disponible(hMago, 'bola_fuego', 1, 'mago'), true);
+  assert.strictEqual(H.disponible(hMago, 'bola_fuego', 1, 'guerrero'), false);
+  assert.strictEqual(H.disponible(hMago, 'tajo', 5, 'guerrero'), true);
+  assert.strictEqual(H.disponible(hMago, 'tajo', 5, 'mago'), false);
+  assert.strictEqual(H.disponible(hMago, 'flecha_perforante', 2, 'cazador'), true);
+  assert.strictEqual(H.disponible(hMago, 'paso_sombrio', 4, 'picaro'), true);
+
+  H.recompensar(hMago, { puntos: 0, desbloquea: 'sismo' });
+  ['guerrero', 'cazador', 'mago', 'picaro'].forEach(c => {
+    assert.strictEqual(H.disponible(hMago, 'sismo', 1, c), true, `sismo debe ser universal para ${c}`);
+    assert.strictEqual(H.atajosDeClase(c).length, 3, `atajosDeClase(${c}) debe devolver 3 skills`);
+  });
+
+  assert.throws(() => H.mejorar(hMago, 'tajo', 10, 'mago'), /exclusiva/i);
+  assert.throws(() => H.asignar(hMago, 'q', 'flecha_perforante', 'mago'), /profesi/i);
+  H.mejorar(hMago, 'escudo_mana', 5, 'mago');
+  assert.strictEqual(hMago.gastados.escudo_mana, 1);
+
+  // Respec devuelve todos los puntos gastados
+  const puntosAntesRespec = hMago.puntos;
+  const devueltos = H.reiniciarPuntos(hMago);
+  assert.strictEqual(devueltos, 5);
+  assert.strictEqual(hMago.puntos, puntosAntesRespec + 5);
+  assert.deepStrictEqual(hMago.gastados, {});
+
+  // esBaculo / esDaga
+  assert.ok(H.esBaculo({ ranura: 'weapon', nombre: 'Báculo Solar', familia: 'baculo' }));
+  assert.ok(H.esDaga({ ranura: 'weapon', nombre: 'Daga Élfica', familia: 'daga' }));
+});
+
+t('subclases (Nv. 15) y pasivas exclusivas por profesión + limpieza al cambiar de clase', () => {
+  assert.strictEqual(H.NIVEL_SUBCLASE, 15);
+  assert.strictEqual(Object.keys(H.SUBCLASES).length, 8);
+  ['guerrero', 'cazador', 'mago', 'picaro'].forEach(c => {
+    assert.strictEqual(H.subclasesDeClase(c).length, 2, `${c} debe tener 2 subclases`);
+  });
+
+  const h = H.nuevoHeroe();
+  h.puntos = 8;
+  // Bloqueada antes del nivel 15
+  assert.throws(() => H.elegirSubclase(h, 'piromante', 14, 'mago'), /15/);
+  // Bloqueada si pertenece a otra profesión
+  assert.throws(() => H.elegirSubclase(h, 'paladin', 15, 'mago'), /Guerrero/);
+
+  const sub = H.elegirSubclase(h, 'piromante', 15, 'mago');
+  assert.strictEqual(sub.id, 'piromante');
+  assert.strictEqual(h.subclase, 'piromante');
+
+  // Pasivas exclusivas por clase
+  assert.strictEqual(H.disponible(h, 'maestria_arcana', 1, 'mago'), true);
+  assert.strictEqual(H.disponible(h, 'maestria_arcana', 1, 'guerrero'), false);
+  assert.throws(() => H.mejorar(h, 'piel_acero', 15, 'mago'), /Guerrero/);
+  H.mejorar(h, 'maestria_arcana', 15, 'mago');
+
+  const stMagoBase = H.estadisticas(H.nuevoHeroe(), 15, [], 'mago');
+  const stMagoPiro = H.estadisticas(h, 15, [], 'mago');
+  assert.strictEqual(stMagoPiro.subclase, 'piromante');
+  assert.strictEqual(stMagoPiro.fuegoMult, 0.25);
+  assert.ok(stMagoPiro.poderMagico >= stMagoBase.poderMagico + 17, 'Piromante (+14) + Maestría Arcana (+3) deben sumar >= +17 Poder Mágico');
+  assert.ok(stMagoPiro.critico > stMagoBase.critico);
+
+  // Al limpiar un estado guardado conserva subclase válida y descarta corruptas
+  const saneado = H.limpiarHeroe({ subclase: 'piromante' });
+  assert.strictEqual(saneado.subclase, 'piromante');
+  assert.strictEqual(H.limpiarHeroe({ subclase: 'inventada' }).subclase, null);
+
+  // Al cambiar de clase en aplicarBarraDeClase limpia la subclase incompatible
+  H.aplicarBarraDeClase(h, 'guerrero');
+  assert.strictEqual(h.subclase, null);
+});
+
+t('habilidades por arma, sincronización de barra y desbloqueo progresivo al subir de nivel', () => {
+  assert.ok(H.CLASES_ARMA_DE_PROFESION && Array.isArray(H.CLASES_ARMA_DE_PROFESION.guerrero));
+  const hEspada = H.habilidadesDeArma('espadas');
+  assert.ok(hEspada.length >= 6 && hEspada.includes('sw_iaido'));
+  const st = H.nuevoHeroe();
+  H.aplicarBarraDeClase(st, 'guerrero');
+  H.sincronizarBarraConArma(st, 'mandobles', 'guerrero');
+  assert.ok(Object.values(st.barra).some(id => id && id.startsWith('gs_')), 'Al equipar mandoble la barra sincroniza habilidades gs_*');
+  assert.strictEqual(st.armaClaseActual, 'mandobles');
+  H.sincronizarBarraConArma(st, 'espadas', 'guerrero');
+  assert.ok(Object.values(st.barra).some(id => id && id.startsWith('sw_')), 'Al volver a espada recupera habilidades sw_*');
+  const nuevas = H.nuevasHabilidadesAlSubirNivel(1, 30, 'guerrero', 'espadas');
+  assert.ok(nuevas.length >= 3, 'Entre Nv.1 y Nv.30 deben aprenderse varias técnicas nuevas');
+});
+
+t('modo estricto por arma: solo se generan, asignan y mejoran habilidades del arma equipada', () => {
+  const bi = H.PROFESIONES.mago.barraInicial;
+  for (const id of Object.values(bi)) {
+    assert.ok(H.HABILIDADES[id], 'existe ' + id);
+    assert.strictEqual(H.HABILIDADES[id].armaClase, 'bastones', id + ' debe ser de bastón');
+  }
+  assert.strictEqual(H.habilidadDeArma('sw_iaido', 'espadas'), true);
+  assert.strictEqual(H.habilidadDeArma('sw_iaido', 'arcos'), false);
+  const at = H.atajosDeArma('espadas', 'guerrero');
+  assert.strictEqual(at.length, 3);
+  for (const id of at) assert.strictEqual(H.HABILIDADES[id].armaClase, 'espadas');
+  const st = H.nuevoHeroe();
+  H.aplicarBarraDeClase(st, 'guerrero');
+  H.sincronizarBarraConArma(st, 'espadas', 60, 'guerrero');
+  for (const id of Object.values(st.barra)) if (id) assert.strictEqual(H.HABILIDADES[id].armaClase, 'espadas', 'barra solo espadas: ' + id);
+  const ajena = H.habilidadesDeArma('mandobles')[0];
+  assert.strictEqual(H.disponible(st, ajena, 99, 'guerrero', 'espadas'), false, 'arma ajena no disponible');
+  assert.throws(() => H.asignar(st, 'q', ajena, 'guerrero', 'espadas'));
+  assert.throws(() => H.mejorar(st, ajena, 99, 'guerrero', 'espadas'));
+  const nuevas = H.nuevasHabilidadesAlSubirNivel(1, 99, 'guerrero', 'espadas');
+  assert.ok(nuevas.length > 0);
+  for (const n2 of nuevas) assert.strictEqual(n2.armaClase, 'espadas');
+});
+
+t('ranura shield: tipoDe devuelve escudo y estadisticas suma bloqueo real y defensa', () => {
+  const h = H.nuevoHeroe();
+  const sh = { ranura: 'shield', nombre: 'Escudo Real Dracónico', piezaId: 'shield.13', nivel: 40, estado: 1, defensa: 20, bloqueo: 0.32 };
+  assert.strictEqual(H.tipoDe(sh), 'escudo');
+  const f = H.ficha(sh);
+  assert.strictEqual(f.tipo, 'escudo');
+  assert.ok(f.lineas.some(l => l.includes('32 %')), 'ficha muestra bloqueo real');
+  const s = H.estadisticas(h, 40, [sh], 'guerrero');
+  assert.ok(s.bloqueo >= 0.32, 'estadisticas suma bloqueo del escudo: ' + s.bloqueo);
+  assert.ok(s.defensa >= 20, 'estadisticas suma defensa del escudo');
+});
+
+t('forjaPendiente: nuevoHeroe la inicia en null y limpiarHeroe normaliza belt/shoulders a 5 piezas', () => {
+  const h = H.nuevoHeroe();
+  assert.strictEqual(h.forjaPendiente, null);
+  const leg = H.limpiarHeroe({ forjaPendiente: { ranura: 'belt', capIndex: 0, sabio: 'Sabia Elara', titulo: 'Cap 1' } });
+  assert.strictEqual(leg.forjaPendiente.ranura, 'pants');
+  const legSh = H.limpiarHeroe({ forjaPendiente: { ranura: 'shoulders', capIndex: 5 } });
+  assert.strictEqual(legSh.forjaPendiente.ranura, 'torso');
+  assert.strictEqual(H.limpiarHeroe({ forjaPendiente: { ranura: 'invalida' } }).forjaPendiente, null);
+});
+
 console.log(`\n${n} pruebas del héroe superadas.`);

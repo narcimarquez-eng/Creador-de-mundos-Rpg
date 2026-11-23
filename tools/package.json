@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Herramientas que generan los datos incrustados del visor (árboles de ez-tree, MIT).",
   "dependencies": {
+    "draco3dgltf": "^1.5.7",
     "three": "0.186.1"
   },
   "devDependencies": {

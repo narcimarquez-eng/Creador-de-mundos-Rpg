@@ -2,19 +2,26 @@
 
 ## En el juego
 
-`js/sonidos.js` reproduce los efectos con Web Audio. Elige una variante al azar y varía el tono ±5 % para que no
-se repitan. El navegador no deja sonar nada hasta el primer clic o tecla. **N** activa o quita el sonido.
+Las grabaciones de `sfx/` las reproduce `js/sonidos.js` (`window.Sonidos`). Pasan por su mezclador (bus de SFX,
+reverberación y panorama). Si una grabación no carga (abriendo el HTML con doble clic, sin red), suena el efecto
+sintetizado de siempre.
 
-| Momento (`visor-mundo.html`) | Efecto |
+| Momento | Grabación (sustituye o acompaña al sintetizado) |
 |---|---|
-| Golpe que acierta (combo y técnicas ligeras) | `choque_corte` (6 variantes); con más de 2 blancos, un segundo choque |
-| Golpe de técnica pesada (hendidura, sísmico, sentencia, voltereta, contraataque) | `choque_metal` |
+| Golpe con arma que acierta (`Sonidos.impacto('metal')`) | Choque según el arma + `golpe_cuerpo` (impacto en el cuerpo, 4 variantes) |
+| Golpe sin arma (`Sonidos.impacto('sordo')`) | `golpe_cuerpo` |
+| Golpe crítico | `golpe_crujiente` encima del sintetizado |
+| Cada golpe cuerpo a cuerpo (combo y técnicas de arma) | `tajo_aire`, programado para que el silbido caiga justo en el golpe; agudo con dagas, grave con mazas |
+| El escudo bloquea un golpe enemigo (`Sonidos.bloqueo`) | `choque_metal` |
 | Parada y contraataque, al empezar | `choque_metal` |
-| Escudo que bloquea un golpe enemigo | `choque_metal`, más bajo |
-| Técnicas de rayo (tornillo triple, filo relámpago, salto demoledor), durante la animación | `rayo_carga`; se corta en el último golpe |
-| Técnicas de rayo y nova, al acertar | `rayo_cadena` + un `chispazo` por blanco (hasta 3) |
+| Tornillo triple, Filo relámpago y Salto demoledor | `rayo_carga` durante la animación; al golpear, `rayo_cadena` + `chispazo` |
+| Cualquier `Sonidos.rayo` (rayos de monstruos y estallidos) | `rayo_cadena` + `chispazo` |
+| Técnicas de arma con elemento rayo (`sw_lightning`, `ax_thunder`, `mc_storm`…) | `rayo_cadena` + `chispazo` al golpear; carga si tardan ≥ 0,5 s |
+| Dagas (`dg_*`) | Cada una con su mezcla: Paso de Sombra (zambullida + tajo seco), Corte Fantasma (desenvaine agudo), Asalto Asesino (puñalada doble), Hélice Venenosa (giro doble + veneno), Ráfaga Sombría (cortes que suben de tono), Zigzag Relámpago (chispazos y descarga) |
 
-Las flechas aún no tienen sonido.
+El golpe que acierta cambia según el arma (`PERFIL_ARMA` en `js/sonidos.js`): las dagas suenan agudas y secas (tono ×1,34);
+las espadas, normales; las hachas, más graves; los mandobles y las mazas usan el choque metálico grave. Cada técnica
+tiene además un desplazamiento de tono fijo (±6 %) para que no suenen todas igual.
 
 | Archivo | Origen (Sonniss GDC 2026, recortado, mono, normalizado a −1,5 dB) |
 |---|---|
@@ -23,8 +30,11 @@ Las flechas aún no tienen sonido.
 | `sfx/rayos/rayo_carga_01.ogg` | Arc (InMotionAudio) · ArcPowerUpDesign04, de 4,6 s al final |
 | `sfx/rayos/rayo_cadena_01.ogg` | Arc (InMotionAudio) · ArcDesign15 |
 | `sfx/rayos/chispazo_01…03.ogg` | Arc (InMotionAudio) · Buzz27, tres trozos de 0,55 s |
+| `sfx/espadas/tajo_aire_01.ogg` | Tower Defense Game (ESM) · Action Deploy Units Sword Slice Special Move Layered Swish 04 |
+| `sfx/golpes/golpe_cuerpo_01…04.ogg` | Cinematic Fight Vol. 1 (344 Audio) · 4 x Punch, Body 02 (4 tomas) |
+| `sfx/golpes/golpe_crujiente_01.ogg` | Anime Game (ESM) · Combat Punch Impact Light Hit Delay Crunchy Vintage Quick Smack 05 |
 
-Para añadir un efecto: pon los `.ogg` en `sfx/<categoria>/` y añádelos a `EFECTOS` en `js/sonidos.js`.
+Para añadir un efecto: pon los `.ogg` en `sfx/<categoria>/` y añádelos a `MUESTRAS` en `js/sonidos.js`.
 
 Los prompts de los efectos están en `sfx/prompts.json`: choques de espadas, rayos y magias, cada uno ligado a la
 animación o al evento del juego que lo usa (ver `docs/COMBATE.md`). Están en inglés porque los generadores responden

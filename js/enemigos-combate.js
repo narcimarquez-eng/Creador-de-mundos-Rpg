@@ -7,13 +7,16 @@
 (function (root) {
   'use strict';
 
-  const DURACION = { golpe: 0.5, magia: 0.9, hit: 0.3 };
+  const DURACION = { golpe: 1.00, magia: 1.25, disparo: 1.15, hit: 0.40 };
   let bolaGeoCompartida = null;
 
   // Qué gesto usa cada enemigo al atacar
   function tipoAtaque(config) {
     if (!config) return 'golpe';
-    if (config.raceCategory === 'magical' || config.weapon === 'arcane_staff' || config.weapon === 'dragon_breath_maw') return 'magia';
+    const w = (config.weapon || '').toLowerCase();
+    const n = ((config.name || '') + ' ' + (config.archetype || '') + ' ' + (config.id || '')).toLowerCase();
+    if (w.includes('bow') || w.includes('arco') || n.includes('archer') || n.includes('arquero') || n.includes('bowman')) return 'disparo';
+    if (config.raceCategory === 'magical' || w.includes('staff') || w.includes('baston') || w.includes('varita') || w.includes('dragon_breath') || w.includes('frost_breath') || n.includes('mago') || n.includes('mage') || n.includes('shaman') || n.includes('chaman') || n.includes('brujo') || n.includes('archimago') || n.includes('sorcerer') || n.includes('wizard') || n.includes('hechicero')) return 'magia';
     return 'golpe';
   }
 
@@ -29,12 +32,21 @@
       rig.rootGroup.traverse(o => { if (o.isMesh && o.material === armadura) mallasArmadura.push(o); });
     }
     const nucleo = rig.parts.coreMesh && rig.parts.coreMesh.material;
+    let nucleoIntensidad = null;
+    if (nucleo && typeof nucleo.emissiveIntensity === 'number') {
+      nucleo.userData = nucleo.userData || {};
+      if (typeof nucleo.userData._baseEmissiveIntensity !== 'number') {
+        nucleo.userData._baseEmissiveIntensity = Math.min(nucleo.emissiveIntensity, 0.75);
+      }
+      nucleoIntensidad = Math.min(nucleo.userData._baseEmissiveIntensity, 0.75);
+    }
     return {
       rig, bola, accion: null, inicio: 0, offsets: new Map(), destello: false,
       armadura, mallasArmadura, matDestello: null,
       armaduraEmisivo: armadura ? { color: armadura.emissive.clone(), intensidad: armadura.emissiveIntensity } : null,
-      nucleoIntensidad: nucleo && nucleo.emissiveIntensity !== undefined ? nucleo.emissiveIntensity : null,
+      nucleoIntensidad,
       nucleo,
+      _magiaActiva: false,
       origen: new THREE.Vector3(),
     };
   }
@@ -42,7 +54,9 @@
   // Momento (segundos desde el inicio del gesto) en que el ataque llega al héroe: el proyectil al llegar,
   // y en el golpe, cuando el brazo está en lo alto
   function momentoImpacto(accion) {
-    return DURACION[accion] * (accion === 'magia' ? 0.9 : 0.5);
+    if (accion === 'disparo') return 0.68;
+    if (accion === 'magia') return 0.95;
+    return (DURACION[accion] || 1.00) * 0.5;
   }
 
   // Empieza un efecto. ahora: segundos, con el mismo reloj que actualizar().
@@ -81,13 +95,29 @@
       sumar(fx, p.torsoGroup, 0, 0.35 * sw, 0);
     }
 
+    if (a === 'disparo') {
+      const sw = Math.sin(Math.PI * q);
+      sumar(fx, p.leftArmGroup, -1.55 * sw, -0.3 * sw, 0);
+      sumar(fx, p.rightArmGroup, -1.52 * sw, 0.4 * sw, 0);
+      sumar(fx, p.torsoGroup, 0, -0.22 * sw, 0);
+      sumar(fx, p.headGroup, 0, 0.22 * sw, 0);
+    }
+
     const magia = a === 'magia' ? Math.min(1, q / 0.35, (1 - q) / 0.25) : 0;
     if (a === 'magia') {
       sumar(fx, p.rightArmGroup, -1.9 * magia, 0, 0);
       sumar(fx, p.leftArmGroup, -1.9 * magia, 0, 0);
       sumar(fx, p.headGroup, -0.15 * magia, 0, 0);
     }
-    if (fx.nucleo && fx.nucleoIntensidad !== null) fx.nucleo.emissiveIntensity = fx.nucleoIntensidad * (1 + 2 * magia);
+    if (fx.nucleo && fx.nucleoIntensidad !== null) {
+      if (magia > 0) {
+        fx.nucleo.emissiveIntensity = Math.min(1.15, fx.nucleoIntensidad * (1 + 0.45 * magia));
+        fx._magiaActiva = true;
+      } else if (fx._magiaActiva) {
+        fx.nucleo.emissiveIntensity = fx.nucleoIntensidad;
+        fx._magiaActiva = false;
+      }
+    }
 
     // Proyectil: sale de la mano y avanza hacia delante (eje +z del enemigo, que mira al héroe al perseguir)
     if (a === 'magia' && q > 0.35 && q < 0.9) {

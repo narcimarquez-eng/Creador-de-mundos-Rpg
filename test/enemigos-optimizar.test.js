@@ -1,6 +1,8 @@
 // Pruebas de optimización, clonación de rigs procedurales y animación de combate de enemigos.
 // Ejecutar: node --experimental-require-module test/enemigos-optimizar.test.js
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const THREE = require('../tools/node_modules/three/build/three.cjs');
 globalThis.THREE = THREE;
 globalThis.window = globalThis;
@@ -104,6 +106,144 @@ t('clonarRig conserva todos los campos requeridos por updateEnemyAnimation en to
       assert.strictEqual(fxA.mallasArmadura[0].material, fxB.mallasArmadura[0].material, 'tras el destello vuelve al material compartido');
     }
   }
+});
+
+t('sanearModeloEnemigo elimina PointLights, anula anisotropía/transmisión/sheen/clearcoat y recorta emisivos en GLB', () => {
+  const grp = new THREE.Group();
+  const head = new THREE.Group();
+  grp.add(head);
+  const luz = new THREE.PointLight(0xff4400, 3.5, 6.5, 1.6);
+  head.add(luz);
+
+  const geo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+  const matPelo = new THREE.MeshPhysicalMaterial({
+    name: 'Mat_3DHairStrands',
+    color: 0x334155,
+    anisotropy: 0.82,
+    transmission: 0.6,
+    thickness: 1.2,
+    sheen: 0.95,
+    clearcoat: 1.0,
+    roughness: 0.08
+  });
+  const matIris = new THREE.MeshStandardMaterial({
+    name: 'Mat_PredatorIris',
+    color: 0xffffff,
+    emissive: 0xff2200,
+    emissiveIntensity: 3.6,
+    roughness: 0.08
+  });
+  const matSlash = new THREE.MeshStandardMaterial({
+    name: 'Mat_WeaponSlashTrail',
+    color: 0x22c55e,
+    emissive: 0x22c55e,
+    emissiveIntensity: 4.93,
+    roughness: 0.12
+  });
+  const matSparks = new THREE.MeshStandardMaterial({
+    name: 'Mat_GLB_ArcaneSparks',
+    color: 0x38bdf8,
+    emissive: 0x38bdf8,
+    emissiveIntensity: 2.2,
+    transparent: true,
+    opacity: 0.88,
+    roughness: 0.15
+  });
+
+  grp.add(new THREE.Mesh(geo, matPelo));
+  grp.add(new THREE.Mesh(geo, matIris));
+  grp.add(new THREE.Mesh(geo, matSlash));
+  grp.add(new THREE.Mesh(geo, matSparks));
+
+  const res = EnemyOpt.sanearModeloEnemigo(grp);
+  assert.strictEqual(res.lucesQuitadas, 1, 'debe retirar la luz dinámica embebida');
+  let lucesRestantes = 0;
+  grp.traverse(o => { if (o.isLight) lucesRestantes++; });
+  assert.strictEqual(lucesRestantes, 0, 'no debe quedar ninguna luz en la jerarquía del GLB');
+
+  assert.strictEqual(matPelo.anisotropy, 0, 'anisotropy debe quedar a 0');
+  assert.strictEqual(matPelo.transmission, 0, 'transmission debe quedar a 0');
+  assert.strictEqual(matPelo.thickness, 0, 'thickness debe quedar a 0');
+  assert.strictEqual(matPelo.sheen, 0, 'sheen debe quedar a 0');
+  assert.strictEqual(matPelo.clearcoat, 0, 'clearcoat debe quedar a 0');
+  assert.ok(matPelo.roughness >= 0.30, 'roughness debe subir al menos a 0.30');
+
+  assert.ok(matIris.emissiveIntensity <= 0.75, `Mat_PredatorIris debe quedar <= 0.75 (fue ${matIris.emissiveIntensity})`);
+  assert.ok(matSlash.emissiveIntensity <= 0.55, `Mat_WeaponSlashTrail debe quedar <= 0.55 (fue ${matSlash.emissiveIntensity})`);
+  assert.ok(matSparks.emissiveIntensity <= 0.55, `Mat_GLB_ArcaneSparks debe quedar <= 0.55 (fue ${matSparks.emissiveIntensity})`);
+  assert.ok(matSparks.opacity <= 0.55, `Mat_GLB_ArcaneSparks opacity debe quedar <= 0.55 (fue ${matSparks.opacity})`);
+});
+
+t('optimizarRig sanea automáticamente materiales procedurales con crystalTransmission y emisivos altos', () => {
+  const arquetipoPesado = presets.find(p => p.materials && p.materials.crystalTransmission > 0 && p.materials.emissiveIntensity >= 3.0) || muestras[4];
+  const cfg = Object.assign({}, arquetipoPesado, { morphology: Object.assign({}, arquetipoPesado.morphology, { meshDensity: 'low' }) });
+  const rig = EnemyLib.buildProceduralEnemy(cfg, texturas, false, false);
+  EnemyOpt.optimizarRig(rig);
+
+  const revisarMat = mat => {
+    if (!mat) return;
+    assert.ok(!mat.transmission || mat.transmission === 0, `${mat.name} no debe mantener transmission > 0`);
+    assert.ok(!mat.anisotropy || mat.anisotropy === 0, `${mat.name} no debe mantener anisotropy > 0`);
+    assert.ok(!mat.sheen || mat.sheen === 0, `${mat.name} no debe mantener sheen > 0`);
+    assert.ok(!mat.clearcoat || mat.clearcoat === 0, `${mat.name} no debe mantener clearcoat > 0`);
+    if (typeof mat.roughness === 'number') {
+      assert.ok(mat.roughness >= 0.30, `${mat.name} roughness >= 0.30 (fue ${mat.roughness})`);
+    }
+    if (typeof mat.emissiveIntensity === 'number') {
+      assert.ok(mat.emissiveIntensity <= 0.75, `${mat.name} emissiveIntensity <= 0.75 (fue ${mat.emissiveIntensity})`);
+    }
+  };
+  rig.rootGroup.traverse(o => {
+    if (o.material) [].concat(o.material).forEach(revisarMat);
+  });
+  Object.values(rig.materials || {}).forEach(revisarMat);
+});
+
+t('EnemyFx no acumula emissiveIntensity exponencialmente al clonar o actualizar varios clones en magia', () => {
+  const baseMagico = presets.find(p => p.bodyPlan === 'floating_magical') || muestras[4];
+  const cfg = Object.assign({}, baseMagico, { morphology: Object.assign({}, baseMagico.morphology, { meshDensity: 'low' }) });
+  const proto = EnemyLib.buildProceduralEnemy(cfg, texturas, false, false);
+  EnemyOpt.optimizarRig(proto);
+
+  const clonA = EnemyOpt.clonarRig(THREE, proto);
+  const clonB = EnemyOpt.clonarRig(THREE, proto);
+  assert.ok(clonA.parts.coreMesh && clonA.parts.coreMesh.material, 'el arquetipo debe tener coreMesh con material');
+
+  const fxA = EnemyFx.crear(clonA, cfg);
+  EnemyFx.disparar(fxA, 'magia', 1.0, 5);
+  EnemyFx.actualizar(fxA, 'attack', 1.35, 0.016, 1.35);
+  const emDuranteCasteo = fxA.nucleo.emissiveIntensity;
+  assert.ok(emDuranteCasteo <= 1.15, `emissive durante magia debe quedar acotado <= 1.15 (fue ${emDuranteCasteo})`);
+
+  // Mientras clonA está lanzando magia, se instancia clonB compartiendo el material
+  const fxB = EnemyFx.crear(clonB, cfg);
+  assert.ok(fxB.nucleoIntensidad <= 0.75, `la intensidad base en clonB no debe heredar el pico de magia (fue ${fxB.nucleoIntensidad})`);
+
+  EnemyFx.disparar(fxB, 'magia', 1.36, 5);
+  EnemyFx.actualizar(fxB, 'attack', 1.70, 0.016, 1.70);
+  assert.ok(fxB.nucleo.emissiveIntensity <= 1.15, `el segundo clon tampoco debe superar 1.15 (fue ${fxB.nucleo.emissiveIntensity})`);
+
+  // Al terminar ambos, debe restaurar su baseline <= 0.75
+  EnemyFx.actualizar(fxA, 'idle', 3.0, 0.016, 3.0);
+  EnemyFx.actualizar(fxB, 'idle', 3.0, 0.016, 3.0);
+  assert.ok(fxA.nucleo.emissiveIntensity <= 0.75, `tras finalizar magia, emissive vuelve a <= 0.75 (fue ${fxA.nucleo.emissiveIntensity})`);
+});
+
+t('visor-mundo.html integra saneamiento de GLB, detalle en GLB, impacto sin esfera aditiva y blindaje móvil de UnrealBloomPass', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  assert.ok(html.includes('EnemyOpt.sanearModeloEnemigo(entrada.escena)'), 'prototipoGlb debe llamar sanearModeloEnemigo');
+  assert.ok(/instanciarVersionGlb[\s\S]*?detalle:\s*rig\.detalle/.test(html), 'instanciarVersionGlb debe conectar rig.detalle al filtro de pelo/escamas');
+  const mDestello = html.match(/function destelloImpacto\([\s\S]*?\n  \}/);
+  assert.ok(mDestello, 'debe existir destelloImpacto en visor-mundo.html');
+  assert.ok(!mDestello[0].includes('SphereGeometry'), 'destelloImpacto no debe crear esferas blancas sólidas');
+  assert.ok(!mDestello[0].includes('marcarResplandor'), 'destelloImpacto no debe inflarse con marcarResplandor');
+  assert.ok(!mDestello[0].includes('AdditiveBlending'), 'destelloImpacto no debe apilar AdditiveBlending');
+  assert.ok(html.includes('function blindarFiltroBloom'), 'debe definir blindarFiltroBloom para UnrealBloomPass');
+  assert.ok(html.includes('uMaxBloomLum'), 'blindarFiltroBloom debe limitar la luminancia máxima antes del blur');
+  assert.ok(html.includes('blindarFiltroBloom(bloomPass, 1.75)'), 'crearResplandor debe aplicar tope HDR 1.75');
+  assert.ok(html.includes('texel.r >= 0.0 && texel.r <= 1000.0'), 'blindarFiltroBloom debe filtrar NaN/Inf en rango seguro mediump (1000.0)');
+  assert.ok(html.includes('Math.min(1.35, Math.max(mat.emissiveIntensity || 1.0, 1.18))'), 'marcarResplandor debe moderar emissiveIntensity');
+  assert.ok(html.includes('Math.min(1.28, Math.max(1.08, 1.12 / lum))'), 'marcarResplandor debe moderar el multiplicador de color');
 });
 
 console.log('\n' + n + ' pruebas de enemigos procedurales superadas.');

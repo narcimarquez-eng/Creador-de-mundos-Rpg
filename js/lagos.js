@@ -123,6 +123,23 @@
     return lagos.some(L => L.tipo !== 'arenas' && Math.hypot(x - L.x, z - L.z) < L.R * 1.05);
   }
 
+  // Caché de texturas de agua (assets/texturas/agua/t01..t10.jpg) para no recargar por cada lago
+  const _cacheTexAgua = {};
+  function texAgua(THREE, ruta) {
+    if (_cacheTexAgua[ruta]) return _cacheTexAgua[ruta];
+    const entry = { tex: null, lista: false, cbs: [] };
+    _cacheTexAgua[ruta] = entry;
+    new THREE.TextureLoader().load(ruta, t => {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.colorSpace = THREE.SRGBColorSpace;
+      entry.tex = t;
+      entry.lista = true;
+      entry.cbs.forEach(fn => fn(t));
+      entry.cbs.length = 0;
+    });
+    return entry;
+  }
+
   // Cómo se pinta el agua: el mismo esquema que los ríos (rizo, reflejo del cielo) más las normales de New-Rol
   // y espuma en la orilla. La profundidad viene de una textura con la altura del terreno bajo la superficie.
   const AGUA_FRAG = `
@@ -132,47 +149,75 @@
     vec2 n1 = texture2D(tNorm, vMundo * 0.035 + vec2(uTime * 0.010, uTime * 0.006)).rg * 2.0 - 1.0;
     vec2 n2 = texture2D(tNorm, vMundo * 0.07 - vec2(uTime * 0.008, uTime * 0.013)).rg * 2.0 - 1.0;
     vec2 n = (n1 + n2) * 0.5;
-    vec3 agua = mix(uHonda, uClara, smoothstep(0.0, 4.0, prof));
-    agua *= 0.8 + 0.4 * dot(n, vec2(0.7, 0.7)) + 0.1 * n.y;
-    float espuma = smoothstep(0.45, 0.0, prof) * (0.55 + 0.45 * n.x * 2.0);
-    agua = mix(agua, vec3(0.92, 0.97, 1.0), clamp(espuma, 0.0, 1.0) * 0.8);
+    float rizoFino = sin(vMundo.x * 1.45 + uTime * 1.2) * cos(vMundo.y * 1.35 - uTime * 0.95);
+    vec3 agua = mix(uHonda * 0.80, uClara, smoothstep(0.0, 3.8, prof));
+    agua *= 0.84 + 0.36 * dot(n, vec2(0.7, 0.7)) + 0.08 * n.y;
+    if (uConDetalle > 0.5) {
+      vec3 detAgua = texture2D(tDetalle, vMundo * 0.085 + n * 0.03 + vec2(uTime * 0.012, -uTime * 0.008)).rgb;
+      float dCamAgua = length(cameraPosition - vMundo3);
+      float pesoDet = mix(0.34, 0.16, smoothstep(0.0, 3.5, prof)) * (1.0 - smoothstep(45.0, 150.0, dCamAgua));
+      agua = mix(agua, agua * 0.55 + detAgua * 0.65, pesoDet);
+    }
+    float espumaOnda = 0.62 + 0.38 * sin(vMundo.x * 0.8 + vMundo.y * 0.7 + uTime * 1.6 + n.x * 3.0);
+    float espuma = smoothstep(0.55, 0.02, prof) * clamp(espumaOnda + n.y * 0.35, 0.0, 1.0);
+    agua = mix(agua, vec3(0.92, 0.97, 1.0), clamp(espuma, 0.0, 1.0) * 0.82);
     vec3 vista = normalize(cameraPosition - vMundo3);
-    float fresnel = 0.03 + 0.97 * pow(1.0 - clamp(vista.y + n.x * 0.08, 0.0, 1.0), 4.0);
+    vec3 Nola = normalize(vec3(n.x * 0.32 + rizoFino * 0.04, 1.0, n.y * 0.32 - rizoFino * 0.04));
+    float fresnel = 0.04 + 0.96 * pow(1.0 - clamp(dot(vista, Nola), 0.0, 1.0), 4.0);
     agua = mix(agua, uCielo, clamp(fresnel * 0.85, 0.0, 0.9));
+    vec3 Lsol = normalize(uSunDir);
+    vec3 Hsol = normalize(Lsol + vista);
+    float spec = pow(max(dot(Nola, Hsol), 0.0), 84.0) * 1.15 + pow(max(dot(Nola, Hsol), 0.0), 16.0) * 0.14;
+    agua += uSunColor * spec * smoothstep(0.02, 0.25, Lsol.y + 0.15);
     diffuseColor.rgb = agua;
-    diffuseColor.a = mix(0.6, 0.95, smoothstep(0.0, 1.2, prof));`;
+    diffuseColor.a = mix(0.56, 0.95, smoothstep(0.0, 1.2, prof));`;
 
   // Superficie de un lago u oasis: plano a su nivel, recortado por la profundidad del terreno
   function agua(THREE, L, altura, opt) {
-    const ext = L.R * 1.4, N = 64, lado = 2 * ext;
+    const hCentro = (typeof altura === 'function') ? altura(L.x, L.z) : L.nivel;
+    // Si el terreno fue esculpido drásticamente (ej. hendiduras o cañones), ajustar L.nivel al lecho real
+    if (typeof hCentro === 'number' && L.nivel > hCentro + (L.prof || 2.0) * 1.5) {
+      L.nivel = hCentro + (L.prof || 2.0) * 0.35;
+    }
+    const ext = L.R * 1.25, N = 64, lado = 2 * ext;
     const datos = new Uint8Array(N * N * 4);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const x = L.x - ext + (i + 0.5) * lado / N, z = L.z - ext + (j + 0.5) * lado / N;
       const p = (j * N + i) * 4;
-      // Se desvanece fuera del hueco: el agua nunca dibuja el borde cuadrado de su plano
-      const fuera = 1 - smooth(1.1 * L.R, 1.38 * L.R, Math.hypot(x - L.x, z - L.z));
-      datos[p] = Math.round(Math.max(0, Math.min(1, (L.nivel - altura(x, z)) / 8)) * fuera * 255);
+      const d = Math.hypot(x - L.x, z - L.z);
+      // El agua solo existe dentro del cuenco excavado (d <= L.R) y donde el terreno quede bajo la superficie
+      const hTerreno = altura(x, z);
+      const enHueco = (d <= L.R * 1.02) && (hTerreno < L.nivel);
+      const fuera = enHueco ? (1 - smooth(L.R * 0.88, L.R * 1.0, d)) : 0;
+      datos[p] = Math.round(Math.max(0, Math.min(1, (L.nivel - hTerreno) / 6.0)) * fuera * 255);
       datos[p + 3] = 255;
     }
     const prof = new THREE.DataTexture(datos, N, N);
     prof.magFilter = prof.minFilter = THREE.LinearFilter;
     prof.wrapS = prof.wrapT = THREE.ClampToEdgeWrapping;
     prof.needsUpdate = true;
+    const rutaDet = L.tipo === 'oasis' ? 'assets/texturas/agua/t08.jpg' : (L.bioma === 'montana' ? 'assets/texturas/agua/t03.jpg' : 'assets/texturas/agua/t01.jpg');
+    const entDet = texAgua(THREE, rutaDet);
     const mat = new THREE.MeshLambertMaterial({ transparent: true, side: THREE.DoubleSide, depthWrite: false });
     mat.onBeforeCompile = shader => {
       shader.uniforms.tProf = { value: prof };
       shader.uniforms.tNorm = { value: opt.normales };
+      shader.uniforms.tDetalle = { value: entDet.tex || opt.normales };
+      shader.uniforms.uConDetalle = { value: entDet.lista ? 1.0 : 0.0 };
+      if (!entDet.lista) entDet.cbs.push(t => { shader.uniforms.tDetalle.value = t; shader.uniforms.uConDetalle.value = 1.0; });
       shader.uniforms.uOrigen = { value: new THREE.Vector2(L.x - ext, L.z - ext) };
       shader.uniforms.uLado = { value: lado };
       shader.uniforms.uHonda = { value: new THREE.Color(L.honda) };
       shader.uniforms.uClara = { value: new THREE.Color(L.clara) };
       shader.uniforms.uTime = opt.tiempo;
       shader.uniforms.uCielo = opt.cielo;
+      shader.uniforms.uSunDir = opt.sunDir || { value: new THREE.Vector3(0.45, 0.72, 0.35) };
+      shader.uniforms.uSunColor = opt.sunColor || { value: new THREE.Color('#fffdf2') };
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vec4 wp = modelMatrix * vec4(transformed, 1.0);\n  vMundo = wp.xz;\n  vMundo3 = wp.xyz;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform sampler2D tProf;\nuniform sampler2D tNorm;\nuniform vec2 uOrigen;\nuniform float uLado;\nuniform vec3 uHonda;\nuniform vec3 uClara;\nuniform float uTime;\nuniform vec3 uCielo;')
+        .replace('#include <common>', '#include <common>\nvarying vec2 vMundo;\nvarying vec3 vMundo3;\nuniform sampler2D tProf;\nuniform sampler2D tNorm;\nuniform sampler2D tDetalle;\nuniform float uConDetalle;\nuniform vec2 uOrigen;\nuniform float uLado;\nuniform vec3 uHonda;\nuniform vec3 uClara;\nuniform float uTime;\nuniform vec3 uCielo;\nuniform vec3 uSunDir;\nuniform vec3 uSunColor;')
         .replace('#include <color_fragment>', '#include <color_fragment>' + AGUA_FRAG);
     };
     const malla = new THREE.Mesh(new THREE.PlaneGeometry(lado, lado).rotateX(-Math.PI / 2), mat);

@@ -51,6 +51,26 @@
       '¡Por la aldea! ¡No dejaré que te rodeen!',
       '¡Saca el acero, que vienen con hambre!'
     ],
+    monstruo_duro: [
+      '¡Atento, esta criatura tiene una vitalidad y salud enormes! ¡Usa tus habilidades y combínalas con mis dopes!',
+      '¡Vaya resistencia! Su barra de vida es descomunal: ¡no bajes la guardia y esquiva sus zarpazos!',
+      '¡Es una bestia colosal! Yo potenciaré tu ataque mientras tú buscas su punto débil.'
+    ],
+    salud_baja: [
+      '¡Cuidado, camarada! Tu salud está peligrosamente baja. ¡Usa una poción o retrocede un momento!',
+      '¡Aguanta, no caigas! ¡Toma una poción de vida antes del siguiente golpe!',
+      '¡Peligro! Tu barra de vida flaquea. ¡Aléjate mientras yo entretengo al monstruo!'
+    ],
+    guia_camino: [
+      '¡Mantén el rumbo! El sabio nos indicó la dirección y los senderos de piedra nos llevarán a salvo.',
+      'Si te sientes desorientado, pregúntame en cualquier momento y te señalaré hacia dónde ir.',
+      'Caminar a tu lado me hace sentir seguro. ¿Seguimos hacia nuestro objetivo?'
+    ],
+    charla_inicial: [
+      '¡Por fin en marcha! No seremos más simples aldeanos: salvaremos las comarcas de Aden.',
+      'Los sabios nos observan desde la muralla. Demostremos de qué pasta estamos hechos.',
+      'Mi espada corta y mis dopes marciales están listos. ¡Dime a dónde vamos y te seguiré!'
+    ],
     combate_victoria: [
       '¡Bien peleado! Una bestia menos que amenace los caminos.',
       '¡Qué golpe! Vas dominando el combate a la perfección.',
@@ -66,6 +86,75 @@
   function elegirFrase(categoria) {
     const lista = FRASES[categoria] || FRASES.ambiente;
     return lista[Math.floor(Math.random() * lista.length)];
+  }
+
+  // Calcula distancia euclídea y dirección cardinal (Norte, Sur, Este, Oeste, etc.) hacia un destino
+  function calcularDireccionYDistancia(origen, destino) {
+    if (!origen || !destino) return { dist: 0, dir: 'Norte' };
+    const ox = (typeof origen.x === 'number') ? origen.x : 0;
+    const oz = (typeof origen.z === 'number') ? origen.z : ((typeof origen.y === 'number') ? origen.y : 0);
+    const dx = ((typeof destino.x === 'number') ? destino.x : 0) - ox;
+    const dz = ((typeof destino.z === 'number') ? destino.z : ((typeof destino.y === 'number') ? destino.y : 0)) - oz;
+    const dist = Math.round(Math.hypot(dx, dz));
+
+    let dir = 'Norte';
+    if (Math.abs(dx) > Math.abs(dz) * 1.5) {
+      dir = dx > 0 ? 'Este' : 'Oeste';
+    } else if (Math.abs(dz) > Math.abs(dx) * 1.5) {
+      dir = dz > 0 ? 'Sur' : 'Norte';
+    } else {
+      const ns = dz > 0 ? 'Sur' : 'Norte';
+      const eo = dx > 0 ? 'este' : 'oeste';
+      dir = `${ns}${eo}`;
+    }
+    return { dist, dir };
+  }
+
+  // Genera un consejo contextual de guía donde el acompañante te dice dónde ir, te advierte de los monstruos y reacciona al Acto activo y a tu profesión
+  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo, principal, clase = null) {
+    if (!acompanante) return '';
+    const nomComp = acompanante.nombre || 'Rowan';
+    const paso = principal && typeof principal.paso === 'number' ? principal.paso : null;
+    if (!destino) {
+      if (paso !== null && paso >= 16) {
+        return `${nomComp}: «¡Somos Campeones de Aden! Si aún buscas acero y gloria, limpiemos las 5 cabañas fronterizas y las Mazmorras Ancestrales.»`;
+      }
+      return `${nomComp}: «Hemos cumplido con los objetivos por ahora. ¡Vayamos a la plaza del pueblo inicial a hablar con los sabios para nuevas órdenes!»`;
+    }
+
+    const { dist, dir } = calcularDireccionYDistancia(heroePos, destino);
+    const nomObj = destino.nombre || 'nuestro objetivo';
+
+    let consejo = '';
+    if (dist <= 18) {
+      consejo = `«¡Ya estamos en ${nomObj}! Desenvaina y mantén la guardia alta: las bestias de esta zona poseen una vitalidad y dureza descomunales. ¡Lucharemos espalda contra espalda!»`;
+    } else {
+      consejo = `«Camarada, debemos marchar hacia «${nomObj}». Queda hacia el ${dir}, a unos ${dist} metros. Sigamos las calzadas empedradas: yo te cubriré las espaldas con mis dopes de combate.»`;
+    }
+
+    if (paso !== null) {
+      if (paso <= 4) consejo += ' (Acto I: cada pieza que arranquemos reforzará la forja clandestina de Brann.)';
+      else if (paso <= 9) consejo += ' (Acto II: no bajes la guardia; las reliquias y diarios incriminan al cónclave.)';
+      else if (paso <= 13) consejo += ' (Acto III: con el cerco y el monopolio temblando, vamos directos a por el Titán.)';
+      else if (paso < 16) consejo += ' (Acto IV: solo queda purificar la fuente y sellar el juicio en la plaza.)';
+      else consejo += ' (Epílogo: el reino es libre, pero las criptas ancestrales aún guardan desafíos.)';
+    }
+
+    if (clase && SINERGIAS_PROFESION[clase]) {
+      const sin = sinergiaConProfesion(acompanante.arquetipo, clase);
+      const rec = compRecomendadoParaClase(clase);
+      if (sin.nivel === 'optima' || sin.nivel === 'buena') {
+        consejo += ` [Sinergia ${sin.titulo}: ${sin.desc}]`;
+      } else if (rec && COMPANEROS[rec.principal]) {
+        consejo += ` [Consejo táctico: ${rec.consejo} (${COMPANEROS[rec.principal].nombre}).]`;
+      }
+    }
+
+    if (heroeInfo && heroeInfo.hp && heroeInfo.maxHp && (heroeInfo.hp < heroeInfo.maxHp * 0.40)) {
+      consejo += ` ¡Por cierto, tu salud está algo baja (${Math.round(heroeInfo.hp)} / ${heroeInfo.maxHp} HP)! Bebe una poción antes de entablar combate.`;
+    }
+
+    return `${nomComp}: ${consejo}`;
   }
 
   const MAX_SLOTS_INVENTARIO = 20;
@@ -85,7 +174,46 @@
       hp: 180,
       dano: 24,
       defensa: 14,
+      claseArmadura: 'pesada',
+      etiquetaArmadura: '🛡️ Armadura Pesada (Guardián)',
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilEstudio: {
+        claseArmadura: 'pesada',
+        grado: 'B',
+        armorLook: 10,
+        equipo: { underlayer: 6, helmet: 0, torso: 2, gloves: 3, belt: 2, tassets: 5, cuisses: 5, knees: 2, boots: 3, weapon: 12, shield: 1 },
+        rostro: { id: 'ind_guerrero_cicatrices', gender: 'hombre', bloqueado: true },
+        hair: { cutStyle: 'corto_clasico', root: '#3b1f0e', tip: '#5a321a', high: '#92400e' },
+        fit: { muscular: 0.72, torso: 1.06, legs: 1.02, arms: 1.08 }
+      },
+      perfilCombate: {
+        rangoAtaque: 2.4,
+        cooldownAtaque: 1.50,
+        velocidadCorrer: 10.8,
+        velocidadCaminar: 6.0,
+        probCritico: 0.14,
+        multCritico: 1.5,
+        rolCombate: 'vanguardia',
+        armaVisual: 'espada',
+        distanciaFormacion: 2.6,
+        anguloFormacion: 2.3
+      },
+      perfilVisual: {
+        sexo: 'hombre',
+        altura: 1.90,
+        escalaHuesos: {
+          Torso: [1.14, 1.03, 1.14],
+          Pelvis: [1.08, 1.0, 1.08],
+          UpperArm_L: [1.18, 1.0, 1.18],
+          UpperArm_R: [1.18, 1.0, 1.18],
+          Forearm_L: [1.15, 1.0, 1.15],
+          Forearm_R: [1.15, 1.0, 1.15],
+          Thigh_L: [1.10, 1.0, 1.10],
+          Thigh_R: [1.10, 1.0, 1.10],
+          Head: [0.96, 0.98, 0.96]
+        },
+        colores: { pelo: 0x3b1f0e, pecho: 0x78350f, ropa: 0x854d0e, acento: 0xf59e0b, halo: 0x22c55e }
+      },
       skillsCatalogo: [
         { id: 'grito', nombre: 'Grito de Aliento', icono: '⚔️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 22, timer: 0, duracion: 10, potencia: 25, desc: '+{potencia}% daño de ataque a ambos por {duracion}s' },
         { id: 'impetu', nombre: 'Golpe de Ímpetu', icono: '💥', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 12, timer: 0, potencia: 38, desc: 'Golpe demoledor que inflige {potencia} de daño contundente' },
@@ -105,7 +233,48 @@
       hp: 145,
       dano: 34,
       defensa: 10,
+      claseArmadura: 'ligera',
+      etiquetaArmadura: '🥋 Armadura Ligera (Daguero)',
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilEstudio: {
+        claseArmadura: 'ligera',
+        grado: 'B',
+        armorLook: 13,
+        equipo: { underlayer: 12, helmet: 0, torso: 9, gloves: 1, belt: 3, tassets: 4, cuisses: 4, knees: 5, boots: 1, weapon: 43, shield: 0 },
+        rostro: { id: 'ind_mujer_palida', gender: 'mujer', bloqueado: true },
+        hair: { cutStyle: 'coleta_alta', root: '#18181b', tip: '#27272a', high: '#6b21a8' },
+        fit: { muscular: 0.30, torso: 0.92, legs: 1.0, arms: 0.90 }
+      },
+      perfilCombate: {
+        rangoAtaque: 2.1,
+        cooldownAtaque: 0.90,
+        velocidadCorrer: 12.6,
+        velocidadCaminar: 7.0,
+        probCritico: 0.35,
+        multCritico: 1.65,
+        rolCombate: 'flanqueo',
+        armaVisual: 'dagas_dobles',
+        distanciaFormacion: 2.4,
+        anguloFormacion: -2.2
+      },
+      perfilVisual: {
+        sexo: 'mujer',
+        altura: 1.63,
+        sinBarba: true,
+        melena: { largo: 0.30, ancho: 0.14, color: 0x18181b },
+        escalaHuesos: {
+          Torso: [0.80, 0.96, 1.06],
+          Pelvis: [0.88, 1.0, 0.94],
+          UpperArm_L: [0.78, 1.0, 0.78],
+          UpperArm_R: [0.78, 1.0, 0.78],
+          Forearm_L: [0.78, 1.0, 0.78],
+          Forearm_R: [0.78, 1.0, 0.78],
+          Thigh_L: [0.86, 1.0, 0.88],
+          Thigh_R: [0.86, 1.0, 0.88],
+          Head: [0.98, 0.98, 0.98]
+        },
+        colores: { pelo: 0x18181b, pecho: 0x4c1d95, ropa: 0x3b0764, acento: 0xa855f7, halo: 0xc084fc }
+      },
       skillsCatalogo: [
         { id: 'danza_dagas', nombre: 'Danza de Dagas', icono: '🗡️', tipo: 'ataque', nivel: 1, maxNivel: 5, cd: 10, timer: 0, potencia: 46, desc: 'Ráfaga de tres estocadas rápidas que inflige {potencia} daño crítico' },
         { id: 'veneno', nombre: 'Veneno Letal', icono: '🧪', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 18, timer: 0, duracion: 8, potencia: 18, desc: 'Unta las armas con toxinas: +{potencia} daño de veneno por {duracion}s' },
@@ -125,7 +294,47 @@
       hp: 150,
       dano: 18,
       defensa: 12,
+      claseArmadura: 'mago',
+      etiquetaArmadura: '🧙 Túnica de Mago',
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilEstudio: {
+        claseArmadura: 'mago',
+        grado: 'B',
+        armorLook: 104,
+        equipo: { underlayer: 15, helmet: 0, torso: 4, gloves: 3, belt: 6, tassets: 0, cuisses: 0, knees: 0, boots: 9, weapon: 61, shield: 0 },
+        rostro: { id: 'ind_mascara_runas', gender: 'hombre', bloqueado: true },
+        hair: { cutStyle: 'peinado_atras', root: '#cbd5e1', tip: '#e2e8f0', high: '#ffffff' },
+        fit: { muscular: 0.35, torso: 0.96, legs: 1.0, arms: 0.95 }
+      },
+      perfilCombate: {
+        rangoAtaque: 9.5,
+        distanciaPreferida: 7.2,
+        cooldownAtaque: 1.45,
+        velocidadCorrer: 10.2,
+        velocidadCaminar: 5.8,
+        probCritico: 0.15,
+        multCritico: 1.5,
+        rolCombate: 'distancia',
+        armaVisual: 'baculo_luz',
+        distanciaFormacion: 3.1,
+        anguloFormacion: 2.6
+      },
+      perfilVisual: {
+        sexo: 'hombre',
+        altura: 1.86,
+        escalaHuesos: {
+          Torso: [1.08, 1.02, 1.08],
+          Pelvis: [1.04, 1.0, 1.04],
+          UpperArm_L: [1.10, 1.0, 1.10],
+          UpperArm_R: [1.10, 1.0, 1.10],
+          Forearm_L: [1.08, 1.0, 1.08],
+          Forearm_R: [1.08, 1.0, 1.08],
+          Thigh_L: [1.06, 1.0, 1.06],
+          Thigh_R: [1.06, 1.0, 1.06],
+          Head: [0.97, 0.99, 0.97]
+        },
+        colores: { pelo: 0xe2e8f0, pecho: 0x1e3a8a, ropa: 0x1d4ed8, acento: 0x38bdf8, halo: 0x38bdf8 }
+      },
       skillsCatalogo: [
         { id: 'rocio_sanador', nombre: 'Gracia Sanadora', icono: '🌿', tipo: 'cura', nivel: 1, maxNivel: 5, cd: 22, timer: 0, potencia: 50, desc: 'Restaura {potencia} HP al instante para ambos si la salud cae < 50%' },
         { id: 'baluarte_luz', nombre: 'Baluarte de Luz', icono: '🛡️', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 24, timer: 0, duracion: 8, potencia: 35, desc: 'Escudo sacro que absorbe y mitiga un {potencia}% de daño por {duracion}s' },
@@ -145,7 +354,48 @@
       hp: 230,
       dano: 22,
       defensa: 18,
+      claseArmadura: 'ligera',
+      etiquetaArmadura: '🥋 Armadura Ligera (Berserker)',
       modeloGLB: 'npc/aldeanos/aldeano.glb',
+      perfilEstudio: {
+        claseArmadura: 'ligera',
+        grado: 'S',
+        armorLook: 22,
+        equipo: { underlayer: 8, helmet: 0, torso: 11, gloves: 5, belt: 16, tassets: 7, cuisses: 4, knees: 7, boots: 6, weapon: 22, shield: 0 },
+        rostro: { id: 'ind_mujer_pintura', gender: 'mujer', bloqueado: true },
+        hair: { cutStyle: 'trenzas_laterales', root: '#7f1d1d', tip: '#b91c1c', high: '#f87171' },
+        fit: { muscular: 0.55, torso: 0.98, legs: 1.0, arms: 0.98 }
+      },
+      perfilCombate: {
+        rangoAtaque: 2.5,
+        cooldownAtaque: 1.38,
+        velocidadCorrer: 11.2,
+        velocidadCaminar: 6.2,
+        probCritico: 0.18,
+        multCritico: 1.55,
+        rolCombate: 'tanque',
+        armaVisual: 'hacha_guerra',
+        distanciaFormacion: 2.2,
+        anguloFormacion: 0.6
+      },
+      perfilVisual: {
+        sexo: 'mujer',
+        altura: 1.68,
+        sinBarba: true,
+        melena: { largo: 0.26, ancho: 0.16, color: 0xb91c1c },
+        escalaHuesos: {
+          Torso: [0.85, 0.98, 1.08],
+          Pelvis: [0.92, 1.0, 0.96],
+          UpperArm_L: [0.84, 1.0, 0.84],
+          UpperArm_R: [0.84, 1.0, 0.84],
+          Forearm_L: [0.84, 1.0, 0.84],
+          Forearm_R: [0.84, 1.0, 0.84],
+          Thigh_L: [0.90, 1.0, 0.92],
+          Thigh_R: [0.90, 1.0, 0.92],
+          Head: [0.98, 0.98, 0.98]
+        },
+        colores: { pelo: 0xb91c1c, pecho: 0x7f1d1d, ropa: 0x991b1b, acento: 0xf87171, halo: 0xf87171 }
+      },
       skillsCatalogo: [
         { id: 'frenesi', nombre: 'Modo Berserker', icono: '🔥', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 26, timer: 0, duracion: 8, potencia: 40, desc: 'Desata furia salvaje ante el dolor: +{potencia}% daño y resistencia férrea por {duracion}s' },
         { id: 'provocacion', nombre: 'Grito Provocador', icono: '📢', tipo: 'buff', nivel: 1, maxNivel: 5, cd: 18, timer: 0, duracion: 6, potencia: 35, desc: 'Atrae a los monstruos hacia ella protegiendo al héroe por {duracion}s' },
@@ -155,6 +405,107 @@
       skillsEquipadas: ['frenesi', 'provocacion', 'torbellino']
     }
   };
+
+  // Sinergias tácticas entre cada profesión del héroe y los 4 arquetipos de compañero
+  const SINERGIAS_PROFESION = {
+    mago: {
+      principal: 'brenda',
+      secundario: 'elian',
+      consejo: 'Como Mago, agradece un tanque frontal que fije las bestias mientras canalizas a distancia',
+      defaultEquilibrada: { bonos: { poderMagico: 4 }, desc: 'Apoyo general de combate (+4 Poder Mágico).' },
+      mapa: {
+        brenda: {
+          nivel: 'optima',
+          titulo: 'Vanguardia Arcana',
+          bonos: { poderMagico: 8, reduccion: 0.04 },
+          desc: 'Brenda atrae a las bestias mientras canalizas conjuros (+8 Poder Mágico, +4 % reducción).'
+        },
+        elian: {
+          nivel: 'buena',
+          titulo: 'Resonancia Mística',
+          bonos: { mpRegenMult: 1.2, mana: 25 },
+          desc: 'Flujo compartido de luz y éter (+25 maná y +20 % regen de maná).'
+        }
+      }
+    },
+    cazador: {
+      principal: 'brenda',
+      secundario: 'rowan',
+      consejo: 'Como Cazador, brilla cuando un compañero fija al objetivo para encadenar tiros críticos',
+      defaultEquilibrada: { bonos: { velocidad: 0.04 }, desc: 'Paso ágil coordinado (+4 % velocidad).' },
+      mapa: {
+        brenda: {
+          nivel: 'optima',
+          titulo: 'Caza Coordinada',
+          bonos: { critico: 0.06, danio: 0.08 },
+          desc: 'Brenda frena al objetivo en línea frontal (+6 % crítico y +8 % daño).'
+        },
+        rowan: {
+          nivel: 'buena',
+          titulo: 'Fuego de Cobertura',
+          bonos: { danio: 0.10 },
+          desc: 'Los dopes de Rowan potencian cada disparo (+10 % daño).'
+        }
+      }
+    },
+    guerrero: {
+      principal: 'elian',
+      secundario: 'lyra',
+      consejo: 'Como Guerrero de primera línea, sostener tu vida y castigar flancos maximiza cada combate',
+      defaultEquilibrada: { bonos: { vida: 20 }, desc: 'Resistencia marcial conjunta (+20 vida).' },
+      mapa: {
+        elian: {
+          nivel: 'optima',
+          titulo: 'Escudo y Luz',
+          bonos: { vida: 45, reduccion: 0.05 },
+          desc: 'Curación y barreras de Elian sostienen tu vanguardia (+45 vida y +5 % reducción).'
+        },
+        lyra: {
+          nivel: 'buena',
+          titulo: 'Yunque y Daga',
+          bonos: { danio: 0.08, critico: 0.04 },
+          desc: 'Mientras tú aguantas el golpe, Lyra castiga los flancos (+8 % daño, +4 % crítico).'
+        }
+      }
+    },
+    picaro: {
+      principal: 'rowan',
+      secundario: 'lyra',
+      consejo: 'Como Pícaro, aprovechar distracciones y toxinas duplica tus emboscadas críticas',
+      defaultEquilibrada: { bonos: { velocidad: 0.05 }, desc: 'Flanqueo ágil en pareja (+5 % velocidad).' },
+      mapa: {
+        rowan: {
+          nivel: 'optima',
+          titulo: 'Distracción Táctica',
+          bonos: { critico: 0.07, velocidadAtaque: 0.08 },
+          desc: 'Rowan atrae miradas para tus emboscadas (+7 % crítico y +8 % vel. ataque).'
+        },
+        lyra: {
+          nivel: 'buena',
+          titulo: 'Pacto de Sombras',
+          bonos: { venenoMult: 0.25, critico: 0.05 },
+          desc: 'Doble letalidad con dagas y toxinas (+25 % veneno y +5 % crítico).'
+        }
+      }
+    }
+  };
+
+  function sinergiaConProfesion(arquetipo, clase) {
+    const arq = arquetipo || 'rowan';
+    const cls = SINERGIAS_PROFESION[clase] ? clase : 'guerrero';
+    const cfg = SINERGIAS_PROFESION[cls];
+    const esp = cfg.mapa[arq];
+    if (esp) {
+      return { arquetipo: arq, clase: cls, nivel: esp.nivel, titulo: esp.titulo, desc: esp.desc, bonos: Object.assign({}, esp.bonos) };
+    }
+    const def = cfg.defaultEquilibrada;
+    return { arquetipo: arq, clase: cls, nivel: 'equilibrada', titulo: 'Formación Equilibrada', desc: def.desc, bonos: Object.assign({}, def.bonos) };
+  }
+
+  function compRecomendadoParaClase(clase) {
+    const cfg = SINERGIAS_PROFESION[clase] || SINERGIAS_PROFESION.guerrero;
+    return { principal: cfg.principal, secundario: cfg.secundario, consejo: cfg.consejo };
+  }
 
   // Clona un catálogo de habilidades para un acompañante
   function clonarSkillsCatalogo(lista) {
@@ -179,8 +530,235 @@
       defensa: arq.defensa,
       dano: arq.dano,
       combatesLuchados: 0,
+      talentoAplicado: false,
       skillsCatalogo: clonarSkillsCatalogo(arq.skillsCatalogo),
       skillsEquipadas: arq.skillsEquipadas.slice(0, 3)
+    };
+  }
+
+  const REGEX_NO_MUERTO = /esqueleto|skeleton|zombi|zombie|muerto|undead|no-muerto|sombra|espectro|fantasma|wraith|lich|liche|banshee|momia|mummy|nosferatu|vampiro|necro|ossuary|osario|skull|calavera|reaper|segador|bone|hueso|plague|plaga|putrid|putrido|crypt|cripta|tumba|cadaver|exhumado|nigromante|ghoul|dread|death_knight|fallen_valkyrie|abyssal|ashen|blood_crown|bone_tiara|bone_viscount/i;
+
+  function formatearDescripcionSkill(sk) {
+    if (!sk || !sk.desc) return '';
+    const pot = sk.potencia != null ? sk.potencia : 0;
+    const dur = sk.duracion != null ? sk.duracion : 0;
+    return String(sk.desc)
+      .replace(/\{potencia\}/g, String(pot))
+      .replace(/\{duracion\}/g, String(dur));
+  }
+
+  function esNoMuerto(monstruo) {
+    if (!monstruo) return false;
+    if (monstruo.esNoMuerto || monstruo.undead) return true;
+    const txt = [
+      monstruo.name,
+      monstruo.archetype,
+      monstruo.id,
+      monstruo.glb,
+      monstruo.raceCategory
+    ].filter(Boolean).join(' ');
+    return REGEX_NO_MUERTO.test(txt);
+  }
+
+  // Calcula todos los potenciadores reales activos para héroe, acompañante y enemigo
+  function calcularBonosActivos(acompanante) {
+    const hero = {
+      danioPct: 0,
+      velocidadPct: 0,
+      velocidadAtaquePct: 0,
+      reduccionPct: 0,
+      venenoBonus: 0,
+      roboPct: 0,
+      hpRegenPorSeg: 0,
+      mpRegenPorSeg: 0
+    };
+    const comp = {
+      danioPct: 0,
+      velocidadPct: 0,
+      velocidadAtaquePct: 0,
+      reduccionPct: 0,
+      venenoBonus: 0,
+      roboPct: 0,
+      hpRegenPorSeg: 0,
+      provocando: false,
+      furia: 0,
+      furiaBonusPct: 0
+    };
+    const enemigo = {
+      defDebuffPct: 0,
+      sangradoDps: 0
+    };
+
+    if (!acompanante || !acompanante.activo || acompanante.inconsciente || acompanante.debilitado) {
+      return { hero, companero: comp, enemigo, activos: [], clave: 'inactivo' };
+    }
+
+    const lista = Array.isArray(acompanante.buffsActivos) ? acompanante.buffsActivos : [];
+    const activos = [];
+    const partesClave = [];
+
+    for (let i = 0; i < lista.length; i++) {
+      const b = lista[i];
+      if (!b || (b.timer != null && b.timer <= 0)) continue;
+      const val = Number(b.valor || 0);
+      activos.push(b);
+      partesClave.push(b.id + ':' + val + ':' + Math.ceil(b.timer || 0));
+
+      switch (b.id) {
+        case 'grito':
+        case 'ataque': {
+          const pct = val / 100;
+          hero.danioPct += pct;
+          comp.danioPct += pct;
+          break;
+        }
+        case 'fervor': {
+          const pct = val / 100;
+          hero.velocidadPct += pct;
+          hero.velocidadAtaquePct += pct;
+          comp.velocidadPct += pct;
+          comp.velocidadAtaquePct += pct;
+          break;
+        }
+        case 'veneno': {
+          hero.venenoBonus += val;
+          comp.venenoBonus += val;
+          break;
+        }
+        case 'baluarte_luz':
+        case 'baluarte':
+        case 'defensa': {
+          const pct = val / 100;
+          hero.reduccionPct += pct;
+          comp.reduccionPct += pct;
+          break;
+        }
+        case 'manantial': {
+          hero.hpRegenPorSeg += val;
+          hero.mpRegenPorSeg += val;
+          comp.hpRegenPorSeg += val;
+          break;
+        }
+        case 'frenesi': {
+          const pct = val / 100;
+          comp.danioPct += pct;
+          comp.reduccionPct += Math.min(0.45, pct * 0.75);
+          hero.danioPct += Math.round(val * 0.35) / 100;
+          hero.reduccionPct += Math.round(val * 0.25) / 100;
+          break;
+        }
+        case 'provocacion': {
+          const pct = val / 100;
+          comp.provocando = true;
+          comp.reduccionPct += pct;
+          hero.reduccionPct += 0.10;
+          break;
+        }
+        case 'sed_sangre': {
+          const pct = val / 100;
+          hero.roboPct += pct;
+          comp.roboPct += pct;
+          break;
+        }
+        case 'partesuelos': {
+          enemigo.defDebuffPct = Math.max(enemigo.defDebuffPct, val / 100);
+          break;
+        }
+        case 'sangrado': {
+          enemigo.sangradoDps = Math.max(enemigo.sangradoDps, val);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
+    // Fallback retrocompatible si algún test manipula acompanante.buffs directamente sin buffsActivos
+    if (activos.length === 0 && acompanante.buffs) {
+      if (acompanante.buffs.ataqueTimer > 0) {
+        const pct = Math.max(0.25, ((acompanante.buffs.multAtaque || 1.25) - 1));
+        hero.danioPct += pct;
+        comp.danioPct += pct;
+        partesClave.push('legacy_atk:' + Math.round(pct * 100));
+      }
+      if (acompanante.buffs.defensaTimer > 0) {
+        const pct = acompanante.buffs.reduccionDef || 0.20;
+        hero.reduccionPct += pct;
+        comp.reduccionPct += pct;
+        partesClave.push('legacy_def:' + Math.round(pct * 100));
+      }
+    }
+
+    // Pasiva de Brenda: cuanto más daño recibe y menor su vida, más furia acumula
+    if (acompanante.arquetipo === 'brenda') {
+      const furia = Math.max(0, Math.min(100, Number(acompanante.furia || 0)));
+      const maxHp = Math.max(1, acompanante.maxHp || 230);
+      const hpFaltante = Math.max(0, 1 - (acompanante.hp || 0) / maxHp);
+      const furiaBonus = (furia / 100) * 0.25 + hpFaltante * 0.30;
+      comp.furia = furia;
+      comp.furiaBonusPct = Math.round(furiaBonus * 100) / 100;
+      if (furiaBonus > 0.01) {
+        comp.danioPct += furiaBonus;
+        partesClave.push('furia:' + Math.round(furiaBonus * 100));
+      }
+    }
+
+    hero.reduccionPct = Math.min(0.75, hero.reduccionPct);
+    comp.reduccionPct = Math.min(0.80, comp.reduccionPct);
+    hero.roboPct = Math.min(0.65, hero.roboPct);
+    comp.roboPct = Math.min(0.75, comp.roboPct);
+
+    return {
+      hero,
+      companero: comp,
+      enemigo,
+      activos,
+      clave: acompanante.arquetipo + '|' + (partesClave.join(';') || 'base')
+    };
+  }
+
+  function estadisticasEfectivasAcompanante(acompanante) {
+    if (!acompanante) return null;
+    const arq = COMPANEROS[acompanante.arquetipo] || COMPANEROS.rowan;
+    const perfil = acompanante.perfilCombate || arq.perfilCombate || {};
+    const bonos = calcularBonosActivos(acompanante).companero;
+    const danoBase = acompanante.dano || arq.dano || 20;
+    const defensaBase = acompanante.defensa || arq.defensa || 12;
+    const cdBase = acompanante.cooldownAtaque || perfil.cooldownAtaque || 1.5;
+    const defEfectiva = Math.round(defensaBase * (1 + bonos.reduccionPct));
+    const mitArmadura = defensaBase / (defensaBase + 80);
+    const mitTotal = 1 - (1 - mitArmadura) * (1 - bonos.reduccionPct);
+    return {
+      danoBase,
+      danoEfectivo: Math.round(danoBase * (1 + bonos.danioPct)),
+      defensaBase,
+      defensaEfectiva: defEfectiva,
+      reduccionPct: Math.round(mitTotal * 100),
+      cooldownAtaqueBase: cdBase,
+      cooldownAtaqueEfectivo: Number((cdBase / (1 + bonos.velocidadAtaquePct)).toFixed(2)),
+      velocidadPct: bonos.velocidadPct,
+      velocidadAtaquePct: bonos.velocidadAtaquePct,
+      probCritico: perfil.probCritico || 0.14,
+      venenoBonus: bonos.venenoBonus,
+      roboPct: bonos.roboPct,
+      hpRegenPorSeg: bonos.hpRegenPorSeg,
+      provocando: bonos.provocando,
+      furia: bonos.furia,
+      furiaBonusPct: bonos.furiaBonusPct
+    };
+  }
+
+  function perfilEstudioAcompanante(arquetipoId) {
+    const arq = COMPANEROS[arquetipoId] || COMPANEROS.rowan;
+    const base = arq.perfilEstudio || {};
+    return {
+      claseArmadura: base.claseArmadura || arq.claseArmadura || 'pesada',
+      grado: base.grado || 'B',
+      armorLook: base.armorLook != null ? base.armorLook : null,
+      equipo: Object.assign({}, base.equipo || {}),
+      rostro: base.rostro ? Object.assign({}, base.rostro) : null,
+      hair: base.hair ? Object.assign({}, base.hair) : null,
+      fit: base.fit ? Object.assign({}, base.fit) : null
     };
   }
 
@@ -203,6 +781,7 @@
           roster[k].defensa = typeof r.defensa === 'number' ? r.defensa : roster[k].defensa;
           roster[k].dano = typeof r.dano === 'number' ? r.dano : roster[k].dano;
           roster[k].combatesLuchados = typeof r.combatesLuchados === 'number' ? r.combatesLuchados : 0;
+          roster[k].talentoAplicado = !!r.talentoAplicado;
           if (Array.isArray(r.skillsCatalogo)) roster[k].skillsCatalogo = clonarSkillsCatalogo(r.skillsCatalogo);
           if (Array.isArray(r.skillsEquipadas)) roster[k].skillsEquipadas = r.skillsEquipadas.slice(0, 3);
         }
@@ -211,6 +790,7 @@
 
     const arqKey = config.arquetipo || 'rowan';
     const arq = COMPANEROS[arqKey] || COMPANEROS.rowan;
+    const perfilCombate = Object.assign({}, arq.perfilCombate || {});
     const arqData = roster[arq.id] || clonarEstadoBaseArquetipo(arq.id);
 
     // Compatibilidad si config traía propiedades específicas a nivel raíz para el inicial
@@ -229,6 +809,9 @@
       roster,
       arquetipo: arq.id,
       arquetipoInfo: arq,
+      perfilCombate,
+      claseArmadura: arq.claseArmadura || 'pesada',
+      etiquetaArmadura: arq.etiquetaArmadura || '',
       nombre: config.nombre || (config.arquetipo ? arqData.nombre : EQUIPO_ALDEANO.nombre),
       rol: config.rol || (config.arquetipo ? arqData.rol : EQUIPO_ALDEANO.rol),
       titulo: arqData.titulo,
@@ -244,8 +827,12 @@
       maxHp: arqData.maxHp,
       defensa: arqData.defensa,
       dano: arqData.dano,
+      furia: 0,
       combatesLuchados: arqData.combatesLuchados || 0,
+      talentoAplicado: !!arqData.talentoAplicado,
       inconsciente: false,
+      debilitado: false,
+      objetivoActual: null,
       // Inventario propio de 20 ranuras para equipamiento y pociones automáticas (compartido por la cuadrilla)
       inventario: Array.isArray(config.inventario) ? config.inventario.slice(0, MAX_SLOTS_INVENTARIO) : [],
       pocionesVida: typeof config.pocionesVida === 'number' ? config.pocionesVida : 0,
@@ -263,10 +850,12 @@
       },
       buffs: {
         ataqueTimer: 0,
-        defensaTimer: 0
+        defensaTimer: 0,
+        multAtaque: 1.0,
+        reduccionDef: 0
       },
-      rangoAtaque: 2.2,
-      cooldownAtaque: 1.25,
+      rangoAtaque: perfilCombate.rangoAtaque || 2.4,
+      cooldownAtaque: perfilCombate.cooldownAtaque || 1.50,
       tiempoSiguienteAtaque: 0,
       x: config.x || 0,
       y: config.y || 0,
@@ -278,8 +867,8 @@
       fraseActual: null,
       tiempoFrase: 0,
       ultimoComentarioMs: 0,
-      distanciaFormacion: 2.8,
-      anguloFormacion: 2.4, // Radianes detrás y al lado del héroe
+      distanciaFormacion: perfilCombate.distanciaFormacion || 2.6,
+      anguloFormacion: perfilCombate.anguloFormacion != null ? perfilCombate.anguloFormacion : 2.3,
       mesh: null,
       limbs: null,
       bocadilloDom: null
@@ -301,6 +890,7 @@
     r.defensa = acompanante.defensa;
     r.dano = acompanante.dano;
     r.combatesLuchados = acompanante.combatesLuchados || 0;
+    r.talentoAplicado = !!acompanante.talentoAplicado;
     r.skillsCatalogo = acompanante.skillsCatalogo;
     r.skillsEquipadas = acompanante.skillsEquipadas;
   }
@@ -324,9 +914,14 @@
     // 2. Cargar el estado persistente del nuevo compañero
     const nuevo = acompanante.roster[idArquetipo];
     const info = COMPANEROS[idArquetipo];
+    const perfil = Object.assign({}, info.perfilCombate || {});
 
+    acompanante.id = info.id + '-companero';
     acompanante.arquetipo = nuevo.arquetipo;
     acompanante.arquetipoInfo = info;
+    acompanante.perfilCombate = perfil;
+    acompanante.claseArmadura = info.claseArmadura || 'pesada';
+    acompanante.etiquetaArmadura = info.etiquetaArmadura || '';
     acompanante.nombre = nuevo.nombre;
     acompanante.rol = nuevo.rol;
     acompanante.titulo = nuevo.titulo;
@@ -335,14 +930,26 @@
     acompanante.nivel = nuevo.nivel;
     acompanante.xp = nuevo.xp;
     acompanante.puntosCompanero = nuevo.puntosCompanero;
-    acompanante.hp = nuevo.hp;
-    acompanante.maxHp = nuevo.maxHp;
+    acompanante.hp = Math.max(1, nuevo.hp || nuevo.maxHp || info.hp);
+    acompanante.maxHp = nuevo.maxHp || info.hp;
     acompanante.defensa = nuevo.defensa;
     acompanante.dano = nuevo.dano;
+    acompanante.furia = 0;
+    acompanante.inconsciente = false;
+    acompanante.debilitado = false;
+    acompanante.objetivoActual = null;
     acompanante.combatesLuchados = nuevo.combatesLuchados || 0;
+    acompanante.talentoAplicado = !!nuevo.talentoAplicado;
     acompanante.skillsCatalogo = nuevo.skillsCatalogo;
     acompanante.skillsEquipadas = nuevo.skillsEquipadas.slice(0, 3);
     acompanante.buffsActivos = [];
+    acompanante.buffs = { ataqueTimer: 0, defensaTimer: 0, multAtaque: 1.0, reduccionDef: 0 };
+    acompanante.rangoAtaque = perfil.rangoAtaque || 2.4;
+    acompanante.cooldownAtaque = perfil.cooldownAtaque || 1.50;
+    acompanante.tiempoSiguienteAtaque = 0;
+    acompanante.distanciaFormacion = perfil.distanciaFormacion || 2.6;
+    acompanante.anguloFormacion = perfil.anguloFormacion != null ? perfil.anguloFormacion : 2.3;
+    if (acompanante.estado === 'debilitado') acompanante.estado = 'idle';
 
     decirFrase(acompanante, `🤝 ¡${nuevo.nombre} (Nivel ${nuevo.nivel}) se prepara para el combate!`, 4.0);
     return true;
@@ -436,6 +1043,7 @@
       nombre: dopeInfo.nombre,
       icono: dopeInfo.icono || '✨',
       desc: dopeInfo.desc || '',
+      statResumen: dopeInfo.statResumen || '',
       efecto: dopeInfo.efecto || 'buff',
       valor: dopeInfo.valor || 0,
       timer: duracion,
@@ -446,25 +1054,40 @@
     return item;
   }
 
-  // Daño recibido por el acompañante con mitigación por armadura y buff de defensa
+  // Daño recibido por el acompañante con mitigación por armadura y potenciadores defensivos reales
   function recibirDanoAcompanante(acompanante, danoBruto) {
-    if (!acompanante || !acompanante.activo || acompanante.inconsciente) return 0;
-    
-    // Mitigación por defensa base
-    let defTotal = acompanante.defensa || 0;
-    let factor = 1 - (defTotal / (defTotal + 80));
-    let dmg = Math.max(1, Math.round(danoBruto * factor));
+    if (!acompanante || !acompanante.activo || acompanante.inconsciente || acompanante.debilitado) return 0;
 
-    // Mitigación adicional si tiene activo el Baluarte de Cuero (-20%)
-    if (acompanante.buffs && acompanante.buffs.defensaTimer > 0) {
-      dmg = Math.max(1, Math.round(dmg * 0.80));
+    // Mitigación por defensa base
+    const defTotal = acompanante.defensa || 0;
+    const factorArmadura = 1 - (defTotal / (defTotal + 80));
+    let dmg = danoBruto * factorArmadura;
+
+    // Mitigación adicional por potenciadores activos (Baluarte de Luz, Modo Berserker, Grito Provocador, etc.)
+    const bonos = calcularBonosActivos(acompanante).companero;
+    if (bonos.reduccionPct > 0) {
+      dmg *= (1 - Math.min(0.80, bonos.reduccionPct));
     }
+    dmg = Math.max(1, Math.round(dmg));
 
     acompanante.hp = Math.max(0, acompanante.hp - dmg);
 
+    // Brenda acumula furia cuanto más daño recibe (aumentando su ataque efectivo)
+    if (acompanante.arquetipo === 'brenda' && acompanante.hp > 0 && dmg > 0) {
+      const incFuria = Math.max(10, Math.round((dmg / Math.max(1, acompanante.maxHp || 230)) * 160));
+      acompanante.furia = Math.min(100, (acompanante.furia || 0) + incFuria);
+    }
+
     if (acompanante.hp <= 0) {
       acompanante.inconsciente = true;
+      acompanante.debilitado = true;
       acompanante.estado = 'debilitado';
+      acompanante.furia = 0;
+      acompanante.buffsActivos = [];
+      if (acompanante.buffs) {
+        acompanante.buffs.ataqueTimer = 0;
+        acompanante.buffs.defensaTimer = 0;
+      }
       decirFrase(acompanante, '¡He caído! Protégeme... necesito recuperarme.', 5.0);
     } else if (acompanante.hp < acompanante.maxHp * 0.40) {
       const ahora = Date.now();
@@ -481,7 +1104,8 @@
   function revivirAcompanante(acompanante, porcentaje = 0.50) {
     if (!acompanante) return;
     acompanante.inconsciente = false;
-    acompanante.hp = Math.max(Math.round(acompanante.maxHp * porcentaje), acompanante.hp);
+    acompanante.debilitado = false;
+    acompanante.hp = Math.max(Math.round(acompanante.maxHp * porcentaje), acompanante.hp || 0);
     if (acompanante.estado === 'debilitado') acompanante.estado = 'idle';
   }
 
@@ -557,178 +1181,332 @@
     acompanante.equipo = acompanante.equipo || {};
     acompanante.equipo[obj.ranura] = obj.nombre || obj.uid;
 
-    // Bonificaciones de stats según la pieza
+    const baseArq = COMPANEROS[acompanante.arquetipo] || COMPANEROS.rowan;
+    // Bonificaciones de stats según la pieza sin rebajar los del arquetipo ni nivel actual
     if (obj.ranura === 'weapon') {
-      acompanante.dano = Math.max(24, Math.round(18 + (obj.ataque || 10)));
+      acompanante.dano = Math.max(acompanante.dano || baseArq.dano, Math.round(baseArq.dano * 0.75 + (obj.ataque || 10)));
     } else {
-      acompanante.defensa = Math.max(14, Math.round(10 + (obj.defensa || 8)));
-      acompanante.maxHp = Math.max(180, Math.round(160 + (obj.defensa || 6) * 4));
+      acompanante.defensa = Math.max(acompanante.defensa || baseArq.defensa, Math.round(baseArq.defensa * 0.70 + (obj.defensa || 8)));
+      acompanante.maxHp = Math.max(acompanante.maxHp || baseArq.hp, Math.round(baseArq.hp * 0.90 + (obj.defensa || 6) * 4));
       acompanante.hp = Math.min(acompanante.hp, acompanante.maxHp);
     }
+    sincronizarArquetipoActivo(acompanante);
     return true;
   }
 
-  // Construcción del modelo 3D del aldeano en Three.js con materiales y vestimenta de cuero
-  function construirModeloAcompanante(THREE) {
+  // Construcción del modelo 3D del acompañante en Three.js adaptado al arquetipo y su clase de armadura
+  function construirModeloAcompanante(THREE, arquetipoId) {
+    const arq = COMPANEROS[arquetipoId] || COMPANEROS.rowan;
+    const perfil = arq.perfilVisual || COMPANEROS.rowan.perfilVisual;
+    const claseArm = arq.claseArmadura || 'pesada';
+    const armaVisual = (arq.perfilCombate && arq.perfilCombate.armaVisual) || 'espada';
+    const esMujer = perfil.sexo === 'mujer';
     const grupo = new THREE.Group();
-    grupo.name = 'Acompanante_Rowan';
+    grupo.name = 'Acompanante_' + arq.id;
+    grupo.userData = { arquetipo: arq.id, claseArmadura: claseArm };
 
-    // Paleta de materiales: cuero curtido, cuero oscuro, bronce, piel, lino y acero
+    // Paleta de materiales diferenciada por acompañante y clase de armadura
     const matCuero = new THREE.MeshStandardMaterial({
-      color: 0x78350f, // Marrón cuero cálido
-      roughness: 0.78,
-      metalness: 0.08
+      color: perfil.colores.pecho,
+      roughness: claseArm === 'pesada' ? 0.34 : 0.72,
+      metalness: claseArm === 'pesada' ? 0.68 : 0.10
     });
     const matCueroOscuro = new THREE.MeshStandardMaterial({
-      color: 0x3b1d11, // Cuero oscuro para botas y correas
+      color: 0x291811,
       roughness: 0.85,
       metalness: 0.05
     });
     const matLino = new THREE.MeshStandardMaterial({
-      color: 0xd6c7a1, // Camisa de lino rústico
-      roughness: 0.9,
-      metalness: 0.0
+      color: perfil.colores.ropa,
+      roughness: 0.85,
+      metalness: 0.04
     });
     const matPantalon = new THREE.MeshStandardMaterial({
-      color: 0x334155, // Tela resistente pizarra azulada
+      color: esMujer ? 0x1e293b : 0x334155,
       roughness: 0.82,
       metalness: 0.02
     });
     const matPiel = new THREE.MeshStandardMaterial({
-      color: 0xfbd0a6, // Tono de piel natural
+      color: 0xfbd0a6,
       roughness: 0.65,
       metalness: 0.0
     });
     const matCabello = new THREE.MeshStandardMaterial({
-      color: 0x451a03, // Pelo castaño oscuro
-      roughness: 0.9,
-      metalness: 0.02
+      color: perfil.colores.pelo,
+      roughness: 0.88,
+      metalness: 0.04
     });
     const matHebilla = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b, // Latón / bronce dorado
+      color: perfil.colores.acento,
       roughness: 0.35,
       metalness: 0.75
     });
     const matAcero = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8, // Acero de espada
-      roughness: 0.25,
-      metalness: 0.85
+      color: 0x94a3b8,
+      roughness: 0.28,
+      metalness: 0.82
     });
 
-    // 1. Torso y Jubón de Cuero
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.68, 0.28), matCuero);
+    // 1. Torso según clase (túnica clerical, jubón ligero con tirantes, o coraza pesada)
+    const torsoW = esMujer ? 0.38 : 0.56;
+    const torsoH = esMujer ? 0.62 : 0.70;
+    const torsoD = esMujer ? 0.28 : 0.31;
+    const matTorso = claseArm === 'pesada' ? matAcero : (claseArm === 'mago' ? matLino : matCuero);
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(torsoW, torsoH, torsoD), matTorso);
     torso.position.y = 1.08;
     torso.castShadow = true;
     torso.receiveShadow = true;
     grupo.add(torso);
 
-    // Cuello de la camisa de lino que asoma sobre el jubón
-    const cuelloLino = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.22), matLino);
+    // Cuello de la camisa / vestimenta
+    const cuelloLino = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.20 : 0.28, 0.12, esMujer ? 0.18 : 0.24), matLino);
     cuelloLino.position.set(0, 1.42, 0);
     grupo.add(cuelloLino);
 
-    // 2. Cinturón de Cuero con Hebilla de Bronce
-    const cinturon = new THREE.Mesh(new THREE.BoxGeometry(0.53, 0.11, 0.30), matCueroOscuro);
+    if (claseArm === 'mago') {
+      // Manto clerical sobre los hombros, estola cruzada y faldón largo de túnica de mago
+      const mantoMago = new THREE.Mesh(new THREE.BoxGeometry(torsoW + 0.14, 0.18, torsoD + 0.08), matCuero);
+      mantoMago.name = 'mantoMago';
+      mantoMago.position.set(0, 1.36, 0);
+      mantoMago.castShadow = true;
+      grupo.add(mantoMago);
+
+      const estola = new THREE.Mesh(new THREE.BoxGeometry(0.11, torsoH + 0.02, torsoD + 0.04), matHebilla);
+      estola.name = 'estolaMago';
+      estola.position.set(0, 1.08, 0.01);
+      grupo.add(estola);
+
+      const faldonTunica = new THREE.Mesh(new THREE.BoxGeometry(torsoW + 0.12, 0.66, torsoD + 0.10), matLino);
+      faldonTunica.name = 'faldonTunica';
+      faldonTunica.position.set(0, 0.45, 0);
+      faldonTunica.castShadow = true;
+      faldonTunica.receiveShadow = true;
+      grupo.add(faldonTunica);
+
+      const ribeteFaldon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.64, torsoD + 0.12), matHebilla);
+      ribeteFaldon.name = 'ribeteFaldon';
+      ribeteFaldon.position.set(0, 0.45, 0.01);
+      grupo.add(ribeteFaldon);
+    } else if (claseArm === 'ligera') {
+      // Doble bandolera cruzada en X típica de armadura ligera
+      const bandoleraA = new THREE.Mesh(new THREE.BoxGeometry(0.07, torsoH + 0.04, torsoD + 0.03), matCueroOscuro);
+      bandoleraA.name = 'bandoleraA';
+      bandoleraA.position.set(0, 1.09, 0.01);
+      bandoleraA.rotation.z = 0.48;
+      grupo.add(bandoleraA);
+
+      const bandoleraB = new THREE.Mesh(new THREE.BoxGeometry(0.07, torsoH + 0.04, torsoD + 0.03), matCueroOscuro);
+      bandoleraB.name = 'bandoleraB';
+      bandoleraB.position.set(0, 1.09, 0.01);
+      bandoleraB.rotation.z = -0.48;
+      grupo.add(bandoleraB);
+
+      if (arq.id === 'lyra') {
+        // Capucha ligera caída en la espalda de asesina
+        const capuchaLigera = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.16), matLino);
+        capuchaLigera.name = 'capuchaLigera';
+        capuchaLigera.position.set(0, 1.42, -0.14);
+        grupo.add(capuchaLigera);
+      } else {
+        // Cuello de piel salvaje y refuerzo asimétrico de berserker ligero
+        const matPelaje = new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.92, metalness: 0.02 });
+        const cuelloPiel = new THREE.Mesh(new THREE.BoxGeometry(torsoW + 0.14, 0.14, torsoD + 0.10), matPelaje);
+        cuelloPiel.name = 'cuelloPiel';
+        cuelloPiel.position.set(0, 1.38, -0.02);
+        grupo.add(cuelloPiel);
+      }
+    } else if (claseArm === 'pesada') {
+      // Coraza pesada con hombreras de acero y escarcelas en cintura
+      const placaPecho = new THREE.Mesh(new THREE.BoxGeometry(torsoW + 0.04, 0.40, torsoD + 0.05), matAcero);
+      placaPecho.name = 'corazaPesada';
+      placaPecho.position.set(0, 1.15, 0.01);
+      placaPecho.castShadow = true;
+      grupo.add(placaPecho);
+
+      const escarcelaI = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.24, torsoD + 0.04), matAcero);
+      escarcelaI.name = 'escarcelaIzq';
+      escarcelaI.position.set(-torsoW * 0.28, 0.65, 0.01);
+      grupo.add(escarcelaI);
+
+      const escarcelaD = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.24, torsoD + 0.04), matAcero);
+      escarcelaD.name = 'escarcelaDer';
+      escarcelaD.position.set(torsoW * 0.28, 0.65, 0.01);
+      grupo.add(escarcelaD);
+    }
+
+    // 2. Cinturón con hebilla
+    const cinturon = new THREE.Mesh(new THREE.BoxGeometry(torsoW + 0.03, 0.10, torsoD + 0.02), matCueroOscuro);
     cinturon.position.y = 0.78;
     cinturon.castShadow = true;
     grupo.add(cinturon);
 
-    const hebilla = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.32), matHebilla);
+    const hebilla = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.08, torsoD + 0.04), matHebilla);
     hebilla.position.set(0, 0.78, 0.01);
     grupo.add(hebilla);
 
-    // Pequeño saquito / bolsa de provisiones de cuero al costado del cinturón
-    const bolsita = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.12), matCuero);
-    bolsita.position.set(0.28, 0.75, 0.05);
+    const bolsita = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.15, 0.11), matCuero);
+    bolsita.position.set(torsoW * 0.54, 0.75, 0.05);
     grupo.add(bolsita);
 
-    // 3. Cabeza y Cabello de Aldeano
-    const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.38, 0.36), matPiel);
+    // 3. Cabeza y Cabello
+    const cabeza = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.33 : 0.36, 0.37, esMujer ? 0.33 : 0.36), matPiel);
     cabeza.position.y = 1.66;
     cabeza.castShadow = true;
     grupo.add(cabeza);
 
-    const cabello = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.18, 0.38), matCabello);
+    const cabello = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.36 : 0.39, 0.18, esMujer ? 0.36 : 0.39), matCabello);
     cabello.position.set(0, 1.82, -0.02);
     grupo.add(cabello);
 
-    const flequillo = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.10, 0.10), matCabello);
-    flequillo.position.set(0, 1.76, 0.16);
+    const flequillo = new THREE.Mesh(new THREE.BoxGeometry(esMujer ? 0.34 : 0.36, 0.10, 0.10), matCabello);
+    flequillo.position.set(0, 1.76, 0.15);
     grupo.add(flequillo);
 
-    // 4. Piernas y Botas de Cuero
-    // Pierna Izquierda
+    if (perfil.melena) {
+      const melena = new THREE.Mesh(new THREE.BoxGeometry(perfil.melena.ancho * 2.1, perfil.melena.largo, 0.11), matCabello);
+      melena.position.set(0, 1.56, -0.17);
+      melena.castShadow = true;
+      grupo.add(melena);
+    }
+
+    // 4. Piernas y Botas (grebas metálicas en armadura pesada)
+    const legX = esMujer ? 0.11 : 0.15;
+    const legW = esMujer ? 0.15 : 0.20;
+    const matBotaClase = claseArm === 'pesada' ? matAcero : matCueroOscuro;
     const piernaIzqGrupo = new THREE.Group();
-    piernaIzqGrupo.position.set(-0.14, 0.74, 0);
-    const pantalonIzq = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.20), matPantalon);
+    piernaIzqGrupo.position.set(-legX, 0.74, 0);
+    const pantalonIzq = new THREE.Mesh(new THREE.BoxGeometry(legW, 0.44, legW + 0.02), matPantalon);
     pantalonIzq.position.y = -0.22;
     pantalonIzq.castShadow = true;
     piernaIzqGrupo.add(pantalonIzq);
-    const botaIzq = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.34, 0.24), matCueroOscuro);
+    const botaIzq = new THREE.Mesh(new THREE.BoxGeometry(legW + 0.02, 0.34, legW + 0.05), matBotaClase);
     botaIzq.position.set(0, -0.56, 0.02);
     botaIzq.castShadow = true;
     piernaIzqGrupo.add(botaIzq);
     grupo.add(piernaIzqGrupo);
 
-    // Pierna Derecha
     const piernaDerGrupo = new THREE.Group();
-    piernaDerGrupo.position.set(0.14, 0.74, 0);
-    const pantalonDer = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.20), matPantalon);
+    piernaDerGrupo.position.set(legX, 0.74, 0);
+    const pantalonDer = new THREE.Mesh(new THREE.BoxGeometry(legW, 0.44, legW + 0.02), matPantalon);
     pantalonDer.position.y = -0.22;
     pantalonDer.castShadow = true;
     piernaDerGrupo.add(pantalonDer);
-    const botaDer = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.34, 0.24), matCueroOscuro);
+    const botaDer = new THREE.Mesh(new THREE.BoxGeometry(legW + 0.02, 0.34, legW + 0.05), matBotaClase);
     botaDer.position.set(0, -0.56, 0.02);
     botaDer.castShadow = true;
     piernaDerGrupo.add(botaDer);
     grupo.add(piernaDerGrupo);
 
-    // 5. Brazos y Espada Corta
-    // Brazo Izquierdo
+    // 5. Brazos, Hombreras y Arma de clase
+    const armX = esMujer ? 0.27 : 0.38;
+    const armW = esMujer ? 0.12 : 0.19;
+    const anchoManga = claseArm === 'mago' ? armW * 1.25 : armW;
+    const matAntebrazo = claseArm === 'pesada' ? matAcero : (claseArm === 'mago' ? matLino : matCuero);
+
     const brazoIzqGrupo = new THREE.Group();
-    brazoIzqGrupo.position.set(-0.35, 1.34, 0);
-    const mangaIzq = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.38, 0.18), matLino);
+    brazoIzqGrupo.position.set(-armX, 1.34, 0);
+    const mangaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoManga, 0.38, anchoManga + 0.02), matLino);
     mangaIzq.position.y = -0.19;
     brazoIzqGrupo.add(mangaIzq);
-    const antebrazoIzq = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.28, 0.16), matCuero);
+    const antebrazoIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoManga * 0.94, 0.28, anchoManga), matAntebrazo);
     antebrazoIzq.position.y = -0.48;
     antebrazoIzq.castShadow = true;
     brazoIzqGrupo.add(antebrazoIzq);
+    if (claseArm === 'pesada') {
+      const hombreraIzq = new THREE.Mesh(new THREE.BoxGeometry(armW + 0.10, 0.18, armW + 0.10), matAcero);
+      hombreraIzq.name = 'hombreraIzq';
+      hombreraIzq.position.set(-0.02, -0.02, 0);
+      brazoIzqGrupo.add(hombreraIzq);
+
+      const escudoGrupo = new THREE.Group();
+      escudoGrupo.name = 'escudoGrupo';
+      escudoGrupo.position.set(-0.10, -0.48, 0.06);
+      const placaEsc = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.50, 0.38), matAcero);
+      escudoGrupo.add(placaEsc);
+      const blasonEsc = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.26, 0.18), matHebilla);
+      escudoGrupo.add(blasonEsc);
+      brazoIzqGrupo.add(escudoGrupo);
+    }
     grupo.add(brazoIzqGrupo);
 
-    // Brazo Derecho (Mano de combate con espada corta)
     const brazoDerGrupo = new THREE.Group();
-    brazoDerGrupo.position.set(0.35, 1.34, 0);
-    const mangaDer = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.38, 0.18), matLino);
+    brazoDerGrupo.position.set(armX, 1.34, 0);
+    const mangaDer = new THREE.Mesh(new THREE.BoxGeometry(anchoManga, 0.38, anchoManga + 0.02), matLino);
     mangaDer.position.y = -0.19;
     brazoDerGrupo.add(mangaDer);
-    const antebrazoDer = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.28, 0.16), matCuero);
+    const antebrazoDer = new THREE.Mesh(new THREE.BoxGeometry(anchoManga * 0.94, 0.28, anchoManga), matAntebrazo);
     antebrazoDer.position.y = -0.48;
     antebrazoDer.castShadow = true;
     brazoDerGrupo.add(antebrazoDer);
+    if (claseArm === 'pesada') {
+      const hombreraDer = new THREE.Mesh(new THREE.BoxGeometry(armW + 0.10, 0.18, armW + 0.10), matAcero);
+      hombreraDer.name = 'hombreraDer';
+      hombreraDer.position.set(0.02, -0.02, 0);
+      brazoDerGrupo.add(hombreraDer);
+    }
 
-    // Espada corta de aldeano
+    // Arma diferenciada por arquetipo
     const espadaGrupo = new THREE.Group();
     espadaGrupo.position.set(0, -0.62, 0.12);
-    const hoja = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.65, 0.02), matAcero);
-    hoja.position.y = 0.30;
-    hoja.castShadow = true;
-    espadaGrupo.add(hoja);
-    const guarda = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.04, 0.06), matHebilla);
-    guarda.position.y = 0.0;
-    espadaGrupo.add(guarda);
-    const empunadura = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.05), matCueroOscuro);
-    empunadura.position.y = -0.09;
-    espadaGrupo.add(empunadura);
+    if (armaVisual === 'dagas_dobles') {
+      const matDaga = new THREE.MeshStandardMaterial({ color: 0xc084fc, roughness: 0.25, metalness: 0.85 });
+      const hojaD = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.018), matDaga);
+      hojaD.position.y = 0.20;
+      hojaD.castShadow = true;
+      espadaGrupo.add(hojaD);
+      const guardaD = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.03, 0.05), matHebilla);
+      espadaGrupo.add(guardaD);
+      const dagaIzqGrupo = new THREE.Group();
+      dagaIzqGrupo.name = 'dagaIzq';
+      dagaIzqGrupo.position.set(0, -0.62, 0.12);
+      const hojaI = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.018), matDaga);
+      hojaI.position.y = 0.20;
+      hojaI.castShadow = true;
+      dagaIzqGrupo.add(hojaI);
+      dagaIzqGrupo.add(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.03, 0.05), matHebilla));
+      brazoIzqGrupo.add(dagaIzqGrupo);
+    } else if (armaVisual === 'baculo_luz') {
+      const vara = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.35, 0.05), matCueroOscuro);
+      vara.position.y = 0.35;
+      vara.castShadow = true;
+      espadaGrupo.add(vara);
+      const matOrbe = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const orbe = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16), matOrbe);
+      orbe.position.y = 1.08;
+      espadaGrupo.add(orbe);
+    } else if (armaVisual === 'hacha_guerra') {
+      const mango = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.95, 0.06), matCueroOscuro);
+      mango.position.y = 0.28;
+      mango.castShadow = true;
+      espadaGrupo.add(mango);
+      const filoH = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.24, 0.04), matAcero);
+      filoH.position.y = 0.65;
+      filoH.castShadow = true;
+      espadaGrupo.add(filoH);
+      const centroH = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.20, 0.06), matHebilla);
+      centroH.position.y = 0.65;
+      espadaGrupo.add(centroH);
+    } else {
+      const hoja = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.68, 0.02), matAcero);
+      hoja.position.y = 0.32;
+      hoja.castShadow = true;
+      espadaGrupo.add(hoja);
+      const guarda = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.06), matHebilla);
+      guarda.position.y = 0.0;
+      espadaGrupo.add(guarda);
+      const empunadura = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.05), matCueroOscuro);
+      empunadura.position.y = -0.09;
+      espadaGrupo.add(empunadura);
+    }
     brazoDerGrupo.add(espadaGrupo);
 
     grupo.add(brazoDerGrupo);
 
-    // Marcador sutil de aliado (halo tenue verde a sus pies)
+    // Marcador sutil de aliado (halo tenue del color del acompañante)
     const haloGeo = new THREE.RingGeometry(0.4, 0.55, 24);
     haloGeo.rotateX(-Math.PI / 2);
     const matHalo = new THREE.MeshBasicMaterial({
-      color: 0x22c55e,
+      color: perfil.colores.halo || 0x22c55e,
       transparent: true,
       opacity: 0.45,
       depthWrite: false
@@ -736,6 +1514,11 @@
     const halo = new THREE.Mesh(haloGeo, matHalo);
     halo.position.y = 0.04;
     grupo.add(halo);
+    if (typeof CharacterLib !== 'undefined' && typeof CharacterLib.crearSombraContacto === 'function') {
+      const sc = CharacterLib.crearSombraContacto(THREE, 1.25, 0.34);
+      if (sc) grupo.add(sc);
+    }
+    grupo.scale.setScalar((perfil.altura || 1.82) / 1.84);
 
     return {
       root: grupo,
@@ -791,7 +1574,13 @@
 
     let clipName = nombreAnim;
     if (nombreAnim === 'attack') {
-      const ataques = ['overhead_cleave', 'thrust_lunge', 'spin_slash'];
+      const porArq = {
+        lyra: ['spin_slash', 'thrust_lunge', 'attack', 'overhead_cleave'],
+        brenda: ['whirlwind', 'overhead_cleave', 'spin_slash', 'attack'],
+        elian: ['ultimate_beam', 'attack', 'overhead_cleave', 'thrust_lunge'],
+        rowan: ['overhead_cleave', 'thrust_lunge', 'spin_slash', 'attack']
+      };
+      const ataques = porArq[acompanante.arquetipo] || porArq.rowan;
       clipName = ataques.find(n => acompanante.actions[n]) || 'punch';
     }
 
@@ -825,46 +1614,180 @@
     acompanante.nombreAnimActual = clipName;
   }
 
-  // Integración del modelo humanoide GLB generado con el Estudio de Armaduras
-  function instalarModeloGLBAcompanante(acompanante, gltf, THREE) {
+  // Integración del modelo humanoide GLB adaptado al arquetipo (o GLB completo de clase del Estudio de Armaduras)
+  function instalarModeloGLBAcompanante(acompanante, gltf, THREE, opts = {}) {
     if (!acompanante || !gltf || !gltf.scene) return null;
-    const root = gltf.scene;
+    const esModeloClaseEstudio = !!(opts && opts.esModeloClaseEstudio);
+    if (!esModeloClaseEstudio) acompanante._gltfBase = gltf;
 
-    // Normalizar escala anatómica a 1.82m
+    const arq = COMPANEROS[acompanante.arquetipo] || COMPANEROS.rowan;
+    const perfil = arq.perfilVisual || COMPANEROS.rowan.perfilVisual;
+    // Para modelos exportados del Estudio de Armaduras no clonar scene para preservar SkinnedMesh y huesos
+    const root = (!esModeloClaseEstudio && typeof gltf.scene.clone === 'function')
+      ? gltf.scene.clone(true)
+      : gltf.scene;
+
+    if (esModeloClaseEstudio) {
+      if (typeof root.traverse === 'function') {
+        root.traverse(o => {
+          if (!o.isMesh) return;
+          o.castShadow = true;
+          o.receiveShadow = true;
+        });
+      }
+    } else {
+      // 1. Escalar huesos por complexión (mujeres más finas, hombres más musculados)
+      if (perfil.escalaHuesos && typeof root.getObjectByName === 'function') {
+        Object.keys(perfil.escalaHuesos).forEach(nomHueso => {
+          const hueso = root.getObjectByName(nomHueso);
+          if (hueso && hueso.scale) {
+            const [sx, sy, sz] = perfil.escalaHuesos[nomHueso];
+            hueso.scale.set(sx, sy, sz);
+          }
+        });
+      }
+
+      // 2. Clonar materiales y diferenciar pelo y atuendo por acompañante
+      const colPelo = typeof THREE.Color === 'function' ? new THREE.Color(perfil.colores.pelo) : null;
+      const colRopa = typeof THREE.Color === 'function' ? new THREE.Color(perfil.colores.ropa) : null;
+      const colPecho = typeof THREE.Color === 'function' ? new THREE.Color(perfil.colores.pecho) : null;
+      if (typeof root.traverse === 'function') {
+        root.traverse(o => {
+          if (!o.isMesh) return;
+          o.castShadow = true;
+          o.receiveShadow = true;
+          const clonarMat = (m) => {
+            if (!m) return m;
+            const c = typeof m.clone === 'function' ? m.clone() : m;
+            c.roughness = Math.max(0.35, c.roughness || 0.6);
+            const nomMat = (c.name || '').toLowerCase();
+            const nomObj = (o.name || '').toLowerCase();
+            if (c.color && colPelo && (nomMat.includes('cabello') || nomObj.includes('cabello'))) {
+              c.color.copy(colPelo);
+            } else if (c.color && colRopa && (nomObj.startsWith('torso_') || nomObj.startsWith('upperarm_') || nomObj.startsWith('forearm_'))) {
+              c.color.lerp(colRopa, 0.58);
+            } else if (c.color && colPecho && (nomObj.startsWith('thigh_') || nomObj.startsWith('shin_'))) {
+              c.color.lerp(colPecho, 0.42);
+            }
+            return c;
+          };
+          o.material = Array.isArray(o.material) ? o.material.map(clonarMat) : clonarMat(o.material);
+        });
+      }
+
+      // 3. Ocultar barba en las acompañantes mujeres
+      if (perfil.sinBarba && typeof root.traverse === 'function') {
+        root.traverse(o => {
+          const nom = (o.name || '').toLowerCase();
+          if (nom.includes('beard') || nom.includes('barba')) {
+            o.visible = false;
+          }
+        });
+      }
+
+      // 4. Melena / coleta trasera en Head para diferenciar silueta femenina
+      if (perfil.melena && typeof root.getObjectByName === 'function') {
+        const huesoHead = root.getObjectByName('Head');
+        if (huesoHead) {
+          const matMelena = new THREE.MeshStandardMaterial({
+            color: perfil.melena.color,
+            roughness: 0.72,
+            metalness: 0.02
+          });
+          const melenaMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(perfil.melena.ancho * 1.45, perfil.melena.largo, 0.09),
+            matMelena
+          );
+          melenaMesh.name = 'Melena_Acompanante';
+          melenaMesh.position.set(0, -0.02, -0.11);
+          melenaMesh.rotation.x = 0.18;
+          melenaMesh.castShadow = true;
+          huesoHead.add(melenaMesh);
+        }
+      }
+
+      // 4b. Adjuntar arma visual diferenciada en las manos del GLB si existen huesos y geometrías Three
+      if (typeof root.getObjectByName === 'function' && typeof THREE.BoxGeometry === 'function' && typeof THREE.MeshStandardMaterial === 'function') {
+        const armaVisual = (arq.perfilCombate && arq.perfilCombate.armaVisual) || 'espada';
+        const manoR = root.getObjectByName('Hand_R') || root.getObjectByName('Forearm_R');
+        const manoL = root.getObjectByName('Hand_L') || root.getObjectByName('Forearm_L');
+        const matAceroGLB = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.25, metalness: 0.85 });
+        const matAcentoGLB = new THREE.MeshStandardMaterial({ color: perfil.colores.acento || 0xf59e0b, roughness: 0.35, metalness: 0.7 });
+        const matMangoGLB = new THREE.MeshStandardMaterial({ color: 0x3b1f0e, roughness: 0.85, metalness: 0.05 });
+
+        if (manoR) {
+          const armaG = new THREE.Group();
+          armaG.name = 'Arma_Acompanante_R';
+          armaG.position.set(0, -0.06, 0.06);
+          armaG.rotation.x = Math.PI * 0.45;
+          if (armaVisual === 'dagas_dobles') {
+            const filo = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.34, 0.015), matAceroGLB);
+            filo.position.y = 0.18;
+            armaG.add(filo);
+            const gr = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.025, 0.03), matAcentoGLB);
+            armaG.add(gr);
+          } else if (armaVisual === 'baculo_luz') {
+            const vara = new THREE.Mesh(new THREE.BoxGeometry(0.035, 1.25, 0.035), matMangoGLB);
+            vara.position.y = 0.38;
+            armaG.add(vara);
+            const gema = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.11), matAcentoGLB);
+            gema.position.y = 1.04;
+            armaG.add(gema);
+          } else if (armaVisual === 'hacha_guerra') {
+            const mango = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.85, 0.04), matMangoGLB);
+            mango.position.y = 0.28;
+            armaG.add(mango);
+            const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.20, 0.03), matAceroGLB);
+            cabeza.position.y = 0.62;
+            armaG.add(cabeza);
+            const engarce = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.045), matAcentoGLB);
+            engarce.position.y = 0.62;
+            armaG.add(engarce);
+          } else {
+            const hoja = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.58, 0.016), matAceroGLB);
+            hoja.position.y = 0.30;
+            armaG.add(hoja);
+            const guarda = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.04), matAcentoGLB);
+            armaG.add(guarda);
+          }
+          manoR.add(armaG);
+        }
+        if (manoL && armaVisual === 'dagas_dobles') {
+          const armaL = new THREE.Group();
+          armaL.name = 'Arma_Acompanante_L';
+          armaL.position.set(0, -0.06, 0.06);
+          armaL.rotation.x = Math.PI * 0.45;
+          const filoL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.34, 0.015), matAceroGLB);
+          filoL.position.y = 0.18;
+          armaL.add(filoL);
+          armaL.add(new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.025, 0.03), matAcentoGLB));
+          manoL.add(armaL);
+        }
+      }
+    }
+
+    // 5. Normalizar altura según sexo (mujeres más bajas 1.63-1.68m, hombres más altos 1.86-1.90m)
+    if (typeof root.updateMatrixWorld === 'function') root.updateMatrixWorld(true);
     const bbox = new THREE.Box3().setFromObject(root);
     const size = new THREE.Vector3();
     bbox.getSize(size);
     if (size.y > 0.01) {
-      const escala = 1.82 / size.y;
+      const escala = (perfil.altura || 1.82) / size.y;
       root.scale.setScalar(escala);
     }
     bbox.setFromObject(root);
     root.position.y = -bbox.min.y;
 
     const contenedor = new THREE.Group();
-    contenedor.name = 'Acompanante_Rowan_GLB';
+    contenedor.name = 'Acompanante_' + arq.id + '_GLB';
+    contenedor.userData = { arquetipo: arq.id, claseArmadura: arq.claseArmadura || 'pesada', esModeloClaseEstudio };
     contenedor.add(root);
 
-    // Ajustar materiales y sombras
-    root.traverse(o => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-        if (o.material) {
-          if (Array.isArray(o.material)) {
-            o.material.forEach(m => { if (m) m.roughness = Math.max(0.35, m.roughness || 0.6); });
-          } else {
-            o.material.roughness = Math.max(0.35, o.material.roughness || 0.6);
-          }
-        }
-      }
-    });
-
-    // Marcador sutil de aliado (halo tenue verde a sus pies)
+    // Marcador sutil de aliado (halo tenue del color del acompañante)
     const haloGeo = new THREE.RingGeometry(0.4, 0.55, 24);
     haloGeo.rotateX(-Math.PI / 2);
     const matHalo = new THREE.MeshBasicMaterial({
-      color: 0x22c55e,
+      color: perfil.colores.halo || 0x22c55e,
       transparent: true,
       opacity: 0.45,
       depthWrite: false
@@ -872,6 +1795,10 @@
     const halo = new THREE.Mesh(haloGeo, matHalo);
     halo.position.y = 0.04;
     contenedor.add(halo);
+    if (typeof CharacterLib !== 'undefined' && typeof CharacterLib.crearSombraContacto === 'function') {
+      const sc = CharacterLib.crearSombraContacto(THREE, 1.25, 0.34);
+      if (sc) contenedor.add(sc);
+    }
 
     // AnimationMixer y mapeo de animaciones disponibles
     let mixer = null;
@@ -900,6 +1827,8 @@
     acompanante.actions = actions;
     acompanante.accionActual = null;
     acompanante.nombreAnimActual = null;
+    acompanante._esModeloClaseEstudio = esModeloClaseEstudio;
+    acompanante._arquetipoModeloGLB = arq.id;
 
     reproducirAnimacionGLB(acompanante, 'idle', 0.1);
     return contenedor;
@@ -914,12 +1843,102 @@
     return true;
   }
 
+  // Helper para aplicar daño del acompañante al monstruo soportando callbacks y mocks
+  function aplicarDanoAMonstruo(mon, dmg, meta, aplicarDanoMonstruoFn, registrarEventoFn) {
+    if (!mon || dmg <= 0) return;
+    if (typeof aplicarDanoMonstruoFn === 'function') {
+      aplicarDanoMonstruoFn(mon, dmg, meta);
+    } else if (typeof mon.recibirDano === 'function') {
+      mon.recibirDano(dmg, (meta && meta.fuente) || 'companero');
+    } else if (typeof mon.damageMonster === 'function') {
+      mon.damageMonster(dmg);
+    } else if (typeof mon.hp === 'number') {
+      mon.hp = Math.max(0, mon.hp - dmg);
+      if (mon.hp <= 0) {
+        mon.alive = false;
+        mon.muerto = true;
+        if (typeof mon.kill === 'function') mon.kill();
+        if (registrarEventoFn) {
+          const zId = mon.zoneId || (mon.zone && mon.zone.id);
+          registrarEventoFn({ tipo: mon.boss ? 'jefe' : 'matar', zona: zId });
+        }
+      }
+    }
+  }
+
+  function curarPorRoboVida(acompanante, dmgInfligido, roboPct) {
+    if (!acompanante || !roboPct || dmgInfligido <= 0 || acompanante.inconsciente || acompanante.debilitado) return 0;
+    const cura = Math.max(1, Math.round(dmgInfligido * roboPct));
+    acompanante.hp = Math.min(acompanante.maxHp, (acompanante.hp || 0) + cura);
+    return cura;
+  }
+
+  function sincronizarBuffsLegacy(acompanante) {
+    if (!acompanante) return;
+    if (!acompanante.buffs) acompanante.buffs = { ataqueTimer: 0, defensaTimer: 0, multAtaque: 1.0, reduccionDef: 0 };
+    const lista = Array.isArray(acompanante.buffsActivos) ? acompanante.buffsActivos : [];
+    let maxAtkTimer = 0;
+    let maxDefTimer = 0;
+    for (let i = 0; i < lista.length; i++) {
+      const b = lista[i];
+      if (!b || (b.timer || 0) <= 0) continue;
+      if (b.id === 'grito' || b.id === 'fervor' || b.id === 'frenesi' || b.id === 'ataque') {
+        maxAtkTimer = Math.max(maxAtkTimer, b.timer);
+      }
+      if (b.id === 'baluarte_luz' || b.id === 'baluarte' || b.id === 'frenesi' || b.id === 'provocacion' || b.id === 'defensa') {
+        maxDefTimer = Math.max(maxDefTimer, b.timer);
+      }
+    }
+    const bonos = calcularBonosActivos(acompanante).companero;
+    if (maxAtkTimer > 0) acompanante.buffs.ataqueTimer = maxAtkTimer;
+    if (maxDefTimer > 0) acompanante.buffs.defensaTimer = maxDefTimer;
+    acompanante.buffs.multAtaque = 1 + (bonos.danioPct || 0);
+    acompanante.buffs.reduccionDef = bonos.reduccionPct || 0;
+  }
+
   // Actualización de la IA del acompañante en cada frame
   function actualizarAcompanante(acompanante, dt, heroePos, heroeRot, monstruos, heroeObjetivo, getAlturaFn, registrarEventoFn, aplicarDanoMonstruoFn, heroeInfo, alLanzarSkillFn) {
     if (!acompanante || !acompanante.activo || !acompanante.mesh) return;
 
     acompanante.tiempoEstado += dt;
     acompanante.tiempoSiguienteAtaque = Math.max(0, acompanante.tiempoSiguienteAtaque - dt);
+
+    // Tick de debuffs, taunts y sangrados activos sobre los monstruos cercanos (incluso si el compañero acaba de caer)
+    if (monstruos && monstruos.length) {
+      for (let i = 0, len = monstruos.length; i < len; i++) {
+        const m = monstruos[i];
+        if (!m) continue;
+        if (m.defDebuffTimer > 0) {
+          m.defDebuffTimer = Math.max(0, m.defDebuffTimer - dt);
+          if (m.defDebuffTimer <= 0) m.defDebuffPct = 0;
+        }
+        if (m.tauntedTimer > 0) {
+          if (acompanante.inconsciente || acompanante.debilitado) {
+            m.tauntedTimer = 0;
+            m.tauntedBy = null;
+          } else {
+            m.tauntedTimer = Math.max(0, m.tauntedTimer - dt);
+            if (m.tauntedTimer <= 0) m.tauntedBy = null;
+          }
+        }
+        if (m.sangradoTimer > 0 && esMonstruoCombatible(m)) {
+          m.sangradoTimer = Math.max(0, m.sangradoTimer - dt);
+          m._sangradoTick = (m._sangradoTick || 0) + dt;
+          while (m._sangradoTick >= 1.0 && esMonstruoCombatible(m)) {
+            m._sangradoTick -= 1.0;
+            const dmgBleed = Math.max(1, Math.round(m.sangradoDps || 12));
+            aplicarDanoAMonstruo(m, dmgBleed, { tipo: 'sangrado', crit: false, fuente: 'companero_skill' }, aplicarDanoMonstruoFn, registrarEventoFn);
+          }
+          if (m.sangradoTimer <= 0) {
+            m.sangradoDps = 0;
+            m._sangradoTick = 0;
+          }
+        } else if (m.sangradoTimer > 0) {
+          m.sangradoTimer = 0;
+          m.sangradoDps = 0;
+        }
+      }
+    }
 
     // Actualización de timers de buffs y habilidades de apoyo
     if (acompanante.buffs) {
@@ -948,10 +1967,13 @@
       }
     }
 
-    // Si ha caído inconsciente, no ataca ni se desplaza hasta ser curado
-    if (acompanante.inconsciente) {
+    // Si ha caído inconsciente/debilitado, no ataca ni se desplaza hasta ser curado
+    if (acompanante.inconsciente || acompanante.debilitado) {
+      acompanante.inconsciente = true;
+      acompanante.debilitado = true;
       acompanante.estado = 'debilitado';
       acompanante.velocidadActual = 0;
+      acompanante.objetivoActual = null;
       const ySuelo = getAlturaFn ? getAlturaFn(acompanante.x, acompanante.z) : 0;
       acompanante.y = ySuelo;
       acompanante.mesh.position.set(acompanante.x, ySuelo, acompanante.z);
@@ -959,145 +1981,431 @@
       return;
     }
 
+    const arqInfo = COMPANEROS[acompanante.arquetipo] || COMPANEROS.rowan;
+    const perfilCombate = acompanante.perfilCombate || arqInfo.perfilCombate || {};
+    const rangoAtaqueBase = acompanante.rangoAtaque || perfilCombate.rangoAtaque || 2.4;
+    const cooldownAtaqueBase = acompanante.cooldownAtaque || perfilCombate.cooldownAtaque || 1.50;
+
+    // Regeneración pasiva por Manantial Místico en el propio acompañante
+    const bonosPre = calcularBonosActivos(acompanante);
+    if (bonosPre.companero.hpRegenPorSeg > 0 && acompanante.hp < acompanante.maxHp) {
+      acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + bonosPre.companero.hpRegenPorSeg * dt);
+    }
+
     // Auto-toma de poción de vida automática si la salud cae por debajo del 50%
     if (acompanante.hp < acompanante.maxHp * 0.50) {
       tomarPocionAutomaticaAcompanante(acompanante);
     }
 
-    // 1. Determinar si hay un monstruo hostil al alcance o el objetivo actual del héroe
+    // 1. Adquisición de objetivo de combate:
+    //    1) Objetivo del héroe (<= 24m)
+    //    2) Monstruo agresivo ('chase' o taunteado) más cercano (<= 24m)
+    //    3) Monstruo hostil cercano al héroe (<= 14m) o al acompañante (<= 12m)
     let objetivoCombate = null;
     let distObjetivoMin = Infinity;
 
     if (esMonstruoCombatible(heroeObjetivo)) {
-      const dHeroe = Math.hypot(heroeObjetivo.x - heroePos.x, heroeObjetivo.z - heroePos.z);
-      if (dHeroe < 14) {
+      const dxH = heroeObjetivo.x - heroePos.x;
+      const dzH = heroeObjetivo.z - heroePos.z;
+      if (dxH * dxH + dzH * dzH <= 576) {
         objetivoCombate = heroeObjetivo;
         distObjetivoMin = Math.hypot(heroeObjetivo.x - acompanante.x, heroeObjetivo.z - acompanante.z);
       }
     }
 
     if (!objetivoCombate && monstruos && monstruos.length) {
-      monstruos.forEach(m => {
-        if (!esMonstruoCombatible(m)) return;
-        const d = Math.hypot(m.x - heroePos.x, m.z - heroePos.z);
-        if (d < 10) {
-          const dComp = Math.hypot(m.x - acompanante.x, m.z - acompanante.z);
-          if (dComp < distObjetivoMin) {
-            distObjetivoMin = dComp;
-            objetivoCombate = m;
+      let distAggroMinSq = Infinity;
+      let distCercanoMinSq = Infinity;
+      let mejorAggro = null;
+      let mejorCercano = null;
+      const hx = heroePos.x, hz = heroePos.z;
+      const ax = acompanante.x, az = acompanante.z;
+
+      for (let i = 0, len = monstruos.length; i < len; i++) {
+        const m = monstruos[i];
+        if (!m || !esMonstruoCombatible(m)) continue;
+        const dxh = m.x - hx, dzh = m.z - hz;
+        const distHeroeSq = dxh * dxh + dzh * dzh;
+        const dxa = m.x - ax, dza = m.z - az;
+        const distAcompSq = dxa * dxa + dza * dza;
+
+        const esAgresivo = m.state === 'chase' || m.tauntedTimer > 0;
+        if (esAgresivo && (distHeroeSq <= 576 || distAcompSq <= 576)) {
+          if (distAcompSq < distAggroMinSq) {
+            distAggroMinSq = distAcompSq;
+            mejorAggro = m;
+          }
+        } else if (distHeroeSq <= 196 || distAcompSq <= 144) {
+          if (distAcompSq < distCercanoMinSq) {
+            distCercanoMinSq = distAcompSq;
+            mejorCercano = m;
           }
         }
-      });
+      }
+
+      if (mejorAggro) {
+        objetivoCombate = mejorAggro;
+        distObjetivoMin = Math.sqrt(distAggroMinSq);
+      } else if (mejorCercano) {
+        objetivoCombate = mejorCercano;
+        distObjetivoMin = Math.sqrt(distCercanoMinSq);
+      }
     }
 
-    // Gestión y activación de las 3 Skills Equipadas y Dopes de Apoyo
+    acompanante.objetivoActual = objetivoCombate;
+
+    // Decaimiento gradual de furia de Brenda fuera de combate
+    if (!objetivoCombate && acompanante.arquetipo === 'brenda' && (acompanante.furia || 0) > 0) {
+      acompanante.furia = Math.max(0, acompanante.furia - 5 * dt);
+    }
+
+    // Detección de inicio de combate y aviso de monstruo endurecido
+    const ahoraMs = (typeof Date !== 'undefined' ? Date.now() : 0);
+    if (objetivoCombate && !acompanante._enCombateActivo) {
+      acompanante._enCombateActivo = true;
+      if (!acompanante.ultimoComentarioMs || ahoraMs - acompanante.ultimoComentarioMs > 10000) {
+        const esDuro = (objetivoCombate.maxHp && objetivoCombate.maxHp > 60) || objetivoCombate.boss || (objetivoCombate.rangoElite && objetivoCombate.rangoElite >= 2);
+        const cat = esDuro ? 'monstruo_duro' : 'combate_inicio';
+        decirFrase(acompanante, elegirFrase(cat), 4.5);
+      }
+    } else if (!objetivoCombate) {
+      acompanante._enCombateActivo = false;
+    }
+
+    // Aviso de salud crítica del héroe
+    if (heroeInfo && heroeInfo.hp && heroeInfo.maxHp && (heroeInfo.hp < heroeInfo.maxHp * 0.35)) {
+      if (!acompanante._ultimoAvisoSalud || ahoraMs - acompanante._ultimoAvisoSalud > 14000) {
+        acompanante._ultimoAvisoSalud = ahoraMs;
+        decirFrase(acompanante, elegirFrase('salud_baja'), 4.0);
+      }
+    }
+
+    // Gestión y activación fiel de las 3 Habilidades Equipadas del Arquetipo
     const heroeHpActual = (heroeInfo && typeof heroeInfo.hp === 'number') ? heroeInfo.hp : 100;
     const heroeHpMax = (heroeInfo && typeof heroeInfo.maxHp === 'number') ? heroeInfo.maxHp : 100;
-    const heroeBajo = (heroeHpActual / heroeHpMax) < 0.50;
-    const compBajo = (acompanante.hp / acompanante.maxHp) < 0.50;
+    const heroeBajo = (heroeHpActual / Math.max(1, heroeHpMax)) < 0.55;
+    const compBajo = (acompanante.hp / Math.max(1, acompanante.maxHp)) < 0.55;
 
-    // Ejecutar hasta las 3 habilidades equipadas del catálogo
     if (acompanante.skillsCatalogo && acompanante.skillsEquipadas) {
       acompanante.skillsEquipadas.forEach(skId => {
+        if (!skId) return;
         const sk = acompanante.skillsCatalogo.find(s => s.id === skId);
         if (!sk || sk.timer > 0) return;
 
-        // 1. Habilidades de Curación
+        // 1. Habilidades de Curación (Elian: Gracia Sanadora)
         if (sk.tipo === 'cura' && (heroeBajo || compBajo)) {
           sk.timer = sk.cd || 22;
-          const pct = (sk.potencia || 45) / 100;
-          const curaComp = Math.round(acompanante.maxHp * pct);
-          acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + curaComp);
+          if (acompanante.skills && acompanante.skills.cura) acompanante.skills.cura.timer = sk.timer;
+          const curaReal = Math.round((sk.potencia || 50) * (1 + ((acompanante.nivel || 1) - 1) * 0.12));
+          acompanante.hp = Math.min(acompanante.maxHp, acompanante.hp + curaReal);
           aplicarDopeActivo(acompanante, {
             id: sk.id,
             nombre: sk.nombre,
             icono: sk.icono || '🌿',
-            desc: `+${sk.potencia}% HP Sanado`,
+            desc: `+${curaReal} HP Restaurados (Ambos)`,
+            statResumen: `+${curaReal} HP Curado`,
             duracion: 3,
             efecto: 'cura',
-            valor: sk.potencia
+            valor: curaReal
           });
-          decirFrase(acompanante, `🌿 ¡${sk.nombre}! ¡Sano vuestras heridas!`, 3.5);
+          decirFrase(acompanante, `🌿 ¡${sk.nombre}! (+${curaReal} HP)`, 3.5);
           if (typeof alLanzarSkillFn === 'function') {
-            alLanzarSkillFn('cura', { nombre: sk.nombre, potencia: sk.potencia, curaComp });
+            alLanzarSkillFn('cura', {
+              id: sk.id,
+              nombre: sk.nombre,
+              potencia: curaReal,
+              curaComp: curaReal,
+              curaHeroe: curaReal,
+              duracion: 3,
+              icono: sk.icono || '🌿',
+              tipoSonido: 'cura'
+            });
           }
+          return;
         }
 
-        // 2. Habilidades de Buff / Dope (en combate)
-        else if (sk.tipo === 'buff' && (objetivoCombate || heroeBajo || compBajo)) {
+        // 2. Habilidades de Buff / Dope / Tanque (cada skill mapeada fielmente a su efecto)
+        if (sk.tipo === 'buff') {
+          const necesitaManantial = sk.id === 'manantial' && (objetivoCombate || heroeBajo || compBajo || (heroeInfo && typeof heroeInfo.mp === 'number' && typeof heroeInfo.maxMp === 'number' && heroeInfo.mp < heroeInfo.maxMp * 0.75));
+          const disparaBuff = sk.id === 'manantial' ? necesitaManantial : (!!objetivoCombate || (sk.id === 'baluarte_luz' && (heroeBajo || compBajo)));
+          if (!disparaBuff) return;
+
           sk.timer = sk.cd || 22;
           const dur = sk.duracion || 8;
-          if (sk.id === 'grito' || sk.id === 'fervor') {
-            acompanante.buffs.ataqueTimer = dur;
+          let tipoEfecto = 'buff';
+          let tipoSonido = 'ataque';
+          let statResumen = `+${sk.potencia}% potencia`;
+          let provocados = 0;
+
+          if (sk.id === 'grito') {
+            statResumen = `+${sk.potencia}% Ataque (Ambos)`;
+            tipoSonido = 'ataque';
+          } else if (sk.id === 'fervor') {
+            statResumen = `+${sk.potencia}% Vel. y Vel. Atq. (Ambos)`;
+            tipoSonido = 'ataque';
+          } else if (sk.id === 'veneno') {
+            statResumen = `+${sk.potencia} Daño Veneno (Ambos)`;
+            tipoSonido = 'debuff';
+          } else if (sk.id === 'baluarte_luz') {
+            tipoEfecto = 'defensa';
+            tipoSonido = 'defensa';
+            statResumen = `-${sk.potencia}% Daño Recibido (Ambos)`;
+          } else if (sk.id === 'manantial') {
+            tipoEfecto = 'cura_regen';
+            tipoSonido = 'cura';
+            statResumen = `+${sk.potencia} HP y MP/s (Ambos)`;
+          } else if (sk.id === 'frenesi') {
+            tipoEfecto = 'berserker';
+            tipoSonido = 'ataque';
+            statResumen = `+${sk.potencia}% Daño y Furia (Brenda)`;
+          } else if (sk.id === 'provocacion') {
+            tipoEfecto = 'defensa';
+            tipoSonido = 'defensa';
+            // Atrae hacia Brenda a todos los enemigos cercanos en 13m
+            if (monstruos && monstruos.length) {
+              for (let i = 0, len = monstruos.length; i < len; i++) {
+                const m = monstruos[i];
+                if (!m || !esMonstruoCombatible(m)) continue;
+                const dA = Math.hypot(m.x - acompanante.x, m.z - acompanante.z);
+                const dH = Math.hypot(m.x - heroePos.x, m.z - heroePos.z);
+                if (dA <= 13.0 || dH <= 13.0) {
+                  m.tauntedTimer = dur;
+                  m.tauntedBy = 'acompanante';
+                  if (m.state === 'idle') m.state = 'chase';
+                  provocados++;
+                }
+              }
+            }
+            if (provocados === 0 && objetivoCombate) {
+              objetivoCombate.tauntedTimer = dur;
+              objetivoCombate.tauntedBy = 'acompanante';
+              if (objetivoCombate.state === 'idle') objetivoCombate.state = 'chase';
+              provocados = 1;
+            }
+            statResumen = `Atrae enemigos (${provocados}) · -${sk.potencia}% Daño`;
+          } else if (sk.id === 'sed_sangre') {
+            tipoEfecto = 'cura_regen';
+            tipoSonido = 'ataque';
+            statResumen = `+${sk.potencia}% Robo de Vida (Ambos)`;
           }
-          if (sk.id === 'baluarte_luz' || sk.id === 'baluarte') {
-            acompanante.buffs.defensaTimer = dur;
-          }
-          if (sk.id === 'frenesi') {
-            acompanante.buffs.ataqueTimer = dur;
-            acompanante.buffs.defensaTimer = dur;
-          }
+
           aplicarDopeActivo(acompanante, {
             id: sk.id,
             nombre: sk.nombre,
             icono: sk.icono || '✨',
-            desc: sk.desc ? sk.desc.replace('{potencia}', sk.potencia).replace('{duracion}', dur) : `+${sk.potencia}% potencia`,
+            desc: formatearDescripcionSkill(sk),
+            statResumen,
             duracion: dur,
-            efecto: 'buff',
+            efecto: tipoEfecto,
             valor: sk.potencia
           });
-          decirFrase(acompanante, `${sk.icono || '✨'} ¡${sk.nombre}! (+${sk.potencia}% efectividad)`, 3.5);
+          sincronizarBuffsLegacy(acompanante);
+          decirFrase(acompanante, `${sk.icono || '✨'} ¡${sk.nombre}! (${statResumen})`, 3.5);
           if (typeof alLanzarSkillFn === 'function') {
-            alLanzarSkillFn(sk.id, { nombre: sk.nombre, duracion: dur, valor: sk.potencia, icono: sk.icono });
+            alLanzarSkillFn(sk.id, {
+              id: sk.id,
+              nombre: sk.nombre,
+              duracion: dur,
+              valor: sk.potencia,
+              icono: sk.icono || '✨',
+              statResumen,
+              provocados,
+              tipoSonido
+            });
           }
+          return;
         }
 
         // 3. Habilidades Ofensivas Especiales
-        else if (sk.tipo === 'ataque' && objetivoCombate && distObjetivoMin <= (acompanante.rangoAtaque + 1.5)) {
+        if (sk.tipo === 'ataque' && objetivoCombate) {
+          const rangoSkill = sk.id === 'purificacion'
+            ? Math.max(12.0, rangoAtaqueBase + 2.5)
+            : (sk.id === 'torbellino' ? 4.8 : (rangoAtaqueBase + 1.8));
+          if (distObjetivoMin > rangoSkill) return;
+
+          // Filo del Verdugo (Lyra): ejecuta cuando el objetivo tiene <40% de vida (o golpe letal directo)
+          if (sk.id === 'remate') {
+            const maxHpObj = Math.max(1, objetivoCombate.maxHp || 100);
+            const pctVidaObj = (objetivoCombate.hp || 0) / maxHpObj;
+            if (pctVidaObj >= 0.40 && (objetivoCombate.hp || 0) > (sk.potencia || 65)) return;
+          }
+
           sk.timer = sk.cd || 12;
-          let bonusDano = Math.round((sk.potencia || 35) * (0.9 + Math.random() * 0.3));
-          // Daño triplicado contra no-muertos si es Castigo Sagrado de Elian
-          if (sk.id === 'purificacion' && objetivoCombate.name && /esqueleto|zombi|muerto|sombra|espectro|fantasma/i.test(objetivoCombate.name)) {
-            bonusDano *= 3;
-            decirFrase(acompanante, '☀️ ¡Luz celestial! ¡Purificación para los no-muertos!', 3.5);
+          const bonos = calcularBonosActivos(acompanante);
+          const multDebuff = 1 + (objetivoCombate.defDebuffTimer > 0 ? (objetivoCombate.defDebuffPct || 0) : 0);
+          const multBuffComp = 1 + (bonos.companero.danioPct || 0);
+          const venenoExtra = bonos.companero.venenoBonus || 0;
+
+          if (sk.id === 'danza_dagas') {
+            // Ráfaga de 3 estocadas críticas rápidas
+            let danoTotal = 0;
+            const basePorGolpe = Math.max(1, ((sk.potencia || 46) * 1.5) / 3);
+            for (let hit = 0; hit < 3; hit++) {
+              if (!esMonstruoCombatible(objetivoCombate)) break;
+              const dmgGolpe = Math.max(1, Math.round(basePorGolpe * multBuffComp * multDebuff * (0.95 + Math.random() * 0.15)) + venenoExtra);
+              danoTotal += dmgGolpe;
+              aplicarDanoAMonstruo(objetivoCombate, dmgGolpe, { crit: true, skill: sk.id, golpeIdx: hit, fuente: 'companero_skill' }, aplicarDanoMonstruoFn, registrarEventoFn);
+            }
+            curarPorRoboVida(acompanante, danoTotal, bonos.companero.roboPct);
+            decirFrase(acompanante, `🗡️ ¡${sk.nombre}! (×3 Críticos: ${danoTotal})`, 3.0);
+            if (typeof alLanzarSkillFn === 'function') {
+              alLanzarSkillFn('ataque_skill', {
+                id: sk.id,
+                nombre: sk.nombre,
+                dano: danoTotal,
+                hits: 3,
+                crit: true,
+                target: objetivoCombate,
+                icono: sk.icono,
+                tipoSonido: 'ataque'
+              });
+            }
+            return;
+          }
+
+          if (sk.id === 'torbellino') {
+            // Giro en área con hacha pesada que hiere a todos los enemigos en 4.8m
+            const radioArea = 4.8;
+            const afectados = [];
+            let danoTotal = 0;
+            const pool = (monstruos && monstruos.length) ? monstruos : [objetivoCombate];
+            for (let i = 0; i < pool.length; i++) {
+              const m = pool[i];
+              if (!m || !esMonstruoCombatible(m)) continue;
+              if (Math.hypot(m.x - acompanante.x, m.z - acompanante.z) <= radioArea) {
+                const mDeb = 1 + (m.defDebuffTimer > 0 ? (m.defDebuffPct || 0) : 0);
+                const dmgM = Math.max(1, Math.round(((sk.potencia || 38) + (acompanante.dano || 22) * 0.35) * multBuffComp * mDeb * (0.92 + Math.random() * 0.16)) + venenoExtra);
+                aplicarDanoAMonstruo(m, dmgM, { crit: false, skill: sk.id, fuente: 'companero_skill' }, aplicarDanoMonstruoFn, registrarEventoFn);
+                danoTotal += dmgM;
+                afectados.push(m);
+              }
+            }
+            curarPorRoboVida(acompanante, danoTotal, bonos.companero.roboPct);
+            decirFrase(acompanante, `🌀 ¡${sk.nombre}! (${afectados.length} objetivos)`, 3.0);
+            if (typeof alLanzarSkillFn === 'function') {
+              alLanzarSkillFn('ataque_skill', {
+                id: sk.id,
+                nombre: sk.nombre,
+                dano: danoTotal,
+                objetivosAfectados: afectados.length,
+                target: objetivoCombate,
+                icono: sk.icono,
+                tipoSonido: 'ataque'
+              });
+            }
+            return;
+          }
+
+          let bonusDano = Math.round(((sk.potencia || 38) + (acompanante.dano || 20) * (sk.id === 'impetu' ? 0.45 : 0.20)) * multBuffComp * multDebuff * (0.95 + Math.random() * 0.15)) + venenoExtra;
+          let esCrit = false;
+          let esMuerto = false;
+          let esEjecucion = false;
+
+          if (sk.id === 'remate') {
+            bonusDano = Math.round((sk.potencia || 65) * 2.5 * multBuffComp * multDebuff) + venenoExtra;
+            esCrit = true;
+            esEjecucion = true;
+            decirFrase(acompanante, `⚡ ¡${sk.nombre}! ¡Ejecución letal (${bonusDano})!`, 3.5);
+          } else if (sk.id === 'purificacion') {
+            esMuerto = esNoMuerto(objetivoCombate);
+            if (esMuerto) {
+              bonusDano = Math.round((sk.potencia || 44) * 3 * multBuffComp * multDebuff);
+              esCrit = true;
+              decirFrase(acompanante, `☀️ ¡${sk.nombre}! ¡Purificación ×3 contra no-muerto!`, 3.5);
+            } else {
+              bonusDano = Math.round((sk.potencia || 44) * multBuffComp * multDebuff);
+              decirFrase(acompanante, `☀️ ¡${sk.nombre}!`, 3.0);
+            }
           } else {
             decirFrase(acompanante, `${sk.icono || '💥'} ¡${sk.nombre}!`, 3.0);
           }
 
-          if (typeof aplicarDanoMonstruoFn === 'function') {
-            aplicarDanoMonstruoFn(objetivoCombate, bonusDano);
-          } else if (typeof objetivoCombate.recibirDano === 'function') {
-            objetivoCombate.recibirDano(bonusDano, 'companero_skill');
-          } else if (typeof objetivoCombate.hp === 'number') {
-            objetivoCombate.hp = Math.max(0, objetivoCombate.hp - bonusDano);
-          }
+          aplicarDanoAMonstruo(objetivoCombate, bonusDano, {
+            crit: esCrit,
+            skill: sk.id,
+            esNoMuerto: esMuerto,
+            esEjecucion,
+            fuente: 'companero_skill'
+          }, aplicarDanoMonstruoFn, registrarEventoFn);
+          curarPorRoboVida(acompanante, bonusDano, bonos.companero.roboPct);
 
           if (typeof alLanzarSkillFn === 'function') {
-            alLanzarSkillFn('ataque_skill', { nombre: sk.nombre, dano: bonusDano });
+            alLanzarSkillFn('ataque_skill', {
+              id: sk.id,
+              nombre: sk.nombre,
+              dano: bonusDano,
+              crit: esCrit,
+              esNoMuerto: esMuerto,
+              esEjecucion,
+              empuje: sk.id === 'impetu' ? 2.2 : 0,
+              target: objetivoCombate,
+              icono: sk.icono,
+              tipoSonido: 'ataque'
+            });
           }
+          return;
         }
 
-        // 4. Habilidades de Debuff sobre el enemigo
-        else if (sk.tipo === 'debuff' && objetivoCombate && distObjetivoMin <= (acompanante.rangoAtaque + 2.0)) {
+        // 4. Habilidades de Debuff sobre el enemigo (Rowan: Hendedura Letal, Lyra: Corte Hemorrágico)
+        if (sk.tipo === 'debuff' && objetivoCombate && distObjetivoMin <= (rangoAtaqueBase + 2.2)) {
           sk.timer = sk.cd || 16;
           const dur = sk.duracion || 6;
+          const bonos = calcularBonosActivos(acompanante);
+          let dmgInicial = 0;
+          let statResumen = '';
+
+          if (sk.id === 'partesuelos') {
+            objetivoCombate.defDebuffTimer = dur;
+            objetivoCombate.defDebuffPct = (sk.potencia || 20) / 100;
+            dmgInicial = Math.max(1, Math.round((acompanante.dano || 24) * (1 + bonos.companero.danioPct) * 0.85));
+            statResumen = `-${sk.potencia}% Defensa enemigo`;
+          } else if (sk.id === 'sangrado') {
+            objetivoCombate.sangradoTimer = dur;
+            objetivoCombate.sangradoDps = sk.potencia || 22;
+            objetivoCombate._sangradoTick = 0;
+            dmgInicial = Math.max(1, Math.round((sk.potencia || 22) * 0.65 * (1 + bonos.companero.danioPct)));
+            statResumen = `Sangrado ${sk.potencia} daño/s`;
+          } else {
+            objetivoCombate.defDebuffTimer = dur;
+            objetivoCombate.defDebuffPct = (sk.potencia || 20) / 100;
+            statResumen = `-${sk.potencia}% Defensa enemigo`;
+          }
+
+          if (dmgInicial > 0) {
+            aplicarDanoAMonstruo(objetivoCombate, dmgInicial, { skill: sk.id, crit: false, fuente: 'companero_skill' }, aplicarDanoMonstruoFn, registrarEventoFn);
+            curarPorRoboVida(acompanante, dmgInicial, bonos.companero.roboPct);
+          }
+
           aplicarDopeActivo(acompanante, {
             id: sk.id,
             nombre: sk.nombre,
             icono: sk.icono || '🩸',
-            desc: `Debuff: -${sk.potencia}% armadura`,
+            desc: formatearDescripcionSkill(sk),
+            statResumen,
             duracion: dur,
             efecto: 'debuff',
             valor: sk.potencia
           });
-          decirFrase(acompanante, `${sk.icono || '🩸'} ¡${sk.nombre}! El enemigo flaquea.`, 3.0);
+          decirFrase(acompanante, `${sk.icono || '🩸'} ¡${sk.nombre}! (${statResumen})`, 3.0);
+          if (typeof alLanzarSkillFn === 'function') {
+            alLanzarSkillFn('debuff', {
+              id: sk.id,
+              nombre: sk.nombre,
+              duracion: dur,
+              valor: sk.potencia,
+              dano: dmgInicial,
+              statResumen,
+              target: objetivoCombate,
+              icono: sk.icono || '🩸',
+              tipoSonido: 'debuff'
+            });
+          }
         }
       });
     }
 
-    // Retrocompatibilidad con la estructura anterior de 3 skills
-    if (acompanante.skills) {
-      // 1. Skill de Cura: Rocío Sanador
+    // Retrocompatibilidad solo para mocks antiguos sin catálogo de habilidades por arquetipo
+    if (!acompanante.skillsCatalogo && acompanante.skills) {
       if (acompanante.skills.cura && acompanante.skills.cura.timer <= 0 && (heroeBajo || compBajo)) {
         acompanante.skills.cura.timer = acompanante.skills.cura.cooldown;
         const curaRowan = Math.round(acompanante.maxHp * 0.30);
@@ -1108,8 +2416,6 @@
           alLanzarSkillFn({ tipo: 'cura', nombre: 'Rocío Sanador', valor: 0.30, curaRowan });
         }
       }
-
-      // 2. Skill de Dope de Ataque: Grito de Aliento (en combate)
       if (objetivoCombate && acompanante.skills.ataque && acompanante.skills.ataque.timer <= 0) {
         acompanante.skills.ataque.timer = acompanante.skills.ataque.cooldown;
         acompanante.buffs.ataqueTimer = 10;
@@ -1119,8 +2425,6 @@
           alLanzarSkillFn({ tipo: 'buff_ataque', nombre: 'Grito de Aliento', duracion: 10, valor: 0.25 });
         }
       }
-
-      // 3. Skill de Dope de Defensa: Baluarte de Cuero (al luchar o sufrir daño)
       if (objetivoCombate && acompanante.skills.defensa && acompanante.skills.defensa.timer <= 0 && (compBajo || (distObjetivoMin < 3.5))) {
         acompanante.skills.defensa.timer = acompanante.skills.defensa.cooldown;
         acompanante.buffs.defensaTimer = 8;
@@ -1132,16 +2436,43 @@
       }
     }
 
-    // 2. Destino de movimiento: combate o formación táctica
+    sincronizarBuffsLegacy(acompanante);
+    const bonos = calcularBonosActivos(acompanante);
+
+    // 2. Destino de movimiento: combate táctico según arquetipo o formación junto al héroe
     let destX = heroePos.x;
     let destZ = heroePos.z;
     let distanciaFreno = 1.0;
 
     if (objetivoCombate) {
-      // Acercarse al monstruo para atacar
-      destX = objetivoCombate.x;
-      destZ = objetivoCombate.z;
-      distanciaFreno = acompanante.rangoAtaque;
+      if (perfilCombate.rolCombate === 'distancia') {
+        // Elian mantiene una distancia segura de lanzamiento si está demasiado cerca, o avanza hasta su alcance mágico
+        const distPref = perfilCombate.distanciaPreferida || 7.2;
+        const dxM = acompanante.x - objetivoCombate.x;
+        const dzM = acompanante.z - objetivoCombate.z;
+        const distRealM = Math.hypot(dxM, dzM) || 0.01;
+        if (distRealM > rangoAtaqueBase) {
+          destX = objetivoCombate.x;
+          destZ = objetivoCombate.z;
+          distanciaFreno = Math.max(4.5, distPref);
+        } else {
+          destX = acompanante.x;
+          destZ = acompanante.z;
+          distanciaFreno = 0.5;
+        }
+      } else if (perfilCombate.rolCombate === 'tanque') {
+        // Brenda se coloca frontalmente entre el monstruo y el héroe para interceptar golpes
+        const vx = heroePos.x - objetivoCombate.x;
+        const vz = heroePos.z - objetivoCombate.z;
+        const vn = Math.hypot(vx, vz) || 1;
+        destX = objetivoCombate.x + (vx / vn) * 1.4;
+        destZ = objetivoCombate.z + (vz / vn) * 1.4;
+        distanciaFreno = 0.9;
+      } else {
+        destX = objetivoCombate.x;
+        destZ = objetivoCombate.z;
+        distanciaFreno = rangoAtaqueBase;
+      }
     } else {
       // Posición de formación: a un lado y detrás del héroe
       const ang = heroeRot + acompanante.anguloFormacion;
@@ -1155,42 +2486,57 @@
     const distDestino = Math.hypot(dx, dz);
 
     // Resituado de emergencia si queda demasiado lejos por viaje rápido o desync (> 60m)
-    if (distDestino > 60) {
+    const distAHeroe = Math.hypot(heroePos.x - acompanante.x, heroePos.z - acompanante.z);
+    if (distDestino > 60 || distAHeroe > 65) {
       acompanante.x = heroePos.x - Math.sin(heroeRot) * 2;
       acompanante.z = heroePos.z - Math.cos(heroeRot) * 2;
     }
 
-    // 3. Comportamiento y velocidad
+    const distObjActual = objetivoCombate
+      ? Math.hypot(objetivoCombate.x - acompanante.x, objetivoCombate.z - acompanante.z)
+      : Infinity;
+
+    // 3. Comportamiento, ataques diferenciados y velocidad escalada por potenciadores
     let estadoNuevo = 'idle';
     let velocidad = 0;
 
-    if (objetivoCombate && distDestino <= acompanante.rangoAtaque + 0.3) {
-      // En rango de ataque: golpear al monstruo
+    if (objetivoCombate && distObjActual <= rangoAtaqueBase + 0.35) {
+      // En rango de ataque: encarar y golpear al monstruo
       estadoNuevo = 'attack';
-      acompanante.rotacion = Math.atan2(dx, dz);
+      acompanante.rotacion = Math.atan2(objetivoCombate.x - acompanante.x, objetivoCombate.z - acompanante.z);
 
       if (acompanante.tiempoSiguienteAtaque <= 0) {
-        acompanante.tiempoSiguienteAtaque = acompanante.cooldownAtaque;
-        const multAtaque = (acompanante.buffs && acompanante.buffs.ataqueTimer > 0) ? 1.25 : 1.0;
-        const golpeDano = Math.round(acompanante.dano * multAtaque * (0.85 + Math.random() * 0.3));
+        const velAtqFactor = 1 + (bonos.companero.velocidadAtaquePct || 0);
+        acompanante.tiempoSiguienteAtaque = Math.max(0.45, cooldownAtaqueBase / velAtqFactor);
 
-        if (typeof aplicarDanoMonstruoFn === 'function') {
-          aplicarDanoMonstruoFn(objetivoCombate, golpeDano);
-        } else if (typeof objetivoCombate.recibirDano === 'function') {
-          objetivoCombate.recibirDano(golpeDano, 'companero');
-        } else if (typeof objetivoCombate.damageMonster === 'function') {
-          objetivoCombate.damageMonster(golpeDano);
-        } else if (typeof objetivoCombate.hp === 'number') {
-          objetivoCombate.hp = Math.max(0, objetivoCombate.hp - golpeDano);
-          if (objetivoCombate.hp <= 0) {
-            objetivoCombate.alive = false;
-            objetivoCombate.muerto = true;
-            if (typeof objetivoCombate.kill === 'function') objetivoCombate.kill();
-            if (registrarEventoFn) {
-              const zId = objetivoCombate.zoneId || (objetivoCombate.zone && objetivoCombate.zone.id);
-              registrarEventoFn({ tipo: objetivoCombate.boss ? 'jefe' : 'matar', zona: zId });
-            }
-          }
+        const multAtaque = 1 + (bonos.companero.danioPct || 0);
+        const multDebuff = 1 + (objetivoCombate.defDebuffTimer > 0 ? (objetivoCombate.defDebuffPct || 0) : 0);
+        const esCritico = Math.random() < (perfilCombate.probCritico || 0.14);
+        const multCrit = esCritico ? (perfilCombate.multCritico || 1.5) : 1.0;
+        const venenoExtra = bonos.companero.venenoBonus || 0;
+        const golpeDano = Math.max(1, Math.round(acompanante.dano * multAtaque * multDebuff * multCrit * (0.90 + Math.random() * 0.22)) + venenoExtra);
+
+        aplicarDanoAMonstruo(objetivoCombate, golpeDano, {
+          crit: esCritico,
+          veneno: venenoExtra > 0 ? venenoExtra : 0,
+          fuente: 'acompanante'
+        }, aplicarDanoMonstruoFn, registrarEventoFn);
+
+        if (venenoExtra > 0 && esMonstruoCombatible(objetivoCombate)) {
+          objetivoCombate.venenoTimer = Math.max(objetivoCombate.venenoTimer || 0, 3.0);
+          objetivoCombate.venenoDps = Math.max(objetivoCombate.venenoDps || 0, Math.max(3, Math.round(venenoExtra * 0.5)));
+        }
+
+        curarPorRoboVida(acompanante, golpeDano, bonos.companero.roboPct);
+
+        if (perfilCombate.rolCombate === 'distancia' && typeof alLanzarSkillFn === 'function') {
+          alLanzarSkillFn('ataque_basico', {
+            tipo: 'luz',
+            target: objetivoCombate,
+            dano: golpeDano,
+            crit: esCritico,
+            icono: '✨'
+          });
         }
 
         // Si el monstruo ha muerto con este golpe, celebrar victoria
@@ -1201,16 +2547,18 @@
             decirFrase(acompanante, elegirFrase('combate_victoria'), 4.0);
           }
           objetivoCombate = null;
+          acompanante.objetivoActual = null;
         }
       }
     } else if (distDestino > distanciaFreno) {
-      // Desplazarse hacia el objetivo
+      // Desplazarse hacia el objetivo con velocidad del arquetipo + bonos de Fervor Bélico
+      const velMult = 1 + (bonos.companero.velocidadPct || 0);
       if (distDestino > 4.5 || (objetivoCombate && distDestino > 2.8)) {
         estadoNuevo = 'run';
-        velocidad = 10.5;
+        velocidad = (perfilCombate.velocidadCorrer || 10.5) * velMult;
       } else {
         estadoNuevo = 'walk';
-        velocidad = 5.8;
+        velocidad = (perfilCombate.velocidadCaminar || 5.8) * velMult;
       }
 
       const paso = Math.min(distDestino, velocidad * dt);
@@ -1227,13 +2575,18 @@
       while (diffAng > Math.PI) diffAng -= Math.PI * 2;
       acompanante.rotacion += diffAng * Math.min(1, dt * 10);
     } else {
-      // Reposo: mirar suavemente hacia donde mira el héroe o hacia el frente
+      // Reposo: si está en combate (ej. Elian esperando cooldown a distancia), mirar al monstruo
       estadoNuevo = 'idle';
-      let diffAng = heroeRot - acompanante.rotacion;
+      const angObjetivo = objetivoCombate
+        ? Math.atan2(objetivoCombate.x - acompanante.x, objetivoCombate.z - acompanante.z)
+        : heroeRot;
+      let diffAng = angObjetivo - acompanante.rotacion;
       while (diffAng < -Math.PI) diffAng += Math.PI * 2;
       while (diffAng > Math.PI) diffAng -= Math.PI * 2;
-      acompanante.rotacion += diffAng * Math.min(1, dt * 3.5);
+      acompanante.rotacion += diffAng * Math.min(1, dt * 5.0);
     }
+
+    acompanante.velocidadActual = velocidad;
 
     if (estadoNuevo !== acompanante.estado) {
       acompanante.estado = estadoNuevo;
@@ -1298,11 +2651,325 @@
     return null;
   }
 
+  // Bloque H3: Misiones personales de los 4 compañeros y talento único permanente
+  const MISIONES_COMPANERO = {
+    rowan: {
+      titulo: 'La Promesa de la Aldea',
+      talento: {
+        id: 'juramento_alba',
+        nombre: 'Juramento del Alba',
+        icono: '🛡️',
+        desc: '+40 HP máx., +8 Ataque, +5 Defensa y +15% potencia de habilidades.',
+        bonos: { maxHp: 40, dano: 8, defensa: 5, pctSkills: 0.15 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'rowan_1',
+          titulo: 'Cenizas en la Fragua',
+          desc: 'Abate 8 criaturas junto a Rowan para templar su acero.',
+          historia: 'Rowan rememora las noches aprendiendo forja junto a su padre antes de que el consejo prohibiera las armas libres.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'rowan_2',
+          titulo: 'Huellas de los Desaparecidos',
+          desc: 'Inspecciona 2 pistas de historia, secretos, eventos de camino o rastros de cabaña.',
+          historia: 'Entre listas confiscadas y sellos de bronce, Rowan descubre que su propio primo figuraba entre los convoyes retenidos.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'rowan_3',
+          titulo: 'Escudo Ante el Abismo',
+          desc: 'Derrota 2 élites, jefes, líderes de cabaña o mazmorras juntos.',
+          historia: 'Rowan sella el Juramento del Alba prometiendo que ninguna aldea volverá a someterse por miedo.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    },
+    lyra: {
+      titulo: 'Cuentas de la Sombra',
+      talento: {
+        id: 'filo_fantasma',
+        nombre: 'Filo Fantasma',
+        icono: '🗡️',
+        desc: '+25 HP máx., +12 Ataque, +3 Defensa y +15% potencia de habilidades.',
+        bonos: { maxHp: 25, dano: 12, defensa: 3, pctSkills: 0.15 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'lyra_1',
+          titulo: 'Sombras en el Camino',
+          desc: 'Abate 8 criaturas luchando codo con codo con Lyra.',
+          historia: 'Lyra desertó de los exploradores contratados por el cónclave al descubrir qué transportaban realmente sus escoltas.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'lyra_2',
+          titulo: 'Códigos del Gremio Roto',
+          desc: 'Investiga 2 pistas de capítulo, rituales, eventos de camino o rastros fronterizos.',
+          historia: 'Descifrando los sellos interceptados, Lyra borra su viejo contrato de sangre y localiza a sus antiguos perseguidores.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'lyra_3',
+          titulo: 'Deuda Saldada',
+          desc: 'Abate 2 élites, jefes, líderes alfa o mazmorras junto a Lyra.',
+          historia: 'Con los ejecutores del cónclave abatidos, Lyra empuña sus dagas por elección propia y despierta su Filo Fantasma.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    },
+    elian: {
+      titulo: 'Luz de los Antiguos Reyes',
+      talento: {
+        id: 'gracia_reyes',
+        nombre: 'Gracia de los Reyes',
+        icono: '✨',
+        desc: '+35 HP máx., +6 Ataque, +7 Defensa y +18% potencia de habilidades.',
+        bonos: { maxHp: 35, dano: 6, defensa: 7, pctSkills: 0.18 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'elian_1',
+          titulo: 'Ecos del Primer Juramento',
+          desc: 'Derrota 8 bestias corrompidas junto a Elian.',
+          historia: 'Elian fue acólito de las bibliotecas cerradas antes de negarse a adulterar los textos de la antigua luz.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'elian_2',
+          titulo: 'Runas Sin Censura',
+          desc: 'Examina 2 pistas, rituales secretos, eventos de camino o rastros en el campo.',
+          historia: 'Al contrastar los glifos reales con el aceite gris, Elian recupera el cántico original de protección.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'elian_3',
+          titulo: 'Luz Contra el Óxido',
+          desc: 'Vence en 2 encuentros contra élites, jefes, líderes de cabaña o mazmorras.',
+          historia: 'Las barreras arcanas de Elian resplandecen sin trabas, otorgándole la Gracia de los Reyes.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    },
+    brenda: {
+      titulo: 'Forja de Furia Libre',
+      talento: {
+        id: 'corazon_inquebrantable',
+        nombre: 'Corazón Inquebrantable',
+        icono: '🪓',
+        desc: '+60 HP máx., +8 Ataque, +6 Defensa y +15% potencia de habilidades.',
+        bonos: { maxHp: 60, dano: 8, defensa: 6, pctSkills: 0.15 }
+      },
+      etapas: [
+        {
+          numero: 1,
+          id: 'brenda_1',
+          titulo: 'Prueba de Acero Vivo',
+          desc: 'Abate 8 enemigos con Brenda en vanguardia.',
+          historia: 'Brenda sobrevivió al cierre de la última guarnición del norte negándose a entregar el hacha familiar al cónclave.',
+          tipo: 'matar',
+          cantidad: 8,
+          premio: { xpComp: 120, puntosComp: 1, vinculo: 1, oro: 120 }
+        },
+        {
+          numero: 2,
+          id: 'brenda_2',
+          titulo: 'Marcas de la Vieja Horda',
+          desc: 'Registra 2 pistas de campaña, secretos, eventos de camino o rastros fronterizos.',
+          historia: 'Siguiendo las viejas rutas militares, Brenda confirma que el consejo fundía armaduras de sus antiguos camaradas.',
+          tipo: 'pista_o_secreto',
+          cantidad: 2,
+          premio: { xpComp: 180, puntosComp: 1, vinculo: 1, oro: 180 }
+        },
+        {
+          numero: 3,
+          id: 'brenda_3',
+          titulo: 'Romper al Coloso',
+          desc: 'Aplasta a 2 élites, jefes, líderes alfa o guardianes de mazmorra.',
+          historia: 'El rugido de Brenda desata un temple inamovible en primera línea: Corazón Inquebrantable.',
+          tipo: 'jefe_o_elite',
+          cantidad: 2,
+          premio: { xpComp: 260, puntosComp: 2, vinculo: 2, oro: 280 }
+        }
+      ]
+    }
+  };
+
+  function estadoMisionCompanero(heroeEst, arquetipo) {
+    const arq = MISIONES_COMPANERO[arquetipo] ? arquetipo : 'rowan';
+    const def = MISIONES_COMPANERO[arq];
+    const saved = (heroeEst && heroeEst.companeroMisiones && heroeEst.companeroMisiones[arq]) || null;
+    const etapa = saved ? Math.max(0, Math.min(3, Math.floor(saved.etapa || 0))) : 0;
+    const completada = etapa >= 3;
+    const talentoDesbloqueado = !!(completada || (saved && saved.talentoDesbloqueado));
+    const activa = !completada && !!(saved && saved.activa);
+    const etapaActual = !completada ? def.etapas[etapa] : null;
+    const progreso = (!completada && saved && etapaActual) ? Math.min(etapaActual.cantidad, Math.max(0, Math.floor(saved.progreso || 0))) : 0;
+    const numHistorias = completada ? 3 : (activa ? Math.min(3, etapa + 1) : etapa);
+
+    return {
+      arquetipo: arq,
+      titulo: def.titulo,
+      etapa,
+      completada,
+      activa,
+      talentoDesbloqueado,
+      talento: def.talento,
+      etapaActual,
+      progreso,
+      total: etapaActual ? etapaActual.cantidad : 0,
+      historiasDesbloqueadas: def.etapas.slice(0, numHistorias).map(e => ({ numero: e.numero, titulo: e.titulo, historia: e.historia })),
+      etapas: def.etapas
+    };
+  }
+
+  function aceptarMisionCompanero(heroeEst, arquetipo) {
+    const arq = MISIONES_COMPANERO[arquetipo] ? arquetipo : 'rowan';
+    if (!heroeEst || typeof heroeEst !== 'object') {
+      return { iniciada: false, yaCompleta: false, estado: estadoMisionCompanero(heroeEst, arq) };
+    }
+    heroeEst.companeroMisiones = heroeEst.companeroMisiones || {};
+    const prev = heroeEst.companeroMisiones[arq];
+    if (prev && prev.etapa >= 3) {
+      return { iniciada: false, yaCompleta: true, estado: estadoMisionCompanero(heroeEst, arq) };
+    }
+    const yaActiva = !!(prev && prev.activa);
+    if (!prev || typeof prev !== 'object') {
+      heroeEst.companeroMisiones[arq] = { etapa: 0, progreso: 0, activa: true, talentoDesbloqueado: false };
+    } else {
+      prev.etapa = Math.max(0, Math.min(3, Math.floor(prev.etapa || 0)));
+      prev.progreso = Math.max(0, Math.floor(prev.progreso || 0));
+      prev.activa = true;
+    }
+    return {
+      iniciada: true,
+      yaCompleta: false,
+      yaActiva,
+      estado: estadoMisionCompanero(heroeEst, arq)
+    };
+  }
+
+  function aplicarTalentoCompaneroSiCorresponde(acompanante, heroeEst) {
+    if (!acompanante || !heroeEst || !heroeEst.companeroMisiones) return [];
+    const aplicados = [];
+    const roster = acompanante.roster || {};
+    Object.keys(MISIONES_COMPANERO).forEach(arqKey => {
+      const mEst = heroeEst.companeroMisiones[arqKey];
+      if (!mEst || (!mEst.talentoDesbloqueado && (mEst.etapa || 0) < 3)) return;
+      const def = MISIONES_COMPANERO[arqKey];
+      const bonos = def.talento.bonos;
+      const esActivo = acompanante.arquetipo === arqKey;
+      const rEntry = roster[arqKey];
+      const target = esActivo ? acompanante : rEntry;
+      if (!target || target.talentoAplicado) return;
+
+      target.talentoAplicado = true;
+      target.maxHp = Math.round((target.maxHp || 150) + (bonos.maxHp || 0));
+      target.hp = Math.min(target.maxHp, Math.round((target.hp || target.maxHp) + (bonos.maxHp || 0)));
+      target.dano = Math.round((target.dano || 20) + (bonos.dano || 0));
+      target.defensa = Math.round((target.defensa || 10) + (bonos.defensa || 0));
+      if (Array.isArray(target.skillsCatalogo) && bonos.pctSkills) {
+        target.skillsCatalogo.forEach(sk => {
+          sk.potencia = Math.round((sk.potencia || 10) * (1 + bonos.pctSkills));
+        });
+      }
+      if (esActivo && rEntry) sincronizarArquetipoActivo(acompanante);
+      aplicados.push({ arquetipo: arqKey, talento: def.talento });
+    });
+    return aplicados;
+  }
+
+  function registrarProgresoCompanero(heroeEst, acompanante, tipoEvento, cantidad = 1) {
+    const arq = (acompanante && MISIONES_COMPANERO[acompanante.arquetipo]) ? acompanante.arquetipo : 'rowan';
+    if (!heroeEst || !heroeEst.companeroMisiones || !heroeEst.companeroMisiones[arq]) {
+      return { avanzo: false, arquetipo: arq };
+    }
+    const entry = heroeEst.companeroMisiones[arq];
+    if (!entry.activa || entry.etapa >= 3) return { avanzo: false, arquetipo: arq };
+
+    const def = MISIONES_COMPANERO[arq];
+    const etapaDef = def.etapas[entry.etapa];
+    if (!etapaDef || etapaDef.tipo !== tipoEvento) return { avanzo: false, arquetipo: arq };
+
+    const inc = Math.max(1, Math.floor(cantidad || 1));
+    entry.progreso = Math.min(etapaDef.cantidad, (entry.progreso || 0) + inc);
+    let etapaCompletada = null;
+    let talentoDesbloqueado = null;
+    let premio = null;
+
+    if (entry.progreso >= etapaDef.cantidad) {
+      etapaCompletada = etapaDef;
+      premio = Object.assign({}, etapaDef.premio || {});
+      entry.etapa += 1;
+      entry.progreso = 0;
+
+      if (premio.vinculo) {
+        heroeEst.reputacion = heroeEst.reputacion || { pueblo: 0, sombra: 0, vinculo: 0 };
+        heroeEst.reputacion.vinculo = Math.max(-20, Math.min(50, Math.trunc((heroeEst.reputacion.vinculo || 0) + premio.vinculo)));
+      }
+      if (acompanante) {
+        if (premio.xpComp) ganarXpAcompanante(acompanante, premio.xpComp);
+        if (premio.puntosComp) acompanante.puntosCompanero = (acompanante.puntosCompanero || 0) + premio.puntosComp;
+        sincronizarArquetipoActivo(acompanante);
+      }
+      if (entry.etapa >= 3) {
+        entry.activa = false;
+        entry.talentoDesbloqueado = true;
+        talentoDesbloqueado = def.talento;
+        if (acompanante) aplicarTalentoCompaneroSiCorresponde(acompanante, heroeEst);
+      }
+    }
+
+    return {
+      avanzo: true,
+      arquetipo: arq,
+      etapaCompletada,
+      nuevaEtapa: entry.etapa,
+      talentoDesbloqueado,
+      progreso: entry.progreso,
+      total: etapaDef.cantidad,
+      premio,
+      estado: estadoMisionCompanero(heroeEst, arq)
+    };
+  }
+
   const api = {
     EQUIPO_ALDEANO,
     FRASES,
     COMPANEROS,
+    MISIONES_COMPANERO,
+    SINERGIAS_PROFESION,
     MAX_SLOTS_INVENTARIO,
+    sinergiaConProfesion,
+    compRecomendadoParaClase,
     elegirFrase,
     crearAcompanante,
     cambiarArquetipo,
@@ -1310,13 +2977,24 @@
     subirNivelSkill,
     ganarXpAcompanante,
     aplicarDopeActivo,
+    formatearDescripcionSkill,
+    esNoMuerto,
+    calcularBonosActivos,
+    estadisticasEfectivasAcompanante,
+    estadoMisionCompanero,
+    aceptarMisionCompanero,
+    aplicarTalentoCompaneroSiCorresponde,
+    registrarProgresoCompanero,
     construirModeloAcompanante,
     instalarModeloGLBAcompanante,
+    perfilEstudioAcompanante,
     reproducirAnimacionGLB,
     animarMiembros,
     actualizarAcompanante,
     esMonstruoCombatible,
     decirFrase,
+    calcularDireccionYDistancia,
+    darConsejoGuia,
     comprobarLugaresSecretos,
     recibirDanoAcompanante,
     revivirAcompanante,

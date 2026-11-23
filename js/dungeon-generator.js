@@ -127,7 +127,7 @@
       luzJefe: 0xdc2626,
       densidadMusgo: 0.10,
       densidadHierba: 0.05,
-      rugosidad: 0.60
+      rugosidad: 0.82
     },
     marmol_imperial: {
       id: 'marmol_imperial',
@@ -142,7 +142,7 @@
       luzJefe: 0x3b82f6,
       densidadMusgo: 0.05,
       densidadHierba: 0.05,
-      rugosidad: 0.35
+      rugosidad: 0.80
     },
     caverna_obsidiana: {
       id: 'caverna_obsidiana',
@@ -157,7 +157,7 @@
       luzJefe: 0x7c3aed,
       densidadMusgo: 0.15,
       densidadHierba: 0.05,
-      rugosidad: 0.40
+      rugosidad: 0.82
     },
     ladrillo_medieval: {
       id: 'ladrillo_medieval',
@@ -187,7 +187,7 @@
       luzJefe: 0xc026d3,
       densidadMusgo: 0.20,
       densidadHierba: 0.10,
-      rugosidad: 0.50
+      rugosidad: 0.82
     },
     santuario_jade: {
       id: 'santuario_jade',
@@ -202,7 +202,7 @@
       luzJefe: 0x059669,
       densidadMusgo: 0.60,
       densidadHierba: 0.45,
-      rugosidad: 0.45
+      rugosidad: 0.82
     },
     bastion_hierro: {
       id: 'bastion_hierro',
@@ -217,7 +217,7 @@
       luzJefe: 0xe11d48,
       densidadMusgo: 0.10,
       densidadHierba: 0.05,
-      rugosidad: 0.70
+      rugosidad: 0.80
     },
     cripta_glaciar: {
       id: 'cripta_glaciar',
@@ -412,6 +412,7 @@
     prision: { id: 'prision', nombre: 'Mazmorra de Celdas', icono: '⛓️', desc: 'Celdas con rejas de hierro, cadenas y bancos rústicos', w: 15, d: 15, h: 4.8 },
     laboratorio: { id: 'laboratorio', nombre: 'Laboratorio de Alquimia', icono: '⚗️', desc: 'Caldero con poción resplandeciente, mesa y redomas', w: 16, d: 15, h: 5.0 },
     jardin_subterraneo: { id: 'jardin_subterraneo', nombre: 'Jardín Fúngico de Esporas', icono: '🍄', desc: 'Densa maleza, musgo y colonias de hongos bioluminiscentes', w: 18, d: 18, h: 5.8 },
+    rotonda: { id: 'rotonda', nombre: 'Rotonda Circular', icono: '⭕', desc: 'Cámara circular abovedada con columnata en anillo y mosaico rúnico', w: 20, d: 20, h: 6.8, esRedonda: true },
     sala_jefe: { id: 'sala_jefe', nombre: 'Cámara del Trono del Jefe', icono: '👑', desc: 'Estrado elevado, trono de piedra y braseros mágicos', w: 24, d: 24, h: 7.5 }
   };
 
@@ -481,6 +482,64 @@
     };
   }
 
+  let crearEscombrosBordeCache = null;
+  function copiarShaderSuelo(src, dst) {
+    if (src && dst && src.onBeforeCompile && src.userData && src.userData._sueloPbrHook) {
+      dst.onBeforeCompile = src.onBeforeCompile;
+      if (src.customProgramCacheKey) dst.customProgramCacheKey = src.customProgramCacheKey;
+    }
+    return dst;
+  }
+
+  // Copia de un material con la foto de la biblioteca en lugar de su textura procedural (misma repetición; la foto
+  // también da el relieve). Sin TexturasLib (pruebas en Node) o sin textura elegida, devuelve el material tal cual.
+  const _matTexCache = new Map();
+  function conTexturaBiblioteca(ThreeLib, mat, id, neutro, sinRepetir) {
+    const T = (typeof window !== 'undefined') ? window.TexturasLib : null;
+    if (!T || !id || !T.valida(id) || !mat || typeof mat.clone !== 'function') return mat;
+    const clave = mat.uuid + '|' + id + (neutro ? '|n' : '') + (sinRepetir ? '|1' : '');
+    if (_matTexCache.has(clave)) return _matTexCache.get(clave);
+    const m = mat.clone();
+    copiarShaderSuelo(mat, m);
+    const rep = sinRepetir ? [1, 1] : (mat.map && mat.map.repeat ? [mat.map.repeat.x, mat.map.repeat.y] : [1, 1]);
+    m.map = T.textura(ThreeLib, id, { repetir: rep });
+    // Textura por defecto del tema: sin tinte del estilo, para que la foto se vea con sus colores reales
+    if (neutro && m.color && typeof m.color.setHex === 'function') m.color.setHex(0xd6d2cc);
+    if (m.bumpMap) {
+      m.bumpMap = m.map;
+      m.bumpScale = (mat.userData && mat.userData.esSueloMazmorra) ? Math.max(mat.bumpScale || 0.26, 0.28) : Math.min(m.bumpScale || 1, 1.2);
+    }
+    if (m.normalMap) m.normalMap = null;
+    if (sinRepetir) m.userData = Object.assign({}, m.userData, { mosaicoUnico: true, muralUnico: String(id).startsWith('murales/') });
+    m.needsUpdate = true;
+    _matTexCache.set(clave, m);
+    return m;
+  }
+
+  // Tema de texturas por defecto por tipo de estancia: pared, suelo, zócalo/pileta y camino principal
+  function temaTexturasSala(sala, cfg) {
+    if (cfg && cfg.sinTexturasMazmorra) return {};
+    const t = sala.tipo;
+    const base = { pared: 'mpared/t01', suelo: 'msuelo/t01', zocalo: 'mpared/t07', camino: 'msuelo/t04' };
+    const porTipo = {
+      pasillo:             { pared: 'mpared/t04', suelo: 'msuelo/t07', zocalo: 'mpared/t07', camino: 'alfombras/a4' },
+      entrada:             { pared: 'mmuro/t01',  suelo: 'msuelo/t07', zocalo: 'mmuro/t06',  camino: 'alfombras/a2' },
+      fuente:              { pared: 'mmuro/t05',  suelo: 'mlosa/t04',  zocalo: 'mpared/t07', camino: 'alfombras/a2' },
+      cripta_columnas:     { pared: 'mmuro/t04',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t06',  camino: 'alfombras/a3' },
+      cripta:              { pared: 'mmuro/t04',  suelo: 'mlosa/t02',  zocalo: 'mpared/t01', camino: 'alfombras/a3' },
+      prision:             { pared: 'mmuro/t07',  suelo: 'mlosa/t06',  zocalo: 'mpared/t06', camino: 'msuelo/t05' },
+      jardin_subterraneo:  { pared: 'mmuro/t02',  suelo: 'mlosa/t03',  zocalo: 'mpared/t05' },
+      laboratorio:         { pared: 'mpared/t10', suelo: 'mlosa/t05',  zocalo: 'mpared/t06', camino: 'msuelo/t08' },
+      armeria:             { pared: 'mmuro/t10',  suelo: 'msuelo/t07', zocalo: 'mmuro/t06',  camino: 'alfombras/a1' },
+      biblioteca:          { pared: 'mmuro/t03',  suelo: 'msuelo/t07', zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
+      tesoro:              { pared: 'mmuro/t08',  suelo: 'msuelo/t04', zocalo: 'mmuro/t03',  camino: 'alfombras/a1' },
+      trono:               { pared: 'murales/m1', suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' },
+      rotonda:             { pared: 'mmuro/t03',  suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a3' },
+      sala_jefe:           { pared: 'murales/m1', suelo: 'mlosa/t01',  zocalo: 'mmuro/t08',  camino: 'alfombras/a1' }
+    };
+    return Object.assign({}, base, porTipo[t] || {});
+  }
+
   // --- 2.3 RESOLUTOR DE MATERIALES INDIVIDUALES POR ESTANCIA ---
   function resolverMaterialesSala(ThreeLib, kitBase, kitsPorEstilo, sala, config = {}) {
     const cfg = config || {};
@@ -507,9 +566,18 @@
     let matSuelo = kSuelo.sueloLosas;
     const colSuelo = (sala.colorSuelo && sala.colorSuelo !== 'default') ? sala.colorSuelo : (cfg.colorSuelo && cfg.colorSuelo !== 'default' ? cfg.colorSuelo : null);
     if (colSuelo) {
+      const matOrig = matSuelo;
       matSuelo = (matSuelo && typeof matSuelo.clone === 'function') ? matSuelo.clone() : Object.assign({}, matSuelo);
+      copiarShaderSuelo(matOrig, matSuelo);
       if (matSuelo.color && typeof matSuelo.color.set === 'function') matSuelo.color.set(colSuelo);
       else matSuelo.color = colSuelo;
+    }
+
+    let matMosaico = kSuelo.mosaicoSuelo || matSuelo;
+    if (colSuelo && matMosaico && matMosaico !== matSuelo) {
+      matMosaico = (typeof matMosaico.clone === 'function') ? matMosaico.clone() : Object.assign({}, matMosaico);
+      if (matMosaico.color && typeof matMosaico.color.set === 'function') matMosaico.color.set(colSuelo);
+      else matMosaico.color = colSuelo;
     }
 
     let matZocalo = kZocalo.zocalo || kZocalo.piedraMuro;
@@ -536,6 +604,23 @@
       else matAgua.color = colAgua;
     }
 
+    // Texturas de la biblioteca (js/texturas-lib.js): por estancia o para toda la mazmorra
+    const tex = campo => (sala[campo] && sala[campo] !== 'default') ? sala[campo] : (cfg[campo] && cfg[campo] !== 'default' ? cfg[campo] : null);
+    // Tema visual por defecto (fotos de mazmorra) según el papel de cada superficie y el tipo de estancia.
+    // Solo se aplica si no hay textura elegida; sin TexturasLib (pruebas en Node) no cambia nada.
+    const tema = temaTexturasSala(sala, cfg);
+    const sel = (campo, def, hayColor) => { const e = tex(campo); return e ? [e, false] : [(hayColor ? null : def), true]; };
+    const [idPared, nPared] = sel('texturaPared', tema.pared, colPared);
+    const [idSuelo, nSuelo] = sel('texturaSuelo', tema.suelo, colSuelo);
+    const [idZoc, nZoc] = sel('texturaZocalo', tema.zocalo, colZocalo);
+    matPared = conTexturaBiblioteca(ThreeLib, matPared, idPared, nPared, !!(idPared && idPared.startsWith('murales/')));
+    matSuelo = conTexturaBiblioteca(ThreeLib, matSuelo, idSuelo, nSuelo);
+    // Camino principal: banda/alfombra de mosaico, distinta del suelo y de las paredes
+    const idCamino = tex('texturaSuelo') || (colSuelo ? null : tema.camino);
+    if (idCamino) matMosaico = conTexturaBiblioteca(ThreeLib, matMosaico, idCamino, !tex('texturaSuelo'), idCamino.startsWith('alfombras/'));
+    matZocalo = conTexturaBiblioteca(ThreeLib, matZocalo, tex('texturaZocalo') || tex('texturaPared') || idZoc, !tex('texturaZocalo') && !tex('texturaPared'));
+    matTecho = conTexturaBiblioteca(ThreeLib, matTecho, tex('texturaTecho'));
+
     return {
       kPared,
       kSuelo,
@@ -544,6 +629,7 @@
       kFuente,
       matPared,
       matSuelo,
+      matMosaico,
       matZocalo,
       matTecho,
       matAgua,
@@ -551,6 +637,7 @@
       kitCompleto: Object.assign({}, kitBase, {
         piedraMuro: matPared,
         sueloLosas: matSuelo,
+        mosaicoSuelo: matMosaico,
         zocalo: matZocalo,
         techo: matTecho,
         agua: matAgua
@@ -559,16 +646,83 @@
   }
 
   // --- 3. GENERADORES DE TEXTURAS INDEPENDIENTES Y DEDICADAS (PBR PROCEDURAL) ---
-  // Se generan texturas separadas al 100% para cada superficie (Pared, Suelo, Zócalo, Techo, Madera, Hierro)
+  // Se generan texturas separadas al 100% para cada superficie (Pared, Suelo, Mosaico, Zócalo, Techo, Madera, Hierro, Cerámica)
   // evitando que se mezclen cuadrantes en una misma malla.
   const _texParedCache = new Map();
   const _texSueloCache = new Map();
+  const _texMosaicoCache = new Map();
   const _texZocaloCache = new Map();
   const _texTechoCache = new Map();
   let _texMaderaCache = null;
   let _texHierroCache = null;
+  let _texCeramicaCache = null;
 
-  // --- HELPERS PROCEDURALES DE PIEDRA REALISTA Y RUINAS (SIN CÍRCULOS) ---
+  // --- HELPERS PROCEDURALES DE PIEDRA REALISTA, AZULEJOS Y MOSAICOS (SIN CÍRCULOS) ---
+
+  function configurarTexturaNitida(tex, ThreeLib, esColor = false) {
+    if (!tex) return tex;
+    tex.wrapS = tex.wrapT = ThreeLib.RepeatWrapping;
+    tex.anisotropy = 8;
+    if (esColor && ThreeLib.SRGBColorSpace) {
+      tex.colorSpace = ThreeLib.SRGBColorSpace;
+    }
+    return tex;
+  }
+
+  function hexARgb(hex) {
+    if (typeof hex === 'number') {
+      return { r: (hex >> 16) & 255, g: (hex >> 8) & 255, b: hex & 255 };
+    }
+    const s = String(hex || '#64748b').replace('#', '').trim();
+    const full = s.length === 3 ? (s[0] + s[0] + s[1] + s[1] + s[2] + s[2]) : s.padEnd(6, '0');
+    const n = parseInt(full.slice(0, 6), 16);
+    if (Number.isNaN(n)) return { r: 100, g: 116, b: 139 };
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function mezclarHex(c1, c2, t) {
+    const a = hexARgb(c1);
+    const b = hexARgb(c2);
+    const k = Math.max(0, Math.min(1, t));
+    const r = Math.round(a.r + (b.r - a.r) * k);
+    const g = Math.round(a.g + (b.g - a.g) * k);
+    const bl = Math.round(a.b + (b.b - a.b) * k);
+    return `rgb(${r},${g},${bl})`;
+  }
+
+  function ajustarBrilloHex(c, delta) {
+    const a = hexARgb(c);
+    const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+    return `rgb(${clamp(a.r + delta)},${clamp(a.g + delta)},${clamp(a.b + delta)})`;
+  }
+
+  // Traza vetas minerales poligonales (cuarzo, calcita, oro o mármol) sin curvas circulares
+  function trazarVetaMineral(ctxD, ctxB, x0, y0, x1, y1, colorVeta, grosor, rnd) {
+    const tramos = 4 + Math.floor(rnd() * 3);
+    const dx = (x1 - x0) / tramos;
+    const dy = (y1 - y0) / tramos;
+    ctxD.strokeStyle = colorVeta;
+    ctxD.lineWidth = grosor;
+    ctxD.beginPath();
+    ctxD.moveTo(x0, y0);
+    if (ctxB) {
+      ctxB.strokeStyle = 'rgba(235,235,235,0.35)';
+      ctxB.lineWidth = Math.max(1, grosor * 0.8);
+      ctxB.beginPath();
+      ctxB.moveTo(x0, y0);
+    }
+    let px = x0, py = y0;
+    for (let i = 1; i <= tramos; i++) {
+      const jx = i < tramos ? (rnd() - 0.5) * 8 : 0;
+      const jy = i < tramos ? (rnd() - 0.5) * 8 : 0;
+      px = x0 + dx * i + jx;
+      py = y0 + dy * i + jy;
+      ctxD.lineTo(px, py);
+      if (ctxB) ctxB.lineTo(px, py);
+    }
+    ctxD.stroke();
+    if (ctxB) ctxB.stroke();
+  }
 
   function pseudoRnd(seed) {
     let s = (seed % 2147483647);
@@ -586,18 +740,26 @@
       const dataD = imgD.data;
       const imgB = ctxB ? ctxB.getImageData(0, 0, size, size) : null;
       const dataB = imgB ? imgB.data : null;
-      const rnd = pseudoRnd(seed);
+      let s = (seed | 0) || 42;
+      const scale = intensidad / 65536;
+      const len = dataD.length;
 
-      for (let i = 0; i < dataD.length; i += 4) {
-        const n = (rnd() - 0.5) * intensidad;
-        dataD[i]     = Math.min(255, Math.max(0, dataD[i] + n));
-        dataD[i + 1] = Math.min(255, Math.max(0, dataD[i + 1] + n * 0.95));
-        dataD[i + 2] = Math.min(255, Math.max(0, dataD[i + 2] + n * 0.90));
+      for (let i = 0; i < len; i += 4) {
+        s = (Math.imul(s, 1664525) + 1013904223) | 0;
+        const n = ((s >> 16) * scale) | 0;
+        let r = dataD[i] + n;
+        let g = dataD[i + 1] + n;
+        let b = dataD[i + 2] + n;
+        dataD[i]     = r < 0 ? 0 : (r > 255 ? 255 : r);
+        dataD[i + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
+        dataD[i + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
 
         if (dataB) {
-          dataB[i]     = Math.min(255, Math.max(0, dataB[i] + n * 0.85));
-          dataB[i + 1] = Math.min(255, Math.max(0, dataB[i + 1] + n * 0.85));
-          dataB[i + 2] = Math.min(255, Math.max(0, dataB[i + 2] + n * 0.85));
+          let rb = dataB[i] + n;
+          rb = rb < 0 ? 0 : (rb > 255 ? 255 : rb);
+          dataB[i] = rb;
+          dataB[i + 1] = rb;
+          dataB[i + 2] = rb;
         }
       }
       ctxD.putImageData(imgD, 0, 0);
@@ -650,12 +812,94 @@
     ctxD.stroke();
   }
 
-  function crearTexturaPared(estilo, ThreeLib) {
-    const key = estilo.id;
+  // Reparte `total` en `n` tramos de tamaño desigual (suman exactamente `total`, para que el patrón encaje)
+  function particionarIrregular(n, total, rnd, variacion = 0.45) {
+    const pesos = [];
+    let suma = 0;
+    for (let i = 0; i < n; i++) { const p = 1 + (rnd() - 0.5) * 2 * variacion; pesos.push(p); suma += p; }
+    return pesos.map(p => (p / suma) * total);
+  }
+
+  // Envejecimiento: manchas nubosas de suciedad/lavado, vetas de humedad, desconchones y rozaduras (sin círculos)
+  function aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, fuerza = 1, aclarar = 0) {
+    if (typeof document === 'undefined') return;
+    try {
+      // 1. Nubes de tono desigual: ruido de baja frecuencia ampliado con suavizado (oscurece y aclara por zonas)
+      [[10, 'rgba(0,0,0,', 0.26], [6, 'rgba(210,200,180,', 0.24]].forEach(([celdas, col, alfa]) => {
+        const mini = document.createElement('canvas');
+        mini.width = mini.height = celdas;
+        const mc = mini.getContext('2d');
+        for (let y = 0; y < celdas; y++) for (let x = 0; x < celdas; x++) {
+          mc.fillStyle = col + (rnd() * alfa * fuerza).toFixed(3) + ')';
+          mc.fillRect(x, y, 1, 1);
+        }
+        ctxD.imageSmoothingEnabled = true;
+        ctxD.drawImage(mini, 0, 0, size, size);
+      });
+
+      // 2. Vetas verticales de humedad y hollín escurriendo
+      const vetas = Math.floor(14 * fuerza);
+      for (let i = 0; i < vetas; i++) {
+        const vx = rnd() * size, vy = rnd() * size * 0.7;
+        const vw = 2 + rnd() * 9, vh = 50 + rnd() * 170;
+        const g = ctxD.createLinearGradient(0, vy, 0, vy + vh);
+        g.addColorStop(0, 'rgba(8,8,10,' + (0.28 * fuerza).toFixed(2) + ')');
+        g.addColorStop(1, 'rgba(8,8,10,0)');
+        ctxD.fillStyle = g;
+        ctxD.fillRect(vx, vy, vw, vh);
+      }
+
+      // 3. Desconchones poligonales irregulares (piedra saltada) con hondura en el bump
+      const desconchones = Math.floor(22 * fuerza);
+      for (let i = 0; i < desconchones; i++) {
+        const cx = rnd() * size, cy = rnd() * size;
+        const r = 6 + rnd() * 20;
+        const pts = 5 + Math.floor(rnd() * 3);
+        const trazar = (ctx) => {
+          ctx.beginPath();
+          for (let p = 0; p < pts; p++) {
+            const a = (p / pts) * Math.PI * 2 + rnd() * 0.5;
+            const rr = r * (0.45 + rnd() * 0.7);
+            const px = cx + Math.cos(a) * rr * (1 + rnd() * 0.6), py = cy + Math.sin(a) * rr * 0.7;
+            if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        };
+        const estado = rnd();
+        ctxD.fillStyle = 'rgba(20,18,16,0.42)';
+        trazar(ctxD); ctxD.fill();
+        ctxD.fillStyle = 'rgba(190,180,160,0.10)';
+        ctxD.fillRect(cx - 1, cy + r * 0.45, r, 1.5);
+        if (ctxB) {
+          ctxB.fillStyle = estado > 0.5 ? '#1c1c1c' : '#303030';
+          trazar(ctxB); ctxB.fill();
+        }
+      }
+
+      // 4. Rozaduras claras y arañazos finos de uso
+      ctxD.lineWidth = 1;
+      for (let i = 0; i < Math.floor(26 * fuerza); i++) {
+        const sx = rnd() * size, sy = rnd() * size, a = rnd() * Math.PI;
+        const l = 8 + rnd() * 26;
+        ctxD.strokeStyle = rnd() > 0.5 ? 'rgba(220,210,190,0.16)' : 'rgba(0,0,0,0.30)';
+        ctxD.beginPath(); ctxD.moveTo(sx, sy); ctxD.lineTo(sx + Math.cos(a) * l, sy + Math.sin(a) * l); ctxD.stroke();
+      }
+      // 5. Aclarado general (para superficies oscuras como el suelo, que debe leerse bien)
+      if (aclarar > 0) {
+        ctxD.fillStyle = 'rgba(205,195,175,' + aclarar.toFixed(3) + ')';
+        ctxD.fillRect(0, 0, size, size);
+      }
+    } catch (e) {
+      // Entornos sin canvas completo (tests): se omite el envejecimiento
+    }
+  }
+
+  function crearTexturaPared(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texParedCache.has(key)) return _texParedCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -663,147 +907,222 @@
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
     const rnd = pseudoRnd((estilo.id ? estilo.id.length * 17 : 42) + 101);
+    const idEst = String(estilo.id || '');
+    const esLadrillo = idEst.includes('ladrillo');
+    const colorVetaClara = mezclarHex(estilo.colorLosa || estilo.colorBase, '#f8fafc', 0.45);
+    const colorVetaOscura = mezclarHex(estilo.colorSecundario || estilo.colorBase, '#090d16', 0.42);
 
-    // Fondo: mortero antiguo oscuro entre juntas de cantería
+    // Fondo: mortero antiguo oscuro con profundidad de junta rehundida
     ctxD.fillStyle = estilo.colorMortero || '#1e293b';
     ctxD.fillRect(0, 0, size, size);
-    ctxB.fillStyle = '#0a0a0a';
+    ctxB.fillStyle = '#070707';
     ctxB.fillRect(0, 0, size, size);
 
-    // Sillares de piedra biselados en hiladas irregulares de cantería medieval (6 filas)
-    const filas = 6;
-    const altoFila = size / filas;
+    // Aparejo pseudo-isódomo de cantería (alternando hiladas monumentales e hiladas estrechas de encintado, o aparejo flamenco en ladrillo)
+    const filas = esLadrillo ? 12 : 7;
+    const pesosFilas = [];
+    let sumaPesosF = 0;
     for (let f = 0; f < filas; f++) {
-      const y = f * altoFila;
-      const cols = (f % 2 === 0) ? 4 : 5;
-      const anchoCol = size / cols;
-      const shift = (f % 2) * (anchoCol * 0.5);
+      const p = esLadrillo
+        ? (0.94 + rnd() * 0.12)
+        : ((f === 2 || f === 5) ? (0.58 + rnd() * 0.14) : (1.12 + (rnd() - 0.5) * 0.28));
+      pesosFilas.push(p);
+      sumaPesosF += p;
+    }
+    const alturasFila = pesosFilas.map(p => (p / sumaPesosF) * size);
 
-      for (let c = -1; c <= cols; c++) {
-        const x = c * anchoCol + shift;
-        const pad = 4;
-        const wBloque = anchoCol - pad * 2;
-        const hBloque = altoFila - pad * 2;
+    let yAcum = 0;
+    for (let f = 0; f < filas; f++) {
+      const y = yAcum;
+      const altoFila = alturasFila[f];
+      yAcum += altoFila;
+      const esHiladaFina = !esLadrillo && (f === 2 || f === 5);
+      const cols = esLadrillo ? ((f % 2 === 0) ? 6 : 7) : (esHiladaFina ? 6 : (3 + Math.floor(rnd() * 3)));
+      const anchosCol = particionarIrregular(cols, size, rnd, esLadrillo ? 0.14 : 0.42);
+      const offsets = [];
+      let xAcum = ((f * 0.37) + rnd() * 0.18) * size;
+      while (xAcum >= size) xAcum -= size;
+      for (let k = 0; k < cols; k++) { offsets.push(xAcum); xAcum += anchosCol[k]; }
 
-        // Tono individual variado para cada sillar de piedra
-        const varTono = (rnd() - 0.5) * 0.22;
-        const gradD = ctxD.createLinearGradient(x, y, x + anchoCol, y + altoFila);
-        gradD.addColorStop(0.0, estilo.colorBase);
-        gradD.addColorStop(0.5, estilo.colorSecundario);
+      for (let c = -2; c <= cols + 1; c++) {
+        const ci = ((c % cols) + cols) % cols;
+        const anchoCol = anchosCol[ci];
+        let x = offsets[ci];
+        if (c < 0) x -= size * Math.ceil(-c / cols);
+        else if (c >= cols) x += size * Math.floor(c / cols);
+        if (x + anchoCol < -2 || x > size + 2) continue;
+
+        const pad = esLadrillo ? 2.2 : (2.6 + Math.floor(rnd() * 2.4));
+        const bx = x + pad;
+        const by = y + pad;
+        const wBloque = Math.max(4, anchoCol - pad * 2);
+        const hBloque = Math.max(4, altoFila - pad * 2);
+
+        // Oclusión ambiental perimetral en el mortero alrededor del sillar
+        ctxD.fillStyle = 'rgba(0,0,0,0.34)';
+        ctxD.fillRect(bx - 1.5, by - 1.5, wBloque + 3, hBloque + 3);
+
+        // Gradiente mineral individual de sillar
+        const varTono = (rnd() - 0.5) * 0.25;
+        const gradD = ctxD.createLinearGradient(bx, by, bx + wBloque, by + hBloque);
+        gradD.addColorStop(0.0, esHiladaFina ? (estilo.colorLosa || estilo.colorBase) : estilo.colorBase);
+        gradD.addColorStop(0.52, estilo.colorSecundario);
         gradD.addColorStop(1.0, estilo.colorBase);
         ctxD.fillStyle = gradD;
-        ctxD.fillRect(x + pad, y + pad, wBloque, hBloque);
+        ctxD.fillRect(bx, by, wBloque, hBloque);
 
-        // Bisel plano rectangular en bordes de sillar (Luz cenital arriba, sombra abajo - SIN CÍRCULOS)
-        ctxD.fillStyle = 'rgba(255,255,255,0.08)';
-        ctxD.fillRect(x + pad, y + pad, wBloque, 3); // Borde superior claro
-        ctxD.fillStyle = 'rgba(0,0,0,0.30)';
-        ctxD.fillRect(x + pad, y + pad + hBloque - 3, wBloque, 3); // Borde inferior con sombra
-        ctxD.fillRect(x + pad, y + pad, 3, hBloque); // Lateral izquierdo
-        ctxD.fillRect(x + pad + wBloque - 3, y + pad, 3, hBloque); // Lateral derecho
+        ctxD.fillStyle = varTono > 0
+          ? 'rgba(232,222,202,' + (varTono * 0.85).toFixed(3) + ')'
+          : 'rgba(0,0,0,' + (-varTono * 1.65).toFixed(3) + ')';
+        ctxD.fillRect(bx, by, wBloque, hBloque);
 
-        // Bump map con abombamiento almohadillado de cantería (bossage rústico sin círculos)
-        const esAlmohadillado = (f + c) % 2 === 0;
-        const baseBump = esAlmohadillado ? '#c8c8c8' : '#a8a8a8';
-        ctxB.fillStyle = baseBump;
-        ctxB.fillRect(x + pad, y + pad, wBloque, hBloque);
+        // Margen tallado perimetral (drafted margin) y biseles rectos
+        const bisel = esLadrillo ? 2 : 3;
+        ctxD.fillStyle = 'rgba(255,255,255,0.12)';
+        ctxD.fillRect(bx, by, wBloque, bisel);
+        ctxD.fillRect(bx, by, bisel, hBloque);
+        ctxD.fillStyle = 'rgba(0,0,0,0.34)';
+        ctxD.fillRect(bx, by + hBloque - bisel, wBloque, bisel);
+        ctxD.fillRect(bx + wBloque - bisel, by, bisel, hBloque);
 
-        // Capas concéntricas rectangulares de almohadillado abombado hacia el centro del sillar
-        const capasAbombado = 3;
+        // Almohadillado tallado (bossage) con filete interior inciso en hiladas principales
+        const esAlmohadillado = !esLadrillo && ((f + ci) % 2 === 0 || esHiladaFina);
+        ctxB.fillStyle = esAlmohadillado ? '#c6c6c6' : '#a6a6a6';
+        ctxB.fillRect(bx, by, wBloque, hBloque);
+
+        const capasAbombado = esLadrillo ? 2 : 3;
         for (let cap = 1; cap <= capasAbombado; cap++) {
-          const mIn = cap * 3;
+          const mIn = cap * (esLadrillo ? 2.2 : 3.2);
           if (wBloque > mIn * 2 && hBloque > mIn * 2) {
-            const nivelGris = Math.min(255, 175 + cap * 24 + (esAlmohadillado ? 20 : 0));
+            const nivelGris = Math.min(252, 168 + cap * 24 + (esAlmohadillado ? 16 : 0));
             ctxB.fillStyle = `rgb(${nivelGris},${nivelGris},${nivelGris})`;
-            ctxB.fillRect(x + pad + mIn, y + pad + mIn, wBloque - mIn * 2, hBloque - mIn * 2);
+            ctxB.fillRect(bx + mIn, by + mIn, wBloque - mIn * 2, hBloque - mIn * 2);
           }
         }
 
-        // Resalte de relieve en bordes rectos (Luz arriba, sombra abajo)
-        ctxB.fillStyle = '#ffffff';
-        ctxB.fillRect(x + pad, y + pad, wBloque, 3);
-        ctxB.fillStyle = '#333333';
-        ctxB.fillRect(x + pad, y + pad + hBloque - 3, wBloque, 3);
-        ctxB.strokeStyle = '#121212';
-        ctxB.lineWidth = 3;
-        ctxB.strokeRect(x + pad, y + pad, wBloque, hBloque);
-
-        // Brillo y sombra de abombamiento en diffuse
-        if (esAlmohadillado) {
-          ctxD.fillStyle = 'rgba(255,255,255,0.06)';
-          ctxD.fillRect(x + pad + 6, y + pad + 5, wBloque - 12, Math.max(4, Math.floor(hBloque * 0.4)));
-          ctxD.fillStyle = 'rgba(0,0,0,0.18)';
-          ctxD.fillRect(x + pad + 6, y + pad + Math.floor(hBloque * 0.55), wBloque - 12, Math.max(4, Math.floor(hBloque * 0.35)));
+        if (!esLadrillo && wBloque > 22 && hBloque > 16) {
+          // Surco fino de encintado tallado en el bloque (anathyrosis medieval)
+          ctxD.strokeStyle = 'rgba(0,0,0,0.20)';
+          ctxD.lineWidth = 1;
+          ctxD.strokeRect(bx + 5, by + 4, wBloque - 10, hBloque - 8);
+          ctxD.strokeStyle = 'rgba(255,255,255,0.07)';
+          ctxD.strokeRect(bx + 6, by + 5, wBloque - 12, hBloque - 10);
         }
 
-        // Grietas y fracturas angulares de ruina medieval
-        if ((f + c) % 2 === 0 && rnd() > 0.3) {
-          const gx = x + pad + 12 + rnd() * (wBloque - 24);
-          const gy = y + pad + 8 + rnd() * (hBloque - 16);
-          const glen = 18 + rnd() * 26;
+        // Marcas diagonales de escoplo/cincel de cantero (líneas rectas paralelas sutiles)
+        if (wBloque > 18 && hBloque > 14 && (f + ci) % 2 === 1) {
+          ctxD.strokeStyle = 'rgba(255,255,255,0.05)';
+          ctxD.lineWidth = 0.9;
+          const pasoEscoplo = esLadrillo ? 7 : 9;
+          ctxD.beginPath();
+          for (let sx = bx + 6; sx < bx + wBloque - 8; sx += pasoEscoplo) {
+            ctxD.moveTo(sx, by + 5);
+            ctxD.lineTo(Math.min(bx + wBloque - 4, sx + 7), Math.min(by + hBloque - 4, by + hBloque * 0.65));
+          }
+          ctxD.stroke();
+        }
+
+        // Vetas minerales poligonales en sillares selectos
+        if (!esLadrillo && wBloque > 26 && rnd() > 0.42) {
+          const vx0 = bx + 5 + rnd() * (wBloque * 0.35);
+          const vy0 = by + 4 + rnd() * (hBloque * 0.35);
+          const vx1 = bx + wBloque * 0.55 + rnd() * (wBloque * 0.38);
+          const vy1 = by + hBloque * 0.5 + rnd() * (hBloque * 0.42);
+          trazarVetaMineral(ctxD, ctxB, vx0, vy0, vx1, vy1, rnd() > 0.45 ? colorVetaClara : colorVetaOscura, 1.1, rnd);
+        }
+
+        // Si es hilada fina ornamental, añadir rombos/dentículos tallados sutiles
+        if (esHiladaFina && wBloque > 28 && hBloque > 14) {
+          const pasoDent = 14;
+          for (let dx = bx + 8; dx < bx + wBloque - 10; dx += pasoDent) {
+            const cyF = by + hBloque * 0.5;
+            ctxD.fillStyle = 'rgba(0,0,0,0.22)';
+            ctxD.beginPath();
+            ctxD.moveTo(dx, cyF - 3.5);
+            ctxD.lineTo(dx + 3.5, cyF);
+            ctxD.lineTo(dx, cyF + 3.5);
+            ctxD.lineTo(dx - 3.5, cyF);
+            ctxD.closePath();
+            ctxD.fill();
+            ctxB.fillStyle = '#585858';
+            ctxB.fillRect(dx - 2, cyF - 2, 4, 4);
+          }
+        }
+
+        // Resalte de relieve en bordes rectos del bump
+        ctxB.fillStyle = '#ffffff';
+        ctxB.fillRect(bx, by, wBloque, 2.5);
+        ctxB.fillStyle = '#2e2e2e';
+        ctxB.fillRect(bx, by + hBloque - 2.5, wBloque, 2.5);
+        ctxB.strokeStyle = '#101010';
+        ctxB.lineWidth = 2.6;
+        ctxB.strokeRect(bx, by, wBloque, hBloque);
+
+        if (esAlmohadillado) {
+          ctxD.fillStyle = 'rgba(255,255,255,0.06)';
+          ctxD.fillRect(bx + 6, by + 5, Math.max(2, wBloque - 12), Math.max(3, Math.floor(hBloque * 0.36)));
+          ctxD.fillStyle = 'rgba(0,0,0,0.16)';
+          ctxD.fillRect(bx + 6, by + Math.floor(hBloque * 0.58), Math.max(2, wBloque - 12), Math.max(3, Math.floor(hBloque * 0.32)));
+        }
+
+        // Grietas y fracturas angulares de ruina
+        if ((f + ci) % 2 === 0 && rnd() > 0.36 && wBloque > 28 && hBloque > 18) {
+          const gx = bx + 10 + rnd() * (wBloque - 20);
+          const gy = by + 7 + rnd() * (hBloque - 14);
+          const glen = 16 + rnd() * 24;
           const gang = (rnd() - 0.5) * Math.PI * 0.7 + (rnd() > 0.5 ? 0.3 : -0.3);
           trazarGrietaAngular(ctxD, ctxB, gx, gy, glen, gang, rnd);
         }
 
-        // Desportillados angulares en esquinas de sillares de ruina
-        if ((f + c) % 3 === 0) {
+        // Desportillados angulares en esquinas
+        if ((f + ci) % 3 === 0) {
           const corner = Math.floor(rnd() * 4);
-          const csize = 4 + rnd() * 6;
-          ctxD.fillStyle = 'rgba(10,12,18,0.65)';
+          const csize = Math.min(wBloque * 0.25, hBloque * 0.25, 4 + rnd() * 6);
+          ctxD.fillStyle = 'rgba(10,12,18,0.68)';
           ctxD.beginPath();
           if (corner === 0) {
-            ctxD.moveTo(x + pad, y + pad);
-            ctxD.lineTo(x + pad + csize, y + pad);
-            ctxD.lineTo(x + pad, y + pad + csize);
+            ctxD.moveTo(bx, by); ctxD.lineTo(bx + csize, by); ctxD.lineTo(bx, by + csize);
           } else if (corner === 1) {
-            ctxD.moveTo(x + pad + wBloque, y + pad);
-            ctxD.lineTo(x + pad + wBloque - csize, y + pad);
-            ctxD.lineTo(x + pad + wBloque, y + pad + csize);
+            ctxD.moveTo(bx + wBloque, by); ctxD.lineTo(bx + wBloque - csize, by); ctxD.lineTo(bx + wBloque, by + csize);
           } else {
-            ctxD.moveTo(x + pad, y + pad + hBloque);
-            ctxD.lineTo(x + pad + csize, y + pad + hBloque);
-            ctxD.lineTo(x + pad, y + pad + hBloque - csize);
+            ctxD.moveTo(bx, by + hBloque); ctxD.lineTo(bx + csize, by + hBloque); ctxD.lineTo(bx, by + hBloque - csize);
           }
           ctxD.closePath();
           ctxD.fill();
         }
 
-        // Filtraciones verticales de humedad y pátina que escurren desde las juntas (lineales, sin círculos)
-        if (estilo.densidadMusgo > 0.15 && (f + c) % 3 === 1) {
-          const mx = x + pad + 8 + rnd() * (wBloque - 16);
+        // Filtraciones verticales de humedad y musgo en juntas
+        if (estilo.densidadMusgo > 0.14 && (f + ci) % 3 === 1 && wBloque > 18) {
+          const mx = bx + 6 + rnd() * (wBloque - 12);
           const mw = 3 + rnd() * 6;
-          const mh = hBloque * (0.4 + rnd() * 0.5);
-          const gradM = ctxD.createLinearGradient(mx, y + pad, mx, y + pad + mh);
+          const mh = hBloque * (0.38 + rnd() * 0.48);
+          const gradM = ctxD.createLinearGradient(mx, by, mx, by + mh);
           gradM.addColorStop(0.0, estilo.colorMusgo || 'rgba(34,197,94,0.40)');
           gradM.addColorStop(0.7, estilo.colorMortero || 'rgba(15,23,42,0.35)');
           gradM.addColorStop(1.0, 'transparent');
           ctxD.fillStyle = gradM;
-          ctxD.fillRect(mx, y + pad, mw, mh);
+          ctxD.fillRect(mx, by, mw, mh);
         }
       }
     }
 
-    // Micro-textura de grano pétreo natural
-    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 108, 18);
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 0.92);
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 108, 17);
 
-    const texD = new ThreeLib.CanvasTexture(canvasD);
-    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
-    texD.colorSpace = ThreeLib.SRGBColorSpace;
-
-    const texB = new ThreeLib.CanvasTexture(canvasB);
-    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
 
     const result = { diffuse: texD, bump: texB };
     _texParedCache.set(key, result);
     return result;
   }
 
-  function crearTexturaSuelo(estilo, ThreeLib) {
-    const key = estilo.id;
+  function crearTexturaSuelo(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texSueloCache.has(key)) return _texSueloCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -811,89 +1130,512 @@
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
     const rnd = pseudoRnd((estilo.id ? estilo.id.length * 29 : 77) + 203);
+    const idEst = String(estilo.id || '');
 
-    // Fondo: mortero oscuro profundo entre losas
+    // Fondo: mortero oscuro profundo entre losas y azulejos
     ctxD.fillStyle = estilo.colorMortero || '#0f172a';
     ctxD.fillRect(0, 0, size, size);
     ctxB.fillStyle = '#080808';
     ctxB.fillRect(0, 0, size, size);
 
-    // Cuadrícula de 4x4 grandes losas de abadía / templo antiguo desgastadas
-    const losasX = 4;
-    const losasY = 4;
-    const pasoLosa = size / losasX;
-    for (let ly = 0; ly < losasY; ly++) {
-      for (let lx = 0; lx < losasX; lx++) {
-        const px = lx * pasoLosa;
-        const py = ly * pasoLosa;
-        const pad = 4;
-        const wLosa = pasoLosa - pad * 2;
-        const hLosa = pasoLosa - pad * 2;
+    const colorLosaPrincipal = estilo.colorLosa || estilo.colorBase || '#475569';
+    const colorVetaClara = mezclarHex(colorLosaPrincipal, '#f8fafc', 0.48);
+    const colorAcentoAzulejo = mezclarHex(estilo.luzAntorchas || 0xf59e0b, estilo.colorMusgo || estilo.colorSecundario, 0.42);
+    const colorAzulejoContraste = mezclarHex(estilo.colorSecundario || estilo.colorBase, estilo.luzAntorchas || 0xd97706, 0.34);
 
-        // Gradiente sutil y variación por losa
-        const gradLosa = ctxD.createLinearGradient(px, py, px + pasoLosa, py + pasoLosa);
-        gradLosa.addColorStop(0.0, estilo.colorLosa || estilo.colorBase);
-        gradLosa.addColorStop(0.6, estilo.colorBase);
-        gradLosa.addColorStop(1.0, estilo.colorSecundario);
-        ctxD.fillStyle = gradLosa;
-        ctxD.fillRect(px + pad, py + pad, wLosa, hLosa);
+    const esOpusSectile = (
+      idEst.includes('marmol') || idEst.includes('lapislazuli') || idEst.includes('jade') ||
+      idEst.includes('celestial') || idEst.includes('arenisca') || idEst.includes('alquimia') ||
+      idEst.includes('glaciar') || idEst.includes('amatista') || idEst.includes('sangrienta')
+    );
+    const esEspigaLadrillo = (idEst.includes('ladrillo') || idEst.includes('forja') || idEst.includes('hierro'));
 
-        // Bisel plano perimetral de losa desgastada
-        ctxD.fillStyle = 'rgba(255,255,255,0.09)';
-        ctxD.fillRect(px + pad, py + pad, wLosa, 2); // Resalte superior
-        ctxD.fillRect(px + pad, py + pad, 2, hLosa); // Resalte izquierdo
-        ctxD.fillStyle = 'rgba(0,0,0,0.28)';
-        ctxD.fillRect(px + pad, py + pad + hLosa - 2, wLosa, 2); // Sombra inferior
-        ctxD.fillRect(px + pad + wLosa - 2, py + pad, 2, hLosa); // Sombra derecha
+    if (esOpusSectile) {
+      // PATRÓN A: Losas octogonales biseladas con azulejos en rombo incrustados (Opus Sectile imperial / mudéjar, 0 círculos)
+      const celdas = 3;
+      const celda = size / celdas;
+      const corte = celda * 0.24; // Chaflán a 45° que deja hueco romboidal exacto en cada vértice
+      const junta = Math.max(2.2, size * 0.006);
 
-        // Relieve de losa en bump map con junta limpia y hendida
-        ctxB.fillStyle = '#c4c4c4';
-        ctxB.fillRect(px + pad, py + pad, wLosa, hLosa);
-        ctxB.fillStyle = '#ffffff';
-        ctxB.fillRect(px + pad, py + pad, wLosa, 2);
-        ctxB.fillStyle = '#555555';
-        ctxB.fillRect(px + pad, py + pad + hLosa - 2, wLosa, 2);
-        ctxB.strokeStyle = '#141414';
-        ctxB.lineWidth = 3;
-        ctxB.strokeRect(px + pad, py + pad, wLosa, hLosa);
+      const trazarOctagono = (ctx, cx, cy, rHalf, ch) => {
+        ctx.beginPath();
+        ctx.moveTo(cx - rHalf + ch, cy - rHalf);
+        ctx.lineTo(cx + rHalf - ch, cy - rHalf);
+        ctx.lineTo(cx + rHalf, cy - rHalf + ch);
+        ctx.lineTo(cx + rHalf, cy + rHalf - ch);
+        ctx.lineTo(cx + rHalf - ch, cy + rHalf);
+        ctx.lineTo(cx - rHalf + ch, cy + rHalf);
+        ctx.lineTo(cx - rHalf, cy + rHalf - ch);
+        ctx.lineTo(cx - rHalf, cy - rHalf + ch);
+        ctx.closePath();
+      };
 
-        // Fracturas y fisuras angulares en losas partidas
-        if ((lx + ly) % 2 === 1 && rnd() > 0.35) {
-          const gx = px + pad + 14 + rnd() * (wLosa - 28);
-          const gy = py + pad + 14 + rnd() * (hLosa - 28);
-          const glen = 22 + rnd() * 32;
-          const gang = (rnd() - 0.5) * Math.PI * 0.9;
-          trazarGrietaAngular(ctxD, ctxB, gx, gy, glen, gang, rnd);
+      for (let gy = 0; gy < celdas; gy++) {
+        for (let gx = 0; gx < celdas; gx++) {
+          const cx = (gx + 0.5) * celda;
+          const cy = (gy + 0.5) * celda;
+          const rHalf = celda * 0.5 - junta;
+          const ch = Math.max(4, corte - junta * 0.6);
+
+          const grad = ctxD.createLinearGradient(cx - rHalf, cy - rHalf, cx + rHalf, cy + rHalf);
+          grad.addColorStop(0.0, colorLosaPrincipal);
+          grad.addColorStop(0.55, estilo.colorBase);
+          grad.addColorStop(1.0, estilo.colorSecundario);
+          ctxD.fillStyle = grad;
+          trazarOctagono(ctxD, cx, cy, rHalf, ch);
+          ctxD.fill();
+
+          const vt = (rnd() - 0.5) * 0.22;
+          ctxD.fillStyle = vt > 0 ? 'rgba(240,235,220,' + (vt * 0.65).toFixed(3) + ')' : 'rgba(0,0,0,' + (-vt * 1.35).toFixed(3) + ')';
+          trazarOctagono(ctxD, cx, cy, rHalf, ch);
+          ctxD.fill();
+
+          // Doble cenefa incisa octogonal interior
+          ctxD.strokeStyle = 'rgba(255,255,255,0.16)';
+          ctxD.lineWidth = 1.6;
+          trazarOctagono(ctxD, cx, cy, rHalf - 2, Math.max(3, ch - 1));
+          ctxD.stroke();
+
+          ctxD.strokeStyle = ajustarBrilloHex(estilo.colorMortero || '#1e293b', -14);
+          ctxD.lineWidth = 1.4;
+          trazarOctagono(ctxD, cx, cy, rHalf * 0.76, ch * 0.76);
+          ctxD.stroke();
+
+          // Vetas minerales diagonales de mármol/cuarzo/jade
+          trazarVetaMineral(
+            ctxD, ctxB,
+            cx - rHalf * 0.68, cy - rHalf * 0.42 + (rnd() - 0.5) * 10,
+            cx + rHalf * 0.68, cy + rHalf * 0.46 + (rnd() - 0.5) * 10,
+            colorVetaClara, 1.3, rnd
+          );
+          if ((gx + gy) % 2 === 0) {
+            trazarVetaMineral(
+              ctxD, ctxB,
+              cx - rHalf * 0.35, cy + rHalf * 0.58,
+              cx + rHalf * 0.52, cy - rHalf * 0.48,
+              mezclarHex(estilo.colorSecundario, '#000000', 0.35), 1.0, rnd
+            );
+          }
+
+          // Bump de la losa octogonal con bisel escalonado
+          ctxB.fillStyle = '#cecece';
+          trazarOctagono(ctxB, cx, cy, rHalf, ch);
+          ctxB.fill();
+          ctxB.fillStyle = '#e6e6e6';
+          trazarOctagono(ctxB, cx, cy, rHalf - 4, Math.max(2, ch - 2.5));
+          ctxB.fill();
+          ctxB.strokeStyle = '#686868';
+          ctxB.lineWidth = 1.8;
+          trazarOctagono(ctxB, cx, cy, rHalf * 0.76, ch * 0.76);
+          ctxB.stroke();
+          ctxB.strokeStyle = '#121212';
+          ctxB.lineWidth = 2.6;
+          trazarOctagono(ctxB, cx, cy, rHalf, ch);
+          ctxB.stroke();
         }
+      }
 
-        // Pátina lineal de suciedad y polvo en las esquinas de junta (sin círculos)
-        ctxD.fillStyle = 'rgba(0,0,0,0.18)';
-        ctxD.fillRect(px + pad, py + pad, 8, 8);
-        ctxD.fillRect(px + pad + wLosa - 8, py + pad + hLosa - 8, 8, 8);
+      // Azulejos esmaltados en rombo en cada intersección (incluye repetición periódica en bordes 0 y size)
+      const rRombo = corte - junta * 1.15;
+      const trazarRombo = (ctx, vx, vy, rad) => {
+        ctx.beginPath();
+        ctx.moveTo(vx, vy - rad);
+        ctx.lineTo(vx + rad, vy);
+        ctx.lineTo(vx, vy + rad);
+        ctx.lineTo(vx - rad, vy);
+        ctx.closePath();
+      };
+
+      for (let iy = 0; iy <= celdas; iy++) {
+        for (let ix = 0; ix <= celdas; ix++) {
+          const vx = ix * celda;
+          const vy = iy * celda;
+          const gradAz = ctxD.createLinearGradient(vx - rRombo, vy - rRombo, vx + rRombo, vy + rRombo);
+          gradAz.addColorStop(0.0, colorAzulejoContraste);
+          gradAz.addColorStop(0.5, colorAcentoAzulejo);
+          gradAz.addColorStop(1.0, estilo.colorSecundario);
+          ctxD.fillStyle = gradAz;
+          trazarRombo(ctxD, vx, vy, rRombo);
+          ctxD.fill();
+
+          // Bisel luminoso y joya romboidal interior del azulejo
+          ctxD.strokeStyle = 'rgba(255,255,255,0.28)';
+          ctxD.lineWidth = 1.4;
+          trazarRombo(ctxD, vx, vy, rRombo - 2);
+          ctxD.stroke();
+
+          ctxD.fillStyle = colorVetaClara;
+          trazarRombo(ctxD, vx, vy, rRombo * 0.42);
+          ctxD.fill();
+
+          ctxB.fillStyle = '#dadada';
+          trazarRombo(ctxB, vx, vy, rRombo);
+          ctxB.fill();
+          ctxB.fillStyle = '#f5f5f5';
+          trazarRombo(ctxB, vx, vy, rRombo * 0.48);
+          ctxB.fill();
+          ctxB.strokeStyle = '#101010';
+          ctxB.lineWidth = 2.2;
+          trazarRombo(ctxB, vx, vy, rRombo);
+          ctxB.stroke();
+        }
+      }
+
+    } else if (esEspigaLadrillo) {
+      // PATRÓN B: Adoquinado de ladrillo cocido / lingotes de fragua en espiga y tejido de cesta (Opus Spicatum / Basketweave)
+      const modulos = 4;
+      const tamMod = size / modulos;
+      const junta = Math.max(2, size * 0.0055);
+
+      for (let my = 0; my < modulos; my++) {
+        for (let mx = 0; mx < modulos; mx++) {
+          const ox = mx * tamMod;
+          const oy = my * tamMod;
+          const horizontal = (mx + my) % 2 === 0;
+          const piezas = 3;
+          const paso = tamMod / piezas;
+
+          for (let p = 0; p < piezas; p++) {
+            const bx = horizontal ? (ox + junta) : (ox + p * paso + junta);
+            const by = horizontal ? (oy + p * paso + junta) : (oy + junta);
+            const bw = horizontal ? (tamMod - junta * 2) : (paso - junta * 2);
+            const bh = horizontal ? (paso - junta * 2) : (tamMod - junta * 2);
+
+            const gradP = ctxD.createLinearGradient(bx, by, bx + bw, by + bh);
+            gradP.addColorStop(0.0, (p % 2 === 0) ? colorLosaPrincipal : estilo.colorBase);
+            gradP.addColorStop(0.6, estilo.colorSecundario);
+            gradP.addColorStop(1.0, estilo.colorBase);
+            ctxD.fillStyle = gradP;
+            ctxD.fillRect(bx, by, bw, bh);
+
+            const vt = (rnd() - 0.5) * 0.28;
+            ctxD.fillStyle = vt > 0 ? 'rgba(245,215,180,' + (vt * 0.55).toFixed(3) + ')' : 'rgba(0,0,0,' + (-vt * 1.4).toFixed(3) + ')';
+            ctxD.fillRect(bx, by, bw, bh);
+
+            // Arista vitrificada / forjada
+            ctxD.fillStyle = 'rgba(255,255,255,0.14)';
+            ctxD.fillRect(bx, by, bw, 2);
+            ctxD.fillRect(bx, by, 2, bh);
+            ctxD.fillStyle = 'rgba(0,0,0,0.32)';
+            ctxD.fillRect(bx, by + bh - 2, bw, 2);
+            ctxD.fillRect(bx + bw - 2, by, 2, bh);
+
+            ctxB.fillStyle = (p % 2 === 0) ? '#cfcfcf' : '#bababa';
+            ctxB.fillRect(bx, by, bw, bh);
+            ctxB.fillStyle = '#eaeaea';
+            ctxB.fillRect(bx + 3, by + 3, Math.max(2, bw - 6), Math.max(2, bh - 6));
+            ctxB.strokeStyle = '#121212';
+            ctxB.lineWidth = 2.4;
+            ctxB.strokeRect(bx, by, bw, bh);
+          }
+        }
+      }
+
+    } else {
+      // PATRÓN C: Grandes losas de abadía con listeles de adoquín perimetrales, bisel doble y vetas pétreas
+      // Cenefa/encintado fino de adoquines de borde + 4x4 losas nobles interiores asimétricas
+      const filas = 5;
+      const pesosY = [0.52, 1.15, 1.05, 0.55, 1.18];
+      const sumaY = pesosY.reduce((a, b) => a + b, 0);
+      const altosLosa = pesosY.map(p => (p / sumaY) * size);
+
+      let yAc = 0;
+      for (let ly = 0; ly < filas; ly++) {
+        const py = yAc;
+        const pasoY = altosLosa[ly];
+        yAc += pasoY;
+        const esBandaAdoquin = (ly === 0 || ly === 3);
+        const cols = esBandaAdoquin ? 8 : 4;
+        const anchosLosa = particionarIrregular(cols, size, rnd, esBandaAdoquin ? 0.18 : 0.36);
+
+        let xAc = 0;
+        for (let lx = 0; lx < cols; lx++) {
+          const px = xAc;
+          const pasoLosa = anchosLosa[lx];
+          xAc += pasoLosa;
+          const pad = esBandaAdoquin ? 2.4 : (3 + Math.floor(rnd() * 2.2));
+          const bx = px + pad;
+          const by = py + pad;
+          const wLosa = Math.max(4, pasoLosa - pad * 2);
+          const hLosa = Math.max(4, pasoY - pad * 2);
+
+          const gradLosa = ctxD.createLinearGradient(bx, by, bx + wLosa, by + hLosa);
+          gradLosa.addColorStop(0.0, esBandaAdoquin ? estilo.colorSecundario : colorLosaPrincipal);
+          gradLosa.addColorStop(0.55, estilo.colorBase);
+          gradLosa.addColorStop(1.0, estilo.colorSecundario);
+          ctxD.fillStyle = gradLosa;
+          ctxD.fillRect(bx, by, wLosa, hLosa);
+
+          const vt = (rnd() - 0.5) * 0.28;
+          ctxD.fillStyle = vt > 0 ? 'rgba(226,216,196,' + (vt * 0.78).toFixed(3) + ')' : 'rgba(0,0,0,' + (-vt * 1.6).toFixed(3) + ')';
+          ctxD.fillRect(bx, by, wLosa, hLosa);
+
+          // Bisel doble perimetral de losa labrada
+          ctxD.fillStyle = 'rgba(255,255,255,0.12)';
+          ctxD.fillRect(bx, by, wLosa, 2.2);
+          ctxD.fillRect(bx, by, 2.2, hLosa);
+          ctxD.fillStyle = 'rgba(0,0,0,0.32)';
+          ctxD.fillRect(bx, by + hLosa - 2.2, wLosa, 2.2);
+          ctxD.fillRect(bx + wLosa - 2.2, by, 2.2, hLosa);
+
+          if (!esBandaAdoquin && wLosa > 28 && hLosa > 28) {
+            // Filete inciso interior y pequeño taco romboidal de cantero en losas alternas
+            ctxD.strokeStyle = 'rgba(0,0,0,0.18)';
+            ctxD.lineWidth = 1.1;
+            ctxD.strokeRect(bx + 6, by + 6, wLosa - 12, hLosa - 12);
+
+            if ((lx + ly) % 2 === 0) {
+              const rIn = Math.min(wLosa, hLosa) * 0.13;
+              const mcx = bx + wLosa * 0.5;
+              const mcy = by + hLosa * 0.5;
+              ctxD.fillStyle = mezclarHex(colorLosaPrincipal, colorAcentoAzulejo, 0.35);
+              ctxD.beginPath();
+              ctxD.moveTo(mcx, mcy - rIn);
+              ctxD.lineTo(mcx + rIn, mcy);
+              ctxD.lineTo(mcx, mcy + rIn);
+              ctxD.lineTo(mcx - rIn, mcy);
+              ctxD.closePath();
+              ctxD.fill();
+              ctxD.strokeStyle = 'rgba(0,0,0,0.35)';
+              ctxD.stroke();
+            }
+
+            // Veta mineral
+            if (rnd() > 0.45) {
+              trazarVetaMineral(
+                ctxD, ctxB,
+                bx + 8, by + hLosa * (0.25 + rnd() * 0.5),
+                bx + wLosa - 8, by + hLosa * (0.25 + rnd() * 0.5),
+                colorVetaClara, 1.1, rnd
+              );
+            }
+          }
+
+          // Relieve en bump map con junta hendida y plataforma pulida
+          ctxB.fillStyle = esBandaAdoquin ? '#b4b4b4' : '#c8c8c8';
+          ctxB.fillRect(bx, by, wLosa, hLosa);
+          if (wLosa > 12 && hLosa > 12) {
+            ctxB.fillStyle = esBandaAdoquin ? '#cccccc' : '#dfdfdf';
+            ctxB.fillRect(bx + 3, by + 3, wLosa - 6, hLosa - 6);
+          }
+          ctxB.fillStyle = '#ffffff';
+          ctxB.fillRect(bx, by, wLosa, 2);
+          ctxB.fillStyle = '#4c4c4c';
+          ctxB.fillRect(bx, by + hLosa - 2, wLosa, 2);
+          ctxB.strokeStyle = '#121212';
+          ctxB.lineWidth = 2.8;
+          ctxB.strokeRect(bx, by, wLosa, hLosa);
+
+          // Fracturas angulares de desgaste
+          if (!esBandaAdoquin && (lx + ly) % 2 === 1 && rnd() > 0.36 && wLosa > 32 && hLosa > 32) {
+            const gx = bx + 14 + rnd() * (wLosa - 28);
+            const gy = by + 14 + rnd() * (hLosa - 28);
+            trazarGrietaAngular(ctxD, ctxB, gx, gy, 20 + rnd() * 28, (rnd() - 0.5) * Math.PI * 0.9, rnd);
+          }
+
+          // Musgo lineal sutil en las juntas si el estilo es húmedo
+          if (estilo.densidadMusgo > 0.25 && rnd() < estilo.densidadMusgo * 0.55) {
+            ctxD.fillStyle = estilo.colorMusgo || '#15803d';
+            ctxD.globalAlpha = 0.35;
+            ctxD.fillRect(bx - 1, by - 1, Math.min(wLosa * 0.45, 22), 3);
+            ctxD.globalAlpha = 1.0;
+          }
+        }
       }
     }
 
-    // Micro-textura de grano de roca
-    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 219, 14);
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 0.68, 0.12);
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 219, 13);
 
-    const texD = new ThreeLib.CanvasTexture(canvasD);
-    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
-    texD.colorSpace = ThreeLib.SRGBColorSpace;
-
-    const texB = new ThreeLib.CanvasTexture(canvasB);
-    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
 
     const result = { diffuse: texD, bump: texB };
     _texSueloCache.set(key, result);
     return result;
   }
 
-  function crearTexturaZocalo(estilo, ThreeLib) {
-    const key = estilo.id;
+  // Mosaico geométrico de teselas y azulejos poligonales (estrellas de 8 puntas, grecas y casetones, 0 círculos)
+  function crearTexturaMosaico(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
+    if (_texMosaicoCache.has(key)) return _texMosaicoCache.get(key);
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
+
+    const canvasD = document.createElement('canvas');
+    const canvasB = document.createElement('canvas');
+    canvasD.width = canvasD.height = size;
+    canvasB.width = canvasB.height = size;
+    const ctxD = canvasD.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+    const rnd = pseudoRnd((estilo.id ? estilo.id.length * 53 : 131) + 509);
+
+    const colFondo = ajustarBrilloHex(estilo.colorMortero || '#0f172a', -8);
+    const colCampo = mezclarHex(estilo.colorLosa || estilo.colorBase, '#e2e8f0', 0.22);
+    const colOscuro = mezclarHex(estilo.colorSecundario || estilo.colorBase, '#090d16', 0.28);
+    const colJoya = mezclarHex(estilo.luzAntorchas || 0xf59e0b, estilo.colorLosa || '#f8fafc', 0.28);
+    const colAcento2 = mezclarHex(estilo.colorAgua || 0x38bdf8, estilo.colorMusgo || estilo.colorBase, 0.45);
+    const colMarfil = mezclarHex(estilo.colorLosa || estilo.colorBase, '#fef3c7', 0.58);
+
+    ctxD.fillStyle = colFondo;
+    ctxD.fillRect(0, 0, size, size);
+    ctxB.fillStyle = '#0c0c0c';
+    ctxB.fillRect(0, 0, size, size);
+
+    // Cuadrícula de 2x2 grandes artesones de mosaico para máxima riqueza al repetir cada ~2.6m
+    const paneles = 2;
+    const tamPanel = size / paneles;
+
+    const pintarPoligono = (pts, fillD, fillB) => {
+      ctxD.fillStyle = fillD;
+      ctxD.beginPath();
+      pts.forEach(([x, y], idx) => { if (idx === 0) ctxD.moveTo(x, y); else ctxD.lineTo(x, y); });
+      ctxD.closePath();
+      ctxD.fill();
+      ctxD.strokeStyle = colFondo;
+      ctxD.lineWidth = 1.6;
+      ctxD.stroke();
+
+      if (ctxB) {
+        ctxB.fillStyle = fillB || '#d8d8d8';
+        ctxB.beginPath();
+        pts.forEach(([x, y], idx) => { if (idx === 0) ctxB.moveTo(x, y); else ctxB.lineTo(x, y); });
+        ctxB.closePath();
+        ctxB.fill();
+        ctxB.strokeStyle = '#181818';
+        ctxB.lineWidth = 1.8;
+        ctxB.stroke();
+      }
+    };
+
+    for (let py = 0; py < paneles; py++) {
+      for (let px = 0; px < paneles; px++) {
+        const ox = px * tamPanel;
+        const oy = py * tamPanel;
+        const cx = ox + tamPanel * 0.5;
+        const cy = oy + tamPanel * 0.5;
+        const borde = tamPanel * 0.13;
+
+        // 1. Marco exterior con greca de azulejos alternados (tacos cuadrados y triángulos de esquina)
+        ctxD.fillStyle = colOscuro;
+        ctxD.fillRect(ox + 2, oy + 2, tamPanel - 4, tamPanel - 4);
+        ctxB.fillStyle = '#c2c2c2';
+        ctxB.fillRect(ox + 2, oy + 2, tamPanel - 4, tamPanel - 4);
+
+        const numGreca = 10;
+        const pasoG = (tamPanel - 8) / numGreca;
+        for (let g = 0; g < numGreca; g++) {
+          const colTaco = (g % 2 === 0) ? colMarfil : colJoya;
+          const bumpTaco = (g % 2 === 0) ? '#e8e8e8' : '#d2d2d2';
+          const gx = ox + 4 + g * pasoG;
+          const gy = oy + 4 + g * pasoG;
+          // Banda superior e inferior
+          ctxD.fillStyle = colTaco;
+          ctxD.fillRect(gx + 1.5, oy + 5, pasoG - 3, borde - 9);
+          ctxD.fillRect(gx + 1.5, oy + tamPanel - borde + 4, pasoG - 3, borde - 9);
+          // Banda izquierda y derecha
+          ctxD.fillRect(ox + 5, gy + 1.5, borde - 9, pasoG - 3);
+          ctxD.fillRect(ox + tamPanel - borde + 4, gy + 1.5, borde - 9, pasoG - 3);
+
+          ctxB.fillStyle = bumpTaco;
+          ctxB.fillRect(gx + 1.5, oy + 5, pasoG - 3, borde - 9);
+          ctxB.fillRect(gx + 1.5, oy + tamPanel - borde + 4, pasoG - 3, borde - 9);
+          ctxB.fillRect(ox + 5, gy + 1.5, borde - 9, pasoG - 3);
+          ctxB.fillRect(ox + tamPanel - borde + 4, gy + 1.5, borde - 9, pasoG - 3);
+        }
+
+        // 2. Campo interior del casetón
+        const inX = ox + borde;
+        const inY = oy + borde;
+        const inS = tamPanel - borde * 2;
+        ctxD.fillStyle = colCampo;
+        ctxD.fillRect(inX, inY, inS, inS);
+        ctxD.strokeStyle = colMarfil;
+        ctxD.lineWidth = 2;
+        ctxD.strokeRect(inX + 2, inY + 2, inS - 4, inS - 4);
+
+        ctxB.fillStyle = '#cfcfcf';
+        ctxB.fillRect(inX, inY, inS, inS);
+        ctxB.strokeStyle = '#141414';
+        ctxB.lineWidth = 2.4;
+        ctxB.strokeRect(inX, inY, inS, inS);
+
+        // Escuadras triangulares de azulejo en las 4 esquinas del campo interior
+        const esc = inS * 0.25;
+        pintarPoligono([[inX + 4, inY + 4], [inX + esc, inY + 4], [inX + 4, inY + esc]], colAcento2, '#dddddd');
+        pintarPoligono([[inX + inS - 4, inY + 4], [inX + inS - esc, inY + 4], [inX + inS - 4, inY + esc]], colAcento2, '#dddddd');
+        pintarPoligono([[inX + 4, inY + inS - 4], [inX + esc, inY + inS - 4], [inX + 4, inY + inS - esc]], colAcento2, '#dddddd');
+        pintarPoligono([[inX + inS - 4, inY + inS - 4], [inX + inS - esc, inY + inS - 4], [inX + inS - 4, inY + inS - esc]], colAcento2, '#dddddd');
+
+        // 3. Estrella geométrica de 8 puntas (dos cuadrados superpuestos a 0° y 45°, 0 círculos)
+        const rEst = inS * 0.34;
+        pintarPoligono([
+          [cx - rEst, cy - rEst], [cx + rEst, cy - rEst],
+          [cx + rEst, cy + rEst], [cx - rEst, cy + rEst]
+        ], colOscuro, '#dcdcdc');
+
+        const rDiag = rEst * 1.28;
+        pintarPoligono([
+          [cx, cy - rDiag], [cx + rDiag, cy],
+          [cx, cy + rDiag], [cx - rDiag, cy]
+        ], colJoya, '#eaeaea');
+
+        // Octógono interior y rombo central de marfil/oro
+        const rOct = rEst * 0.72;
+        const cOct = rOct * 0.414;
+        pintarPoligono([
+          [cx - cOct, cy - rOct], [cx + cOct, cy - rOct],
+          [cx + rOct, cy - cOct], [cx + rOct, cy + cOct],
+          [cx + cOct, cy + rOct], [cx - cOct, cy + rOct],
+          [cx - rOct, cy + cOct], [cx - rOct, cy - cOct]
+        ], colMarfil, '#f2f2f2');
+
+        const rCentro = rOct * 0.56;
+        pintarPoligono([
+          [cx, cy - rCentro], [cx + rCentro, cy],
+          [cx, cy + rCentro], [cx - rCentro, cy]
+        ], (px + py) % 2 === 0 ? colAcento2 : colOscuro, '#ffffff');
+      }
+    }
+
+    // 4. Trama fina de teselas individuales (Opus Tessellatum) sobre toda la superficie para realismo de mosaico antiguo
+    const pasoTesela = Math.max(8, Math.round(size / 56));
+    ctxD.lineWidth = 0.85;
+    ctxB.lineWidth = 1.0;
+    for (let ty = 0; ty < size; ty += pasoTesela) {
+      for (let tx = 0; tx < size; tx += pasoTesela) {
+        const brilloT = (rnd() - 0.5) * 0.16;
+        if (brilloT > 0.02) {
+          ctxD.fillStyle = 'rgba(255,255,255,' + brilloT.toFixed(3) + ')';
+          ctxD.fillRect(tx + 1, ty + 1, pasoTesela - 2, pasoTesela - 2);
+        } else if (brilloT < -0.02) {
+          ctxD.fillStyle = 'rgba(0,0,0,' + (-brilloT * 1.25).toFixed(3) + ')';
+          ctxD.fillRect(tx + 1, ty + 1, pasoTesela - 2, pasoTesela - 2);
+        }
+        ctxD.strokeStyle = 'rgba(8,10,16,0.28)';
+        ctxD.strokeRect(tx, ty, pasoTesela, pasoTesela);
+        ctxB.strokeStyle = 'rgba(20,20,20,0.42)';
+        ctxB.strokeRect(tx, ty, pasoTesela, pasoTesela);
+      }
+    }
+
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 0.42, 0.05);
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 517, 10);
+
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
+
+    const result = { diffuse: texD, bump: texB };
+    _texMosaicoCache.set(key, result);
+    return result;
+  }
+
+  function crearTexturaZocalo(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texZocaloCache.has(key)) return _texZocaloCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -901,6 +1643,7 @@
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
     const rnd = pseudoRnd((estilo.id ? estilo.id.length * 37 : 91) + 307);
+    const sc = size / 512;
 
     // Fondo mortero
     ctxD.fillStyle = estilo.colorMortero || '#090d16';
@@ -908,74 +1651,101 @@
     ctxB.fillStyle = '#080808';
     ctxB.fillRect(0, 0, size, size);
 
-    // 1. Moldura superior corrida labrada en piedra (0 a 110px)
-    const hMoldura = 110;
+    // 1. Moldura superior corrida con friso de dentículos y rombos labrados (~22% superior)
+    const hMoldura = Math.round(size * 0.22);
     const gradMoldura = ctxD.createLinearGradient(0, 0, 0, hMoldura);
-    gradMoldura.addColorStop(0.0, estilo.colorSecundario);
-    gradMoldura.addColorStop(0.3, estilo.colorBase);
-    gradMoldura.addColorStop(0.7, estilo.colorSecundario);
+    gradMoldura.addColorStop(0.0, estilo.colorLosa || estilo.colorBase);
+    gradMoldura.addColorStop(0.32, estilo.colorBase);
+    gradMoldura.addColorStop(0.75, estilo.colorSecundario);
     gradMoldura.addColorStop(1.0, estilo.colorMortero);
     ctxD.fillStyle = gradMoldura;
     ctxD.fillRect(0, 0, size, hMoldura);
 
-    // Bisel angular de moldura (chaflán recto a 45º)
-    ctxD.fillStyle = 'rgba(255,255,255,0.18)';
-    ctxD.fillRect(0, 0, size, 4); // Arista superior brillante
-    ctxD.fillStyle = 'rgba(255,255,255,0.08)';
-    ctxD.fillRect(0, 36, size, 3); // Resalte intermedio
-    ctxD.fillStyle = 'rgba(0,0,0,0.45)';
-    ctxD.fillRect(0, hMoldura - 8, size, 8); // Sombra profunda de goteo
+    ctxD.fillStyle = 'rgba(255,255,255,0.22)';
+    ctxD.fillRect(0, 0, size, Math.max(2, 4 * sc));
+    ctxD.fillStyle = 'rgba(255,255,255,0.10)';
+    ctxD.fillRect(0, Math.round(34 * sc), size, Math.max(2, 3 * sc));
+    ctxD.fillStyle = 'rgba(0,0,0,0.48)';
+    ctxD.fillRect(0, hMoldura - Math.round(8 * sc), size, Math.round(8 * sc));
 
-    ctxB.fillStyle = '#ffffff';
-    ctxB.fillRect(0, 0, size, 36);
-    ctxB.fillStyle = '#888888';
-    ctxB.fillRect(0, 36, size, hMoldura - 36);
-    ctxB.fillStyle = '#111111';
-    ctxB.fillRect(0, hMoldura - 6, size, 6);
+    ctxB.fillStyle = '#f8f8f8';
+    ctxB.fillRect(0, 0, size, Math.round(34 * sc));
+    ctxB.fillStyle = '#989898';
+    ctxB.fillRect(0, Math.round(34 * sc), size, hMoldura - Math.round(34 * sc));
+    ctxB.fillStyle = '#121212';
+    ctxB.fillRect(0, hMoldura - Math.round(6 * sc), size, Math.round(6 * sc));
 
-    // 2. Sillares ciclópeos macizos de cimentación inferior (110 a 512px, 3 bloques)
+    // Friso geométrico tallado de dentículos y metopas romboidales en la moldura
+    const numDent = 16;
+    const pasoD = size / numDent;
+    const yDent = Math.round(42 * sc);
+    const hDent = Math.max(8, hMoldura - Math.round(54 * sc));
+    const colAcento = mezclarHex(estilo.colorLosa || estilo.colorBase, estilo.luzAntorchas || 0xf59e0b, 0.25);
+    for (let d = 0; d < numDent; d++) {
+      const dx = d * pasoD + 3 * sc;
+      const dw = pasoD - 6 * sc;
+      ctxD.fillStyle = (d % 2 === 0) ? colAcento : 'rgba(0,0,0,0.28)';
+      ctxD.fillRect(dx, yDent, dw, hDent);
+      ctxD.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctxD.lineWidth = 1;
+      ctxD.strokeRect(dx, yDent, dw, hDent);
+
+      ctxB.fillStyle = (d % 2 === 0) ? '#e8e8e8' : '#505050';
+      ctxB.fillRect(dx, yDent, dw, hDent);
+    }
+
+    // 2. Sillares ciclópeos macizos de cimentación inferior (3 bloques con margen perimetral tallado)
     const bloques = 3;
     const anchoB = size / bloques;
-    const yBloques = hMoldura + 4;
+    const yBloques = hMoldura + 4 * sc;
     const hBloques = size - yBloques;
 
     for (let b = 0; b < bloques; b++) {
       const bx = b * anchoB;
-      const pad = 4;
+      const pad = 4 * sc;
       const wB = anchoB - pad * 2;
       const hB = hBloques - pad * 2;
 
       const gradB = ctxD.createLinearGradient(bx, yBloques, bx + anchoB, size);
       gradB.addColorStop(0.0, estilo.colorBase);
-      gradB.addColorStop(0.7, estilo.colorSecundario);
+      gradB.addColorStop(0.65, estilo.colorSecundario);
+      gradB.addColorStop(1.0, ajustarBrilloHex(estilo.colorSecundario || estilo.colorBase, -14));
       ctxD.fillStyle = gradB;
       ctxD.fillRect(bx + pad, yBloques + pad, wB, hB);
 
-      // Bisel de bloque ciclópeo
-      ctxD.fillStyle = 'rgba(255,255,255,0.08)';
-      ctxD.fillRect(bx + pad, yBloques + pad, wB, 2);
-      ctxD.fillStyle = 'rgba(0,0,0,0.35)';
-      ctxD.fillRect(bx + pad, yBloques + pad + hB - 4, wB, 4); // Sombra en base de contacto con el suelo
+      // Margen tallado y panel central abombado
+      const mIn = Math.max(6, 12 * sc);
+      ctxD.strokeStyle = 'rgba(0,0,0,0.28)';
+      ctxD.lineWidth = 1.5;
+      ctxD.strokeRect(bx + pad + mIn, yBloques + pad + mIn, wB - mIn * 2, hB - mIn * 2);
+      ctxD.fillStyle = 'rgba(255,255,255,0.06)';
+      ctxD.fillRect(bx + pad + mIn + 2, yBloques + pad + mIn + 2, wB - mIn * 2 - 4, (hB - mIn * 2) * 0.45);
 
-      ctxB.fillStyle = '#c0c0c0';
+      ctxD.fillStyle = 'rgba(255,255,255,0.10)';
+      ctxD.fillRect(bx + pad, yBloques + pad, wB, 2.5);
+      ctxD.fillStyle = 'rgba(0,0,0,0.38)';
+      ctxD.fillRect(bx + pad, yBloques + pad + hB - 4, wB, 4);
+
+      ctxB.fillStyle = '#b4b4b4';
       ctxB.fillRect(bx + pad, yBloques + pad, wB, hB);
+      ctxB.fillStyle = '#dcdcdc';
+      ctxB.fillRect(bx + pad + mIn, yBloques + pad + mIn, wB - mIn * 2, hB - mIn * 2);
       ctxB.strokeStyle = '#181818';
       ctxB.lineWidth = 3;
       ctxB.strokeRect(bx + pad, yBloques + pad, wB, hB);
 
-      // Marcas verticales finas de cantería (rayas de escoplo/cincel, 0 curvas)
-      ctxD.strokeStyle = 'rgba(0,0,0,0.10)';
+      // Marcas verticales de escoplo de cantería (0 curvas)
+      ctxD.strokeStyle = 'rgba(0,0,0,0.11)';
       ctxD.lineWidth = 1;
-      for (let rx = bx + pad + 12; rx < bx + pad + wB - 12; rx += 14) {
+      for (let rx = bx + pad + mIn + 8; rx < bx + pad + wB - mIn - 8; rx += 12 * sc) {
         ctxD.beginPath();
-        ctxD.moveTo(rx, yBloques + pad + 6);
-        ctxD.lineTo(rx, yBloques + pad + hB - 6);
+        ctxD.moveTo(rx, yBloques + pad + mIn + 6);
+        ctxD.lineTo(rx, yBloques + pad + hB - mIn - 6);
         ctxD.stroke();
       }
 
-      // Desportillados angulares de la base
-      if (rnd() > 0.4) {
-        const csize = 5 + rnd() * 8;
+      if (rnd() > 0.38) {
+        const csize = (5 + rnd() * 8) * sc;
         ctxD.fillStyle = 'rgba(10,12,18,0.7)';
         ctxD.beginPath();
         ctxD.moveTo(bx + pad, yBloques + pad + hB);
@@ -986,26 +1756,23 @@
       }
     }
 
-    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 333, 16);
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 0.78);
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 333, 15);
 
-    const texD = new ThreeLib.CanvasTexture(canvasD);
-    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
-    texD.colorSpace = ThreeLib.SRGBColorSpace;
-
-    const texB = new ThreeLib.CanvasTexture(canvasB);
-    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
 
     const result = { diffuse: texD, bump: texB };
     _texZocaloCache.set(key, result);
     return result;
   }
 
-  function crearTexturaTecho(estilo, ThreeLib) {
-    const key = estilo.id;
+  function crearTexturaTecho(estilo, ThreeLib, tamTex = 512) {
+    const size = tamTex || 512;
+    const key = size === 512 ? estilo.id : (estilo.id + '_' + size);
     if (_texTechoCache.has(key)) return _texTechoCache.get(key);
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -1014,13 +1781,12 @@
     const ctxB = canvasB.getContext('2d');
     const rnd = pseudoRnd((estilo.id ? estilo.id.length * 43 : 113) + 401);
 
-    // Fondo de bóveda tosca oscuro
     ctxD.fillStyle = '#060810';
     ctxD.fillRect(0, 0, size, size);
     ctxB.fillStyle = '#101010';
     ctxB.fillRect(0, 0, size, size);
 
-    // Hileras de dovelas de piedra de bóveda de cañón (8 filas con juntas horizontales y verticales)
+    // Hileras de dovelas de piedra de bóveda de crucería (8 filas)
     const filas = 8;
     const altoFila = size / filas;
     for (let f = 0; f < filas; f++) {
@@ -1031,24 +1797,23 @@
 
       for (let c = -1; c <= cols; c++) {
         const x = c * anchoCol + shift;
-        const pad = 3;
+        const pad = 2.8;
         const wBloque = anchoCol - pad * 2;
         const hBloque = altoFila - pad * 2;
 
         const gradD = ctxD.createLinearGradient(x, y, x, y + altoFila);
-        gradD.addColorStop(0.0, estilo.colorBase);
-        gradD.addColorStop(0.7, estilo.colorSecundario);
-        gradD.addColorStop(1.0, '#060810');
+        gradD.addColorStop(0.0, estilo.colorLosa || estilo.colorBase);
+        gradD.addColorStop(0.65, estilo.colorSecundario);
+        gradD.addColorStop(1.0, ajustarBrilloHex(estilo.colorMortero || '#060810', -10));
         ctxD.fillStyle = gradD;
         ctxD.fillRect(x + pad, y + pad, wBloque, hBloque);
 
-        // Bisel plano
-        ctxD.fillStyle = 'rgba(255,255,255,0.06)';
+        ctxD.fillStyle = 'rgba(255,255,255,0.08)';
         ctxD.fillRect(x + pad, y + pad, wBloque, 2);
-        ctxD.fillStyle = 'rgba(0,0,0,0.30)';
+        ctxD.fillStyle = 'rgba(0,0,0,0.32)';
         ctxD.fillRect(x + pad, y + pad + hBloque - 2, wBloque, 2);
 
-        ctxB.fillStyle = '#909090';
+        ctxB.fillStyle = '#9a9a9a';
         ctxB.fillRect(x + pad, y + pad, wBloque, hBloque);
         ctxB.strokeStyle = '#101010';
         ctxB.lineWidth = 2.5;
@@ -1056,88 +1821,281 @@
       }
     }
 
-    // Aristas de cantería y nervaduras de crucería rectas góticas
-    ctxD.strokeStyle = estilo.colorMortero || '#1e293b';
-    ctxD.lineWidth = 5;
+    // Arcos fajones perimetrales y nervaduras diagonales góticas biseladas
+    const colNervio = mezclarHex(estilo.colorLosa || estilo.colorBase, '#f8fafc', 0.22);
+    ctxD.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctxD.lineWidth = 14;
     ctxD.beginPath();
     ctxD.moveTo(0, 0); ctxD.lineTo(size, size);
     ctxD.moveTo(size, 0); ctxD.lineTo(0, size);
     ctxD.stroke();
 
-    ctxB.strokeStyle = '#cccccc';
-    ctxB.lineWidth = 5;
+    ctxD.strokeStyle = colNervio;
+    ctxD.lineWidth = 8;
+    ctxD.beginPath();
+    ctxD.moveTo(0, 0); ctxD.lineTo(size, size);
+    ctxD.moveTo(size, 0); ctxD.lineTo(0, size);
+    ctxD.stroke();
+    ctxD.strokeRect(4, 4, size - 8, size - 8);
+
+    ctxB.strokeStyle = '#e8e8e8';
+    ctxB.lineWidth = 9;
     ctxB.beginPath();
-    ctxB.moveTo(0, 0); ctxB.lineTo(size, size);
+    ctxB.moveTo(0, 0); ctxD.lineTo(size, size);
     ctxB.moveTo(size, 0); ctxB.lineTo(0, size);
     ctxB.stroke();
+    ctxB.strokeRect(4, 4, size - 8, size - 8);
 
-    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 404, 18);
+    // Clave central octogonal tallada en la intersección de la bóveda (0 círculos)
+    const cx = size * 0.5, cy = size * 0.5;
+    const rK = size * 0.085, cK = rK * 0.414;
+    const trazarClave = (ctx, r, ch) => {
+      ctx.beginPath();
+      ctx.moveTo(cx - ch, cy - r); ctx.lineTo(cx + ch, cy - r);
+      ctx.lineTo(cx + r, cy - ch); ctx.lineTo(cx + r, cy + ch);
+      ctx.lineTo(cx + ch, cy + r); ctx.lineTo(cx - ch, cy + r);
+      ctx.lineTo(cx - r, cy + ch); ctx.lineTo(cx - r, cy - ch);
+      ctx.closePath();
+    };
+    ctxD.fillStyle = colNervio;
+    trazarClave(ctxD, rK, cK);
+    ctxD.fill();
+    ctxD.strokeStyle = estilo.colorMortero || '#090d16';
+    ctxD.lineWidth = 2.5;
+    ctxD.stroke();
+    ctxD.fillStyle = mezclarHex(estilo.luzAntorchas || 0xf59e0b, colNervio, 0.5);
+    trazarClave(ctxD, rK * 0.5, cK * 0.5);
+    ctxD.fill();
 
-    const texD = new ThreeLib.CanvasTexture(canvasD);
-    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
-    texD.colorSpace = ThreeLib.SRGBColorSpace;
+    ctxB.fillStyle = '#ffffff';
+    trazarClave(ctxB, rK, cK);
+    ctxB.fill();
 
-    const texB = new ThreeLib.CanvasTexture(canvasB);
-    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+    aplicarDesgasteViejo(ctxD, ctxB, size, rnd, estilo, 0.85);
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 404, 16);
+
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
 
     const result = { diffuse: texD, bump: texB };
     _texTechoCache.set(key, result);
     return result;
   }
 
-  function crearTexturaMadera(ThreeLib) {
+  function crearTexturaMadera(ThreeLib, tamTex = 512) {
     if (_texMaderaCache) return _texMaderaCache;
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
+    const size = tamTex || 512;
+    const sc = size / 512;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
     canvasB.width = canvasB.height = size;
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
+    const rnd = pseudoRnd(733);
 
-    ctxD.fillStyle = '#3a1700';
+    ctxD.fillStyle = '#261004';
     ctxD.fillRect(0, 0, size, size);
-    ctxB.fillStyle = '#444444';
+    ctxB.fillStyle = '#181818';
     ctxB.fillRect(0, 0, size, size);
 
-    const vigas = 6;
-    const altoViga = size / vigas;
-    for (let v = 0; v < vigas; v++) {
-      const vy = v * altoViga;
-      ctxD.fillStyle = v % 2 === 0 ? '#78350f' : '#92400e';
-      ctxD.fillRect(2, vy + 2, size - 4, altoViga - 4);
+    const tablones = 7;
+    const altoTablon = size / tablones;
+    const tonos = ['#78350f', '#92400e', '#6d2e0b', '#854d0e', '#7c3810'];
 
-      // Vetas de madera
-      ctxD.fillStyle = 'rgba(0,0,0,0.18)';
-      for (let s = 6; s < size; s += 18) {
-        ctxD.fillRect(s, vy + 2, 2, altoViga - 4);
+    for (let v = 0; v < tablones; v++) {
+      const vy = v * altoTablon;
+      const py = vy + 2 * sc;
+      const ph = altoTablon - 4 * sc;
+      const gradT = ctxD.createLinearGradient(0, py, 0, py + ph);
+      const baseT = tonos[v % tonos.length];
+      gradT.addColorStop(0.0, ajustarBrilloHex(baseT, 12));
+      gradT.addColorStop(0.5, baseT);
+      gradT.addColorStop(1.0, ajustarBrilloHex(baseT, -16));
+      ctxD.fillStyle = gradT;
+      ctxD.fillRect(0, py, size, ph);
+
+      ctxB.fillStyle = '#bcbcbc';
+      ctxB.fillRect(0, py, size, ph);
+      ctxB.fillStyle = '#e0e0e0';
+      ctxB.fillRect(0, py, size, 2 * sc);
+
+      // Fibras y anillos de crecimiento longitudinales de roble viejo
+      const numFibras = 18;
+      for (let f = 0; f < numFibras; f++) {
+        const fy = py + (f + 0.5) * (ph / numFibras);
+        const osc = (f % 3 === 0) ? 'rgba(28,12,2,0.28)' : 'rgba(255,215,165,0.08)';
+        ctxD.strokeStyle = osc;
+        ctxD.lineWidth = (f % 4 === 0) ? 1.6 : 0.9;
+        ctxD.beginPath();
+        let yCur = fy;
+        ctxD.moveTo(0, yCur);
+        for (let sx = 0; sx <= size; sx += 32 * sc) {
+          const ond = Math.sin((sx / size) * Math.PI * 2 + v * 1.7 + f * 0.4) * (2.2 * sc);
+          ctxD.lineTo(sx, fy + ond);
+        }
+        ctxD.stroke();
+
+        if (f % 3 === 0) {
+          ctxB.strokeStyle = '#888888';
+          ctxB.lineWidth = 1.0;
+          ctxB.beginPath();
+          ctxB.moveTo(0, fy);
+          ctxB.lineTo(size, fy);
+          ctxB.stroke();
+        }
       }
 
-      ctxB.fillStyle = '#777777';
-      ctxB.fillRect(2, vy + 2, size - 4, altoViga - 4);
-      ctxB.strokeStyle = '#111111';
-      ctxB.lineWidth = 3;
-      ctxB.strokeRect(2, vy + 2, size - 4, altoViga - 4);
+      // Junta vertical de testa de tablón y clavos cuadrados de forja
+      const corteX = Math.round(((v * 173 + 90) % 380 + 64) * sc);
+      ctxD.fillStyle = '#1f0c02';
+      ctxD.fillRect(corteX, py, Math.max(2, 3 * sc), ph);
+      ctxB.fillStyle = '#141414';
+      ctxB.fillRect(corteX, py, Math.max(2, 3 * sc), ph);
+
+      // Clavos cuadrados de hierro forjado a ambos lados de la junta
+      [corteX - 10 * sc, corteX + 9 * sc].forEach(nx => {
+        [py + ph * 0.26, py + ph * 0.74].forEach(ny => {
+          const tamClavo = Math.max(3, 5 * sc);
+          ctxD.fillStyle = '#18181b';
+          ctxD.fillRect(nx - tamClavo * 0.5, ny - tamClavo * 0.5, tamClavo, tamClavo);
+          ctxD.fillStyle = 'rgba(255,255,255,0.22)';
+          ctxD.fillRect(nx - tamClavo * 0.5, ny - tamClavo * 0.5, tamClavo, 1.2);
+          ctxB.fillStyle = '#f4f4f4';
+          ctxB.fillRect(nx - tamClavo * 0.5, ny - tamClavo * 0.5, tamClavo, tamClavo);
+        });
+      });
+
+      // Nudo almendrado poligonal de madera en tablones alternos
+      if (v % 2 === 1) {
+        const kx = ((v * 137 + 210) % 420 + 45) * sc;
+        const ky = py + ph * 0.52;
+        const kw = 14 * sc, kh = 6 * sc;
+        ctxD.fillStyle = '#3b1704';
+        ctxD.beginPath();
+        ctxD.moveTo(kx - kw, ky);
+        ctxD.lineTo(kx, ky - kh);
+        ctxD.lineTo(kx + kw, ky);
+        ctxD.lineTo(kx, ky + kh);
+        ctxD.closePath();
+        ctxD.fill();
+        ctxB.fillStyle = '#606060';
+        ctxB.fillRect(kx - kw * 0.5, ky - kh * 0.5, kw, kh);
+      }
     }
 
-    const texD = new ThreeLib.CanvasTexture(canvasD);
-    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
-    texD.colorSpace = ThreeLib.SRGBColorSpace;
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 739, 9);
 
-    const texB = new ThreeLib.CanvasTexture(canvasB);
-    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
 
     _texMaderaCache = { diffuse: texD, bump: texB };
     return _texMaderaCache;
   }
 
-  function crearTexturaHierro(ThreeLib) {
+  function crearTexturaHierro(ThreeLib, tamTex = 512) {
     if (_texHierroCache) return _texHierroCache;
     if (typeof document === 'undefined') return { diffuse: null, bump: null };
 
-    const size = 512;
+    const size = tamTex || 512;
+    const sc = size / 512;
+    const canvasD = document.createElement('canvas');
+    const canvasB = document.createElement('canvas');
+    canvasD.width = canvasD.height = size;
+    canvasB.width = canvasB.height = size;
+    const ctxD = canvasD.getContext('2d');
+    const ctxB = canvasB.getContext('2d');
+    const rnd = pseudoRnd(887);
+
+    ctxD.fillStyle = '#232329';
+    ctxD.fillRect(0, 0, size, size);
+    ctxB.fillStyle = '#888888';
+    ctxB.fillRect(0, 0, size, size);
+
+    // Facetas de martillado de fragua (polígonos sutiles de hierro batido, 0 círculos)
+    const celdasM = 12;
+    const tamM = size / celdasM;
+    for (let my = 0; my < celdasM; my++) {
+      for (let mx = 0; mx < celdasM; mx++) {
+        const v = (rnd() - 0.5) * 26;
+        const g = Math.max(24, Math.min(82, Math.round(44 + v)));
+        ctxD.fillStyle = `rgb(${g},${g},${g + 4})`;
+        ctxD.fillRect(mx * tamM + 1, my * tamM + 1, tamM - 2, tamM - 2);
+        const gb = Math.max(90, Math.min(175, Math.round(132 + v * 1.4)));
+        ctxB.fillStyle = `rgb(${gb},${gb},${gb})`;
+        ctxB.fillRect(mx * tamM + 1, my * tamM + 1, tamM - 2, tamM - 2);
+      }
+    }
+
+    // Pátina sutil de óxido en juntas de placas
+    ctxD.fillStyle = 'rgba(124,45,18,0.22)';
+    ctxD.fillRect(0, 56 * sc, size, 12 * sc);
+    ctxD.fillRect(0, 312 * sc, size, 12 * sc);
+
+    // Flejes y pletinas de forja con bisel metálico y remaches octogonales/cuadrados (0 círculos)
+    [64 * sc, 320 * sc].forEach(by => {
+      const bh = 92 * sc;
+      const gradF = ctxD.createLinearGradient(0, by, 0, by + bh);
+      gradF.addColorStop(0.0, '#52525b');
+      gradF.addColorStop(0.5, '#3f3f46');
+      gradF.addColorStop(1.0, '#27272a');
+      ctxD.fillStyle = gradF;
+      ctxD.fillRect(0, by, size, bh);
+
+      ctxD.fillStyle = 'rgba(255,255,255,0.18)';
+      ctxD.fillRect(0, by, size, 3 * sc);
+      ctxD.fillStyle = 'rgba(0,0,0,0.45)';
+      ctxD.fillRect(0, by + bh - 3 * sc, size, 3 * sc);
+
+      ctxB.fillStyle = '#c8c8c8';
+      ctxB.fillRect(0, by, size, bh);
+      ctxB.strokeStyle = '#181818';
+      ctxB.lineWidth = 3 * sc;
+      ctxB.strokeRect(0, by, size, bh);
+
+      // Remaches forjados octogonales
+      const ry = by + bh * 0.5;
+      const rRem = 8 * sc;
+      const cRem = rRem * 0.42;
+      for (let rx = 32 * sc; rx < size; rx += 64 * sc) {
+        const trazarRemache = (ctx) => {
+          ctx.beginPath();
+          ctx.moveTo(rx - cRem, ry - rRem); ctx.lineTo(rx + cRem, ry - rRem);
+          ctx.lineTo(rx + rRem, ry - cRem); ctx.lineTo(rx + rRem, ry + cRem);
+          ctx.lineTo(rx + cRem, ry + rRem); ctx.lineTo(rx - cRem, ry + rRem);
+          ctx.lineTo(rx - rRem, ry + cRem); ctx.lineTo(rx - rRem, ry - cRem);
+          ctx.closePath();
+        };
+        ctxD.fillStyle = '#d4d4d8';
+        trazarRemache(ctxD);
+        ctxD.fill();
+        ctxD.strokeStyle = '#18181b';
+        ctxD.lineWidth = 1.5 * sc;
+        ctxD.stroke();
+
+        ctxB.fillStyle = '#ffffff';
+        trazarRemache(ctxB);
+        ctxB.fill();
+      }
+    });
+
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 907, 12);
+
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
+
+    _texHierroCache = { diffuse: texD, bump: texB };
+    return _texHierroCache;
+  }
+
+  function crearTexturaCeramica(ThreeLib, tamTex = 256) {
+    if (_texCeramicaCache) return _texCeramicaCache;
+    if (typeof document === 'undefined') return { diffuse: null, bump: null };
+
+    const size = tamTex || 256;
+    const sc = size / 256;
     const canvasD = document.createElement('canvas');
     const canvasB = document.createElement('canvas');
     canvasD.width = canvasD.height = size;
@@ -1145,45 +2103,60 @@
     const ctxD = canvasD.getContext('2d');
     const ctxB = canvasB.getContext('2d');
 
-    ctxD.fillStyle = '#27272a';
+    const gradT = ctxD.createLinearGradient(0, 0, 0, size);
+    gradT.addColorStop(0.0, '#b45309');
+    gradT.addColorStop(0.45, '#9a3412');
+    gradT.addColorStop(1.0, '#7c2d12');
+    ctxD.fillStyle = gradT;
     ctxD.fillRect(0, 0, size, size);
-    ctxB.fillStyle = '#888888';
+
+    ctxB.fillStyle = '#b0b0b0';
     ctxB.fillRect(0, 0, size, size);
 
-    // Bandas de forja y remaches
-    ctxD.fillStyle = '#3f3f46';
-    ctxD.fillRect(0, 64, size, 96);
-    ctxD.fillRect(0, 320, size, 96);
-
-    ctxD.fillStyle = '#d4d4d8';
-    for (let rx = 32; rx < size; rx += 64) {
-      ctxD.beginPath();
-      ctxD.arc(rx, 112, 8, 0, Math.PI * 2);
-      ctxD.arc(rx, 368, 8, 0, Math.PI * 2);
-      ctxD.fill();
-
-      ctxB.fillStyle = '#ffffff';
-      ctxB.beginPath();
-      ctxB.arc(rx, 112, 8, 0, Math.PI * 2);
-      ctxB.arc(rx, 368, 8, 0, Math.PI * 2);
-      ctxB.fill();
+    // Estrías horizontales de torno de alfarero
+    for (let y = 0; y < size; y += 6 * sc) {
+      ctxD.fillStyle = (y % 12 === 0) ? 'rgba(255,220,180,0.08)' : 'rgba(0,0,0,0.12)';
+      ctxD.fillRect(0, y, size, 2 * sc);
+      ctxB.fillStyle = (y % 12 === 0) ? '#cfcfcf' : '#969696';
+      ctxB.fillRect(0, y, size, 2 * sc);
     }
 
-    const texD = new ThreeLib.CanvasTexture(canvasD);
-    texD.wrapS = texD.wrapT = ThreeLib.RepeatWrapping;
-    texD.colorSpace = ThreeLib.SRGBColorSpace;
+    // Cenefa pintada geométrica (zig-zag y greca negra/ocre sobre ánfora)
+    const yCen = 88 * sc, hCen = 64 * sc;
+    ctxD.fillStyle = '#fef3c7';
+    ctxD.fillRect(0, yCen, size, hCen);
+    ctxD.fillStyle = '#292524';
+    ctxD.fillRect(0, yCen, size, 5 * sc);
+    ctxD.fillRect(0, yCen + hCen - 5 * sc, size, 5 * sc);
 
-    const texB = new ThreeLib.CanvasTexture(canvasB);
-    texB.wrapS = texB.wrapT = ThreeLib.RepeatWrapping;
+    const dientes = 12;
+    const pasoZ = size / dientes;
+    for (let i = 0; i < dientes; i++) {
+      const zx = i * pasoZ;
+      ctxD.fillStyle = (i % 2 === 0) ? '#7c2d12' : '#1c1917';
+      ctxD.beginPath();
+      ctxD.moveTo(zx + pasoZ * 0.5, yCen + 10 * sc);
+      ctxD.lineTo(zx + pasoZ - 2, yCen + hCen * 0.5);
+      ctxD.lineTo(zx + pasoZ * 0.5, yCen + hCen - 10 * sc);
+      ctxD.lineTo(zx + 2, yCen + hCen * 0.5);
+      ctxD.closePath();
+      ctxD.fill();
+    }
 
-    _texHierroCache = { diffuse: texD, bump: texB };
-    return _texHierroCache;
+    aplicarMicroTexturaPiedra(ctxD, ctxB, size, 613, 11);
+
+    const texD = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasD), ThreeLib, true);
+    const texB = configurarTexturaNitida(new ThreeLib.CanvasTexture(canvasB), ThreeLib, false);
+
+    _texCeramicaCache = { diffuse: texD, bump: texB };
+    return _texCeramicaCache;
   }
 
   // Compatibilidad: función previa crearAtlasMazmorra delegando en las texturas desacopladas
   function crearAtlasMazmorra(estilo, ThreeLib) {
     const texPared = crearTexturaPared(estilo, ThreeLib);
     const texSuelo = crearTexturaSuelo(estilo, ThreeLib);
+    const texMosaico = crearTexturaMosaico(estilo, ThreeLib);
     const texZocalo = crearTexturaZocalo(estilo, ThreeLib);
     const texTecho = crearTexturaTecho(estilo, ThreeLib);
     return {
@@ -1191,84 +2164,163 @@
       bump: texPared.bump,
       pared: texPared,
       suelo: texSuelo,
+      mosaico: texMosaico,
       zocalo: texZocalo,
       techo: texTecho
     };
   }
 
   // --- 4. CREADOR DE KITS DE MATERIALES PROCEDURALES INDEPENDIENTES ---
-  function crearKitMateriales(estilo, ThreeLib) {
-    const texPared = crearTexturaPared(estilo, ThreeLib);
-    const texSuelo = crearTexturaSuelo(estilo, ThreeLib);
-    const texZocalo = crearTexturaZocalo(estilo, ThreeLib);
-    const texTecho = crearTexturaTecho(estilo, ThreeLib);
-    const texMadera = crearTexturaMadera(ThreeLib);
-    const texHierro = crearTexturaHierro(ThreeLib);
+  function crearKitMateriales(estilo, ThreeLib, opcionesKit = null) {
+    const tamTex = (opcionesKit && opcionesKit.tamanoTextura) ? opcionesKit.tamanoTextura : 512;
+    const texPared = crearTexturaPared(estilo, ThreeLib, tamTex);
+    const texSuelo = crearTexturaSuelo(estilo, ThreeLib, tamTex);
+    const texMosaico = crearTexturaMosaico(estilo, ThreeLib, tamTex);
+    const texZocalo = crearTexturaZocalo(estilo, ThreeLib, tamTex);
+    const texTecho = crearTexturaTecho(estilo, ThreeLib, tamTex);
+    const texMadera = crearTexturaMadera(ThreeLib, tamTex);
+    const texHierro = crearTexturaHierro(ThreeLib, tamTex);
+    const texCeramica = crearTexturaCeramica(ThreeLib, Math.min(256, tamTex));
 
-    // Muros: usa exclusivamente textura de pared preservando luminosidad natural del mapa
+    // Muros: usa exclusivamente textura de pared preservando luminosidad natural del mapa y relieve marcado
     const matPiedraMuro = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: Math.min(0.8, estilo.rugosidad || 0.75),
-      metalness: 0.05,
+      roughness: Math.max(0.80, Math.min(0.95, estilo.rugosidad || 0.86)),
+      metalness: 0.01,
       map: texPared.diffuse,
       bumpMap: texPared.bump,
-      bumpScale: 0.08
+      bumpScale: 0.18
     });
 
-    // Suelo: usa exclusivamente textura de losas de pavimento (brillo nítido y claro)
-    const matSueloLosas = new ThreeLib.MeshStandardMaterial({
+    // Suelo: losas y azulejos arquitectónicos PBR con transición de zonas (desgaste central, bordes musgosos/húmedos, charcos en hondonadas)
+    const MatSueloPbr = ThreeLib.MeshPhysicalMaterial || ThreeLib.MeshStandardMaterial;
+    const colorMusgoVal = (typeof ThreeLib.Color === 'function') ? new ThreeLib.Color(estilo.colorMusgo || '#15803d') : null;
+    const densMusgo = Math.max(0.24, Math.min(0.90, estilo.densidadMusgo != null ? estilo.densidadMusgo : 0.38));
+    const matSueloLosas = new MatSueloPbr(Object.assign({
       color: 0xffffff,
-      roughness: 0.68,
-      metalness: 0.04,
+      roughness: Math.max(0.68, Math.min(0.86, (estilo.rugosidad || 0.82))),
+      metalness: 0.02,
       map: texSuelo.diffuse,
       bumpMap: texSuelo.bump,
-      bumpScale: 0.06
+      bumpScale: 0.26
+    }, ThreeLib.MeshPhysicalMaterial ? { clearcoat: 0.9, clearcoatRoughness: 0.09 } : {}));
+    matSueloLosas.userData = Object.assign({}, matSueloLosas.userData, { _sueloPbrHook: true, esSueloMazmorra: true });
+    if (colorMusgoVal && typeof ThreeLib.MeshPhysicalMaterial === 'function') {
+      const claveEstiloSuelo = String(estilo.nombre || estilo.colorMusgo || 'base');
+      matSueloLosas.customProgramCacheKey = () => 'suelo-maz-pbr-v1:' + claveEstiloSuelo;
+      matSueloLosas.onBeforeCompile = (shader) => {
+        shader.uniforms.uColorMusgo = { value: colorMusgoVal };
+        shader.uniforms.uDensMusgo = { value: densMusgo };
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', '#include <common>\nattribute vec3 aZona;\nvarying vec3 vZonaMaz;\nvarying vec3 vWorldMaz;')
+          .replace('#include <begin_vertex>', '#include <begin_vertex>\nvZonaMaz = aZona;\nvWorldMaz = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <common>', [
+            '#include <common>',
+            'uniform vec3 uColorMusgo;',
+            'uniform float uDensMusgo;',
+            'varying vec3 vZonaMaz;',
+            'varying vec3 vWorldMaz;',
+            'float mHash2(vec2 p) { p = fract(p * vec2(127.1, 311.7)); p += dot(p, p + 34.5); return fract(p.x * p.y); }',
+            'float mNoise2(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f); return mix(mix(mHash2(i), mHash2(i + vec2(1.0, 0.0)), u.x), mix(mHash2(i + vec2(0.0, 1.0)), mHash2(i + vec2(1.0, 1.0)), u.x), u.y); }'
+          ].join('\n'))
+          .replace('#include <color_fragment>', [
+            '#include <color_fragment>',
+            'float mN1 = mNoise2(vWorldMaz.xz * 0.55);',
+            'float mN2 = mNoise2(vWorldMaz.xz * 0.24 + 7.1);',
+            'float bordeMaz = clamp(vZonaMaz.x, 0.0, 1.0);',
+            'float hondMaz = clamp(vZonaMaz.y, 0.0, 1.0);',
+            'float centroMaz = clamp(vZonaMaz.z, 0.0, 1.0);',
+            'float musgoMaz = smoothstep(0.32, 0.80, bordeMaz * (0.48 + uDensMusgo * 0.65) + mN1 * 0.34);',
+            'float charcoMaz = smoothstep(0.46, 0.84, hondMaz * 0.82 + mN2 * 0.34 + bordeMaz * 0.14);',
+            'float aoBordeMaz = mix(1.0, 0.66, pow(bordeMaz, 1.45));',
+            'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.12, centroMaz * 0.42);',
+            'diffuseColor.rgb = mix(diffuseColor.rgb, uColorMusgo * 0.62, musgoMaz * 0.58);',
+            'diffuseColor.rgb *= aoBordeMaz * mix(1.0, 0.62, charcoMaz * 0.85);'
+          ].join('\n'))
+          .replace('#include <roughnessmap_fragment>', [
+            '#include <roughnessmap_fragment>',
+            'roughnessFactor = mix(roughnessFactor, 0.46, centroMaz * 0.48);',
+            'roughnessFactor = mix(roughnessFactor, mix(0.24, 0.09, charcoMaz), clamp(musgoMaz * 0.35 + bordeMaz * 0.28 + charcoMaz * 0.92, 0.0, 1.0));'
+          ].join('\n'))
+          .replace('#include <normal_fragment_maps>', [
+            '#include <normal_fragment_maps>',
+            'normal = normalize(mix(normal, nonPerturbedNormal, charcoMaz * 0.86));'
+          ].join('\n'))
+          .replace('#include <lights_physical_fragment>', [
+            '#include <lights_physical_fragment>',
+            '#ifdef USE_CLEARCOAT',
+            'material.clearcoat = clamp(charcoMaz * 0.90 + bordeMaz * 0.22, 0.0, 0.90);',
+            'material.clearcoatRoughness = clamp(mix(0.32, 0.06, charcoMaz), 0.0525, 1.0);',
+            '#endif'
+          ].join('\n'));
+      };
+    }
+
+    // Alfombra pétrea / mosaico de teselas y azulejos esmaltados incrustados en el pavimento
+    const matMosaicoSuelo = new ThreeLib.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: Math.max(0.52, Math.min(0.76, (estilo.rugosidad || 0.78) - 0.14)),
+      metalness: 0.05,
+      map: texMosaico.diffuse,
+      bumpMap: texMosaico.bump,
+      bumpScale: 0.16
     });
 
-    // Zócalo perimetral: moldura y sillar ciclópeo inferior
+    // Zócalo perimetral: moldura tallada de dentículos y sillar ciclópeo inferior
     const matZocalo = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: Math.min(0.8, (estilo.rugosidad || 0.8) * 0.95),
-      metalness: 0.08,
+      roughness: 0.84,
+      metalness: 0.01,
       map: texZocalo.diffuse,
       bumpMap: texZocalo.bump,
-      bumpScale: 0.09
+      bumpScale: 0.16
     });
 
-    // Techo / Bóveda
+    // Techo / Bóveda nervada con clave octogonal
     const matTecho = new ThreeLib.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: 0.80,
-      metalness: 0.05,
+      roughness: 0.90,
+      metalness: 0.0,
       map: texTecho.diffuse,
       bumpMap: texTecho.bump,
-      bumpScale: 0.06
+      bumpScale: 0.075
     });
 
-    // Madera para props (cofres, mesas, puertas)
+    // Madera de roble viejo para props (cofres, mesas, puertas, estanterías)
     const matMadera = new ThreeLib.MeshStandardMaterial({
-      color: 0x854d0e,
-      roughness: 0.7,
-      metalness: 0.05,
+      color: 0xb47a44,
+      roughness: 0.74,
+      metalness: 0.02,
       map: texMadera.diffuse,
       bumpMap: texMadera.bump,
-      bumpScale: 0.05
+      bumpScale: 0.055
     });
 
-    // Hierro forjado
+    // Hierro forjado martillado con remaches octogonales
     const matHierro = new ThreeLib.MeshStandardMaterial({
-      color: 0x3f3f46,
-      roughness: 0.45,
-      metalness: 0.85,
+      color: 0x71717a,
+      roughness: 0.58,
+      metalness: 0.52,
       map: texHierro.diffuse,
       bumpMap: texHierro.bump,
+      bumpScale: 0.048
+    });
+
+    // Cerámica policromada de ánforas y vasijas
+    const matCeramica = new ThreeLib.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.72,
+      metalness: 0.04,
+      map: texCeramica.diffuse,
+      bumpMap: texCeramica.bump,
       bumpScale: 0.04
     });
 
     const matOro = new ThreeLib.MeshStandardMaterial({
       color: 0xf59e0b,
-      roughness: 0.3,
-      metalness: 0.95
+      roughness: 0.42,
+      metalness: 0.68
     });
 
     const matAgua = new ThreeLib.MeshStandardMaterial({
@@ -1301,16 +2353,20 @@
       atlas: { diffuse: texPared.diffuse, bump: texPared.bump },
       texPared,
       texSuelo,
+      texMosaico,
       texZocalo,
       texTecho,
       texMadera,
       texHierro,
+      texCeramica,
       piedraMuro: matPiedraMuro,
       sueloLosas: matSueloLosas,
+      mosaicoSuelo: matMosaicoSuelo,
       zocalo: matZocalo,
       techo: matTecho,
       madera: matMadera,
       hierro: matHierro,
+      ceramica: matCeramica,
       oro: matOro,
       agua: matAgua,
       llama: matLlama,
@@ -1322,7 +2378,7 @@
   // --- 5. FABRICA DE PROPS PROCEDURALES ---
 
   // A) Antorcha con soporte de forja, candelabros, faroles, braseros o cristales arcanos
-  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 3.4, opciones = {}) {
+  function crearAntorcha(ThreeLib, kit, luzHex, intensidad = 2.4, opciones = {}) {
     const g = new ThreeLib.Group();
     const forma = opciones.forma || opciones.formaAntorcha || 'antorcha_hierro';
     const colorLuzVal = (luzHex !== undefined && luzHex !== null) ? luzHex : ((kit && kit.estilo && kit.estilo.luzAntorchas) || 0xf59e0b);
@@ -1335,6 +2391,23 @@
     const matLlamaActual = new ThreeLib.MeshBasicMaterial({ color: colorLuzVal });
 
     let luz, llamaObj, animarFn;
+    const crearFocoAntorcha = (lx, ly, lz) => {
+      if (opciones && opciones.usarPoolLuces) {
+        return {
+          position: { x: lx, y: ly, z: lz, set(nx, ny, nz) { this.x = nx; this.y = ny; this.z = nz; } },
+          color: colorLuzVal,
+          intensity: intensidad,
+          distance: radioLuz,
+          decay: decayLuz,
+          castShadow: false,
+          esVirtual: true
+        };
+      }
+      const l = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
+      l.position.set(lx, ly, lz);
+      g.add(l);
+      return l;
+    };
 
     if (forma === 'candelabro_aplique') {
       // 1. Candelabro mural con 3 velas ornamentadas
@@ -1371,9 +2444,7 @@
         llamas.push(ll);
       });
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.35, 0.3);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.35, 0.3);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.88 + Math.sin(t * 11.0) * 0.09 + Math.cos(t * 23.0) * 0.03);
@@ -1429,9 +2500,7 @@
       llama.position.set(0, -0.15, 0.32);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, -0.12, 0.32);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, -0.12, 0.32);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.90 + Math.sin(t * 8.0) * 0.08 + Math.cos(t * 19.0) * 0.02);
@@ -1471,9 +2540,7 @@
       llama.position.set(0, 0.14, 0.26);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.2, 0.29);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.2, 0.29);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.85 + Math.sin(t * 13.0) * 0.1 + Math.cos(t * 29.0) * 0.05);
@@ -1515,9 +2582,7 @@
       cristal.scale.set(0.8, 1.4, 0.8);
       g.add(cristal);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.14, 0.24);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.14, 0.24);
 
       animarFn = (t) => {
         const pulso = 0.88 + Math.sin(t * 3.5) * 0.12;
@@ -1549,9 +2614,7 @@
       llama.position.set(0, 0.3, 0.34);
       g.add(llama);
 
-      luz = new ThreeLib.PointLight(colorLuzVal, intensidad, radioLuz, decayLuz);
-      luz.position.set(0, 0.35, 0.36);
-      g.add(luz);
+      luz = crearFocoAntorcha(0, 0.35, 0.36);
 
       animarFn = (t) => {
         luz.intensity = intensidad * (0.88 + Math.sin(t * 12.0) * 0.08 + Math.cos(t * 27.0) * 0.04);
@@ -1562,6 +2625,12 @@
         );
       };
       llamaObj = llama;
+    }
+
+    if (opciones && opciones.sinSombrasMallas) {
+      for (let ci = 0; ci < g.children.length; ci++) {
+        g.children[ci].castShadow = false;
+      }
     }
 
     // Configuración de sombras (optimizada: por defecto desactivadas en luces secundarias puntuales para 60 FPS)
@@ -1727,19 +2796,17 @@
     return g;
   }
 
-  // D) Jarrones y vasijas de cerámica
+  // D) Jarrones y vasijas de cerámica policromada
   function crearJarron(ThreeLib, kit, escala = 1.0, roto = false) {
     const g = new ThreeLib.Group();
 
-    // Material terracota / cerámica antigua
-    const matCeramica = new ThreeLib.MeshStandardMaterial({
+    const matCeramica = (kit && kit.ceramica) ? kit.ceramica : new ThreeLib.MeshStandardMaterial({
       color: 0x9a3412,
-      roughness: 0.85,
+      roughness: 0.78,
       metalness: 0.05
     });
 
     if (roto) {
-      // Pedazos de vasija rota
       const p1 = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(0.35 * escala, 0.12 * escala, 0.35 * escala), matCeramica);
       p1.position.set(0.1, 0.06 * escala, 0);
       g.add(p1);
@@ -1748,13 +2815,11 @@
       p2.rotation.y = 0.5;
       g.add(p2);
     } else {
-      // Cuerpo abombado
       const cuerpo = new ThreeLib.Mesh(new ThreeLib.SphereGeometry(0.42 * escala, 10, 8), matCeramica);
       cuerpo.scale.set(1, 1.3, 1);
       cuerpo.position.y = 0.5 * escala;
       g.add(cuerpo);
 
-      // Cuello y boca
       const cuello = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.2 * escala, 0.28 * escala, 0.35 * escala, 8), matCeramica);
       cuello.position.y = 0.9 * escala;
       g.add(cuello);
@@ -1769,23 +2834,23 @@
     return g;
   }
 
-  // E) Sarcófago de piedra labrada
+  // E) Sarcófago de piedra labrada con UVs métricas y losa de mosaico/cantería
   function crearSarcofago(ThreeLib, kit) {
     const g = new ThreeLib.Group();
     const l = 2.4, w = 1.1, h = 0.85;
 
-    // Caja inferior
-    const caja = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w, h * 0.7, l), kit.piedraMuro);
+    const geoCaja = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(w, h * 0.7, l), w, h * 0.7, l, 1.8, 0.8);
+    const caja = new ThreeLib.Mesh(geoCaja, kit.zocalo || kit.piedraMuro);
     caja.position.y = (h * 0.7) / 2;
     g.add(caja);
 
-    // Tapa con relieve
-    const tapa = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w * 1.06, 0.22, l * 1.04), kit.sueloLosas);
+    const geoTapa = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(w * 1.06, 0.22, l * 1.04), w * 1.06, 0.22, l * 1.04, 1.8, 0.8);
+    const tapa = new ThreeLib.Mesh(geoTapa, kit.sueloLosas);
     tapa.position.y = (h * 0.7) + 0.11;
     g.add(tapa);
 
-    // Efigie / cruz en relieve
-    const relieve = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(w * 0.5, 0.08, l * 0.7), kit.piedraMuro);
+    const geoRel = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(w * 0.5, 0.08, l * 0.7), w * 0.5, 0.08, l * 0.7, 1.4, 0.6);
+    const relieve = new ThreeLib.Mesh(geoRel, kit.mosaicoSuelo || kit.piedraMuro);
     relieve.position.y = (h * 0.7) + 0.24;
     g.add(relieve);
 
@@ -2670,32 +3735,198 @@
     const g = new ThreeLib.Group();
     g.position.set(sala.x, sala.y || 0, sala.z);
     g.userData = { idSala: sala.id, salaRef: sala };
+    g._partesPorLado = {
+      norte: [],
+      sur: [],
+      este: [],
+      oeste: [],
+      techo: []
+    };
 
     const W = sala.w, H = sala.h, D = sala.d;
+    const esRedonda = !!(sala.esRedonda || sala.tipo === 'rotonda' || sala.forma === 'redonda');
+    const R_sala = Math.min(W, D) / 2;
 
     const mats = resolverMaterialesSala(ThreeLib, kit, opciones.kitsPorEstilo, sala, opciones);
 
-    // Suelo con mapeo métrico (1 repetición cada 3m, ~75cm por losa)
-    const sueloGeo = new ThreeLib.PlaneGeometry(W, D);
-    escalarUVsPlane(sueloGeo, W / 3.0, D / 3.0);
-    const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
-    suelo.rotation.x = -Math.PI / 2;
-    suelo.receiveShadow = true;
-    suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
-    g.add(suelo);
+    if (esRedonda) {
+      let sueloGeo;
+      if (typeof ThreeLib.BufferGeometry === 'function' && typeof ThreeLib.Float32BufferAttribute === 'function') {
+        const segA = 36;
+        const segR = 14;
+        const radMax = R_sala + 0.25;
+        const verts = [];
+        const uvs = [];
+        const zonas = [];
+        const indices = [];
+        const apR = sala.aperturas || {};
+        // Centro
+        verts.push(0, 0, 0);
+        uvs.push(R_sala / 3.0, R_sala / 3.0);
+        zonas.push(0.0, 0.0, 1.0);
+        for (let ir = 1; ir <= segR; ir++) {
+          const fr = ir / segR;
+          const rad = fr * radMax;
+          const bordeMask = Math.max(0, Math.min(1, (fr - 0.58) / 0.42));
+          const centroMask = Math.max(0, 1.0 - fr / 0.55);
+          const maskPlano = Math.max(0, Math.min(1, (fr - 0.22) / 0.22)) * Math.max(0, Math.min(1, (1.0 - fr) / 0.14));
+          for (let ia = 0; ia <= segA; ia++) {
+            const ang = (ia / segA) * Math.PI * 2;
+            const px = Math.cos(ang) * rad;
+            const pz = Math.sin(ang) * rad;
+            let puertaMask = 1.0;
+            if (apR.norte && pz < -R_sala * 0.45 && Math.abs(px - (apR.norte.cx || 0)) < 3.5) puertaMask = 0.25;
+            if (apR.sur && pz > R_sala * 0.45 && Math.abs(px - (apR.sur.cx || 0)) < 3.5) puertaMask = 0.25;
+            if (apR.oeste && px < -R_sala * 0.45 && Math.abs(pz - (apR.oeste.cz || 0)) < 3.5) puertaMask = 0.25;
+            if (apR.este && px > R_sala * 0.45 && Math.abs(pz - (apR.este.cz || 0)) < 3.5) puertaMask = 0.25;
+            const wave = Math.sin(px * 0.72 + (sala.x || 0) * 0.3) * Math.cos(pz * 0.68 + (sala.z || 0) * 0.3) * 0.62
+              + Math.sin((px - pz) * 1.15) * 0.38;
+            const py = (-0.015 + wave * 0.019) * maskPlano * puertaMask;
+            const hondonada = Math.max(0, Math.min(1, (-py - 0.006) / 0.026));
+            verts.push(px, py, pz);
+            uvs.push((px + R_sala) / 3.0, (pz + R_sala) / 3.0);
+            zonas.push(bordeMask, hondonada, centroMask);
+          }
+        }
+        const stride = segA + 1;
+        for (let ia = 0; ia < segA; ia++) {
+          indices.push(0, 1 + ia + 1, 1 + ia);
+        }
+        for (let ir = 1; ir < segR; ir++) {
+          const base0 = 1 + (ir - 1) * stride;
+          const base1 = 1 + ir * stride;
+          for (let ia = 0; ia < segA; ia++) {
+            const v0 = base0 + ia, v1 = base1 + ia, v2 = base1 + ia + 1, v3 = base0 + ia + 1;
+            indices.push(v0, v3, v2, v0, v2, v1);
+          }
+        }
+        sueloGeo = new ThreeLib.BufferGeometry();
+        sueloGeo.setIndex(indices);
+        sueloGeo.setAttribute('position', new ThreeLib.Float32BufferAttribute(verts, 3));
+        sueloGeo.setAttribute('uv', new ThreeLib.Float32BufferAttribute(uvs, 2));
+        sueloGeo.setAttribute('aZona', new ThreeLib.Float32BufferAttribute(zonas, 3));
+        sueloGeo.computeVertexNormals();
+      } else {
+        sueloGeo = new ThreeLib.CylinderGeometry(R_sala + 0.25, R_sala + 0.25, 0.04, 32);
+        if (sueloGeo.attributes && sueloGeo.attributes.uv && sueloGeo.attributes.position) {
+          const pos = sueloGeo.attributes.position, uv = sueloGeo.attributes.uv;
+          for (let i = 0; i < pos.count; i++) {
+            uv.setXY(i, (pos.getX(i) + R_sala) / 3.0, (pos.getZ(i) + R_sala) / 3.0);
+          }
+          uv.needsUpdate = true;
+        }
+      }
+      const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
+      suelo.position.y = (typeof ThreeLib.BufferGeometry === 'function' && typeof ThreeLib.Float32BufferAttribute === 'function') ? 0 : -0.02;
+      suelo.receiveShadow = true;
+      suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
+      g.add(suelo);
 
-    // Techo con mapeo métrico (1 repetición cada 3.5m)
-    if (opciones.techo !== false && !opciones.sinTecho) {
-      const techoGeo = new ThreeLib.PlaneGeometry(W, D);
-      escalarUVsPlane(techoGeo, W / 3.5, D / 3.5);
-      const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
-      techo.rotation.x = Math.PI / 2;
-      techo.position.y = H;
-      techo.name = 'techo_' + sala.id;
-      techo.castShadow = true;
-      techo.receiveShadow = true;
-      techo.userData = { tipo: 'techo', idSala: sala.id };
-      g.add(techo);
+      if (opciones.techo !== false && !opciones.sinTecho) {
+        const techoGeo = new ThreeLib.CircleGeometry(R_sala + 0.45, 32);
+        escalarUVsPlane(techoGeo, (R_sala * 2) / 3.5, (R_sala * 2) / 3.5);
+        const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
+        techo.rotation.x = Math.PI / 2;
+        techo.position.y = H;
+        techo.name = 'techo_' + sala.id;
+        techo.castShadow = true;
+        techo.receiveShadow = true;
+        techo.userData = { tipo: 'techo', idSala: sala.id, ladoPrincipal: 'techo', esPared: true, esTecho: true };
+        g.add(techo);
+        g._partesPorLado.techo.push(techo);
+
+        if (Array.isArray(opciones.cajasOclusion)) {
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: 'techo',
+            minX: sala.x - R_sala,
+            maxX: sala.x + R_sala,
+            minY: (sala.y || 0) + H - 0.25,
+            maxY: (sala.y || 0) + H + 0.35,
+            minZ: sala.z - R_sala,
+            maxZ: sala.z + R_sala
+          });
+        }
+      }
+    } else {
+      // Suelo denso con micro-relieve (20..48 segmentos), zonas de transición (centro desgastado / bordes musgosos / charcos) y normales suaves
+      const segW = Math.min(48, Math.max(20, Math.round(W * 1.6)));
+      const segD = Math.min(48, Math.max(20, Math.round(D * 1.6)));
+      const sueloGeo = new ThreeLib.PlaneGeometry(W, D, segW, segD);
+      escalarUVsPlane(sueloGeo, W / 3.0, D / 3.0);
+      if (sueloGeo.attributes && sueloGeo.attributes.position && typeof sueloGeo.setAttribute === 'function' && typeof ThreeLib.Float32BufferAttribute === 'function') {
+        const pos = sueloGeo.attributes.position;
+        const zonas = new Float32Array(pos.count * 3);
+        const apRect = sala.aperturas || {};
+        const halfW = W * 0.5, halfD = D * 0.5;
+        const centCutX = Math.min(3.2, W * 0.22), centCutZ = Math.min(3.2, D * 0.22);
+        for (let i = 0; i < pos.count; i++) {
+          const lx = pos.getX(i);
+          const ly = pos.getY(i);
+          const wz = -ly; // tras rotation.x = -PI/2
+          const dWall = Math.min(halfW - Math.abs(lx), halfD - Math.abs(wz));
+          const dNormCenter = Math.hypot(lx / Math.max(1, halfW), wz / Math.max(1, halfD));
+          const bordeMask = Math.max(0, Math.min(1, (2.2 - dWall) / 1.9));
+          const centroMask = Math.max(0, Math.min(1, (0.58 - dNormCenter) / 0.45));
+
+          let maskPuerta = 1.0;
+          if (apRect.norte && wz < -halfD + 2.4 && Math.abs(lx - (apRect.norte.cx || 0)) < (apRect.norte.w || 6.8) * 0.55) maskPuerta = 0.15;
+          if (apRect.sur && wz > halfD - 2.4 && Math.abs(lx - (apRect.sur.cx || 0)) < (apRect.sur.w || 6.8) * 0.55) maskPuerta = 0.15;
+          if (apRect.oeste && lx < -halfW + 2.4 && Math.abs(wz - (apRect.oeste.cz || 0)) < (apRect.oeste.d || 6.0) * 0.55) maskPuerta = 0.15;
+          if (apRect.este && lx > halfW - 2.4 && Math.abs(wz - (apRect.este.cz || 0)) < (apRect.este.d || 6.0) * 0.55) maskPuerta = 0.15;
+
+          const enCentroMosaic = (Math.abs(lx) < centCutX && Math.abs(wz) < centCutZ)
+            ? Math.max(0, Math.min(1, (Math.max(Math.abs(lx) / centCutX, Math.abs(wz) / centCutZ) - 0.65) / 0.35))
+            : 1.0;
+          const bordeSuave = Math.max(0, Math.min(1, dWall / 0.65));
+
+          const wave = Math.sin(lx * 0.72 + (sala.x || 0) * 0.3) * Math.cos(wz * 0.68 + (sala.z || 0) * 0.3) * 0.60
+            + Math.sin((lx - wz) * 1.15) * 0.40;
+          const lz = (-0.014 + wave * 0.019) * bordeSuave * enCentroMosaic * maskPuerta;
+          pos.setZ(i, lz);
+
+          const hondonada = Math.max(0, Math.min(1, (-lz - 0.005) / 0.025));
+          zonas[i * 3] = bordeMask * maskPuerta;
+          zonas[i * 3 + 1] = hondonada;
+          zonas[i * 3 + 2] = centroMask;
+        }
+        pos.needsUpdate = true;
+        sueloGeo.setAttribute('aZona', new ThreeLib.Float32BufferAttribute(zonas, 3));
+        if (typeof sueloGeo.computeVertexNormals === 'function') sueloGeo.computeVertexNormals();
+      }
+      const suelo = new ThreeLib.Mesh(sueloGeo, mats.matSuelo);
+      suelo.rotation.x = -Math.PI / 2;
+      suelo.receiveShadow = true;
+      suelo.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
+      g.add(suelo);
+
+      // Techo con mapeo métrico (1 repetición cada 3.5m)
+      if (opciones.techo !== false && !opciones.sinTecho) {
+        const techoGeo = new ThreeLib.PlaneGeometry(W, D);
+        escalarUVsPlane(techoGeo, W / 3.5, D / 3.5);
+        const techo = new ThreeLib.Mesh(techoGeo, mats.matTecho);
+        techo.rotation.x = Math.PI / 2;
+        techo.position.y = H;
+        techo.name = 'techo_' + sala.id;
+        techo.castShadow = true;
+        techo.receiveShadow = true;
+        techo.userData = { tipo: 'techo', idSala: sala.id, ladoPrincipal: 'techo', esPared: true, esTecho: true };
+        g.add(techo);
+        g._partesPorLado.techo.push(techo);
+
+        if (Array.isArray(opciones.cajasOclusion)) {
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: 'techo',
+            minX: sala.x - W / 2,
+            maxX: sala.x + W / 2,
+            minY: (sala.y || 0) + H - 0.25,
+            maxY: (sala.y || 0) + H + 0.35,
+            minZ: sala.z - D / 2,
+            maxZ: sala.z + D / 2
+          });
+        }
+      }
     }
 
     // Muros herméticos con hombros completos y zócalo perimetral inferior
@@ -2707,6 +3938,11 @@
       const hMur = H - hZoc;
       const tipoMuro = isHombro ? 'muro_hombro' : 'muro';
 
+      let ladoBase = 'norte';
+      if (tipoLado.includes('sur')) ladoBase = 'sur';
+      else if (tipoLado.includes('oeste')) ladoBase = 'oeste';
+      else if (tipoLado.includes('este')) ladoBase = 'este';
+
       // Vector normal hacia el interior de la sala para orientar plintos y molduras sobresalientes
       let normX = 0, normZ = 0;
       if (tipoLado.includes('norte')) normZ = 1;
@@ -2716,7 +3952,18 @@
 
       const salientePlinto = 0.08;
       const esHorizontal = w >= d;
+      const esMuralCompleto = !!(mats.matPared && mats.matPared.userData && mats.matPared.userData.muralUnico && !isHombro);
 
+      if (esMuralCompleto) {
+        // Mural continuo (5x2): una sola pieza de suelo a techo con UVs [0,1] para mantener el orden exacto
+        const muralGeo = new ThreeLib.BoxGeometry(w, H, d);
+        const muralMesh = new ThreeLib.Mesh(muralGeo, mats.matPared);
+        muralMesh.position.set(px, H / 2, pz);
+        muralMesh.castShadow = true; muralMesh.receiveShadow = true;
+        muralMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+        g.add(muralMesh);
+        g._partesPorLado[ladoBase].push(muralMesh);
+      } else {
       // 1. Zócalo / Plinto inferior sobresaliente con mapeo métrico
       const zocW = esHorizontal ? w : (w + salientePlinto);
       const zocD = esHorizontal ? (d + salientePlinto) : d;
@@ -2728,8 +3975,9 @@
       const zocMesh = new ThreeLib.Mesh(zocGeo, mats.matZocalo);
       zocMesh.position.set(zocPX, hZoc / 2, zocPZ);
       zocMesh.castShadow = true; zocMesh.receiveShadow = true;
-      zocMesh.userData = { tipo: 'zocalo', lado: 'zocalo_' + tipoLado, idSala: sala.id };
+      zocMesh.userData = { tipo: 'zocalo', lado: 'zocalo_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(zocMesh);
+      g._partesPorLado[ladoBase].push(zocMesh);
 
       // 1.1 Moldura biselada de remate superior del plinto
       const salRemate = salientePlinto + 0.03;
@@ -2740,8 +3988,9 @@
       const remMesh = new ThreeLib.Mesh(remGeo, mats.matZocalo);
       remMesh.position.set(px + (normX * salRemate * 0.5), hZoc + 0.03, pz + (normZ * salRemate * 0.5));
       remMesh.castShadow = true; remMesh.receiveShadow = true;
-      remMesh.userData = { tipo: 'moldura_plinto', lado: 'moldura_plinto_' + tipoLado, idSala: sala.id };
+      remMesh.userData = { tipo: 'moldura_plinto', lado: 'moldura_plinto_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(remMesh);
+      g._partesPorLado[ladoBase].push(remMesh);
 
       // 2. Muro superior con mapeo métrico
       const murGeo = new ThreeLib.BoxGeometry(w, hMur, d);
@@ -2749,8 +3998,9 @@
       const murMesh = new ThreeLib.Mesh(murGeo, mats.matPared);
       murMesh.position.set(px, hZoc + hMur / 2, pz);
       murMesh.castShadow = true; murMesh.receiveShadow = true;
-      murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id };
+      murMesh.userData = { tipo: tipoMuro, lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(murMesh);
+      g._partesPorLado[ladoBase].push(murMesh);
 
       // 2.1 Cenefa / Moldura corrida sobresaliente a media altura (imposta medieval)
       if (hMur > 1.8) {
@@ -2763,8 +4013,9 @@
         const cenMesh = new ThreeLib.Mesh(cenGeo, mats.matZocalo);
         cenMesh.position.set(px + (normX * salCenefa * 0.5), yCenefa, pz + (normZ * salCenefa * 0.5));
         cenMesh.castShadow = true; cenMesh.receiveShadow = true;
-        cenMesh.userData = { tipo: 'cenefa_muro', lado: 'cenefa_' + tipoLado, idSala: sala.id };
+        cenMesh.userData = { tipo: 'cenefa_muro', lado: 'cenefa_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
         g.add(cenMesh);
+        g._partesPorLado[ladoBase].push(cenMesh);
       }
 
       // 2.2 Cornisa superior corrida sobresaliente bajo el techo
@@ -2778,8 +4029,9 @@
         const corMesh = new ThreeLib.Mesh(corGeo, mats.matZocalo);
         corMesh.position.set(px + (normX * salCornisa * 0.5), yCornisa, pz + (normZ * salCornisa * 0.5));
         corMesh.castShadow = true; corMesh.receiveShadow = true;
-        corMesh.userData = { tipo: 'cornisa_muro', lado: 'cornisa_' + tipoLado, idSala: sala.id };
+        corMesh.userData = { tipo: 'cornisa_muro', lado: 'cornisa_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
         g.add(corMesh);
+        g._partesPorLado[ladoBase].push(corMesh);
       }
 
       // 2.3 Pilastras adosadas de cantería en tramos de muro largos
@@ -2811,8 +4063,9 @@
           const pilMesh = new ThreeLib.Mesh(pilGeo, mats.matPared);
           pilMesh.position.set(pilPX, yPil, pilPZ);
           pilMesh.castShadow = true; pilMesh.receiveShadow = true;
-          pilMesh.userData = { tipo: 'pilastra_muro', lado: 'pilastra_' + tipoLado, idSala: sala.id };
+          pilMesh.userData = { tipo: 'pilastra_muro', lado: 'pilastra_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(pilMesh);
+          g._partesPorLado[ladoBase].push(pilMesh);
 
           // Capitel de la pilastra
           const capW = pilW + 0.05;
@@ -2821,23 +4074,42 @@
           const capMesh = new ThreeLib.Mesh(capGeo, mats.matZocalo);
           capMesh.position.set(pilPX, hZoc + 0.06 + hPil - 0.07, pilPZ);
           capMesh.castShadow = true; capMesh.receiveShadow = true;
+          capMesh.userData = { tipo: 'capitel_pilastra', lado: 'pilastra_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(capMesh);
+          g._partesPorLado[ladoBase].push(capMesh);
         }
+      }
       }
 
       // 3. Registrar colisionador físico para CharacterController y motor de físicas
+      const cx = sala.x + px;
+      const cz = sala.z + pz;
       if (Array.isArray(opciones.colliders)) {
-        const cx = sala.x + px;
-        const cz = sala.z + pz;
         opciones.colliders.push({
           type: 'box',
           minX: cx - (w / 2),
           maxX: cx + (w / 2),
+          minY: (sala.y || 0),
+          maxY: (sala.y || 0) + H,
           minZ: cz - (d / 2),
           maxZ: cz + (d / 2),
           salaId: sala.id,
           tipo: tipoMuro,
-          lado: tipoLado
+          lado: tipoLado,
+          ladoPrincipal: ladoBase,
+          esPared: true
+        });
+      }
+      if (Array.isArray(opciones.cajasOclusion)) {
+        opciones.cajasOclusion.push({
+          salaId: sala.id,
+          ladoPrincipal: ladoBase,
+          minX: cx - (w / 2),
+          maxX: cx + (w / 2),
+          minY: (sala.y || 0),
+          maxY: (sala.y || 0) + H,
+          minZ: cz - (d / 2),
+          maxZ: cz + (d / 2)
         });
       }
     }
@@ -2848,6 +4120,11 @@
       const altoArco = (typeof pHCustom === 'number' && pHCustom > 3.8)
         ? Math.min(H - 0.4, pHCustom)
         : Math.min(H - 0.4, Math.max(3.8, Math.round(H * 0.70 * 10) / 10));
+
+      let ladoBase = 'norte';
+      if (tipoLado.includes('sur')) ladoBase = 'sur';
+      else if (tipoLado.includes('oeste')) ladoBase = 'oeste';
+      else if (tipoLado.includes('este')) ladoBase = 'este';
 
       const radioCol = Math.max(0.24, Math.min(0.65, altoArco * 0.052));
       const offSpan = Math.max(0.2, (anchoVano / 2) - radioCol);
@@ -2871,10 +4148,12 @@
         colL.position.set(cx, 0, pz - offSpan);
         colR.position.set(cx, 0, pz + offSpan);
       }
-      colL.userData = Object.assign(colL.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, altura: hColumna, radio: radioCol });
-      colR.userData = Object.assign(colR.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, altura: hColumna, radio: radioCol });
+      colL.userData = Object.assign(colL.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true, altura: hColumna, radio: radioCol });
+      colR.userData = Object.assign(colR.userData || {}, { tipo: 'columna_jamba', lado: 'jamba_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true, altura: hColumna, radio: radioCol });
       g.add(colL);
       g.add(colR);
+      g._partesPorLado[ladoBase].push(colL);
+      g._partesPorLado[ladoBase].push(colR);
 
       // Bloques de imposta arquitectónica (ábaco de transición entre capitel y arranque del arco)
       const wImp = radioCol * 2.3;
@@ -2894,8 +4173,12 @@
       }
       impL.castShadow = true; impL.receiveShadow = true;
       impR.castShadow = true; impR.receiveShadow = true;
+      impL.userData = { tipo: 'imposta_arco', lado: 'imposta_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+      impR.userData = { tipo: 'imposta_arco', lado: 'imposta_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
       g.add(impL);
       g.add(impR);
+      g._partesPorLado[ladoBase].push(impL);
+      g._partesPorLado[ladoBase].push(impR);
 
       // 2. Muro macizo hermético (Tímpano y Enjutas sin huecos al vacío)
       if (H > hColumna + 0.05) {
@@ -2927,8 +4210,9 @@
             meshTimpano.rotation.y = Math.PI / 2;
           }
           meshTimpano.castShadow = true; meshTimpano.receiveShadow = true;
-          meshTimpano.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
+          meshTimpano.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(meshTimpano);
+          g._partesPorLado[ladoBase].push(meshTimpano);
         } else {
           // Fallback para entornos de testing sin Shape/ExtrudeGeometry
           const dintelGeo = esHorizontal
@@ -2936,8 +4220,25 @@
             : new ThreeLib.BoxGeometry(grosorMuro, H - altoArco, anchoVano);
           const dintel = new ThreeLib.Mesh(dintelGeo, mats.matPared);
           dintel.position.set(cx, altoArco + (H - altoArco) / 2, pz);
-          dintel.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id };
+          dintel.userData = { tipo: 'dintel', lado: tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
           g.add(dintel);
+          g._partesPorLado[ladoBase].push(dintel);
+        }
+
+        // Registrar caja de oclusión para el dintel sobre la puerta
+        const cxMundo = sala.x + cx;
+        const czMundo = sala.z + pz;
+        if (Array.isArray(opciones.cajasOclusion)) {
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: ladoBase,
+            minX: esHorizontal ? (cxMundo - anchoVano / 2) : (cxMundo - grosorMuro / 2),
+            maxX: esHorizontal ? (cxMundo + anchoVano / 2) : (cxMundo + grosorMuro / 2),
+            minY: (sala.y || 0) + hColumna,
+            maxY: (sala.y || 0) + H,
+            minZ: esHorizontal ? (czMundo - grosorMuro / 2) : (czMundo - anchoVano / 2),
+            maxZ: esHorizontal ? (czMundo + grosorMuro / 2) : (czMundo + anchoVano / 2)
+          });
         }
       }
 
@@ -2977,13 +4278,127 @@
           meshDov.rotation.x = alpha;
         }
         meshDov.castShadow = true; meshDov.receiveShadow = true;
-        meshDov.userData = { tipo: 'dovela_arco', lado: 'arco_' + tipoLado, idSala: sala.id, esClave };
+        meshDov.userData = { tipo: 'dovela_arco', lado: 'arco_' + tipoLado, idSala: sala.id, ladoPrincipal: ladoBase, esPared: true, esClave };
         g.add(meshDov);
+        g._partesPorLado[ladoBase].push(meshDov);
       }
     }
 
-    // 1. Muro Norte (-Z)
     const apN = sala.abiertoNorte ? (ap.norte || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
+    const apS = sala.abiertoSur ? (ap.sur || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
+    const apO = sala.abiertoOeste ? (ap.oeste || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
+    const apE = sala.abiertoEste ? (ap.este || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
+
+    if (esRedonda) {
+      const hZoc = Math.min(0.7, H * 0.22);
+      const hMur = H - hZoc;
+      const R_muro = R_sala - grosorMuro / 2;
+
+      const agregarUmbral = (uw, ud, ux, uz) => {
+        const geoU = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(uw, 0.04, ud), uw, 0.04, ud, 3.0, 0.5);
+        const mU = new ThreeLib.Mesh(geoU, mats.matSuelo);
+        mU.position.set(ux, -0.02, uz);
+        mU.receiveShadow = true;
+        mU.userData = { tipo: 'suelo', idSala: sala.id, salaRef: sala };
+        g.add(mU);
+      };
+
+      if (apN) {
+        const pw = Math.min(W - 0.2, apN.w || 6.8);
+        const cx = apN.cx || 0;
+        agregarUmbral(pw + 1.4, 2.0, cx, -R_sala + 0.6);
+        agregarPortalConArco(pw, cx, -R_sala + grosorMuro / 2, 'norte', 'horizontal', apN.puertaH);
+      }
+      if (apS) {
+        const pw = Math.min(W - 0.2, apS.w || 6.8);
+        const cx = apS.cx || 0;
+        agregarUmbral(pw + 1.4, 2.0, cx, R_sala - 0.6);
+        agregarPortalConArco(pw, cx, R_sala - grosorMuro / 2, 'sur', 'horizontal', apS.puertaH);
+      }
+      if (apO) {
+        const pd = Math.min(D - 0.2, apO.d || 6.0);
+        const cz = apO.cz || 0;
+        agregarUmbral(2.0, pd + 1.4, -R_sala + 0.6, cz);
+        agregarPortalConArco(pd, -R_sala + grosorMuro / 2, cz, 'oeste', 'vertical', apO.puertaH);
+      }
+      if (apE) {
+        const pd = Math.min(D - 0.2, apE.d || 6.0);
+        const cz = apE.cz || 0;
+        agregarUmbral(2.0, pd + 1.4, R_sala - 0.6, cz);
+        agregarPortalConArco(pd, R_sala - grosorMuro / 2, cz, 'este', 'vertical', apE.puertaH);
+      }
+
+      const N_SEG = 28;
+      const segLen = 2 * R_muro * Math.sin(Math.PI / N_SEG) + 0.35;
+      for (let k = 0; k < N_SEG; k++) {
+        const ang = (k + 0.5) * (2 * Math.PI / N_SEG);
+        const mx = Math.cos(ang) * R_muro;
+        const mz = Math.sin(ang) * R_muro;
+
+        // Omitir los segmentos que caen dentro de una apertura activa
+        if (apN && mz < -R_muro * 0.6 && Math.abs(mx - (apN.cx || 0)) < (Math.min(W - 0.2, apN.w || 6.8) / 2 - 0.15)) continue;
+        if (apS && mz > R_muro * 0.6 && Math.abs(mx - (apS.cx || 0)) < (Math.min(W - 0.2, apS.w || 6.8) / 2 - 0.15)) continue;
+        if (apO && mx < -R_muro * 0.6 && Math.abs(mz - (apO.cz || 0)) < (Math.min(D - 0.2, apO.d || 6.0) / 2 - 0.15)) continue;
+        if (apE && mx > R_muro * 0.6 && Math.abs(mz - (apE.cz || 0)) < (Math.min(D - 0.2, apE.d || 6.0) / 2 - 0.15)) continue;
+
+        const ladoBase = Math.abs(mx) > Math.abs(mz) ? (mx > 0 ? 'este' : 'oeste') : (mz > 0 ? 'sur' : 'norte');
+        const segGrp = new ThreeLib.Group();
+        segGrp.position.set(mx, 0, mz);
+        segGrp.rotation.y = -ang + Math.PI / 2;
+
+        const zocGeo = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(segLen, hZoc, grosorMuro + 0.10), segLen, hZoc, grosorMuro + 0.10, 2.5, 0.7);
+        const zocM = new ThreeLib.Mesh(zocGeo, mats.matZocalo);
+        zocM.position.y = hZoc / 2;
+        zocM.castShadow = true; zocM.receiveShadow = true;
+        zocM.userData = { tipo: 'zocalo', idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+        segGrp.add(zocM);
+
+        const murGeo = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(segLen, hMur, grosorMuro), segLen, hMur, grosorMuro, 3.0, 2.5);
+        const murM = new ThreeLib.Mesh(murGeo, mats.matPared);
+        murM.position.y = hZoc + hMur / 2;
+        murM.castShadow = true; murM.receiveShadow = true;
+        murM.userData = { tipo: 'muro', idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+        segGrp.add(murM);
+
+        if (H >= 4.2) {
+          const corGeo = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(segLen, 0.18, grosorMuro + 0.14), segLen, 0.18, grosorMuro + 0.14, 2.4, 0.3);
+          const corM = new ThreeLib.Mesh(corGeo, mats.matZocalo);
+          corM.position.y = H - 0.09;
+          corM.userData = { tipo: 'cornisa_muro', idSala: sala.id, ladoPrincipal: ladoBase, esPared: true };
+          segGrp.add(corM);
+        }
+
+        g.add(segGrp);
+        g._partesPorLado[ladoBase].push(segGrp);
+
+        if (Array.isArray(opciones.colliders)) {
+          opciones.colliders.push({
+            type: 'circle',
+            x: sala.x + mx,
+            z: sala.z + mz,
+            r: segLen * 0.56,
+            salaId: sala.id,
+            tipo: 'muro',
+            ladoPrincipal: ladoBase,
+            esPared: true
+          });
+        }
+        if (Array.isArray(opciones.cajasOclusion)) {
+          const radOcl = segLen * 0.52;
+          opciones.cajasOclusion.push({
+            salaId: sala.id,
+            ladoPrincipal: ladoBase,
+            minX: sala.x + mx - radOcl,
+            maxX: sala.x + mx + radOcl,
+            minY: (sala.y || 0),
+            maxY: (sala.y || 0) + H,
+            minZ: sala.z + mz - radOcl,
+            maxZ: sala.z + mz + radOcl
+          });
+        }
+      }
+    } else {
+    // 1. Muro Norte (-Z)
     if (!apN) {
       agregarMuroConZocalo(W, grosorMuro, 0, -D / 2 + grosorMuro / 2, 'norte', false);
     } else {
@@ -3005,7 +4420,6 @@
     }
 
     // 2. Muro Sur (+Z)
-    const apS = sala.abiertoSur ? (ap.sur || { w: Math.min(W - 0.4, opciones.anchoPasillos || 6.8), cx: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apS) {
       agregarMuroConZocalo(W, grosorMuro, 0, D / 2 - grosorMuro / 2, 'sur', false);
     } else {
@@ -3025,7 +4439,6 @@
     }
 
     // 3. Muro Oeste (-X)
-    const apO = sala.abiertoOeste ? (ap.oeste || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apO) {
       agregarMuroConZocalo(grosorMuro, D, -W / 2 + grosorMuro / 2, 0, 'oeste', false);
     } else {
@@ -3045,7 +4458,6 @@
     }
 
     // 4. Muro Este (+X)
-    const apE = sala.abiertoEste ? (ap.este || { d: Math.min(D - 0.4, 6.0), cz: 0, puertaH: Math.min(H, 3.8) }) : null;
     if (!apE) {
       agregarMuroConZocalo(grosorMuro, D, W / 2 - grosorMuro / 2, 0, 'este', false);
     } else {
@@ -3063,6 +4475,19 @@
       // Portal con arco adovelado, columnas de molduras y dintel hermético
       agregarPortalConArco(pd, W / 2 - grosorMuro / 2, cz, 'este', 'vertical', apE.puertaH);
     }
+    }
+
+    if (opciones && opciones.sinSombrasMallas) {
+      const limpiarSombras = (nodo) => {
+        if (!nodo) return;
+        nodo.castShadow = false;
+        nodo.receiveShadow = false;
+        if (Array.isArray(nodo.children)) {
+          for (let i = 0; i < nodo.children.length; i++) limpiarSombras(nodo.children[i]);
+        }
+      };
+      limpiarSombras(g);
+    }
 
     return g;
   }
@@ -3072,6 +4497,7 @@
   function decorarHabitacion(ThreeLib, kit, sala, estilo, rng, animables, props, config = {}) {
     const g = new ThreeLib.Group();
     g.position.set(sala.x, sala.y || 0, sala.z);
+    const animStartIdx = Array.isArray(animables) ? animables.length : 0;
 
     const cfgProps = config.props || {};
     const W = sala.w;
@@ -3084,27 +4510,123 @@
       : ((config && config.colorLuzCamara) || (estilo && estilo.luzAntorchas) || 0xffedd5);
     const intLuzBoveda = (typeof sala.intensidadLuz === 'number')
       ? sala.intensidadLuz
-      : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 2.8);
+      : ((config && typeof config.intensidadLuzCamara === 'number') ? config.intensidadLuzCamara : 2.0);
     const distLuzBoveda = Math.max(W, D, 16) * 2.4;
-    const luzSala = new ThreeLib.PointLight(colorLuzBoveda, intLuzBoveda, distLuzBoveda, 1.12);
-    luzSala.position.set(0, H - 0.45, 0);
-    luzSala.name = 'luz_sala_' + sala.id;
-    if (config.sombrasPuntuales === true) {
-      luzSala.castShadow = true;
-      if (luzSala.shadow) {
-        luzSala.shadow.bias = -0.002;
-        if (luzSala.shadow.mapSize) {
-          luzSala.shadow.mapSize.width = 512;
-          luzSala.shadow.mapSize.height = 512;
+    if (config && config.usarPoolLuces) {
+      if (Array.isArray(config._focosVirtuales)) {
+        config._focosVirtuales.push({
+          x: sala.x,
+          y: (sala.y || 0) + H - 0.45,
+          z: sala.z,
+          color: colorLuzBoveda,
+          intensity: intLuzBoveda * 1.15,
+          distance: distLuzBoveda,
+          decay: 1.12,
+          salaId: sala.id,
+          esBoveda: true
+        });
+      }
+    } else {
+      const luzSala = new ThreeLib.PointLight(colorLuzBoveda, intLuzBoveda, distLuzBoveda, 1.12);
+      luzSala.position.set(0, H - 0.45, 0);
+      luzSala.name = 'luz_sala_' + sala.id;
+      if (config.sombrasPuntuales === true) {
+        luzSala.castShadow = true;
+        if (luzSala.shadow) {
+          luzSala.shadow.bias = -0.002;
+          if (luzSala.shadow.mapSize) {
+            luzSala.shadow.mapSize.width = 512;
+            luzSala.shadow.mapSize.height = 512;
+          }
         }
       }
+      g.add(luzSala);
     }
-    g.add(luzSala);
 
     const distEntreAntorchas = (config && (config.distanciaAntorchas || config.distanciaEntreAntorchas)) || 16.0;
     const colorLuzDefinido = (config && (config.colorLuzAntorcha || config.colorLuz)) || (estilo && estilo.luzAntorchas) || 0xf59e0b;
-    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 3.4;
+    const intLuzDefinida = (config && typeof config.intensidadAntorchas === 'number') ? config.intensidadAntorchas : 2.4;
     const formaAntorchaDef = (config && (config.formaAntorcha || config.forma)) || 'antorcha_hierro';
+
+    // --- ALFOMBRA PÉTREA Y MOSAICO GEOMÉTRICO DE TESELAS INCRUSTADO EN EL SUELO (SIN CÍRCULOS) ---
+    if (!config.sinMosaicosSuelo && sala.tipo !== 'jardin_subterraneo' && kit && (kit.mosaicoSuelo || kit.sueloLosas)) {
+      const matMosBase = (kit.mosaicoSuelo && kit.mosaicoSuelo.userData && kit.mosaicoSuelo.userData.mosaicoUnico)
+        ? kit.mosaicoSuelo
+        : ((config.kitsPorEstilo && (sala.estiloSuelo || config.estiloSuelo)
+          ? ((config.kitsPorEstilo[sala.estiloSuelo || config.estiloSuelo] || kit).mosaicoSuelo)
+          : kit.mosaicoSuelo) || kit.sueloLosas);
+      const matMos = matMosBase;
+      const esMosUnico = !!(matMos && matMos.userData && matMos.userData.mosaicoUnico);
+      const matBord = kit.zocalo || kit.piedraMuro || matMos;
+
+      if (sala.tipo === 'pasillo') {
+        if (Math.max(W, D) >= 4.0 && Math.min(W, D) >= 2.6) {
+          const horizP = W > D;
+          const mW = horizP ? Math.max(2.0, W - 0.35) : Math.max(1.5, Math.min(W - 1.1, W * 0.50));
+          const mD = horizP ? Math.max(1.5, Math.min(D - 1.1, D * 0.50)) : Math.max(2.0, D - 0.35);
+          const geoBaseR = new ThreeLib.BoxGeometry(mW, 0.014, mD);
+          if (esMosUnico && !horizP && geoBaseR.attributes && geoBaseR.attributes.uv) {
+            const uv = geoBaseR.attributes.uv;
+            for (let i = 0; i < uv.count; i++) {
+              const u = uv.getX(i), v = uv.getY(i);
+              uv.setXY(i, v, 1 - u);
+            }
+            uv.needsUpdate = true;
+          }
+          const geoRunner = esMosUnico ? geoBaseR : aplicarUVsMetricasBox(geoBaseR, mW, 0.014, mD, 2.6, 0.4);
+          const runner = new ThreeLib.Mesh(geoRunner, matMos);
+          runner.position.set(0, 0.007, 0);
+          runner.receiveShadow = true;
+          runner.userData = { tipo: 'mosaico_suelo', idSala: sala.id };
+          g.add(runner);
+        }
+      } else if (W >= 7.0 && D >= 7.0 && (sala.esRedonda || sala.tipo === 'rotonda' || sala.forma === 'redonda')) {
+        const rMos = Math.min(W, D) * 0.32;
+        const geoBordC = new ThreeLib.CylinderGeometry(rMos + 0.24, rMos + 0.24, 0.012, 32);
+        const bordilloC = new ThreeLib.Mesh(geoBordC, matBord);
+        bordilloC.position.set(0, 0.006, 0);
+        bordilloC.receiveShadow = true;
+        bordilloC.userData = { tipo: 'bordillo_mosaico', idSala: sala.id };
+        g.add(bordilloC);
+
+        const geoMosC = new ThreeLib.CylinderGeometry(rMos, rMos, 0.018, 32);
+        if (geoMosC.attributes && geoMosC.attributes.uv && geoMosC.attributes.position) {
+          const pos = geoMosC.attributes.position, uv = geoMosC.attributes.uv;
+          const repScale = esMosUnico ? 1 : (rMos * 2) / 2.6;
+          for (let i = 0; i < pos.count; i++) {
+            const u = ((pos.getX(i) / (2 * rMos)) + 0.5) * repScale;
+            const v = ((pos.getZ(i) / (2 * rMos)) + 0.5) * repScale;
+            uv.setXY(i, u, v);
+          }
+          uv.needsUpdate = true;
+        }
+        const tapizMosaico = new ThreeLib.Mesh(geoMosC, matMos);
+        tapizMosaico.position.set(0, 0.010, 0);
+        tapizMosaico.receiveShadow = true;
+        tapizMosaico.userData = { tipo: 'mosaico_suelo', idSala: sala.id };
+        g.add(tapizMosaico);
+      } else if (W >= 7.0 && D >= 7.0) {
+        const mW = Math.max(3.6, Math.round(W * 0.60 * 10) / 10);
+        const mD = Math.max(3.6, Math.round(D * 0.60 * 10) / 10);
+        // Encintado perimetral biselado de piedra labrada enmarcando el mosaico
+        const bW = mW + 0.36;
+        const bD = mD + 0.36;
+        const geoBord = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(bW, 0.012, bD), bW, 0.012, bD, 2.4, 0.4);
+        const bordillo = new ThreeLib.Mesh(geoBord, matBord);
+        bordillo.position.set(0, 0.006, 0);
+        bordillo.receiveShadow = true;
+        bordillo.userData = { tipo: 'bordillo_mosaico', idSala: sala.id };
+        g.add(bordillo);
+
+        const geoBaseM = new ThreeLib.BoxGeometry(mW, 0.018, mD);
+        const geoMosaico = esMosUnico ? geoBaseM : aplicarUVsMetricasBox(geoBaseM, mW, 0.018, mD, 2.6, 0.4);
+        const tapizMosaico = new ThreeLib.Mesh(geoMosaico, matMos);
+        tapizMosaico.position.set(0, 0.010, 0);
+        tapizMosaico.receiveShadow = true;
+        tapizMosaico.userData = { tipo: 'mosaico_suelo', idSala: sala.id };
+        g.add(tapizMosaico);
+      }
+    }
 
     // --- COLUMNAS DE BASE POR INSTANCIA Y TAMAÑO ---
     const colConfig = sala.columnas || {};
@@ -3205,7 +4727,11 @@
       case 'fuente': {
         if (cfgProps.fuentes !== false) {
           const radioF = Math.max(1.8, Math.min(3.6, W * 0.18));
-          const kitFuente = (config.kitsPorEstilo && config.kitsPorEstilo[sala.estiloFuente]) || kit;
+          let kitFuente = (config.kitsPorEstilo && config.kitsPorEstilo[sala.estiloFuente]) || kit;
+          // Pileta de sillares ruinosos (distinta de la pared, con musgo en el estanque)
+          if (!sala.texturaZocalo && !config.sinTexturasMazmorra) {
+            kitFuente = Object.assign({}, kitFuente, { piedraMuro: conTexturaBiblioteca(ThreeLib, kitFuente.piedraMuro, sala.texturaZocalo || 'mpared/t07', true) });
+          }
           const fuente = crearFuente(ThreeLib, kitFuente, radioF, 1.4, sala.colorAgua);
           fuente.position.set(0, 0, 0);
           g.add(fuente);
@@ -3347,18 +4873,64 @@
         break;
       }
 
+      case 'rotonda': {
+        const R_rot = Math.min(W, D) / 2;
+        const rCol = R_rot * 0.68;
+        const radioCol = Math.max(0.42, Math.min(0.85, R_rot * 0.065));
+        for (let i = 0; i < 8; i++) {
+          const ang = (i * Math.PI / 4) + (Math.PI / 8); // desplazadas 22.5° respecto a los ejes N/S/E/O
+          const cx = Math.cos(ang) * rCol;
+          const cz = Math.sin(ang) * rCol;
+          const col = crearColumna(ThreeLib, kit, H, radioCol, 'gotica');
+          col.position.set(cx, 0, cz);
+          g.add(col);
+          if (config && Array.isArray(config.colliders)) {
+            config.colliders.push({ type: 'circle', x: sala.x + cx, z: sala.z + cz, r: radioCol + 0.15, tipo: 'columna' });
+          }
+        }
+        const rBras = R_rot * 0.42;
+        [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4].forEach(ang => {
+          const bx = Math.cos(ang) * rBras;
+          const bz = Math.sin(ang) * rBras;
+          const brasero = new ThreeLib.Mesh(new ThreeLib.CylinderGeometry(0.50, 0.28, 0.95, 8), kit.hierro);
+          brasero.position.set(bx, 0.475, bz);
+          g.add(brasero);
+          const llama = new ThreeLib.Mesh(new ThreeLib.ConeGeometry(0.28, 0.65, 6), new ThreeLib.MeshBasicMaterial({ color: estilo.luzAntorchas || 0xf59e0b }));
+          llama.position.set(bx, 1.15, bz);
+          g.add(llama);
+          animables.push({ tipo: 'llama', mesh: llama, baseY: 1.15, fase: bx + bz });
+          if (config && Array.isArray(config.colliders)) {
+            config.colliders.push({ type: 'circle', x: sala.x + bx, z: sala.z + bz, r: 0.55, tipo: 'brasero' });
+          }
+        });
+        break;
+      }
+
       case 'sala_jefe': {
         const estradoW = Math.min(W * 0.55, 12);
         const estradoD = Math.min(D * 0.45, 9);
-        const estrado = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(estradoW, 0.6, estradoD), kit.piedraMuro);
+        const geoEstrado = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(estradoW, 0.6, estradoD), estradoW, 0.6, estradoD, 2.4, 0.7);
+        const estrado = new ThreeLib.Mesh(geoEstrado, kit.zocalo || kit.piedraMuro);
         estrado.position.set(0, 0.3, -D * 0.15);
         g.add(estrado);
 
-        const tronoBase = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(2.4, 0.9, 1.8), kit.sueloLosas);
+        if (kit.mosaicoSuelo) {
+          const mwE = Math.max(2.0, estradoW - 0.55);
+          const mdE = Math.max(2.0, estradoD - 0.55);
+          const geoMosE = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(mwE, 0.024, mdE), mwE, 0.024, mdE, 2.5, 0.4);
+          const mosEstrado = new ThreeLib.Mesh(geoMosE, kit.mosaicoSuelo);
+          mosEstrado.position.set(0, 0.612, -D * 0.15);
+          mosEstrado.userData = { tipo: 'mosaico_suelo', idSala: sala.id };
+          g.add(mosEstrado);
+        }
+
+        const geoTronoBase = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(2.4, 0.9, 1.8), 2.4, 0.9, 1.8, 2.0, 0.9);
+        const tronoBase = new ThreeLib.Mesh(geoTronoBase, kit.sueloLosas);
         tronoBase.position.set(0, 0.6 + 0.45, -D * 0.15 - 1.0);
         g.add(tronoBase);
 
-        const tronoRespaldo = new ThreeLib.Mesh(new ThreeLib.BoxGeometry(2.2, 3.2, 0.4), kit.piedraMuro);
+        const geoTronoResp = aplicarUVsMetricasBox(new ThreeLib.BoxGeometry(2.2, 3.2, 0.4), 2.2, 3.2, 0.4, 2.0, 2.0);
+        const tronoRespaldo = new ThreeLib.Mesh(geoTronoResp, kit.piedraMuro);
         tronoRespaldo.position.set(0, 0.6 + 1.6, -D * 0.15 - 1.8);
         g.add(tronoRespaldo);
 
@@ -3372,15 +4944,31 @@
           llamaBoss.position.set(bx, 1.45, -D * 0.15 + 1.8);
           g.add(llamaBoss);
 
-          const luzBoss = new ThreeLib.PointLight(estilo.luzJefe, 3.6, 26, 1.4);
-          luzBoss.position.set(bx, 1.8, -D * 0.15 + 1.8);
-          g.add(luzBoss);
-
-          animables.push({
-            flicker: (t) => {
-              luzBoss.intensity = 3.6 * (0.85 + Math.sin(t * 8.0 + bx) * 0.12);
+          if (config && config.usarPoolLuces) {
+            if (Array.isArray(config._focosVirtuales)) {
+              config._focosVirtuales.push({
+                x: sala.x + bx,
+                y: (sala.y || 0) + 1.8,
+                z: sala.z - D * 0.15 + 1.8,
+                color: estilo.luzJefe,
+                intensity: 3.6,
+                distance: 26,
+                decay: 1.4,
+                salaId: sala.id,
+                esBoveda: false
+              });
             }
-          });
+          } else {
+            const luzBoss = new ThreeLib.PointLight(estilo.luzJefe, 3.6, 26, 1.4);
+            luzBoss.position.set(bx, 1.8, -D * 0.15 + 1.8);
+            g.add(luzBoss);
+
+            animables.push({
+              flicker: (t) => {
+                luzBoss.intensity = 3.6 * (0.85 + Math.sin(t * 8.0 + bx) * 0.12);
+              }
+            });
+          }
         });
         break;
       }
@@ -3499,6 +5087,142 @@
           console.warn('Error instanciando prop personalizado en estancia:', pDef, e);
         }
       });
+    }
+
+    // Escombros y guijarros 3D en esquinas y base de muros (DodecahedronGeometry deformada) para sombreado de contacto y SSAO
+    if (!config.sinEscombrosSuelo && typeof ThreeLib.DodecahedronGeometry === 'function') {
+      const esRedondaSala = !!(sala.esRedonda || sala.tipo === 'rotonda' || sala.forma === 'redonda');
+      const apSala = sala.aperturas || {};
+      const matEscombro = (kit && (kit.zocalo || kit.piedraMuro || kit.sueloLosas)) || null;
+      if (matEscombro) {
+        if (!crearEscombrosBordeCache) {
+          const gEsc = new ThreeLib.DodecahedronGeometry(0.18, 0);
+          if (gEsc.attributes && gEsc.attributes.position) {
+            const p = gEsc.attributes.position;
+            for (let i = 0; i < p.count; i++) {
+              const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+              const n = 0.82 + 0.18 * Math.sin(x * 11.3 + z * 7.7) * Math.cos(y * 9.1);
+              p.setXYZ(i, x * n * 1.25, y * n * 0.56, z * n * 0.98);
+            }
+            if (typeof gEsc.computeVertexNormals === 'function') gEsc.computeVertexNormals();
+          }
+          crearEscombrosBordeCache = gEsc;
+        }
+        const prngEsc = new PRNG((((Math.round(sala.x * 13) * 73856093) ^ (Math.round(sala.z * 17) * 19349663)) >>> 0) || 1337);
+        const cercaDePuerta = (px, pz) => {
+          if (apSala.norte && pz < -D * 0.25 && Math.abs(px - (apSala.norte.cx || 0)) < (apSala.norte.w || 6.8) * 0.65 + 0.9) return true;
+          if (apSala.sur && pz > D * 0.25 && Math.abs(px - (apSala.sur.cx || 0)) < (apSala.sur.w || 6.8) * 0.65 + 0.9) return true;
+          if (apSala.oeste && px < -W * 0.25 && Math.abs(pz - (apSala.oeste.cz || 0)) < (apSala.oeste.d || 6.0) * 0.65 + 0.9) return true;
+          if (apSala.este && px > W * 0.25 && Math.abs(pz - (apSala.este.cz || 0)) < (apSala.este.d || 6.0) * 0.65 + 0.9) return true;
+          return false;
+        };
+        const agregarCanto = (px, pz, scBase) => {
+          const rock = new ThreeLib.Mesh(crearEscombrosBordeCache, matEscombro);
+          const sc = scBase * (0.7 + prngEsc.next() * 0.85);
+          rock.position.set(px, 0.03 * sc, pz);
+          rock.rotation.set((prngEsc.next() - 0.5) * 0.35, prngEsc.next() * Math.PI * 2, (prngEsc.next() - 0.5) * 0.35);
+          rock.scale.set(sc, sc * (0.75 + prngEsc.next() * 0.45), sc * (0.85 + prngEsc.next() * 0.4));
+          rock.receiveShadow = true;
+          rock.userData = { tipo: 'escombro_borde', idSala: sala.id };
+          g.add(rock);
+        };
+        if (esRedondaSala) {
+          const R_es = Math.min(W, D) * 0.5 - 0.85;
+          for (let i = 0; i < 12; i++) {
+            const ang = (i / 12) * Math.PI * 2 + (prngEsc.next() - 0.5) * 0.25;
+            const px = Math.cos(ang) * R_es, pz = Math.sin(ang) * R_es;
+            if (!cercaDePuerta(px, pz) && prngEsc.next() < 0.75) agregarCanto(px, pz, 0.85);
+          }
+        } else {
+          // 4 esquinas interiores (dos o tres piedritas agrupadas por esquina libre)
+          const esquinas = [
+            [-W * 0.5 + 0.95, -D * 0.5 + 0.95, 1, 1],
+            [W * 0.5 - 0.95, -D * 0.5 + 0.95, -1, 1],
+            [-W * 0.5 + 0.95, D * 0.5 - 0.95, 1, -1],
+            [W * 0.5 - 0.95, D * 0.5 - 0.95, -1, -1]
+          ];
+          esquinas.forEach(([ex, ez, sx, sz]) => {
+            if (cercaDePuerta(ex, ez)) return;
+            const count = 2 + (prngEsc.next() > 0.45 ? 1 : 0);
+            for (let k = 0; k < count; k++) {
+              agregarCanto(ex + sx * prngEsc.next() * 0.75, ez + sz * prngEsc.next() * 0.75, k === 0 ? 1.05 : 0.68);
+            }
+          });
+          // Piedritas ocasionales junto a los zócalos de muros largos
+          for (let i = 0; i < 6; i++) {
+            const lado = i % 4;
+            let px = 0, pz = 0;
+            if (lado === 0) { px = (prngEsc.next() - 0.5) * (W - 2.6); pz = -D * 0.5 + 0.85; }
+            else if (lado === 1) { px = (prngEsc.next() - 0.5) * (W - 2.6); pz = D * 0.5 - 0.85; }
+            else if (lado === 2) { px = -W * 0.5 + 0.85; pz = (prngEsc.next() - 0.5) * (D - 2.6); }
+            else { px = W * 0.5 - 0.85; pz = (prngEsc.next() - 0.5) * (D - 2.6); }
+            if (!cercaDePuerta(px, pz)) agregarCanto(px, pz, 0.75);
+          }
+        }
+      }
+    }
+
+    if (config && (config.usarPoolLuces || config.sinSombrasMallas)) {
+      const focosOut = Array.isArray(config._focosVirtuales) ? config._focosVirtuales : null;
+      const optimizarJerarquia = (nodo, ox, oy, oz) => {
+        if (!nodo) return;
+        if (config.sinSombrasMallas) {
+          nodo.castShadow = false;
+          nodo.receiveShadow = false;
+        }
+        const nx = ox + (nodo !== g && nodo.position ? (nodo.position.x || 0) : 0);
+        const ny = oy + (nodo !== g && nodo.position ? (nodo.position.y || 0) : 0);
+        const nz = oz + (nodo !== g && nodo.position ? (nodo.position.z || 0) : 0);
+
+        if (config.usarPoolLuces && focosOut && nodo.userData && nodo.userData.tipo === 'antorcha' && nodo.userData.luz) {
+          focosOut.push({
+            x: sala.x + nx,
+            y: (sala.y || 0) + ny + 0.3,
+            z: sala.z + nz,
+            color: nodo.userData.luz.color || colorLuzDefinido,
+            intensity: nodo.userData.baseIntensity || intLuzDefinida,
+            distance: 24,
+            decay: 1.25,
+            salaId: sala.id,
+            esBoveda: false
+          });
+        }
+
+        if (Array.isArray(nodo.children)) {
+          for (let ci = nodo.children.length - 1; ci >= 0; ci--) {
+            const ch = nodo.children[ci];
+            if (!ch) continue;
+            const esLuzPuntual = (ThreeLib.PointLight && ch instanceof ThreeLib.PointLight) || ch.isPointLight === true;
+            if (config.usarPoolLuces && esLuzPuntual) {
+              if (focosOut) {
+                const colVal = (ch.color && typeof ch.color.getHex === 'function') ? ch.color.getHex() : (ch.color || 0xffedd5);
+                focosOut.push({
+                  x: sala.x + nx + (ch.position ? (ch.position.x || 0) : 0),
+                  y: (sala.y || 0) + ny + (ch.position ? (ch.position.y || 0) : 0),
+                  z: sala.z + nz + (ch.position ? (ch.position.z || 0) : 0),
+                  color: colVal,
+                  intensity: ch.intensity || 1.6,
+                  distance: ch.distance || 14,
+                  decay: ch.decay || 1.4,
+                  salaId: sala.id,
+                  esBoveda: false
+                });
+              }
+              if (typeof nodo.remove === 'function') nodo.remove(ch);
+              else nodo.children.splice(ci, 1);
+            } else {
+              optimizarJerarquia(ch, nx, ny, nz);
+            }
+          }
+        }
+      };
+      optimizarJerarquia(g, 0, 0, 0);
+    }
+
+    if (Array.isArray(animables)) {
+      for (let k = animStartIdx; k < animables.length; k++) {
+        if (animables[k]) animables[k]._salaRef = sala;
+      }
     }
 
     return g;
@@ -3645,6 +5369,152 @@
     return res;
   }
 
+  // --- 7.15 INTERSECCIÓN RAYO / SEGMENTO CON CAJA AABB (OCLUSIÓN DE CÁMARA) ---
+  function intersectSegmentBox(p0, p1, box) {
+    if (!p0 || !p1 || !box) return false;
+    const dx = p1.x - p0.x;
+    const dy = p1.y - p0.y;
+    const dz = p1.z - p0.z;
+    let tmin = 0.0;
+    let tmax = 1.0;
+
+    // Slab X
+    if (Math.abs(dx) < 1e-7) {
+      if (p0.x < box.minX || p0.x > box.maxX) return false;
+    } else {
+      const ood = 1.0 / dx;
+      let t1 = (box.minX - p0.x) * ood;
+      let t2 = (box.maxX - p0.x) * ood;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tmin = Math.max(tmin, t1);
+      tmax = Math.min(tmax, t2);
+      if (tmin > tmax) return false;
+    }
+
+    // Slab Y
+    if (Math.abs(dy) < 1e-7) {
+      if (p0.y < box.minY || p0.y > box.maxY) return false;
+    } else {
+      const ood = 1.0 / dy;
+      let t1 = (box.minY - p0.y) * ood;
+      let t2 = (box.maxY - p0.y) * ood;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tmin = Math.max(tmin, t1);
+      tmax = Math.min(tmax, t2);
+      if (tmin > tmax) return false;
+    }
+
+    // Slab Z
+    if (Math.abs(dz) < 1e-7) {
+      if (p0.z < box.minZ || p0.z > box.maxZ) return false;
+    } else {
+      const ood = 1.0 / dz;
+      let t1 = (box.minZ - p0.z) * ood;
+      let t2 = (box.maxZ - p0.z) * ood;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      tmin = Math.max(tmin, t1);
+      tmax = Math.min(tmax, t2);
+      if (tmin > tmax) return false;
+    }
+
+    // Debe cortar estrictamente entre la cámara (0.05) y el personaje (0.95)
+    return (tmin <= tmax && tmin < 0.95 && tmax > 0.05);
+  }
+
+  // --- 7.16 BÚSQUEDA DE SALA ACTUAL Y GRAFO DE ESTANCIAS COMUNICADAS ---
+
+  function encontrarSalaEnPosicion(salas, x, z) {
+    if (!Array.isArray(salas) || salas.length === 0) return null;
+    const px = (typeof x === 'number') ? x : 0;
+    const pz = (typeof z === 'number') ? z : 0;
+
+    // 1. Detección por contención en bounding box (tolerancia de 0.6m para vanos de puertas)
+    for (let i = 0; i < salas.length; i++) {
+      const s = salas[i];
+      const minX = s.x - (s.w / 2) - 0.6;
+      const maxX = s.x + (s.w / 2) + 0.6;
+      const minZ = s.z - (s.d / 2) - 0.6;
+      const maxZ = s.z + (s.d / 2) + 0.6;
+      if (px >= minX && px <= maxX && pz >= minZ && pz <= maxZ) {
+        return s;
+      }
+    }
+
+    // 2. Si el personaje está en el umbral exterior o fuera de los límites, sala más cercana
+    let masCercana = salas[0];
+    let minDistSq = Infinity;
+    for (let i = 0; i < salas.length; i++) {
+      const s = salas[i];
+      const dx = s.x - px;
+      const dz = s.z - pz;
+      const dSq = dx * dx + dz * dz;
+      if (dSq < minDistSq) {
+        minDistSq = dSq;
+        masCercana = s;
+      }
+    }
+    return masCercana;
+  }
+
+  function obtenerEstanciasComunicadas(salas, salaActualId, profundidad = 4) {
+    const resultado = new Set();
+    if (!Array.isArray(salas) || salas.length === 0) return resultado;
+
+    if (!salaActualId) {
+      salas.forEach(s => resultado.add(s.id));
+      return resultado;
+    }
+
+    const mapa = new Map();
+    salas.forEach(s => mapa.set(s.id, s));
+
+    if (!mapa.has(salaActualId)) {
+      salas.forEach(s => resultado.add(s.id));
+      return resultado;
+    }
+
+    const cola = [{ id: salaActualId, dist: 0 }];
+    resultado.add(salaActualId);
+
+    while (cola.length > 0) {
+      const { id, dist } = cola.shift();
+      if (dist >= profundidad) continue;
+
+      const s = mapa.get(id);
+      if (!s || !Array.isArray(s.conectadas)) continue;
+
+      for (const vecId of s.conectadas) {
+        if (!resultado.has(vecId)) {
+          resultado.add(vecId);
+          cola.push({ id: vecId, dist: dist + 1 });
+        }
+      }
+    }
+
+    // Clausura de destino de pasillos: todo pasillo visible incluye siempre las salas a las que conduce
+    const colaPasillos = [];
+    resultado.forEach(id => {
+      const est = mapa.get(id);
+      if (est && est.tipo === 'pasillo') colaPasillos.push(id);
+    });
+    while (colaPasillos.length > 0) {
+      const pid = colaPasillos.shift();
+      const pEst = mapa.get(pid);
+      if (!pEst || !Array.isArray(pEst.conectadas)) continue;
+      for (const vecId of pEst.conectadas) {
+        if (!resultado.has(vecId)) {
+          resultado.add(vecId);
+          const vecEst = mapa.get(vecId);
+          if (vecEst && vecEst.tipo === 'pasillo') {
+            colaPasillos.push(vecId);
+          }
+        }
+      }
+    }
+
+    return resultado;
+  }
+
   // --- 7.2 CÁLCULO DE APERTURAS Y HOMBROS HERMÉTICOS ENTRE ESTANCIAS ---
 
   function calcularAperturasEntreSalas(salas, config = {}) {
@@ -3653,6 +5523,7 @@
 
     salas.forEach(s => {
       s.aperturas = s.aperturas || { norte: null, sur: null, este: null, oeste: null };
+      s.conectadas = s.conectadas || [];
     });
 
     for (let i = 0; i < salas.length; i++) {
@@ -3662,7 +5533,7 @@
 
         // 1. Conexión Norte-Sur: a está al sur de b (a.z > b.z)
         const gapZ = (a.z - a.d / 2) - (b.z + b.d / 2);
-        if (Math.abs(gapZ) <= 0.8 || (a.abiertoNorte && b.abiertoSur && Math.abs(gapZ) <= 1.2)) {
+        if ((gapZ >= -4.5 && gapZ <= 0.8) || (a.abiertoNorte && b.abiertoSur && gapZ >= -5.5 && gapZ <= 1.2)) {
           const minX = Math.max(a.x - a.w / 2, b.x - b.w / 2);
           const maxX = Math.min(a.x + a.w / 2, b.x + b.w / 2);
           const overlapX = maxX - minX;
@@ -3680,12 +5551,15 @@
 
             b.abiertoSur = true;
             b.aperturas.sur = { w: pw, cx: cxMundo - b.x, puertaH: pH };
+
+            if (!a.conectadas.includes(b.id)) a.conectadas.push(b.id);
+            if (!b.conectadas.includes(a.id)) b.conectadas.push(a.id);
           }
         }
 
         // 2. Conexión Este-Oeste: a está al oeste de b (a.x < b.x)
         const gapX = (b.x - b.w / 2) - (a.x + a.w / 2);
-        if (Math.abs(gapX) <= 0.8 || (a.abiertoEste && b.abiertoOeste && Math.abs(gapX) <= 1.2)) {
+        if ((gapX >= -4.5 && gapX <= 0.8) || (a.abiertoEste && b.abiertoOeste && gapX >= -5.5 && gapX <= 1.2)) {
           const minZ = Math.max(a.z - a.d / 2, b.z - b.d / 2);
           const maxZ = Math.min(a.z + a.d / 2, b.z + b.d / 2);
           const overlapZ = maxZ - minZ;
@@ -3703,6 +5577,9 @@
 
             b.abiertoOeste = true;
             b.aperturas.oeste = { d: pd, cz: czMundo - b.z, puertaH: pH };
+
+            if (!a.conectadas.includes(b.id)) a.conectadas.push(b.id);
+            if (!b.conectadas.includes(a.id)) b.conectadas.push(a.id);
           }
         }
       }
@@ -3778,12 +5655,13 @@
       if (mejorEste) {
         if (menorGapX > 0.2) {
           const bordeIzqEste = mejorEste.x - (mejorEste.w / 2);
-          // Comprobar si ya existe alguna sala o corredor base intermedio
+          const anchoCorD = Math.max(3.5, Math.min(mejorOverlapZ, anchoPasillos, 7.5));
+          // Comprobar si ya existe alguna sala o corredor base ocupando realmente la franja entre ambas estancias
           const yaExiste = salasBase.some(s => {
             if (s.id === oeste.id || s.id === mejorEste.id) return false;
             const centroZ = (mejorMinZ + mejorMaxZ) / 2;
-            const zOk = Math.abs(s.z - centroZ) < ((mejorOverlapZ + s.d) / 2);
-            const xOk = (s.x - s.w / 2 < bordeDerOeste + 0.4) && (s.x + s.w / 2 > bordeIzqEste - 0.4);
+            const zOk = (s.z + s.d / 2 > centroZ - anchoCorD * 0.5 + 0.25) && (s.z - s.d / 2 < centroZ + anchoCorD * 0.5 - 0.25);
+            const xOk = (s.x + s.w / 2 > bordeDerOeste + 0.35) && (s.x - s.w / 2 < bordeIzqEste - 0.35);
             return zOk && xOk;
           });
 
@@ -3808,6 +5686,7 @@
               abiertoOeste: true,
               abiertoEste: true,
               esConectorAutomatico: true,
+              conectadas: [oeste.id, mejorEste.id],
               estilo: oeste.estilo || config.estilo,
               estiloPared: oeste.estiloPared || oeste.estilo,
               estiloSuelo: oeste.estiloSuelo || oeste.estilo,
@@ -3818,11 +5697,19 @@
             nuevosPasillos.push(pasilloConector);
             oeste.abiertoEste = true;
             mejorEste.abiertoOeste = true;
+            oeste.conectadas = oeste.conectadas || [];
+            if (!oeste.conectadas.includes(pasilloId)) oeste.conectadas.push(pasilloId);
+            mejorEste.conectadas = mejorEste.conectadas || [];
+            if (!mejorEste.conectadas.includes(pasilloId)) mejorEste.conectadas.push(pasilloId);
           }
         } else {
           // Contacto directo pared con pared
           oeste.abiertoEste = true;
           mejorEste.abiertoOeste = true;
+          oeste.conectadas = oeste.conectadas || [];
+          if (!oeste.conectadas.includes(mejorEste.id)) oeste.conectadas.push(mejorEste.id);
+          mejorEste.conectadas = mejorEste.conectadas || [];
+          if (!mejorEste.conectadas.includes(oeste.id)) mejorEste.conectadas.push(oeste.id);
         }
       }
     });
@@ -3862,11 +5749,12 @@
         if (mejorNorte) {
           if (menorGapZ > 0.2) {
             const bordeSurNorte = mejorNorte.z + (mejorNorte.d / 2);
+            const anchoCorW = Math.max(3.5, Math.min(mejorOverlapX, anchoPasillos, 7.5));
             const yaExiste = salasBase.some(s => {
               if (s.id === sur.id || s.id === mejorNorte.id) return false;
               const centroX = (mejorMinX + mejorMaxX) / 2;
-              const xOk = Math.abs(s.x - centroX) < ((mejorOverlapX + s.w) / 2);
-              const zOk = (s.z + s.d / 2 > bordeNorteSur - 0.4) && (s.z - s.d / 2 < bordeSurNorte + 0.4);
+              const xOk = (s.x + s.w / 2 > centroX - anchoCorW * 0.5 + 0.25) && (s.x - s.w / 2 < centroX + anchoCorW * 0.5 - 0.25);
+              const zOk = (s.z + s.d / 2 > bordeSurNorte + 0.35) && (s.z - s.d / 2 < bordeNorteSur - 0.35);
               return zOk && xOk;
             });
 
@@ -3891,6 +5779,7 @@
                 abiertoSur: true,
                 abiertoNorte: true,
                 esConectorAutomatico: true,
+                conectadas: [sur.id, mejorNorte.id],
                 estilo: sur.estilo || config.estilo,
                 estiloPared: sur.estiloPared || sur.estilo,
                 estiloSuelo: sur.estiloSuelo || sur.estilo,
@@ -3901,10 +5790,18 @@
               nuevosPasillos.push(pasilloConector);
               sur.abiertoNorte = true;
               mejorNorte.abiertoSur = true;
+              sur.conectadas = sur.conectadas || [];
+              if (!sur.conectadas.includes(pasilloId)) sur.conectadas.push(pasilloId);
+              mejorNorte.conectadas = mejorNorte.conectadas || [];
+              if (!mejorNorte.conectadas.includes(pasilloId)) mejorNorte.conectadas.push(pasilloId);
             }
           } else {
             sur.abiertoNorte = true;
             mejorNorte.abiertoSur = true;
+            sur.conectadas = sur.conectadas || [];
+            if (!sur.conectadas.includes(mejorNorte.id)) sur.conectadas.push(mejorNorte.id);
+            mejorNorte.conectadas = mejorNorte.conectadas || [];
+            if (!mejorNorte.conectadas.includes(sur.id)) mejorNorte.conectadas.push(sur.id);
           }
         }
       });
@@ -3965,8 +5862,14 @@
         });
       }
 
-      // C. Si une estancias, asignar la altura armónica de las instancias que une
+      // C. Si une estancias, asignar la altura armónica de las instancias que une y registrar conexión en grafo
       if (salasConectadas.length > 0) {
+        p.conectadas = p.conectadas || [];
+        salasConectadas.forEach(e => {
+          if (!p.conectadas.includes(e.id)) p.conectadas.push(e.id);
+          e.conectadas = e.conectadas || [];
+          if (!e.conectadas.includes(p.id)) e.conectadas.push(p.id);
+        });
         const alturas = salasConectadas.map(e => (typeof e.h === 'number' ? e.h : alturaTechos));
         const nuevaH = Math.min(...alturas);
         p.h = Math.round(nuevaH * 10) / 10;
@@ -4007,8 +5910,8 @@
 
     // --- GENERACIÓN DINÁMICA DE LA RED DE ESTANCIAS ---
     const salas = [];
-    const poolTiposIntermedios = ['fuente', 'cripta_columnas', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
-    const poolTiposLaterales = ['tesoro', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
+    const poolTiposIntermedios = ['rotonda', 'fuente', 'cripta_columnas', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
+    const poolTiposLaterales = ['tesoro', 'rotonda', 'armeria', 'biblioteca', 'prision', 'laboratorio', 'jardin_subterraneo'];
 
     const zEntrada = Math.round(radio - (tamanoMedio * 0.7));
     const zBoss = Math.round(-radio + (tamanoMedio * 0.7));
@@ -4038,16 +5941,38 @@
     // 2. Cámaras intermedias a lo largo de la columna vertebral
     let tiposDisponibles = [...poolTiposIntermedios];
     let branchCounter = 0;
+    let tieneRotonda = false;
 
     for (let i = 1; i <= cantIntermedias; i++) {
-      const zCamara = Math.round(zEntrada - i * pasoZ);
+      const zCamaraIdeal = Math.round(zEntrada - i * pasoZ);
+
+      if (tiposDisponibles.length === 0) tiposDisponibles = [...poolTiposIntermedios];
+      let tipoCamara;
+      if (!tieneRotonda && i === Math.min(2, cantIntermedias) && tiposDisponibles.includes('rotonda')) {
+        tipoCamara = 'rotonda';
+        tiposDisponibles.splice(tiposDisponibles.indexOf('rotonda'), 1);
+      } else {
+        const tipoIdx = rng.int(0, tiposDisponibles.length - 1);
+        tipoCamara = tiposDisponibles.splice(tipoIdx, 1)[0];
+      }
+      if (tipoCamara === 'rotonda') tieneRotonda = true;
+      const tipoDef = TIPOS_ESTANCIA[tipoCamara] || { nombre: 'Cripta Subterránea' };
 
       // Dimensiones con varianza aleatoria calculadas primero para tener la distancia exacta
       const factorVarW = 1 + (rng.range(-1, 1) * varianzaTamano);
       const factorVarD = 1 + (rng.range(-1, 1) * varianzaTamano);
-      const wCamara = Math.round(Math.max(10, tamanoMedio * factorVarW));
-      const dCamara = Math.round(Math.max(10, tamanoMedio * factorVarD));
+      let wCamara = Math.round(Math.max(10, tamanoMedio * factorVarW));
+      let dCamara = Math.round(Math.max(10, tamanoMedio * factorVarD));
+      if (tipoCamara === 'rotonda') {
+        const diam = Math.max(18, Math.round((wCamara + dCamara) / 2));
+        wCamara = diam;
+        dCamara = diam;
+      }
       const hCamara = Math.round(Math.max(4.2, alturaTechos * (1 + rng.range(-0.3, 0.3) * varianzaTamano)));
+
+      // Garantizar espacio real de pasillo entre salas consecutivas para evitar solapamientos
+      const minGapPasillo = 5.5;
+      const zCamara = Math.min(zCamaraIdeal, Math.round(zAnterior - (dAnterior / 2) - minGapPasillo - (dCamara / 2)));
 
       // Conector / pasillo intermedio: tamaño exacto de la distancia entre las dos salas sin meterse dentro
       const bordeSurAnterior = zAnterior - (dAnterior / 2);
@@ -4070,17 +5995,13 @@
         });
       }
 
-      if (tiposDisponibles.length === 0) tiposDisponibles = [...poolTiposIntermedios];
-      const tipoIdx = rng.int(0, tiposDisponibles.length - 1);
-      const tipoCamara = tiposDisponibles.splice(tipoIdx, 1)[0];
-      const tipoDef = TIPOS_ESTANCIA[tipoCamara] || { nombre: 'Cripta Subterránea' };
-
       const camaraObj = {
         id: `room_${tipoCamara}_${i}`,
         tipo: tipoCamara,
         nombre: `${tipoDef.nombre} (${i})`,
         x: 0, y: 0, z: zCamara,
         w: wCamara, d: dCamara, h: hCamara,
+        esRedonda: tipoCamara === 'rotonda',
         abiertoSur: true, abiertoNorte: true
       };
 
@@ -4121,7 +6042,8 @@
 
     // Último pasillo procesional hacia la sala del jefe: tamaño exacto de la distancia sin meterse en las salas
     const bordeSurUltimo = zAnterior - (dAnterior / 2);
-    const bordeNorteBoss = zBoss + (bossD / 2);
+    const zBossFinal = Math.min(zBoss, Math.round(bordeSurUltimo - 6.5 - (bossD / 2)));
+    const bordeNorteBoss = zBossFinal + (bossD / 2);
     const distCorredorFinal = Math.max(0.5, bordeSurUltimo - bordeNorteBoss);
     const zCorredorFinal = (bordeSurUltimo + bordeNorteBoss) / 2;
 
@@ -4142,7 +6064,7 @@
       id: 'room_boss',
       tipo: 'sala_jefe',
       nombre: 'Cámara del Trono del Caído',
-      x: 0, y: 0, z: zBoss,
+      x: 0, y: 0, z: zBossFinal,
       w: bossW, d: bossD, h: bossH,
       abiertoSur: true
     };
@@ -4202,12 +6124,25 @@
     const rng = new PRNG(config.seed || 108);
     const estiloKey = config.estilo || rng.pick(Object.keys(ESTILOS_PIEDRA));
     const estilo = ESTILOS_PIEDRA[estiloKey] || ESTILOS_PIEDRA.cripta_gotica;
-    const kit = crearKitMateriales(estilo, THREE_REF);
+    const opcionesKit = (config && typeof config.tamanoTextura === 'number') ? { tamanoTextura: config.tamanoTextura } : null;
+    const kit = crearKitMateriales(estilo, THREE_REF, opcionesKit);
 
-    const kitsPorEstilo = {};
-    Object.keys(ESTILOS_PIEDRA).forEach(k => {
-      kitsPorEstilo[k] = crearKitMateriales(ESTILOS_PIEDRA[k], THREE_REF);
-    });
+    const _kitsCache = { [estiloKey]: kit };
+    const kitsPorEstilo = (typeof Proxy === 'function')
+      ? new Proxy(_kitsCache, {
+          get(target, prop) {
+            if (typeof prop === 'string' && !(prop in target) && Object.prototype.hasOwnProperty.call(ESTILOS_PIEDRA, prop)) {
+              target[prop] = crearKitMateriales(ESTILOS_PIEDRA[prop], THREE_REF, opcionesKit);
+            }
+            return target[prop];
+          }
+        })
+      : (function () {
+          Object.keys(ESTILOS_PIEDRA).forEach(k => {
+            if (!_kitsCache[k]) _kitsCache[k] = crearKitMateriales(ESTILOS_PIEDRA[k], THREE_REF, opcionesKit);
+          });
+          return _kitsCache;
+        })();
 
     const dungeonGroup = new THREE_REF.Group();
     dungeonGroup.name = 'DungeonProcedural_' + (config.id || 'seed_' + rng.s);
@@ -4247,31 +6182,119 @@
     // Calcular aperturas herméticas exactas entre salas y pasillos contiguos (evita huecos al vacío)
     calcularAperturasEntreSalas(salas, config);
 
-    // Sistema de Colisiones Físicas de la Mazmorra (para CharacterController)
+    // Sistema de Colisiones Físicas y Cajas de Oclusión de Paredes/Techos
     const colliders = [];
+    const cajasOclusion = [];
+    const focosVirtuales = [];
 
     // 2. Construir geometría estructural y decorar cada sala (respetando textura/estilo y color individual de paredes, suelos, techos y fuentes)
-    const configCompleta = Object.assign({}, config, { kitsPorEstilo, colliders });
+    const configCompleta = Object.assign({}, config, { kitsPorEstilo, colliders, cajasOclusion, _focosVirtuales: focosVirtuales });
 
     salas.forEach(s => {
+      s._esVisible = true;
       const estiloKeySala = s.estilo || estiloKey;
       const estiloSala = ESTILOS_PIEDRA[estiloKeySala] || estilo;
       const kitSala = kitsPorEstilo[estiloKeySala] || kit;
 
       const meshSala = construirCajaHabitacion(THREE_REF, kitSala, s, configCompleta);
       dungeonGroup.add(meshSala);
+      s._meshSala = meshSala;
 
       const decMesh = decorarHabitacion(THREE_REF, kitSala, s, estiloSala, rng, animables, props, configCompleta);
       dungeonGroup.add(decMesh);
+      s._decMesh = decMesh;
     });
 
     if (!dungeonGroup.userData) dungeonGroup.userData = {};
     dungeonGroup.userData.colliders = colliders;
 
-    // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni penumbras excesivas)
+    // Pool fijo de 4 luces puntuales reutilizables (evita recompilar shaders PBR al hacer culling de salas)
+    const poolLuces = [];
+    if (config.usarPoolLuces) {
+      for (let pl = 0; pl < 4; pl++) {
+        const pLuz = new THREE_REF.PointLight(0xffedd5, 0, 40, 1.15);
+        pLuz.name = 'dungeon_pool_light_' + pl;
+        pLuz.castShadow = false;
+        pLuz.visible = true;
+        dungeonGroup.add(pLuz);
+        poolLuces.push(pLuz);
+      }
+    }
+
+    const actualizarPoolLuces = (hx, hz, idsVisibles) => {
+      if (!poolLuces.length || typeof hx !== 'number' || typeof hz !== 'number') return;
+      const setVis = (idsVisibles && (idsVisibles instanceof Set ? idsVisibles.size > 0 : idsVisibles.length > 0))
+        ? (idsVisibles instanceof Set ? idsVisibles : new Set(idsVisibles))
+        : null;
+
+      let mejorBoveda = null;
+      let mejorDistBoveda = Infinity;
+      let segundaBoveda = null;
+      let segundaDistBoveda = Infinity;
+      for (let i = 0; i < focosVirtuales.length; i++) {
+        const f = focosVirtuales[i];
+        if (!f.esBoveda) continue;
+        if (setVis && !setVis.has(f.salaId)) continue;
+        const dx = f.x - hx, dz = f.z - hz;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < mejorDistBoveda) {
+          segundaDistBoveda = mejorDistBoveda;
+          segundaBoveda = mejorBoveda;
+          mejorDistBoveda = d2;
+          mejorBoveda = f;
+        } else if (d2 < segundaDistBoveda) {
+          segundaDistBoveda = d2;
+          segundaBoveda = f;
+        }
+      }
+
+      // Focos locales más cercanos (antorchas, fuentes, cofres, braseros) además de la sala actual y la contigua
+      let f1 = null, f2 = null, f3 = null;
+      let d1 = Infinity, d2 = Infinity, d3 = Infinity;
+      for (let i = 0; i < focosVirtuales.length; i++) {
+        const f = focosVirtuales[i];
+        if (f === mejorBoveda || f === segundaBoveda) continue;
+        if (setVis && !setVis.has(f.salaId)) continue;
+        const dx = f.x - hx, dz = f.z - hz;
+        const distSq = dx * dx + dz * dz;
+        if (distSq < d1) {
+          d3 = d2; f3 = f2;
+          d2 = d1; f2 = f1;
+          d1 = distSq; f1 = f;
+        } else if (distSq < d2) {
+          d3 = d2; f3 = f2;
+          d2 = distSq; f2 = f;
+        } else if (distSq < d3) {
+          d3 = distSq; f3 = f;
+        }
+      }
+
+      const elegidos = segundaBoveda ? [mejorBoveda, segundaBoveda, f1, f2] : [mejorBoveda, f1, f2, f3];
+      for (let p = 0; p < poolLuces.length; p++) {
+        const pLuz = poolLuces[p];
+        const foco = elegidos[p];
+        if (foco) {
+          if (pLuz.position && typeof pLuz.position.set === 'function') {
+            pLuz.position.set(foco.x, foco.y, foco.z);
+          }
+          if (pLuz.color && typeof pLuz.color.set === 'function') {
+            pLuz.color.set(foco.color);
+          } else {
+            pLuz.color = foco.color;
+          }
+          pLuz.intensity = foco.intensity;
+          pLuz.distance = foco.distance;
+          pLuz.decay = foco.decay;
+        } else {
+          pLuz.intensity = 0;
+        }
+      }
+    };
+
+    // 3. Luz ambiental cenital (calibrada para máxima claridad sin zonas negras ni destellos excesivos)
     const intAmbiente = (typeof config.luzAmbienteIntensidad === 'number')
       ? config.luzAmbienteIntensidad
-      : ((config.modoLuz === 'antorchas') ? 0.95 : (config.modoLuz === 'foco_personalizado' ? 0.85 : 1.35));
+      : ((config.modoLuz === 'antorchas') ? 0.9 : (config.modoLuz === 'foco_personalizado' ? 0.9 : 1.2));
     const luzAmbiente = new THREE_REF.AmbientLight(0xfffbeb, intAmbiente);
     luzAmbiente.name = 'dungeon_ambient_light';
     dungeonGroup.add(luzAmbiente);
@@ -4329,6 +6352,9 @@
     }
 
     const areaTotal = Math.round(salas.reduce((acc, s) => acc + (s.w * s.d), 0));
+    if (poolLuces.length > 0 && spawns.hero) {
+      actualizarPoolLuces(spawns.hero.x, spawns.hero.z, null);
+    }
 
     // --- GENERACIÓN DE MONSTRUOS PROCEDURALES (JEFE Y GUARDIANES ÉLITE) ---
     const monstruos = [];
@@ -4395,21 +6421,95 @@
       spawns,
       monstruos,
       colliders,
+      cajasOclusion,
+      encontrarSalaEnPosicion: (x, z) => encontrarSalaEnPosicion(salas, x, z),
+      obtenerEstanciasComunicadas: (salaId, prof = 4) => obtenerEstanciasComunicadas(salas, salaId, prof),
+      actualizarPoolLuces,
+      actualizarVisibilidadEstancias: (idsVisibles) => {
+        if (!idsVisibles) return;
+        const setVis = (idsVisibles instanceof Set) ? idsVisibles : new Set(idsVisibles);
+        if (setVis.size === 0) return;
+        salas.forEach(s => {
+          const vis = setVis.has(s.id);
+          s._esVisible = vis;
+          if (s._meshSala) s._meshSala.visible = vis;
+          if (s._decMesh) s._decMesh.visible = vis;
+        });
+        monstruos.forEach(m => {
+          if (m && m.userData) {
+            const mx = m.position ? m.position.x : (m.userData.spawnPos ? m.userData.spawnPos.x : 0);
+            const mz = m.position ? m.position.z : (m.userData.spawnPos ? m.userData.spawnPos.z : 0);
+            const sM = m.userData.salaId ? { id: m.userData.salaId } : encontrarSalaEnPosicion(salas, mx, mz);
+            const visM = sM ? setVis.has(sM.id) : true;
+            m.visible = visM;
+          }
+        });
+      },
+      actualizarOclusionCamara: (posCamara, posHeroe, idsVisibles) => {
+        if (!posCamara || !posHeroe) return new Set();
+        const pCam = { x: posCamara.x, y: posCamara.y, z: posCamara.z };
+        const hy = (typeof posHeroe.y === 'number') ? posHeroe.y : 0;
+        const pHead = { x: posHeroe.x, y: hy + 1.25, z: posHeroe.z };
+        const pChest = { x: posHeroe.x, y: hy + 0.55, z: posHeroe.z };
+
+        const setSalasVisibles = idsVisibles ? ((idsVisibles instanceof Set) ? idsVisibles : new Set(idsVisibles)) : null;
+        const ladosOcluidos = new Set();
+
+        for (let i = 0; i < cajasOclusion.length; i++) {
+          const box = cajasOclusion[i];
+          if (setSalasVisibles && !setSalasVisibles.has(box.salaId)) continue;
+          if (intersectSegmentBox(pCam, pHead, box) || intersectSegmentBox(pCam, pChest, box)) {
+            ladosOcluidos.add(`${box.salaId}_${box.ladoPrincipal}`);
+          }
+        }
+
+        salas.forEach(s => {
+          if (!s._meshSala || !s._meshSala._partesPorLado) return;
+          if (setSalasVisibles && !setSalasVisibles.has(s.id)) return;
+
+          const partes = s._meshSala._partesPorLado;
+          ['norte', 'sur', 'este', 'oeste', 'techo'].forEach(lado => {
+            const lista = partes[lado];
+            if (Array.isArray(lista)) {
+              const ocluido = ladosOcluidos.has(`${s.id}_${lado}`);
+              for (let p = 0; p < lista.length; p++) {
+                lista[p].visible = !ocluido;
+              }
+            }
+          });
+        });
+
+        return ladosOcluidos;
+      },
       getColliders: (x, z, radius = 25) => {
         if (typeof x !== 'number' || typeof z !== 'number') return colliders;
         const rSq = radius * radius;
-        return colliders.filter(c => {
-          const cx = (c.type === 'box') ? (c.minX + c.maxX) * 0.5 : c.x;
-          const cz = (c.type === 'box') ? (c.minZ + c.maxZ) * 0.5 : c.z;
+        const res = [];
+        for (let i = 0; i < colliders.length; i++) {
+          const c = colliders[i];
+          const cx = (c.type === 'box') ? Math.max(c.minX, Math.min(x, c.maxX)) : c.x;
+          const cz = (c.type === 'box') ? Math.max(c.minZ, Math.min(z, c.maxZ)) : c.z;
           const dx = cx - x, dz = cz - z;
-          return (dx * dx + dz * dz) <= rSq;
-        });
+          if ((dx * dx + dz * dz) <= rSq) res.push(c);
+        }
+        return res;
       },
       areaTotal,
       update: (dt, nowSec) => {
         const t = nowSec || (performance.now() / 1000);
+        const esVisibleJerarquia = obj => {
+          let cur = obj;
+          while (cur) {
+            if (cur.visible === false) return false;
+            cur = cur.parent;
+          }
+          return true;
+        };
         for (let i = 0; i < animables.length; i++) {
           const item = animables[i];
+          if (!item) continue;
+          if (item._salaRef && item._salaRef._esVisible === false) continue;
+          if (!item._salaRef && !esVisibleJerarquia(item)) continue;
           if (item.userData && typeof item.userData.animar === 'function') {
             item.userData.animar(t, dt);
           } else if (item.userData && typeof item.userData.flicker === 'function') {
@@ -4422,7 +6522,7 @@
         }
         for (let j = 0; j < monstruos.length; j++) {
           const m = monstruos[j];
-          if (m && m.userData && typeof m.userData.animar === 'function' && !animables.includes(m)) {
+          if (m && esVisibleJerarquia(m) && m.userData && typeof m.userData.animar === 'function' && !animables.includes(m)) {
             m.userData.animar(t, dt);
           }
         }
@@ -4638,10 +6738,13 @@
     crearAtlasMazmorra,
     crearTexturaPared,
     crearTexturaSuelo,
+    crearTexturaMosaico,
     crearTexturaZocalo,
     crearTexturaTecho,
     crearTexturaMadera,
     crearTexturaHierro,
+    crearTexturaCeramica,
+    aplicarUVsMetricasBox,
     generarDataURLThumbnail,
     crearKitMateriales,
     crearAntorcha,
@@ -4660,6 +6763,9 @@
     calcularAperturasEntreSalas,
     conectarEstanciasLateralesAutomaticamente,
     sincronizarAlturasDePasillos,
+    intersectSegmentBox,
+    encontrarSalaEnPosicion,
+    obtenerEstanciasComunicadas,
     construirCajaHabitacion,
     decorarHabitacion,
     ARQUETIPOS_MONSTRUOS,

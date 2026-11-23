@@ -501,6 +501,12 @@
         </div>
       </div>
 
+      <!-- Texturas de la biblioteca (fotos de assets/texturas): sustituyen a la textura del estilo -->
+      <div class="control-row" style="margin-bottom: 6px;">
+        <label style="font-size:10px;">📷 Texturas de la biblioteca (toda la mazmorra)</label>
+        <div id="cfg-texturas-biblioteca"></div>
+      </div>
+
       <!-- Suelos de la Mazmorra -->
       <div class="control-row" style="margin-bottom: 2px;">
         <label style="font-size:10px;">⬛ Textura de Suelos / Losas</label>
@@ -885,6 +891,11 @@
             <input type="color" id="insp-color-pared" value="#706860" style="width: 38px; height: 24px; padding: 1px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; background: transparent;">
             <button id="btn-insp-color-pared-reset" class="sala-item-btn" style="flex: 1; font-size:10px;" title="Restablecer color">Color Estilo</button>
           </div>
+        </div>
+
+        <div class="control-row" style="margin-bottom: 6px;">
+          <label style="font-size:10px;">📷 Texturas de la biblioteca (esta estancia)</label>
+          <div id="insp-texturas-biblioteca"></div>
         </div>
 
         <!-- Suelo -->
@@ -1492,8 +1503,11 @@
 
   <div id="toast"></div>
 
-  <script src="js/dungeon-generator.js?v=2.2"></script>
+  <script src="js/texturas-lib.js?v=4"></script>
+  <script src="js/dungeon-generator.js?v=2.7"></script>
 
+  <script src="js/enemigos-carpeta.js?v=20261110"></script>
+  <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -1505,6 +1519,7 @@
     // Cargar la biblioteca procedural de criaturas de AetherForge RPG (EnemyLib y optimizador)
     try {
       await import('./js/enemigos.js');
+      if (window.EnemyCarpetaFusion) window.EnemyCarpetaFusion.fusionarEnPagina();
       try { await import('./js/enemigos-optimizar.js'); } catch (e) {}
       console.log('👾 EnemyLib procedural disponible en el Creador de Mazmorras');
     } catch (errEnemy) {
@@ -1544,14 +1559,14 @@
       luzElev: 55,
       luzIntensidad: 1.6,
       luzColor: '#ffffff',
-      luzAmbienteIntensidad: 1.35,
-      intensidadLuzCamara: 2.8,
+      luzAmbienteIntensidad: 1.2,
+      intensidadLuzCamara: 2.0,
       sombrasActivas: true,
       sombrasPuntuales: false,
       distanciaAntorchas: 16.0,
       formaAntorcha: 'antorcha_hierro',
       colorLuzAntorcha: '#f59e0b',
-      intensidadAntorchas: 3.4,
+      intensidadAntorchas: 2.4,
       antorchasAutomaticas: true,
       monstruos: {
         habilitados: true,
@@ -1708,6 +1723,10 @@
         colorTecho: dungeonConfig.colorTecho,
         estiloFuente: dungeonConfig.estiloFuente,
         colorAgua: dungeonConfig.colorAgua,
+        texturaPared: dungeonConfig.texturaPared,
+        texturaSuelo: dungeonConfig.texturaSuelo,
+        texturaZocalo: dungeonConfig.texturaZocalo,
+        texturaTecho: dungeonConfig.texturaTecho,
         seed: dungeonConfig.seed,
         radio: dungeonConfig.radio,
         tamanoMedio: dungeonConfig.tamanoMedio,
@@ -1721,14 +1740,14 @@
         props: dungeonConfig.props,
         sinTecho: !dungeonConfig.mostrarTechos,
         modoLuz: dungeonConfig.modoLuz,
-        luzAmbienteIntensidad: dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35,
-        intensidadLuzCamara: dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8,
+        luzAmbienteIntensidad: dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.2,
+        intensidadLuzCamara: dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.0,
         sombrasPuntuales: dungeonConfig.sombrasPuntuales === true,
         sombrasAntorchas: dungeonConfig.sombrasPuntuales === true,
         distanciaAntorchas: dungeonConfig.distanciaAntorchas || 16.0,
         formaAntorcha: dungeonConfig.formaAntorcha || 'antorcha_hierro',
         colorLuzAntorcha: dungeonConfig.colorLuzAntorcha || '#f59e0b',
-        intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4,
+        intensidadAntorchas: dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4,
         antorchasAutomaticas: dungeonConfig.antorchasAutomaticas !== false,
         monstruos: dungeonConfig.monstruos
       });
@@ -1943,6 +1962,7 @@
       // Materiales y texturas individuales
       $('insp-estilo').value = sala.estiloPared || sala.estilo || '';
       $('insp-color-pared').value = sala.colorPared && sala.colorPared !== 'default' ? sala.colorPared : '#706860';
+      if (window.__sincronizarTexturasSala) window.__sincronizarTexturasSala(sala);
 
       $('insp-estilo-suelo').value = sala.estiloSuelo || '';
       $('insp-color-suelo').value = sala.colorSuelo && sala.colorSuelo !== 'default' ? sala.colorSuelo : '#4a423b';
@@ -2255,7 +2275,7 @@
     function actualizarIluminacionEscena() {
       const modo = dungeonConfig.modoLuz || 'aventura_clara';
       const sombras = dungeonConfig.sombrasActivas !== false;
-      const intAmb = typeof dungeonConfig.luzAmbienteIntensidad === 'number' ? dungeonConfig.luzAmbienteIntensidad : 1.35;
+      const intAmb = typeof dungeonConfig.luzAmbienteIntensidad === 'number' ? dungeonConfig.luzAmbienteIntensidad : 1.2;
       renderer.shadowMap.enabled = sombras;
 
       if (modo === 'aventura_clara') {
@@ -2307,7 +2327,7 @@
       if (dungeonInstance && dungeonInstance.group) {
         const ambObj = dungeonInstance.group.getObjectByName('dungeon_ambient_light');
         if (ambObj) {
-          ambObj.intensity = (modo === 'aventura_clara' || modo === 'ambiente_claro') ? intAmb : (intAmb * 0.85);
+          ambObj.intensity = (modo === 'aventura_clara' || modo === 'ambiente_claro') ? intAmb : (intAmb * 1.2);
         }
       }
     }
@@ -3045,12 +3065,12 @@
 
       // Sincronización de brillo ambiental general y luz de bóveda
       if ($('cfg-luz-ambiente')) {
-        $('cfg-luz-ambiente').value = dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35;
-        if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = (dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.35).toFixed(2);
+        $('cfg-luz-ambiente').value = dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.2;
+        if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = (dungeonConfig.luzAmbienteIntensidad !== undefined ? dungeonConfig.luzAmbienteIntensidad : 1.2).toFixed(2);
       }
       if ($('cfg-luz-boveda')) {
-        $('cfg-luz-boveda').value = dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8;
-        if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = (dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.8).toFixed(1);
+        $('cfg-luz-boveda').value = dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.0;
+        if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = (dungeonConfig.intensidadLuzCamara !== undefined ? dungeonConfig.intensidadLuzCamara : 2.0).toFixed(1);
       }
 
       // Sincronización del menú de antorchas automáticas
@@ -3061,8 +3081,8 @@
       if ($('cfg-antorchas-forma')) $('cfg-antorchas-forma').value = dungeonConfig.formaAntorcha || 'antorcha_hierro';
       if ($('cfg-antorchas-color')) $('cfg-antorchas-color').value = dungeonConfig.colorLuzAntorcha || '#f59e0b';
       if ($('cfg-antorchas-intensidad')) {
-        $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4;
-        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 3.4).toFixed(1);
+        $('cfg-antorchas-intensidad').value = dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4;
+        if ($('lbl-antorchas-intensidad')) $('lbl-antorchas-intensidad').textContent = (dungeonConfig.intensidadAntorchas !== undefined ? dungeonConfig.intensidadAntorchas : 2.4).toFixed(1);
       }
 
       // Sincronización de monstruos procedurales y optimización de sombras
@@ -3155,6 +3175,30 @@
       rebuildDungeon();
       actualizarPreviewsTexturas(null);
     });
+
+    // Texturas de la biblioteca: para toda la mazmorra y para la estancia seleccionada
+    (function () {
+      if (!window.TexturasLib) return;
+      const campos = [
+        ['texturaPared', '🧱 Paredes', ['mpared', 'mmuro', 'murales', 'piedra', 'madera']],
+        ['texturaSuelo', '⬛ Suelos', ['msuelo', 'mlosa', 'alfombras', 'suelo', 'piedra', 'madera']],
+        ['texturaZocalo', '▭ Zócalo', ['mpared', 'mmuro', 'piedra', 'madera']],
+        ['texturaTecho', '⛰️ Techo', ['piedra', 'madera', 'tejados']]
+      ];
+      const selCfg = {}, selSala = {};
+      campos.forEach(([campo, etiqueta, grupos]) => {
+        selCfg[campo] = TexturasLib.selector($('cfg-texturas-biblioteca'), {
+          etiqueta, grupos, valor: dungeonConfig[campo],
+          alCambiar: id => { dungeonConfig[campo] = id; rebuildDungeon(); }
+        });
+        selSala[campo] = TexturasLib.selector($('insp-texturas-biblioteca'), {
+          etiqueta, grupos, valor: null,
+          alCambiar: id => actualizarSalaSeleccionada(sala => { sala[campo] = id; })
+        });
+      });
+      window.__sincronizarTexturasSala = sala => campos.forEach(([c]) => selSala[c].fijar(sala && sala[c]));
+      window.__sincronizarTexturasCfg = () => campos.forEach(([c]) => selCfg[c].fijar(dungeonConfig[c]));
+    })();
 
     // Listeners para arquitectura y texturas globales independientes
     if ($('cfg-estilo-pared')) {
@@ -3487,7 +3531,7 @@
 
     if ($('cfg-luz-ambiente')) {
       $('cfg-luz-ambiente').addEventListener('input', e => {
-        dungeonConfig.luzAmbienteIntensidad = parseFloat(e.target.value) || 1.35;
+        dungeonConfig.luzAmbienteIntensidad = parseFloat(e.target.value) || 1.2;
         if ($('lbl-luz-ambiente')) $('lbl-luz-ambiente').textContent = dungeonConfig.luzAmbienteIntensidad.toFixed(2);
         actualizarIluminacionEscena();
       });
@@ -3498,7 +3542,7 @@
 
     if ($('cfg-luz-boveda')) {
       $('cfg-luz-boveda').addEventListener('input', e => {
-        dungeonConfig.intensidadLuzCamara = parseFloat(e.target.value) || 2.8;
+        dungeonConfig.intensidadLuzCamara = parseFloat(e.target.value) || 2.0;
         if ($('lbl-luz-boveda')) $('lbl-luz-boveda').textContent = dungeonConfig.intensidadLuzCamara.toFixed(1);
       });
       $('cfg-luz-boveda').addEventListener('change', () => {
@@ -3560,7 +3604,7 @@
         dungeonConfig.distanciaAntorchas = parseFloat($('cfg-antorchas-distancia').value) || 16;
         dungeonConfig.formaAntorcha = $('cfg-antorchas-forma').value || 'antorcha_hierro';
         dungeonConfig.colorLuzAntorcha = $('cfg-antorchas-color').value || '#f59e0b';
-        dungeonConfig.intensidadAntorchas = parseFloat($('cfg-antorchas-intensidad').value) || 3.4;
+        dungeonConfig.intensidadAntorchas = parseFloat($('cfg-antorchas-intensidad').value) || 2.4;
         dungeonConfig.antorchasAutomaticas = true;
         rebuildDungeon();
         showToast('⚡ Antorchas redistribuidas en todas las paredes con iluminación expansiva');
@@ -4055,6 +4099,7 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
         try {
           const parsed = JSON.parse(ev.target.result);
           dungeonConfig = Object.assign(dungeonConfig, parsed);
+          if (window.__sincronizarTexturasCfg) window.__sincronizarTexturasCfg();
           syncUIFromConfig();
           rebuildDungeon();
           showToast('Mazmorra importada con éxito');

@@ -108,4 +108,32 @@ t('el héroe (puntos, habilidades, misiones) se guarda con la partida', () => {
   assert.strictEqual(P.makePartida(base).heroe, null);
 });
 
+t('el rostro del personaje es configurable al crear y permanece bloqueado tras iniciar, igual que aldeanosCustom y metadatos', () => {
+  const pj = {
+    nombre: 'Lyra', clase: 'mago', fit: { torsoScale: 1.0 },
+    rostro: { id: 'ref_elfa', label: 'Elfa', gender: 'mujer', url: 'textures/rostro_elfa.png', bloqueado: false },
+    pelo: { cutStyle: 'ondulado_volumen', length: 0.7 },
+    inventario: [{ uid: 'o1', piezaId: 'torso.10', ranura: 'torso', idx: 10, nombre: 'Túnica', nivel: 10, estado: 1, grado: 'B', tipoArmadura: 'mago', claseArma: 'baculo' }],
+    equipo: { torso: 'o1' }
+  };
+  const rLock = P.fijarRostroInmutable(pj, pj.rostro);
+  assert.strictEqual(rLock.bloqueado, true);
+  // Intentar cambiarlo después no surte efecto
+  const r2 = P.fijarRostroInmutable(pj, { id: 'ref_orco', gender: 'hombre', bloqueado: false });
+  assert.strictEqual(r2.id, 'ref_elfa');
+  assert.strictEqual(pj.rostro.id, 'ref_elfa');
+
+  const customAld = [{ id: 'ald1', nombre: 'Aldeano Muelle', oficio: 'mercader', modelo: 'npc/aldeanos/mercader.glb', zona: 'Muelle', x: 120, z: 45, yaw: 1.2 }];
+  const p = P.makePartida(Object.assign({}, base, { personaje: pj, aldeanosCustom: customAld }));
+  assert.strictEqual(p.personaje.rostro.id, 'ref_elfa');
+  assert.strictEqual(p.personaje.rostro.bloqueado, true);
+  assert.strictEqual(p.personaje.inventario[0].grado, 'B');
+  assert.strictEqual(p.personaje.inventario[0].tipoArmadura, 'mago');
+  const rest = P.restoreFields(P.parsePartida(JSON.stringify(p)));
+  assert.strictEqual(rest.personaje.rostro.id, 'ref_elfa');
+  assert.strictEqual(rest.personaje.rostro.bloqueado, true);
+  assert.strictEqual(rest.aldeanosCustom.length, 1);
+  assert.strictEqual(rest.aldeanosCustom[0].modelo, 'npc/aldeanos/mercader.glb');
+});
+
 console.log(`\n${n} pruebas correctas`);

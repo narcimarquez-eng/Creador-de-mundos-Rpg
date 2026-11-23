@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Creador de Mundos RPG</title>
   <link rel="icon" href="data:,">
   <style>
@@ -217,6 +217,7 @@
       <p class="muted">Cada cambio se guarda solo en la sesión actual de este navegador. Exporta a archivo para tener copia o pasarlo a otro dispositivo.</p>
       <div id="session-list"></div>
       <div class="btns">
+        <button id="btn-official-world" style="background:#0f766e;border-color:#2dd4bf;color:#ffffff">🌍 Cargar Valdris (Oficial)</button>
         <button class="gold" id="btn-new-world">✨ Nuevo mundo…</button>
         <button id="btn-save-as">Duplicar sesión</button>
       </div>
@@ -234,7 +235,7 @@
     <div class="modal">
       <h2>✨ Generar nuevo mundo</h2>
       <label>Nombre del mundo</label>
-      <input type="text" id="nw-name" value="Reino de Aden">
+      <input type="text" id="nw-name" value="Frontera del Alba">
       <label>Semilla del mundo (terreno y biomas)</label>
       <div style="display:flex;gap:6px"><input type="number" id="nw-seed" min="1" max="999999"><button id="nw-dice">🎲</button></div>
       <label>Pueblos iniciales: <b id="nw-towns-l"></b></label>
@@ -251,7 +252,7 @@
       <input type="range" id="nw-mpl" min="60" max="600" step="10" value="180">
       <div class="btns">
         <button id="nw-cancel">Cancelar</button>
-        <button class="gold" id="nw-go">Generar</button>
+        <button class="gold" id="nw-go">Generar mundo e historia</button>
       </div>
     </div>
   </div>
@@ -274,9 +275,15 @@
   <div id="toast"></div>
 
   <script src="js/world-core.js?v=20261030c"></script>
-  <script src="js/mazmorras.js?v=20261101"></script>
+  <script src="js/relieve-zona.js?v=20261112r"></script>
+  <script src="js/mazmorras.js?v=20261114c"></script>
+  <script src="js/lugares-secretos.js?v=20261107"></script>
+  <script src="js/historia.js?v=20261113"></script>
+  <script src="js/mundo-campana.js?v=20261114c"></script>
   <script src="js/equipo.js?v=20251029"></script>
-  <script defer src="js/enemigos-catalogo.js?v=20251029" onload="if(window.__alCargarCatalogo)window.__alCargarCatalogo()"></script>
+  <script src="js/enemigos-carpeta.js?v=20261110"></script>
+  <script src="js/enemigos-carpeta-fusion.js?v=20261110"></script>
+  <script defer src="js/enemigos-catalogo.js?v=20251029" onload="if(window.EnemyCarpetaFusion)window.EnemyCarpetaFusion.fusionarEnPagina();if(window.__alCargarCatalogo)window.__alCargarCatalogo()"></script>
   <script>
   "use strict";
   // Enemigos del catálogo (js/enemigos-catalogo.js) agrupados por raza; `actual` es la clave elegida
@@ -324,6 +331,7 @@
     current: 'rpgMundo.actual',
     townReturn: 'rpgMundo.retornoPueblo',
     dungeonReturn: 'rpgMundo.retornoMazmorra',
+    mazeReturn: 'rpgMundo.retornoLaberinto',
     prefs: 'rpgMundo.prefs'
   };
 
@@ -417,12 +425,39 @@
     if (!opts || opts.fit !== false) fitView();
   }
 
+  function migrarValdrisSiAntiguo(w) {
+    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 3) return false;
+    if (typeof window.clonarMundoOficial !== 'function') return false;
+    const fresh = window.clonarMundoOficial();
+    const ver = w.campaignVersion || 1;
+    if (ver < 2) {
+      const byId = new Map((fresh.towns || []).map(t => [t.id, t]));
+      (w.towns || []).forEach(t => {
+        const ft = byId.get(t.id);
+        if (ft) {
+          const prevEdits = t.cfg && t.cfg.edits;
+          t.cfg = Object.assign({}, ft.cfg);
+          if (prevEdits) t.cfg.edits = prevEdits;
+          if (typeof ft.size === 'number') t.size = ft.size;
+          if (typeof ft.radius === 'number') t.radius = ft.radius;
+        }
+      });
+    }
+    if (fresh.historia) w.historia = fresh.historia;
+    w.campaignVersion = fresh.campaignVersion || 3;
+    return true;
+  }
+
   function loadSession(id) {
     const text = lsGet(STORE.data(id));
     if (!text) { toast('Sesión no encontrada.'); return false; }
     try {
       const w = W.deserialize(text);
       if (typeof W.migrarMonstruosSiAntiguo === 'function') W.migrarMonstruosSiAntiguo(w);
+      migrarValdrisSiAntiguo(w);
+      if (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.migrarHistoriaA5Piezas === 'function') {
+        HistoriaLib.migrarHistoriaA5Piezas(w);
+      }
       openWorld(w, id);
       return true;
     } catch (e) {
@@ -694,6 +729,11 @@
       ctx.strokeStyle = z.id === selectedId ? '#fde047' : stroke;
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // Dibujar laberinto de zona con muros, pasillos, entrada y meta
+      if (z.relieve && z.relieve.activo && window.RelieveZonaLib && window.RelieveZonaLib.dibujarLaberinto2D) {
+        window.RelieveZonaLib.dibujarLaberinto2D(ctx, z, toScreen, view.scale, z.id === selectedId);
+      }
     });
   }
 
@@ -733,7 +773,7 @@
       ctx.setLineDash([]);
     });
     if (tool === 'road' && roadStart && pointer.last) {
-      const a = W.findTown(world, roadStart);
+      const a = W.findRoadNode ? W.findRoadNode(world, roadStart) : (W.findTown(world, roadStart) || W.findZone(world, roadStart));
       if (a) {
         const s = toScreen(a.x, a.y);
         ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(pointer.last.x, pointer.last.y);
@@ -1038,14 +1078,20 @@
         break;
       }
       case 'road': {
-        if (!hit || hit.kind !== 'town') { roadStart = null; renderToolOptions(); requestDraw(); toast('Toca un pueblo para empezar el camino.'); return; }
+        if (!hit || (hit.kind !== 'town' && hit.kind !== 'zone')) {
+          roadStart = null; renderToolOptions(); requestDraw();
+          toast('Toca un pueblo o una zona/laberinto para trazar el camino.'); return;
+        }
         if (!roadStart) { roadStart = hit.id; renderToolOptions(); requestDraw(); return; }
         if (roadStart === hit.id) { roadStart = null; renderToolOptions(); requestDraw(); return; }
         const exists = world.roads.find(r => (r.from === roadStart && r.to === hit.id) || (r.to === roadStart && r.from === hit.id));
-        if (exists) { toast('Esos pueblos ya están conectados.'); roadStart = null; renderToolOptions(); requestDraw(); return; }
+        if (exists) { toast('Ya están conectados por un camino.'); roadStart = null; renderToolOptions(); requestDraw(); return; }
         const road = W.createRoad(world, roadStart, hit.id);
-        if (autoZones) W.populateRoad(world, road);
-        W.recomputeLevelsSoft(world, W.findTown(world, hit.id), [road]);
+        const townTarget = W.findTown(world, hit.id);
+        if (townTarget) {
+          if (autoZones) W.populateRoad(world, road);
+          W.recomputeLevelsSoft(world, townTarget, [road]);
+        }
         roadStart = null;
         selectedId = road.id; activeTab = 'sel';
         renderToolOptions();
@@ -1140,9 +1186,9 @@
           <label>Nivel: <input type="number" id="to-dlvl" value="15" min="1" max="99" style="width:55px"></label>
         </div>`;
     } else if (tool === 'road') {
-      const a = roadStart && W.findTown(world, roadStart);
-      html = `<div class="row"><b>${a ? 'Ahora toca el pueblo destino (desde «' + esc(a.name) + '»)' : 'Toca el primer pueblo'}</b></div>
-        <div class="row"><label><input type="checkbox" id="to-zones" ${autoZones ? 'checked' : ''}> Crear zonas de caza en el camino</label></div>`;
+      const a = roadStart && (W.findTown(world, roadStart) || W.findZone(world, roadStart));
+      html = `<div class="row"><b>${a ? 'Ahora toca el pueblo o zona destino (desde «' + esc(a.name) + '»)' : 'Toca el primer pueblo o zona de caza'}</b></div>
+        <div class="row"><label><input type="checkbox" id="to-zones" ${autoZones ? 'checked' : ''}> Crear zonas de caza intermedias</label></div>`;
     } else if (tool === 'delete') {
       html = `<div class="row"><b>Toca lo que quieras eliminar.</b> <span class="muted">(↶ deshace)</span></div>`;
     }
@@ -1169,11 +1215,13 @@
   function worldPanelHTML() {
     const st = W.stats(world);
     const S = world.settings;
+    const h = world.historia;
+    const esOficial = !!(window.MUNDO_OFICIAL && world.campaignId === window.MUNDO_OFICIAL.campaignId);
     return `
       <h3>Mundo</h3>
       <label>Nombre</label>
       <input type="text" data-w="name" value="${esc(world.name)}">
-      <div class="muted" style="margin-top:6px">Semilla del terreno: <b>${world.seed}</b></div>
+      <div class="muted" style="margin-top:6px">Semilla del terreno: <b>${world.seed}</b>${esOficial ? ' · <span style="color:#2dd4bf;font-weight:600">🌍 Mundo Oficial</span>' : ''}</div>
       <h3>Resumen</h3>
       <div class="stats">
         <div>🏘 Pueblos: <b>${st.towns}</b></div>
@@ -1183,6 +1231,18 @@
         <div>🗝 Mazmorras: <b>${st.dungeons || 0}</b></div>
         <div>📏 ${st.roadKm} km</div>
         <div>📈 Nivel máx: <b>${st.maxLevel}</b></div>
+      </div>
+      <h3>📜 Crónica / Historia del mundo</h3>
+      <div style="padding:8px 10px;background:rgba(15,23,42,0.75);border:1px solid #334155;border-radius:6px;margin-bottom:8px;font-size:12px">
+        ${h ? `
+          <div style="font-weight:700;color:#fde047">${esc(h.titulo || ('Crónica de ' + world.name))}</div>
+          <div class="muted" style="margin-top:2px">${esc(h.subtitulo || '')}</div>
+          <div style="margin-top:4px;color:#cbd5e1">📖 <b>${(h.actos || []).length}</b> Actos · <b>${(h.capitulos || []).length}</b> Capítulos · 👑 <b>${esc(h.tituloFinal || 'Campeones')}</b></div>
+        ` : '<div class="muted">Este mundo aún no tiene crónica generada propia; usa el generador para crear sus 16 capítulos adaptados a sus pueblos, zonas y jefes.</div>'}
+      </div>
+      <div class="btns">
+        <button class="gold" data-act="gen-story">✨ ${h ? 'Regenerar Historia' : 'Generar Historia'}</button>
+        ${(!esOficial && typeof window.clonarMundoOficial === 'function') ? '<button data-act="load-official" style="background:#0f766e;border-color:#2dd4bf;color:#ffffff">🌍 Cargar Valdris</button>' : ''}
       </div>
       <h3>🗝 Mazmorras Ancestrales (${(world.dungeons || []).length})</h3>
       <div class="btns">
@@ -1342,6 +1402,77 @@
       </div>`;
   }
 
+  function relieveZonaHTML(z) {
+    const r = z.relieve || { activo: false, estilo: 'roca_canion', culminacion: 'oasis', complejidad: 'medio', tamGrid: 13, alturaMuro: 9, seed: 12345 };
+    const estilos = (window.RelieveZonaLib && window.RelieveZonaLib.ESTILOS) || {
+      roca_canion: { nombre: 'Cañón de Roca (Desfiladeros)' },
+      piedra_ruinas: { nombre: 'Muros de Piedra Ancestral' },
+      laberinto_setos: { nombre: 'Setos Oscuros y Riscos' }
+    };
+    const culms = (window.RelieveZonaLib && window.RelieveZonaLib.CULMINACIONES) || {
+      oasis: { nombre: 'Oasis Escondido', icono: '🌴' },
+      jefe: { nombre: 'Arena de Jefe Especial', icono: '💀' },
+      objeto_mision: { nombre: 'Objeto de Misión (Reliquia)', icono: '🔮' },
+      santuario: { nombre: 'Santuario Rúnico', icono: '🏛️' },
+      tesoro: { nombre: 'Cofre del Tesoro Legendario', icono: '💎' }
+    };
+
+    return `
+      <div style="margin-top:12px;margin-bottom:12px;padding:10px 12px;background:#18181b;border:1.5px solid #6366f1;border-radius:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label style="margin:0;font-weight:700;color:#facc15;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" data-zf="activo" ${r.activo ? 'checked' : ''}> 🌀 Laberinto de Zona con Meta
+          </label>
+          ${r.activo ? `<span style="font-size:11px;color:#cbd5e1;background:#27272a;padding:2px 8px;border-radius:4px;border:1px solid #4f46e5">${culms[r.culminacion || 'oasis'] ? culms[r.culminacion || 'oasis'].icono + ' ' + (estilos[r.estilo || 'roca_canion'] ? estilos[r.estilo || 'roca_canion'].nombre : '') : ''}</span>` : ''}
+        </div>
+        ${r.activo ? `
+          <div style="font-size:11px;color:#a5b4fc;margin:6px 0 8px;line-height:1.4">
+            Genera un laberinto real de muros y pasillos con recovecos que el jugador debe recorrer desde la entrada para llegar a la meta central.
+          </div>
+          <div class="grid2">
+            <div>
+              <label style="font-size:11px">Estilo arquitectónico</label>
+              <select data-zf="estilo">
+                ${Object.keys(estilos).map(k => `<option value="${k}" ${(r.estilo || 'roca_canion') === k ? 'selected' : ''}>${estilos[k].nombre}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px">Punto final (Meta)</label>
+              <select data-zf="culminacion">
+                ${Object.keys(culms).map(k => `<option value="${k}" ${(r.culminacion || 'oasis') === k ? 'selected' : ''}>${culms[k].icono} ${culms[k].nombre}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px">Complejidad / Anchura de caminos</label>
+              <select data-zf="complejidad">
+                <option value="simple" ${r.complejidad === 'simple' ? 'selected' : ''}>Simple (9 × 9 - Caminos muy anchos)</option>
+                <option value="medio" ${!r.complejidad || r.complejidad === 'medio' ? 'selected' : ''}>Medio (11 × 11 - Caminos anchos)</option>
+                <option value="complejo" ${r.complejidad === 'complejo' ? 'selected' : ''}>Complejo (15 × 15 - Más intrincado)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px">Altura de acantilados: <b>${r.alturaMuro || 14} m</b></label>
+              <input type="range" min="8" max="24" step="1" data-zf="alturaMuro" value="${r.alturaMuro || 14}">
+            </div>
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between">
+            <span>Orientación: <b>${r.rotacion || 0}°</b></span>
+            <span>Entradas: <b>${(r.entradas && r.entradas.length ? r.entradas : [r.entradaDir || 'sur']).join(', ')}</b></span>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px">
+            <button data-act="connect-town-road" style="flex:1.2;background:#0d9488;color:#fff;font-size:11px;padding:6px;font-weight:600;border:none;border-radius:4px;cursor:pointer">🛤 Camino a Pueblo Cercano</button>
+            <button data-act="lab-roll" style="flex:0.8;background:#4338ca;color:#f3e8ff;font-size:11px;padding:6px;font-weight:600;border:none;border-radius:4px;cursor:pointer">🎲 Regenerar</button>
+          </div>
+          <button data-act="open-maze" style="margin-top:6px;width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:11.5px;padding:7px 10px;font-weight:700;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(99,102,241,0.4)">🎨 Diseñar Laberinto 3D</button>
+          <button data-act="test-maze-3d" style="margin-top:6px;width:100%;background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-size:11.5px;padding:7px 10px;font-weight:700;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(16,185,129,0.4)">🎮 Probar Zona en Visor 3D</button>
+        ` : `
+          <button data-act="open-maze" style="margin-top:8px;width:100%;background:#312e81;color:#c7d2fe;font-size:11.5px;padding:7px;font-weight:600;border:1px solid #4f46e5;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🎨 Abrir Creador de Laberintos 3D</button>
+          <button data-act="test-maze-3d" style="margin-top:6px;width:100%;background:linear-gradient(135deg,#059669,#10b981);color:#fff;font-size:11.5px;padding:7px 10px;font-weight:700;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(16,185,129,0.4)">🎮 Probar Zona en Visor 3D</button>
+        `}
+      </div>
+    `;
+  }
+
   function zoneHTML(z) {
     const road = z.roadId && W.findRoad(world, z.roadId);
     const pois = world.pois.filter(p => p.zoneId === z.id);
@@ -1360,6 +1491,7 @@
       <input type="range" min="60" max="900" step="10" data-f="radius" value="${z.radius}">
       <label>Reaparición de monstruos (s)</label><input type="number" min="5" max="3600" data-f="respawnSec" data-num="1" value="${z.respawnSec}">
       <div class="muted" style="margin-top:6px">${road ? 'En el camino ' + esc((W.findTown(world, road.from) || {}).name) + ' ⇄ ' + esc((W.findTown(world, road.to) || {}).name) + (z.anchored ? ' (sigue al camino)' : '') : 'Zona libre (no ligada a un camino)'}</div>
+      ${relieveZonaHTML(z)}
       <h3>Monstruos <span class="muted" style="font-weight:400">(${z.monsters.length} variedades · ${z.monsters.reduce((s, m) => s + W.monsterCount(m), 0)} ejemplares)</span></h3>
       <table class="mon">
         ${z.monsters.map((m, i) => `<tr>
@@ -1584,6 +1716,52 @@
       commit();
     }));
 
+    // Campos específicos de Relieve y Laberinto de Zona
+    body.querySelectorAll('[data-zf]').forEach(el => {
+      const apply = final => {
+        if (!ent.relieve) {
+          ent.relieve = {
+            activo: false,
+            estilo: 'roca_canion',
+            culminacion: 'oasis',
+            complejidad: 'medio',
+            tamGrid: 13,
+            alturaMuro: 9,
+            seed: 12345
+          };
+        }
+        delete ent._cacheLaberinto;
+        const f = el.dataset.zf;
+        if (el.type === 'checkbox') {
+          ent.relieve[f] = el.checked;
+        } else if (el.type === 'range') {
+          ent.relieve[f] = parseFloat(el.value);
+        } else if (f === 'complejidad') {
+          ent.relieve[f] = el.value;
+          ent.relieve.tamGrid = el.value === 'simple' ? 9 : el.value === 'complejo' ? 15 : 11;
+        } else {
+          ent.relieve[f] = el.value;
+        }
+        if (final) {
+          commit();
+          if (f === 'activo' || f === 'complejidad') renderPanel();
+        } else {
+          requestDraw();
+        }
+      };
+      if (el.type === 'range') el.addEventListener('input', () => apply(false));
+      el.addEventListener('change', () => apply(true));
+    });
+
+    body.querySelectorAll('[data-act="lab-roll"]').forEach(el => el.addEventListener('click', () => {
+      if (!ent.relieve) ent.relieve = { activo: true };
+      ent.relieve.seed = (Math.random() * 900000 + 10000) >>> 0;
+      delete ent._cacheLaberinto;
+      commit('Nuevo laberinto generado');
+      renderPanel();
+      requestDraw();
+    }));
+
     // Campos específicos de Mazmorra (dungeon)
     body.querySelectorAll('[data-df]').forEach(el => {
       const apply = final => {
@@ -1678,6 +1856,27 @@
       case 'export': exportWorld(); break;
       case 'view3d': saveSession(); location.href = 'visor-mundo.html?s=' + encodeURIComponent(sessionId); break;
       case 'new': openNewWorld(); break;
+      case 'gen-story': {
+        if (!window.HistoriaLib || typeof window.HistoriaLib.generarHistoriaParaMundo !== 'function') {
+          toast('No se encontró el generador de historia.');
+          break;
+        }
+        if (window.LugaresSecretosLib && typeof window.LugaresSecretosLib.generarLugaresSecretos === 'function') {
+          world.secretPlaces = window.LugaresSecretosLib.generarLugaresSecretos(world);
+        }
+        world.historia = window.HistoriaLib.generarHistoriaParaMundo(world);
+        commit('Historia generada: ' + world.historia.titulo);
+        renderPanel();
+        break;
+      }
+      case 'load-official': {
+        if (typeof window.clonarMundoOficial !== 'function') break;
+        const wOf = window.clonarMundoOficial();
+        activeTab = 'world';
+        openWorld(wOf, 's_valdris_oficial');
+        toast('🌍 Mundo oficial «' + wOf.name + '» cargado');
+        break;
+      }
       case 'delete': deleteEntity(ent.id); break;
       case 'center': centerOn(ent.x, ent.y); break;
       case 'quick-add-dungeon': {
@@ -1725,6 +1924,28 @@
       case 'dungeon-dice': ent.seed = Math.floor(Math.random() * 99999) + 1; commit(); renderPanel(); break;
       case 'open-town': openTownEditor(ent); break;
       case 'open-dungeon': openDungeonEditor(ent); break;
+      case 'open-maze': openMazeEditor(ent); break;
+      case 'test-maze-3d': {
+        saveSession();
+        location.href = `visor-mundo.html?s=${encodeURIComponent(sessionId)}&zona=${encodeURIComponent(ent.id)}`;
+        break;
+      }
+      case 'connect-town-road': {
+        if (!world.towns.length) { toast('No hay pueblos en el mundo para conectar.'); break; }
+        let bestTown = world.towns[0], bestD = Infinity;
+        world.towns.forEach(t => {
+          const d = Math.hypot(t.x - ent.x, t.y - ent.y);
+          if (d < bestD) { bestD = d; bestTown = t; }
+        });
+        const existing = world.roads.find(r => (r.from === bestTown.id && r.to === ent.id) || (r.from === ent.id && r.to === bestTown.id));
+        if (existing) { toast('Ya existe un camino que une esta zona con «' + bestTown.name + '».'); break; }
+        const road = W.createRoad(world, bestTown.id, ent.id);
+        delete ent._cacheLaberinto;
+        commit('Camino creado desde «' + bestTown.name + '» hasta «' + ent.name + '» (' + road.length + ' m)');
+        requestDraw();
+        renderPanel();
+        break;
+      }
       case 'populate': {
         const made = W.populateRoad(world, ent, 2);
         made.forEach(z => W.autoLevelZone(world, z));
@@ -1809,6 +2030,95 @@
   }
 
   // ===========================================================================
+  // Integración con el Creador de Laberintos y Zonas de Caza 3D
+  // ===========================================================================
+  function openMazeEditor(z) {
+    if (!z) return;
+    saveSession();
+    if (!z.relieve) {
+      z.relieve = (window.RelieveZonaLib && window.RelieveZonaLib.configPorDefecto)
+        ? window.RelieveZonaLib.configPorDefecto()
+        : { activo: true, estilo: 'roca_canion', culminacion: 'oasis', complejidad: 'medio', alturaMuro: 14 };
+    }
+    z.relieve.activo = true;
+    const payload = {
+      sessionId,
+      zoneId: z.id,
+      name: z.name,
+      biome: z.biome,
+      radius: z.radius,
+      relieve: z.relieve,
+      monsters: z.monsters || []
+    };
+    try {
+      localStorage.setItem('rpgMundo.editorLaberinto', JSON.stringify(payload));
+    } catch (e) {
+      console.warn('Error guardando editorLaberinto en localStorage:', e);
+    }
+    location.href = 'creador-de-laberintos.html#mundo=' + encodeURIComponent(JSON.stringify(payload));
+  }
+
+  function consumeMazeReturn() {
+    const raw = lsGet(STORE.mazeReturn);
+    if (!raw) return;
+    lsDel(STORE.mazeReturn);
+    try {
+      const data = JSON.parse(raw);
+      const z = W.findZone(world, data.zoneId);
+      if (!z) return;
+      if (typeof data.radius === 'number' && data.radius >= 40) {
+        z.radius = data.radius;
+      }
+      if (data.relieve) {
+        z.relieve = Object.assign({}, z.relieve, data.relieve);
+        delete z._cacheLaberinto;
+        delete z._cacheLaberintoKey;
+
+        // Sincronizar la lista de monstruos de la zona (exterior) con los patrones asignados dentro del laberinto
+        if (data.relieve.celdasMonstruos && Object.keys(data.relieve.celdasMonstruos).length > 0) {
+          const patronesUsados = new Set(Object.values(data.relieve.celdasMonstruos));
+          const nuevosMonstruos = [];
+          patronesUsados.forEach(patId => {
+            const pat = (data.relieve.patronesMonstruos && data.relieve.patronesMonstruos[patId]) || null;
+            if (pat) {
+              nuevosMonstruos.push({
+                name: pat.name || 'Monstruo',
+                level: pat.levelMin || 10,
+                levelMin: pat.levelMin || 10,
+                levelMax: pat.levelMax || pat.levelMin || 10,
+                density: (pat.count || 1) >= 4 ? 'alta' : ((pat.count || 1) >= 2 ? 'media' : 'baja'),
+                boss: (pat.clase === 'elite'),
+                clase: pat.clase || 'guerrero',
+                enemigo: null,
+                color: pat.color || '#22c55e',
+                count: pat.count || 1
+              });
+            }
+          });
+          if (nuevosMonstruos.length > 0) {
+            z.monsters = nuevosMonstruos;
+          }
+        }
+      }
+      if (data.conectarCaminoPueblo && world.towns.length) {
+        let bestTown = world.towns[0], bestD = Infinity;
+        world.towns.forEach(t => {
+          const d = Math.hypot(t.x - z.x, t.y - z.y);
+          if (d < bestD) { bestD = d; bestTown = t; }
+        });
+        const existing = world.roads.find(r => (r.from === bestTown.id && r.to === z.id) || (r.from === z.id && r.to === bestTown.id));
+        if (!existing) {
+          W.createRoad(world, bestTown.id, z.id);
+        }
+      }
+      world.roads.filter(r => r.from === z.id || r.to === z.id).forEach(r => W.buildRoadPoints(world, r));
+      selectedId = z.id; activeTab = 'sel';
+      commit('Laberinto y zona «' + z.name + '» actualizados');
+      centerOn(z.x, z.y);
+    } catch (e) { console.error('Error al retornar de creador de laberintos', e); }
+  }
+
+  // ===========================================================================
   // Modales: sesiones, exportar / importar, nuevo mundo
   // ===========================================================================
   function openSessions() { renderSessions(); $('modal-sessions').classList.add('show'); }
@@ -1851,6 +2161,7 @@
       try {
         const w = W.deserialize(reader.result);
         if (typeof W.migrarMonstruosSiAntiguo === 'function') W.migrarMonstruosSiAntiguo(w);
+        migrarValdrisSiAntiguo(w);
         openWorld(w, newSessionId());
         closeModals();
         toast('Mundo «' + w.name + '» importado como nueva sesión');
@@ -1883,6 +2194,16 @@
     $('nw-mpl-l').textContent = $('nw-mpl').value + ' m';
   }
   ['nw-towns', 'nw-spacing', 'nw-links', 'nw-poi', 'nw-mpl'].forEach(id => $(id).addEventListener('input', updateNewWorldLabels));
+  if ($('btn-official-world')) {
+    $('btn-official-world').onclick = () => {
+      if (typeof window.clonarMundoOficial !== 'function') { toast('No se encontró el mundo oficial'); return; }
+      const wOf = window.clonarMundoOficial();
+      activeTab = 'world';
+      openWorld(wOf, 's_valdris_oficial');
+      closeModals();
+      toast('🌍 Mundo oficial «' + wOf.name + '» cargado');
+    };
+  }
   $('btn-new-world').onclick = openNewWorld;
   $('nw-dice').onclick = () => { $('nw-seed').value = Math.floor(Math.random() * 999999) + 1; };
   $('nw-cancel').onclick = closeModals;
@@ -1899,10 +2220,16 @@
         metersPerLevel: parseInt($('nw-mpl').value, 10)
       }
     });
+    if (window.LugaresSecretosLib && typeof window.LugaresSecretosLib.generarLugaresSecretos === 'function') {
+      w.secretPlaces = window.LugaresSecretosLib.generarLugaresSecretos(w);
+    }
+    if (window.HistoriaLib && typeof window.HistoriaLib.generarHistoriaParaMundo === 'function') {
+      w.historia = window.HistoriaLib.generarHistoriaParaMundo(w);
+    }
     activeTab = 'world';
     openWorld(w, newSessionId());
     closeModals();
-    toast('Mundo «' + w.name + '» generado con ' + w.towns.length + ' pueblos');
+    toast('Mundo «' + w.name + '» e historia generados (' + w.towns.length + ' pueblos)');
   };
   document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModals(); }));
 
@@ -2034,13 +2361,33 @@
     loadPrefs();
     if (window.innerWidth <= 760) $('panel').classList.add('collapsed');
     resize();
-    const cur = lsGet(STORE.current);
+    let cur = lsGet(STORE.current);
+    if (cur && cur.startsWith('s_init_') && typeof window.clonarMundoOficial === 'function') {
+      try {
+        const rawCur = lsGet(STORE.data(cur));
+        const objCur = rawCur ? JSON.parse(rawCur) : null;
+        const pCur = lsGet('rpgMundo.partidas.' + cur);
+        if (objCur && objCur.name === 'Reino de Aden' && !objCur.campaignId && (!pCur || pCur === '[]')) {
+          cur = null;
+        }
+      } catch (e) {}
+    }
     if (!(cur && lsGet(STORE.data(cur)) && loadSession(cur))) {
-      openWorld(W.generateWorld({ name: 'Reino de Aden' }));
-      toast('Se ha generado un mundo inicial. ✨ Nuevo mundo para crear otro.', 3500);
+      if (typeof window.clonarMundoOficial === 'function') {
+        openWorld(window.clonarMundoOficial(), 's_valdris_oficial');
+        toast('🌍 Mundo oficial «Valdris · Tierras del Sol Quebrado» cargado.', 3500);
+      } else {
+        const wFallback = W.generateWorld({ name: 'Frontera del Alba' });
+        if (window.HistoriaLib && typeof window.HistoriaLib.generarHistoriaParaMundo === 'function') {
+          wFallback.historia = window.HistoriaLib.generarHistoriaParaMundo(wFallback);
+        }
+        openWorld(wFallback);
+        toast('Se ha generado un mundo inicial. ✨ Nuevo mundo para crear otro.', 3500);
+      }
     }
     consumeTownReturn();
     consumeDungeonReturn();
+    consumeMazeReturn();
     setTool('select');
   })();
   </script>

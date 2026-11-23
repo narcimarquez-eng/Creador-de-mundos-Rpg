@@ -61,8 +61,9 @@
   }
 
   // Compra una poción en la tienda. Devuelve false si no hay oro suficiente o la pila está llena.
-  function buy(inv, kind) {
-    const price = ITEMS[kind].price;
+  function buy(inv, kind, descuento = 0) {
+    const desc = Math.max(0, Math.min(0.5, Number(descuento) || 0));
+    const price = Math.max(1, Math.round(ITEMS[kind].price * (1 - desc)));
     if (inv.gold < price || inv[kind] >= STACK_MAX) return false;
     inv.gold -= price;
     inv[kind] += 1;

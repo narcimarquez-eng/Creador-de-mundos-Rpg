@@ -11,7 +11,6 @@ Primera versión del combate. Las reglas están en `js/combat.js` (sin gráficos
 | **Q E Z V** | huecos | La habilidad que lleve cada hueco de la barra (al empezar: impacto sísmico, nova, tajo giratorio y estocada) | según la habilidad | según la habilidad |
 | **X** | 🦘 | Salto acrobático (solo animación) | — | — |
 | **K** | 🤖 | Ataque automático en la zona: siempre el monstruo más cercano; usa la barra y bebe vida por debajo del 35 % | — | — |
-| **N** | — | Activa o quita el sonido (se recuerda entre partidas) | — | — |
 
 Los huecos se cambian en el panel 🧬 (P): cada habilidad tiene botones Q, E, Z y V; si ya estaba en otro hueco, se
 intercambian. Cada habilidad bloquea el movimiento mientras dura su animación y golpea en su momento (al caer, al
@@ -80,31 +79,38 @@ especiales). Reglas en `js/heroe.js`; el panel 🧬 las muestra todas, aunque va
 - **Especiales:** aparecen según el nivel de la pieza (1 desde nivel 5, 2 desde 15, 3 desde 30) y son fijos.
 - **Crítico:** 5 % + 1 % por punto de destreza (máximo 75 %), daño ×1,5.
 
-**Puntos de habilidad:** de 1 a 5 por cada capítulo de la historia (según el capítulo), los de los encargos de
-jefe y 1 por cada 20 monstruos derrotados. Se gastan con el entrenador **Hermana Ysolde** (tecla H cerca de ella):
+**Puntos de habilidad:** de 1 a 6 por cada capítulo de la historia (según el capítulo), los de los encargos de
+jefe y 1 por cada 20 monstruos derrotados. Se gastan con la entrenadora **Hermana Ysolde** (tecla H cerca de ella;
+su rol dentro de la conspiración de los Sabios se detalla en `docs/NARRATIVA.md`):
 
 - Pasivas (hasta 10 puntos cada una): vitalidad, fuerza, destreza, entereza, intelecto.
-- Activas: impacto sísmico (Q, capítulo 4) y nova (E, capítulo 8). Las desbloquea la historia y suben hasta 3 niveles
-  (+25 % de daño por nivel).
+- Activas: impacto sísmico (Q, capítulo 4) y nova (E, capítulo 8), más las técnicas de arma y arco desbloqueables por nivel (suben hasta 3 niveles, +25 % de daño por nivel).
 
 ### Historia (misión principal)
 
-La crónica del pueblo inicial se vive capítulo a capítulo (`js/historia.js`). Cada capítulo lo encarga un sabio de
-la plaza y solo hay uno activo: su progreso empieza en 0 al activarse, y lo que se haga antes no cuenta. Al
-cumplirlo, el sabio cuenta su parte de la historia, da la recompensa y encarga el siguiente.
+La crónica de Aden se vive en 4 actos y 16 capítulos (`js/historia.js`, diseño completo en `docs/NARRATIVA.md`). Cada
+capítulo lo encarga un sabio de la plaza y solo hay uno activo: su progreso empieza en 0 al activarse, y lo que se
+haga antes no cuenta. Al cumplirlo, se cuenta su parte de la historia, se entrega la recompensa (y, en los capítulos
+de recolección, se forja la pieza correspondiente en el Herrero Brann) y empieza el siguiente.
 
-| # | Capítulo | Sabio | Qué pide | Recompensa |
-|---|---|---|---|---|
-| 1 | Los siete reinos | Elara | Hablar con ella | 1 punto |
-| 2 | El camino de piedra | Oren | Llegar al pueblo vecino | 2 puntos |
-| 3 | Las runas de la muralla | Ysolde | 4 criaturas en una zona de nivel 2 | 2 puntos |
-| 4 | Los que no temen al acero | Tamsin | 8 criaturas en una zona de nivel 4 | 2 puntos y el impacto sísmico |
-| 5 | El valor de una cota | Mirel | Encargar una pieza al herrero | 2 puntos |
-| 6 | La arena del herrero | Elara | 10 criaturas en una zona de nivel 6 | 2 puntos |
-| 7 | Los caminos del norte | Oren | Llegar al pueblo más al norte | 3 puntos |
-| 8 | El sello de la nova | Ysolde | 12 criaturas en una zona de nivel 10 | 3 puntos y la nova |
-| 9 | Los jefes del bosque | Tamsin | Derrotar al jefe de un territorio de jefe | 4 puntos |
-| 10 | El héroe de la plaza | Mirel | Volver a hablar con ella | 5 puntos |
+| # | Acto | Capítulo | Sabio | Qué pide | Recompensa |
+|---|---|---|---|---|---|
+| 1 | I | Pieles de caza y los pantalones reforzados | Elara | 8 criaturas (nv 1) + forja | 1 pt, pantalones (`pants`) y Rowan |
+| 2 | I | El camino agreste y las botas de marcha | Oren | 12 criaturas (nv 1) + forja | 2 pts y botas (`boots`) |
+| 3 | I | Garras de bestia y el aldeano leal | Ysolde | 15 criaturas (nv 2) + forja | 2 pts, guantes (`gloves`) y apoyo de Rowan |
+| 4 | I | Planchas de caparazón y el peto de acero | Tamsin | 18 criaturas (nv 4) + forja | 2 pts, peto (`torso`) e Impacto sísmico |
+| 5 | I | Astas de hueso y el yelmo protector | Mirel | 20 criaturas (nv 4) + forja | 2 pts y yelmo (`helmet`) |
+| 6 | II | La fuente arcana y el templado del conjunto | Elara | Descubrir Fuente Arcana | 3 pts y templado 100 % de las 5 piezas |
+| 7 | II | Mineral salvaje y la forja del arma | Oren | 22 criaturas (nv 8) + forja | 3 pts y arma (`weapon`) |
+| 8 | II | El sello de la nova | Ysolde | 25 criaturas (nv 10) | 3 pts y Explosión nova |
+| 9 | II | La cabaña en la espesura | Tamsin | Descubrir Cabaña del Ermitaño | 3 pts |
+| 10 | II | Caza en la espesura | Elara | 25 criaturas (nv 11) | 3 pts |
+| 11 | III | El altar de las estrellas y el despertar del comercio | Oren | Consagrar Altar Rúnico | 4 pts (rompe el monopolio Nv. 12+) |
+| 12 | III | Resonancia ancestral | Ysolde | 30 criaturas de élite (nv 13) | 4 pts |
+| 13 | III | El santuario de la luz | Elara | Descubrir Santuario de Piedra y Luz | 4 pts |
+| 14 | III | Los jefes del bosque y el titán | Tamsin | Derrotar al jefe (nv 15) | 5 pts |
+| 15 | IV | El juramento en la fuente | Ysolde | Purificar armas en Fuente Arcana | 4 pts |
+| 16 | IV | El héroe de la plaza | Mirel | Hablar con ella en la plaza | 6 pts y título *Campeones de Aden* |
 
 - **El lugar** se elige con los datos del mundo: la zona de caza o élite de nivel más parecido (a igualdad, la más
   cercana al pueblo inicial), el territorio de jefe, el pueblo vecino o el que está más al norte. Solo cuentan los
@@ -135,7 +141,18 @@ sin cambiar el mundo guardado.
 - **Vida:** 20 + 8 por nivel. **Daño:** 3 + 1,5 por nivel. **XP:** 10 por nivel.
 - **Jefes** (los monstruos de «Guarida de jefe»): vida ×5, daño ×1,6, XP ×5. Cuando cae, se activa la postura de victoria.
 - **Diferencia de nivel:** +10 % de daño por cada nivel por encima del rival, entre ×0,5 y ×2.
-- **Vista:** los monstruos te persiguen si estás a menos de 14 m (16 m los jefes). Atacan cada 1,5 s desde 2,2 m.
+- **Penalización de XP por nivel inferior:** al matar enemigos de menor nivel que el héroe:
+  - 0 a 2 niveles por debajo (o nivel superior): 100 % de EXP (sin penalización).
+  - 3 niveles por debajo: 80 % de EXP (empieza la penalización: -20 %).
+  - 4 niveles por debajo: 60 % de EXP (-40 %).
+  - 5 niveles por debajo: 40 % de EXP (-60 %).
+  - 6 niveles por debajo: 20 % de EXP (-80 %).
+  - 7 o más niveles por debajo: 0 % de EXP (no otorga experiencia).
+- **Vista:** los monstruos te persiguen si estás a menos de 16 m (20 m los jefes, 22 m los arqueros y magos a distancia).
+- **Persecución y velocidad:** al detectar la presencia del jugador, los monstruos usan la animación de correr (`run`) y avanzan a una velocidad similar a la del personaje (~10,5 m/s; 8,5 m/s los jefes).
+- **Ataque a distancia y cuerpo a cuerpo:**
+  - **Monstruos cuerpo a cuerpo:** persiguen hasta entrar en alcance (2,2 m) y golpean cada 1,5 s.
+  - **Monstruos arqueros y magos:** atacan a distancia hasta 18 m (sin necesidad de avanzar hasta melee), disparando flechas balísticas u orbes mágicos luminosos con resplandor (*bloom*) que aplican daño al alcanzar al personaje.
 - **Vuelta a casa:** si se alejan más del radio de su zona + 25 m, o entran en un pueblo, vuelven a su zona y se
   recuperan poco a poco.
 - **Reaparición:** tras morir, el monstruo vuelve a su zona cuando pasa el tiempo `respawnSec` de la zona.

@@ -218,6 +218,15 @@
     let antes = 0, despues = 0;
     raiz.traverse(m => {
       if (!m.isMesh || m.isInstancedMesh || !m.visible || Array.isArray(m.material)) return;
+      const matNom = m.material && m.material.name ? m.material.name : '';
+      const esRostroOTransp = matNom.startsWith('Rostro_') || (m.name && m.name.includes('face_tex_overlay'))
+        || (m.material && m.material.transparent) || (m.geometry && m.geometry.attributes.color && m.geometry.attributes.color.itemSize === 4);
+      if (matNom.startsWith('Cabello_') || (m.name && m.name.includes('Cabello')) || esRostroOTransp) {
+        const gCab = m.geometry;
+        const totCab = gCab && gCab.attributes.position ? (gCab.index ? gCab.index.count : gCab.attributes.position.count) / 3 : 0;
+        antes += totCab; despues += totCab;
+        return;
+      }
       const g = m.geometry, P = g.attributes.position;
       if (!P || P.itemSize !== 3) return;
       if (Object.keys(g.morphAttributes || {}).length) return;

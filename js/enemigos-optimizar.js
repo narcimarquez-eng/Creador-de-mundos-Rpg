@@ -6,6 +6,114 @@
 (function (root) {
   'use strict';
 
+  const FX_EMISIVO_RE = /ArcaneSparks|SlashTrail|BiteSnap|RamCharge|Breath|Spark|Trail/i;
+
+  // Sanea luces dinámicas embebidas y propiedades PBR pesadas/inestables (anisotropía sin tangentes,
+  // transmisión en doble pasada, sheen/clearcoat y emisivos HDR altos) en rigs o GLB de enemigos.
+  function sanearModeloEnemigo(raiz, opts = {}) {
+    const {
+      maxEmisivo = 0.75,
+      maxEmisivoFx = 0.55,
+      minRoughness = 0.30,
+      maxColorBasic = 1.1,
+      quitarLuces = true,
+      materialesExtra = null
+    } = opts || {};
+
+    if (!raiz && !materialesExtra) {
+      return { lucesQuitadas: 0, materialesSaneados: 0, anisotropiasQuitadas: 0, transmisionesQuitadas: 0, emisivosRecortados: 0 };
+    }
+
+    const luces = [];
+    const mats = new Set();
+    if (raiz && typeof raiz.traverse === 'function') {
+      raiz.traverse(o => {
+        if (!o) return;
+        if (quitarLuces && o.isLight) luces.push(o);
+        if ((o.isMesh || o.isPoints || o.isSprite) && o.material) {
+          if (Array.isArray(o.material)) o.material.forEach(m => { if (m) mats.add(m); });
+          else mats.add(o.material);
+        }
+      });
+      luces.forEach(l => { if (l.parent) l.parent.remove(l); });
+    }
+    if (materialesExtra) {
+      for (const m of materialesExtra) {
+        if (m) mats.add(m);
+      }
+    }
+
+    let anisotropiasQuitadas = 0, transmisionesQuitadas = 0, emisivosRecortados = 0;
+    mats.forEach(mat => {
+      let recompilar = false;
+      if (mat.anisotropy) {
+        mat.anisotropy = 0;
+        recompilar = true;
+        anisotropiasQuitadas++;
+      }
+      if (mat.anisotropyMap) {
+        mat.anisotropyMap = null;
+        recompilar = true;
+      }
+      if (mat.transmission && mat.transmission > 0) {
+        mat.transmission = 0;
+        if (typeof mat.thickness === 'number') mat.thickness = 0;
+        mat.transparent = true;
+        mat.opacity = Math.min(typeof mat.opacity === 'number' ? mat.opacity : 1, 0.82);
+        recompilar = true;
+        transmisionesQuitadas++;
+      }
+      if (mat.sheen && mat.sheen > 0) {
+        mat.sheen = 0;
+        recompilar = true;
+      }
+      if (mat.clearcoat && mat.clearcoat > 0) {
+        mat.clearcoat = 0;
+        recompilar = true;
+      }
+      if (mat.iridescence && mat.iridescence > 0) {
+        mat.iridescence = 0;
+        recompilar = true;
+      }
+      if (typeof mat.roughness === 'number' && mat.roughness < minRoughness) {
+        mat.roughness = minRoughness;
+      }
+      if (typeof mat.emissiveIntensity === 'number') {
+        const esFx = FX_EMISIVO_RE.test(mat.name || '');
+        const lim = esFx ? maxEmisivoFx : maxEmisivo;
+        if (!Number.isFinite(mat.emissiveIntensity) || mat.emissiveIntensity > lim) {
+          mat.emissiveIntensity = lim;
+          emisivosRecortados++;
+        }
+        mat.userData = mat.userData || {};
+        mat.userData._baseEmissiveIntensity = mat.emissiveIntensity;
+        if (esFx && mat.transparent && typeof mat.opacity === 'number' && mat.opacity > 0.55) {
+          mat.opacity = 0.55;
+        }
+      }
+      if ((mat.isMeshBasicMaterial || mat.isPointsMaterial) && mat.color) {
+        const maxC = Math.max(mat.color.r, mat.color.g, mat.color.b);
+        if (!Number.isFinite(maxC)) {
+          mat.color.setRGB(1, 1, 1);
+        } else if (maxC > maxColorBasic) {
+          mat.color.multiplyScalar(maxColorBasic / maxC);
+        }
+      }
+      if (mat.isPointsMaterial && typeof THREE !== 'undefined' && mat.blending === THREE.AdditiveBlending && typeof mat.opacity === 'number' && mat.opacity > 0.72) {
+        mat.opacity = 0.72;
+      }
+      if (recompilar) mat.needsUpdate = true;
+    });
+
+    return {
+      lucesQuitadas: luces.length,
+      materialesSaneados: mats.size,
+      anisotropiasQuitadas,
+      transmisionesQuitadas,
+      emisivosRecortados
+    };
+  }
+
   // Une varias mallas en una sola (sin índices: triángulos tal cual) con sus transformaciones horneadas
   function unirMallas(mallas) {
     const partes = mallas.map(m => {
@@ -97,6 +205,7 @@
         despues += 1;
       });
     });
+    sanearModeloEnemigo(rig.rootGroup, { materialesExtra: rig.materials ? Object.values(rig.materials) : null });
     return { mallasAntes: antes, mallasDespues: despues };
   }
 
@@ -236,7 +345,7 @@
     };
   }
 
-  const api = { optimizarRig, medirVisibles, clonarRig };
+  const api = { optimizarRig, medirVisibles, clonarRig, sanearModeloEnemigo };
   root.EnemyOpt = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

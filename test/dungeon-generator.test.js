@@ -32,6 +32,9 @@ const mockTHREE = {
     this.type = 'BoxGeometry';
     this.args = args;
     const uvs = new Float32Array(24 * 2);
+    for (let c = 0; c < 6; c++) {
+      uvs.set([0, 1, 1, 1, 0, 0, 1, 0], c * 8);
+    }
     this.attributes = {
       uv: {
         array: uvs,
@@ -1074,4 +1077,130 @@ test('DungeonGenerator: los pasillos tienen la altura de las instancias que unen
   salaB.h = 18.0;
   DungeonGenerator.sincronizarAlturasDePasillos(res25m.salas, { alturaTechos: 18.0 });
   assert.strictEqual(pasillo25m.h, 18.0, 'El pasillo debe sincronizar su altura a 18m al actualizar las estancias que une');
+});
+
+test('DungeonGenerator: culling y streaming de estancias comunicadas (solo estancia actual y adyacentes)', () => {
+  const dungeon = DungeonGenerator.generarMazmorra(mockTHREE, {
+    seed: 48291,
+    numeroSalas: 6,
+    alturaTechos: 6.0
+  });
+
+  assert.ok(dungeon.salas.length >= 6, 'Debe haber al menos 6 salas');
+  assert.ok(typeof dungeon.obtenerEstanciasComunicadas === 'function', 'Debe tener obtenerEstanciasComunicadas');
+  assert.ok(typeof dungeon.encontrarSalaEnPosicion === 'function', 'Debe tener encontrarSalaEnPosicion');
+  assert.ok(typeof dungeon.actualizarVisibilidadEstancias === 'function', 'Debe tener actualizarVisibilidadEstancias');
+
+  const salaEntrada = dungeon.salas.find(s => s.tipo === 'entrada') || dungeon.salas[0];
+  const comunicadas = dungeon.obtenerEstanciasComunicadas(salaEntrada.id, 2);
+
+  assert.ok(comunicadas.has(salaEntrada.id), 'La estancia actual debe estar en el conjunto comunicado');
+  assert.ok(comunicadas.size > 0 && comunicadas.size < dungeon.salas.length, 'No deben estar comunicadas todas las salas lejanas a la vez');
+
+  // Aplicar visibilidad
+  dungeon.actualizarVisibilidadEstancias(comunicadas);
+
+  // Comprobar que las salas comunicadas son visibles y las lejanas están ocultas
+  dungeon.salas.forEach(s => {
+    if (comunicadas.has(s.id)) {
+      if (s._meshSala) assert.strictEqual(s._meshSala.visible, true, `La estancia comunicada ${s.id} debe ser visible`);
+      if (s._decMesh) assert.strictEqual(s._decMesh.visible, true, `Los props de la estancia comunicada ${s.id} deben ser visibles`);
+    } else {
+      if (s._meshSala) assert.strictEqual(s._meshSala.visible, false, `La estancia lejana no comunicada ${s.id} debe estar oculta`);
+      if (s._decMesh) assert.strictEqual(s._decMesh.visible, false, `Los props de la estancia no comunicada ${s.id} deben estar ocultos`);
+    }
+  });
+});
+
+test('DungeonGenerator: oclusion de camara y desaparicion de paredes interpuestas ante el personaje', () => {
+  const sala = {
+    id: 'sala_test_oclusion',
+    tipo: 'armeria',
+    x: 0, y: 0, z: 0,
+    w: 20, d: 20, h: 6.0,
+    abiertoNorte: false,
+    abiertoSur: false,
+    abiertoEste: false,
+    abiertoOeste: false
+  };
+
+  const dungeon = DungeonGenerator.generarMazmorra(mockTHREE, {
+    salas: [sala]
+  });
+
+  const meshSala = dungeon.salas[0]._meshSala;
+  assert.ok(meshSala, 'Debe existir la malla de la sala');
+  assert.ok(meshSala._partesPorLado, 'Debe registrar _partesPorLado');
+  assert.ok(meshSala._partesPorLado.sur.length > 0, 'Debe contener las piezas del muro sur');
+
+  // Personaje en el centro de la sala a (0, 0, 0), ojos en y = 1.2
+  const heroPos = { x: 0, y: 0, z: 0 };
+
+  // Cámara situada detrás del muro sur (z = 16), mirando hacia el personaje (0, 0, 0)
+  // El muro sur está en z = 10, por lo que el segmento cámara -> personaje atraviesa el muro sur
+  const camPosDetrasMuroSur = { x: 0, y: 2.5, z: 16 };
+
+  const ocluidos = dungeon.actualizarOclusionCamara(camPosDetrasMuroSur, heroPos);
+  assert.ok(ocluidos.has('sala_test_oclusion_sur'), 'El muro sur debe ser detectado como oclusor interpuesto');
+
+  // Todas las piezas del muro sur deben haber desaparecido (visible = false)
+  meshSala._partesPorLado.sur.forEach(p => {
+    assert.strictEqual(p.visible, false, 'Las piezas del muro sur interpuesto deben tener visible = false');
+  });
+
+  // Los demás muros (norte, este, oeste) y el suelo no deben verse afectados
+  meshSala._partesPorLado.norte.forEach(p => {
+    assert.strictEqual(p.visible, true, 'El muro norte no interpuesto debe continuar visible');
+  });
+
+  // Mover la cámara al interior de la sala (sin ninguna pared interpuesta)
+  const camPosInterior = { x: 0, y: 2.0, z: 5 };
+  const ocluidosInterior = dungeon.actualizarOclusionCamara(camPosInterior, heroPos);
+  assert.strictEqual(ocluidosInterior.size, 0, 'No debe haber paredes ocluidas cuando la cámara está dentro');
+
+  // El muro sur debe reaparecer automáticamente (visible = true)
+  meshSala._partesPorLado.sur.forEach(p => {
+    assert.strictEqual(p.visible, true, 'El muro sur debe reaparecer (visible = true)');
+  });
+});
+
+test('DungeonGenerator: mosaicos de azulejos/losas, cerámica decorada y tapices de suelo poligonales', () => {
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaMosaico, 'function', 'Debe exportar crearTexturaMosaico');
+  assert.strictEqual(typeof DungeonGenerator.crearTexturaCeramica, 'function', 'Debe exportar crearTexturaCeramica');
+  assert.strictEqual(typeof DungeonGenerator.aplicarUVsMetricasBox, 'function', 'Debe exportar aplicarUVsMetricasBox');
+
+  const estilo = DungeonGenerator.ESTILOS_PIEDRA.marmol_imperial;
+  const kit = DungeonGenerator.crearKitMateriales(estilo, mockTHREE);
+  assert.ok(kit.mosaicoSuelo, 'El kit de materiales debe incluir mosaicoSuelo');
+  assert.ok(kit.ceramica, 'El kit de materiales debe incluir ceramica');
+
+  // Escalado métrico de UVs en BoxGeometry
+  const geoBox = new mockTHREE.BoxGeometry(10, 2, 6);
+  DungeonGenerator.aplicarUVsMetricasBox(geoBox, 10, 2, 6, 2.0);
+  const uvAttr = geoBox.getAttribute('uv');
+  assert.strictEqual(uvAttr.getX(9), 5.0, 'La cara superior debe repetir UV proporcionalmente al ancho (10 / 2)');
+  assert.strictEqual(uvAttr.getY(8), 3.0, 'La cara superior debe repetir UV proporcionalmente al fondo (6 / 2)');
+
+  // Generación de mazmorra con salas y pasillos: debe incorporar tapices de mosaico empotrados sin geometrías circulares
+  const dungeon = DungeonGenerator.generarMazmorra(mockTHREE, {
+    seed: 2026,
+    estilo: 'lapislazuli_oro',
+    modoJuegoRapido: true
+  });
+
+  const mosaicos = [];
+  const bordillos = [];
+  function recorrer(obj) {
+    if (!obj) return;
+    if (obj.userData && obj.userData.tipo === 'mosaico_suelo') mosaicos.push(obj);
+    if (obj.userData && obj.userData.tipo === 'bordillo_mosaico') bordillos.push(obj);
+    if (Array.isArray(obj.children)) obj.children.forEach(recorrer);
+  }
+  recorrer(dungeon.group);
+
+  assert.ok(mosaicos.length >= 5, 'Las salas y pasillos deben incluir tapices de mosaico empotrados en el suelo');
+  assert.ok(bordillos.length >= 4 && mosaicos.length >= bordillos.length, 'Las salas principales deben contar con su bordillo perimetral de piedra');
+  mosaicos.forEach(m => {
+    assert.strictEqual(m.geometry.type, 'BoxGeometry', 'Los mosaicos de suelo deben ser poligonales/rectangulares (sin círculos)');
+  });
 });

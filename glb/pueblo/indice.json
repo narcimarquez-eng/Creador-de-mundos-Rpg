@@ -1,0 +1,142 @@
+[
+ {
+  "archivo": "casa_entramado.glb",
+  "tris": 435,
+  "tam": [
+   7.38,
+   9.42,
+   8.01
+  ],
+  "kb": 194
+ },
+ {
+  "archivo": "casa_entramado_lejos.glb",
+  "tris": 394,
+  "kb": 31
+ },
+ {
+  "archivo": "cabana.glb",
+  "tris": 15968,
+  "tam": [
+   8.69,
+   5.97,
+   8.11
+  ],
+  "kb": 1134
+ },
+ {
+  "archivo": "cabana_lejos.glb",
+  "tris": 4956,
+  "kb": 243
+ },
+ {
+  "archivo": "piezas/valla.glb",
+  "tris": 584,
+  "tam": [
+   0.14,
+   1,
+   8.74
+  ],
+  "kb": 72
+ },
+ {
+  "archivo": "piezas/lenera.glb",
+  "tris": 2572,
+  "tam": [
+   0.91,
+   1.64,
+   2.5
+  ],
+  "kb": 167
+ },
+ {
+  "archivo": "piezas/pino.glb",
+  "tris": 1136,
+  "tam": [
+   3.21,
+   5.55,
+   4.3
+  ],
+  "kb": 136
+ },
+ {
+  "archivo": "piezas/banco.glb",
+  "tris": 48,
+  "tam": [
+   0.56,
+   1.05,
+   1.8
+  ],
+  "kb": 56
+ },
+ {
+  "archivo": "piezas/tocon.glb",
+  "tris": 324,
+  "tam": [
+   1.26,
+   1.01,
+   0.75
+  ],
+  "kb": 63
+ },
+ {
+  "archivo": "piezas/barril.glb",
+  "tris": 560,
+  "tam": [
+   0.64,
+   0.9,
+   0.66
+  ],
+  "kb": 42
+ },
+ {
+  "archivo": "piezas/farol.glb",
+  "tris": 88,
+  "tam": [
+   0.72,
+   2.1,
+   0.72
+  ],
+  "kb": 56
+ },
+ {
+  "archivo": "piezas/muro_patio.glb",
+  "tris": 1856,
+  "tam": [
+   11.32,
+   2.1,
+   11.05
+  ],
+  "kb": 219
+ },
+ {
+  "archivo": "piezas/jardinera_arbol.glb",
+  "tris": 1208,
+  "tam": [
+   2.83,
+   4.59,
+   2.4
+  ],
+  "kb": 137
+ },
+ {
+  "archivo": "piezas/jardinera.glb",
+  "tris": 604,
+  "tam": [
+   1.2,
+   1.17,
+   1.2
+  ],
+  "kb": 90
+ },
+ {
+  "archivo": "piezas/fuente.glb",
+  "tris": 1784,
+  "tam": [
+   3.46,
+   3.17,
+   3.45
+  ],
+  "kb": 175
+ }
+]

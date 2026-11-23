@@ -259,6 +259,15 @@ export function generarCampo(o) {
   const L = o.limites, r = o.rng;
   const grupo = new THREE.Group();
   const celdas = new Map();
+  const hashP = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+  const ruidoP = (x, z, f) => {
+    const px = x * f, pz = z * f, ix = Math.floor(px), iz = Math.floor(pz);
+    const ux = (px - ix) * (px - ix) * (3 - 2 * (px - ix)), uz = (pz - iz) * (pz - iz) * (3 - 2 * (pz - iz));
+    const a = hashP(ix, iz), b = hashP(ix + 1, iz), c = hashP(ix, iz + 1), d = hashP(ix + 1, iz + 1);
+    return a + (b - a) * ux + (c - a + (a - b - c + d) * ux) * uz;
+  };
+  const tupidoPlanta = (x, z) => ruidoP(x - 23.4, z + 37.9, 0.014) * 0.65 + ruidoP(x + 61.1, z - 14.5, 0.044) * 0.35;
+  const esVegetal = f => f === 'helecho' || f === 'junco' || f === 'seta' || f === 'cactus';
   const intentos = Math.min(60000, Math.round((L.maxX - L.minX) * (L.maxZ - L.minZ) / 900));
   for (let k = 0; k < intentos; k++) {
     const x = L.minX + r.next() * (L.maxX - L.minX), z = L.minZ + r.next() * (L.maxZ - L.minZ);
@@ -267,12 +276,27 @@ export function generarCampo(o) {
     const familias = obtenerFamiliasBioma(b);
     if (!familias.length) continue;
     const f = familias[Math.floor(r.next() * familias.length)];
-    if (!r.chance(HABITAT[f][b])) continue;
+    const tup = tupidoPlanta(x, z);
+    const multProb = esVegetal(f) ? (0.35 + tup * 1.15) : 1.0;
+    if (!r.chance(Math.min(0.95, HABITAT[f][b] * multProb))) continue;
     const lista = indicesPorFamilia[f];
     const i = lista[Math.floor(r.next() * lista.length)];
+    const escBase = esVegetal(f) ? (0.72 + tup * 0.48) : 1.0;
     const clave = Math.floor(x / 400) + ',' + Math.floor(z / 400);
     if (!celdas.has(clave)) celdas.set(clave, []);
-    celdas.get(clave).push({ i, x, y: o.altura(x, z), z, s: 0.75 + r.next() * 0.6, ry: r.next() * Math.PI * 2 });
+    celdas.get(clave).push({ i, x, y: o.altura(x, z), z, s: (0.75 + r.next() * 0.6) * escBase, ry: r.next() * Math.PI * 2 });
+    if ((f === 'helecho' || f === 'junco' || f === 'seta') && tup > 0.68) {
+      const nSat = 1 + Math.floor(r.next() * 3);
+      for (let sIdx = 0; sIdx < nSat; sIdx++) {
+        const ang = r.next() * Math.PI * 2, dist = 0.8 + r.next() * 1.8;
+        const sx = x + Math.cos(ang) * dist, sz = z + Math.sin(ang) * dist;
+        if (o.agua(sx, sz) || !o.libre(sx, sz)) continue;
+        const si = lista[Math.floor(r.next() * lista.length)];
+        const sc = Math.floor(sx / 400) + ',' + Math.floor(sz / 400);
+        if (!celdas.has(sc)) celdas.set(sc, []);
+        celdas.get(sc).push({ i: si, x: sx, y: o.altura(sx, sz), z: sz, s: (0.65 + r.next() * 0.55) * escBase, ry: r.next() * Math.PI * 2 });
+      }
+    }
   }
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   celdas.forEach(items => {

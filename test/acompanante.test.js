@@ -445,4 +445,134 @@ t('balance de habilidades: el tiempo de espera es estrictamente mayor que la dur
   });
 });
 
+t('orientación y consejos de guía: cálculo de rumbo y avisos de monstruos endurecidos', () => {
+  const c = A.crearAcompanante({ arquetipo: 'rowan' });
+  const heroePos = { x: 0, z: 0 };
+  const destNorte = { x: 0, z: -150, nombre: 'Prados Salvajes' };
+  const destEste = { x: 200, z: 0, nombre: 'Cabaña del Bosque' };
+
+  const rNorte = A.calcularDireccionYDistancia(heroePos, destNorte);
+  assert.strictEqual(rNorte.dir, 'Norte');
+  assert.strictEqual(rNorte.dist, 150);
+
+  const rEste = A.calcularDireccionYDistancia(heroePos, destEste);
+  assert.strictEqual(rEste.dir, 'Este');
+  assert.strictEqual(rEste.dist, 200);
+
+  const consejo = A.darConsejoGuia(c, destNorte, heroePos, { hp: 100, maxHp: 100 });
+  assert.ok(consejo.includes('Prados Salvajes'));
+  assert.ok(consejo.includes('Norte'));
+  assert.ok(consejo.includes('150'));
+
+  // Cuando está cerca del objetivo
+  const consejoCerca = A.darConsejoGuia(c, { x: 5, z: 5, nombre: 'Prados' }, heroePos, { hp: 100, maxHp: 100 });
+  assert.ok(consejoCerca.includes('¡Ya estamos en Prados!'));
+
+  // Advertencia de salud baja
+  const consejoHerido = A.darConsejoGuia(c, destNorte, heroePos, { hp: 25, maxHp: 100 });
+  assert.ok(consejoHerido.includes('tu salud está algo baja'));
+
+  // Reacción contextual al Acto cuando se pasa principal
+  const consejoActo1 = A.darConsejoGuia(c, destNorte, heroePos, { hp: 100, maxHp: 100 }, { paso: 1 });
+  const consejoActo3 = A.darConsejoGuia(c, destNorte, heroePos, { hp: 100, maxHp: 100 }, { paso: 12 });
+  const consejoEpiSinDest = A.darConsejoGuia(c, null, heroePos, { hp: 100, maxHp: 100 }, { paso: 16 });
+  assert.ok(consejoActo1.includes('Acto I'));
+  assert.ok(consejoActo3.includes('Acto III'));
+  assert.ok(consejoEpiSinDest.includes('Campeones de Aden'));
+});
+
+t('misiones personales de los 4 compañeros y talento único idempotente', () => {
+  ['rowan', 'lyra', 'elian', 'brenda'].forEach(arq => {
+    const def = A.MISIONES_COMPANERO[arq];
+    assert.ok(def && def.talento && def.talento.bonos, `${arq} debe definir talento`);
+    assert.strictEqual(def.etapas.length, 3, `${arq} debe tener 3 etapas`);
+  });
+
+  const c = A.crearAcompanante({ arquetipo: 'rowan', activo: true });
+  const heroeEst = { reputacion: { pueblo: 0, sombra: 0, vinculo: 0 }, companeroMisiones: {} };
+
+  const st0 = A.estadoMisionCompanero(heroeEst, 'rowan');
+  assert.strictEqual(st0.etapa, 0);
+  assert.strictEqual(st0.activa, false);
+  assert.strictEqual(st0.talentoDesbloqueado, false);
+
+  const ini = A.aceptarMisionCompanero(heroeEst, 'rowan');
+  assert.strictEqual(ini.iniciada, true);
+  assert.strictEqual(ini.yaActiva, false);
+  assert.strictEqual(ini.estado.activa, true);
+
+  // Etapa 1: 8 bajas
+  assert.strictEqual(A.registrarProgresoCompanero(heroeEst, c, 'pista_o_secreto', 1).avanzo, false);
+  const r1 = A.registrarProgresoCompanero(heroeEst, c, 'matar', 8);
+  assert.strictEqual(r1.avanzo, true);
+  assert.strictEqual(r1.etapaCompletada.numero, 1);
+  assert.strictEqual(r1.nuevaEtapa, 1);
+  assert.ok(c.nivel >= 2, 'Debe subir de nivel con el XP de Etapa 1');
+  assert.strictEqual(heroeEst.reputacion.vinculo, 1);
+
+  // Etapa 2: 2 pistas/secretos
+  const r2 = A.registrarProgresoCompanero(heroeEst, c, 'pista_o_secreto', 2);
+  assert.strictEqual(r2.avanzo, true);
+  assert.strictEqual(r2.etapaCompletada.numero, 2);
+  assert.strictEqual(r2.nuevaEtapa, 2);
+  assert.strictEqual(heroeEst.reputacion.vinculo, 2);
+
+  // Fijamos nivel alto para medir exactamente el bono del talento sin interferencia de subida de nivel
+  c.nivel = 20;
+  c.xp = 0;
+  const maxHpAntes = c.maxHp;
+  const danoAntes = c.dano;
+  const defAntes = c.defensa;
+  const potAntes = c.skillsCatalogo[0].potencia;
+
+  // Etapa 3: 2 élites/jefes -> desbloquea y aplica talento único
+  const r3 = A.registrarProgresoCompanero(heroeEst, c, 'jefe_o_elite', 2);
+  assert.strictEqual(r3.avanzo, true);
+  assert.strictEqual(r3.etapaCompletada.numero, 3);
+  assert.strictEqual(r3.talentoDesbloqueado.id, 'juramento_alba');
+  assert.strictEqual(r3.estado.completada, true);
+  assert.strictEqual(heroeEst.companeroMisiones.rowan.talentoDesbloqueado, true);
+  assert.strictEqual(heroeEst.reputacion.vinculo, 4);
+
+  const bonos = A.MISIONES_COMPANERO.rowan.talento.bonos;
+  assert.strictEqual(c.maxHp, maxHpAntes + bonos.maxHp);
+  assert.strictEqual(c.dano, danoAntes + bonos.dano);
+  assert.strictEqual(c.defensa, defAntes + bonos.defensa);
+  assert.strictEqual(c.skillsCatalogo[0].potencia, Math.round(potAntes * (1 + bonos.pctSkills)));
+  assert.strictEqual(c.talentoAplicado, true);
+
+  // Idempotencia al volver a llamar y al alternar arquetipos
+  A.aplicarTalentoCompaneroSiCorresponde(c, heroeEst);
+  A.cambiarArquetipo(c, 'lyra');
+  A.aplicarTalentoCompaneroSiCorresponde(c, heroeEst);
+  assert.strictEqual(c.talentoAplicado, false, 'Lyra sin misión completada no debe recibir talento');
+  A.cambiarArquetipo(c, 'rowan');
+  A.aplicarTalentoCompaneroSiCorresponde(c, heroeEst);
+  assert.strictEqual(c.maxHp, maxHpAntes + bonos.maxHp);
+  assert.strictEqual(c.dano, danoAntes + bonos.dano);
+  assert.strictEqual(c.skillsCatalogo[0].potencia, Math.round(potAntes * (1 + bonos.pctSkills)));
+});
+
+t('P4 sinergias compañero × profesión y consejo táctico adaptado', () => {
+  const recMago = A.compRecomendadoParaClase('mago');
+  assert.strictEqual(recMago.principal, 'brenda');
+  const sinOpt = A.sinergiaConProfesion('brenda', 'mago');
+  const sinBue = A.sinergiaConProfesion('elian', 'mago');
+  const sinEq = A.sinergiaConProfesion('rowan', 'mago');
+  assert.strictEqual(sinOpt.nivel, 'optima');
+  assert.ok(sinOpt.bonos.poderMagico >= 8);
+  assert.strictEqual(sinBue.nivel, 'buena');
+  assert.strictEqual(sinEq.nivel, 'equilibrada');
+
+  ['guerrero', 'cazador', 'mago', 'picaro'].forEach(cls => {
+    const rec = A.compRecomendadoParaClase(cls);
+    const sin = A.sinergiaConProfesion(rec.principal, cls);
+    assert.strictEqual(sin.nivel, 'optima', `Principal de ${cls} debe dar sinergia optima`);
+  });
+
+  const c = A.crearAcompanante({ arquetipo: 'brenda', activo: true });
+  const consejoMago = A.darConsejoGuia(c, { x: 40, z: 0, nombre: 'Valle Sombrío' }, { x: 0, z: 0 }, {}, { paso: 2 }, 'mago');
+  assert.ok(consejoMago.includes('Vanguardia Arcana'));
+});
+
 console.log(`\n${n} pruebas del acompañante aldeano superadas.`);

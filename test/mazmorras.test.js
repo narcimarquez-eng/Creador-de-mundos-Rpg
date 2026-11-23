@@ -330,48 +330,50 @@ test('modo automático en mazmorra: activación, selección progresiva de objeti
   assert.strictEqual(fin, null, 'No quedan más objetivos tras derrotar al Jefe');
 });
 
+function MockObj3D() {
+  this.children = [];
+  this.userData = {};
+  this.position = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, clone() { return { x: this.x, y: this.y, z: this.z }; } };
+  this.rotation = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, clone() { return { x: this.x, y: this.y, z: this.z }; } };
+  this.scale = { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, setScalar(s) { this.x = s; this.y = s; this.z = s; }, clone() { return { x: this.x, y: this.y, z: this.z }; } };
+  this.add = function (c) { this.children.push(c); };
+  this.remove = function (c) {
+    const idx = this.children.indexOf(c);
+    if (idx >= 0) this.children.splice(idx, 1);
+  };
+}
+
+const mockTHREE = {
+  Group: MockObj3D,
+  Mesh: MockObj3D,
+  Scene: MockObj3D,
+  PerspectiveCamera: MockObj3D,
+  PointLight: function () { MockObj3D.call(this); this.color = {}; this.intensity = 1; },
+  AmbientLight: MockObj3D,
+  HemisphereLight: MockObj3D,
+  DirectionalLight: function () { MockObj3D.call(this); this.target = new MockObj3D(); },
+  BoxGeometry: function () {},
+  PlaneGeometry: function () {},
+  CylinderGeometry: function () {},
+  ConeGeometry: function () {},
+  SphereGeometry: function () {},
+  TorusGeometry: function () {},
+  CircleGeometry: function () {},
+  OctahedronGeometry: function () {},
+  MeshStandardMaterial: function (opts) {
+    this.color = { hex: '#ffffff', set(v) { this.hex = v; } };
+    Object.assign(this, opts);
+    this.clone = function () { return Object.assign({}, this); };
+  },
+  MeshBasicMaterial: function () {},
+  Vector3: function (x, y, z) { this.x = x || 0; this.y = y || 0; this.z = z || 0; this.set = function(nx, ny, nz) { this.x = nx; this.y = ny; this.z = nz; }; this.clone = function () { return new mockTHREE.Vector3(this.x, this.y, this.z); }; },
+  Color: function () {},
+  FogExp2: function () {}
+};
+
 test('instancia procedural de mazmorra: colisiones de muros activas, cámara confinada y monstruos en suelo', () => {
   const DungeonGenerator = require('../js/dungeon-generator.js');
   global.DungeonGenerator = DungeonGenerator;
-
-  function MockObj3D() {
-    this.children = [];
-    this.userData = {};
-    this.position = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
-    this.rotation = { x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } };
-    this.scale = { x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; }, setScalar(s) { this.x = s; this.y = s; this.z = s; } };
-    this.add = function (c) { this.children.push(c); };
-    this.remove = function (c) {
-      const idx = this.children.indexOf(c);
-      if (idx >= 0) this.children.splice(idx, 1);
-    };
-  }
-
-  const mockTHREE = {
-    Group: MockObj3D,
-    Mesh: MockObj3D,
-    PointLight: function () { MockObj3D.call(this); this.color = {}; this.intensity = 1; },
-    AmbientLight: MockObj3D,
-    HemisphereLight: MockObj3D,
-    DirectionalLight: function () { MockObj3D.call(this); this.target = new MockObj3D(); },
-    BoxGeometry: function () {},
-    PlaneGeometry: function () {},
-    CylinderGeometry: function () {},
-    ConeGeometry: function () {},
-    SphereGeometry: function () {},
-    TorusGeometry: function () {},
-    CircleGeometry: function () {},
-    OctahedronGeometry: function () {},
-    MeshStandardMaterial: function (opts) {
-      this.color = { hex: '#ffffff', set(v) { this.hex = v; } };
-      Object.assign(this, opts);
-      this.clone = function () { return Object.assign({}, this); };
-    },
-    MeshBasicMaterial: function () {},
-    Vector3: function (x, y, z) { this.x = x || 0; this.y = y || 0; this.z = z || 0; this.clone = function () { return { x: this.x, y: this.y, z: this.z }; }; },
-    Color: function () {},
-    FogExp2: function () {}
-  };
 
   const mockScene = {
     children: [],
@@ -471,4 +473,278 @@ test('instancia procedural de mazmorra: colisiones de muros activas, cámara con
   gestor.salirInstancia(true);
   assert.strictEqual(mockControls.maxDistance, 500, 'Al salir debe restaurar maxDistance a 500');
   assert.strictEqual(mockControls.minDistance, 1.0, 'Al salir debe restaurar minDistance a 1.0');
+});
+
+test('instancia de mazmorra: streaming de estancias comunicadas y desaparicion de paredes que bloquean la camara', () => {
+  const mockScene = new mockTHREE.Scene();
+  const mockHero = { x: 0, y: 0, z: 0, hp: 100, maxHp: 100 };
+  const mockCamera = new mockTHREE.PerspectiveCamera();
+  const mockControls = {
+    target: new mockTHREE.Vector3(),
+    minDistance: 1.0,
+    maxDistance: 500,
+    update: () => {}
+  };
+  const mockCharacter = {
+    root: new mockTHREE.Group(),
+    target: new mockTHREE.Vector3(),
+    world: { getWalkableHeight: () => 0, isWaterHazard: () => false, getColliders: () => [] }
+  };
+
+  const gestor = new MazmorrasLib.GestorMazmorras({
+    THREE: mockTHREE,
+    scene: mockScene,
+    hero: mockHero,
+    camera: mockCamera,
+    controls: mockControls,
+    character: mockCharacter
+  });
+
+  const dungeon = {
+    id: 'dungeon_streaming_test',
+    seed: 9991,
+    numeroSalas: 6,
+    alturaTechos: 6.0
+  };
+
+  gestor.iniciarInstancia(dungeon);
+
+  assert.ok(gestor.enMazmorra, 'Debe estar en mazmorra');
+  assert.ok(gestor.estanciasVisibles, 'Debe haber calculado las estancias comunicadas iniciales');
+  assert.ok(gestor.estanciasVisibles.size > 0 && gestor.estanciasVisibles.size < gestor.instanciaProcedural.salas.length, 'Solo deben cargarse la estancia actual y comunicadas, no todas');
+
+  // Comprobar visibilidad de mallas
+  gestor.instanciaProcedural.salas.forEach(s => {
+    if (gestor.estanciasVisibles.has(s.id)) {
+      if (s._meshSala) assert.strictEqual(s._meshSala.visible, true, `Sala comunicada ${s.id} debe ser visible`);
+    } else {
+      if (s._meshSala) assert.strictEqual(s._meshSala.visible, false, `Sala no comunicada ${s.id} debe estar oculta`);
+    }
+  });
+
+  // Test de oclusión de cámara: situar cámara detrás de una pared mirando al héroe
+  const salaHeroe = gestor.instanciaProcedural.encontrarSalaEnPosicion(mockHero.x, mockHero.z);
+  assert.ok(salaHeroe, 'Debe identificar la sala del héroe');
+
+  // Situar cámara fuera del muro sur de la sala del héroe
+  mockCamera.position.set(salaHeroe.x, 2.5, salaHeroe.z + (salaHeroe.d / 2) + 5.0);
+  mockHero.x = salaHeroe.x;
+  mockHero.z = salaHeroe.z;
+
+  gestor.actualizarInstancia(0.016, mockHero);
+
+  // La pared sur de la sala del héroe debe haber desaparecido (visible = false)
+  const partesSur = salaHeroe._meshSala._partesPorLado.sur;
+  assert.ok(partesSur && partesSur.length > 0, 'Debe haber piezas en el muro sur');
+  partesSur.forEach(p => {
+    assert.strictEqual(p.visible, false, 'La pared sur que bloquea la cámara debe haber desaparecido');
+  });
+
+  // Mover la cámara al interior de la sala sin obstrucción
+  mockCamera.position.set(salaHeroe.x, 2.0, salaHeroe.z + 2.0);
+  gestor.actualizarInstancia(0.016, mockHero);
+
+  // La pared sur debe volver a ser visible
+  partesSur.forEach(p => {
+    assert.strictEqual(p.visible, true, 'La pared sur debe reaparecer visible cuando la cámara entra en la sala');
+  });
+
+  gestor.salirInstancia(true);
+  assert.strictEqual(gestor.enMazmorra, false, 'Debe haber salido de la mazmorra');
+});
+
+test('rendimiento y aislamiento en mazmorra: pool fijo de 4 luces puntuales, sin monstruos procedurales redundantes y aislamiento exterior', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const DungeonGenerator = require('../js/dungeon-generator.js');
+  global.DungeonGenerator = DungeonGenerator;
+
+  let pointLightsCreadas = 0;
+  const mockTHREEPool = Object.assign({}, mockTHREE, {
+    PointLight: function () {
+      MockObj3D.call(this);
+      pointLightsCreadas++;
+      this.isPointLight = true;
+      this.color = { set(v) { this.hex = v; } };
+      this.intensity = 0;
+      this.distance = 40;
+      this.decay = 1.15;
+      this.visible = true;
+    }
+  });
+
+  const mockScene = new mockTHREEPool.Scene();
+  const mockHero = { x: 0, y: 0, z: 0, hp: 100, maxHp: 100 };
+  const mockCamera = new mockTHREEPool.PerspectiveCamera();
+  const mockControls = { target: new mockTHREEPool.Vector3(), minDistance: 1.0, maxDistance: 500, update: () => {} };
+  const mockCharacter = {
+    root: new mockTHREEPool.Group(),
+    target: new mockTHREEPool.Vector3(),
+    world: { getWalkableHeight: () => 0, isWaterHazard: () => false, getColliders: () => [] }
+  };
+
+  const gestor = new MazmorrasLib.GestorMazmorras({
+    THREE: mockTHREEPool,
+    scene: mockScene,
+    hero: mockHero,
+    camera: mockCamera,
+    controls: mockControls,
+    character: mockCharacter,
+    usarModelosCombateExternos: true
+  });
+
+  gestor.iniciarInstancia({
+    id: 'dungeon_perf_test',
+    seed: 12345,
+    numeroSalas: 7,
+    alturaTechos: 6.0,
+    elites: [{ name: 'Centinela', level: 15, multiplicador: 4, cantidad: 4 }]
+  });
+
+  const contarPointLightsEnEscena = (nodo) => {
+    let total = (nodo && nodo.isPointLight) ? 1 : 0;
+    if (nodo && Array.isArray(nodo.children)) {
+      for (let i = 0; i < nodo.children.length; i++) total += contarPointLightsEnEscena(nodo.children[i]);
+    }
+    return total;
+  };
+
+  assert.strictEqual(contarPointLightsEnEscena(gestor.grupoInstancia), 4, 'Con usarPoolLuces activo solo deben quedar exactamente 4 PointLights fijas en la escena WebGL');
+  assert.strictEqual(gestor.instanciaProcedural.monstruos.length, 0, 'Con usarModelosCombateExternos no deben generarse monstruos procedurales redundantes');
+
+  mockHero.z -= 18;
+  mockCharacter.root.position.set(mockHero.x, 0, mockHero.z);
+  gestor.actualizarInstancia(0.016, mockHero);
+  assert.strictEqual(contarPointLightsEnEscena(gestor.grupoInstancia), 4, 'Al desplazarse y hacer culling de estancias siguen existiendo exactamente las mismas 4 luces puntuales');
+
+  gestor.salirInstancia(true);
+
+  const htmlVisor = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  assert.ok(htmlVisor.includes('let monstruosMazmorra = [];'), 'visor-mundo.html mantiene lista aislada monstruosMazmorra');
+  assert.ok(htmlVisor.includes('if (roadMesh) roadMesh.visible = false;') && htmlVisor.includes('if (riosMesh) riosMesh.visible = false;'), 'aislarParaMazmorra oculta caminos, calzadas y ríos del exterior');
+  assert.ok(htmlVisor.includes('renderer.shadowMap.autoUpdate = false'), 'aislarParaMazmorra desactiva el pase de sombras solares mientras se está en la mazmorra');
+});
+
+test('muerte en mazmorra devuelve a la puerta exterior y cada estancia muestra siempre las salas a las que van sus pasillos', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const DungeonGenerator = require('../js/dungeon-generator.js');
+  global.DungeonGenerator = DungeonGenerator;
+
+  const alturaExterior = (x, z) => Math.round((Math.abs(x) * 0.05 + Math.abs(z) * 0.03) * 10) / 10;
+  const mundoCompartido = {
+    getWalkableHeight: alturaExterior,
+    isWaterHazard: () => false,
+    getColliders: () => []
+  };
+
+  let ultimoAnguloMirado = null;
+  const mockScene = new mockTHREE.Scene();
+  const mockHero = { x: 0, y: 0, z: 0, hp: 250, maxHp: 250, mp: 10, maxMp: 80, dead: false, deadUntil: 99999 };
+  const mockCamera = new mockTHREE.PerspectiveCamera();
+  const mockControls = { target: new mockTHREE.Vector3(), minDistance: 1.0, maxDistance: 500, update: () => {} };
+  const mockCharacter = {
+    root: new mockTHREE.Group(),
+    target: new mockTHREE.Vector3(),
+    lockUntil: Infinity,
+    mirarAngulo: (ang) => { ultimoAnguloMirado = ang; },
+    world: mundoCompartido
+  };
+
+  let posicionHeroeAlRestaurar = null;
+  const gestor = new MazmorrasLib.GestorMazmorras({
+    THREE: mockTHREE,
+    scene: mockScene,
+    hero: mockHero,
+    camera: mockCamera,
+    controls: mockControls,
+    character: mockCharacter,
+    getWalkableHeight: (x, z) => mundoCompartido.getWalkableHeight(x, z),
+    restaurarDeMazmorra: () => {
+      posicionHeroeAlRestaurar = { x: mockCharacter.root.position.x, y: mockCharacter.root.position.y, z: mockCharacter.root.position.z };
+    }
+  });
+
+  const dungeonDef = {
+    id: 'dungeon_puerta_y_salas',
+    name: 'Cripta del Umbral',
+    x: 420,
+    y: -310,
+    rotacion: Math.PI / 3,
+    seed: 12345,
+    radio: 75,
+    tamanoMedio: 20,
+    numeroSalas: 7,
+    ramificacion: 0.85,
+    alturaTechos: 6.0
+  };
+
+  gestor.iniciarInstancia(dungeonDef);
+  const proc = gestor.instanciaProcedural;
+  assert.ok(proc && proc.salas.length >= 10, 'Debe haber generado salas y pasillos conectores');
+
+  const mapaSalas = new Map(proc.salas.map(s => [s.id, s]));
+  // 1. Verificar que ninguna estancia quede aislada y que todo pasillo visible muestre siempre las salas a las que va
+  for (const estancia of proc.salas) {
+    assert.ok(Array.isArray(estancia.conectadas) && estancia.conectadas.length > 0, `La estancia ${estancia.id} debe estar comunicada con al menos un pasillo o sala`);
+    mockHero.x = estancia.x;
+    mockHero.z = estancia.z;
+    mockCharacter.root.position.set(estancia.x, 0, estancia.z);
+    gestor.actualizarInstancia(0.016, mockHero);
+
+    const visibles = gestor.estanciasVisibles;
+    assert.ok(visibles && visibles.has(estancia.id), `La estancia actual ${estancia.id} debe ser visible`);
+
+    for (const idVis of visibles) {
+      const sVis = mapaSalas.get(idVis);
+      if (sVis && sVis.tipo === 'pasillo') {
+        for (const idDestino of sVis.conectadas) {
+          assert.ok(
+            visibles.has(idDestino),
+            `Estando en ${estancia.id}, el pasillo visible ${sVis.id} debe mostrar también la sala destino ${idDestino}`
+          );
+          const sDest = mapaSalas.get(idDestino);
+          if (sDest && sDest._meshSala) {
+            assert.strictEqual(sDest._meshSala.visible, true, `La malla 3D de la sala destino ${idDestino} debe estar visible`);
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Simular muerte del héroe dentro de la mazmorra y retorno a la puerta exterior
+  mockHero.hp = 0;
+  mockHero.dead = true;
+  mockCharacter.lockUntil = Infinity;
+
+  gestor.salirInstancia(false);
+
+  const expX = dungeonDef.x + Math.sin(dungeonDef.rotacion) * (-4.5);
+  const expZ = dungeonDef.y + Math.cos(dungeonDef.rotacion) * (-4.5);
+  const expY = alturaExterior(expX, expZ);
+
+  assert.strictEqual(gestor.enMazmorra, false, 'Debe haber salido de la instancia de mazmorra');
+  assert.ok(Math.abs(mockHero.x - expX) < 0.001 && Math.abs(mockHero.z - expZ) < 0.001, 'El héroe debe aparecer frente a la puerta exterior de la mazmorra');
+  assert.strictEqual(mockHero.y, expY, 'La altura Y al salir a la puerta debe ser la del terreno exterior real (no 0 de la mazmorra)');
+  assert.strictEqual(mockCharacter.lockUntil, 0, 'El control del personaje debe quedar desbloqueado al volver a la puerta');
+  assert.strictEqual(ultimoAnguloMirado, dungeonDef.rotacion, 'El personaje debe orientarse con mirarAngulo hacia la puerta de la mazmorra');
+  assert.strictEqual(mockHero.dead, false, 'El héroe debe revivir al volver a la puerta');
+  assert.strictEqual(mockHero.hp, 250, 'El héroe debe recuperar su salud máxima');
+  assert.strictEqual(mockHero.mp, 80, 'El héroe debe recuperar su maná máximo');
+  assert.ok(posicionHeroeAlRestaurar && Math.abs(posicionHeroeAlRestaurar.x - expX) < 0.001, 'restaurarDeMazmorra se invoca cuando el héroe ya está en las coordenadas de la puerta exterior');
+
+  const htmlVisor = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
+  assert.ok(htmlVisor.includes('function reaparecerEnPuertaMazmorra()'), 'visor-mundo.html define reaparecerEnPuertaMazmorra');
+  assert.ok(htmlVisor.includes('if (gestorMazmorras && gestorMazmorras.enMazmorra) {\n      reaparecerEnPuertaMazmorra();\n      return;\n    }'), 'onHeroDeath redirige muertes dentro de mazmorra directamente a la puerta exterior sin enviar al pueblo');
+});
+
+test('contextoNarrativoMazmorra adapta el relato de la mazmorra al progreso de la Crónica', () => {
+  const d = MazmorrasLib.generarMazmorraPorDefecto({ dungeons: [] }, 100, 100, { name: 'Cripta del Óxido' });
+  const cPre = MazmorrasLib.contextoNarrativoMazmorra(d, { paso: 2 });
+  const cPost11 = MazmorrasLib.contextoNarrativoMazmorra(d, { paso: 12 });
+  const cEpi = MazmorrasLib.contextoNarrativoMazmorra(d, { paso: 16 });
+  assert.ok(cPre.etiqueta.includes('Bóveda Prohibida'));
+  assert.ok(cPost11.etiqueta.includes('Acto III'));
+  assert.ok(cEpi.etiqueta.includes('Epílogo'));
+  assert.ok(cEpi.relato.includes(d.boss.name));
 });

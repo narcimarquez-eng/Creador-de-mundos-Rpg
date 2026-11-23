@@ -1,0 +1,17 @@
+{
+ "rubio": {
+  "root": "#5a3c24",
+  "tip": "#927054",
+  "high": "#bfafa0"
+ },
+ "oscuro": {
+  "root": "#211d1a",
+  "tip": "#3f3b32",
+  "high": "#7f7872"
+ },
+ "castano": {
+  "root": "#28150e",
+  "tip": "#4e3025",
+  "high": "#847e7e"
+ }
+}

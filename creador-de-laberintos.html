@@ -1,0 +1,2366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Creador y Diseñador 3D de Zonas de Caza y Laberintos</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js">
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/controls/OrbitControls.js">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #7dd3fc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+      user-select: none;
+      touch-action: none;
+    }
+
+    #btn-toggle-ui {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 30;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(99, 102, 241, 0.6);
+      color: #a5b4fc;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #top-bar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 30;
+      display: flex;
+      gap: 8px;
+    }
+
+    .top-btn {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .top-btn:hover { background: #1e293b; border-color: #38bdf8; }
+    .top-btn.primary { background: #4f46e5; border-color: #818cf8; color: #fff; }
+    .top-btn.primary:hover { background: #4338ca; }
+    .top-btn.gold { background: #b45309; border-color: #facc15; }
+    .top-btn.gold:hover { background: #d97706; }
+
+    #cam-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      display: flex;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      border-radius: 20px;
+      padding: 5px 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.35);
+    }
+    .cam-btn {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      padding: 5px 11px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 14px;
+      transition: all 0.15s;
+    }
+    .cam-btn:hover, .cam-btn.active {
+      background: #4f46e5;
+      color: #fff;
+    }
+
+    #ui-panel {
+      position: absolute;
+      top: 54px;
+      left: 12px;
+      width: 385px;
+      max-width: calc(100vw - 24px);
+      max-height: calc(100vh - 76px);
+      overflow-y: auto;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      z-index: 28;
+      transition: transform 0.25s ease, opacity 0.2s ease;
+    }
+    #ui-panel.hide {
+      transform: translateX(-110%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .panel-sec {
+      background: rgba(30, 41, 59, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .sec-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #818cf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group {
+      margin-bottom: 8px;
+    }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+    .form-label span.val { color: #facc15; font-weight: 700; }
+
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      background: #334155;
+      border-radius: 3px;
+      outline: none;
+      accent-color: #6366f1;
+      cursor: pointer;
+    }
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11.5px;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: #818cf8; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 5px;
+    }
+    .ent-btn, .light-btn, .tool-btn {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      border-radius: 6px;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .ent-btn:hover, .light-btn:hover, .tool-btn:hover { border-color: #818cf8; color: #fff; }
+    .ent-btn.active {
+      background: #166534;
+      border-color: #22c55e;
+      color: #f0fdf4;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+    }
+    .light-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+    .tool-btn.active {
+      background: #4f46e5;
+      border-color: #818cf8;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+    }
+
+    .style-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: all 0.15s;
+    }
+    .style-card:hover { border-color: #818cf8; background: #1e1b4b; }
+    .style-card.selected { border-color: #a855f7; background: rgba(168, 85, 247, 0.18); }
+    .style-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .style-name { font-size: 11.5px; font-weight: 600; flex: 1; }
+
+    /* Fichas de Patrones de Monstruos */
+    .pattern-card {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 8px;
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 4px;
+    }
+    .pattern-card:hover { border-color: #818cf8; background: #1e1b4b; }
+    .pattern-card.active {
+      border-color: #facc15;
+      background: rgba(250, 204, 21, 0.12);
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.25);
+    }
+    .pattern-color-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+    .pattern-info { flex: 1; min-width: 0; font-size: 11px; }
+    .pattern-name-row { font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pattern-sub-row { font-size: 10px; color: #94a3b8; }
+
+    /* Canvas 2D mini-editor */
+    #grid-editor-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      position: relative;
+    }
+    #mazeCanvas {
+      background: #020617;
+      border: 2px solid #4f46e5;
+      border-radius: 6px;
+      cursor: crosshair;
+      image-rendering: pixelated;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .canvas-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-box { width: 10px; height: 10px; border-radius: 2px; }
+
+    .badge-info {
+      font-size: 10.5px;
+      color: #93c5fd;
+      background: rgba(30, 58, 138, 0.4);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    #stat-pill {
+      position: absolute;
+      top: 14px;
+      left: 170px;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #e2e8f0;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 25;
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px), (max-height: 520px) and (orientation: landscape) {
+      #stat-pill { display: none; }
+      #btn-toggle-ui {
+        top: max(8px, env(safe-area-inset-top));
+        left: max(8px, env(safe-area-inset-left));
+        padding: 7px 10px;
+        font-size: 11px;
+      }
+      #top-bar {
+        top: max(8px, env(safe-area-inset-top));
+        right: max(8px, env(safe-area-inset-right));
+        max-width: calc(100vw - 126px);
+        overflow-x: auto;
+        scrollbar-width: none;
+        gap: 5px;
+      }
+      #top-bar::-webkit-scrollbar { display: none; }
+      .top-btn { padding: 6px 9px; font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+      #ui-panel {
+        top: calc(max(8px, env(safe-area-inset-top)) + 40px);
+        left: max(8px, env(safe-area-inset-left));
+        width: min(350px, calc(100vw - 16px));
+        max-height: calc(100dvh - 108px);
+      }
+      #cam-bar {
+        bottom: max(8px, env(safe-area-inset-bottom));
+        max-width: calc(100vw - 16px);
+        overflow-x: auto;
+        scrollbar-width: none;
+        white-space: nowrap;
+        padding: 4px 6px;
+      }
+      #cam-bar::-webkit-scrollbar { display: none; }
+      .cam-btn { padding: 5px 8px; font-size: 10.5px; flex-shrink: 0; }
+    }
+  </style>
+</head>
+<body>
+  <button id="btn-toggle-ui">⚙️ Controles</button>
+  <div id="stat-pill">🌀 Zona de Caza HD</div>
+
+  <div id="top-bar">
+    <button class="top-btn" id="btn-exit">✕ Salir</button>
+    <button class="top-btn gold" id="btn-reset">↺ Restaurar</button>
+    <button class="top-btn" id="btn-view3d-direct" style="background:#4338ca;color:#e0e7ff;font-weight:700">🎮 Probar en Visor 3D</button>
+    <button class="top-btn primary" id="btn-save">💾 Guardar y Volver</button>
+  </div>
+
+  <div id="cam-bar">
+    <button class="cam-btn active" data-cam="overview">🦅 Vista Aérea</button>
+    <button class="cam-btn" data-cam="entrance">🚪 Entrada</button>
+    <button class="cam-btn" data-cam="center">⭐ Meta Central</button>
+    <button class="cam-btn" data-cam="human">🚶 Vista Jugador</button>
+    <button class="cam-btn" data-cam="monster" id="btn-cam-monster">👾 Enfocar Bicho</button>
+    <button class="cam-btn" id="btn-toggle-xray" title="Alternar muros translúcidos para ver el suelo y monstruos a través de las paredes">👁️ Rayos X</button>
+  </div>
+
+  <div id="ui-panel">
+    <div style="font-size:14px;font-weight:800;color:#c7d2fe;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      <span>🌀 Creador 3D de Laberinto</span>
+      <span id="zone-badge" style="font-size:10px;background:#312e81;color:#a5b4fc;padding:2px 6px;border-radius:4px;font-weight:600">Zona</span>
+    </div>
+
+    <!-- 1. Iluminación y Visibilidad -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>☀️ Iluminación & Claridad</span></div>
+      <div class="btn-group" id="group-light">
+        <button type="button" class="light-btn active" data-light="dia">☀️ Día Claro</button>
+        <button type="button" class="light-btn" data-light="tarde">🌅 Atardecer</button>
+        <button type="button" class="light-btn" data-light="noche">🌙 Místico</button>
+      </div>
+    </div>
+
+    <!-- 2. Dimensiones y Orientación -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>📏 Dimensiones y Orientación</span></div>
+      <div class="form-group">
+        <div class="form-label"><span>Radio de la Zona:</span><span class="val" id="lbl-radius">120 m</span></div>
+        <input type="range" id="sl-radius" min="60" max="450" step="10" value="120">
+      </div>
+      <div class="form-group">
+        <div class="form-label"><span>Rotación del Laberinto:</span><span class="val" id="lbl-rot">0°</span></div>
+        <input type="range" id="sl-rot" min="0" max="360" step="5" value="0">
+      </div>
+      <div class="grid2">
+        <div class="form-group">
+          <div class="form-label"><span>Cuadrícula:</span><span class="val" id="lbl-grid">11×11</span></div>
+          <select id="sel-grid">
+            <option value="9">9 × 9 (Pasillos muy anchos)</option>
+            <option value="11" selected>11 × 11 (Pasillos anchos)</option>
+            <option value="13">13 × 13 (Equilibrado)</option>
+            <option value="15">15 × 15 (Intrincado)</option>
+            <option value="17">17 × 17 (Gran Laberinto)</option>
+            <option value="21">21 × 21 (Complejo masivo)</option>
+            <option value="25">25 × 25 (Épico)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Pasillo:</span><span class="val" id="lbl-cellsize">~18 m</span></div>
+          <div style="font-size:10.5px;color:#94a3b8;margin-top:8px">Escala humana: 12-20 m</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="form-group">
+          <div class="form-label"><span>Altura Muros:</span><span class="val" id="lbl-height">14 m</span></div>
+          <input type="range" id="sl-height" min="6" max="28" step="1" value="14">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Hendidura:</span><span class="val" id="lbl-depth">-3.5 m</span></div>
+          <input type="range" id="sl-depth" min="1.0" max="7.0" step="0.5" value="3.5">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Entradas y Trazado -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>🚪 Única Entrada y Trazado</span></div>
+      <div class="form-group">
+        <div class="form-label"><span>Entrada Única al Laberinto:</span><span class="val" id="lbl-entrances">Sur</span></div>
+        <div class="btn-group" id="group-entrances">
+          <button type="button" class="ent-btn active" data-dir="sur">Sur</button>
+          <button type="button" class="ent-btn" data-dir="norte">Norte</button>
+          <button type="button" class="ent-btn" data-dir="este">Este</button>
+          <button type="button" class="ent-btn" data-dir="oeste">Oeste</button>
+        </div>
+        <div style="font-size:10.5px;color:#94a3b8;margin-top:4px">Entrada única obligatoria conectada al estrechamiento de 100m y al muro perimetral circular de diferente colores.</div>
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <div class="form-group">
+          <div class="form-label"><span>Semilla:</span></div>
+          <input type="number" id="inp-seed" value="12345">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Bucles y atajos:</span><span class="val" id="lbl-loops">10%</span></div>
+          <input type="range" id="sl-loops" min="0" max="0.4" step="0.05" value="0.10">
+        </div>
+      </div>
+      <button id="btn-roll" style="width:100%;margin-top:6px;background:#4338ca;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🎲 Generar Nuevo Trazado</button>
+    </div>
+
+    <!-- 4. Patrones de Monstruos por Color (Sectores) -->
+    <div class="panel-sec">
+      <div class="sec-title">
+        <span>👾 Patrones de Monstruos por Color</span>
+        <button id="btn-add-pattern" style="background:#4338ca;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:bold;cursor:pointer">+ Nuevo</button>
+      </div>
+      <div style="font-size:10.5px;color:#cbd5e1;margin-bottom:6px">
+        Selecciona un patrón de color y arrastra en el editor 2D para pintar varios cuadrados seguidos con los mismos bichos y niveles.
+      </div>
+      <div id="patterns-list"></div>
+
+      <!-- Editor del Patrón Activo -->
+      <div id="pattern-editor-box" style="margin-top:8px;background:rgba(15,23,42,0.9);border:1px solid #475569;border-radius:6px;padding:8px">
+        <div style="font-size:11px;font-weight:700;color:#facc15;margin-bottom:6px;display:flex;justify-content:space-between">
+          <span>Configurar Patrón: <b id="lbl-edit-pat-title">P1</b></span>
+          <span id="lbl-edit-pat-badge" style="font-size:10px;color:#a5b4fc"></span>
+        </div>
+        <div class="grid2">
+          <div class="form-group">
+            <div class="form-label"><span>Nombre del Monstruo:</span></div>
+            <input type="text" id="inp-pat-name" value="Guerrero Esqueleto">
+          </div>
+          <div class="form-group">
+            <div class="form-label"><span>Color del Sector:</span></div>
+            <input type="color" id="inp-pat-color" value="#22c55e" style="height:32px;padding:1px">
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="form-group">
+            <div class="form-label"><span>Clase / Rol:</span></div>
+            <select id="sel-pat-clase">
+              <option value="guerrero">⚔️ Guerrero (Melee)</option>
+              <option value="arquero">🏹 Arquero (Distancia)</option>
+              <option value="mago">🔮 Mago (Hechizos)</option>
+              <option value="elite">👑 Élite / Campeón</option>
+              <option value="rapido">🦂 Rápido / Enjambre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label"><span>Nivel (Mín - Máx):</span></div>
+            <div style="display:flex;gap:4px">
+              <input type="number" id="inp-pat-lvlmin" value="8" min="1" max="120" style="width:50%" title="Nivel Mínimo">
+              <input type="number" id="inp-pat-lvlmax" value="12" min="1" max="120" style="width:50%" title="Nivel Máximo">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">
+            <span>Cantidad por cuadrado:</span>
+            <span class="val" id="lbl-pat-count">1</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="range" id="sl-pat-count" min="1" max="8" step="1" value="1" style="flex:1">
+            <input type="number" id="inp-pat-count" min="1" max="8" value="1" style="width:48px;padding:3px 6px;text-align:center;background:#0f172a;border:1px solid #334155;color:#f8fafc;border-radius:4px;font-weight:700" title="Cantidad directa (1 a 8 monstruos)">
+          </div>
+          <div class="btn-group" style="display:flex;gap:4px;margin-top:6px">
+            <button type="button" class="pat-count-btn" data-cnt="1" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">1</button>
+            <button type="button" class="pat-count-btn" data-cnt="2" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×2</button>
+            <button type="button" class="pat-count-btn" data-cnt="3" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×3</button>
+            <button type="button" class="pat-count-btn" data-cnt="4" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×4</button>
+            <button type="button" class="pat-count-btn" data-cnt="6" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×6</button>
+            <button type="button" class="pat-count-btn" data-cnt="8" style="flex:1;padding:3px;font-size:11px;border-radius:4px;background:#334155;color:#f8fafc;border:1px solid #475569;cursor:pointer">×8</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Mini-Editor 2D Interactivo -->
+    <div class="panel-sec">
+      <div class="sec-title">
+        <span>✏️ Editor 2D en Vivo</span>
+        <span id="lbl-editor-mode" style="font-size:10px;color:#a5b4fc;font-weight:normal">Pintando Bichos</span>
+      </div>
+      <!-- Selector de Herramienta de Pincel -->
+      <div class="btn-group" id="group-editor-tools" style="margin-bottom:8px">
+        <button type="button" class="tool-btn active" data-tool="monsters">🎨 Pintar Bichos</button>
+        <button type="button" class="tool-btn" data-tool="erase-monsters">🧹 Borrar Bichos</button>
+        <button type="button" class="tool-btn" data-tool="walls">🧱 Muros</button>
+      </div>
+
+      <div id="grid-editor-container">
+        <canvas id="mazeCanvas" width="220" height="220"></canvas>
+        <div class="canvas-legend">
+          <div class="legend-item"><div class="legend-box" style="background:#1e293b;border:1px solid #475569"></div><span>Muro</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#f1f5f9"></div><span>Pasillo</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#22c55e"></div><span>Entrada</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#eab308"></div><span>Meta</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button id="btn-clear-monsters" style="flex:1;background:#7f1d1d;color:#fecaca;border:none;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Limpiar Bichos</button>
+        <button id="btn-clear-manual" style="flex:1;background:#334155;color:#e2e8f0;border:none;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Reset Muros</button>
+        <button id="btn-all-open" style="flex:1;background:#1e293b;color:#94a3b8;border:1px solid #475569;border-radius:4px;padding:5px;font-size:10.5px;cursor:pointer">Abrir Todo</button>
+      </div>
+    </div>
+
+    <!-- 6. Caminos y Conexión con Pueblos -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>🛤 Caminos y Conexión con Pueblos</span></div>
+      <div style="font-size:11px;color:#cbd5e1;line-height:1.4">
+        Conecta las entradas del laberinto directamente a la red de caminos hacia los pueblos más cercanos.
+      </div>
+      <button id="btn-road-connect" style="width:100%;margin-top:8px;background:#0d9488;border:none;color:#fff;padding:7px;border-radius:6px;font-weight:700;font-size:11.5px;cursor:pointer">🛤 Conectar Camino al Pueblo más Cercano</button>
+      <div id="road-status-msg" style="font-size:10.5px;color:#5eead4;margin-top:4px;display:none"></div>
+    </div>
+
+    <!-- 7. Estilos & Texturas -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>🎨 Estilo Arquitectónico & Textura</span></div>
+      <div id="styles-list"></div>
+      <div class="grid2" style="margin-top:8px">
+        <div class="form-group">
+          <div class="form-label"><span>Color Muro:</span></div>
+          <input type="color" id="col-wall" value="#78716c" style="height:32px;padding:1px">
+        </div>
+        <div class="form-group">
+          <div class="form-label"><span>Color Suelo:</span></div>
+          <input type="color" id="col-ground" value="#57534e" style="height:32px;padding:1px">
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Meta Central -->
+    <div class="panel-sec">
+      <div class="sec-title"><span>⭐ Culminación / Meta Central</span></div>
+      <div class="form-group">
+        <select id="sel-culm"></select>
+      </div>
+      <div id="culm-desc" class="badge-info"></div>
+    </div>
+  </div>
+
+  <script src="js/relieve-zona.js?v=20261112r"></script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // Estado del creador
+    let zoneData = null;
+    let scene, camera, renderer, controls;
+    let hemiLight, dirLight, fillLight;
+    let terrainMesh = null, wallsMesh = null, culmGroup = null, entranceMarkersGroup = null, perimeterGroup = null, monsters3DGroup = null, playerDummy = null;
+    let currentMazeData = null;
+    let manualOverrides = {};
+    let shouldAutoConnectRoad = false;
+    let xrayWalls = false;
+
+    // Herramienta y patrón activo
+    let activeTool = 'monsters'; // 'monsters', 'erase-monsters', 'walls'
+    let activePatternId = 'p1';
+
+    // Parámetros activos
+    let params = {
+      radius: 120,
+      rotacion: 0,
+      tamGrid: 11,
+      alturaMuro: 14,
+      profundidad: 3.5,
+      estilo: 'roca_canion',
+      culminacion: 'oasis',
+      seed: 12345,
+      bucleChance: 0.10,
+      entradas: ['sur'],
+      luzModo: 'dia',
+      wallColor: '#847f7a',
+      groundColor: '#605c56',
+      patronesMonstruos: {
+        p1: { id: 'p1', color: '#22c55e', name: 'Guerrero Esqueleto', clase: 'guerrero', levelMin: 8, levelMax: 12, count: 1, icono: '⚔️' },
+        p2: { id: 'p2', color: '#3b82f6', name: 'Mago de Hielo', clase: 'mago', levelMin: 12, levelMax: 16, count: 1, icono: '🔮' },
+        p3: { id: 'p3', color: '#ef4444', name: 'Arquero Orco', clase: 'arquero', levelMin: 14, levelMax: 18, count: 1, icono: '🏹' },
+        p4: { id: 'p4', color: '#a855f7', name: 'Señor Oscuro Élite', clase: 'elite', levelMin: 22, levelMax: 26, count: 1, icono: '👑' },
+        p5: { id: 'p5', color: '#f97316', name: 'Berserker Salvaje', clase: 'guerrero', levelMin: 18, levelMax: 22, count: 2, icono: '🪓' },
+        p6: { id: 'p6', color: '#eab308', name: 'Enjambre de Alimañas', clase: 'rapido', levelMin: 6, levelMax: 9, count: 3, icono: '🦂' }
+      },
+      celdasMonstruos: {}
+    };
+
+    // Texturas de Canvas procedimentales con alta resolución y detalle arquitectónico por estilo
+    function createProceduralWallTexture(estilo, colorBase) {
+      const cv = document.createElement('canvas');
+      cv.width = 512; cv.height = 512;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = colorBase || '#78716c';
+      ctx.fillRect(0, 0, 512, 512);
+
+      if (estilo === 'laberinto_setos' || estilo === 'setos') {
+        // Textura densa de setos y hojas vivas con claroscuros
+        ctx.fillStyle = '#14532d';
+        ctx.fillRect(0, 0, 512, 512);
+        for (let i = 0; i < 3500; i++) {
+          const lx = Math.random() * 512, ly = Math.random() * 512;
+          const lr = 3 + Math.random() * 7;
+          ctx.beginPath();
+          ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+          ctx.fillStyle = (Math.random() < 0.35) ? '#15803d' : (Math.random() < 0.7 ? '#22c55e' : '#166534');
+          ctx.globalAlpha = 0.65;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+      } else if (estilo === 'piedra_ruinas' || estilo === 'mamposteria_castillo') {
+        // Sillares de piedra medieval con juntas de mortero y desgaste
+        const filas = 8;
+        const hFila = 512 / filas;
+        ctx.fillStyle = colorBase;
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#1e293b';
+        for (let f = 0; f <= filas; f++) {
+          ctx.beginPath();
+          ctx.moveTo(0, f * hFila);
+          ctx.lineTo(512, f * hFila);
+          ctx.stroke();
+          const offset = (f % 2) * 32;
+          for (let vx = offset; vx <= 512; vx += 64) {
+            ctx.beginPath();
+            ctx.moveTo(vx, f * hFila);
+            ctx.lineTo(vx, (f + 1) * hFila);
+            ctx.stroke();
+          }
+        }
+        // Grano mineral y picado de cantería
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.12)';
+        for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      } else if (estilo === 'hielo_glacial') {
+        // Hielo azul cristalino con fisuras glaciares
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, '#38bdf8');
+        grad.addColorStop(0.5, '#7dd3fc');
+        grad.addColorStop(1, '#0284c7');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2.5;
+        for (let i = 0; i < 25; i++) {
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * 512, Math.random() * 512);
+          ctx.lineTo(Math.random() * 512, Math.random() * 512);
+          ctx.stroke();
+        }
+      } else if (estilo === 'obsidiana_volcanica') {
+        // Obsidiana oscura con vetas de magma brillante
+        ctx.fillStyle = '#18181b';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 8;
+        for (let i = 0; i < 14; i++) {
+          ctx.beginPath();
+          const startX = Math.random() * 512, startY = Math.random() * 512;
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(startX + (Math.random() - 0.5) * 120, startY + (Math.random() - 0.5) * 120);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+      } else {
+        // Cañón de roca estratificada / arenisca
+        const grad = ctx.createLinearGradient(0, 0, 0, 512);
+        grad.addColorStop(0, colorBase);
+        grad.addColorStop(0.25, '#57534e');
+        grad.addColorStop(0.5, colorBase);
+        grad.addColorStop(0.75, '#44403c');
+        grad.addColorStop(1, colorBase);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 2;
+        for (let y = 16; y < 512; y += 24 + Math.random() * 16) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.bezierCurveTo(128, y + 4, 384, y - 4, 512, y);
+          ctx.stroke();
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2, 2);
+      return tex;
+    }
+
+    function createProceduralFloorTexture(estilo, colorBase) {
+      const cv = document.createElement('canvas');
+      cv.width = 512; cv.height = 512;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = colorBase || '#57534e';
+      ctx.fillRect(0, 0, 512, 512);
+
+      if (estilo === 'laberinto_setos' || estilo === 'setos') {
+        ctx.fillStyle = '#365314';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.25)';
+        for (let i = 0; i < 4000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 4);
+      } else if (estilo === 'piedra_ruinas' || estilo === 'mamposteria_castillo') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 3;
+        for (let y = 0; y <= 512; y += 48) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+          const off = (y / 48 % 2) * 24;
+          for (let x = off; x <= 512; x += 48) {
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 48); ctx.stroke();
+          }
+        }
+      } else if (estilo === 'hielo_glacial') {
+        ctx.fillStyle = '#bae6fd';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        for (let i = 0; i < 2000; i++) ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3);
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        for (let i = 0; i < 3000; i++) {
+          ctx.beginPath();
+          ctx.arc(Math.random() * 512, Math.random() * 512, Math.random() * 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(cv);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(4, 4);
+      return tex;
+    }
+
+    // Inicialización de Three.js con iluminación clara
+    function init3D() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color('#7dd3fc');
+      scene.fog = new THREE.Fog('#bae6fd', 220, 750);
+
+      camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.5, 2000);
+      camera.position.set(0, 160, 220);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.NeutralToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      document.body.appendChild(renderer.domElement);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02;
+      controls.minDistance = 8;
+      controls.maxDistance = 650;
+      controls.target.set(0, 0, 0);
+
+      // Iluminación rica y sin zonas oscuras
+      hemiLight = new THREE.HemisphereLight('#f0f9ff', '#475569', 0.95);
+      scene.add(hemiLight);
+
+      dirLight = new THREE.DirectionalLight('#fffbeb', 1.5);
+      dirLight.position.set(130, 240, 160);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 10;
+      dirLight.shadow.camera.far = 650;
+      const dRange = 250;
+      dirLight.shadow.camera.left = -dRange;
+      dirLight.shadow.camera.right = dRange;
+      dirLight.shadow.camera.top = dRange;
+      dirLight.shadow.camera.bottom = -dRange;
+      scene.add(dirLight);
+
+      fillLight = new THREE.DirectionalLight('#bae6fd', 0.70);
+      fillLight.position.set(-130, 180, -140);
+      scene.add(fillLight);
+
+      playerDummy = createPlayerDummy();
+      scene.add(playerDummy);
+
+      window.addEventListener('resize', onResize);
+    }
+
+    function applyLightingPreset(mode) {
+      params.luzModo = mode;
+      document.querySelectorAll('.light-btn').forEach(b => b.classList.toggle('active', b.dataset.light === mode));
+
+      if (mode === 'tarde') {
+        scene.background.set('#fdba74');
+        scene.fog.color.set('#fed7aa');
+        scene.fog.near = 180; scene.fog.far = 600;
+        hemiLight.color.set('#ffedd5'); hemiLight.groundColor.set('#334155'); hemiLight.intensity = 0.85;
+        dirLight.color.set('#f97316'); dirLight.intensity = 1.35; dirLight.position.set(140, 120, 80);
+        fillLight.color.set('#c084fc'); fillLight.intensity = 0.55;
+      } else if (mode === 'noche') {
+        scene.background.set('#0f172a');
+        scene.fog.color.set('#1e293b');
+        scene.fog.near = 140; scene.fog.far = 500;
+        hemiLight.color.set('#818cf8'); hemiLight.groundColor.set('#090d16'); hemiLight.intensity = 0.55;
+        dirLight.color.set('#60a5fa'); dirLight.intensity = 0.85; dirLight.position.set(100, 200, 100);
+        fillLight.color.set('#a855f7'); fillLight.intensity = 0.45;
+      } else {
+        scene.background.set('#7dd3fc');
+        scene.fog.color.set('#bae6fd');
+        scene.fog.near = 220; scene.fog.far = 750;
+        hemiLight.color.set('#f0f9ff'); hemiLight.groundColor.set('#475569'); hemiLight.intensity = 0.95;
+        dirLight.color.set('#fffbeb'); dirLight.intensity = 1.5; dirLight.position.set(130, 240, 160);
+        fillLight.color.set('#bae6fd'); fillLight.intensity = 0.70;
+      }
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function createPlayerDummy() {
+      const g = new THREE.Group();
+      g.name = 'PlayerDummy';
+      const matSkin = new THREE.MeshLambertMaterial({ color: 0xfbbf24 });
+      const matArmor = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.5, roughness: 0.4 });
+      const matCape = new THREE.MeshLambertMaterial({ color: 0xef4444 });
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.8, 8), matArmor);
+      torso.position.y = 1.1;
+      torso.castShadow = true;
+      g.add(torso);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), matSkin);
+      head.position.y = 1.65;
+      head.castShadow = true;
+      g.add(head);
+
+      const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.7, 6), matArmor);
+      leg1.position.set(-0.16, 0.35, 0);
+      leg1.castShadow = true;
+      g.add(leg1);
+      const leg2 = leg1.clone();
+      leg2.position.x = 0.16;
+      g.add(leg2);
+
+      const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.9), matCape);
+      cape.position.set(0, 1.1, -0.22);
+      cape.rotation.x = 0.12;
+      g.add(cape);
+
+      const pin = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 6).rotateX(Math.PI), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
+      pin.position.y = 2.4;
+      g.add(pin);
+
+      return g;
+    }
+
+    function createEntranceArch(ent) {
+      const g = new THREE.Group();
+      const matPillar = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
+      const matLight = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+
+      const colG = new THREE.CylinderGeometry(0.5, 0.6, 5.5, 8);
+      const p1 = new THREE.Mesh(colG, matPillar);
+      p1.position.set(-3.5, 2.75, 0);
+      p1.castShadow = true;
+      g.add(p1);
+
+      const p2 = new THREE.Mesh(colG, matPillar);
+      p2.position.set(3.5, 2.75, 0);
+      p2.castShadow = true;
+      g.add(p2);
+
+      const archG = new THREE.BoxGeometry(8, 0.8, 1.2);
+      const arch = new THREE.Mesh(archG, matPillar);
+      arch.position.set(0, 5.7, 0);
+      arch.castShadow = true;
+      g.add(arch);
+
+      const gemG = new THREE.OctahedronGeometry(0.35);
+      const g1 = new THREE.Mesh(gemG, matLight);
+      g1.position.set(-3.5, 5.2, 0);
+      g.add(g1);
+      const g2 = new THREE.Mesh(gemG, matLight);
+      g2.position.set(3.5, 5.2, 0);
+      g.add(g2);
+
+      const ptLight = new THREE.PointLight(0x4ade80, 1.2, 18);
+      ptLight.position.set(0, 4, 0);
+      g.add(ptLight);
+
+      return g;
+    }
+
+    // Crea un mini-modelo 3D representativo para el monstruo del patrón o instancia individual
+    function create3DMonsterToken(item, cellSize) {
+      const g = new THREE.Group();
+      const patId = item.patId || item.patronId;
+      const pat = (patId && params.patronesMonstruos[patId]) ? params.patronesMonstruos[patId] : item;
+      const colorHex = item.color || pat.color || '#22c55e';
+      const colThree = new THREE.Color(colorHex);
+      const totalInCell = item.totalInCell || pat.count || 1;
+      const index = item.index !== undefined ? item.index : 0;
+      const nivel = item.nivel || pat.levelMin || 10;
+      const clase = item.clase || pat.clase || 'guerrero';
+      const name = item.name || pat.name || 'Monstruo';
+      const icono = item.icono || pat.icono || '👾';
+
+      // Disco / Halo de sector en el suelo (escalado según cantidad para que no se solapen caóticamente)
+      const ringScale = totalInCell > 1 ? Math.min(1.0, 1.4 / Math.sqrt(totalInCell)) : 1.0;
+      const ringG = new THREE.RingGeometry(cellSize * 0.10 * ringScale, cellSize * 0.38 * ringScale, 18);
+      ringG.rotateX(-Math.PI / 2);
+      const ringM = new THREE.MeshBasicMaterial({ color: colThree, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringG, ringM);
+      ring.position.y = 0.08;
+      g.add(ring);
+
+      // Columna de luz vertical (láser beacon) que sobrepasa los 14m de muro para ser visible desde vista aérea
+      if (index === 0) {
+        const beamGeo = new THREE.CylinderGeometry(0.20, 0.42, 22, 10);
+        beamGeo.translate(0, 11, 0); // Base en el suelo, sube hasta 22m de altura
+        const beamMat = new THREE.MeshBasicMaterial({
+          color: colThree,
+          transparent: true,
+          opacity: 0.65,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        });
+        const beam = new THREE.Mesh(beamGeo, beamMat);
+        g.add(beam);
+
+        // Anillo de luz en la cumbre a y=16.0m (por encima de los muros de 14m)
+        const topRingGeo = new THREE.RingGeometry(0.8, 1.3, 16);
+        topRingGeo.rotateX(-Math.PI / 2);
+        const topRingMat = new THREE.MeshBasicMaterial({ color: colThree, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+        const topRing = new THREE.Mesh(topRingGeo, topRingMat);
+        topRing.position.y = 16.0;
+        g.add(topRing);
+
+        // Cartel flotante de gran visibilidad a y=16.8m (sobre los muros de 14m) para Vista Aérea
+        const cvBeacon = document.createElement('canvas');
+        cvBeacon.width = 256; cvBeacon.height = 64;
+        const bCtx = cvBeacon.getContext('2d');
+        bCtx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        bCtx.roundRect ? bCtx.roundRect(4, 4, 248, 56, 12) : bCtx.fillRect(4, 4, 248, 56);
+        bCtx.fill();
+        bCtx.lineWidth = 3.5;
+        bCtx.strokeStyle = colorHex;
+        bCtx.stroke();
+        bCtx.fillStyle = '#ffffff';
+        bCtx.font = 'bold 20px sans-serif';
+        bCtx.textAlign = 'center';
+        bCtx.textBaseline = 'middle';
+        const cntTxt = totalInCell > 1 ? ` (×${totalInCell})` : '';
+        bCtx.fillText(`${icono} ${name}${cntTxt}`, 128, 24);
+        bCtx.fillStyle = colorHex;
+        bCtx.font = 'bold 15px sans-serif';
+        bCtx.fillText(`Nv.${nivel} · ${(clase || 'guerrero').toUpperCase()}`, 128, 46);
+
+        const beaconTex = new THREE.CanvasTexture(cvBeacon);
+        const beaconMat = new THREE.SpriteMaterial({ map: beaconTex, depthTest: false });
+        const beaconSprite = new THREE.Sprite(beaconMat);
+        beaconSprite.position.y = 16.8;
+        beaconSprite.scale.set(6.2, 1.55, 1);
+        beaconSprite.renderOrder = 9999;
+        g.add(beaconSprite);
+      }
+
+      // Figura según clase
+      const matBody = new THREE.MeshStandardMaterial({ color: colThree, roughness: 0.6 });
+      const matDark = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+
+      // Escala visual de la figura si hay muchos en la misma casilla
+      const modelScale = totalInCell >= 4 ? 0.85 : 1.0;
+
+      if (clase === 'arquero') {
+        // Túnica y arco
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.45 * modelScale, 1.6 * modelScale, 6), matBody);
+        body.position.y = 0.8 * modelScale;
+        body.castShadow = true;
+        g.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.24 * modelScale, 8, 8), matDark);
+        head.position.y = 1.7 * modelScale;
+        g.add(head);
+        // Arco
+        const bow = new THREE.Mesh(new THREE.TorusGeometry(0.45 * modelScale, 0.05 * modelScale, 4, 8, Math.PI), new THREE.MeshBasicMaterial({ color: 0x854d0e }));
+        bow.position.set(0.4 * modelScale, 1.1 * modelScale, 0.2 * modelScale);
+        bow.rotation.y = Math.PI / 2;
+        g.add(bow);
+      } else if (clase === 'mago') {
+        // Túnica, sombrero y báculo con luz
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25 * modelScale, 0.55 * modelScale, 1.7 * modelScale, 7), matBody);
+        body.position.y = 0.85 * modelScale;
+        body.castShadow = true;
+        g.add(body);
+        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.4 * modelScale, 0.8 * modelScale, 6), matDark);
+        hat.position.y = 2.0 * modelScale;
+        g.add(hat);
+        // Báculo mágico
+        const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.04 * modelScale, 0.04 * modelScale, 2.2 * modelScale, 5), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+        staff.position.set(0.5 * modelScale, 1.1 * modelScale, 0.1 * modelScale);
+        g.add(staff);
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.18 * modelScale, 8, 8), new THREE.MeshBasicMaterial({ color: colThree }));
+        orb.position.set(0.5 * modelScale, 2.2 * modelScale, 0.1 * modelScale);
+        g.add(orb);
+      } else if (clase === 'elite') {
+        // Campeón más grande con corona
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.9 * modelScale, 1.8 * modelScale, 0.6 * modelScale), matBody);
+        body.position.y = 1.0 * modelScale;
+        body.scale.setScalar(1.25);
+        body.castShadow = true;
+        g.add(body);
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * modelScale, 0.25 * modelScale, 0.35 * modelScale, 6), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8 }));
+        crown.position.y = 2.45 * modelScale;
+        g.add(crown);
+      } else {
+        // Guerrero / melee por defecto: torso con hombreras y espada
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.65 * modelScale, 1.3 * modelScale, 0.4 * modelScale), matBody);
+        body.position.y = 0.95 * modelScale;
+        body.castShadow = true;
+        g.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.25 * modelScale, 8, 8), matDark);
+        head.position.y = 1.75 * modelScale;
+        g.add(head);
+        // Espada
+        const sword = new THREE.Mesh(new THREE.BoxGeometry(0.1 * modelScale, 1.1 * modelScale, 0.04 * modelScale), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
+        sword.position.set(0.45 * modelScale, 1.1 * modelScale, 0.2 * modelScale);
+        g.add(sword);
+      }
+
+      // Billboard flotante a ras de suelo para vistas cercanas / vista de jugador
+      const cvText = document.createElement('canvas');
+      if (index === 0) {
+        cvText.width = 256; cvText.height = 64;
+        const tCtx = cvText.getContext('2d');
+        tCtx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        tCtx.roundRect ? tCtx.roundRect(4, 4, 248, 56, 10) : tCtx.fillRect(4, 4, 248, 56);
+        tCtx.fill();
+        tCtx.lineWidth = 3;
+        tCtx.strokeStyle = colorHex;
+        tCtx.stroke();
+        tCtx.fillStyle = '#ffffff';
+        tCtx.font = 'bold 19px sans-serif';
+        tCtx.textAlign = 'center';
+        tCtx.textBaseline = 'middle';
+        const countBadge = totalInCell > 1 ? ` (×${totalInCell})` : '';
+        tCtx.fillText(`${icono} Nv.${nivel}${countBadge}`, 128, 24);
+        tCtx.font = 'bold 13px sans-serif';
+        tCtx.fillStyle = colorHex;
+        tCtx.fillText(`${name}`, 128, 45);
+
+        const spriteTex = new THREE.CanvasTexture(cvText);
+        const spriteMat = new THREE.SpriteMaterial({ map: spriteTex, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.y = 3.3 * modelScale;
+        sprite.scale.set(5.5, 1.38, 1);
+        g.add(sprite);
+      } else {
+        cvText.width = 128; cvText.height = 48;
+        const tCtx = cvText.getContext('2d');
+        tCtx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+        tCtx.roundRect ? tCtx.roundRect(2, 2, 124, 44, 8) : tCtx.fillRect(2, 2, 124, 44);
+        tCtx.fill();
+        tCtx.lineWidth = 2;
+        tCtx.strokeStyle = colorHex;
+        tCtx.stroke();
+        tCtx.fillStyle = '#fef08a';
+        tCtx.font = 'bold 18px sans-serif';
+        tCtx.textAlign = 'center';
+        tCtx.textBaseline = 'middle';
+        tCtx.fillText(`${icono} Nv.${nivel}`, 64, 24);
+
+        const spriteTex = new THREE.CanvasTexture(cvText);
+        const spriteMat = new THREE.SpriteMaterial({ map: spriteTex, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.y = 2.65 * modelScale;
+        sprite.scale.set(2.8, 1.05, 1);
+        g.add(sprite);
+      }
+
+      return g;
+    }
+
+    // Carga de parámetros desde URL hash (#mundo=...) o localStorage
+    function loadInitialPayload() {
+      try {
+        const hash = location.hash || '';
+        if (hash.startsWith('#mundo=')) {
+          const raw = decodeURIComponent(hash.slice(7));
+          zoneData = JSON.parse(raw);
+        }
+      } catch (e) {
+        console.warn('No payload en hash:', e);
+      }
+
+      if (!zoneData) {
+        try {
+          const rawLS = localStorage.getItem('rpgMundo.editorLaberinto');
+          if (rawLS) {
+            zoneData = JSON.parse(rawLS);
+          }
+        } catch (e) {
+          console.warn('No payload en localStorage:', e);
+        }
+      }
+
+      if (!zoneData) {
+        zoneData = {
+          sessionId: 'default',
+          zoneId: 'zona-demo',
+          name: 'Hondonada Misteriosa',
+          radius: 120,
+          relieve: {
+            activo: true,
+            estilo: 'roca_canion',
+            culminacion: 'oasis',
+            tamGrid: 11,
+            alturaMuro: 14,
+            profundidad: 3.5,
+            seed: 12345,
+            bucleChance: 0.10,
+            rotacion: 0,
+            entradas: ['sur']
+          }
+        };
+      }
+
+      document.getElementById('zone-badge').textContent = zoneData.name || 'Zona';
+      document.getElementById('stat-pill').textContent = `🌀 ${zoneData.name || 'Zona de Caza'} (R: ${zoneData.radius || 120}m)`;
+
+      // Asignar parámetros
+      params.radius = zoneData.radius || (zoneData.relieve && zoneData.relieve.radio) || 120;
+      const r = (zoneData && zoneData.relieve) ? zoneData.relieve : {};
+
+      if (r.estilo) params.estilo = r.estilo;
+      if (r.culminacion) params.culminacion = r.culminacion;
+      if (r.tamGrid) params.tamGrid = r.tamGrid;
+      if (r.alturaMuro) params.alturaMuro = r.alturaMuro;
+      if (r.profundidad) params.profundidad = r.profundidad;
+      if (r.seed) params.seed = r.seed;
+      if (r.bucleChance !== undefined) params.bucleChance = r.bucleChance;
+      if (r.rotacion !== undefined) params.rotacion = r.rotacion;
+      if (Array.isArray(r.entradas) && r.entradas.length) {
+        params.entradas = [r.entradas[0]];
+      } else if (r.entradaDir) {
+        params.entradas = [r.entradaDir];
+      } else {
+        params.entradas = ['sur'];
+      }
+      if (r.wallColor) params.wallColor = r.wallColor;
+      if (r.groundColor) params.groundColor = r.groundColor;
+      if (r.murosManuales) manualOverrides = { ...r.murosManuales };
+      if (r.patronesMonstruos && typeof r.patronesMonstruos === 'object' && Object.keys(r.patronesMonstruos).length > 0) {
+        params.patronesMonstruos = { ...r.patronesMonstruos };
+      }
+      if (r.celdasMonstruos && typeof r.celdasMonstruos === 'object') {
+        params.celdasMonstruos = { ...r.celdasMonstruos };
+      }
+
+      // Sincronizar patrones con los monstruos reales de la zona si vienen de index.html
+      const tienePatronesPrevios = r && r.patronesMonstruos && Object.keys(r.patronesMonstruos).length > 0;
+      if (!tienePatronesPrevios && zoneData.monsters && Array.isArray(zoneData.monsters) && zoneData.monsters.length > 0) {
+        const paletaColores = ['#22c55e', '#3b82f6', '#ef4444', '#a855f7', '#f97316', '#eab308', '#06b6d4', '#ec4899'];
+        const nuevosPatrones = {};
+        zoneData.monsters.forEach((zm, zIdx) => {
+          const pId = 'p' + (zIdx + 1);
+          const zmName = zm.name || ('Monstruo ' + (zIdx + 1));
+          const zmLower = zmName.toLowerCase();
+          let clase = 'guerrero';
+          if (zm.boss || zm.clase === 'elite' || zm.clase === 'jefe') {
+            clase = 'elite';
+          } else if (zm.clase === 'mago' || zmLower.includes('mago') || zmLower.includes('arcano') || zmLower.includes('hechicero') || zmLower.includes('brujo')) {
+            clase = 'mago';
+          } else if (zm.clase === 'arquero' || zmLower.includes('arquero') || zmLower.includes('cazador') || zmLower.includes('ballestero') || zmLower.includes('tirador')) {
+            clase = 'arquero';
+          } else if (zm.clase === 'rapido' || zmLower.includes('lobo') || zmLower.includes('araña') || zmLower.includes('alimaña') || zmLower.includes('rapido')) {
+            clase = 'rapido';
+          }
+          const icono = clase === 'arquero' ? '🏹' : clase === 'mago' ? '🔮' : clase === 'elite' ? '👑' : clase === 'rapido' ? '🦂' : '⚔️';
+          const lvl = zm.level || zm.levelMin || 10;
+          const lvlMax = zm.levelMax || (zm.boss ? lvl : (lvl + 2));
+          const count = zm.count || (zm.density === 'alta' ? 4 : zm.density === 'media' ? 2 : 1);
+          nuevosPatrones[pId] = {
+            id: pId,
+            name: zmName,
+            nombre: zmName,
+            color: zm.color || paletaColores[zIdx % paletaColores.length],
+            clase: clase,
+            levelMin: lvl,
+            levelMax: lvlMax,
+            level: lvl,
+            nivel: lvl,
+            count: Math.max(1, Math.min(8, count)),
+            icono: icono,
+            esJefe: (clase === 'elite' || !!zm.boss)
+          };
+        });
+        params.patronesMonstruos = nuevosPatrones;
+        activePatternId = Object.keys(nuevosPatrones)[0] || 'p1';
+      }
+
+      // Si por alguna razón quedó vacío, poblar siempre con los patrones por defecto para que la UI nunca quede vacía
+      if (!params.patronesMonstruos || Object.keys(params.patronesMonstruos).length === 0) {
+        params.patronesMonstruos = (window.RelieveZonaLib && window.RelieveZonaLib.PATRONES_MONSTRUOS_DEFECTO)
+          ? { ...window.RelieveZonaLib.PATRONES_MONSTRUOS_DEFECTO }
+          : {
+              p1: { id: 'p1', color: '#22c55e', name: 'Guerrero Esqueleto', clase: 'guerrero', levelMin: 8, levelMax: 12, count: 1, icono: '⚔️' },
+              p2: { id: 'p2', color: '#3b82f6', name: 'Mago de Hielo', clase: 'mago', levelMin: 12, levelMax: 16, count: 1, icono: '🔮' },
+              p3: { id: 'p3', color: '#ef4444', name: 'Arquero Orco', clase: 'arquero', levelMin: 14, levelMax: 18, count: 1, icono: '🏹' },
+              p4: { id: 'p4', color: '#a855f7', name: 'Señor Oscuro Élite', clase: 'elite', levelMin: 22, levelMax: 26, count: 1, icono: '👑' }
+            };
+        activePatternId = Object.keys(params.patronesMonstruos)[0] || 'p1';
+      }
+
+      // Normalizar campos en cada patrón existente para asegurar consistencia
+      Object.keys(params.patronesMonstruos).forEach(id => {
+        let pat = params.patronesMonstruos[id];
+        if (!pat || typeof pat !== 'object') {
+          pat = { id, name: 'Patrón ' + id, clase: 'guerrero', color: '#22c55e', levelMin: 10, levelMax: 12, count: 1, icono: '⚔️' };
+          params.patronesMonstruos[id] = pat;
+        }
+        if (!pat.id) pat.id = id;
+        if (!pat.name) pat.name = pat.nombre || ('Patrón ' + id);
+        if (!pat.nombre) pat.nombre = pat.name;
+        if (!pat.clase) pat.clase = 'guerrero';
+        if (!pat.icono) {
+          pat.icono = pat.clase === 'arquero' ? '🏹' : pat.clase === 'mago' ? '🔮' : pat.clase === 'elite' ? '👑' : pat.clase === 'rapido' ? '🦂' : '⚔️';
+        }
+        if (pat.levelMin === undefined) pat.levelMin = pat.nivel || pat.level || 10;
+        if (pat.levelMax === undefined) pat.levelMax = pat.levelMin;
+        if (!pat.count) pat.count = 1;
+        if (!pat.color) pat.color = '#22c55e';
+      });
+
+      // Si la zona no tiene celdas pintadas todavía, auto-distribuir los monstruos por los pasillos
+      if (!params.celdasMonstruos || Object.keys(params.celdasMonstruos).length === 0) {
+        const dummyLab = RelieveZonaLib.generarLaberinto(params.tamGrid, params.seed, {
+          bucleChance: params.bucleChance,
+          entradas: params.entradas
+        });
+        if (dummyLab && dummyLab.grid) {
+          const N = dummyLab.grid.length;
+          const pasillos = [];
+          for (let gy = 1; gy < N - 1; gy++) {
+            for (let gx = 1; gx < N - 1; gx++) {
+              if (dummyLab.grid[gy][gx] === 0) {
+                const cx = (N - 1) / 2, cy = (N - 1) / 2;
+                if (Math.hypot(gx - cx, gy - cy) > 1.8) pasillos.push({ gx, gy });
+              }
+            }
+          }
+          const patIds = Object.keys(params.patronesMonstruos);
+          if (pasillos.length > 0 && patIds.length > 0) {
+            params.celdasMonstruos = {};
+            const numADistribuir = Math.min(pasillos.length, Math.max(8, Math.floor(pasillos.length * 0.48)));
+            const salto = Math.max(1, Math.floor(pasillos.length / numADistribuir));
+            for (let i = 0; i < numADistribuir; i++) {
+              const idxP = (i * salto) % pasillos.length;
+              const cel = pasillos[idxP];
+              const pId = patIds[i % patIds.length];
+              params.celdasMonstruos[`${cel.gx}_${cel.gy}`] = pId;
+            }
+          }
+        }
+      }
+
+      // Asegurar que activePatternId exista
+      const patKeys = Object.keys(params.patronesMonstruos);
+      if (!params.patronesMonstruos[activePatternId] && patKeys.length > 0) {
+        activePatternId = patKeys[0];
+      }
+
+      syncUIWithParams();
+    }
+
+    function syncUIWithParams() {
+      document.getElementById('sl-radius').value = params.radius;
+      document.getElementById('lbl-radius').textContent = params.radius + ' m';
+
+      document.getElementById('sl-rot').value = params.rotacion || 0;
+      document.getElementById('lbl-rot').textContent = (params.rotacion || 0) + '°';
+
+      document.getElementById('sel-grid').value = params.tamGrid;
+      document.getElementById('lbl-grid').textContent = params.tamGrid + '×' + params.tamGrid;
+
+      document.getElementById('sl-height').value = params.alturaMuro;
+      document.getElementById('lbl-height').textContent = params.alturaMuro + ' m';
+
+      document.getElementById('sl-depth').value = params.profundidad;
+      document.getElementById('lbl-depth').textContent = '-' + params.profundidad + ' m';
+
+      document.getElementById('inp-seed').value = params.seed;
+
+      updateEntrancesUI();
+
+      document.getElementById('sl-loops').value = params.bucleChance;
+      document.getElementById('lbl-loops').textContent = Math.round(params.bucleChance * 100) + '%';
+
+      const est = RelieveZonaLib.ESTILOS[params.estilo] || RelieveZonaLib.ESTILOS.roca_canion;
+      document.getElementById('col-wall').value = params.wallColor || est.hex || '#78716c';
+      document.getElementById('col-ground').value = params.groundColor || '#57534e';
+
+      updateCulminationDesc();
+      renderStyleCards();
+      renderPatternsList();
+      syncPatternEditorForm();
+    }
+
+    function updateEntrancesUI() {
+      const activeDir = (params.entradas && params.entradas[0]) || 'sur';
+      const btns = document.querySelectorAll('.ent-btn');
+      btns.forEach(b => {
+        b.classList.toggle('active', b.dataset.dir === activeDir);
+      });
+      document.getElementById('lbl-entrances').textContent = activeDir.charAt(0).toUpperCase() + activeDir.slice(1);
+    }
+
+    // Renderiza la lista de patrones de colores en el panel
+    function renderPatternsList() {
+      const container = document.getElementById('patterns-list');
+      container.innerHTML = '';
+      Object.keys(params.patronesMonstruos).forEach(id => {
+        const pat = params.patronesMonstruos[id];
+        const card = document.createElement('div');
+        card.className = 'pattern-card' + (activePatternId === id ? ' active' : '');
+        const lvlStr = pat.levelMin === pat.levelMax ? `Nv.${pat.levelMin}` : `Nv.${pat.levelMin}–${pat.levelMax}`;
+        card.innerHTML = `
+          <div class="pattern-color-box" style="background:${pat.color}"></div>
+          <div class="pattern-info">
+            <div class="pattern-name-row">${pat.icono || '👾'} ${pat.name}</div>
+            <div class="pattern-sub-row">${lvlStr} · ${(pat.clase || 'guerrero').toUpperCase()} · ×${pat.count || 1}</div>
+          </div>
+        `;
+        card.onclick = () => {
+          activePatternId = id;
+          renderPatternsList();
+          syncPatternEditorForm();
+          if (activeTool !== 'monsters') {
+            setEditorTool('monsters');
+          }
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function syncPatternEditorForm() {
+      const pat = params.patronesMonstruos[activePatternId];
+      if (!pat) return;
+      document.getElementById('lbl-edit-pat-title').textContent = pat.name;
+      document.getElementById('lbl-edit-pat-badge').textContent = `[ID: ${pat.id}]`;
+      document.getElementById('inp-pat-name').value = pat.name;
+      document.getElementById('inp-pat-color').value = pat.color;
+      document.getElementById('sel-pat-clase').value = pat.clase;
+      document.getElementById('inp-pat-lvlmin').value = pat.levelMin || 10;
+      document.getElementById('inp-pat-lvlmax').value = pat.levelMax || pat.levelMin || 10;
+      document.getElementById('sl-pat-count').value = pat.count || 1;
+      const inpCount = document.getElementById('inp-pat-count');
+      if (inpCount) inpCount.value = pat.count || 1;
+      document.getElementById('lbl-pat-count').textContent = pat.count || 1;
+      document.querySelectorAll('.pat-count-btn').forEach(b => {
+        b.style.background = (parseInt(b.dataset.cnt, 10) === (pat.count || 1)) ? '#6366f1' : '#334155';
+      });
+    }
+
+    function renderStyleCards() {
+      const container = document.getElementById('styles-list');
+      container.innerHTML = '';
+      Object.keys(RelieveZonaLib.ESTILOS).forEach(key => {
+        const est = RelieveZonaLib.ESTILOS[key];
+        const card = document.createElement('div');
+        card.className = 'style-card' + (params.estilo === key ? ' selected' : '');
+        card.innerHTML = `
+          <div class="style-dot" style="background:${est.hex}"></div>
+          <div class="style-name">${est.nombre}</div>
+        `;
+        card.onclick = () => {
+          params.estilo = key;
+          params.wallColor = est.hex;
+          document.getElementById('col-wall').value = est.hex;
+          renderStyleCards();
+          rebuildAll3D();
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function renderCulmSelect() {
+      const sel = document.getElementById('sel-culm');
+      sel.innerHTML = '';
+      Object.keys(RelieveZonaLib.CULMINACIONES).forEach(k => {
+        const c = RelieveZonaLib.CULMINACIONES[k];
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = `${c.icono} ${c.nombre}`;
+        if (params.culminacion === k) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.onchange = e => {
+        params.culminacion = e.target.value;
+        updateCulminationDesc();
+        rebuildAll3D();
+      };
+    }
+
+    function updateCulminationDesc() {
+      const c = RelieveZonaLib.CULMINACIONES[params.culminacion];
+      if (c) {
+        document.getElementById('culm-desc').innerHTML = `<b>${c.icono} ${c.nombre}:</b> ${c.desc}`;
+      }
+    }
+
+    function setEditorTool(tool) {
+      activeTool = tool;
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+      const lbl = document.getElementById('lbl-editor-mode');
+      if (tool === 'monsters') {
+        const pat = params.patronesMonstruos[activePatternId];
+        lbl.textContent = `Pintando: ${pat ? pat.name : 'Bichos'}`;
+        lbl.style.color = pat ? pat.color : '#a5b4fc';
+      } else if (tool === 'erase-monsters') {
+        lbl.textContent = 'Borrando Bichos';
+        lbl.style.color = '#f87171';
+      } else {
+        lbl.textContent = 'Editando Muros';
+        lbl.style.color = '#38bdf8';
+      }
+    }
+
+    // Reconstrucción del Laberinto, Terreno 3D y Monstruos en Vivo
+    function rebuildAll3D() {
+      const zId = (zoneData && zoneData.zoneId) || 'z-lab';
+      const zName = (zoneData && zoneData.name) || 'Zona de Caza';
+      const dummyZone = {
+        id: zId,
+        x: 0,
+        y: 0,
+        radius: params.radius,
+        relieve: {
+          activo: true,
+          radio: params.radius,
+          tamGrid: params.tamGrid,
+          alturaMuro: params.alturaMuro,
+          profundidad: params.profundidad,
+          profundidadHendidura: params.profundidad,
+          estilo: params.estilo,
+          culminacion: params.culminacion,
+          seed: params.seed,
+          bucleChance: params.bucleChance,
+          rotacion: params.rotacion || 0,
+          entradas: params.entradas,
+          entradaDir: params.entradas[0] || 'sur',
+          murosManuales: manualOverrides,
+          patronesMonstruos: params.patronesMonstruos,
+          celdasMonstruos: params.celdasMonstruos
+        }
+      };
+
+      currentMazeData = RelieveZonaLib.obtenerDatosLaberinto(dummyZone);
+      if (!currentMazeData) return;
+
+      const rotRad = (params.rotacion || 0) * (Math.PI / 180);
+      const cellSize = currentMazeData.cellSize;
+      const lblCell = document.getElementById('lbl-cellsize');
+      if (lblCell) lblCell.textContent = `~${cellSize.toFixed(1)} m`;
+      const numCeldas = Object.keys(params.celdasMonstruos).length;
+      const totalMonstruos = (currentMazeData.monstruosPorCelda || []).length;
+      const statPill = document.getElementById('stat-pill');
+      if (statPill) statPill.textContent = `🌀 ${zName} | R: ${params.radius}m | Pasillos: ${cellSize.toFixed(1)}m | 👾 ${totalMonstruos} monstruos en ${numCeldas} casillas`;
+
+      // 1. Reconstruir Terreno Esculpido de la Zona
+      if (terrainMesh) {
+        scene.remove(terrainMesh);
+        if (terrainMesh.geometry) terrainMesh.geometry.dispose();
+      }
+
+      const SEG = 120;
+      const sizeTerrain = params.radius * 2.8;
+      const step = sizeTerrain / SEG;
+      const N_T = SEG + 1;
+      const halfT = sizeTerrain / 2;
+
+      const pos = new Float32Array(N_T * N_T * 3);
+      const col = new Float32Array(N_T * N_T * 3);
+      const nrm = new Float32Array(N_T * N_T * 3);
+
+      const colWall = new THREE.Color(params.wallColor);
+      const colGround = new THREE.Color(params.groundColor);
+      const colGrass = new THREE.Color(0x4d7c0f);
+
+      const H_fn = (x, z) => RelieveZonaLib.aplicarRelieveTerreno([dummyZone], x, z, 0);
+
+      // Calcular alturas
+      for (let j = 0; j < N_T; j++) {
+        for (let i = 0; i < N_T; i++) {
+          const x = -halfT + i * step;
+          const z = -halfT + j * step;
+          const y = H_fn(x, z);
+          const k = (j * N_T + i) * 3;
+          pos[k] = x;
+          pos[k + 1] = y;
+          pos[k + 2] = z;
+        }
+      }
+
+      // Normales y color por pendiente/relieve
+      for (let j = 0; j < N_T; j++) {
+        for (let i = 0; i < N_T; i++) {
+          const k = (j * N_T + i) * 3;
+          const x = pos[k], y = pos[k + 1], z = pos[k + 2];
+          const dCenter = Math.hypot(x, z);
+
+          const eps = step * 0.8;
+          const dx = (H_fn(x + eps, z) - H_fn(x - eps, z)) / (2 * eps);
+          const dz = (H_fn(x, z + eps) - H_fn(x, z - eps)) / (2 * eps);
+          const len = Math.hypot(-dx, 1, -dz) || 1;
+          const nx = -dx / len, ny = 1 / len, nz = -dz / len;
+          nrm[k] = nx; nrm[k + 1] = ny; nrm[k + 2] = nz;
+
+          const pend = 1 - ny;
+          if (dCenter > params.radius + 15) {
+            col[k] = colGrass.r; col[k + 1] = colGrass.g; col[k + 2] = colGrass.b;
+          } else {
+            const tWall = THREE.MathUtils.smoothstep(pend, 0.25, 0.65);
+            const cFinal = colGround.clone().lerp(colWall, tWall);
+            col[k] = cFinal.r; col[k + 1] = cFinal.g; col[k + 2] = cFinal.b;
+          }
+        }
+      }
+
+      const indices = [];
+      for (let j = 0; j < SEG; j++) {
+        for (let i = 0; i < SEG; i++) {
+          const a = j * N_T + i, b = a + 1, c = a + N_T, d = c + 1;
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      geom.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+      geom.setIndex(indices);
+
+      const texGround = (typeof createProceduralFloorTexture === 'function')
+        ? createProceduralFloorTexture(params.estilo, params.groundColor)
+        : createProceduralNoiseTexture(params.groundColor, 0.85, false);
+      const matTerrain = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.82,
+        metalness: 0.05,
+        map: texGround
+      });
+
+      terrainMesh = new THREE.Mesh(geom, matTerrain);
+      terrainMesh.receiveShadow = true;
+      terrainMesh.castShadow = true;
+      scene.add(terrainMesh);
+
+      // 2. Malla adicional de muros para volumen arquitectónico y texturizado procedural
+      if (wallsMesh) {
+        scene.remove(wallsMesh);
+        if (wallsMesh.geometry) wallsMesh.geometry.dispose();
+        wallsMesh = null;
+      }
+      const { muros } = currentMazeData;
+      if (muros && muros.length > 0) {
+        const hMuro3D = Math.max(3.2, params.alturaMuro * 0.95);
+        const boxG = new THREE.BoxGeometry(cellSize * 0.98, hMuro3D, cellSize * 0.98);
+        const texWall = (typeof createProceduralWallTexture === 'function')
+          ? createProceduralWallTexture(params.estilo, params.wallColor)
+          : createProceduralNoiseTexture(params.wallColor, 0.9, true);
+        const matWall = new THREE.MeshStandardMaterial({
+          map: texWall,
+          color: new THREE.Color(params.wallColor),
+          roughness: 0.78,
+          metalness: 0.12,
+          transparent: !!xrayWalls,
+          opacity: xrayWalls ? 0.35 : 1.0,
+          depthWrite: !xrayWalls
+        });
+        wallsMesh = new THREE.InstancedMesh(boxG, matWall, muros.length);
+        wallsMesh.castShadow = true;
+        wallsMesh.receiveShadow = true;
+        const dummyMatrix = new THREE.Matrix4();
+        const dummyPos = new THREE.Vector3();
+        const dummyQuat = new THREE.Quaternion();
+        const dummyScale = new THREE.Vector3(1, 1, 1);
+        if (rotRad !== 0) {
+          dummyQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -rotRad);
+        }
+        muros.forEach((m, idx) => {
+          const wy = H_fn(m.wx, m.wz) + hMuro3D / 2 - params.profundidad * 0.2;
+          dummyPos.set(m.wx, wy, m.wz);
+          dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
+          wallsMesh.setMatrixAt(idx, dummyMatrix);
+        });
+        wallsMesh.instanceMatrix.needsUpdate = true;
+        scene.add(wallsMesh);
+      }
+
+      // 3. Reconstruir Decorado de Culminación Central
+      if (culmGroup) {
+        scene.remove(culmGroup);
+      }
+      culmGroup = RelieveZonaLib.crearDecoradoCulminacion(THREE, dummyZone, (x, z) => H_fn(x, z));
+      if (culmGroup) {
+        if (rotRad !== 0) {
+          culmGroup.rotation.y = -rotRad;
+        }
+        scene.add(culmGroup);
+      }
+
+      // 4. Muro perimetral circular exterior de diferente colores y estrechamiento 100m
+      if (perimeterGroup) {
+        scene.remove(perimeterGroup);
+      }
+      perimeterGroup = new THREE.Group();
+      if (typeof RelieveZonaLib.crearMuroPerimetralCircular === 'function') {
+        const perim = RelieveZonaLib.crearMuroPerimetralCircular(
+          THREE, 0, 0, 0, params.radius, currentMazeData.theta_ent, params.estilo, params.wallColor
+        );
+        if (perim) perimeterGroup.add(perim.grupo);
+      }
+      if (typeof RelieveZonaLib.crearEstrechamiento100mMundo === 'function') {
+        const estr = RelieveZonaLib.crearEstrechamiento100mMundo(
+          THREE, currentMazeData.P_ext, currentMazeData.P_perim, 0, currentMazeData.theta_ent, params.estilo, params.wallColor, params.groundColor
+        );
+        if (estr) perimeterGroup.add(estr.grupo);
+      }
+      scene.add(perimeterGroup);
+
+      // 5. Arcos / Marcadores en la entrada configurada
+      if (entranceMarkersGroup) {
+        scene.remove(entranceMarkersGroup);
+      }
+      entranceMarkersGroup = new THREE.Group();
+      (currentMazeData.entradas || [currentMazeData.entrada]).forEach(ent => {
+        if (!ent) return;
+        const ey = H_fn(ent.wx, ent.wz);
+        const marker = createEntranceArch(ent);
+        marker.position.set(ent.wx, ey, ent.wz);
+        marker.lookAt(0, ey, 0);
+        entranceMarkersGroup.add(marker);
+      });
+      scene.add(entranceMarkersGroup);
+
+      // 6. Ubicar Monstruos 3D en Vivo en las Celdas Pintadas (todos según cantidad por celda con formación táctica)
+      if (monsters3DGroup) {
+        scene.remove(monsters3DGroup);
+      }
+      monsters3DGroup = new THREE.Group();
+      const listaMonstruos = currentMazeData.monstruosPorCelda || [];
+      listaMonstruos.forEach(cm => {
+        const wy = H_fn(cm.wx, cm.wz);
+        const token = create3DMonsterToken(cm, cellSize);
+        token.position.set(cm.wx, wy, cm.wz);
+        monsters3DGroup.add(token);
+      });
+      scene.add(monsters3DGroup);
+
+      // 7. Ubicar el Avatar del Jugador en la entrada del estrechamiento exterior de 100m
+      if (playerDummy && currentMazeData.P_ext && currentMazeData.u_in) {
+        const spX = currentMazeData.P_ext.wx + currentMazeData.u_in.x * 2;
+        const spZ = currentMazeData.P_ext.wz + currentMazeData.u_in.y * 2;
+        const ey = H_fn(spX, spZ);
+        playerDummy.position.set(spX, ey, spZ);
+        playerDummy.lookAt(0, ey, 0);
+      }
+
+      // 8. Actualizar el Canvas 2D
+      draw2DMaze();
+    }
+
+    // Dibujado del Canvas 2D interactivo con sectores de colores de monstruos
+    function draw2DMaze() {
+      const cv = document.getElementById('mazeCanvas');
+      if (!cv || !currentMazeData) return;
+      const ctx = cv.getContext('2d');
+      const N = currentMazeData.N;
+      const grid = currentMazeData.grid;
+      const w = cv.width;
+      const h = cv.height;
+      const cw = w / N;
+      const ch = h / N;
+
+      ctx.clearRect(0, 0, w, h);
+
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+          const val = grid[y][x];
+          const cellKey = `${x}_${y}`;
+          const patId = params.celdasMonstruos[cellKey];
+
+          if (val === 2) {
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
+          } else if (val === 1) {
+            ctx.fillStyle = params.wallColor || '#475569';
+            ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
+          } else {
+            // Pasillo transitable
+            if (patId && params.patronesMonstruos[patId]) {
+              const pat = params.patronesMonstruos[patId];
+              ctx.fillStyle = pat.color || '#22c55e';
+              ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
+
+              // Borde interno contrastado
+              ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(x * cw + 0.5, y * ch + 0.5, cw - 1.5, ch - 1.5);
+
+              // Nivel y cantidad del enemigo dentro del cuadrado
+              const count = Math.max(1, Math.min(8, pat.count || 1));
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              if (count > 1) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 7px sans-serif';
+                ctx.fillText(pat.levelMin ? String(pat.levelMin) : 'M', (x + 0.5) * cw, (y + 0.35) * ch);
+                ctx.fillStyle = '#fef08a';
+                ctx.font = 'bold 8px sans-serif';
+                ctx.fillText(`×${count}`, (x + 0.5) * cw, (y + 0.72) * ch);
+              } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 8.5px sans-serif';
+                ctx.fillText(pat.levelMin ? String(pat.levelMin) : 'M', (x + 0.5) * cw, (y + 0.5) * ch);
+              }
+            } else {
+              ctx.fillStyle = '#e2e8f0';
+              ctx.fillRect(x * cw, y * ch, cw - 0.5, ch - 0.5);
+            }
+          }
+        }
+      }
+
+      // Resaltar centro / culminación
+      const mid = Math.round((N - 1) / 2);
+      ctx.fillStyle = '#f59e0b';
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          ctx.fillRect((mid + dx) * cw, (mid + dy) * ch, cw - 0.5, ch - 0.5);
+        }
+      }
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', (mid + 0.5) * cw, (mid + 0.5) * ch);
+
+      // Resaltar TODAS las entradas activas en verde
+      const listaEntradas = currentMazeData.entradas || [currentMazeData.entrada];
+      listaEntradas.forEach(ent => {
+        if (!ent) return;
+        const ex = ent.gx;
+        const ey = ent.gy;
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(ex * cw, ey * ch, cw - 0.5, ch - 0.5);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText('▲', (ex + 0.5) * cw, (ey + 0.5) * ch);
+      });
+
+      // Indicador de rotación en la esquina superior
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.fillRect(w - 55, 4, 51, 18);
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(w - 55, 4, 51, 18);
+      ctx.fillStyle = '#facc15';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`⟳ ${params.rotacion || 0}°`, w - 29, 13);
+    }
+
+    // Interacción con el lienzo 2D para alternar celdas o pintar patrones de monstruos con arrastre
+    function setupCanvasInteraction() {
+      const cv = document.getElementById('mazeCanvas');
+      let isDrawing = false;
+      let targetVal = null;
+
+      function handleCellAction(e) {
+        if (!currentMazeData) return;
+        const rect = cv.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const px = clientX - rect.left;
+        const py = clientY - rect.top;
+
+        const N = currentMazeData.N;
+        const gx = Math.floor((px / rect.width) * N);
+        const gy = Math.floor((py / rect.height) * N);
+
+        if (gx < 0 || gx >= N || gy < 0 || gy >= N) return;
+        if (currentMazeData.grid[gy][gx] === 2) return;
+
+        const mid = Math.round((N - 1) / 2);
+        if (Math.abs(gx - mid) <= 1 && Math.abs(gy - mid) <= 1) return; // Centro intocable
+
+        const cellKey = `${gx}_${gy}`;
+
+        if (activeTool === 'monsters') {
+          // Pintar el cuadrado con el patrón de color seleccionado
+          // Si era muro, se abre como pasillo automáticamente para que los bichos tengan camino
+          if (currentMazeData.grid[gy][gx] === 1) {
+            manualOverrides[cellKey] = 0;
+            currentMazeData.grid[gy][gx] = 0;
+          }
+          params.celdasMonstruos[cellKey] = activePatternId;
+          rebuildAll3D();
+        } else if (activeTool === 'erase-monsters') {
+          // Borrar el monstruo asignado a este cuadrado
+          if (params.celdasMonstruos[cellKey]) {
+            delete params.celdasMonstruos[cellKey];
+            rebuildAll3D();
+          }
+        } else if (activeTool === 'walls') {
+          // Modo clásico de abrir/cerrar muros
+          const curVal = currentMazeData.grid[gy][gx];
+          if (targetVal === null) {
+            targetVal = curVal === 1 ? 0 : 1;
+          }
+          manualOverrides[cellKey] = targetVal;
+          currentMazeData.grid[gy][gx] = targetVal;
+          if (targetVal === 1) {
+            delete params.celdasMonstruos[cellKey];
+          }
+          rebuildAll3D();
+        }
+      }
+
+      cv.addEventListener('mousedown', e => {
+        isDrawing = true;
+        targetVal = null;
+        handleCellAction(e);
+      });
+      window.addEventListener('mousemove', e => {
+        if (isDrawing) handleCellAction(e);
+      });
+      window.addEventListener('mouseup', () => {
+        isDrawing = false;
+        targetVal = null;
+      });
+
+      cv.addEventListener('touchstart', e => {
+        isDrawing = true;
+        targetVal = null;
+        handleCellAction(e);
+      }, { passive: false });
+      cv.addEventListener('touchmove', e => {
+        if (isDrawing) handleCellAction(e);
+      }, { passive: false });
+      window.addEventListener('touchend', () => {
+        isDrawing = false;
+        targetVal = null;
+      });
+    }
+
+    // Puntos de vista de la cámara
+    function setCameraView(view) {
+      document.querySelectorAll('.cam-btn').forEach(b => {
+        if (b.dataset.cam) b.classList.toggle('active', b.dataset.cam === view);
+      });
+      if (!currentMazeData) return;
+      const R = params.radius;
+
+      if (view === 'overview') {
+        controls.target.set(0, 0, 0);
+        camera.position.set(0, R * 1.5, R * 1.8);
+      } else if (view === 'entrance') {
+        const ent = (currentMazeData.entradas && currentMazeData.entradas[0]) || currentMazeData.entrada;
+        if (ent) {
+          controls.target.set(ent.wx, 2, ent.wz);
+          camera.position.set(ent.wx * 1.25, 18, ent.wz * 1.25 + 35);
+        }
+      } else if (view === 'center') {
+        controls.target.set(0, 4, 0);
+        camera.position.set(0, 24, 45);
+      } else if (view === 'human') {
+        const ent = (currentMazeData.entradas && currentMazeData.entradas[0]) || currentMazeData.entrada;
+        if (ent) {
+          controls.target.set(ent.wx * 0.8, 1.8, ent.wz * 0.8);
+          camera.position.set(ent.wx, 2.2, ent.wz + 4);
+        }
+      } else if (view === 'monster') {
+        focusOnActiveMonster();
+      }
+      controls.update();
+    }
+
+    function focusOnActiveMonster() {
+      if (!currentMazeData) return;
+      const lista = currentMazeData.monstruosPorCelda || [];
+      if (!lista.length) return;
+      const m = lista[lista.length - 1];
+      controls.target.set(m.wx, 1.8, m.wz);
+      camera.position.set(m.wx + 6, 6, m.wz + 12);
+      controls.update();
+    }
+
+    function toggleXRayWalls() {
+      xrayWalls = !xrayWalls;
+      const btn = document.getElementById('btn-toggle-xray');
+      if (btn) {
+        btn.classList.toggle('active', xrayWalls);
+        btn.textContent = xrayWalls ? '👁️ Muros Sólidos' : '👁️ Rayos X';
+      }
+      rebuildAll3D();
+    }
+
+    // Configuración de eventos UI
+    function setupUIEvents() {
+      // Toggle UI
+      const btnToggle = document.getElementById('btn-toggle-ui');
+      const panel = document.getElementById('ui-panel');
+      btnToggle.onclick = () => panel.classList.toggle('hide');
+
+      // Modos de iluminación
+      document.querySelectorAll('.light-btn').forEach(b => {
+        b.onclick = () => applyLightingPreset(b.dataset.light);
+      });
+
+      // Herramientas de edición 2D (Pintar Bichos, Borrar Bichos, Muros)
+      document.querySelectorAll('.tool-btn').forEach(b => {
+        b.onclick = () => setEditorTool(b.dataset.tool);
+      });
+
+      // Rotación
+      const slRot = document.getElementById('sl-rot');
+      slRot.oninput = e => {
+        params.rotacion = parseInt(e.target.value, 10) || 0;
+        document.getElementById('lbl-rot').textContent = params.rotacion + '°';
+        rebuildAll3D();
+      };
+
+      // Radio de zona
+      const slRadius = document.getElementById('sl-radius');
+      slRadius.oninput = e => {
+        params.radius = parseInt(e.target.value, 10);
+        document.getElementById('lbl-radius').textContent = params.radius + ' m';
+        rebuildAll3D();
+      };
+
+      // Cuadrícula
+      const selGrid = document.getElementById('sel-grid');
+      selGrid.onchange = e => {
+        params.tamGrid = parseInt(e.target.value, 10);
+        document.getElementById('lbl-grid').textContent = params.tamGrid + '×' + params.tamGrid;
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      // Altura y profundidad
+      const slHeight = document.getElementById('sl-height');
+      slHeight.oninput = e => {
+        params.alturaMuro = parseInt(e.target.value, 10);
+        document.getElementById('lbl-height').textContent = params.alturaMuro + ' m';
+        rebuildAll3D();
+      };
+
+      const slDepth = document.getElementById('sl-depth');
+      slDepth.oninput = e => {
+        params.profundidad = parseFloat(e.target.value);
+        document.getElementById('lbl-depth').textContent = '-' + params.profundidad + ' m';
+        rebuildAll3D();
+      };
+
+      // Semilla y generador
+      const inpSeed = document.getElementById('inp-seed');
+      inpSeed.onchange = e => {
+        params.seed = parseInt(e.target.value, 10) || 12345;
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      document.getElementById('btn-roll').onclick = () => {
+        params.seed = Math.floor(Math.random() * 99999) + 1;
+        inpSeed.value = params.seed;
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      // Única entrada
+      document.querySelectorAll('.ent-btn').forEach(btn => {
+        btn.onclick = () => {
+          const dir = btn.dataset.dir;
+          params.entradas = [dir];
+          updateEntrancesUI();
+          manualOverrides = {};
+          rebuildAll3D();
+        };
+      });
+
+      // Añadir nuevo patrón
+      document.getElementById('btn-add-pattern').onclick = () => {
+        const nextIdx = Object.keys(params.patronesMonstruos).length + 1;
+        const newId = 'p' + nextIdx;
+        const colors = ['#06b6d4', '#ec4899', '#84cc16', '#e11d48', '#8b5cf6'];
+        const chosenCol = colors[nextIdx % colors.length];
+        params.patronesMonstruos[newId] = {
+          id: newId,
+          color: chosenCol,
+          name: 'Monstruo ' + nextIdx,
+          clase: 'guerrero',
+          levelMin: 15,
+          levelMax: 20,
+          count: 1,
+          icono: '⚔️'
+        };
+        activePatternId = newId;
+        renderPatternsList();
+        syncPatternEditorForm();
+        setEditorTool('monsters');
+      };
+
+      // Edición de campos del patrón activo
+      document.getElementById('inp-pat-name').oninput = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.name = e.target.value || 'Monstruo';
+          document.getElementById('lbl-edit-pat-title').textContent = pat.name;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('inp-pat-color').onchange = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.color = e.target.value;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('sel-pat-clase').onchange = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.clase = e.target.value;
+          pat.icono = pat.clase === 'arquero' ? '🏹' : pat.clase === 'mago' ? '🔮' : pat.clase === 'elite' ? '👑' : pat.clase === 'rapido' ? '🦂' : '⚔️';
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('inp-pat-lvlmin').oninput = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.levelMin = parseInt(e.target.value, 10) || 1;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      document.getElementById('inp-pat-lvlmax').oninput = e => {
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.levelMax = parseInt(e.target.value, 10) || 1;
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      };
+
+      function setPatternCount(val) {
+        const cnt = Math.max(1, Math.min(8, parseInt(val, 10) || 1));
+        const pat = params.patronesMonstruos[activePatternId];
+        if (pat) {
+          pat.count = cnt;
+          document.getElementById('sl-pat-count').value = cnt;
+          const inp = document.getElementById('inp-pat-count');
+          if (inp) inp.value = cnt;
+          document.getElementById('lbl-pat-count').textContent = cnt;
+          document.querySelectorAll('.pat-count-btn').forEach(b => {
+            b.style.background = (parseInt(b.dataset.cnt, 10) === cnt) ? '#6366f1' : '#334155';
+          });
+          renderPatternsList();
+          rebuildAll3D();
+        }
+      }
+
+      document.getElementById('sl-pat-count').oninput = e => setPatternCount(e.target.value);
+      const inpPatCount = document.getElementById('inp-pat-count');
+      if (inpPatCount) {
+        inpPatCount.onchange = e => setPatternCount(e.target.value);
+        inpPatCount.oninput = e => setPatternCount(e.target.value);
+      }
+      document.querySelectorAll('.pat-count-btn').forEach(btn => {
+        btn.onclick = () => setPatternCount(btn.dataset.cnt);
+      });
+
+      // Bucles
+      const slLoops = document.getElementById('sl-loops');
+      slLoops.oninput = e => {
+        params.bucleChance = parseFloat(e.target.value);
+        document.getElementById('lbl-loops').textContent = Math.round(params.bucleChance * 100) + '%';
+        rebuildAll3D();
+      };
+
+      // Colores
+      document.getElementById('col-wall').onchange = e => {
+        params.wallColor = e.target.value;
+        rebuildAll3D();
+      };
+      document.getElementById('col-ground').onchange = e => {
+        params.groundColor = e.target.value;
+        rebuildAll3D();
+      };
+
+      // Conexión con pueblos
+      document.getElementById('btn-road-connect').onclick = () => {
+        shouldAutoConnectRoad = true;
+        const msg = document.getElementById('road-status-msg');
+        msg.textContent = '✓ Conexión activada: al pulsar «Guardar y Volver», se trazará un camino directo al pueblo más cercano.';
+        msg.style.display = 'block';
+      };
+
+      // Limpiar bichos de los cuadrados
+      document.getElementById('btn-clear-monsters').onclick = () => {
+        params.celdasMonstruos = {};
+        rebuildAll3D();
+      };
+
+      // Limpiar manuales
+      document.getElementById('btn-clear-manual').onclick = () => {
+        manualOverrides = {};
+        rebuildAll3D();
+      };
+
+      // Abrir todo
+      document.getElementById('btn-all-open').onclick = () => {
+        if (!currentMazeData) return;
+        const N = currentMazeData.N;
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            if (currentMazeData.grid[y][x] === 1) {
+              manualOverrides[`${x}_${y}`] = 0;
+            }
+          }
+        }
+        rebuildAll3D();
+      };
+
+      // Cámaras
+      document.querySelectorAll('.cam-btn').forEach(b => {
+        b.onclick = () => {
+          if (b.id === 'btn-toggle-xray') {
+            toggleXRayWalls();
+          } else if (b.dataset.cam) {
+            setCameraView(b.dataset.cam);
+          }
+        };
+      });
+
+      // Salir
+      document.getElementById('btn-exit').onclick = () => {
+        location.href = 'index.html';
+      };
+
+      // Resetear
+      document.getElementById('btn-reset').onclick = () => {
+        manualOverrides = {};
+        loadInitialPayload();
+        rebuildAll3D();
+      };
+
+      // Función unificada de guardado y retorno
+      function saveLabyrinthData(redirectTo) {
+        const payloadRetorno = {
+          sessionId: (zoneData && zoneData.sessionId) || 'default',
+          zoneId: (zoneData && zoneData.zoneId) || 'z-lab',
+          radius: params.radius,
+          conectarCaminoPueblo: shouldAutoConnectRoad,
+          relieve: {
+            activo: true,
+            radio: params.radius,
+            rotacion: params.rotacion || 0,
+            tamGrid: params.tamGrid,
+            alturaMuro: params.alturaMuro,
+            profundidad: params.profundidad,
+            profundidadHendidura: params.profundidad,
+            estilo: params.estilo,
+            culminacion: params.culminacion,
+            seed: params.seed,
+            bucleChance: params.bucleChance,
+            entradas: params.entradas,
+            entradaDir: params.entradas[0] || 'sur',
+            wallColor: params.wallColor,
+            groundColor: params.groundColor,
+            murosManuales: manualOverrides,
+            patronesMonstruos: params.patronesMonstruos,
+            celdasMonstruos: params.celdasMonstruos
+          }
+        };
+
+        // 1. Guardar en retornoLaberinto para que index.html y visor-mundo.html lo sincronicen
+        try {
+          localStorage.setItem('rpgMundo.retornoLaberinto', JSON.stringify(payloadRetorno));
+        } catch (e) {
+          console.warn('Error guardando en retornoLaberinto:', e);
+        }
+
+        // 2. Guardar estado actualizado en editorLaberinto
+        try {
+          const editorState = Object.assign({}, zoneData, {
+            radius: params.radius,
+            relieve: payloadRetorno.relieve
+          });
+          localStorage.setItem('rpgMundo.editorLaberinto', JSON.stringify(editorState));
+        } catch (e) {}
+
+        // 3. Actualizar directamente la sesión activa en localStorage
+        try {
+          const sId = (zoneData && zoneData.sessionId) || localStorage.getItem('rpgMundo.actual');
+          if (sId) {
+            const rawSession = localStorage.getItem('rpgMundo.sesion.' + sId);
+            if (rawSession) {
+              const sesionObj = JSON.parse(rawSession);
+              const z = (sesionObj.zones || []).find(x => x.id === payloadRetorno.zoneId);
+              if (z) {
+                z.radius = params.radius;
+                z.relieve = Object.assign({}, z.relieve, payloadRetorno.relieve);
+                delete z._cacheLaberinto;
+                delete z._cacheLaberintoKey;
+
+                // Sincronizar z.monsters con los patrones y celdas asignadas
+                if (payloadRetorno.relieve.celdasMonstruos && Object.keys(payloadRetorno.relieve.celdasMonstruos).length > 0) {
+                  const patronesUsados = new Set(Object.values(payloadRetorno.relieve.celdasMonstruos));
+                  const nuevosMonstruos = [];
+                  patronesUsados.forEach(pId => {
+                    const pat = payloadRetorno.relieve.patronesMonstruos && payloadRetorno.relieve.patronesMonstruos[pId];
+                    if (pat) {
+                      nuevosMonstruos.push({
+                        name: pat.name || pat.nombre || 'Monstruo',
+                        level: pat.levelMin || 10,
+                        levelMin: pat.levelMin || 10,
+                        levelMax: pat.levelMax || pat.levelMin || 12,
+                        count: pat.count || 1,
+                        clase: pat.clase || 'guerrero',
+                        boss: !!pat.esJefe || pat.clase === 'elite',
+                        color: pat.color || '#22c55e',
+                        icono: pat.icono || '👾'
+                      });
+                    }
+                  });
+                  if (nuevosMonstruos.length > 0) {
+                    z.monsters = nuevosMonstruos;
+                  }
+                }
+                localStorage.setItem('rpgMundo.sesion.' + sId, JSON.stringify(sesionObj));
+              }
+            }
+          }
+        } catch (errSes) {
+          console.warn('Error sincronizando sesión directa:', errSes);
+        }
+
+        location.href = redirectTo;
+      }
+
+      // Guardar y Volver al Mapa
+      document.getElementById('btn-save').onclick = () => {
+        saveLabyrinthData('index.html');
+      };
+
+      // Probar directamente en el Visor 3D
+      const btnViewDirect = document.getElementById('btn-view3d-direct');
+      if (btnViewDirect) {
+        btnViewDirect.onclick = () => {
+          const sId = (zoneData && zoneData.sessionId) || localStorage.getItem('rpgMundo.actual') || '';
+          const zId = (zoneData && zoneData.zoneId) || '';
+          const targetUrl = (sId || zId)
+            ? `visor-mundo.html?s=${encodeURIComponent(sId)}&zona=${encodeURIComponent(zId)}`
+            : 'visor-mundo.html';
+          saveLabyrinthData(targetUrl);
+        };
+      }
+    }
+
+    // Bucle de animación
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+
+      // Animación suave de la meta central
+      if (culmGroup && culmGroup.userData && culmGroup.userData.reliquiaMesh) {
+        culmGroup.userData.reliquiaMesh.rotation.y += 0.02;
+        culmGroup.userData.reliquiaMesh.position.y += Math.sin(Date.now() * 0.003) * 0.004;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Arranque
+    init3D();
+    loadInitialPayload();
+    setupUIEvents();
+    renderCulmSelect();
+    setupCanvasInteraction();
+    rebuildAll3D();
+    animate();
+  </script>
+</body>
+</html>

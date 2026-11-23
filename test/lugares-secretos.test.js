@@ -154,4 +154,102 @@ t('construcción de cabaña GLB: no incluye cilindro intrusivo y asienta el mode
   assert.ok(mockScene.position.y > 4.0, `La posición Y (${mockScene.position.y}) debe elevar la base sobre el suelo sin sepultarla`);
 });
 
+t('aplanado de terreno bajo cabañas: allana cuesta arriba y cuesta abajo con pendientes suaves', () => {
+  const cabana = {
+    tipo: 'cabana',
+    x: 100,
+    z: 200,
+    alturaBase: 50,
+    radioPlano: 16.0,
+    radioRebaje: 36.0,
+    esMar: false
+  };
+
+  // Punto central (d = 0): debe ser exactamente alturaBase (50)
+  const hCentro = L.aplicarRebajeCabanas([cabana], 100, 200, 70);
+  assert.strictEqual(hCentro, 50, 'El centro de la cabaña debe allanarse a alturaBase');
+
+  // Punto cuesta abajo (terreno natural = 35 < 50): dentro de 16m (d = 10m) debe levantarse a 50
+  const hCuestaAbajo10m = L.aplicarRebajeCabanas([cabana], 110, 200, 35);
+  assert.strictEqual(hCuestaAbajo10m, 50, 'El terreno cuesta abajo a 10m (<16m) debe nivelarse a alturaBase para que la cabaña no flote');
+
+  // Punto cuesta arriba (terreno natural = 65 > 50): dentro de 16m (d = 10m) debe rebajarse a 50
+  const hCuestaArriba10m = L.aplicarRebajeCabanas([cabana], 100, 210, 65);
+  assert.strictEqual(hCuestaArriba10m, 50, 'El terreno cuesta arriba a 10m (<16m) debe rebajarse a alturaBase');
+
+  // Punto en la rampa de transición suave (d = 26m, mitad de [16, 36]):
+  // t = 0.5, w = 1 - (0.25 * (3 - 1)) = 0.5 -> hMod = 35 + (50 - 35) * 0.5 = 42.5
+  const hTransicionAbajo = L.aplicarRebajeCabanas([cabana], 126, 200, 35);
+  assert.ok(hTransicionAbajo > 35 && hTransicionAbajo < 50, 'La ladera cuesta abajo debe tener una pendiente suave de transición');
+  assert.strictEqual(Math.round(hTransicionAbajo * 10) / 10, 42.5, 'La interpolación suave a 26m debe dar 42.5');
+
+  // Punto fuera de la zona de influencia (d = 40m > 36m): no debe modificarse
+  const hFuera = L.aplicarRebajeCabanas([cabana], 140, 200, 35);
+  assert.strictEqual(hFuera, 35, 'Fuera de radioRebaje el terreno no se modifica');
+});
+
+t('contextoCabana conecta las 5 cabañas fronterizas con la trama y el acto activo', () => {
+  assert.strictEqual(L.CABANAS_GLB.length, 5);
+  L.CABANAS_GLB.forEach(c => {
+    assert.ok(typeof c.trama === 'string' && c.trama.length > 20, `${c.id} debe incluir trama narrativa`);
+  });
+  const ctxActo1 = L.contextoCabana('cabana-3-pescador', { paso: 2 });
+  const ctxActo3 = L.contextoCabana('cabana-3-pescador', { paso: 12 });
+  const ctxEpi = L.contextoCabana('cabana-3-pescador', { paso: 16 });
+  assert.ok(ctxActo1.trama.includes('jaulas'));
+  assert.ok(ctxActo1.estadoActo.includes('Acto I'));
+  assert.ok(ctxActo3.estadoActo.includes('Acto III'));
+  assert.ok(ctxEpi.estadoActo.includes('Epílogo'));
+});
+
+t('bloque H4: elegirModalidadCabana, flujo en 3 fases (matar->rastro->líder) y bono x1.5 en cacería mayor', () => {
+  const w = mundoMock();
+  const secretos = L.generarLugaresSecretos(w);
+  const cabanas = secretos.filter(s => s.tipo === 'cabana');
+  assert.ok(cabanas.length >= 2);
+
+  // Modalidad 1: encargo en 3 fases cortas
+  const cFases = cabanas[0];
+  const selF = L.elegirModalidadCabana(cFases, 'fases');
+  assert.strictEqual(selF.yaAceptada, false);
+  assert.strictEqual(selF.modalidad, 'fases');
+  assert.strictEqual(cFases.misionCabana.cantidad, 15);
+  assert.strictEqual(cFases.misionCabana.faseActual, 1);
+  assert.strictEqual(L.estadoMisionCabana(cFases).faseActual, 1);
+
+  const p1 = L.registrarProgresoCabana(cFases, { tipo: 'matar', cantidad: 15 });
+  assert.strictEqual(p1.faseCompletada, 1);
+  assert.strictEqual(p1.nuevaFase, 2);
+  assert.strictEqual(L.estadoMisionCabana(cFases).completada, false);
+
+  const p2 = L.registrarProgresoCabana(cFases, { tipo: 'rastro' });
+  assert.strictEqual(p2.faseCompletada, 2);
+  assert.strictEqual(p2.lanzarLider, true);
+  assert.strictEqual(cFases.misionCabana.rastroEncontrado, true);
+  assert.strictEqual(L.estadoMisionCabana(cFases).faseActual, 3);
+
+  const p3 = L.registrarProgresoCabana(cFases, { tipo: 'lider' });
+  assert.strictEqual(p3.faseCompletada, 3);
+  assert.strictEqual(p3.completarMision, true);
+  assert.strictEqual(L.estadoMisionCabana(cFases).completada, true);
+
+  // Modalidad 2: cacería mayor tradicional (100 monstruos, premio x1.5)
+  const cCaceria = cabanas[1];
+  const selC = L.elegirModalidadCabana(cCaceria, 'caceria');
+  assert.strictEqual(selC.modalidad, 'caceria');
+  assert.strictEqual(cCaceria.misionCabana.cantidad, 100);
+  assert.strictEqual(cCaceria.misionCabana.multiplicadorPremio, 1.5);
+  const rc1 = L.registrarProgresoCabana(cCaceria, { tipo: 'matar', cantidad: 100 });
+  assert.strictEqual(rc1.completarMision, true);
+
+  const recFases = L.recompensaCabana(cFases, () => 0.5);
+  const recCaceria = L.recompensaCabana(cCaceria, () => 0.5);
+  assert.strictEqual(recFases.xp, 160);
+  assert.strictEqual(recFases.titulo, null);
+  assert.strictEqual(recCaceria.xp, 250);
+  assert.strictEqual(recCaceria.titulo, 'Cazador Veterano de Frontera');
+  assert.strictEqual(recCaceria.oro, Math.round(recFases.oro * 1.5));
+  assert.strictEqual(recCaceria.arena, Math.round(recFases.arena * 1.5));
+});
+
 console.log(`\n${n} pruebas de lugares secretos superadas.`);

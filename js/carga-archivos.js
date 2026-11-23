@@ -49,36 +49,36 @@
   "mazmorra1.glb": 18504700,
   "npc/aldeanos/aldeano.glb": 4073784,
   "aldeano.glb": 4073784,
-  "npc/gurus/guru-1-cerca.glb": 913388,
-  "guru-1-cerca.glb": 913388,
-  "npc/gurus/guru-1-lejos.glb": 557504,
-  "guru-1-lejos.glb": 557504,
-  "npc/gurus/guru-1.glb": 6149864,
-  "guru-1.glb": 6149864,
-  "npc/gurus/guru-2-cerca.glb": 1025940,
-  "guru-2-cerca.glb": 1025940,
-  "npc/gurus/guru-2-lejos.glb": 508948,
-  "guru-2-lejos.glb": 508948,
-  "npc/gurus/guru-2.glb": 5527208,
-  "guru-2.glb": 5527208,
-  "npc/gurus/guru-3-cerca.glb": 1131844,
-  "guru-3-cerca.glb": 1131844,
-  "npc/gurus/guru-3-lejos.glb": 588304,
-  "guru-3-lejos.glb": 588304,
-  "npc/gurus/guru-3.glb": 7950068,
-  "guru-3.glb": 7950068,
-  "npc/gurus/guru-4-cerca.glb": 936000,
-  "guru-4-cerca.glb": 936000,
-  "npc/gurus/guru-4-lejos.glb": 518328,
-  "guru-4-lejos.glb": 518328,
-  "npc/gurus/guru-4.glb": 6321420,
-  "guru-4.glb": 6321420,
-  "npc/gurus/guru-5-cerca.glb": 843132,
-  "guru-5-cerca.glb": 843132,
-  "npc/gurus/guru-5-lejos.glb": 500792,
-  "guru-5-lejos.glb": 500792,
-  "npc/gurus/guru-5.glb": 5801328,
-  "guru-5.glb": 5801328,
+  "npc/gurus/guru-1-cerca.glb": 1039016,
+  "guru-1-cerca.glb": 1039016,
+  "npc/gurus/guru-1-lejos.glb": 668324,
+  "guru-1-lejos.glb": 668324,
+  "npc/gurus/guru-1.glb": 6431736,
+  "guru-1.glb": 6431736,
+  "npc/gurus/guru-2-cerca.glb": 1306512,
+  "guru-2-cerca.glb": 1306512,
+  "npc/gurus/guru-2-lejos.glb": 694372,
+  "guru-2-lejos.glb": 694372,
+  "npc/gurus/guru-2.glb": 6364192,
+  "guru-2.glb": 6364192,
+  "npc/gurus/guru-3-cerca.glb": 886972,
+  "guru-3-cerca.glb": 886972,
+  "npc/gurus/guru-3-lejos.glb": 509216,
+  "guru-3-lejos.glb": 509216,
+  "npc/gurus/guru-3.glb": 4039512,
+  "guru-3.glb": 4039512,
+  "npc/gurus/guru-4-cerca.glb": 986572,
+  "guru-4-cerca.glb": 986572,
+  "npc/gurus/guru-4-lejos.glb": 644732,
+  "guru-4-lejos.glb": 644732,
+  "npc/gurus/guru-4.glb": 6771012,
+  "guru-4.glb": 6771012,
+  "npc/gurus/guru-5-cerca.glb": 1284276,
+  "guru-5-cerca.glb": 1284276,
+  "npc/gurus/guru-5-lejos.glb": 705592,
+  "guru-5-lejos.glb": 705592,
+  "npc/gurus/guru-5.glb": 6200812,
+  "guru-5.glb": 6200812,
   "tools/package-lock.json": 40759,
   "package-lock.json": 40759,
   "tools/package.json": 464,
@@ -433,8 +433,11 @@
       if (!contenedor) return;
 
       this.contenedor = contenedor;
+      // En móvil el panel empieza plegado: no tapa la pantalla de juego
+      const movilInicio = !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
+      this.abierto = !movilInicio;
       contenedor.innerHTML = `
-        <details id="carga-desplegable" open>
+        <details id="carga-desplegable" ${movilInicio ? '' : 'open'}>
           <summary class="c-tit">
             <div class="c-tit-izq">
               <span id="carga-icono-estado" class="c-icono-spin">⏳</span>
@@ -462,7 +465,7 @@
 
           <div class="c-pie-acciones">
             <span id="carga-pie-info">Total en memoria: <b id="carga-pie-peso">0.00 MB</b></span>
-            <button id="carga-btn-toggle" type="button" class="c-btn-accion" title="Plegar o desplegar la lista">Plegar ▲</button>
+            <button id="carga-btn-toggle" type="button" class="c-btn-accion" title="Plegar o desplegar la lista">${movilInicio ? 'Desplegar ▼' : 'Plegar ▲'}</button>
           </div>
         </details>
       `;

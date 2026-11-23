@@ -67,4 +67,35 @@ t('las capas se recortan de su celda del atlas', () => {
   });
 });
 
+t('splatWithRoad mezcla grava/tierra en el arcén y conserva el bioma lejos del camino', () => {
+  const base = T.splatFor('pradera', 0.05, 10);
+  const cerca = T.splatWithRoad(base, 4.0);
+  const lejos = T.splatWithRoad(base, 40.0);
+  assert.ok(Math.abs(cerca.splat.reduce((a, b) => a + b, 0) + cerca.snow - 1) < 1e-6);
+  assert.ok(cerca.splat[1] > base.splat[1] + 0.3, 'el arcén debe ganar tierra/grava');
+  assert.ok(cerca.splat[0] < base.splat[0], 'el arcén reduce la hierba pura');
+  assert.deepStrictEqual(lejos.splat.map(v => +v.toFixed(6)), base.splat.map(v => +v.toFixed(6)));
+  const alta = T.splatWithRoad(T.splatFor('nieve', 0, 260), 4.0);
+  assert.ok(alta.snow > 0.5 && Math.abs(alta.splat.reduce((a, b) => a + b, 0) + alta.snow - 1) < 1e-6);
+});
+
+t('createTerrainMaterial configura MeshPhysicalMaterial PBR con humedad y bump reforzado', () => {
+  const THREE = require('../tools/node_modules/three/build/three.cjs');
+  const uniforms = {};
+  const mat = T.createTerrainMaterial(THREE, uniforms);
+  assert.ok(mat.isMeshPhysicalMaterial, 'debe usar MeshPhysicalMaterial cuando existe');
+  assert.strictEqual(mat.clearcoat, 0.9);
+  const mockShader = {
+    uniforms: {},
+    vertexShader: '#include <common>\n#include <begin_vertex>\n#include <project_vertex>',
+    fragmentShader: '#include <common>\n#include <color_fragment>\n#include <roughnessmap_fragment>\n#include <normal_fragment_maps>\n#include <lights_physical_fragment>'
+  };
+  mat.onBeforeCompile(mockShader);
+  assert.ok(mockShader.uniforms.uHumedad && mockShader.uniforms.uHumedad.value === 1.0);
+  assert.ok(mockShader.uniforms.uBumpFuerza && mockShader.uniforms.uBumpFuerza.value === 1.0);
+  assert.ok(mockShader.fragmentShader.includes('uHumedad'), 'fragment debe inyectar uHumedad');
+  assert.ok(mockShader.fragmentShader.includes('uBumpFuerza'), 'fragment debe inyectar uBumpFuerza');
+  assert.ok(mockShader.fragmentShader.includes('material.clearcoat'), 'fragment debe modular material.clearcoat en charcos');
+});
+
 console.log(`\n${n} pruebas correctas`);

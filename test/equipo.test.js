@@ -173,4 +173,191 @@ t('forjar con hoja: consume la hoja, cuesta arena y da la pieza en estado perfec
   assert.ok(p.inventario.some(o => o.piezaId === 'torso.3' && o.estado === 1));
 });
 
+t('profesiones real (catalogo.json): perfilesClase, armas iniciales, compatibilidad y futuras armaduras por tipoArmadura', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const cat = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'estudio-armaduras', 'catalogo.json'), 'utf8'));
+  assert.ok(cat.perfilesClase, 'catalogo.json debe definir perfilesClase');
+
+  const g = E.crearPersonaje(cat, 'guerrero', 'Kael');
+  const c = E.crearPersonaje(cat, 'cazador', 'Lyra');
+  const m = E.crearPersonaje(cat, 'mago', 'Aldric');
+  const p = E.crearPersonaje(cat, 'picaro', 'Vex');
+
+  assert.strictEqual(E.objeto(g, g.equipo.weapon).idx, 1, 'Guerrero nace con Espada Solar');
+  assert.strictEqual(E.objeto(c, c.equipo.weapon).idx, 71, 'Cazador nace con Arco Largo Élfico');
+  assert.strictEqual(E.objeto(m, m.equipo.weapon).idx, 61, 'Mago nace con Báculo Solar');
+  assert.strictEqual(E.objeto(p, p.equipo.weapon).idx, 41, 'Pícaro nace con Daga Élfica');
+
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'guerrero'), 'pesada');
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'cazador'), 'ligera');
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'mago'), 'mago');
+  assert.strictEqual(E.tipoArmaduraDeClase(cat, 'picaro'), 'ligera');
+
+  // Restricción de clase al equipar con catálogo
+  const arcoAjeno = E.instancia({ id: 'weapon.71', ranura: 'weapon', idx: 71, nombre: 'Arco Largo Élfico', nivel: 1 }, 1);
+  g.inventario.push(arcoAjeno);
+  assert.throws(() => E.equipar(g, arcoAjeno.uid, 10, cat), /compatible/i);
+
+  const petoPesado = E.instancia({ id: 'torso.1', ranura: 'torso', idx: 1, nombre: 'Peto pesado', nivel: 1 }, 1);
+  m.inventario.push(petoPesado);
+  assert.throws(() => E.equipar(m, petoPesado.uid, 10, cat), /compatible/i);
+
+  // Con las nuevas túnicas de Armaduras-glb, Mago SÍ tiene armaduras dedicadas por grado (D..SR)
+  const tieneTipoMago = p => Array.isArray(p.tipoArmadura) ? p.tipoArmadura.includes('mago') : p.tipoArmadura === 'mago';
+  const torsosMago = cat.ranuras.torso.filter(tieneTipoMago);
+  assert.ok(torsosMago.length >= 6, 'El catálogo incluye túnicas dedicadas para Mago');
+  const magoTodas = E.piezasDeClase(cat, 'mago');
+  for (const gChk of ['D', 'C', 'B', 'A', 'S', 'SR']) {
+    assert.ok(magoTodas.some(p => E.gradoDePieza(p) === gChk && p.ranura !== 'weapon'), `Mago debe tener armadura dedicada en grado ${gChk}`);
+  }
+  const forjaMagoDirecto = E.forjarPiezaBasica(m, cat, 'torso', () => 0);
+  assert.ok(forjaMagoDirecto && forjaMagoDirecto.ranura === 'torso' && tieneTipoMago(forjaMagoDirecto), 'Forja básica de Mago en torso produce túnica dedicada');
+
+  // Fallback si un catálogo aislado no tuviera torso/guantes/hombreras/escarcelas/musleras/rodilleras para Mago
+  const catSinMago = JSON.parse(JSON.stringify(cat));
+  ['torso', 'gloves', 'shoulders', 'tassets', 'cuisses', 'knees'].forEach(r => {
+    if (catSinMago.ranuras[r]) catSinMago.ranuras[r] = catSinMago.ranuras[r].filter(p => !tieneTipoMago(p));
+  });
+  const forjaMagoFallback = E.forjarPiezaBasica(m, catSinMago, 'torso', () => 0);
+  assert.ok(forjaMagoFallback && !['torso', 'gloves', 'shoulders', 'tassets', 'cuisses', 'knees'].includes(forjaMagoFallback.ranura));
+
+  // Grados D..SR y escalado de estadísticas + clase de arma + escudos
+  assert.deepStrictEqual(Object.keys(E.GRADOS), ['D', 'C', 'B', 'A', 'S', 'SR']);
+  const espadaInst = E.piezasDeClase(cat, 'guerrero').find(w => w.ranura === 'weapon' && w.claseArma === 'espadas');
+  assert.ok(espadaInst && E.claseArmaDePieza(espadaInst, cat) === 'espadas');
+  const torsoD = E.instancia({ id: 'torso.t1', ranura: 'torso', idx: 1, nombre: 'Pet D', nivel: 10, grado: 'D', tipoArmadura: 'pesada' }, 1);
+  const torsoSR = E.instancia({ id: 'torso.t2', ranura: 'torso', idx: 2, nombre: 'Pet SR', nivel: 10, grado: 'SR', tipoArmadura: 'pesada' }, 1);
+  assert.ok(torsoSR.defensa > torsoD.defensa, 'Grado SR debe dar más defensa que D a igual nivel');
+  assert.ok(Array.isArray(cat.ranuras.shield) && cat.ranuras.shield.length >= 1, 'Escudos disponibles en el catálogo');
+
+  // Al añadir futuras armaduras etiquetadas con tipoArmadura, aparecen automáticamente solo para su clase y se priorizan
+  const catFut = JSON.parse(JSON.stringify(cat));
+  catFut.perfilesClase.mago.ranurasFuturas = ['shoulders'];
+  catFut.ranuras.gloves = [{ idx: 97, nombre: 'Guante Genérico de Prueba', nivel: 1, archivo: 'piezas/gloves/97.glb' }];
+  catFut.ranuras.gloves.push({ idx: 98, nombre: 'Guante Arcano Dedicado', nivel: 1, archivo: 'piezas/gloves/98.glb', tipoArmadura: 'mago' });
+  catFut.ranuras.shoulders.push({ idx: 99, nombre: 'Manto Astral Futuro', nivel: 1, archivo: 'piezas/shoulders/99.glb', tipoArmadura: 'mago' });
+
+  const piezasMagoFut = E.piezasDeClase(catFut, 'mago');
+  assert.ok(piezasMagoFut.some(x => x.id === 'shoulders.99'), 'Una ranura futura etiquetada debe integrarse en Mago sin tocar código');
+  const glovesMago = piezasMagoFut.filter(x => x.ranura === 'gloves');
+  assert.strictEqual(glovesMago.length, 1, 'Si hay piezas dedicadas por tipoArmadura, se priorizan sobre las genéricas');
+  assert.strictEqual(glovesMago[0].idx, 98);
+  assert.ok(!E.piezasDeClase(catFut, 'guerrero').some(x => x.id === 'gloves.98'), 'Una pieza de Mago no debe aparecer en Guerrero');
+
+  // Cambio de clase con asegurarArmaDeClase
+  g.inventario.push(petoPesado);
+  E.equipar(g, petoPesado.uid, 10, cat);
+  assert.ok(g.equipo.torso, 'Guerrero llevaba peto equipado');
+  const nuevaArma = E.asegurarArmaDeClase(g, cat, 'mago', 12);
+  assert.strictEqual(g.clase, 'mago');
+  assert.strictEqual(g.equipo.torso, undefined, 'Al pasar a Mago se desequipan placas incompatibles');
+  assert.ok(nuevaArma && cat.ranuras.weapon.find(w => w.idx === nuevaArma.idx).familia === 'baculo');
+});
+
+t('sistema de 5 piezas (helmet, torso, gloves, pants, boots) + expansión pants en equipoPorIdx', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const cat = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'estudio-armaduras', 'catalogo.json'), 'utf8'));
+  for (const cls of ['guerrero', 'cazador', 'mago', 'picaro']) {
+    const r = cat.perfilesClase[cls].ranuras;
+    assert.deepStrictEqual(r.slice(0, 5), ['helmet', 'torso', 'gloves', 'pants', 'boots'], cls + ' usa las 5 piezas de armadura');
+    const piezas = E.piezasDeClase(cat, cls);
+    for (const slot of ['helmet', 'torso', 'gloves', 'pants', 'boots']) {
+      assert.ok(piezas.some(p => p.ranura === slot), cls + ' tiene piezas en ' + slot);
+    }
+  }
+  const g = E.crearPersonaje(cat, 'guerrero', 'Tanque');
+  assert.ok(g.equipo.torso && g.equipo.weapon && g.equipo.shield, 'Guerrero nace con peto, espada y escudo');
+  const pantsPz = E.piezasDeClase(cat, 'guerrero').find(p => p.ranura === 'pants' && p.nivel <= 2);
+  const pantsObj = E.instancia(pantsPz, 1);
+  g.inventario.push(pantsObj);
+  E.equipar(g, pantsObj.uid, 10, cat);
+  const idx = E.equipoPorIdx(g, cat);
+  assert.strictEqual(idx.pants, pantsObj.idx);
+  assert.strictEqual(idx.belt, pantsPz.subpiezas.belt);
+  assert.strictEqual(idx.tassets, pantsPz.subpiezas.tassets);
+  assert.strictEqual(idx.cuisses, pantsPz.subpiezas.cuisses);
+  assert.strictEqual(idx.knees, pantsPz.subpiezas.knees);
+  assert.strictEqual(idx.shoulders, 0, 'Hombreras integradas en el peto');
+
+  // Historia Cap 1 ('belt' legado) y Cap 6 ('shoulders' legado) traducen al sistema de 5 piezas
+  const forjaPants = E.forjarPiezaBasica(g, cat, 'belt', () => 0);
+  assert.strictEqual(forjaPants.ranura, 'pants');
+  const forjaTorso = E.forjarPiezaBasica(g, cat, 'shoulders', () => 0);
+  assert.strictEqual(forjaTorso.ranura, 'torso');
+
+  // Progresión de historia de 5 piezas con nivelHeroe: completa set D_1 en huecos vacíos, mejora torso si hay nivel y templa al 100 %
+  for (const cls of ['guerrero', 'cazador', 'mago', 'picaro']) {
+    const pj = E.crearPersonaje(cat, cls, cls);
+    const setInicial = E.objeto(pj, pj.equipo.torso).setId;
+    for (const [slot, nv] of [['pants', 1], ['boots', 2], ['gloves', 3], ['helmet', 4]]) {
+      const o = E.forjarPiezaBasica(pj, cat, slot, () => 0, { nivelHeroe: nv });
+      assert.strictEqual(o.ranura, slot);
+      assert.strictEqual(o.setId, setInicial, `${cls} completa su set inicial ${setInicial} en ${slot}`);
+      assert.ok(o.nivel <= nv);
+      E.equipar(pj, o.uid, nv, cat);
+    }
+    const torsoMejora = E.forjarPiezaBasica(pj, cat, 'torso', () => 0, { nivelHeroe: 4 });
+    assert.strictEqual(torsoMejora.ranura, 'torso');
+    assert.ok(torsoMejora.nivel > 1 && torsoMejora.nivel <= 4, `${cls} recibe mejora de torso en Cap 4`);
+    E.equipar(pj, torsoMejora.uid, 4, cat);
+
+    const armaCap7 = E.forjarPiezaBasica(pj, cat, 'weapon', () => 0, { nivelHeroe: 8 });
+    assert.strictEqual(armaCap7.ranura, 'weapon');
+    assert.ok(armaCap7.nivel <= 8 && armaCap7.nivel >= 1);
+
+    const templadas = E.templarArmaduraEquipada(pj, cat);
+    assert.strictEqual(templadas.length, 5, `${cls} tiene 5 piezas de armadura templables`);
+    templadas.forEach(pz => assert.strictEqual(pz.estado, 1));
+  }
+});
+
+t('regla del escudo: solo 1M para guerreros tanques y quien usa hacha de una mano', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const cat = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'estudio-armaduras', 'catalogo.json'), 'utf8'));
+
+  const g = E.crearPersonaje(cat, 'guerrero', 'Roland');
+  // Guerrero tanque (sin subclase y Paladín) permite escudo con espada 1M y maza 1M
+  assert.strictEqual(E.puedeUsarEscudo(g, cat, null).ok, true);
+  assert.strictEqual(E.puedeUsarEscudo(g, cat, 'paladin').ok, true);
+
+  // Al pasar a Berserker con espada 1M NO es tanque -> escudo bloqueado (solo hacha 1M)
+  assert.strictEqual(E.puedeUsarEscudo(g, cat, 'berserker').ok, false);
+
+  // Equipa hacha de 1 mano -> Berserker SÍ puede usar escudo
+  const hacha1M = cat.ranuras.weapon.find(w => w.claseArma === 'hachas' && w.manos === 1);
+  const hachaObj = E.instancia(Object.assign({ ranura: 'weapon', id: 'weapon.' + hacha1M.idx }, hacha1M), 1);
+  g.inventario.push(hachaObj);
+  E.equipar(g, hachaObj.uid, 30, cat, { subclase: 'berserker' });
+  assert.strictEqual(E.puedeUsarEscudo(g, cat, 'berserker').ok, true, 'Hacha 1M permite escudo incluso en Berserker');
+  const sh2 = E.instancia(Object.assign({ ranura: 'shield', id: 'shield.2' }, cat.ranuras.shield[1]), 1);
+  g.inventario.push(sh2);
+  E.equipar(g, sh2.uid, 30, cat, { subclase: 'berserker' });
+  assert.strictEqual(g.equipo.shield, sh2.uid);
+
+  // Al cambiar a arma 2M (mandoble / hacha 2M), el escudo se desequipa automáticamente y no se puede equipar
+  const mandoble = cat.ranuras.weapon.find(w => w.claseArma === 'mandobles' && w.manos === 2);
+  const mandObj = E.instancia(Object.assign({ ranura: 'weapon', id: 'weapon.' + mandoble.idx }, mandoble), 1);
+  g.inventario.push(mandObj);
+  const opts = { subclase: 'paladin' };
+  E.equipar(g, mandObj.uid, 30, cat, opts);
+  assert.strictEqual(g.equipo.shield, undefined, 'Mandoble 2M desequipa automáticamente el escudo');
+  assert.ok(opts.escudoDesequipado && opts.escudoDesequipado.includes('una mano'));
+  assert.throws(() => E.equipar(g, sh2.uid, 30, cat, { subclase: 'paladin' }), /una mano/);
+
+  // Otras clases (Cazador, Mago, Pícaro) nunca equipan escudo
+  for (const cls of ['cazador', 'mago', 'picaro']) {
+    const pj = E.crearPersonaje(cat, cls, cls);
+    assert.strictEqual(pj.equipo.shield, undefined, cls + ' no nace con escudo');
+    const chk = E.puedeUsarEscudo(pj, cat);
+    assert.strictEqual(chk.ok, false);
+    assert.ok(/guerreros tanques o hacha de una mano/i.test(chk.motivo), cls + ' explica restricción de escudo');
+    const sh = E.instancia(Object.assign({ ranura: 'shield', id: 'shield.1' }, cat.ranuras.shield[0]), 1);
+    pj.inventario.push(sh);
+    assert.throws(() => E.equipar(pj, sh.uid, 30, cat), /compatible/i);
+  }
+});
+
 console.log(`\n${n} pruebas de equipo superadas.`);

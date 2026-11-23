@@ -48,46 +48,482 @@
     lluvia_proyectiles: ['aerial_shot', 'archery', 'lluvia'],
     juicio_relampago: ['triple_corkscrew', 'juicio'],
     sentencia_titan: ['ultimate_nova', 'sentencia'],
+    bola_fuego: ['ultimate_beam', 'punch'],
+    lanza_hielo: ['ultimate_beam', 'kick'],
+    ventisca_glacial: ['ultimate_nova', 'blast'],
+    tormenta_fuego: ['ultimate_slam', 'nova'],
+    rayo_arcano: ['ultimate_nova', 'ultimate_beam'],
+    orbe_arcano: ['ultimate_beam', 'punch', 'attack'],
+    flecha_perforante: ['archery', 'aerial_shot', 'disparo'],
+    trampa_espinas: ['aerial_shot', 'archery', 'slam'],
+    escudo_mana: ['guard_counter', 'ultimate_nova', 'escudo'],
+    paso_sombrio: ['thrust_lunge', 'spin_slash', 'dodge'],
+    hoja_veneno: ['spin_slash', 'thrust_lunge', 'punch'],
+    // Skills de arma del nuevo estudio (con fallback a clips clásicos para GLBs previos)
+    sw_iaido: ['blink_iaido', 'thrust_lunge', 'punch'],
+    sw_solar: ['sword_heavy_cleave', 'overhead_cleave', 'spin_slash'],
+    sw_blitz: ['sword_blitz_rush', 'thrust_lunge', 'dodge'],
+    sw_cross: ['sword_double_cross', 'spin_slash', 'punch'],
+    sw_lightning: ['sword_crescent_draw', 'rising_slash', 'spin_slash'],
+    sw_celestial: ['sword_sky_breaker', 'ultimate_slam', 'overhead_cleave'],
+    gs_sweep: ['polearm_wide_sweep', 'whirlwind', 'spin_slash'],
+    gs_titan: ['greataxe_titan_arc', 'overhead_cleave', 'spin_slash'],
+    gs_cross: ['sword_double_cross', 'spin_slash', 'punch'],
+    gs_colossus: ['colossus_cleave', 'overhead_cleave', 'ultimate_slam'],
+    gs_crescent: ['sword_crescent_draw', 'rising_slash', 'spin_slash'],
+    gs_skybreak: ['sword_sky_breaker', 'ultimate_slam', 'overhead_cleave'],
+    dg_dash: ['dagger_shadow_dash', 'thrust_lunge', 'dodge'],
+    dg_blink: ['blink_iaido', 'spin_slash', 'punch'],
+    dg_rush: ['dagger_backstab_rush', 'thrust_lunge', 'spin_slash'],
+    dg_venom: ['dragon_helix', 'whirlwind', 'spin_slash'],
+    dg_shadow: ['phantom_flurry', 'spin_slash', 'punch'],
+    dg_zigzag: ['dagger_zigzag_blitz', 'triple_corkscrew', 'spin_slash'],
+    ax_thunder: ['attack', 'punch', 'spin_slash'],
+    ax_inferno: ['spin_slash', 'whirlwind', 'punch'],
+    ax_berserk: ['aerial_plunge', 'ultimate_slam', 'jump'],
+    ax_reap: ['vortex_reaper', 'whirlwind', 'spin_slash'],
+    ax_nordic: ['celestial_judgment', 'ultimate_slam', 'nova'],
+    a2_sweep: ['polearm_wide_sweep', 'whirlwind', 'spin_slash'],
+    a2_titan: ['greataxe_titan_arc', 'overhead_cleave', 'spin_slash'],
+    a2_colossus: ['colossus_cleave', 'overhead_cleave', 'ultimate_slam'],
+    a2_vortex: ['vortex_reaper', 'whirlwind', 'spin_slash'],
+    a2_demolish: ['earthshaker_combo', 'ultimate_slam', 'slam'],
+    mc_storm: ['overhead_cleave', 'spin_slash', 'punch'],
+    mc_crush: ['colossus_cleave', 'overhead_cleave', 'slam'],
+    mc_seismic: ['earthshaker_combo', 'ultimate_slam', 'slam'],
+    mc_titan: ['ultimate_slam', 'slam', 'overhead_cleave'],
+    mc_judgment: ['celestial_judgment', 'ultimate_slam', 'nova'],
+    ln_sweep: ['polearm_wide_sweep', 'spin_slash', 'whirlwind'],
+    ln_skewer: ['lance_extended_skewer', 'thrust_lunge', 'punch'],
+    ln_phalanx: ['colossus_cleave', 'overhead_cleave', 'spin_slash'],
+    ln_valkyrie: ['lance_impale_vault', 'aerial_plunge', 'thrust_lunge'],
+    ln_dragon: ['dragon_helix', 'triple_corkscrew', 'whirlwind'],
+    bw_bolt: ['archery', 'disparo'],
+    bw_double: ['bow_double_shot', 'archery', 'disparo'],
+    bw_frost: ['bow_frost_shot', 'archery', 'disparo'],
+    bw_aerial: ['aerial_shot', 'archery', 'disparo'],
+    bw_barrage: ['bow_barrage', 'aerial_shot', 'archery'],
+    bw_prism: ['bow_prism_rain', 'aerial_shot', 'archery'],
+    st_tempest: ['arcane_tempest', 'ultimate_nova', 'nova'],
+    st_meteor: ['meteor_barrage', 'ultimate_slam', 'nova'],
+    st_judgment: ['celestial_judgment', 'ultimate_beam', 'nova'],
+    st_solar: ['ultimate_beam', 'nova', 'punch'],
+    st_nova: ['ultimate_nova', 'nova', 'blast'],
     nova: ['nova', 'explos', 'blast'],
     jump: ['salto', 'acrobat', 'jump'],
+    dodge: ['dodge', 'esquiv', 'roll', 'rodar', 'dash', 'salto', 'acrobat', 'jump'],
     victory: ['victoria', 'victory', 'postura de victoria', 'win']
   };
   // Duración de cada acción de un solo uso (segundos) y tiempo en que bloquea el movimiento
   // (los bloqueos de las habilidades son los mismos que en js/combat.js; las pruebas lo comprueban)
   const ONE_SHOT = {
-    attack: { lock: 0.5 },
-    sismo: { lock: 1.2 },
-    nova: { lock: 1.0 },
-    tajo: { lock: 1.0 },
-    estocada: { lock: 0.8 },
-    ascendente: { lock: 0.9 },
-    hendidura: { lock: 1.0 },
-    contraataque: { lock: 1.2 },
-    torbellino: { lock: 1.6 },
-    voltereta: { lock: 1.2 },
-    tornillo: { lock: 1.8 },
-    disparo: { lock: 0.8 },
-    suspension: { lock: 2.0 },
-    corte_cruzado: { lock: 0.8 },
-    rafaga: { lock: 0.8 },
-    furia: { lock: 0.9 },
-    escudo_espiritu: { lock: 0.9 },
-    salto_demoledor: { lock: 1.3 },
-    lluvia_proyectiles: { lock: 1.5 },
-    juicio_relampago: { lock: 1.1 },
-    sentencia_titan: { lock: 1.6 },
+    attack: { lock: 1.00 },
+    sismo: { lock: 1.80 },
+    nova: { lock: 1.65 },
+    tajo: { lock: 1.60 },
+    estocada: { lock: 1.40 },
+    ascendente: { lock: 1.50 },
+    hendidura: { lock: 1.65 },
+    contraataque: { lock: 1.50 },
+    torbellino: { lock: 2.00 },
+    voltereta: { lock: 1.50 },
+    tornillo: { lock: 2.20 },
+    disparo: { lock: 1.25 },
+    suspension: { lock: 2.30 },
+    corte_cruzado: { lock: 1.50 },
+    rafaga: { lock: 1.40 },
+    furia: { lock: 1.55 },
+    escudo_espiritu: { lock: 1.50 },
+    salto_demoledor: { lock: 1.90 },
+    lluvia_proyectiles: { lock: 1.85 },
+    juicio_relampago: { lock: 1.75 },
+    sentencia_titan: { lock: 2.00 },
+    bola_fuego: { lock: 1.20 },
+    lanza_hielo: { lock: 1.20 },
+    ventisca_glacial: { lock: 1.50 },
+    tormenta_fuego: { lock: 1.55 },
+    rayo_arcano: { lock: 1.45 },
+    orbe_arcano: { lock: 1.00 },
+    flecha_perforante: { lock: 1.40 },
+    trampa_espinas: { lock: 1.25 },
+    escudo_mana: { lock: 1.20 },
+    paso_sombrio: { lock: 1.20 },
+    hoja_veneno: { lock: 1.30 },
+    // Nuevas skills de arma (lock idéntico a CombatLib.SKILLS)
+    sw_iaido: { lock: 1.45 }, sw_solar: { lock: 1.60 }, sw_blitz: { lock: 1.50 },
+    sw_cross: { lock: 1.80 }, sw_lightning: { lock: 1.75 }, sw_celestial: { lock: 1.95 },
+    gs_sweep: { lock: 1.65 }, gs_titan: { lock: 1.75 }, gs_cross: { lock: 1.85 },
+    gs_colossus: { lock: 1.85 }, gs_crescent: { lock: 1.85 }, gs_skybreak: { lock: 2.00 },
+    dg_dash: { lock: 1.35 }, dg_blink: { lock: 1.40 }, dg_rush: { lock: 1.50 },
+    dg_venom: { lock: 1.60 }, dg_shadow: { lock: 1.75 }, dg_zigzag: { lock: 1.85 },
+    ax_thunder: { lock: 1.40 }, ax_inferno: { lock: 1.55 }, ax_berserk: { lock: 1.75 },
+    ax_reap: { lock: 1.80 }, ax_nordic: { lock: 1.95 },
+    a2_sweep: { lock: 1.65 }, a2_titan: { lock: 1.75 }, a2_colossus: { lock: 1.85 },
+    a2_vortex: { lock: 1.85 }, a2_demolish: { lock: 2.05 },
+    mc_storm: { lock: 1.50 }, mc_crush: { lock: 1.75 }, mc_seismic: { lock: 1.95 },
+    mc_titan: { lock: 1.90 }, mc_judgment: { lock: 2.05 },
+    ln_sweep: { lock: 1.60 }, ln_skewer: { lock: 1.65 }, ln_phalanx: { lock: 1.75 },
+    ln_valkyrie: { lock: 1.85 }, ln_dragon: { lock: 1.85 },
+    bw_bolt: { lock: 1.35 }, bw_double: { lock: 1.55 }, bw_frost: { lock: 1.60 },
+    bw_aerial: { lock: 2.00 }, bw_barrage: { lock: 1.95 }, bw_prism: { lock: 2.10 },
+    st_tempest: { lock: 1.45 }, st_meteor: { lock: 1.65 }, st_judgment: { lock: 1.75 },
+    st_solar: { lock: 1.85 }, st_nova: { lock: 2.00 },
     jump: { lock: 0.0 },
+    dodge: { lock: 0.0 },
     victory: { lock: 0.0 }
   };
-  // Gestos del avatar de respaldo (sin GLB): vueltas sobre sí mismo, salto y tiro con arco
+  // Gestos del avatar de respaldo (sin GLB): vueltas sobre sí mismo, salto, tiro con arco y conjuros elementales
   const GESTO = {
     tajo: { vueltas: 1 }, torbellino: { vueltas: 2 }, tornillo: { vueltas: 3, salto: 1.2 },
-    voltereta: { salto: 1.2 }, suspension: { salto: 1.4, arco: true }, disparo: { arco: true }
+    voltereta: { salto: 1.2 }, suspension: { salto: 1.4, arco: true }, disparo: { arco: true },
+    corte_cruzado: { vueltas: 1 }, rafaga: { conjuro: true }, furia: { vueltas: 1 },
+    escudo_espiritu: { salto: 0.45 }, salto_demoledor: { salto: 1.6 },
+    juicio_relampago: { vueltas: 2, salto: 0.8 }, sentencia_titan: { salto: 1.8, conjuro: true },
+    bola_fuego: { conjuro: true }, lanza_hielo: { conjuro: true },
+    ventisca_glacial: { salto: 0.5, conjuro: true }, tormenta_fuego: { salto: 0.7, conjuro: true }, rayo_arcano: { salto: 0.6, conjuro: true },
+    orbe_arcano: { conjuro: true }, flecha_perforante: { arco: true }, trampa_espinas: { arco: true },
+    escudo_mana: { salto: 0.35, conjuro: true }, paso_sombrio: { vueltas: 1 }, hoja_veneno: { vueltas: 1 },
+    sw_iaido: { vueltas: 1 }, sw_solar: { vueltas: 1 }, sw_blitz: { salto: 0.4 }, sw_cross: { vueltas: 1 },
+    sw_lightning: { vueltas: 1, conjuro: true }, sw_celestial: { salto: 1.0, conjuro: true },
+    gs_sweep: { vueltas: 1 }, gs_titan: { vueltas: 1 }, gs_cross: { vueltas: 1 }, gs_colossus: { salto: 0.6 },
+    gs_crescent: { conjuro: true }, gs_skybreak: { salto: 1.2, conjuro: true },
+    dg_dash: { vueltas: 1 }, dg_blink: { vueltas: 1 }, dg_rush: { vueltas: 1 }, dg_venom: { vueltas: 2 },
+    dg_shadow: { vueltas: 2 }, dg_zigzag: { vueltas: 2, salto: 0.6 },
+    ax_thunder: { vueltas: 1 }, ax_inferno: { vueltas: 2 }, ax_berserk: { salto: 1.3 }, ax_reap: { vueltas: 2 }, ax_nordic: { salto: 1.2, conjuro: true },
+    a2_sweep: { vueltas: 1 }, a2_titan: { vueltas: 1 }, a2_colossus: { salto: 0.6 }, a2_vortex: { vueltas: 2 }, a2_demolish: { salto: 1.4 },
+    mc_storm: { vueltas: 1 }, mc_crush: { salto: 0.7 }, mc_seismic: { salto: 1.2 }, mc_titan: { salto: 1.5 }, mc_judgment: { salto: 1.3, conjuro: true },
+    ln_sweep: { vueltas: 1 }, ln_skewer: { salto: 0.3 }, ln_phalanx: { vueltas: 1 }, ln_valkyrie: { salto: 1.4 }, ln_dragon: { vueltas: 2 },
+    bw_bolt: { arco: true }, bw_double: { arco: true }, bw_frost: { arco: true }, bw_aerial: { salto: 1.3, arco: true }, bw_barrage: { arco: true, conjuro: true }, bw_prism: { salto: 0.8, arco: true, conjuro: true },
+    st_tempest: { conjuro: true }, st_meteor: { salto: 0.5, conjuro: true }, st_judgment: { salto: 0.6, conjuro: true }, st_solar: { conjuro: true }, st_nova: { salto: 0.8, conjuro: true }
   };
 
-  // Índice de la primera animación cuyo nombre contiene alguna palabra clave; -1 si no hay
+  // Animación corporal especial procedimental por habilidad (complementa e independiza del clip del estudio)
+  const SKILL_MOTION = {
+    corte_cruzado:   { dur: 1.50, tipo: 'corte_cruzado' },
+    tajo:            { dur: 1.60, tipo: 'giro', vueltas: 1, salto: 0.65, inclinacion: 0.24 },
+    torbellino:      { dur: 2.00, tipo: 'giro', vueltas: 2.5, salto: 0.55, inclinacion: 0.28 },
+    furia:           { dur: 1.55, tipo: 'furia' },
+    ascendente:      { dur: 1.50, tipo: 'ascendente' },
+    hendidura:       { dur: 1.65, tipo: 'hendidura' },
+    contraataque:    { dur: 1.50, tipo: 'contraataque' },
+    escudo_espiritu: { dur: 1.50, tipo: 'bastion' },
+    sismo:           { dur: 1.80, tipo: 'salto_golpe', altura: 1.75, tPico: 0.45, tImpacto: 0.79, avance: 0.45 },
+    salto_demoledor: { dur: 1.90, tipo: 'salto_golpe', altura: 2.45, tPico: 0.42, tImpacto: 0.69, avance: 0.95, giroAire: 1 },
+    sentencia_titan: { dur: 2.00, tipo: 'titan' },
+    nova:            { dur: 1.65, tipo: 'nova' },
+    estocada:        { dur: 1.40, tipo: 'estocada' },
+    paso_sombrio:    { dur: 1.20, tipo: 'estocada' },
+    hoja_veneno:     { dur: 1.30, tipo: 'corte_cruzado' },
+    voltereta:       { dur: 1.50, tipo: 'salto_golpe', altura: 1.50, tPico: 0.45, tImpacto: 0.83, avance: 0.75, giroAire: 1 },
+    tornillo:        { dur: 2.20, tipo: 'giro', vueltas: 2, salto: 1.15, inclinacion: 0.22 },
+    juicio_relampago:{ dur: 1.75, tipo: 'giro', vueltas: 2, salto: 1.15, inclinacion: 0.22 },
+    rafaga:          { dur: 1.40, tipo: 'furia' },
+    bola_fuego:      { dur: 1.20, tipo: 'conjuro' },
+    lanza_hielo:     { dur: 1.20, tipo: 'conjuro' },
+    orbe_arcano:     { dur: 1.00, tipo: 'conjuro' },
+    ventisca_glacial:{ dur: 1.50, tipo: 'conjuro' },
+    tormenta_fuego:  { dur: 1.55, tipo: 'conjuro' },
+    rayo_arcano:     { dur: 1.45, tipo: 'conjuro' },
+    escudo_mana:     { dur: 1.20, tipo: 'conjuro' },
+    sw_iaido:        { dur: 1.45, tipo: 'estocada' },
+    sw_solar:        { dur: 1.60, tipo: 'hendidura' },
+    sw_blitz:        { dur: 1.50, tipo: 'furia' },
+    sw_cross:        { dur: 1.80, tipo: 'corte_cruzado' },
+    sw_lightning:    { dur: 1.75, tipo: 'ascendente' },
+    sw_celestial:    { dur: 1.95, tipo: 'titan' },
+    gs_sweep:        { dur: 1.65, tipo: 'giro', vueltas: 1, salto: 0.35, inclinacion: 0.22 },
+    gs_titan:        { dur: 1.75, tipo: 'hendidura' },
+    gs_cross:        { dur: 1.85, tipo: 'corte_cruzado' },
+    gs_colossus:     { dur: 1.85, tipo: 'hendidura' },
+    gs_crescent:     { dur: 1.85, tipo: 'furia' },
+    gs_skybreak:     { dur: 2.00, tipo: 'titan' },
+    dg_dash:         { dur: 1.35, tipo: 'estocada' },
+    dg_blink:        { dur: 1.40, tipo: 'corte_cruzado' },
+    dg_rush:         { dur: 1.50, tipo: 'estocada' },
+    dg_venom:        { dur: 1.60, tipo: 'giro', vueltas: 2, salto: 0.45, inclinacion: 0.22 },
+    dg_shadow:       { dur: 1.75, tipo: 'corte_cruzado' },
+    dg_zigzag:       { dur: 1.85, tipo: 'giro', vueltas: 2, salto: 0.70, inclinacion: 0.25 },
+    ax_thunder:      { dur: 1.40, tipo: 'furia' },
+    ax_inferno:      { dur: 1.55, tipo: 'giro', vueltas: 1.5, salto: 0.55, inclinacion: 0.25 },
+    ax_berserk:      { dur: 1.75, tipo: 'salto_golpe', altura: 1.85, tPico: 0.42, tImpacto: 0.72, avance: 0.85, giroAire: 1 },
+    ax_reap:         { dur: 1.80, tipo: 'giro', vueltas: 2, salto: 0.50, inclinacion: 0.26 },
+    ax_nordic:       { dur: 1.95, tipo: 'titan' },
+    a2_sweep:        { dur: 1.65, tipo: 'giro', vueltas: 1, salto: 0.35, inclinacion: 0.22 },
+    a2_titan:        { dur: 1.75, tipo: 'hendidura' },
+    a2_colossus:     { dur: 1.85, tipo: 'hendidura' },
+    a2_vortex:       { dur: 1.85, tipo: 'giro', vueltas: 2, salto: 0.55, inclinacion: 0.26 },
+    a2_demolish:     { dur: 2.05, tipo: 'titan' },
+    mc_storm:        { dur: 1.50, tipo: 'hendidura' },
+    mc_crush:        { dur: 1.75, tipo: 'hendidura' },
+    mc_seismic:      { dur: 1.95, tipo: 'salto_golpe', altura: 1.75, tPico: 0.44, tImpacto: 0.76, avance: 0.65 },
+    mc_titan:        { dur: 1.90, tipo: 'salto_golpe', altura: 2.15, tPico: 0.42, tImpacto: 0.70, avance: 0.80 },
+    mc_judgment:     { dur: 2.05, tipo: 'titan' },
+    ln_sweep:        { dur: 1.60, tipo: 'giro', vueltas: 1, salto: 0.30, inclinacion: 0.18 },
+    ln_skewer:       { dur: 1.65, tipo: 'estocada' },
+    ln_phalanx:      { dur: 1.75, tipo: 'hendidura' },
+    ln_valkyrie:     { dur: 1.85, tipo: 'salto_golpe', altura: 1.95, tPico: 0.44, tImpacto: 0.74, avance: 0.90 },
+    ln_dragon:       { dur: 1.85, tipo: 'giro', vueltas: 2, salto: 0.65, inclinacion: 0.24 },
+    bw_bolt:         { dur: 1.35, tipo: 'conjuro' },
+    bw_double:       { dur: 1.55, tipo: 'conjuro' },
+    bw_frost:        { dur: 1.60, tipo: 'conjuro' },
+    bw_aerial:       { dur: 2.00, tipo: 'salto_golpe', altura: 1.40, tPico: 0.45, tImpacto: 0.72, avance: 0.20, giroAire: 1 },
+    bw_barrage:      { dur: 1.95, tipo: 'conjuro' },
+    bw_prism:        { dur: 2.10, tipo: 'nova' },
+    st_tempest:      { dur: 1.45, tipo: 'conjuro' },
+    st_meteor:       { dur: 1.65, tipo: 'conjuro' },
+    st_judgment:     { dur: 1.75, tipo: 'conjuro' },
+    st_solar:        { dur: 1.85, tipo: 'conjuro' },
+    st_nova:         { dur: 2.00, tipo: 'nova' }
+  };
+
+  function _smooth01(a, b, x) {
+    const u = Math.max(0, Math.min(1, (x - a) / Math.max(1e-5, b - a)));
+    return u * u * (3 - 2 * u);
+  }
+
+  function _evaluarMovimientoHabilidad(cfg, t) {
+    const out = { dy: 0, dz: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 };
+    const endFade = t > 0.86 ? 1 - _smooth01(0.86, 1.0, t) : 1;
+    const pi = Math.PI;
+    switch (cfg.tipo) {
+      case 'corte_cruzado': {
+        if (t < 0.48) {
+          const u = t / 0.48;
+          const s = Math.sin(u * pi);
+          out.dy = 0.26 * s;
+          out.dz = 0.88 * Math.sin(Math.min(1, u * 1.15) * pi * 0.5) * (1 - _smooth01(0.36, 0.48, t) * 0.45);
+          out.rz = -0.32 * s;
+          out.ry = 0.58 * s;
+          out.rx = 0.22 * s;
+        } else {
+          const u = (t - 0.48) / 0.52;
+          const s = Math.sin(u * pi);
+          out.dy = 0.48 * s;
+          out.dz = (0.48 + 0.58 * Math.sin(Math.min(1, u * 1.1) * pi)) * endFade;
+          out.rz = 0.34 * s;
+          out.ry = -0.78 * s;
+          out.rx = 0.26 * s;
+          const sq = t > 0.82 ? Math.sin(((t - 0.82) / 0.18) * pi) : 0;
+          out.sy = 1 - 0.08 * sq;
+          out.sx = out.sz = 1 + 0.05 * sq;
+        }
+        break;
+      }
+      case 'giro': {
+        const vueltasTot = Math.ceil(cfg.vueltas || 1);
+        const uGiro = _smooth01(0.06, 0.96, t);
+        out.ry = vueltasTot * pi * 2 * uGiro;
+        if (t < 0.10) {
+          out.dy = -0.14 * (t / 0.10);
+        } else {
+          const uAir = (t - 0.10) / 0.84;
+          if (uAir <= 1) out.dy = (cfg.salto || 0.6) * Math.sin(uAir * pi);
+        }
+        out.rx = (cfg.inclinacion || 0.22) * Math.sin(t * pi);
+        out.sx = out.sz = 1 + 0.06 * Math.sin(t * pi);
+        break;
+      }
+      case 'furia': {
+        if (t < 0.42) {
+          const u = t / 0.42;
+          out.dy = -0.18 * u;
+          out.dz = -0.32 * u;
+          out.rx = -0.34 * u;
+          out.rz = Math.sin(t * 75) * 0.14 * u;
+        } else if (t < 0.72) {
+          const u = (t - 0.42) / 0.30;
+          const s = Math.sin(u * pi);
+          out.dz = -0.32 + 1.48 * _smooth01(0, 0.75, u);
+          out.dy = 0.45 * s;
+          out.rx = -0.34 + 0.82 * _smooth01(0, 0.7, u);
+          out.rz = 0.28 * s;
+          out.ry = -0.45 * s;
+          out.sx = out.sz = 1 + 0.10 * s;
+          out.sy = 1 + 0.07 * s;
+        } else {
+          const k = 1 - _smooth01(0.72, 1.0, t);
+          out.dz = 1.16 * k;
+          out.rx = 0.48 * k;
+          const sq = Math.sin(((t - 0.72) / 0.28) * pi);
+          out.sy = 1 - 0.08 * sq;
+          out.sx = out.sz = 1 + 0.05 * sq;
+        }
+        break;
+      }
+      case 'ascendente': {
+        if (t < 0.28) {
+          const u = _smooth01(0, 0.28, t);
+          out.dy = -0.18 * u;
+          out.rx = 0.28 * u;
+        } else {
+          const u = (t - 0.28) / 0.72;
+          const arc = Math.sin(u * pi);
+          out.dy = 1.28 * arc;
+          out.dz = 0.56 * arc;
+          out.rx = -0.38 * arc;
+          out.ry = 0.62 * arc;
+        }
+        break;
+      }
+      case 'hendidura': {
+        if (t < 0.48) {
+          const u = t / 0.48;
+          out.dy = 1.26 * Math.sin(u * pi * 0.5);
+          out.dz = -0.16 * Math.sin(u * pi * 0.5);
+          out.rx = -0.42 * _smooth01(0, 0.85, u);
+        } else if (t < 0.72) {
+          const u = (t - 0.48) / 0.24;
+          out.dy = 1.26 * (1 - u * u);
+          out.dz = -0.16 + 0.92 * _smooth01(0, 1, u);
+          out.rx = -0.42 + 0.90 * _smooth01(0, 1, u);
+        } else {
+          const u = (t - 0.72) / 0.28;
+          const sq = Math.sin(u * pi);
+          out.dz = 0.76 * (1 - _smooth01(0, 1, u));
+          out.rx = 0.48 * (1 - _smooth01(0, 1, u));
+          out.sy = 1 - 0.14 * sq;
+          out.sx = out.sz = 1 + 0.09 * sq;
+        }
+        break;
+      }
+      case 'contraataque': {
+        if (t < 0.68) {
+          const u = _smooth01(0, 0.22, t);
+          const settle = 1 - _smooth01(0.58, 0.68, t) * 0.2;
+          out.dy = -0.14 * u * settle;
+          out.dz = -0.24 * u;
+          out.ry = -0.58 * u;
+          out.rz = 0.16 * u;
+        } else if (t < 0.92) {
+          const u = (t - 0.68) / 0.24;
+          const s = Math.sin(u * pi);
+          out.dz = -0.24 + 1.36 * _smooth01(0, 0.78, u);
+          out.dy = 0.38 * s;
+          out.ry = -0.58 + 1.24 * _smooth01(0, 0.85, u);
+          out.rx = 0.34 * s;
+        } else {
+          const k = 1 - _smooth01(0.92, 1.0, t);
+          out.dz = 1.12 * k;
+          out.ry = 0.66 * k;
+        }
+        break;
+      }
+      case 'bastion': {
+        const up = Math.sin(Math.min(1, t / 0.62) * pi);
+        out.dy = 0.56 * Math.max(0, up);
+        out.dz = 0.72 * Math.sin(_smooth01(0.12, 0.88, t) * pi);
+        out.rx = 0.25 * Math.sin(_smooth01(0.18, 0.82, t) * pi);
+        if (t > 0.55) {
+          const sq = Math.sin(_smooth01(0.55, 0.90, t) * pi);
+          out.sy = 1 - 0.11 * sq;
+          out.sx = out.sz = 1 + 0.07 * sq;
+        }
+        break;
+      }
+      case 'salto_golpe': {
+        const tImp = cfg.tImpacto || 0.74;
+        const tPico = cfg.tPico || 0.44;
+        const alt = cfg.altura || 1.8;
+        const av = cfg.avance || 0.6;
+        if (t < 0.10) {
+          out.dy = -0.18 * (t / 0.10);
+          out.sy = 1 - 0.08 * (t / 0.10);
+        } else if (t < tImp) {
+          const u = (t - 0.10) / Math.max(0.05, tImp - 0.10);
+          const pNorm = Math.max(0.15, Math.min(0.85, (tPico - 0.10) / Math.max(0.05, tImp - 0.10)));
+          const exp = Math.log(0.5) / Math.log(pNorm);
+          out.dy = alt * Math.sin(Math.pow(u, exp) * pi);
+          out.dz = av * Math.sin(u * pi * 0.5);
+          if (cfg.giroAire) out.rx = pi * 2 * cfg.giroAire * _smooth01(0.02, 0.98, u);
+          else out.rx = -0.24 * Math.sin(u * pi);
+        } else {
+          const u = (t - tImp) / Math.max(0.05, 1 - tImp);
+          const sq = Math.sin(u * pi);
+          out.dz = av * (1 - _smooth01(0, 1, u));
+          out.sy = 1 - 0.20 * sq;
+          out.sx = out.sz = 1 + 0.14 * sq;
+          out.rx = 0.30 * (1 - _smooth01(0, 1, u));
+        }
+        break;
+      }
+      case 'titan': {
+        if (t < 0.10) {
+          out.dy = -0.22 * (t / 0.10);
+          out.sy = 1 - 0.10 * (t / 0.10);
+        } else if (t < 0.60) {
+          const u = _smooth01(0.10, 0.56, t);
+          out.dy = 2.65 * u;
+          out.ry = pi * 2 * _smooth01(0.10, 0.74, t);
+          out.rx = -0.22 * u;
+          const sc = 1 + 0.10 * u;
+          out.sx = out.sy = out.sz = sc;
+        } else if (t < 0.75) {
+          const u = (t - 0.60) / 0.15;
+          const fall = u * u;
+          out.dy = 2.65 * (1 - fall);
+          out.dz = 0.88 * u;
+          out.ry = pi * 2 * _smooth01(0.10, 0.74, t);
+          out.rx = -0.22 + 0.68 * u;
+          const sc = 1.10 - 0.10 * fall;
+          out.sx = out.sy = out.sz = sc;
+        } else {
+          const u = (t - 0.75) / 0.25;
+          const sq = Math.sin(u * pi);
+          out.dz = 0.88 * (1 - _smooth01(0, 1, u));
+          out.rx = 0.46 * (1 - _smooth01(0, 1, u));
+          out.sy = 1 - 0.22 * sq;
+          out.sx = out.sz = 1 + 0.18 * sq;
+        }
+        break;
+      }
+      case 'nova': {
+        const s = Math.sin(t * pi);
+        out.dy = 1.05 * s;
+        out.ry = pi * 2 * _smooth01(0.08, 0.92, t);
+        const sc = 1 + 0.14 * s;
+        out.sx = out.sy = out.sz = sc;
+        break;
+      }
+      case 'estocada': {
+        if (t < 0.25) {
+          const u = t / 0.25;
+          out.dz = -0.22 * u;
+          out.dy = -0.10 * u;
+        } else if (t < 0.62) {
+          const u = (t - 0.25) / 0.37;
+          out.dz = -0.22 + 1.55 * _smooth01(0, 0.82, u);
+          out.dy = 0.24 * Math.sin(u * pi);
+          out.rx = 0.34 * Math.sin(u * pi * 0.85);
+        } else {
+          const k = 1 - _smooth01(0.62, 1.0, t);
+          out.dz = 1.33 * k;
+          out.rx = 0.28 * k;
+        }
+        break;
+      }
+      case 'conjuro':
+      default: {
+        const s = Math.sin(t * pi);
+        out.dy = 0.36 * s;
+        out.dz = 0.34 * s;
+        out.rx = 0.18 * s;
+        const sc = 1 + 0.06 * s;
+        out.sx = out.sy = out.sz = sc;
+        break;
+      }
+    }
+    return out;
+  }
+
+  // Índice de la primera animación coincidente (prioriza coincidencia exacta antes de subcadena); -1 si no hay
   function findClipIndex(names, keywords) {
-    return names.findIndex(n => keywords.some(k => n.toLowerCase().includes(k)));
+    if (!Array.isArray(keywords) || !keywords.length) return -1;
+    for (let k = 0; k < keywords.length; k++) {
+      const kw = String(keywords[k]).toLowerCase();
+      const exact = names.findIndex(n => String(n).toLowerCase() === kw);
+      if (exact >= 0) return exact;
+    }
+    return names.findIndex(n => keywords.some(k => String(n).toLowerCase().includes(String(k).toLowerCase())));
   }
 
   function getColliders(world, x, z) {
@@ -153,13 +589,22 @@
       this.modoCamaraAnterior = 'free';
       this.oneShots = {};
       this.oneShotKind = null;
+      this.oneShotStart = 0;
+      this.oneShotDuration = 0;
       this.oneShotUntil = 0;     // tiempo (segundos de reloj) en que termina la acción de un solo uso
+      this.oneShotClipName = null;
+      this.oneShotHasNative = false;
       this.lockUntil = 0;        // mientras dure, el personaje no se mueve
       this.alCargarModelo = null; // función(modelo) que se llama al cargar un GLB (p. ej. para retocar sus materiales)
       this.destino = null;       // { x, z, parar }: camina solo hasta ese punto (p. ej. hacia un monstruo)
       this.cancelado = false;    // true cuando el jugador mueve al personaje y se cancela el destino
       this.tiempo = 0;           // reloj propio del personaje (segundos acumulados)
       this.fallbackAct = null;   // { kind, start, duration } para el avatar de respaldo
+      this.dodgeState = null;    // { dirX, dirZ, elapsed, duration, speed } durante una esquiva activa
+      this._baseModelY = 0;
+      this._baseModelScale = 1;
+      this._skillAnim = null;
+      this._limpiarAutoEstado();
 
       this.initInput();
       if (opts.joystick && opts.joystick.zone && opts.joystick.knob) {
@@ -277,6 +722,9 @@
       group.add(leftLeg, rightLeg, leftArm, rightArm);
       this.fallbackLimbs = { leftLeg, rightLeg, leftArm, rightArm };
       this.model = group;
+      this._baseModelY = 0;
+      this._baseModelScale = 1;
+      this._skillAnim = null;
       this.root.add(group);
     }
 
@@ -293,6 +741,9 @@
       }
       const scaledBox = new THREE.Box3().setFromObject(this.model);
       this.model.position.y = -scaledBox.min.y;
+      this._baseModelScale = this.model.scale.x || 1;
+      this._baseModelY = this.model.position.y || 0;
+      this._skillAnim = null;
 
       this.model.traverse(child => {
         if (child.isMesh) {
@@ -314,7 +765,7 @@
         this.actions.idle = this.mixer.clipAction(pick('idle', 0));
         this.actions.walk = this.mixer.clipAction(pick('walk', Math.min(1, clips.length - 1)));
         this.actions.run = this.mixer.clipAction(pick('run', Math.min(2, clips.length - 1)));
-        // Acciones de un solo uso: si el GLB no las trae, se usa la animación de respaldo
+        // Acciones de un solo uso: si el GLB no trae clip específico, usa attack para no congelarse en idle
         this.oneShots = {};
         Object.keys(ONE_SHOT).forEach(kind => {
           const i = findClipIndex(names, CLIP_KEYWORDS[kind]);
@@ -322,9 +773,22 @@
             const action = this.mixer.clipAction(clips[i]);
             action.setLoop(THREE.LoopOnce, 1);
             action.clampWhenFinished = true;
-            this.oneShots[kind] = { action, duration: clips[i].duration };
+            this.oneShots[kind] = { action, duration: clips[i].duration, clipName: clips[i].name };
           }
         });
+        const fallbackAttack = this.oneShots.attack;
+        if (fallbackAttack) {
+          Object.keys(ONE_SHOT).forEach(kind => {
+            if (!this.oneShots[kind] && kind !== 'victory' && kind !== 'jump' && kind !== 'dodge') {
+              this.oneShots[kind] = {
+                action: fallbackAttack.action,
+                duration: fallbackAttack.duration,
+                clipName: fallbackAttack.clipName,
+                fallbackClip: true
+              };
+            }
+          });
+        }
 
         this.currentAction = this.actions.idle;
         this.currentAction.play();
@@ -379,12 +843,20 @@
       }
       if (f.kind === 'nova') { const s = 1 + 0.25 * swing; this.model.scale.set(s, s, s); } else if (this.model.scale.x !== 1) this.model.scale.set(1, 1, 1);
       if (f.kind === 'jump') this.model.position.y = 1.2 * swing;
+      if (f.kind === 'dodge') {
+        this.model.position.y = 0.55 * swing;
+        L.leftLeg.rotation.x = 0.65 * swing;
+        L.rightLeg.rotation.x = -0.55 * swing;
+        L.leftArm.rotation.x = -0.8 * swing;
+        L.rightArm.rotation.x = -0.8 * swing;
+      }
       const gesto = GESTO[f.kind];
-      if (gesto || (ONE_SHOT[f.kind] && !['attack', 'sismo', 'nova', 'jump', 'victory'].includes(f.kind))) {
+      if (gesto || (ONE_SHOT[f.kind] && !['attack', 'sismo', 'nova', 'jump', 'dodge', 'victory'].includes(f.kind))) {
         const g = gesto || {};
         if (g.vueltas) this.model.rotation.y = t * Math.PI * 2 * g.vueltas;
         if (g.salto) this.model.position.y = g.salto * swing;
         if (g.arco) { L.leftArm.rotation.x = -1.5; L.rightArm.rotation.x = -1.5 * (1 - swing); }
+        else if (g.conjuro) { L.leftArm.rotation.x = -2.1 * swing; L.rightArm.rotation.x = -2.1 * swing; }
         else L.rightArm.rotation.x = -2.2 * swing;
       }
       if (f.kind === 'victory') { L.leftArm.rotation.x = -2.6; L.rightArm.rotation.x = -2.6; }
@@ -420,17 +892,123 @@
       return Math.hypot(moveX, moveZ) > 0.08;
     }
 
-    _cortarOneShot() {
-      if (this.activeState === 'oneshot' && this.oneShotKind !== 'jump') {
+    _resetModelPose() {
+      if (!this.model) return;
+      const baseY = this._baseModelY || 0;
+      const baseScale = this._baseModelScale || 1;
+      if (this.model.position && typeof this.model.position.set === 'function') {
+        this.model.position.set(0, baseY, 0);
+      } else if (this.model.position) {
+        this.model.position.x = 0;
+        this.model.position.y = baseY;
+        this.model.position.z = 0;
+      }
+      if (this.model.rotation) {
+        this.model.rotation.x = 0;
+        this.model.rotation.y = 0;
+        this.model.rotation.z = 0;
+      }
+      if (this.model.scale && typeof this.model.scale.set === 'function') {
+        this.model.scale.set(baseScale, baseScale, baseScale);
+      } else if (this.model.scale) {
+        this.model.scale.x = baseScale;
+        this.model.scale.y = baseScale;
+        this.model.scale.z = baseScale;
+      }
+    }
+
+    _aplicarAnimacionHabilidad() {
+      if (!this._skillAnim || !this.model) return;
+      const elapsed = this.tiempo - this._skillAnim.start;
+      if (elapsed >= this._skillAnim.duration) {
+        this._skillAnim = null;
+        this._resetModelPose();
+        return;
+      }
+      const t = Math.max(0, Math.min(1, elapsed / Math.max(1e-5, this._skillAnim.duration)));
+      const m = _evaluarMovimientoHabilidad(this._skillAnim.cfg, t);
+      const baseY = this._baseModelY || 0;
+      const baseScale = this._baseModelScale || 1;
+      if (this.model.position && typeof this.model.position.set === 'function') {
+        this.model.position.set(0, baseY + m.dy, m.dz);
+      }
+      if (this.model.rotation) {
+        this.model.rotation.x = m.rx;
+        this.model.rotation.y = m.ry;
+        this.model.rotation.z = m.rz;
+      }
+      if (this.model.scale && typeof this.model.scale.set === 'function') {
+        this.model.scale.set(baseScale * m.sx, baseScale * m.sy, baseScale * m.sz);
+      }
+    }
+
+    _cortarOneShot(forzar = false) {
+      if (this.activeState === 'oneshot' && (forzar || (this.oneShotKind !== 'jump' && this.oneShotKind !== 'dodge'))) {
         if (this.currentAction) this.currentAction.fadeOut(0.12);
         this.activeState = 'none';
         this.oneShotKind = null;
         this.oneShotUntil = 0;
       }
-      if (this.fallbackAct && this.fallbackAct.kind !== 'jump') {
+      if (this.fallbackAct && (forzar || (this.fallbackAct.kind !== 'jump' && this.fallbackAct.kind !== 'dodge'))) {
         this.fallbackAct = null;
-        if (this.model) { this.model.rotation.y = 0; this.model.position.y = 0; this.model.scale.set(1, 1, 1); }
+        this._resetModelPose();
       }
+      if (this._skillAnim && (forzar || (this._skillAnim.kind !== 'jump' && this._skillAnim.kind !== 'dodge'))) {
+        this._skillAnim = null;
+        this._resetModelPose();
+      }
+    }
+
+    getMoveInputDir() {
+      const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+      const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
+      const moveX = kbX !== 0 ? kbX : this.joyVec.x;
+      const moveZ = kbZ !== 0 ? kbZ : this.joyVec.y;
+      const mag = Math.hypot(moveX, moveZ);
+      if (mag <= 0.08) return null;
+      if (!this.camera) return { x: moveX / mag, z: moveZ / mag, mag };
+
+      const camForward = new THREE.Vector3();
+      this.camera.getWorldDirection(camForward);
+      camForward.y = 0;
+      if (camForward.lengthSq() < 1e-6) camForward.set(0, 0, -1);
+      else camForward.normalize();
+
+      const camRight = new THREE.Vector3().crossVectors(camForward, new THREE.Vector3(0, 1, 0)).normalize();
+      const moveDir = new THREE.Vector3()
+        .addScaledVector(camForward, -moveZ)
+        .addScaledVector(camRight, moveX);
+      if (moveDir.lengthSq() < 1e-6) return null;
+      moveDir.normalize();
+      return { x: moveDir.x, z: moveDir.z, mag };
+    }
+
+    isDodging() {
+      return !!(this.dodgeState && this.dodgeState.elapsed < this.dodgeState.duration);
+    }
+
+    startDodge(opts = {}) {
+      let dir = null;
+      if (typeof opts.dirX === 'number' && typeof opts.dirZ === 'number') {
+        const len = Math.hypot(opts.dirX, opts.dirZ);
+        if (len > 1e-6) dir = { x: opts.dirX / len, z: opts.dirZ / len };
+      }
+      if (!dir) dir = this.getMoveInputDir() || this.frente();
+
+      this.lockUntil = 0;
+      this.destino = null;
+      this._cortarOneShot(true);
+      this.mirarHacia(dir.x, dir.z);
+
+      this.dodgeState = {
+        dirX: dir.x,
+        dirZ: dir.z,
+        elapsed: 0,
+        duration: opts.duration || 0.34,
+        speed: opts.speed || 22.0
+      };
+      this.playOneShot('dodge');
+      return { dirX: dir.x, dirZ: dir.z };
     }
 
     switchAnimation(nextState) {
@@ -451,27 +1029,152 @@
       }
     }
 
-    // Camina hacia this.destino hasta quedar a `parar` metros. Lo esquiva todo como el movimiento manual.
+    // Comprueba si (px, pz) cae en agua, pendiente inescalable desde (ox, oz) o colisionador cercano
+    _puntoBloqueado(ox, oz, h0, px, pz, margenExtra) {
+      const r = this.radius + (margenExtra || 0.25);
+      if (this.world.isWaterHazard && this.world.isWaterHazard(px, pz, r)) return true;
+      if (typeof this.world.getWalkableHeight === 'function') {
+        const dHor = Math.hypot(px - ox, pz - oz);
+        if (dHor > 0.05) {
+          const hP = this.world.getWalkableHeight(px, pz);
+          if ((hP - h0) / dHor > 0.49) return true;
+          if (hP - h0 > 0.01 && typeof this.world.bloqueaSubida === 'function' && this.world.bloqueaSubida(ox, oz, px, pz)) return true;
+        }
+      }
+      const cols = getColliders(this.world, px, pz);
+      for (let i = 0; i < cols.length; i++) {
+        const c = cols[i];
+        if (c.type === 'circle') {
+          const dx = px - c.x, dz = pz - c.z, md = r + c.r;
+          if (dx * dx + dz * dz < md * md) return true;
+        } else if (c.type === 'box') {
+          if (px > c.minX - r && px < c.maxX + r && pz > c.minZ - r && pz < c.maxZ + r) return true;
+        } else if (c.type === 'obb') {
+          const dx = px - c.cx, dz = pz - c.cz;
+          const u = dx * c.ux + dz * c.uz, v = -dx * c.uz + dz * c.ux;
+          if (Math.abs(u) < c.hu + r && Math.abs(v) < c.hv + r) return true;
+        }
+      }
+      return false;
+    }
+
+    _limpiarAutoEstado() {
+      this._steerDir = 0;
+      this._steerHold = 0;
+      this._progKey = '';
+      this._progBestDist = Infinity;
+      this._progTimer = 0;
+      this.sinAvance = 0;
+    }
+
+    _esRumboLibre(ox, oz, h0, dirX, dirZ, alcance, margenExtra) {
+      const m = typeof margenExtra === 'number' ? margenExtra : 0.24;
+      const d1 = Math.min(0.9, alcance * 0.36);
+      if (this._puntoBloqueado(ox, oz, h0, ox + dirX * d1, oz + dirZ * d1, m)) return false;
+      if (alcance > 1.0) {
+        const d2 = alcance * 0.68;
+        if (this._puntoBloqueado(ox, oz, h0, ox + dirX * d2, oz + dirZ * d2, m)) return false;
+        if (this._puntoBloqueado(ox, oz, h0, ox + dirX * alcance, oz + dirZ * alcance, m + 0.04)) return false;
+      }
+      return true;
+    }
+
+    // Camina hacia this.destino hasta quedar a `parar` metros, rodeando obstáculos preventivamente
     caminarADestino(dt, enAccion) {
       const d = this.destino;
-      const dx = d.x - this.root.position.x, dz = d.z - this.root.position.z;
+      const ox = this.root.position.x, oz = this.root.position.z;
+      const dx = d.x - ox, dz = d.z - oz;
       const dist = Math.hypot(dx, dz);
       if (dist <= d.parar) {
+        this._limpiarAutoEstado();
         if (!enAccion) this.switchAnimation('idle');
         return;
       }
       // En cuanto empieza a desplazarse tras el bloqueo del golpe, corta la cola del ataque para correr de verdad
       this._cortarOneShot();
-      const ux = dx / dist, uz = dz / dist;
+      let ux = dx / dist, uz = dz / dist;
       const paso = Math.min(dist - d.parar, this.runSpeed * dt);   // hacia un objetivo se corre
-      const antes = this.root.position.clone();
-      const resolved = this.resolveCollisions(this.root.position.x + ux * paso, this.root.position.z + uz * paso);
+
+      const destKey = Math.round(d.x * 2) + ',' + Math.round(d.z * 2);
+      if (destKey !== this._progKey) {
+        this._progKey = destKey;
+        this._progBestDist = dist;
+        this._progTimer = 0;
+      }
+
+      // Evasión anticipada con histéresis: evita rebotar al muro al instante de esquivarlo
+      const alcanceSondeo = Math.min(3.0, Math.max(1.1, dist - d.parar));
+      const h0 = typeof this.world.getWalkableHeight === 'function' ? this.world.getWalkableHeight(ox, oz) : 0;
+      if (!this._esRumboLibre(ox, oz, h0, ux, uz, alcanceSondeo, 0.24)) {
+        const angs = [0.35, 0.70, 1.05, 1.40, 1.57, 1.85, 2.15];
+        let elegido = null;
+        // Si ya hay un sentido de giro elegido, agota todos los ángulos de ese lado antes de cambiar de lado
+        if (this._steerDir) {
+          for (let i = 0; i < angs.length && !elegido; i++) {
+            const ang = angs[i] * this._steerDir;
+            const ca = Math.cos(ang), sa = Math.sin(ang);
+            const sx = ux * ca - uz * sa, sz = ux * sa + uz * ca;
+            if (this._esRumboLibre(ox, oz, h0, sx, sz, alcanceSondeo, 0.24)) {
+              elegido = { x: sx, z: sz, signo: this._steerDir };
+            }
+          }
+        }
+        if (!elegido) {
+          const orden = this._steerDir ? [-this._steerDir] : [1, -1];
+          for (let i = 0; i < angs.length && !elegido; i++) {
+            for (let s = 0; s < orden.length; s++) {
+              const ang = angs[i] * orden[s];
+              const ca = Math.cos(ang), sa = Math.sin(ang);
+              const sx = ux * ca - uz * sa, sz = ux * sa + uz * ca;
+              if (this._esRumboLibre(ox, oz, h0, sx, sz, alcanceSondeo, 0.24)) {
+                elegido = { x: sx, z: sz, signo: orden[s] };
+                break;
+              }
+            }
+          }
+        }
+        if (elegido) {
+          ux = elegido.x; uz = elegido.z;
+          this._steerDir = elegido.signo;
+          this._steerHold = 0.28;
+        }
+      } else if (this._steerHold > 0 && this._steerDir) {
+        this._steerHold = Math.max(0, this._steerHold - dt);
+        if (this._esRumboLibre(ox, oz, h0, ux, uz, alcanceSondeo, 0.42)) {
+          this._steerHold = 0;
+          this._steerDir = 0;
+        } else {
+          const ang = 0.35 * this._steerDir;
+          const ca = Math.cos(ang), sa = Math.sin(ang);
+          const sx = ux * ca - uz * sa, sz = ux * sa + uz * ca;
+          if (this._esRumboLibre(ox, oz, h0, sx, sz, alcanceSondeo, 0.22)) {
+            ux = sx; uz = sz;
+          }
+        }
+      } else {
+        this._steerDir = 0;
+      }
+
+      const antesX = ox, antesZ = oz;
+      const resolved = this.resolveCollisions(ox + ux * paso, oz + uz * paso);
       this.root.position.x = resolved.x;
       this.root.position.z = resolved.z;
-      // Sin avanzar durante 2 s (un muro en medio): se rinde el destino
-      if (antes.distanceTo(this.root.position) < 0.02) this.sinAvance = (this.sinAvance || 0) + dt;
+      const avanzado = Math.hypot(resolved.x - antesX, resolved.z - antesZ);
+      const newDist = Math.hypot(d.x - resolved.x, d.z - resolved.z);
+      if (newDist < this._progBestDist - 0.35) {
+        this._progBestDist = newDist;
+        this._progTimer = 0;
+      } else {
+        this._progTimer += dt;
+      }
+      // Parada en seco (> 1.3 s) o roce/oscilación sin acercarse de verdad al punto (> 2.3 s): marca atascado
+      if (avanzado < Math.max(0.012, paso * 0.14)) this.sinAvance = (this.sinAvance || 0) + dt;
       else this.sinAvance = 0;
-      if (this.sinAvance > 2) { this.destino = null; this.sinAvance = 0; this.atascado = true; }
+      if (this.sinAvance > 1.3 || this._progTimer > 2.3) {
+        this.destino = null;
+        this._limpiarAutoEstado();
+        this.atascado = true;
+      }
       this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
       const objetivoGiro = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(ux, uz));
       this.root.quaternion.slerp(objetivoGiro, Math.min(1, dt * 14));
@@ -516,6 +1219,10 @@
             if (dhProbe > 0 && (dhProbe / probeDist) > MAX_PENDIENTE) {
               return true;
             }
+          }
+          // Bloqueo extra del mundo (p. ej. recintos de laberinto): impide trepar paredes en diagonal
+          if (dhStep > 0.01 && typeof this.world.bloqueaSubida === 'function' && this.world.bloqueaSubida(ox, oz, x, z)) {
+            return true;
           }
           return false;
         };
@@ -576,6 +1283,9 @@
       this.root.position.x = x;
       this.root.position.z = z;
       this.root.position.y = this.world.getWalkableHeight(x, z);
+      this._limpiarAutoEstado();
+      this._skillAnim = null;
+      this._resetModelPose();
       if (this.cameraMode === 'follow') this.colocarCamara();
       return true;
     }
@@ -612,26 +1322,62 @@
       if (!info) return 0;
       const shot = this.oneShots[kind];
       const rawDuration = shot ? shot.duration : (kind === 'victory' ? 3 : 0.6);
-      // Ajusta la velocidad de clips largos del estudio (p. ej. tiro con arco de 3.4 s suelta en 2.35 s, impacto en 0.9 s)
+      // Mantiene velocidades naturales y legibles para ataques y técnicas
       let escala = 1;
-      if (shot && kind === 'disparo' && rawDuration > 1.6) escala = 2.35 / 0.9;
-      else if (shot && kind === 'attack' && rawDuration > 0.9) escala = rawDuration / 0.72;
+      if (shot && kind === 'disparo') {
+        if (rawDuration > 2.2) escala = Math.min(1.25, rawDuration / 1.75);
+        else escala = Math.min(0.95, Math.max(0.65, rawDuration / 1.65));
+      } else if (shot && kind === 'attack') {
+        escala = Math.min(0.95, Math.max(0.62, rawDuration / 1.30));
+      } else if (shot && info.lock > 0) {
+        const targetDur = Math.max(info.lock * 1.08, 1.55);
+        escala = Math.min(0.82, Math.max(0.55, rawDuration / targetDur));
+      }
       const duration = rawDuration / escala;
       if (info.lock > 0) this.lockUntil = this.tiempo + info.lock;
       this.oneShotKind = kind;
+      this.oneShotStart = this.tiempo;
+      this.oneShotDuration = duration;
       this.oneShotUntil = this.tiempo + duration;
+      this.oneShotClipName = (shot && shot.clipName) || kind;
+      this.oneShotHasNative = !!(shot && !shot.fallbackClip);
+      // Solo superponer SKILL_MOTION en avatar de respaldo o cuando el GLB no trae clip nativo del estudio
+      const usarMotionRespaldo = this.isFallbackAvatar || !shot || !!shot.fallbackClip;
+      if (this._skillAnim) this._resetModelPose();
+      this._skillAnim = null;
+      const motionCfg = usarMotionRespaldo ? SKILL_MOTION[kind] : null;
+      if (motionCfg) {
+        this._skillAnim = { kind, cfg: motionCfg, start: this.tiempo, duration: motionCfg.dur };
+      }
       if (shot && this.mixer) {
         shot.action.enabled = true;
         shot.action.setEffectiveTimeScale(escala);
         shot.action.setEffectiveWeight(1);
-        shot.action.reset().fadeIn(0.08).play();
-        if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.08);
+        shot.action.reset().fadeIn(0.14).play();
+        if (this.currentAction && this.currentAction !== shot.action) this.currentAction.fadeOut(0.14);
         this.currentAction = shot.action;
         this.activeState = 'oneshot';
       } else {
         this.fallbackAct = { kind, start: this.tiempo, duration };
       }
       return duration;
+    }
+
+    getActiveOneShotState() {
+      if (!this.oneShotKind || this.tiempo >= this.oneShotUntil || this.oneShotDuration <= 0) {
+        return { active: false, kind: null, clipName: null, elapsed: 0, duration: 0, u: 0, hasNative: false };
+      }
+      const elapsed = Math.max(0, this.tiempo - this.oneShotStart);
+      const u = Math.max(0, Math.min(1, elapsed / this.oneShotDuration));
+      return {
+        active: true,
+        kind: this.oneShotKind,
+        clipName: this.oneShotClipName,
+        elapsed,
+        duration: this.oneShotDuration,
+        u,
+        hasNative: this.oneShotHasNative
+      };
     }
 
     update(dt) {
@@ -646,55 +1392,60 @@
       // Mientras dura una acción de un solo uso no se cambia a idle
       const enAccion = this.activeState === 'oneshot' && this.tiempo < this.oneShotUntil;
 
-      const kbX = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
-      const kbZ = (this.keys.backward ? 1 : 0) - (this.keys.forward ? 1 : 0);
-
-      const moveX = kbX !== 0 ? kbX : this.joyVec.x;
-      const moveZ = kbZ !== 0 ? kbZ : this.joyVec.y;
-      const mag = Math.hypot(moveX, moveZ);
-      // El jugador toma el control: se cancela el destino automático
-      if (mag > 0.08 && this.destino) { this.destino = null; this.cancelado = true; }
-
-      if (mag > 0.08 && !locked) {
-        this._cortarOneShot();
-        const isRunning = this.keys.shift || mag > 0.85;
-        if (this.activeState !== 'oneshot') this.switchAnimation(isRunning ? 'run' : 'walk');
-        const speed = (isRunning ? this.runSpeed : this.walkSpeed) * Math.min(1.0, mag);
-
-        const camForward = new THREE.Vector3();
-        this.camera.getWorldDirection(camForward);
-        camForward.y = 0;
-        camForward.normalize();
-
-        const camRight = new THREE.Vector3().crossVectors(camForward, new THREE.Vector3(0, 1, 0)).normalize();
-        const moveDir = new THREE.Vector3()
-          .addScaledVector(camForward, -moveZ)
-          .addScaledVector(camRight, moveX)
-          .normalize();
-
-        const targetAngle = Math.atan2(moveDir.x, moveDir.z);
-        const targetQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
-        this.root.quaternion.slerp(targetQuat, Math.min(1, dt * 12));
-
-        const candidateX = this.root.position.x + moveDir.x * speed * dt;
-        const candidateZ = this.root.position.z + moveDir.z * speed * dt;
-        const resolved = this.resolveCollisions(candidateX, candidateZ);
-
-        this.root.position.x = resolved.x;
-        this.root.position.z = resolved.z;
-
-        this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
-      } else if (this.destino && !locked) {
-        this.caminarADestino(dt, enAccion);
-      } else {
-        if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'sismo')) this.switchAnimation('idle');
+      if (this.dodgeState) {
+        this.dodgeState.elapsed += dt;
+        const p = Math.min(1, this.dodgeState.elapsed / this.dodgeState.duration);
+        const mult = 1.30 - 0.85 * p;
+        const dist = this.dodgeState.speed * mult * dt;
+        const steps = Math.max(1, Math.ceil(dist / 0.4));
+        const stepDist = dist / steps;
+        for (let s = 0; s < steps; s++) {
+          const cx = this.root.position.x + this.dodgeState.dirX * stepDist;
+          const cz = this.root.position.z + this.dodgeState.dirZ * stepDist;
+          const resolved = this.resolveCollisions(cx, cz);
+          this.root.position.x = resolved.x;
+          this.root.position.z = resolved.z;
+        }
         this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
+        if (this.dodgeState.elapsed >= this.dodgeState.duration) {
+          this.dodgeState = null;
+        }
+      } else {
+        const inputDir = this.getMoveInputDir();
+        const mag = inputDir ? inputDir.mag : 0;
+        // El jugador toma el control: se cancela el destino automático
+        if (inputDir && this.destino) { this.destino = null; this.cancelado = true; this._limpiarAutoEstado(); }
+
+        if (inputDir && !locked) {
+          this._cortarOneShot();
+          const isRunning = this.keys.shift || mag > 0.85;
+          if (this.activeState !== 'oneshot') this.switchAnimation(isRunning ? 'run' : 'walk');
+          const speed = (isRunning ? this.runSpeed : this.walkSpeed) * Math.min(1.0, mag);
+
+          const targetAngle = Math.atan2(inputDir.x, inputDir.z);
+          const targetQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
+          this.root.quaternion.slerp(targetQuat, Math.min(1, dt * 12));
+
+          const candidateX = this.root.position.x + inputDir.x * speed * dt;
+          const candidateZ = this.root.position.z + inputDir.z * speed * dt;
+          const resolved = this.resolveCollisions(candidateX, candidateZ);
+
+          this.root.position.x = resolved.x;
+          this.root.position.z = resolved.z;
+
+          this.root.position.y = this.world.getWalkableHeight(resolved.x, resolved.z);
+        } else if (this.destino && !locked) {
+          this.caminarADestino(dt, enAccion);
+        } else {
+          if (!enAccion && (!this.fallbackAct || this.fallbackAct.kind !== 'sismo')) this.switchAnimation('idle');
+          this.root.position.y = this.world.getWalkableHeight(this.root.position.x, this.root.position.z);
+        }
       }
 
       if (this.cameraMode === 'follow') this.colocarCamara();
       this.modoCamaraAnterior = this.cameraMode;
 
-      // Desvanecimiento suave del avatar si la cámara está demasiado cerca (< 2.6m) para que NUNCA tape la pantalla
+      // Desvanecimiento suave del avatar si la cámara está demasiado cerca (< 2.6m) preservando transparencias nativas (rostro/córnea)
       if (this.camera && this.model) {
         const dCam = this.camera.position.distanceTo(this.root.position);
         const opacidad = dCam < 1.1 ? 0.0 : (dCam < 2.6 ? Math.max(0.08, (dCam - 1.1) / 1.5) : 1.0);
@@ -702,13 +1453,23 @@
           if (child.isMesh && child.material) {
             const mats = Array.isArray(child.material) ? child.material : [child.material];
             mats.forEach(m => {
+              if (!m.userData) m.userData = {};
+              if (!m.userData._origFade) {
+                m.userData._origFade = {
+                  transparent: !!m.transparent,
+                  opacity: typeof m.opacity === 'number' ? m.opacity : 1.0,
+                  depthWrite: m.depthWrite !== undefined ? m.depthWrite : true
+                };
+              }
+              const orig = m.userData._origFade;
               if (opacidad < 0.98) {
-                m.transparent = true;
-                m.opacity = opacidad;
+                if (!m.transparent) { m.transparent = true; m.needsUpdate = true; }
+                m.opacity = orig.opacity * opacidad;
                 child.visible = opacidad > 0.05;
               } else {
-                m.transparent = false;
-                m.opacity = 1.0;
+                if (m.transparent !== orig.transparent) { m.transparent = orig.transparent; m.needsUpdate = true; }
+                m.opacity = orig.opacity;
+                m.depthWrite = orig.depthWrite;
                 child.visible = true;
               }
             });
@@ -718,9 +1479,11 @@
 
       if (this.mixer) {
         this.mixer.update(dt);
+        this._aplicarAnimacionHabilidad();
       } else if (this.isFallbackAvatar && this.fallbackLimbs.leftLeg) {
         if (this.fallbackAct) {
           this.applyFallbackAct(this.tiempo);
+          if (this._skillAnim) this._aplicarAnimacionHabilidad();
           return;
         }
         const freq = this.activeState === 'run' ? 14 : (this.activeState === 'walk' ? 8 : 0);
@@ -730,6 +1493,9 @@
         this.fallbackLimbs.rightLeg.rotation.x = -angle;
         this.fallbackLimbs.leftArm.rotation.x = -angle * 0.8;
         this.fallbackLimbs.rightArm.rotation.x = angle * 0.8;
+        if (this._skillAnim) this._aplicarAnimacionHabilidad();
+      } else if (this._skillAnim) {
+        this._aplicarAnimacionHabilidad();
       }
     }
   }
@@ -747,12 +1513,15 @@
       const x = target.x + (cam.x - target.x) * t;
       const y = target.y + (cam.y - target.y) * t;
       const z = target.z + (cam.z - target.z) * t;
-      if (y < world.getWalkableHeight(x, z) + 0.8) {
-        if (last) cam.copy(last); else cam.set(target.x, target.y + 0.8, target.z);
+      if (y < world.getWalkableHeight(x, z) + 1.2) {
+        if (last) cam.copy(last); else cam.set(target.x, target.y + 1.2, target.z);
         return;
       }
       last = { x, y, z };
     }
+
+    const camFloor = world.getWalkableHeight(cam.x, cam.z);
+    if (cam.y < camFloor + 1.2) cam.y = camFloor + 1.2;
 
     // Colisionadores: si la cámara queda dentro de un muro o una casa, se acerca al objetivo
     const inside = (x, z) => getColliders(world, x, z).some(c => {
@@ -772,7 +1541,46 @@
     }
   }
 
-  const api = { CharacterController, clampCameraToWorld, findClipIndex, CLIP_KEYWORDS, ONE_SHOT, WALK_SPEED, RUN_SPEED };
+  let _texSombraContacto = null, _geoSombraContacto = null;
+  function crearSombraContacto(THREE, radio = 1.25, opacidad = 0.36) {
+    if (!THREE || !THREE.PlaneGeometry || !THREE.MeshBasicMaterial || !THREE.Mesh) return null;
+    if (!_texSombraContacto && typeof document !== 'undefined' && THREE.CanvasTexture) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+      g.addColorStop(0, 'rgba(6, 10, 18, 0.85)');
+      g.addColorStop(0.55, 'rgba(6, 10, 18, 0.42)');
+      g.addColorStop(1, 'rgba(6, 10, 18, 0.0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 64, 64);
+      _texSombraContacto = new THREE.CanvasTexture(c);
+    }
+    if (!_texSombraContacto) return null;
+    if (!_geoSombraContacto) {
+      _geoSombraContacto = new THREE.PlaneGeometry(1, 1);
+      _geoSombraContacto.rotateX(-Math.PI / 2);
+    }
+    const mat = new THREE.MeshBasicMaterial({
+      map: _texSombraContacto,
+      transparent: true,
+      opacity: opacidad,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -2
+    });
+    const m = new THREE.Mesh(_geoSombraContacto, mat);
+    m.name = 'SombraContacto';
+    m.position.y = 0.04;
+    m.scale.set(radio, 1, radio);
+    m.renderOrder = 1;
+    m.castShadow = false;
+    m.receiveShadow = false;
+    return m;
+  }
+
+  const api = { CharacterController, clampCameraToWorld, crearSombraContacto, findClipIndex, CLIP_KEYWORDS, ONE_SHOT, SKILL_MOTION, WALK_SPEED, RUN_SPEED };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.CharacterLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

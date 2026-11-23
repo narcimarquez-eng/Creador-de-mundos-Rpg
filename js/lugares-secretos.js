@@ -49,45 +49,80 @@
       archivo: 'glb/cabanas/cabana_1_troncos_clasica.glb',
       nombre: 'Cabaña de Troncos del Bosque',
       aldeano: 'Garek el Trampero',
+      aldeanoModelo: 'npc/aldeanos/cazador.glb',
       frase: 'Las bestias del bosque no dejan de proliferar. Despeja a 100 de ellas y te daré un generoso pago y equipo.',
+      trama: 'Las manadas desplazadas de las fundiciones clandestinas de los Sabios se ocultan en esta espesura y cortan el suministro de madera.',
       esMar: false,
-      puebloIdx: 0
+      puebloIdx: 0,
+      encargoFases: {
+        rastroNombre: 'Trampa Destrozada con Sello de Bronce',
+        rastroLore: 'El lazo de acero partido conserva el punzón de las fundiciones clandestinas.',
+        liderNombre: 'Colmillo de Ceniza'
+      }
     },
     {
       id: 'cabana-2-posada',
       archivo: 'glb/cabanas/cabana_2_posada_dos_plantas.glb',
       nombre: 'Posada Solitaria del Sendero',
       aldeano: 'Borgan el Guardián del Paso',
+      aldeanoModelo: 'npc/aldeanos/tabernero.glb',
       frase: 'Los viajeros temen ser devorados por los caminos. Ayúdame abatiendo a 100 de esas criaturas.',
+      trama: 'Desde que la guardia dejó de escoltar caravanas civiles, esta posada es el único refugio entre los primeros pueblos de Aden.',
       esMar: false,
-      puebloIdx: 0
+      puebloIdx: 0,
+      encargoFases: {
+        rastroNombre: 'Carreta Volcada del Paso',
+        rastroLore: 'Rastros frescos de zarpas blindadas conducen al acecho del alfa de la ruta.',
+        liderNombre: 'Merodeador del Paso'
+      }
     },
     {
       id: 'cabana-3-pescador',
       archivo: 'glb/cabanas/cabana_3_pescador_pilotes.glb',
       nombre: 'Cabaña de Pescador de la Costa',
       aldeano: 'Kyle el Pescador de Bajamar',
+      aldeanoModelo: 'npc/aldeanos/campesino.glb',
       frase: 'Las criaturas costeras asaltan las redes y la orilla. Acaba con 100 y compartiré los tesoros de la marea.',
+      trama: 'La marea arrastra restos de jaulas sumergidas con el emblema de la Corona, atrayendo carroñeros alterados hacia las redes.',
       esMar: true,
-      puebloIdx: 0
+      puebloIdx: 0,
+      encargoFases: {
+        rastroNombre: 'Jaula Sumergida Varada en la Orilla',
+        rastroLore: 'Los hierros traídos por la marea llevan el mismo sello que viste en la Fuente Arcana.',
+        liderNombre: 'Acechador de Bajamar'
+      }
     },
     {
       id: 'cabana-4-vigia',
       archivo: 'glb/cabanas/cabana_4_torre_de_vigia.glb',
       nombre: 'Torre Vigía de la Avanzada',
       aldeano: 'Varek el Centinela del Alto',
+      aldeanoModelo: 'npc/aldeanos/lenador.glb',
       frase: 'Desde lo alto diviso manadas salvajes cercando el paso norte. Derrota a 100 antes de que avancen.',
+      trama: 'Esta torre vigía controla las columnas de bestias blindadas que descienden desde las cumbres controladas por el cónclave.',
       esMar: false,
-      puebloIdx: 1
+      puebloIdx: 1,
+      encargoFases: {
+        rastroNombre: 'Estandarte Acorazado de la Avanzada',
+        rastroLore: 'El guion ensangrentado señala el punto donde aguarda el alfa de vanguardia.',
+        liderNombre: 'Acorazado de la Cumbre'
+      }
     },
     {
       id: 'cabana-5-redonda',
       archivo: 'glb/cabanas/cabana_5_redonda.glb',
       nombre: 'Cabaña Redonda del Erudito',
       aldeano: 'Olorin el Herbolario Silvano',
+      aldeanoModelo: 'npc/aldeanos/herbolario.glb',
       frase: 'Mis cultivos de raíces arcanas son pisoteados por las bestias. Elimina a 100 de ellas para proteger el bosque.',
+      trama: 'El aceite oscuro vertido por las forjas prohibidas contamina las aguas bajas y vuelve agresiva a la fauna alrededor del herbolario.',
       esMar: false,
-      puebloIdx: 1
+      puebloIdx: 1,
+      encargoFases: {
+        rastroNombre: 'Raíz Arcana Contaminada',
+        rastroLore: 'Savia negra brota entre los surcos alimentando a una criatura alfa mutada.',
+        liderNombre: 'Espora Corrupta Alfa'
+      }
     }
   ];
 
@@ -214,15 +249,15 @@
       }
 
       if (!mejorCand) {
-        const numCandidatos = 20;
+        const numCandidatos = 48;
         for (let cI = 0; cI < numCandidatos; cI++) {
           const angVar = (idx * 1.25) + (cI / numCandidatos) * Math.PI * 2;
-          const dCand = 150 + ((cI * 9 + Math.floor(rnd() * 25)) % 55);
+          const dCand = 180 + ((cI * 7 + Math.floor(rnd() * 20)) % 65);
           let candX = pRef.x + Math.cos(angVar) * dCand;
           let candZ = pRef.y + Math.sin(angVar) * dCand;
 
-          // Comprobar distancia a pueblos (mínimo 135m y máximo 270m)
-          const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 135);
+          // Comprobar distancia a pueblos (mínimo 170m para superar la rampa de elevación de los muros del pueblo)
+          const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 170);
           if (cercaPueblo) continue;
 
           // Separación con otras cabañas ya ubicadas (mínimo 45m)
@@ -234,19 +269,23 @@
             const eCenter = terrain.elevation(candX, candZ);
             if (eCenter < 0.28) continue;
 
-            // Medir desnivel en radio de 10m
-            const eN = terrain.elevation(candX, candZ - 10);
-            const eS = terrain.elevation(candX, candZ + 10);
-            const eE = terrain.elevation(candX + 10, candZ);
-            const eO = terrain.elevation(candX - 10, candZ);
-            desnivel = (Math.max(eCenter, eN, eS, eE, eO) - Math.min(eCenter, eN, eS, eE, eO)) * 420;
+            // Medir desnivel en radio de 16m alrededor de la cabaña
+            const eN = terrain.elevation(candX, candZ - 16);
+            const eS = terrain.elevation(candX, candZ + 16);
+            const eE = terrain.elevation(candX + 16, candZ);
+            const eO = terrain.elevation(candX - 16, candZ);
+            const eNE = terrain.elevation(candX + 11, candZ - 11);
+            const eSO = terrain.elevation(candX - 11, candZ + 11);
+            desnivel = (Math.max(eCenter, eN, eS, eE, eO, eNE, eSO) - Math.min(eCenter, eN, eS, eE, eO, eNE, eSO)) * 420;
+            // Descartar laderas escarpadas (>4.5m de desnivel en el área de la cabaña)
+            if (desnivel > 4.5) continue;
           }
 
           // Si hay zona de combate asignada, orientación suave
           if (zonaElegida) {
             const zy = (zonaElegida.y !== undefined ? zonaElegida.y : zonaElegida.z);
             const dZona = Math.hypot(candX - zonaElegida.x, candZ - zy);
-            desnivel += (dZona * 0.03);
+            desnivel += (dZona * 0.02);
           }
 
           if (desnivel < menorDesnivel) {
@@ -256,17 +295,17 @@
         }
       }
 
-      // Si no encontró candidato por restricciones extremas, usar posición base periférica
-      let cx = mejorCand ? mejorCand.x : (pRef.x + Math.cos(idx * 1.28 + rnd() * 0.35) * (150 + rnd() * 55));
-      let cz = mejorCand ? mejorCand.z : (pRef.y + Math.sin(idx * 1.28 + rnd() * 0.35) * (150 + rnd() * 55));
+      // Si no encontró candidato por restricciones extremas, usar posición base periférica despejada
+      let cx = mejorCand ? mejorCand.x : (pRef.x + Math.cos(idx * 1.28 + rnd() * 0.35) * (185 + rnd() * 40));
+      let cz = mejorCand ? mejorCand.z : (pRef.y + Math.sin(idx * 1.28 + rnd() * 0.35) * (185 + rnd() * 40));
 
-      // Garantizar que no esté dentro de la plaza ni invada muros (distancia mínima de 136m)
+      // Garantizar que no esté dentro de la plaza ni en la rampa de mezcla de muros (mínimo 175m)
       pueblos.forEach(p => {
         const dP = Math.hypot(cx - p.x, cz - p.y);
-        if (dP < 136) {
+        if (dP < 175) {
           const dirP = Math.atan2(cz - p.y, cx - p.x);
-          cx = p.x + Math.cos(dirP) * 145;
-          cz = p.y + Math.sin(dirP) * 145;
+          cx = p.x + Math.cos(dirP) * 185;
+          cz = p.y + Math.sin(dirP) * 185;
         }
       });
 
@@ -276,20 +315,31 @@
       const especieMonstruo = mNormal.name || 'Criatura del Bosque';
       const lvlMonstruo = mNormal.level || 2;
 
+      // Offset determinista para el rastro de Fase 2 (sin alterar la secuencia PRNG compartida)
+      const hR = hashStr(cabDef.id + '|' + W + '|rastro');
+      const angR = ((hR % 360) * Math.PI) / 180;
+      const distR = 28 + ((hR >>> 8) % 7);
+      const rastroOffset = {
+        dx: Math.round(Math.cos(angR) * distR * 10) / 10,
+        dz: Math.round(Math.sin(angR) * distR * 10) / 10
+      };
+      const encF = cabDef.encargoFases || {};
+
       lugares.push({
         id: cabDef.id,
         tipo: 'cabana',
         nombre: cabDef.nombre,
         aldeano: cabDef.aldeano,
+        aldeanoModelo: cabDef.aldeanoModelo || 'npc/aldeanos/campesino.glb',
         frase: cabDef.frase,
         modeloGLB: cabDef.archivo,
         esMar: cabDef.esMar,
         zonaAsignada: zonaElegida ? zonaElegida.id : null,
         x: Math.round(cx * 10) / 10,
         z: Math.round(cz * 10) / 10,
-        radio: 28,
-        radioPlano: 14.5,
-        radioRebaje: 26.0,
+        radio: 32,
+        radioPlano: 16.0,
+        radioRebaje: 36.0,
         icono: cabDef.esMar ? '🛖🌊' : '🛖',
         desc: cabDef.nombre + ': refugio habitado por ' + cabDef.aldeano + (cabDef.esMar ? ', situado frente al mar.' : ' en plena zona de caza.'),
         recompensa: 'Cacería mayor de 100 monstruos y forja de armaduras superiores',
@@ -308,9 +358,20 @@
           cantidad: 100,
           objetivoCantidad: 100, // Alias compatible
           progreso: 0,
+          aceptada: false,
           entregada: false,
           cumplida: false, // Alias compatible
           completada: false,
+          modalidad: null,
+          faseActual: 1,
+          cantidadFases: 15,
+          rastroEncontrado: false,
+          liderDerrotado: false,
+          multiplicadorPremio: 1,
+          rastroNombre: encF.rastroNombre || 'Rastro Sospechoso',
+          rastroLore: encF.rastroLore || 'Huellas frescas de una bestia alfa merodeando el puesto.',
+          liderNombre: encF.liderNombre || ('Alfa de ' + especieMonstruo),
+          rastroOffset,
           recompensa: {
             oroMin: 1, oroMax: 2000,
             arenaMin: 10, arenaMax: 50,
@@ -367,41 +428,282 @@
     return lugares;
   }
 
+  const _cabanaGlbCache = new Map();
+
+  function clonarModeloCabanaLimpio(THREE, escenaLimpia) {
+    const clon = (escenaLimpia && typeof escenaLimpia.clone === 'function') ? escenaLimpia.clone(true) : escenaLimpia;
+    if (clon && typeof clon.traverse === 'function') {
+      clon.traverse(o => {
+        if (o.isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+    }
+    return clon;
+  }
+
+  let _kitSecretosRef = null;
+  let _kitSecretosCache = null;
+
+  function aplicarUVBoxSecreto(geo, w, h, d, metrosPorTile) {
+    if (!geo || !geo.attributes || !geo.attributes.uv || typeof geo.attributes.uv.setXY !== 'function') return geo;
+    const uv = geo.attributes.uv;
+    if (uv.count < 24) return geo;
+    const esc = metrosPorTile || 3.0;
+    const dims = [
+      [d, h], [d, h],
+      [w, d], [w, d],
+      [w, h], [w, h]
+    ];
+    for (let cara = 0; cara < 6; cara++) {
+      const uMax = dims[cara][0] / esc;
+      const vMax = dims[cara][1] / esc;
+      const base = cara * 4;
+      uv.setXY(base + 0, 0, vMax);
+      uv.setXY(base + 1, uMax, vMax);
+      uv.setXY(base + 2, 0, 0);
+      uv.setXY(base + 3, uMax, 0);
+    }
+    uv.needsUpdate = true;
+    return geo;
+  }
+
+  function obtenerMaterialesSecretos(THREE) {
+    if (_kitSecretosCache && _kitSecretosRef === THREE) return _kitSecretosCache;
+    let silleria = { map: null, bump: null };
+    let mosaico = { map: null, bump: null };
+    let madera = { map: null, bump: null };
+
+    if (typeof document !== 'undefined' && THREE && THREE.CanvasTexture) {
+      const prng = seed => {
+        let s = (seed >>> 0) || 1;
+        return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+      };
+      const crearPar = (tam, pintar) => {
+        const c = document.createElement('canvas'); c.width = c.height = tam;
+        const b = document.createElement('canvas'); b.width = b.height = tam;
+        pintar(c.getContext('2d'), b.getContext('2d'), tam);
+        const map = new THREE.CanvasTexture(c);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        if (THREE.SRGBColorSpace) map.colorSpace = THREE.SRGBColorSpace;
+        map.anisotropy = 8;
+        const bump = new THREE.CanvasTexture(b);
+        bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+        bump.anisotropy = 8;
+        return { map, bump };
+      };
+
+      // 1. Sillería arcana / rústica tallada (512x512): hileras pseudo-isódomas, márgenes cincelados y musgo
+      silleria = crearPar(512, (ctx, bctx, S) => {
+        const rnd = prng(3317);
+        ctx.fillStyle = '#3b4452'; ctx.fillRect(0, 0, S, S);
+        bctx.fillStyle = '#1e1e1e'; bctx.fillRect(0, 0, S, S);
+        const hileras = [72, 42, 76, 64, 42, 78, 68, 70];
+        let y = 0;
+        for (let f = 0; f < hileras.length; f++) {
+          const hF = f === hileras.length - 1 ? (S - y) : hileras[f];
+          const esListel = hF <= 44;
+          let x = -((f % 2) * 38);
+          while (x < S) {
+            const wB = esListel ? 64 : (84 + ((rnd() * 56) | 0));
+            const x0 = Math.max(0, x + 2), x1 = Math.min(S, x + wB - 2);
+            const y0 = y + 2, y1 = y + hF - 2;
+            if (x1 - x0 > 8 && y1 - y0 > 8) {
+              const lum = 152 + ((rnd() * 44) | 0);
+              ctx.fillStyle = `rgb(${(lum * 0.94) | 0},${(lum * 0.98) | 0},${Math.min(240, (lum * 1.05) | 0)})`;
+              ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+              ctx.strokeStyle = 'rgba(226,236,248,0.28)'; ctx.lineWidth = 1.6;
+              ctx.strokeRect(x0 + 3, y0 + 3, Math.max(2, x1 - x0 - 6), Math.max(2, y1 - y0 - 6));
+
+              bctx.fillStyle = '#a6a6a6'; bctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+              bctx.fillStyle = '#dcdcdc'; bctx.fillRect(x0 + 5, y0 + 5, Math.max(2, x1 - x0 - 10), Math.max(2, y1 - y0 - 10));
+
+              if (esListel) {
+                const xm = (x0 + x1) * 0.5, ym = (y0 + y1) * 0.5;
+                ctx.fillStyle = 'rgba(210,225,245,0.34)';
+                ctx.beginPath();
+                ctx.moveTo(xm, y0 + 5); ctx.lineTo(x1 - 8, ym); ctx.lineTo(xm, y1 - 5); ctx.lineTo(x0 + 8, ym);
+                ctx.closePath(); ctx.fill();
+                bctx.fillStyle = '#f2f2f2';
+                bctx.beginPath();
+                bctx.moveTo(xm, y0 + 5); bctx.lineTo(x1 - 8, ym); bctx.lineTo(xm, y1 - 5); bctx.lineTo(x0 + 8, ym);
+                bctx.closePath(); bctx.fill();
+              } else if (rnd() < 0.28) {
+                ctx.fillStyle = 'rgba(66,104,62,0.36)';
+                ctx.fillRect(x0 + 4 + rnd() * 20, y1 - 9, 14 + rnd() * 18, 6);
+              }
+            }
+            x += wB;
+          }
+          y += hF;
+        }
+      });
+
+      // 2. Mosaico ceremonial de losas octogonales y azulejos en rombo (512x512, sin círculos)
+      mosaico = crearPar(512, (ctx, bctx, S) => {
+        const rnd = prng(9043);
+        ctx.fillStyle = '#334155'; ctx.fillRect(0, 0, S, S);
+        bctx.fillStyle = '#242424'; bctx.fillRect(0, 0, S, S);
+        const N = 4, paso = S / N, ch = paso * 0.24;
+        for (let gy = 0; gy < N; gy++) {
+          for (let gx = 0; gx < N; gx++) {
+            const x0 = gx * paso + 2, y0 = gy * paso + 2, L = paso - 4;
+            const par = (gx + gy) % 2 === 0;
+            ctx.fillStyle = par ? '#cbd5e1' : '#94a3b8';
+            ctx.beginPath();
+            ctx.moveTo(x0 + ch, y0); ctx.lineTo(x0 + L - ch, y0);
+            ctx.lineTo(x0 + L, y0 + ch); ctx.lineTo(x0 + L, y0 + L - ch);
+            ctx.lineTo(x0 + L - ch, y0 + L); ctx.lineTo(x0 + ch, y0 + L);
+            ctx.lineTo(x0, y0 + L - ch); ctx.lineTo(x0, y0 + ch);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = 'rgba(248,250,252,0.55)'; ctx.lineWidth = 1.6; ctx.stroke();
+
+            // Estrella/rombo interior tallado
+            const cx = x0 + L * 0.5, cy = y0 + L * 0.5, rIn = L * 0.22;
+            ctx.strokeStyle = par ? '#64748b' : '#e2e8f0'; ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - rIn); ctx.lineTo(cx + rIn, cy);
+            ctx.lineTo(cx, cy + rIn); ctx.lineTo(cx - rIn, cy);
+            ctx.closePath(); ctx.stroke();
+
+            bctx.fillStyle = '#d4d4d4';
+            bctx.beginPath();
+            bctx.moveTo(x0 + ch, y0); bctx.lineTo(x0 + L - ch, y0);
+            bctx.lineTo(x0 + L, y0 + ch); bctx.lineTo(x0 + L, y0 + L - ch);
+            bctx.lineTo(x0 + L - ch, y0 + L); bctx.lineTo(x0 + ch, y0 + L);
+            bctx.lineTo(x0, y0 + L - ch); bctx.lineTo(x0, y0 + ch);
+            bctx.closePath(); bctx.fill();
+          }
+        }
+        // Azulejos esmaltados en rombo en cada vértice de encuentro
+        for (let vy = 0; vy <= N; vy++) {
+          for (let vx = 0; vx <= N; vx++) {
+            const px = vx * paso, py = vy * paso, d = ch - 1;
+            ctx.fillStyle = ((vx + vy) % 2 === 0) ? '#0ea5e9' : '#d97706';
+            ctx.beginPath();
+            ctx.moveTo(px, py - d); ctx.lineTo(px + d, py);
+            ctx.lineTo(px, py + d); ctx.lineTo(px - d, py);
+            ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 1.2; ctx.stroke();
+
+            bctx.fillStyle = '#eeeeee';
+            bctx.beginPath();
+            bctx.moveTo(px, py - d); bctx.lineTo(px + d, py);
+            bctx.lineTo(px, py + d); bctx.lineTo(px - d, py);
+            bctx.closePath(); bctx.fill();
+          }
+        }
+        // Pátina sutil de grano pétreo
+        for (let i = 0; i < 900; i++) {
+          const x = rnd() * S, y = rnd() * S;
+          ctx.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.09)';
+          ctx.fillRect(x, y, 2 + rnd() * 3, 2 + rnd() * 3);
+        }
+      });
+
+      // 3. Madera labrada a azuela para pilotes y cabañas de respaldo (512x512)
+      madera = crearPar(512, (ctx, bctx, S) => {
+        const rnd = prng(5521), filas = 12, al = S / filas;
+        bctx.fillStyle = '#a0a0a0'; bctx.fillRect(0, 0, S, S);
+        for (let i = 0; i < filas; i++) {
+          const y0 = i * al;
+          const v = 165 + ((rnd() * 38) | 0);
+          ctx.fillStyle = `rgb(${v},${(v * 0.78) | 0},${(v * 0.56) | 0})`;
+          ctx.fillRect(0, y0, S, al);
+          bctx.fillStyle = '#c8c8c8'; bctx.fillRect(0, y0 + 2, S, al - 3);
+          for (let k = 0; k < 7; k++) {
+            const yv = y0 + 3 + rnd() * (al - 6);
+            ctx.strokeStyle = 'rgba(48,28,14,0.42)'; ctx.lineWidth = 1.1;
+            ctx.beginPath(); ctx.moveTo(0, yv);
+            for (let x = 16; x <= S; x += 16) ctx.lineTo(x, yv + Math.sin(x * 0.03 + k) * 1.8);
+            ctx.stroke();
+          }
+          ctx.fillStyle = 'rgba(24,14,8,0.86)'; ctx.fillRect(0, y0, S, 3);
+          bctx.fillStyle = '#242424'; bctx.fillRect(0, y0, S, 3);
+        }
+      });
+    }
+
+    _kitSecretosRef = THREE;
+    _kitSecretosCache = {
+      matPiedra: new THREE.MeshStandardMaterial({
+        color: silleria.map ? 0x8ea0b5 : 0x475569,
+        map: silleria.map, bumpMap: silleria.bump, bumpScale: 0.16,
+        roughness: 0.84, metalness: 0.12
+      }),
+      matPiedraClara: new THREE.MeshStandardMaterial({
+        color: silleria.map ? 0xdbe4ef : 0x94a3b8,
+        map: silleria.map, bumpMap: silleria.bump, bumpScale: 0.12,
+        roughness: 0.68, metalness: 0.16
+      }),
+      matMosaico: new THREE.MeshStandardMaterial({
+        color: mosaico.map ? 0xe2e8f0 : 0x94a3b8,
+        map: mosaico.map, bumpMap: mosaico.bump, bumpScale: 0.14,
+        roughness: 0.58, metalness: 0.18
+      }),
+      matMadera: new THREE.MeshStandardMaterial({
+        color: madera.map ? 0x9c6b43 : 0x5c3a21,
+        map: madera.map, bumpMap: madera.bump, bumpScale: 0.14,
+        roughness: 0.88, metalness: 0.05
+      }),
+      matMaderaOscura: new THREE.MeshStandardMaterial({
+        color: madera.map ? 0x5c3c24 : 0x331e11,
+        map: madera.map, bumpMap: madera.bump, bumpScale: 0.15,
+        roughness: 0.91, metalness: 0.03
+      }),
+      matRuna: new THREE.MeshStandardMaterial({
+        color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.8, roughness: 0.1, metalness: 0.5
+      }),
+      matOro: new THREE.MeshStandardMaterial({
+        color: 0xf59e0b, roughness: 0.35, metalness: 0.85
+      }),
+      matAguaArcana: new THREE.MeshStandardMaterial({
+        color: 0x06b6d4, emissive: 0x0891b2, emissiveIntensity: 1.2, roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.85
+      }),
+      matLlama: new THREE.MeshStandardMaterial({
+        color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 2.2
+      })
+    };
+    return _kitSecretosCache;
+  }
+
   // Geometría 3D procedimental para cada tipo de lugar secreto con Three.js
-  function construirModeloSecreto(THREE, lugar, getAlturaFn) {
+  function construirModeloSecreto(THREE, lugar, getAlturaFn, opciones) {
+    const sinLuces = !!(opciones && opciones.sinLucesPuntuales);
     const grupo = new THREE.Group();
     grupo.name = 'LugarSecreto_' + lugar.id;
-    const ySuelo = getAlturaFn ? getAlturaFn(lugar.x, lugar.z) : 0;
+    const ySuelo = getAlturaFn ? getAlturaFn(lugar.x, lugar.z) : (typeof lugar.y === 'number' ? lugar.y : 0);
+    lugar.y = ySuelo;
+    lugar.alturaBase = ySuelo;
     grupo.position.set(lugar.x, ySuelo, lugar.z);
     grupo.rotation.y = lugar.rotacion || 0;
+    grupo.userData = {
+      lugarId: lugar.id,
+      tipo: lugar.tipo,
+      x: lugar.x,
+      y: ySuelo,
+      z: lugar.z,
+      rotacion: lugar.rotacion || 0,
+      radioSombra: lugar.tipo === 'cabana' ? 30 : 12,
+      lugarRef: lugar
+    };
 
-    const matPiedra = new THREE.MeshStandardMaterial({
-      color: 0x475569, roughness: 0.85, metalness: 0.15
-    });
-    const matPiedraClara = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8, roughness: 0.70, metalness: 0.20
-    });
-    const matMadera = new THREE.MeshStandardMaterial({
-      color: 0x5c3a21, roughness: 0.90, metalness: 0.05
-    });
-    const matMaderaOscura = new THREE.MeshStandardMaterial({
-      color: 0x331e11, roughness: 0.92, metalness: 0.02
-    });
-    const matRuna = new THREE.MeshStandardMaterial({
-      color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.8, roughness: 0.1, metalness: 0.5
-    });
-    const matOro = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b, roughness: 0.35, metalness: 0.85
-    });
-    const matAguaArcana = new THREE.MeshStandardMaterial({
-      color: 0x06b6d4, emissive: 0x0891b2, emissiveIntensity: 1.2, roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.85
-    });
+    const kitSec = obtenerMaterialesSecretos(THREE);
+    const matPiedra = kitSec.matPiedra;
+    const matPiedraClara = kitSec.matPiedraClara;
+    const matMosaico = kitSec.matMosaico;
+    const matMadera = kitSec.matMadera;
+    const matMaderaOscura = kitSec.matMaderaOscura;
+    const matRuna = kitSec.matRuna;
+    const matOro = kitSec.matOro;
+    const matAguaArcana = kitSec.matAguaArcana;
 
     if (lugar.tipo === 'fuente') {
       // 1. FUENTE ARCANA
-      // Base octogonal escalonada
+      // Base octogonal escalonada con pavimento de mosaico
       const baseGeo = new THREE.CylinderGeometry(4.2, 4.6, 0.45, 8);
-      const base = new THREE.Mesh(baseGeo, matPiedra);
+      const base = new THREE.Mesh(baseGeo, matMosaico);
       base.position.y = 0.22;
       base.castShadow = true; base.receiveShadow = true;
       grupo.add(base);
@@ -439,151 +741,67 @@
       orbe.position.y = 3.2;
       grupo.add(orbe);
 
-      // Luz puntual tenue
-      const luz = new THREE.PointLight(0x38bdf8, 1.8, 18, 1.6);
-      luz.position.y = 3.2;
-      grupo.add(luz);
+      // Luz puntual tenue (o metadato para luz compartida del supramundo sin recompilar shaders)
+      grupo.userData.luzLocal = { x: 0, y: 3.2, z: 0, color: 0x38bdf8, intensity: 1.8, distance: 18 };
+      if (!sinLuces) {
+        const luz = new THREE.PointLight(0x38bdf8, 1.8, 18, 1.6);
+        luz.position.y = 3.2;
+        grupo.add(luz);
+      }
 
     } else if (lugar.tipo === 'cabana') {
       // 2. CABAÑAS: Modelos GLB dedicados a ras de suelo y arquitectura arquitectónica proporcionada
       if (lugar.modeloGLB && typeof THREE.GLTFLoader !== 'undefined') {
-        // Carga asíncrona del modelo GLB con dimensionado arquitectónico óptimo y apoyo exacto en el suelo
-        const loader = new THREE.GLTFLoader();
-        loader.load(lugar.modeloGLB, gltf => {
-          const modelo = gltf.scene;
-
-          // 1. Eliminar cualquier terreno, suelo plano exterior, camino, agua o árboles incluidos dentro del archivo GLB
-          const nodosTerreno = [];
-          modelo.traverse(o => {
-            const nm = (o.name || '').toLowerCase();
-            const esMuroOTecho = nm.includes('muro') || nm.includes('techo') || nm.includes('fronton') ||
-                                 nm.includes('cristal') || nm.includes('marco') || nm.includes('puerta') ||
-                                 nm.includes('cumbrera') || nm.includes('porche') || nm.includes('chimenea') ||
-                                 nm.includes('mesa') || nm.includes('silla') || nm.includes('cama') ||
-                                 nm.includes('cofre') || nm.includes('barril') || nm.includes('farol') ||
-                                 nm.includes('poste') || nm.includes('escalon') || nm.includes('hogar') ||
-                                 nm.includes('fuego') || nm.includes('dintel') || nm.includes('entramado') ||
-                                 nm.includes('tejado') || nm.includes('colchon') || nm.includes('almohada') ||
-                                 nm.includes('manta') || nm.includes('cajon') || nm.includes('barca') ||
-                                 nm.includes('asiento') || nm.includes('muelle') || nm.includes('pilote');
-
-            if (!esMuroOTecho) {
-              if (nm.includes('hierba') || nm.includes('camino') || nm.includes('suelo') ||
-                  nm.includes('agua') || nm.includes('grass') || nm.includes('ground') ||
-                  nm.includes('terrain') || nm.includes('water') || nm.includes('arbol') ||
-                  nm.includes('tree') || nm.includes('tronco') || nm.includes('copa') ||
-                  nm.includes('plane') || nm.includes('floor')) {
-                if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
-                  nodosTerreno.push(o);
-                }
-              }
-            }
-          });
-
-          // Detectar además mallas que sean planos horizontales de suelo exterior sin nombre
-          modelo.traverse(o => {
-            if (o.isMesh && o.geometry && !nodosTerreno.includes(o)) {
-              if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
-              const bb = o.geometry.boundingBox;
-              if (bb) {
-                const dy = bb.max.y - bb.min.y;
-                const dx = bb.max.x - bb.min.x;
-                const dz = bb.max.z - bb.min.z;
-                if (dy < 0.45 && (dx > 8.0 || dz > 8.0)) {
-                  const nm = (o.name || '').toLowerCase();
-                  if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
-                    nodosTerreno.push(o);
-                  }
-                }
-              }
-            }
-          });
-
-          nodosTerreno.forEach(o => {
-            if (o.parent) o.parent.remove(o);
-            o.visible = false;
-            if (o.geometry) {
-              try { o.geometry.dispose(); } catch (e) {}
-            }
-          });
-
-          // 2. Calcular el bounding box de la estructura real del edificio limpio
-          const bboxEdificio = new THREE.Box3().setFromObject(modelo);
-          const sizeEdificio = new THREE.Vector3();
-          bboxEdificio.getSize(sizeEdificio);
-          const maxHoriz = Math.max(sizeEdificio.x, sizeEdificio.z, 0.1);
-
-          // Escala real proporcionada para un ancho de 27.5 metros reales (+30% adicional para gran presencia)
-          const escala = 27.5 / maxHoriz;
-          modelo.scale.setScalar(escala);
-
-          // 3. Centrar el edificio y apoyar la base sobre la solera de piedra
-          const bboxEscalado = new THREE.Box3().setFromObject(modelo);
-          const anchoX = Math.max(19.0, bboxEscalado.max.x - bboxEscalado.min.x);
-          const profZ = Math.max(16.0, bboxEscalado.max.z - bboxEscalado.min.z);
-          const centroX = (bboxEscalado.max.x + bboxEscalado.min.x) / 2;
-          const centroZ = (bboxEscalado.max.z + bboxEscalado.min.z) / 2;
-
-          modelo.position.set(-centroX, -bboxEscalado.min.y + 0.20, -centroZ);
-
-          modelo.traverse(o => {
-            if (o.isMesh) {
-              o.castShadow = true;
-              o.receiveShadow = true;
-              if (o.material) {
-                const mats = Array.isArray(o.material) ? o.material : [o.material];
-                mats.forEach(m => {
-                  if (m) {
-                    m.roughness = Math.min(0.92, Math.max(0.45, m.roughness || 0.7));
-                    if (typeof m.metalness === 'number') m.metalness = Math.min(0.25, m.metalness);
-                  }
-                });
-              }
-            }
-          });
+        const montarCabanaLimpia = (entradaCache, usarClon) => {
+          const modelo = usarClon ? clonarModeloCabanaLimpio(THREE, entradaCache.escena) : entradaCache.escena;
+          const anchoX = entradaCache.anchoX;
+          const profZ = entradaCache.profZ;
           grupo.add(modelo);
 
           if (!lugar.esMar) {
-            // 4. Zócalo de piedra rústica robusto para asentar la cabaña y absorber desniveles en pendiente
-            const altoZocalo = 6.0;
-            const zocalo = new THREE.Mesh(
-              new THREE.BoxGeometry(anchoX * 1.06, altoZocalo, profZ * 1.06),
-              matPiedra
+            // 4. Zócalo subterráneo de piedra rústica para asentar firmemente la cabaña en cualquier ladera
+            const altoZocalo = 16.0;
+            const zocaloGeo = aplicarUVBoxSecreto(
+              new THREE.BoxGeometry(anchoX * 1.04, altoZocalo, profZ * 1.04),
+              anchoX * 1.04, altoZocalo, profZ * 1.04, 3.2
             );
-            // Sobresale 0.20m en la cota superior y se entierra 5.8m en el terreno
-            zocalo.position.set(0, -altoZocalo / 2 + 0.20, 0);
+            const zocalo = new THREE.Mesh(zocaloGeo, matPiedra);
+            // Se entierra profundamente en el terreno (16m) para que nunca quede volando en desniveles o laderas
+            zocalo.position.set(0, -altoZocalo / 2 + 0.05, 0);
             zocalo.castShadow = true;
             zocalo.receiveShadow = true;
             grupo.add(zocalo);
 
-            // Escalón de acceso al frente de la cabaña
-            const frenteZ = (profZ / 2) + 0.8;
-            const escalonEntrada = new THREE.Mesh(
-              new THREE.BoxGeometry(5.6, 0.30, 2.0),
-              matPiedraClara
+            // Escalón de acceso labrado al frente de la cabaña asentado en el suelo
+            const frenteZ = (profZ / 2) + 0.6;
+            const escalonGeo = aplicarUVBoxSecreto(
+              new THREE.BoxGeometry(4.2, 0.15, 1.4),
+              4.2, 0.15, 1.4, 2.0
             );
-            escalonEntrada.position.set(0, 0.10, frenteZ);
+            const escalonEntrada = new THREE.Mesh(escalonGeo, matMosaico);
+            escalonEntrada.position.set(0, 0.02, frenteZ);
             escalonEntrada.castShadow = true;
             escalonEntrada.receiveShadow = true;
             grupo.add(escalonEntrada);
 
             // Hoguera acogedora exterior en la explanada de la terraza
-            const hogueraZ = frenteZ + 3.8;
-            const fuegoBase = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.20, 6, 12), matPiedra);
+            const hogueraZ = frenteZ + 2.8;
+            const fuegoBase = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.16, 6, 12), matPiedra);
             fuegoBase.rotation.x = Math.PI / 2;
-            fuegoBase.position.set(-4.8, 0.08, hogueraZ);
+            fuegoBase.position.set(-3.8, 0.03, hogueraZ);
             fuegoBase.receiveShadow = true;
             grupo.add(fuegoBase);
 
-            const llama = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.1, 6), new THREE.MeshStandardMaterial({
-              color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 2.2
-            }));
-            llama.position.set(-4.8, 0.65, hogueraZ);
+            const llama = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 6), kitSec.matLlama);
+            llama.position.set(-3.8, 0.50, hogueraZ);
             grupo.add(llama);
 
-            const luzFuego = new THREE.PointLight(0xf97316, 2.2, 22, 1.8);
-            luzFuego.position.set(-4.8, 1.2, hogueraZ);
-            grupo.add(luzFuego);
+            grupo.userData.luzLocal = { x: -3.8, y: 1.0, z: hogueraZ, color: 0xf97316, intensity: 2.0, distance: 18 };
+            if (!sinLuces) {
+              const luzFuego = new THREE.PointLight(0xf97316, 2.0, 18, 1.8);
+              luzFuego.position.set(-3.8, 1.0, hogueraZ);
+              grupo.add(luzFuego);
+            }
           } else {
             // Cabaña marina / lacustre en el agua sobre pilotes de madera hacia el fondo del río o mar
             const altoPilotes = 4.5;
@@ -602,28 +820,134 @@
               grupo.add(p);
             });
           }
+        };
 
-        }, undefined, () => {
-          // Si falla o no encuentra el GLB, genera la cabaña procedural como respaldo
-          generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
-        });
+        if (_cabanaGlbCache.has(lugar.modeloGLB)) {
+          montarCabanaLimpia(_cabanaGlbCache.get(lugar.modeloGLB), true);
+        } else {
+          // Carga asíncrona del modelo GLB con dimensionado arquitectónico óptimo y apoyo exacto en el suelo
+          const loader = new THREE.GLTFLoader();
+          loader.load(lugar.modeloGLB, gltf => {
+            const modelo = gltf.scene;
+
+            // 1. Eliminar cualquier terreno, suelo plano exterior, camino, agua o árboles incluidos dentro del archivo GLB
+            const nodosTerreno = [];
+            modelo.traverse(o => {
+              const nm = (o.name || '').toLowerCase();
+              const esMuroOTecho = nm.includes('muro') || nm.includes('techo') || nm.includes('fronton') ||
+                                   nm.includes('cristal') || nm.includes('marco') || nm.includes('puerta') ||
+                                   nm.includes('cumbrera') || nm.includes('porche') || nm.includes('chimenea') ||
+                                   nm.includes('mesa') || nm.includes('silla') || nm.includes('cama') ||
+                                   nm.includes('cofre') || nm.includes('barril') || nm.includes('farol') ||
+                                   nm.includes('poste') || nm.includes('escalon') || nm.includes('hogar') ||
+                                   nm.includes('fuego') || nm.includes('dintel') || nm.includes('entramado') ||
+                                   nm.includes('tejado') || nm.includes('colchon') || nm.includes('almohada') ||
+                                   nm.includes('manta') || nm.includes('cajon') || nm.includes('barca') ||
+                                   nm.includes('asiento') || nm.includes('muelle') || nm.includes('pilote');
+
+              if (!esMuroOTecho) {
+                if (nm.includes('hierba') || nm.includes('camino') || nm.includes('suelo') ||
+                    nm.includes('agua') || nm.includes('grass') || nm.includes('ground') ||
+                    nm.includes('terrain') || nm.includes('water') || nm.includes('arbol') ||
+                    nm.includes('tree') || nm.includes('tronco') || nm.includes('copa') ||
+                    nm.includes('plane') || nm.includes('floor')) {
+                  if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
+                    nodosTerreno.push(o);
+                  }
+                }
+              }
+            });
+
+            // Detectar además mallas que sean planos horizontales de suelo exterior sin nombre
+            modelo.traverse(o => {
+              if (o.isMesh && o.geometry && !nodosTerreno.includes(o)) {
+                if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+                const bb = o.geometry.boundingBox;
+                if (bb) {
+                  const dy = bb.max.y - bb.min.y;
+                  const dx = bb.max.x - bb.min.x;
+                  const dz = bb.max.z - bb.min.z;
+                  if (dy < 0.45 && (dx > 8.0 || dz > 8.0)) {
+                    const nm = (o.name || '').toLowerCase();
+                    if (nm !== 'suelopb' && nm !== 'suelopa' && nm !== 'torresuelo') {
+                      nodosTerreno.push(o);
+                    }
+                  }
+                }
+              }
+            });
+
+            nodosTerreno.forEach(o => {
+              if (o.parent) o.parent.remove(o);
+              o.visible = false;
+              if (o.geometry) {
+                try { o.geometry.dispose(); } catch (e) {}
+              }
+            });
+
+            // 2. Calcular el bounding box de la estructura real del edificio limpio
+            const bboxEdificio = new THREE.Box3().setFromObject(modelo);
+            const sizeEdificio = new THREE.Vector3();
+            bboxEdificio.getSize(sizeEdificio);
+            const maxHoriz = Math.max(sizeEdificio.x, sizeEdificio.z, 0.1);
+
+            // Escala proporcionada y armoniosa con el contorno (21.0 metros reales)
+            const escala = 21.0 / maxHoriz;
+            modelo.scale.setScalar(escala);
+
+            // 3. Centrar el edificio y apoyar la base exactamente a ras de suelo
+            const bboxEscalado = new THREE.Box3().setFromObject(modelo);
+            const anchoX = Math.max(14.0, bboxEscalado.max.x - bboxEscalado.min.x);
+            const profZ = Math.max(12.0, bboxEscalado.max.z - bboxEscalado.min.z);
+            const centroX = (bboxEscalado.max.x + bboxEscalado.min.x) / 2;
+            const centroZ = (bboxEscalado.max.z + bboxEscalado.min.z) / 2;
+
+            modelo.position.set(-centroX, -bboxEscalado.min.y + 0.02, -centroZ);
+
+            modelo.traverse(o => {
+              if (o.isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+                if (o.material) {
+                  const mats = Array.isArray(o.material) ? o.material : [o.material];
+                  mats.forEach(m => {
+                    if (m) {
+                      m.roughness = Math.min(0.92, Math.max(0.45, m.roughness || 0.7));
+                      if (typeof m.metalness === 'number') m.metalness = Math.min(0.25, m.metalness);
+                    }
+                  });
+                }
+              }
+            });
+
+            const entradaCache = { escena: modelo, anchoX, profZ };
+            if (modelo && typeof modelo.clone === 'function') {
+              _cabanaGlbCache.set(lugar.modeloGLB, { escena: modelo.clone(true), anchoX, profZ });
+            }
+            montarCabanaLimpia(entradaCache, false);
+          }, undefined, () => {
+            // Si falla o no encuentra el GLB, genera la cabaña procedural como respaldo
+            generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
+          });
+        }
       } else {
         generarCabanaProcedural(THREE, grupo, matMadera, matMaderaOscura, matPiedra);
       }
     } else if (lugar.tipo === 'altar') {
       // 3. ALTAR RÚNICO
-      // Plataforma cuadrada de piedra
-      const losaBase = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.35, 5.2), matPiedra);
+      // Plataforma cuadrada escalonada de piedra labrada y mosaico ceremonial
+      const losaBase = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(5.2, 0.35, 5.2), 5.2, 0.35, 5.2, 2.6), matPiedra);
       losaBase.position.y = 0.18;
       losaBase.castShadow = true; losaBase.receiveShadow = true;
       grupo.add(losaBase);
 
-      const losaSup = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.3, 3.6), matPiedraClara);
+      const losaSup = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(3.6, 0.3, 3.6), 3.6, 0.3, 3.6, 1.8), matMosaico);
       losaSup.position.y = 0.48;
+      losaSup.receiveShadow = true;
       grupo.add(losaSup);
 
       // Mesa de ofrendas central
-      const mesa = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.9, 1.2), matPiedra);
+      const mesa = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(2.0, 0.9, 1.2), 2.0, 0.9, 1.2, 1.8), matPiedraClara);
       mesa.position.y = 1.05;
       mesa.castShadow = true;
       grupo.add(mesa);
@@ -633,42 +957,49 @@
       runaPlaca.position.y = 1.52;
       grupo.add(runaPlaca);
 
-      // Cuatro monolitos en las esquinas con runas
+      // Cuatro monolitos en las esquinas con runas (geometrías compartidas)
+      const geoPilarAltar = aplicarUVBoxSecreto(new THREE.BoxGeometry(0.55, 2.8, 0.55), 0.55, 2.8, 0.55, 1.8);
+      const geoRunaPilar = new THREE.BoxGeometry(0.3, 1.4, 0.58);
       [[-2.0, -2.0], [2.0, -2.0], [-2.0, 2.0], [2.0, 2.0]].forEach(([px, pz]) => {
-        const pilar = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.8, 0.55), matPiedra);
+        const pilar = new THREE.Mesh(geoPilarAltar, matPiedra);
         pilar.position.set(px, 1.55, pz);
         pilar.castShadow = true;
         grupo.add(pilar);
 
-        const runaPilar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.4, 0.58), matRuna);
+        const runaPilar = new THREE.Mesh(geoRunaPilar, matRuna);
         runaPilar.position.set(px, 1.6, pz);
         grupo.add(runaPilar);
       });
 
-      const luzAltar = new THREE.PointLight(0x38bdf8, 2.2, 16, 1.4);
-      luzAltar.position.y = 2.4;
-      grupo.add(luzAltar);
+      grupo.userData.luzLocal = { x: 0, y: 2.4, z: 0, color: 0x38bdf8, intensity: 2.2, distance: 16 };
+      if (!sinLuces) {
+        const luzAltar = new THREE.PointLight(0x38bdf8, 2.2, 16, 1.4);
+        luzAltar.position.y = 2.4;
+        grupo.add(luzAltar);
+      }
 
     } else {
-      // 4. SANTUARIO DE PIEDRA Y LUZ (Círculo ceremonial de monolitos de estilo Stonehenge)
-      const baseCirculo = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 0.3, 24), matPiedra);
+      // 4. SANTUARIO DE PIEDRA Y LUZ (Círculo ceremonial de monolitos con pavimento de mosaico)
+      const baseCirculo = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 0.3, 16), matMosaico);
       baseCirculo.position.y = 0.15;
       baseCirculo.receiveShadow = true;
       grupo.add(baseCirculo);
 
-      // 6 Monolitos en círculo con dintel
+      // 6 Monolitos en círculo con dintel (geometrías compartidas)
       const numPilares = 6;
+      const geoColSan = aplicarUVBoxSecreto(new THREE.BoxGeometry(0.7, 3.4, 0.5), 0.7, 3.4, 0.5, 2.0);
+      const geoDintelSan = aplicarUVBoxSecreto(new THREE.BoxGeometry(1.6, 0.35, 0.6), 1.6, 0.35, 0.6, 2.0);
       for (let i = 0; i < numPilares; i++) {
         const a = (i / numPilares) * Math.PI * 2;
         const px = Math.cos(a) * 4.4, pz = Math.sin(a) * 4.4;
-        const col = new THREE.Mesh(new THREE.BoxGeometry(0.7, 3.4, 0.5), matPiedra);
+        const col = new THREE.Mesh(geoColSan, matPiedra);
         col.position.set(px, 1.8, pz);
         col.lookAt(0, 1.8, 0);
         col.castShadow = true;
         grupo.add(col);
 
-        // Banda dorada superior
-        const dintel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 0.6), matPiedraClara);
+        // Banda superior de sillería clara
+        const dintel = new THREE.Mesh(geoDintelSan, matPiedraClara);
         dintel.position.set(px, 3.65, pz);
         dintel.lookAt(0, 3.65, 0);
         dintel.castShadow = true;
@@ -680,9 +1011,12 @@
       gemaCentral.position.y = 2.2;
       grupo.add(gemaCentral);
 
-      const luzSan = new THREE.PointLight(0xf59e0b, 2.4, 22, 1.5);
-      luzSan.position.y = 2.5;
-      grupo.add(luzSan);
+      grupo.userData.luzLocal = { x: 0, y: 2.5, z: 0, color: 0xf59e0b, intensity: 2.4, distance: 22 };
+      if (!sinLuces) {
+        const luzSan = new THREE.PointLight(0xf59e0b, 2.4, 22, 1.5);
+        luzSan.position.y = 2.5;
+        grupo.add(luzSan);
+      }
     }
 
     return grupo;
@@ -695,52 +1029,53 @@
     if (!THREE) return;
     // SIN SUELO ARTIFICIAL: La cabaña descansa directamente sobre el terreno nivelado
 
-    // Muros amplios de madera rústica (+30%: 15.6m ancho x 7.0m alto x 12.8m profundidad)
-    const ancho = 15.6, alto = 7.0, prof = 12.8;
-    const muroP = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, prof), matMadera);
-    muroP.position.y = alto / 2;
+    // Muros proporcionados de madera rústica integrados a ras de suelo (15.6m ancho x 6.4m alto x 12.0m profundidad)
+    const ancho = 15.6, alto = 6.4, prof = 12.0;
+    const muroP = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(ancho, alto, prof), ancho, alto, prof, 3.2), matMadera);
+    muroP.position.y = alto / 2 + 0.02;
     muroP.castShadow = true; muroP.receiveShadow = true;
     grupo.add(muroP);
 
     // Puerta robusta de madera
-    const puerta = new THREE.Mesh(new THREE.BoxGeometry(2.6, 4.4, 0.3), matMaderaOscura);
-    puerta.position.set(0, 2.2, (prof / 2) + 0.1);
+    const puerta = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(2.4, 4.0, 0.3), 2.4, 4.0, 0.3, 2.0), matMaderaOscura);
+    puerta.position.set(0, 2.0 + 0.02, (prof / 2) + 0.1);
     grupo.add(puerta);
 
     // Tejado a dos aguas piramidal
-    const tejadoGeo = new THREE.ConeGeometry(ancho * 0.72, 4.8, 4);
+    const tejadoGeo = new THREE.ConeGeometry(ancho * 0.72, 4.4, 4);
     if (tejadoGeo.rotateY) tejadoGeo.rotateY(Math.PI / 4);
     const tejado = new THREE.Mesh(tejadoGeo, matMaderaOscura);
-    tejado.position.y = alto + 2.4;
+    tejado.position.y = alto + 2.2 + 0.02;
     if (tejado.scale && tejado.scale.set) tejado.scale.set(1.15, 1.0, 0.95);
     tejado.castShadow = true;
     grupo.add(tejado);
 
     // Postes del porche
-    [-6.2, 6.2].forEach(px => {
-      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 6.5, 8), matMadera);
-      poste.position.set(px, 3.25, (prof / 2) + 1.8);
+    [-5.6, 5.6].forEach(px => {
+      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 6.0, 8), matMadera);
+      poste.position.set(px, 3.0 + 0.02, (prof / 2) + 1.6);
       poste.castShadow = true;
       grupo.add(poste);
     });
-    const aleroPorche = new THREE.Mesh(new THREE.BoxGeometry(15.2, 0.40, 3.6), matMaderaOscura);
-    aleroPorche.position.set(0, 6.5, (prof / 2) + 1.2);
+    const aleroPorche = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(14.6, 0.35, 3.2), 14.6, 0.35, 3.2, 3.0), matMaderaOscura);
+    aleroPorche.position.set(0, 6.0 + 0.02, (prof / 2) + 1.1);
     grupo.add(aleroPorche);
 
-    // Zócalo de piedra rústica para absorción de desniveles
-    const zocaloProc = new THREE.Mesh(new THREE.BoxGeometry(ancho * 1.05, 3.6, prof * 1.05), matPiedra);
-    zocaloProc.position.set(0, -1.65, 0);
+    // Zócalo de piedra rústica para absorción de desniveles a ras de suelo
+    const altoZocalo = 7.5;
+    const zocaloProc = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(ancho * 1.04, altoZocalo, prof * 1.04), ancho * 1.04, altoZocalo, prof * 1.04, 3.2), matPiedra);
+    zocaloProc.position.set(0, -altoZocalo / 2 + 0.05, 0);
     zocaloProc.castShadow = true; zocaloProc.receiveShadow = true;
     grupo.add(zocaloProc);
 
     // Chimenea de piedra
-    const chimenea = new THREE.Mesh(new THREE.BoxGeometry(2.0, 9.8, 2.0), matPiedra);
-    chimenea.position.set(6.0, 5.2, -3.6);
+    const chimenea = new THREE.Mesh(aplicarUVBoxSecreto(new THREE.BoxGeometry(1.8, 9.0, 1.8), 1.8, 9.0, 1.8, 2.4), matPiedra);
+    chimenea.position.set(5.4, 4.8 + 0.02, -3.2);
     chimenea.castShadow = true;
     grupo.add(chimenea);
   }
 
-  // Hondonada y aplanado topográfico para cabañas en pendiente
+  // Hondonada y aplanado topográfico para cabañas en pendiente con pendientes suaves
   function aplicarRebajeCabanas(lugares, x, z, hActual, getElevationFn) {
     if (!lugares || !lugares.length) return hActual;
     let hMod = hActual;
@@ -751,27 +1086,251 @@
       if (s.esMar) continue;
 
       const d = Math.hypot(x - s.x, z - s.z);
-      const rPlano = s.radioPlano || 14.5;
-      const rTotal = s.radioRebaje || 26.0;
+      const rPlano = s.radioPlano || 16.0;
+      const rTotal = s.radioRebaje || 36.0;
       if (d >= rTotal) continue;
 
       let hBase = s.alturaBase;
       if (typeof hBase !== 'number') {
         hBase = (typeof getElevationFn === 'function') ? getElevationFn(s.x, s.z) : (typeof s.y === 'number' ? s.y : hActual);
+        s.alturaBase = hBase;
+        s.y = hBase;
       }
       const hHondonada = hBase;
 
-      // Desmonte en ladera: solo se rebaja el terreno que queda POR ENCIMA de la explanada (hActual > hHondonada).
-      // Si el terreno ya es inferior (ladera abajo), no se levanta, evitando el efecto de "peñón" o promontorio abrupto.
-      if (hActual > hHondonada) {
-        const t = Math.max(0, Math.min(1, (d - rPlano) / (rTotal - rPlano)));
-        const w = 1 - (t * t * (3 - 2 * t));
-        if (w > 0) {
-          hMod = hMod + (hHondonada - hMod) * w;
-        }
+      // Explanada aterrazada con pendientes suaves:
+      // Dentro de rPlano (16m) el suelo queda nivelado a la cota base de la cabaña (hHondonada) tanto
+      // cuesta arriba como cuesta abajo para asegurar que la cabaña nunca quede flotando en el aire.
+      // Entre rPlano y rTotal (36m) transiciona suavemente hacia la ladera natural.
+      const t = Math.max(0, Math.min(1, (d - rPlano) / (rTotal - rPlano)));
+      const w = 1 - (t * t * (3 - 2 * t));
+      if (w > 0) {
+        hMod = hMod + (hHondonada - hMod) * w;
       }
     }
     return hMod;
+  }
+
+  // Contexto narrativo que conecta las 5 cabañas fronterizas con la trama de Aden
+  function contextoCabana(cabanaOrId, principal) {
+    const id = typeof cabanaOrId === 'string'
+      ? cabanaOrId
+      : (cabanaOrId && (cabanaOrId.cabanaId || cabanaOrId.id || cabanaOrId.nombre)) || '';
+    const def = CABANAS_GLB.find(c => c.id === id || c.nombre === id) || null;
+    const paso = principal && typeof principal.paso === 'number' ? principal.paso : 0;
+    const tramaBase = (cabanaOrId && cabanaOrId.trama)
+      || (def && def.trama)
+      || 'Las bestias alteradas rodean este puesto avanzado y amenazan las rutas entre aldeas.';
+    let estadoActo = 'Acto I–II · Resistencia rural bajo vigilancia del cónclave.';
+    if (paso >= 16) estadoActo = 'Epílogo · Limpieza final de focos salvajes tras la caída de los Sabios.';
+    else if (paso >= 11) estadoActo = 'Acto III–IV · Consolidación de rutas libres tras quebrar el monopolio.';
+    return {
+      titulo: (def && def.nombre) || (cabanaOrId && cabanaOrId.nombre) || 'Puesto Fronterizo',
+      trama: tramaBase,
+      estadoActo
+    };
+  }
+
+  // Bloque H4: Encargo de cabaña en 3 Fases cortas vs Cacería Mayor tradicional (100 monstruos)
+  function elegirModalidadCabana(cabana, modalidad) {
+    if (!cabana || !cabana.misionCabana) return { yaAceptada: false, modalidad: null, estado: null };
+    const m = cabana.misionCabana;
+    if (m.aceptada && m.modalidad) {
+      return { yaAceptada: true, modalidad: m.modalidad, estado: estadoMisionCabana(cabana) };
+    }
+    const mod = modalidad === 'fases' ? 'fases' : 'caceria';
+    m.modalidad = mod;
+    m.aceptada = true;
+    cabana.descubierto = true;
+    m.progreso = 0;
+    m.faseActual = 1;
+    m.completada = false;
+    m.cumplida = false;
+    if (mod === 'fases') {
+      const cantF = m.cantidadFases || 15;
+      m.cantidad = cantF;
+      m.objetivoCantidad = cantF;
+      m.rastroEncontrado = false;
+      m.liderDerrotado = false;
+      m.multiplicadorPremio = 1;
+    } else {
+      m.cantidad = 100;
+      m.objetivoCantidad = 100;
+      m.multiplicadorPremio = 1.5;
+    }
+    return { yaAceptada: false, modalidad: mod, estado: estadoMisionCabana(cabana) };
+  }
+
+  function registrarProgresoCabana(cabana, evento) {
+    if (!cabana || !cabana.misionCabana || !evento) return { avanzo: false };
+    const m = cabana.misionCabana;
+    if (!m.aceptada || m.entregada || m.cumplida || m.completada) return { avanzo: false };
+    const inc = Math.max(1, Math.floor(evento.cantidad || 1));
+
+    if (m.modalidad === 'fases') {
+      const fase = m.faseActual || 1;
+      const cantF = m.cantidad || m.cantidadFases || 15;
+      if (fase === 1 && evento.tipo === 'matar') {
+        m.progreso = Math.min(cantF, (m.progreso || 0) + inc);
+        let faseCompletada = 0;
+        if (m.progreso >= cantF) {
+          m.faseActual = 2;
+          faseCompletada = 1;
+        }
+        return {
+          avanzo: true,
+          modalidad: 'fases',
+          faseCompletada,
+          nuevaFase: m.faseActual,
+          lanzarLider: false,
+          completarMision: false,
+          progreso: m.progreso,
+          total: cantF
+        };
+      }
+      if (fase === 2 && evento.tipo === 'rastro') {
+        m.rastroEncontrado = true;
+        m.faseActual = 3;
+        return {
+          avanzo: true,
+          modalidad: 'fases',
+          faseCompletada: 2,
+          nuevaFase: 3,
+          lanzarLider: true,
+          completarMision: false,
+          lore: m.rastroLore || '',
+          liderNombre: m.liderNombre || 'Líder Alfa'
+        };
+      }
+      if (fase === 3 && evento.tipo === 'lider') {
+        m.liderDerrotado = true;
+        m.completada = true;
+        return {
+          avanzo: true,
+          modalidad: 'fases',
+          faseCompletada: 3,
+          nuevaFase: 3,
+          lanzarLider: false,
+          completarMision: true,
+          liderNombre: m.liderNombre || 'Líder Alfa'
+        };
+      }
+      return { avanzo: false };
+    }
+
+    if (evento.tipo === 'matar') {
+      const cantMax = m.cantidad || m.objetivoCantidad || 100;
+      m.progreso = Math.min(cantMax, (m.progreso || 0) + inc);
+      if (m.progreso >= cantMax) m.completada = true;
+      return {
+        avanzo: true,
+        modalidad: m.modalidad || 'caceria',
+        faseCompletada: m.completada ? 1 : 0,
+        nuevaFase: 1,
+        lanzarLider: false,
+        completarMision: !!m.completada,
+        progreso: m.progreso,
+        total: cantMax
+      };
+    }
+    return { avanzo: false };
+  }
+
+  function estadoMisionCabana(cabana) {
+    if (!cabana || !cabana.misionCabana) return null;
+    const m = cabana.misionCabana;
+    const modalidad = m.modalidad || null;
+    const faseActual = m.faseActual || 1;
+    const aceptada = !!m.aceptada;
+    const entregada = !!(m.entregada || m.cumplida);
+    const completada = !!(m.completada || (modalidad !== 'fases' && aceptada && (m.progreso || 0) >= (m.cantidad || 100)));
+    const progreso = m.progreso || 0;
+    const total = m.cantidad || m.objetivoCantidad || (modalidad === 'fases' ? (m.cantidadFases || 15) : 100);
+    const off = m.rastroOffset || { dx: 28, dz: 10 };
+    const rastroX = Math.round((cabana.x + (off.dx || 0)) * 10) / 10;
+    const rastroZ = Math.round((cabana.z + (off.dz || 0)) * 10) / 10;
+
+    let pct = 0;
+    let etiquetaFase = '';
+    let resumenCorto = '';
+    let puntoObjetivo = { x: cabana.x, z: cabana.z, nombre: cabana.nombre || 'Cabaña' };
+
+    if (!aceptada) {
+      etiquetaFase = 'Por elegir modalidad';
+      resumenCorto = '📜 Elige encargo (3 Fases o 100)';
+    } else if (entregada) {
+      pct = 100;
+      etiquetaFase = 'Cobrada';
+      resumenCorto = '✓ Cobrada';
+    } else if (completada) {
+      pct = 100;
+      etiquetaFase = '¡Lista para cobrar!';
+      resumenCorto = '🎉 ¡Lista para cobrar!';
+    } else if (modalidad === 'fases') {
+      if (faseActual === 1) {
+        pct = Math.min(60, Math.round((progreso / Math.max(1, total)) * 60));
+        etiquetaFase = `Fase 1/3 · Despejar manada (${progreso}/${total})`;
+        resumenCorto = `Fase 1/3: ${progreso}/${total}`;
+        puntoObjetivo = { x: cabana.x, z: cabana.z, nombre: `Caza en ${m.zonaNombre || cabana.nombre}` };
+      } else if (faseActual === 2 && !m.rastroEncontrado) {
+        pct = 66;
+        etiquetaFase = `Fase 2/3 · Inspeccionar ${m.rastroNombre || 'el rastro'} [E]`;
+        resumenCorto = `Fase 2/3: Rastro [E]`;
+        puntoObjetivo = { x: rastroX, z: rastroZ, nombre: m.rastroNombre || 'Rastro sospechoso' };
+      } else {
+        pct = 86;
+        etiquetaFase = `Fase 3/3 · Abatir a ${m.liderNombre || 'Líder Alfa'}`;
+        resumenCorto = `Fase 3/3: ${m.liderNombre || 'Líder Alfa'}`;
+        puntoObjetivo = { x: cabana.x, z: cabana.z, nombre: m.liderNombre || 'Líder Alfa' };
+      }
+    } else {
+      pct = Math.min(100, Math.round((progreso / Math.max(1, total)) * 100));
+      etiquetaFase = `Cacería Mayor · ${progreso}/${total} (+50% premio)`;
+      resumenCorto = `${progreso}/${total} (+50%)`;
+    }
+
+    return {
+      modalidad,
+      faseActual,
+      aceptada,
+      completada,
+      entregada,
+      progreso,
+      total,
+      pct,
+      etiquetaFase,
+      resumenCorto,
+      puntoObjetivo
+    };
+  }
+
+  function recompensaCabana(cabana, rng) {
+    const r = typeof rng === 'function' ? rng : Math.random;
+    const m = (cabana && cabana.misionCabana) || {};
+    const rec = m.recompensa || {};
+    const esCaceria = m.modalidad === 'caceria';
+    const mult = esCaceria ? (m.multiplicadorPremio || 1.5) : 1;
+
+    const baseOro = rec.oro || (Math.floor(r() * ((rec.oroMax || 2000) - (rec.oroMin || 1) + 1)) + (rec.oroMin || 1));
+    const baseArena = rec.arena || (Math.floor(r() * ((rec.arenaMax || 50) - (rec.arenaMin || 10) + 1)) + (rec.arenaMin || 10));
+    const oro = Math.round(baseOro * mult);
+    const arena = Math.round(baseArena * mult);
+    const pociones = Math.round((rec.pociones || rec.pocionesVida || 4) * (esCaceria ? 1.5 : 1));
+    const armNivel = rec.armaduraNivel || ((m.nivelMonstruo || 1) * (rec.nivelPiezaMultiplicador || 10));
+    const armCalidad = Math.min(0.99, rec.armaduraCalidad || (0.50 + r() * 0.40));
+    const armNombre = rec.armaduraNombre || ('Peto Reforzado de Cazador Nv.' + armNivel);
+
+    return {
+      oro,
+      arena,
+      pociones,
+      xp: esCaceria ? 250 : 160,
+      armaduraNivel: armNivel,
+      armaduraCalidad: armCalidad,
+      armaduraNombre: armNombre,
+      deltaRep: esCaceria ? { pueblo: 3, vinculo: 1 } : { pueblo: 2, vinculo: 1 },
+      titulo: esCaceria ? 'Cazador Veterano de Frontera' : null
+    };
   }
 
   const api = {
@@ -779,7 +1338,12 @@
     CABANAS_GLB,
     generarLugaresSecretos,
     construirModeloSecreto,
-    aplicarRebajeCabanas
+    aplicarRebajeCabanas,
+    contextoCabana,
+    elegirModalidadCabana,
+    registrarProgresoCabana,
+    estadoMisionCabana,
+    recompensaCabana
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

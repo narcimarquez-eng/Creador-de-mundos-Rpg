@@ -13,6 +13,13 @@
   'use strict';
 
   const VARIANTES = ['cabana', 'rota', 'piedra', 'taller', 'choza'];
+  const MADERAS = ['t01', 't03', 't04', 't05', 't06', 't07', 't08', 't09', 't10'];
+  const MADERAS_TRONCOS = ['t02', 't08'];
+  const MADERAS_OSCURAS = ['t05', 't08', 't10'];
+  const MADERAS_PUERTA = ['t01', 't05', 't06', 't09'];
+  const MADERAS_TODAS = ['t01', 't02', 't03', 't04', 't05', 't06', 't07', 't08', 't09', 't10'];
+  const TEJADOS = ['t01', 't02', 't03', 't04', 't06', 't07', 't08', 't09', 't10'];
+  const TEJADOS_TODAS = ['t01', 't02', 't03', 't04', 't05', 't06', 't07', 't08', 't09', 't10'];
 
   // Generador determinista (la misma semilla da la misma cabaña en cada carga)
   function rnd(seed) {
@@ -21,84 +28,266 @@
   }
 
   let texCache = null, matCache = null;
+  const fotoCache = new Map();
+  const matVarCache = new Map();
+
+  function cargarFoto(THREE, ruta) {
+    if (!ruta) return null;
+    if (fotoCache.has(ruta)) return fotoCache.get(ruta);
+    if (typeof document === 'undefined' || !THREE || !THREE.TextureLoader) return null;
+    const t = new THREE.TextureLoader().load(ruta, tex => { tex.needsUpdate = true; });
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    fotoCache.set(ruta, t);
+    return t;
+  }
+
   function texturas(THREE) {
     if (texCache) return texCache;
-    const hacer = (w, h, pintar) => {
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      pintar(c.getContext('2d'), w, h);
+    if (typeof document === 'undefined') {
+      texCache = {};
+      return texCache;
+    }
+    const hacerPar = (w, h, pintar) => {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const b = document.createElement('canvas'); b.width = w; b.height = h;
+      pintar(c.getContext('2d'), b.getContext('2d'), w, h);
       const t = new THREE.CanvasTexture(c);
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 4;
-      return t;
+      if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 8;
+      const tb = new THREE.CanvasTexture(b);
+      tb.wrapS = tb.wrapT = THREE.RepeatWrapping;
+      tb.anisotropy = 8;
+      return { map: t, bump: tb };
     };
+
+    // 1. Tablones de roble envejecido (512x512): respaldo cuando no hay TextureLoader
+    const maderaPar = hacerPar(512, 512, (g, bg, w, h) => {
+      const r = rnd(7), filas = 16, al = h / filas;
+      bg.fillStyle = '#a8a8a8'; bg.fillRect(0, 0, w, h);
+      for (let i = 0; i < filas; i++) {
+        const y0 = i * al;
+        const br = 128 + ((r() * 34) | 0), bgc = 86 + ((r() * 22) | 0), bb = 50 + ((r() * 14) | 0);
+        g.fillStyle = `rgb(${br},${bgc},${bb})`;
+        g.fillRect(0, y0, w, al);
+        bg.fillStyle = `rgb(${155 + ((r() * 30) | 0)},${155 + ((r() * 30) | 0)},${155 + ((r() * 30) | 0)})`;
+        bg.fillRect(0, y0 + 2, w, al - 3);
+        g.fillStyle = 'rgba(235,198,148,0.22)';
+        g.fillRect(0, y0 + 2, w, 2);
+        for (let k = 0; k < 9; k++) {
+          const yv = y0 + 3 + r() * (al - 6);
+          const osc = r() < 0.65;
+          g.strokeStyle = osc ? 'rgba(52,32,16,0.46)' : 'rgba(195,148,96,0.24)';
+          g.lineWidth = 0.9 + r() * 1.1;
+          g.beginPath(); g.moveTo(0, yv);
+          bg.strokeStyle = osc ? 'rgba(95,95,95,0.45)' : 'rgba(205,205,205,0.35)';
+          bg.lineWidth = 1;
+          bg.beginPath(); bg.moveTo(0, yv);
+          const fase = r() * 6.28;
+          for (let x = 16; x <= w; x += 16) {
+            const yy = yv + Math.sin(x * 0.032 + fase) * 1.8;
+            g.lineTo(x, yy); bg.lineTo(x, yy);
+          }
+          g.stroke(); bg.stroke();
+        }
+        g.fillStyle = 'rgba(28,16,8,0.88)';
+        g.fillRect(0, y0, w, 3);
+        bg.fillStyle = '#222222';
+        bg.fillRect(0, y0, w, 3);
+      }
+    });
+
+    // 2. Tejas / tejamanil rústico (512x512): respaldo cuando no hay TextureLoader
+    const tejasPar = hacerPar(512, 512, (g, bg, w, h) => {
+      const r = rnd(11), filas = 14, al = h / filas, anchoT = 32;
+      g.fillStyle = '#3b2b1e'; g.fillRect(0, 0, w, h);
+      bg.fillStyle = '#303030'; bg.fillRect(0, 0, w, h);
+      for (let i = 0; i < filas; i++) {
+        const y0 = i * al;
+        const off = (i % 2) * (anchoT / 2);
+        for (let x = -off; x < w; x += anchoT) {
+          const t = 0.72 + r() * 0.32;
+          const cr = Math.min(245, Math.max(60, (168 * t) | 0));
+          const cg = Math.min(230, Math.max(48, (126 * t) | 0));
+          const cb = Math.min(210, Math.max(36, (88 * t) | 0));
+          g.fillStyle = `rgb(${cr},${cg},${cb})`;
+          g.fillRect(x + 1, y0, anchoT - 2, al - 2);
+          g.fillStyle = 'rgba(22,18,12,0.78)';
+          g.fillRect(x, y0 + al - 3, anchoT, 3);
+          bg.fillStyle = '#bcbcbc';
+          bg.fillRect(x + 2, y0, anchoT - 4, al - 2);
+        }
+      }
+    });
+
+    // 3. Mampostería concertada de piedra (512x512): sillares rústicos poligonales/rectangulares sin elipses
+    const piedraPar = hacerPar(512, 512, (g, bg, w, h) => {
+      const r = rnd(23);
+      g.fillStyle = '#4c4943'; g.fillRect(0, 0, w, h);
+      bg.fillStyle = '#202020'; bg.fillRect(0, 0, w, h);
+      const hileras = 9;
+      let y = 0;
+      for (let f = 0; f < hileras; f++) {
+        const altoH = f === hileras - 1 ? (h - y) : Math.round((h / hileras) * (0.82 + r() * 0.36));
+        const y1 = Math.min(h, y + altoH);
+        let x = -((f % 2) * 34);
+        while (x < w) {
+          const anchoB = Math.round(52 + r() * 56);
+          const x0 = Math.max(0, x + 3), x1 = Math.min(w, x + anchoB - 3);
+          const y0 = y + 3, yb = y1 - 3;
+          if (x1 - x0 > 10 && yb - y0 > 10) {
+            const t = 0.78 + r() * 0.30;
+            const cal = (r() - 0.5) * 16;
+            const cr = Math.min(220, (148 * t + cal) | 0);
+            const cg = Math.min(215, (143 * t + cal * 0.5) | 0);
+            const cb = Math.min(205, (132 * t) | 0);
+            const ch = 4; // chaflán poligonal de esquina
+            g.fillStyle = `rgb(${cr},${cg},${cb})`;
+            g.beginPath();
+            g.moveTo(x0 + ch, y0); g.lineTo(x1 - ch, y0); g.lineTo(x1, y0 + ch);
+            g.lineTo(x1, yb - ch); g.lineTo(x1 - ch, yb); g.lineTo(x0 + ch, yb);
+            g.lineTo(x0, yb - ch); g.lineTo(x0, y0 + ch); g.closePath(); g.fill();
+
+            // Margen cincelado y cara almohadillada interior
+            g.strokeStyle = 'rgba(232,226,214,0.28)'; g.lineWidth = 1.5;
+            g.strokeRect(x0 + 3, y0 + 3, Math.max(2, x1 - x0 - 6), Math.max(2, yb - y0 - 6));
+
+            // Veta mineral angular
+            if (r() < 0.45) {
+              g.strokeStyle = 'rgba(70,66,58,0.35)'; g.lineWidth = 1.1;
+              g.beginPath();
+              g.moveTo(x0 + 6, y0 + (yb - y0) * r());
+              g.lineTo((x0 + x1) * 0.5, y0 + (yb - y0) * r());
+              g.lineTo(x1 - 6, y0 + (yb - y0) * r());
+              g.stroke();
+            }
+
+            // Mapa de relieve escalonado
+            bg.fillStyle = '#a8a8a8';
+            bg.fillRect(x0 + 1, y0 + 1, x1 - x0 - 2, yb - y0 - 2);
+            bg.fillStyle = '#dedede';
+            bg.fillRect(x0 + 6, y0 + 6, Math.max(2, x1 - x0 - 12), Math.max(2, yb - y0 - 12));
+          }
+          x += anchoB;
+        }
+        y = y1;
+      }
+    });
+
     texCache = {
-      // Tablones: 16 hileras con vetas, juntas y extremos de tabla
-      madera: hacer(256, 256, (g, w, h) => {
-        const r = rnd(7), filas = 16, al = h / filas;
-        for (let i = 0; i < filas; i++) {
-          g.fillStyle = `rgb(${130 + r() * 30 | 0},${88 + r() * 18 | 0},${52 + r() * 12 | 0})`;
-          g.fillRect(0, i * al, w, al);
-          g.strokeStyle = 'rgba(55,35,20,0.55)';
-          for (let k = 0; k < 5; k++) {
-            const y0 = i * al + r() * al;
-            g.beginPath(); g.moveTo(0, y0);
-            for (let x = 0; x <= w; x += 32) g.lineTo(x, y0 + Math.sin(x * 0.05 + k) * 1.5);
-            g.lineWidth = 1; g.stroke();
-          }
-          g.fillStyle = 'rgba(35,22,12,0.85)';
-          g.fillRect(0, i * al, w, 2);
-          if (i % 2 === 0) g.fillRect(r() * w, i * al, 2, al);
-        }
-      }),
-      // Tejas: hileras de tejas redondeadas con bordes oscuros y musgo
-      tejas: hacer(256, 256, (g, w, h) => {
-        const r = rnd(11), filas = 12, al = h / filas;
-        for (let i = 0; i < filas; i++) {
-          for (let x = -16 * (i % 2); x < w; x += 32) {
-            const t = 0.75 + r() * 0.25;
-            g.fillStyle = `rgb(${165 * t | 0},${128 * t | 0},${92 * t | 0})`;
-            g.beginPath(); g.roundRect(x + 1, i * al, 30, al + 4, 4); g.fill();
-            g.fillStyle = 'rgba(30,28,20,0.7)';
-            g.fillRect(x + 1, i * al + al, 30, 2);
-            if (r() < 0.25) { g.fillStyle = 'rgba(70,110,50,0.5)'; g.fillRect(x + 4 + r() * 18, i * al + 3, 8, 5); }
-          }
-        }
-      }),
-      // Piedra: mampuestos irregulares sobre mortero
-      piedra: hacer(256, 256, (g, w, h) => {
-        const r = rnd(23);
-        g.fillStyle = '#6e6a61'; g.fillRect(0, 0, w, h);
-        for (let i = 0; i < 70; i++) {
-          const t = 0.8 + r() * 0.25;
-          g.fillStyle = `rgb(${150 * t | 0},${146 * t | 0},${136 * t | 0})`;
-          g.beginPath(); g.ellipse(r() * w, r() * h, 12 + r() * 16, 8 + r() * 10, r() * 3, 0, Math.PI * 2); g.fill();
-        }
-      }),
+      madera: maderaPar.map, maderaBump: maderaPar.bump,
+      tejas: tejasPar.map, tejasBump: tejasPar.bump,
+      piedra: piedraPar.map, piedraBump: piedraPar.bump,
     };
     return texCache;
   }
 
-  // Materiales compartidos por todas las cabañas
-  function materiales(THREE) {
-    if (matCache) return matCache;
-    const T = texturas(THREE);
-    matCache = {
-      madera: new THREE.MeshLambertMaterial({ map: T.madera, side: THREE.DoubleSide }),
-      oscura: new THREE.MeshLambertMaterial({ map: T.madera, color: 0x5a3a22, side: THREE.DoubleSide }),
-      troncos: new THREE.MeshLambertMaterial({ map: T.madera, color: 0x8a6444, side: THREE.DoubleSide }),
-      puerta: new THREE.MeshLambertMaterial({ map: T.madera, color: 0x3f5a3c, side: THREE.DoubleSide }),
-      piedra: new THREE.MeshLambertMaterial({ map: T.piedra, side: THREE.DoubleSide }),
-      tejas: new THREE.MeshLambertMaterial({ map: T.tejas, side: THREE.DoubleSide }),
-      cristal: new THREE.MeshStandardMaterial({ color: 0xffd08a, emissive: 0xffa040, emissiveIntensity: 0.9, roughness: 0.2 }),
-      hierro: new THREE.MeshLambertMaterial({ color: 0x2b2b2b, side: THREE.DoubleSide }),
-      carbon: new THREE.MeshLambertMaterial({ map: T.madera, color: 0x4a3d36, side: THREE.DoubleSide }),
-    };
-    return matCache;
+  function normTexId(id, pool, def) {
+    if (typeof id !== 'string') return def;
+    const clean = id.includes('/') ? id.split('/')[1] : id;
+    return pool.includes(clean) ? clean : def;
   }
 
-  // Proyección plana sobre el eje que no es la normal: los tablones y tejas no se estiran con el tamaño
+  // Selector determinista de maderas y tejado para una cabaña a partir de hashes [0..1)
+  function varianteTextura(h1, h2) {
+    const f1 = ((h1 % 1) + 1) % 1;
+    const f2 = ((h2 % 1) + 1) % 1;
+    const f3 = (((h1 * 3.17 + h2 * 7.31) % 1) + 1) % 1;
+    return {
+      madera: MADERAS[Math.floor(f1 * MADERAS.length) % MADERAS.length],
+      teja: TEJADOS[Math.floor(f2 * TEJADOS.length) % TEJADOS.length],
+      oscura: MADERAS_OSCURAS[Math.floor(f3 * MADERAS_OSCURAS.length) % MADERAS_OSCURAS.length],
+      puerta: MADERAS_PUERTA[Math.floor(((f1 + f2) % 1) * MADERAS_PUERTA.length) % MADERAS_PUERTA.length],
+      troncos: MADERAS_TRONCOS[Math.floor(f3 * MADERAS_TRONCOS.length) % MADERAS_TRONCOS.length]
+    };
+  }
+
+  // Materiales compartidos por todas las cabañas (admite variante { madera, teja, oscura, puerta, troncos })
+  function materiales(THREE, opts) {
+    const o = opts || {};
+    const mId = normTexId(o.madera, MADERAS_TODAS, 't01');
+    const tId = normTexId(o.teja, TEJADOS_TODAS, 't03');
+    const oscId = normTexId(o.oscura, MADERAS_TODAS, 't05');
+    const ptaId = normTexId(o.puerta, MADERAS_TODAS, 't06');
+    const trId = normTexId(o.troncos, MADERAS_TODAS, 't02');
+    const esDefecto = !opts;
+    if (esDefecto && matCache) return matCache;
+
+    const clave = `${mId}|${tId}|${oscId}|${ptaId}|${trId}`;
+    if (matVarCache.has(clave)) return matVarCache.get(clave);
+
+    const T = texturas(THREE);
+    const baseComun = matCache || (matCache = {
+      piedra: new THREE.MeshLambertMaterial({ map: T.piedra || null, bumpMap: T.piedraBump || null, bumpScale: 0.22, side: THREE.DoubleSide }),
+      cristal: new THREE.MeshStandardMaterial({ color: 0xffd08a, emissive: 0xffa040, emissiveIntensity: 0.9, roughness: 0.2 }),
+      hierro: new THREE.MeshLambertMaterial({ color: 0x2b2b2b, side: THREE.DoubleSide }),
+      carbon: (() => {
+        const fCarb = cargarFoto(THREE, 'assets/texturas/madera/t10.jpg');
+        return new THREE.MeshLambertMaterial({ map: fCarb || T.madera || null, bumpMap: fCarb || T.maderaBump || null, bumpScale: 0.14, color: fCarb ? 0xb5aba4 : 0x4a3d36, side: THREE.DoubleSide });
+      })()
+    });
+
+    const fMadera = cargarFoto(THREE, `assets/texturas/madera/${mId}.jpg`);
+    const fOscura = cargarFoto(THREE, `assets/texturas/madera/${oscId}.jpg`);
+    const fPuerta = cargarFoto(THREE, `assets/texturas/madera/${ptaId}.jpg`);
+    const fTroncos = cargarFoto(THREE, `assets/texturas/madera/${trId}.jpg`);
+    const fTejas = cargarFoto(THREE, `assets/texturas/tejados/${tId}.jpg`);
+
+    const set = {
+      madera: new THREE.MeshLambertMaterial({
+        map: fMadera || T.madera || null,
+        bumpMap: fMadera || T.maderaBump || null,
+        bumpScale: 0.11,
+        color: fMadera ? 0xf7f2ec : 0xffffff,
+        side: THREE.DoubleSide
+      }),
+      oscura: new THREE.MeshLambertMaterial({
+        map: fOscura || T.madera || null,
+        bumpMap: fOscura || T.maderaBump || null,
+        bumpScale: 0.11,
+        color: fOscura ? 0xb3a192 : 0x5a3a22,
+        side: THREE.DoubleSide
+      }),
+      troncos: new THREE.MeshLambertMaterial({
+        map: fTroncos || T.madera || null,
+        bumpMap: fTroncos || T.maderaBump || null,
+        bumpScale: 0.13,
+        color: fTroncos ? 0xf2e8dc : 0x8a6444,
+        side: THREE.DoubleSide
+      }),
+      puerta: new THREE.MeshLambertMaterial({
+        map: fPuerta || T.madera || null,
+        bumpMap: fPuerta || T.maderaBump || null,
+        bumpScale: 0.10,
+        color: fPuerta ? 0xd9cdb8 : 0x3f5a3c,
+        side: THREE.DoubleSide
+      }),
+      piedra: baseComun.piedra,
+      tejas: new THREE.MeshLambertMaterial({
+        map: fTejas || T.tejas || null,
+        bumpMap: fTejas || T.tejasBump || null,
+        bumpScale: 0.14,
+        color: 0xffffff,
+        side: THREE.DoubleSide
+      }),
+      cristal: baseComun.cristal,
+      hierro: baseComun.hierro,
+      carbon: baseComun.carbon,
+      texturasUsadas: { madera: mId, teja: tId, oscura: oscId, puerta: ptaId, troncos: trId }
+    };
+
+    if (esDefecto) {
+      Object.assign(matCache, set);
+      matVarCache.set(clave, matCache);
+      return matCache;
+    }
+    matVarCache.set(clave, set);
+    return set;
+  }
+
+  // Proyección plana sobre el eje que no es la normal: los tablones no se estiran con el tamaño
   function proyectar(THREE, g, escala) {
     const p = g.attributes.position, n = g.attributes.normal;
     const uv = new Float32Array(p.count * 2);
@@ -110,6 +299,31 @@
       else if (ay >= az) { a = x; b = z; }
       else { a = x; b = y; }
       uv[i * 2] = a / escala; uv[i * 2 + 1] = b / escala;
+    }
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    return g;
+  }
+
+  // Proyección de tejados: U recorre la cumbrera/alero en horizontal y V sube hacia la cumbrera
+  function proyectarTejas(THREE, g, escala) {
+    const p = g.attributes.position, n = g.attributes.normal;
+    const uv = new Float32Array(p.count * 2);
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      let nx = n.getX(i), ny = n.getY(i), nz = n.getZ(i);
+      if (ny < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      const hLen = Math.hypot(nx, nz);
+      if (hLen > 0.05 && ny > 0.05) {
+        const tx = -nz / hLen, tz = nx / hLen;
+        const ux = -nx * ny / hLen, uy = hLen, uz = -nz * ny / hLen;
+        uv[i * 2] = (x * tx + z * tz) / escala;
+        uv[i * 2 + 1] = (x * ux + y * uy + z * uz) / escala;
+      } else {
+        const ax = Math.abs(nx), az = Math.abs(nz);
+        if (ax >= ny && ax >= az) { uv[i * 2] = z / escala; uv[i * 2 + 1] = y / escala; }
+        else if (ny >= az) { uv[i * 2] = x / escala; uv[i * 2 + 1] = z / escala; }
+        else { uv[i * 2] = x / escala; uv[i * 2 + 1] = y / escala; }
+      }
     }
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     return g;
@@ -142,7 +356,10 @@
       add(clave, geom, escala, m4) {
         const g = geom.index ? geom.toNonIndexed() : geom;
         if (!g.attributes.normal) g.computeVertexNormals();
-        if (escala) proyectar(THREE, g, escala);
+        if (escala) {
+          if (clave === 'tejas') proyectarTejas(THREE, g, Math.max(2.1, escala));
+          else proyectar(THREE, g, escala);
+        }
         else if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
         if (m4) g.applyMatrix4(m4);
         (grupos[clave] = grupos[clave] || []).push(g);
@@ -386,5 +603,12 @@
     return VARIANTES[Math.min(VARIANTES.length - 1, i)];
   }
 
-  root.CasaMaderaLib = { partes, partesRuina, materiales, fundir, variante, VARIANTES, TIPOS_RUINA };
+  const api = {
+    partes, partesRuina, materiales, fundir, variante, varianteTextura,
+    VARIANTES, TIPOS_RUINA,
+    MADERAS, MADERAS_TODAS, MADERAS_TRONCOS, MADERAS_OSCURAS, MADERAS_PUERTA,
+    TEJADOS, TEJADOS_TODAS
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.CasaMaderaLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

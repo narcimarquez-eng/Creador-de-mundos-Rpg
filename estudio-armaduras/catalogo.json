@@ -1,8 +1,47 @@
 {
-  "version": 1,
-  "maxNivel": 40,
+  "version": 2,
+  "maxNivel": 50,
   "inicial": {
-    "underlayer": 2
+    "torso": 1,
+    "shield": 1
+  },
+  "grados": {
+    "D": {
+      "nombre": "Grado D",
+      "nivelMin": 1,
+      "mult": 1,
+      "color": "#94a3b8"
+    },
+    "C": {
+      "nombre": "Grado C",
+      "nivelMin": 8,
+      "mult": 1.15,
+      "color": "#34d399"
+    },
+    "B": {
+      "nombre": "Grado B",
+      "nivelMin": 15,
+      "mult": 1.35,
+      "color": "#38bdf8"
+    },
+    "A": {
+      "nombre": "Grado A",
+      "nivelMin": 23,
+      "mult": 1.6,
+      "color": "#a78bfa"
+    },
+    "S": {
+      "nombre": "Grado S",
+      "nivelMin": 31,
+      "mult": 1.9,
+      "color": "#fbbf24"
+    },
+    "SR": {
+      "nombre": "Grado SR",
+      "nivelMin": 40,
+      "mult": 2.3,
+      "color": "#fb7185"
+    }
   },
   "ranuras": {
     "underlayer": [
@@ -10,1156 +49,5512 @@
         "idx": 1,
         "nombre": "Gambesón Real Acolchado en Rombo",
         "nivel": 1,
-        "archivo": null
+        "grado": "D",
+        "tipoArmadura": [
+          "pesada",
+          "ligera",
+          "mago"
+        ],
+        "archivo": null,
+        "armorLook": 1
       },
       {
         "idx": 2,
         "nombre": "Cota de Malla Europea 4-en-1 (Acero)",
         "nivel": 1,
-        "archivo": null
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 0
       },
       {
         "idx": 3,
         "nombre": "Cuero Oscuro Articulado con Correas",
-        "nivel": 7,
-        "archivo": null
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "archivo": null,
+        "armorLook": 0
       },
       {
         "idx": 4,
         "nombre": "Seda Esmeralda Imperial de Dinastía",
-        "nivel": 9,
-        "archivo": null
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 27
       },
       {
         "idx": 5,
         "nombre": "Brigantina de Cuero Tachonado en Oro",
         "nivel": 12,
-        "archivo": null
+        "grado": "C",
+        "tipoArmadura": [
+          "ligera",
+          "mago"
+        ],
+        "archivo": null,
+        "armorLook": 12
       },
       {
         "idx": 6,
         "nombre": "Cota de Malla Remachada de Cruzado",
         "nivel": 15,
-        "archivo": null
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 10
       },
       {
         "idx": 7,
         "nombre": "Cota Élfica Fina de Mithril Plateado",
-        "nivel": 18,
-        "archivo": null
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "archivo": null,
+        "armorLook": 21
       },
       {
         "idx": 8,
         "nombre": "Cota de Malla Solar de Bronce y Oro",
-        "nivel": 20,
-        "archivo": null
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": null,
+        "armorLook": 22
       },
       {
         "idx": 9,
         "nombre": "Cota Persa Densa 6-en-1 Trenzada",
-        "nivel": 23,
-        "archivo": null
+        "nivel": 20,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 11
       },
       {
         "idx": 10,
         "nombre": "Cota de Escamas Redondas (Jazerant)",
-        "nivel": 26,
-        "archivo": null
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 17
       },
       {
         "idx": 11,
         "nombre": "Cota de Escamas Puntiagudas de Dragón",
-        "nivel": 29,
-        "archivo": null
+        "nivel": 28,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 24
       },
       {
         "idx": 12,
         "nombre": "Cota Lamelar Oriental Lazada en Carmesí",
-        "nivel": 32,
-        "archivo": null
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "archivo": null,
+        "armorLook": 19
       },
       {
         "idx": 13,
         "nombre": "Gambesón Gótico de Costillas Verticales",
-        "nivel": 34,
-        "archivo": null
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 11
       },
       {
         "idx": 14,
         "nombre": "Gambesón de Espiga en Chevron",
-        "nivel": 37,
-        "archivo": null
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "archivo": null,
+        "armorLook": 35
       },
       {
         "idx": 15,
         "nombre": "Terciopelo Heráldico Real Bordado",
-        "nivel": 40,
-        "archivo": null
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "archivo": null,
+        "armorLook": 14
+      },
+      {
+        "idx": 16,
+        "nombre": "Cota Oscura Dark Crystal (L2)",
+        "nivel": 25,
+        "grado": "A",
+        "tipoArmadura": [
+          "pesada",
+          "mago"
+        ],
+        "archivo": null,
+        "armorLook": 15
+      },
+      {
+        "idx": 17,
+        "nombre": "Vendas de Lino Oscuro & Costuras Carmesí (Segador)",
+        "nivel": 34,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": null,
+        "armorLook": 25
+      },
+      {
+        "idx": 18,
+        "nombre": "Cota Real de Escamas Dracónicas Carmesí & Oro (Soberano)",
+        "nivel": 37,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "archivo": null,
+        "armorLook": 29
+      },
+      {
+        "idx": 19,
+        "nombre": "Cota Élfica de Hoja Esmeralda & Hilo de Oro (Silvano)",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": null,
+        "armorLook": 25
+      },
+      {
+        "idx": 20,
+        "nombre": "Brocado Imperial de Terciopelo Amatista & Seda (Serafín)",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "archivo": null,
+        "armorLook": 32
       }
     ],
     "helmet": [
       {
         "idx": 1,
-        "nombre": "Corona Real de Paladín con Flores de Lis",
+        "id": "set.pesada_D_1.helmet",
+        "nombre": "Yelmo · Soldado de Cuero Curtido & Hierro",
         "nivel": 1,
-        "archivo": "piezas/helmet/1.glb"
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 0,
+        "setId": "pesada_D_1",
+        "setNombre": "Soldado de Cuero Curtido & Hierro",
+        "archivo": null
       },
       {
-        "idx": 2,
-        "nombre": "Diadema Dinastía Alada con Rubí (L2)",
-        "nivel": 7,
-        "archivo": "piezas/helmet/2.glb"
+        "idx": 1,
+        "id": "set.pesada_D_2.helmet",
+        "nombre": "Yelmo · Guardia de Brigantina & Costura Simple",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 1,
+        "setId": "pesada_D_2",
+        "setNombre": "Guardia de Brigantina & Costura Simple",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.pesada_D_3.helmet",
+        "nombre": "Yelmo · FO Centinela de Ceniza & Roble",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 33,
+        "setId": "pesada_D_3",
+        "setNombre": "FO Centinela de Ceniza & Roble",
+        "archivo": null
       },
       {
         "idx": 3,
-        "nombre": "Tiara Élfica de Hojas con Esmeraldas",
-        "nivel": 12,
-        "archivo": "piezas/helmet/3.glb"
+        "id": "set.ligera_D_1.helmet",
+        "nombre": "Capucha / Visera · Explorador de Cuero Endurecido",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 2,
+        "setId": "ligera_D_1",
+        "setNombre": "Explorador de Cuero Endurecido",
+        "archivo": null
       },
       {
-        "idx": 4,
-        "nombre": "Corona Dracónica con Cuernos (L2)",
-        "nivel": 18,
-        "archivo": "piezas/helmet/4.glb"
+        "idx": 3,
+        "id": "set.ligera_D_2.helmet",
+        "nombre": "Capucha / Visera · Escudero de Gambesón & Tirantes",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 3,
+        "setId": "ligera_D_2",
+        "setNombre": "Escudero de Gambesón & Tirantes",
+        "archivo": null
       },
       {
-        "idx": 5,
-        "nombre": "Corona Astral con Halo de Rayos (L2)",
-        "nivel": 23,
-        "archivo": "piezas/helmet/5.glb"
+        "idx": 3,
+        "id": "set.ligera_D_3.helmet",
+        "nombre": "Capucha / Visera · FO Rastreador de Espino Blanco",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 34,
+        "setId": "ligera_D_3",
+        "setNombre": "FO Rastreador de Espino Blanco",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_D_1.helmet",
+        "nombre": "Diadema / Tiara · Aprendiz de Túnica y Cuero",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 4,
+        "setId": "mago_D_1",
+        "setNombre": "Aprendiz de Túnica y Cuero",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_D_2.helmet",
+        "nombre": "Diadema / Tiara · Erudito de Lino Azul & Latón",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 102,
+        "setId": "mago_D_2",
+        "setNombre": "Erudito de Lino Azul & Latón",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_D_3.helmet",
+        "nombre": "Diadema / Tiara · FO Herbolario de la Bruma",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 35,
+        "setId": "mago_D_3",
+        "setNombre": "FO Herbolario de la Bruma",
+        "archivo": null
       },
       {
         "idx": 6,
-        "nombre": "Visera Solar con Nasal y Alas",
-        "nivel": 29,
-        "archivo": "piezas/helmet/6.glb"
+        "id": "set.pesada_C_1.helmet",
+        "nombre": "Yelmo · Veterano de Cuero Tachonado & Malla",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 5,
+        "setId": "pesada_C_1",
+        "setNombre": "Veterano de Cuero Tachonado & Malla",
+        "archivo": null
       },
       {
-        "idx": 7,
-        "nombre": "Visera Dracónica con Cuernos y Ala Dentada",
-        "nivel": 34,
-        "archivo": "piezas/helmet/7.glb"
+        "idx": 6,
+        "id": "set.pesada_C_2.helmet",
+        "nombre": "Yelmo · Lancero de Cuir Bouilli Grabado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 6,
+        "setId": "pesada_C_2",
+        "setNombre": "Lancero de Cuir Bouilli Grabado",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_C_3.helmet",
+        "nombre": "Yelmo · FO Vanguardia del Grifo de Bronce",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 36,
+        "setId": "pesada_C_3",
+        "setNombre": "FO Vanguardia del Grifo de Bronce",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_C_1.helmet",
+        "nombre": "Capucha / Visera · Veloz de Ante Verde & Tirantes",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 7,
+        "setId": "ligera_C_1",
+        "setNombre": "Veloz de Ante Verde & Tirantes",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.ligera_C_2.helmet",
+        "nombre": "Capucha / Visera · Cazador de Cuero Laminado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 8,
+        "setId": "ligera_C_2",
+        "setNombre": "Cazador de Cuero Laminado",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_C_3.helmet",
+        "nombre": "Capucha / Visera · FO Halcón de las Dunas",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 37,
+        "setId": "ligera_C_3",
+        "setNombre": "FO Halcón de las Dunas",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_C_1.helmet",
+        "nombre": "Diadema / Tiara · Acólito de Túnica Grabada & Correas",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 9,
+        "setId": "mago_C_1",
+        "setNombre": "Acólito de Túnica Grabada & Correas",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_C_2.helmet",
+        "nombre": "Diadema / Tiara · Hechicero de Terciopelo Púrpura & Oro",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 103,
+        "setId": "mago_C_2",
+        "setNombre": "Hechicero de Terciopelo Púrpura & Oro",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_C_3.helmet",
+        "nombre": "Diadema / Tiara · FO Escriba de Tinta & Ámbar",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 38,
+        "setId": "mago_C_3",
+        "setNombre": "FO Escriba de Tinta & Ámbar",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_B_1.helmet",
+        "nombre": "Yelmo · L2 Blue Wolf Heavy",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 10,
+        "setId": "pesada_B_1",
+        "setNombre": "L2 Blue Wolf Heavy (Acero Azulado & Plata)",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.pesada_B_2.helmet",
+        "nombre": "Yelmo · L2 Doom Heavy",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 11,
+        "setId": "pesada_B_2",
+        "setNombre": "L2 Doom Heavy (Placas Góticas Oscuras)",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_B_3.helmet",
+        "nombre": "Yelmo · FO Caballero de la Catedral Sumergida",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 39,
+        "setId": "pesada_B_3",
+        "setNombre": "FO Caballero de la Catedral Sumergida",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_B_1.helmet",
+        "nombre": "Capucha / Visera · L2 Blue Wolf Light",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 12,
+        "setId": "ligera_B_1",
+        "setNombre": "L2 Blue Wolf Light (Cuero & Placas Ligeras)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_B_2.helmet",
+        "nombre": "Capucha / Visera · L2 Doom Light",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 13,
+        "setId": "ligera_B_2",
+        "setNombre": "L2 Doom Light (Brigantina Sombría)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_B_3.helmet",
+        "nombre": "Capucha / Visera · FO Danzante de la Rosa de Hierro",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 40,
+        "setId": "ligera_B_3",
+        "setNombre": "FO Danzante de la Rosa de Hierro",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.mago_B_1.helmet",
+        "nombre": "Diadema / Tiara · L2 Avadon Robe",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 14,
+        "setId": "mago_B_1",
+        "setNombre": "L2 Avadon Robe (Túnica Arcana Real)",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.mago_B_2.helmet",
+        "nombre": "Diadema / Tiara · L2 Blue Wolf Robe",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 104,
+        "setId": "mago_B_2",
+        "setNombre": "L2 Blue Wolf Robe (Túnica Estelar de Cobalto)",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.mago_B_3.helmet",
+        "nombre": "Diadema / Tiara · FO Tejedor de Vitral Lunar",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 41,
+        "setId": "mago_B_3",
+        "setNombre": "FO Tejedor de Vitral Lunar",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.pesada_A_1.helmet",
+        "nombre": "Yelmo · L2 Dark Crystal Heavy",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 15,
+        "setId": "pesada_A_1",
+        "setNombre": "L2 Dark Crystal Heavy (Índigo & Cristal Cian)",
+        "archivo": null
       },
       {
         "idx": 8,
-        "nombre": "Visera de Cristal Arcano con Aletas",
+        "id": "set.pesada_A_2.helmet",
+        "nombre": "Yelmo · FO Soberano de Escarcha & Relojería",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 42,
+        "setId": "pesada_A_2",
+        "setNombre": "FO Soberano de Escarcha & Relojería",
+        "archivo": null
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_A_3.helmet",
+        "nombre": "Yelmo · VR Coloso de Basalto & Magma Flotante",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 51,
+        "setId": "pesada_A_3",
+        "setNombre": "VR Coloso de Basalto & Magma Flotante",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_A_1.helmet",
+        "nombre": "Capucha / Visera · L2 Majestic Light",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 18,
+        "setId": "ligera_A_1",
+        "setNombre": "L2 Majestic Light (Marfil, Oro & Zafiro)",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_A_2.helmet",
+        "nombre": "Capucha / Visera · FO Espectro de Obsidiana & Jade",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 43,
+        "setId": "ligera_A_2",
+        "setNombre": "FO Espectro de Obsidiana & Jade",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_A_3.helmet",
+        "nombre": "Capucha / Visera · GT Cazador de Brujas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 63,
+        "setId": "ligera_A_3",
+        "setNombre": "GT Cazador de Brujas",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.mago_A_1.helmet",
+        "nombre": "Diadema / Tiara · L2 Dark Crystal Robe",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 20,
+        "setId": "mago_A_1",
+        "setNombre": "L2 Dark Crystal Robe (Archimago Índigo)",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.mago_A_2.helmet",
+        "nombre": "Diadema / Tiara · FO Oráculo del Eclipse de Mercurio",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 44,
+        "setId": "mago_A_2",
+        "setNombre": "FO Oráculo del Eclipse de Mercurio",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.mago_A_3.helmet",
+        "nombre": "Diadema / Tiara · VR Tejedor de Bobinas de Tesla Arcanas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 57,
+        "setId": "mago_A_3",
+        "setNombre": "VR Tejedor de Bobinas de Tesla Arcanas",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_S_1.helmet",
+        "nombre": "Yelmo · L2 Imperial Crusader Heavy",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 21,
+        "setId": "pesada_S_1",
+        "setNombre": "L2 Imperial Crusader Heavy (Marfil, Oro & Carmesí)",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_S_2.helmet",
+        "nombre": "Yelmo · FO Paladín del Fénix de Alabastro",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 45,
+        "setId": "pesada_S_2",
+        "setNombre": "FO Paladín del Fénix de Alabastro",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_S_3.helmet",
+        "nombre": "Yelmo · GT Catedral del Verdugo",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 60,
+        "setId": "pesada_S_3",
+        "setNombre": "GT Catedral del Verdugo",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_S_1.helmet",
+        "nombre": "Capucha / Visera · L2 Draconic Leather",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 22,
+        "setId": "ligera_S_1",
+        "setNombre": "L2 Draconic Leather (Obsidiana & Runas de Fuego)",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.ligera_S_2.helmet",
+        "nombre": "Capucha / Visera · FO Cazador de Leviatán Abisal",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 46,
+        "setId": "ligera_S_2",
+        "setNombre": "FO Cazador de Leviatán Abisal",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.ligera_S_3.helmet",
+        "nombre": "Capucha / Visera · MB Valquiria de Escamas Aladas",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 80,
+        "setId": "ligera_S_3",
+        "setNombre": "MB Valquiria de Escamas Aladas",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_S_1.helmet",
+        "nombre": "Diadema / Tiara · L2 Major Arcana Robe",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 23,
+        "setId": "mago_S_1",
+        "setNombre": "L2 Major Arcana Robe (Terciopelo Carmesí & Oro)",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_S_2.helmet",
+        "nombre": "Diadema / Tiara · FO Soberano de las Constelaciones",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 47,
+        "setId": "mago_S_2",
+        "setNombre": "FO Soberano de las Constelaciones",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_S_3.helmet",
+        "nombre": "Diadema / Tiara · VR Oráculo de los Ojos de Serafín",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 58,
+        "setId": "mago_S_3",
+        "setNombre": "VR Oráculo de los Ojos de Serafín (Ophanim)",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_SR_1.helmet",
+        "nombre": "Yelmo · L2 Elegia Heavy",
         "nivel": 40,
-        "archivo": "piezas/helmet/8.glb"
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 29,
+        "setId": "pesada_SR_1",
+        "setNombre": "L2 Elegia Heavy (Obsidiana Imperial & Oro Fundido)",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_SR_2.helmet",
+        "nombre": "Yelmo · FO Arconte del Marfil & Sol Negro",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 48,
+        "setId": "pesada_SR_2",
+        "setNombre": "FO Arconte del Marfil & Sol Negro",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_SR_3.helmet",
+        "nombre": "Yelmo · L2 Cruzado de Aden",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 93,
+        "setId": "pesada_SR_3",
+        "setNombre": "L2 Cruzado de Aden",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.ligera_SR_1.helmet",
+        "nombre": "Capucha / Visera · L2 Vorpal Light",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 30,
+        "setId": "ligera_SR_1",
+        "setNombre": "L2 Vorpal Light (Platino Glacial & Amatista)",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.ligera_SR_2.helmet",
+        "nombre": "Capucha / Visera · FO Soberano de Espadas Etéreas",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 49,
+        "setId": "ligera_SR_2",
+        "setNombre": "FO Soberano de Espadas Etéreas",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.ligera_SR_3.helmet",
+        "nombre": "Capucha / Visera · L2 Escama Dracónica",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 96,
+        "setId": "ligera_SR_3",
+        "setNombre": "L2 Escama Dracónica",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_SR_1.helmet",
+        "nombre": "Diadema / Tiara · L2 Vesper / Dynasty Robe",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 32,
+        "setId": "mago_SR_1",
+        "setNombre": "L2 Vesper / Dynasty Robe (Archimago S84)",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_SR_2.helmet",
+        "nombre": "Diadema / Tiara · FO Serafín del Loto de Obsidiana",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 50,
+        "setId": "mago_SR_2",
+        "setNombre": "FO Serafín del Loto de Obsidiana",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_SR_3.helmet",
+        "nombre": "Diadema / Tiara · L2 Arcana Mayor",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 99,
+        "setId": "mago_SR_3",
+        "setNombre": "L2 Arcana Mayor",
+        "archivo": null
       }
     ],
     "shoulders": [
       {
         "idx": 1,
         "nombre": "Hombreras Solares con Guarda-Cuello",
-        "nivel": 1,
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
         "archivo": "piezas/shoulders/1.glb"
       },
       {
         "idx": 2,
         "nombre": "Hombreras Abisales de Cuchillas Estridentes",
-        "nivel": 5,
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/shoulders/2.glb"
       },
       {
         "idx": 3,
         "nombre": "Hombreras Aladas de Guardián Celestial",
-        "nivel": 9,
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/shoulders/3.glb"
       },
       {
         "idx": 4,
         "nombre": "Hombreras Dinastía de Planchas Flotantes (L2)",
-        "nivel": 13,
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/shoulders/4.glb"
       },
       {
         "idx": 5,
         "nombre": "Hombreras Dracónicas de Planchas Cortantes (L2)",
-        "nivel": 17,
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/shoulders/5.glb"
       },
       {
         "idx": 6,
         "nombre": "Hombreras Imperial Crusader de Muralla Alta (L2)",
-        "nivel": 20,
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/shoulders/6.glb"
       },
       {
         "idx": 7,
         "nombre": "Hombreras Majestic de Filigrana Cortante (L2)",
         "nivel": 24,
+        "grado": "A",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/shoulders/7.glb"
       },
       {
         "idx": 8,
         "nombre": "Hombreras Nightmare de Espolones Estridentes (L2)",
         "nivel": 28,
+        "grado": "A",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/shoulders/8.glb"
       },
       {
         "idx": 9,
         "nombre": "Hombreras Valquiria de Plumas de Acero Biseladas",
-        "nivel": 32,
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/shoulders/9.glb"
       },
       {
         "idx": 10,
         "nombre": "Hombreras Prisma de Facetas Cortantes a 45°",
-        "nivel": 36,
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/shoulders/10.glb"
       },
       {
         "idx": 11,
         "nombre": "Hombreras Arconte de Clavícula y Paletilla (L2)",
-        "nivel": 40,
+        "nivel": 42,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/shoulders/11.glb"
+      },
+      {
+        "idx": 12,
+        "nombre": "Hombreras Dark Crystal de Cristal y Oro (L2)",
+        "nivel": 25,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shoulders/12.glb"
+      },
+      {
+        "idx": 13,
+        "nombre": "Hombrera Asimétrica Cráneo de Cuervo & Manto",
+        "nivel": 10,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/shoulders/13.glb"
+      },
+      {
+        "idx": 14,
+        "nombre": "Hombreras Aladas de Dragón Carmesí & Manto Real (Soberano)",
+        "nivel": 37,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shoulders/14.glb"
+      },
+      {
+        "idx": 15,
+        "nombre": "Hombreras de Plumas de Mithril & Capa Silvana (Silvano)",
+        "nivel": 36,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/shoulders/15.glb"
+      },
+      {
+        "idx": 16,
+        "nombre": "Hombreras Serafín de 6 Alas & Planetario Dorsal (Serafín)",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "archivo": "piezas/shoulders/16.glb"
       }
     ],
     "torso": [
       {
         "idx": 1,
-        "nombre": "Peto Solar con Emblema & Sobrebarriga",
+        "id": "torso.1",
+        "nombre": "Coraza · Soldado de Cuero Curtido & Hierro",
         "nivel": 1,
-        "archivo": "piezas/torso/1.glb"
-      },
-      {
-        "idx": 2,
-        "nombre": "Coraza Real de Alianza (Cresta en V)",
-        "nivel": 3,
-        "archivo": "piezas/torso/2.glb"
-      },
-      {
-        "idx": 3,
-        "nombre": "Coraza Gótica Abisal Escalonada",
-        "nivel": 5,
-        "archivo": "piezas/torso/3.glb"
-      },
-      {
-        "idx": 4,
-        "nombre": "Coraza Élfica con Filigrana & Gema",
-        "nivel": 8,
-        "archivo": "piezas/torso/4.glb"
-      },
-      {
-        "idx": 5,
-        "nombre": "Peto Dinastía (Corazón Alado & Rubí - L2)",
-        "nivel": 10,
-        "archivo": "piezas/torso/5.glb"
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 0,
+        "setId": "pesada_D_1",
+        "setNombre": "Soldado de Cuero Curtido & Hierro",
+        "archivo": null
       },
       {
         "idx": 6,
-        "nombre": "Peto de Hoja de Laurel en Relieve (D&D)",
-        "nivel": 12,
-        "archivo": "piezas/torso/6.glb"
+        "id": "set.pesada_D_2.torso",
+        "nombre": "Coraza · Guardia de Brigantina & Costura Simple",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 1,
+        "setId": "pesada_D_2",
+        "setNombre": "Guardia de Brigantina & Costura Simple",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.pesada_D_3.torso",
+        "nombre": "Coraza · FO Centinela de Ceniza & Roble",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 33,
+        "setId": "pesada_D_3",
+        "setNombre": "FO Centinela de Ceniza & Roble",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "torso.2",
+        "nombre": "Jubón / Peto Ligero · Explorador de Cuero Endurecido",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 2,
+        "setId": "ligera_D_1",
+        "setNombre": "Explorador de Cuero Endurecido",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.ligera_D_2.torso",
+        "nombre": "Jubón / Peto Ligero · Escudero de Gambesón & Tirantes",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 3,
+        "setId": "ligera_D_2",
+        "setNombre": "Escudero de Gambesón & Tirantes",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.ligera_D_3.torso",
+        "nombre": "Jubón / Peto Ligero · FO Rastreador de Espino Blanco",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 34,
+        "setId": "ligera_D_3",
+        "setNombre": "FO Rastreador de Espino Blanco",
+        "archivo": null
+      },
+      {
+        "idx": 21,
+        "id": "torso.21",
+        "nombre": "Túnica Arcana · Aprendiz de Túnica y Cuero",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 4,
+        "setId": "mago_D_1",
+        "setNombre": "Aprendiz de Túnica y Cuero",
+        "archivo": null
+      },
+      {
+        "idx": 21,
+        "id": "set.mago_D_2.torso",
+        "nombre": "Túnica Arcana · Erudito de Lino Azul & Latón",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 102,
+        "setId": "mago_D_2",
+        "setNombre": "Erudito de Lino Azul & Latón",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_D_3.torso",
+        "nombre": "Túnica Arcana · FO Herbolario de la Bruma",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 35,
+        "setId": "mago_D_3",
+        "setNombre": "FO Herbolario de la Bruma",
+        "archivo": null
       },
       {
         "idx": 7,
-        "nombre": "Coraza Triskele con Espirales Celtas (D&D)",
-        "nivel": 14,
-        "archivo": "piezas/torso/7.glb"
-      },
-      {
-        "idx": 8,
-        "nombre": "Cota de Escamas de Dragón & Rubí (D&D)",
-        "nivel": 16,
-        "archivo": "piezas/torso/8.glb"
+        "id": "set.pesada_C_1.torso",
+        "nombre": "Coraza · Veterano de Cuero Tachonado & Malla",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 5,
+        "setId": "pesada_C_1",
+        "setNombre": "Veterano de Cuero Tachonado & Malla",
+        "archivo": null
       },
       {
         "idx": 9,
-        "nombre": "Brigantina Tachonada con Tachuelas Oro (D&D)",
+        "id": "set.pesada_C_2.torso",
+        "nombre": "Coraza · Lancero de Cuir Bouilli Grabado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 6,
+        "setId": "pesada_C_2",
+        "setNombre": "Lancero de Cuir Bouilli Grabado",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.pesada_C_3.torso",
+        "nombre": "Coraza · FO Vanguardia del Grifo de Bronce",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 36,
+        "setId": "pesada_C_3",
+        "setNombre": "FO Vanguardia del Grifo de Bronce",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_C_1.torso",
+        "nombre": "Jubón / Peto Ligero · Veloz de Ante Verde & Tirantes",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 7,
+        "setId": "ligera_C_1",
+        "setNombre": "Veloz de Ante Verde & Tirantes",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_C_2.torso",
+        "nombre": "Jubón / Peto Ligero · Cazador de Cuero Laminado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 8,
+        "setId": "ligera_C_2",
+        "setNombre": "Cazador de Cuero Laminado",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_C_3.torso",
+        "nombre": "Jubón / Peto Ligero · FO Halcón de las Dunas",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 37,
+        "setId": "ligera_C_3",
+        "setNombre": "FO Halcón de las Dunas",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_C_1.torso",
+        "nombre": "Túnica Arcana · Acólito de Túnica Grabada & Correas",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 9,
+        "setId": "mago_C_1",
+        "setNombre": "Acólito de Túnica Grabada & Correas",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_C_2.torso",
+        "nombre": "Túnica Arcana · Hechicero de Terciopelo Púrpura & Oro",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 103,
+        "setId": "mago_C_2",
+        "setNombre": "Hechicero de Terciopelo Púrpura & Oro",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_C_3.torso",
+        "nombre": "Túnica Arcana · FO Escriba de Tinta & Ámbar",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 38,
+        "setId": "mago_C_3",
+        "setNombre": "FO Escriba de Tinta & Ámbar",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.pesada_B_1.torso",
+        "nombre": "Coraza · L2 Blue Wolf Heavy",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 10,
+        "setId": "pesada_B_1",
+        "setNombre": "L2 Blue Wolf Heavy (Acero Azulado & Plata)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.pesada_B_2.torso",
+        "nombre": "Coraza · L2 Doom Heavy",
         "nivel": 18,
-        "archivo": "piezas/torso/9.glb"
-      },
-      {
-        "idx": 10,
-        "nombre": "Peto Alto Arconte (Cubre Cuello, Clavícula y Paletilla - L2)",
-        "nivel": 20,
-        "archivo": "piezas/torso/10.glb"
-      },
-      {
-        "idx": 11,
-        "nombre": "Coraza Extraña de Mandíbula, Clavícula y Escápula Cortante",
-        "nivel": 23,
-        "archivo": "piezas/torso/11.glb"
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 11,
+        "setId": "pesada_B_2",
+        "setNombre": "L2 Doom Heavy (Placas Góticas Oscuras)",
+        "archivo": null
       },
       {
         "idx": 12,
-        "nombre": "Armadura Dinastía de Yugo Clavicular y Hombro (L2)",
-        "nivel": 25,
-        "archivo": "piezas/torso/12.glb"
-      },
-      {
-        "idx": 13,
-        "nombre": "Peto Abisal Exótico de Costillas Abiertas y Gola Alta",
-        "nivel": 27,
-        "archivo": "piezas/torso/13.glb"
+        "id": "set.pesada_B_3.torso",
+        "nombre": "Coraza · FO Caballero de la Catedral Sumergida",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 39,
+        "setId": "pesada_B_3",
+        "setNombre": "FO Caballero de la Catedral Sumergida",
+        "archivo": null
       },
       {
         "idx": 14,
-        "nombre": "Coraza Valquiria de Cuello Alto y Aletas de Paletilla",
-        "nivel": 29,
-        "archivo": "piezas/torso/14.glb"
+        "id": "set.ligera_B_1.torso",
+        "nombre": "Jubón / Peto Ligero · L2 Blue Wolf Light",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 12,
+        "setId": "ligera_B_1",
+        "setNombre": "L2 Blue Wolf Light (Cuero & Placas Ligeras)",
+        "archivo": null
       },
       {
-        "idx": 15,
-        "nombre": "Peto Dracónico Imperial de Clavícula y Espina Dorsal (L2)",
-        "nivel": 31,
-        "archivo": "piezas/torso/15.glb"
+        "idx": 14,
+        "id": "set.ligera_B_2.torso",
+        "nombre": "Jubón / Peto Ligero · L2 Doom Light",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 13,
+        "setId": "ligera_B_2",
+        "setNombre": "L2 Doom Light (Brigantina Sombría)",
+        "archivo": null
+      },
+      {
+        "idx": 14,
+        "id": "set.ligera_B_3.torso",
+        "nombre": "Jubón / Peto Ligero · FO Danzante de la Rosa de Hierro",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 40,
+        "setId": "ligera_B_3",
+        "setNombre": "FO Danzante de la Rosa de Hierro",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.mago_B_1.torso",
+        "nombre": "Túnica Arcana · L2 Avadon Robe",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 14,
+        "setId": "mago_B_1",
+        "setNombre": "L2 Avadon Robe (Túnica Arcana Real)",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.mago_B_2.torso",
+        "nombre": "Túnica Arcana · L2 Blue Wolf Robe",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 104,
+        "setId": "mago_B_2",
+        "setNombre": "L2 Blue Wolf Robe (Túnica Estelar de Cobalto)",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.mago_B_3.torso",
+        "nombre": "Túnica Arcana · FO Tejedor de Vitral Lunar",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 41,
+        "setId": "mago_B_3",
+        "setNombre": "FO Tejedor de Vitral Lunar",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.pesada_A_1.torso",
+        "nombre": "Coraza · L2 Dark Crystal Heavy",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 15,
+        "setId": "pesada_A_1",
+        "setNombre": "L2 Dark Crystal Heavy (Índigo & Cristal Cian)",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.pesada_A_2.torso",
+        "nombre": "Coraza · FO Soberano de Escarcha & Relojería",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 42,
+        "setId": "pesada_A_2",
+        "setNombre": "FO Soberano de Escarcha & Relojería",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.pesada_A_3.torso",
+        "nombre": "Coraza · VR Coloso de Basalto & Magma Flotante",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 51,
+        "setId": "pesada_A_3",
+        "setNombre": "VR Coloso de Basalto & Magma Flotante",
+        "archivo": null
       },
       {
         "idx": 16,
-        "nombre": "Peto Estridente de Proa Cortante y Alas Dorsales en X (L2)",
-        "nivel": 34,
-        "archivo": "piezas/torso/16.glb"
+        "id": "set.ligera_A_1.torso",
+        "nombre": "Jubón / Peto Ligero · L2 Majestic Light",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 18,
+        "setId": "ligera_A_1",
+        "setNombre": "L2 Majestic Light (Marfil, Oro & Zafiro)",
+        "archivo": null
       },
       {
-        "idx": 17,
-        "nombre": "Coraza Serafín Ceñida de 6 Alas Espinales y Quilla Saliente",
-        "nivel": 36,
-        "archivo": "piezas/torso/17.glb"
+        "idx": 16,
+        "id": "set.ligera_A_2.torso",
+        "nombre": "Jubón / Peto Ligero · FO Espectro de Obsidiana & Jade",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 43,
+        "setId": "ligera_A_2",
+        "setNombre": "FO Espectro de Obsidiana & Jade",
+        "archivo": null
       },
       {
-        "idx": 18,
-        "nombre": "Peto Leviatán de Aletas Dorsales Aserradas y Costillas Cortantes",
+        "idx": 14,
+        "id": "set.ligera_A_3.torso",
+        "nombre": "Jubón / Peto Ligero · GT Cazador de Brujas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 63,
+        "setId": "ligera_A_3",
+        "setNombre": "GT Cazador de Brujas",
+        "archivo": null
+      },
+      {
+        "idx": 20,
+        "id": "set.mago_A_1.torso",
+        "nombre": "Túnica Arcana · L2 Dark Crystal Robe",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 20,
+        "setId": "mago_A_1",
+        "setNombre": "L2 Dark Crystal Robe (Archimago Índigo)",
+        "archivo": null
+      },
+      {
+        "idx": 20,
+        "id": "set.mago_A_2.torso",
+        "nombre": "Túnica Arcana · FO Oráculo del Eclipse de Mercurio",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 44,
+        "setId": "mago_A_2",
+        "setNombre": "FO Oráculo del Eclipse de Mercurio",
+        "archivo": null
+      },
+      {
+        "idx": 20,
+        "id": "set.mago_A_3.torso",
+        "nombre": "Túnica Arcana · VR Tejedor de Bobinas de Tesla Arcanas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 57,
+        "setId": "mago_A_3",
+        "setNombre": "VR Tejedor de Bobinas de Tesla Arcanas",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.pesada_S_1.torso",
+        "nombre": "Coraza · L2 Imperial Crusader Heavy",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 21,
+        "setId": "pesada_S_1",
+        "setNombre": "L2 Imperial Crusader Heavy (Marfil, Oro & Carmesí)",
+        "archivo": null
+      },
+      {
+        "idx": 15,
+        "id": "set.pesada_S_2.torso",
+        "nombre": "Coraza · FO Paladín del Fénix de Alabastro",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 45,
+        "setId": "pesada_S_2",
+        "setNombre": "FO Paladín del Fénix de Alabastro",
+        "archivo": null
+      },
+      {
+        "idx": 22,
+        "id": "set.pesada_S_3.torso",
+        "nombre": "Coraza · GT Catedral del Verdugo",
         "nivel": 38,
-        "archivo": "piezas/torso/18.glb"
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 60,
+        "setId": "pesada_S_3",
+        "setNombre": "GT Catedral del Verdugo",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.ligera_S_1.torso",
+        "nombre": "Jubón / Peto Ligero · L2 Draconic Leather",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 22,
+        "setId": "ligera_S_1",
+        "setNombre": "L2 Draconic Leather (Obsidiana & Runas de Fuego)",
+        "archivo": null
+      },
+      {
+        "idx": 23,
+        "id": "set.ligera_S_2.torso",
+        "nombre": "Jubón / Peto Ligero · FO Cazador de Leviatán Abisal",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 46,
+        "setId": "ligera_S_2",
+        "setNombre": "FO Cazador de Leviatán Abisal",
+        "archivo": null
+      },
+      {
+        "idx": 23,
+        "id": "set.ligera_S_3.torso",
+        "nombre": "Jubón / Peto Ligero · MB Valquiria de Escamas Aladas",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 80,
+        "setId": "ligera_S_3",
+        "setNombre": "MB Valquiria de Escamas Aladas",
+        "archivo": null
       },
       {
         "idx": 19,
-        "nombre": "Coraza Soberano Astral de Halo Dorsal y Escápula Alada (L2)",
+        "id": "set.mago_S_1.torso",
+        "nombre": "Túnica Arcana · L2 Major Arcana Robe",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 23,
+        "setId": "mago_S_1",
+        "setNombre": "L2 Major Arcana Robe (Terciopelo Carmesí & Oro)",
+        "archivo": null
+      },
+      {
+        "idx": 19,
+        "id": "set.mago_S_2.torso",
+        "nombre": "Túnica Arcana · FO Soberano de las Constelaciones",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 47,
+        "setId": "mago_S_2",
+        "setNombre": "FO Soberano de las Constelaciones",
+        "archivo": null
+      },
+      {
+        "idx": 19,
+        "id": "set.mago_S_3.torso",
+        "nombre": "Túnica Arcana · VR Oráculo de los Ojos de Serafín",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 58,
+        "setId": "mago_S_3",
+        "setNombre": "VR Oráculo de los Ojos de Serafín (Ophanim)",
+        "archivo": null
+      },
+      {
+        "idx": 18,
+        "id": "set.pesada_SR_1.torso",
+        "nombre": "Coraza · L2 Elegia Heavy",
         "nivel": 40,
-        "archivo": "piezas/torso/19.glb"
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 29,
+        "setId": "pesada_SR_1",
+        "setNombre": "L2 Elegia Heavy (Obsidiana Imperial & Oro Fundido)",
+        "archivo": null
+      },
+      {
+        "idx": 18,
+        "id": "set.pesada_SR_2.torso",
+        "nombre": "Coraza · FO Arconte del Marfil & Sol Negro",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 48,
+        "setId": "pesada_SR_2",
+        "setNombre": "FO Arconte del Marfil & Sol Negro",
+        "archivo": null
+      },
+      {
+        "idx": 18,
+        "id": "set.pesada_SR_3.torso",
+        "nombre": "Coraza · L2 Cruzado de Aden",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 93,
+        "setId": "pesada_SR_3",
+        "setNombre": "L2 Cruzado de Aden",
+        "archivo": null
+      },
+      {
+        "idx": 17,
+        "id": "set.ligera_SR_1.torso",
+        "nombre": "Jubón / Peto Ligero · L2 Vorpal Light",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 30,
+        "setId": "ligera_SR_1",
+        "setNombre": "L2 Vorpal Light (Platino Glacial & Amatista)",
+        "archivo": null
+      },
+      {
+        "idx": 17,
+        "id": "set.ligera_SR_2.torso",
+        "nombre": "Jubón / Peto Ligero · FO Soberano de Espadas Etéreas",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 49,
+        "setId": "ligera_SR_2",
+        "setNombre": "FO Soberano de Espadas Etéreas",
+        "archivo": null
+      },
+      {
+        "idx": 17,
+        "id": "set.ligera_SR_3.torso",
+        "nombre": "Jubón / Peto Ligero · L2 Escama Dracónica",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 96,
+        "setId": "ligera_SR_3",
+        "setNombre": "L2 Escama Dracónica",
+        "archivo": null
+      },
+      {
+        "idx": 24,
+        "id": "set.mago_SR_1.torso",
+        "nombre": "Túnica Arcana · L2 Vesper / Dynasty Robe",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 32,
+        "setId": "mago_SR_1",
+        "setNombre": "L2 Vesper / Dynasty Robe (Archimago S84)",
+        "archivo": null
+      },
+      {
+        "idx": 24,
+        "id": "set.mago_SR_2.torso",
+        "nombre": "Túnica Arcana · FO Serafín del Loto de Obsidiana",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 50,
+        "setId": "mago_SR_2",
+        "setNombre": "FO Serafín del Loto de Obsidiana",
+        "archivo": null
+      },
+      {
+        "idx": 24,
+        "id": "set.mago_SR_3.torso",
+        "nombre": "Túnica Arcana · L2 Arcana Mayor",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 99,
+        "setId": "mago_SR_3",
+        "setNombre": "L2 Arcana Mayor",
+        "archivo": null
       }
     ],
     "gloves": [
       {
         "idx": 1,
-        "nombre": "Brazales de Paladín & Codera Alada",
+        "id": "set.pesada_D_1.gloves",
+        "nombre": "Guanteletes · Soldado de Cuero Curtido & Hierro",
         "nivel": 1,
-        "archivo": "piezas/gloves/1.glb"
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 0,
+        "setId": "pesada_D_1",
+        "setNombre": "Soldado de Cuero Curtido & Hierro",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.pesada_D_2.gloves",
+        "nombre": "Guanteletes · Guardia de Brigantina & Costura Simple",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 1,
+        "setId": "pesada_D_2",
+        "setNombre": "Guardia de Brigantina & Costura Simple",
+        "archivo": null
       },
       {
         "idx": 2,
-        "nombre": "Guanteletes Góticos con Púas",
+        "id": "set.pesada_D_3.gloves",
+        "nombre": "Guanteletes · FO Centinela de Ceniza & Roble",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 33,
+        "setId": "pesada_D_3",
+        "setNombre": "FO Centinela de Ceniza & Roble",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.ligera_D_1.gloves",
+        "nombre": "Brazales · Explorador de Cuero Endurecido",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 2,
+        "setId": "ligera_D_1",
+        "setNombre": "Explorador de Cuero Endurecido",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.ligera_D_2.gloves",
+        "nombre": "Brazales · Escudero de Gambesón & Tirantes",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 3,
+        "setId": "ligera_D_2",
+        "setNombre": "Escudero de Gambesón & Tirantes",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.ligera_D_3.gloves",
+        "nombre": "Brazales · FO Rastreador de Espino Blanco",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 34,
+        "setId": "ligera_D_3",
+        "setNombre": "FO Rastreador de Espino Blanco",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.mago_D_1.gloves",
+        "nombre": "Mangas / Guantes · Aprendiz de Túnica y Cuero",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 4,
+        "setId": "mago_D_1",
+        "setNombre": "Aprendiz de Túnica y Cuero",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.mago_D_2.gloves",
+        "nombre": "Mangas / Guantes · Erudito de Lino Azul & Latón",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 102,
+        "setId": "mago_D_2",
+        "setNombre": "Erudito de Lino Azul & Latón",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.mago_D_3.gloves",
+        "nombre": "Mangas / Guantes · FO Herbolario de la Bruma",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 35,
+        "setId": "mago_D_3",
+        "setNombre": "FO Herbolario de la Bruma",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_C_1.gloves",
+        "nombre": "Guanteletes · Veterano de Cuero Tachonado & Malla",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 5,
+        "setId": "pesada_C_1",
+        "setNombre": "Veterano de Cuero Tachonado & Malla",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_C_2.gloves",
+        "nombre": "Guanteletes · Lancero de Cuir Bouilli Grabado",
         "nivel": 11,
-        "archivo": "piezas/gloves/2.glb"
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 6,
+        "setId": "pesada_C_2",
+        "setNombre": "Lancero de Cuir Bouilli Grabado",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_C_3.gloves",
+        "nombre": "Guanteletes · FO Vanguardia del Grifo de Bronce",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 36,
+        "setId": "pesada_C_3",
+        "setNombre": "FO Vanguardia del Grifo de Bronce",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_C_1.gloves",
+        "nombre": "Brazales · Veloz de Ante Verde & Tirantes",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 7,
+        "setId": "ligera_C_1",
+        "setNombre": "Veloz de Ante Verde & Tirantes",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_C_2.gloves",
+        "nombre": "Brazales · Cazador de Cuero Laminado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 8,
+        "setId": "ligera_C_2",
+        "setNombre": "Cazador de Cuero Laminado",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_C_3.gloves",
+        "nombre": "Brazales · FO Halcón de las Dunas",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 37,
+        "setId": "ligera_C_3",
+        "setNombre": "FO Halcón de las Dunas",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.mago_C_1.gloves",
+        "nombre": "Mangas / Guantes · Acólito de Túnica Grabada & Correas",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 9,
+        "setId": "mago_C_1",
+        "setNombre": "Acólito de Túnica Grabada & Correas",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.mago_C_2.gloves",
+        "nombre": "Mangas / Guantes · Hechicero de Terciopelo Púrpura & Oro",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 103,
+        "setId": "mago_C_2",
+        "setNombre": "Hechicero de Terciopelo Púrpura & Oro",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.mago_C_3.gloves",
+        "nombre": "Mangas / Guantes · FO Escriba de Tinta & Ámbar",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 38,
+        "setId": "mago_C_3",
+        "setNombre": "FO Escriba de Tinta & Ámbar",
+        "archivo": null
       },
       {
         "idx": 3,
-        "nombre": "Brazales Reales con Filigrana Oro",
-        "nivel": 20,
-        "archivo": "piezas/gloves/3.glb"
+        "id": "set.pesada_B_1.gloves",
+        "nombre": "Guanteletes · L2 Blue Wolf Heavy",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 10,
+        "setId": "pesada_B_1",
+        "setNombre": "L2 Blue Wolf Heavy (Acero Azulado & Plata)",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_B_2.gloves",
+        "nombre": "Guanteletes · L2 Doom Heavy",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 11,
+        "setId": "pesada_B_2",
+        "setNombre": "L2 Doom Heavy (Placas Góticas Oscuras)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.pesada_B_3.gloves",
+        "nombre": "Guanteletes · FO Caballero de la Catedral Sumergida",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 39,
+        "setId": "pesada_B_3",
+        "setNombre": "FO Caballero de la Catedral Sumergida",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_B_1.gloves",
+        "nombre": "Brazales · L2 Blue Wolf Light",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 12,
+        "setId": "ligera_B_1",
+        "setNombre": "L2 Blue Wolf Light (Cuero & Placas Ligeras)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_B_2.gloves",
+        "nombre": "Brazales · L2 Doom Light",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 13,
+        "setId": "ligera_B_2",
+        "setNombre": "L2 Doom Light (Brigantina Sombría)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_B_3.gloves",
+        "nombre": "Brazales · FO Danzante de la Rosa de Hierro",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 40,
+        "setId": "ligera_B_3",
+        "setNombre": "FO Danzante de la Rosa de Hierro",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_B_1.gloves",
+        "nombre": "Mangas / Guantes · L2 Avadon Robe",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 14,
+        "setId": "mago_B_1",
+        "setNombre": "L2 Avadon Robe (Túnica Arcana Real)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_B_2.gloves",
+        "nombre": "Mangas / Guantes · L2 Blue Wolf Robe",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 104,
+        "setId": "mago_B_2",
+        "setNombre": "L2 Blue Wolf Robe (Túnica Estelar de Cobalto)",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_B_3.gloves",
+        "nombre": "Mangas / Guantes · FO Tejedor de Vitral Lunar",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 41,
+        "setId": "mago_B_3",
+        "setNombre": "FO Tejedor de Vitral Lunar",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.pesada_A_1.gloves",
+        "nombre": "Guanteletes · L2 Dark Crystal Heavy",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 15,
+        "setId": "pesada_A_1",
+        "setNombre": "L2 Dark Crystal Heavy (Índigo & Cristal Cian)",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.pesada_A_2.gloves",
+        "nombre": "Guanteletes · FO Soberano de Escarcha & Relojería",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 42,
+        "setId": "pesada_A_2",
+        "setNombre": "FO Soberano de Escarcha & Relojería",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.pesada_A_3.gloves",
+        "nombre": "Guanteletes · VR Coloso de Basalto & Magma Flotante",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 51,
+        "setId": "pesada_A_3",
+        "setNombre": "VR Coloso de Basalto & Magma Flotante",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.ligera_A_1.gloves",
+        "nombre": "Brazales · L2 Majestic Light",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 18,
+        "setId": "ligera_A_1",
+        "setNombre": "L2 Majestic Light (Marfil, Oro & Zafiro)",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.ligera_A_2.gloves",
+        "nombre": "Brazales · FO Espectro de Obsidiana & Jade",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 43,
+        "setId": "ligera_A_2",
+        "setNombre": "FO Espectro de Obsidiana & Jade",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.ligera_A_3.gloves",
+        "nombre": "Brazales · GT Cazador de Brujas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 63,
+        "setId": "ligera_A_3",
+        "setNombre": "GT Cazador de Brujas",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_A_1.gloves",
+        "nombre": "Mangas / Guantes · L2 Dark Crystal Robe",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 20,
+        "setId": "mago_A_1",
+        "setNombre": "L2 Dark Crystal Robe (Archimago Índigo)",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_A_2.gloves",
+        "nombre": "Mangas / Guantes · FO Oráculo del Eclipse de Mercurio",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 44,
+        "setId": "mago_A_2",
+        "setNombre": "FO Oráculo del Eclipse de Mercurio",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_A_3.gloves",
+        "nombre": "Mangas / Guantes · VR Tejedor de Bobinas de Tesla Arcanas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 57,
+        "setId": "mago_A_3",
+        "setNombre": "VR Tejedor de Bobinas de Tesla Arcanas",
+        "archivo": null
       },
       {
         "idx": 4,
-        "nombre": "Guanteletes Dinastía con Aletas Aladas (L2)",
-        "nivel": 30,
-        "archivo": "piezas/gloves/4.glb"
+        "id": "set.pesada_S_1.gloves",
+        "nombre": "Guanteletes · L2 Imperial Crusader Heavy",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 21,
+        "setId": "pesada_S_1",
+        "setNombre": "L2 Imperial Crusader Heavy (Marfil, Oro & Carmesí)",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.pesada_S_2.gloves",
+        "nombre": "Guanteletes · FO Paladín del Fénix de Alabastro",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 45,
+        "setId": "pesada_S_2",
+        "setNombre": "FO Paladín del Fénix de Alabastro",
+        "archivo": null
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_S_3.gloves",
+        "nombre": "Guanteletes · GT Catedral del Verdugo",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 60,
+        "setId": "pesada_S_3",
+        "setNombre": "GT Catedral del Verdugo",
+        "archivo": null
       },
       {
         "idx": 5,
-        "nombre": "Brazales de Escamas de Dragón (D&D)",
+        "id": "set.ligera_S_1.gloves",
+        "nombre": "Brazales · L2 Draconic Leather",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 22,
+        "setId": "ligera_S_1",
+        "setNombre": "L2 Draconic Leather (Obsidiana & Runas de Fuego)",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_S_2.gloves",
+        "nombre": "Brazales · FO Cazador de Leviatán Abisal",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 46,
+        "setId": "ligera_S_2",
+        "setNombre": "FO Cazador de Leviatán Abisal",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_S_3.gloves",
+        "nombre": "Brazales · MB Valquiria de Escamas Aladas",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 80,
+        "setId": "ligera_S_3",
+        "setNombre": "MB Valquiria de Escamas Aladas",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.mago_S_1.gloves",
+        "nombre": "Mangas / Guantes · L2 Major Arcana Robe",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 23,
+        "setId": "mago_S_1",
+        "setNombre": "L2 Major Arcana Robe (Terciopelo Carmesí & Oro)",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.mago_S_2.gloves",
+        "nombre": "Mangas / Guantes · FO Soberano de las Constelaciones",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 47,
+        "setId": "mago_S_2",
+        "setNombre": "FO Soberano de las Constelaciones",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.mago_S_3.gloves",
+        "nombre": "Mangas / Guantes · VR Oráculo de los Ojos de Serafín",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 58,
+        "setId": "mago_S_3",
+        "setNombre": "VR Oráculo de los Ojos de Serafín (Ophanim)",
+        "archivo": null
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_SR_1.gloves",
+        "nombre": "Guanteletes · L2 Elegia Heavy",
         "nivel": 40,
-        "archivo": "piezas/gloves/5.glb"
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 29,
+        "setId": "pesada_SR_1",
+        "setNombre": "L2 Elegia Heavy (Obsidiana Imperial & Oro Fundido)",
+        "archivo": null
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_SR_2.gloves",
+        "nombre": "Guanteletes · FO Arconte del Marfil & Sol Negro",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 48,
+        "setId": "pesada_SR_2",
+        "setNombre": "FO Arconte del Marfil & Sol Negro",
+        "archivo": null
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_SR_3.gloves",
+        "nombre": "Guanteletes · L2 Cruzado de Aden",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 93,
+        "setId": "pesada_SR_3",
+        "setNombre": "L2 Cruzado de Aden",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_SR_1.gloves",
+        "nombre": "Brazales · L2 Vorpal Light",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 30,
+        "setId": "ligera_SR_1",
+        "setNombre": "L2 Vorpal Light (Platino Glacial & Amatista)",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_SR_2.gloves",
+        "nombre": "Brazales · FO Soberano de Espadas Etéreas",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 49,
+        "setId": "ligera_SR_2",
+        "setNombre": "FO Soberano de Espadas Etéreas",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_SR_3.gloves",
+        "nombre": "Brazales · L2 Escama Dracónica",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 96,
+        "setId": "ligera_SR_3",
+        "setNombre": "L2 Escama Dracónica",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.mago_SR_1.gloves",
+        "nombre": "Mangas / Guantes · L2 Vesper / Dynasty Robe",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 32,
+        "setId": "mago_SR_1",
+        "setNombre": "L2 Vesper / Dynasty Robe (Archimago S84)",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.mago_SR_2.gloves",
+        "nombre": "Mangas / Guantes · FO Serafín del Loto de Obsidiana",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 50,
+        "setId": "mago_SR_2",
+        "setNombre": "FO Serafín del Loto de Obsidiana",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.mago_SR_3.gloves",
+        "nombre": "Mangas / Guantes · L2 Arcana Mayor",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 99,
+        "setId": "mago_SR_3",
+        "setNombre": "L2 Arcana Mayor",
+        "archivo": null
       }
     ],
     "belt": [
       {
         "idx": 1,
         "nombre": "Cinturón Solar + Tabardo Heráldico Largo",
-        "nivel": 1,
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/belt/1.glb"
       },
       {
         "idx": 2,
         "nombre": "Cinturón Real + Tabardo Azul & Oro",
-        "nivel": 8,
+        "nivel": 10,
+        "grado": "C",
+        "tipoArmadura": [
+          "pesada",
+          "mago"
+        ],
         "archivo": "piezas/belt/2.glb"
       },
       {
         "idx": 3,
         "nombre": "Fajín de Guerra con Faldón de Malla",
-        "nivel": 14,
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": [
+          "pesada",
+          "ligera",
+          "mago"
+        ],
         "archivo": "piezas/belt/3.glb"
       },
       {
         "idx": 4,
         "nombre": "Cinturón Abisal con Punta Gótica",
-        "nivel": 20,
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
         "archivo": "piezas/belt/4.glb"
       },
       {
         "idx": 5,
         "nombre": "Cinturón de Comandante con Hebilla",
-        "nivel": 27,
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/belt/5.glb"
       },
       {
         "idx": 6,
         "nombre": "Cinturón Dinastía + Tabardo Esmeralda & Oro Rosa (L2)",
-        "nivel": 34,
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": [
+          "pesada",
+          "ligera",
+          "mago"
+        ],
         "archivo": "piezas/belt/6.glb"
       },
       {
         "idx": 7,
         "nombre": "Cinturón de Brigantina Tachonada (D&D)",
-        "nivel": 40,
+        "nivel": 24,
+        "grado": "A",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/belt/7.glb"
+      },
+      {
+        "idx": 8,
+        "nombre": "Cinturón Dark Crystal + Tabardo Índigo & Cian (L2)",
+        "nivel": 24,
+        "grado": "A",
+        "tipoArmadura": [
+          "pesada",
+          "mago"
+        ],
+        "archivo": "piezas/belt/8.glb"
+      },
+      {
+        "idx": 9,
+        "nombre": "Fajín Carmesí & Gabardina Larga Partida",
+        "nivel": 28,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/belt/9.glb"
+      },
+      {
+        "idx": 10,
+        "nombre": "Cinturón Real Dracónico & Tabardo Carmesí Bordado (Soberano)",
+        "nivel": 32,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/belt/10.glb"
+      },
+      {
+        "idx": 11,
+        "nombre": "Ceñidor Élfico de Hojas & Faldón Silvano Partido (Silvano)",
+        "nivel": 34,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/belt/11.glb"
+      },
+      {
+        "idx": 12,
+        "nombre": "Cíngulo de Eclipse & Faldón Catedralicio Plisado (Serafín)",
+        "nivel": 33,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "archivo": "piezas/belt/12.glb"
+      },
+      {
+        "idx": 13,
+        "nombre": "Cinturón Imperial de Filigrana & Zafiro (SR)",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/belt/13.glb"
+      },
+      {
+        "idx": 14,
+        "nombre": "Cinturón Silvano de Hojas & Ámbar (S/SR)",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/belt/14.glb"
+      },
+      {
+        "idx": 15,
+        "nombre": "Cinturón Rúnico Astral & Cadenas de Astrolabio (S/SR)",
+        "nivel": 42,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "archivo": "piezas/belt/15.glb"
+      },
+      {
+        "idx": 16,
+        "nombre": "Cinturón Dracónico de Escamas & Llamas (S/SR)",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "archivo": "piezas/belt/16.glb"
       }
     ],
     "tassets": [
       {
         "idx": 1,
         "nombre": "Escarcelas de Paladín (3 Placas Oro)",
-        "nivel": 1,
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/tassets/1.glb"
       },
       {
         "idx": 2,
         "nombre": "Escarcelas Góticas en Punta V",
-        "nivel": 7,
+        "nivel": 9,
+        "grado": "C",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/tassets/2.glb"
       },
       {
         "idx": 3,
-        "nombre": "Placas Pesadas de Comandante",
-        "nivel": 12,
+        "nombre": "Placas Laterales de Comandante + Faldón de Cuero",
+        "nivel": 5,
+        "grado": "D",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/tassets/3.glb"
       },
       {
         "idx": 4,
         "nombre": "Escarcelas Élficas Biseladas",
-        "nivel": 18,
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/tassets/4.glb"
       },
       {
         "idx": 5,
         "nombre": "Escarcelas Reales con Blasón",
-        "nivel": 23,
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/tassets/5.glb"
       },
       {
         "idx": 6,
-        "nombre": "Escarcelas Dinastía Aladas en Abanico (L2)",
-        "nivel": 29,
+        "nombre": "Escarcelas Dinastía Laterales + Faldón de Cuero (L2)",
+        "nivel": 24,
+        "grado": "A",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/tassets/6.glb"
       },
       {
         "idx": 7,
         "nombre": "Escarcelas de Escamas de Dragón (D&D)",
-        "nivel": 34,
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/tassets/7.glb"
       },
       {
         "idx": 8,
         "nombre": "Escarcelas de Tablillas / Splint Mail (D&D)",
-        "nivel": 40,
+        "nivel": 20,
+        "grado": "B",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/tassets/8.glb"
+      },
+      {
+        "idx": 9,
+        "nombre": "Escarcelas Dark Crystal Laterales + Faldón de Cuero (L2)",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "archivo": "piezas/tassets/9.glb"
+      },
+      {
+        "idx": 10,
+        "nombre": "Colgantes Óseos, Cadenas & Plumas Negras",
+        "nivel": 32,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/tassets/10.glb"
+      },
+      {
+        "idx": 11,
+        "nombre": "Escarcelas Aladas de Dragón & Aletas de Rubí (Soberano)",
+        "nivel": 42,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/tassets/11.glb"
+      },
+      {
+        "idx": 12,
+        "nombre": "Escarcelas Foliadas de Mithril & Dagas Silvanas (Silvano)",
+        "nivel": 37,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/tassets/12.glb"
+      },
+      {
+        "idx": 13,
+        "nombre": "Escarcelas de Seda Estelar & Péndulos de Astrolabio (Serafín)",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/tassets/13.glb"
+      },
+      {
+        "idx": 14,
+        "nombre": "Escarcelas de Garras Abisales: Cuchillas en Abanico + Cuero (L2)",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/tassets/14.glb"
       }
     ],
     "cuisses": [
       {
         "idx": 1,
         "nombre": "Quijotes de Paladín con Marco Oro",
-        "nivel": 1,
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/cuisses/1.glb"
       },
       {
         "idx": 2,
         "nombre": "Quijotes Góticos con Cresta en V",
-        "nivel": 8,
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/cuisses/2.glb"
       },
       {
         "idx": 3,
-        "nombre": "Musleras Pesadas de Comandante",
-        "nivel": 14,
+        "nombre": "Musleras Laterales de Comandante sobre Cuero",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/cuisses/3.glb"
       },
       {
         "idx": 4,
         "nombre": "Quijotes Élficos Acanalados",
-        "nivel": 20,
+        "nivel": 12,
+        "grado": "C",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/cuisses/4.glb"
       },
       {
         "idx": 5,
         "nombre": "Quijotes Imperiales de Torneo",
-        "nivel": 27,
+        "nivel": 20,
+        "grado": "B",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/cuisses/5.glb"
       },
       {
         "idx": 6,
-        "nombre": "Quijotes Dinastía con Marco de Oro Rosa (L2)",
-        "nivel": 34,
+        "nombre": "Quijotes Dinastía Laterales sobre Cuero (L2)",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/cuisses/6.glb"
       },
       {
         "idx": 7,
         "nombre": "Quijotes de Bandas Horizontales Lamelar (D&D)",
-        "nivel": 40,
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/cuisses/7.glb"
+      },
+      {
+        "idx": 8,
+        "nombre": "Musleras Dark Crystal Laterales sobre Cuero (L2)",
+        "nivel": 24,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/cuisses/8.glb"
+      },
+      {
+        "idx": 9,
+        "nombre": "Musleras Vendadas con Correas & Alforja",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/cuisses/9.glb"
+      },
+      {
+        "idx": 10,
+        "nombre": "Quijotes Acanalados de Damasco & Filigrana Oro (Soberano)",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/cuisses/10.glb"
+      },
+      {
+        "idx": 11,
+        "nombre": "Musleras Élficas de Hojas de Mithril & Esmeralda (Silvano)",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/cuisses/11.glb"
+      },
+      {
+        "idx": 12,
+        "nombre": "Quijotes Bordados de Terciopelo Astral & Oro Rosa (Serafín)",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/cuisses/12.glb"
+      },
+      {
+        "idx": 13,
+        "nombre": "Musleras de Espolones Abisales sobre Cuero (L2)",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/cuisses/13.glb"
       }
     ],
     "knees": [
       {
         "idx": 1,
         "nombre": "Rodilleras de Paladín Biseladas",
-        "nivel": 1,
+        "nivel": 2,
+        "grado": "D",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/knees/1.glb"
       },
       {
         "idx": 2,
         "nombre": "Rodilleras Facetadas con Ala Lateral",
-        "nivel": 8,
+        "nivel": 5,
+        "grado": "D",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/knees/2.glb"
       },
       {
         "idx": 3,
         "nombre": "Rodilleras Abisales con Espolón",
-        "nivel": 14,
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/knees/3.glb"
       },
       {
         "idx": 4,
         "nombre": "Rodilleras de Comandante Articuladas",
-        "nivel": 20,
+        "nivel": 3,
+        "grado": "D",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/knees/4.glb"
       },
       {
         "idx": 5,
         "nombre": "Rodilleras Élficas en Punta Real",
-        "nivel": 27,
+        "nivel": 10,
+        "grado": "C",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/knees/5.glb"
       },
       {
         "idx": 6,
         "nombre": "Rodilleras Dinastía con Aletas de Plumas (L2)",
-        "nivel": 34,
+        "nivel": 24,
+        "grado": "A",
+        "tipoArmadura": "pesada",
         "archivo": "piezas/knees/6.glb"
       },
       {
         "idx": 7,
         "nombre": "Rodilleras de Escama con Gema Rubí (D&D)",
-        "nivel": 40,
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
         "archivo": "piezas/knees/7.glb"
+      },
+      {
+        "idx": 8,
+        "nombre": "Rodilleras Dark Crystal con Aletas de Cristal (L2)",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": [
+          "pesada",
+          "ligera"
+        ],
+        "archivo": "piezas/knees/8.glb"
+      },
+      {
+        "idx": 9,
+        "nombre": "Rodilleras Asimétricas de Cráneo & Garfio",
+        "nivel": 20,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/knees/9.glb"
+      },
+      {
+        "idx": 10,
+        "nombre": "Rodilleras Aladas de Dragón con Rubí Facetado (Soberano)",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/knees/10.glb"
+      },
+      {
+        "idx": 11,
+        "nombre": "Rodilleras de Hoja de Mithril & Esmeralda (Silvano)",
+        "nivel": 42,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/knees/11.glb"
+      },
+      {
+        "idx": 12,
+        "nombre": "Rodilleras Crecientes de Filigrana & Amatista (Serafín)",
+        "nivel": 46,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/knees/12.glb"
       }
     ],
     "boots": [
       {
-        "idx": 1,
-        "nombre": "Botas & Escarpes de Paladín Solar",
+        "idx": 3,
+        "id": "set.pesada_D_1.boots",
+        "nombre": "Escarpes · Soldado de Cuero Curtido & Hierro",
         "nivel": 1,
-        "archivo": "piezas/boots/1.glb"
-      },
-      {
-        "idx": 2,
-        "nombre": "Botas Góticas Abisales en Punta",
-        "nivel": 9,
-        "archivo": "piezas/boots/2.glb"
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 0,
+        "setId": "pesada_D_1",
+        "setNombre": "Soldado de Cuero Curtido & Hierro",
+        "archivo": null
       },
       {
         "idx": 3,
-        "nombre": "Botas de Comandante de Acero Pesado",
-        "nivel": 17,
-        "archivo": "piezas/boots/3.glb"
+        "id": "set.pesada_D_2.boots",
+        "nombre": "Escarpes · Guardia de Brigantina & Costura Simple",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 1,
+        "setId": "pesada_D_2",
+        "setNombre": "Guardia de Brigantina & Costura Simple",
+        "archivo": null
       },
       {
-        "idx": 4,
-        "nombre": "Botas Dinastía Celestial (Alas de Oro Rosa - L2)",
-        "nivel": 24,
-        "archivo": "piezas/boots/4.glb"
+        "idx": 3,
+        "id": "set.pesada_D_3.boots",
+        "nombre": "Escarpes · FO Centinela de Ceniza & Roble",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 33,
+        "setId": "pesada_D_3",
+        "setNombre": "FO Centinela de Ceniza & Roble",
+        "archivo": null
       },
       {
         "idx": 5,
-        "nombre": "Botas Élficas de Hoja de Laurel (D&D)",
-        "nivel": 32,
-        "archivo": "piezas/boots/5.glb"
+        "id": "set.ligera_D_1.boots",
+        "nombre": "Botas de Caza · Explorador de Cuero Endurecido",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 2,
+        "setId": "ligera_D_1",
+        "setNombre": "Explorador de Cuero Endurecido",
+        "archivo": null
+      },
+      {
+        "idx": 1,
+        "id": "set.ligera_D_2.boots",
+        "nombre": "Botas de Caza · Escudero de Gambesón & Tirantes",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 3,
+        "setId": "ligera_D_2",
+        "setNombre": "Escudero de Gambesón & Tirantes",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.ligera_D_3.boots",
+        "nombre": "Botas de Caza · FO Rastreador de Espino Blanco",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 34,
+        "setId": "ligera_D_3",
+        "setNombre": "FO Rastreador de Espino Blanco",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.mago_D_1.boots",
+        "nombre": "Calzado Ritual · Aprendiz de Túnica y Cuero",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 4,
+        "setId": "mago_D_1",
+        "setNombre": "Aprendiz de Túnica y Cuero",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.mago_D_2.boots",
+        "nombre": "Calzado Ritual · Erudito de Lino Azul & Latón",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 102,
+        "setId": "mago_D_2",
+        "setNombre": "Erudito de Lino Azul & Latón",
+        "archivo": null
+      },
+      {
+        "idx": 5,
+        "id": "set.mago_D_3.boots",
+        "nombre": "Calzado Ritual · FO Herbolario de la Bruma",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 35,
+        "setId": "mago_D_3",
+        "setNombre": "FO Herbolario de la Bruma",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.pesada_C_1.boots",
+        "nombre": "Escarpes · Veterano de Cuero Tachonado & Malla",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 5,
+        "setId": "pesada_C_1",
+        "setNombre": "Veterano de Cuero Tachonado & Malla",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.pesada_C_2.boots",
+        "nombre": "Escarpes · Lancero de Cuir Bouilli Grabado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 6,
+        "setId": "pesada_C_2",
+        "setNombre": "Lancero de Cuir Bouilli Grabado",
+        "archivo": null
+      },
+      {
+        "idx": 3,
+        "id": "set.pesada_C_3.boots",
+        "nombre": "Escarpes · FO Vanguardia del Grifo de Bronce",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 36,
+        "setId": "pesada_C_3",
+        "setNombre": "FO Vanguardia del Grifo de Bronce",
+        "archivo": null
       },
       {
         "idx": 6,
-        "nombre": "Botas de Escamas de Dragón & Puntera Reforzada (D&D)",
+        "id": "set.ligera_C_1.boots",
+        "nombre": "Botas de Caza · Veloz de Ante Verde & Tirantes",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 7,
+        "setId": "ligera_C_1",
+        "setNombre": "Veloz de Ante Verde & Tirantes",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.ligera_C_2.boots",
+        "nombre": "Botas de Caza · Cazador de Cuero Laminado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 8,
+        "setId": "ligera_C_2",
+        "setNombre": "Cazador de Cuero Laminado",
+        "archivo": null
+      },
+      {
+        "idx": 6,
+        "id": "set.ligera_C_3.boots",
+        "nombre": "Botas de Caza · FO Halcón de las Dunas",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 37,
+        "setId": "ligera_C_3",
+        "setNombre": "FO Halcón de las Dunas",
+        "archivo": null
+      },
+      {
+        "idx": 14,
+        "id": "set.mago_C_1.boots",
+        "nombre": "Calzado Ritual · Acólito de Túnica Grabada & Correas",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 9,
+        "setId": "mago_C_1",
+        "setNombre": "Acólito de Túnica Grabada & Correas",
+        "archivo": null
+      },
+      {
+        "idx": 14,
+        "id": "set.mago_C_2.boots",
+        "nombre": "Calzado Ritual · Hechicero de Terciopelo Púrpura & Oro",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 103,
+        "setId": "mago_C_2",
+        "setNombre": "Hechicero de Terciopelo Púrpura & Oro",
+        "archivo": null
+      },
+      {
+        "idx": 14,
+        "id": "set.mago_C_3.boots",
+        "nombre": "Calzado Ritual · FO Escriba de Tinta & Ámbar",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 38,
+        "setId": "mago_C_3",
+        "setNombre": "FO Escriba de Tinta & Ámbar",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_B_1.boots",
+        "nombre": "Escarpes · L2 Blue Wolf Heavy",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 10,
+        "setId": "pesada_B_1",
+        "setNombre": "L2 Blue Wolf Heavy (Acero Azulado & Plata)",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_B_2.boots",
+        "nombre": "Escarpes · L2 Doom Heavy",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 11,
+        "setId": "pesada_B_2",
+        "setNombre": "L2 Doom Heavy (Placas Góticas Oscuras)",
+        "archivo": null
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_B_3.boots",
+        "nombre": "Escarpes · FO Caballero de la Catedral Sumergida",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 39,
+        "setId": "pesada_B_3",
+        "setNombre": "FO Caballero de la Catedral Sumergida",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_B_1.boots",
+        "nombre": "Botas de Caza · L2 Blue Wolf Light",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 12,
+        "setId": "ligera_B_1",
+        "setNombre": "L2 Blue Wolf Light (Cuero & Placas Ligeras)",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_B_2.boots",
+        "nombre": "Botas de Caza · L2 Doom Light",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 13,
+        "setId": "ligera_B_2",
+        "setNombre": "L2 Doom Light (Brigantina Sombría)",
+        "archivo": null
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_B_3.boots",
+        "nombre": "Botas de Caza · FO Danzante de la Rosa de Hierro",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 40,
+        "setId": "ligera_B_3",
+        "setNombre": "FO Danzante de la Rosa de Hierro",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.mago_B_1.boots",
+        "nombre": "Calzado Ritual · L2 Avadon Robe",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 14,
+        "setId": "mago_B_1",
+        "setNombre": "L2 Avadon Robe (Túnica Arcana Real)",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.mago_B_2.boots",
+        "nombre": "Calzado Ritual · L2 Blue Wolf Robe",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 104,
+        "setId": "mago_B_2",
+        "setNombre": "L2 Blue Wolf Robe (Túnica Estelar de Cobalto)",
+        "archivo": null
+      },
+      {
+        "idx": 9,
+        "id": "set.mago_B_3.boots",
+        "nombre": "Calzado Ritual · FO Tejedor de Vitral Lunar",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 41,
+        "setId": "mago_B_3",
+        "setNombre": "FO Tejedor de Vitral Lunar",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.pesada_A_1.boots",
+        "nombre": "Escarpes · L2 Dark Crystal Heavy",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 15,
+        "setId": "pesada_A_1",
+        "setNombre": "L2 Dark Crystal Heavy (Índigo & Cristal Cian)",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.pesada_A_2.boots",
+        "nombre": "Escarpes · FO Soberano de Escarcha & Relojería",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 42,
+        "setId": "pesada_A_2",
+        "setNombre": "FO Soberano de Escarcha & Relojería",
+        "archivo": null
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_A_3.boots",
+        "nombre": "Escarpes · VR Coloso de Basalto & Magma Flotante",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 51,
+        "setId": "pesada_A_3",
+        "setNombre": "VR Coloso de Basalto & Magma Flotante",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_A_1.boots",
+        "nombre": "Botas de Caza · L2 Majestic Light",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 18,
+        "setId": "ligera_A_1",
+        "setNombre": "L2 Majestic Light (Marfil, Oro & Zafiro)",
+        "archivo": null
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_A_2.boots",
+        "nombre": "Botas de Caza · FO Espectro de Obsidiana & Jade",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 43,
+        "setId": "ligera_A_2",
+        "setNombre": "FO Espectro de Obsidiana & Jade",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.ligera_A_3.boots",
+        "nombre": "Botas de Caza · GT Cazador de Brujas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 63,
+        "setId": "ligera_A_3",
+        "setNombre": "GT Cazador de Brujas",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_A_1.boots",
+        "nombre": "Calzado Ritual · L2 Dark Crystal Robe",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 20,
+        "setId": "mago_A_1",
+        "setNombre": "L2 Dark Crystal Robe (Archimago Índigo)",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_A_2.boots",
+        "nombre": "Calzado Ritual · FO Oráculo del Eclipse de Mercurio",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 44,
+        "setId": "mago_A_2",
+        "setNombre": "FO Oráculo del Eclipse de Mercurio",
+        "archivo": null
+      },
+      {
+        "idx": 13,
+        "id": "set.mago_A_3.boots",
+        "nombre": "Calzado Ritual · VR Tejedor de Bobinas de Tesla Arcanas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 57,
+        "setId": "mago_A_3",
+        "setNombre": "VR Tejedor de Bobinas de Tesla Arcanas",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_S_1.boots",
+        "nombre": "Escarpes · L2 Imperial Crusader Heavy",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 21,
+        "setId": "pesada_S_1",
+        "setNombre": "L2 Imperial Crusader Heavy (Marfil, Oro & Carmesí)",
+        "archivo": null
+      },
+      {
+        "idx": 11,
+        "id": "set.pesada_S_2.boots",
+        "nombre": "Escarpes · FO Paladín del Fénix de Alabastro",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 45,
+        "setId": "pesada_S_2",
+        "setNombre": "FO Paladín del Fénix de Alabastro",
+        "archivo": null
+      },
+      {
+        "idx": 15,
+        "id": "set.pesada_S_3.boots",
+        "nombre": "Escarpes · GT Catedral del Verdugo",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 60,
+        "setId": "pesada_S_3",
+        "setNombre": "GT Catedral del Verdugo",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.ligera_S_1.boots",
+        "nombre": "Botas de Caza · L2 Draconic Leather",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 22,
+        "setId": "ligera_S_1",
+        "setNombre": "L2 Draconic Leather (Obsidiana & Runas de Fuego)",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.ligera_S_2.boots",
+        "nombre": "Botas de Caza · FO Cazador de Leviatán Abisal",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 46,
+        "setId": "ligera_S_2",
+        "setNombre": "FO Cazador de Leviatán Abisal",
+        "archivo": null
+      },
+      {
+        "idx": 10,
+        "id": "set.ligera_S_3.boots",
+        "nombre": "Botas de Caza · MB Valquiria de Escamas Aladas",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 80,
+        "setId": "ligera_S_3",
+        "setNombre": "MB Valquiria de Escamas Aladas",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.mago_S_1.boots",
+        "nombre": "Calzado Ritual · L2 Major Arcana Robe",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 23,
+        "setId": "mago_S_1",
+        "setNombre": "L2 Major Arcana Robe (Terciopelo Carmesí & Oro)",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.mago_S_2.boots",
+        "nombre": "Calzado Ritual · FO Soberano de las Constelaciones",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 47,
+        "setId": "mago_S_2",
+        "setNombre": "FO Soberano de las Constelaciones",
+        "archivo": null
+      },
+      {
+        "idx": 12,
+        "id": "set.mago_S_3.boots",
+        "nombre": "Calzado Ritual · VR Oráculo de los Ojos de Serafín",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 58,
+        "setId": "mago_S_3",
+        "setNombre": "VR Oráculo de los Ojos de Serafín (Ophanim)",
+        "archivo": null
+      },
+      {
+        "idx": 15,
+        "id": "set.pesada_SR_1.boots",
+        "nombre": "Escarpes · L2 Elegia Heavy",
         "nivel": 40,
-        "archivo": "piezas/boots/6.glb"
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 29,
+        "setId": "pesada_SR_1",
+        "setNombre": "L2 Elegia Heavy (Obsidiana Imperial & Oro Fundido)",
+        "archivo": null
+      },
+      {
+        "idx": 15,
+        "id": "set.pesada_SR_2.boots",
+        "nombre": "Escarpes · FO Arconte del Marfil & Sol Negro",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 48,
+        "setId": "pesada_SR_2",
+        "setNombre": "FO Arconte del Marfil & Sol Negro",
+        "archivo": null
+      },
+      {
+        "idx": 15,
+        "id": "set.pesada_SR_3.boots",
+        "nombre": "Escarpes · L2 Cruzado de Aden",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 93,
+        "setId": "pesada_SR_3",
+        "setNombre": "L2 Cruzado de Aden",
+        "archivo": null
+      },
+      {
+        "idx": 16,
+        "id": "set.ligera_SR_1.boots",
+        "nombre": "Botas de Caza · L2 Vorpal Light",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 30,
+        "setId": "ligera_SR_1",
+        "setNombre": "L2 Vorpal Light (Platino Glacial & Amatista)",
+        "archivo": null
+      },
+      {
+        "idx": 16,
+        "id": "set.ligera_SR_2.boots",
+        "nombre": "Botas de Caza · FO Soberano de Espadas Etéreas",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 49,
+        "setId": "ligera_SR_2",
+        "setNombre": "FO Soberano de Espadas Etéreas",
+        "archivo": null
+      },
+      {
+        "idx": 16,
+        "id": "set.ligera_SR_3.boots",
+        "nombre": "Botas de Caza · L2 Escama Dracónica",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 96,
+        "setId": "ligera_SR_3",
+        "setNombre": "L2 Escama Dracónica",
+        "archivo": null
+      },
+      {
+        "idx": 17,
+        "id": "set.mago_SR_1.boots",
+        "nombre": "Calzado Ritual · L2 Vesper / Dynasty Robe",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 32,
+        "setId": "mago_SR_1",
+        "setNombre": "L2 Vesper / Dynasty Robe (Archimago S84)",
+        "archivo": null
+      },
+      {
+        "idx": 17,
+        "id": "set.mago_SR_2.boots",
+        "nombre": "Calzado Ritual · FO Serafín del Loto de Obsidiana",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 50,
+        "setId": "mago_SR_2",
+        "setNombre": "FO Serafín del Loto de Obsidiana",
+        "archivo": null
+      },
+      {
+        "idx": 17,
+        "id": "set.mago_SR_3.boots",
+        "nombre": "Calzado Ritual · L2 Arcana Mayor",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 99,
+        "setId": "mago_SR_3",
+        "setNombre": "L2 Arcana Mayor",
+        "archivo": null
       }
     ],
     "weapon": [
       {
         "idx": 1,
-        "nombre": "Espada Solar + Escudo Heráldico Sol",
+        "nombre": "Espada Solar",
         "nivel": 1,
+        "grado": "D",
         "archivo": "piezas/weapon/1.glb",
-        "familia": "legado"
+        "familia": "legado",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 2,
-        "nombre": "Mandoble + Gran Escudo Torre Pavés Solar (D&D)",
-        "nivel": 5,
+        "nombre": "Mandoble Solar (2M)",
+        "nivel": 3,
+        "grado": "D",
         "archivo": "piezas/weapon/2.glb",
-        "familia": "legado"
+        "familia": "mandoble",
+        "claseArma": "mandobles",
+        "manos": 2
       },
       {
         "idx": 3,
-        "nombre": "Espada de Acero + Escudo de Espigas Eclipse (D&D)",
-        "nivel": 10,
+        "nombre": "Espada de Acero Eclipse",
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/3.glb",
-        "familia": "legado"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 4,
-        "nombre": "Lanza Élfica + Rodela de Hierro / Buckler (D&D)",
-        "nivel": 14,
+        "nombre": "Lanza Élfica (2M)",
+        "nivel": 6,
+        "grado": "D",
         "archivo": "piezas/weapon/4.glb",
-        "familia": "legado"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 5,
-        "nombre": "Espada Dinastía + Escudo Alado Oro Rosa (L2)",
-        "nivel": 18,
+        "nombre": "Espada Dinastía Oro Rosa (L2)",
+        "nivel": 6,
+        "grado": "D",
         "archivo": "piezas/weapon/5.glb",
-        "familia": "legado"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 6,
-        "nombre": "Hacha de Torre de Doble Filo + Escudo Cometa de Caballero",
-        "nivel": 23,
+        "nombre": "Hacha de Torre de Doble Filo (2M)",
+        "nivel": 5,
+        "grado": "D",
         "archivo": "piezas/weapon/6.glb",
-        "familia": "legado"
+        "familia": "hacha",
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 7,
-        "nombre": "Maza Estrellada + Escudo Redondo Vikingo",
-        "nivel": 27,
+        "nombre": "Maza Estrellada de Guerra",
+        "nivel": 4,
+        "grado": "D",
         "archivo": "piezas/weapon/7.glb",
-        "familia": "legado"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 8,
-        "nombre": "Estoque Élfico + Escudo Ojival Gótico",
-        "nivel": 31,
+        "nombre": "Estoque Élfico",
+        "nivel": 9,
+        "grado": "C",
         "archivo": "piezas/weapon/8.glb",
-        "familia": "legado"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 9,
-        "nombre": "Hoz Abismal + Escudo Cuadrado de Escamas",
-        "nivel": 36,
+        "nombre": "Hoz Abismal (2M)",
+        "nivel": 16,
+        "grado": "B",
         "archivo": "piezas/weapon/9.glb",
-        "familia": "legado"
+        "familia": "hacha",
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 10,
-        "nombre": "Cetro de Mando Solar + Broquel Élfico de Hoja",
-        "nivel": 40,
+        "nombre": "Cetro de Mando Solar (2M)",
+        "nivel": 5,
+        "grado": "D",
         "archivo": "piezas/weapon/10.glb",
-        "familia": "legado"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 11,
         "nombre": "Espada Ropera Élfica",
-        "nivel": 1,
+        "nivel": 17,
+        "grado": "B",
         "archivo": "piezas/weapon/11.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 12,
         "nombre": "Espada Larga de Caballero",
-        "nivel": 5,
+        "nivel": 21,
+        "grado": "B",
         "archivo": "piezas/weapon/12.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 13,
-        "nombre": "Montante de Dos Manos",
+        "nombre": "Montante de Dos Manos (2M)",
         "nivel": 10,
+        "grado": "C",
         "archivo": "piezas/weapon/13.glb",
-        "familia": "espada"
+        "familia": "mandoble",
+        "claseArma": "mandobles",
+        "manos": 2
       },
       {
         "idx": 14,
         "nombre": "Falcata de Guerra",
-        "nivel": 14,
+        "nivel": 25,
+        "grado": "A",
         "archivo": "piezas/weapon/14.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 15,
         "nombre": "Cimitarra Dorada",
-        "nivel": 18,
+        "nivel": 29,
+        "grado": "A",
         "archivo": "piezas/weapon/15.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 16,
         "nombre": "Espada Bastarda Gótica",
-        "nivel": 23,
+        "nivel": 33,
+        "grado": "S",
         "archivo": "piezas/weapon/16.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 17,
         "nombre": "Estoque de Torneo",
-        "nivel": 27,
+        "nivel": 41,
+        "grado": "SR",
         "archivo": "piezas/weapon/17.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 18,
         "nombre": "Espada Flamígera Ondulada",
-        "nivel": 31,
+        "nivel": 46,
+        "grado": "SR",
         "archivo": "piezas/weapon/18.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 19,
-        "nombre": "Claymore de Clan",
-        "nivel": 36,
+        "nombre": "Claymore de Clan (2M)",
+        "nivel": 24,
+        "grado": "A",
         "archivo": "piezas/weapon/19.glb",
-        "familia": "espada"
+        "familia": "mandoble",
+        "claseArma": "mandobles",
+        "manos": 2
       },
       {
         "idx": 20,
         "nombre": "Gladius Imperial",
-        "nivel": 40,
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/20.glb",
-        "familia": "espada"
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
       },
       {
         "idx": 21,
         "nombre": "Hacha de Guerra Lunar",
         "nivel": 1,
+        "grado": "D",
         "archivo": "piezas/weapon/21.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 22,
-        "nombre": "Hacha de Torre de Doble Filo",
-        "nivel": 5,
+        "nombre": "Hacha de Torre de Doble Filo (2M)",
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/22.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 23,
         "nombre": "Hacha Vikinga de Filo Único",
-        "nivel": 10,
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/23.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 24,
         "nombre": "Hacha Pico de Cuervo",
-        "nivel": 14,
+        "nivel": 13,
+        "grado": "C",
         "archivo": "piezas/weapon/24.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 25,
         "nombre": "Hacha de Abordaje",
-        "nivel": 18,
+        "nivel": 25,
+        "grado": "A",
         "archivo": "piezas/weapon/25.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 26,
-        "nombre": "Alabarda Hacha de Luz",
-        "nivel": 23,
+        "nombre": "Alabarda Hacha de Luz (2M)",
+        "nivel": 17,
+        "grado": "B",
         "archivo": "piezas/weapon/26.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 27,
-        "nombre": "Hacha Doble Gótica",
-        "nivel": 27,
+        "nombre": "Hacha Doble Gótica (2M)",
+        "nivel": 33,
+        "grado": "S",
         "archivo": "piezas/weapon/27.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 28,
         "nombre": "Tomahawk Espinado",
-        "nivel": 31,
+        "nivel": 37,
+        "grado": "S",
         "archivo": "piezas/weapon/28.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 29,
-        "nombre": "Hacha de Verdugo",
-        "nivel": 36,
+        "nombre": "Hacha de Verdugo (2M)",
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/29.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas_2m",
+        "manos": 2
       },
       {
         "idx": 30,
         "nombre": "Labrys Solar",
-        "nivel": 40,
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/30.glb",
-        "familia": "hacha"
+        "familia": "hacha",
+        "claseArma": "hachas",
+        "manos": 1
       },
       {
         "idx": 31,
         "nombre": "Maza Estrellada",
         "nivel": 1,
+        "grado": "D",
         "archivo": "piezas/weapon/31.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 32,
         "nombre": "Maza de Pinchos",
-        "nivel": 5,
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/32.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 33,
-        "nombre": "Martillo de Guerra",
-        "nivel": 10,
+        "nombre": "Martillo de Guerra (2M)",
+        "nivel": 9,
+        "grado": "C",
         "archivo": "piezas/weapon/33.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 2
       },
       {
         "idx": 34,
         "nombre": "Maza de Tres Cabezas",
-        "nivel": 14,
+        "nivel": 13,
+        "grado": "C",
         "archivo": "piezas/weapon/34.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 35,
         "nombre": "Maza Flanjeada",
-        "nivel": 18,
+        "nivel": 21,
+        "grado": "B",
         "archivo": "piezas/weapon/35.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 36,
         "nombre": "Mangual de Cadena",
-        "nivel": 23,
+        "nivel": 25,
+        "grado": "A",
         "archivo": "piezas/weapon/36.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 37,
-        "nombre": "Macuahuitl de Vidrio",
-        "nivel": 27,
+        "nombre": "Macuahuitl de Vidrio (2M)",
+        "nivel": 33,
+        "grado": "S",
         "archivo": "piezas/weapon/37.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 2
       },
       {
         "idx": 38,
         "nombre": "Maza Hexagonal",
-        "nivel": 31,
+        "nivel": 37,
+        "grado": "S",
         "archivo": "piezas/weapon/38.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 39,
         "nombre": "Porra Ceremonial",
-        "nivel": 36,
+        "nivel": 46,
+        "grado": "SR",
         "archivo": "piezas/weapon/39.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 40,
         "nombre": "Maza Cráneo Abisal",
-        "nivel": 40,
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/40.glb",
-        "familia": "maza"
+        "familia": "maza",
+        "claseArma": "mazas",
+        "manos": 1
       },
       {
         "idx": 41,
         "nombre": "Daga Élfica",
         "nivel": 1,
+        "grado": "D",
         "archivo": "piezas/weapon/41.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 42,
         "nombre": "Kris Ondulado",
-        "nivel": 5,
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/42.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 43,
         "nombre": "Daga de Asesino",
-        "nivel": 10,
+        "nivel": 9,
+        "grado": "C",
         "archivo": "piezas/weapon/43.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 44,
         "nombre": "Misericordia",
-        "nivel": 14,
+        "nivel": 13,
+        "grado": "C",
         "archivo": "piezas/weapon/44.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 45,
         "nombre": "Cuchillo de Caza",
-        "nivel": 18,
+        "nivel": 21,
+        "grado": "B",
         "archivo": "piezas/weapon/45.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 46,
         "nombre": "Daga Gótica de Dos Filos",
-        "nivel": 23,
+        "nivel": 25,
+        "grado": "A",
         "archivo": "piezas/weapon/46.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 47,
         "nombre": "Punzón de Mago",
-        "nivel": 27,
+        "nivel": 33,
+        "grado": "S",
         "archivo": "piezas/weapon/47.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 48,
         "nombre": "Daga Parada",
-        "nivel": 31,
+        "nivel": 37,
+        "grado": "S",
         "archivo": "piezas/weapon/48.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 49,
         "nombre": "Daga Lunar",
-        "nivel": 36,
+        "nivel": 46,
+        "grado": "SR",
         "archivo": "piezas/weapon/49.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 50,
         "nombre": "Daga de Cristal",
-        "nivel": 40,
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/50.glb",
-        "familia": "daga"
+        "familia": "daga",
+        "claseArma": "dagas",
+        "manos": 1
       },
       {
         "idx": 51,
-        "nombre": "Lanza de Caballería",
+        "nombre": "Lanza de Caballería (2M)",
         "nivel": 1,
+        "grado": "D",
         "archivo": "piezas/weapon/51.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 52,
-        "nombre": "Lanza Élfica de Hoja Larga",
-        "nivel": 5,
+        "nombre": "Lanza Élfica de Hoja Larga (2M)",
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/52.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 53,
-        "nombre": "Alabarda de Guardián",
-        "nivel": 10,
+        "nombre": "Alabarda de Guardián (2M)",
+        "nivel": 9,
+        "grado": "C",
         "archivo": "piezas/weapon/53.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 54,
-        "nombre": "Pica de Falange",
-        "nivel": 14,
+        "nombre": "Pica de Falange (2M)",
+        "nivel": 13,
+        "grado": "C",
         "archivo": "piezas/weapon/54.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 55,
-        "nombre": "Tridente Solar",
-        "nivel": 18,
+        "nombre": "Tridente Solar (2M)",
+        "nivel": 21,
+        "grado": "B",
         "archivo": "piezas/weapon/55.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 56,
-        "nombre": "Glaive de Luna",
-        "nivel": 23,
+        "nombre": "Glaive de Luna (2M)",
+        "nivel": 25,
+        "grado": "A",
         "archivo": "piezas/weapon/56.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 57,
-        "nombre": "Lanza de Espino",
-        "nivel": 27,
+        "nombre": "Lanza de Espino (2M)",
+        "nivel": 33,
+        "grado": "S",
         "archivo": "piezas/weapon/57.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 58,
-        "nombre": "Partesana",
-        "nivel": 31,
+        "nombre": "Partesana (2M)",
+        "nivel": 37,
+        "grado": "S",
         "archivo": "piezas/weapon/58.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 59,
-        "nombre": "Lanza Gótica de Púas",
-        "nivel": 36,
+        "nombre": "Lanza Gótica de Púas (2M)",
+        "nivel": 46,
+        "grado": "SR",
         "archivo": "piezas/weapon/59.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 60,
-        "nombre": "Bisarma Dorada",
-        "nivel": 40,
+        "nombre": "Bisarma Dorada (2M)",
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/60.glb",
-        "familia": "lanza"
+        "familia": "lanza",
+        "claseArma": "lanzas",
+        "manos": 2
       },
       {
         "idx": 61,
-        "nombre": "Báculo Solar",
+        "nombre": "Báculo Solar (2M)",
         "nivel": 1,
+        "grado": "D",
         "archivo": "piezas/weapon/61.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 62,
-        "nombre": "Cetro Arcano de Cristal",
-        "nivel": 5,
+        "nombre": "Cetro Arcano de Cristal (2M)",
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/62.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 63,
-        "nombre": "Báculo Espiral Élfico",
-        "nivel": 10,
+        "nombre": "Báculo Espiral Élfico (2M)",
+        "nivel": 9,
+        "grado": "C",
         "archivo": "piezas/weapon/63.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 64,
-        "nombre": "Bastón de Druida",
-        "nivel": 14,
+        "nombre": "Bastón de Druida (2M)",
+        "nivel": 13,
+        "grado": "C",
         "archivo": "piezas/weapon/64.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 65,
-        "nombre": "Báculo de Triple Orbe",
-        "nivel": 18,
+        "nombre": "Báculo de Triple Orbe (2M)",
+        "nivel": 21,
+        "grado": "B",
         "archivo": "piezas/weapon/65.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 66,
-        "nombre": "Vara de Runas",
-        "nivel": 23,
+        "nombre": "Vara de Runas (2M)",
+        "nivel": 25,
+        "grado": "A",
         "archivo": "piezas/weapon/66.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 67,
-        "nombre": "Báculo Cráneo Abisal",
-        "nivel": 27,
+        "nombre": "Báculo Cráneo Abisal (2M)",
+        "nivel": 33,
+        "grado": "S",
         "archivo": "piezas/weapon/67.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 68,
-        "nombre": "Báculo de Raíces",
-        "nivel": 31,
+        "nombre": "Báculo de Raíces (2M)",
+        "nivel": 37,
+        "grado": "S",
         "archivo": "piezas/weapon/68.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 69,
-        "nombre": "Cetro del Alba",
-        "nivel": 36,
+        "nombre": "Cetro del Alba (2M)",
+        "nivel": 46,
+        "grado": "SR",
         "archivo": "piezas/weapon/69.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 70,
-        "nombre": "Báculo Lunar de Plata",
-        "nivel": 40,
+        "nombre": "Báculo Lunar de Plata (2M)",
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/70.glb",
-        "familia": "baculo"
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
       },
       {
         "idx": 71,
-        "nombre": "Arco Largo Élfico",
+        "nombre": "Arco Largo Élfico (2M)",
         "nivel": 1,
+        "grado": "D",
         "archivo": "piezas/weapon/71.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 72,
-        "nombre": "Arco Recurvo de Caballero",
-        "nivel": 5,
+        "nombre": "Arco Recurvo de Caballero (2M)",
+        "nivel": 2,
+        "grado": "D",
         "archivo": "piezas/weapon/72.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 73,
-        "nombre": "Arco Compuesto Gótico",
-        "nivel": 10,
+        "nombre": "Arco Compuesto Gótico (2M)",
+        "nivel": 9,
+        "grado": "C",
         "archivo": "piezas/weapon/73.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 74,
-        "nombre": "Arco Reflejo Solar",
-        "nivel": 14,
+        "nombre": "Arco Reflejo Solar (2M)",
+        "nivel": 13,
+        "grado": "C",
         "archivo": "piezas/weapon/74.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 75,
-        "nombre": "Arco de Caza",
-        "nivel": 18,
+        "nombre": "Arco de Caza (2M)",
+        "nivel": 21,
+        "grado": "B",
         "archivo": "piezas/weapon/75.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 76,
-        "nombre": "Arco de Cristal",
-        "nivel": 23,
+        "nombre": "Arco de Cristal (2M)",
+        "nivel": 25,
+        "grado": "A",
         "archivo": "piezas/weapon/76.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 77,
-        "nombre": "Arco Espinado",
-        "nivel": 27,
+        "nombre": "Arco Espinado (2M)",
+        "nivel": 33,
+        "grado": "S",
         "archivo": "piezas/weapon/77.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 78,
-        "nombre": "Arco de Raíces",
-        "nivel": 31,
+        "nombre": "Arco de Raíces (2M)",
+        "nivel": 37,
+        "grado": "S",
         "archivo": "piezas/weapon/78.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 79,
-        "nombre": "Arco Lunar",
-        "nivel": 36,
+        "nombre": "Arco Lunar (2M)",
+        "nivel": 46,
+        "grado": "SR",
         "archivo": "piezas/weapon/79.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
       },
       {
         "idx": 80,
-        "nombre": "Arco de Torneo",
-        "nivel": 40,
+        "nombre": "Arco de Torneo (2M)",
+        "nivel": 50,
+        "grado": "SR",
         "archivo": "piezas/weapon/80.glb",
-        "familia": "arco"
+        "familia": "arco",
+        "claseArma": "arcos",
+        "manos": 2
+      },
+      {
+        "idx": 81,
+        "nombre": "Espada Dark Crystal (L2)",
+        "nivel": 28,
+        "grado": "A",
+        "archivo": "piezas/weapon/81.glb",
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
+      },
+      {
+        "idx": 82,
+        "nombre": "Guadaña Segadora de Cuervo y Hueso",
+        "nivel": 36,
+        "grado": "S",
+        "archivo": "piezas/weapon/82.glb",
+        "familia": "hacha",
+        "claseArma": "hachas_2m",
+        "manos": 2
+      },
+      {
+        "idx": 83,
+        "nombre": "Mandoble Real Dracónico Carmesí (Soberano)",
+        "nivel": 45,
+        "grado": "SR",
+        "archivo": "piezas/weapon/83.glb",
+        "familia": "mandoble",
+        "claseArma": "mandobles",
+        "manos": 2
+      },
+      {
+        "idx": 84,
+        "nombre": "Hoja Élfica Lunar de Mithril & Esmeralda (Silvano)",
+        "nivel": 44,
+        "grado": "SR",
+        "archivo": "piezas/weapon/84.glb",
+        "familia": "espada",
+        "claseArma": "espadas",
+        "manos": 1
+      },
+      {
+        "idx": 85,
+        "nombre": "Gran Báculo Serafín del Planetario (Serafín)",
+        "nivel": 48,
+        "grado": "SR",
+        "archivo": "piezas/weapon/85.glb",
+        "familia": "baculo",
+        "claseArma": "bastones",
+        "manos": 2
+      }
+    ],
+    "shield": [
+      {
+        "idx": 1,
+        "nombre": "Escudo Heráldico del Sol",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/1.glb",
+        "bloqueo": 0.15
+      },
+      {
+        "idx": 2,
+        "nombre": "Gran Escudo Torre Pavés",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/2.glb",
+        "bloqueo": 0.18
+      },
+      {
+        "idx": 3,
+        "nombre": "Escudo de Espigas Eclipse",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/3.glb",
+        "bloqueo": 0.22
+      },
+      {
+        "idx": 4,
+        "nombre": "Rodela de Hierro (Buckler)",
+        "nivel": 5,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/4.glb",
+        "bloqueo": 0.15
+      },
+      {
+        "idx": 5,
+        "nombre": "Escudo Alado de Oro Rosa",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/5.glb",
+        "bloqueo": 0.25
+      },
+      {
+        "idx": 6,
+        "nombre": "Escudo Cometa de Caballero",
+        "nivel": 12,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/6.glb",
+        "bloqueo": 0.18
+      },
+      {
+        "idx": 7,
+        "nombre": "Escudo Redondo Vikingo",
+        "nivel": 10,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/7.glb",
+        "bloqueo": 0.18
+      },
+      {
+        "idx": 8,
+        "nombre": "Escudo Ojival Gótico",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/8.glb",
+        "bloqueo": 0.22
+      },
+      {
+        "idx": 9,
+        "nombre": "Escudo Cuadrado de Escamas",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/9.glb",
+        "bloqueo": 0.25
+      },
+      {
+        "idx": 10,
+        "nombre": "Broquel Élfico de Hoja",
+        "nivel": 14,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "archivo": "piezas/shield/10.glb",
+        "bloqueo": 0.18
+      },
+      {
+        "idx": 11,
+        "nombre": "Escudo Dark Crystal (Lineage II)",
+        "nivel": 28,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/11.glb",
+        "bloqueo": 0.25
+      },
+      {
+        "idx": 12,
+        "nombre": "Farol Abisal & Garra Ósea",
+        "nivel": 32,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/12.glb",
+        "bloqueo": 0.28
+      },
+      {
+        "idx": 13,
+        "nombre": "Escudo Real Dracónico Alado & Rubí (Soberano)",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "archivo": "piezas/shield/13.glb",
+        "bloqueo": 0.32
+      },
+      {
+        "idx": 14,
+        "nombre": "Broquel Élfico de Estrella & Daga de Parada (Silvano)",
+        "nivel": 36,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "archivo": "piezas/shield/14.glb",
+        "bloqueo": 0.28
+      },
+      {
+        "idx": 15,
+        "nombre": "Grimorio Astral Iluminado & Anillos Orbitales (Serafín)",
+        "nivel": 42,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "archivo": "piezas/shield/15.glb",
+        "bloqueo": 0.32
+      }
+    ],
+    "pants": [
+      {
+        "idx": 3,
+        "id": "set.pesada_D_1.pants",
+        "nombre": "Grebas y Escarcelas · Soldado de Cuero Curtido & Hierro",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 0,
+        "setId": "pesada_D_1",
+        "setNombre": "Soldado de Cuero Curtido & Hierro",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 3,
+          "cuisses": 7,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 5,
+        "id": "set.pesada_D_2.pants",
+        "nombre": "Grebas y Escarcelas · Guardia de Brigantina & Costura Simple",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 1,
+        "setId": "pesada_D_2",
+        "setNombre": "Guardia de Brigantina & Costura Simple",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 5,
+          "tassets": 3,
+          "cuisses": 3,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 5,
+        "id": "set.pesada_D_3.pants",
+        "nombre": "Grebas y Escarcelas · FO Centinela de Ceniza & Roble",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "pesada",
+        "armorLook": 33,
+        "setId": "pesada_D_3",
+        "setNombre": "FO Centinela de Ceniza & Roble",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 5,
+          "tassets": 3,
+          "cuisses": 3,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_D_1.pants",
+        "nombre": "Calzas Reforzadas · Explorador de Cuero Endurecido",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 2,
+        "setId": "ligera_D_1",
+        "setNombre": "Explorador de Cuero Endurecido",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 3,
+          "cuisses": 0,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_D_2.pants",
+        "nombre": "Calzas Reforzadas · Escudero de Gambesón & Tirantes",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 3,
+        "setId": "ligera_D_2",
+        "setNombre": "Escudero de Gambesón & Tirantes",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 3,
+          "cuisses": 0,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 3,
+        "id": "set.ligera_D_3.pants",
+        "nombre": "Calzas Reforzadas · FO Rastreador de Espino Blanco",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "ligera",
+        "armorLook": 34,
+        "setId": "ligera_D_3",
+        "setNombre": "FO Rastreador de Espino Blanco",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 3,
+          "cuisses": 0,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_D_1.pants",
+        "nombre": "Faldón de Túnica · Aprendiz de Túnica y Cuero",
+        "nivel": 1,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 4,
+        "setId": "mago_D_1",
+        "setNombre": "Aprendiz de Túnica y Cuero",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_D_2.pants",
+        "nombre": "Faldón de Túnica · Erudito de Lino Azul & Latón",
+        "nivel": 4,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 102,
+        "setId": "mago_D_2",
+        "setNombre": "Erudito de Lino Azul & Latón",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 3,
+        "id": "set.mago_D_3.pants",
+        "nombre": "Faldón de Túnica · FO Herbolario de la Bruma",
+        "nivel": 6,
+        "grado": "D",
+        "tipoArmadura": "mago",
+        "armorLook": 35,
+        "setId": "mago_D_3",
+        "setNombre": "FO Herbolario de la Bruma",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 3,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 5,
+        "id": "set.pesada_C_1.pants",
+        "nombre": "Grebas y Escarcelas · Veterano de Cuero Tachonado & Malla",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 5,
+        "setId": "pesada_C_1",
+        "setNombre": "Veterano de Cuero Tachonado & Malla",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 5,
+          "tassets": 3,
+          "cuisses": 3,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 5,
+        "id": "set.pesada_C_2.pants",
+        "nombre": "Grebas y Escarcelas · Lancero de Cuir Bouilli Grabado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 6,
+        "setId": "pesada_C_2",
+        "setNombre": "Lancero de Cuir Bouilli Grabado",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 5,
+          "tassets": 3,
+          "cuisses": 3,
+          "knees": 4
+        }
+      },
+      {
+        "idx": 2,
+        "id": "set.pesada_C_3.pants",
+        "nombre": "Grebas y Escarcelas · FO Vanguardia del Grifo de Bronce",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "pesada",
+        "armorLook": 36,
+        "setId": "pesada_C_3",
+        "setNombre": "FO Vanguardia del Grifo de Bronce",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 2,
+          "tassets": 5,
+          "cuisses": 5,
+          "knees": 5
+        }
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_C_1.pants",
+        "nombre": "Calzas Reforzadas · Veloz de Ante Verde & Tirantes",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 7,
+        "setId": "ligera_C_1",
+        "setNombre": "Veloz de Ante Verde & Tirantes",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 7,
+        "id": "set.ligera_C_2.pants",
+        "nombre": "Calzas Reforzadas · Cazador de Cuero Laminado",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 8,
+        "setId": "ligera_C_2",
+        "setNombre": "Cazador de Cuero Laminado",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 7,
+          "tassets": 8,
+          "cuisses": 0,
+          "knees": 7
+        }
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_C_3.pants",
+        "nombre": "Calzas Reforzadas · FO Halcón de las Dunas",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "ligera",
+        "armorLook": 37,
+        "setId": "ligera_C_3",
+        "setNombre": "FO Halcón de las Dunas",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 2,
+        "id": "set.mago_C_1.pants",
+        "nombre": "Faldón de Túnica · Acólito de Túnica Grabada & Correas",
+        "nivel": 8,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 9,
+        "setId": "mago_C_1",
+        "setNombre": "Acólito de Túnica Grabada & Correas",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 2,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 2,
+        "id": "set.mago_C_2.pants",
+        "nombre": "Faldón de Túnica · Hechicero de Terciopelo Púrpura & Oro",
+        "nivel": 11,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 103,
+        "setId": "mago_C_2",
+        "setNombre": "Hechicero de Terciopelo Púrpura & Oro",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 2,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 2,
+        "id": "set.mago_C_3.pants",
+        "nombre": "Faldón de Túnica · FO Escriba de Tinta & Ámbar",
+        "nivel": 13,
+        "grado": "C",
+        "tipoArmadura": "mago",
+        "armorLook": 38,
+        "setId": "mago_C_3",
+        "setNombre": "FO Escriba de Tinta & Ámbar",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 2,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 4,
+        "id": "set.pesada_B_1.pants",
+        "nombre": "Grebas y Escarcelas · L2 Blue Wolf Heavy",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 10,
+        "setId": "pesada_B_1",
+        "setNombre": "L2 Blue Wolf Heavy (Acero Azulado & Plata)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 2,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 4,
+        "id": "set.pesada_B_2.pants",
+        "nombre": "Grebas y Escarcelas · L2 Doom Heavy",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 11,
+        "setId": "pesada_B_2",
+        "setNombre": "L2 Doom Heavy (Placas Góticas Oscuras)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 2,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 6,
+        "id": "set.pesada_B_3.pants",
+        "nombre": "Grebas y Escarcelas · FO Caballero de la Catedral Sumergida",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "pesada",
+        "armorLook": 39,
+        "setId": "pesada_B_3",
+        "setNombre": "FO Caballero de la Catedral Sumergida",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 6,
+          "tassets": 6,
+          "cuisses": 6,
+          "knees": 6
+        }
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_B_1.pants",
+        "nombre": "Calzas Reforzadas · L2 Blue Wolf Light",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 12,
+        "setId": "ligera_B_1",
+        "setNombre": "L2 Blue Wolf Light (Cuero & Placas Ligeras)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_B_2.pants",
+        "nombre": "Calzas Reforzadas · L2 Doom Light",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 13,
+        "setId": "ligera_B_2",
+        "setNombre": "L2 Doom Light (Brigantina Sombría)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 4,
+        "id": "set.ligera_B_3.pants",
+        "nombre": "Calzas Reforzadas · FO Danzante de la Rosa de Hierro",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "ligera",
+        "armorLook": 40,
+        "setId": "ligera_B_3",
+        "setNombre": "FO Danzante de la Rosa de Hierro",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 4,
+          "tassets": 2,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_B_1.pants",
+        "nombre": "Faldón de Túnica · L2 Avadon Robe",
+        "nivel": 15,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 14,
+        "setId": "mago_B_1",
+        "setNombre": "L2 Avadon Robe (Túnica Arcana Real)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 6,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_B_2.pants",
+        "nombre": "Faldón de Túnica · L2 Blue Wolf Robe",
+        "nivel": 18,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 104,
+        "setId": "mago_B_2",
+        "setNombre": "L2 Blue Wolf Robe (Túnica Estelar de Cobalto)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 6,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 6,
+        "id": "set.mago_B_3.pants",
+        "nombre": "Faldón de Túnica · FO Tejedor de Vitral Lunar",
+        "nivel": 21,
+        "grado": "B",
+        "tipoArmadura": "mago",
+        "armorLook": 41,
+        "setId": "mago_B_3",
+        "setNombre": "FO Tejedor de Vitral Lunar",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 6,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_A_1.pants",
+        "nombre": "Grebas y Escarcelas · L2 Dark Crystal Heavy",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 15,
+        "setId": "pesada_A_1",
+        "setNombre": "L2 Dark Crystal Heavy (Índigo & Cristal Cian)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 8,
+          "tassets": 9,
+          "cuisses": 8,
+          "knees": 8
+        }
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_A_2.pants",
+        "nombre": "Grebas y Escarcelas · FO Soberano de Escarcha & Relojería",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 42,
+        "setId": "pesada_A_2",
+        "setNombre": "FO Soberano de Escarcha & Relojería",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 8,
+          "tassets": 9,
+          "cuisses": 8,
+          "knees": 8
+        }
+      },
+      {
+        "idx": 8,
+        "id": "set.pesada_A_3.pants",
+        "nombre": "Grebas y Escarcelas · VR Coloso de Basalto & Magma Flotante",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "pesada",
+        "armorLook": 51,
+        "setId": "pesada_A_3",
+        "setNombre": "VR Coloso de Basalto & Magma Flotante",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 8,
+          "tassets": 9,
+          "cuisses": 8,
+          "knees": 8
+        }
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_A_1.pants",
+        "nombre": "Calzas Reforzadas · L2 Majestic Light",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 18,
+        "setId": "ligera_A_1",
+        "setNombre": "L2 Majestic Light (Marfil, Oro & Zafiro)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 9,
+          "tassets": 10,
+          "cuisses": 0,
+          "knees": 9
+        }
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_A_2.pants",
+        "nombre": "Calzas Reforzadas · FO Espectro de Obsidiana & Jade",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 43,
+        "setId": "ligera_A_2",
+        "setNombre": "FO Espectro de Obsidiana & Jade",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 9,
+          "tassets": 10,
+          "cuisses": 0,
+          "knees": 9
+        }
+      },
+      {
+        "idx": 9,
+        "id": "set.ligera_A_3.pants",
+        "nombre": "Calzas Reforzadas · GT Cazador de Brujas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "ligera",
+        "armorLook": 63,
+        "setId": "ligera_A_3",
+        "setNombre": "GT Cazador de Brujas",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 9,
+          "tassets": 10,
+          "cuisses": 0,
+          "knees": 9
+        }
+      },
+      {
+        "idx": 8,
+        "id": "set.mago_A_1.pants",
+        "nombre": "Faldón de Túnica · L2 Dark Crystal Robe",
+        "nivel": 23,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 20,
+        "setId": "mago_A_1",
+        "setNombre": "L2 Dark Crystal Robe (Archimago Índigo)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 8,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 8,
+        "id": "set.mago_A_2.pants",
+        "nombre": "Faldón de Túnica · FO Oráculo del Eclipse de Mercurio",
+        "nivel": 26,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 44,
+        "setId": "mago_A_2",
+        "setNombre": "FO Oráculo del Eclipse de Mercurio",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 8,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 8,
+        "id": "set.mago_A_3.pants",
+        "nombre": "Faldón de Túnica · VR Tejedor de Bobinas de Tesla Arcanas",
+        "nivel": 29,
+        "grado": "A",
+        "tipoArmadura": "mago",
+        "armorLook": 57,
+        "setId": "mago_A_3",
+        "setNombre": "VR Tejedor de Bobinas de Tesla Arcanas",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 8,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 10,
+        "id": "set.pesada_S_1.pants",
+        "nombre": "Grebas y Escarcelas · L2 Imperial Crusader Heavy",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 21,
+        "setId": "pesada_S_1",
+        "setNombre": "L2 Imperial Crusader Heavy (Marfil, Oro & Carmesí)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 10,
+          "tassets": 11,
+          "cuisses": 10,
+          "knees": 10
+        }
+      },
+      {
+        "idx": 10,
+        "id": "set.pesada_S_2.pants",
+        "nombre": "Grebas y Escarcelas · FO Paladín del Fénix de Alabastro",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 45,
+        "setId": "pesada_S_2",
+        "setNombre": "FO Paladín del Fénix de Alabastro",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 10,
+          "tassets": 11,
+          "cuisses": 10,
+          "knees": 10
+        }
+      },
+      {
+        "idx": 10,
+        "id": "set.pesada_S_3.pants",
+        "nombre": "Grebas y Escarcelas · GT Catedral del Verdugo",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "pesada",
+        "armorLook": 60,
+        "setId": "pesada_S_3",
+        "setNombre": "GT Catedral del Verdugo",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 10,
+          "tassets": 11,
+          "cuisses": 10,
+          "knees": 10
+        }
+      },
+      {
+        "idx": 11,
+        "id": "set.ligera_S_1.pants",
+        "nombre": "Calzas Reforzadas · L2 Draconic Leather",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 22,
+        "setId": "ligera_S_1",
+        "setNombre": "L2 Draconic Leather (Obsidiana & Runas de Fuego)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 11,
+          "tassets": 12,
+          "cuisses": 0,
+          "knees": 11
+        }
+      },
+      {
+        "idx": 13,
+        "id": "set.ligera_S_2.pants",
+        "nombre": "Calzas Reforzadas · FO Cazador de Leviatán Abisal",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 46,
+        "setId": "ligera_S_2",
+        "setNombre": "FO Cazador de Leviatán Abisal",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 14,
+          "tassets": 4,
+          "cuisses": 0,
+          "knees": 5
+        }
+      },
+      {
+        "idx": 11,
+        "id": "set.ligera_S_3.pants",
+        "nombre": "Calzas Reforzadas · MB Valquiria de Escamas Aladas",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "ligera",
+        "armorLook": 80,
+        "setId": "ligera_S_3",
+        "setNombre": "MB Valquiria de Escamas Aladas",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 11,
+          "tassets": 12,
+          "cuisses": 0,
+          "knees": 11
+        }
+      },
+      {
+        "idx": 12,
+        "id": "set.mago_S_1.pants",
+        "nombre": "Faldón de Túnica · L2 Major Arcana Robe",
+        "nivel": 31,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 23,
+        "setId": "mago_S_1",
+        "setNombre": "L2 Major Arcana Robe (Terciopelo Carmesí & Oro)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 12,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 12,
+        "id": "set.mago_S_2.pants",
+        "nombre": "Faldón de Túnica · FO Soberano de las Constelaciones",
+        "nivel": 35,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 47,
+        "setId": "mago_S_2",
+        "setNombre": "FO Soberano de las Constelaciones",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 12,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 12,
+        "id": "set.mago_S_3.pants",
+        "nombre": "Faldón de Túnica · VR Oráculo de los Ojos de Serafín",
+        "nivel": 38,
+        "grado": "S",
+        "tipoArmadura": "mago",
+        "armorLook": 58,
+        "setId": "mago_S_3",
+        "setNombre": "VR Oráculo de los Ojos de Serafín (Ophanim)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 12,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 14,
+        "id": "set.pesada_SR_1.pants",
+        "nombre": "Grebas y Escarcelas · L2 Elegia Heavy",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 29,
+        "setId": "pesada_SR_1",
+        "setNombre": "L2 Elegia Heavy (Obsidiana Imperial & Oro Fundido)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 16,
+          "tassets": 14,
+          "cuisses": 13,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 14,
+        "id": "set.pesada_SR_2.pants",
+        "nombre": "Grebas y Escarcelas · FO Arconte del Marfil & Sol Negro",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 48,
+        "setId": "pesada_SR_2",
+        "setNombre": "FO Arconte del Marfil & Sol Negro",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 16,
+          "tassets": 14,
+          "cuisses": 13,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 14,
+        "id": "set.pesada_SR_3.pants",
+        "nombre": "Grebas y Escarcelas · L2 Cruzado de Aden",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "pesada",
+        "armorLook": 93,
+        "setId": "pesada_SR_3",
+        "setNombre": "L2 Cruzado de Aden",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 16,
+          "tassets": 14,
+          "cuisses": 13,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 14,
+        "id": "set.ligera_SR_1.pants",
+        "nombre": "Calzas Reforzadas · L2 Vorpal Light",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 30,
+        "setId": "ligera_SR_1",
+        "setNombre": "L2 Vorpal Light (Platino Glacial & Amatista)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 16,
+          "tassets": 14,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 14,
+        "id": "set.ligera_SR_2.pants",
+        "nombre": "Calzas Reforzadas · FO Soberano de Espadas Etéreas",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 49,
+        "setId": "ligera_SR_2",
+        "setNombre": "FO Soberano de Espadas Etéreas",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 16,
+          "tassets": 14,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 14,
+        "id": "set.ligera_SR_3.pants",
+        "nombre": "Calzas Reforzadas · L2 Escama Dracónica",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "ligera",
+        "armorLook": 96,
+        "setId": "ligera_SR_3",
+        "setNombre": "L2 Escama Dracónica",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 16,
+          "tassets": 14,
+          "cuisses": 0,
+          "knees": 3
+        }
+      },
+      {
+        "idx": 15,
+        "id": "set.mago_SR_1.pants",
+        "nombre": "Faldón de Túnica · L2 Vesper / Dynasty Robe",
+        "nivel": 40,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 32,
+        "setId": "mago_SR_1",
+        "setNombre": "L2 Vesper / Dynasty Robe (Archimago S84)",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 15,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 15,
+        "id": "set.mago_SR_2.pants",
+        "nombre": "Faldón de Túnica · FO Serafín del Loto de Obsidiana",
+        "nivel": 44,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 50,
+        "setId": "mago_SR_2",
+        "setNombre": "FO Serafín del Loto de Obsidiana",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 15,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
+      },
+      {
+        "idx": 15,
+        "id": "set.mago_SR_3.pants",
+        "nombre": "Faldón de Túnica · L2 Arcana Mayor",
+        "nivel": 48,
+        "grado": "SR",
+        "tipoArmadura": "mago",
+        "armorLook": 99,
+        "setId": "mago_SR_3",
+        "setNombre": "L2 Arcana Mayor",
+        "archivo": null,
+        "subpiezas": {
+          "belt": 15,
+          "tassets": 0,
+          "cuisses": 0,
+          "knees": 0
+        }
       }
     ]
   },
   "clases": {
     "guerrero": [
-      "belt",
-      "boots",
-      "cuisses",
-      "gloves",
       "helmet",
-      "knees",
-      "shoulders",
-      "tassets",
       "torso",
-      "underlayer",
+      "gloves",
+      "pants",
+      "boots",
+      "weapon",
+      "shield"
+    ],
+    "cazador": [
+      "helmet",
+      "torso",
+      "gloves",
+      "pants",
+      "boots",
       "weapon"
     ],
-    "mago": []
+    "mago": [
+      "helmet",
+      "torso",
+      "gloves",
+      "pants",
+      "boots",
+      "weapon"
+    ],
+    "picaro": [
+      "helmet",
+      "torso",
+      "gloves",
+      "pants",
+      "boots",
+      "weapon"
+    ]
+  },
+  "perfilesClase": {
+    "guerrero": {
+      "tipoArmadura": "pesada",
+      "ranuras": [
+        "helmet",
+        "torso",
+        "gloves",
+        "pants",
+        "boots",
+        "weapon",
+        "shield"
+      ],
+      "ranurasFuturas": [],
+      "familiasArma": [
+        "legado",
+        "espada",
+        "mandoble",
+        "hacha",
+        "maza",
+        "lanza"
+      ],
+      "clasesArma": [
+        "espadas",
+        "mandobles",
+        "hachas",
+        "hachas_2m",
+        "mazas",
+        "lanzas"
+      ],
+      "armaInicialFamilia": "legado",
+      "inicial": {
+        "torso": 1,
+        "shield": 1
+      }
+    },
+    "cazador": {
+      "tipoArmadura": "ligera",
+      "ranuras": [
+        "helmet",
+        "torso",
+        "gloves",
+        "pants",
+        "boots",
+        "weapon"
+      ],
+      "ranurasFuturas": [],
+      "familiasArma": [
+        "arco",
+        "lanza",
+        "daga"
+      ],
+      "clasesArma": [
+        "arcos",
+        "lanzas",
+        "dagas"
+      ],
+      "armaInicialFamilia": "arco",
+      "inicial": {
+        "torso": 2
+      }
+    },
+    "mago": {
+      "tipoArmadura": "mago",
+      "ranuras": [
+        "helmet",
+        "torso",
+        "gloves",
+        "pants",
+        "boots",
+        "weapon"
+      ],
+      "ranurasFuturas": [],
+      "familiasArma": [
+        "baculo",
+        "cetro"
+      ],
+      "clasesArma": [
+        "bastones"
+      ],
+      "armaInicialFamilia": "baculo",
+      "inicial": {
+        "torso": 21
+      }
+    },
+    "picaro": {
+      "tipoArmadura": "ligera",
+      "ranuras": [
+        "helmet",
+        "torso",
+        "gloves",
+        "pants",
+        "boots",
+        "weapon"
+      ],
+      "ranurasFuturas": [],
+      "familiasArma": [
+        "daga",
+        "espada"
+      ],
+      "clasesArma": [
+        "dagas",
+        "espadas"
+      ],
+      "armaInicialFamilia": "daga",
+      "inicial": {
+        "torso": 2
+      }
+    }
   }
 }
