@@ -300,6 +300,7 @@
       }
 
       crearBuffersRuido();
+      cargarMuestras();
 
       if (root.MusicaRPG && typeof root.MusicaRPG.crearMotor === 'function') {
         motorMusica = root.MusicaRPG.crearMotor({
@@ -320,6 +321,68 @@
       }
     }
     return ac;
+  }
+
+  // ------------------- Muestras grabadas (sfx/, Sonniss GDC 2026) -------------------
+  // Si la muestra ya está cargada suena ella; si no (sin red, file://, aún cargando), el sonido sintetizado de siempre.
+  const MUESTRAS = {
+    choque_metal: ['sfx/espadas/choque_metal_01.ogg'],
+    choque_corte: [1, 2, 3, 4, 5, 6].map(n => 'sfx/espadas/choque_corte_0' + n + '.ogg'),
+    rayo_carga:   ['sfx/rayos/rayo_carga_01.ogg'],
+    rayo_cadena:  ['sfx/rayos/rayo_cadena_01.ogg'],
+    chispazo:     [1, 2, 3].map(n => 'sfx/rayos/chispazo_0' + n + '.ogg')
+  };
+  const muestrasBuf = {};
+  function cargarMuestras() {
+    if (typeof fetch !== 'function' || !ac) return;
+    Object.keys(MUESTRAS).forEach(k => MUESTRAS[k].forEach(ruta => {
+      if (ruta in muestrasBuf) return;
+      muestrasBuf[ruta] = null;
+      fetch(ruta)
+        .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+        .then(a => new Promise((ok, mal) => ac.decodeAudioData(a, ok, mal)))
+        .then(b => { muestrasBuf[ruta] = b; })
+        .catch(() => {});
+    }));
+  }
+  // Reproduce una variante al azar con el tono un poco cambiado. Devuelve { parar(fundido) } o null si no está cargada.
+  function muestra(nombre, t, opts) {
+    if (!ac) return null;
+    const lista = (MUESTRAS[nombre] || []).map(r => muestrasBuf[r]).filter(Boolean);
+    if (!lista.length) return null;
+    const cfg = Object.assign({ wet: 0.12 }, opts);
+    const src = ac.createBufferSource();
+    src.buffer = lista[Math.floor(Math.random() * lista.length)];
+    src.playbackRate.value = variar(1, cfg.tono !== undefined ? cfg.tono : 0.05);
+    const g = ac.createGain();
+    g.gain.value = cfg.vol !== undefined ? cfg.vol : 1;
+    src.connect(g);
+    conectarSalida(g, cfg);
+    src.start(t);
+    return {
+      parar(fundido = 0.1) {
+        const tt = Math.max(ac.currentTime, t);
+        g.gain.cancelScheduledValues(tt);
+        g.gain.setValueAtTime(g.gain.value, tt);
+        g.gain.linearRampToValueAtTime(0.0001, tt + fundido);
+        try { src.stop(tt + fundido + 0.02); } catch (_) {}
+      }
+    };
+  }
+  // Técnicas de rayo: la carga suena desde que empieza la animación y se corta al golpear
+  const SKILL_RAYO_MUESTRA = new Set(['tornillo', 'juicio_relampago', 'salto_demoledor']);
+  let cargaRayo = null;
+  function muestrasSkill(t, id, fase, opts) {
+    if (fase === 'inicio') {
+      if (SKILL_RAYO_MUESTRA.has(id)) {
+        if (cargaRayo) cargaRayo.parar(0.05);
+        cargaRayo = muestra('rayo_carga', t, { vol: 0.5, tono: 0.03 });
+      }
+      if (id === 'contraataque') muestra('choque_metal', t, { vol: 0.8 });
+    } else if (fase === 'impacto' && SKILL_RAYO_MUESTRA.has(id)) {
+      if (cargaRayo) { cargaRayo.parar(0.12); cargaRayo = null; }
+      if (muestra('rayo_cadena', t, opts)) muestra('chispazo', t + 0.08, Object.assign({}, opts, { vol: 0.45 }));
+    }
   }
 
   // ------------------- Auxiliares de síntesis DSP para SFX -------------------
@@ -434,6 +497,7 @@
   // ------------------- Núcleo de SFX clásicos y avanzados -------------------
   const SONIDOS = {
     metal(t, opts) {
+      if (muestra('choque_corte', t, Object.assign({ vol: 0.85 }, opts))) return;
       const base = variar(1480, 0.14);
       rafaga(t, 0.055, 'bandpass', variar(4300, 0.1), 2400, 2.8, 0.85, opts);
       tono(t, base, base * 0.96, 0.34, 0.20, Object.assign({ wet: 0.22 }, opts));
@@ -478,6 +542,7 @@
       rafaga(t + 0.015, 0.06, 'bandpass', 2400, 1200, 2.2, 0.24, { wet: 0.18 });
     },
     bloqueo(t) {
+      if (muestra('choque_metal', t, { vol: 0.75 })) return;
       rafaga(t, 0.065, 'bandpass', 3200, 1400, 2.6, 0.72, { wet: 0.28 });
       tono(t, 920, 880, 0.36, 0.24, { wave: 'triangle', wet: 0.34 });
       tono(t, 1480, 1420, 0.28, 0.15, { wet: 0.34 });
@@ -499,6 +564,7 @@
       tono(t + 0.08, 3700, 3250, 0.13, 0.10, Object.assign({ wet: 0.34 }, opts));
     },
     rayo(t, opts) {
+      if (muestra('rayo_cadena', t, opts)) { muestra('chispazo', t + 0.09, Object.assign({}, opts, { vol: 0.5 })); return; }
       rafaga(t, 0.28, 'bandpass', 5400, 420, 1.8, 0.64, Object.assign({ wet: 0.36 }, opts));
       tono(t, 1480, 160, 0.24, 0.24, Object.assign({ wave: 'sawtooth', lp: 2800, wet: 0.32 }, opts));
     },
@@ -1067,7 +1133,7 @@
     skill(skillId, fase = 'inicio', opts) {
       const k = 'skill:' + skillId + ':' + fase;
       const t = puedeSonar(k, 0.055);
-      if (t !== null) dispararSkillSfx(t, skillId, fase, opts);
+      if (t !== null) { muestrasSkill(t, skillId, fase, opts); dispararSkillSfx(t, skillId, fase, opts); }
     },
     enemigo(evento, info) {
       const ev = evento || 'golpeado';
