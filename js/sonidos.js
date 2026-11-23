@@ -353,7 +353,7 @@
     const cfg = Object.assign({ wet: 0.12 }, opts);
     const src = ac.createBufferSource();
     src.buffer = lista[Math.floor(Math.random() * lista.length)];
-    src.playbackRate.value = variar(1, cfg.tono !== undefined ? cfg.tono : 0.05);
+    src.playbackRate.value = variar(cfg.velocidad || 1, cfg.tono !== undefined ? cfg.tono : 0.05);
     const g = ac.createGain();
     g.gain.value = cfg.vol !== undefined ? cfg.vol : 1;
     src.connect(g);
@@ -369,17 +369,50 @@
       }
     };
   }
-  // Técnicas de rayo: la carga suena desde que empieza la animación y se corta al golpear
+  // El golpe que acierta suena distinto según el arma: las dagas, agudas y secas; mandobles y mazas, graves y metálicos.
+  // Cada habilidad tiene además un pequeño desplazamiento de tono fijo para que no suenen todas iguales.
+  const PERFIL_ARMA = {
+    dagas:     { muestra: 'choque_corte', velocidad: 1.34, vol: 0.62 },
+    espadas:   { muestra: 'choque_corte', velocidad: 1.0,  vol: 0.85 },
+    lanzas:    { muestra: 'choque_corte', velocidad: 1.12, vol: 0.75 },
+    hachas:    { muestra: 'choque_corte', velocidad: 0.86, vol: 0.9 },
+    mandobles: { muestra: 'choque_metal', velocidad: 0.9,  vol: 0.8 },
+    mazas:     { muestra: 'choque_metal', velocidad: 0.74, vol: 0.85 }
+  };
+  function datosSkill(id) {
+    const L = root.CombatLib;
+    return (L && L.SKILLS && id && L.SKILLS[id]) || null;
+  }
+  function tonoDeSkill(id) {
+    let h = 0;
+    const s = String(id || '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return 0.94 + (h % 13) / 100;   // 0,94 … 1,06
+  }
+  function perfilGolpe(opts) {
+    const o = opts || {};
+    const sk = datosSkill(o.skill);
+    const clase = (sk && sk.armaClase) || o.clase || 'espadas';
+    const p = PERFIL_ARMA[clase] || PERFIL_ARMA.espadas;
+    return { muestra: p.muestra, velocidad: p.velocidad * (o.skill && o.skill !== 'attack' ? tonoDeSkill(o.skill) : 1), vol: p.vol };
+  }
+
+  // Técnicas de rayo (también las de arma con elemento rayo): descarga al golpear; las lentas, carga mientras se preparan
   const SKILL_RAYO_MUESTRA = new Set(['tornillo', 'juicio_relampago', 'salto_demoledor']);
+  const esSkillRayo = id => SKILL_RAYO_MUESTRA.has(id) || !!(datosSkill(id) && datosSkill(id).elemento === 'rayo' && datosSkill(id).armaClase);
   let cargaRayo = null;
+  let rafagaSombra = null;
   function muestrasSkill(t, id, fase, opts) {
+    if (String(id).startsWith('dg_')) return;   // las dagas tienen su propia mezcla en dispararSkillSfx
     if (fase === 'inicio') {
-      if (SKILL_RAYO_MUESTRA.has(id)) {
+      const sk = datosSkill(id);
+      const primerGolpe = sk ? (Array.isArray(sk.impacto) ? sk.impacto[0] : sk.impacto) : 1;
+      if (esSkillRayo(id) && (primerGolpe || 0) >= 0.5) {
         if (cargaRayo) cargaRayo.parar(0.05);
         cargaRayo = muestra('rayo_carga', t, { vol: 0.5, tono: 0.03 });
       }
       if (id === 'contraataque') muestra('choque_metal', t, { vol: 0.8 });
-    } else if (fase === 'impacto' && SKILL_RAYO_MUESTRA.has(id)) {
+    } else if (fase === 'impacto' && esSkillRayo(id)) {
       if (cargaRayo) { cargaRayo.parar(0.12); cargaRayo = null; }
       if (muestra('rayo_cadena', t, opts)) muestra('chispazo', t + 0.08, Object.assign({}, opts, { vol: 0.45 }));
     }
@@ -497,7 +530,8 @@
   // ------------------- Núcleo de SFX clásicos y avanzados -------------------
   const SONIDOS = {
     metal(t, opts) {
-      if (muestra('choque_corte', t, Object.assign({ vol: 0.85 }, opts))) return;
+      const pg = perfilGolpe(opts);
+      if (muestra(pg.muestra, t, Object.assign({}, opts, { velocidad: pg.velocidad, vol: pg.vol }))) return;
       const base = variar(1480, 0.14);
       rafaga(t, 0.055, 'bandpass', variar(4300, 0.1), 2400, 2.8, 0.85, opts);
       tono(t, base, base * 0.96, 0.34, 0.20, Object.assign({ wet: 0.22 }, opts));
@@ -940,6 +974,67 @@
           rafaga(t, 0.12, 'bandpass', 1400, 2600, 2.0, 0.18, Object.assign({ wet: 0.28 }, o));
         } else {
           SONIDOS.magia(t, o);
+        }
+        break;
+      // Dagas: cada técnica con su firma (antes todas usaban la de «paso_sombrio»)
+      case 'dg_dash':        // Paso de Sombra: zambullida en la sombra y tajo seco al salir
+        if (!imp) {
+          dispararSkillSfx(t, 'paso_sombrio', fase, o);
+          barridoVelocidad(t + 0.12, 0.18, 300, 2600, 700, 2.0, 0.40, o);
+        } else {
+          muestra('choque_corte', t, Object.assign({}, o, { velocidad: 1.45, vol: 0.55 }));
+          rafaga(t, 0.07, 'highpass', 4200, 2000, 1.8, 0.40, Object.assign({ wet: 0.30 }, o));
+        }
+        break;
+      case 'dg_blink':       // Corte Fantasma: silencio tenso, desenvaine agudo y un único corte limpio
+        if (!imp) {
+          tono(t, 2400, 2650, 0.30, 0.07, Object.assign({ wave: 'sine', atk: 0.12, wet: 0.40 }, o));
+        } else {
+          if (!muestra('choque_metal', t, Object.assign({}, o, { velocidad: 1.6, vol: 0.5, wet: 0.35 }))) SONIDOS.metal(t, o);
+          tono(t + 0.01, 3200, 2100, 0.30, 0.09, Object.assign({ wet: 0.45 }, o));
+        }
+        break;
+      case 'dg_rush':        // Asalto Asesino: carrera que acelera y puñalada doble
+        if (!imp) {
+          barridoVelocidad(t, 0.42, 200, 1800, 900, 1.6, 0.42, o);
+          tono(t, 140, 260, 0.40, 0.16, Object.assign({ wave: 'triangle', lp: 900 }, o));
+        } else {
+          muestra('choque_corte', t, Object.assign({}, o, { velocidad: 1.3, vol: 0.6 }));
+          muestra('choque_corte', t + 0.075, Object.assign({}, o, { velocidad: 1.5, vol: 0.5 }));
+          SONIDOS.critico(t + 0.08, o);
+        }
+        break;
+      case 'dg_venom':       // Hélice Venenosa: giro doble silbante y veneno que burbujea
+        if (!imp) {
+          barridoVelocidad(t, 0.20, 500, 2200, 700, 2.0, 0.34, o);
+          barridoVelocidad(t + 0.20, 0.22, 600, 2600, 800, 2.0, 0.38, o);
+        } else {
+          dispararSkillSfx(t, 'hoja_veneno', fase, o);
+          muestra('choque_corte', t, Object.assign({}, o, { velocidad: 1.2, vol: 0.45 }));
+          SONIDOS.venenoTick(t + 0.18);
+        }
+        break;
+      case 'dg_shadow': {    // Ráfaga Sombría: tres pares de cortes que suben de tono
+        if (!imp) {
+          rafaga(t, 0.30, 'bandpass', 900, 2400, 2.0, 0.30, Object.assign({ buffer: 'rosa', wet: 0.34 }, o));
+        } else {
+          const ahora = t;
+          rafagaSombra = (rafagaSombra && ahora - rafagaSombra.t < 1.6) ? { n: rafagaSombra.n + 1, t: ahora } : { n: 0, t: ahora };
+          const v = 1.2 + 0.14 * Math.min(rafagaSombra.n, 2);
+          muestra('choque_corte', t, Object.assign({}, o, { velocidad: v, vol: 0.5 }));
+          muestra('choque_corte', t + 0.11, Object.assign({}, o, { velocidad: v + 0.07, vol: 0.45 }));
+          barridoVelocidad(t, 0.10, 900, 3200, 1200, 2.2, 0.30, o);
+        }
+        break;
+      }
+      case 'dg_zigzag':      // Zigzag Relámpago: chispazos en cada quiebro y descarga al golpear
+        if (!imp) {
+          if (!muestra('chispazo', t, Object.assign({}, o, { vol: 0.4 }))) SONIDOS.rayo(t, o);
+          barridoVelocidad(t, 0.16, 600, 3000, 900, 2.0, 0.34, o);
+        } else {
+          if (!muestra('rayo_cadena', t, Object.assign({}, o, { vol: 0.75, velocidad: 1.15 }))) SONIDOS.rayo(t, o);
+          muestra('chispazo', t + 0.06, Object.assign({}, o, { vol: 0.4 }));
+          muestra('choque_corte', t, Object.assign({}, o, { velocidad: 1.4, vol: 0.45 }));
         }
         break;
       default: {

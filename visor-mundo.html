@@ -2498,7 +2498,7 @@
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
   <script type="module" src="js/enemigos-glb.js?v=20261120b"></script>
   <script src="js/musica-rpg.js?v=20261120c"></script>
-  <script src="js/sonidos.js?v=20261123"></script>
+  <script src="js/sonidos.js?v=20261123b"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js?v=20261121b";
@@ -14522,7 +14522,7 @@
     }
     if (window.Sonidos) {
       const panG = m ? panDePosicion(m.x, m.z) : 0;
-      window.Sonidos.impacto(sonido, { pan: panG });
+      window.Sonidos.impacto(sonido, { pan: panG, skill: opts.skill, clase: claseArmaDelHeroe() });
       if (opts.crit && window.Sonidos.critico) window.Sonidos.critico({ pan: panG });
     }
   }

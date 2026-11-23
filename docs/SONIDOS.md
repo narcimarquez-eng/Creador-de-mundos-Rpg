@@ -13,6 +13,12 @@ sintetizado de siempre.
 | Parada y contraataque, al empezar | `choque_metal` |
 | Tornillo triple, Filo relámpago y Salto demoledor | `rayo_carga` durante la animación; al golpear, `rayo_cadena` + `chispazo` |
 | Cualquier `Sonidos.rayo` (rayos de monstruos y estallidos) | `rayo_cadena` + `chispazo` |
+| Técnicas de arma con elemento rayo (`sw_lightning`, `ax_thunder`, `mc_storm`…) | `rayo_cadena` + `chispazo` al golpear; carga si tardan ≥ 0,5 s |
+| Dagas (`dg_*`) | Cada una con su mezcla: Paso de Sombra (zambullida + tajo seco), Corte Fantasma (desenvaine agudo), Asalto Asesino (puñalada doble), Hélice Venenosa (giro doble + veneno), Ráfaga Sombría (cortes que suben de tono), Zigzag Relámpago (chispazos y descarga) |
+
+El golpe que acierta cambia según el arma (`PERFIL_ARMA` en `js/sonidos.js`): las dagas suenan agudas y secas (tono ×1,34);
+las espadas, normales; las hachas, más graves; los mandobles y las mazas usan el choque metálico grave. Cada técnica
+tiene además un desplazamiento de tono fijo (±6 %) para que no suenen todas igual.
 
 | Archivo | Origen (Sonniss GDC 2026, recortado, mono, normalizado a −1,5 dB) |
 |---|---|
