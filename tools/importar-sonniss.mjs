@@ -23,8 +23,8 @@ const copiar = iCopiar >= 0 ? Number(resto[iCopiar + 1] || 3) : 0;
 // Palabras que debe tener el nombre (todas las de un grupo de "si"), y que suman o restan puntos.
 // Los códigos en mayúscula son categorías UCS que usa Sonniss (WEAPSwrd, ELECArc, MAGElem…).
 const reglas = {
-  espada_choque_01:     { si: [['sword|blade|swrd'], ['clash|clang|hit|impact|parry|block']], mas: ['metal', 'steel', 'clash'], menos: ['whoosh', 'swish', 'draw', 'sheath', 'flesh'] },
-  espada_choque_pesado: { si: [['sword|blade|swrd|greatsword|axe'], ['clash|clang|impact|heavy']], mas: ['heavy', 'big', 'great', 'large'], menos: ['whoosh', 'light', 'small'] },
+  espada_choque_01:     { si: [['sword|blade|swrd|melee|weapon|metl impt'], ['clash|clang|hit|impact|parry|block']], mas: ['metal', 'steel', 'clash', 'resonant'], menos: ['whoosh', 'swish', 'draw', 'sheath', 'flesh', 'thud', 'wood'] },
+  espada_choque_pesado: { si: [['sword|blade|swrd|greatsword|axe|melee|weapon'], ['clash|clang|impact|heavy']], mas: ['heavy', 'big', 'great', 'large'], menos: ['whoosh', 'light', 'small'] },
   espada_roce:          { si: [['sword|blade|swrd|metal'], ['scrape|grind|slide|screech']], mas: ['sword', 'blade'], menos: [] },
   espada_parada_chispa: { si: [['sword|blade|swrd'], ['parry|deflect|ting|ring|spark']], mas: ['parry', 'spark', 'ring'], menos: ['whoosh'] },
   espada_escudo:        { si: [['shield'], ['hit|impact|block|bash']], mas: ['sword', 'wood', 'metal'], menos: [] },
@@ -36,12 +36,12 @@ const reglas = {
   rayo_cadena:          { si: [['electric|elec|zap|arc|spark|tesla'], ['zap|arc|crackle|spark']], mas: ['zap', 'arc'], menos: ['charge', 'hum'] },
   rayo_espada:          { si: [['electric|elec|zap|spark'], ['sword|blade|whoosh|swing']], mas: [], menos: [] },
   trueno_lejano:        { si: [['thunder|thun|storm'], ['distant|far|rumble|roll']], mas: ['distant', 'rumble'], menos: ['rain', 'close'] },
-  nova_explosion:       { si: [['magic|mag|arcane|spell|energy'], ['explo|burst|blast|nova|shockwave']], mas: ['magic', 'shimmer'], menos: [] },
+  nova_explosion:       { si: [['magic|mag|arcane|spell|energy|expl dsgn|boom'], ['explo|burst|blast|nova|shockwave|boom']], mas: ['magic', 'shimmer'], menos: [] },
   impacto_sismico:      { si: [['ground|earth|rock|stone|debris'], ['slam|impact|quake|crash|boom']], mas: ['heavy', 'slam', 'quake'], menos: [] },
-  baculo_proyectil:     { si: [['magic|mag|spell|energy|arcane'], ['projectile|missile|cast|shoot|bolt|whoosh']], mas: ['cast', 'projectile'], menos: [] },
+  baculo_proyectil:     { si: [['magic|mag|spell|energy|arcane'], ['projectile|missile|cast|shoot|bolt|whoosh|energy flow|gesture']], mas: ['cast', 'projectile'], menos: [] },
   fuego_aliento:        { si: [['fire|flame|dragon'], ['breath|blast|whoosh|thrower|burst']], mas: ['breath', 'flamethrower'], menos: ['crackle loop', 'campfire'] },
   hielo_aliento:        { si: [['ice|frost|freeze|frozen'], ['blast|crack|form|breath|shatter|spell']], mas: ['freeze', 'magic'], menos: [] },
-  curacion:             { si: [['heal|holy|chime|shimmer|bless|buff'], ['spell|magic|mag|chime|shimmer']], mas: ['heal', 'holy'], menos: ['dark', 'evil'] },
+  curacion:             { si: [['heal|holy|chime|shimmer|bless|buff|potion|enchant|power up'], ['spell|magic|mag|chime|shimmer|bright|positive']], mas: ['heal', 'holy'], menos: ['dark', 'evil'] },
 };
 
 const exts = new Set(['.wav', '.flac', '.ogg', '.mp3', '.aif', '.aiff']);
@@ -56,7 +56,8 @@ async function* archivos(dir) {
 // "WEAPSwrd_Sword Clash 01" → "weap swrd sword clash 01"
 const normaliza = (s) => s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_\-.()\[\]/\\]+/g, ' ').toLowerCase();
 
-function puntua(texto, r) {
+function puntua(texto, nombre, r) {
+  if (!new RegExp(`\\b(${r.si[0][0]})`).test(nombre)) return 0; // lo principal, en el nombre del archivo
   if (!r.si.every((g) => new RegExp(`\\b(${g[0]})`).test(texto))) return 0;
   let p = 10;
   for (const w of r.mas) if (texto.includes(w)) p += 3;
@@ -80,8 +81,9 @@ for (const s of sonidos) {
     .map((f) => {
       const rel = relative(carpeta, f);
       // El nombre del archivo pesa el doble que la carpeta.
-      const t = normaliza(basename(f)) + ' ' + normaliza(basename(f)) + ' ' + normaliza(dirname(rel));
-      return { f, rel, p: puntua(t, r) };
+      const nombre = normaliza(basename(f));
+      const t = nombre + ' ' + nombre + ' ' + normaliza(dirname(rel));
+      return { f, rel, p: puntua(t, nombre, r) };
     })
     .filter((x) => x.p > 0)
     .sort((a, b) => b.p - a.p || a.rel.localeCompare(b.rel))
