@@ -1004,6 +1004,7 @@
   <script type="module" src="js/pueblo-edits.js?v=20251029"></script>
   <script type="module" src="js/village-core.js?v=20251029"></script>
   <script type="module" src="js/combat.js?v=20251029"></script>
+  <script defer src="js/sonidos.js?v=20261123"></script>
   <script type="module" src="js/items.js?v=20251029"></script>
   <script type="module" src="js/partida.js?v=20251029"></script>
   <script type="module" src="js/terreno.js?v=20251029"></script>
@@ -3658,7 +3659,7 @@
   function aplicarDanoEnemigo(m) {
     // Reducción por armadura y entereza; el bloqueo del escudo recorta a la mitad; las espinas devuelven parte del daño
     let dmg = CombatLib.monsterDamage(m.level, m.boss, hero.level) * (1 - statsHeroe.reduccion);
-    if (Math.random() < statsHeroe.bloqueo) dmg *= 0.5;
+    if (Math.random() < statsHeroe.bloqueo) { dmg *= 0.5; sonar('choque_metal', { volumen: 0.7 }); }
     if (statsHeroe.reflejo) damageMonster(m, dmg * statsHeroe.reflejo);
     if (CombatLib.takeHit(hero, dmg)) onHeroDeath(performance.now());
     if (acompanante && acompanante.activo && !acompanante.debilitado && typeof AcompananteLib !== 'undefined') {
@@ -3932,8 +3933,13 @@
     character.playOneShot(name, lastNowSec);
     // Cada golpe llega en su momento de la animación (al caer, al cerrar el giro, al soltar la flecha); sin momento, al instante
     const sk = CombatLib.SKILLS[name];
-    CombatLib.impactos(name).forEach((t, i) => {
+    const momentos = CombatLib.impactos(name);
+    // Sonido: los rayos se cargan durante la animación y la carga se corta en el último golpe; la parada suena al empezar
+    const carga = SKILL_RAYO.has(name) && momentos[0] >= 0.5 ? sonar('rayo_carga', { volumen: 0.55, tono: 0.03 }) : null;
+    if (name === 'contraataque') sonar('choque_metal', { volumen: 0.8 });
+    momentos.forEach((t, i) => {
       const golpe = () => {
+        if (i === momentos.length - 1 && carga) carga.parar(0.12);
         if (hero.dead) return;
         if (sk.arc <= -1 && t > 0) ondaSismica(sk.range);   // los golpes alrededor dejan una onda en el suelo
         aplicarGolpe(name, i === 0, blanco);
@@ -3984,7 +3990,27 @@
       if (sk.unico) flecha(m);
       golpear(m, danioDelHeroe(name, m.level));
     });
+    sonarGolpe(name, blancos.length);
     if (primero && name !== 'attack' && name !== 'disparo' && !blancos.length) toast('Sin objetivos en el alcance');
+  }
+
+  // Sonidos del combate (js/sonidos.js, archivos en sfx/). Las flechas aún no tienen sonido.
+  const SKILL_RAYO = new Set(['tornillo', 'juicio_relampago', 'salto_demoledor', 'nova']);
+  const SKILL_PESADA = new Set(['hendidura', 'sismo', 'sentencia_titan', 'voltereta', 'contraataque']);
+  function sonar(efecto, op) {
+    return window.SonidosLib ? SonidosLib.play(efecto, op) : { parar() {} };
+  }
+  // Un golpe que acierta: choque de acero (más pesado en las técnicas fuertes) y, en las de rayo, la descarga
+  function sonarGolpe(name, n) {
+    if (!n || CombatLib.SKILLS[name].unico) return;
+    if (SKILL_RAYO.has(name)) {
+      sonar('rayo_cadena');
+      for (let k = 0; k < Math.min(n, 3); k++) sonar('chispazo', { volumen: 0.45, retraso: 0.08 + k * 0.11, minEntre: 0 });
+      if (name === 'nova') return;
+    }
+    const pesada = SKILL_PESADA.has(name);
+    sonar(pesada ? 'choque_metal' : 'choque_corte', { volumen: SKILL_RAYO.has(name) ? 0.6 : 0.9 });
+    if (n > 2 && !pesada) sonar('choque_corte', { volumen: 0.5, retraso: 0.07, minEntre: 0 });
   }
 
   // Efectos breves: la onda en el suelo de los golpes alrededor y la flecha que vuela hasta su blanco
@@ -7087,6 +7113,7 @@
     const k = e.key.toLowerCase();
     if (k === 'f') setFollow(!follow);
     if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
+    if (k === 'n' && window.SonidosLib) toast(SonidosLib.alternar() ? '🔊 Sonido activado' : '🔇 Sonido desactivado');
     if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
     if (k === ' ') { e.preventDefault(); useSkill('attack'); }
     if (k === 'e' && typeof dungeonPromptActiva !== 'undefined' && dungeonPromptActiva) {

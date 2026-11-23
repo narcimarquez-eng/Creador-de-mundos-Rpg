@@ -11,6 +11,7 @@ Primera versión del combate. Las reglas están en `js/combat.js` (sin gráficos
 | **Q E Z V** | huecos | La habilidad que lleve cada hueco de la barra (al empezar: impacto sísmico, nova, tajo giratorio y estocada) | según la habilidad | según la habilidad |
 | **X** | 🦘 | Salto acrobático (solo animación) | — | — |
 | **K** | 🤖 | Ataque automático en la zona: siempre el monstruo más cercano; usa la barra y bebe vida por debajo del 35 % | — | — |
+| **N** | — | Activa o quita el sonido (se recuerda entre partidas) | — | — |
 
 Los huecos se cambian en el panel 🧬 (P): cada habilidad tiene botones Q, E, Z y V; si ya estaba en otro hueco, se
 intercambian. Cada habilidad bloquea el movimiento mientras dura su animación y golpea en su momento (al caer, al
