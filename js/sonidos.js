@@ -330,7 +330,10 @@
     choque_corte: [1, 2, 3, 4, 5, 6].map(n => 'sfx/espadas/choque_corte_0' + n + '.ogg'),
     rayo_carga:   ['sfx/rayos/rayo_carga_01.ogg'],
     rayo_cadena:  ['sfx/rayos/rayo_cadena_01.ogg'],
-    chispazo:     [1, 2, 3].map(n => 'sfx/rayos/chispazo_0' + n + '.ogg')
+    chispazo:     [1, 2, 3].map(n => 'sfx/rayos/chispazo_0' + n + '.ogg'),
+    tajo_aire:    ['sfx/espadas/tajo_aire_01.ogg'],
+    golpe_cuerpo: [1, 2, 3, 4].map(n => 'sfx/golpes/golpe_cuerpo_0' + n + '.ogg'),
+    golpe_crujiente: ['sfx/golpes/golpe_crujiente_01.ogg']
   };
   const muestrasBuf = {};
   function cargarMuestras() {
@@ -402,7 +405,22 @@
   const esSkillRayo = id => SKILL_RAYO_MUESTRA.has(id) || !!(datosSkill(id) && datosSkill(id).elemento === 'rayo' && datosSkill(id).armaClase);
   let cargaRayo = null;
   let rafagaSombra = null;
+  // Tajo al aire: se programa para que su punto fuerte (~0,12 s) caiga en cada golpe de la animación.
+  // Solo técnicas cuerpo a cuerpo (no arcos, bastones ni hechizos); el tono, según el arma.
+  function tajosAire(t, id, opts) {
+    const o = opts || {};
+    const sk = datosSkill(id);
+    if (id !== 'attack' && (!sk || sk.arma !== 'cuerpo' || sk.unico)) return;
+    if (sk && (sk.armaClase === 'arcos' || sk.armaClase === 'bastones')) return;
+    const clase = (sk && sk.armaClase) || o.clase || 'espadas';
+    if (clase === 'arcos' || clase === 'bastones') return;
+    const p = PERFIL_ARMA[clase] || PERFIL_ARMA.espadas;
+    const imp = sk && sk.impacto !== undefined ? (Array.isArray(sk.impacto) ? sk.impacto : [sk.impacto]) : [0];
+    imp.forEach(x => muestra('tajo_aire', t + Math.max(0, (x || 0) - 0.12),
+      { velocidad: p.velocidad * (clase === 'dagas' ? 1.08 : 1), vol: clase === 'dagas' ? 0.45 : 0.6, pan: o.pan }));
+  }
   function muestrasSkill(t, id, fase, opts) {
+    if (fase === 'inicio') tajosAire(t, id, opts);
     if (String(id).startsWith('dg_')) return;   // las dagas tienen su propia mezcla en dispararSkillSfx
     if (fase === 'inicio') {
       const sk = datosSkill(id);
@@ -531,7 +549,10 @@
   const SONIDOS = {
     metal(t, opts) {
       const pg = perfilGolpe(opts);
-      if (muestra(pg.muestra, t, Object.assign({}, opts, { velocidad: pg.velocidad, vol: pg.vol }))) return;
+      if (muestra(pg.muestra, t, Object.assign({}, opts, { velocidad: pg.velocidad, vol: pg.vol }))) {
+        muestra('golpe_cuerpo', t, Object.assign({}, opts, { vol: pg.muestra === 'choque_metal' ? 0.7 : 0.5, velocidad: pg.velocidad > 1.2 ? 1.15 : 1 }));
+        return;
+      }
       const base = variar(1480, 0.14);
       rafaga(t, 0.055, 'bandpass', variar(4300, 0.1), 2400, 2.8, 0.85, opts);
       tono(t, base, base * 0.96, 0.34, 0.20, Object.assign({ wet: 0.22 }, opts));
@@ -539,6 +560,7 @@
       tono(t, base * 2.14, base * 2.08, 0.17, 0.06, Object.assign({ wet: 0.22 }, opts));
     },
     sordo(t, opts) {
+      if (muestra('golpe_cuerpo', t, Object.assign({ vol: 0.85 }, opts))) return;
       rafaga(t, 0.10, 'lowpass', variar(920, 0.1), 180, 1.0, 0.78, Object.assign({ buffer: 'rosa' }, opts));
       tono(t, variar(155, 0.08), 54, 0.14, 0.36, opts);
     },
@@ -562,6 +584,7 @@
       }
     },
     critico(t, opts) {
+      muestra('golpe_crujiente', t, Object.assign({}, opts, { vol: 0.6 }));
       rafaga(t, 0.07, 'highpass', 3100, 5200, 1.5, 0.52, Object.assign({ wet: 0.28 }, opts));
       tono(t, 165, 58, 0.15, 0.32, opts);
       tono(t, 1850, 1480, 0.25, 0.23, Object.assign({ wet: 0.32 }, opts));

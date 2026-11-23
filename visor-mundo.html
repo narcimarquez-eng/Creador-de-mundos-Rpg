@@ -2498,7 +2498,7 @@
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
   <script type="module" src="js/enemigos-glb.js?v=20261120b"></script>
   <script src="js/musica-rpg.js?v=20261120c"></script>
-  <script src="js/sonidos.js?v=20261123b"></script>
+  <script src="js/sonidos.js?v=20261123c"></script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
   import * as PV from "./js/props-variados.js?v=20261121b";
@@ -11017,7 +11017,7 @@
     if (!vfxEstudioActivo) lanzarAuraConjuro(name);
     marcarCombateAudio();
     if (window.Sonidos) {
-      if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'inicio');
+      if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'inicio', { clase: claseArmaDelHeroe() });
       else if (sk.elemento === 'fuego' || name === 'furia') window.Sonidos.fuego();
       else if (sk.elemento === 'hielo') window.Sonidos.hielo();
       else if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo') window.Sonidos.rayo();

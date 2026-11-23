@@ -8,7 +8,10 @@ sintetizado de siempre.
 
 | Momento | Grabación (sustituye o acompaña al sintetizado) |
 |---|---|
-| Golpe con arma que acierta (`Sonidos.impacto('metal')`) | `choque_corte`, 6 variantes al azar con el tono ±5 % |
+| Golpe con arma que acierta (`Sonidos.impacto('metal')`) | Choque según el arma + `golpe_cuerpo` (impacto en el cuerpo, 4 variantes) |
+| Golpe sin arma (`Sonidos.impacto('sordo')`) | `golpe_cuerpo` |
+| Golpe crítico | `golpe_crujiente` encima del sintetizado |
+| Cada golpe cuerpo a cuerpo (combo y técnicas de arma) | `tajo_aire`, programado para que el silbido caiga justo en el golpe; agudo con dagas, grave con mazas |
 | El escudo bloquea un golpe enemigo (`Sonidos.bloqueo`) | `choque_metal` |
 | Parada y contraataque, al empezar | `choque_metal` |
 | Tornillo triple, Filo relámpago y Salto demoledor | `rayo_carga` durante la animación; al golpear, `rayo_cadena` + `chispazo` |
@@ -27,6 +30,9 @@ tiene además un desplazamiento de tono fijo (±6 %) para que no suenen todas ig
 | `sfx/rayos/rayo_carga_01.ogg` | Arc (InMotionAudio) · ArcPowerUpDesign04, de 4,6 s al final |
 | `sfx/rayos/rayo_cadena_01.ogg` | Arc (InMotionAudio) · ArcDesign15 |
 | `sfx/rayos/chispazo_01…03.ogg` | Arc (InMotionAudio) · Buzz27, tres trozos de 0,55 s |
+| `sfx/espadas/tajo_aire_01.ogg` | Tower Defense Game (ESM) · Action Deploy Units Sword Slice Special Move Layered Swish 04 |
+| `sfx/golpes/golpe_cuerpo_01…04.ogg` | Cinematic Fight Vol. 1 (344 Audio) · 4 x Punch, Body 02 (4 tomas) |
+| `sfx/golpes/golpe_crujiente_01.ogg` | Anime Game (ESM) · Combat Punch Impact Light Hit Delay Crunchy Vintage Quick Smack 05 |
 
 Para añadir un efecto: pon los `.ogg` en `sfx/<categoria>/` y añádelos a `MUESTRAS` en `js/sonidos.js`.
 
