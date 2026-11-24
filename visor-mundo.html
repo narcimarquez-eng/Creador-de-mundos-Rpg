@@ -502,6 +502,7 @@
     #inv-card .ic-head b { flex: 1; color: var(--gold); }
     #inv-card .ic-head button { padding: 2px 8px; font-size: 11px; }
     #inv-card .ic-body { display: flex; gap: 8px; align-items: flex-start; }
+    #ic-doll, #obj-doll { border-radius: 8px; background: #070d1a; border: 1px solid #334155; cursor: pointer; flex-shrink: 0; }
     #inv-card #ic-equip { flex: 1; min-width: 0; line-height: 1.5; }
     #inv-card #ic-equip b { color: #e2e8f0; font-weight: 600; }
     #inv-card #ic-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 8px; max-height: 240px; overflow-y: auto; padding-right: 2px; }
@@ -530,11 +531,24 @@
     #objetos .slot { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 6px; background: rgba(15,23,42,0.5); transition: background 0.2s, border-color 0.2s; }
     #objetos .slot.eq { border-color: rgba(234,179,8,0.4); background: rgba(30,27,75,0.3); }
     #objetos .slot.resaltado { border-color: #38bdf8; background: rgba(2,132,199,0.2); }
-    .item-thumb { width: 38px; height: 38px; border-radius: 6px; background: #0b1120; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+    .item-thumb { width: 38px; height: 38px; border-radius: 6px; background: #0b1120; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; cursor: pointer; }
     .slot.eq .item-thumb { border-color: var(--gold); }
     #objetos .slot .info { flex: 1; min-width: 0; }
     #objetos .muted { color: var(--muted); font-size: 12px; }
     #objetos .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    #obj-visor { position: fixed; inset: 0; background: rgba(2,6,23,0.78); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+    #obj-visor.show { display: flex; }
+    #obj-visor .box { width: 340px; max-width: 100%; max-height: 90vh; overflow-y: auto; background: #0f172a; border: 1.5px solid #475569; border-radius: 14px; padding: 14px 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.85); }
+    #ov-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    #ov-titulo { margin: 0; font-size: 15px; color: var(--gold); line-height: 1.3; }
+    #ov-cerrar { padding: 3px 9px; font-size: 12px; flex-shrink: 0; }
+    #ov-img { display: flex; justify-content: center; margin: 10px 0 12px; }
+    #ov-img .art-item-wrap { border-radius: 12px; border: 2px solid rgba(250,204,21,0.55); box-shadow: 0 8px 24px rgba(0,0,0,0.75); }
+    #ov-img .art-slot-tag { font-size: 12px; padding: 2px 6px; }
+    #ov-meta { font-size: 12px; color: #cbd5e1; line-height: 1.5; margin-bottom: 8px; }
+    #ov-set { font-size: 11.5px; color: #93c5fd; background: rgba(15,23,42,0.8); border: 1px solid #1e293b; border-radius: 8px; padding: 7px 9px; margin-bottom: 10px; line-height: 1.45; }
+    #ov-set:empty { display: none; }
+    #ov-acciones { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; margin-top: 8px; }
     #crear label, #crear-aldeano label { display: block; color: var(--muted); font-size: 12px; margin: 6px 0; }
     #crear input, #crear select, #crear-aldeano input, #crear-aldeano select { width: 100%; margin-top: 3px; }
     #crear .muted, #crear-aldeano .muted { color: var(--muted); font-size: 12px; }
@@ -2135,6 +2149,16 @@
     <div id="obj-lista"></div>
     <div class="btns"><button id="obj-cerrar">Cerrar</button></div>
   </div></div>
+  <div id="obj-visor"><div class="box">
+    <div id="ov-head">
+      <h3 id="ov-titulo"></h3>
+      <button id="ov-cerrar" type="button" title="Cerrar">✕</button>
+    </div>
+    <div id="ov-img"></div>
+    <div id="ov-meta"></div>
+    <div id="ov-set"></div>
+    <div id="ov-acciones" class="btns"></div>
+  </div></div>
   <div id="npc"><div class="box">
     <div class="npc-cab">
       <div id="npc-retrato" class="art-retrato"></div>
@@ -3685,6 +3709,7 @@
       arreglarMaterialesRostro(modelo);
       aligerarPersonaje(modelo);
       if (studioVfx) studioVfx.bindHeroModel(modelo, character.root);
+      solicitarMiniaturaPersonaje3D(true);
     };
     envolverTeleportRecintos();
 
@@ -8305,6 +8330,9 @@
       pendientesEntorno.splice(0).forEach(aplicarEntorno);
       sincronizarEntornoAtmo(timeOfDay);
       cargarCielosPbr();
+      if (character && character.model && !character.isFallbackAvatar) {
+        solicitarMiniaturaPersonaje3D(true);
+      }
     } catch (err) {
       console.warn('Sin entorno de reflejos exterior:', err);
     }
@@ -15707,10 +15735,194 @@
   // Tarjeta del inventario: sistema unificado de 5 piezas de armadura + arma + escudo (1M · Tanque/Hacha 1M)
   const ZONA_NOMBRE = { underlayer: 'Cota', helmet: 'Casco', shoulders: 'Hombreras', torso: 'Peto', gloves: 'Guantes', pants: 'Pantalones', belt: 'Cinturón', tassets: 'Escarcelas', cuisses: 'Musleras', knees: 'Rodilleras', boots: 'Botas', weapon: 'Arma', shield: 'Escudo' };
 
-  // Dibujo esquemático: cada pieza equipada se pinta en su zona del cuerpo
+  const DOLL_W = 110;
+  const DOLL_H = 200;
+  const DOLL_YAWS = [0.22, -0.45, Math.PI];
+  let _dollYawIdx = 0;
+  let _dollRT = null;
+  let _dollScene = null;
+  let _dollCam = null;
+  let _dollPixels = null;
+  let _dollScratchCanvas = null;
+  let _dollPendiente = false;
+  const _dollCache = { model: null, env: null, yaw: 0.22, canvas: null };
+  const DOLL_SRGB_LUT = (() => {
+    const lut = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) {
+      const lin = Math.min(1, (i / 255) * 1.12);
+      const srgb = lin <= 0.0031308 ? 12.92 * lin : 1.055 * Math.pow(lin, 1 / 2.4) - 0.055;
+      lut[i] = Math.max(0, Math.min(255, Math.round(srgb * 255)));
+    }
+    return lut;
+  })();
+
+  function asegurarEscenaMiniaturaDoll() {
+    if (_dollScene) return;
+    _dollRT = new THREE.WebGLRenderTarget(DOLL_W, DOLL_H);
+    _dollScene = new THREE.Scene();
+    _dollScene.add(new THREE.HemisphereLight('#f0f9ff', '#334155', 1.35));
+    const key = new THREE.DirectionalLight('#fff8eb', 2.0);
+    key.position.set(2.4, 3.6, 3.8);
+    const rim = new THREE.DirectionalLight('#7dd3fc', 0.9);
+    rim.position.set(-2.5, 2.2, -2.6);
+    _dollScene.add(key, rim);
+    _dollCam = new THREE.PerspectiveCamera(32, DOLL_W / DOLL_H, 0.1, 20);
+    _dollPixels = new Uint8Array(DOLL_W * DOLL_H * 4);
+    _dollScratchCanvas = document.createElement('canvas');
+    _dollScratchCanvas.width = DOLL_W;
+    _dollScratchCanvas.height = DOLL_H;
+  }
+
+  function capturarMiniaturaPersonaje3D(forzar = false) {
+    if (!renderer || !character || !character.model || character.isFallbackAvatar || typeof THREE === 'undefined') return null;
+    const model = character.model;
+    const yaw = DOLL_YAWS[_dollYawIdx] || 0.22;
+    const env = entornoActores || (scene && scene.environment) || null;
+    if (!forzar && _dollCache.canvas && _dollCache.model === model && _dollCache.env === env && _dollCache.yaw === yaw) {
+      return _dollCache.canvas;
+    }
+
+    asegurarEscenaMiniaturaDoll();
+
+    const prevParent = model.parent;
+    const prevPos = model.position.clone();
+    const prevRot = model.rotation.clone();
+    const prevScale = model.scale.clone();
+    const prevVis = model.visible;
+    const prevRT = renderer.getRenderTarget();
+    const prevClearCol = new THREE.Color();
+    renderer.getClearColor(prevClearCol);
+    const prevClearAlpha = renderer.getClearAlpha();
+    const prevShadow = renderer.shadowMap.enabled;
+    const prevScissor = renderer.getScissorTest();
+
+    let capturadoOk = false;
+    try {
+      _dollScene.add(model);
+      _dollScene.environment = env;
+      model.visible = true;
+      model.scale.setScalar(character._baseModelScale || 1);
+      model.position.set(0, character._baseModelY || 0, 0);
+      model.rotation.set(0, yaw, 0);
+      model.updateMatrixWorld(true);
+
+      const box = new THREE.Box3().setFromObject(model);
+      const minY = isFinite(box.min.y) ? Math.max(-0.1, Math.min(0.3, box.min.y)) : 0;
+      const maxY = isFinite(box.max.y) ? Math.max(1.75, Math.min(2.25, box.max.y)) : 1.9;
+      const cy = (minY + maxY) * 0.5;
+      const height = Math.max(1.6, maxY - minY);
+      const rawW = isFinite(box.max.x - box.min.x) ? (box.max.x - box.min.x) : 0.8;
+      const width = Math.min(1.45, Math.max(0.55, rawW));
+      const cx = isFinite(box.min.x + box.max.x) ? Math.max(-0.25, Math.min(0.25, (box.min.x + box.max.x) * 0.5)) : 0;
+      const cz = isFinite(box.min.z + box.max.z) ? Math.max(-0.25, Math.min(0.25, (box.min.z + box.max.z) * 0.5)) : 0;
+      const fovRad = (_dollCam.fov * Math.PI) / 180;
+      const distV = (height * 0.58) / Math.tan(fovRad * 0.5);
+      const distH = (width * 0.62) / (Math.tan(fovRad * 0.5) * _dollCam.aspect);
+      const dist = Math.max(2.6, distV, distH);
+
+      _dollCam.position.set(cx, cy + 0.04, cz + dist);
+      _dollCam.lookAt(cx, cy, cz);
+      _dollCam.updateMatrixWorld(true);
+
+      renderer.shadowMap.enabled = false;
+      renderer.setScissorTest(false);
+      renderer.setRenderTarget(_dollRT);
+      renderer.setClearColor(0x091020, 0);
+      renderer.clear();
+      renderer.render(_dollScene, _dollCam);
+      renderer.readRenderTargetPixels(_dollRT, 0, 0, DOLL_W, DOLL_H, _dollPixels);
+      capturadoOk = true;
+    } catch (err) {
+      console.warn('No se pudo capturar retrato 3D del personaje:', err);
+    } finally {
+      if (prevParent && prevParent !== _dollScene) prevParent.add(model);
+      model.position.copy(prevPos);
+      model.rotation.copy(prevRot);
+      model.scale.copy(prevScale);
+      model.visible = prevVis;
+      model.updateMatrixWorld(true);
+      renderer.shadowMap.enabled = prevShadow;
+      renderer.setScissorTest(prevScissor);
+      renderer.setRenderTarget(prevRT);
+      renderer.setClearColor(prevClearCol, prevClearAlpha);
+    }
+
+    if (!capturadoOk) return null;
+
+    const sctx = _dollScratchCanvas.getContext('2d');
+    const imgData = sctx.createImageData(DOLL_W, DOLL_H);
+    const dst = imgData.data;
+    for (let y = 0; y < DOLL_H; y++) {
+      const srcRow = (DOLL_H - 1 - y) * DOLL_W * 4;
+      const dstRow = y * DOLL_W * 4;
+      for (let x = 0; x < DOLL_W; x++) {
+        const si = srcRow + x * 4;
+        const di = dstRow + x * 4;
+        dst[di] = DOLL_SRGB_LUT[_dollPixels[si]];
+        dst[di + 1] = DOLL_SRGB_LUT[_dollPixels[si + 1]];
+        dst[di + 2] = DOLL_SRGB_LUT[_dollPixels[si + 2]];
+        dst[di + 3] = _dollPixels[si + 3];
+      }
+    }
+    sctx.putImageData(imgData, 0, 0);
+
+    if (!_dollCache.canvas) {
+      _dollCache.canvas = document.createElement('canvas');
+      _dollCache.canvas.width = DOLL_W;
+      _dollCache.canvas.height = DOLL_H;
+    }
+    const dctx = _dollCache.canvas.getContext('2d');
+    const grad = dctx.createLinearGradient(0, 0, 0, DOLL_H);
+    grad.addColorStop(0, '#101b33');
+    grad.addColorStop(1, '#070b15');
+    dctx.fillStyle = grad;
+    dctx.fillRect(0, 0, DOLL_W, DOLL_H);
+
+    dctx.save();
+    dctx.beginPath();
+    dctx.ellipse(DOLL_W * 0.5, DOLL_H - 13, 34, 7, 0, 0, Math.PI * 2);
+    dctx.fillStyle = 'rgba(56, 189, 248, 0.14)';
+    dctx.fill();
+    dctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+    dctx.lineWidth = 1;
+    dctx.stroke();
+    dctx.restore();
+
+    dctx.drawImage(_dollScratchCanvas, 0, 0);
+    _dollCache.model = model;
+    _dollCache.env = env;
+    _dollCache.yaw = yaw;
+    return _dollCache.canvas;
+  }
+
+  function solicitarMiniaturaPersonaje3D(forzar = false) {
+    if (_dollPendiente && !forzar) return;
+    _dollPendiente = true;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      _dollPendiente = false;
+      if (!personajeActual) return;
+      const snap = capturarMiniaturaPersonaje3D(forzar);
+      if (snap) {
+        dibujarPersonaje(personajeActual, 'ic-doll');
+        dibujarPersonaje(personajeActual, 'obj-doll');
+      }
+    }));
+  }
+
+  // Retrato del personaje equipado: usa captura 3D real a baja resolución y cae al esquema mientras carga el GLB
   function dibujarPersonaje(pj, id = 'ic-doll') {
-    const c = $(id), g = c.getContext('2d');
+    const c = $(id);
+    if (!c) return;
+    const g = c.getContext('2d');
     g.clearRect(0, 0, c.width, c.height);
+    const snap = capturarMiniaturaPersonaje3D(false);
+    if (snap) {
+      g.drawImage(snap, 0, 0, c.width, c.height);
+      g.strokeStyle = '#334155';
+      g.lineWidth = 1;
+      g.strokeRect(0.5, 0.5, c.width - 1, c.height - 1);
+      return;
+    }
     const eq = {};
     Object.keys(pj.equipo).forEach(r => { const o = pj.inventario.find(x => x.uid === pj.equipo[r]); if (o) eq[r] = o; });
     const metal = '#94a3b8', oro = '#fbbf24', azulEsc = '#38bdf8', tela = '#334155';
@@ -15887,11 +16099,95 @@
     $('obj-equip').innerHTML = $('ic-equip').innerHTML;
   }
   $('ic-toggle').onclick = () => { $('inv-card').classList.add('oculta'); $('inv-card').classList.remove('visible-movil'); };
+  ['ic-doll', 'obj-doll'].forEach(dollId => {
+    const el = $(dollId);
+    if (!el) return;
+    el.title = 'Toca para girar al personaje';
+    el.addEventListener('click', () => {
+      _dollYawIdx = (_dollYawIdx + 1) % DOLL_YAWS.length;
+      if (personajeActual) {
+        capturarMiniaturaPersonaje3D(true);
+        dibujarPersonaje(personajeActual, 'ic-doll');
+        dibujarPersonaje(personajeActual, 'obj-doll');
+      }
+    });
+  });
+
+  function resumenObjetoUi(o, equipados, chkEscudo) {
+    const esEq = equipados.has(o.uid);
+    const manosTxt = o.ranura === 'weapon' ? (EquipoLib.manosDeArma(o, catalogoPiezas) === 2 ? ' · 2 manos' : ' · 1 mano') : '';
+    const bloqTxt = (o.ranura === 'shield' && o.bloqueo) ? ` · bloq ${Math.round(o.bloqueo * 100)}%` : '';
+    const stat = (o.ataque ? 'ataque ' + o.ataque : (o.defensa ? 'defensa ' + o.defensa : '')) + bloqTxt;
+    const fichaObj = (typeof HeroeLib !== 'undefined' && HeroeLib.ficha) ? HeroeLib.ficha(o) : null;
+    const extraArmTxt = (fichaObj && fichaObj.tipo === 'armadura' && fichaObj.lineas.length > 1)
+      ? ' · ' + fichaObj.lineas.slice(1).join(' · ')
+      : '';
+    const habTip = (fichaObj && fichaObj.habilidadesSet && fichaObj.habilidadesSet.length)
+      ? `${fichaObj.setNombre}\n` + fichaObj.habilidadesSet.map(h => `[${h.piezasReq} pzas] ${h.nombre}: ${h.desc}`).join('\n')
+      : o.nombre;
+    let eqBtn = '';
+    if (o.nivel > hero.level) eqBtn = `<span class="muted">🔒 nivel ${o.nivel}</span>`;
+    else if (o.ranura === 'shield' && !chkEscudo.ok) eqBtn = `<span class="muted" title="${esc(chkEscudo.motivo)}">🔒 ${esc(chkEscudo.motivo)}</span>`;
+    else eqBtn = `<button data-equipar="${esc(o.uid)}">Equipar</button>`;
+    const accion = esEq
+      ? '<span class="muted">✅ equipado</span>' + (o.ranura !== 'weapon' ? ` <button data-desequipar="${esc(o.ranura)}" data-uid="${esc(o.uid)}" title="Quitar pieza">Quitar</button>` : '')
+      : o.tipo === 'hoja' ? '<span class="muted">📜 forja en el herrero</span>'
+      : eqBtn
+        + ` <button data-dar-rowan="${esc(o.uid)}" title="Transferir al inventario de Rowan">🤝 Rowan</button>`
+        + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
+        + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
+    return { esEq, manosTxt, stat, fichaObj, extraArmTxt, habTip, accion };
+  }
+
+  function cerrarVisorObjeto() {
+    const ov = $('obj-visor');
+    if (ov) {
+      ov.classList.remove('show');
+      delete ov.dataset.uid;
+    }
+  }
+
+  function abrirVisorObjeto(uid) {
+    const pj = personajeActual;
+    const o = pj && pj.inventario ? pj.inventario.find(x => x.uid === uid) : null;
+    if (!o) { cerrarVisorObjeto(); return; }
+    const equipados = new Set(Object.values(pj.equipo || {}));
+    const subActual = heroeEst && heroeEst.subclase;
+    const chkEscudo = EquipoLib.puedeUsarEscudo ? EquipoLib.puedeUsarEscudo(pj, catalogoPiezas, subActual) : { ok: true, motivo: '' };
+    const { manosTxt, stat, fichaObj, extraArmTxt, accion } = resumenObjetoUi(o, equipados, chkEscudo);
+
+    $('ov-titulo').innerHTML = `${badgeGradoHtml(o)}${esc(o.nombre)}`;
+    $('ov-img').innerHTML = iconoItemSvg(o, 152);
+    const zona = ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : '');
+    const estadoPct = Math.round((o.estado != null ? o.estado : 1) * 100);
+    const lineasMeta = [
+      `<b>${esc(zona)}${manosTxt}</b> · Nivel ${o.nivel || 1} · Estado ${estadoPct}%`,
+      (stat || extraArmTxt) ? `${esc(stat)}${esc(extraArmTxt)}` : ''
+    ].filter(Boolean);
+    $('ov-meta').innerHTML = lineasMeta.map(l => `<div>${l}</div>`).join('');
+
+    if (fichaObj && fichaObj.setNombre) {
+      const habsHtml = (fichaObj.habilidadesSet || []).map(h =>
+        `<div><b>[${h.piezasReq} pzas] ${esc(h.nombre)}:</b> ${esc(h.desc)}</div>`
+      ).join('');
+      $('ov-set').innerHTML = `<div><b>🛡️ ${esc(fichaObj.setNombre)}</b></div>${habsHtml}`;
+    } else {
+      $('ov-set').innerHTML = '';
+    }
+
+    $('ov-acciones').innerHTML = `${accion} <button id="ov-cerrar-btn" type="button">Cerrar</button>`;
+    const cerrarBtn = $('ov-cerrar-btn');
+    if (cerrarBtn) cerrarBtn.onclick = cerrarVisorObjeto;
+    $('obj-visor').dataset.uid = uid;
+    $('obj-visor').classList.add('show');
+  }
+
   $('ic-grid').addEventListener('click', e => {
     const c = e.target.closest('.cell.lleno');
     if (!c) return;
     renderObjetos();
     $('objetos').classList.add('show');
+    if (c.dataset.ver) abrirVisorObjeto(c.dataset.ver);
   });
   $('obj-grid').addEventListener('click', e => {
     const c = e.target.closest('.cell.lleno');
@@ -15902,6 +16198,7 @@
       targetEl.classList.add('resaltado');
       setTimeout(() => targetEl.classList.remove('resaltado'), 1500);
     }
+    abrirVisorObjeto(c.dataset.ver);
   });
 
   // Inventario: objetos del personaje con su estado. Equipar regenera el cuerpo con la nueva pieza.
@@ -15914,33 +16211,12 @@
     const chkEscudo = EquipoLib.puedeUsarEscudo ? EquipoLib.puedeUsarEscudo(pj, catalogoPiezas, subActual) : { ok: true, motivo: '' };
     $('obj-huecos').textContent = pj.inventario.length + ' / ' + EquipoLib.CAPACIDAD + ' huecos · arena ' + (inv.arena || 0) + ' 🧱';
     $('obj-lista').innerHTML = pj.inventario.map(o => {
-      const manosTxt = o.ranura === 'weapon' ? (EquipoLib.manosDeArma(o, catalogoPiezas) === 2 ? ' · 2 manos' : ' · 1 mano') : '';
-      const bloqTxt = (o.ranura === 'shield' && o.bloqueo) ? ` · bloq ${Math.round(o.bloqueo * 100)}%` : '';
-      const stat = (o.ataque ? 'ataque ' + o.ataque : (o.defensa ? 'defensa ' + o.defensa : '')) + bloqTxt;
-      const fichaObj = (typeof HeroeLib !== 'undefined' && HeroeLib.ficha) ? HeroeLib.ficha(o) : null;
-      const extraArmTxt = (fichaObj && fichaObj.tipo === 'armadura' && fichaObj.lineas.length > 1)
-        ? ' · ' + fichaObj.lineas.slice(1).join(' · ')
-        : '';
-      const habTip = (fichaObj && fichaObj.habilidadesSet && fichaObj.habilidadesSet.length)
-        ? `${fichaObj.setNombre}\n` + fichaObj.habilidadesSet.map(h => `[${h.piezasReq} pzas] ${h.nombre}: ${h.desc}`).join('\n')
-        : o.nombre;
+      const { esEq, manosTxt, stat, fichaObj, extraArmTxt, habTip, accion } = resumenObjetoUi(o, equipados, chkEscudo);
       const setTag = (fichaObj && fichaObj.setNombre)
         ? `<span class="muted" style="display:block;font-size:10.5px;color:#93c5fd">🛡️ ${esc(fichaObj.setNombre)}${fichaObj.habilidadesSet.length ? ' · ' + esc(fichaObj.habilidadesSet.map(h => h.piezasReq + 'p: ' + h.nombre).join(' | ')) : ''}</span>`
         : '';
-      const esEq = equipados.has(o.uid);
-      let eqBtn = '';
-      if (o.nivel > hero.level) eqBtn = `<span class="muted">🔒 nivel ${o.nivel}</span>`;
-      else if (o.ranura === 'shield' && !chkEscudo.ok) eqBtn = `<span class="muted" title="${esc(chkEscudo.motivo)}">🔒 ${esc(chkEscudo.motivo)}</span>`;
-      else eqBtn = `<button data-equipar="${esc(o.uid)}">Equipar</button>`;
-      const accion = esEq
-        ? '<span class="muted">✅ equipado</span>' + (o.ranura !== 'weapon' ? ` <button data-desequipar="${esc(o.ranura)}" title="Quitar pieza">Quitar</button>` : '')
-        : o.tipo === 'hoja' ? '<span class="muted">📜 forja en el herrero</span>'
-        : eqBtn
-          + ` <button data-dar-rowan="${esc(o.uid)}" title="Transferir al inventario de Rowan">🤝 Rowan</button>`
-          + ` <button data-tirar="${esc(o.uid)}" title="Tirar">🗑</button>`
-          + (curTown ? ` <button data-vender="${esc(o.uid)}" title="Vender">🪙</button>` : '');
       return `<div class="slot ${esEq ? 'eq' : ''}" data-uid="${esc(o.uid)}">
-        <div class="item-thumb" title="${esc(habTip)}">${iconoItemSvg(o, 30)}</div>
+        <div class="item-thumb" title="${esc(habTip + '\n(Toca para ampliar)')}">${iconoItemSvg(o, 30)}</div>
         <div class="info"><b>${badgeGradoHtml(o)}${esc(o.nombre)}</b>
         <span class="muted">${esc(ZONA_NOMBRE[o.ranura] || o.ranura || (o.tipo === 'hoja' ? 'Plano' : ''))}${manosTxt} · nivel ${o.nivel} · estado ${Math.round((o.estado != null ? o.estado : 1) * 100)}%${stat ? ' · ' + stat : ''}${esc(extraArmTxt)}</span>${setTag}</div>
         ${accion}
@@ -15950,21 +16226,26 @@
   $('sk-objetos').onclick = () => { renderObjetos(); $('objetos').classList.add('show'); };
   $('sk-objetos').addEventListener('click', () => { if (personajeActual) $('inv-card').classList.remove('oculta'); });
   $('sk-objetos').addEventListener('dblclick', () => { $('inv-card').classList.remove('oculta'); $('inv-card').classList.add('visible-movil'); renderInvCard(); });
-  $('obj-cerrar').onclick = () => $('objetos').classList.remove('show');
-  $('obj-lista').addEventListener('click', async e => {
+  $('obj-cerrar').onclick = () => { cerrarVisorObjeto(); $('objetos').classList.remove('show'); };
+  if ($('ov-cerrar')) $('ov-cerrar').onclick = cerrarVisorObjeto;
+  if ($('obj-visor')) $('obj-visor').addEventListener('click', e => { if (e.target === $('obj-visor')) cerrarVisorObjeto(); });
+
+  async function manejarAccionObjeto(e) {
     const t = e.target.closest('button[data-tirar], button[data-vender]');
     if (t) {
+      const uid = t.dataset.tirar || t.dataset.vender;
       try {
-        if (t.dataset.tirar) { EquipoLib.tirar(personajeActual, t.dataset.tirar); toast('Tirado'); }
-        else { const oro = EquipoLib.vender(personajeActual, t.dataset.vender); inv.gold += oro; updateStats(); toast('Vendido por ' + oro + ' 🪙'); }
+        if (t.dataset.tirar) { EquipoLib.tirar(personajeActual, uid); toast('Tirado'); }
+        else { const oro = EquipoLib.vender(personajeActual, uid); inv.gold += oro; updateStats(); toast('Vendido por ' + oro + ' 🪙'); }
         renderObjetos();
+        if ($('obj-visor').classList.contains('show') && $('obj-visor').dataset.uid === uid) cerrarVisorObjeto();
       } catch (err) { toast(err.message); }
-      return;
+      return true;
     }
     const dr = e.target.closest('button[data-dar-rowan]');
     if (dr) {
       asegurarAcompananteActivo();
-      if (!acompanante) { toast('Rowan aún no te acompaña'); return; }
+      if (!acompanante) { toast('Rowan aún no te acompaña'); return true; }
       const uid = dr.dataset.darRowan;
       const idx = personajeActual.inventario.findIndex(x => x.uid === uid);
       if (idx !== -1) {
@@ -15973,12 +16254,13 @@
           personajeActual.inventario.splice(idx, 1);
           toast(`🤝 Has pasado ${item.nombre} al inventario de Rowan`);
           renderObjetos();
+          if ($('obj-visor').classList.contains('show') && $('obj-visor').dataset.uid === uid) cerrarVisorObjeto();
           if ($('modal-companero') && $('modal-companero').classList.contains('show')) renderCompanero();
         } else {
           toast('El inventario de Rowan está lleno (máximo 20 slots)');
         }
       }
-      return;
+      return true;
     }
     const deq = e.target.closest('button[data-desequipar]');
     if (deq) {
@@ -15991,11 +16273,12 @@
         if (typeof saveActive === 'function') saveActive(true);
         toast('Pieza desequipada');
         await mostrarCuerpo(personajeActual);
+        if ($('obj-visor').classList.contains('show') && $('obj-visor').dataset.uid) abrirVisorObjeto($('obj-visor').dataset.uid);
       }
-      return;
+      return true;
     }
     const b = e.target.closest('button[data-equipar]');
-    if (!b) return;
+    if (!b) return false;
     try {
       const uidEq = b.dataset.equipar;
       const objEq = EquipoLib.objeto(personajeActual, uidEq);
@@ -16018,7 +16301,21 @@
       if (typeof updateHud === 'function') updateHud(performance.now());
       if (typeof saveActive === 'function') saveActive(true);
       await mostrarCuerpo(personajeActual);
+      if ($('obj-visor').classList.contains('show') && $('obj-visor').dataset.uid) abrirVisorObjeto($('obj-visor').dataset.uid);
     } catch (err) { toast(err.message); }
+    return true;
+  }
+
+  $('obj-lista').addEventListener('click', async e => {
+    if (await manejarAccionObjeto(e)) return;
+    const thumb = e.target.closest('.item-thumb');
+    if (thumb) {
+      const slot = thumb.closest('.slot[data-uid]');
+      if (slot && slot.dataset.uid) abrirVisorObjeto(slot.dataset.uid);
+    }
+  });
+  if ($('ov-acciones')) $('ov-acciones').addEventListener('click', async e => {
+    await manejarAccionObjeto(e);
   });
 
   // ===========================================================================
@@ -21273,7 +21570,11 @@
       alternarPantallaCompleta();
       return;
     }
-    if (k === 'escape') {
+      if (k === 'escape') {
+      if ($('obj-visor') && $('obj-visor').classList.contains('show')) {
+        cerrarVisorObjeto();
+        return;
+      }
       const hayModalAbierto = ($('shop') && $('shop').classList.contains('show')) ||
         ($('partidas') && $('partidas').classList.contains('show')) ||
         ($('cronica') && $('cronica').classList.contains('show')) ||
@@ -21281,11 +21582,13 @@
         ($('armaduras-modal') && $('armaduras-modal').classList.contains('show')) ||
         ($('modal-companero') && $('modal-companero').classList.contains('show')) ||
         ($('mapa-mundo-modal') && $('mapa-mundo-modal').classList.contains('show')) ||
+        ($('objetos') && $('objetos').classList.contains('show')) ||
         ($('info') && $('info').classList.contains('show'));
       if (hayModalAbierto) {
-        showSelection(null); closeShop(); closePartidas(); cerrarMapaMundo(); cerrarModalCompanero(); cerrarModalArmaduras();
+        showSelection(null); closeShop(); closePartidas(); cerrarMapaMundo(); cerrarModalCompanero(); cerrarModalArmaduras(); cerrarVisorObjeto();
         if ($('cronica')) $('cronica').classList.remove('show');
         if ($('heroe')) $('heroe').classList.remove('show');
+        if ($('objetos')) $('objetos').classList.remove('show');
       } else if (esPantallaCompletaActiva()) {
         alternarPantallaCompleta();
       }

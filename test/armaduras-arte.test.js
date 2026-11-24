@@ -94,6 +94,13 @@ test('visor-mundo.html integra cargarManifestArmaduras, iconoEquipoHtml y tarjet
   assert.ok(html.includes('onArmadurasListo'));
 });
 
+test('visor-mundo.html integra retrato 3D de baja resolución y visor ampliado #obj-visor', () => {
+  assert.ok(html.includes('capturarMiniaturaPersonaje3D'));
+  assert.ok(html.includes('solicitarMiniaturaPersonaje3D'));
+  assert.ok(html.includes('abrirVisorObjeto'));
+  assert.ok(html.includes('id="obj-visor"'));
+});
+
 test('generar_armaduras_colab.ipynb es válido con 4 celdas de código y MODO=muestra por defecto', () => {
   const codeCells = nb.cells.filter(c => c.cell_type === 'code');
   assert.equal(codeCells.length, 4);
