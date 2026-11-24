@@ -128,6 +128,55 @@ if (THREE) {
       assert.strictEqual(d.beamVisible, false, id + ' haz apagado');
     }
   });
+
+  t('Manager: combos normales de 3 golpes (arma, disparo, orbe_arcano) y setSfxHandler emiten VFX/SFX', () => {
+    const { mgr, camera } = crearEscena();
+    const eventos = [];
+    mgr.setSfxHandler((ev, info) => eventos.push({ ev, info }));
+    const target = new THREE.Vector3(0, 1, 10);
+
+    // Melee 3-hit normal combo across weapon classes
+    ['espadas', 'mandobles', 'dagas', 'lanzas'].forEach(cls => {
+      assert.strictEqual(mgr.startSkill('attack', { lock: 1.5, range: 4 }, { armaClase: cls, targetPos: target, duration: 1.5, getGroundY: () => 0 }), true);
+      let vioArma = false;
+      for (let i = 0; i < 48; i++) {
+        mgr.update(1 / 30, camera, { name: 'attack', elapsed: i / 30, duration: 1.5, hasNative: true });
+        if (mgr.getDebugState().activeSkill === 'attack') vioArma = true;
+      }
+      assert.ok(vioArma, cls + ' combo normal debe activar perfil attack');
+      for (let i = 0; i < 30; i++) mgr.update(1 / 30, camera, null);
+    });
+
+    // Arco 3 disparos físicos + eventos bow_release
+    const evAntesDisparo = eventos.length;
+    assert.strictEqual(mgr.startSkill('disparo', { lock: 2.0, range: 16 }, { armaClase: 'arcos', targetPos: target, duration: 2.0, getGroundY: () => 0 }), true);
+    let flechasMax = 0;
+    for (let i = 0; i < 66; i++) {
+      mgr.update(1 / 30, camera, { name: 'disparo', elapsed: i / 30, duration: 2.0, hasNative: true });
+      flechasMax = Math.max(flechasMax, mgr.getDebugState().activeArrows);
+    }
+    assert.ok(flechasMax >= 1, 'disparo debe lanzar flechas físicas del arco');
+    const relDisparo = eventos.slice(evAntesDisparo).filter(e => e.ev === 'bow_release');
+    assert.ok(relDisparo.length >= 2, 'disparo debe disparar eventos bow_release por flecha (' + relDisparo.length + ')');
+    for (let i = 0; i < 45; i++) mgr.update(1 / 30, camera, null);
+
+    // Báculo 3 bolas de fuego + eventos fireball
+    const evAntesOrbe = eventos.length;
+    assert.strictEqual(mgr.startSkill('orbe_arcano', { lock: 1.8, range: 14 }, { armaClase: 'bastones', targetPos: target, duration: 1.8, getGroundY: () => 0 }), true);
+    let wavesMax = 0;
+    for (let i = 0; i < 60; i++) {
+      mgr.update(1 / 30, camera, { name: 'orbe_arcano', elapsed: i / 30, duration: 1.8, hasNative: true });
+      wavesMax = Math.max(wavesMax, mgr.getDebugState().activeWaves);
+    }
+    assert.ok(wavesMax >= 1, 'orbe_arcano debe lanzar bolas de fuego 3D');
+    const fbEvs = eventos.slice(evAntesOrbe).filter(e => e.ev === 'fireball');
+    assert.strictEqual(fbEvs.length, 3, 'orbe_arcano debe emitir 3 eventos fireball');
+
+    // sw_lightning wave SFX
+    const evAntesWave = eventos.length;
+    simular(mgr, camera, 'sw_lightning', 1.3, 1.4);
+    assert.ok(eventos.slice(evAntesWave).some(e => e.ev === 'energy_wave'), 'sw_lightning debe emitir evento energy_wave');
+  });
 } else {
   console.log('  (three no disponible en tools/node_modules: se omiten pruebas del Manager)');
 }

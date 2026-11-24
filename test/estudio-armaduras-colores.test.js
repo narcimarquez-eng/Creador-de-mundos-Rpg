@@ -87,7 +87,7 @@ t('el puente postMessage del estudio y visor-mundo.html soportan rostros fijados
     assert.ok(html.includes(cmd), `Falta comando bridge '${cmd}' en estudio-armaduras/index.html`);
   });
   const visorHtml = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
-  assert.ok(visorHtml.includes("DB_HEROE = 'rpg-heroe-glb-v5'"), 'DB_HEROE debe usar v5 para incluir el sistema de 5 piezas y escudo 1M');
+  assert.ok(visorHtml.includes("DB_HEROE = 'rpg-heroe-glb-v6'"), 'DB_HEROE debe usar v6 para incluir los combos normales de 3 golpes, 5 piezas y escudo 1M');
   assert.ok(visorHtml.includes('id="crear-rostro"') && visorHtml.includes('id="crear-aldeano"'), 'visor-mundo debe integrar selector de rostro y creador de aldeanos');
 });
 

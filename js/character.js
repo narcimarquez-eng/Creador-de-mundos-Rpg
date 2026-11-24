@@ -26,7 +26,10 @@
     idle: ['idle', 'stand', 'wait', 'guardia', 'reposo'],
     walk: ['walk', 'andar', 'caminar', 'marcha', 'move'],
     run: ['run', 'sprint', 'correr', 'carrera', 'fast'],
-    attack: ['combo', 'ataque', 'attack', 'punch'],
+    attack: ['normal_combo', 'combo', 'ataque', 'attack', 'punch'],
+    normal_combo: ['normal_combo', 'combo', 'attack', 'punch'],
+    normal_slash: ['normal_slash', 'normal_combo', 'attack', 'punch'],
+    normal_heavy: ['normal_heavy', 'overhead_cleave', 'normal_combo', 'attack'],
     sismo: ['slam', 'sismo', 'sísmico'],
     // Técnicas de arma y de arco (nombres del cuerpo que exporta el estudio de armaduras)
     tajo: ['spin_slash', 'tajo giratorio'],
@@ -37,7 +40,7 @@
     torbellino: ['whirlwind', 'torbellino'],
     voltereta: ['backflip', 'voltereta'],
     tornillo: ['triple_corkscrew', 'tornillo'],
-    disparo: ['archery', 'tiro con arco'],
+    disparo: ['normal_combo', 'archery', 'tiro con arco'],
     suspension: ['aerial_shot', 'suspensión'],
     // Nuevas habilidades activas mapeadas a las animaciones de combate
     corte_cruzado: ['spin_slash', 'punch', 'corte'],
@@ -53,7 +56,7 @@
     ventisca_glacial: ['ultimate_nova', 'blast'],
     tormenta_fuego: ['ultimate_slam', 'nova'],
     rayo_arcano: ['ultimate_nova', 'ultimate_beam'],
-    orbe_arcano: ['ultimate_beam', 'punch', 'attack'],
+    orbe_arcano: ['normal_combo', 'ultimate_beam', 'punch', 'attack'],
     flecha_perforante: ['archery', 'aerial_shot', 'disparo'],
     trampa_espinas: ['aerial_shot', 'archery', 'slam'],
     escudo_mana: ['guard_counter', 'ultimate_nova', 'escudo'],
@@ -118,6 +121,9 @@
   // (los bloqueos de las habilidades son los mismos que en js/combat.js; las pruebas lo comprueban)
   const ONE_SHOT = {
     attack: { lock: 1.00 },
+    normal_combo: { lock: 1.00 },
+    normal_slash: { lock: 0.70 },
+    normal_heavy: { lock: 1.15 },
     sismo: { lock: 1.80 },
     nova: { lock: 1.65 },
     tajo: { lock: 1.60 },
@@ -199,6 +205,10 @@
 
   // Animación corporal especial procedimental por habilidad (complementa e independiza del clip del estudio)
   const SKILL_MOTION = {
+    attack:          { dur: 1.65, tipo: 'combo_3_golpes' },
+    normal_combo:    { dur: 1.65, tipo: 'combo_3_golpes' },
+    disparo:         { dur: 2.20, tipo: 'combo_3_golpes', arco: true },
+    orbe_arcano:     { dur: 1.75, tipo: 'combo_3_golpes', conjuro: true },
     corte_cruzado:   { dur: 1.50, tipo: 'corte_cruzado' },
     tajo:            { dur: 1.60, tipo: 'giro', vueltas: 1, salto: 0.65, inclinacion: 0.24 },
     torbellino:      { dur: 2.00, tipo: 'giro', vueltas: 2.5, salto: 0.55, inclinacion: 0.28 },
@@ -220,7 +230,6 @@
     rafaga:          { dur: 1.40, tipo: 'furia' },
     bola_fuego:      { dur: 1.20, tipo: 'conjuro' },
     lanza_hielo:     { dur: 1.20, tipo: 'conjuro' },
-    orbe_arcano:     { dur: 1.00, tipo: 'conjuro' },
     ventisca_glacial:{ dur: 1.50, tipo: 'conjuro' },
     tormenta_fuego:  { dur: 1.55, tipo: 'conjuro' },
     rayo_arcano:     { dur: 1.45, tipo: 'conjuro' },
@@ -286,6 +295,57 @@
     const endFade = t > 0.86 ? 1 - _smooth01(0.86, 1.0, t) : 1;
     const pi = Math.PI;
     switch (cfg.tipo) {
+      case 'combo_3_golpes': {
+        if (cfg.arco) {
+          // 3 tiempos de disparo con arco: retroceso seco en cada suelta
+          const p = t < 0.34 ? t / 0.34 : (t < 0.64 ? (t - 0.34) / 0.30 : (t - 0.64) / 0.36);
+          const s = Math.sin(p * pi);
+          const heavy = t >= 0.64 ? 1.35 : 1.0;
+          out.ry = -0.36 * (1 - 0.15 * s);
+          out.dz = -0.14 * heavy * Math.sin(Math.pow(p, 1.4) * pi);
+          out.dy = 0.06 * heavy * s;
+          out.rx = -0.08 * heavy * s;
+        } else if (cfg.conjuro) {
+          // 3 lanzamientos con báculo: impulso rítmico hacia el objetivo
+          const p = t < 0.34 ? t / 0.34 : (t < 0.64 ? (t - 0.34) / 0.30 : (t - 0.64) / 0.36);
+          const s = Math.sin(p * pi);
+          const heavy = t >= 0.64 ? 1.35 : 1.0;
+          out.dz = 0.24 * heavy * s;
+          out.dy = 0.10 * heavy * s;
+          out.rx = 0.14 * heavy * s;
+          out.ry = (t < 0.34 ? 0.24 : (t < 0.64 ? -0.24 : 0.16)) * s;
+        } else if (t < 0.34) {
+          // Golpe 1: Tajo diagonal derecha -> izquierda
+          const u = t / 0.34;
+          const s = Math.sin(u * pi);
+          out.dy = 0.14 * s;
+          out.dz = 0.34 * s;
+          out.ry = 0.56 * s;
+          out.rz = -0.14 * s;
+          out.rx = 0.18 * s;
+        } else if (t < 0.62) {
+          // Golpe 2: Contra-tajo izquierda -> derecha
+          const u = (t - 0.34) / 0.28;
+          const s = Math.sin(u * pi);
+          out.dy = 0.18 * s;
+          out.dz = 0.42 * s;
+          out.ry = -0.62 * s;
+          out.rz = 0.16 * s;
+          out.rx = 0.20 * s;
+        } else {
+          // Golpe 3: Remate pesado con zancada y squash&stretch
+          const u = (t - 0.62) / 0.38;
+          const s = Math.sin(u * pi);
+          out.dy = 0.44 * s * endFade;
+          out.dz = 0.72 * Math.sin(Math.min(1, u * 1.1) * pi * 0.5) * endFade;
+          out.ry = 0.36 * s;
+          out.rx = 0.32 * s;
+          const sq = u > 0.66 ? Math.sin(((u - 0.66) / 0.34) * pi) : 0;
+          out.sy = 1 - 0.10 * sq;
+          out.sx = out.sz = 1 + 0.07 * sq;
+        }
+        break;
+      }
       case 'corte_cruzado': {
         if (t < 0.48) {
           const u = t / 0.48;
@@ -835,7 +895,13 @@
       L.leftLeg.rotation.x = 0; L.rightLeg.rotation.x = 0;
       L.leftArm.rotation.x = 0; L.rightArm.rotation.x = 0;
       this.model.rotation.y = 0; this.model.position.y = 0;
-      if (f.kind === 'attack') L.rightArm.rotation.x = -2.2 * swing;
+      if (f.kind === 'attack' || f.kind === 'normal_combo') {
+        const seg = t < 0.34 ? t / 0.34 : (t < 0.62 ? (t - 0.34) / 0.28 : (t - 0.62) / 0.38);
+        const s = Math.sin(seg * Math.PI);
+        if (t < 0.34) { L.rightArm.rotation.x = -2.2 * s; this.model.rotation.y = 0.42 * s; }
+        else if (t < 0.62) { L.rightArm.rotation.x = -2.0 * s; L.leftArm.rotation.x = -1.1 * s; this.model.rotation.y = -0.45 * s; }
+        else { L.rightArm.rotation.x = -2.6 * s; L.leftArm.rotation.x = -1.6 * s; this.model.position.y = 0.25 * s; }
+      }
       if (f.kind === 'sismo') {   // salta con los brazos arriba y cae golpeando el suelo
         const subida = t < 0.45 ? t / 0.45 : 1;
         this.model.position.y = t < 0.45 ? 0.9 * Math.sin(subida * Math.PI * 0.85) : 0;
@@ -1317,14 +1383,25 @@
     // Reproduce una acción de un solo uso (ataque, impacto sísmico, nova, salto, victoria).
     // Si el GLB no la trae, el avatar de respaldo hace un gesto sencillo.
     // El tiempo lo lleva el propio personaje (suma de dt): no depende del reloj que pase quien llama
-    playOneShot(kind) {
+    playOneShot(kind, unusedNow = 0, maybeOpts = null) {
       const info = ONE_SHOT[kind];
       if (!info) return 0;
+      const opts = (unusedNow && typeof unusedNow === 'object') ? unusedNow : (maybeOpts || {});
+      const armaClase = opts.armaClase || null;
       const shot = this.oneShots[kind];
-      const rawDuration = shot ? shot.duration : (kind === 'victory' ? 3 : 0.6);
+      const NORMAL_DUR_BY_CLASS = {
+        dagas: 1.38, espadas: 1.65, lanzas: 1.68, hachas: 1.68,
+        bastones: 1.75, mazas: 1.85, mandobles: 1.90, hachas_2m: 1.92,
+        arcos: 2.20, unarmed: 1.45
+      };
+      const isNormalComboClip = !!(shot && String(shot.clipName || '').toLowerCase() === 'normal_combo');
+      const rawDuration = shot ? shot.duration : (kind === 'victory' ? 3 : (SKILL_MOTION[kind] ? SKILL_MOTION[kind].dur : 0.6));
       // Mantiene velocidades naturales y legibles para ataques y técnicas
       let escala = 1;
-      if (shot && kind === 'disparo') {
+      if (shot && isNormalComboClip) {
+        const targetCombo = (armaClase && NORMAL_DUR_BY_CLASS[armaClase]) || (kind === 'disparo' ? 2.20 : (kind === 'orbe_arcano' ? 1.75 : 1.65));
+        escala = Math.min(1.45, Math.max(0.72, rawDuration / targetCombo));
+      } else if (shot && kind === 'disparo') {
         if (rawDuration > 2.2) escala = Math.min(1.25, rawDuration / 1.75);
         else escala = Math.min(0.95, Math.max(0.65, rawDuration / 1.65));
       } else if (shot && kind === 'attack') {
@@ -1340,6 +1417,7 @@
       this.oneShotDuration = duration;
       this.oneShotUntil = this.tiempo + duration;
       this.oneShotClipName = (shot && shot.clipName) || kind;
+      this.oneShotWeaponClass = armaClase;
       this.oneShotHasNative = !!(shot && !shot.fallbackClip);
       // Solo superponer SKILL_MOTION en avatar de respaldo o cuando el GLB no trae clip nativo del estudio
       const usarMotionRespaldo = this.isFallbackAvatar || !shot || !!shot.fallbackClip;
@@ -1347,7 +1425,10 @@
       this._skillAnim = null;
       const motionCfg = usarMotionRespaldo ? SKILL_MOTION[kind] : null;
       if (motionCfg) {
-        this._skillAnim = { kind, cfg: motionCfg, start: this.tiempo, duration: motionCfg.dur };
+        const motionDur = (kind === 'attack' || kind === 'normal_combo' || kind === 'disparo' || kind === 'orbe_arcano') && armaClase && NORMAL_DUR_BY_CLASS[armaClase]
+          ? NORMAL_DUR_BY_CLASS[armaClase]
+          : motionCfg.dur;
+        this._skillAnim = { kind, cfg: motionCfg, start: this.tiempo, duration: motionDur };
       }
       if (shot && this.mixer) {
         shot.action.enabled = true;
@@ -1365,7 +1446,7 @@
 
     getActiveOneShotState() {
       if (!this.oneShotKind || this.tiempo >= this.oneShotUntil || this.oneShotDuration <= 0) {
-        return { active: false, kind: null, clipName: null, elapsed: 0, duration: 0, u: 0, hasNative: false };
+        return { active: false, kind: null, clipName: null, weaponClass: null, elapsed: 0, duration: 0, u: 0, hasNative: false };
       }
       const elapsed = Math.max(0, this.tiempo - this.oneShotStart);
       const u = Math.max(0, Math.min(1, elapsed / this.oneShotDuration));
@@ -1373,6 +1454,7 @@
         active: true,
         kind: this.oneShotKind,
         clipName: this.oneShotClipName,
+        weaponClass: this.oneShotWeaponClass || null,
         elapsed,
         duration: this.oneShotDuration,
         u,

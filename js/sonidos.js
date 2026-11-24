@@ -444,6 +444,7 @@
       { velocidad: p.velocidad * (clase === 'dagas' ? 1.08 : 1), vol: clase === 'dagas' ? 0.45 : 0.6, pan: o.pan }));
   }
   function muestrasSkill(t, id, fase, opts) {
+    if (PERFILES_SFX_ESTUDIO[id] || id === 'attack' || id === 'normal_combo' || id === 'normal_slash' || id === 'normal_heavy' || id === 'disparo' || id === 'orbe_arcano') return;
     if (fase === 'inicio') tajosAire(t, id, opts);
     if (String(id).startsWith('dg_')) return;   // las dagas tienen su propia mezcla en dispararSkillSfx
     if (fase === 'inicio') {
@@ -457,6 +458,639 @@
     } else if (fase === 'impacto' && esSkillRayo(id)) {
       if (cargaRayo) { cargaRayo.parar(0.12); cargaRayo = null; }
       if (muestra('rayo_cadena', t, opts)) muestra('chispazo', t + 0.08, Object.assign({}, opts, { vol: 0.45 }));
+    }
+  }
+
+  // ------------------- Motor SKILL_SFX completo de Armaduras-glb v86 -------------------
+  const AXE_WEAPON_CLASSES = new Set(['hachas', 'hachas_2m']);
+  const BLADED_WEAPON_CLASSES = new Set(['espadas', 'mandobles', 'dagas', 'lanzas']);
+  let estudioClashPanSide = 1;
+  let estudioPrismNoteIdx = 0;
+
+  function makeNoise(startT, dur, filterType, fStart, fEnd, qVal, gainPeak, atk = 0.01, wet = 0.16, pan = 0) {
+    if (!ac || (!ruido && !ruidoRosa)) return;
+    const d = Math.max(0.02, dur);
+    const pink = typeof filterType === 'object' ? Boolean(filterType.pink) : false;
+    const fType = typeof filterType === 'object' ? filterType.type : filterType;
+    const src = ac.createBufferSource();
+    src.buffer = pink ? (ruidoRosa || ruido) : (ruido || ruidoRosa);
+    src.loop = true;
+    const flt = ac.createBiquadFilter();
+    flt.type = fType;
+    flt.Q.value = Math.max(0.2, qVal || 1);
+    const f0 = Math.max(30, fStart);
+    const f1 = Math.max(30, fEnd);
+    flt.frequency.setValueAtTime(f0, startT);
+    if (f1 !== f0) flt.frequency.exponentialRampToValueAtTime(f1, startT + d);
+    const g = ac.createGain();
+    const peak = Math.max(0.0002, gainPeak);
+    g.gain.setValueAtTime(0.0001, startT);
+    g.gain.linearRampToValueAtTime(peak, startT + Math.min(atk, d * 0.45));
+    g.gain.exponentialRampToValueAtTime(0.0001, startT + d);
+    src.connect(flt);
+    flt.connect(g);
+    conectarSalida(g, { wet, pan });
+    src.start(startT, Math.random() * 0.6);
+    src.stop(startT + d + 0.04);
+  }
+
+  function makeTone(type, startT, dur, fStart, fEnd, gainPeak, atk = 0.008, wet = 0.22, detune = 0, pan = 0) {
+    if (!ac) return;
+    const d = Math.max(0.025, dur);
+    const osc = ac.createOscillator();
+    osc.type = type || 'sine';
+    if (osc.detune && detune) {
+      if (typeof osc.detune.setValueAtTime === 'function') osc.detune.setValueAtTime(detune, startT);
+      else osc.detune.value = detune;
+    }
+    const f0 = Math.max(24, fStart);
+    const f1 = Math.max(24, fEnd);
+    osc.frequency.setValueAtTime(f0, startT);
+    if (f1 !== f0) osc.frequency.exponentialRampToValueAtTime(f1, startT + d);
+    const g = ac.createGain();
+    const peak = Math.max(0.0002, gainPeak);
+    g.gain.setValueAtTime(0.0001, startT);
+    g.gain.linearRampToValueAtTime(peak, startT + Math.min(atk, d * 0.45));
+    g.gain.exponentialRampToValueAtTime(0.0001, startT + d);
+    osc.connect(g);
+    conectarSalida(g, { wet, pan });
+    osc.start(startT);
+    osc.stop(startT + d + 0.04);
+  }
+
+  function makeFilteredTone(type, startT, dur, fStart, fEnd, cutStart, cutEnd, qVal, gainPeak, atk = 0.01, wet = 0.18, detune = 0, pan = 0) {
+    if (!ac) return;
+    const d = Math.max(0.025, dur);
+    const osc = ac.createOscillator();
+    osc.type = type || 'sawtooth';
+    if (osc.detune && detune) {
+      if (typeof osc.detune.setValueAtTime === 'function') osc.detune.setValueAtTime(detune, startT);
+      else osc.detune.value = detune;
+    }
+    const f0 = Math.max(24, fStart);
+    const f1 = Math.max(24, fEnd);
+    osc.frequency.setValueAtTime(f0, startT);
+    if (f1 !== f0) osc.frequency.exponentialRampToValueAtTime(f1, startT + d);
+    const flt = ac.createBiquadFilter();
+    flt.type = 'lowpass';
+    flt.Q.value = Math.max(0.2, qVal || 1);
+    const c0 = Math.max(60, cutStart);
+    const c1 = Math.max(60, cutEnd);
+    flt.frequency.setValueAtTime(c0, startT);
+    if (c1 !== c0) flt.frequency.exponentialRampToValueAtTime(c1, startT + d);
+    const g = ac.createGain();
+    const peak = Math.max(0.0002, gainPeak);
+    g.gain.setValueAtTime(0.0001, startT);
+    g.gain.linearRampToValueAtTime(peak, startT + Math.min(atk, d * 0.45));
+    g.gain.exponentialRampToValueAtTime(0.0001, startT + d);
+    osc.connect(flt);
+    flt.connect(g);
+    conectarSalida(g, { wet, pan });
+    osc.start(startT);
+    osc.stop(startT + d + 0.04);
+  }
+
+  function makeSteelFM(startT, dur, fCar, modRatio, modDepth, hpFreq, gainPeak, wet = 0.14, pan = 0) {
+    if (!ac) return;
+    const d = Math.max(0.03, dur);
+    const car = ac.createOscillator();
+    car.type = 'triangle';
+    const fc = Math.max(400, fCar);
+    car.frequency.setValueAtTime(fc, startT);
+    car.frequency.exponentialRampToValueAtTime(Math.max(360, fc * 0.94), startT + d);
+    const mod = ac.createOscillator();
+    mod.type = 'sine';
+    mod.frequency.setValueAtTime(Math.max(500, fc * modRatio), startT);
+    const modGain = ac.createGain();
+    modGain.gain.setValueAtTime(Math.max(10, modDepth), startT);
+    modGain.gain.exponentialRampToValueAtTime(0.01, startT + Math.min(d * 0.42, 0.055));
+    const hp = ac.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.setValueAtTime(Math.max(1200, hpFreq), startT);
+    hp.Q.value = 0.9;
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(Math.max(1500, fc * 1.15), startT);
+    bp.Q.value = 1.6;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, startT);
+    g.gain.linearRampToValueAtTime(Math.max(0.0002, gainPeak), startT + 0.0018);
+    g.gain.exponentialRampToValueAtTime(0.0001, startT + d);
+    mod.connect(modGain);
+    modGain.connect(car.frequency);
+    car.connect(hp);
+    hp.connect(bp);
+    bp.connect(g);
+    conectarSalida(g, { wet, pan });
+    car.start(startT);
+    mod.start(startT);
+    car.stop(startT + d + 0.03);
+    mod.stop(startT + d + 0.03);
+  }
+
+  function addElementalAccent(el, t, intensity = 1.0, isImpact = false, pan = 0) {
+    const amp = Math.min(1.4, Math.max(0.25, intensity));
+    if (el === 'lightning') {
+      const snaps = isImpact ? 4 : 2;
+      for (let i = 0; i < snaps; i++) {
+        const dt = i * (isImpact ? 0.028 : 0.022) + Math.random() * 0.014;
+        makeNoise(t + dt, 0.048 + Math.random() * 0.030, 'bandpass', 2600 + Math.random() * 2400, 950, 3.0, 0.15 * amp, 0.002, 0.18, pan + (Math.random() - 0.5) * 0.45);
+      }
+      makeFilteredTone('sawtooth', t, isImpact ? 0.22 : 0.12, 195 + Math.random() * 65, 58, 950, 220, 1.4, 0.10 * amp, 0.004, 0.16, 0, pan);
+      if (isImpact) makeNoise(t + 0.02, 0.62, { type: 'lowpass', pink: true }, 460, 85, 1.0, 0.30 * amp, 0.014, 0.34, pan);
+    } else if (el === 'fire') {
+      makeNoise(t, isImpact ? 0.54 : 0.25, { type: 'bandpass', pink: true }, isImpact ? 640 : 900, 145, 1.2, 0.28 * amp, 0.016, 0.24, pan);
+      makeNoise(t + 0.015, isImpact ? 0.24 : 0.12, 'bandpass', 2800, 1100, 1.4, 0.09 * amp, 0.008, 0.16, pan);
+      if (isImpact) makeTone('sine', t, 0.34, 125, 34, 0.26 * amp, 0.005, 0.20, 0, pan);
+    } else if (el === 'frost') {
+      const shards = isImpact ? 4 : 2;
+      for (let i = 0; i < shards; i++) {
+        const dt = i * 0.022 + Math.random() * 0.012;
+        makeNoise(t + dt, 0.045 + Math.random() * 0.025, 'highpass', 3600 + Math.random() * 1800, 2200, 1.2, 0.13 * amp, 0.002, 0.22, pan + (Math.random() - 0.5) * 0.5);
+      }
+      makeNoise(t, isImpact ? 0.32 : 0.18, 'bandpass', 3100, 1150, 2.8, 0.14 * amp, 0.012, 0.24, pan);
+      if (isImpact) makeNoise(t, 0.26, { type: 'bandpass', pink: true }, 720, 180, 1.5, 0.22 * amp, 0.004, 0.20, pan);
+    } else if (el === 'arcane') {
+      makeFilteredTone('sawtooth', t, isImpact ? 0.42 : 0.24, 155, 230, 620, 1500, 2.2, 0.11 * amp, 0.025, 0.30, -9, pan);
+      makeFilteredTone('sawtooth', t + 0.01, isImpact ? 0.40 : 0.22, 232, 175, 820, 320, 2.0, 0.08 * amp, 0.025, 0.30, 11, pan);
+      makeNoise(t, isImpact ? 0.34 : 0.18, 'bandpass', 900, 2700, 3.6, 0.13 * amp, 0.018, 0.28, pan);
+    } else if (el === 'void') {
+      makeFilteredTone('sawtooth', t, isImpact ? 0.48 : 0.24, 128, 38, 480, 110, 2.0, 0.15 * amp, 0.015, 0.28, -16, pan);
+      makeFilteredTone('sawtooth', t, isImpact ? 0.44 : 0.22, 192, 54, 620, 140, 1.8, 0.09 * amp, 0.018, 0.28, 18, pan);
+      makeNoise(t, isImpact ? 0.40 : 0.20, { type: 'bandpass', pink: true }, 460, 115, 2.8, 0.20 * amp, 0.02, 0.28, pan);
+    } else if (el === 'holy') {
+      makeFilteredTone('sawtooth', t, isImpact ? 0.50 : 0.26, 196, 220, 520, 1350, 1.3, 0.085 * amp, 0.055, 0.34, -8, pan);
+      makeFilteredTone('sawtooth', t, isImpact ? 0.50 : 0.26, 294, 330, 680, 1500, 1.3, 0.065 * amp, 0.060, 0.34, 9, pan);
+      makeNoise(t, isImpact ? 0.38 : 0.20, 'bandpass', 1400, 3600, 2.0, 0.13 * amp, 0.025, 0.32, pan);
+      if (isImpact) makeTone('sine', t, 0.36, 130, 40, 0.22 * amp, 0.008, 0.22, 0, pan);
+    } else if (el === 'prism') {
+      const bands = isImpact ? [950, 1750, 2900, 4200] : [1350, 2650];
+      bands.forEach((bf, idx) => {
+        makeNoise(t + idx * 0.024, isImpact ? 0.24 : 0.15, 'bandpass', bf, bf * 0.55, 3.8, 0.11 * amp, 0.012, 0.28, pan + (idx % 2 === 0 ? -0.35 : 0.35));
+      });
+      makeFilteredTone('sawtooth', t, isImpact ? 0.38 : 0.22, 165, 255, 580, 1650, 2.2, 0.085 * amp, 0.030, 0.30, -10, pan);
+      makeFilteredTone('sawtooth', t + 0.015, isImpact ? 0.36 : 0.20, 248, 310, 740, 1850, 2.0, 0.065 * amp, 0.032, 0.30, 12, pan);
+    }
+  }
+
+  function playChargeSwell(t, weaponClass, element = 'lightning', isMagic = false, pan = 0) {
+    const isBow = weaponClass === 'arcos';
+    const isAxe = AXE_WEAPON_CLASSES.has(weaponClass);
+    const isHeavyWeight = isAxe || weaponClass === 'mazas';
+    const dur = isMagic ? 0.62 : (isBow ? 0.46 : (isHeavyWeight ? 0.56 : 0.52));
+    const fLow = isMagic
+      ? (element === 'void' ? 88 : (element === 'fire' ? 104 : 114))
+      : (weaponClass === 'hachas_2m' || weaponClass === 'mazas' ? 66 : (weaponClass === 'hachas' || weaponClass === 'mandobles' ? 74 : 92));
+    const fHigh = isMagic ? fLow * 2.85 : (isHeavyWeight ? fLow * 2.15 : fLow * 2.95);
+    const cutTop1 = isMagic ? 2200 : (isHeavyWeight ? 1080 : 1850);
+    const cutTop2 = isMagic ? 2650 : (isHeavyWeight ? 1320 : 2300);
+    makeFilteredTone('sawtooth', t, dur, fLow, fHigh, isHeavyWeight ? 180 : 260, cutTop1, 2.2, isHeavyWeight ? 0.19 : 0.175, dur * 0.64, 0.28, -9, pan);
+    makeFilteredTone('sawtooth', t + 0.02, dur * 0.96, fLow * 1.498, fHigh * 1.5, isHeavyWeight ? 240 : 360, cutTop2, 2.0, isHeavyWeight ? 0.13 : 0.125, dur * 0.68, 0.28, 10, pan);
+    makeNoise(t, dur, 'bandpass', isHeavyWeight ? 260 : 420, isMagic ? 3600 : (isHeavyWeight ? 1550 : 3250), 2.2, isHeavyWeight ? 0.19 : 0.27, dur * 0.68, 0.26, pan);
+    makeNoise(t, dur, { type: 'bandpass', pink: true }, isHeavyWeight ? 135 : 175, isHeavyWeight ? 680 : 1080, 1.5, isHeavyWeight ? 0.30 : 0.25, dur * 0.64, 0.24, pan);
+    makeTone('sine', t, dur, isHeavyWeight ? 40 : 46, isMagic ? 152 : (isHeavyWeight ? 108 : 138), isHeavyWeight ? 0.30 : 0.23, dur * 0.72, 0.22, 0, pan);
+    if (isAxe) makeNoise(t + dur * 0.34, dur * 0.62, { type: 'lowpass', pink: true }, 520, 115, 1.1, 0.24, 0.06, 0.22, pan);
+    else addElementalAccent(element, t + dur * 0.36, 0.92, false, pan);
+  }
+
+  function playOrbIgnite(t, weaponClass, element = 'lightning', pan = 0) {
+    const isStaff = weaponClass === 'bastones';
+    makeNoise(t, isStaff ? 0.22 : 0.15, 'bandpass', 480, 2900, 3.0, isStaff ? 0.15 : 0.12, 0.06, 0.28, pan);
+    makeFilteredTone('sawtooth', t + 0.02, isStaff ? 0.26 : 0.18, 130, 245, 420, 1380, 2.2, isStaff ? 0.11 : 0.085, 0.02, 0.26, -7, pan);
+    makeTone('sine', t + 0.03, 0.16, 140, 62, 0.11, 0.008, 0.16, 0, pan);
+    addElementalAccent(element, t + 0.02, isStaff ? 0.85 : 0.62, false, pan);
+  }
+
+  function playWeaponSwing(t, weaponClass, element = 'lightning', speedNorm = 1.0, isPierce = false, panIn = null) {
+    const sp = clamp(speedNorm || 1.0, 0.65, 1.45);
+    const pan = typeof panIn === 'number' ? panIn : (Math.random() - 0.5) * 0.36;
+    if (weaponClass === 'dagas') {
+      makeNoise(t, 0.12, 'bandpass', 4100 * sp, 1350, 2.2, 0.28 * sp, 0.004, 0.14, pan);
+      makeNoise(t, 0.10, { type: 'bandpass', pink: true }, 1500 * sp, 480, 1.4, 0.16 * sp, 0.005, 0.12, pan);
+    } else if (weaponClass === 'hachas_2m') {
+      makeNoise(t, 0.36, { type: 'lowpass', pink: true }, 580 * sp, 135, 1.15, 0.50 * sp, 0.014, 0.20, pan);
+      makeNoise(t + 0.008, 0.28, { type: 'bandpass', pink: true }, 760 * sp, 220, 1.35, 0.38 * sp, 0.012, 0.16, pan);
+      makeTone('sine', t, 0.28, 124 * sp, 40, 0.34, 0.006, 0.16, 0, pan);
+      makeFilteredTone('sawtooth', t, 0.22, 102 * sp, 42, 340, 110, 1.3, 0.19, 0.008, 0.14, 0, pan);
+    } else if (weaponClass === 'hachas') {
+      makeNoise(t, 0.25, { type: 'lowpass', pink: true }, 720 * sp, 165, 1.2, 0.46 * sp, 0.010, 0.16, pan);
+      makeNoise(t + 0.005, 0.19, { type: 'bandpass', pink: true }, 960 * sp, 260, 1.45, 0.34 * sp, 0.008, 0.14, pan);
+      makeNoise(t + 0.004, 0.075, 'bandpass', 1240 * sp, 420, 1.5, 0.14 * sp, 0.003, 0.12, pan);
+      makeTone('sine', t, 0.20, 142 * sp, 48, 0.30, 0.005, 0.14, 0, pan);
+    } else if (weaponClass === 'mandobles') {
+      makeNoise(t, 0.34, { type: 'bandpass', pink: true }, 640 * sp, 135, 1.3, 0.40 * sp, 0.022, 0.20, pan);
+      makeNoise(t + 0.015, 0.22, 'bandpass', 1650 * sp, 420, 1.8, 0.20 * sp, 0.012, 0.16, pan);
+      makeTone('sine', t, 0.24, 145 * sp, 44, 0.20, 0.010, 0.16, 0, pan);
+    } else if (weaponClass === 'lanzas') {
+      if (isPierce) {
+        makeNoise(t, 0.19, 'bandpass', 3400 * sp, 860, 2.8, 0.30 * sp, 0.005, 0.18, pan);
+        makeFilteredTone('sawtooth', t, 0.15, 420 * sp, 120, 1400, 320, 1.6, 0.11, 0.005, 0.16, 0, pan);
+      } else {
+        makeNoise(t, 0.26, { type: 'bandpass', pink: true }, 1050 * sp, 240, 1.7, 0.32 * sp, 0.016, 0.18, pan);
+        makeNoise(t, 0.20, 'bandpass', 2400 * sp, 720, 2.2, 0.18 * sp, 0.009, 0.16, pan);
+      }
+    } else if (weaponClass === 'mazas') {
+      makeNoise(t, 0.30, { type: 'lowpass', pink: true }, 560 * sp, 115, 1.1, 0.40 * sp, 0.018, 0.16, pan);
+      makeTone('sine', t, 0.22, 135, 42, 0.22, 0.008, 0.15, 0, pan);
+    } else if (weaponClass === 'bastones') {
+      makeNoise(t, 0.22, 'bandpass', 720, 2400, 2.8, 0.18 * sp, 0.016, 0.32, pan);
+      makeFilteredTone('sawtooth', t, 0.24, 145, 225, 480, 1250, 2.0, 0.085, 0.02, 0.30, -8, pan);
+    } else if (weaponClass === 'none' || weaponClass === 'unarmed') {
+      makeNoise(t, 0.16, { type: 'bandpass', pink: true }, 1200 * sp, 290, 1.4, 0.28 * sp, 0.007, 0.12, pan);
+      makeTone('sine', t, 0.12, 165, 52, 0.18, 0.005, 0.10, 0, pan);
+    } else {
+      const fHi = isPierce ? 3100 : 2300;
+      makeNoise(t, 0.20, 'bandpass', fHi * sp, 540, 1.9, 0.28 * sp, 0.008, 0.16, pan);
+      makeNoise(t, 0.20, { type: 'bandpass', pink: true }, 920 * sp, 230, 1.4, 0.24 * sp, 0.010, 0.14, pan);
+      makeNoise(t + 0.005, 0.07, 'highpass', 3600, 2400, 1.1, 0.08 * sp, 0.003, 0.14, pan);
+    }
+    if (element && element !== 'physical') {
+      if (AXE_WEAPON_CLASSES.has(weaponClass)) makeNoise(t + 0.014, 0.24, { type: 'lowpass', pink: true }, 420, 95, 1.1, 0.22 * sp, 0.008, 0.20, pan);
+      else addElementalAccent(element, t + 0.012, 0.56 * sp, false, pan);
+    }
+  }
+
+  function playDashStep(t, element = 'void', pan = 0) {
+    makeNoise(t, 0.16, 'bandpass', 900, 3400, 2.2, 0.22, 0.006, 0.20, pan);
+    makeNoise(t, 0.14, { type: 'lowpass', pink: true }, 720, 160, 1.1, 0.16, 0.005, 0.14, pan);
+    if (element && element !== 'physical') addElementalAccent(element, t, 0.55, false, pan);
+  }
+
+  function playEnergyWaveCast(t, kind, weaponClass, element = 'lightning', pan = 0) {
+    const isStaff = weaponClass === 'bastones';
+    if (isStaff) {
+      makeNoise(t, 0.36, { type: 'bandpass', pink: true }, 1500, 240, 1.5, 0.30, 0.008, 0.34, pan);
+      makeNoise(t, 0.28, 'bandpass', 2800, 620, 2.0, 0.22, 0.006, 0.32, pan);
+      makeFilteredTone('sawtooth', t, 0.34, 240, 74, 1200, 240, 1.8, 0.14, 0.006, 0.30, -9, pan);
+      makeTone('sine', t, 0.26, 155, 44, 0.24, 0.004, 0.22, 0, pan);
+    } else if (kind === 'thrust') {
+      makeFilteredTone('sawtooth', t, 0.26, 360, 92, 1800, 280, 2.0, 0.14, 0.004, 0.26, 0, pan);
+      makeNoise(t, 0.26, 'bandpass', 3800, 760, 2.4, 0.30, 0.005, 0.24, pan);
+      makeTone('sine', t, 0.22, 160, 48, 0.22, 0.004, 0.18, 0, pan);
+    } else {
+      const pitchM = kind === 'vertical' ? 0.85 : 1.05;
+      makeNoise(t, 0.34, 'bandpass', 3200 * pitchM, 460, 2.0, 0.32, 0.006, 0.28, pan);
+      makeNoise(t, 0.32, { type: 'bandpass', pink: true }, 980 * pitchM, 190, 1.5, 0.26, 0.008, 0.24, pan);
+      makeFilteredTone('sawtooth', t, 0.28, 280 * pitchM, 78, 1350, 240, 1.8, 0.13, 0.005, 0.26, 8, pan);
+      makeTone('sine', t, 0.26, 142, 42, 0.22, 0.005, 0.20, 0, pan);
+    }
+    addElementalAccent(element, t + 0.01, 1.05, true, pan);
+  }
+
+  function playHeavyImpact(t, weaponClass, element = 'lightning', isSlam = false, pan = 0) {
+    const isAxe = AXE_WEAPON_CLASSES.has(weaponClass);
+    const is2HAxe = weaponClass === 'hachas_2m';
+    const heavy = (isSlam || weaponClass === 'mandobles' || is2HAxe || weaponClass === 'mazas') ? 1.28 : (isAxe ? 1.15 : 1.0);
+    makeTone('sine', t, 0.48 * heavy, isAxe ? (is2HAxe ? 102 : 116) : 128, isAxe ? 25 : 28, (isAxe ? 0.46 : 0.38) * Math.min(1.22, heavy), 0.003, 0.20, 0, pan);
+    makeFilteredTone('sawtooth', t, 0.24, isAxe ? 128 : 160, isAxe ? 34 : 42, isAxe ? 320 : 420, isAxe ? 78 : 95, 1.4, isAxe ? 0.24 : 0.18, 0.003, 0.18, 0, pan);
+    makeNoise(t, 0.48 * heavy, { type: 'lowpass', pink: true }, isAxe ? 820 : 1250, isAxe ? 90 : 110, 1.1, (isAxe ? 0.44 : 0.38) * Math.min(1.22, heavy), 0.003, 0.24, pan);
+    if (isAxe || weaponClass === 'mazas') {
+      makeNoise(t, 0.20, { type: 'bandpass', pink: true }, is2HAxe ? 480 : 580, 125, 1.8, 0.36, 0.0025, 0.16, pan);
+      makeNoise(t, 0.055, 'bandpass', 1120, 320, 1.4, 0.15, 0.0018, 0.14, pan);
+      makeTone('sine', t, 0.28, is2HAxe ? 88 : 100, 28, 0.30, 0.0025, 0.14, 0, pan);
+    } else {
+      makeNoise(t, 0.13, 'bandpass', 2400, 680, 1.4, 0.18, 0.002, 0.18, pan);
+    }
+    if (isAxe) makeNoise(t + 0.018, 0.52, { type: 'lowpass', pink: true }, 380, 75, 1.0, 0.30 * Math.min(1.2, heavy), 0.012, 0.28, pan);
+    else if (element && element !== 'physical') addElementalAccent(element, t + 0.012, 1.15 * Math.min(1.2, heavy), true, pan);
+  }
+
+  function playAxeCleave(tBase, weaponClass = 'hachas_2m', isHeavy = false, delaySec = 0, panIn = null) {
+    const t = tBase + Math.max(0, delaySec || 0);
+    const is2H = weaponClass === 'hachas_2m';
+    const w = is2H ? 1.24 : 1.0;
+    const hMul = isHeavy ? 1.18 : 1.0;
+    estudioClashPanSide = -estudioClashPanSide;
+    const pan = typeof panIn === 'number' ? panIn : estudioClashPanSide * (0.10 + Math.random() * 0.16);
+    const jitter = 0.94 + Math.random() * 0.12;
+    makeTone('sine', t, (is2H ? 0.34 : 0.25) * hMul, (is2H ? 122 : 140) * jitter, is2H ? 34 : 40, 0.48 * hMul, 0.002, 0.18, 0, pan);
+    makeFilteredTone('sawtooth', t, 0.21 * w, (is2H ? 128 : 148) * jitter, is2H ? 40 : 48, is2H ? 380 : 460, 110, 1.35, 0.28 * hMul, 0.002, 0.16, 0, pan);
+    makeNoise(t, (is2H ? 0.32 : 0.23) * hMul, { type: 'lowpass', pink: true }, (is2H ? 740 : 880) * jitter, is2H ? 130 : 155, 1.15, 0.50 * hMul, 0.002, 0.20, pan);
+    makeNoise(t, 0.16 * w, { type: 'bandpass', pink: true }, (is2H ? 540 : 660) * jitter, 190, 1.75, 0.40 * hMul, 0.002, 0.16, pan);
+    makeNoise(t + 0.002, 0.095, { type: 'bandpass', pink: true }, (is2H ? 840 : 980) * jitter, 310, 2.0, 0.26 * hMul, 0.0016, 0.14, -pan * 0.5);
+    makeNoise(t, 0.038, 'bandpass', (is2H ? 1060 : 1220) * jitter, 390, 1.35, 0.18 * hMul, 0.0012, 0.10, pan);
+    if (isHeavy || is2H) makeNoise(t + 0.022, 0.30, { type: 'lowpass', pink: true }, 420, 95, 1.0, 0.28 * hMul, 0.008, 0.22, pan * 0.4);
+  }
+
+  function playPhysicalHit(t, weaponClass = 'espadas', kind = 'slash', isHeavy = false, panIn = null) {
+    const h = isHeavy ? 1.24 : 1.0;
+    estudioClashPanSide = -estudioClashPanSide;
+    const pan = typeof panIn === 'number' ? panIn : estudioClashPanSide * (0.12 + Math.random() * 0.18);
+    const jit = 0.94 + Math.random() * 0.12;
+    if (weaponClass === 'hachas_2m' || weaponClass === 'hachas') {
+      const is2H = weaponClass === 'hachas_2m';
+      makeNoise(t, (is2H ? 0.28 : 0.21) * h, { type: 'lowpass', pink: true }, (is2H ? 620 : 760) * jit, is2H ? 140 : 170, 1.15, 0.46 * h, 0.010, 0.16, pan);
+      makeNoise(t + 0.008, 0.16 * h, { type: 'bandpass', pink: true }, (is2H ? 540 : 680) * jit, 210, 1.5, 0.36 * h, 0.006, 0.14, pan);
+      playAxeCleave(t, weaponClass, isHeavy || is2H, 0.028, pan);
+    } else if (weaponClass === 'mandobles') {
+      makeNoise(t, 0.30 * h, { type: 'bandpass', pink: true }, 680 * jit, 170, 1.35, 0.42 * h, 0.014, 0.18, pan);
+      makeNoise(t + 0.012, 0.18 * h, 'bandpass', 1750 * jit, 480, 1.8, 0.24 * h, 0.008, 0.14, pan);
+      makeTone('sine', t + 0.018, 0.22 * h, 148 * jit, 44, 0.28 * h, 0.004, 0.14, 0, pan);
+      if (isHeavy) makeNoise(t + 0.026, 0.24, { type: 'lowpass', pink: true }, 820, 120, 1.1, 0.36, 0.003, 0.18, pan);
+    } else if (weaponClass === 'dagas') {
+      makeNoise(t, 0.11 * h, 'bandpass', (kind === 'pierce' ? 4400 : 3800) * jit, 1200, 2.2, 0.30 * h, 0.003, 0.12, pan);
+      makeNoise(t + 0.006, 0.09 * h, { type: 'bandpass', pink: true }, 1400 * jit, 420, 1.5, 0.20 * h, 0.003, 0.10, pan);
+      makeTone('sine', t + 0.012, 0.08, 175 * jit, 64, 0.15 * h, 0.002, 0.08, 0, pan);
+    } else if (weaponClass === 'mazas') {
+      makeNoise(t, 0.26 * h, { type: 'lowpass', pink: true }, 580 * jit, 130, 1.1, 0.44 * h, 0.012, 0.14, pan);
+      makeTone('sine', t + 0.020, 0.28 * h, 132 * jit, 34, 0.42 * h, 0.003, 0.16, 0, pan);
+      makeNoise(t + 0.022, 0.20 * h, { type: 'bandpass', pink: true }, 520 * jit, 150, 1.7, 0.36 * h, 0.002, 0.14, pan);
+      makeFilteredTone('sawtooth', t + 0.020, 0.14 * h, 125 * jit, 42, 340, 90, 1.3, 0.20 * h, 0.003, 0.12, 0, pan);
+    } else if (weaponClass === 'lanzas') {
+      if (kind === 'pierce') {
+        makeNoise(t, 0.17 * h, 'bandpass', 3200 * jit, 820, 2.5, 0.32 * h, 0.004, 0.14, pan);
+        makeNoise(t + 0.014, 0.14 * h, { type: 'bandpass', pink: true }, 920 * jit, 260, 1.5, 0.26 * h, 0.004, 0.12, pan);
+        makeTone('sine', t + 0.018, 0.14 * h, 155 * jit, 52, 0.22 * h, 0.003, 0.10, 0, pan);
+      } else {
+        makeNoise(t, 0.24 * h, { type: 'bandpass', pink: true }, 1020 * jit, 240, 1.6, 0.34 * h, 0.012, 0.16, pan);
+        makeNoise(t + 0.01, 0.16 * h, 'bandpass', 2200 * jit, 640, 2.0, 0.20 * h, 0.006, 0.14, pan);
+      }
+    } else if (weaponClass === 'bastones') {
+      makeNoise(t, 0.20 * h, { type: 'bandpass', pink: true }, 780 * jit, 220, 1.5, 0.32 * h, 0.008, 0.14, pan);
+      makeTone('sine', t + 0.018, 0.16 * h, 170 * jit, 58, 0.26 * h, 0.003, 0.12, 0, pan);
+      makeNoise(t + 0.018, 0.10 * h, { type: 'bandpass', pink: true }, 640 * jit, 280, 2.4, 0.24 * h, 0.002, 0.10, pan);
+    } else if (weaponClass === 'arcos') {
+      makeFilteredTone('sawtooth', t, 0.17 * h, 178 * jit, 76, 620, 180, 1.5, 0.22 * h, 0.002, 0.14, 0, pan);
+      makeTone('sine', t, 0.18 * h, 118 * jit, 58, 0.22 * h, 0.003, 0.12, 0, pan);
+      makeNoise(t, 0.16 * h, 'bandpass', 3900 * jit, 1050, 2.2, 0.28 * h, 0.003, 0.16, pan);
+    } else if (weaponClass === 'none' || weaponClass === 'unarmed') {
+      makeNoise(t, 0.15 * h, { type: 'bandpass', pink: true }, 1180 * jit, 280, 1.4, 0.32 * h, 0.005, 0.10, pan);
+      makeTone('sine', t + 0.015, 0.16 * h, 152 * jit, 44, 0.34 * h, 0.002, 0.12, 0, pan);
+      makeNoise(t + 0.015, 0.11 * h, { type: 'lowpass', pink: true }, 620 * jit, 140, 1.1, 0.28 * h, 0.002, 0.10, pan);
+    } else {
+      const fHi = kind === 'pierce' ? 3000 : 2350;
+      makeNoise(t, 0.18 * h, 'bandpass', fHi * jit, 560, 1.9, 0.30 * h, 0.006, 0.14, pan);
+      makeNoise(t, 0.19 * h, { type: 'bandpass', pink: true }, 940 * jit, 240, 1.4, 0.28 * h, 0.008, 0.14, pan);
+      makeTone('sine', t + 0.016, 0.14 * h, 158 * jit, 50, 0.22 * h, 0.003, 0.10, 0, pan);
+      if (isHeavy) {
+        makeNoise(t + 0.020, 0.09, 'bandpass', 2600 * jit, 920, 2.4, 0.18, 0.002, 0.12, pan);
+        makeNoise(t + 0.020, 0.16, { type: 'lowpass', pink: true }, 760, 140, 1.1, 0.30, 0.003, 0.14, pan);
+      }
+    }
+  }
+
+  function playSwordClash(tBase, weaponClass = 'espadas', element = 'lightning', style = 'clash', delaySec = 0, panIn = null) {
+    const t = tBase + Math.max(0, delaySec || 0);
+    const mass = weaponClass === 'dagas' ? 0.74 : ((weaponClass === 'mandobles' || weaponClass === 'hachas_2m') ? 1.28 : ((weaponClass === 'hachas' || weaponClass === 'lanzas') ? 1.08 : 1.0));
+    const pitchScale = (1 / Math.pow(mass, 0.42)) * (0.91 + Math.random() * 0.18);
+    estudioClashPanSide = -estudioClashPanSide;
+    const pan = typeof panIn === 'number' ? panIn : estudioClashPanSide * (0.16 + Math.random() * 0.24);
+    if (style === 'draw_scrape') {
+      makeNoise(t, 0.032, 'bandpass', 4600 * pitchScale, 2600 * pitchScale, 2.0, 0.20, 0.0015, 0.12, pan);
+      makeNoise(t + 0.008, 0.19, 'bandpass', 2400 * pitchScale, 4200 * pitchScale, 13.0, 0.16, 0.014, 0.16, pan);
+      makeNoise(t + 0.014, 0.17, 'bandpass', 4100 * pitchScale, 6300 * pitchScale, 15.0, 0.13, 0.016, 0.16, -pan * 0.6);
+      makeNoise(t + 0.020, 0.14, 'highpass', 5000, 3600, 1.1, 0.09, 0.010, 0.14, pan);
+      return;
+    }
+    const isFlurry = style === 'flurry_clash';
+    const gainMul = isFlurry ? 0.84 : 1.04;
+    const tailDur = (isFlurry ? 0.145 : 0.215) * Math.min(1.22, Math.max(0.82, mass));
+    makeNoise(t, 0.036, 'bandpass', 4500 * pitchScale, 2000 * pitchScale, 1.7, 0.34 * gainMul, 0.001, 0.12, pan);
+    makeNoise(t, 0.055, { type: 'bandpass', pink: true }, 1050 * pitchScale, 320, 1.8, 0.26 * gainMul, 0.0015, 0.10, pan);
+    if (mass >= 1.15 && !isFlurry) makeTone('sine', t, 0.095, 148, 52, 0.22, 0.002, 0.12, 0, pan);
+    makeSteelFM(t, tailDur, 2240 * pitchScale, 1.414, 1580, 1750, 0.22 * gainMul, 0.16, pan);
+    makeSteelFM(t + 0.002, tailDur * 0.78, 3490 * pitchScale, 2.37, 1950, 2300, 0.16 * gainMul, 0.16, -pan * 0.7);
+    makeNoise(t + 0.005, tailDur * 0.96, 'bandpass', 2850 * pitchScale, 3850 * pitchScale, 14.5, 0.22 * gainMul, 0.004, 0.16, pan);
+    makeNoise(t + 0.009, tailDur * 0.82, 'bandpass', 4700 * pitchScale, 5650 * pitchScale, 16.5, 0.17 * gainMul, 0.005, 0.16, -pan * 0.8);
+    makeNoise(t + 0.012, tailDur * 0.65, 'bandpass', 6400 * pitchScale, 4600 * pitchScale, 13.0, 0.13 * gainMul, 0.004, 0.14, pan * 0.5);
+    makeNoise(t + 0.016, 0.095, 'highpass', 4600, 2800, 1.2, 0.11 * gainMul, 0.003, 0.14, pan);
+    if (!isFlurry) {
+      const rbT = t + 0.042 + Math.random() * 0.016;
+      const rbP = pitchScale * (1.07 + Math.random() * 0.09);
+      makeNoise(rbT, 0.026, 'bandpass', 5100 * rbP, 2600 * rbP, 2.0, 0.16, 0.001, 0.12, -pan);
+      makeSteelFM(rbT, 0.11, 2720 * rbP, 1.618, 1200, 2100, 0.10, 0.14, -pan);
+      makeNoise(rbT + 0.004, 0.105, 'bandpass', 3700 * rbP, 4800 * rbP, 14.0, 0.11, 0.003, 0.14, -pan);
+    }
+    if (element && element !== 'physical') addElementalAccent(element, t + 0.012, isFlurry ? 0.34 : 0.46, false, pan);
+  }
+
+  function playEnergyBeam(t, element = 'holy', pan = 0) {
+    const dur = 1.05;
+    makeTone('sine', t, 0.34, 175, 42, 0.34, 0.005, 0.24, 0, pan);
+    makeNoise(t, 0.22, 'bandpass', 3400, 820, 1.6, 0.26, 0.006, 0.28, pan);
+    makeFilteredTone('sawtooth', t + 0.02, dur, 92, 128, 650, 1600, 2.0, 0.18, 0.06, 0.30, -10, pan);
+    makeFilteredTone('sawtooth', t + 0.02, dur, 184, 256, 950, 2100, 1.8, 0.12, 0.08, 0.32, 12, pan);
+    makeNoise(t + 0.02, dur, { type: 'bandpass', pink: true }, 680, 1750, 2.0, 0.26, 0.08, 0.34, pan);
+    addElementalAccent(element, t + 0.04, 1.15, true, pan);
+  }
+
+  function playSupernova(t, element = 'prism', pan = 0) {
+    makeNoise(t, 0.11, 'bandpass', 2600, 280, 2.2, 0.20, 0.01, 0.22, pan);
+    const boomT = t + 0.09;
+    makeTone('sine', boomT, 0.88, 132, 24, 0.44, 0.004, 0.30, 0, pan);
+    makeNoise(boomT, 0.96, { type: 'lowpass', pink: true }, 1800, 95, 1.0, 0.42, 0.006, 0.38, pan);
+    makeNoise(boomT, 0.58, 'bandpass', 3200, 380, 1.4, 0.24, 0.008, 0.36, pan);
+    addElementalAccent(element, boomT + 0.02, 1.30, true, pan);
+  }
+
+  function playArcaneVortex(t, element = 'arcane', pan = 0) {
+    makeNoise(t, 0.64, 'bandpass', 460, 2800, 3.4, 0.20, 0.10, 0.36, pan);
+    makeNoise(t, 0.64, { type: 'bandpass', pink: true }, 240, 780, 2.0, 0.18, 0.12, 0.30, pan);
+    makeFilteredTone('sawtooth', t, 0.65, 125, 210, 420, 1450, 2.4, 0.12, 0.08, 0.34, -10, pan);
+    makeFilteredTone('sawtooth', t + 0.04, 0.60, 188, 280, 560, 1650, 2.2, 0.09, 0.10, 0.34, 12, pan);
+    addElementalAccent(element, t + 0.06, 0.95, false, pan);
+  }
+
+  function playBowDraw(t, element = 'lightning', fast = false, pan = 0) {
+    const dur = fast ? 0.34 : 0.68;
+    makeNoise(t, dur, { type: 'bandpass', pink: true }, 300, 760, 3.4, 0.16, 0.08, 0.14, pan);
+    makeFilteredTone('sawtooth', t, dur, 92, 175, 280, 620, 1.8, 0.065, 0.12, 0.14, 0, pan);
+    if (element && element !== 'physical') {
+      makeNoise(t + dur * 0.25, dur * 0.72, 'bandpass', 1500, 3400, 3.2, 0.085, 0.12, 0.22, pan);
+      addElementalAccent(element, t + dur * 0.45, 0.55, false, pan);
+    }
+  }
+
+  function playSimpleFireball(t, isHeavy = false, pan = 0) {
+    const h = isHeavy ? 1.22 : 1.0;
+    const jit = 0.94 + Math.random() * 0.12;
+    makeNoise(t, 0.28 * h, { type: 'bandpass', pink: true }, 520 * jit, 185, 1.35, 0.36 * h, 0.012, 0.18, pan);
+    makeNoise(t + 0.010, 0.18 * h, 'bandpass', 1350 * jit, 420, 1.6, 0.18 * h, 0.008, 0.14, pan);
+    makeTone('sine', t, 0.16 * h, 148 * jit, 62, 0.20 * h, 0.006, 0.12, 0, pan);
+  }
+
+  function playBowStringCrackle(t, element = 'lightning', charge = 0.7, pan = 0) {
+    const amp = Math.min(1.0, Math.max(0.25, charge * 0.75));
+    if (element === 'fire') {
+      makeNoise(t, 0.11, { type: 'bandpass', pink: true }, 780, 300, 2.0, 0.10 * amp, 0.01, 0.18, pan);
+    } else if (element === 'frost') {
+      makeNoise(t, 0.055, 'highpass', 4200, 2600, 1.4, 0.09 * amp, 0.002, 0.20, pan);
+    } else if (element === 'prism') {
+      const bf = 1200 + ((estudioPrismNoteIdx++) % 6) * 480;
+      makeNoise(t, 0.085, 'bandpass', bf, bf * 0.65, 4.2, 0.085 * amp, 0.004, 0.24, pan + (Math.random() - 0.5) * 0.4);
+    } else {
+      makeNoise(t, 0.055, 'bandpass', 2600 + Math.random() * 2200, 1100, 3.6, 0.105 * amp, 0.002, 0.20, pan + (Math.random() - 0.5) * 0.35);
+      makeFilteredTone('sawtooth', t, 0.05, 185 + Math.random() * 90, 95, 760, 260, 1.4, 0.045 * amp, 0.002, 0.16, 0, pan);
+    }
+  }
+
+  function playBowRelease(t, mode, element = 'lightning', isVolley = false, pan = 0) {
+    makeFilteredTone('sawtooth', t, 0.20, 185, 78, 680, 180, 1.6, 0.20, 0.002, 0.16, 0, pan);
+    makeTone('sine', t, 0.22, 120, 62, 0.20, 0.003, 0.16, 0, pan);
+    makeNoise(t, 0.19, 'bandpass', 4200, 1100, 2.2, 0.28, 0.003, 0.20, pan);
+    if (isVolley) {
+      makeFilteredTone('sawtooth', t + 0.036, 0.16, 215, 90, 740, 210, 1.6, 0.15, 0.002, 0.18, 0, pan);
+      makeNoise(t + 0.036, 0.16, 'bandpass', 3800, 1250, 2.2, 0.22, 0.003, 0.20, pan);
+    }
+    if (mode === 'bow_prism_rain') addElementalAccent('prism', t, 1.15, true, pan);
+    else if (mode === 'bow_barrage') addElementalAccent('fire', t, 1.15, true, pan);
+    else if (mode === 'bow_frost_shot') addElementalAccent('frost', t, 1.15, true, pan);
+    else addElementalAccent(element || 'lightning', t, 1.05, true, pan);
+  }
+
+  function playPrismRainSkyCue(tBase, pan = 0) {
+    const t = tBase + 0.06;
+    makeNoise(t, 0.42, 'bandpass', 650, 4400, 2.8, 0.18, 0.06, 0.34, pan);
+    makeFilteredTone('sawtooth', t, 0.40, 145, 290, 480, 1900, 2.2, 0.10, 0.08, 0.32, -8, pan);
+    makeFilteredTone('sawtooth', t + 0.03, 0.38, 218, 360, 620, 2200, 2.0, 0.075, 0.08, 0.32, 10, pan);
+  }
+
+  function playPrismRainImpact(t, panIn = null) {
+    const pan = typeof panIn === 'number' ? clamp(panIn + (Math.random() - 0.5) * 0.5, -0.85, 0.85) : (Math.random() - 0.5) * 0.85;
+    const band = 1400 + ((estudioPrismNoteIdx++) % 6) * 420;
+    makeNoise(t, 0.085, { type: 'lowpass', pink: true }, 680, 130, 1.0, 0.20, 0.002, 0.16, pan);
+    makeTone('sine', t, 0.075, 135, 44, 0.16, 0.002, 0.12, 0, pan);
+    makeNoise(t, 0.065, 'bandpass', band, band * 0.5, 3.2, 0.13, 0.002, 0.22, pan);
+  }
+
+  // Perfiles completos de las 49 skills abiertas de Armaduras-glb v86
+  const PERFILES_SFX_ESTUDIO = {
+    // Espadas (1M)
+    sw_iaido:     { clase: 'espadas',   anim: 'blink_iaido',         el: 'lightning', dash: true, orb: true },
+    sw_solar:     { clase: 'espadas',   anim: 'sword_heavy_cleave',  el: 'fire',      drawScrape: true, slam: true },
+    sw_blitz:     { clase: 'espadas',   anim: 'sword_blitz_rush',    el: 'lightning', fastBlade: true, dash: true, wave: 'thrust' },
+    sw_cross:     { clase: 'espadas',   anim: 'sword_double_cross',  el: 'arcane',    fastBlade: true, drawScrape: true, wave: 'cross1' },
+    sw_lightning: { clase: 'espadas',   anim: 'sword_crescent_draw', el: 'lightning', rangedWave: true, drawScrape: true, wave: 'crescent' },
+    sw_celestial: { clase: 'espadas',   anim: 'sword_sky_breaker',   el: 'holy',      rangedWave: true, beam: true, slam: true, wave: 'vertical' },
+    // Mandobles (2M)
+    gs_sweep:     { clase: 'mandobles', anim: 'polearm_wide_sweep',  el: 'lightning', slam: true },
+    gs_titan:     { clase: 'mandobles', anim: 'greataxe_titan_arc',  el: 'fire',      slam: true },
+    gs_cross:     { clase: 'mandobles', anim: 'sword_double_cross',  el: 'fire',      fastBlade: true, drawScrape: true, wave: 'cross1' },
+    gs_colossus:  { clase: 'mandobles', anim: 'colossus_cleave',     el: 'fire',      slam: true },
+    gs_crescent:  { clase: 'mandobles', anim: 'sword_crescent_draw', el: 'lightning', rangedWave: true, drawScrape: true, wave: 'crescent' },
+    gs_skybreak:  { clase: 'mandobles', anim: 'sword_sky_breaker',   el: 'holy',      rangedWave: true, beam: true, slam: true, wave: 'vertical' },
+    // Dagas
+    dg_dash:      { clase: 'dagas',     anim: 'dagger_shadow_dash',  el: 'void',      fastBlade: true, dash: true },
+    dg_blink:     { clase: 'dagas',     anim: 'blink_iaido',         el: 'void',      fastBlade: true, orb: true },
+    dg_rush:      { clase: 'dagas',     anim: 'dagger_backstab_rush',el: 'void',      fastBlade: true, dash: true },
+    dg_venom:     { clase: 'dagas',     anim: 'dragon_helix',        el: 'void',      fastBlade: true, slam: true },
+    dg_shadow:    { clase: 'dagas',     anim: 'phantom_flurry',      el: 'void',      fastBlade: true, flurry: true },
+    dg_zigzag:    { clase: 'dagas',     anim: 'dagger_zigzag_blitz', el: 'lightning', fastBlade: true, dash: true },
+    // Hachas (1M)
+    ax_thunder:   { clase: 'hachas',    anim: 'attack',              el: 'lightning', slam: false },
+    ax_inferno:   { clase: 'hachas',    anim: 'spin_slash',          el: 'fire',      slam: true },
+    ax_berserk:   { clase: 'hachas',    anim: 'aerial_plunge',       el: 'fire',      dash: true, slam: true },
+    ax_reap:      { clase: 'hachas',    anim: 'vortex_reaper',       el: 'lightning', slam: true },
+    ax_nordic:    { clase: 'hachas',    anim: 'celestial_judgment',  el: 'lightning', beam: true, slam: true, wave: 'vertical' },
+    // Hachas (2M)
+    a2_sweep:     { clase: 'hachas_2m', anim: 'polearm_wide_sweep',  el: 'void',      slam: true },
+    a2_titan:     { clase: 'hachas_2m', anim: 'greataxe_titan_arc',  el: 'fire',      slam: true },
+    a2_colossus:  { clase: 'hachas_2m', anim: 'colossus_cleave',     el: 'fire',      slam: true },
+    a2_vortex:    { clase: 'hachas_2m', anim: 'vortex_reaper',       el: 'void',      slam: true },
+    a2_demolish:  { clase: 'hachas_2m', anim: 'earthshaker_combo',   el: 'prism',     slam: true },
+    // Mazas y Martillos
+    mc_storm:     { clase: 'mazas',     anim: 'overhead_cleave',     el: 'lightning', slam: true },
+    mc_crush:     { clase: 'mazas',     anim: 'colossus_cleave',     el: 'lightning', slam: true },
+    mc_seismic:   { clase: 'mazas',     anim: 'earthshaker_combo',   el: 'fire',      slam: true },
+    mc_titan:     { clase: 'mazas',     anim: 'ultimate_slam',       el: 'holy',      slam: true },
+    mc_judgment:  { clase: 'mazas',     anim: 'celestial_judgment',  el: 'holy',      beam: true, slam: true, wave: 'vertical' },
+    // Lanzas (2M)
+    ln_sweep:     { clase: 'lanzas',    anim: 'polearm_wide_sweep',  el: 'fire',      slam: true },
+    ln_skewer:    { clase: 'lanzas',    anim: 'lance_extended_skewer', el: 'lightning', pierce: true, wave: 'thrust' },
+    ln_phalanx:   { clase: 'lanzas',    anim: 'colossus_cleave',     el: 'frost',     slam: true },
+    ln_valkyrie:  { clase: 'lanzas',    anim: 'lance_impale_vault',  el: 'lightning', dash: true, pierce: true, slam: true },
+    ln_dragon:    { clase: 'lanzas',    anim: 'dragon_helix',        el: 'lightning', fastBlade: true, pierce: true, slam: true },
+    // Arcos (2M)
+    bw_bolt:      { clase: 'arcos',     anim: 'archery',             el: 'lightning', bowMode: 'archery' },
+    bw_double:    { clase: 'arcos',     anim: 'bow_double_shot',     el: 'lightning', bowMode: 'bow_double_shot', volley: true },
+    bw_frost:     { clase: 'arcos',     anim: 'bow_frost_shot',      el: 'frost',     bowMode: 'bow_frost_shot' },
+    bw_aerial:    { clase: 'arcos',     anim: 'aerial_shot',         el: 'arcane',    bowMode: 'aerial_shot' },
+    bw_barrage:   { clase: 'arcos',     anim: 'bow_barrage',         el: 'fire',      bowMode: 'bow_barrage', volley: true },
+    bw_prism:     { clase: 'arcos',     anim: 'bow_prism_rain',      el: 'prism',     bowMode: 'bow_prism_rain', prismRain: true },
+    // Bastones (Mago)
+    st_tempest:   { clase: 'bastones',  anim: 'arcane_tempest',      el: 'arcane',    magic: true, arcane: true, wave: 'crescent' },
+    st_meteor:    { clase: 'bastones',  anim: 'meteor_barrage',      el: 'fire',      magic: true, orb: true, wave: 'thrust' },
+    st_judgment:  { clase: 'bastones',  anim: 'celestial_judgment',  el: 'holy',      magic: true, beam: true, slam: true, wave: 'vertical' },
+    st_solar:     { clase: 'bastones',  anim: 'ultimate_beam',       el: 'holy',      magic: true, beam: true, orb: true },
+    st_nova:      { clase: 'bastones',  anim: 'ultimate_nova',       el: 'prism',     magic: true, nova: true, slam: true }
+  };
+
+  const ultEstudioEv = Object.create(null);
+  function marcarEventoEstudio(clave, t) {
+    ultEstudioEv[clave] = t;
+  }
+  function eventoEstudioReciente(clave, t, ventana = 0.16) {
+    const prev = ultEstudioEv[clave];
+    return prev !== undefined && Math.abs(t - prev) < ventana;
+  }
+
+  function dispararPerfilEstudio(t, p, fase, opts) {
+    const pan = (opts && typeof opts.pan === 'number') ? opts.pan : 0;
+    const imp = fase === 'impacto';
+    if (p.clase === 'arcos') {
+      if (!imp) {
+        playBowDraw(t, p.el, p.anim === 'bow_double_shot' || p.anim === 'aerial_shot', pan);
+        playChargeSwell(t + 0.02, 'arcos', p.el, false, pan);
+        if (p.prismRain && !eventoEstudioReciente('prism_sky', t, 0.25)) playPrismRainSkyCue(t + 0.25, pan);
+      } else {
+        if (!eventoEstudioReciente('bow_release', t, 0.16)) playBowRelease(t, p.bowMode || p.anim, p.el, Boolean(p.volley), pan);
+        if (p.prismRain && !eventoEstudioReciente('prism_impact', t, 0.16)) {
+          for (let k = 0; k < 4; k++) playPrismRainImpact(t + 0.08 + k * 0.065, pan);
+        }
+      }
+      return;
+    }
+
+    if (!imp) {
+      playChargeSwell(t, p.clase, p.el, Boolean(p.magic), pan);
+      if (p.orb) playOrbIgnite(t + 0.14, p.clase, p.el, pan);
+      if (p.dash) playDashStep(t + 0.05, p.el, pan);
+      if (p.drawScrape) playSwordClash(t, p.clase, p.el, 'draw_scrape', 0.04, pan);
+      if (p.arcane) playArcaneVortex(t + 0.08, p.el, pan);
+      if (p.flurry) playWeaponSwing(t + 0.10, p.clase, p.el, 1.15, false, pan);
+    } else {
+      playWeaponSwing(t, p.clase, p.el, p.fastBlade ? 1.24 : 1.08, Boolean(p.pierce), pan);
+      if (AXE_WEAPON_CLASSES.has(p.clase)) {
+        playAxeCleave(t, p.clase, Boolean(p.slam || p.clase === 'hachas_2m'), 0.02, pan);
+      } else if (BLADED_WEAPON_CLASSES.has(p.clase) && !p.rangedWave) {
+        playSwordClash(t, p.clase, p.el, p.fastBlade ? 'flurry_clash' : 'clash', 0.02, pan);
+        if (p.flurry) playSwordClash(t, p.clase, p.el, 'flurry_clash', 0.11, -pan);
+      }
+      if (p.slam && !eventoEstudioReciente('heavy_impact', t, 0.16)) {
+        playHeavyImpact(t + 0.015, p.clase, p.el, p.anim === 'ultimate_slam' || p.anim === 'earthshaker_combo', pan);
+      }
+      if (p.wave && !eventoEstudioReciente('energy_wave', t, 0.16)) playEnergyWaveCast(t + 0.01, p.wave, p.clase, p.el, pan);
+      if (p.beam && !eventoEstudioReciente('beam', t, 0.25)) playEnergyBeam(t + 0.02, p.el, pan);
+      if (p.nova && !eventoEstudioReciente('nova', t, 0.25)) playSupernova(t + 0.01, p.el, pan);
+    }
+  }
+
+  function dispararGolpeNormalSfx(t, id, fase, opts) {
+    const o = opts || {};
+    const pan = typeof o.pan === 'number' ? o.pan : 0;
+    const clase = o.clase || (id === 'disparo' ? 'arcos' : (id === 'orbe_arcano' ? 'bastones' : 'espadas'));
+    const hitIdx = typeof o.hitIndex === 'number' ? o.hitIndex : 0;
+    const heavy = Boolean(o.heavy || id === 'normal_heavy' || hitIdx === 2);
+    const kind = o.hitKind || (clase === 'dagas' && hitIdx === 2 ? 'pierce' : (clase === 'lanzas' && (hitIdx === 0 || hitIdx === 2) ? 'pierce' : 'slash'));
+    const imp = fase === 'impacto';
+
+    if (clase === 'arcos') {
+      if (!imp) playBowDraw(t, 'physical', true, pan);
+      else playPhysicalHit(t, 'arcos', 'pierce', heavy, pan);
+      return;
+    }
+    if (clase === 'bastones' && id === 'orbe_arcano') {
+      if (!imp) {
+        makeNoise(t, 0.12, 'bandpass', 620, 1450, 2.2, 0.14, 0.01, 0.16, pan);
+      } else {
+        playSimpleFireball(t, heavy, pan);
+      }
+      return;
+    }
+    if (!imp) {
+      playWeaponSwing(t, clase, 'physical', heavy ? 0.92 : 1.06, kind === 'pierce', pan);
+    } else {
+      playPhysicalHit(t, clase, kind, heavy, pan);
     }
   }
 
@@ -775,9 +1409,17 @@
     }
   };
 
-  // ------------------- Sonido dedicado por cada una de las 32 habilidades -------------------
+  // ------------------- Sonido dedicado por cada habilidad (Armaduras-glb v86 + clásicas) -------------------
   function dispararSkillSfx(t, id, fase, opts) {
     const o = Object.assign({}, opts);
+    if (id === 'attack' || id === 'normal_combo' || id === 'normal_slash' || id === 'normal_heavy' || id === 'disparo' || id === 'orbe_arcano') {
+      dispararGolpeNormalSfx(t, id, fase, o);
+      return;
+    }
+    if (PERFILES_SFX_ESTUDIO[id]) {
+      dispararPerfilEstudio(t, PERFILES_SFX_ESTUDIO[id], fase, o);
+      return;
+    }
     const imp = fase === 'impacto';
     switch (id) {
       case 'attack':
@@ -1294,10 +1936,41 @@
       if (t !== null) SONIDOS.golpeVeloz(t, intensidad, opts);
     },
     skill(skillId, fase = 'inicio', opts) {
-      const k = 'skill:' + skillId + ':' + fase;
-      const t = puedeSonar(k, 0.055);
+      const hitSub = opts && opts.hitIndex !== undefined ? (':' + opts.hitIndex) : '';
+      const k = 'skill:' + skillId + ':' + fase + hitSub;
+      const t = puedeSonar(k, 0.04);
       if (t !== null) { muestrasSkill(t, skillId, fase, opts); dispararSkillSfx(t, skillId, fase, opts); }
     },
+    eventoEstudio(evento, opts) {
+      const o = opts || {};
+      const minT = evento === 'prism_impact' ? 0.048 : (evento === 'bow_crackle' ? 0.12 : 0.04);
+      const t = puedeSonar('estudio:' + evento, minT);
+      if (t === null) return;
+      const pan = typeof o.pan === 'number' ? o.pan : 0;
+      const clase = o.clase || 'espadas';
+      const el = o.element || 'lightning';
+      marcarEventoEstudio(evento, t);
+      switch (evento) {
+        case 'bow_draw':      playBowDraw(t, el, Boolean(o.fast), pan); break;
+        case 'bow_crackle':   playBowStringCrackle(t, el, o.charge || 0.7, pan); break;
+        case 'bow_release':   playBowRelease(t, o.mode || 'archery', el, Boolean(o.isVolley), pan); break;
+        case 'energy_wave':   playEnergyWaveCast(t, o.kind || 'crescent', clase, el, pan); break;
+        case 'fireball':      playSimpleFireball(t, Boolean(o.heavy), pan); break;
+        case 'prism_sky':     playPrismRainSkyCue(t, pan); break;
+        case 'prism_impact':  playPrismRainImpact(t, pan); break;
+        case 'meteor_impact': playHeavyImpact(t, 'bastones', 'fire', true, pan); break;
+        case 'beam':          playEnergyBeam(t, el, pan); break;
+        case 'nova':          playSupernova(t, el, pan); break;
+        case 'heavy_impact':  playHeavyImpact(t, clase, el, Boolean(o.isSlam), pan); break;
+        case 'orb_ignite':    playOrbIgnite(t, clase, el, pan); break;
+        case 'dash':          playDashStep(t, el, pan); break;
+        case 'physical_hit':  playPhysicalHit(t, clase, o.kind || 'slash', Boolean(o.heavy), pan); break;
+        case 'sword_clash':   playSwordClash(t, clase, el, o.style || 'clash', 0, pan); break;
+        case 'axe_cleave':    playAxeCleave(t, clase, Boolean(o.heavy), 0, pan); break;
+        default: break;
+      }
+    },
+    PERFILES_SFX_ESTUDIO,
     enemigo(evento, info) {
       const ev = evento || 'golpeado';
       const minT = ev === 'aggro' ? 2.2 : (ev === 'muerte' ? 0.10 : 0.14);

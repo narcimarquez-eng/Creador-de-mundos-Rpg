@@ -33,7 +33,9 @@
 
   // Curvas VFX maestras derivadas de evaluateGameAnimation + WEAPON_CLASS_SKILLS del Estudio
   const ANIM_VFX_DEFS = {
-    attack:              { mode: 'shock_trail',   trail: [0.14, 0.78], shock: [0.76, 0.90] },
+    attack:              { mode: 'shock_trail',   trail: [0.10, 0.84], shock: [0.72, 0.90], strikes: [0.17, 0.42, 0.75] },
+    normal_combo:        { mode: 'shock_trail',   trail: [0.10, 0.84], shock: [0.72, 0.90], strikes: [0.17, 0.42, 0.75] },
+    normal_bow:          { mode: 'bow',           bowMode: 'normal_combo', releases: [0.24, 0.52, 0.80] },
     spin_slash:          { mode: 'shock_trail',   trail: [0.08, 0.71], shock: [0.69, 0.85] },
     whirlwind:           { mode: 'shock_trail',   trail: [0.12, 0.84], shock: [0.82, 0.96] },
     overhead_cleave:     { mode: 'shock_trail',   trail: [0.24, 0.55], shock: [0.54, 0.78] },
@@ -71,7 +73,7 @@
     aerial_shot:         { mode: 'bow',           bowMode: 'aerial',  releaseU: 0.52 },
     bow_barrage:         { mode: 'bow',           bowMode: 'barrage', releaseU: 0.66 },
     bow_prism_rain:      { mode: 'bow',           bowMode: 'prism',   releaseU: 0.52 },
-    orbe_arcano:         { mode: 'staff_orb',     arcane: [0.10, 0.60], wave: [{ kind: 'thrust', u: 0.36, scale: 0.92, speed: 28 }] }
+    orbe_arcano:         { mode: 'staff_orb',     arcane: [0.10, 0.84], wave: [{ kind: 'fireball', u: 0.20, scale: 0.85, speed: 22 }, { kind: 'fireball', u: 0.46, scale: 0.92, speed: 24 }, { kind: 'fireball', u: 0.74, scale: 1.18, speed: 26 }] }
   };
 
   function makeProfile(armaClase, anim, element, colors, intensity = 1.30, extra = null) {
@@ -95,15 +97,18 @@
       skyPillar: def.skyPillar || null,
       bowMode: def.bowMode || null,
       releaseU: def.releaseU != null ? def.releaseU : null,
-      releaseU2: def.releaseU2 != null ? def.releaseU2 : null
+      releaseU2: def.releaseU2 != null ? def.releaseU2 : null,
+      releases: def.releases || null,
+      strikes: def.strikes || null
     }, extra || {});
   }
 
-  // Perfil completo para las 49 skills de arma + ataques básicos
+  // Perfil completo para las 49 skills de arma + ataques básicos de 3 golpes
   const SKILL_VFX_PROFILES = {
-    attack:       makeProfile(null, 'attack', 'lightning', ['#fbbf24', '#fef08a', '#ffffff'], 0.82),
-    disparo:      makeProfile('arcos', 'archery', 'lightning', ['#38bdf8', '#fde047', '#ffffff'], 0.95),
-    orbe_arcano:  makeProfile('bastones', 'orbe_arcano', 'arcane', ['#a855f7', '#38bdf8', '#f3e8ff'], 1.02),
+    attack:       makeProfile(null, 'attack', 'lightning', ['#cbd5e1', '#f8fafc', '#fde68a'], 0.92, { physicalNormal: true }),
+    normal_combo: makeProfile(null, 'normal_combo', 'lightning', ['#cbd5e1', '#f8fafc', '#fde68a'], 0.92, { physicalNormal: true }),
+    disparo:      makeProfile('arcos', 'normal_bow', 'lightning', ['#e2e8f0', '#f8fafc', '#fde68a'], 0.95, { physicalNormal: true }),
+    orbe_arcano:  makeProfile('bastones', 'orbe_arcano', 'fire', ['#f97316', '#fde047', '#fffbeb'], 1.05, { physicalNormal: true }),
     // Espadas (1M)
     sw_iaido:     makeProfile('espadas', 'blink_iaido',         'lightning', ['#38bdf8', '#818cf8', '#ffffff'], 1.30),
     sw_solar:     makeProfile('espadas', 'sword_heavy_cleave',  'fire',      ['#f97316', '#fde047', '#ef4444'], 1.34),
@@ -302,6 +307,7 @@
       this.meteors = [];
       this.rainWaves = [];
       this.barrageFollow = null;
+      this.sfxHandler = null;
 
       this._vA = new THREE.Vector3();
       this._vB = new THREE.Vector3();
@@ -556,6 +562,8 @@
       this.thrustOuterGeo.rotateX(Math.PI / 2);
       this.thrustCoreGeo = new THREE.ConeGeometry(0.075, 1.32, 12, 1, true);
       this.thrustCoreGeo.rotateX(Math.PI / 2);
+      this.fireballOuterGeo = new THREE.SphereGeometry(0.145, 14, 10);
+      this.fireballCoreGeo = new THREE.SphereGeometry(0.078, 12, 10);
 
       this.arrowShaftGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.82, 8);
       this.arrowShaftGeo.rotateX(Math.PI / 2);
@@ -576,6 +584,16 @@
 
     hasProfile(skillId) {
       return Boolean(skillId && SKILL_VFX_PROFILES[skillId]);
+    }
+
+    setSfxHandler(fn) {
+      this.sfxHandler = typeof fn === 'function' ? fn : null;
+    }
+
+    _emitSfx(evento, payload) {
+      if (this.sfxHandler) {
+        try { this.sfxHandler(evento, payload || {}); } catch (_) {}
+      }
     }
 
     bindHeroModel(model, heroRoot) {
@@ -611,6 +629,19 @@
       const heroRoot = opts.heroRoot || this.heroRoot;
       const heroPos = heroRoot ? heroRoot.position.clone() : new this.THREE.Vector3();
       const range = (sk && sk.range) || 10;
+      const armaClase = opts.armaClase || prof.armaClase || null;
+      const NORMAL_SCALE = { dagas: 0.85, mandobles: 1.28, hachas_2m: 1.28, lanzas: 1.22, mazas: 1.15 };
+      const NORMAL_STRIKES = {
+        espadas: [0.17, 0.41, 0.73], mandobles: [0.19, 0.45, 0.77], dagas: [0.15, 0.39, 0.73],
+        hachas: [0.19, 0.43, 0.76], hachas_2m: [0.19, 0.43, 0.76], mazas: [0.19, 0.43, 0.76],
+        lanzas: [0.17, 0.43, 0.75], unarmed: [0.16, 0.39, 0.69]
+      };
+      const vfxScale = (skillId === 'attack' || skillId === 'normal_combo') && armaClase && NORMAL_SCALE[armaClase]
+        ? NORMAL_SCALE[armaClase]
+        : (prof.vfxScale || 1.0);
+      const strikes = (skillId === 'attack' || skillId === 'normal_combo') && armaClase && NORMAL_STRIKES[armaClase]
+        ? NORMAL_STRIKES[armaClase]
+        : (prof.strikes || null);
 
       let targetPos = opts.targetPos ? opts.targetPos.clone() : null;
       if (!targetPos && heroRoot) {
@@ -620,11 +651,13 @@
 
       this.active = {
         skillId,
+        armaClase,
         prof,
         preset,
         colors: (sk && Array.isArray(sk.colores) && sk.colores.length >= 2) ? sk.colores : prof.colors,
         intensity: prof.intensity || 1.25,
-        vfxScale: prof.vfxScale || 1.0,
+        vfxScale,
+        strikes,
         range,
         elapsed: 0,
         duration,
@@ -635,7 +668,11 @@
         sparkCD: 0,
         firedWaves: new Set(),
         firedMeteors: new Set(),
+        firedStrikes: new Set(),
+        firedReleases: new Set(),
         firedPillar: false,
+        firedBeam: false,
+        firedNova: false,
         firedBow1: false,
         firedBow2: false
       };
@@ -781,6 +818,53 @@
     _spawnEnergyWave(kind, origin, targetPos, fwdFallback, active, scale, speed) {
       const THREE = this.THREE;
       const wg = new THREE.Group();
+      const dir = targetPos.clone().sub(origin);
+      dir.y = clamp(dir.y, -2.5, 2.5);
+      if (dir.lengthSq() < 1e-4) dir.copy(fwdFallback);
+      else dir.normalize();
+
+      if (kind === 'fireball') {
+        const outerMat = new THREE.MeshBasicMaterial({
+          color: 0xf97316, transparent: true, opacity: 0.90,
+          blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const coreMat = new THREE.MeshBasicMaterial({
+          color: 0xfffbeb, transparent: true, opacity: 0.98,
+          blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const haloMat = new THREE.SpriteMaterial({
+          map: this.glowTex, color: 0xfb923c, transparent: true, opacity: 0.85,
+          blending: THREE.AdditiveBlending, depthWrite: false
+        });
+        const outer = new THREE.Mesh(this.fireballOuterGeo, outerMat);
+        const core = new THREE.Mesh(this.fireballCoreGeo, coreMat);
+        const halo = new THREE.Sprite(haloMat);
+        halo.scale.set(0.56, 0.56, 1);
+        wg.add(outer, core, halo);
+        wg.position.copy(origin);
+        wg.scale.setScalar(scale);
+        this.group.add(wg);
+        const spd = speed || 23;
+        const maxRange = clamp(active.range + 1.5, 8, 24);
+        const life = maxRange / spd;
+        this.waves.push({
+          group: wg,
+          mats: [outerMat, coreMat, haloMat],
+          vel: dir.multiplyScalar(spd),
+          life,
+          maxLife: life,
+          baseScale: scale,
+          colorHex: '#f97316',
+          secHex: '#fde047',
+          isFireball: true,
+          sparkCD: 0
+        });
+        this.spawnSparks(origin, 7, 2.2, '#f97316', 0.9);
+        this.spawnSparks(origin, 4, 1.6, '#fde047', 0.8);
+        this._emitSfx('fireball', { heavy: scale >= 1.12, pos: origin, element: 'fire', clase: active.armaClase || 'bastones' });
+        return;
+      }
+
       const isThrust = (kind === 'thrust');
       const c1 = active.colors[0] || '#38bdf8';
       const c2 = active.colors[1] || '#fde047';
@@ -795,11 +879,6 @@
       wg.add(new THREE.Mesh(isThrust ? this.thrustOuterGeo : this.crescentOuterGeo, outerMat));
       wg.add(new THREE.Mesh(isThrust ? this.thrustCoreGeo : this.crescentCoreGeo, coreMat));
       wg.position.copy(origin);
-
-      const dir = targetPos.clone().sub(origin);
-      dir.y = clamp(dir.y, -2.5, 2.5);
-      if (dir.lengthSq() < 1e-4) dir.copy(fwdFallback);
-      else dir.normalize();
 
       wg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
       if (kind === 'crescent') wg.rotateZ(Math.PI / 2);
@@ -824,6 +903,7 @@
       });
       this.spawnSparks(origin, 12, 4.2, c1, 1.4);
       this.spawnSparks(origin, 8, 3.2, c2, 1.8);
+      this._emitSfx('energy_wave', { kind, element: active.prof.element, clase: active.armaClase, pos: origin });
     }
 
     _spawnArrow(origin, dir, opts = {}) {
@@ -929,14 +1009,40 @@
         ? new this.THREE.Vector3(active.target.x, (active.target.group ? active.target.group.position.y : frame.floorY) + 1.05, active.target.z)
         : active.targetPos.clone().setY(active.getGroundY(active.targetPos.x, active.targetPos.z) + 1.05);
 
-      // 1. Ondas 3D voladoras (sw_lightning, sw_celestial, sw_cross, st_tempest, st_meteor, ln_skewer...)
+      // 1. Ondas 3D voladoras y bolas de fuego (sw_lightning, sw_celestial, sw_cross, st_tempest, st_meteor, orbe_arcano...)
       if (Array.isArray(p.wave)) {
         for (let i = 0; i < p.wave.length; i++) {
           const w = p.wave[i];
           if (!active.firedWaves.has(i) && prevU <= w.u && curU >= w.u) {
             active.firedWaves.add(i);
-            const origin = frame.span.mid.clone().lerp(frame.span.tip, 0.70);
-            this._spawnEnergyWave(w.kind, origin, aimTarget, frame.fwd, active, (w.scale || 1.1) * active.vfxScale, w.speed);
+            const origin = (w.kind === 'fireball')
+              ? frame.span.tip.clone()
+              : frame.span.mid.clone().lerp(frame.span.tip, 0.70);
+            const wScale = w.kind === 'fireball' ? (w.scale || 1.0) : ((w.scale || 1.1) * active.vfxScale);
+            this._spawnEnergyWave(w.kind, origin, aimTarget, frame.fwd, active, wScale, w.speed);
+          }
+        }
+      }
+
+      // 1B. Destellos cinéticos en los 3 golpes del combo normal cuerpo a cuerpo
+      if (Array.isArray(active.strikes)) {
+        for (let i = 0; i < active.strikes.length; i++) {
+          const su = active.strikes[i];
+          if (!active.firedStrikes.has(i) && prevU <= su && curU >= su) {
+            active.firedStrikes.add(i);
+            const isFinisher = i === active.strikes.length - 1;
+            const hitPos = frame.span.tip.clone().lerp(aimTarget, 0.25);
+            this.spawnSparks(hitPos, isFinisher ? 12 : 6, isFinisher ? 4.0 : 2.6, isFinisher ? '#fde68a' : '#e2e8f0', isFinisher ? 1.8 : 1.1);
+            if (isFinisher) {
+              const r = this.ripples[this.rippleCursor];
+              this.rippleCursor = (this.rippleCursor + 1) % this.ripples.length;
+              r.life = r.maxLife * 0.75;
+              r.mesh.position.set(hitPos.x, frame.floorY + 0.03, hitPos.z);
+              r.mesh.scale.setScalar(0.45 * active.vfxScale);
+              r.mesh.material.color.set('#e2e8f0');
+              r.mesh.material.opacity = 0.65;
+              r.mesh.visible = true;
+            }
           }
         }
       }
@@ -951,11 +1057,33 @@
         }
       }
 
-      // 3. Eventos de habilidades de arco
+      // 3. Eventos de habilidades de arco y combo normal de 3 flechas
       if (bowMode) {
         const bowOrigin = (frame.bow ? frame.bow.tip : frame.span.tip).clone();
         const shootDir = aimTarget.clone().sub(bowOrigin).normalize();
         const targetDistSq = bowOrigin.distanceToSquared(aimTarget);
+        if (bowMode === 'normal_combo' && Array.isArray(p.releases)) {
+          for (let i = 0; i < p.releases.length; i++) {
+            const ru = p.releases[i];
+            if (!active.firedReleases.has(i) && prevU <= ru && curU >= ru) {
+              active.firedReleases.add(i);
+              const isH = i === p.releases.length - 1;
+              this._spawnArrow(bowOrigin, shootDir, {
+                tintHex: isH ? '#fde68a' : '#e2e8f0',
+                trailColor: isH ? '#fde68a' : '#e2e8f0',
+                speed: isH ? 39 : 34 + i,
+                gravity: 1.5,
+                auraScale: isH ? 0.92 : 0.75,
+                trailScale: isH ? 0.56 : 0.42,
+                targetDistSq,
+                getGroundY: active.getGroundY
+              });
+              this.spawnSparks(bowOrigin, isH ? 6 : 3, 2.0, '#f8fafc', 0.8);
+              this._emitSfx('bow_release', { mode: 'normal_combo', hitIndex: i, heavy: isH, isVolley: false, pos: bowOrigin });
+            }
+          }
+          return;
+        }
         const relU = p.releaseU != null ? p.releaseU : 0.52;
 
         if (!active.firedBow1 && curU >= relU) {
@@ -965,6 +1093,7 @@
             // Disparo hacia el cielo + oleada de 32 flechas arcoíris sobre aimTarget
             const skyDir = frame.fwd.clone().multiplyScalar(0.50).add(new this.THREE.Vector3(0, 0.88, 0)).normalize();
             this._spawnArrow(bowOrigin, skyDir, { tintHex: '#f472b6', speed: 30, gravity: 5.0, prismCycle: true, auraScale: 1.5, trailScale: 1.4, maxAge: 1.1 });
+            this._emitSfx('prism_sky', { element: 'prism', pos: bowOrigin });
             this.rainWaves.push({
               delay: 0.28,
               elapsed: 0,
@@ -995,12 +1124,14 @@
           } else {
             this._spawnArrow(bowOrigin, shootDir, { tintHex: active.colors[0], speed: 36, gravity: 1.6, auraScale: 1.28, targetDistSq, getGroundY: active.getGroundY });
           }
+          this._emitSfx('bow_release', { mode: active.prof.anim || active.skillId, element: active.prof.element, isVolley: bowMode === 'barrage', pos: bowOrigin });
         }
         if (bowMode === 'double' && p.releaseU2 != null && !active.firedBow2 && curU >= p.releaseU2) {
           active.firedBow2 = true;
           this._spawnArrow(bowOrigin, shootDir, { tintHex: active.colors[1], speed: 37, gravity: 1.4, auraScale: 1.35, targetDistSq, getGroundY: active.getGroundY });
           const twinOrigin = bowOrigin.clone().add(new this.THREE.Vector3(0, 0.09, 0));
           this._spawnArrow(twinOrigin, shootDir, { tintHex: active.colors[0], speed: 36, gravity: 1.4, auraScale: 1.25, targetDistSq, getGroundY: active.getGroundY });
+          this._emitSfx('bow_release', { mode: 'bow_double_shot', element: active.prof.element, isVolley: true, pos: bowOrigin });
         }
       }
     }
@@ -1039,16 +1170,21 @@
       const u = clamp(active.elapsed / active.duration, 0, 1);
       const p = active.prof;
       const isBow = (p.mode === 'bow');
-      const isPeak = (p.shock && u >= p.shock[0] && u <= p.shock[1]) ||
+      const isPhysicalNormal = Boolean(p.physicalNormal);
+      const isPeak = !isPhysicalNormal && (
+        (p.shock && u >= p.shock[0] && u <= p.shock[1]) ||
         (p.beam && u >= p.beam[0] && u <= p.beam[1]) ||
-        (p.nova && u >= p.nova[0] && u <= p.nova[1]);
+        (p.nova && u >= p.nova[0] && u <= p.nova[1])
+      );
       const inRange = (r) => Boolean(r && u >= r[0] && u <= r[1]);
-      const bladeCharge = u < 0.24 ? lerp(0.18, 0.72, u / 0.24)
+      const bladeCharge = isPhysicalNormal ? 0 : (
+        u < 0.24 ? lerp(0.18, 0.72, u / 0.24)
         : u < 0.48 ? lerp(0.72, 1.15, (u - 0.24) / 0.24)
         : u < 0.85 ? (isPeak ? 1.25 : 0.95)
-        : 1.25 * (1 - (u - 0.85) / 0.15);
-      const drainK = isBow ? 0 : (u < 0.25 ? 0.12 : (u < 0.45 ? lerp(0.12, 0.55, (u - 0.25) / 0.20) : (u < 0.85 ? 0.92 : 0.25)));
-      const bodyFade = Math.max(0.32, 1.18 - drainK * 0.82);
+        : 1.25 * (1 - (u - 0.85) / 0.15)
+      );
+      const drainK = (isBow || isPhysicalNormal) ? 0 : (u < 0.25 ? 0.12 : (u < 0.45 ? lerp(0.12, 0.55, (u - 0.25) / 0.20) : (u < 0.85 ? 0.92 : 0.25)));
+      const bodyFade = isPhysicalNormal ? 0 : Math.max(0.32, 1.18 - drainK * 0.82);
 
       // Semilla eléctrica ~26 Hz
       this.seedTimer += dt * (active.preset.boltSpeed || 26);
@@ -1057,8 +1193,16 @@
         this.seedTimer %= 1;
       }
 
-      // A. 28 RAYOS VOLUMÉTRICOS CORPORALES + CONDUCTOS AL ARMA
-      if (frame.validBones > 0) {
+      if (isPhysicalNormal) {
+        this.bodyBolts.visible = false;
+        this.energyRibbons.visible = false;
+        this.bodyParticles.visible = false;
+        this.auraFloorRing.visible = false;
+        this.auraFloorRing2.visible = false;
+        this.energyLight.intensity = 0;
+      } else {
+        // A. 28 RAYOS VOLUMÉTRICOS CORPORALES + CONDUCTOS AL ARMA
+        if (frame.validBones > 0) {
         const bPos = this.bodyBolts.geometry.attributes.position;
         const bCol = this.bodyBolts.geometry.attributes.color;
         let qCur = 0;
@@ -1165,6 +1309,7 @@
       this.energyLight.position.set(torsoX, frame.floorY + 1.25, torsoZ);
       this.energyLight.color.copy(this._colW);
       this.energyLight.intensity = (active.preset.lightInt || 2.2) * (0.78 + 0.22 * Math.sin(t * 18));
+      }
 
       // C. ARMA: 12 RAYOS EN ESPIRAL + FUNDA DE PLASMA + ESFERA EN LA PUNTA + DOBLE ESTELA
       if (!isBow && frame.span) {
@@ -1177,7 +1322,7 @@
       }
 
       // D. ONDAS DE SUELO, ANILLOS PIERCE, NOVA, CAÑÓN SOLAR, PILAR CELESTIAL Y HALO ARCANO
-      this._updateAreaAndBeamVFX(dt, u, active, frame, t);
+      if (!isPhysicalNormal) this._updateAreaAndBeamVFX(dt, u, active, frame, t);
     }
 
     _updateBodyParticles(dt, active, frame, torsoX, torsoZ, t) {
@@ -1227,9 +1372,17 @@
 
     _updateWeaponVFX(dt, active, frame, charge, drainK, wantsTrail, camPos, t) {
       const span = frame.span;
+      const isPhysicalNormal = Boolean(active.prof && active.prof.physicalNormal);
       this._getColor(this._colA, active, 0.1, 0);
       this._getColor(this._colB, active, 0.7, 1);
 
+      if (isPhysicalNormal) {
+        this.bladeBolts.visible = false;
+        this.bladeSheath.visible = false;
+        this.chargeGroup.visible = false;
+        this.chargeStreams.visible = false;
+        this.bladeLight.intensity = 0;
+      } else {
       // 12 rayos en espiral por el arma
       this._dir.subVectors(span.tip, span.base);
       const bladeLen = Math.max(0.22, this._dir.length());
@@ -1301,6 +1454,7 @@
       this.bladeLight.position.copy(span.tip);
       this.bladeLight.color.copy(this._colA);
       this.bladeLight.intensity = charge * 2.8 * pulse;
+      }
 
       // Doble estela del filo
       if (wantsTrail) {
@@ -1309,14 +1463,15 @@
         }
         this.history.push(span);
         active.sparkCD -= dt;
-        if (this.history.length >= 2 && active.sparkCD <= 0) {
+        if (!isPhysicalNormal && this.history.length >= 2 && active.sparkCD <= 0) {
           this.spawnSparks(span.tip, 2, 2.2, Math.random() < 0.5 ? active.colors[0] : active.colors[1], 0.9);
           active.sparkCD = 0.032;
         }
       } else if (this.history.length) {
         this.history.shift();
       }
-      while (this.history.length > TRAIL_MAX) this.history.shift();
+      const maxTrailLen = isPhysicalNormal ? 12 : TRAIL_MAX;
+      while (this.history.length > maxTrailLen) this.history.shift();
 
       if (this.history.length >= 2) {
         const pos = this.trail.geometry.attributes.position;
@@ -1324,9 +1479,11 @@
         const cPos = this.trailCore.geometry.attributes.position;
         const cCol = this.trailCore.geometry.attributes.color;
         const idx = [];
+        const trailGain = isPhysicalNormal ? 0.45 : 1.0;
+        const coreGain = isPhysicalNormal ? 0.42 : 1.0;
         for (let i = 0; i < this.history.length; i++) {
           const f = i / (this.history.length - 1);
-          const a = Math.pow(f, 1.45);
+          const a = Math.pow(f, 1.45) * trailGain;
           this._getColor(this._colW, active, f, 2);
           pos.setXYZ(i * 2, this.history[i].mid.x, this.history[i].mid.y, this.history[i].mid.z);
           pos.setXYZ(i * 2 + 1, this.history[i].tip.x, this.history[i].tip.y, this.history[i].tip.z);
@@ -1334,7 +1491,7 @@
           col.setXYZ(i * 2 + 1, this._colW.r * a, this._colW.g * a, this._colW.b * a);
           cPos.setXYZ(i * 2, this.history[i].core.x, this.history[i].core.y, this.history[i].core.z);
           cPos.setXYZ(i * 2 + 1, this.history[i].tip.x, this.history[i].tip.y, this.history[i].tip.z);
-          const ca = Math.pow(f, 1.9);
+          const ca = Math.pow(f, 1.9) * coreGain;
           cCol.setXYZ(i * 2, (this._colW.r * 0.5 + 0.5) * ca, (this._colW.g * 0.5 + 0.5) * ca, (this._colW.b * 0.5 + 0.5) * ca);
           cCol.setXYZ(i * 2 + 1, ca, 0.98 * ca, 0.92 * ca);
           if (i < this.history.length - 1) {
@@ -1462,12 +1619,20 @@
         this.novaDome.material.color.copy(this._colW);
         this.novaDome.material.opacity = Math.sin(nk * Math.PI) * 0.32;
         this.novaDome.visible = true;
+        if (!active.firedNova) {
+          active.firedNova = true;
+          this._emitSfx('nova', { element: p.element, pos: this.novaDome.position });
+        }
       } else if (this.novaDome.visible) {
         this.novaDome.visible = false;
       }
 
       // Cañón Solar (haz continuo desde la punta del báculo hasta aimPos!)
       if (p.mode === 'beam' && p.beam && u >= p.beam[0] && u <= p.beam[1]) {
+        if (!active.firedBeam) {
+          active.firedBeam = true;
+          this._emitSfx('beam', { element: p.element, pos: frame.span.tip });
+        }
         const bk = Math.sin(((u - p.beam[0]) / Math.max(0.05, p.beam[1] - p.beam[0])) * Math.PI);
         const beamStart = frame.span.tip.clone();
         const beamVec = aimPos.clone().sub(beamStart);
@@ -1542,6 +1707,7 @@
               getGroundY: bf.getGroundY
             });
           });
+          this._emitSfx('bow_release', { mode: 'bow_barrage', element: 'fire', isVolley: true, pos: bf.origin });
         }
       }
 
@@ -1598,8 +1764,8 @@
         this.prismZoneInner.visible = false;
       }
 
-      // 3. Relámpagos en la cuerda + esfera en punta de flecha mientras se tensa el arco
-      const isBowCharging = Boolean(active && active.prof.mode === 'bow' && frame && frame.bow && (active.elapsed / active.duration) < (active.prof.releaseU || 0.6));
+      // 3. Relámpagos en la cuerda + esfera en punta de flecha mientras se tensa el arco (omitido en disparos normales físicos)
+      const isBowCharging = Boolean(active && active.prof.mode === 'bow' && !active.prof.physicalNormal && frame && frame.bow && (active.elapsed / active.duration) < (active.prof.releaseU || 0.6));
       if (isBowCharging) {
         const bow = frame.bow;
         const u = clamp(active.elapsed / active.duration, 0, 1);
@@ -1672,6 +1838,7 @@
             f.group.position.y = gY + 0.08;
             f.stuckTimer = 0.85;
             this.spawnImpact(new this.THREE.Vector3(f.group.position.x, gY, f.group.position.z), 'bw_prism');
+            this._emitSfx('prism_impact', { pos: f.group.position });
             continue;
           }
           if (hitTarget || hitFloor) this.spawnSparks(f.group.position, 8, 3.0, f.trailColor, 1.4);
@@ -1717,14 +1884,28 @@
         }
         w.group.position.addScaledVector(w.vel, dt);
         const k = 1 - (w.life / w.maxLife);
-        w.group.scale.setScalar(w.baseScale * (0.82 + k * 0.95));
-        const fade = Math.sin(Math.min(1, 1 - k) * Math.PI * 0.5);
-        w.mats[0].opacity = fade * 0.82;
-        w.mats[1].opacity = fade * 0.88;
-        w.sparkCD -= dt;
-        if (w.sparkCD <= 0) {
-          w.sparkCD = 0.032;
-          this.spawnSparks(w.group.position, 2, 2.2, Math.random() < 0.5 ? w.colorHex : w.secHex, 0.7);
+        if (w.isFireball) {
+          const flick = 0.92 + 0.11 * Math.sin(this.energyTime * 32 + i * 2.1);
+          const endShrink = k > 0.78 ? (1 - (k - 0.78) / 0.22) : 1.0;
+          w.group.scale.setScalar(w.baseScale * flick * (0.50 + 0.50 * endShrink));
+          w.mats[0].opacity = 0.90 * endShrink;
+          w.mats[1].opacity = 0.98 * endShrink;
+          if (w.mats[2]) w.mats[2].opacity = 0.82 * endShrink;
+          w.sparkCD -= dt;
+          if (w.sparkCD <= 0) {
+            w.sparkCD = 0.032;
+            this.spawnSparks(w.group.position, 2, 1.5, Math.random() < 0.65 ? '#f97316' : '#fde047', 0.6);
+          }
+        } else {
+          w.group.scale.setScalar(w.baseScale * (0.82 + k * 0.95));
+          const fade = Math.sin(Math.min(1, 1 - k) * Math.PI * 0.5);
+          w.mats[0].opacity = fade * 0.82;
+          w.mats[1].opacity = fade * 0.88;
+          w.sparkCD -= dt;
+          if (w.sparkCD <= 0) {
+            w.sparkCD = 0.032;
+            this.spawnSparks(w.group.position, 2, 2.2, Math.random() < 0.5 ? w.colorHex : w.secHex, 0.7);
+          }
         }
       }
     }
@@ -1739,6 +1920,7 @@
         if (k >= 1) {
           this.spawnSparks(m.land, 16, 4.8, m.colorHex, 2.4);
           this.spawnSparks(m.land, 10, 3.8, m.secHex, 2.8);
+          this._emitSfx('meteor_impact', { pos: m.land, element: 'fire', clase: 'bastones' });
           this.group.remove(m.group);
           m.mats.forEach(mt => mt.dispose());
           this.meteors.splice(i, 1);

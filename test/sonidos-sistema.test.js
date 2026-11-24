@@ -327,10 +327,48 @@ t('visor-mundo.html integra MusicaRPG, mezclador de 4 canales y enganches comple
     'Sonidos.muerteHeroe', 'Sonidos.victoriaJefe', 'Sonidos.monedas',
     'Sonidos.botinObjeto', 'Sonidos.equipar', 'Sonidos.descanso',
     'Sonidos.mazmorraEntrada', 'Sonidos.zonaNueva', 'Sonidos.companeroSkill',
-    'Sonidos.venenoTick'
+    'Sonidos.venenoTick', 'Sonidos.eventoEstudio', 'impactosNormalCombo', 'setSfxHandler'
   ].forEach(tok => {
     assert.ok(html.includes(tok), `visor-mundo.html debe incluir ${tok}`);
   });
+});
+
+t('PERFILES_SFX_ESTUDIO, combos normales de 3 golpes por clase y eventoEstudio generan audio válido', () => {
+  const env = crearEntornoAudio({ full: true });
+  const S = env.sb.Sonidos;
+  S.desbloquear();
+
+  assert.ok(S.PERFILES_SFX_ESTUDIO, 'debe exponerse PERFILES_SFX_ESTUDIO');
+  const clases = Object.keys(C.WEAPON_SKILLS_BY_CLASS);
+  clases.forEach(cls => {
+    C.WEAPON_SKILLS_BY_CLASS[cls].forEach(id => {
+      assert.ok(S.PERFILES_SFX_ESTUDIO[id], `PERFILES_SFX_ESTUDIO debe incluir ${id}`);
+    });
+  });
+
+  ['espadas', 'mandobles', 'dagas', 'hachas', 'hachas_2m', 'mazas', 'lanzas', 'arcos', 'bastones', 'unarmed'].forEach(cls => {
+    const skId = cls === 'arcos' ? 'disparo' : (cls === 'bastones' ? 'orbe_arcano' : 'attack');
+    env.avanzarTiempo(0.25);
+    const a0 = env.stats.oscillators + env.stats.sources;
+    S.skill(skId, 'inicio', { clase: cls, pan: 0 });
+    assert.ok(env.stats.oscillators + env.stats.sources > a0, `${cls}:${skId} inicio debe sonar`);
+    [0, 1, 2].forEach(idx => {
+      env.avanzarTiempo(0.35);
+      const before = env.stats.oscillators + env.stats.sources;
+      S.skill(skId, 'impacto', { clase: cls, hitIndex: idx, heavy: idx === 2, hitKind: idx === 2 ? 'heavy' : 'normal', pan: 0.15 });
+      assert.ok(env.stats.oscillators + env.stats.sources > before, `${cls}:${skId} golpe #${idx} debe sonar`);
+    });
+  });
+
+  ['energy_wave', 'fireball', 'bow_draw', 'bow_release', 'prism_sky', 'prism_impact', 'meteor_impact', 'beam', 'nova', 'heavy_impact'].forEach(ev => {
+    env.avanzarTiempo(0.4);
+    const before = env.stats.oscillators + env.stats.sources;
+    S.eventoEstudio(ev, { clase: ev.startsWith('bow') ? 'arcos' : 'espadas', pan: -0.2 });
+    assert.ok(env.stats.oscillators + env.stats.sources > before, `eventoEstudio(${ev}) debe emitir audio`);
+  });
+
+  assert.strictEqual(env.stats.invalidParams.length, 0);
+  env.limpiar();
 });
 
 console.log(`\n${n} pruebas del sistema de sonido profesional superadas.`);

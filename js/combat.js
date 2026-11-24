@@ -611,13 +611,40 @@
     return dot >= s.arc;
   }
 
+  // Perfiles del combo normal de 3 golpes por clase de arma (sincronizados con normal_combo de Armaduras-glb v86)
+  const NORMAL_COMBO_PROFILES = {
+    espadas:   { duracionBase: 1.65, golpes: [{ u: 0.17, kind: 'slash', dmgShare: 0.30 },    { u: 0.41, kind: 'slash', dmgShare: 0.30 }, { u: 0.73, kind: 'pierce', heavy: true, dmgShare: 0.45 }] },
+    mandobles: { duracionBase: 1.90, golpes: [{ u: 0.19, kind: 'slash', dmgShare: 0.30 },    { u: 0.45, kind: 'slash', dmgShare: 0.30 }, { u: 0.77, kind: 'slash',  heavy: true, dmgShare: 0.48 }] },
+    dagas:     { duracionBase: 1.38, golpes: [{ u: 0.15, kind: 'slash', dmgShare: 0.28 },    { u: 0.39, kind: 'slash', dmgShare: 0.30 }, { u: 0.73, kind: 'pierce', heavy: true, dmgShare: 0.47 }] },
+    hachas:    { duracionBase: 1.68, golpes: [{ u: 0.19, kind: 'slash', dmgShare: 0.30 },    { u: 0.43, kind: 'slash', dmgShare: 0.30 }, { u: 0.76, kind: 'slash',  heavy: true, dmgShare: 0.46 }] },
+    hachas_2m: { duracionBase: 1.92, golpes: [{ u: 0.19, kind: 'slash', dmgShare: 0.30 },    { u: 0.43, kind: 'slash', dmgShare: 0.30 }, { u: 0.76, kind: 'slash',  heavy: true, dmgShare: 0.48 }] },
+    mazas:     { duracionBase: 1.85, golpes: [{ u: 0.19, kind: 'slash', dmgShare: 0.30 },    { u: 0.43, kind: 'slash', dmgShare: 0.30 }, { u: 0.76, kind: 'slash',  heavy: true, dmgShare: 0.48 }] },
+    lanzas:    { duracionBase: 1.68, golpes: [{ u: 0.17, kind: 'pierce', dmgShare: 0.30 },   { u: 0.43, kind: 'slash', dmgShare: 0.30 }, { u: 0.75, kind: 'pierce', heavy: true, dmgShare: 0.46 }] },
+    arcos:     { duracionBase: 2.20, golpes: [{ u: 0.24, kind: 'pierce', dmgShare: 0.30 },   { u: 0.52, kind: 'pierce', dmgShare: 0.30 },{ u: 0.80, kind: 'pierce', heavy: true, dmgShare: 0.45 }] },
+    bastones:  { duracionBase: 1.75, golpes: [{ u: 0.20, kind: 'fireball', dmgShare: 0.30 }, { u: 0.46, kind: 'fireball', dmgShare: 0.30 }, { u: 0.74, kind: 'fireball', heavy: true, dmgShare: 0.45 }] },
+    unarmed:   { duracionBase: 1.45, golpes: [{ u: 0.16, kind: 'slash', dmgShare: 0.30 },    { u: 0.39, kind: 'slash', dmgShare: 0.30 }, { u: 0.69, kind: 'slash',  heavy: true, dmgShare: 0.45 }] }
+  };
+
+  function impactosNormalCombo(armaClase, durAnim) {
+    const prof = NORMAL_COMBO_PROFILES[armaClase] || NORMAL_COMBO_PROFILES.espadas;
+    const dur = (typeof durAnim === 'number' && durAnim > 0.2) ? durAnim : prof.duracionBase;
+    return prof.golpes.map((g, index) => ({
+      index,
+      u: g.u,
+      t: Number((g.u * dur).toFixed(3)),
+      kind: g.kind,
+      heavy: Boolean(g.heavy),
+      dmgShare: g.dmgShare
+    }));
+  }
+
   const api = {
-    HERO, SKILLS, WEAPON_SKILLS_BY_CLASS, MONSTER, DODGE, SPECIAL_ATTACKS,
+    HERO, SKILLS, WEAPON_SKILLS_BY_CLASS, NORMAL_COMBO_PROFILES, MONSTER, DODGE, SPECIAL_ATTACKS,
     diffMult, heroMax, newHero, xpToNext, gainXp, factorXpPorNivel, xpPorMonstruo, heroDamage,
     canUse, useSkill, isInvulnerable, canDodge, startDodge, checkEnemyHitAvoided,
     crearTelegrafiado, inTelegraphArea,
     monsterStats, monsterDamage, takeHit, tickHero,
-    die, respawn, newMonster, monsterTick, inSkillArea, impactos, detectarRol, detectarElemento
+    die, respawn, newMonster, monsterTick, inSkillArea, impactos, impactosNormalCombo, detectarRol, detectarElemento
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CombatLib = api;

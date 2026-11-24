@@ -2563,8 +2563,8 @@
   <script type="module" src="js/pueblo-edits.js?v=20261113b"></script>
   <script defer src="js/casas-glb.js?v=20261114a"></script>
   <script type="module" src="js/village-core.js?v=20261119h"></script>
-  <script type="module" src="js/combat.js?v=20261120d"></script>
-  <script defer src="js/combat-vfx-estudio.js?v=20261121a"></script>
+  <script type="module" src="js/combat.js?v=20261125a"></script>
+  <script defer src="js/combat-vfx-estudio.js?v=20261125a"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20261122b"></script>
   <script type="module" src="js/terreno.js?v=20261119b"></script>
@@ -2572,7 +2572,7 @@
   <script type="module" src="js/riachuelos.js?v=20261119a"></script>
   <script type="module" src="js/decorado.js?v=20261121b"></script>
   <script defer src="js/decorado-mundo.js?v=20261118c"></script>
-  <script type="module" src="js/character.js?v=20261120b"></script>
+  <script type="module" src="js/character.js?v=20261125a"></script>
   <script type="module" src="js/enemigos-optimizar.js?v=20261120a"></script>
   <script type="module" src="js/enemigos-combate.js?v=20261120b"></script>
   <script src="js/enemigos-carpeta.js?v=20261110"></script>
@@ -2580,7 +2580,7 @@
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
   <script type="module" src="js/enemigos-glb.js?v=20261120b"></script>
   <script src="js/musica-rpg.js?v=20261120c"></script>
-  <script src="js/sonidos.js?v=20261123d"></script>
+  <script src="js/sonidos.js?v=20261125a"></script>
   <script src="js/voces.js?v=20261123c"></script>
   <script src="js/arte-ui.js?v=20261124a"></script>
   <script src="js/pbr-lib.js?v=20261123a"></script>
@@ -3680,6 +3680,14 @@
     });
     if (typeof StudioCombatVFX !== 'undefined' && typeof StudioCombatVFX.Manager === 'function') {
       studioVfx = new StudioCombatVFX.Manager(scene, THREE);
+      if (typeof studioVfx.setSfxHandler === 'function') {
+        studioVfx.setSfxHandler((ev, info) => {
+          if (window.Sonidos && typeof window.Sonidos.eventoEstudio === 'function') {
+            const pan = info && info.pos ? panDePosicion(info.pos.x, info.pos.z) : 0;
+            window.Sonidos.eventoEstudio(ev, Object.assign({ clase: claseArmaDelHeroe(), pan }, info));
+          }
+        });
+      }
     }
     function arreglarMaterialesRostro(modelo) {
       if (!modelo || !modelo.traverse) return;
@@ -11507,9 +11515,11 @@
       character.mirarHacia(blanco.x - character.root.position.x, blanco.z - character.root.position.z);
     }
     CombatLib.useSkill(hero, name);
-    // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
-    if (statsHeroe.velocidadAtaque) hero.cd[name] = Math.max(CombatLib.SKILLS[name].lock, hero.cd[name] / (1 + statsHeroe.velocidadAtaque));
     const sk = CombatLib.SKILLS[name];
+    const armaCls = claseArmaDelHeroe();
+    const esComboNormal = (name === 'attack' || name === 'disparo' || name === 'orbe_arcano');
+    // Velocidad de ataque: acorta el enfriamiento, sin bajar del bloqueo de movimiento (la animación no se corta)
+    if (statsHeroe.velocidadAtaque && !esComboNormal) hero.cd[name] = Math.max(sk.lock, hero.cd[name] / (1 + statsHeroe.velocidadAtaque));
     if (sk.escudoPct) {
       const pctEsc = sk.escudoPct + (hero.escudoBonusPct || 0);
       hero.escudoArcano = Math.max(hero.escudoArcano || 0, Math.round(hero.maxHp * pctEsc));
@@ -11551,9 +11561,27 @@
         }
       }
     }
-    const durAnim = character.playOneShot(name, lastNowSec);
+    const durAnim = character.playOneShot(name, lastNowSec, { armaClase: armaCls });
+    const impactosCombo = (esComboNormal && typeof CombatLib.impactosNormalCombo === 'function')
+      ? CombatLib.impactosNormalCombo(armaCls, durAnim || sk.lock)
+      : null;
+    if (impactosCombo && impactosCombo.length) {
+      const tUltimo = impactosCombo[impactosCombo.length - 1].t || 0;
+      const cdBaseCombo = Math.max(hero.cd[name] || sk.cd || 0.65, tUltimo + 0.12);
+      hero.cd[name] = statsHeroe.velocidadAtaque
+        ? Math.max(tUltimo + 0.08, cdBaseCombo / (1 + statsHeroe.velocidadAtaque))
+        : cdBaseCombo;
+    }
     if (!studioVfx && typeof StudioCombatVFX !== 'undefined' && scene) {
       studioVfx = new StudioCombatVFX.Manager(scene, THREE);
+      if (typeof studioVfx.setSfxHandler === 'function') {
+        studioVfx.setSfxHandler((ev, info) => {
+          if (window.Sonidos && typeof window.Sonidos.eventoEstudio === 'function') {
+            const pan = info && info.pos ? panDePosicion(info.pos.x, info.pos.z) : 0;
+            window.Sonidos.eventoEstudio(ev, Object.assign({ clase: claseArmaDelHeroe(), pan }, info));
+          }
+        });
+      }
       if (character && character.model) studioVfx.bindHeroModel(character.model, character.root);
     }
     let vfxEstudioActivo = false;
@@ -11565,6 +11593,7 @@
         : new THREE.Vector3(rp.x + fr.x * Math.min(sk.range || 10, 16), rp.y + 1.0, rp.z + fr.z * Math.min(sk.range || 10, 16));
       vfxEstudioActivo = studioVfx.startSkill(name, sk, {
         duration: durAnim || sk.lock,
+        armaClase: armaCls,
         target: blanco,
         targetPos: tPos,
         heroRoot: character.root,
@@ -11574,7 +11603,7 @@
     if (!vfxEstudioActivo) lanzarAuraConjuro(name);
     marcarCombateAudio();
     if (window.Sonidos) {
-      if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'inicio', { clase: claseArmaDelHeroe() });
+      if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'inicio', { clase: armaCls, duracion: durAnim || sk.lock });
       else if (sk.elemento === 'fuego' || name === 'furia') window.Sonidos.fuego();
       else if (sk.elemento === 'hielo') window.Sonidos.hielo();
       else if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo') window.Sonidos.rayo();
@@ -11583,18 +11612,21 @@
     if (window.Voces && typeof window.Voces.hablarSkill === 'function') {
       window.Voces.hablarSkill(name, claseHeroe());
     }
-    CombatLib.impactos(name).forEach((t, i) => {
+    const listaImpactos = impactosCombo
+      ? impactosCombo.map(g => ({ t: g.t, meta: g }))
+      : CombatLib.impactos(name).map((t, i) => ({ t, meta: { index: i, u: 0, t, kind: 'normal', heavy: false, dmgShare: 1 } }));
+    listaImpactos.forEach((item, i) => {
       const golpe = () => {
         if (hero.dead) return;
-        if (sk.arc <= -1 && t > 0) ondaSismica(sk.range, colorDeHabilidad(name));
-        aplicarGolpe(name, i === 0, blanco);
+        if (sk.arc <= -1 && item.t > 0) ondaSismica(sk.range, colorDeHabilidad(name));
+        aplicarGolpe(name, i === 0, blanco, item.meta);
       };
-      if (t > 0) {
+      if (item.t > 0) {
         const tid = setTimeout(() => {
           const idx = habilidadTimeoutsPendientes.indexOf(tid);
           if (idx >= 0) habilidadTimeoutsPendientes.splice(idx, 1);
           golpe();
-        }, t * 1000);
+        }, item.t * 1000);
         habilidadTimeoutsPendientes.push(tid);
       } else {
         golpe();
@@ -11604,12 +11636,18 @@
 
   // Daña a los monstruos del área de la habilidad, desde donde esté el personaje en ese momento.
   // Los proyectiles elementales (bola_fuego, lanza_hielo) vuelan hacia el objetivo o al frente y estallan en área.
-  function aplicarGolpe(name, primero = true, blancoFijado = null) {
+  function aplicarGolpe(name, primero = true, blancoFijado = null, golpeMeta = null) {
     const sk = CombatLib.SKILLS[name];
     const p = character.root.position;
     const enDungeon = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
     const candidatos = enDungeon ? monstruosMazmorra : monsters;
     const conArma = !!(personajeActual && personajeActual.equipo && personajeActual.equipo.weapon);
+    const armaCls = claseArmaDelHeroe();
+    const dmgMult = (golpeMeta && Number.isFinite(golpeMeta.dmgShare)) ? golpeMeta.dmgShare : 1;
+    const hitIdx = (golpeMeta && Number.isFinite(golpeMeta.index)) ? golpeMeta.index : 0;
+    const hitHeavy = !!(golpeMeta && golpeMeta.heavy);
+    const hitKind = (golpeMeta && golpeMeta.kind) || (hitHeavy ? 'heavy' : 'normal');
+    const tienePerfilEstudio = !!(window.Sonidos && window.Sonidos.PERFILES_SFX_ESTUDIO && window.Sonidos.PERFILES_SFX_ESTUDIO[name]);
 
     if (sk.proyectil) {
       let diana = (blancoFijado && blancoFijado.alive && blancoFijado.hp > 0 &&
@@ -11642,13 +11680,16 @@
         : [];
       const panP = diana ? panDePosicion(diana.x, diana.z) : 0;
       if (window.Sonidos) {
-        window.Sonidos.disparo({ pan: panP });
-        if (name !== 'orbe_arcano' && window.Sonidos.golpeVeloz) window.Sonidos.golpeVeloz(0.75, { pan: panP });
+        if (name !== 'orbe_arcano') window.Sonidos.disparo({ pan: panP });
+        if (name !== 'orbe_arcano' && !tienePerfilEstudio && window.Sonidos.golpeVeloz) window.Sonidos.golpeVeloz(0.75, { pan: panP });
       }
       const aplicarImpactoProyectil = () => {
         if (hero.dead) return;
         if (window.Sonidos && typeof window.Sonidos.skill === 'function') {
-          window.Sonidos.skill(name, 'impacto', { pan: panDePosicion(destinoPos.x, destinoPos.z) });
+          window.Sonidos.skill(name, 'impacto', {
+            pan: panDePosicion(destinoPos.x, destinoPos.z),
+            clase: armaCls, hitIndex: hitIdx, hitKind, heavy: hitHeavy
+          });
         }
         if (studioVfx && studioVfx.hasProfile(name)) {
           studioVfx.spawnImpact(destinoPos, name);
@@ -11657,7 +11698,8 @@
           if (!m.alive || m.hp <= 0) return;
           if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
           const res = calcularDanioHeroe(name, m.level, sk.bonusCrit || 0, m);
-          golpear(m, res.dmg, 'sordo', { crit: res.crit, skill: name });
+          const dmgFinal = Math.max(1, Math.round(res.dmg * dmgMult));
+          golpear(m, dmgFinal, 'sordo', { crit: res.crit, skill: name, heavy: hitHeavy });
         });
       };
       if (studioVfx && studioVfx.hasProfile(name)) {
@@ -11713,13 +11755,17 @@
     if (primero && !sk.unico && !sk.proyectil && !usaEstudioVfx) lanzarEstelaArma(name);
     // Sonido: firma específica de la habilidad al impactar + golpe de velocidad en técnicas y ataques
     const panB = blancos.length ? panDePosicion(blancos[0].x, blancos[0].z) : 0;
-    if (sk.unico && blancos.length && window.Sonidos) window.Sonidos.disparo({ pan: panB });
+    if (sk.unico && blancos.length && window.Sonidos && !usaEstudioVfx) window.Sonidos.disparo({ pan: panB });
     if (window.Sonidos) {
-      if (typeof window.Sonidos.skill === 'function') window.Sonidos.skill(name, 'impacto', { pan: panB });
-      if (window.Sonidos.golpeVeloz) {
+      if (typeof window.Sonidos.skill === 'function') {
+        window.Sonidos.skill(name, 'impacto', {
+          pan: panB, clase: armaCls, hitIndex: hitIdx, hitKind, heavy: hitHeavy
+        });
+      }
+      if (window.Sonidos.golpeVeloz && !tienePerfilEstudio && name !== 'attack' && name !== 'disparo' && name !== 'orbe_arcano') {
         if (!sk.unico) {
-          window.Sonidos.golpeVeloz(name === 'attack' ? 0.62 : (sk.mult >= 2.4 ? 1.2 : 1.0), { pan: panB });
-        } else if (name !== 'disparo') {
+          window.Sonidos.golpeVeloz(sk.mult >= 2.4 ? 1.2 : 1.0, { pan: panB });
+        } else {
           window.Sonidos.golpeVeloz(0.85, { pan: panB });
         }
       }
@@ -11729,7 +11775,8 @@
       if (usaEstudioVfx) studioVfx.spawnImpact(new THREE.Vector3(m.x, (m.group ? m.group.position.y : p.y) + 1.0, m.z), name);
       if (sk.slow) { m.slowTimer = Math.max(m.slowTimer || 0, sk.slow); m.slowMult = sk.slowMult || 0.45; }
       const res = calcularDanioHeroe(name, m.level, sk.bonusCrit || 0, m);
-      golpear(m, res.dmg, sk.unico ? 'flecha' : (conArma ? 'metal' : 'sordo'), { crit: res.crit, skill: name });
+      const dmgFinal = Math.max(1, Math.round(res.dmg * dmgMult));
+      golpear(m, dmgFinal, sk.unico ? 'flecha' : (conArma ? 'metal' : 'sordo'), { crit: res.crit, skill: name, heavy: hitHeavy });
       if (sk.venenoPct && m.alive && m.hp > 0) {
         m.venenoTimer = Math.max(m.venenoTimer || 0, sk.venenoDur || 5.0);
         m.venenoDps = Math.max(4, Math.round(res.dmg * sk.venenoPct * (1 + (hero.venenoMult || 0))));
@@ -15077,7 +15124,7 @@
       lanzarNumeroFlotante(posCabezaMonstruo(m), txt, opts.crit ? 'dmg-crit' : 'dmg-n');
 
       const sk = opts.skill ? CombatLib.SKILLS[opts.skill] : null;
-      const pesada = !!(sk && sk.mult >= 2.0);
+      const pesada = !!(opts.heavy || (sk && sk.mult >= 2.0));
       const my = m.group ? m.group.position.y : 0;
       const posM = { x: m.x, y: my + Math.min(1.6, (m.barHeight || 2) * 0.5), z: m.z };
 
@@ -15229,7 +15276,7 @@
   // ===========================================================================
   // Personaje: el estudio de armaduras (embebido) ajusta las proporciones y genera las piezas
   // ===========================================================================
-  const ESTUDIO_URL = 'estudio-armaduras/index.html?v=20261122b';
+  const ESTUDIO_URL = 'estudio-armaduras/index.html?v=20261125a';
   let catalogoPiezas = null;
   let catalogoRostros = null;
   let rostroCrearBloqueado = false;
@@ -15282,7 +15329,7 @@
   }
 
   // Caché persistente en IndexedDB del GLB exportado del héroe para cargar la partida al instante sin abrir el estudio
-  const DB_HEROE = 'rpg-heroe-glb-v5';
+  const DB_HEROE = 'rpg-heroe-glb-v6';
   let dbHeroePromesa = null;
   function abrirDbHeroe() {
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);

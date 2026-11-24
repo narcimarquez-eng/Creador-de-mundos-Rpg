@@ -531,4 +531,35 @@ t('las 49 habilidades por clase de arma existen con animación, bloqueo >= 1.2s,
   assert.strictEqual(total, 49, 'Deben contabilizarse exactamente las 49 habilidades por arma');
 });
 
+t('combo normal de 3 golpes (impactosNormalCombo y CLIP_KEYWORDS) cubre todas las clases de arma', () => {
+  assert.ok(C.NORMAL_COMBO_PROFILES && typeof C.impactosNormalCombo === 'function',
+    'CombatLib debe exportar NORMAL_COMBO_PROFILES e impactosNormalCombo');
+
+  const clases = [...Object.keys(C.WEAPON_SKILLS_BY_CLASS), 'unarmed'];
+  clases.forEach(cls => {
+    const hits = C.impactosNormalCombo(cls, 1.8);
+    assert.strictEqual(hits.length, 3, `${cls} debe tener exactamente 3 golpes en normal_combo`);
+    for (let i = 0; i < 3; i++) {
+      assert.strictEqual(hits[i].index, i);
+      assert.ok(hits[i].u > 0 && hits[i].u < 1, `${cls} hit ${i} u inválido`);
+      assert.ok(hits[i].t > 0, `${cls} hit ${i} t inválido`);
+      assert.ok(hits[i].dmgShare > 0, `${cls} hit ${i} dmgShare inválido`);
+      if (i > 0) assert.ok(hits[i].t > hits[i - 1].t, `${cls} tiempos deben crecer`);
+    }
+    assert.strictEqual(hits[2].heavy, true, `${cls} 3er golpe debe marcar heavy=true`);
+  });
+
+  assert.strictEqual(CH.CLIP_KEYWORDS.attack[0], 'normal_combo');
+  assert.ok(CH.CLIP_KEYWORDS.attack.includes('combo'));
+  assert.strictEqual(CH.CLIP_KEYWORDS.disparo[0], 'normal_combo');
+  assert.ok(CH.CLIP_KEYWORDS.disparo.includes('archery'));
+  assert.strictEqual(CH.CLIP_KEYWORDS.orbe_arcano[0], 'normal_combo');
+  assert.ok(CH.CLIP_KEYWORDS.orbe_arcano.includes('ultimate_beam'));
+  assert.ok(CH.CLIP_KEYWORDS.normal_combo && CH.CLIP_KEYWORDS.normal_slash && CH.CLIP_KEYWORDS.normal_heavy);
+  assert.strictEqual(CH.SKILL_MOTION.attack.tipo, 'combo_3_golpes');
+  assert.strictEqual(CH.SKILL_MOTION.normal_combo.tipo, 'combo_3_golpes');
+  assert.strictEqual(CH.SKILL_MOTION.disparo.tipo, 'combo_3_golpes');
+  assert.strictEqual(CH.SKILL_MOTION.orbe_arcano.tipo, 'combo_3_golpes');
+});
+
 console.log(`\n${n} pruebas correctas`);
