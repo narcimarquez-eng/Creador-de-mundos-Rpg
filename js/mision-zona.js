@@ -97,72 +97,84 @@
   // Encargos propios y temáticos para cada una de las 12 zonas de caza de Valdris
   const VALDRIS_ENCARGOS = {
     z_1: {
+      puebloId: 't_1', zoneName: 'Prados del Yunque Roto',
       nombre: 'Hilda la Curtidora', tema: 'curtidora de la muralla oriental de Albaferro', modelo: 'npc/aldeanos/aldeana.glb',
       titulo: 'Pieles manchadas de hierro',
       frase: 'Las manadas de {zona} merodean hasta los huertos de Albaferro con placas clavadas en el lomo. Abate {n} para despejar las granjas.',
       gracias: 'Albaferro vuelve a dormir tranquila esta noche. Toma tu paga y nuestras mejores bendiciones.'
     },
     z_2: {
+      puebloId: 't_2', zoneName: 'Acantilados de la Marea Roja',
       nombre: 'Maestre Garrik', tema: 'capataz de muelle sin barcos en Puerto Brisal', modelo: 'npc/aldeanos/tabernero.glb',
       titulo: 'Limpieza en la Marea Roja',
       frase: 'Los vigías corruptos y carroñeros de {zona} asaltan cada carreta que baja hacia Puerto Brisal. Despeja {n} amenazas de los acantilados.',
       gracias: 'Por fin pueden salir los pescadores sin mirar atrás. Aquí tienes tu recompensa.'
     },
     z_3: {
+      puebloId: 't_3', zoneName: 'Claro de la Savia Oscura',
       nombre: 'Elowen Guardabosques', tema: 'rastreadora de los robles antiguos de Robledal Sombrío', modelo: 'npc/aldeanos/cazador.glb',
       titulo: 'Savia envenenada en el claro',
       frase: 'La savia gris ha enloquecido a las fieras de {zona}. Abate a {n} criaturas antes de que crucen hacia Robledal Sombrío.',
       gracias: 'El bosque agradece cada bestia que apartas del claro. Acepta este oro y suministros.'
     },
     z_4: {
+      puebloId: 't_3', zoneName: 'Laberinto del Seto Maldito',
       nombre: 'Capataz Thorne', tema: 'leñador veterano atrapado junto al lindero sur', modelo: 'npc/aldeanos/lenador.glb',
       titulo: 'Patrulla tras los setos',
       frase: 'Dentro de {zona} se ocultan esbirros oscuros y bestias de quitina que vigilan remesas ilegales. Derrota a {n} dentro del laberinto.',
       gracias: 'Has quebrado su vigilancia entre los setos. Todo Robledal Sombrío te debe una.'
     },
     z_5: {
+      puebloId: 't_4', zoneName: 'Marismas del Silencio',
       nombre: 'Boticaria Morwen', tema: 'destiladora de Limoquieto que vigila la pureza del cieno', modelo: 'npc/aldeanos/herbolario.glb',
       titulo: 'Plaga de las marismas',
       frase: 'Los vertidos de las fraguas han multiplicado las alimañas de {zona}. Reduce {n} monstruos del pantano para que Limoquieto respire.',
       gracias: 'Las aguas bajas se calman por fin. Lleva estas monedas y mi bálsamo.'
     },
     z_6: {
+      puebloId: 't_1', zoneName: 'Desfiladero del Óxido',
       nombre: 'Contrabandista Rurik', tema: 'arriero de rutas libres hacia Ámbar de Dunas', modelo: 'npc/aldeanos/mercader.glb',
       titulo: 'Escolta en el Desfiladero',
       frase: 'En {zona} los constructos y jabalíes blindados cierran el puente oriental. Tumba a {n} guardianes para reabrir la ruta de caravanas.',
       gracias: 'La ruta hacia el desierto vuelve a quedar despejada. Oro bien ganado.'
     },
     z_7: {
+      puebloId: 't_5', zoneName: 'Cañón del Pacto de Arena',
       nombre: 'Adivina Sahira', tema: 'cronista de las dunas en Ámbar de Dunas', modelo: 'npc/aldeanos/informante.glb',
       titulo: 'Centinelas de la arenisca',
       frase: 'Las tormentas desenterraron guardianes antiguos en {zona}. Derrota a {n} en el cañón antes de que sepulten a los viajeros.',
       gracias: 'Las dunas guardan tu nombre con respeto. Toma esta recompensa.'
     },
     z_8: {
+      puebloId: 't_6', zoneName: 'Costa de las Brumas Boreales',
       nombre: 'Teniente Jorvik', tema: 'explorador boreal de Atalaya de Escarcha', modelo: 'npc/aldeanos/lenador.glb',
       titulo: 'Romper el cerco de la taiga',
       frase: 'Las patrullas de {zona} cortan nuestros envíos desde el sur. Abate a {n} enemigos para asegurar la costa boreal.',
       gracias: 'Con el flanco limpio, Atalaya de Escarcha resiste un día más.'
     },
     z_9: {
+      puebloId: 't_6', zoneName: 'Estribaciones del Ventisquero',
       nombre: 'Vigía Freya', tema: 'centinela de las nieves altas', modelo: 'npc/aldeanos/cazador.glb',
       titulo: 'Bestias del ventisquero',
       frase: 'Los elementales de {zona} escoltan convoyes hacia el cráter. Vence a {n} bestias de élite en la ventisca.',
       gracias: 'Ni la helada pudo frenar tu acero. Recibe el agradecimiento de la atalaya.'
     },
     z_10: {
+      puebloId: 't_5', zoneName: 'Garganta de Obsidiana',
       nombre: 'Maestro Dain', tema: 'exminero fugado de las galerías volcánicas', modelo: 'npc/aldeanos/campesino.glb',
       titulo: 'Ecos en la obsidiana',
       frase: 'Quienes cruzan {zona} no regresan por culpa de los colosos de piedra negra. Destruye a {n} guardianes en la garganta.',
       gracias: 'Has abierto una brecha en la roca viva. Toma este pago.'
     },
     z_11: {
+      puebloId: 't_7', zoneName: 'Paso del Dragón Blanco',
       nombre: 'Cazador Ulric', tema: 'rastreador de guivernos en los riscos del norte', modelo: 'npc/aldeanos/cazador.glb',
       titulo: 'Alas sobre el paso blanco',
       frase: 'Guivernos y fieras glaciares cazan en {zona} a todo explorador que sube hacia Trono de Ceniza. Abate {n} presas.',
       gracias: 'El paso alpino vuelve a ser transitable. Buen acero, camarada.'
     },
     z_12: {
+      puebloId: 't_7', zoneName: 'Cráter del Sol Quebrado',
       nombre: 'Heroldo Darion', tema: 'superviviente del asedio en el Cráter del Sol Quebrado', modelo: 'npc/aldeanos/informante.glb',
       titulo: 'El fin del Titán del Eclipse',
       frase: 'El señor supremo de {zona} alimenta toda la maquinaria del Cónclave. Derrota al jefe del cráter y libera Valdris para siempre.',
@@ -170,18 +182,16 @@
     }
   };
 
+  function definicionValdrisDe(zona) {
+    if (!zona || zona._genericoTest) return null;
+    const def = VALDRIS_ENCARGOS[zona.id];
+    return (def && def.zoneName === zona.name) ? def : null;
+  }
+
   // Encargo completo de una zona. Es determinista: la misma zona siempre tiene el mismo personaje y texto.
   function misionDeZona(zona, pueblo) {
-    const valdrisDef = zona && VALDRIS_ENCARGOS[zona.id];
-    const esValdrisZona = !!(valdrisDef && pueblo && (!zona._genericoTest));
-    if (esValdrisZona && (
-      zona.name === 'Prados del Yunque Roto' || zona.name === 'Acantilados de la Marea Roja' ||
-      zona.name === 'Claro de la Savia Oscura' || zona.name === 'Laberinto del Seto Maldito' ||
-      zona.name === 'Marismas del Silencio' || zona.name === 'Desfiladero del Óxido' ||
-      zona.name === 'Cañón del Pacto de Arena' || zona.name === 'Costa de las Brumas Boreales' ||
-      zona.name === 'Estribaciones del Ventisquero' || zona.name === 'Garganta de Obsidiana' ||
-      zona.name === 'Paso del Dragón Blanco' || zona.name === 'Cráter del Sol Quebrado'
-    )) {
+    const valdrisDef = definicionValdrisDe(zona);
+    if (valdrisDef && pueblo) {
       const objetivo = objetivoDe(zona);
       const nivel = zona.levelMin || 1;
       return {
@@ -240,10 +250,15 @@
     };
   }
 
-  // Un encargo por zona, cada uno con el pueblo más cercano. pueblos: lista de {id, name, x, y}
+  // Un encargo por zona, cada uno con su comarca en Valdris o el pueblo más cercano. pueblos: lista de {id, name, x, y}
   function encargosDeMundo(zonas, pueblos) {
     if (!pueblos || !pueblos.length) return [];
-    return (zonas || []).map(z => misionDeZona(z, puebloMasCercano(z, pueblos)));
+    const porId = new Map(pueblos.map(p => [p.id, p]));
+    return (zonas || []).map(z => {
+      const def = definicionValdrisDe(z);
+      const pueblo = (def && def.puebloId && porId.get(def.puebloId)) || puebloMasCercano(z, pueblos);
+      return misionDeZona(z, pueblo);
+    });
   }
 
   // Contexto narrativo de cada encargo vecinal dentro de la crisis del reino

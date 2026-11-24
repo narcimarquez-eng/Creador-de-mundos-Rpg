@@ -154,7 +154,27 @@
 
     const pueblos = world.towns || [];
     const zonas = world.zones || [];
+    const caminos = world.roads || [];
     const lugares = [];
+
+    function distanciaACamino(px, pz) {
+      let bestD2 = Infinity, bestPx = px, bestPz = pz;
+      for (let i = 0; i < caminos.length; i++) {
+        const pts = caminos[i] && caminos[i].points;
+        if (!pts || pts.length < 2) continue;
+        for (let j = 0; j < pts.length - 1; j++) {
+          const ax = pts[j].x, ay = pts[j].y;
+          const bx = pts[j + 1].x, by = pts[j + 1].y;
+          const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+          const t = l2 < 1e-6 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (pz - ay) * dy) / l2));
+          const qx = ax + t * dx, qz = ay + t * dy;
+          const d2 = (px - qx) * (px - qx) + (pz - qz) * (pz - qz);
+          if (d2 < bestD2) { bestD2 = d2; bestPx = qx; bestPz = qz; }
+        }
+      }
+      return { dist: Math.sqrt(bestD2), rx: bestPx, rz: bestPz };
+    }
+    const cercaDeCamino = (px, pz, minDist) => caminos.length > 0 && distanciaACamino(px, pz).dist < minDist;
 
     const pInicio = pueblos.find(p => p.isStart || p.id === world.startTownId) || pueblos[0] || { x: W * 0.3, y: W * 0.3, id: 't-inicio' };
     const pSegundo = pueblos.filter(p => p.id !== pInicio.id).sort((a, b) => {
@@ -224,7 +244,7 @@
               const wz = p.y + pt.x * sr + pt.z * cr;
               const dP = Math.hypot(wx - p.x, wz - p.y);
               const dRef = Math.hypot(wx - pRef.x, wz - pRef.y);
-              if (dP >= 142 && dP <= 350) {
+              if (dP >= 142 && dP <= 350 && !cercaDeCamino(wx, wz, 45)) {
                 waterCands.push({ x: wx, z: wz, score: dRef });
               }
             });
@@ -240,7 +260,7 @@
               const e = terrain.elevation(cx, cz);
               if (e <= SEA_L + 0.012) {
                 const cercaP = pueblos.some(p => Math.hypot(cx - p.x, cz - p.y) < 140);
-                if (!cercaP) waterCands.push({ x: cx, z: cz, score: Math.abs(e - SEA_L) * 120 + rD * 0.15 });
+                if (!cercaP && !cercaDeCamino(cx, cz, 45)) waterCands.push({ x: cx, z: cz, score: Math.abs(e - SEA_L) * 120 + rD * 0.15 });
               }
             }
           }
@@ -263,9 +283,10 @@
           const cercaPueblo = pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 170);
           if (cercaPueblo) continue;
 
-          // Separación con otras cabañas ya ubicadas (mínimo 45m)
+          // Separación con otras cabañas ya ubicadas (mínimo 45m) y con caminos principales (mínimo 52m)
           const cercaOtra = lugares.some(l => Math.hypot(candX - l.x, candZ - l.z) < 45);
           if (cercaOtra) continue;
+          if (cercaDeCamino(candX, candZ, 52)) continue;
 
           let desnivel = 0;
           if (terrain && typeof terrain.elevation === 'function') {
@@ -311,6 +332,22 @@
           cz = p.y + Math.sin(dirP) * 185;
         }
       });
+
+      // Si el fallback quedó sobre un camino, apartarlo lateralmente manteniendo la distancia mínima a pueblos
+      if (cercaDeCamino(cx, cz, 48)) {
+        const rd = distanciaACamino(cx, cz);
+        let nx = cx - rd.rx, nz = cz - rd.rz;
+        const lenN = Math.hypot(nx, nz);
+        if (lenN > 0.01) {
+          nx /= lenN; nz /= lenN;
+        } else {
+          nx = Math.cos(idx * 1.7); nz = Math.sin(idx * 1.7);
+        }
+        const candX = rd.rx + nx * 56, candZ = rd.rz + nz * 56;
+        if (!pueblos.some(p => Math.hypot(candX - p.x, candZ - p.y) < 170)) {
+          cx = candX; cz = candZ;
+        }
+      }
 
       // Especie de monstruo para la misión de 100
       const monstruosZona = (zonaElegida && zonaElegida.monsters && zonaElegida.monsters.length) ? zonaElegida.monsters : [{ name: 'Criatura Salvaje', level: 2 }];
@@ -405,9 +442,10 @@
       const cercaPueblo = pueblos.some(p => Math.hypot(p.x - x, p.y - z) < 130);
       if (cercaPueblo) continue;
 
-      // Separación entre secretos existentes (al menos 120m)
+      // Separación entre secretos existentes (al menos 120m) y fuera de caminos (al menos 40m)
       const cercaSecreto = lugares.some(s => Math.hypot(s.x - x, s.z - z) < 120);
       if (cercaSecreto) continue;
+      if (cercaDeCamino(x, z, 40)) continue;
 
       const tipoKey = tiposResto[(lugares.length - 5) % tiposResto.length];
       const tipo = TIPOS_SECRETO[tipoKey];

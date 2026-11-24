@@ -7139,7 +7139,7 @@
         altura: (x, z) => H(x, z),
         bioma: (x, z) => terrain.biomeAt(x, z, terrain.elevation(x, z)),
         agua: (x, z) => terrain.elevation(x, z) < SEA + 0.02 || LagosLib.enAgua(lagosMundo, x, z),
-        libre: (x, z) => !enMargenPueblo(x, z, 18, false) && !cercaCamino(x, z, 5) && !recintoEn(x, z, 10)
+        libre: (x, z) => !enMargenPueblo(x, z, 18, false) && !cercaCamino(x, z, 12) && !recintoEn(x, z, 10)
       });
       if (decorMundo && decorMundo.grupo) scene.add(decorMundo.grupo);
     }
@@ -22096,7 +22096,7 @@
   }
 
   function migrarValdrisSiAntiguo(w) {
-    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 4) return false;
+    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 5) return false;
     if (typeof window.clonarMundoOficial !== 'function') return false;
     const fresh = window.clonarMundoOficial();
     const ver = w.campaignVersion || 1;
@@ -22113,15 +22113,17 @@
         }
       });
     }
-    if (ver < 4) {
+    if (ver < 5) {
+      if (fresh.roads) w.roads = fresh.roads;
       if (fresh.zones) w.zones = fresh.zones;
+      if (fresh.dungeons) w.dungeons = fresh.dungeons;
       if (fresh.pois) w.pois = fresh.pois;
       if (fresh.secretPlaces) w.secretPlaces = fresh.secretPlaces;
       w.secretPlacesFijos = true;
       w.bloqueadoJuego = true;
     }
     if (fresh.historia) w.historia = fresh.historia;
-    w.campaignVersion = fresh.campaignVersion || 4;
+    w.campaignVersion = fresh.campaignVersion || 5;
     return true;
   }
 

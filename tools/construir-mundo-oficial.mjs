@@ -50,7 +50,7 @@ function build() {
 
   world.id = 'valdris-sol-quebrado-v1';
   world.campaignId = 'valdris-sol-quebrado-v1';
-  world.campaignVersion = 4;
+  world.campaignVersion = 5;
   world.secretPlacesFijos = true;
   world.bloqueadoJuego = true;
   world.version = 1;
@@ -173,15 +173,41 @@ function build() {
     { id: 'r_4', from: 't_3', to: 't_4', kind: 'sendero', bend: 0.06 },
     { id: 'r_5', from: 't_1', to: 't_5', kind: 'calzada', bend: 0.22 },
     { id: 'r_6', from: 't_4', to: 't_6', kind: 'camino',  bend: -0.14 },
-    { id: 'r_7', from: 't_5', to: 't_7', kind: 'calzada', bend: 0.06 },
-    { id: 'r_8', from: 't_6', to: 't_7', kind: 'camino',  bend: 0.10 }
+    { id: 'r_7', from: 't_5', to: 't_7', kind: 'calzada', bend: -0.04 },
+    { id: 'r_8', from: 't_6', to: 't_7', kind: 'camino',  bend: -0.05 }
   ];
+
+  function distMinCamino(w, x, y) {
+    let best = Infinity;
+    for (const road of (w.roads || [])) {
+      const pts = road.points || [];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const ax = pts[i].x, ay = pts[i].y;
+        const bx = pts[i + 1].x, by = pts[i + 1].y;
+        const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+        const t = l2 < 1e-6 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+        const d = Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+        if (d < best) best = d;
+      }
+    }
+    return best;
+  }
 
   roadSpecs.forEach(rs => {
     const r = W.createRoad(world, rs.from, rs.to, { kind: rs.kind, bend: rs.bend });
     r.id = rs.id;
     const waterPts = r.points.filter(p => T.isWater(p.x, p.y)).length;
     assert.strictEqual(waterPts, 0, `Camino ${rs.id} (${rs.from}->${rs.to}) tiene ${waterPts} puntos en el agua`);
+    let maxPend = 0;
+    for (let i = 1; i < r.points.length; i++) {
+      const a = r.points[i - 1], b = r.points[i];
+      const seg = Math.hypot(b.x - a.x, b.y - a.y);
+      if (seg > 0.1) {
+        const sl = Math.abs(T.heightAt(b.x, b.y) - T.heightAt(a.x, a.y)) / seg;
+        if (sl > maxPend) maxPend = sl;
+      }
+    }
+    assert.ok(maxPend <= 0.42, `Camino ${rs.id} tiene pendiente excesiva (${Math.round(maxPend * 100)}%)`);
   });
 
   // -------------------------------------------------------------------------
@@ -209,7 +235,7 @@ function build() {
       ])
     },
     {
-      id: 'z_2', name: 'Acantilados de la Marea Roja', roadId: 'r_1', roadT: 0.72, radius: 190, type: 'caza',
+      id: 'z_2', name: 'Acantilados de la Marea Roja', roadId: 'r_1', roadT: 0.65, absX: 853, absY: 739, radius: 190, type: 'caza',
       levelMin: 2, levelMax: 5, respawnSec: 20,
       relieve: { activo: false },
       notes: 'Ladera costera sobre la bahía de Puerto Brisal infestada de carroñeros, goblins y vigías corruptos.',
@@ -236,7 +262,7 @@ function build() {
       ])
     },
     {
-      id: 'z_4', name: 'Laberinto del Seto Maldito', roadId: 'r_4', roadT: 0.48, radius: 165, type: 'elite',
+      id: 'z_4', name: 'Laberinto del Seto Maldito', roadId: 'r_4', roadT: 0.48, absX: 474, absY: 2156, radius: 165, type: 'elite',
       levelMin: 6, levelMax: 9, respawnSec: 26,
       relieve: {
         activo: true,
@@ -248,6 +274,7 @@ function build() {
         alturaMuro: 13,
         profundidadHendidura: 3.5,
         anchoPasillo: 10,
+        rotacion: 166,
         seed: 44109,
         patronesMonstruos: {
           p1: { id: 'p1', color: '#22c55e', name: 'Araña de Catacumba', clase: 'rapido', levelMin: 6, levelMax: 8, count: 2, icono: '🕷️' },
@@ -279,7 +306,7 @@ function build() {
       ])
     },
     {
-      id: 'z_6', name: 'Desfiladero del Óxido', roadId: 'r_5', roadT: 0.30, radius: 190, type: 'elite',
+      id: 'z_6', name: 'Desfiladero del Óxido', roadId: 'r_5', roadT: 0.28, radius: 190, type: 'elite',
       levelMin: 9, levelMax: 12, respawnSec: 25,
       relieve: { activo: false },
       notes: 'Corredor rocoso del puente oriental donde escoltas armados custodian vetas de hierro salvaje hacia Ámbar de Dunas.',
@@ -292,7 +319,7 @@ function build() {
       ])
     },
     {
-      id: 'z_7', name: 'Cañón del Pacto de Arena', roadId: 'r_5', roadT: 0.60, radius: 165, type: 'caza',
+      id: 'z_7', name: 'Cañón del Pacto de Arena', roadId: 'r_5', roadT: 0.72, absX: 2683, absY: -4, radius: 165, type: 'caza',
       levelMin: 11, levelMax: 14, respawnSec: 24,
       relieve: {
         activo: true,
@@ -304,6 +331,7 @@ function build() {
         alturaMuro: 15,
         profundidadHendidura: 3.5,
         anchoPasillo: 10,
+        rotacion: 94,
         seed: 77213,
         patronesMonstruos: {
           p1: { id: 'p1', color: '#eab308', name: 'Escorpión de Dunas', clase: 'rapido', levelMin: 11, levelMax: 13, count: 2, icono: '🦂' },
@@ -347,7 +375,7 @@ function build() {
       ])
     },
     {
-      id: 'z_10', name: 'Garganta de Obsidiana', roadId: 'r_7', roadT: 0.46, radius: 175, type: 'elite',
+      id: 'z_10', name: 'Garganta de Obsidiana', roadId: 'r_7', roadT: 0.42, absX: 1805, absY: -1260, radius: 175, type: 'elite',
       levelMin: 15, levelMax: 18, respawnSec: 28,
       relieve: {
         activo: true,
@@ -359,6 +387,7 @@ function build() {
         alturaMuro: 16,
         profundidadHendidura: 4,
         anchoPasillo: 10,
+        rotacion: 24,
         seed: 90451,
         patronesMonstruos: {
           p1: { id: 'p1', color: '#f97316', name: 'Sabueso Cerbero', clase: 'guerrero', levelMin: 15, levelMax: 17, count: 1, icono: '🔥' },
@@ -405,9 +434,17 @@ function build() {
 
   world.zones = zoneSpecs.map(zs => {
     const road = W.findRoad(world, zs.roadId);
-    const p = W.pointOnPolyline(road.points, zs.roadT);
+    const hasAbs = typeof zs.absX === 'number' && typeof zs.absY === 'number';
+    const p = hasAbs ? { x: zs.absX, y: zs.absY } : W.pointOnPolyline(road.points, zs.roadT);
     const biome = T.biomeAt(p.x, p.y);
     assert.ok(!T.isWater(p.x, p.y), `La zona ${zs.name} cayó en agua`);
+    for (let a = 0; a < 24; a++) {
+      for (const f of [0.3, 0.65, 1.0]) {
+        const px = p.x + Math.cos(a * Math.PI / 12) * zs.radius * f;
+        const py = p.y + Math.sin(a * Math.PI / 12) * zs.radius * f;
+        assert.ok(!T.isWater(px, py), `La zona ${zs.name} toca el agua cerca de (${Math.round(px)}, ${Math.round(py)})`);
+      }
+    }
     return {
       id: zs.id,
       name: zs.name,
@@ -421,7 +458,7 @@ function build() {
       levelMax: zs.levelMax,
       roadId: zs.roadId,
       roadT: zs.roadT,
-      anchored: true,
+      anchored: !hasAbs,
       respawnSec: zs.respawnSec,
       notes: zs.notes,
       monsters: zs.monsters,
@@ -429,13 +466,22 @@ function build() {
     };
   });
 
-  // Verificar que los 3 laberintos no chocan con ningún pueblo, agua ni entre sí
+  // Verificar que los 3 laberintos no chocan con ningún pueblo, agua, camino ni entre sí
   const recs = [];
   for (const z of world.zones) {
     if (z.relieve && z.relieve.activo) {
       const rec = Relieve.obtenerRecinto(z, (x, zz) => T.heightAt(x, zz));
       assert.ok(rec, `No se generó recinto para ${z.name}`);
       assert.strictEqual(rec.problema, null, `Problema de recinto en ${z.name}: ${rec.problema}`);
+      const dCam = distMinCamino(world, rec.zx, rec.zz);
+      assert.ok(dCam >= rec.rMax + 35, `Recinto ${z.name} invade camino (${Math.round(dCam)}m < ${Math.round(rec.rMax + 35)}m)`);
+      for (let a = 0; a < 24; a++) {
+        for (const f of [0.3, 0.65, 1.0]) {
+          const px = rec.zx + Math.cos(a * Math.PI / 12) * rec.rMax * f;
+          const pz = rec.zz + Math.sin(a * Math.PI / 12) * rec.rMax * f;
+          assert.ok(!T.isWater(px, pz), `Recinto ${z.name} toca agua en (${Math.round(px)}, ${Math.round(pz)})`);
+        }
+      }
       for (const t of world.towns) {
         const dt = Math.hypot(t.x - rec.zx, t.y - rec.zz);
         assert.ok(dt > rec.rMax + t.radius + 30, `Recinto ${z.name} demasiado cerca de ${t.name} (${Math.round(dt)}m)`);
@@ -477,7 +523,7 @@ function build() {
       ]
     },
     {
-      id: 'dun_eclipse', name: 'Sanctum del Trono Quebrado', estilo: 'cripta_glaciar', x: 980, y: -1310, level: 18, rotacion: 1.1,
+      id: 'dun_eclipse', name: 'Sanctum del Trono Quebrado', estilo: 'cripta_glaciar', x: 984, y: -1684, level: 18, rotacion: 1.1,
       boss: {
         name: 'Soberano del Eclipse Helado', level: 21, rangoElite: 10,
         recompensaOro: 6000, recompensaArena: 120, recompensaEquipo: 'Corona del Sol Quebrado'
@@ -492,6 +538,12 @@ function build() {
   world.dungeons = dungeonSpecs.map(ds => {
     assert.ok(!T.isWater(ds.x, ds.y), `Mazmorra ${ds.name} bajo agua`);
     assert.ok(T.elevation(ds.x, ds.y) > W.SEA_LEVEL + 0.02, `Mazmorra ${ds.name} demasiado baja`);
+    const dCam = distMinCamino(world, ds.x, ds.y);
+    assert.ok(dCam >= 60, `Mazmorra ${ds.name} demasiado cerca de camino (${Math.round(dCam)}m)`);
+    for (const z of world.zones) {
+      const dz = Math.hypot(ds.x - z.x, ds.y - z.y);
+      assert.ok(dz > z.radius + 25, `Mazmorra ${ds.name} dentro de la zona ${z.name} (${Math.round(dz)}m <= ${z.radius + 25}m)`);
+    }
     return Mazmorras.generarMazmorraPorDefecto(world, ds.x, ds.y, ds);
   });
 
@@ -499,18 +551,18 @@ function build() {
   // 5. Puntos de Interés (POIs) vinculados a zonas (1 por zona, 12 en total)
   // -------------------------------------------------------------------------
   const poiSpecs = [
-    { id: 'poi_1', name: 'Campamento de la Fragua Libre', type: 'campamento', zoneId: 'z_1', dx: 65, dy: -55, notes: 'Puesto avanzado de aprendices de Brann que recogen correas y hierros intactos.' },
-    { id: 'poi_2', name: 'Faro Hundido de Brisal', type: 'ruinas', zoneId: 'z_2', dx: -70, dy: 50, notes: 'Antigua torre portuaria donde atracaban galeones antes del bloqueo del Cónclave.' },
-    { id: 'poi_3', name: 'Veta del Roble Partido', type: 'mina', zoneId: 'z_3', dx: 55, dy: 65, notes: 'Excavación donde la savia del bosque se tiñó de escoria metálica.' },
-    { id: 'poi_8', name: 'Arco de los Guardabosques', type: 'ruinas', zoneId: 'z_4', absX: 280, absY: 2062, notes: 'Antiguo arco de piedra frente a la entrada del Laberinto del Seto Maldito.' },
-    { id: 'poi_9', name: 'Muelle de los Boticarios', type: 'campamento', zoneId: 'z_5', dx: 55, dy: -60, notes: 'Refugio sobre pilotes donde los boticarios de Limoquieto filtran muestras del cieno.' },
-    { id: 'poi_4', name: 'Mina del Hierro Rojo', type: 'mina', zoneId: 'z_6', dx: -60, dy: -45, notes: 'Cantera libre disputada entre contrabandistas de Albaferro e inquisidores.' },
-    { id: 'poi_5', name: 'Santuario del Espejismo', type: 'santuario', zoneId: 'z_7', absX: 2242, absY: -200, notes: 'Obelisco solar de piedra dorada en la antesala norte del Cañón del Pacto de Arena.' },
-    { id: 'poi_10', name: 'Vigía de la Guardia Rebelde', type: 'campamento', zoneId: 'z_8', dx: -65, dy: 45, notes: 'Avanzada de exploradores de Atalaya de Escarcha frente a las patrullas del Cónclave.' },
-    { id: 'poi_6', name: 'Portal de la Escarcha', type: 'portal', zoneId: 'z_9', dx: -55, dy: 60, notes: 'Monolito rúnico boreal usado por los exploradores de Atalaya de Escarcha como piedra de viaje.' },
-    { id: 'poi_11', name: 'Forja de los Pilares Negros', type: 'ruinas', zoneId: 'z_10', absX: 1709, absY: -633, notes: 'Puesto en ruinas junto a la boca de la Garganta de Obsidiana.' },
-    { id: 'poi_12', name: 'Huesos del Viejo Guiverno', type: 'santuario', zoneId: 'z_11', dx: 60, dy: -50, notes: 'Altar glaciar erigido sobre los restos de un dragón ancestral en el Paso del Dragón Blanco.' },
-    { id: 'poi_7', name: 'Altar de Aurelio', type: 'jefe', zoneId: 'z_12', dx: 45, dy: -40, notes: 'Forja al rojo vivo del Titán del Sol Quebrado.' }
+    { id: 'poi_1', name: 'Campamento de la Fragua Libre', type: 'campamento', zoneId: 'z_1', dx: 40, dy: -86, notes: 'Puesto avanzado de aprendices de Brann que recogen correas y hierros intactos.' },
+    { id: 'poi_2', name: 'Faro Hundido de Brisal', type: 'ruinas', zoneId: 'z_2', dx: 82, dy: 48, notes: 'Antigua torre portuaria donde atracaban galeones antes del bloqueo del Cónclave.' },
+    { id: 'poi_3', name: 'Veta del Roble Partido', type: 'mina', zoneId: 'z_3', dx: 54, dy: 78, notes: 'Excavación donde la savia del bosque se tiñó de escoria metálica.' },
+    { id: 'poi_8', name: 'Arco de los Guardabosques', type: 'ruinas', zoneId: 'z_4', absX: 295, absY: 1837, notes: 'Antiguo arco de piedra frente a la entrada del Laberinto del Seto Maldito.' },
+    { id: 'poi_9', name: 'Muelle de los Boticarios', type: 'campamento', zoneId: 'z_5', dx: -54, dy: -78, notes: 'Refugio sobre pilotes donde los boticarios de Limoquieto filtran muestras del cieno.' },
+    { id: 'poi_4', name: 'Mina del Hierro Rojo', type: 'mina', zoneId: 'z_6', dx: 61, dy: 73, notes: 'Cantera libre disputada entre contrabandistas de Albaferro e inquisidores.' },
+    { id: 'poi_5', name: 'Santuario del Espejismo', type: 'santuario', zoneId: 'z_7', absX: 2347, absY: 78, notes: 'Obelisco solar de piedra dorada en la antesala exterior del Cañón del Pacto de Arena.' },
+    { id: 'poi_10', name: 'Vigía de la Guardia Rebelde', type: 'campamento', zoneId: 'z_8', dx: -8, dy: 95, notes: 'Avanzada de exploradores de Atalaya de Escarcha frente a las patrullas del Cónclave.' },
+    { id: 'poi_6', name: 'Portal de la Escarcha', type: 'portal', zoneId: 'z_9', dx: -10, dy: -115, notes: 'Monolito rúnico boreal usado por los exploradores de Atalaya de Escarcha como piedra de viaje.' },
+    { id: 'poi_11', name: 'Forja de los Pilares Negros', type: 'ruinas', zoneId: 'z_10', absX: 1595, absY: -970, notes: 'Puesto en ruinas junto a la boca de la Garganta de Obsidiana.' },
+    { id: 'poi_12', name: 'Huesos del Viejo Guiverno', type: 'santuario', zoneId: 'z_11', dx: -113, dy: -20, notes: 'Altar glaciar erigido sobre los restos de un dragón ancestral en el Paso del Dragón Blanco.' },
+    { id: 'poi_7', name: 'Altar de Aurelio', type: 'jefe', zoneId: 'z_12', dx: 10, dy: -115, notes: 'Forja al rojo vivo del Titán del Sol Quebrado.' }
   ];
 
   world.pois = poiSpecs.map(ps => {
@@ -518,6 +570,8 @@ function build() {
     const x = typeof ps.absX === 'number' ? Math.round(ps.absX) : Math.round(z.x + ps.dx);
     const y = typeof ps.absY === 'number' ? Math.round(ps.absY) : Math.round(z.y + ps.dy);
     assert.ok(!T.isWater(x, y), `POI ${ps.name} en agua`);
+    const dCam = distMinCamino(world, x, y);
+    assert.ok(dCam >= 55, `POI ${ps.name} demasiado cerca de camino (${Math.round(dCam)}m)`);
     for (const rec of recs) {
       const dRec = Math.hypot(x - rec.zx, y - rec.zz);
       assert.ok(dRec > rec.rMax + 15, `POI ${ps.name} dentro de recinto ${rec.zona.name} (${Math.round(dRec)} <= ${Math.round(rec.rMax)})`);
@@ -620,7 +674,7 @@ function build() {
   world.secretPlaces = [
     hacerCabanaValdris('cabana-1-clasica', {
       nombre: 'Cabaña de Troncos de Albaferro',
-      x: 1680, z: 880, zonaId: 'z_1', rotacion: 0.75,
+      x: 1832, z: 741, zonaId: 'z_1', rotacion: 0.75,
       trama: 'Las manadas desplazadas de las fundiciones clandestinas del Cónclave acechan a las puertas de Albaferro.',
       frase: 'Las bestias alteradas merodean los Prados del Yunque Roto. Despeja 100 o caza a Colmillo de Ceniza para proteger Albaferro.'
     }),
@@ -638,13 +692,13 @@ function build() {
     }),
     hacerCabanaValdris('cabana-2-posada', {
       nombre: 'Posada de la Bruma de Limoquieto',
-      x: -273, z: 1790, zonaId: 'z_5', rotacion: 1.4,
+      x: -446, z: 1445, zonaId: 'z_5', rotacion: 1.4,
       trama: 'Esta posada palustre es el único refugio seguro para quienes cruzan las Marismas del Silencio rumbo a Limoquieto.',
       frase: 'Los viajeros temen cruzar las Marismas del Silencio. Ayúdame abatiendo a las plagas del cieno y obtendrás oro, arena y equipo.'
     }),
     hacerCabanaValdris('cabana-4-vigia', {
       nombre: 'Torre Vigía de Atalaya de Escarcha',
-      x: -1839, z: 208, zonaId: 'z_8', rotacion: -2.1,
+      x: -1877, z: 137, zonaId: 'z_8', rotacion: -2.1,
       trama: 'Desde esta torre boreal la guardia rebelde vigila las columnas de bestias que cercan Atalaya de Escarcha.',
       frase: 'Las manadas salvajes rodean la Costa de las Brumas Boreales. Despeja la ruta hacia Atalaya de Escarcha.'
     }),
@@ -705,9 +759,12 @@ function build() {
     }
   ];
 
-  // Validar que ningún secreto caiga en agua, dentro de pueblos o dentro de recintos de laberinto
+  // Validar que ningún secreto caiga en agua, sobre caminos, dentro de pueblos o dentro de recintos de laberinto
   for (const s of world.secretPlaces) {
     assert.ok(!T.isWater(s.x, s.z), `Secreto ${s.id} en agua`);
+    const dCam = distMinCamino(world, s.x, s.z);
+    const minCam = (s.tipo === 'cabana' && s.modeloGLB) ? 70 : 60;
+    assert.ok(dCam >= minCam, `Secreto ${s.id} invade o roza camino (${Math.round(dCam)}m < ${minCam}m)`);
     for (const t of world.towns) {
       const dt = Math.hypot(t.x - s.x, t.y - s.z);
       assert.ok(dt >= 170, `Secreto ${s.id} demasiado cerca del pueblo ${t.name} (${Math.round(dt)}m)`);

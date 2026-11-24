@@ -26,17 +26,44 @@ function t(nombre, fn) {
   console.log('ok -', nombre);
 }
 
-t('Valdris v4 tiene escenario bloqueado, 12 zonas completas con Campeones Alfa y biomas coherentes', () => {
+t('Valdris v5 tiene escenario bloqueado, 12 zonas completas con Campeones Alfa, geometría limpia y biomas coherentes', () => {
   const w = MundoOficial.clonar();
   const T = W.getTerrain(w.seed);
 
-  assert.strictEqual(w.campaignVersion, 4);
+  function distMinCamino(world, x, y) {
+    let best = Infinity;
+    for (const r of (world.roads || [])) {
+      const pts = r.points || [];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const ax = pts[i].x, ay = pts[i].y, bx = pts[i + 1].x, by = pts[i + 1].y;
+        const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+        const tVal = l2 < 1e-6 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+        best = Math.min(best, Math.hypot(x - (ax + tVal * dx), y - (ay + tVal * dy)));
+      }
+    }
+    return best;
+  }
+
+  assert.strictEqual(w.campaignVersion, 5);
   assert.strictEqual(w.bloqueadoJuego, true);
   assert.strictEqual(w.secretPlacesFijos, true);
   assert.strictEqual(w.towns.length, 7);
   assert.strictEqual(w.roads.length, 8);
   assert.strictEqual(w.zones.length, 12);
   assert.strictEqual(w.pois.length, 12);
+
+  for (const r of w.roads) {
+    const pts = r.points || [];
+    let maxSl = 0;
+    for (let i = 0; i < pts.length; i++) {
+      assert.ok(!T.isWater(pts[i].x, pts[i].y), `Camino ${r.id} entra en el agua`);
+      if (i > 0) {
+        const seg = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+        if (seg > 0.1) maxSl = Math.max(maxSl, Math.abs(T.heightAt(pts[i].x, pts[i].y) - T.heightAt(pts[i - 1].x, pts[i - 1].y)) / seg);
+      }
+    }
+    assert.ok(maxSl <= 0.42, `Camino ${r.id} tiene pendiente excesiva (${Math.round(maxSl * 100)}%)`);
+  }
 
   // z_9 y z_11 en zonas frías/alpinas reales
   const z9 = w.zones.find(z => z.id === 'z_9');
@@ -49,6 +76,10 @@ t('Valdris v4 tiene escenario bloqueado, 12 zonas completas con Campeones Alfa y
     .filter(z => z.relieve && z.relieve.activo)
     .map(z => Relieve.obtenerRecinto(z, (x, zz) => T.heightAt(x, zz)));
   assert.strictEqual(recintos.length, 3);
+  for (const rec of recintos) {
+    const dCam = distMinCamino(w, rec.zx, rec.zz);
+    assert.ok(dCam >= rec.rMax + 35, `Laberinto ${rec.zona.name} bloquea camino (${Math.round(dCam)}m < ${Math.round(rec.rMax + 35)}m)`);
+  }
 
   for (const z of w.zones) {
     assert.ok(z.monsters.length >= 5, `${z.name} debe tener al menos 5 especies/enemigos (actual: ${z.monsters.length})`);
@@ -58,13 +89,36 @@ t('Valdris v4 tiene escenario bloqueado, 12 zonas completas con Campeones Alfa y
     const tieneLider = z.monsters.some(m => m.campeonZona || m.boss);
     assert.ok(tieneLider, `${z.name} debe tener un Campeón Alfa o Jefe`);
 
+    for (let a = 0; a < 24; a++) {
+      for (const f of [0.3, 0.65, 1.0]) {
+        const px = z.x + Math.cos(a * Math.PI / 12) * z.radius * f;
+        const py = z.y + Math.sin(a * Math.PI / 12) * z.radius * f;
+        assert.ok(!T.isWater(px, py), `Zona ${z.name} pisa el agua`);
+      }
+    }
+
     const poi = w.pois.find(p => p.zoneId === z.id);
     assert.ok(poi, `La zona ${z.name} debe tener su POI vinculado`);
     assert.ok(!T.isWater(poi.x, poi.y), `POI ${poi.name} en agua`);
+    assert.ok(distMinCamino(w, poi.x, poi.y) >= 55, `POI ${poi.name} demasiado cerca de un camino`);
     for (const rec of recintos) {
       const d = Math.hypot(poi.x - rec.zx, poi.y - rec.zz);
       assert.ok(d > rec.rMax + 15, `POI ${poi.name} dentro de recinto ${rec.zona.name}`);
     }
+  }
+
+  for (const dg of w.dungeons) {
+    assert.ok(distMinCamino(w, dg.x, dg.y) >= 60, `Mazmorra ${dg.name} demasiado cerca de camino`);
+    for (const z of w.zones) {
+      const d = Math.hypot(dg.x - z.x, dg.y - z.y);
+      assert.ok(d > z.radius + 25, `Mazmorra ${dg.name} invade la zona ${z.name}`);
+    }
+  }
+
+  for (const s of w.secretPlaces) {
+    const dCam = distMinCamino(w, s.x, s.z);
+    const minD = (s.tipo === 'cabana' && s.modeloGLB) ? 70 : 60;
+    assert.ok(dCam >= minD, `Lugar secreto ${s.id} demasiado cerca de camino (${Math.round(dCam)}m)`);
   }
 });
 
@@ -94,13 +148,19 @@ t('Lugares secretos de Valdris: 5 cabañas regionales y 5 secretos de historia f
   assert.ok(!/\bAden\b/i.test(histRaw), 'La historia de Valdris no debe mencionar Aden');
 });
 
-t('Los 12 encargos de zona en Valdris tienen diálogos y NPCs propios de cada comarca', () => {
+t('Los 12 encargos de zona en Valdris tienen diálogos, NPCs y comarcas coherentes', () => {
   const w = MundoOficial.clonar();
   const encargos = MisionZona.encargosDeMundo(w.zones, w.towns);
   assert.strictEqual(encargos.length, 12);
   const nombresNpc = new Set();
+  const esperadoPueblo = {
+    z_1: 't_1', z_2: 't_2', z_3: 't_3', z_4: 't_3',
+    z_5: 't_4', z_6: 't_1', z_7: 't_5', z_8: 't_6',
+    z_9: 't_6', z_10: 't_5', z_11: 't_7', z_12: 't_7'
+  };
   for (const e of encargos) {
     assert.ok(!/ovejas|gallinas|molino/i.test(e.npc.frase + e.titulo), `Encargo genérico colado en ${e.zona}: ${e.titulo}`);
+    assert.strictEqual(e.pueblo, esperadoPueblo[e.zona], `Pueblo incoherente en ${e.zona}: ${e.puebloName || e.pueblo}`);
     nombresNpc.add(e.npc.nombre);
   }
   assert.strictEqual(nombresNpc.size, 12, 'Cada una de las 12 zonas debe tener un NPC propio');
