@@ -850,7 +850,7 @@
       {
         id: 'c8', nivel: (z7 && z7.levelMin) || 11, sabio: 'Hermana Ysolde', npc: 'guru-3',
         titulo: `El despertar de la Nova en ${nZ(6)}`,
-        encargo: `Ysolde rasga sus votos frente a ti: «La energía encerrada en {lugar}.${labMsg(z7)}pertenece a los reyes antiguos, no al cónclave. Derrota a {n} centinelas allí para liberar la Explosión Nova (E)».`,
+        encargo: `Ysolde rasga sus votos frente a ti: «La energía encerrada en {lugar}${z7 && z7.relieve && z7.relieve.activo !== false ? ' (adéntrate en el laberinto natural)' : ''} pertenece a los reyes antiguos, no al cónclave. Derrota a {n} centinelas allí para liberar la Explosión Nova (E)».`,
         texto: `Una onda expansiva dorada recorre {lugar}. Has desbloqueado la Explosión Nova (E) y confirmado que las reliquias de ${nombreMundo} responden a los libres, no a los tiranos.`,
         mision: { tipo: 'matar', cantidad: 25, nivel: (z7 && z7.levelMin) || 11, zona: idZ(6) },
         recompensa: { puntos: 3, desbloquea: 'nova' }
@@ -1391,7 +1391,16 @@
 
   function epilogoDe(heroeEst, world) {
     if (heroeEst && heroeEst.finalId && EPILOGOS_FINALES[heroeEst.finalId]) {
-      return EPILOGOS_FINALES[heroeEst.finalId];
+      const baseEp = EPILOGOS_FINALES[heroeEst.finalId];
+      if (world && world.campaignId === 'valdris-sol-quebrado-v1') {
+        const nomIni = (puebloInicial(world) && puebloInicial(world).name) || 'Albaferro';
+        return Object.assign({}, baseEp, {
+          texto: baseEp.texto
+            .replace(/la plaza inicial/g, 'la plaza de ' + nomIni)
+            .replace(/\bAden\b/g, 'Valdris')
+        });
+      }
+      return baseEp;
     }
     const acto = actoActual(heroeEst && heroeEst.principal ? heroeEst.principal : { paso: 0 }, world);
     return {

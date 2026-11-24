@@ -31,8 +31,8 @@ t('mundos/valdris.mundo.json y js/mundo-campana.js coinciden y pasan RPGWorld.va
   assert.strictEqual(clon.roads.length, 8);
   assert.strictEqual(clon.zones.length, 12);
   assert.strictEqual(clon.dungeons.length, 3);
-  assert.strictEqual(clon.pois.length, 7);
-  assert.ok(Array.isArray(clon.secretPlaces) && clon.secretPlaces.length >= 8);
+  assert.strictEqual(clon.pois.length, 12);
+  assert.ok(Array.isArray(clon.secretPlaces) && clon.secretPlaces.length === 10);
 });
 
 t('todos los pueblos, caminos, zonas, mazmorras y POIs de Valdris están en tierra firme', () => {
@@ -83,7 +83,7 @@ t('la crónica oficial de Valdris resuelve 16 capítulos de principio a fin sin 
   const w = MundoOficial.clonar();
   assert.ok(w.historia && w.historia.titulo.includes('Valdris'));
   assert.strictEqual(w.historia.tituloFinal, 'Libertadores de Valdris');
-  assert.ok((w.campaignVersion || 1) >= 3, 'campaignVersion debe ser >= 3');
+  assert.ok((w.campaignVersion || 1) >= 4, 'campaignVersion debe ser >= 4');
   const capsHist = w.historia.capitulos;
   assert.deepStrictEqual(capsHist.slice(0, 5).map(c => c.recompensa.forjarPieza), ['pants', 'boots', 'gloves', 'torso', 'helmet']);
   assert.strictEqual(capsHist[5].recompensa.templarArmadura, true);

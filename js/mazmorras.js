@@ -1240,17 +1240,18 @@
     }
   }
 
-  // Contexto narrativo de cada Mazmorra Ancestral según el avance de la Crónica de Aden
-  function contextoNarrativoMazmorra(dungeon, principal) {
+  // Contexto narrativo de cada Mazmorra Ancestral según el avance de la Crónica del reino
+  function contextoNarrativoMazmorra(dungeon, principal, world) {
     const paso = principal && typeof principal.paso === 'number' ? principal.paso : 0;
     const nombre = (dungeon && dungeon.name) || 'Mazmorra Ancestral';
     const bossNombre = (dungeon && dungeon.boss && dungeon.boss.name) || 'Señor del Trono Caído';
+    const tituloFinal = (world && world.historia && world.historia.tituloFinal) || (world && world.campaignId === 'valdris-sol-quebrado-v1' ? 'Libertadores de Valdris' : 'Campeones de Aden');
     if (paso >= 16) {
       return {
         etiqueta: 'Epílogo · Purga de las Criptas Reales',
         titulo: `${nombre} · Eco Final de los Siete Reinos`,
         relato: `Aunque el juicio de la plaza depuso a los Sabios conspiradores, ${bossNombre} y sus guardianes de élite aún custodian en estas galerías reservas selladas de acero y arena de forja.`,
-        recompensaLore: 'Conquista esta bóveda ancestral para obtener arena de forja y reliquias dignas de los Campeones de Aden.'
+        recompensaLore: `Conquista esta bóveda ancestral para obtener arena de forja y reliquias dignas de los ${tituloFinal}.`
       };
     }
     if (paso >= 11) {

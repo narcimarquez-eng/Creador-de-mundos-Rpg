@@ -44,7 +44,9 @@
       cristalSolar: new THREE.MeshStandardMaterial({ color: 0xfde047, emissive: 0xf59e0b, emissiveIntensity: 2.4, roughness: 0.15, metalness: 0.4 }),
       cristalHielo: new THREE.MeshStandardMaterial({ color: 0xbae6fd, emissive: 0x38bdf8, emissiveIntensity: 2.6, roughness: 0.12, metalness: 0.5 }),
       cristalMina: new THREE.MeshStandardMaterial({ color: 0x6ee7b7, emissive: 0x10b981, emissiveIntensity: 1.9, roughness: 0.2, metalness: 0.35 }),
+      cristalPantano: new THREE.MeshStandardMaterial({ color: 0x5eead4, emissive: 0x14b8a6, emissiveIntensity: 1.8, roughness: 0.2, metalness: 0.3 }),
       junco: new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.82 }),
+      musgo: new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.88 }),
       humo: new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 1.0, transparent: true, opacity: 0.36, depthWrite: false })
     };
     if (typeof window !== 'undefined' && window.PbrLib) {
@@ -111,6 +113,13 @@
       addRel(mastil, 2.8, 2.1, 2.0);
       const band = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.72, 0.06), mats.estandarte);
       addRel(band, 3.35, 3.6, 2.0);
+      // Caldero de campaña y toldo de boticario si está en pantano/costa
+      const caldero = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.34, 0.65, 8), mats.hierro);
+      addRel(caldero, -1.6, 0.32, 0.9);
+      if ((poi.name || '').toLowerCase().includes('muelle') || (poi.name || '').toLowerCase().includes('boticar')) {
+        const tarima = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.24, 2.8), mats.madera);
+        addRel(tarima, -0.4, 0.12, 3.6);
+      }
     } else if (tipo === 'mina') {
       // Pórtico entibado + raíles + vagoneta + vetas minerales
       [-1.7, 1.7].forEach(ox => {
@@ -154,6 +163,21 @@
       const silar = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.8, 1.2), mats.piedraOscura);
       silar.rotation.y = 0.5;
       addRel(silar, 2.8, 0.38, 3.1);
+      const esFaro = (poi.name || '').toLowerCase().includes('faro');
+      const esVolcan = (poi.name || '').toLowerCase().includes('pilares') || (poi.name || '').toLowerCase().includes('obsidiana');
+      if (esFaro) {
+        const fanal = new THREE.Mesh(new THREE.OctahedronGeometry(0.68, 0), mats.cristalSolar);
+        addRel(fanal, 0.15, 7.85, -0.1);
+        animados.push({ tipo: 'cristal', mesh: fanal, baseY: fanal.position.y, phase: px });
+      } else if (esVolcan) {
+        [-3.0, 3.0].forEach((bx, bi) => {
+          const brasero = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.35, 1.1, 6), mats.hierro);
+          addRel(brasero, bx, 0.55, 2.6);
+          const flama = new THREE.Mesh(new THREE.OctahedronGeometry(0.36, 0), mats.brasa);
+          addRel(flama, bx, 1.35, 2.6);
+          animados.push({ tipo: 'pulso', mesh: flama, baseY: flama.position.y, phase: bi + px });
+        });
+      }
     } else if (tipo === 'santuario' || tipo === 'portal') {
       const esPortal = tipo === 'portal';
       const matC = esPortal ? mats.cristalHielo : mats.cristalSolar;
@@ -195,8 +219,162 @@
         addRel(arma, Math.cos(a) * 3.4, 1.2, Math.sin(a) * 3.4);
       }
     }
-
     return grp;
+  }
+
+  function construirDecoradoZonasCaza(THREE, world, mats, altura, esAgua, biomaAt, estaLibre, animados) {
+    const zonas = (world && Array.isArray(world.zones)) ? world.zones : [];
+    const lista = [];
+    zonas.forEach((z, zi) => {
+      if (!z || (z.relieve && z.relieve.activo)) return;
+      const zx = Number(z.x) || 0;
+      const zz = Number(z.y) || 0;
+      const rad = Math.max(40, Number(z.radius) || 160);
+      const bio = (z.biome || biomaAt(zx, zz) || 'pradera').toLowerCase();
+      const grp = new THREE.Group();
+      grp.name = 'DecoradoZona_' + (z.id || zi);
+      const py0 = altura(zx, zz);
+      grp.position.set(zx, py0, zz);
+
+      const addZ = (mesh, rx, ryOffset, rz) => {
+        const wx = zx + rx, wz = zz + rz;
+        if (esAgua(wx, wz)) return null;
+        mesh.position.set(rx, altura(wx, wz) - py0 + ryOffset, rz);
+        grp.add(mesh);
+        return mesh;
+      };
+
+      // Hito de entrada hacia el camino (orientado desde el primer tramo cercano o ángulo fijo)
+      const esEliteOJefe = z.type === 'elite' || z.type === 'jefe';
+      const angEntrada = hashNum(zx, zz) * Math.PI * 2;
+      const rEnt = Math.min(rad * 0.72, 115);
+      const ex = Math.cos(angEntrada) * rEnt;
+      const ez = Math.sin(angEntrada) * rEnt;
+      if (!esAgua(zx + ex, zz + ez) && estaLibre(zx + ex, zz + ez)) {
+        const matPilar = (bio === 'desierto') ? mats.arenisca : (bio === 'montana' || bio === 'nieve' ? mats.piedraOscura : mats.piedra);
+        const hito = new THREE.Mesh(new THREE.BoxGeometry(0.95, 3.6, 0.95), matPilar);
+        hito.castShadow = true;
+        if (addZ(hito, ex, 1.8, ez)) {
+          const matGema = z.type === 'jefe' ? mats.brasa : (esEliteOJefe ? mats.estandarte : mats.cristalMina);
+          const corona = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), matGema);
+          if (addZ(corona, ex, 4.05, ez)) {
+            animados.push({ tipo: 'cristal', mesh: corona, baseY: corona.position.y, phase: zi * 1.1 });
+          }
+        }
+      }
+
+      // 5 viñetas escénicas por bioma distribuidas por la zona
+      for (let k = 0; k < 5; k++) {
+        const rH = hashNum(zx + k * 31, zz + k * 17);
+        const ang = (k / 5) * Math.PI * 2 + rH * 0.7;
+        const dist = rad * (0.30 + rH * 0.48);
+        const rx = Math.cos(ang) * dist;
+        const rz = Math.sin(ang) * dist;
+        const wx = zx + rx, wz = zz + rz;
+        if (esAgua(wx, wz) || !estaLibre(wx, wz)) continue;
+
+        if (bio === 'nieve' || bio === 'taiga') {
+          const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.75 + rH * 0.55, 0), mats.cristalHielo);
+          cr.scale.set(0.7, 1.9, 0.7);
+          addZ(cr, rx, 1.1, rz);
+        } else if (bio === 'montana') {
+          const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.68, 3.1 + rH, 6), mats.piedraOscura);
+          addZ(pil, rx, 1.5, rz);
+          const br = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), mats.brasa);
+          if (addZ(br, rx, 3.35, rz)) animados.push({ tipo: 'pulso', mesh: br, baseY: br.position.y, phase: k + zx });
+        } else if (bio === 'desierto') {
+          const ob = new THREE.Mesh(new THREE.BoxGeometry(0.85, 3.2 + rH * 1.2, 0.85), mats.arenisca);
+          ob.rotation.y = rH * 3.14;
+          addZ(ob, rx, 1.5, rz);
+        } else if (bio === 'pantano') {
+          const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 2.2, 5), mats.maderaOscura);
+          addZ(poste, rx, 1.1, rz);
+          const luz = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), mats.cristalPantano);
+          if (addZ(luz, rx, 2.35, rz)) animados.push({ tipo: 'pulso', mesh: luz, baseY: luz.position.y, phase: k * 0.9 });
+        } else if (bio === 'bosque') {
+          const roca = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95 + rH * 0.5, 0), mats.musgo);
+          addZ(roca, rx, 0.55, rz);
+        } else {
+          const menhir = new THREE.Mesh(new THREE.BoxGeometry(0.65, 2.1 + rH * 0.9, 0.45), mats.piedra);
+          menhir.rotation.y = rH * 3.14;
+          addZ(menhir, rx, 1.0, rz);
+        }
+      }
+
+      lista.push({ grupo: grp, x: zx, z: zz, radio: rad + 160 });
+    });
+    return lista;
+  }
+
+  function crearParticulasRegionales(THREE, biomaAt, altura) {
+    if (!THREE || !THREE.Points || !THREE.PointsMaterial || !THREE.BufferAttribute) return null;
+    const count = 96;
+    const pos = new Float32Array(count * 3);
+    const vel = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (hashNum(i, 11) - 0.5) * 44;
+      pos[i * 3 + 1] = hashNum(i, 23) * 8 + 0.6;
+      pos[i * 3 + 2] = (hashNum(i, 37) - 0.5) * 44;
+      vel[i * 3] = (hashNum(i, 41) - 0.5) * 0.7;
+      vel[i * 3 + 1] = 0.25 + hashNum(i, 53) * 0.55;
+      vel[i * 3 + 2] = (hashNum(i, 67) - 0.5) * 0.7;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ color: 0xfef08a, size: 0.24, transparent: true, opacity: 0.72, depthWrite: false });
+    const pts = new THREE.Points(geo, mat);
+    pts.name = 'ParticulasRegionales';
+    let lastBio = '';
+    let inicializado = false;
+    return {
+      mesh: pts,
+      actualizar(dt, tSec, px, pz, timeMode) {
+        if (typeof px !== 'number' || typeof pz !== 'number') return;
+        const yBase = altura ? altura(px, pz) : 0;
+        if (!inicializado) {
+          inicializado = true;
+          for (let i = 0; i < count; i++) {
+            pos[i * 3] = px + (hashNum(i, 11) - 0.5) * 44;
+            pos[i * 3 + 1] = yBase + 0.6 + hashNum(i, 23) * 8.0;
+            pos[i * 3 + 2] = pz + (hashNum(i, 37) - 0.5) * 44;
+          }
+        }
+        const b = String(biomaAt(px, pz) || 'pradera').toLowerCase();
+        const esNoche = timeMode === 'night';
+        const key = b + ':' + (timeMode || 'day');
+        if (key !== lastBio) {
+          lastBio = key;
+          if (b === 'nieve' || b === 'taiga') {
+            mat.color.setHex(0xe0f2fe); mat.opacity = 0.78;
+          } else if (b === 'montana') {
+            mat.color.setHex(0xfb923c); mat.opacity = 0.85;
+          } else if (b === 'pantano') {
+            mat.color.setHex(0x5eead4); mat.opacity = esNoche ? 0.85 : 0.62;
+          } else if (b === 'desierto') {
+            mat.color.setHex(0xfde68a); mat.opacity = 0.58;
+          } else {
+            mat.color.setHex(esNoche ? 0xfacc15 : 0xfef9c3); mat.opacity = esNoche ? 0.86 : 0.52;
+          }
+        }
+        const cayendo = (b === 'nieve' || b === 'taiga');
+        const subiendo = (b === 'montana');
+        const step = Math.min(0.05, Math.max(0.004, dt || 0.016));
+        const yMin = yBase + 0.4;
+        const yMax = yBase + 9.2;
+        for (let i = 0; i < count; i++) {
+          const i3 = i * 3;
+          let x = pos[i3] + (vel[i3] + Math.sin(tSec + i) * 0.18) * step;
+          let y = pos[i3 + 1] + (cayendo ? -vel[i3 + 1] * 1.4 : (subiendo ? vel[i3 + 1] * 1.3 : Math.sin(tSec * 1.5 + i) * 0.25)) * step;
+          let z = pos[i3 + 2] + (vel[i3 + 2] + Math.cos(tSec + i) * 0.18) * step;
+          if (y < yMin) y = yBase + 8.6;
+          if (y > yMax) y = yBase + 0.8;
+          if (Math.abs(x - px) > 26) x = px + ((x > px ? -1 : 1) * 22);
+          if (Math.abs(z - pz) > 26) z = pz + ((z > pz ? -1 : 1) * 22);
+          pos[i3] = x; pos[i3 + 1] = y; pos[i3 + 2] = z;
+        }
+        if (geo.attributes && geo.attributes.position) geo.attributes.position.needsUpdate = true;
+      }
+    };
   }
 
   function generarDecoradoMundo(THREE, opciones) {
@@ -214,6 +392,7 @@
     const estructuras = [];
 
     // 1. Dioramas para todos los POIs del mundo
+    let poisCount = 0;
     (world.pois || []).forEach(poi => {
       const px = Number(poi.x) || 0;
       const pz = poi.y !== undefined ? Number(poi.y) : Number(poi.z) || 0;
@@ -221,7 +400,18 @@
       const d = construirDioramaPOI(THREE, poi, mats, altura, animados);
       grupo.add(d);
       estructuras.push({ grupo: d, x: px, z: pz, radio: 220 });
+      poisCount++;
     });
+
+    // 1b. Ambientación temática en zonas de caza
+    const zonasDec = construirDecoradoZonasCaza(THREE, world, mats, altura, esAgua, biomaAt, estaLibre, animados);
+    zonasDec.forEach(zd => {
+      grupo.add(zd.grupo);
+      estructuras.push(zd);
+    });
+
+    const particulas = crearParticulasRegionales(THREE, biomaAt, altura);
+    if (particulas && particulas.mesh) grupo.add(particulas.mesh);
 
     // 2. Postes señalizadores en encrucijadas e inicios de caminos + hito de peligro en zonas élite/jefe
     const postesPos = [];
@@ -321,7 +511,8 @@
       grupo.add(iJunco);
     }
 
-    function actualizar(dt, tSec) {
+    function actualizar(dt, tSec, px, pz, timeMode) {
+      if (particulas) particulas.actualizar(dt, tSec, px, pz, timeMode);
       for (let i = 0; i < animados.length; i++) {
         const a = animados[i];
         if (!a.mesh) continue;
@@ -349,7 +540,8 @@
       estructuras,
       postes: postesPos.length,
       juncos: juncosPos.length,
-      poisCount: estructuras.length,
+      poisCount,
+      zonasDecoradas: zonasDec.length,
       actualizar
     };
   }

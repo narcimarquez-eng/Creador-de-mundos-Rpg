@@ -67,7 +67,7 @@
       'Caminar a tu lado me hace sentir seguro. ¿Seguimos hacia nuestro objetivo?'
     ],
     charla_inicial: [
-      '¡Por fin en marcha! No seremos más simples aldeanos: salvaremos las comarcas de Aden.',
+      '¡Por fin en marcha! No seremos más simples aldeanos: salvaremos las comarcas de este reino.',
       'Los sabios nos observan desde la muralla. Demostremos de qué pasta estamos hechos.',
       'Mi espada corta y mis dopes marciales están listos. ¡Dime a dónde vamos y te seguiré!'
     ],
@@ -111,13 +111,14 @@
   }
 
   // Genera un consejo contextual de guía donde el acompañante te dice dónde ir, te advierte de los monstruos y reacciona al Acto activo y a tu profesión
-  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo, principal, clase = null) {
+  function darConsejoGuia(acompanante, destino, heroePos, heroeInfo, principal, clase = null, world = null) {
     if (!acompanante) return '';
     const nomComp = acompanante.nombre || 'Rowan';
     const paso = principal && typeof principal.paso === 'number' ? principal.paso : null;
+    const tituloCamp = (world && world.historia && world.historia.tituloFinal) || (world && world.campaignId === 'valdris-sol-quebrado-v1' ? 'Libertadores de Valdris' : 'Campeones de Aden');
     if (!destino) {
       if (paso !== null && paso >= 16) {
-        return `${nomComp}: «¡Somos Campeones de Aden! Si aún buscas acero y gloria, limpiemos las 5 cabañas fronterizas y las Mazmorras Ancestrales.»`;
+        return `${nomComp}: «¡Somos ${tituloCamp}! Si aún buscas acero y gloria, limpiemos las 5 cabañas fronterizas y las Mazmorras Ancestrales.»`;
       }
       return `${nomComp}: «Hemos cumplido con los objetivos por ahora. ¡Vayamos a la plaza del pueblo inicial a hablar con los sabios para nuevas órdenes!»`;
     }
@@ -2420,7 +2421,7 @@
         acompanante.skills.ataque.timer = acompanante.skills.ataque.cooldown;
         acompanante.buffs.ataqueTimer = 10;
         aplicarDopeActivo(acompanante, { id: 'ataque', nombre: 'Grito de Aliento', icono: '⚔️', desc: '+25% Daño de Ataque', duracion: 10, efecto: 'buff', valor: 25 });
-        decirFrase(acompanante, '⚔️ ¡Por la gloria de Aden! ¡Aplastémoslos a todos! (+25% daño)', 4.0);
+        decirFrase(acompanante, '⚔️ ¡Por el reino libre! ¡Aplastémoslos a todos! (+25% daño)', 4.0);
         if (typeof alLanzarSkillFn === 'function') {
           alLanzarSkillFn({ tipo: 'buff_ataque', nombre: 'Grito de Aliento', duracion: 10, valor: 0.25 });
         }

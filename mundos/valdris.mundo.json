@@ -6,8 +6,8 @@
   "seed": 271828,
   "rngState": 443490413,
   "nextId": 108,
-  "created": "2026-11-22T21:16:02.883Z",
-  "updated": "2026-11-22T21:16:02.883Z",
+  "created": "2026-11-24T10:55:30.580Z",
+  "updated": "2026-11-24T10:55:30.580Z",
   "settings": {
     "townCount": 7,
     "spacing": 1400,
@@ -85,133 +85,256 @@
           }
         ],
         "rio": {
-          "clave": "v2|271828|1850|950|29|4|3.5",
+          "clave": "v3|271828|1850|950|29|4|3.5",
           "mar": false,
+          "lado": -1,
+          "idxIn": 10,
+          "idxOut": 31,
           "pts": [
             {
-              "x": 48.9,
-              "z": 463,
-              "l": -0.65
+              "x": 73.1,
+              "z": 339.7,
+              "l": 23.94
             },
             {
-              "x": 46.7,
-              "z": 423,
-              "l": -0.65
+              "x": 67.9,
+              "z": 322.4,
+              "l": 23.94
             },
             {
-              "x": 51.3,
-              "z": 383,
-              "l": -0.65
+              "x": 62.8,
+              "z": 305.2,
+              "l": 23.12
             },
             {
-              "x": 53.2,
-              "z": 343,
-              "l": -0.65
+              "x": 57.8,
+              "z": 287.9,
+              "l": 21.56
             },
             {
-              "x": 48.5,
-              "z": 303,
-              "l": -0.65
+              "x": 53.7,
+              "z": 270.4,
+              "l": 19.48
             },
             {
-              "x": 46.9,
-              "z": 263,
-              "l": -0.65
+              "x": 50.8,
+              "z": 252.7,
+              "l": 17.24
             },
             {
-              "x": 51.7,
-              "z": 223,
-              "l": -0.65
+              "x": 49.3,
+              "z": 234.9,
+              "l": 14.8
             },
             {
-              "x": 53,
-              "z": 183,
-              "l": -0.65
+              "x": 49.2,
+              "z": 216.9,
+              "l": 12.02
             },
             {
-              "x": 48.1,
-              "z": 143,
-              "l": -0.65
+              "x": 49.6,
+              "z": 199,
+              "l": 9.2
             },
             {
-              "x": 47.1,
-              "z": 103,
-              "l": -0.65
+              "x": 50.2,
+              "z": 181,
+              "l": 6.66
             },
             {
-              "x": 52,
-              "z": 63,
-              "l": -0.65
+              "x": 50.8,
+              "z": 163,
+              "l": 4.67
             },
             {
-              "x": 52.8,
-              "z": 23,
-              "l": -0.65
+              "x": 48.7,
+              "z": 147.5,
+              "l": 3.47
             },
             {
-              "x": 47.8,
-              "z": -17,
-              "l": -0.65
+              "x": 47,
+              "z": 132,
+              "l": 2.72
+            },
+            {
+              "x": 46.5,
+              "z": 116.4,
+              "l": 2.15
             },
             {
               "x": 47.3,
-              "z": -57,
-              "l": -0.65
+              "z": 100.9,
+              "l": 1.56
             },
             {
-              "x": 52.4,
-              "z": -97,
-              "l": -0.65
+              "x": 49.1,
+              "z": 85.4,
+              "l": 0.71
             },
             {
-              "x": 52.5,
-              "z": -137,
-              "l": -0.65
+              "x": 51.2,
+              "z": 69.9,
+              "l": -0.6
+            },
+            {
+              "x": 52.9,
+              "z": 54.3,
+              "l": -2.42
+            },
+            {
+              "x": 53.5,
+              "z": 38.8,
+              "l": -4.52
+            },
+            {
+              "x": 52.8,
+              "z": 23.3,
+              "l": -6.58
+            },
+            {
+              "x": 51.1,
+              "z": 7.8,
+              "l": -8.46
+            },
+            {
+              "x": 48.9,
+              "z": -7.8,
+              "l": -10.42
+            },
+            {
+              "x": 47.2,
+              "z": -23.3,
+              "l": -12.52
+            },
+            {
+              "x": 46.5,
+              "z": -38.8,
+              "l": -14.67
+            },
+            {
+              "x": 47.1,
+              "z": -54.3,
+              "l": -16.66
+            },
+            {
+              "x": 48.8,
+              "z": -69.9,
+              "l": -18.48
+            },
+            {
+              "x": 50.9,
+              "z": -85.4,
+              "l": -20.73
+            },
+            {
+              "x": 52.7,
+              "z": -100.9,
+              "l": -23.5
+            },
+            {
+              "x": 53.5,
+              "z": -116.4,
+              "l": -25.99
+            },
+            {
+              "x": 53,
+              "z": -132,
+              "l": -27.14
+            },
+            {
+              "x": 51.3,
+              "z": -147.5,
+              "l": -27.14
             },
             {
               "x": 49.2,
               "z": -163,
-              "l": -0.65
+              "l": -27.14
             },
             {
-              "x": 87.7,
-              "z": -152.9,
-              "l": -29.78
+              "x": 67.2,
+              "z": -162.7,
+              "l": -27.23
             },
             {
-              "x": 126.3,
-              "z": -148.2,
-              "l": -35.04
+              "x": 85.2,
+              "z": -162.4,
+              "l": -29.81
             },
             {
-              "x": 164.4,
-              "z": -152.7,
-              "l": -40.46
+              "x": 103,
+              "z": -163.6,
+              "l": -32.22
             },
             {
-              "x": 202.1,
-              "z": -161.5,
-              "l": -47.98
+              "x": 120.8,
+              "z": -165.1,
+              "l": -34.44
             },
             {
-              "x": 241,
-              "z": -168.2,
-              "l": -57.13
+              "x": 138.7,
+              "z": -165.9,
+              "l": -36.81
             },
             {
-              "x": 280.1,
-              "z": -174.5,
-              "l": -65.77
+              "x": 156.4,
+              "z": -167.5,
+              "l": -39.61
             },
             {
-              "x": 318.2,
-              "z": -184.1,
-              "l": -71.7
+              "x": 174,
+              "z": -170.7,
+              "l": -42.89
             },
             {
-              "x": 355,
-              "z": -197.8,
-              "l": -73.41
+              "x": 191.5,
+              "z": -174.7,
+              "l": -46.58
+            },
+            {
+              "x": 209,
+              "z": -178.9,
+              "l": -50.57
+            },
+            {
+              "x": 226.5,
+              "z": -182.9,
+              "l": -54.7
+            },
+            {
+              "x": 244.2,
+              "z": -185.7,
+              "l": -58.76
+            },
+            {
+              "x": 262,
+              "z": -186.6,
+              "l": -62.61
+            },
+            {
+              "x": 280,
+              "z": -186.7,
+              "l": -66.09
+            },
+            {
+              "x": 297.9,
+              "z": -186.8,
+              "l": -69.06
+            },
+            {
+              "x": 315.7,
+              "z": -188.2,
+              "l": -71.49
+            },
+            {
+              "x": 333.3,
+              "z": -191.3,
+              "l": -73.05
+            },
+            {
+              "x": 350.9,
+              "z": -195,
+              "l": -73.49
             }
           ]
         }
@@ -276,107 +399,165 @@
           }
         ],
         "rio": {
-          "clave": "v2|271828|300|600|5|4|2.2",
+          "clave": "v3|271828|300|600|5|4|2.2",
           "mar": true,
+          "lado": -1,
+          "idxIn": 4,
+          "idxOut": 25,
           "pts": [
             {
-              "x": 49.3,
-              "z": 463,
-              "l": -0.65
+              "x": 22.1,
+              "z": 227.6,
+              "l": 29.54
             },
             {
-              "x": 47.9,
-              "z": 423,
-              "l": -0.65
+              "x": 26,
+              "z": 210.3,
+              "l": 29.12
             },
             {
-              "x": 50.8,
-              "z": 383,
-              "l": -0.65
+              "x": 32.7,
+              "z": 193.9,
+              "l": 28.05
             },
             {
-              "x": 52,
-              "z": 343,
-              "l": -0.65
+              "x": 41.3,
+              "z": 178.3,
+              "l": 26.42
             },
             {
-              "x": 49.1,
-              "z": 303,
-              "l": -0.65
+              "x": 50.5,
+              "z": 163,
+              "l": 21.89
             },
             {
-              "x": 48,
-              "z": 263,
-              "l": -0.65
+              "x": 49.2,
+              "z": 147.5,
+              "l": 20.39
             },
             {
-              "x": 51.1,
-              "z": 223,
-              "l": -0.65
+              "x": 48.1,
+              "z": 132,
+              "l": 17.33
             },
             {
-              "x": 51.9,
-              "z": 183,
-              "l": -0.65
-            },
-            {
-              "x": 48.8,
-              "z": 143,
-              "l": -0.65
-            },
-            {
-              "x": 48.2,
-              "z": 103,
-              "l": -0.65
-            },
-            {
-              "x": 51.3,
-              "z": 63,
-              "l": -0.65
-            },
-            {
-              "x": 51.8,
-              "z": 23,
-              "l": -0.65
-            },
-            {
-              "x": 48.6,
-              "z": -17,
-              "l": -0.65
+              "x": 47.8,
+              "z": 116.4,
+              "l": 13.95
             },
             {
               "x": 48.3,
-              "z": -57,
-              "l": -0.65
+              "z": 100.9,
+              "l": 10.86
             },
             {
-              "x": 51.5,
-              "z": -97,
-              "l": -0.65
+              "x": 49.4,
+              "z": 85.4,
+              "l": 8.2
             },
             {
-              "x": 51.6,
-              "z": -137,
-              "l": -0.65
+              "x": 50.7,
+              "z": 69.9,
+              "l": 6.04
+            },
+            {
+              "x": 51.8,
+              "z": 54.3,
+              "l": 4.37
+            },
+            {
+              "x": 52.2,
+              "z": 38.8,
+              "l": 3.09
+            },
+            {
+              "x": 51.8,
+              "z": 23.3,
+              "l": 1.9
+            },
+            {
+              "x": 50.7,
+              "z": 7.8,
+              "l": 0.45
+            },
+            {
+              "x": 49.3,
+              "z": -7.8,
+              "l": -0.84
+            },
+            {
+              "x": 48.2,
+              "z": -23.3,
+              "l": -2.23
+            },
+            {
+              "x": 47.8,
+              "z": -38.8,
+              "l": -3.41
+            },
+            {
+              "x": 48.2,
+              "z": -54.3,
+              "l": -4.37
+            },
+            {
+              "x": 49.3,
+              "z": -69.9,
+              "l": -5.25
+            },
+            {
+              "x": 50.6,
+              "z": -85.4,
+              "l": -6.82
+            },
+            {
+              "x": 51.7,
+              "z": -100.9,
+              "l": -8.85
+            },
+            {
+              "x": 52.2,
+              "z": -116.4,
+              "l": -11.29
+            },
+            {
+              "x": 51.9,
+              "z": -132,
+              "l": -13.95
+            },
+            {
+              "x": 50.8,
+              "z": -147.5,
+              "l": -17.22
             },
             {
               "x": 49.5,
               "z": -163,
-              "l": -0.65
+              "l": -17.22
             },
             {
-              "x": 85.2,
-              "z": -180.5,
-              "l": -24.44
+              "x": 64.4,
+              "z": -173.1,
+              "l": -19.91
             },
             {
-              "x": 122.2,
-              "z": -194.1,
+              "x": 79.9,
+              "z": -182,
+              "l": -23.66
+            },
+            {
+              "x": 96.2,
+              "z": -189.2,
+              "l": -27.16
+            },
+            {
+              "x": 112.9,
+              "z": -195.8,
               "l": -32.42
             },
             {
-              "x": 160.3,
-              "z": -203.4,
+              "x": 129.7,
+              "z": -202.1,
               "l": -32.42
             }
           ]
@@ -441,93 +622,176 @@
           }
         ],
         "rio": {
-          "clave": "v2|271828|1150|1850|42|3|7.5",
+          "clave": "v3|271828|1150|1850|42|3|7.5",
           "mar": false,
+          "lado": 1,
+          "idxIn": 10,
+          "idxOut": 29,
           "pts": [
             {
-              "x": 47.8,
-              "z": -449,
-              "l": -0.65
+              "x": 84.6,
+              "z": -308.8,
+              "l": 30.14
             },
             {
-              "x": 46.6,
-              "z": -409,
-              "l": -0.65
+              "x": 70.9,
+              "z": -297.1,
+              "l": 30.14
+            },
+            {
+              "x": 58.3,
+              "z": -285,
+              "l": 29.81
+            },
+            {
+              "x": 50.1,
+              "z": -271.2,
+              "l": 29.6
+            },
+            {
+              "x": 48,
+              "z": -255,
+              "l": 29.09
+            },
+            {
+              "x": 48.7,
+              "z": -237.7,
+              "l": 27.75
+            },
+            {
+              "x": 50.3,
+              "z": -220,
+              "l": 25.55
+            },
+            {
+              "x": 51.1,
+              "z": -202.2,
+              "l": 22.66
+            },
+            {
+              "x": 50.1,
+              "z": -184.4,
+              "l": 19.47
+            },
+            {
+              "x": 47.5,
+              "z": -166.7,
+              "l": 16.13
+            },
+            {
+              "x": 44.4,
+              "z": -149,
+              "l": 11.34
+            },
+            {
+              "x": 48.1,
+              "z": -133.3,
+              "l": 10.39
+            },
+            {
+              "x": 49.5,
+              "z": -117.6,
+              "l": 9.09
+            },
+            {
+              "x": 48,
+              "z": -101.9,
+              "l": 7.98
+            },
+            {
+              "x": 44.3,
+              "z": -86.3,
+              "l": 7.01
+            },
+            {
+              "x": 39.7,
+              "z": -70.6,
+              "l": 6.18
             },
             {
               "x": 35.9,
-              "z": -369,
-              "l": -0.65
+              "z": -54.9,
+              "l": 5.42
             },
             {
-              "x": 37.8,
-              "z": -329,
-              "l": -0.65
+              "x": 34.5,
+              "z": -39.2,
+              "l": 4.49
             },
             {
-              "x": 48.3,
-              "z": -289,
-              "l": -0.65
+              "x": 35.9,
+              "z": -23.5,
+              "l": 0.85
             },
             {
-              "x": 45.8,
-              "z": -249,
-              "l": -0.65
+              "x": 39.7,
+              "z": -7.8,
+              "l": 0.17
             },
             {
-              "x": 35.4,
-              "z": -209,
-              "l": -0.65
+              "x": 44.3,
+              "z": 7.8,
+              "l": -0.75
             },
             {
-              "x": 38.6,
-              "z": -169,
-              "l": -0.65
+              "x": 48.1,
+              "z": 23.5,
+              "l": -3.29
             },
             {
-              "x": 48.8,
-              "z": -129,
-              "l": -0.65
+              "x": 49.5,
+              "z": 39.2,
+              "l": -5.88
             },
             {
-              "x": 45,
-              "z": -89,
-              "l": -0.65
+              "x": 48.1,
+              "z": 54.9,
+              "l": -8.44
             },
             {
-              "x": 35.1,
-              "z": -49,
-              "l": -0.65
+              "x": 44.3,
+              "z": 70.6,
+              "l": -10.84
             },
             {
-              "x": 39.4,
-              "z": -9,
-              "l": -0.65
+              "x": 39.7,
+              "z": 86.3,
+              "l": -13.18
             },
             {
-              "x": 49.1,
-              "z": 31,
-              "l": -0.65
+              "x": 36,
+              "z": 101.9,
+              "l": -15.15
             },
             {
-              "x": 44.2,
-              "z": 71,
-              "l": -0.65
+              "x": 34.5,
+              "z": 117.6,
+              "l": -16.66
             },
             {
-              "x": 34.8,
-              "z": 111,
-              "l": -0.65
+              "x": 35.9,
+              "z": 133.3,
+              "l": -17.62
             },
             {
               "x": 39.6,
               "z": 149,
-              "l": -0.65
+              "l": -18.08
             },
             {
-              "x": 66.4,
-              "z": 178.7,
-              "l": -19.47
+              "x": 50.1,
+              "z": 163.4,
+              "l": -18.73
+            },
+            {
+              "x": 59.3,
+              "z": 178.8,
+              "l": -19.45
+            },
+            {
+              "x": 68,
+              "z": 194.5,
+              "l": -19.61
             }
           ]
         }
@@ -599,102 +863,145 @@
           }
         ],
         "rio": {
-          "clave": "v2|271828|-500|1750|298|3|6.2",
+          "clave": "v3|271828|-500|1750|298|3|6.2",
           "mar": true,
+          "lado": -1,
+          "idxIn": 0,
+          "idxOut": 19,
           "pts": [
             {
-              "x": 37.2,
-              "z": 449,
-              "l": -0.65
+              "x": 40,
+              "z": 149,
+              "l": 5.81
             },
             {
-              "x": 38.2,
-              "z": 409,
-              "l": -0.65
+              "x": 37,
+              "z": 133.3,
+              "l": 5.81
+            },
+            {
+              "x": 35.8,
+              "z": 117.6,
+              "l": 5.81
+            },
+            {
+              "x": 37,
+              "z": 101.9,
+              "l": 5.81
+            },
+            {
+              "x": 40.1,
+              "z": 86.3,
+              "l": 4.68
+            },
+            {
+              "x": 43.9,
+              "z": 70.6,
+              "l": 2.57
             },
             {
               "x": 47,
-              "z": 369,
-              "l": -0.65
+              "z": 54.9,
+              "l": -0.19
             },
             {
-              "x": 45.5,
-              "z": 329,
-              "l": -0.65
+              "x": 48.2,
+              "z": 39.2,
+              "l": -3.1
             },
             {
-              "x": 36.8,
-              "z": 289,
-              "l": -0.65
+              "x": 47,
+              "z": 23.5,
+              "l": -5.51
             },
             {
-              "x": 38.8,
-              "z": 249,
-              "l": -0.65
+              "x": 43.9,
+              "z": 7.8,
+              "l": -7.22
             },
             {
-              "x": 47.4,
-              "z": 209,
-              "l": -0.65
+              "x": 40.1,
+              "z": -7.8,
+              "l": -8.49
             },
             {
-              "x": 44.8,
-              "z": 169,
-              "l": -0.65
+              "x": 37,
+              "z": -23.5,
+              "l": -9.63
             },
             {
-              "x": 36.4,
-              "z": 129,
-              "l": -0.65
+              "x": 35.8,
+              "z": -39.2,
+              "l": -10.86
             },
             {
-              "x": 39.5,
-              "z": 89,
-              "l": -0.65
+              "x": 37,
+              "z": -54.9,
+              "l": -12.26
             },
             {
-              "x": 47.7,
-              "z": 49,
-              "l": -0.65
+              "x": 40.1,
+              "z": -70.6,
+              "l": -14.09
             },
             {
-              "x": 44.2,
-              "z": 9,
-              "l": -0.65
+              "x": 43.9,
+              "z": -86.3,
+              "l": -16.84
             },
             {
-              "x": 36.1,
-              "z": -31,
-              "l": -0.65
+              "x": 47,
+              "z": -101.9,
+              "l": -20.96
             },
             {
-              "x": 40.2,
-              "z": -71,
-              "l": -0.65
+              "x": 48.2,
+              "z": -117.6,
+              "l": -26.14
             },
             {
-              "x": 48,
-              "z": -111,
-              "l": -0.65
+              "x": 47,
+              "z": -133.3,
+              "l": -32.64
             },
             {
               "x": 44,
               "z": -149,
-              "l": -0.65
+              "l": -33.42
             },
             {
-              "x": 68.6,
-              "z": -180.3,
-              "l": -42.92
+              "x": 53.5,
+              "z": -164.3,
+              "l": -37.72
             },
             {
-              "x": 89.5,
-              "z": -213.6,
-              "l": -50.96
+              "x": 63,
+              "z": -179.5,
+              "l": -42.16
             },
             {
-              "x": 106.6,
-              "z": -249,
+              "x": 72.6,
+              "z": -194.8,
+              "l": -46.13
+            },
+            {
+              "x": 82.1,
+              "z": -210.1,
+              "l": -49.7
+            },
+            {
+              "x": 91.7,
+              "z": -225.3,
+              "l": -52.57
+            },
+            {
+              "x": 101.2,
+              "z": -240.6,
+              "l": -54.47
+            },
+            {
+              "x": 110.7,
+              "z": -255.9,
               "l": -54.47
             }
           ]
@@ -2701,6 +3008,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "outlaw_bandit_cutthroat"
+        },
+        {
+          "name": "Colmillo de Hierro",
+          "level": 3,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "dire_wolf"
         }
       ],
       "relieve": {
@@ -2751,6 +3067,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "outlaw_bandit_cutthroat"
+        },
+        {
+          "name": "Garra Roja de la Bahía",
+          "level": 5,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "elite_goblin_wolf_rider_boss"
         }
       ],
       "relieve": {
@@ -2789,6 +3114,13 @@
           "enemigo": "briar_wood_spriggan"
         },
         {
+          "name": "Vigía Silvano del Robledal",
+          "level": 5,
+          "density": "media",
+          "boss": false,
+          "enemigo": "archer_species_1_wood_elf_ranger"
+        },
+        {
           "name": "Ciervo Astado Furioso",
           "level": 6,
           "density": "media",
@@ -2801,6 +3133,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "furious_grizzly_bear"
+        },
+        {
+          "name": "Raíz Corrupta del Robledal",
+          "level": 7,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "treant_ancient"
         }
       ],
       "relieve": {
@@ -2839,6 +3180,13 @@
           "enemigo": "chitin_stalker"
         },
         {
+          "name": "Sátiro Trampero del Seto",
+          "level": 7,
+          "density": "media",
+          "boss": false,
+          "enemigo": "archer_species_6_satyr_felbow_trickster"
+        },
+        {
           "name": "Lobo Huargo Alfa",
           "level": 8,
           "density": "baja",
@@ -2851,6 +3199,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "caballero_oscuro"
+        },
+        {
+          "name": "Señor del Seto Maldito",
+          "level": 9,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "brood_spider_queen"
         }
       ],
       "relieve": {
@@ -2933,6 +3290,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "elite_bog_troll_regenerator"
+        },
+        {
+          "name": "Hidra del Cieno Gris",
+          "level": 10,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "elite_frilled_venom_basilisk"
         }
       ],
       "relieve": {
@@ -2983,6 +3349,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "manticore_chimera"
+        },
+        {
+          "name": "Acorazado de la Fragua Roja",
+          "level": 12,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "df_14_iron_spined_boar_beast"
         }
       ],
       "relieve": {
@@ -3033,6 +3408,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "void_djinn"
+        },
+        {
+          "name": "Visir del Espejismo Solar",
+          "level": 14,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "crowned_catacomb_pharaoh"
         }
       ],
       "relieve": {
@@ -3115,6 +3499,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "df_05_frostbite_wendigo_stalker"
+        },
+        {
+          "name": "Alfa Wendigo de la Bruma",
+          "level": 15,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "permafrost_warg_alpha"
         }
       ],
       "relieve": {
@@ -3125,15 +3518,15 @@
       "id": "z_9",
       "name": "Estribaciones del Ventisquero",
       "type": "elite",
-      "x": -965,
-      "y": -181,
+      "x": -1205,
+      "y": 17,
       "radius": 210,
       "shapeSeed": 1189132872,
       "biome": "nieve",
       "levelMin": 14,
       "levelMax": 17,
       "roadId": "r_8",
-      "roadT": 0.34,
+      "roadT": 0.25,
       "anchored": true,
       "respawnSec": 26,
       "notes": "Altiplano gélido al noreste de Atalaya de Escarcha donde bestias elementales escoltan convoyes hacia el cráter.",
@@ -3165,6 +3558,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "arctic_iceberg_golem"
+        },
+        {
+          "name": "Coloso del Ventisquero",
+          "level": 17,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "polar_glacier_bear"
         }
       ],
       "relieve": {
@@ -3215,6 +3617,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "df_07_obsidian_behemoth_juggernaut"
+        },
+        {
+          "name": "Señor de los Pilares Negros",
+          "level": 18,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "df_06_bloodhound_cerberus_prime"
         }
       ],
       "relieve": {
@@ -3257,18 +3668,18 @@
       "id": "z_11",
       "name": "Paso del Dragón Blanco",
       "type": "caza",
-      "x": 73,
-      "y": -872,
+      "x": -569,
+      "y": -433,
       "radius": 220,
       "shapeSeed": 1059958452,
-      "biome": "bosque",
+      "biome": "montana",
       "levelMin": 16,
       "levelMax": 19,
       "roadId": "r_8",
-      "roadT": 0.72,
+      "roadT": 0.48,
       "anchored": true,
       "respawnSec": 25,
-      "notes": "Riscos nevados que conducen al flanco occidental de Trono de Ceniza.",
+      "notes": "Riscos alpinos entre las cumbres heladas que conducen al flanco occidental de Trono de Ceniza.",
       "monsters": [
         {
           "name": "Dientes de Sable Glaciar",
@@ -3297,6 +3708,15 @@
           "density": "baja",
           "boss": false,
           "enemigo": "cryo_hydra_trident"
+        },
+        {
+          "name": "Guiverno Blanco Ancestral",
+          "level": 19,
+          "density": "baja",
+          "boss": false,
+          "campeonZona": true,
+          "rangoEliteFijo": 4,
+          "enemigo": "glacier_wyrm_ancient"
         }
       ],
       "relieve": {
@@ -3340,6 +3760,13 @@
           "density": "baja",
           "boss": false,
           "enemigo": "df_01_abyssal_gore_chimera"
+        },
+        {
+          "name": "Quimera del Eclipse Ápice",
+          "level": 21,
+          "density": "baja",
+          "boss": false,
+          "enemigo": "df_25_celestial_eclipse_chimera_apex"
         },
         {
           "name": "Aurelio, Titán del Sol Quebrado",
@@ -3392,6 +3819,30 @@
       "notes": "Excavación donde la savia del bosque se tiñó de escoria metálica."
     },
     {
+      "id": "poi_8",
+      "name": "Arco de los Guardabosques",
+      "type": "ruinas",
+      "x": 280,
+      "y": 2062,
+      "level": 9,
+      "zoneId": "z_4",
+      "dx": -85,
+      "dy": 343,
+      "notes": "Antiguo arco de piedra frente a la entrada del Laberinto del Seto Maldito."
+    },
+    {
+      "id": "poi_9",
+      "name": "Muelle de los Boticarios",
+      "type": "campamento",
+      "x": -169,
+      "y": 1264,
+      "level": 10,
+      "zoneId": "z_5",
+      "dx": 55,
+      "dy": -60,
+      "notes": "Refugio sobre pilotes donde los boticarios de Limoquieto filtran muestras del cieno."
+    },
+    {
       "id": "poi_4",
       "name": "Mina del Hierro Rojo",
       "type": "mina",
@@ -3407,25 +3858,61 @@
       "id": "poi_5",
       "name": "Santuario del Espejismo",
       "type": "santuario",
-      "x": 2312,
-      "y": 198,
+      "x": 2242,
+      "y": -200,
       "level": 14,
       "zoneId": "z_7",
-      "dx": 70,
-      "dy": 55,
-      "notes": "Obelisco solar que antecede a los pactos del Cónclave."
+      "dx": 0,
+      "dy": -343,
+      "notes": "Obelisco solar de piedra dorada en la antesala norte del Cañón del Pacto de Arena."
+    },
+    {
+      "id": "poi_10",
+      "name": "Vigía de la Guardia Rebelde",
+      "type": "campamento",
+      "x": -1430,
+      "y": 1264,
+      "level": 15,
+      "zoneId": "z_8",
+      "dx": -65,
+      "dy": 45,
+      "notes": "Avanzada de exploradores de Atalaya de Escarcha frente a las patrullas del Cónclave."
     },
     {
       "id": "poi_6",
       "name": "Portal de la Escarcha",
       "type": "portal",
-      "x": -1020,
-      "y": -121,
+      "x": -1260,
+      "y": 77,
       "level": 17,
       "zoneId": "z_9",
       "dx": -55,
       "dy": 60,
-      "notes": "Monolito rúnico boreal usado antaño por los exploradores de Atalaya de Escarcha."
+      "notes": "Monolito rúnico boreal usado por los exploradores de Atalaya de Escarcha como piedra de viaje."
+    },
+    {
+      "id": "poi_11",
+      "name": "Forja de los Pilares Negros",
+      "type": "ruinas",
+      "x": 1709,
+      "y": -633,
+      "level": 18,
+      "zoneId": "z_10",
+      "dx": 85,
+      "dy": 353,
+      "notes": "Puesto en ruinas junto a la boca de la Garganta de Obsidiana."
+    },
+    {
+      "id": "poi_12",
+      "name": "Huesos del Viejo Guiverno",
+      "type": "santuario",
+      "x": -509,
+      "y": -483,
+      "level": 19,
+      "zoneId": "z_11",
+      "dx": 60,
+      "dy": -50,
+      "notes": "Altar glaciar erigido sobre los restos de un dragón ancestral en el Paso del Dragón Blanco."
     },
     {
       "id": "poi_7",
@@ -3609,33 +4096,36 @@
   ],
   "id": "valdris-sol-quebrado-v1",
   "campaignId": "valdris-sol-quebrado-v1",
-  "campaignVersion": 3,
+  "campaignVersion": 4,
+  "secretPlacesFijos": true,
+  "bloqueadoJuego": true,
   "secretPlaces": [
     {
       "id": "cabana-1-clasica",
       "tipo": "cabana",
-      "nombre": "Cabaña de Troncos del Bosque",
+      "nombre": "Cabaña de Troncos de Albaferro",
       "aldeano": "Garek el Trampero",
       "aldeanoModelo": "npc/aldeanos/cazador.glb",
-      "frase": "Las bestias del bosque no dejan de proliferar. Despeja a 100 de ellas y te daré un generoso pago y equipo.",
+      "frase": "Las bestias alteradas merodean los Prados del Yunque Roto. Despeja 100 o caza a Colmillo de Ceniza para proteger Albaferro.",
+      "trama": "Las manadas desplazadas de las fundiciones clandestinas del Cónclave acechan a las puertas de Albaferro.",
       "modeloGLB": "glb/cabanas/cabana_1_troncos_clasica.glb",
       "esMar": false,
       "zonaAsignada": "z_1",
       "x": 1680,
-      "z": 879.6,
+      "z": 880,
       "radio": 32,
       "radioPlano": 16,
       "radioRebaje": 36,
       "icono": "🛖",
-      "desc": "Cabaña de Troncos del Bosque: refugio habitado por Garek el Trampero en plena zona de caza.",
+      "desc": "Cabaña de Troncos de Albaferro: refugio habitado por Garek el Trampero junto a Prados del Yunque Roto.",
       "recompensa": "Cacería mayor de 100 monstruos y forja de armaduras superiores",
-      "rotacion": 0.33,
+      "rotacion": 0.75,
       "misionCabana": {
         "id": "mision-cabana-1-clasica",
         "cabanaId": "cabana-1-clasica",
-        "cabanaNombre": "Cabaña de Troncos del Bosque",
+        "cabanaNombre": "Cabaña de Troncos de Albaferro",
         "aldeano": "Garek el Trampero",
-        "frase": "Las bestias del bosque no dejan de proliferar. Despeja a 100 de ellas y te daré un generoso pago y equipo.",
+        "frase": "Las bestias alteradas merodean los Prados del Yunque Roto. Despeja 100 o caza a Colmillo de Ceniza para proteger Albaferro.",
         "especie": "Keltir Enfurecido",
         "objetivoEspecie": "Keltir Enfurecido",
         "nivelMonstruo": 1,
@@ -3658,70 +4148,8 @@
         "rastroLore": "El lazo de acero partido conserva el punzón de las fundiciones clandestinas.",
         "liderNombre": "Colmillo de Ceniza",
         "rastroOffset": {
-          "dx": 12.2,
-          "dz": -31.7
-        },
-        "recompensa": {
-          "oroMin": 1,
-          "oroMax": 2000,
-          "arenaMin": 10,
-          "arenaMax": 50,
-          "pocionesVida": 4,
-          "nivelPiezaMultiplicador": 10,
-          "calidadMin": 0.5,
-          "calidadMax": 0.9
-        }
-      }
-    },
-    {
-      "id": "cabana-2-posada",
-      "tipo": "cabana",
-      "nombre": "Posada Solitaria del Sendero",
-      "aldeano": "Borgan el Guardián del Paso",
-      "aldeanoModelo": "npc/aldeanos/tabernero.glb",
-      "frase": "Los viajeros temen ser devorados por los caminos. Ayúdame abatiendo a 100 de esas criaturas.",
-      "modeloGLB": "glb/cabanas/cabana_2_posada_dos_plantas.glb",
-      "esMar": false,
-      "zonaAsignada": "z_6",
-      "x": 1993.5,
-      "z": 788.5,
-      "radio": 32,
-      "radioPlano": 16,
-      "radioRebaje": 36,
-      "icono": "🛖",
-      "desc": "Posada Solitaria del Sendero: refugio habitado por Borgan el Guardián del Paso en plena zona de caza.",
-      "recompensa": "Cacería mayor de 100 monstruos y forja de armaduras superiores",
-      "rotacion": 2.19,
-      "misionCabana": {
-        "id": "mision-cabana-2-posada",
-        "cabanaId": "cabana-2-posada",
-        "cabanaNombre": "Posada Solitaria del Sendero",
-        "aldeano": "Borgan el Guardián del Paso",
-        "frase": "Los viajeros temen ser devorados por los caminos. Ayúdame abatiendo a 100 de esas criaturas.",
-        "especie": "Cazador Gnoll de la Estepa",
-        "objetivoEspecie": "Cazador Gnoll de la Estepa",
-        "nivelMonstruo": 9,
-        "zonaId": "z_6",
-        "zonaNombre": "Desfiladero del Óxido",
-        "cantidad": 100,
-        "objetivoCantidad": 100,
-        "progreso": 0,
-        "aceptada": false,
-        "entregada": false,
-        "cumplida": false,
-        "completada": false,
-        "modalidad": null,
-        "faseActual": 1,
-        "cantidadFases": 15,
-        "rastroEncontrado": false,
-        "liderDerrotado": false,
-        "multiplicadorPremio": 1,
-        "rastroNombre": "Carreta Volcada del Paso",
-        "rastroLore": "Rastros frescos de zarpas blindadas conducen al acecho del alfa de la ruta.",
-        "liderNombre": "Merodeador del Paso",
-        "rastroOffset": {
-          "dx": 27.4,
-          "dz": 5.8
+          "dx": 11.4,
+          "dz": 25.6
         },
         "recompensa": {
           "oroMin": 1,
@@ -3738,33 +4166,34 @@
     {
       "id": "cabana-3-pescador",
       "tipo": "cabana",
-      "nombre": "Cabaña de Pescador de la Costa",
+      "nombre": "Cabaña del Pescador de Brisal",
       "aldeano": "Kyle el Pescador de Bajamar",
       "aldeanoModelo": "npc/aldeanos/campesino.glb",
-      "frase": "Las criaturas costeras asaltan las redes y la orilla. Acaba con 100 y compartiré los tesoros de la marea.",
+      "frase": "Las criaturas costeras de los Acantilados de la Marea Roja asaltan nuestras redes en Puerto Brisal. Despeja la costa y compartiré los tesoros de la marea.",
+      "trama": "La marea de la bahía arrastra restos de jaulas sumergidas con el sello de la Orden del Eclipse.",
       "modeloGLB": "glb/cabanas/cabana_3_pescador_pilotes.glb",
       "esMar": true,
-      "zonaAsignada": "z_1",
-      "x": 1991.7,
-      "z": 831,
+      "zonaAsignada": "z_2",
+      "x": 275,
+      "z": 250,
       "radio": 32,
       "radioPlano": 16,
       "radioRebaje": 36,
       "icono": "🛖🌊",
-      "desc": "Cabaña de Pescador de la Costa: refugio habitado por Kyle el Pescador de Bajamar, situado frente al mar.",
+      "desc": "Cabaña del Pescador de Brisal: refugio habitado por Kyle el Pescador de Bajamar, frente a la bahía de Puerto Brisal.",
       "recompensa": "Cacería mayor de 100 monstruos y forja de armaduras superiores",
-      "rotacion": 6.12,
+      "rotacion": 2.35,
       "misionCabana": {
         "id": "mision-cabana-3-pescador",
         "cabanaId": "cabana-3-pescador",
-        "cabanaNombre": "Cabaña de Pescador de la Costa",
+        "cabanaNombre": "Cabaña del Pescador de Brisal",
         "aldeano": "Kyle el Pescador de Bajamar",
-        "frase": "Las criaturas costeras asaltan las redes y la orilla. Acaba con 100 y compartiré los tesoros de la marea.",
-        "especie": "Keltir Enfurecido",
-        "objetivoEspecie": "Keltir Enfurecido",
-        "nivelMonstruo": 1,
-        "zonaId": "z_1",
-        "zonaNombre": "Prados del Yunque Roto",
+        "frase": "Las criaturas costeras de los Acantilados de la Marea Roja asaltan nuestras redes en Puerto Brisal. Despeja la costa y compartiré los tesoros de la marea.",
+        "especie": "Halcón Garra de Sangre",
+        "objetivoEspecie": "Halcón Garra de Sangre",
+        "nivelMonstruo": 2,
+        "zonaId": "z_2",
+        "zonaNombre": "Acantilados de la Marea Roja",
         "cantidad": 100,
         "objetivoCantidad": 100,
         "progreso": 0,
@@ -3782,8 +4211,8 @@
         "rastroLore": "Los hierros traídos por la marea llevan el mismo sello que viste en la Fuente Arcana.",
         "liderNombre": "Acechador de Bajamar",
         "rastroOffset": {
-          "dx": -11.4,
-          "dz": -25.6
+          "dx": 5.2,
+          "dz": 32.6
         },
         "recompensa": {
           "oroMin": 1,
@@ -3798,30 +4227,31 @@
       }
     },
     {
-      "id": "cabana-4-vigia",
+      "id": "cabana-5-redonda",
       "tipo": "cabana",
-      "nombre": "Torre Vigía de la Avanzada",
-      "aldeano": "Varek el Centinela del Alto",
-      "aldeanoModelo": "npc/aldeanos/lenador.glb",
-      "frase": "Desde lo alto diviso manadas salvajes cercando el paso norte. Derrota a 100 antes de que avancen.",
-      "modeloGLB": "glb/cabanas/cabana_4_torre_de_vigia.glb",
+      "nombre": "Cabaña del Herbolario del Robledal",
+      "aldeano": "Olorin el Herbolario Silvano",
+      "aldeanoModelo": "npc/aldeanos/herbolario.glb",
+      "frase": "Mis cultivos de raíces curativas cerca de Robledal Sombrío sufren ataques constantes. Limpia el Claro de la Savia Oscura para salvar el bosque.",
+      "trama": "El aceite oscuro vertido en el Robledal Sombrío corrompe la savia de los robles antiguos.",
+      "modeloGLB": "glb/cabanas/cabana_5_redonda.glb",
       "esMar": false,
       "zonaAsignada": "z_3",
-      "x": 1345.8,
-      "z": 1841,
+      "x": 996,
+      "z": 1666,
       "radio": 32,
       "radioPlano": 16,
       "radioRebaje": 36,
       "icono": "🛖",
-      "desc": "Torre Vigía de la Avanzada: refugio habitado por Varek el Centinela del Alto en plena zona de caza.",
+      "desc": "Cabaña del Herbolario del Robledal: refugio habitado por Olorin el Herbolario Silvano junto a Claro de la Savia Oscura.",
       "recompensa": "Cacería mayor de 100 monstruos y forja de armaduras superiores",
-      "rotacion": 3.1,
+      "rotacion": -0.9,
       "misionCabana": {
-        "id": "mision-cabana-4-vigia",
-        "cabanaId": "cabana-4-vigia",
-        "cabanaNombre": "Torre Vigía de la Avanzada",
-        "aldeano": "Varek el Centinela del Alto",
-        "frase": "Desde lo alto diviso manadas salvajes cercando el paso norte. Derrota a 100 antes de que avancen.",
+        "id": "mision-cabana-5-redonda",
+        "cabanaId": "cabana-5-redonda",
+        "cabanaNombre": "Cabaña del Herbolario del Robledal",
+        "aldeano": "Olorin el Herbolario Silvano",
+        "frase": "Mis cultivos de raíces curativas cerca de Robledal Sombrío sufren ataques constantes. Limpia el Claro de la Savia Oscura para salvar el bosque.",
         "especie": "Araña Cazadora del Bosque",
         "objetivoEspecie": "Araña Cazadora del Bosque",
         "nivelMonstruo": 4,
@@ -3840,12 +4270,12 @@
         "rastroEncontrado": false,
         "liderDerrotado": false,
         "multiplicadorPremio": 1,
-        "rastroNombre": "Estandarte Acorazado de la Avanzada",
-        "rastroLore": "El guion ensangrentado señala el punto donde aguarda el alfa de vanguardia.",
-        "liderNombre": "Acorazado de la Cumbre",
+        "rastroNombre": "Raíz Arcana Contaminada",
+        "rastroLore": "Savia negra brota entre los surcos alimentando a una criatura alfa mutada.",
+        "liderNombre": "Espora Corrupta Alfa",
         "rastroOffset": {
-          "dx": 26,
-          "dz": 20.3
+          "dx": -18.1,
+          "dz": 24
         },
         "recompensa": {
           "oroMin": 1,
@@ -3860,35 +4290,36 @@
       }
     },
     {
-      "id": "cabana-5-redonda",
+      "id": "cabana-2-posada",
       "tipo": "cabana",
-      "nombre": "Cabaña Redonda del Erudito",
-      "aldeano": "Olorin el Herbolario Silvano",
-      "aldeanoModelo": "npc/aldeanos/herbolario.glb",
-      "frase": "Mis cultivos de raíces arcanas son pisoteados por las bestias. Elimina a 100 de ellas para proteger el bosque.",
-      "modeloGLB": "glb/cabanas/cabana_5_redonda.glb",
+      "nombre": "Posada de la Bruma de Limoquieto",
+      "aldeano": "Borgan el Guardián del Paso",
+      "aldeanoModelo": "npc/aldeanos/tabernero.glb",
+      "frase": "Los viajeros temen cruzar las Marismas del Silencio. Ayúdame abatiendo a las plagas del cieno y obtendrás oro, arena y equipo.",
+      "trama": "Esta posada palustre es el único refugio seguro para quienes cruzan las Marismas del Silencio rumbo a Limoquieto.",
+      "modeloGLB": "glb/cabanas/cabana_2_posada_dos_plantas.glb",
       "esMar": false,
-      "zonaAsignada": "z_4",
-      "x": 1000.6,
-      "z": 1692.6,
+      "zonaAsignada": "z_5",
+      "x": -273,
+      "z": 1790,
       "radio": 32,
       "radioPlano": 16,
       "radioRebaje": 36,
       "icono": "🛖",
-      "desc": "Cabaña Redonda del Erudito: refugio habitado por Olorin el Herbolario Silvano en plena zona de caza.",
+      "desc": "Posada de la Bruma de Limoquieto: refugio habitado por Borgan el Guardián del Paso junto a Marismas del Silencio.",
       "recompensa": "Cacería mayor de 100 monstruos y forja de armaduras superiores",
-      "rotacion": 4.92,
+      "rotacion": 1.4,
       "misionCabana": {
-        "id": "mision-cabana-5-redonda",
-        "cabanaId": "cabana-5-redonda",
-        "cabanaNombre": "Cabaña Redonda del Erudito",
-        "aldeano": "Olorin el Herbolario Silvano",
-        "frase": "Mis cultivos de raíces arcanas son pisoteados por las bestias. Elimina a 100 de ellas para proteger el bosque.",
-        "especie": "Araña de Catacumba",
-        "objetivoEspecie": "Araña de Catacumba",
-        "nivelMonstruo": 6,
-        "zonaId": "z_4",
-        "zonaNombre": "Laberinto del Seto Maldito",
+        "id": "mision-cabana-2-posada",
+        "cabanaId": "cabana-2-posada",
+        "cabanaNombre": "Posada de la Bruma de Limoquieto",
+        "aldeano": "Borgan el Guardián del Paso",
+        "frase": "Los viajeros temen cruzar las Marismas del Silencio. Ayúdame abatiendo a las plagas del cieno y obtendrás oro, arena y equipo.",
+        "especie": "Sapo Venenoso del Cieno",
+        "objetivoEspecie": "Sapo Venenoso del Cieno",
+        "nivelMonstruo": 7,
+        "zonaId": "z_5",
+        "zonaNombre": "Marismas del Silencio",
         "cantidad": 100,
         "objetivoCantidad": 100,
         "progreso": 0,
@@ -3902,12 +4333,12 @@
         "rastroEncontrado": false,
         "liderDerrotado": false,
         "multiplicadorPremio": 1,
-        "rastroNombre": "Raíz Arcana Contaminada",
-        "rastroLore": "Savia negra brota entre los surcos alimentando a una criatura alfa mutada.",
-        "liderNombre": "Espora Corrupta Alfa",
+        "rastroNombre": "Carreta Volcada del Paso",
+        "rastroLore": "Rastros frescos de zarpas blindadas conducen al acecho del alfa de la ruta.",
+        "liderNombre": "Merodeador del Paso",
         "rastroOffset": {
-          "dx": -18.5,
-          "dz": -23.6
+          "dx": -5,
+          "dz": 31.6
         },
         "recompensa": {
           "oroMin": 1,
@@ -3922,75 +4353,161 @@
       }
     },
     {
-      "id": "sec-6-fuente",
+      "id": "cabana-4-vigia",
+      "tipo": "cabana",
+      "nombre": "Torre Vigía de Atalaya de Escarcha",
+      "aldeano": "Varek el Centinela del Alto",
+      "aldeanoModelo": "npc/aldeanos/lenador.glb",
+      "frase": "Las manadas salvajes rodean la Costa de las Brumas Boreales. Despeja la ruta hacia Atalaya de Escarcha.",
+      "trama": "Desde esta torre boreal la guardia rebelde vigila las columnas de bestias que cercan Atalaya de Escarcha.",
+      "modeloGLB": "glb/cabanas/cabana_4_torre_de_vigia.glb",
+      "esMar": false,
+      "zonaAsignada": "z_8",
+      "x": -1839,
+      "z": 208,
+      "radio": 32,
+      "radioPlano": 16,
+      "radioRebaje": 36,
+      "icono": "🛖",
+      "desc": "Torre Vigía de Atalaya de Escarcha: refugio habitado por Varek el Centinela del Alto junto a Costa de las Brumas Boreales.",
+      "recompensa": "Cacería mayor de 100 monstruos y forja de armaduras superiores",
+      "rotacion": -2.1,
+      "misionCabana": {
+        "id": "mision-cabana-4-vigia",
+        "cabanaId": "cabana-4-vigia",
+        "cabanaNombre": "Torre Vigía de Atalaya de Escarcha",
+        "aldeano": "Varek el Centinela del Alto",
+        "frase": "Las manadas salvajes rodean la Costa de las Brumas Boreales. Despeja la ruta hacia Atalaya de Escarcha.",
+        "especie": "Pantera Sombría Feral",
+        "objetivoEspecie": "Pantera Sombría Feral",
+        "nivelMonstruo": 12,
+        "zonaId": "z_8",
+        "zonaNombre": "Costa de las Brumas Boreales",
+        "cantidad": 100,
+        "objetivoCantidad": 100,
+        "progreso": 0,
+        "aceptada": false,
+        "entregada": false,
+        "cumplida": false,
+        "completada": false,
+        "modalidad": null,
+        "faseActual": 1,
+        "cantidadFases": 15,
+        "rastroEncontrado": false,
+        "liderDerrotado": false,
+        "multiplicadorPremio": 1,
+        "rastroNombre": "Estandarte Acorazado de la Avanzada",
+        "rastroLore": "El guion ensangrentado señala el punto donde aguarda el alfa de vanguardia.",
+        "liderNombre": "Acorazado de la Cumbre",
+        "rastroOffset": {
+          "dx": -8.5,
+          "dz": 31.9
+        },
+        "recompensa": {
+          "oroMin": 1,
+          "oroMax": 2000,
+          "arenaMin": 10,
+          "arenaMax": 50,
+          "pocionesVida": 4,
+          "nivelPiezaMultiplicador": 10,
+          "calidadMin": 0.5,
+          "calidadMax": 0.9
+        }
+      }
+    },
+    {
+      "id": "sec-fuente-brisal",
       "tipo": "fuente",
-      "nombre": "Fuente Arcana de la Esperanza",
-      "x": 252.4,
-      "z": 1139,
+      "nombre": "Fuente Arcana de la Bahía",
+      "x": 40,
+      "z": 1046,
       "radio": 16,
       "icono": "⛲",
-      "desc": "Una fuente de piedra pulida cuyas aguas reflejan una luz azulada inextinguible.",
-      "recompensa": "Regeneración mágica y bendición de vitalidad",
-      "rotacion": 0.02
+      "desc": "Fuente de piedra ancestral oculta entre Puerto Brisal y Limoquieto cuyas aguas luminiscentes templan el acero libre.",
+      "recompensa": "Templado arcano de armadura y bendición de vitalidad",
+      "rotacion": 0.6
     },
     {
-      "id": "sec-7-altar",
+      "id": "sec-cabana-cronista",
+      "tipo": "cabana",
+      "nombre": "Cabaña del Cronista Oculto",
+      "x": 720,
+      "z": 1600,
+      "radio": 18,
+      "icono": "🏚️",
+      "desc": "Refugio solitario en la espesura entre Robledal Sombrío y Limoquieto donde el último cronista escondió las actas del Cónclave.",
+      "recompensa": "Diario incriminatorio de los Sabios y planos de la Cripta",
+      "rotacion": 1.15
+    },
+    {
+      "id": "sec-altar-ambar",
       "tipo": "altar",
-      "nombre": "Altar Rúnico de los Sabios de la Bruma",
-      "x": 1662.8,
-      "z": 1769.2,
+      "nombre": "Altar Rúnico de Ámbar de Dunas",
+      "x": 2161,
+      "z": -206,
       "radio": 16,
       "icono": "⛩️",
-      "desc": "Cuatro pilares de roca ancestral flanquean una losa grabada con runas resplandecientes.",
-      "recompensa": "Resonancia rúnica y sabiduría milenaria",
-      "rotacion": 3.53
+      "desc": "Cuatro pilares solares grabados con runas reales a las puertas de Ámbar de Dunas; su consagración rompe el monopolio mercantil.",
+      "recompensa": "Ruptura del monopolio comercial Nv. 12+ y resonancia rúnica",
+      "rotacion": -0.45
     },
     {
-      "id": "sec-8-santuario",
+      "id": "sec-santuario-sol",
       "tipo": "santuario",
-      "nombre": "Santuario de Piedra y Luz de las Estrellas",
-      "x": 1427,
-      "z": 635.7,
+      "nombre": "Santuario del Sol Quebrado",
+      "x": 845,
+      "z": -1756,
       "radio": 20,
       "icono": "🏛️",
-      "desc": "Un círculo ceremonial de monolitos tallados en honor a los siete reinos caídos.",
-      "recompensa": "Bendición de los siete reinos",
-      "rotacion": 4.73
+      "desc": "Monolitos ciclópeos erigidos sobre las cumbres de Trono de Ceniza frente al corazón del Titán mecánico.",
+      "recompensa": "Revelación del núcleo del Titán y bendición de los siete reinos",
+      "rotacion": 0.25
+    },
+    {
+      "id": "sec-fuente-cumbres",
+      "tipo": "fuente",
+      "nombre": "Manantial Puro de las Cumbres",
+      "x": -650,
+      "z": -813,
+      "radio": 16,
+      "icono": "⛲",
+      "desc": "Manantial prístino de alta montaña entre Atalaya de Escarcha y Trono de Ceniza donde se purifica la savia oscura.",
+      "recompensa": "Purificación de las aguas de Valdris",
+      "rotacion": 1.9
     }
   ],
   "historia": {
     "titulo": "Crónica de Valdris · El Sol Quebrado",
     "subtitulo": "Campaña épica de 4 Actos · Desde Albaferro hasta el Cráter del Sol Quebrado",
-    "mundoNombre": "Valdris",
     "tituloFinal": "Libertadores de Valdris",
-    "generadaEn": "2026-11-22T21:16:03.020Z",
+    "sinopsis": "La Orden del Eclipse envenena las fraguas y rutas de Valdris creando aberraciones con hierro militar. Junto al Herrero Brann y tu compañero leal deberás armarte en secreto, atravesar 3 laberintos, derrotar a 12 Campeones Alfa y desmantelar la conspiración desde Albaferro y Puerto Brisal hasta Ámbar de Dunas y el Cráter del Sol Quebrado.",
     "prologo": {
       "titulo": "🔥 Prólogo · La Emboscada en Albaferro",
-      "parrafo1": "La noche cae sobre las murallas de <b>Albaferro</b>, puerta de entrada a <b>Valdris</b>. Mientras el <b>Herrero Brann</b> forja a escondidas del cónclave, un estruendo quiebra las vigas: bestias alteradas con placas de hierro remachadas irrumpen desde la oscuridad.",
-      "parrafo2": "Brann abatió a la primera criatura antes de desplomarse herido junto al yunque, aferrando un <b>sello de bronce del Consejo</b>. <i>«Nos han traicionado desde dentro… alguien alimenta esta plaga más allá de Puerto Brisal y hasta Trono de Ceniza»</i>, susurra."
+      "parrafo1": "La noche cae sobre las murallas de <b>Albaferro</b>, último baluarte libre de <b>Valdris</b>. Mientras el <b>Herrero Brann</b> martillea a escondidas del Cónclave del Eclipse, un estruendo quiebra las vigas: bestias deformadas con placas de hierro remachadas en carne viva irrumpen en la fragua.",
+      "parrafo2": "Brann abatió a la primera criatura antes de caer herido junto al yunque, aferrando un <b>sello de bronce del Consejo de la plaza</b>. <i>«Nos han traicionado desde dentro… alguien alimenta esta plaga desde Puerto Brisal hasta las cumbres de Trono de Ceniza»</i>, jadea."
     },
     "actos": [
       {
         "numero": 1,
         "id": "acto-1",
         "nombre": "Acto I · Asedio en Albaferro y Forja Clandestina",
-        "resumen": "Tras la emboscada en Albaferro, reúnes materiales desde Prados del Yunque Roto hasta Marismas del Silencio para que Brann forje en secreto las cinco piezas de tu armadura sin el permiso del cónclave.",
+        "resumen": "Tras la emboscada en la fragua de Albaferro, reúnes materiales desde los Prados del Yunque Roto hasta las Marismas del Silencio para que Brann forje en secreto las cinco piezas de tu armadura.",
         "desdePaso": 0,
         "hastaPaso": 4
       },
       {
         "numero": 2,
         "id": "acto-2",
-        "nombre": "Acto II · Savia, Laberintos y Secretos de Valdris",
-        "resumen": "Templas tu armadura de cinco piezas en la fuente arcana, despiertas la Explosión Nova y descubres las pruebas escritas de la conspiración entre Puerto Brisal y Ámbar de Dunas.",
+        "nombre": "Acto II · Savia, Laberintos y Archivos de Valdris",
+        "resumen": "Templas tu armadura en la Fuente Arcana de la Bahía, forjas tu arma maestra, despiertas la Explosión Nova en el Cañón del Pacto de Arena y recuperas el diario del Cronista Oculto.",
         "desdePaso": 5,
         "hastaPaso": 9
       },
       {
         "numero": 3,
         "id": "acto-3",
-        "nombre": "Acto III · Ruptura del Monopolio y Caída de Aurelio, Titán del Sol Quebrado",
-        "resumen": "Consagras el Altar Rúnico junto a Ámbar de Dunas para reabrir las fraguas de nivel 12+, abres ruta hacia Trono de Ceniza y abates a Aurelio, Titán del Sol Quebrado.",
+        "nombre": "Acto III · Ruptura del Monopolio y Caída de Aurelio",
+        "resumen": "Consagras el Altar Rúnico de Ámbar de Dunas para reabrir el equipo Nv. 12+, derribas los pilares de Garganta de Obsidiana y abates a Aurelio, Titán del Sol Quebrado.",
         "desdePaso": 10,
         "hastaPaso": 13
       },
@@ -3998,15 +4515,11 @@
         "numero": 4,
         "id": "acto-4",
         "nombre": "Acto IV · Purificación y Liberación de Valdris",
-        "resumen": "Purificas las aguas de Valdris y regresas a la plaza de Albaferro para sellar el juicio que proclama a los Libertadores de Valdris.",
+        "resumen": "Purificas el Manantial Puro de las Cumbres y regresas a la plaza de Albaferro para el juicio público que consagra a los Libertadores de Valdris.",
         "desdePaso": 14,
         "hastaPaso": 15
       }
     ],
-    "epilogo": {
-      "nombre": "Epílogo · Libertadores de Valdris",
-      "resumen": "El cónclave ha caído y todas las rutas de Valdris son libres. Las cabañas fronterizas, laberintos y mazmorras como Sanctum del Trono Quebrado esperan a los campeones."
-    },
     "capitulos": [
       {
         "id": "c1",
@@ -4014,8 +4527,8 @@
         "sabio": "Sabia Elara",
         "npc": "guru-1",
         "titulo": "Cenizas en Albaferro y los pantalones reforzados",
-        "encargo": "El Herrero Brann tose sangre sobre el yunque de Albaferro tras la emboscada: «¡Nos han tendido una trampa en nuestras propias murallas! Id a {lugar} y abated a {n} criaturas alteradas; traedme sus correas de cuero y placas de pierna para forjar tus pantalones reforzados antes de que la guardia cierre las puertas».",
-        "texto": "Regresas de {lugar} cubierto de hollín. Brann remacha tus pantalones reforzados y señala el sello hallado entre los despojos: «Alguien en Albaferro está forjando monstruos con hierro militar».",
+        "encargo": "El Herrero Brann tose sangre sobre el yunque de Albaferro: «¡Nos han tendido una trampa dentro de nuestras propias murallas! Escapa hacia {lugar} y abate a {n} criaturas alteradas; tráeme sus correas de cuero y placas de pierna para forjar tus primeros pantalones reforzados».",
+        "texto": "Regresas de {lugar} cubierto de ceniza y barro. Brann remacha tus pantalones reforzados y señala el cuño de bronce hallado entre los restos: «Este sello pertenece a los Sabios de la plaza. La plaga no es salvaje: la están fabricando en secreto».",
         "mision": {
           "tipo": "matar",
           "cantidad": 8,
@@ -4034,8 +4547,8 @@
         "sabio": "Maestro Oren",
         "npc": "guru-2",
         "titulo": "Rumbo a Puerto Brisal y las botas de marcha",
-        "encargo": "El Maestro Oren te intercepta en el sendero de Albaferro: «Un emisario de Puerto Brisal llevaba la lista real de sospechosos antes de desaparecer en {lugar}. Abate a {n} bestias allí y recupera sus tendones reforzados para que Brann te forje unas botas de marcha».",
-        "texto": "En {lugar} recuperas tanto el cuero de marcha como una orden sellada con tu nombre rumbo a Puerto Brisal. Tus pasos ahora resisten cualquier calzada o risco.",
+        "encargo": "El Maestro Oren te intercepta junto a la puerta occidental de Albaferro: «Un emisario que venía desde Puerto Brisal llevaba la lista real de sospechosos cuando fue emboscado en {lugar}. Abate a {n} criaturas allí y recupera tendones firmes para tus botas de marcha».",
+        "texto": "Entre los despojos de {lugar} recuperas las suelas reforzadas y una orden de captura con tu nombre y el de tu compañero sellada rumbo a Puerto Brisal. Con tus botas nuevas, ningún camino de Valdris te cerrará el paso.",
         "mision": {
           "tipo": "matar",
           "cantidad": 12,
@@ -4052,9 +4565,9 @@
         "nivel": 4,
         "sabio": "Hermana Ysolde",
         "npc": "guru-3",
-        "titulo": "Savia oscura y guantes de combate",
-        "encargo": "La Hermana Ysolde oculta un vial turbio bajo su túnica: «Las caravanas que cruzan {lugar} están cayendo en emboscadas. Abate a {n} criaturas alteradas allí y arráncales sus garras blindadas para forjar guantes de combate».",
-        "texto": "Combates espalda con espalda con tu compañero en {lugar}. Con las garras obtenidas, Brann templa tus guanteletes y sella la hermandad total con tu acompañante.",
+        "titulo": "Savia oscura en el Robledal y guantes de combate",
+        "encargo": "La Hermana Ysolde oculta un vial turbio bajo su manga: «Las caravanas madereras que marchan hacia Robledal Sombrío caen en {lugar}, donde la savia brota teñida de gris. Abate a {n} aberraciones y arráncales garras blindadas para forjar tus guanteletes».",
+        "texto": "Lucháis espalda con espalda bajo la arboleda sombría de {lugar}. Con las garras y escamas recuperadas, Brann remata tus guantes de combate y sella la hermandad táctica total con tu compañero.",
         "mision": {
           "tipo": "matar",
           "cantidad": 15,
@@ -4072,9 +4585,9 @@
         "nivel": 6,
         "sabio": "Viejo Tamsin",
         "npc": "guru-4",
-        "titulo": "El cerco de Laberinto del Seto Maldito y el peto de acero",
-        "encargo": "El Viejo Tamsin señala hacia Laberinto del Seto Maldito: «Los capataces del cónclave esconden sus remesas tras los muros de {lugar}. Adéntrate en el laberinto natural y Destroza a {n} guardianes allí y trae sus placas para forjar tu peto; te enseñaré a partir la tierra con Impacto Sísmico (Q)».",
-        "texto": "Con las planchas recogidas en {lugar}, Brann martilla un peto macizo con hombreras integradas y Tamsin despierta en tu brazo el Impacto Sísmico (Q).",
+        "titulo": "El cerco del Seto Maldito y el peto de acero",
+        "encargo": "El Viejo Tamsin señala el corredor meridional entre Robledal Sombrío y Limoquieto: «Los capataces del Cónclave ocultan remesas de hierro tras las murallas vivas de {lugar}. Adéntrate en el laberinto, destroza a {n} guardianes y trae sus planchas para tu peto; te enseñaré el Impacto Sísmico (Q)».",
+        "texto": "Con las placas acorazadas recuperadas en el corazón de {lugar}, Brann martilla un sólido peto con hombreras integradas y Tamsin despierta en tu brazo el Impacto Sísmico (Q). Elara proyecta una advertencia: cada temblor resuena bajo las montañas del norte.",
         "mision": {
           "tipo": "matar",
           "cantidad": 18,
@@ -4092,9 +4605,9 @@
         "nivel": 7,
         "sabio": "Erudita Mirel",
         "npc": "guru-5",
-        "titulo": "Susurros en la bruma y el yelmo protector",
-        "encargo": "La Erudita Mirel examina los mapas de Ámbar de Dunas: «Las emanaciones cercanas a {lugar} doblan la voluntad de los viajeros. Abate a {n} criaturas allí para recolectar refuerzos óseos con los que sellar tu yelmo».",
-        "texto": "Al ajustar el yelmo forjado con piezas de {lugar}, las voces telepáticas del cónclave se apagan al instante y completas las cinco piezas de tu armadura. Estás listo para seguir su rastro hacia los santuarios ocultos.",
+        "titulo": "Susurros en Limoquieto y el yelmo protector",
+        "encargo": "La Erudita Mirel despliega los mapas de las ciénagas de Limoquieto: «Los vertidos tóxicos en {lugar} emiten un zumbido mental que doblega a los viajeros. Caza a {n} criaturas alteradas allí para reunir astas óseas y sellar tu yelmo protector».",
+        "texto": "Al encajar los refuerzos óseos en tu yelmo forjado por Brann, los susurros del Cónclave en {lugar} se apagan al instante. Tus cinco piezas de armadura quedan completas para internarte en los secretos de Valdris.",
         "mision": {
           "tipo": "matar",
           "cantidad": 20,
@@ -4111,13 +4624,13 @@
         "nivel": 9,
         "sabio": "Sabia Elara",
         "npc": "guru-1",
-        "titulo": "La fuente arcana y la armadura templada",
-        "encargo": "Elara te entrega un mapa cifrado hacia {lugar}: «Sumerge tu armadura de cinco piezas en la fuente luminiscente para resistir el acero rúnico, pero mantente alerta: el agua guarda secretos de la Corona».",
-        "texto": "En {lugar}, las cinco piezas de tu armadura absorben un fulgor azulado indestructible. Bajo la superficie descubres jaulas selladas con emblemas idénticos a los de las patrullas corruptas.",
+        "titulo": "La fuente arcana y el templado del conjunto",
+        "encargo": "Elara te entrega una carta cifrada hacia {lugar}, oculta en los bosques entre Puerto Brisal y Limoquieto: «Sumerge tu armadura de cinco piezas en sus aguas luminiscentes para resistir el acero rúnico, pero ten cuidado: la corona ocultó allí más de un secreto».",
+        "texto": "En {lugar}, las cinco piezas de tu armadura absorben un fulgor azulado indestructible. En el fondo cristalino descubres jaulas sumergidas con los mismos punzones metálicos que marcan a las bestias de la plaga.",
         "mision": {
           "tipo": "secreto",
           "secreto": "fuente",
-          "secretoId": "sec-6-fuente"
+          "secretoId": "sec-fuente-brisal"
         },
         "recompensa": {
           "puntos": 3,
@@ -4126,16 +4639,16 @@
       },
       {
         "id": "c7",
-        "nivel": 9,
+        "nivel": 10,
         "sabio": "Maestro Oren",
         "npc": "guru-2",
         "titulo": "Hierro salvaje y la forja del arma",
-        "encargo": "Oren señala la ruta que une las tierras medias con Ámbar de Dunas: «Las vetas de hierro puro en {lugar} están tomadas por escoltas renegados. Abate a {n} enemigos allí y recupera metal suficiente para forjar tu arma maestra».",
-        "texto": "Con el mineral puro de {lugar}, Brann templa tu arma maestra entre chispas azules. Tu equipo completo de campaña queda forjado y unido bajo una sola voluntad.",
+        "encargo": "Oren señala la calzada oriental que asciende desde Albaferro hacia Ámbar de Dunas: «Las vetas de hierro puro en {lugar} están tomadas por escoltas renegados. Abate a {n} enemigos allí y recupera metal limpio para forjar tu arma maestra».",
+        "texto": "El hierro salvaje de {lugar} arde con chispas azules bajo el martillo de Brann. De la fragua surge tu arma definitiva, sellada con runas de insumisión fuera del control eclesial.",
         "mision": {
           "tipo": "matar",
           "cantidad": 22,
-          "nivel": 9,
+          "nivel": 10,
           "zona": "z_6"
         },
         "recompensa": {
@@ -4148,9 +4661,9 @@
         "nivel": 11,
         "sabio": "Hermana Ysolde",
         "npc": "guru-3",
-        "titulo": "El despertar de la Nova en Cañón del Pacto de Arena",
-        "encargo": "Ysolde rasga sus votos frente a ti: «La energía encerrada en {lugar}. Adéntrate en el laberinto natural y pertenece a los reyes antiguos, no al cónclave. Derrota a {n} centinelas allí para liberar la Explosión Nova (E)».",
-        "texto": "Una onda expansiva dorada recorre {lugar}. Has desbloqueado la Explosión Nova (E) y confirmado que las reliquias de Valdris responden a los libres, no a los tiranos.",
+        "titulo": "El despertar de la Nova en el Cañón de Arena",
+        "encargo": "Ysolde rasga sus votos frente a ti al pie del desierto: «La energía encerrada en {lugar} pertenece a los antiguos reyes de Valdris, no al Cónclave. Adéntrate en el cañón de arenisca y derrota a {n} centinelas para liberar la Explosión Nova (E)».",
+        "texto": "Una onda dorada barre las paredes de {lugar} y despierta la Explosión Nova (E) en tus manos. Por un instante, los ojos de tu compañero brillan con un halo ámbar idéntico al de los monolitos del desierto.",
         "mision": {
           "tipo": "matar",
           "cantidad": 25,
@@ -4167,13 +4680,13 @@
         "nivel": 12,
         "sabio": "Viejo Tamsin",
         "npc": "guru-4",
-        "titulo": "Los archivos de la cabaña oculta",
-        "encargo": "Tamsin baja la voz: «Antes de morir, el cronista escondió en {lugar} los planos de Cripta de las Raíces Negras y el registro de envíos hacia Trono de Ceniza. Llega hasta allí antes de que los inquisidores lo reduzcan a cenizas».",
-        "texto": "En {lugar} hallas el diario completo: revela los nombres de los conspiradores, la red de monopolio mercantil y el despertar subterráneo bajo Trono de Ceniza.",
+        "titulo": "Los archivos del Cronista Oculto",
+        "encargo": "Tamsin baja la voz tras inspeccionar los túneles del sur: «Antes de ser ejecutado, el cronista escondió en {lugar}, entre Robledal Sombrío y Limoquieto, los planos de la Cripta de las Raíces Negras y las órdenes de envío hacia Trono de Ceniza. Llega antes de que los inquisidores lo quemen».",
+        "texto": "En {lugar} recuperas el diario íntegro del cronista: expone los nombres de los conspiradores, el desvío de caravanas hacia el desierto y los planos de un Titán mecánico oculto bajo las cumbres del norte.",
         "mision": {
           "tipo": "secreto",
           "secreto": "cabana",
-          "secretoId": "cabana-1-clasica"
+          "secretoId": "sec-cabana-cronista"
         },
         "recompensa": {
           "puntos": 3
@@ -4181,16 +4694,16 @@
       },
       {
         "id": "c10",
-        "nivel": 12,
+        "nivel": 13,
         "sabio": "Sabia Elara",
         "npc": "guru-1",
-        "titulo": "Ruptura del cerco hacia Trono de Ceniza",
-        "encargo": "Los pasos fronterizos hacia Trono de Ceniza arden bajo patrullas de choque en {lugar}. «Hay que romper el bloqueo ahora mismo: abatid a {n} enemigos en {lugar} para abrir paso al norte».",
-        "texto": "El cerco de {lugar} se desmorona. Las caravanas rebeldes y los exploradores de Puerto Brisal y Ámbar de Dunas por fin tienen vía libre hacia la frontera.",
+        "titulo": "Ruptura del cerco sobre Atalaya de Escarcha",
+        "encargo": "Las columnas mecanizadas intentan aislar el bastión boreal de Atalaya de Escarcha en {lugar}. «Hay que romper el bloqueo ahora mismo: abate a {n} enemigos en las brumas boreales para abrir ruta hacia las cumbres del norte».",
+        "texto": "El cerco de {lugar} se desmorona bajo tu avance. La guarnición rebelde de Atalaya de Escarcha queda conectada con los valles del sur y lista para apoyar la marcha final hacia Trono de Ceniza.",
         "mision": {
           "tipo": "matar",
           "cantidad": 25,
-          "nivel": 12,
+          "nivel": 13,
           "zona": "z_8"
         },
         "recompensa": {
@@ -4203,12 +4716,12 @@
         "sabio": "Maestro Oren",
         "npc": "guru-2",
         "titulo": "El altar de Ámbar de Dunas y el fin del monopolio",
-        "encargo": "Oren te confía la llave rúnica: «Consagra {lugar} cerca de Ámbar de Dunas. Cuando caiga su sello eclesial, Brann y los mercaderes volverán a forjar y vender equipo superior (Nv. 12+) sin censura».",
-        "texto": "Un haz luminoso parte el cielo sobre {lugar}: ¡el monopolio mercantil del cónclave queda destruido! Las fraguas superiores y tiendas de todo Valdris reabren sus puertas.",
+        "encargo": "Oren te confía la llave ceremonial: «Consagra {lugar}, a las puertas de Ámbar de Dunas. Cuando caiga su sello eclesial, Brann y todos los mercaderes de Valdris volverán a forjar y vender equipo superior (Nv. 12+) sin censura».",
+        "texto": "Un haz solar parte el cielo del desierto sobre {lugar}: ¡el monopolio comercial del Cónclave queda destruido para siempre! Todas las fraguas superiores y tiendas de Valdris reabren sus puertas.",
         "mision": {
           "tipo": "secreto",
           "secreto": "altar",
-          "secretoId": "sec-7-altar"
+          "secretoId": "sec-altar-ambar"
         },
         "recompensa": {
           "puntos": 4
@@ -4219,9 +4732,9 @@
         "nivel": 15,
         "sabio": "Hermana Ysolde",
         "npc": "guru-3",
-        "titulo": "Pilar de resonancia en Garganta de Obsidiana",
-        "encargo": "La ciudadela cercana a Trono de Ceniza resiste protegida por un velo arcano alimentado desde {lugar}. «Derrota a {n} guardianes en {lugar} para derribar los pilares de resonancia».",
-        "texto": "La cúpula energética colapsa con un rugido sobre {lugar}. El acceso al corazón mismo de la conspiración en Trono de Ceniza queda abierto.",
+        "titulo": "Pilares de resonancia en Garganta de Obsidiana",
+        "encargo": "La ciudadela volcánica de Trono de Ceniza resiste tras un velo arcano alimentado desde {lugar}. «Cruza los pasillos de piedra negra y derrota a {n} guardianes para derribar los pilares de resonancia que blindan el cráter».",
+        "texto": "Los pilares de obsidiana estallan en cascadas de ceniza sobre {lugar}. La barrera que protegía las faldas de Trono de Ceniza colapsa con un rugido que retumba en todo el continente.",
         "mision": {
           "tipo": "matar",
           "cantidad": 30,
@@ -4237,13 +4750,13 @@
         "nivel": 16,
         "sabio": "Sabia Elara",
         "npc": "guru-1",
-        "titulo": "El santuario del sol quebrado",
-        "encargo": "Elara te cita frente a los monolitos de {lugar}: «Contempla la fuente original que el cónclave intentó usurpar bajo Sanctum del Trono Quebrado. Descubre sus ruinas para localizar el núcleo del titán».",
-        "texto": "En {lugar}, las estelas revelan la verdad definitiva: el cónclave planeaba fusionar la savia corrupta con Aurelio, Titán del Sol Quebrado para someter todas las rutas de Valdris.",
+        "titulo": "El santuario de las cumbres quebradas",
+        "encargo": "Elara te cita frente a los monolitos de {lugar}, sobre las crestas de Trono de Ceniza y el Sanctum del Trono Quebrado: «Contempla la fuente original que el Cónclave intentó usurpar y localiza el núcleo del Titán».",
+        "texto": "En {lugar}, las estelas ancestrales revelan la última verdad: la Orden del Eclipse fusionó la savia corrupta con Aurelio, Titán del Sol Quebrado, para someter todas las rutas de Valdris.",
         "mision": {
           "tipo": "secreto",
           "secreto": "santuario",
-          "secretoId": "sec-8-santuario"
+          "secretoId": "sec-santuario-sol"
         },
         "recompensa": {
           "puntos": 4
@@ -4255,8 +4768,8 @@
         "sabio": "Viejo Tamsin",
         "npc": "guru-4",
         "titulo": "El asalto final contra Aurelio, Titán del Sol Quebrado",
-        "encargo": "Tamsin alza su mandoble hacia {lugar}, junto a Trono de Ceniza: «Nadie ha vuelto vivo de los dominios de Aurelio, Titán del Sol Quebrado. Derriba al coloso en {lugar} antes de que despierte la última fragua abisal».",
-        "texto": "En un combate épico en {lugar}, tu compañero desvía el golpe mortal y atraviesas el núcleo de Aurelio, Titán del Sol Quebrado. Las líneas de suministro de monstruos mecánicos se apagan para siempre.",
+        "encargo": "Tamsin alza su mandoble hacia {lugar}, al pie de Trono de Ceniza: «Nadie ha regresado con vida de los dominios de Aurelio, Titán del Sol Quebrado. Derriba al coloso antes de que despierte la última fragua abisal».",
+        "texto": "La tierra se agrieta bajo vuestros pies en {lugar}. Cuando el coloso descarga su martillo letal, tu compañero se interpone con temple inquebrantable y atraviesas el núcleo rúnico de Aurelio: las forjas de pesadilla se apagan para siempre.",
         "mision": {
           "tipo": "jefe",
           "nivel": 18,
@@ -4271,13 +4784,13 @@
         "nivel": 18,
         "sabio": "Hermana Ysolde",
         "npc": "guru-3",
-        "titulo": "Purificación en las aguas sagradas",
-        "encargo": "Con el titán derrotado, tu compañero te pide acudir una última vez a {lugar} para purificar los restos de aceite oscuro y sellar el pacto de los pueblos libres de Valdris.",
-        "texto": "En {lugar}, la savia gris se disuelve en vapor limpio. Los ríos que alimentan Albaferro y Puerto Brisal vuelven a correr puros bajo el cielo abierto.",
+        "titulo": "Purificación en el Manantial de las Cumbres",
+        "encargo": "Con Aurelio derrotado, tu compañero te pide ascender hasta {lugar}, entre Atalaya de Escarcha y Trono de Ceniza, para purificar los últimos restos de aceite oscuro antes de que desciendan hacia los valles.",
+        "texto": "En {lugar}, la savia gris se disuelve en vapor limpio bajo el cielo abierto. Los ríos que riegan desde Puerto Brisal y Robledal Sombrío hasta Albaferro vuelven a fluir cristalinos.",
         "mision": {
           "tipo": "secreto",
           "secreto": "fuente",
-          "secretoId": "sec-6-fuente"
+          "secretoId": "sec-fuente-cumbres"
         },
         "recompensa": {
           "puntos": 4
@@ -4288,9 +4801,9 @@
         "nivel": 19,
         "sabio": "Erudita Mirel",
         "npc": "guru-5",
-        "titulo": "Juicio y victoria en Albaferro",
-        "encargo": "Regresa a la plaza de Albaferro. La Erudita Mirel, Brann y los enviados desde Puerto Brisal hasta Trono de Ceniza aguardan para juzgar al cónclave y grabar vuestro título en la crónica.",
-        "texto": "Entre vítores bajo la arcada de Albaferro, las campanas tañen desde Puerto Brisal hasta Trono de Ceniza. Vuestra gesta queda sellada para la eternidad: ¡sois los Libertadores de Valdris!",
+        "titulo": "Juicio público y victoria en Albaferro",
+        "encargo": "Regresa a la plaza de Albaferro. La Erudita Mirel, Brann y los enviados desde Puerto Brisal, Limoquieto, Ámbar de Dunas y Atalaya de Escarcha aguardan para juzgar al Cónclave y proclamar vuestra gesta.",
+        "texto": "Bajo la arcada de Albaferro, las campanas tañen desde el puerto occidental hasta las cumbres del norte. Vuestros nombres quedan grabados para la eternidad en la Crónica: ¡sois los Libertadores de Valdris!",
         "mision": {
           "tipo": "hablar",
           "npc": "guru-5",
@@ -4308,123 +4821,126 @@
         "icono": "🛡️",
         "etiqueta": "Fin del Acto I → Acto II · Valdris",
         "titulo": "Mente Blindada ante la Corrupción",
-        "detalle": "El yelmo óseo forjado con trofeos de Marismas del Silencio sella tu mente. Comienza la búsqueda de santuarios y pruebas."
+        "detalle": "El yelmo óseo forjado con trofeos de las Marismas del Silencio sella tu mente. Comienza la búsqueda de santuarios y pruebas."
       },
       "8": {
         "capitulo": 8,
         "icono": "✨",
         "etiqueta": "Giro del Acto II · Cañón del Pacto de Arena",
         "titulo": "Despertar de la Explosión Nova",
-        "detalle": "La Hermana Ysolde rompe en secreto la disciplina del cónclave y libera el poder antiguo en Cañón del Pacto de Arena."
+        "detalle": "La Hermana Ysolde rompe la disciplina del Cónclave y libera el poder antiguo en el Cañón del Pacto de Arena."
       },
       "10": {
         "capitulo": 10,
         "icono": "⚔️",
-        "etiqueta": "Fin del Acto II → Acto III · Camino a Trono de Ceniza",
-        "titulo": "Frontera Desbloqueada",
-        "detalle": "Cae el bloqueo hacia Trono de Ceniza y las regiones extremas de Valdris quedan a tu alcance."
+        "etiqueta": "Fin del Acto II → Acto III · Atalaya de Escarcha",
+        "titulo": "Paso Boreal Desbloqueado",
+        "detalle": "Cae el bloqueo sobre Atalaya de Escarcha y las cumbres de Trono de Ceniza quedan al alcance de la rebelión."
       },
       "11": {
         "capitulo": 11,
         "icono": "🔓",
         "etiqueta": "Hito Económico · Ámbar de Dunas",
         "titulo": "¡Monopolio Comercial Quebrado!",
-        "detalle": "Las forjas de Brann y los mercaderes reabren todo el catálogo superior (Nv. 12+) en todos los pueblos."
+        "detalle": "Las forjas de Brann y los mercaderes de toda Valdris reabren el catálogo superior (Nv. 12+)."
       },
       "14": {
         "capitulo": 14,
         "icono": "⚙️",
-        "etiqueta": "Fin del Acto III → Acto IV · Trono de Ceniza",
+        "etiqueta": "Fin del Acto III → Acto IV · Cráter del Sol Quebrado",
         "titulo": "Caída de Aurelio, Titán del Sol Quebrado",
-        "detalle": "Aurelio, Titán del Sol Quebrado yace derrotado junto a Trono de Ceniza. Solo resta purificar las aguas y regresar a Albaferro."
+        "detalle": "Aurelio yace derrotado junto a Trono de Ceniza. Solo resta purificar el Manantial de las Cumbres y volver a Albaferro."
       },
       "16": {
         "capitulo": 16,
         "icono": "👑",
         "etiqueta": "Epílogo Desbloqueado · Libertadores de Valdris",
         "titulo": "Triunfo en la Plaza de Albaferro",
-        "detalle": "Has completado la crónica de Valdris. Las mazmorras (Cripta de las Raíces Negras, Catacumbas del Sol Enterrado, Sanctum del Trono Quebrado) y las 5 cabañas quedan abiertas."
+        "detalle": "Has completado la crónica de Valdris. Las 3 Mazmorras Ancestrales, las 5 Cabañas Fronterizas y la Maestría de las 12 Zonas quedan abiertas."
       }
+    },
+    "epilogo": {
+      "nombre": "Epílogo · Libertadores de Valdris",
+      "resumen": "El Cónclave del Eclipse ha caído y las siete comarcas de Valdris respiran libres. Las 5 Cabañas Fronterizas, los 12 Campeones Alfa, los 3 Laberintos y las 3 Mazmorras Ancestrales esperan a los campeones."
     },
     "dialogosNpc": {
       "guru-1": {
-        "1": "En Albaferro todos vigilan lo que llevas al yunque de Brann. Empieza limpiando Prados del Yunque Roto.",
-        "2": "Las fuentes arcanas de Valdris guardan rastros de cargamentos desaparecidos entre Albaferro y Puerto Brisal.",
-        "3": "Si llegas al santuario cerca de Trono de Ceniza, entenderás por qué el cónclave temía tu avance.",
-        "4": "Aurelio, Titán del Sol Quebrado ha caído… quizá la voluntad de los pueblos libres valga más que todos nuestros sellos.",
-        "fin": "Tu nombre ya forma parte eterna de las crónicas de Valdris."
+        "1": "En Albaferro todos vigilan lo que llevas al yunque de Brann. Empieza limpiando los Prados del Yunque Roto.",
+        "2": "La Fuente Arcana de la Bahía guarda rastros de cargamentos desaparecidos entre Puerto Brisal y Limoquieto.",
+        "3": "Si alcanzas el Santuario del Sol Quebrado sobre Trono de Ceniza, verás por qué el Cónclave temía tu avance.",
+        "4": "Aurelio ha caído… quizá la voluntad de los pueblos de Valdris valga más que todos nuestros sellos.",
+        "fin": "Vuestro nombre abre el primer tomo de la nueva historia de Valdris."
       },
       "guru-2": {
-        "1": "Sigue las calzadas entre Albaferro y Puerto Brisal; las patrullas corruptas vigilan cada bifurcación.",
-        "2": "Las vetas libres cerca de Ámbar de Dunas son vitales para templar tu arma maestra.",
-        "3": "¡Con el Altar Rúnico consagrado, los caminos entre Albaferro, Ámbar de Dunas y Trono de Ceniza vuelven a ser libres!",
-        "4": "Las caravanas vuelven a circular sin miedo desde la costa hasta Trono de Ceniza.",
-        "fin": "Cada camino de Valdris lleva hoy la huella de los Libertadores de Valdris."
+        "1": "Sigue la calzada entre Albaferro y Puerto Brisal; las patrullas corruptas vigilan cada cruce.",
+        "2": "Las vetas de hierro del Desfiladero del Óxido son vitales para templar tu arma maestra antes de cruzar a Ámbar de Dunas.",
+        "3": "¡Con el Altar Rúnico de Ámbar de Dunas consagrado, todas las rutas de Valdris vuelven a ser libres!",
+        "4": "Las caravanas vuelven a circular sin miedo desde la costa de Brisal hasta las cumbres del norte.",
+        "fin": "Cada camino de Valdris lleva hoy la huella de los Libertadores."
       },
       "guru-3": {
-        "1": "Entrena tus técnicas en silencio en Albaferro. Las runas antiguas no pertenecen al cónclave.",
-        "2": "Cuando alcances Cañón del Pacto de Arena, la Explosión Nova despertará ante tus manos.",
-        "3": "He roto mis votos definitivamente. Derriba la barrera que protege Trono de Ceniza.",
-        "4": "Purifica las aguas de Valdris para que ninguna otra forja oscura vuelva a nacer.",
-        "fin": "Las runas sirven ahora al pueblo libre, no a las sombras."
+        "1": "Entrena tus técnicas en silencio en Albaferro. Las runas antiguas no pertenecen al Cónclave.",
+        "2": "Cuando entres en el Cañón del Pacto de Arena, la Explosión Nova despertará ante tus manos.",
+        "3": "He roto mis votos definitivamente. Derriba los pilares de Garganta de Obsidiana que blindan Trono de Ceniza.",
+        "4": "Purifica el Manantial de las Cumbres para que la savia gris no vuelva a envenenar nuestros ríos.",
+        "fin": "Las runas de Valdris sirven ahora al pueblo libre, no a las sombras."
       },
       "guru-4": {
-        "1": "Aprende a partir la tierra: los constructos que merodean por Laberinto del Seto Maldito se quiebran con impacto sísmico.",
-        "2": "El diario de la cabaña contiene las rutas secretas hacia Cripta de las Raíces Negras.",
-        "3": "Cuando entres al territorio de Aurelio, Titán del Sol Quebrado, lleva contigo todo tu temple.",
-        "4": "Aurelio, Titán del Sol Quebrado ya no volverá a alzarse sobre Trono de Ceniza.",
-        "fin": "Las criptas como Sanctum del Trono Quebrado siguen guardando pruebas para guerreros legendarios."
+        "1": "Aprende a partir la tierra: los constructos del Laberinto del Seto Maldito se quiebran con Impacto Sísmico.",
+        "2": "En la Cabaña del Cronista Oculto aguardan las rutas hacia la Cripta de las Raíces Negras.",
+        "3": "Cuando pises el Cráter del Sol Quebrado frente a Aurelio, lleva contigo tu mejor temple.",
+        "4": "Aurelio ya no volverá a alzarse sobre Trono de Ceniza.",
+        "fin": "El Sanctum del Trono Quebrado y los Campeones Alfa aún ofrecen gloria a los valientes."
       },
       "guru-5": {
-        "1": "Revisa siempre la durabilidad de tu equipo y blinda tu yelmo en cuanto llegues a Marismas del Silencio.",
-        "2": "Cada pieza recuperada demuestra quién financia estas aberraciones desde Ámbar de Dunas hasta Trono de Ceniza.",
-        "3": "Reúno todas las actas y testimonios para el juicio en la plaza de Albaferro.",
+        "1": "Blinda tu yelmo con astas de las Marismas del Silencio para acallar los susurros del Cónclave.",
+        "2": "Cada prueba recuperada demuestra quién financia estas aberraciones desde Ámbar de Dunas hasta el norte.",
+        "3": "Reúno todas las actas y testimonios para el juicio público en Albaferro.",
         "4": "Todo Valdris aguarda en la plaza para escuchar vuestro veredicto.",
         "fin": "Los anales de Albaferro honran por siempre a los Libertadores de Valdris."
       },
       "serv-herrero": {
-        "1": "Mi yunque en Albaferro sigue ardiendo a escondidas. Tráeme trofeos de Prados del Yunque Roto y Acantilados de la Marea Roja.",
-        "2": "En cuanto consigas hierro puro de Desfiladero del Óxido, forjaré tu arma definitiva.",
-        "3": "¡El monopolio cayó! Ya puedo trabajar equipo superior desde nivel 12 en toda Valdris.",
+        "1": "Mi yunque en Albaferro sigue ardiendo a escondidas. Tráeme trofeos de los Prados y los Acantilados.",
+        "2": "Con hierro salvaje del Desfiladero del Óxido forjaré tu arma definitiva.",
+        "3": "¡El monopolio de Ámbar de Dunas cayó! Ya trabajo equipo superior de nivel 12+ en toda Valdris.",
         "4": "El acero sale limpio de la fragua; es hora de cerrar el juicio en Albaferro.",
         "fin": "Para los Libertadores de Valdris, mi fragua siempre arderá con fuego perfecto."
       },
       "serv-mercader": {
-        "1": "Los inspectores bloquean las ventas superiores en Albaferro y Puerto Brisal hasta que rompas el monopolio (Nv. 12).",
-        "2": "Tráeme el botín de las cacerías y aprovisiónate de pociones antes de cruzar hacia Ámbar de Dunas.",
-        "3": "¡Libre comercio al fin! Las rutas desde Puerto Brisal hasta Ámbar de Dunas vuelven a fluir.",
-        "4": "Las caravanas celebran vuestro triunfo en cada plaza.",
-        "fin": "¡El mercado de Valdris nunca había visto tanta abundancia!"
+        "1": "Los inspectores bloquean las ventas superiores en Albaferro y Puerto Brisal hasta que rompas el monopolio.",
+        "2": "Tráeme el botín de caza y aprovisiónate de pociones antes de cruzar hacia el desierto.",
+        "3": "¡Libre comercio al fin! Las caravanas entre Puerto Brisal y Ámbar de Dunas vuelven a fluir.",
+        "4": "Los mercados celebran vuestro triunfo en cada plaza de Valdris.",
+        "fin": "¡Las rutas comerciales de Valdris nunca habían visto tanta abundancia!"
       },
       "serv-comandante": {
-        "1": "Tráeme pruebas del cónclave y no tendrás problemas con mi guarnición.",
-        "2": "Esos diarios incriminan a los jefes de plaza. Mis exploradores despejarán vuestra marcha hacia Ámbar de Dunas.",
-        "3": "La guardia está con vosotros para asegurar los flancos rumbo a Trono de Ceniza.",
+        "1": "Tráeme pruebas de la conspiración del Cónclave y mi guarnición mirará hacia otro lado.",
+        "2": "Esos diarios del cronista incriminan a los mandos de plaza. Mis exploradores vigilan el paso hacia Atalaya de Escarcha.",
+        "3": "La Guardia de Valdris cierra filas contigo para asegurar los flancos hacia Trono de Ceniza.",
         "4": "Las murallas de Albaferro vuelven a servir al pueblo.",
-        "fin": "La guardia rinde honores a los Libertadores de Valdris."
+        "fin": "La Guardia de Valdris rinde honores a los Libertadores."
       },
       "serv-informante": {
-        "1": "Dicen que las cabañas cercanas a Albaferro esconden pistas sobre cargamentos perdidos.",
-        "2": "Entre Puerto Brisal y Ámbar de Dunas desaparecen caravanas enteras rumbo a Cripta de las Raíces Negras.",
-        "3": "Mis contactos ven humo saliendo cerca de Trono de Ceniza. Prepara tus mejores elixires.",
-        "4": "Con Aurelio, Titán del Sol Quebrado vencido, solo quedan tesoros ocultos en las criptas profundas.",
-        "fin": "Si buscas retos en Sanctum del Trono Quebrado, siempre tengo coordenadas frescas."
+        "1": "Las Cabañas Fronterizas cercanas a Albaferro y Puerto Brisal esconden contratos muy lucrativos.",
+        "2": "Entre Robledal Sombrío y Limoquieto desaparecen caravanas enteras rumbo a la Cripta de las Raíces Negras.",
+        "3": "Mis espías ven ceniza ascender desde Trono de Ceniza. Lleva tus mejores elixires.",
+        "4": "Con Aurelio vencido, aún quedan fortunas ocultas en las Catacumbas del Sol Enterrado y el Sanctum.",
+        "fin": "Mientras quede un rincón oscuro en Valdris, siempre tendremos negocios."
       },
       "serv-boticaria": {
-        "1": "Mis destilados mantienen en pie a quien se atreve a entrar en Prados del Yunque Roto sin armadura completa.",
-        "2": "En los pantanos y bosques de Valdris la savia corrupta quema la piel: lleva fuego líquido.",
-        "3": "Contra Aurelio, Titán del Sol Quebrado necesitarás pociones de furia y temple.",
-        "4": "Purificar las aguas devolvió la pureza incluso a mis hierbas.",
+        "1": "Mis destilados mantienen en pie a quien entra en los Prados sin armadura completa.",
+        "2": "En las Marismas del Silencio de Limoquieto la savia quema la piel: lleva pociones de sobra.",
+        "3": "Contra Aurelio en el Cráter necesitarás frascos de furia y temple.",
+        "4": "Purificar el Manantial de las Cumbres devolvió la pureza incluso a mis hierbas.",
         "fin": "Las mazmorras de Valdris siguen exigiendo buenos brebajes."
       },
       "serv-hereje": {
         "1": "Si buscas poder más allá de las leyes de Albaferro, mis runas esperan en la sombra.",
-        "2": "Ellos llaman herejía a mis grabados mientras infectan los bosques de Puerto Brisal.",
-        "3": "Graba furia en tu acero antes de enfrentarte a Aurelio, Titán del Sol Quebrado.",
-        "4": "Incluso en tiempos libres, alguien debe vigilar lo que duerme bajo tierra.",
-        "fin": "Mi yunque oscuro sigue abierto para quienes desciendan a Sanctum del Trono Quebrado."
+        "2": "Ellos llaman herejía a mis grabados mientras envenenan los robles del sur.",
+        "3": "Graba furia en tu acero antes de enfrentarte a Aurelio.",
+        "4": "Incluso en un reino libre, alguien debe vigilar lo que respira bajo la roca.",
+        "fin": "Mi yunque oscuro sigue abierto para quienes desciendan al Sanctum del Trono Quebrado."
       }
-    },
-    "sinopsis": "La Orden del Eclipse envenena las fraguas y rutas de Valdris creando aberraciones con hierro militar. Junto al Herrero Brann y tu compañero leal deberás armarte en secreto, atravesar 3 laberintos y desvelar la conspiración desde Puerto Brisal y Robledal Sombrío hasta Ámbar de Dunas y el Cráter del Sol Quebrado."
+    }
   }
 }

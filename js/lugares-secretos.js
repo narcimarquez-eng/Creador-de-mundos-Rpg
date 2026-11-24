@@ -145,6 +145,9 @@
   // Genera lugares secretos distribuidos orgánicamente en el mapa lejos de las plazas de los pueblos
   function generarLugaresSecretos(world) {
     if (!world) return [];
+    if (world.secretPlacesFijos && Array.isArray(world.secretPlaces) && world.secretPlaces.length) {
+      return JSON.parse(JSON.stringify(world.secretPlaces));
+    }
     const W = world.size || 2000;
     const semilla = hashStr((world.name || 'Mundo') + '_' + (world.id || 'rpg') + '_' + W);
     const rnd = rngSec(semilla);
@@ -1111,21 +1114,23 @@
     return hMod;
   }
 
-  // Contexto narrativo que conecta las 5 cabañas fronterizas con la trama de Aden
-  function contextoCabana(cabanaOrId, principal) {
+  // Contexto narrativo que conecta las 5 cabañas fronterizas con la trama del reino
+  function contextoCabana(cabanaOrId, principal, world) {
     const id = typeof cabanaOrId === 'string'
       ? cabanaOrId
       : (cabanaOrId && (cabanaOrId.cabanaId || cabanaOrId.id || cabanaOrId.nombre)) || '';
     const def = CABANAS_GLB.find(c => c.id === id || c.nombre === id) || null;
     const paso = principal && typeof principal.paso === 'number' ? principal.paso : 0;
-    const tramaBase = (cabanaOrId && cabanaOrId.trama)
+    const reino = (world && world.campaignId === 'valdris-sol-quebrado-v1') ? 'Valdris' : ((world && world.name) || 'Aden');
+    let tramaBase = (cabanaOrId && cabanaOrId.trama)
       || (def && def.trama)
       || 'Las bestias alteradas rodean este puesto avanzado y amenazan las rutas entre aldeas.';
+    if (reino === 'Valdris') tramaBase = tramaBase.replace(/\bAden\b/g, 'Valdris');
     let estadoActo = 'Acto I–II · Resistencia rural bajo vigilancia del cónclave.';
     if (paso >= 16) estadoActo = 'Epílogo · Limpieza final de focos salvajes tras la caída de los Sabios.';
     else if (paso >= 11) estadoActo = 'Acto III–IV · Consolidación de rutas libres tras quebrar el monopolio.';
     return {
-      titulo: (def && def.nombre) || (cabanaOrId && cabanaOrId.nombre) || 'Puesto Fronterizo',
+      titulo: (cabanaOrId && cabanaOrId.nombre) || (def && def.nombre) || 'Puesto Fronterizo',
       trama: tramaBase,
       estadoActo
     };

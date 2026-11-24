@@ -565,7 +565,10 @@
       finalId: null,
       dialogosVistos: {},
       hitosMundo: {},
-      companeroMisiones: {} };
+      companeroMisiones: {},
+      bestiario: {},
+      cazaValdris: {},
+      viajeRapido: [] };
   }
 
   function limpiarForjaPendiente(fp) {
@@ -690,6 +693,48 @@
     if (base.principal.paso >= 16 && !tieneTituloFinal) {
       base.titulos.push('Campeones de Aden');
     }
+    if (h.bestiario && typeof h.bestiario === 'object') {
+      Object.keys(h.bestiario).slice(0, 220).forEach(k => {
+        const b = h.bestiario[k];
+        if (!b || typeof b !== 'object' || !k.trim()) return;
+        const key = k.trim().slice(0, 80);
+        base.bestiario[key] = {
+          nombre: typeof b.nombre === 'string' ? b.nombre.slice(0, 80) : key,
+          kills: num(b.kills),
+          nivel: Math.max(1, num(b.nivel) || 1),
+          zona: typeof b.zona === 'string' ? b.zona.slice(0, 40) : '',
+          campeon: !!b.campeon
+        };
+      });
+    }
+    if (h.cazaValdris && typeof h.cazaValdris === 'object') {
+      Object.keys(h.cazaValdris).slice(0, 60).forEach(zid => {
+        const cz = h.cazaValdris[zid];
+        if (!cz || typeof cz !== 'object' || !zid.trim()) return;
+        const reclamos = {};
+        if (cz.reclamos && typeof cz.reclamos === 'object') {
+          Object.keys(cz.reclamos).slice(0, 12).forEach(rk => {
+            if (cz.reclamos[rk]) reclamos[String(rk).slice(0, 32)] = true;
+          });
+        }
+        base.cazaValdris[zid.trim().slice(0, 40)] = {
+          kills: num(cz.kills),
+          campeonAbatido: !!cz.campeonAbatido,
+          poiDescubierto: !!cz.poiDescubierto,
+          dominada: !!cz.dominada,
+          reclamos
+        };
+      });
+    }
+    if (Array.isArray(h.viajeRapido)) {
+      const vistosVr = new Set();
+      h.viajeRapido.slice(0, 80).forEach(id => {
+        if (typeof id === 'string') {
+          const limpio = id.trim().slice(0, 60);
+          if (limpio && !vistosVr.has(limpio)) { vistosVr.add(limpio); base.viajeRapido.push(limpio); }
+        }
+      });
+    }
     return base;
   }
 
@@ -718,7 +763,7 @@
     if (!o || typeof o !== 'object' || !TIPOS_HISTORIA.includes(o.tipo)) return null;
     const texto = v => (typeof v === 'string' ? v : '');
     const out = { tipo: o.tipo, cantidad: Math.max(1, isFinite(o.cantidad) ? Math.floor(o.cantidad) : 1), nombre: texto(o.nombre), texto: texto(o.texto), encargo: texto(o.encargo) };
-    ['zona', 'pueblo', 'npc'].forEach(k => { if (typeof o[k] === 'string' && o[k]) out[k] = o[k]; });
+    ['zona', 'pueblo', 'npc', 'secretoId', 'secretoTipo'].forEach(k => { if (typeof o[k] === 'string' && o[k]) out[k] = o[k]; });
     return out;
   }
 

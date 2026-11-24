@@ -105,16 +105,34 @@
     #side h3 { margin: 0; padding: 10px 12px 6px; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .7px; }
     #side .stats { padding: 0 12px 8px; color: var(--muted); font-size: 12px; line-height: 1.6; border-bottom: 1px solid var(--line); }
     #side .stats b { color: var(--gold); }
-    .tabs-m { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); }
-    .tabs-m button { flex: 1; padding: 6px 4px; font-size: 11px; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); cursor: pointer; text-align: center; }
+    .tabs-m { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px; border-bottom: 1px solid var(--line); }
+    .tabs-m button { flex: 1 1 30%; padding: 5px 4px; font-size: 11px; background: transparent; border: 1px solid transparent; border-radius: 4px; color: var(--muted); cursor: pointer; text-align: center; white-space: nowrap; }
     .tabs-m button.on { background: #0c4a6e; border-color: var(--accent); color: #fff; font-weight: bold; }
-    #side[data-tab="pueblos"] :is(#sec-zonas, #sec-cabanas, #sec-mazmorras),
-    #side[data-tab="zonas"] :is(#sec-pueblos, #sec-cabanas, #sec-mazmorras),
-    #side[data-tab="cabanas"] :is(#sec-pueblos, #sec-zonas, #sec-mazmorras),
-    #side[data-tab="mazmorras"] :is(#sec-pueblos, #sec-zonas, #sec-cabanas) { display: none; }
+    #side[data-tab="pueblos"] :is(#sec-zonas, #sec-cabanas, #sec-mazmorras, #sec-atlas),
+    #side[data-tab="zonas"] :is(#sec-pueblos, #sec-cabanas, #sec-mazmorras, #sec-atlas),
+    #side[data-tab="cabanas"] :is(#sec-pueblos, #sec-zonas, #sec-mazmorras, #sec-atlas),
+    #side[data-tab="mazmorras"] :is(#sec-pueblos, #sec-zonas, #sec-cabanas, #sec-atlas),
+    #side[data-tab="atlas"] :is(#sec-pueblos, #sec-zonas, #sec-cabanas, #sec-mazmorras) { display: none; }
     #side section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
     #side section h3 { display: none; }
-    #side #towns, #side #zonas, #side #cabanas-lista, #side #mazmorras-lista { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; scrollbar-width: thin; }
+    #side #towns, #side #zonas, #side #cabanas-lista, #side #mazmorras-lista, #side #atlas-valdris { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; scrollbar-width: thin; }
+
+    /* Modo Juego Completo Valdris (escenario bloqueado, sin herramientas de editor) */
+    body.modo-juego-valdris #btn-view-plaza,
+    body.modo-juego-valdris #btn-view-detail,
+    body.modo-juego-valdris #btn-follow,
+    body.modo-juego-valdris #crear-aldeano,
+    body.modo-juego-valdris #btn-portada-visor,
+    body.modo-juego-valdris #btn-portada-oficial,
+    body.modo-juego-valdris .solo-editor,
+    body.modo-juego-valdris #info a[href="index.html"] { display: none !important; }
+    #hud-racha {
+      position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+      background: rgba(127, 29, 29, 0.90); border: 1px solid #f59e0b; color: #fde68a;
+      border-radius: 999px; padding: 4px 12px; font-size: 11.5px; font-weight: 700;
+      z-index: 22; display: none; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+    }
+    #hud-racha.show { display: block; }
     .trow { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 8px; }
     .trow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .trow small { color: var(--muted); }
@@ -915,16 +933,17 @@
         max-height: 50vh;
         z-index: 40;
       }
-      .tabs-m { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); }
-      .tabs-m button { flex: 1; padding: 5px 4px; font-size: 12px; background: transparent; }
+      .tabs-m { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px; border-bottom: 1px solid var(--line); }
+      .tabs-m button { flex: 1 1 30%; padding: 5px 4px; font-size: 11px; background: transparent; white-space: nowrap; }
       .tabs-m button.on { background: #0c4a6e; border-color: var(--accent); color: #fff; }
-      #side[data-tab="pueblos"] :is(#sec-zonas, #sec-cabanas, #sec-mazmorras),
-      #side[data-tab="zonas"] :is(#sec-pueblos, #sec-cabanas, #sec-mazmorras),
-      #side[data-tab="cabanas"] :is(#sec-pueblos, #sec-zonas, #sec-mazmorras),
-      #side[data-tab="mazmorras"] :is(#sec-pueblos, #sec-zonas, #sec-cabanas) { display: none; }
+      #side[data-tab="pueblos"] :is(#sec-zonas, #sec-cabanas, #sec-mazmorras, #sec-atlas),
+      #side[data-tab="zonas"] :is(#sec-pueblos, #sec-cabanas, #sec-mazmorras, #sec-atlas),
+      #side[data-tab="cabanas"] :is(#sec-pueblos, #sec-zonas, #sec-mazmorras, #sec-atlas),
+      #side[data-tab="mazmorras"] :is(#sec-pueblos, #sec-zonas, #sec-cabanas, #sec-atlas),
+      #side[data-tab="atlas"] :is(#sec-pueblos, #sec-zonas, #sec-cabanas, #sec-mazmorras) { display: none; }
       #side section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       #side section h3 { display: none; }
-      #side #towns, #side #zonas, #side #cabanas-lista, #side #mazmorras-lista { flex: 1; min-height: 0; overflow-y: auto; }
+      #side #towns, #side #zonas, #side #cabanas-lista, #side #mazmorras-lista, #side #atlas-valdris { flex: 1; min-height: 0; overflow-y: auto; }
       #side .stats { font-size: 11px; line-height: 1.4; }
       #side .trow { padding: 5px 7px; margin-bottom: 3px; }
 
@@ -1840,7 +1859,7 @@
 </head>
 <body>
   <div id="top">
-    <a class="btn" href="index.html" title="Volver al editor">← <span class="long">Editor</span></a>
+    <a class="btn" id="btn-back-editor" href="index.html" title="Volver al editor">← <span class="long">Editor</span></a>
     <div id="title">Visor 3D</div>
     <button id="btn-side" title="Lista de pueblos">☰</button>
     <button id="btn-top-bag" title="Mochila y equipo (I)">🎒</button>
@@ -1864,6 +1883,7 @@
       <button data-tab="zonas">⚔ Zonas</button>
       <button data-tab="cabanas">🏡 Cabañas</button>
       <button data-tab="mazmorras">🗝️ Mazmorras</button>
+      <button data-tab="atlas">🏆 Atlas</button>
     </div>
     <section id="sec-pueblos">
       <h3>Pueblos</h3>
@@ -1881,11 +1901,15 @@
       <h3>Mazmorras Ancestrales</h3>
       <div id="mazmorras-lista"></div>
     </section>
+    <section id="sec-atlas">
+      <h3>Atlas y Progreso de Valdris</h3>
+      <div id="atlas-valdris"></div>
+    </section>
     <div class="layers">
-      <label><input type="checkbox" id="chk-zones" checked> Zonas</label>
+      <label class="solo-editor"><input type="checkbox" id="chk-zones" checked> Zonas</label>
       <label><input type="checkbox" id="chk-labels" checked> Nombres</label>
-      <label><input type="checkbox" id="chk-trees" checked> Bosques</label>
-      <label><input type="checkbox" id="chk-water" checked> Agua</label>
+      <label class="solo-editor"><input type="checkbox" id="chk-trees" checked> Bosques</label>
+      <label class="solo-editor"><input type="checkbox" id="chk-water" checked> Agua</label>
       <label title="Un solo ajuste: texturas, sombras, reflejos, detalle de monstruos, pueblos y decoración">Calidad gráfica <select id="sel-quality"><option value="muybajo">Muy baja</option><option value="bajo">Baja</option><option value="medio">Media</option><option value="alto">Alta</option></select></label>
       <label title="Oclusión ambiental (SSAO) para sombras de contacto en piedras, muros y depresiones"><input type="checkbox" id="chk-ssao" checked> Oclusión (SSAO)</label>
       <label title="Estética pastoral luminosa, sombras de nubes, lejanía celeste y tonos vibrantes"><input type="checkbox" id="chk-zelda" checked> Estilo Zelda (nubes y luz)</label>
@@ -1893,8 +1917,8 @@
       <label title="Riachuelos cristalinos vadeables con cantos rodados y orillas floridas"><input type="checkbox" id="chk-riachuelos" checked> Riachuelos</label>
       <label title="Ráfagas de brisa y polen flotante sobre praderas"><input type="checkbox" id="chk-brisa" checked> Brisa y polen</label>
       <label title="Pelo y escamas de los monstruos: son la mayor parte de sus polígonos">Pelo y escamas <select id="sel-pelo"><option value="completo">Completo (hasta 30 m)</option><option value="ligero">Ligero (hasta 8 m)</option><option value="nada">Sin detalle</option></select></label>
-      <label>Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
-      <label title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
+      <label class="solo-editor">Enemigos <select id="sel-enemigos"><option value="niveles">Por niveles</option><option value="aleatorio">Aleatorios</option></select></label>
+      <label class="solo-editor" title="Para probar; el tamaño que se guarda con el mundo se elige en el Creador de mundos">Tamaño enemigos <input type="range" id="tam-enemigos" min="0.5" max="1.5" step="0.05" value="1"> <b id="tam-enemigos-v">×1.00</b></label>
       <div id="audio-mixer" class="audio-mixer">
         <div class="am-tit">🔊 Mezclador de Audio</div>
         <label class="am-row"><span>General</span><span><input type="range" id="vol-master" min="0" max="100" value="90"> <b class="am-val" id="vol-master-v">90%</b></span></label>
@@ -1968,6 +1992,7 @@
   </button>
   <div id="dmg-layer" aria-hidden="true"></div>
   <div id="dmg-vignette" aria-hidden="true"></div>
+  <div id="hud-racha"></div>
   <div id="hud">
     <div id="zona-marca"></div>
     <div class="hud-bars">
@@ -2486,7 +2511,8 @@
   <script defer src="js/armaduras.js?v=20261122a"></script>
   <script defer src="js/equipo.js?v=20261122b"></script>
   <script defer src="js/historia.js?v=20261119e"></script>
-  <script defer src="js/mundo-campana.js?v=20261114c"></script>
+  <script defer src="js/mundo-campana.js?v=20261124a"></script>
+  <script defer src="js/valdris-juego.js?v=20261124a"></script>
   <script defer src="js/lugares-secretos.js?v=20261119c"></script>
   <script defer src="js/texturas-lib.js?v=4"></script>
   <script defer src="js/dungeon-generator.js?v=20261114w"></script>
@@ -2548,6 +2574,60 @@
   const DEG = Math.PI / 180;
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const _urlParamsInit = new URLSearchParams(location.search);
+  const MODO_JUEGO_VALDRIS = _urlParamsInit.get('juego') === 'valdris' || _urlParamsInit.get('modo') === 'valdris';
+  const rachaCazaState = { count: 0, lastKillAt: 0 };
+
+  function actualizarHudRacha() {
+    const el = $('hud-racha');
+    if (!el) return;
+    if (typeof ValdrisJuegoLib === 'undefined') { el.classList.remove('show'); return; }
+    const n = ValdrisJuegoLib.rachaVigente(rachaCazaState, performance.now());
+    if (n >= 3) {
+      const b = ValdrisJuegoLib.bonoRachaCaza(n);
+      const extra = b.tramo > 0 ? ` · ${b.nombre} (+${Math.round((b.xpMult - 1) * 100)}% XP, +${Math.round((b.oroMult - 1) * 100)}% 🪙)` : '';
+      el.textContent = `🔥 Racha ×${n}${extra}`;
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+    }
+  }
+
+  function ejecutarViajeRapido(destinoId) {
+    if (typeof ValdrisJuegoLib === 'undefined' || !world || !character) return false;
+    const now = performance.now();
+    const enCombate = (hero && hero.sinceHit < 6) || (now - ultimoCombateMs < 5000);
+    const res = ValdrisJuegoLib.puedeViajarRapido({
+      enCombate,
+      destinoId,
+      heroeEst,
+      visitedSet: visited,
+      world,
+      oro: inv ? inv.gold : 0
+    });
+    if (!res.ok) {
+      toast('⚠️ ' + res.motivo, 3000);
+      return false;
+    }
+    if (res.costeOro > 0 && inv) {
+      inv.gold = Math.max(0, (inv.gold || 0) - res.costeOro);
+      renderInvCard();
+    }
+    detenerRuta();
+    pararAuto();
+    objetivo = null;
+    if (character.teleport(res.x, res.z)) {
+      setFollow(true);
+      hideInfo();
+      cerrarMapaMundo();
+      announce('✦ Piedra de Viaje', `Has llegado a ${res.nombre}` + (res.costeOro ? ` (-${res.costeOro} 🪙)` : ''), '#7dd3fc');
+      if (typeof buildAtlasUI === 'function') buildAtlasUI();
+      saveActive(true);
+      return true;
+    }
+    toast('No se pudo activar el viaje rápido aquí');
+    return false;
+  }
 
   // Colores de los pueblos según el estilo del Creador de Pueblos
   const ROOF = { l2_fantasy: '#1d4ed8', european: '#9a3412', frontier: '#a16207', elven: '#0d9488', dwarven: '#475569', fortified: '#1e293b', trade: '#b91c1c' };
@@ -7086,7 +7166,7 @@
   // ===========================================================================
   function buildCabanasUI() {
     if (!$('cabanas-lista')) return;
-    const lista = (lugaresSecretos || []).filter(s => s.tipo === 'cabana');
+    const lista = (lugaresSecretos || []).filter(s => s.tipo === 'cabana' && s.misionCabana);
     if (!lista.length) {
       $('cabanas-lista').innerHTML = '<div class="muted" style="padding:8px">Explorando cabañas del reino...</div>';
       return;
@@ -7200,6 +7280,80 @@
     });
     buildCabanasUI();
     buildMazmorrasUI();
+    buildAtlasUI();
+  }
+
+  function buildAtlasUI() {
+    const box = $('atlas-valdris');
+    if (!box || !world) return;
+    if (typeof ValdrisJuegoLib === 'undefined') {
+      box.innerHTML = '<div class="muted" style="padding:8px">Cargando Atlas de Valdris…</div>';
+      return;
+    }
+    const prog = ValdrisJuegoLib.progresoGlobalValdris(heroeEst, world, visited, lugaresSecretos);
+    const destinos = ValdrisJuegoLib.destinosViajeRapido(world, heroeEst, visited);
+    const zonas = ValdrisJuegoLib.resumenMaestriaZonas(heroeEst, world);
+    const bestiario = ValdrisJuegoLib.listaBestiario(heroeEst);
+
+    const vrHtml = destinos.map(d => {
+      if (!d.descubierto) {
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:5px;background:rgba(15,23,42,0.45);color:#64748b;font-size:11px;margin-bottom:4px"><span>🔒 ${d.icono} ${esc(d.nombre)}</span><span>Nv ${d.nivel}</span></div>`;
+      }
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:4px;padding:4px 6px;border-radius:5px;background:rgba(15,23,42,0.78);border:1px solid #1e3a5f;font-size:11px;margin-bottom:4px"><span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.icono} ${esc(d.nombre)}</span><button data-atlas-viaje="${esc(d.id)}" style="padding:2px 7px;font-size:10px;background:#0f766e;border:1px solid #2dd4bf;border-radius:4px;color:#fff;cursor:pointer;flex:none">✦ ${d.costeOro ? d.costeOro + '🪙' : 'Gratis'}</button></div>`;
+    }).join('');
+
+    const zonasHtml = zonas.map(z => {
+      const pct = Math.round((z.killsShown / Math.max(1, z.metaKills)) * 100);
+      return `<div style="background:rgba(15,23,42,0.7);border:1px solid ${z.dominada ? '#facc15' : '#334155'};border-radius:6px;padding:6px 8px;margin-bottom:5px">
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:${z.dominada ? '#fde047' : '#e2e8f0'}">
+          <span>${z.dominada ? '⭐ ' : '⚔ '}${esc(z.zonaNombre)}</span>
+          <span style="font-size:10px;color:#94a3b8">Nv ${z.nivelMin}–${z.nivelMax}</span>
+        </div>
+        <div style="height:4px;background:#1e293b;border-radius:3px;overflow:hidden;margin:4px 0">
+          <div style="height:100%;background:${z.dominada ? '#facc15' : '#38bdf8'};width:${pct}%"></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:10px;color:#94a3b8">
+          <span>Caza ${z.killsShown}/${z.metaKills}</span>
+          ${z.campeonNombre ? `<span style="color:${z.campeonAbatido ? '#86efac' : '#fca5a5'}">${z.campeonAbatido ? '✓' : '○'} ${esc(z.campeonNombre)}</span>` : ''}
+          ${z.poiNombre ? `<span style="color:${z.poiDescubierto ? '#7dd3fc' : '#64748b'}">${z.poiDescubierto ? '✓' : '○'} ${esc(z.poiNombre)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    const bestHtml = bestiario.length
+      ? bestiario.slice(0, 18).map(b => `<div style="display:flex;justify-content:space-between;font-size:10.5px;padding:3px 6px;border-bottom:1px solid rgba(51,65,85,0.45)"><span>${b.campeon ? '👑 ' : ''}${esc(b.nombre)}</span><span style="color:${b.rango >= 2 ? '#facc15' : (b.rango === 1 ? '#7dd3fc' : '#94a3b8')}">${b.kills} bajas${b.bonusDanio ? ' · +' + Math.round(b.bonusDanio * 100) + '%' : ''}</span></div>`).join('')
+      : '<div class="muted" style="font-size:11px;padding:4px">Derrota criaturas para desbloquear bonos de daño (+5 % / +10 %) en el bestiario.</div>';
+
+    box.innerHTML = `
+      <div style="background:rgba(15,23,42,0.85);border:1px solid rgba(250,204,21,0.45);border-radius:8px;padding:8px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#facc15;margin-bottom:4px">
+          <span>🏆 Dominio de Valdris</span><span>${prog.porcentaje}%</span>
+        </div>
+        <div style="height:6px;background:#1e293b;border-radius:3px;overflow:hidden;margin-bottom:6px">
+          <div style="height:100%;background:linear-gradient(90deg,#0ea5e9,#facc15);width:${prog.porcentaje}%"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;font-size:10.5px;color:#cbd5e1">
+          <span>📖 Crónica: <b>${prog.capitulos.hechos}/${prog.capitulos.total}</b></span>
+          <span>🏘 Pueblos: <b>${prog.pueblos.hechos}/${prog.pueblos.total}</b></span>
+          <span>⭐ Zonas: <b>${prog.zonasDominadas.hechos}/${prog.zonasDominadas.total}</b></span>
+          <span>👑 Campeones: <b>${prog.campeones.hechos}/${prog.campeones.total}</b></span>
+          <span>📜 Encargos: <b>${prog.encargos.hechos}/${prog.encargos.total}</b></span>
+          <span>🏡 Cabañas: <b>${prog.cabanas.hechos}/${prog.cabanas.total}</b></span>
+          <span>🗝 Mazmorras: <b>${prog.mazmorras.hechos}/${prog.mazmorras.total}</b></span>
+          <span>✦ Hitos: <b>${prog.pois.hechos}/${prog.pois.total}</b></span>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#7dd3fc;margin:6px 0 4px">✦ Piedras de Viaje Rápido</div>
+      ${vrHtml}
+      <div style="font-size:11px;font-weight:700;color:#facc15;margin:8px 0 4px">⚔️ Maestría de Caza por Zona</div>
+      ${zonasHtml}
+      <div style="font-size:11px;font-weight:700;color:#86efac;margin:8px 0 4px">📖 Bestiario (${prog.especiesBestiario})</div>
+      <div style="background:rgba(15,23,42,0.55);border:1px solid #334155;border-radius:6px">${bestHtml}</div>
+    `;
+
+    box.querySelectorAll('[data-atlas-viaje]').forEach(b => {
+      b.onclick = () => ejecutarViajeRapido(b.dataset.atlasViaje);
+    });
   }
 
   function buildMazmorrasUI() {
@@ -7258,6 +7412,12 @@
       const t = sel.ref, o = towns.find(x => x.t === t);
       cx = t.x; cz = t.y; r = (o ? o.R : 60) + 10;
       const exits = (t.cfg.exits || []);
+      const vrCheck = (MODO_JUEGO_VALDRIS && typeof ValdrisJuegoLib !== 'undefined')
+        ? ValdrisJuegoLib.puedeViajarRapido({ enCombate: false, destinoId: 'town:' + t.id, heroeEst, visitedSet: visited, world, oro: inv ? inv.gold : 0 })
+        : null;
+      const btnAccionTown = MODO_JUEGO_VALDRIS
+        ? `<button class="gold" data-ruta="${t.x},${t.y},${esc(t.name)}">🧭 Trazar Ruta</button>${vrCheck && vrCheck.ok ? `<button data-viaje="town:${esc(t.id)}" style="background:#0f766e;border-color:#2dd4bf;color:#fff">✦ Viaje Rápido${vrCheck.costeOro ? ' (' + vrCheck.costeOro + '🪙)' : ''}</button>` : ''}`
+        : `<button class="gold" data-tp="${t.x},${t.y}">🧍 Ir aquí</button><a class="btn" href="index.html">✏ Editar en el editor</a>`;
       html = `
         <button class="close" data-close>✕</button>
         <span class="kind">🏘 Pueblo ${t.isStart ? '· ⭐ inicial' : ''}</span>
@@ -7266,17 +7426,41 @@
         <div class="muted" style="margin-top:6px">Servicios: ${esc((t.services || []).join(', '))}</div>
         <div class="muted" style="margin-top:6px">Caminos: ${exits.length ? exits.map(e => esc(e.to)).join(', ') : 'ninguno'}</div>
         ${t.notes ? `<div class="muted" style="margin-top:6px">${esc(t.notes)}</div>` : ''}
-        <div class="btns"><button class="gold" data-tp="${t.x},${t.y}">🧍 Ir aquí</button><a class="btn" href="index.html">✏ Editar en el editor</a></div>`;
+        <div class="btns">${btnAccionTown}</div>`;
+    } else if (sel.kind === 'poi') {
+      const poi = sel.ref;
+      cx = poi.x; cz = poi.y; r = 20;
+      const defPoi = W.POI_TYPES && W.POI_TYPES[poi.type];
+      const descubierto = !!(heroeEst && heroeEst.hitosMundo && heroeEst.hitosMundo['poi_' + poi.id]);
+      const puedeDescansarPoi = (poi.type === 'campamento' || poi.type === 'santuario') &&
+        character && character.root && Math.hypot(character.root.position.x - poi.x, character.root.position.z - poi.y) <= 22;
+      const vrPoi = (MODO_JUEGO_VALDRIS && typeof ValdrisJuegoLib !== 'undefined' && (poi.type === 'portal' || poi.type === 'santuario'))
+        ? ValdrisJuegoLib.puedeViajarRapido({ enCombate: false, destinoId: 'poi:' + poi.id, heroeEst, visitedSet: visited, world, oro: inv ? inv.gold : 0 })
+        : null;
+      html = `
+        <button class="close" data-close>✕</button>
+        <span class="kind">${defPoi ? defPoi.icon : '✦'} ${esc((defPoi && defPoi.name) || poi.type)}${descubierto ? ' · ✓ Descubierto' : ''}</span>
+        <h2>${esc(poi.name)}</h2>
+        <div class="muted">Nivel recomendado <b style="color:#fbbf24">${poi.level || 1}</b></div>
+        ${poi.notes ? `<div class="muted" style="margin-top:6px">${esc(poi.notes)}</div>` : ''}
+        <div class="btns">
+          ${MODO_JUEGO_VALDRIS ? `<button class="gold" data-ruta="${poi.x},${poi.y},${esc(poi.name)}">🧭 Trazar Ruta</button>` : `<button class="gold" data-tp="${poi.x},${poi.y}">🧍 Ir aquí</button>`}
+          ${puedeDescansarPoi ? '<button data-descansar-poi style="background:#0f766e;border-color:#2dd4bf;color:#fff">🏕️ Descansar aquí</button>' : ''}
+          ${vrPoi && vrPoi.ok ? `<button data-viaje="poi:${esc(poi.id)}" style="background:#0f766e;border-color:#2dd4bf;color:#fff">✦ Viaje Rápido</button>` : ''}
+        </div>`;
     } else if (sel.kind === 'zone') {
       const z = sel.ref;
       cx = z.x; cz = z.y; r = z.radius + 10;
+      const btnZona = MODO_JUEGO_VALDRIS
+        ? `<button class="gold" data-ruta="${z.x},${z.y},${esc(z.name)}">🧭 Trazar Ruta</button>`
+        : `<button class="gold" data-tp="${z.x},${z.y}">🧍 Ir aquí</button>`;
       html = `
         <button class="close" data-close>✕</button>
         <span class="kind">⚔ ${esc((W.ZONE_TYPES[z.type] || {}).name || z.type)}</span>
         <h2>${esc(z.name)}</h2>
         <div class="muted">Nivel <b style="color:#fbbf24">${z.levelMin}–${z.levelMax}</b> · bioma ${esc((W.BIOMES[z.biome] || {}).name || z.biome) } · radio ${z.radius} m</div>
-        <table>${z.monsters.map(m => `<tr><td>${m.boss ? '☠ ' : ''}${esc(m.name)} <small class="muted">×${W.monsterCount(m)}</small></td><td class="lv">Nv ${m.level}</td></tr>`).join('')}</table>
-        <div class="btns"><button class="gold" data-tp="${z.x},${z.y}">🧍 Ir aquí</button></div>`;
+        <table>${z.monsters.map(m => `<tr><td>${m.boss ? '👑 ' : (m.campeonZona ? '🏅 ' : '')}${esc(m.name)} <small class="muted">×${W.monsterCount(m)}</small></td><td class="lv">Nv ${m.level}</td></tr>`).join('')}</table>
+        <div class="btns">${btnZona}</div>`;
     } else if (sel.kind === 'npc') {
       const n = sel.ref;
       cx = n.raiz.position.x; cz = n.raiz.position.z; r = 2.2;
@@ -7289,7 +7473,7 @@
         <div class="muted">${esc(n.info.tema)}</div>
         <div id="npc-dialogo" class="muted" style="margin-top:6px;font-style:italic">${(serv === 'herrero' || serv === 'mercader') && !fraseNpc ? '' : '«' + esc(fraseNpc) + '»'}</div>
         <div class="btns">
-          ${serv ? `<button class="gold" data-servicio>${TEXTO_SERVICIO[serv].boton}</button>` : '<button class="gold" data-hablar>💬 Hablar</button>'}
+          ${serv ? `<button class="gold" data-servicio>${(serv === 'comandante' && typeof ValdrisJuegoLib !== 'undefined' && ValdrisJuegoLib.esValdris(world)) ? '🎖️ Guardia de Valdris' : TEXTO_SERVICIO[serv].boton}</button>` : '<button class="gold" data-hablar>💬 Hablar</button>'}
         </div>`;
     } else if (sel.kind === 'monster') {
       const m = sel.ref;
@@ -7335,7 +7519,7 @@
           </div>
         </div>
         <div class="btns">
-          <button class="gold" data-tp="${c.x},${c.z}">🧍 Ir aquí</button>
+          ${MODO_JUEGO_VALDRIS ? `<button class="gold" data-ruta="${c.x},${c.z},${esc(c.nombre)}">🧭 Trazar Ruta</button>` : `<button class="gold" data-tp="${c.x},${c.z}">🧍 Ir aquí</button>`}
           <button class="gold" data-abrir-cabana="${c.id}">${!aceptada ? '📜 Elegir Encargo' : (completada && !entregada ? '🎁 Reclamar Recompensa' : '🏡 Hablar con Aldeano')}</button>
         </div>`;
     } else {
@@ -7348,7 +7532,7 @@
         <span class="kind">Terreno</span>
         <h2>${esc((W.BIOMES[b] || {}).name || b)}</h2>
         <div class="muted">Posición ${Math.round(p.x)}, ${Math.round(p.z)} · altura ${Math.round(H(p.x, p.z))} m</div>
-        <div class="btns"><button class="gold" data-tp="${Math.round(p.x)},${Math.round(p.z)}">🧍 Ir aquí</button></div>`;
+        <div class="btns">${MODO_JUEGO_VALDRIS ? `<button class="gold" data-ruta="${Math.round(p.x)},${Math.round(p.z)},Destino">🧭 Ir andando</button>` : `<button class="gold" data-tp="${Math.round(p.x)},${Math.round(p.z)}">🧍 Ir aquí</button>`}</div>`;
     }
     info.innerHTML = html;
     info.classList.add('show');
@@ -7382,6 +7566,14 @@
       if (character.teleport(x, z)) toast('Personaje en ' + Math.round(x) + ', ' + Math.round(z));
       else toast('Ese punto está en el agua');
     });
+    info.querySelectorAll('[data-ruta]').forEach(btn => btn.onclick = () => {
+      const partes = btn.dataset.ruta.split(',');
+      const x = Number(partes[0]), z = Number(partes[1]);
+      const nom = partes.slice(2).join(',') || 'destino';
+      irAPunto(x, z, nom, 5);
+    });
+    info.querySelectorAll('[data-viaje]').forEach(btn => btn.onclick = () => ejecutarViajeRapido(btn.dataset.viaje));
+    info.querySelectorAll('[data-descansar-poi]').forEach(btn => btn.onclick = () => startRest());
 
     // Anillo de selección
     const pts = [];
@@ -9345,8 +9537,9 @@
       if (!tieneLaberinto) {
         z.monsters.forEach((info, mi) => {
           const baseCount = (typeof W.monsterCount === 'function' && W.monsterCount(info)) || 1;
-          // Escala generosa para que las zonas de caza exteriores se sientan pobladas
-          const count = info.boss ? 1 : Math.max(3, Math.round(baseCount * 2));
+          // Escala generosa para que las zonas de caza exteriores se sientan pobladas; Campeones Alfa y Jefes son únicos
+          const esUnico = !!(info.boss || info.campeonZona);
+          const count = esUnico ? 1 : Math.max(3, Math.round(baseCount * 2));
           // Cada variedad comparte el mismo arquetipo 3D en toda la zona (coherencia visual y 1 solo prototipo GPU)
           const semillaVar = ((W.hashString(z.id + '|' + mi + '|' + (info.name || '')) ^ world.seed) >>> 0) || 1;
           const rngVar = new W.PRNG(semillaVar);
@@ -9355,7 +9548,9 @@
           for (let k = 0; k < count; k++) {
             const rng = new W.PRNG((W.hashString(z.id + '|' + mi + '|' + k) ^ world.seed) >>> 0);
             let rangoElite = 1;
-            if (!info.boss) {
+            if (info.campeonZona) {
+              rangoElite = info.rangoEliteFijo || 4;
+            } else if (!info.boss) {
               const roll = rng.range(0, 100);
               if (roll < 8) rangoElite = 4;
               else if (roll < 22) rangoElite = 3;
@@ -9366,9 +9561,9 @@
             const clusterIdx = Math.floor(k / 3);
             const rngCluster = new W.PRNG((W.hashString(z.id + '|cl|' + mi + '|' + clusterIdx) ^ world.seed) >>> 0);
             const aCluster = rngCluster.range(0, Math.PI * 2);
-            const rCluster = info.boss ? 0 : z.radius * rngCluster.range(0.18, 0.82);
-            const offX = (k % 3 === 0 || info.boss) ? 0 : rng.range(-11, 11);
-            const offZ = (k % 3 === 0 || info.boss) ? 0 : rng.range(-11, 11);
+            const rCluster = info.boss ? 0 : (info.campeonZona ? z.radius * 0.22 : z.radius * rngCluster.range(0.18, 0.82));
+            const offX = (k % 3 === 0 || esUnico) ? 0 : rng.range(-11, 11);
+            const offZ = (k % 3 === 0 || esUnico) ? 0 : rng.range(-11, 11);
             const spawnX = z.x + Math.cos(aCluster) * rCluster + offX;
             const spawnZ = z.y + Math.sin(aCluster) * rCluster + offZ;
 
@@ -9399,7 +9594,8 @@
             });
             m.rangoElite = rangoElite;
             m.esElite = rangoElite >= 2;
-            const prefijoElite = rangoElite === 4 ? '👑 [Élite ×4] ' : rangoElite === 3 ? '🔥 [Élite ×3] ' : rangoElite === 2 ? '⭐ [Élite ×2] ' : '';
+            m.campeonZona = !!info.campeonZona;
+            const prefijoElite = m.campeonZona ? '👑 [Campeón] ' : (rangoElite === 4 ? '👑 [Élite ×4] ' : rangoElite === 3 ? '🔥 [Élite ×3] ' : rangoElite === 2 ? '⭐ [Élite ×2] ' : '');
             m.name = prefijoElite + (info.name || 'Monstruo');
             m.zone = z; m.alive = true; m.respawnAt = 0; m.flashUntil = 0; m.phase = rng.range(0, 6);
             m.patrulla = !info.boss;
@@ -9412,7 +9608,9 @@
             m.turno = monsters.length % 4;   // reparte los monstruos lejanos entre los fotogramas
             m.group = new THREE.Group();
             m.group.userData.monstruo = m;
-            if (rangoElite >= 2) {
+            if (m.campeonZona) {
+              m.group.scale.setScalar(1.52);
+            } else if (rangoElite >= 2) {
               m.group.scale.setScalar(1 + (rangoElite - 1) * 0.16);
             }
             // Enemigo elegido en el editor de mundos; si no hay, el modo del mundo (por nivel o aleatorio)
@@ -9644,6 +9842,13 @@
       xpComp = Math.round(xpComp * factorComp);
     }
 
+    if (factorHeroe > 0 && typeof ValdrisJuegoLib !== 'undefined') {
+      const rachaInfo = ValdrisJuegoLib.actualizarRachaCaza(rachaCazaState, performance.now());
+      const domInfo = m.zone ? ValdrisJuegoLib.multiplicadorZonaDominada(heroeEst, m.zone.id) : { xpMult: 1, oroMult: 1 };
+      xpHeroe = Math.max(1, Math.round(xpHeroe * rachaInfo.xpMult * domInfo.xpMult));
+      actualizarHudRacha();
+    }
+
     const nivelPrevHeroe = hero.level;
     const levels = CombatLib.gainXp(hero, xpHeroe);
     if (xpComp > 0 && typeof AcompananteLib !== 'undefined' && AcompananteLib.ganarXpAcompanante) {
@@ -9724,6 +9929,33 @@
     if (m.rangoElite && m.rangoElite >= 2) {
       const extraOro = Math.round(ItemsLib.monsterGold(m.level, false) * (m.rangoElite - 1));
       if (extraOro > 0) botin.gold += extraOro;
+    }
+    if (typeof ValdrisJuegoLib !== 'undefined') {
+      const rachaB = ValdrisJuegoLib.bonoRachaCaza(ValdrisJuegoLib.rachaVigente(rachaCazaState, performance.now()));
+      const domB = m.zone ? ValdrisJuegoLib.multiplicadorZonaDominada(heroeEst, m.zone.id) : { xpMult: 1, oroMult: 1 };
+      if (botin.gold > 0) botin.gold = Math.round(botin.gold * rachaB.oroMult * domB.oroMult);
+      if (m.campeonZona) {
+        botin.gold += 90 + m.level * 20;
+        botin.vida = (botin.vida || 0) + 1;
+      }
+      const resBest = ValdrisJuegoLib.registrarBestiario(heroeEst, m);
+      if (resBest && resBest.rangoSubido) {
+        const pctB = resBest.rangoSubido === 2 ? '+10 %' : '+5 %';
+        toast(`📖 Bestiario: ${resBest.entry.nombre} (${pctB} daño)`);
+      }
+      if (m.zone) {
+        const resCaza = ValdrisJuegoLib.registrarCazaZona(heroeEst, m.zone, m, world);
+        if (resCaza.oro > 0) inv.gold = (inv.gold || 0) + resCaza.oro;
+        if (resCaza.arena > 0) inv.arena = (inv.arena || 0) + resCaza.arena;
+        if (resCaza.puntos > 0) heroeEst.puntos = (heroeEst.puntos || 0) + resCaza.puntos;
+        if (resCaza.xp > 0) otorgarXpHistoria(resCaza.xp);
+        if (resCaza.hitosNuevos && resCaza.hitosNuevos.length) {
+          const ult = resCaza.hitosNuevos[resCaza.hitosNuevos.length - 1];
+          const extra = [ult.oro ? `+${ult.oro}🪙` : '', ult.arena ? `+${ult.arena}🧱` : '', ult.puntos ? `+${ult.puntos}🧬` : ''].filter(Boolean).join(' ');
+          announce(resCaza.dominadaAhora ? '⭐ ' + ult.titulo : '🏆 ' + ult.titulo, extra || 'Progreso de Valdris actualizado', '#fde047');
+        }
+      }
+      if (typeof buildAtlasUI === 'function') buildAtlasUI();
     }
     const partesDrop = [];
     if (xpHeroe > 0) partesDrop.push('+' + xpHeroe + ' XP');
@@ -10023,7 +10255,10 @@
   }
 
   function startRest() {
-    if (!curTown) { toast('Descansa en un pueblo'); return; }
+    const camp = (!curTown && typeof ValdrisJuegoLib !== 'undefined' && character && character.root)
+      ? ValdrisJuegoLib.campamentoCercano(world, character.root.position.x, character.root.position.z, 22)
+      : null;
+    if (!curTown && !camp) { toast('Descansa en un pueblo o campamento de caza'); return; }
     if (hero.dead) return;
     if (hero.sinceHit < 6) { toast('No puedes descansar tan cerca del combate'); return; }
     if (hero.hp >= hero.maxHp && hero.mp >= hero.maxMp) { toast('Ya estás descansado'); return; }
@@ -10031,7 +10266,7 @@
     restPos = { x: character.root.position.x, z: character.root.position.z };
     restPrevSinceHit = hero.sinceHit;
     if (window.Sonidos && window.Sonidos.descanso) window.Sonidos.descanso();
-    toast('Descansando en la posada…');
+    toast(camp ? `Descansando en ${camp.name}…` : 'Descansando en la posada…');
   }
 
   function stopRest(reason) {
@@ -10040,11 +10275,14 @@
     if (reason) toast(reason);
   }
 
-  // El descanso se corta si te mueves, te golpean o sales del pueblo
+  // El descanso se corta si te mueves, te golpean, o sales del pueblo/campamento
   function updateRest(dt) {
     if (!hero.resting) return;
     const p = character.root.position;
-    if (hero.dead || !curTown) return stopRest('');
+    const camp = (!curTown && typeof ValdrisJuegoLib !== 'undefined')
+      ? ValdrisJuegoLib.campamentoCercano(world, p.x, p.z, 22)
+      : null;
+    if (hero.dead || (!curTown && !camp)) return stopRest('');
     if (Math.hypot(p.x - restPos.x, p.z - restPos.z) > 0.3) return stopRest('Descanso interrumpido');
     if (hero.sinceHit < restPrevSinceHit) return stopRest('Te han golpeado: descanso interrumpido');
     restPrevSinceHit = hero.sinceHit;
@@ -13137,13 +13375,40 @@
         if (window.Sonidos && window.Sonidos.zonaNueva) window.Sonidos.zonaNueva(true);
         if (!visited.has(town.t.id)) {
           visited.add(town.t.id);
+          if (typeof ValdrisJuegoLib !== 'undefined') ValdrisJuegoLib.desbloquearViajeRapido(heroeEst, 'town:' + town.t.id);
           buildUI();
           updateStats();
           saveActive(true);
+        } else if (typeof ValdrisJuegoLib !== 'undefined') {
+          if (ValdrisJuegoLib.desbloquearViajeRapido(heroeEst, 'town:' + town.t.id) && typeof buildAtlasUI === 'function') buildAtlasUI();
         }
         if (!follow) setFollow(true);
         avanzarHistoria({ tipo: 'visitar', pueblo: town.t.id });
         lanzarSubtituloEvento({ tipo: 'pueblo', nombre: town.t.name });
+      }
+    }
+    if (typeof ValdrisJuegoLib !== 'undefined' && world && Array.isArray(world.pois)) {
+      for (let i = 0; i < world.pois.length; i++) {
+        const poi = world.pois[i];
+        if (!poi) continue;
+        const dp = Math.hypot(p.x - poi.x, p.z - poi.y);
+        if (dp <= 24 && !(heroeEst && heroeEst.hitosMundo && heroeEst.hitosMundo['poi_' + poi.id])) {
+          const resPoi = ValdrisJuegoLib.registrarPoiDescubierto(heroeEst, poi, world);
+          if (resPoi.oro > 0) inv.gold = (inv.gold || 0) + resPoi.oro;
+          if (resPoi.arena > 0) inv.arena = (inv.arena || 0) + resPoi.arena;
+          if (resPoi.puntos > 0) heroeEst.puntos = (heroeEst.puntos || 0) + resPoi.puntos;
+          if (resPoi.xp > 0) otorgarXpHistoria(resPoi.xp);
+          if ((poi.type === 'campamento' || poi.type === 'santuario') && hero && !hero.dead) {
+            hero.hp = Math.min(hero.maxHp, hero.hp + Math.round(hero.maxHp * 0.2));
+            hero.mp = Math.min(hero.maxMp, hero.mp + Math.round(hero.maxMp * 0.2));
+          }
+          renderInvCard();
+          if (typeof buildAtlasUI === 'function') buildAtlasUI();
+          announce('✦ Lugar descubierto: ' + poi.name,
+            (resPoi.desbloqueoViaje ? 'Piedra de Viaje desbloqueada · ' : '') + `+${resPoi.xp || 0} EXP · +${resPoi.oro || 0} 🪙`,
+            '#7dd3fc');
+          saveActive(true);
+        }
       }
     }
     let zone = null, zr = Infinity;
@@ -14028,7 +14293,7 @@
       if (lugaresSecretos && lugaresSecretos.length) {
         lugaresSecretos.forEach(s => {
           const pt = T.toScreen(s.x, s.z);
-          if (s.tipo === 'cabana') {
+          if (s.tipo === 'cabana' && s.misionCabana) {
             const m = s.misionCabana || {};
             const est = (typeof LugaresSecretosLib !== 'undefined' && typeof LugaresSecretosLib.estadoMisionCabana === 'function')
               ? LugaresSecretosLib.estadoMisionCabana(s) : null;
@@ -14742,6 +15007,10 @@
     }
     if (hero.reforjaOscura) {
       dmg *= (1 + hero.reforjaOscura);
+    }
+    if (targetMonster && targetMonster.name && typeof ValdrisJuegoLib !== 'undefined') {
+      const bEsp = ValdrisJuegoLib.bonoConocimientoEspecie(heroeEst, targetMonster.name);
+      if (bEsp && bEsp.bonusDanio > 0) dmg *= (1 + bEsp.bonusDanio);
     }
     const probCrit = Math.min(0.95, statsHeroe.critico + (Number(bonusCrit) || 0));
     const crit = Math.random() < probCrit;
@@ -20932,8 +21201,9 @@
   window.addEventListener('keydown', e => {
     if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
     const k = e.key.toLowerCase();
-    if (k === 'f') setFollow(!follow);
-    if (k === 'm' || k === 'g') { if (follow) overview(); else setFollow(true); }
+    if (k === 'f' && !MODO_JUEGO_VALDRIS) setFollow(!follow);
+    if (k === 'm') { if (MODO_JUEGO_VALDRIS) abrirMapaMundo(); else if (follow) overview(); else setFollow(true); }
+    if (k === 'g' && !MODO_JUEGO_VALDRIS) { if (follow) overview(); else setFollow(true); }
     if (k === 't') setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
     if (k === ' ') { e.preventDefault(); useSkill('attack'); }
     if (k === 'e') {
@@ -21048,6 +21318,14 @@
       if (d < o.R + 25 && d < bd) { bd = d; best = { kind: 'town', ref: o.t }; }
     });
     if (best) return best;
+    if (world && Array.isArray(world.pois)) {
+      let poiBest = null, pd = 24;
+      world.pois.forEach(poi => {
+        const d = Math.hypot(p.x - poi.x, p.z - poi.y);
+        if (d < pd) { pd = d; poiBest = { kind: 'poi', ref: poi }; }
+      });
+      if (poiBest) return poiBest;
+    }
     let zb = null, zr = Infinity;
     world.zones.forEach(z => {
       if (W.pointInZone(z, { x: p.x, y: p.z }) && z.radius < zr) { zr = z.radius; zb = { kind: 'zone', ref: z }; }
@@ -21062,6 +21340,7 @@
     document.querySelectorAll('#tabs-m button').forEach(x => x.classList.toggle('on', x === b));
     if (b.dataset.tab === 'cabanas' && typeof buildCabanasUI === 'function') buildCabanasUI();
     if (b.dataset.tab === 'mazmorras' && typeof buildMazmorrasUI === 'function') buildMazmorrasUI();
+    if (b.dataset.tab === 'atlas' && typeof buildAtlasUI === 'function') buildAtlasUI();
   });
   $('btn-save').onclick = openPartidas;
   if ($('btn-pj')) $('btn-pj').onclick = () => openCrearPersonaje(crearPartida);
@@ -21080,7 +21359,7 @@
   };
   window.addEventListener('pagehide', () => saveActive(true));
   setInterval(() => saveActive(true), 20000);
-  $('btn-overview').onclick = () => { if (follow) overview(); else setFollow(true); };
+  $('btn-overview').onclick = () => { if (MODO_JUEGO_VALDRIS) abrirMapaMundo(); else if (follow) overview(); else setFollow(true); };
   $('btn-time').onclick = () => setTimeOfDay(timeOfDay === 'day' ? 'golden' : timeOfDay === 'golden' ? 'night' : 'day');
   (function initBotonSonido() {
     const btn = $('btn-sound');
@@ -21815,7 +22094,7 @@
   }
 
   function migrarValdrisSiAntiguo(w) {
-    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 3) return false;
+    if (!w || w.campaignId !== 'valdris-sol-quebrado-v1' || (w.campaignVersion || 1) >= 4) return false;
     if (typeof window.clonarMundoOficial !== 'function') return false;
     const fresh = window.clonarMundoOficial();
     const ver = w.campaignVersion || 1;
@@ -21832,8 +22111,15 @@
         }
       });
     }
+    if (ver < 4) {
+      if (fresh.zones) w.zones = fresh.zones;
+      if (fresh.pois) w.pois = fresh.pois;
+      if (fresh.secretPlaces) w.secretPlaces = fresh.secretPlaces;
+      w.secretPlacesFijos = true;
+      w.bloqueadoJuego = true;
+    }
     if (fresh.historia) w.historia = fresh.historia;
-    w.campaignVersion = fresh.campaignVersion || 3;
+    w.campaignVersion = fresh.campaignVersion || 4;
     return true;
   }
 
@@ -21903,6 +22189,26 @@
     try { pelo = localStorage.getItem('rpgMundo.pelo'); } catch (e) { /* nada */ }
     fijarDetalle(pelo || 'ligero', false);
     const params = new URLSearchParams(location.search);
+    if (MODO_JUEGO_VALDRIS && typeof window.clonarMundoOficial === 'function') {
+      document.body.classList.add('modo-juego-valdris');
+      document.title = 'Valdris · Tierras del Sol Quebrado';
+      if ($('title')) $('title').textContent = '⚔️ Valdris';
+      const btnBack = $('btn-back-editor');
+      if (btnBack) {
+        btnBack.removeAttribute('href');
+        btnBack.title = 'Volver a la portada de Valdris';
+        btnBack.innerHTML = '🏠 <span class="long">Portada</span>';
+        btnBack.onclick = e => { e.preventDefault(); saveActive(true); abrirPortada(); };
+      }
+      const wOf = window.clonarMundoOficial();
+      worldId = 'valdris_juego_oficial';
+      const serializedValdris = W.serialize(wOf);
+      loadText(serializedValdris, false);
+      bootPartida({ sinPortada: false });
+      if ($('load')) $('load').classList.remove('show');
+      window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, atajosActivos, useSkill, faltaArma, bloqueada, renderHeroe, renderEntrenador, get studioVfx() { return studioVfx; }, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; }, MODO_JUEGO_VALDRIS, ejecutarViajeRapido, buildAtlasUI };
+      return;
+    }
     let id = params.get('s');
     if (!id) { try { id = localStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }
     if (!id) { try { id = sessionStorage.getItem('rpgMundo.actual'); } catch (e) { id = null; } }
