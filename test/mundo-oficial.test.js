@@ -112,8 +112,8 @@ t('la crónica oficial de Valdris resuelve 16 capítulos de principio a fin sin 
   assert.strictEqual(H.actoActual(p, w).terminado, true);
 });
 
-t('index.html y visor-mundo.html cargan Valdris y exponen controles de historia', () => {
-  const idxHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+t('creador-de-mundos.html y visor-mundo.html cargan Valdris y exponen controles de historia', () => {
+  const idxHtml = fs.readFileSync(path.join(__dirname, '..', 'creador-de-mundos.html'), 'utf8');
   const visHtml = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
 
   assert.ok(idxHtml.includes('js/mundo-campana.js'));

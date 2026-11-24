@@ -133,8 +133,8 @@ test('creador-de-mazmorras.html: existe, contiene Three.js, panel lateral UI, co
   assert.ok(html.includes('isDraggingMonster'), 'Debe soportar arrastre interactivo de monstruos con el ratón');
 });
 
-test('index.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {
-  const indexPath = path.join(__dirname, '..', 'index.html');
+test('creador-de-mundos.html: cuenta con menú de diseño de mazmorra, herramienta dungeon con opciones procedurales y retorno', () => {
+  const indexPath = path.join(__dirname, '..', 'creador-de-mundos.html');
   const indexHtml = fs.readFileSync(indexPath, 'utf8');
 
   assert.ok(indexHtml.includes('data-tool="dungeon"'), 'Debe contener botón de herramienta de mazmorra');

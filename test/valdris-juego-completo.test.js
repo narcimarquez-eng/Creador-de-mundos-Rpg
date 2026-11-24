@@ -178,16 +178,21 @@ t('ValdrisJuegoLib: maestría de caza, rachas, bestiario, viaje rápido y progre
   assert.ok(prog.porcentaje > 0 && prog.zonasDominadas.hechos === 1);
 });
 
-t('valdris.html, index.html y visor-mundo.html integran el modo juego completo y bloqueado de Valdris', () => {
+t('valdris.html, index.html, creador-de-mundos.html y visor-mundo.html integran el hub y el modo juego bloqueado de Valdris', () => {
   const valHtml = fs.readFileSync(path.join(__dirname, '..', 'valdris.html'), 'utf8');
-  const idxHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const hubHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const edHtml = fs.readFileSync(path.join(__dirname, '..', 'creador-de-mundos.html'), 'utf8');
   const visHtml = fs.readFileSync(path.join(__dirname, '..', 'visor-mundo.html'), 'utf8');
 
   assert.ok(valHtml.includes('visor-mundo.html?juego=valdris'));
-  assert.ok(idxHtml.includes('id="btn-play-valdris"'));
+  assert.ok(hubHtml.includes('visor-mundo.html?juego=valdris'));
+  assert.ok(hubHtml.includes('creador-de-mundos.html'));
+  assert.ok(edHtml.includes('id="btn-play-valdris"'));
+  assert.ok(edHtml.includes('id="btn-home"'));
   assert.ok(visHtml.includes('js/valdris-juego.js'));
   assert.ok(visHtml.includes('MODO_JUEGO_VALDRIS'));
   assert.ok(visHtml.includes('body.modo-juego-valdris'));
+  assert.ok(visHtml.includes('id="btn-portada-inicio"'));
   assert.ok(visHtml.includes('id="sec-atlas"'));
   assert.ok(visHtml.includes('buildAtlasUI'));
   assert.ok(visHtml.includes('ejecutarViajeRapido'));

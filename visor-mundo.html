@@ -125,6 +125,7 @@
     body.modo-juego-valdris #btn-portada-visor,
     body.modo-juego-valdris #btn-portada-oficial,
     body.modo-juego-valdris .solo-editor,
+    body.modo-juego-valdris #info a[href="creador-de-mundos.html"],
     body.modo-juego-valdris #info a[href="index.html"] { display: none !important; }
     #hud-racha {
       position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
@@ -1859,7 +1860,7 @@
 </head>
 <body>
   <div id="top">
-    <a class="btn" id="btn-back-editor" href="index.html" title="Volver al editor">← <span class="long">Editor</span></a>
+    <a class="btn" id="btn-back-editor" href="creador-de-mundos.html" title="Volver al editor">← <span class="long">Editor</span></a>
     <div id="title">Visor 3D</div>
     <button id="btn-side" title="Lista de pueblos">☰</button>
     <button id="btn-top-bag" title="Mochila y equipo (I)">🎒</button>
@@ -2252,6 +2253,7 @@
       <button id="btn-portada-oficial" style="display:none;background:linear-gradient(135deg,#0f766e,#0d9488);border-color:#2dd4bf;color:#ffffff">🌍 Jugar Mundo Oficial: Valdris</button>
       <button id="btn-portada-partidas" style="display:none">💾 Gestionar Partidas</button>
       <button id="btn-portada-visor" style="background:transparent;border:1px solid #334155;color:#94a3b8;font-size:12px;padding:8px 12px">🗺 Entrar en Visor Libre (sin prólogo)</button>
+      <a id="btn-portada-inicio" href="index.html" style="display:block;margin-top:4px;padding:8px 12px;border-radius:8px;border:1px solid #334155;color:#94a3b8;font-size:12px;text-decoration:none;text-align:center">← Menú principal</a>
     </div>
   </div></div>
 
@@ -2428,7 +2430,7 @@
       <h2>No hay ningún mundo abierto</h2>
       <div id="load-msg">Abre el editor para crear un mundo, carga un archivo <b>.mundo.json</b>, juega el mundo oficial <b>Valdris · Tierras del Sol Quebrado</b> o genera un mundo nuevo al instante.</div>
       <div class="btns">
-        <a class="btn" href="index.html">← Ir al editor</a>
+        <a class="btn" href="creador-de-mundos.html">← Ir al editor</a>
         <button class="gold" id="btn-official-world" style="background:linear-gradient(135deg,#0f766e,#0d9488);border-color:#2dd4bf;color:#ffffff;font-weight:700;">🌍 Jugar Valdris (Mundo Oficial)</button>
         <button class="gold" id="btn-load-file">⬆ Cargar .mundo.json</button>
         <button id="btn-auto-world" style="background:linear-gradient(135deg,#16a34a,#15803d);border-color:#22c55e;color:#ffffff;font-weight:700;">✨ Generar Mundo Aleatorio</button>
@@ -7417,7 +7419,7 @@
         : null;
       const btnAccionTown = MODO_JUEGO_VALDRIS
         ? `<button class="gold" data-ruta="${t.x},${t.y},${esc(t.name)}">🧭 Trazar Ruta</button>${vrCheck && vrCheck.ok ? `<button data-viaje="town:${esc(t.id)}" style="background:#0f766e;border-color:#2dd4bf;color:#fff">✦ Viaje Rápido${vrCheck.costeOro ? ' (' + vrCheck.costeOro + '🪙)' : ''}</button>` : ''}`
-        : `<button class="gold" data-tp="${t.x},${t.y}">🧍 Ir aquí</button><a class="btn" href="index.html">✏ Editar en el editor</a>`;
+        : `<button class="gold" data-tp="${t.x},${t.y}">🧍 Ir aquí</button><a class="btn" href="creador-de-mundos.html">✏ Editar en el editor</a>`;
       html = `
         <button class="close" data-close>✕</button>
         <span class="kind">🏘 Pueblo ${t.isStart ? '· ⭐ inicial' : ''}</span>
