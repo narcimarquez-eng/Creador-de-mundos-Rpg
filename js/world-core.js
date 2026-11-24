@@ -47,6 +47,10 @@
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const lerp = (a, b, t) => a + (b - a) * t;
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  function smoothstep(a, b, x) {
+    const u = clamp((x - a) / (b - a), 0, 1);
+    return u * u * (3 - 2 * u);
+  }
 
   // ---------------------------------------------------------------------------
   // 2. Ruido Perlin 2D con semilla + fbm
@@ -1123,13 +1127,39 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Ríos de los pueblos. Cada río cruza el pueblo de norte a sur, como en el Creador de Pueblos, y desde
-  // el borde por el que sale baja por la pendiente hasta el mar. Se guarda en cfg.rio: puntos en
-  // coordenadas locales del pueblo, en el orden en que fluye el agua, cada uno con su nivel de agua
-  // (`l`, relativo a la base del pueblo). `mar` dice si el curso llega al mar o se queda en un lago.
+  // Ríos y perfil de terreno de los pueblos. Cada pueblo sigue el relieve real del mundo
+  // (plaza central plana con transición suave, moderación suave de pendientes extremas dentro
+  // de las murallas y empalme al 100 % con el terreno del mundo antes del borde tileHalf).
+  // Cada río cruza el pueblo de lado a lado, baja por la pendiente hasta el mar y calcula
+  // la cota del agua tras suavizar/subdividir el trazado comprobando ambas riberas.
   // ---------------------------------------------------------------------------
-  const RIO_PASO = 40, RIO_MAX_PASOS = 260, RIO_NIVEL = -0.65, RIO_ALTO = 420;
-  const RIO_TRAMO_ENTRADA = 300;  // cuánto sigue el río hacia arriba, fuera del pueblo (m)
+  const RIO_PASO = 18, RIO_MAX_PASOS = 520, RIO_ENTRADA_PASOS = 16, RIO_NIVEL = -0.65, RIO_ALTO = 420;
+
+  function townBaseHeightRel(T, t, lx, lz) {
+    const cfg = (t && t.cfg) || {};
+    const size = cfg.size || 3;
+    const wallR = 42 + size * 14;
+    const half = townTileHalf(size);
+    const rot = (cfg.rotation || 0) * Math.PI / 180;
+    const cr = Math.cos(rot), sr = Math.sin(rot);
+    const wx = t.x + lx * cr - lz * sr;
+    const wz = t.y + lx * sr + lz * cr;
+    const h0 = (T.elevation(t.x, t.y) - SEA_LEVEL) * RIO_ALTO;
+    const hMundo = (T.elevation(wx, wz) - SEA_LEVEL) * RIO_ALTO;
+    const rawRel = hMundo - h0;
+    const maxCoreH = Math.max(14, wallR * 0.26);
+    const softRel = maxCoreH * Math.tanh(rawRel / maxCoreH);
+    const edgeD = Math.max(Math.abs(lx), Math.abs(lz));
+    const outT = smoothstep(wallR * 0.85, Math.max(wallR + 18, half - 8), Math.max(Math.hypot(lx, lz), edgeD));
+    const profiled = softRel + (rawRel - softRel) * outT;
+    if (hMundo < 0) return Math.min(profiled, rawRel);
+    return profiled;
+  }
+
+  function townSurfaceRel(T, t, lx, lz) {
+    const pf = smoothstep(16, 44, Math.hypot(lx, lz));
+    return pf <= 0 ? 0 : pf * townBaseHeightRel(T, t, lx, lz);
+  }
 
   // Misma fórmula que getRiverX del Creador de Pueblos
   function riverX(cfg, lz) {
@@ -1139,64 +1169,278 @@
 
   function calcularRios(world) {
     const T = getTerrain(world.seed);
+    const hWorldNoRiver = (wx, wz) => {
+      const hM = (T.elevation(wx, wz) - SEA_LEVEL) * RIO_ALTO;
+      for (let i = 0; i < world.towns.length; i++) {
+        const tw = world.towns[i];
+        const twCfg = tw.cfg || {};
+        const twHalf = townTileHalf(twCfg.size || 3);
+        const twRot = (twCfg.rotation || 0) * Math.PI / 180;
+        const twCr = Math.cos(twRot), twSr = Math.sin(twRot);
+        const dx = wx - tw.x, dz = wz - tw.y;
+        const lx = dx * twCr + dz * twSr, lz = -dx * twSr + dz * twCr;
+        if (Math.max(Math.abs(lx), Math.abs(lz)) <= twHalf) {
+          const twH0 = (T.elevation(tw.x, tw.y) - SEA_LEVEL) * RIO_ALTO;
+          return twH0 + townSurfaceRel(T, tw, lx, lz);
+        }
+      }
+      return hM;
+    };
+    const hBankMin = (wx, wz, nx, nz, wCheck) => {
+      let m = Infinity;
+      for (let s = -2; s <= 2; s++) {
+        const off = s * 0.5 * wCheck;
+        const h = hWorldNoRiver(wx + nx * off, wz + nz * off);
+        if (h < m) m = h;
+      }
+      return m;
+    };
+
     world.towns.forEach(t => {
       const cfg = t.cfg;
       if (!cfg) return;
       if (!cfg.hasRiver) { delete cfg.rio; return; }
-      const clave = ['v2', world.seed, t.x, t.y, cfg.rotation || 0, cfg.size, cfg.curve || 0].join('|');
+      const clave = ['v3', world.seed, t.x, t.y, cfg.rotation || 0, cfg.size, cfg.curve || 0].join('|');
       if (cfg.rio && cfg.rio.clave === clave) return;
+
       const rot = (cfg.rotation || 0) * Math.PI / 180, cr = Math.cos(rot), sr = Math.sin(rot);
       const mundo = (lx, lz) => ({ x: t.x + lx * cr - lz * sr, y: t.y + lx * sr + lz * cr });
+      const aLocal = p => ({
+        x: (p.x - t.x) * cr + (p.y - t.y) * sr,
+        z: -(p.x - t.x) * sr + (p.y - t.y) * cr
+      });
       const h0 = (T.elevation(t.x, t.y) - SEA_LEVEL) * RIO_ALTO;
-      const alturaRel = p => (T.elevation(p.x, p.y) - SEA_LEVEL) * RIO_ALTO - h0;
-      // Baja por la pendiente hasta el mar; si no hay bajada (lago), se para
-      const bajar = inicio => {
+      const half = townTileHalf(cfg.size || 3);
+
+      // Baja por la pendiente desde la salida del pueblo hasta el mar, sin reentrar en el pueblo ni hacer lazos
+      const bajar = (inicio, lado) => {
         const pts = [inicio];
+        const outP = mundo(riverX(cfg, lado * (half + 10)), lado * (half + 10));
         let p = inicio, e = T.elevation(p.x, p.y);
+        let prevAng = Math.atan2(outP.y - inicio.y, outP.x - inicio.x);
         for (let k = 0; k < RIO_MAX_PASOS && e >= SEA_LEVEL; k++) {
           let mejor = null, em = e;
-          [RIO_PASO, RIO_PASO * 3].some(dist => {
-            for (let a = 0; a < 16; a++) {
-              const ang = a * Math.PI / 8;
-              const q = { x: p.x + Math.cos(ang) * dist, y: p.y + Math.sin(ang) * dist };
-              const eq = T.elevation(q.x, q.y);
-              if (eq < em) { em = eq; mejor = q; }
+          for (let a = 0; a < 24; a++) {
+            const ang = a * Math.PI / 12;
+            const diff = Math.atan2(Math.sin(ang - prevAng), Math.cos(ang - prevAng));
+            if (k > 0 && Math.abs(diff) > 1.85) continue;
+            const q = { x: p.x + Math.cos(ang) * RIO_PASO, y: p.y + Math.sin(ang) * RIO_PASO };
+            const ql = aLocal(q);
+            if (Math.max(Math.abs(ql.x), Math.abs(ql.z)) < half - 1) continue;
+            let choca = false;
+            for (let j = 0; j < pts.length - 3; j++) {
+              if (Math.hypot(q.x - pts[j].x, q.y - pts[j].y) < RIO_PASO * 1.25) { choca = true; break; }
             }
-            return mejor !== null;
-          });
+            if (choca) continue;
+            const eq = T.elevation(q.x, q.y);
+            if (eq < em) { em = eq; mejor = q; }
+          }
+          if (!mejor) {
+            for (const mult of [2, 3]) {
+              let bestFar = null, bestAng = 0, emFar = e;
+              const dProbe = RIO_PASO * mult;
+              for (let a = 0; a < 24; a++) {
+                const ang = a * Math.PI / 12;
+                const diff = Math.atan2(Math.sin(ang - prevAng), Math.cos(ang - prevAng));
+                if (k > 0 && Math.abs(diff) > 1.85) continue;
+                const qFar = { x: p.x + Math.cos(ang) * dProbe, y: p.y + Math.sin(ang) * dProbe };
+                const qMid = { x: (p.x + qFar.x) * 0.5, y: (p.y + qFar.y) * 0.5 };
+                if ((T.elevation(qMid.x, qMid.y) - e) * RIO_ALTO > 2.5) continue;
+                const eqFar = T.elevation(qFar.x, qFar.y);
+                if (eqFar < emFar) { emFar = eqFar; bestFar = qFar; bestAng = ang; }
+              }
+              if (bestFar) {
+                const qStep = { x: p.x + Math.cos(bestAng) * RIO_PASO, y: p.y + Math.sin(bestAng) * RIO_PASO };
+                const ql = aLocal(qStep);
+                let choca = Math.max(Math.abs(ql.x), Math.abs(ql.z)) < half - 1;
+                for (let j = 0; !choca && j < pts.length - 3; j++) {
+                  if (Math.hypot(qStep.x - pts[j].x, qStep.y - pts[j].y) < RIO_PASO * 1.25) choca = true;
+                }
+                if (!choca && (T.elevation(qStep.x, qStep.y) - e) * RIO_ALTO <= 2.5) {
+                  mejor = qStep;
+                  em = T.elevation(qStep.x, qStep.y);
+                  break;
+                }
+              }
+            }
+          }
           if (!mejor) break;
+          prevAng = Math.atan2(mejor.y - p.y, mejor.x - p.x);
           p = mejor; e = em; pts.push(p);
         }
         return { pts, mar: e < SEA_LEVEL };
       };
-      const half = townTileHalf(cfg.size || 3);
-      const rutas = [1, -1].map(lado => ({ lado, ruta: bajar(mundo(riverX(cfg, lado * half), lado * half)) }));
-      rutas.sort((a, b) => (b.ruta.mar - a.ruta.mar) || (a.ruta.pts.length - b.ruta.pts.length));
-      const { lado, ruta } = rutas[0];
-      // Tramo local: entra por el borde contrario, cruza el pueblo y sigue la bajada
-      const local = [];
-      for (let lz = -lado * (half + RIO_TRAMO_ENTRADA); (lz - lado * half) * lado < 0; lz += lado * RIO_PASO) {
-        local.push({ x: riverX(cfg, lz), z: lz, l: RIO_NIVEL });
-      }
-      // La bajada se suaviza (sin tocar la salida ni el mar) para que el curso no haga quiebros
-      const inicioBajada = local.length;
-      let nivel = RIO_NIVEL;
-      ruta.pts.forEach((p, i) => {
-        const lx = (p.x - t.x) * cr + (p.y - t.y) * sr, lz = -(p.x - t.x) * sr + (p.y - t.y) * cr;
-        if (i === 0) { local.push({ x: lx, z: lz, l: RIO_NIVEL }); return; }
-        nivel = Math.max(-h0, Math.min(nivel, alturaRel(p) + RIO_NIVEL));
-        local.push({ x: lx, z: lz, l: nivel });
+
+      // Sube desde la entrada del pueblo buscando manantial solo mientras el terreno (ambas orillas) acompañe
+      const subir = (inicio, lado) => {
+        const upPts = [];
+        const outP = mundo(riverX(cfg, -lado * (half + 10)), -lado * (half + 10));
+        let p = inicio;
+        let curAng = Math.atan2(outP.y - inicio.y, outP.x - inicio.x);
+        let curH = hWorldNoRiver(inicio.x, inicio.y);
+        for (let k = 0; k < RIO_ENTRADA_PASOS; k++) {
+          let mejor = null, mejorScore = -Infinity, mejorHb = curH;
+          for (let a = 0; a < 15; a++) {
+            const dAng = ((a - 7) / 7) * 1.15;
+            const ang = curAng + dAng;
+            const q = { x: p.x + Math.cos(ang) * RIO_PASO, y: p.y + Math.sin(ang) * RIO_PASO };
+            const ql = aLocal(q);
+            if (Math.max(Math.abs(ql.x), Math.abs(ql.z)) < half) continue;
+            let choca = false;
+            for (let j = 0; j < upPts.length - 2; j++) {
+              if (Math.hypot(q.x - upPts[j].x, q.y - upPts[j].y) < RIO_PASO * 1.25) { choca = true; break; }
+            }
+            if (choca) continue;
+            const hq = hWorldNoRiver(q.x, q.y);
+            const hb = hBankMin(q.x, q.y, -Math.sin(ang), Math.cos(ang), 12.5);
+            if (hq < curH - 0.20 || hb < curH - 0.20) continue;
+            const score = hb - Math.abs(dAng) * 0.8;
+            if (score > mejorScore) {
+              mejorScore = score;
+              mejor = q;
+              mejorHb = Math.max(curH, hb);
+            }
+          }
+          if (!mejor) break;
+          curAng = Math.atan2(mejor.y - p.y, mejor.x - p.x);
+          curH = mejorHb;
+          p = mejor;
+          upPts.push(p);
+        }
+        upPts.reverse();
+        return upPts;
+      };
+
+      const rutas = [1, -1].map(lado => {
+        const pExit = mundo(riverX(cfg, lado * half), lado * half);
+        const pEntry = mundo(riverX(cfg, -lado * half), -lado * half);
+        const hExit = hWorldNoRiver(pExit.x, pExit.y);
+        const hEntry = hWorldNoRiver(pEntry.x, pEntry.y);
+        return {
+          lado,
+          flowDown: hEntry >= hExit - 2.0 ? 1 : 0,
+          hExit,
+          ruta: bajar(pExit, lado)
+        };
       });
+      rutas.sort((a, b) =>
+        (b.flowDown - a.flowDown) ||
+        (b.ruta.mar - a.ruta.mar) ||
+        (a.hExit - b.hExit) ||
+        (a.ruta.pts.length - b.ruta.pts.length)
+      );
+      const { lado, ruta } = rutas[0];
+
+      const pEntry = mundo(riverX(cfg, -lado * half), -lado * half);
+      const upWorld = subir(pEntry, lado);
+      const local = [];
+      upWorld.forEach(p => {
+        const l = aLocal(p);
+        local.push({ x: l.x, z: l.z });
+      });
+
+      const idxIn = local.length;
+      const nIn = Math.max(2, Math.ceil((2 * half) / 16));
+      for (let i = 0; i <= nIn; i++) {
+        const lz = -lado * half + (2 * lado * half) * (i / nIn);
+        local.push({ x: riverX(cfg, lz), z: lz });
+      }
+      const idxOut = local.length - 1;
+
+      for (let i = 1; i < ruta.pts.length; i++) {
+        const l = aLocal(ruta.pts[i]);
+        local.push({ x: l.x, z: l.z });
+      }
+
+      // Suavizado espacial SOLO en los tramos exteriores interiores (sin tocar bordes ni el interior del pueblo)
+      let curIdxIn = idxIn, curIdxOut = idxOut;
       for (let pasada = 0; pasada < 2; pasada++) {
-        for (let i = inicioBajada + 1; i < local.length - 1; i++) {
+        for (let i = 1; i < curIdxIn; i++) {
           const a = local[i - 1], b = local[i], c = local[i + 1];
-          b.x = (a.x + 2 * b.x + c.x) / 4;
-          b.z = (a.z + 2 * b.z + c.z) / 4;
+          const nx = (a.x + 2 * b.x + c.x) / 4, nz = (a.z + 2 * b.z + c.z) / 4;
+          if (Math.max(Math.abs(nx), Math.abs(nz)) >= half) { b.x = nx; b.z = nz; }
+        }
+        for (let i = curIdxOut + 1; i < local.length - 1; i++) {
+          const a = local[i - 1], b = local[i], c = local[i + 1];
+          const nx = (a.x + 2 * b.x + c.x) / 4, nz = (a.z + 2 * b.z + c.z) / 4;
+          if (Math.max(Math.abs(nx), Math.abs(nz)) >= half) { b.x = nx; b.z = nz; }
         }
       }
+
+      // Subdividir cualquier tramo exterior > 20 m para seguir fielmente valles y laderas
+      const denso = [];
+      let newIdxIn = 0, newIdxOut = 0;
+      for (let i = 0; i < local.length; i++) {
+        if (i === curIdxIn) newIdxIn = denso.length;
+        if (i === curIdxOut) newIdxOut = denso.length;
+        denso.push({ x: local[i].x, z: local[i].z });
+        if (i < local.length - 1 && (i < curIdxIn || i >= curIdxOut)) {
+          const a = local[i], b = local[i + 1];
+          const segL = Math.hypot(b.x - a.x, b.z - a.z);
+          if (segL > 20) {
+            const sub = Math.ceil(segL / 18);
+            for (let s = 1; s < sub; s++) {
+              const u = s / sub;
+              denso.push({ x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u });
+            }
+          }
+        }
+      }
+
+      const wPts = denso.map(p => mundo(p.x, p.z));
+      const accL = [0];
+      for (let i = 1; i < wPts.length; i++) {
+        accL.push(accL[i - 1] + Math.hypot(wPts[i].x - wPts[i - 1].x, wPts[i].y - wPts[i - 1].y));
+      }
+      const totalL = accL[accL.length - 1] || 1;
+      const normals = denso.map((_, i) => {
+        const a = wPts[Math.max(0, i - 1)], b = wPts[Math.min(wPts.length - 1, i + 1)];
+        const tx = b.x - a.x, tz = b.y - a.y;
+        const len = Math.hypot(tx, tz) || 1;
+        return { nx: -tz / len, nz: tx / len };
+      });
+      const wChecks = denso.map((_, i) => {
+        const wFac = 1 + 0.5 * accL[i] / totalL;
+        return (i >= newIdxIn && i <= newIdxOut) ? 12.5 : Math.max(12.5, 13.5 * wFac);
+      });
+
+      const target = denso.map((_, i) => {
+        const hMin = hBankMin(wPts[i].x, wPts[i].y, normals[i].nx, normals[i].nz, wChecks[i]);
+        return hMin <= 0 ? 0 : Math.max(0, hMin - 0.65);
+      });
+      const waterY = new Array(denso.length);
+      const sweepMonotonic = () => {
+        for (let i = 1; i < waterY.length; i++) {
+          if (waterY[i] > waterY[i - 1]) waterY[i] = waterY[i - 1];
+        }
+      };
+      waterY[0] = target[0];
+      for (let i = 1; i < denso.length; i++) waterY[i] = Math.min(waterY[i - 1], target[i]);
+
+      for (let pass = 0; pass < 2; pass++) {
+        for (let i = 0; i < denso.length - 1; i++) {
+          const mx = (wPts[i].x + wPts[i + 1].x) * 0.5;
+          const mz = (wPts[i].y + wPts[i + 1].y) * 0.5;
+          const sx = wPts[i + 1].x - wPts[i].x, sz = wPts[i + 1].y - wPts[i].y;
+          const sl = Math.hypot(sx, sz) || 1;
+          const wCheckMid = Math.max(wChecks[i], wChecks[i + 1]);
+          const hMinMid = hBankMin(mx, mz, -sz / sl, sx / sl, wCheckMid);
+          const midCap = hMinMid <= 0 ? 0 : Math.max(0, hMinMid - 0.45);
+          if (0.5 * (waterY[i] + waterY[i + 1]) > midCap) {
+            waterY[i] = Math.min(waterY[i], midCap);
+            waterY[i + 1] = Math.min(waterY[i + 1], midCap);
+          }
+        }
+        sweepMonotonic();
+      }
+
       cfg.rio = {
-        clave, mar: ruta.mar,
-        pts: local.map(p => ({ x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10, l: Math.round(p.l * 100) / 100 }))
+        clave, mar: ruta.mar, lado, idxIn: newIdxIn, idxOut: newIdxOut,
+        pts: denso.map((p, i) => ({
+          x: Math.round(p.x * 10) / 10,
+          z: Math.round(p.z * 10) / 10,
+          l: Math.round((waterY[i] - h0) * 100) / 100
+        }))
       };
     });
   }
@@ -1236,7 +1480,7 @@
 
   const api = {
     FORMAT, VERSION, MONSTRUOS_VERSION, SEA_LEVEL, BIOMES, MONSTERS, MONSTER_DENSITIES, monsterCount, POI_TYPES, ZONE_TYPES, DEFAULT_SETTINGS,
-    PRNG, hashString, makeNoise2D, fbm, getTerrain, calcularRios,
+    PRNG, hashString, makeNoise2D, fbm, getTerrain, calcularRios, townBaseHeightRel, townSurfaceRel,
     emptyWorld, generateWorld, addTown, autoConnect, populateRoad,
     createTown, createRoad, createZone, createPoi, createDungeon,
     moveEntity, removeEntity, refreshRoad, setStartTown,

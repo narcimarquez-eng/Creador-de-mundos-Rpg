@@ -2184,6 +2184,8 @@
         this.exitPaths = [];
         this.extraBridges = [];
         this.opts = opts || {};
+        this.terrainBase = (opts && opts.terrainBase) || null;
+        this.riverLevelFn = (opts && opts.riverLevelFn) || null;
         this.plazaLight = new THREE.PointLight('#38bdf8', kitState.levels.plaza, 55, 1.5);
         this.forgeLight = new THREE.PointLight('#f97316', kitState.levels.forge, 35, 1.5);
         kitState.instances.add(this);
@@ -2355,12 +2357,20 @@
         return baseOffset + Math.sin(z * 0.04) * this.cfg.curve;
       }
 
+      getRiverLevel(z) {
+        if (typeof this.riverLevelFn === 'function') return this.riverLevelFn(z);
+        return -0.65;
+      }
+
       getTerrainHeight(x, z) {
         if (!this.cfg) return 0;
         const relief = (this.cfg && Number.isFinite(this.cfg.relief)) ? this.cfg.relief : 45;
         const reliefScale = (relief / 100) * 6.5;
         const rDist = Math.hypot(x, z);
-        const plazaFlatten = Math.min(1.0, Math.max(0.0, (rDist - 16.0) / 18.0));
+        const pU = Math.min(1.0, Math.max(0.0, (rDist - 16.0) / 28.0));
+        const plazaFlatten = this.terrainBase
+          ? (pU * pU * (3 - 2 * pU))
+          : Math.min(1.0, Math.max(0.0, (rDist - 16.0) / 18.0));
 
         let h = 0;
         // Con terrainBase (el visor) el suelo es el del mundo, con la plaza central plana
@@ -2384,20 +2394,29 @@
           const dCauce = this.riverCauce || 9.0;
           const dBanco = this.riverBanco || (dCauce + 18.0);
           if (distRiver < dBanco) {
+            const niv = this.getRiverLevel(z);
+            const lipEnd = dCauce + 2.6;
             let perfil;
             if (distRiver <= dCauce) {
-              // Lecho cóncavo idéntico al exterior (-0.65 - 5.5 m en el centro)
+              // Lecho cóncavo continuo hasta el pie de la orilla (niv - 5.5 m en el centro, niv - 0.77 m en dCauce)
               const fr = distRiver / dCauce;
-              const lecho = -0.65 - 5.5 * (1 - 0.72 * fr * fr);
-              perfil = Math.min(h, lecho);
-            } else {
-              // Ribera suave y continua desde cotaOrilla (-0.30) hasta el terreno exterior
-              const u = Math.max(0, Math.min(1, (distRiver - dCauce) / (dBanco - dCauce)));
+              perfil = niv - 5.5 * (1 - 0.86 * fr * fr);
+            } else if (distRiver <= lipEnd) {
+              // Labio de orilla continuo C0 que sube suavemente de niv - 0.77 a niv + 0.35
+              const u = (distRiver - dCauce) / 2.6;
               const t = u * u * (3 - 2 * u);
-              const cotaOrilla = -0.30;
-              perfil = Math.min(h, cotaOrilla + (h - cotaOrilla) * t);
+              perfil = (niv - 0.77) + 1.12 * t;
+            } else {
+              // Transición suave de la ribera (niv + 0.35) hacia el terreno exterior h
+              const u = Math.min(1, (distRiver - lipEnd) / Math.max(1, dBanco - lipEnd));
+              const t = u * u * (3 - 2 * u);
+              perfil = (niv + 0.35) + (h - (niv + 0.35)) * t;
             }
-            h = perfil;
+            if (rDist < 19.5 && distRiver > lipEnd) {
+              const pFade = Math.max(0, Math.min(1, (rDist - 16.0) / 3.5));
+              perfil = h + (perfil - h) * (pFade * pFade * (3 - 2 * pFade));
+            }
+            h = Math.min(h, perfil);
           }
         }
         return Number.isFinite(h) ? h : 0;
@@ -2421,7 +2440,7 @@
           const parts = C.partes(THREE, {
             variante: C.variante(hash01(h.z, h.x)),
             ancho: (h.adosadas && h.anchoSlot) ? h.anchoSlot : HW * 1.2 * h.wScale, fondo: HD * 1.2 * h.dScale,
-            hundir: Math.max(0, h.y - yEsq + 0.2),
+            hundir: Math.max(0, h.y - yEsq + 0.55),
             semilla: Math.floor(hash * 1e6) + 1
           });
           const M = new THREE.Matrix4().compose(new THREE.Vector3(h.x, h.y, h.z),
@@ -2456,16 +2475,45 @@
         const modoCasas = (cfg && cfg.casas) || 'variada';
         const modelosUnicos = (modoCasas === 'casa_entramado' || modoCasas === 'cabana') ? [modoCasas] : undefined;
         const adosadas = !!(cfg && cfg.trazado === 'adosadas');
+        const plinthGeoms = [];
         const casas = glbs.map(h => {
-          // Apoyada en la esquina más baja del solar: en una ladera el lado alto queda enterrado, nunca en el aire
+          // En ladera apoyamos la casa con un zócalo de piedra si el desnivel supera ~1.1 m para no enterrar la fachada alta ni dejarla en el aire
           const cosR = Math.cos(h.rot), sinR = Math.sin(h.rot);
-          let y = h.y;
+          let yMin = h.y, yMax = h.y;
           [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
             const lx = sx * HW * 0.6 * h.wScale, lz = sz * HD * 0.6 * h.dScale;
-            y = Math.min(y, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
+            const yc = this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR);
+            if (yc < yMin) yMin = yc;
+            if (yc > yMax) yMax = yc;
           });
-          return { x: h.x, y: y - 0.05, z: h.z, rot: h.rot, modelo: h.modeloGLB, anchoSlot: h.anchoSlot };
+          const yHouse = (h.y - yMin <= 1.2)
+            ? (yMin - 0.05)
+            : Math.max(yMin + 0.05, Math.min(h.y, yMin + 1.1));
+          if (yHouse - yMin > 0.10) {
+            const pBot = yMin - 0.6;
+            const pTop = yHouse + 0.14;
+            const pH = pTop - pBot;
+            const pw = (h.adosadas && h.anchoSlot) ? h.anchoSlot * 1.05 : HW * 1.22 * h.wScale;
+            const pd = HD * 1.22 * h.dScale;
+            const pg = new THREE.BoxGeometry(pw, pH, pd);
+            mapUVBand(pg, 0.25, 0.50);
+            const pM = new THREE.Matrix4().compose(
+              new THREE.Vector3(h.x, pBot + pH * 0.5, h.z),
+              new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot),
+              new THREE.Vector3(1, 1, 1)
+            );
+            pg.applyMatrix4(pM);
+            plinthGeoms.push(pg);
+          }
+          return { x: h.x, y: yHouse, z: h.z, rot: h.rot, modelo: h.modeloGLB, anchoSlot: h.anchoSlot };
         });
+        if (plinthGeoms.length) {
+          const plinthMesh = new THREE.Mesh(mergeGeometriesList(plinthGeoms), matAtlas);
+          plinthMesh.castShadow = true;
+          plinthMesh.receiveShadow = true;
+          this.scene.add(plinthMesh);
+          this.objects.push(plinthMesh);
+        }
         L.cargar(THREE).then(() => {
           if (this._fichaGLB !== ficha) return;
           const r = L.construir(THREE, casas, {
@@ -2728,10 +2776,17 @@
         bGroup.position.set(x, y0, z);
         bGroup.rotation.y = rotY;
 
-        const foundG = new THREE.BoxGeometry(10.5, 3.2, 11.5);
+        const cosB = Math.cos(rotY), sinB = Math.sin(rotY);
+        let yMinB = y0;
+        [[-5.5, -6.0], [5.5, -6.0], [-5.5, 6.0], [5.5, 6.0]].forEach(([lx, lz]) => {
+          yMinB = Math.min(yMinB, this.getTerrainHeight(x + lx * cosB + lz * sinB, z - lx * sinB + lz * cosB));
+        });
+        const yBotB = Math.min(-2.5, yMinB - y0 - 0.7);
+        const yTopB = 0.5;
+        const foundG = new THREE.BoxGeometry(10.5, yTopB - yBotB, 11.5);
         mapUVBand(foundG, 0.25, 0.50);
         const foundM = new THREE.Mesh(foundG, matAtlas);
-        foundM.position.y = -1.1;
+        foundM.position.y = (yTopB + yBotB) * 0.5;
         foundM.castShadow = foundM.receiveShadow = true;
         bGroup.add(foundM);
 
@@ -3051,9 +3106,10 @@
               const ux = dx / L, uz = dz / L;
               const esMadera = (width < cfg.roadWidth * 0.85) || (Math.abs(Math.round(mid.z)) % 2 === 1);
               const bridgeId = esMadera ? 'puente3' : 'puente0';
-              const hA = this.getTerrainHeight(a.x, a.z) + 0.04;
-              const hB = this.getTerrainHeight(b.x, b.z) + 0.04;
-              const spec = calcularPuenteGLB(bridgeId, a, b, hA, hB, width, { waterLevel: -0.65 });
+              const waterYc = this.getRiverLevel(cz);
+              const hA = Math.max(this.getTerrainHeight(a.x, a.z) + 0.04, waterYc + 0.80);
+              const hB = Math.max(this.getTerrainHeight(b.x, b.z) + 0.04, waterYc + 0.80);
+              const spec = calcularPuenteGLB(bridgeId, a, b, hA, hB, width, { waterLevel: waterYc });
               this.construirPuenteGLBEn(spec, cfg, roadsGroup, width);
               const vx = -uz, vz = ux;
               [-1, 1].forEach(side => {
@@ -3548,7 +3604,7 @@
             wCols[i * 3 + 1] = 1.0;
             wCols[i * 3 + 2] = 0.0;
             wPos.setX(i, lxLocal + this.getRiverX(lz));
-            wPos.setY(i, -0.65);
+            wPos.setY(i, this.getRiverLevel(lz));
           }
           waterGeom.setAttribute('color', new THREE.BufferAttribute(wCols, 3));
           waterGeom.computeVertexNormals();
@@ -3558,11 +3614,13 @@
 
           const bridgeStyle = resolveBridgeStyle(cfg);
           const bx = this.getRiverX(0);
-          const by = Math.max(0, this.getTerrainHeight(bx - RIVER_WIDTH, 0));
+          const waterY0 = this.getRiverLevel(0);
+          const by = Math.max(waterY0 + 0.5, this.getTerrainHeight(bx - RIVER_WIDTH, 0));
           const bSpan = RIVER_WIDTH + 8.0;
           const halfS = bSpan * 0.5 + 3.5;
           const pA = { x: bx - halfS, z: 0 }, pB = { x: bx + halfS, z: 0 };
-          const hA = this.getTerrainHeight(pA.x, pA.z) + 0.04, hB = this.getTerrainHeight(pB.x, pB.z) + 0.04;
+          const hA = Math.max(this.getTerrainHeight(pA.x, pA.z) + 0.04, waterY0 + 0.85);
+          const hB = Math.max(this.getTerrainHeight(pB.x, pB.z) + 0.04, waterY0 + 0.85);
 
           bridgeGroup = new THREE.Group();
           if (bridgeStyle === 'principal') {
@@ -3605,10 +3663,13 @@
                 postM.castShadow = postM.receiveShadow = true;
                 bridgeGroup.add(postM);
                 if (pi > 0 && pi < nPostes - 1) {
-                  const pilarGeo = new THREE.BoxGeometry(1.15, 6.2, 1.15);
+                  const pierBot = waterY0 - 6.4;
+                  const pierTop = py - 0.1;
+                  const pierH = Math.max(4.0, pierTop - pierBot);
+                  const pilarGeo = new THREE.BoxGeometry(1.15, pierH, 1.15);
                   tileBoxUV(pilarGeo, 2.8);
                   const pilar = new THREE.Mesh(pilarGeo, matPared);
-                  pilar.position.set(px, py - 3.1, pz * 0.88);
+                  pilar.position.set(px, pierBot + pierH * 0.5, pz * 0.88);
                   pilar.castShadow = pilar.receiveShadow = true;
                   bridgeGroup.add(pilar);
                 }
@@ -3627,7 +3688,7 @@
               );
             }
           } else {
-            const spec = calcularPuenteGLB(bridgeStyle, pA, pB, hA, hB, cfg.roadWidth, { waterLevel: -0.65 });
+            const spec = calcularPuenteGLB(bridgeStyle, pA, pB, hA, hB, cfg.roadWidth, { waterLevel: waterY0 });
             this.bridgeBounds = {
               centerX: bx,
               baseY: by,
@@ -4005,7 +4066,7 @@
                 this.getTerrainHeight(mx - dirX * segLen / 2, mz - dirZ * segLen / 2),
                 wy
               );
-              const wTop = wy + 6.95, wBase = yExt - 0.6;
+              const wTop = wy + 6.95, wBase = yExt - 1.0;
               const esPalisade = !!styleObj.palisade;
               const tStyle = styleObj.towerStyle || 'round';
 
@@ -4101,12 +4162,22 @@
                   || wallRiverCrossings.some(rc => angDist(midA, rc.pA.ang) * townRadius < 4.5 || angDist(midA, rc.pB.ang) * townRadius < 4.5);
                 if (!nearGateOrBridge) {
                   towerPlacedForSeg = true;
+                  const yTowMin = Math.min(
+                    wy,
+                    this.getTerrainHeight(mx - 2.8, mz - 2.8),
+                    this.getTerrainHeight(mx + 2.8, mz - 2.8),
+                    this.getTerrainHeight(mx - 2.8, mz + 2.8),
+                    this.getTerrainHeight(mx + 2.8, mz + 2.8)
+                  );
+                  const towBot = yTowMin - 1.0;
                   if (esPalisade) {
                     // Atalaya de madera de frontera
-                    const tG = new THREE.BoxGeometry(4.4, 9.6, 4.4);
+                    const towTop = wy + 9.2;
+                    const towH = towTop - towBot;
+                    const tG = new THREE.BoxGeometry(4.4, towH, 4.4);
                     mapUVBand(tG, 0.0, 0.25);
                     const tM = new THREE.Mesh(tG, matAtlas);
-                    tM.position.set(mx, wy + 4.4, mz);
+                    tM.position.set(mx, towBot + towH * 0.5, mz);
                     tM.rotation.y = wallRot;
                     tM.castShadow = tM.receiveShadow = true;
                     wallGroup.add(tM);
@@ -4121,10 +4192,12 @@
                     this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.1 });
                   } else if (tStyle === 'square') {
                     // Bastión cuadrado almenado con brasero en la cima (enano / fortificado)
-                    const bG = new THREE.BoxGeometry(5.5, 11.8, 5.5);
+                    const towTop = wy + 11.1;
+                    const towH = towTop - towBot;
+                    const bG = new THREE.BoxGeometry(5.5, towH, 5.5);
                     mapUVBand(bG, 0.25, 0.50);
                     const bM = new THREE.Mesh(bG, matAtlas);
-                    bM.position.set(mx, wy + 5.2, mz);
+                    bM.position.set(mx, towBot + towH * 0.5, mz);
                     bM.rotation.y = wallRot;
                     bM.castShadow = bM.receiveShadow = true;
                     wallGroup.add(bM);
@@ -4158,10 +4231,12 @@
                     this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.4 });
                   } else if (tStyle === 'spire') {
                     // Torre octogonal estilizada con aguja alta y cristal (L2 / élfico)
-                    const tG = new THREE.CylinderGeometry(2.35, 2.85, 13.0, 8);
+                    const towTop = wy + 12.3;
+                    const towH = towTop - towBot;
+                    const tG = new THREE.CylinderGeometry(2.35, 2.85, towH, 8);
                     mapUVBand(tG, 0.25, 0.50);
                     const tM = new THREE.Mesh(tG, matAtlas);
-                    tM.position.set(mx, wy + 5.8, mz);
+                    tM.position.set(mx, towBot + towH * 0.5, mz);
                     tM.castShadow = tM.receiveShadow = true;
                     wallGroup.add(tM);
 
@@ -4187,10 +4262,12 @@
                     this.colliders.push({ type: 'circle', x: mx, z: mz, r: 3.0 });
                   } else {
                     // Torreón circular medieval con matacán saliente
-                    const tG = new THREE.CylinderGeometry(2.7, 3.1, 11.5, 12);
+                    const towTop = wy + 10.95;
+                    const towH = towTop - towBot;
+                    const tG = new THREE.CylinderGeometry(2.7, 3.1, towH, 12);
                     mapUVBand(tG, 0.25, 0.50);
                     const tM = new THREE.Mesh(tG, matAtlas);
-                    tM.position.set(mx, wy + 5.2, mz);
+                    tM.position.set(mx, towBot + towH * 0.5, mz);
                     tM.castShadow = tM.receiveShadow = true;
                     wallGroup.add(tM);
 
@@ -4232,12 +4309,21 @@
             const pillarW = gate.pillarW;
             const pilH = 7.4;
 
+            const cosGate = Math.cos(rotY), sinGate = Math.sin(rotY);
+            let gyMin = gy;
+            [-halfW - pillarW * 0.5, halfW + pillarW * 0.5].forEach(px => {
+              gyMin = Math.min(gyMin, this.getTerrainHeight(gx + px * cosGate, gz - px * sinGate));
+            });
+            const pilBot = (gyMin - gy) - 1.2;
+            const pilTop = pilH + 0.2;
+            const pilTotalH = pilTop - pilBot;
+
             // Pilares de piedra que empalman directamente con los extremos del muro
             [-halfW - pillarW * 0.5, halfW + pillarW * 0.5].forEach(px => {
-              const pG = new THREE.BoxGeometry(pillarW, pilH + 1.6, 3.1);
+              const pG = new THREE.BoxGeometry(pillarW, pilTotalH, 3.1);
               mapUVBand(pG, 0.25, 0.50);
               const pM = new THREE.Mesh(pG, matAtlas);
-              pM.position.set(px, (pilH - 1.2) / 2, 0);
+              pM.position.set(px, (pilBot + pilTop) * 0.5, 0);
               pM.castShadow = pM.receiveShadow = true;
               gGate.add(pM);
 
@@ -4830,7 +4916,7 @@
           const onExitDecor = (x, z) => this.exitPaths.length && this.distToExitPaths(x, z) < (cfg.roadWidth * 0.45 + 2.2);
           const diagAngs = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
           const dCauceDecor = this.riverCauce || 9.0;
-          const waterSurfaceY = -0.65;
+          const waterSurfaceY = this.getRiverLevel(0);
 
           // Bancas en los cuatro cuadrantes de la plaza mirando a la fuente
           diagAngs.forEach(ang => {
@@ -4917,11 +5003,12 @@
           // Muelle de madera y barca amarrada junto al río en pueblos costeros/fluviales
           if (cfg.hasRiver && (styleKey === 'trade' || styleKey === 'elven' || (cfg.rio && cfg.rio.mar))) {
             const dockZ = 18;
+            const dockWaterY = this.getRiverLevel(dockZ);
             const riverCenterX = this.getRiverX(dockZ);
             const bankX = riverCenterX - dCauceDecor * 0.72;
             if (!onExitDecor(bankX, dockZ)) {
               const dockG = new THREE.Group();
-              dockG.position.set(bankX, waterSurfaceY + 0.38, dockZ);
+              dockG.position.set(bankX, dockWaterY + 0.38, dockZ);
               const deck = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.20, 2.4), matSignWood);
               deck.position.set(1.6, 0, 0); deck.castShadow = deck.receiveShadow = true;
               dockG.add(deck);
@@ -4948,14 +5035,15 @@
           // Farolillos y cristales élficos flotando sobre nenúfares en el río
           if (cfg.hasRiver && styleKey === 'elven') {
             [-48, -32, -16, 15, 29, 44].forEach((lz, i) => {
+              const wY = this.getRiverLevel(lz);
               const rx = this.getRiverX(lz) + ((i % 2 === 0 ? -1 : 1) * 2.4);
               const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.06, 8), matFoliage);
-              pad.position.set(rx, waterSurfaceY + 0.06, lz);
+              pad.position.set(rx, wY + 0.06, lz);
               specialsGroup.add(pad);
               const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), matMagicCrystal);
-              orb.position.set(rx, waterSurfaceY + 0.55, lz);
+              orb.position.set(rx, wY + 0.55, lz);
               specialsGroup.add(orb);
-              this.animatedCrystals.push({ mesh: orb, baseY: waterSurfaceY + 0.55, phase: i * 1.1 });
+              this.animatedCrystals.push({ mesh: orb, baseY: wY + 0.55, phase: i * 1.1 });
             });
           }
         }
@@ -5232,7 +5320,7 @@
             const lx = sx * HW * h.wScale, lz = sz * HD * h.dScale;
             yEsq = Math.min(yEsq, this.getTerrainHeight(h.x + lx * cosR + lz * sinR, h.z - lx * sinR + lz * cosR));
           });
-          const zBase = Math.min(-1.8, yEsq - h.y - 0.3), zTop = 0.6;
+          const zBase = Math.min(-1.8, yEsq - h.y - 0.6), zTop = 0.6;
           place(iPlinth, pIdx++, 0, (zBase + zTop) / 2, 0, qId, cWhite, h.wScale, (zTop - zBase) / PH, h.dScale);
 
           const baseFloorY = 0.6;

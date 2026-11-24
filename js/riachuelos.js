@@ -217,28 +217,63 @@
       if (crudo.length - 1 < MIN_TRAMOS) continue;
 
       // Suavizado espacial (mantiene manantial y desembocadura) y cota de agua monótona no-creciente
+      // comprobando el centro y ambas orillas transversales para evitar flotación en laderas
       const mitadBase = 1.9 + rng() * 0.7;
       const prof = 0.58 + rng() * 0.24;
       const pts = [];
-      let minY = crudo[0].y - 0.14;
       for (let i = 0; i < crudo.length; i++) {
         const pPrev = crudo[Math.max(0, i - 1)];
         const pCur = crudo[i];
         const pNext = crudo[Math.min(crudo.length - 1, i + 1)];
         const sxm = i === 0 || i === crudo.length - 1 ? pCur.x : (pPrev.x * 0.22 + pCur.x * 0.56 + pNext.x * 0.22);
         const szm = i === 0 || i === crudo.length - 1 ? pCur.z : (pPrev.z * 0.22 + pCur.z * 0.56 + pNext.z * 0.22);
-        const hTer = alturaBase(sxm, szm);
-        minY = Math.min(minY, hTer - 0.14);
         const t = i / (crudo.length - 1);
         const halfW = mitadBase * (0.85 + 0.45 * t);
         pts.push({
           x: sxm,
           z: szm,
-          y: minY,
+          y: 0,
           halfW,
           bankW: halfW + 3.8,
           t
         });
+      }
+
+      const hMinEn = (x, z, nx, nz, m) => Math.min(
+        alturaBase(x, z),
+        alturaBase(x + nx * m, z + nz * m),
+        alturaBase(x - nx * m, z - nz * m)
+      );
+
+      let minY = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[Math.max(0, i - 1)];
+        const b = pts[Math.min(pts.length - 1, i + 1)];
+        const tx = b.x - a.x, tz = b.z - a.z;
+        const len = Math.hypot(tx, tz) || 1;
+        const nx = -tz / len, nz = tx / len;
+        const hBank = hMinEn(pts[i].x, pts[i].z, nx, nz, pts[i].halfW + 0.85);
+        minY = Math.min(minY, hBank - 0.22);
+        pts[i].y = minY;
+      }
+
+      for (let pass = 0; pass < 2; pass++) {
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], b = pts[i + 1];
+          const mx = (a.x + b.x) * 0.5, mz = (a.z + b.z) * 0.5;
+          const sx = b.x - a.x, sz = b.z - a.z;
+          const sl = Math.hypot(sx, sz) || 1;
+          const m = Math.max(a.halfW, b.halfW) + 0.85;
+          const hMid = hMinEn(mx, mz, -sz / sl, sx / sl, m);
+          const cap = hMid - 0.18;
+          if (0.5 * (a.y + b.y) > cap) {
+            a.y = Math.min(a.y, cap);
+            b.y = Math.min(b.y, cap);
+          }
+        }
+        for (let i = 1; i < pts.length; i++) {
+          if (pts[i].y > pts[i - 1].y) pts[i].y = pts[i - 1].y;
+        }
       }
 
       riachuelos.push({
@@ -263,12 +298,17 @@
     if (fade <= 0.001) return h;
 
     let perfil;
+    const lipEnd = hit.halfW + 1.0;
+    const edgeY = hit.nivel - hit.prof * 0.32;
+    const orilla = hit.nivel + 0.18;
     if (hit.d <= hit.halfW) {
       const fr = hit.d / Math.max(0.25, hit.halfW);
       perfil = hit.nivel - hit.prof * (1 - 0.68 * fr * fr);
+    } else if (hit.d <= lipEnd) {
+      const u = smooth(hit.halfW, lipEnd, hit.d);
+      perfil = edgeY + (orilla - edgeY) * u;
     } else {
-      const u = smooth(hit.halfW, hit.bankW, hit.d);
-      const orilla = hit.nivel + 0.16;
+      const u = smooth(lipEnd, hit.bankW, hit.d);
       perfil = orilla + (h - orilla) * u;
     }
     const target = Math.min(h, perfil);

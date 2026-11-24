@@ -2814,15 +2814,14 @@
   }
 
   // Altura del mundo. Dentro del terreno de cada pueblo es el relieve que define su configuración
-  // (el mismo que en el Creador de Pueblos), y fuera se funde con el terreno del mundo: en el borde
-  // del pueblo la altura es la suya (w = 1), así no hay escalón; la mezcla se reparte hacia fuera.
-  // Altura analítica del terreno (sin malla). La malla se construye a partir de ella.
-  const BLEND_OUT = 140;
+  // (que sigue el perfil del mundo con plaza central plana y transición suave hasta empalmar al 100 %
+  // antes de tileHalf, sin escalón ni socavones).
+  const BLEND_OUT = 32;
   // Mitad del cauce plano y de la orilla fuera del pueblo (m). Se ajustan a la rejilla del terreno
   // (buildTerrain): el cauce tiene que caber entre dos nodos, si no el fondo no aparece en la malla.
   let RIO_CAUCE = 8, RIO_BANCO = 26;
   const RIO_FONDO = 5.5;    // el fondo del cauce queda 5.5m por debajo del agua (lecho excavado visible claramente)
-  const RIO_RAMPA = 30;     // el cauce se excava de forma ágil desde el final de la mezcla con el pueblo
+  const RIO_RAMPA = 24;     // transición de anchura del cauce al salir del pueblo (m)
   const RIO_BOCA = 70;      // el río se desvanece en los últimos metros de su recorrido (mar o lago)
   // Ríos fuera de los pueblos: el curso viene de cfg.rio (js/world-core.js), con sus tramos guardados en
   // una rejilla para buscar rápido el más cercano a cada punto
@@ -2830,10 +2829,35 @@
   let rios = [];
   let lagosMundo = [];       // lagos, oasis y arenas movedizas del mundo actual (js/lagos.js)
   let lagosGroup = null;
+  function crearNivelRioPueblo(o) {
+    const pts = o && o.cfg && o.cfg.rio && o.cfg.rio.pts;
+    if (!pts || !pts.length) return () => -0.65;
+    const lim = o.tileHalf + 2;
+    const dentro = pts.filter(p => Math.abs(p.z) <= lim && Math.abs(p.x) <= lim).slice().sort((a, b) => a.z - b.z);
+    if (!dentro.length) return () => -0.65;
+    if (dentro.length === 1) { const y0 = dentro[0].l; return () => y0; }
+    return (lz) => {
+      if (lz <= dentro[0].z) return dentro[0].l;
+      const last = dentro[dentro.length - 1];
+      if (lz >= last.z) return last.l;
+      let lo = 0, hi = dentro.length - 1;
+      while (lo + 1 < hi) {
+        const mid = (lo + hi) >> 1;
+        if (dentro[mid].z <= lz) lo = mid; else hi = mid;
+      }
+      const a = dentro[lo], b = dentro[hi];
+      const dz = b.z - a.z;
+      const u = dz > 1e-4 ? (lz - a.z) / dz : 0;
+      return a.l + (b.l - a.l) * u;
+    };
+  }
   function prepararRios() {
     rios = [];
     W.calcularRios(world);
     towns.forEach(o => {
+      if (o.cfg && o.cfg.hasRiver && o.ground) {
+        o.ground.riverLevelFn = crearNivelRioPueblo(o);
+      }
       const pts = o.cfg.rio && o.cfg.rio.pts;
       if (!pts || pts.length < 2) return;
       const mundo = p => ({ x: o.t.x + p.x * o.cr - p.z * o.sr, z: o.t.y + p.x * o.sr + p.z * o.cr, y: o.h0 + p.l });
@@ -2842,22 +2866,31 @@
         const a = mundo(pts[i]), b = mundo(pts[i + 1]);
         const s = { ax: a.x, az: a.z, ya: a.y, bx: b.x, bz: b.z, yb: b.y };
         segs.push(s);
-        const x0 = Math.floor((Math.min(a.x, b.x) - 40) / RIO_CELDA), x1 = Math.floor((Math.max(a.x, b.x) + 40) / RIO_CELDA);
-        const z0 = Math.floor((Math.min(a.z, b.z) - 40) / RIO_CELDA), z1 = Math.floor((Math.max(a.z, b.z) + 40) / RIO_CELDA);
+        const x0 = Math.floor((Math.min(a.x, b.x) - 55) / RIO_CELDA), x1 = Math.floor((Math.max(a.x, b.x) + 55) / RIO_CELDA);
+        const z0 = Math.floor((Math.min(a.z, b.z) - 55) / RIO_CELDA), z1 = Math.floor((Math.max(a.z, b.z) + 55) / RIO_CELDA);
         for (let cx = x0; cx <= x1; cx++) for (let cz = z0; cz <= z1; cz++) {
           const k = cx + ',' + cz;
           if (!celdas.has(k)) celdas.set(k, []);
           celdas.get(k).push(s);
         }
       }
-      // Anchura y desvanecido: el río se ensancha poco a poco (x1 al salir, x1.5 al final) y se
-      // desvanece en su boca; cada extremo de segmento guarda su anchura y su opacidad
+      // Anchura y desvanecido: el río se ensancha poco a poco (x1 al salir, x1.5 al final),
+      // se desvanece en la boca y, si nace fuera del pueblo, también suavemente en su manantial
       let total = 0;
       segs.forEach(s => { s.l0 = total; total += Math.hypot(s.bx - s.ax, s.bz - s.az); s.l1 = total; });
       total = total || 1;
+      const dt0 = Math.max(Math.abs(pts[0].x), Math.abs(pts[0].z)) - o.tileHalf;
+      const idxIn = typeof o.cfg.rio.idxIn === 'number' ? o.cfg.rio.idxIn : 0;
+      const lenUp = (dt0 > 5 && idxIn > 0 && segs[idxIn - 1]) ? segs[idxIn - 1].l1 : 0;
+      const fadeUpSpan = lenUp > 8 ? Math.min(35, lenUp * 0.8) : 0;
+      const fadeAt = l => {
+        const fIn = fadeUpSpan > 0 ? smooth(0, fadeUpSpan, l) : 1.0;
+        const fOut = smooth(0, RIO_BOCA, total - l);
+        return fIn * fOut;
+      };
       segs.forEach(s => {
         s.wa = 1 + 0.5 * s.l0 / total; s.wb = 1 + 0.5 * s.l1 / total;
-        s.fa = smooth(0, RIO_BOCA, total - s.l0); s.fb = smooth(0, RIO_BOCA, total - s.l1);
+        s.fa = fadeAt(s.l0); s.fb = fadeAt(s.l1);
       });
       rios.push({ o, segs, celdas });
     });
@@ -2879,6 +2912,7 @@
         if (!mejor || d < mejor.d) mejor = {
           o: r.o,
           d, nivel: s.ya + (s.yb - s.ya) * t, w: s.wa + (s.wb - s.wa) * t,
+          fade: s.fa + (s.fb - s.fa) * t,
           // distancia al exterior de los muros del pueblo (positiva fuera del pueblo)
           dt: Math.max(Math.abs(lx), Math.abs(lz)) - r.o.tileHalf
         };
@@ -2898,8 +2932,8 @@
   }
   function splatRioEn(x, z, w) {
     const rio = rioCercano(x, z);
-    if (rio && rio.dt > -BLEND_OUT) {
-      const kRio = rio.dt >= 0 ? smooth(0, Math.min(18, RIO_RAMPA), rio.dt) : 0;
+    if (rio && rio.dt >= 0) {
+      const kRio = smooth(0, RIO_RAMPA, rio.dt);
       const tCauce = (rio.o && rio.o.ground && rio.o.ground.riverCauce) || 9.0;
       const tBanco = (rio.o && rio.o.ground && rio.o.ground.riverBanco) || (tCauce + 18);
       const dCauce = tCauce + (RIO_CAUCE * rio.w - tCauce) * kRio;
@@ -2923,9 +2957,9 @@
     }
     return w;
   }
-  // Suelo del pueblo en (lx, lz); donde el mundo está bajo el mar se mantiene el mar, como en el mapa
+  // Suelo del pueblo en (lx, lz); el propio townBaseHeightRel respeta el mar sin escalones
   function sueloPueblo(o, lx, lz, hMundo) {
-    return hMundo < 0 ? hMundo : o.h0 + o.ground.getTerrainHeight(lx, lz);
+    return o.h0 + o.ground.getTerrainHeight(lx, lz);
   }
   // Recintos de laberinto del mundo (anillo de roca + pasillo de entrada única). Ver RelieveZonaLib.obtenerRecinto
   let recintosMundo = [];
@@ -3026,39 +3060,45 @@
     const e = terrain.elevation(x, z);
     const hMundo = (e - SEA) * HEIGHT_SCALE;
     let h = hMundo;
+    let enPueblo = false;
     for (let i = 0; i < towns.length; i++) {
       const o = towns[i];
       const dx = x - o.t.x, dz = z - o.t.y;
-      if (Math.hypot(dx, dz) > (o.tileHalf + BLEND_OUT) * Math.SQRT2) continue;
+      if (Math.hypot(dx, dz) > o.tileHalf * Math.SQRT2) continue;
       const lx = dx * o.cr + dz * o.sr, lz = -dx * o.sr + dz * o.cr;
-      const w = 1 - smooth(o.tileHalf, o.tileHalf + BLEND_OUT, Math.max(Math.abs(lx), Math.abs(lz)));
-      if (w > 0 && hMundo >= 0) {   // bajo el mar el mundo no cambia: el pueblo no levanta el mar
-        const g = sueloPueblo(o, lx, lz, hMundo);
-        h = h + (g - h) * w;
+      if (Math.max(Math.abs(lx), Math.abs(lz)) <= o.tileHalf) {
+        h = sueloPueblo(o, lx, lz, hMundo);
+        enPueblo = true;
+        break;
       }
     }
-    // Río fuera del pueblo: el cauce excava el lecho cóncavo del río y sube con riberas suaves hacia el relieve
-    const r = rioCercano(x, z);
-    if (r && r.dt > -5) {
-      const k = smooth(0, Math.min(18, RIO_RAMPA), r.dt);
-      const tCauce = (r.o && r.o.ground && r.o.ground.riverCauce) || 9.0;
-      const tBanco = (r.o && r.o.ground && r.o.ground.riverBanco) || (tCauce + 18);
-      const dCauce = tCauce + (RIO_CAUCE * r.w - tCauce) * k;
-      const dBanco = tBanco + (RIO_BANCO * r.w - tBanco) * k;
-      if (r.d < dBanco) {
-        let perfil;
-        if (r.d <= dCauce) {
-          // Lecho del río bajo el agua: fondo excavado cóncavo (-5.5m en el centro) continuo sin salto en la orilla
-          const fr = r.d / dCauce;
-          const lecho = r.nivel - RIO_FONDO * (1 - 0.72 * fr * fr);
-          perfil = Math.min(h, lecho);
-        } else {
-          // Ribera / orilla: sube con pendiente suave y continua desde la orilla (r.nivel + 0.35) hasta el terreno h
-          const t = smooth(dCauce, dBanco, r.d);
-          const cotaOrilla = r.nivel + 0.35;
-          perfil = Math.min(h, cotaOrilla + (h - cotaOrilla) * t);
+    // Río fuera del pueblo: excava un cauce cóncavo continuo C0 sin salto en la orilla
+    if (!enPueblo) {
+      const r = rioCercano(x, z);
+      if (r && r.dt >= 0) {
+        const kW = smooth(0, RIO_RAMPA, r.dt);
+        const kCarve = r.dt > 5 ? (r.fade != null ? r.fade : 1) : 1;
+        const tCauce = (r.o && r.o.ground && r.o.ground.riverCauce) || 9.0;
+        const tBanco = (r.o && r.o.ground && r.o.ground.riverBanco) || (tCauce + 18);
+        const dCauce = tCauce + (RIO_CAUCE * r.w - tCauce) * kW;
+        const dBanco = tBanco + (RIO_BANCO * r.w - tBanco) * kW;
+        if (r.d < dBanco && kCarve > 0.001) {
+          const lipEnd = dCauce + 2.6;
+          let perfil;
+          if (r.d <= dCauce) {
+            const fr = r.d / dCauce;
+            perfil = r.nivel - RIO_FONDO * (1 - 0.86 * fr * fr);
+          } else if (r.d <= lipEnd) {
+            const t = smooth(dCauce, lipEnd, r.d);
+            perfil = (r.nivel - 0.77) + 1.12 * t;
+          } else {
+            const t = smooth(lipEnd, dBanco, r.d);
+            const cotaOrilla = r.nivel + 0.35;
+            perfil = cotaOrilla + (h - cotaOrilla) * t;
+          }
+          const target = Math.min(h, perfil);
+          h = h + (target - h) * kCarve;
         }
-        h = h + (perfil - h) * k;
       }
     }
     // Lagos y oasis: el hueco del relieve se excava aquí, así que la malla y la decoración lo ven igual
@@ -3076,11 +3116,11 @@
         for (let ti = 0; ti < towns.length; ti++) {
           const to = towns[ti];
           const tdx = ex - to.t.x, tdz = ez - to.t.y;
-          if (Math.hypot(tdx, tdz) > (to.tileHalf + BLEND_OUT) * Math.SQRT2) continue;
+          if (Math.hypot(tdx, tdz) > to.tileHalf * Math.SQRT2) continue;
           const tlx = tdx * to.cr + tdz * to.sr, tlz = -tdx * to.sr + tdz * to.cr;
-          const tw = 1 - smooth(to.tileHalf, to.tileHalf + BLEND_OUT, Math.max(Math.abs(tlx), Math.abs(tlz)));
-          if (tw > 0 && eh >= 0) {
-            eh = eh + (sueloPueblo(to, tlx, tlz, eh) - eh) * tw;
+          if (Math.max(Math.abs(tlx), Math.abs(tlz)) <= to.tileHalf) {
+            eh = sueloPueblo(to, tlx, tlz, eh);
+            break;
           }
         }
         return eh;
@@ -3108,6 +3148,7 @@
     if (!groundKit) groundKit = VillageLib.createKit(null);
     const ground = groundKit.createVillage(null, { skipGround: true });
     ground.cfg = cfg;
+    ground.terrainBase = (lx, lz) => W.townBaseHeightRel(terrain, t, lx, lz);
     if (ground.configurarRio) ground.configurarRio(cfg);
     const o = {
       t, cfg, R, size,
@@ -4583,7 +4624,8 @@
         const lx = -half + i * step, lz = -half + j * step;
         const wx = o.t.x + lx * o.cr - lz * o.sr, wz = o.t.y + lx * o.sr + lz * o.cr;
         const k = (j * N + i) * 3, kk = j * N + i;
-        const y = o.h0 + o.ground.getTerrainHeight(lx, lz);
+        const hM = (terrain.elevation(wx, wz) - SEA) * HEIGHT_SCALE;
+        const y = sueloPueblo(o, lx, lz, hM);
         pos[k] = wx; pos[k + 1] = y; pos[k + 2] = wz;
       }
       // Color y texturas con las mismas reglas que la malla del mundo (pendiente, altura y tinte),
@@ -4680,7 +4722,7 @@
     const n = Math.max(100, Math.min(420, Math.round(ext / 20)));
     const N = n + 1;
     const step = ext / n;
-    RIO_CAUCE = Math.max(8, step * 0.65);
+    RIO_CAUCE = Math.max(8, Math.min(11, step * 0.55));
     RIO_BANCO = RIO_CAUCE + 18;
     const x0 = bounds.cx - ext / 2, z0 = bounds.cz - ext / 2;
     const pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
@@ -4873,13 +4915,27 @@
     return riachuelosMundo.indice.enCaja(xa - 16, za - 16, xa + T + 16, za + T + 16);
   }
 
+  function trozoConPueblo(cx, cz) {
+    if (!terrainGrid || !towns.length) return false;
+    const g0 = terrainGrid, T = CHUNK * g0.step;
+    const xa = g0.x0 + cx * T, za = g0.z0 + cz * T;
+    const xb = xa + T, zb = za + T;
+    for (let i = 0; i < towns.length; i++) {
+      const o = towns[i];
+      const rad = o.tileHalf * Math.SQRT2 + 24;
+      const qx = Math.max(xa, Math.min(xb, o.t.x)), qz = Math.max(za, Math.min(zb, o.t.y));
+      if (Math.hypot(qx - o.t.x, qz - o.t.y) < rad) return true;
+    }
+    return false;
+  }
+
   function buildNear(cx, cz) {
     const g0 = terrainGrid;
     const xc = g0.x0 + (cx * CHUNK + CHUNK / 2) * g0.step, zc = g0.z0 + (cz * CHUNK + CHUNK / 2) * g0.step;
     const p = character.root.position, t = controls.target;
     const relieve = Math.hypot(xc - p.x, zc - p.z) < RELIEVE_M || Math.hypot(xc - t.x, zc - t.z) < RELIEVE_M;
     if (trozoConRecinto(cx, cz)) return buildFineNear(cx, cz, relieve, FINO_RECINTO);
-    if (relieve || trozoConRio(cx, cz) || trozoConRiachuelo(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz) || trozoConCamino(cx, cz)) return buildFineNear(cx, cz, relieve);
+    if (relieve || trozoConRio(cx, cz) || trozoConRiachuelo(cx, cz) || trozoConPueblo(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz) || trozoConCamino(cx, cz)) return buildFineNear(cx, cz, relieve);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
@@ -5189,6 +5245,27 @@
       let attenRuido = 1.0;
       const dCamR = (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function') ? rejillaCaminosMundo.dist(x, z, 14) : 999;
       if (dCamR < 14) attenRuido *= smooth(4.5, 13.5, dCamR);
+      if (attenRuido > 0 && towns.length) {
+        for (let ti = 0; ti < towns.length; ti++) {
+          const to = towns[ti];
+          const tdx = x - to.t.x, tdz = z - to.t.y;
+          if (Math.hypot(tdx, tdz) > (to.tileHalf + 16) * Math.SQRT2) continue;
+          const tlx = tdx * to.cr + tdz * to.sr, tlz = -tdx * to.sr + tdz * to.cr;
+          const dEdge = Math.max(Math.abs(tlx), Math.abs(tlz)) - to.tileHalf;
+          if (dEdge < 14) attenRuido *= dEdge <= 0 ? 0 : smooth(0, 14, dEdge);
+        }
+      }
+      if (attenRuido > 0 && typeof rioCercano === 'function') {
+        const rr = rioCercano(x, z);
+        if (rr) {
+          const limR = RIO_BANCO * (rr.w || 1) + 8;
+          if (rr.d < limR) attenRuido *= smooth(RIO_CAUCE * (rr.w || 1), limR, rr.d);
+        }
+      }
+      if (attenRuido > 0 && riachuelosMundo && riachuelosMundo.indice) {
+        const hitR = riachuelosMundo.indice.cerca(x, z);
+        if (hitR && hitR.d < hitR.bankW + 6) attenRuido *= smooth(hitR.halfW, hitR.bankW + 6, hitR.d);
+      }
       // Dentro del recinto la forma es exacta (la comparte la malla del interior): sin ruido añadido
       if (recTrozo && attenRuido > 0 && RelieveZonaLib.puntoEnRecinto(recTrozo, x, z, 6)) attenRuido = 0.0;
       alt[(j + 1) * M + i + 1] = Hgen(x, z) + (relieve ? relieveAt(x, z, xo, zo, T) * attenRuido : 0);
@@ -5325,9 +5402,9 @@
           const c = L2W(mx, mz);
           const [tx, tz] = dirW(-Math.sin(mid), Math.cos(mid));
           const base = H(c.x, c.z);
-          mb.box(c.x, base + 3.2, c.z, tx, tz, 2 * Math.PI * R / segs + 0.6, 7.5, 2.4, wallStone);
+          mb.box(c.x, base + 2.2, c.z, tx, tz, 2 * Math.PI * R / segs + 0.6, 9.5, 2.4, wallStone);
           if (i % 3 === 0) {
-            mb.box(c.x, base + 5.2, c.z, 1, 0, 5.4, 11.5, 5.4, wallStone);
+            mb.box(c.x, base + 4.2, c.z, 1, 0, 5.4, 13.5, 5.4, wallStone);
             mb.box(c.x, base + 12.4, c.z, 1, 0, 6.6, 1.6, 6.6, roof);
           }
         }
@@ -5375,7 +5452,7 @@
           const p = L2W(hx, hz);
           const hb = H(p.x, p.z);
           const [dx, dz] = dirW(1, 0);
-          mb.box(p.x, hb + hgt / 2, p.z, dx, dz, 6.2, hgt, 7.4, wallC);
+          mb.box(p.x, hb + hgt / 2 - 1.1, p.z, dx, dz, 6.2, hgt + 2.2, 7.4, wallC);
           mb.box(p.x, hb + hgt + 0.6, p.z, dx, dz, 7.2, 1.2, 8.4, roof);
         });
       }
@@ -5388,7 +5465,7 @@
         if (near) continue;
         const p = L2W(sx, sz), hb = H(p.x, p.z);
         const [dx, dz] = dirW(1, 0);
-        mb.box(p.x, hb + 5, p.z, dx, dz, 11, 10, 9, stone, roof);
+        mb.box(p.x, hb + 4.0, p.z, dx, dz, 11, 12, 9, stone, roof);
       }
 
       // Torre central de referencia
@@ -6431,8 +6508,8 @@
         return (lo + hi) * 0.5;
       };
       const widthAt = (p) => {
-        const kW = smooth(0, Math.min(18, RIO_RAMPA), Math.max(0, dtAt(p.x, p.z)));
-        return townHalf + ((RIO_CAUCE + 1) * p.w - townHalf) * kW;
+        const kW = smooth(0, RIO_RAMPA, Math.max(0, dtAt(p.x, p.z)));
+        return townHalf + ((RIO_CAUCE + 1.6) * p.w - townHalf) * kW;
       };
       r.segs.forEach(s => {
         const da = dtAt(s.ax, s.az), db = dtAt(s.bx, s.bz);
@@ -6447,6 +6524,9 @@
           const rx = o.ground.getRiverX(lz);
           p.x = o.t.x + rx * o.cr - lz * o.sr;
           p.z = o.t.y + rx * o.sr + lz * o.cr;
+          if (o.ground && typeof o.ground.getRiverLevel === 'function') {
+            p.y = o.h0 + o.ground.getRiverLevel(lz);
+          }
         };
         if (t0 > 0) encajarBorde(pa);
         if (t1 < 1) encajarBorde(pb);
@@ -7330,6 +7410,8 @@
     scene.add(group);
     try {
       const village = kit.createVillage(group, { skipGround: true, noLights: true });
+      village.terrainBase = o.ground.terrainBase;
+      village.riverLevelFn = o.ground.riverLevelFn;
       village.generate(Object.assign({}, o.cfg, { style: kit.styleKey }));
       if (village.waterMesh) { aguaPuebloMat = aguaPuebloMat || aguaMaterial(true, 0.9, true); village.waterMesh.material = aguaPuebloMat; }
       o.village = village; o.group = group; o.kit = kit;
