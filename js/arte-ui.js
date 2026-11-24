@@ -400,10 +400,152 @@
     if (btnManaIco) renderIconoEnElemento(btnManaIco, 'pocion_mana', '💧');
   }
 
+  // ==================== Miniaturas de Armaduras, Piezas y Armas ====================
+  const SLOT_TAG = { helmet: 'C', torso: 'P', gloves: 'G', pants: 'L', boots: 'B' };
+  const ARM_SLOTS_5 = { helmet: true, torso: true, gloves: true, pants: true, boots: true };
+
+  let _armManifest = {
+    version: '1.0.0',
+    modelo: 'Lykon/dreamshaper-xl-v2-turbo',
+    sets: {},
+    piezas: {},
+    armas: {}
+  };
+  let _armCargado = false;
+  let _armCargandoPromesa = null;
+  const _armListeners = [];
+
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function armaduraSetUrl(setId) {
+    if (!setId || !_armManifest || !_armManifest.sets) return null;
+    return _armManifest.sets[setId] || null;
+  }
+
+  function armaduraPiezaUrl(setId, ranura) {
+    if (!setId || !ranura || !_armManifest || !_armManifest.piezas) return null;
+    return _armManifest.piezas[setId + '_' + ranura] || null;
+  }
+
+  function armaUrl(ranura, idx) {
+    if (!ranura || idx == null || !_armManifest || !_armManifest.armas) return null;
+    return _armManifest.armas[ranura + '_' + idx] || null;
+  }
+
+  function resolverSetIdDeObjeto(obj) {
+    if (!obj) return null;
+    if (obj.setId) return String(obj.setId);
+    if (typeof ArmadurasLib !== 'undefined' && obj.armorLook != null && typeof ArmadurasLib.setPorLook === 'function') {
+      const s = ArmadurasLib.setPorLook(obj.armorLook);
+      if (s && s.id) return s.id;
+    }
+    return null;
+  }
+
+  function iconoEquipoHtml(obj, size) {
+    if (!obj) return null;
+    const sz = size || 28;
+    const ranura = obj.ranura || '';
+    const esHoja = obj.tipo === 'hoja' || /^hoja/i.test(obj.nombre || '');
+
+    if (ranura === 'weapon' || ranura === 'shield') {
+      const uArma = armaUrl(ranura, obj.idx);
+      if (!uArma) return null;
+      return '<span class="art-item-wrap" style="width:' + sz + 'px;height:' + sz + 'px">'
+        + '<img class="art-item-img" src="' + escHtml(uArma) + '" alt="" width="' + sz + '" height="' + sz + '" loading="lazy" draggable="false">'
+        + '</span>';
+    }
+
+    if (ARM_SLOTS_5[ranura]) {
+      const setId = resolverSetIdDeObjeto(obj);
+      if (!setId) return null;
+      const uPieza = armaduraPiezaUrl(setId, ranura);
+      if (uPieza) {
+        return '<span class="art-item-wrap" style="width:' + sz + 'px;height:' + sz + 'px">'
+          + '<img class="art-item-img" src="' + escHtml(uPieza) + '" alt="" width="' + sz + '" height="' + sz + '" loading="lazy" draggable="false">'
+          + (esHoja ? '<i class="art-slot-tag hoja">📜</i>' : '')
+          + '</span>';
+      }
+      const uSet = armaduraSetUrl(setId);
+      if (uSet) {
+        const tag = esHoja ? '📜' : (SLOT_TAG[ranura] || '');
+        const tagCls = esHoja ? 'art-slot-tag hoja' : 'art-slot-tag';
+        return '<span class="art-item-wrap" style="width:' + sz + 'px;height:' + sz + 'px">'
+          + '<img class="art-item-img" src="' + escHtml(uSet) + '" alt="" width="' + sz + '" height="' + sz + '" loading="lazy" draggable="false">'
+          + (tag ? '<i class="' + tagCls + '">' + tag + '</i>' : '')
+          + '</span>';
+      }
+    }
+    return null;
+  }
+
+  function tarjetaArmaduraImgHtml(setObj, size) {
+    if (!setObj || !setObj.id) return null;
+    const url = armaduraSetUrl(setObj.id);
+    if (!url) return null;
+    const sz = size || 76;
+    const gInfo = (typeof ArmadurasLib !== 'undefined' && ArmadurasLib.GRADOS_INFO && ArmadurasLib.GRADOS_INFO[setObj.grado])
+      ? ArmadurasLib.GRADOS_INFO[setObj.grado]
+      : { borde: '#64748b', color: '#e2e8f0' };
+    return '<div class="arm-set-thumb" style="width:' + sz + 'px;height:' + sz + 'px;border-color:' + escHtml(gInfo.borde) + '">'
+      + '<img src="' + escHtml(url) + '" alt="' + escHtml(setObj.nombre || '') + '" loading="lazy" draggable="false">'
+      + '<span class="arm-set-grado" style="color:' + escHtml(gInfo.color) + '">' + escHtml(setObj.grado || '') + '</span>'
+      + '</div>';
+  }
+
+  function establecerManifestArmaduras(data) {
+    if (data && typeof data === 'object') {
+      _armManifest = {
+        version: data.version || '1.0.0',
+        modelo: data.modelo || '',
+        sets: (data.sets && typeof data.sets === 'object') ? data.sets : {},
+        piezas: (data.piezas && typeof data.piezas === 'object') ? data.piezas : {},
+        armas: (data.armas && typeof data.armas === 'object') ? data.armas : {}
+      };
+    }
+    _armCargado = true;
+    for (let i = 0; i < _armListeners.length; i++) {
+      try { _armListeners[i](_armManifest); } catch (_) {}
+    }
+    return _armManifest;
+  }
+
+  function cargarManifestArmaduras(url) {
+    if (_armCargandoPromesa) return _armCargandoPromesa;
+    const target = url || 'assets/armaduras/manifest.json';
+    if (typeof fetch !== 'function') {
+      _armCargado = true;
+      return Promise.resolve(_armManifest);
+    }
+    _armCargandoPromesa = fetch(target, { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (json) { return establecerManifestArmaduras(json || {}); })
+      .catch(function () {
+        _armCargado = true;
+        return _armManifest;
+      });
+    return _armCargandoPromesa;
+  }
+
+  function onArmadurasListo(fn) {
+    if (typeof fn !== 'function') return;
+    _armListeners.push(fn);
+    if (_armCargado) {
+      try { fn(_armManifest); } catch (_) {}
+    }
+  }
+
   return {
     SKILL_ICON_MAP: SKILL_ICON_MAP,
     WEAPON_ATTACK_ICON: WEAPON_ATTACK_ICON,
     RETRATO_ALIASES: RETRATO_ALIASES,
+    SLOT_TAG: SLOT_TAG,
     resolverClaveRetrato: resolverClaveRetrato,
     resolverIconoId: resolverIconoId,
     iconoUrl: iconoUrl,
@@ -417,6 +559,16 @@
     aplicarPortada: aplicarPortada,
     aplicarPrologoCompaneros: aplicarPrologoCompaneros,
     aplicarArteInicialDOM: aplicarArteInicialDOM,
-    getManifest: function () { return _manifest; }
+    getManifest: function () { return _manifest; },
+    resolverSetIdDeObjeto: resolverSetIdDeObjeto,
+    armaduraSetUrl: armaduraSetUrl,
+    armaduraPiezaUrl: armaduraPiezaUrl,
+    armaUrl: armaUrl,
+    iconoEquipoHtml: iconoEquipoHtml,
+    tarjetaArmaduraImgHtml: tarjetaArmaduraImgHtml,
+    establecerManifestArmaduras: establecerManifestArmaduras,
+    cargarManifestArmaduras: cargarManifestArmaduras,
+    onArmadurasListo: onArmadurasListo,
+    getManifestArmaduras: function () { return _armManifest; }
   };
 });

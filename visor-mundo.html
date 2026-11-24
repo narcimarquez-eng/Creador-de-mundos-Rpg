@@ -210,6 +210,13 @@
     .skills button .ico { font-weight: normal; display: flex; align-items: center; justify-content: center; min-height: 24px; }
     .util button .ico { font-weight: normal; display: flex; align-items: center; justify-content: center; min-height: 22px; }
     .art-skill-img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; display: block; box-shadow: 0 1px 4px rgba(0,0,0,0.7); border: 1px solid rgba(250,204,21,0.35); }
+    .art-item-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; flex: none; background: #090d16; border: 1px solid rgba(250,204,21,0.35); box-shadow: 0 2px 5px rgba(0,0,0,0.65); }
+    .art-item-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    .art-slot-tag { position: absolute; right: 1px; bottom: 1px; font-style: normal; font-size: 8px; line-height: 1; font-weight: 800; padding: 1px 3px; border-radius: 3px; background: rgba(2,6,23,0.88); color: #fde047; border: 1px solid rgba(250,204,21,0.45); pointer-events: none; }
+    .art-slot-tag.hoja { padding: 0 2px; font-size: 9px; }
+    .arm-set-thumb { position: relative; flex: none; border-radius: 10px; overflow: hidden; border: 1.5px solid #64748b; background: #090d16; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+    .arm-set-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .arm-set-grado { position: absolute; top: 3px; right: 5px; font-size: 10px; font-weight: 800; text-shadow: 0 1px 3px #000, 0 0 4px #000; pointer-events: none; }
     #portada-art-wrap { display: none; margin: -4px 0 12px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(234,179,8,0.45); box-shadow: 0 8px 24px rgba(0,0,0,0.65); background: #090d1a; }
     #portada-art-wrap.show { display: block; }
     #portada-art-wrap img { width: 100%; height: 176px; object-fit: cover; display: block; }
@@ -2551,10 +2558,13 @@
   <script src="js/musica-rpg.js?v=20261120c"></script>
   <script src="js/sonidos.js?v=20261123d"></script>
   <script src="js/voces.js?v=20261123c"></script>
-  <script src="js/arte-ui.js?v=20261123a"></script>
+  <script src="js/arte-ui.js?v=20261124a"></script>
   <script src="js/pbr-lib.js?v=20261123a"></script>
   <script>
-    if (window.ArteUI) window.ArteUI.cargarManifest('assets/arte/manifest.json');
+    if (window.ArteUI) {
+      window.ArteUI.cargarManifest('assets/arte/manifest.json');
+      if (window.ArteUI.cargarManifestArmaduras) window.ArteUI.cargarManifestArmaduras('assets/armaduras/manifest.json');
+    }
     if (window.PbrLib) window.PbrLib.cargarManifest('assets/pbr/manifest.json');
   </script>
   <script type="module">
@@ -15737,6 +15747,10 @@
 
   function iconoItemSvg(obj, size = 28) {
     if (!obj) return '';
+    if (window.ArteUI && typeof window.ArteUI.iconoEquipoHtml === 'function') {
+      const artHtml = window.ArteUI.iconoEquipoHtml(obj, size);
+      if (artHtml) return artHtml;
+    }
     const nom = obj.nombre || '';
     const ranura = obj.ranura || '';
     const esHoja = obj.tipo === 'hoja' || /^hoja/i.test(nom);
@@ -18201,7 +18215,7 @@
       const piezasNom = ArmadurasLib.piezasDeSet(s.id).map(p => ArmadurasLib.NOMBRES_RANURA_SET[p.ranura]).join(' · ');
       return `<div class="arm-card${nEq > 0 ? ' equipada' : ''}">
         <div class="arm-card-top">
-          ${ArmadurasLib.disenoSvgHtml(s, { size: 76 })}
+          ${(window.ArteUI && window.ArteUI.tarjetaArmaduraImgHtml(s, 76)) || ArmadurasLib.disenoSvgHtml(s, { size: 76 })}
           <div style="flex:1;min-width:0">
             <div><span class="grado-tag grado-${esc(s.grado)}">${esc(s.grado)}</span><span class="clase-arm-tag">${esc(s.claseNombre.replace('Armadura de ', '').replace('Armadura ', ''))}</span><span class="muted" style="font-size:11px">Nv.${s.nivel} · <span style="color:${esc(orig.color)}">${esc(orig.nombre)}</span></span></div>
             <div style="font-weight:700;font-size:13px;color:#f8fafc;margin-top:2px">${esc(s.nombre)}</div>
@@ -18305,6 +18319,13 @@
     if (opts.soloMiClase != null) filtroArmadura.soloMiClase = !!opts.soloMiClase;
     renderModalArmaduras();
     if ($('armaduras-modal')) $('armaduras-modal').classList.add('show');
+  }
+  if (window.ArteUI && window.ArteUI.onArmadurasListo) {
+    window.ArteUI.onArmadurasListo(() => {
+      if (personajeActual) renderInvCard();
+      if ($('objetos') && $('objetos').classList.contains('show')) renderObjetos();
+      if ($('armaduras-modal') && $('armaduras-modal').classList.contains('show')) renderModalArmaduras({ soloLista: true });
+    });
   }
 
   function cerrarModalArmaduras() {
