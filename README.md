@@ -31,6 +31,10 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `docs/FORMATO-PARTIDA.md` | Descripción del archivo `.partida.json`. |
 | `docs/FORMATO-MUNDO.md` | Descripción del archivo `.mundo.json` que se guarda/exporta. |
 
+## Creador de Escenarios (repositorio Mundos-)
+
+El repositorio [Mundos-](https://github.com/narcimarquez-eng/Mundos-) tiene un editor y visor de escenarios genéricos (rally, RPG, plataformas…) sacado de la parte de edición de este creador. Usa los modelos de `glb/` y abre el Creador de Pueblos y el de Mazmorras: en el enlace `#mundo=` pasa `volver` (dirección a la que regresar, solo del mismo sitio) y `claveRetorno` (`escenarios.retornoPueblo` / `escenarios.retornoMazmorra`), y «Guardar y volver» deja allí el diseño. Sin esos campos todo funciona como antes, volviendo a `index.html`.
+
 ## Cómo usarlo
 
 Abre `index.html` en el navegador (doble clic, o mejor servido con GitHub Pages / `npx serve`).

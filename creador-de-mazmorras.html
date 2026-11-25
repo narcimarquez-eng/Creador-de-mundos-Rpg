@@ -4061,10 +4061,21 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
     });
 
     // Guardado y retorno al creador de mundos
+    // Vuelta a quien abrió este editor: por defecto el Creador de Mundos (index.html). Otras apps del mismo sitio
+    // (p. ej. el Creador de Escenarios del repositorio Mundos-) pasan «volver» y «claveRetorno» en el enlace.
+    function destinoVuelta(link) {
+      try {
+        if (link && link.volver) { const u = new URL(link.volver, location.href); if (u.origin === location.origin) return u.href; }
+      } catch (e) { /* dirección no válida */ }
+      return 'index.html';
+    }
+    function claveVuelta(link, porDefecto) {
+      return link && typeof link.claveRetorno === 'string' && /^escenarios\.retorno\w+$/.test(link.claveRetorno) ? link.claveRetorno : porDefecto;
+    }
     $('btn-save-world').addEventListener('click', () => {
       if (worldLink) {
         try {
-          localStorage.setItem('rpgMundo.retornoMazmorra', JSON.stringify({
+          localStorage.setItem(claveVuelta(worldLink, 'rpgMundo.retornoMazmorra'), JSON.stringify({
             sessionId: worldLink.sessionId,
             dungeonId: worldLink.dungeonId,
             dungeon: dungeonConfig
@@ -4072,7 +4083,7 @@ if ($('btn-insp-color-pared-reset')) $('btn-insp-color-pared-reset').addEventLis
         } catch (e) {
           console.warn('Error en retorno de mazmorra:', e);
         }
-        location.href = 'index.html';
+        location.href = destinoVuelta(worldLink);
       } else {
         exportJSON();
       }

@@ -819,19 +819,30 @@
       alert('Enemigo «' + e.data.config.name + '» guardado. Vuelve al editor de mundos para usarlo en una zona.');
     });
 
+    // Vuelta a quien abrió este editor: por defecto el Creador de Mundos (index.html). Otras apps del mismo sitio
+    // (p. ej. el Creador de Escenarios del repositorio Mundos-) pasan «volver» y «claveRetorno» en el enlace.
+    function destinoVuelta(link) {
+      try {
+        if (link && link.volver) { const u = new URL(link.volver, location.href); if (u.origin === location.origin) return u.href; }
+      } catch (e) { /* dirección no válida */ }
+      return 'index.html';
+    }
+    function claveVuelta(link, porDefecto) {
+      return link && typeof link.claveRetorno === 'string' && /^escenarios\.retorno\w+$/.test(link.claveRetorno) ? link.claveRetorno : porDefecto;
+    }
     document.getElementById('btn-world-save').addEventListener('click', () => {
       if (!worldLink) return;
       try {
-        localStorage.setItem('rpgMundo.retornoPueblo', JSON.stringify({
+        localStorage.setItem(claveVuelta(worldLink, 'rpgMundo.retornoPueblo'), JSON.stringify({
           sessionId: worldLink.sessionId, townId: worldLink.townId, cfg: readCfgFromUI()
         }));
       } catch (e) {
         alert('No se pudo guardar en el navegador: ' + e.message);
         return;
       }
-      location.href = 'index.html';
+      location.href = destinoVuelta(worldLink);
     });
-    document.getElementById('btn-world-cancel').addEventListener('click', () => { location.href = 'index.html'; });
+    document.getElementById('btn-world-cancel').addEventListener('click', () => { location.href = destinoVuelta(worldLink); });
 
     function rebuildFromUI() {
       try {
