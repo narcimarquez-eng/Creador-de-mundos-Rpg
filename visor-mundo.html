@@ -2580,8 +2580,8 @@
   <script type="module" src="js/enemigos-glb-indice.js?v=20261103"></script>
   <script type="module" src="js/enemigos-glb.js?v=20261120b"></script>
   <script src="js/musica-rpg.js?v=20261120c"></script>
-  <script src="js/sonidos.js?v=20261125a"></script>
-  <script src="js/voces.js?v=20261123c"></script>
+  <script src="js/sonidos.js?v=20261125b"></script>
+  <script src="js/voces.js?v=20261125b"></script>
   <script src="js/arte-ui.js?v=20261124a"></script>
   <script src="js/pbr-lib.js?v=20261123a"></script>
   <script>
@@ -11394,6 +11394,10 @@
   function claseHeroe() {
     return (personajeActual && personajeActual.clase) || 'guerrero';
   }
+  function generoDelHeroe(pj = personajeActual) {
+    if ((pj && pj.rostro && pj.rostro.gender === 'mujer') || (pj && pj.gender === 'mujer')) return 'mujer';
+    return 'hombre';
+  }
   function atajosActivos() {
     if (typeof HeroeLib.atajosDeArma === 'function') {
       return HeroeLib.atajosDeArma(claseArmaDelHeroe(), claseHeroe());
@@ -11609,8 +11613,8 @@
       else if (sk.elemento === 'rayo' || name === 'juicio_relampago' || name === 'tornillo') window.Sonidos.rayo();
       else if (name !== 'attack' && name !== 'disparo' && window.Sonidos.habilidad) window.Sonidos.habilidad();
     }
-    if (window.Voces && typeof window.Voces.hablarSkill === 'function') {
-      window.Voces.hablarSkill(name, claseHeroe());
+    if (!esComboNormal && window.Sonidos && typeof window.Sonidos.esfuerzo === 'function') {
+      window.Sonidos.esfuerzo(generoDelHeroe(), { intenso: !!(sk.mult >= 1.9 || sk.lock >= 1.7), skill: name });
     }
     const listaImpactos = impactosCombo
       ? impactosCombo.map(g => ({ t: g.t, meta: g }))
@@ -11648,6 +11652,9 @@
     const hitHeavy = !!(golpeMeta && golpeMeta.heavy);
     const hitKind = (golpeMeta && golpeMeta.kind) || (hitHeavy ? 'heavy' : 'normal');
     const tienePerfilEstudio = !!(window.Sonidos && window.Sonidos.PERFILES_SFX_ESTUDIO && window.Sonidos.PERFILES_SFX_ESTUDIO[name]);
+    if ((name === 'attack' || name === 'disparo' || name === 'orbe_arcano') && hitHeavy && window.Sonidos && typeof window.Sonidos.esfuerzo === 'function') {
+      window.Sonidos.esfuerzo(generoDelHeroe(), { intenso: false, skill: name, probabilidad: 0.65 });
+    }
 
     if (sk.proyectil) {
       let diana = (blancoFijado && blancoFijado.alive && blancoFijado.hp > 0 &&

@@ -165,7 +165,8 @@ function crearMockAudio(modoAutoplayBloqueado = false) {
     assert.ok(html.includes('window.Voces.detener()'), 'Falta Voces.detener() al cerrar modales');
     assert.ok(html.includes('window.Voces.desbloquear'), 'Falta Voces.desbloquear en interacción');
     assert.ok(html.includes('window.Voces.activar'), 'Falta sincronización de silencio en botón de sonido');
-    assert.ok(html.includes('Voces.hablarSkill('), 'Falta hook de Voces.hablarSkill en useSkill');
+    assert.ok(!html.includes('Voces.hablarSkill('), 'No debe reproducir nombres hablados de skills en visor-mundo.html');
+    assert.ok(html.includes('Sonidos.esfuerzo('), 'Falta hook de Sonidos.esfuerzo en combate');
     assert.ok(!html.includes('Voces.hablarCompaneroSkill('), 'El acompañante no debe relatar sus skills en visor-mundo.html');
   });
 
@@ -188,7 +189,7 @@ function crearMockAudio(modoAutoplayBloqueado = false) {
     }
   });
 
-  await t('Voces.hablarSkill y hablarCompaneroSkill reproducen el nombre exacto de cada skill y respetan cooldowns', async () => {
+  await t('Voces.hablarSkill queda desactivado por defecto (solo con forzarNombre) y hablarCompaneroSkill respeta cooldowns', async () => {
     const mock = crearMockAudio(false);
     global.Audio = mock.FakeAudio;
 
@@ -200,22 +201,23 @@ function crearMockAudio(modoAutoplayBloqueado = false) {
     Voces.detener();
     Voces.resetCooldownsCombate();
 
-    // Ataques básicos no disparan voz de skill
+    // Por defecto las skills ya no pronuncian su nombre (se usan sonidos de esfuerzo)
     assert.strictEqual(await Voces.hablarSkill('attack', 'guerrero'), false);
     assert.strictEqual(await Voces.hablarSkill('disparo', 'cazador'), false);
+    assert.strictEqual(await Voces.hablarSkill('bw_bolt', 'cazador'), false);
 
-    // Cada skill reproduce su archivo exacto sk_<skillId>.ogg
-    assert.strictEqual(await Voces.hablarSkill('bw_bolt', 'cazador'), true);
+    // Con forzarNombre: true conserva soporte manual y cooldown
+    assert.strictEqual(await Voces.hablarSkill('bw_bolt', 'cazador', { forzarNombre: true }), true);
     assert.strictEqual(mock.instancias[mock.instancias.length - 1].src, 'assets/audio/voces/skills/sk_bw_bolt.ogg');
-    assert.strictEqual(await Voces.hablarSkill('bola_fuego', 'mago'), false, 'Debe respetar cooldown tras skill reciente');
+    assert.strictEqual(await Voces.hablarSkill('bola_fuego', 'mago', { forzarNombre: true }), false, 'Debe respetar cooldown tras skill reciente');
 
     Voces.resetCooldownsCombate();
-    assert.strictEqual(await Voces.hablarSkill('nova', 'mago'), true);
+    assert.strictEqual(await Voces.hablarSkill('nova', 'mago', { forzarNombre: true }), true);
     assert.strictEqual(mock.instancias[mock.instancias.length - 1].src, 'assets/audio/voces/skills/sk_nova.ogg');
 
-    // Con sinCooldown, un diálogo modal (prioridad alta) no es interrumpido por una skill (prioridad baja)
+    // Con sinCooldown y forzarNombre, un diálogo modal (prioridad alta) no es interrumpido por una skill (prioridad baja)
     await Voces.hablarPorId('prologo_01', { prioridad: 'alta' });
-    assert.strictEqual(await Voces.hablarSkill('sismo', 'guerrero', { sinCooldown: true }), false);
+    assert.strictEqual(await Voces.hablarSkill('sismo', 'guerrero', { sinCooldown: true, forzarNombre: true }), false);
     Voces.detener();
 
     // Acompañante mapea correctamente los 4 arquetipos y respeta cooldown

@@ -333,7 +333,13 @@
     chispazo:     [1, 2, 3].map(n => 'sfx/rayos/chispazo_0' + n + '.ogg'),
     tajo_aire:    ['sfx/espadas/tajo_aire_01.ogg'],
     golpe_cuerpo: [1, 2, 3, 4].map(n => 'sfx/golpes/golpe_cuerpo_0' + n + '.ogg'),
-    golpe_crujiente: ['sfx/golpes/golpe_crujiente_01.ogg']
+    golpe_crujiente: ['sfx/golpes/golpe_crujiente_01.ogg'],
+    esfuerzo_mujer: ['sfx/voces/esfuerzo_mujer_01.wav'],
+    esfuerzo_hombre_ligero: ['sfx/voces/esfuerzo_hombre_01.wav'],
+    esfuerzo_hombre_fuerte: ['sfx/voces/esfuerzo_hombre_02.wav'],
+    esfuerzo_hombre: ['sfx/voces/esfuerzo_hombre_01.wav', 'sfx/voces/esfuerzo_hombre_02.wav'],
+    bicho_grunido: ['sfx/enemigos/bicho_grunido_01.wav'],
+    bicho_rugido: ['sfx/enemigos/bicho_rugido_01.wav']
   };
   const muestrasBuf = {};
   let manifestConsultado = false;
@@ -380,18 +386,32 @@
     const cfg = Object.assign({ wet: 0.12 }, opts);
     const src = ac.createBufferSource();
     src.buffer = lista[Math.floor(Math.random() * lista.length)];
-    src.playbackRate.value = variar(cfg.velocidad || 1, cfg.tono !== undefined ? cfg.tono : 0.05);
+    if (src.playbackRate) {
+      src.playbackRate.value = variar(cfg.velocidad || 1, cfg.tono !== undefined ? cfg.tono : 0.05);
+    }
     const g = ac.createGain();
-    g.gain.value = cfg.vol !== undefined ? cfg.vol : 1;
+    const gainVal = cfg.vol !== undefined ? cfg.vol : 1;
+    g.gain.value = gainVal;
     src.connect(g);
     conectarSalida(g, cfg);
-    src.start(t);
+    if (cfg.offset && cfg.offset > 0) src.start(t, cfg.offset);
+    else src.start(t);
+    if (cfg.durMax && cfg.durMax > 0) {
+      const dur = Math.max(0.03, cfg.durMax);
+      const fade = Math.min(dur * 0.4, 0.06);
+      const fadeStart = t + Math.max(0.005, dur - fade);
+      if (g.gain.setValueAtTime && g.gain.linearRampToValueAtTime) {
+        g.gain.setValueAtTime(gainVal, fadeStart);
+        g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      }
+      try { src.stop(t + dur + 0.02); } catch (_) {}
+    }
     return {
       parar(fundido = 0.1) {
         const tt = Math.max(ac.currentTime, t);
-        g.gain.cancelScheduledValues(tt);
-        g.gain.setValueAtTime(g.gain.value, tt);
-        g.gain.linearRampToValueAtTime(0.0001, tt + fundido);
+        if (g.gain.cancelScheduledValues) g.gain.cancelScheduledValues(tt);
+        if (g.gain.setValueAtTime) g.gain.setValueAtTime(g.gain.value, tt);
+        if (g.gain.linearRampToValueAtTime) g.gain.linearRampToValueAtTime(0.0001, tt + fundido);
         try { src.stop(tt + fundido + 0.02); } catch (_) {}
       }
     };
@@ -404,6 +424,7 @@
     lanzas:    { muestra: 'choque_corte', velocidad: 1.12, vol: 0.75 },
     hachas:    { muestra: 'choque_corte', velocidad: 0.86, vol: 0.9 },
     mandobles: { muestra: 'choque_metal', velocidad: 0.9,  vol: 0.8 },
+    hachas_2m: { muestra: 'choque_metal', velocidad: 0.80, vol: 0.88 },
     mazas:     { muestra: 'choque_metal', velocidad: 0.74, vol: 0.85 }
   };
   function datosSkill(id) {
@@ -661,9 +682,30 @@
     addElementalAccent(element, t + 0.02, isStaff ? 0.85 : 0.62, false, pan);
   }
 
+  const VEL_SWING_CLASE = {
+    dagas: 1.24, espadas: 1.02, lanzas: 1.12, hachas: 0.86,
+    mandobles: 0.80, hachas_2m: 0.74, mazas: 0.76
+  };
+  const VEL_CHOC_CLASE = {
+    dagas: 1.32, espadas: 1.0, lanzas: 1.12, hachas: 0.86,
+    mandobles: 0.88, hachas_2m: 0.80, mazas: 0.76
+  };
+
   function playWeaponSwing(t, weaponClass, element = 'lightning', speedNorm = 1.0, isPierce = false, panIn = null) {
     const sp = clamp(speedNorm || 1.0, 0.65, 1.45);
     const pan = typeof panIn === 'number' ? panIn : (Math.random() - 0.5) * 0.36;
+    if (VEL_SWING_CLASE[weaponClass]) {
+      const mSwing = muestra('tajo_aire', t, {
+        velocidad: clamp(VEL_SWING_CLASE[weaponClass] * sp * (isPierce ? 1.08 : 1), 0.68, 1.48),
+        vol: weaponClass === 'dagas' ? 0.55 : (weaponClass === 'mandobles' || weaponClass === 'hachas_2m' ? 0.78 : 0.72),
+        pan,
+        wet: 0.15
+      });
+      if (mSwing) {
+        if (element && element !== 'physical') addElementalAccent(element, t + 0.012, 0.56 * sp, false, pan);
+        return;
+      }
+    }
     if (weaponClass === 'dagas') {
       makeNoise(t, 0.12, 'bandpass', 4100 * sp, 1350, 2.2, 0.28 * sp, 0.004, 0.14, pan);
       makeNoise(t, 0.10, { type: 'bandpass', pink: true }, 1500 * sp, 480, 1.4, 0.16 * sp, 0.005, 0.12, pan);
@@ -776,6 +818,29 @@
     const h = isHeavy ? 1.24 : 1.0;
     estudioClashPanSide = -estudioClashPanSide;
     const pan = typeof panIn === 'number' ? panIn : estudioClashPanSide * (0.12 + Math.random() * 0.18);
+    if (VEL_SWING_CLASE[weaponClass]) {
+      const velSwing = clamp(VEL_SWING_CLASE[weaponClass] * (isHeavy ? 0.90 : 1.05) * (kind === 'pierce' ? 1.08 : 1), 0.68, 1.48);
+      const mSwing = muestra('tajo_aire', t, {
+        velocidad: velSwing,
+        vol: isHeavy ? 0.80 : 0.64,
+        pan,
+        wet: 0.14
+      });
+      if (mSwing) {
+        if (AXE_WEAPON_CLASSES.has(weaponClass) || weaponClass === 'mazas') {
+          muestra('golpe_cuerpo', t + 0.02, { velocidad: isHeavy ? 0.82 : 0.92, vol: isHeavy ? 0.64 : 0.48, pan, wet: 0.14 });
+        } else if (isHeavy && BLADED_WEAPON_CLASSES.has(weaponClass)) {
+          const sampleKey = weaponClass === 'mandobles' ? 'choque_metal' : 'choque_corte';
+          muestra(sampleKey, t + 0.015, {
+            velocidad: VEL_CHOC_CLASE[weaponClass] || 1.0,
+            vol: 0.44,
+            pan,
+            wet: 0.16
+          });
+        }
+        return;
+      }
+    }
     const jit = 0.94 + Math.random() * 0.12;
     if (weaponClass === 'hachas_2m' || weaponClass === 'hachas') {
       const is2H = weaponClass === 'hachas_2m';
@@ -835,32 +900,40 @@
     const pitchScale = (1 / Math.pow(mass, 0.42)) * (0.91 + Math.random() * 0.18);
     estudioClashPanSide = -estudioClashPanSide;
     const pan = typeof panIn === 'number' ? panIn : estudioClashPanSide * (0.16 + Math.random() * 0.24);
+    const isFlurry = style === 'flurry_clash';
+
+    let samplePlayed = false;
     if (style === 'draw_scrape') {
-      makeNoise(t, 0.032, 'bandpass', 4600 * pitchScale, 2600 * pitchScale, 2.0, 0.20, 0.0015, 0.12, pan);
-      makeNoise(t + 0.008, 0.19, 'bandpass', 2400 * pitchScale, 4200 * pitchScale, 13.0, 0.16, 0.014, 0.16, pan);
-      makeNoise(t + 0.014, 0.17, 'bandpass', 4100 * pitchScale, 6300 * pitchScale, 15.0, 0.13, 0.016, 0.16, -pan * 0.6);
-      makeNoise(t + 0.020, 0.14, 'highpass', 5000, 3600, 1.1, 0.09, 0.010, 0.14, pan);
+      const m1 = muestra('tajo_aire', t, { velocidad: clamp(1.18 * pitchScale, 0.7, 1.5), vol: 0.56, pan, wet: 0.16 });
+      const m2 = muestra('choque_metal', t + 0.02, { velocidad: clamp(1.32 * pitchScale, 0.75, 1.6), vol: 0.32, durMax: 0.34, pan, wet: 0.18 });
+      samplePlayed = !!(m1 || m2);
+    } else {
+      const sampleKey = (weaponClass === 'mandobles' || weaponClass === 'hachas_2m' || weaponClass === 'mazas') ? 'choque_metal' : 'choque_corte';
+      const vel = VEL_CHOC_CLASE[weaponClass] || 1.0;
+      samplePlayed = !!muestra(sampleKey, t, {
+        velocidad: vel * (isFlurry ? 1.12 : 1.0),
+        vol: isFlurry ? 0.64 : 0.84,
+        pan,
+        wet: 0.18
+      });
+    }
+    if (samplePlayed) {
+      if (element && element !== 'physical') addElementalAccent(element, t + 0.012, isFlurry ? 0.34 : 0.46, false, pan);
       return;
     }
-    const isFlurry = style === 'flurry_clash';
-    const gainMul = isFlurry ? 0.84 : 1.04;
-    const tailDur = (isFlurry ? 0.145 : 0.215) * Math.min(1.22, Math.max(0.82, mass));
-    makeNoise(t, 0.036, 'bandpass', 4500 * pitchScale, 2000 * pitchScale, 1.7, 0.34 * gainMul, 0.001, 0.12, pan);
-    makeNoise(t, 0.055, { type: 'bandpass', pink: true }, 1050 * pitchScale, 320, 1.8, 0.26 * gainMul, 0.0015, 0.10, pan);
-    if (mass >= 1.15 && !isFlurry) makeTone('sine', t, 0.095, 148, 52, 0.22, 0.002, 0.12, 0, pan);
-    makeSteelFM(t, tailDur, 2240 * pitchScale, 1.414, 1580, 1750, 0.22 * gainMul, 0.16, pan);
-    makeSteelFM(t + 0.002, tailDur * 0.78, 3490 * pitchScale, 2.37, 1950, 2300, 0.16 * gainMul, 0.16, -pan * 0.7);
-    makeNoise(t + 0.005, tailDur * 0.96, 'bandpass', 2850 * pitchScale, 3850 * pitchScale, 14.5, 0.22 * gainMul, 0.004, 0.16, pan);
-    makeNoise(t + 0.009, tailDur * 0.82, 'bandpass', 4700 * pitchScale, 5650 * pitchScale, 16.5, 0.17 * gainMul, 0.005, 0.16, -pan * 0.8);
-    makeNoise(t + 0.012, tailDur * 0.65, 'bandpass', 6400 * pitchScale, 4600 * pitchScale, 13.0, 0.13 * gainMul, 0.004, 0.14, pan * 0.5);
-    makeNoise(t + 0.016, 0.095, 'highpass', 4600, 2800, 1.2, 0.11 * gainMul, 0.003, 0.14, pan);
-    if (!isFlurry) {
-      const rbT = t + 0.042 + Math.random() * 0.016;
-      const rbP = pitchScale * (1.07 + Math.random() * 0.09);
-      makeNoise(rbT, 0.026, 'bandpass', 5100 * rbP, 2600 * rbP, 2.0, 0.16, 0.001, 0.12, -pan);
-      makeSteelFM(rbT, 0.11, 2720 * rbP, 1.618, 1200, 2100, 0.10, 0.14, -pan);
-      makeNoise(rbT + 0.004, 0.105, 'bandpass', 3700 * rbP, 4800 * rbP, 14.0, 0.11, 0.003, 0.14, -pan);
+
+    // Respaldo sintetizado suave (sin chasquido metálico estridente) cuando las muestras aún no están cargadas
+    if (style === 'draw_scrape') {
+      makeNoise(t, 0.14, { type: 'bandpass', pink: true }, 1650 * pitchScale, 780 * pitchScale, 2.4, 0.16, 0.008, 0.14, pan);
+      makeNoise(t + 0.012, 0.16, 'bandpass', 2200 * pitchScale, 1250 * pitchScale, 3.2, 0.11, 0.012, 0.16, -pan * 0.5);
+      return;
     }
+    const gainMul = isFlurry ? 0.78 : 0.94;
+    const tailDur = (isFlurry ? 0.14 : 0.21) * Math.min(1.22, Math.max(0.82, mass));
+    makeNoise(t, 0.06, { type: 'bandpass', pink: true }, 1150 * pitchScale, 360 * pitchScale, 1.6, 0.28 * gainMul, 0.002, 0.12, pan);
+    makeNoise(t + 0.004, tailDur * 0.75, 'bandpass', 2250 * pitchScale, 920 * pitchScale, 3.2, 0.18 * gainMul, 0.004, 0.15, -pan * 0.6);
+    makeTone('sine', t, 0.12, 165 * pitchScale, 58, 0.22 * gainMul, 0.003, 0.12, 0, pan);
+    makeFilteredTone('triangle', t, tailDur * 0.65, 920 * pitchScale, 680 * pitchScale, 2100, 1100, 1.8, 0.11 * gainMul, 0.003, 0.16, 0, pan);
     if (element && element !== 'physical') addElementalAccent(element, t + 0.012, isFlurry ? 0.34 : 0.46, false, pan);
   }
 
@@ -1789,30 +1862,46 @@
     const o = { pan: info && typeof info.pan === 'number' ? info.pan : 0, wet: 0.22 };
 
     if (familia === 'jefe') {
-      if (evento === 'aggro' || evento === 'ataque') {
-        tono(t, variar(115, 0.08), 54, 0.34, 0.28, Object.assign({ wave: 'sawtooth', lp: 460 }, o));
-        rafaga(t, 0.30, 'lowpass', 520, 120, 1.3, 0.42, Object.assign({ buffer: 'marron' }, o));
+      if (evento === 'aggro') {
+        const m = muestra('bicho_rugido', t, { velocidad: 0.72, vol: 0.92, wet: 0.34, pan: o.pan });
+        tono(t, variar(96, 0.08), 42, 0.32, m ? 0.20 : 0.28, Object.assign({ wave: 'sawtooth', lp: 460 }, o));
+        if (!m) rafaga(t, 0.30, 'lowpass', 520, 120, 1.3, 0.42, Object.assign({ buffer: 'marron' }, o));
+      } else if (evento === 'ataque') {
+        const clave = Math.random() < 0.5 ? 'bicho_grunido' : 'bicho_rugido';
+        const m = muestra(clave, t, { velocidad: 0.78, vol: 0.85, durMax: 0.95, wet: 0.28, pan: o.pan });
+        if (!m) {
+          tono(t, variar(115, 0.08), 54, 0.34, 0.28, Object.assign({ wave: 'sawtooth', lp: 460 }, o));
+          rafaga(t, 0.30, 'lowpass', 520, 120, 1.3, 0.42, Object.assign({ buffer: 'marron' }, o));
+        }
       } else if (evento === 'golpeado') {
-        tono(t, variar(130, 0.1), 72, 0.18, 0.22, Object.assign({ wave: 'sawtooth', lp: 580 }, o));
+        const m = muestra('bicho_grunido', t, { velocidad: 0.88, vol: 0.58, durMax: 0.38, wet: 0.22, pan: o.pan });
+        if (!m) tono(t, variar(130, 0.1), 72, 0.18, 0.22, Object.assign({ wave: 'sawtooth', lp: 580 }, o));
       } else if (evento === 'muerte') {
-        tono(t, 125, 34, 0.65, 0.36, Object.assign({ wave: 'sawtooth', lp: 420, wet: 0.42 }, o));
-        rafaga(t, 0.58, 'lowpass', 640, 80, 1.2, 0.48, Object.assign({ buffer: 'marron', wet: 0.42 }, o));
+        const m = muestra('bicho_rugido', t, { velocidad: 0.58, vol: 0.96, wet: 0.44, pan: o.pan });
+        tono(t, 125, 34, 0.65, m ? 0.22 : 0.36, Object.assign({ wave: 'sawtooth', lp: 420, wet: 0.42 }, o));
+        if (!m) rafaga(t, 0.58, 'lowpass', 640, 80, 1.2, 0.48, Object.assign({ buffer: 'marron', wet: 0.42 }, o));
       }
       return;
     }
 
     if (familia === 'nomuerto') {
       if (evento === 'aggro') {
-        rafaga(t, 0.22, 'bandpass', 1800, 920, 3.2, 0.24, o);
+        muestra('bicho_grunido', t, { velocidad: 0.84, vol: 0.64, durMax: 1.0, wet: 0.38, pan: o.pan });
+        rafaga(t, 0.22, 'bandpass', 1800, 920, 3.2, 0.22, o);
         tono(t, 440, 310, 0.24, 0.10, Object.assign({ wave: 'triangle', wet: 0.36 }, o));
       } else if (evento === 'ataque') {
-        rafaga(t, 0.14, 'bandpass', 2400, 1100, 2.5, 0.30, o);
-        tono(t, variar(240, 0.12), 140, 0.15, 0.16, Object.assign({ wave: 'sawtooth', lp: 920 }, o));
+        const m = muestra('bicho_rugido', t, { velocidad: 1.16, vol: 0.62, durMax: 0.72, wet: 0.34, pan: o.pan });
+        if (!m) {
+          rafaga(t, 0.14, 'bandpass', 2400, 1100, 2.5, 0.30, o);
+          tono(t, variar(240, 0.12), 140, 0.15, 0.16, Object.assign({ wave: 'sawtooth', lp: 920 }, o));
+        }
       } else if (evento === 'golpeado') {
-        // Chasquido seco de hueso
+        // Chasquido seco de hueso + gruñido breve
+        muestra('bicho_grunido', t, { velocidad: 1.32, vol: 0.30, durMax: 0.24, wet: 0.26, pan: o.pan });
         rafaga(t, 0.055, 'bandpass', variar(2100, 0.15), 1100, 3.5, 0.38, o);
         tono(t, variar(680, 0.15), 420, 0.06, 0.14, Object.assign({ wave: 'triangle' }, o));
       } else if (evento === 'muerte') {
+        muestra('bicho_grunido', t, { velocidad: 0.68, vol: 0.66, wet: 0.38, pan: o.pan });
         for (let k = 0; k < 4; k++) {
           rafaga(t + k * 0.055, 0.05, 'bandpass', variar(1900 - k * 220, 0.15), 850, 3.2, 0.32 - k * 0.04, o);
         }
@@ -1823,27 +1912,40 @@
 
     if (familia === 'bestia') {
       if (evento === 'aggro') {
-        tono(t, variar(210, 0.12), 145, 0.26, 0.22, Object.assign({ wave: 'sawtooth', lp: 780 }, o));
-        rafaga(t, 0.24, 'bandpass', 950, 420, 1.8, 0.28, o);
+        const m = muestra('bicho_grunido', t, { velocidad: 1.04, vol: 0.82, durMax: 1.15, wet: 0.20, pan: o.pan });
+        if (!m) {
+          tono(t, variar(210, 0.12), 145, 0.26, 0.22, Object.assign({ wave: 'sawtooth', lp: 780 }, o));
+          rafaga(t, 0.24, 'bandpass', 950, 420, 1.8, 0.28, o);
+        }
       } else if (evento === 'ataque') {
-        tono(t, variar(280, 0.12), 150, 0.18, 0.22, Object.assign({ wave: 'sawtooth', lp: 920 }, o));
-        rafaga(t, 0.14, 'bandpass', 1400, 560, 1.6, 0.32, o);
+        const clave = Math.random() < 0.65 ? 'bicho_grunido' : 'bicho_rugido';
+        const m = muestra(clave, t, { velocidad: 1.12, vol: 0.78, durMax: 0.78, wet: 0.18, pan: o.pan });
+        if (!m) {
+          tono(t, variar(280, 0.12), 150, 0.18, 0.22, Object.assign({ wave: 'sawtooth', lp: 920 }, o));
+          rafaga(t, 0.14, 'bandpass', 1400, 560, 1.6, 0.32, o);
+        }
       } else if (evento === 'golpeado') {
-        tono(t, variar(420, 0.14), 210, 0.14, 0.18, Object.assign({ wave: 'triangle' }, o));
+        const m = muestra('bicho_grunido', t, { velocidad: 1.24, vol: 0.55, durMax: 0.34, wet: 0.18, pan: o.pan });
+        if (!m) tono(t, variar(420, 0.14), 210, 0.14, 0.18, Object.assign({ wave: 'triangle' }, o));
       } else if (evento === 'muerte') {
-        tono(t, 380, 115, 0.38, 0.22, Object.assign({ wave: 'sawtooth', lp: 840, wet: 0.28 }, o));
-        rafaga(t, 0.28, 'lowpass', 720, 160, 1.2, 0.26, o);
+        const m = muestra('bicho_rugido', t, { velocidad: 0.86, vol: 0.84, wet: 0.28, pan: o.pan });
+        if (!m) {
+          tono(t, 380, 115, 0.38, 0.22, Object.assign({ wave: 'sawtooth', lp: 840, wet: 0.28 }, o));
+          rafaga(t, 0.28, 'lowpass', 720, 160, 1.2, 0.26, o);
+        }
       }
       return;
     }
 
     if (familia === 'magico') {
       if (evento === 'aggro' || evento === 'ataque') {
+        muestra('bicho_rugido', t, { velocidad: 1.26, vol: 0.44, durMax: 0.65, wet: 0.44, pan: o.pan });
         tono(t, variar(620, 0.1), 880, 0.20, 0.14, Object.assign({ wave: 'sine', wet: 0.38 }, o));
         rafaga(t, 0.18, 'bandpass', 2200, 1200, 2.4, 0.20, Object.assign({ wet: 0.34 }, o));
       } else if (evento === 'golpeado') {
         tono(t, variar(540, 0.12), 340, 0.13, 0.14, Object.assign({ wave: 'triangle', wet: 0.30 }, o));
       } else if (evento === 'muerte') {
+        muestra('bicho_rugido', t, { velocidad: 0.78, vol: 0.50, wet: 0.46, pan: o.pan });
         tono(t, 760, 180, 0.42, 0.18, Object.assign({ wave: 'sine', wet: 0.44 }, o));
         rafaga(t, 0.36, 'highpass', 2400, 5200, 1.6, 0.24, Object.assign({ wet: 0.42 }, o));
       }
@@ -1852,16 +1954,56 @@
 
     // Humanoide
     if (evento === 'aggro') {
-      tono(t, variar(195, 0.1), 240, 0.18, 0.18, Object.assign({ wave: 'sawtooth', lp: 740 }, o));
+      const m = muestra('esfuerzo_hombre_ligero', t, { velocidad: 0.84, vol: 0.56, wet: 0.20, pan: o.pan });
+      if (!m) tono(t, variar(195, 0.1), 240, 0.18, 0.18, Object.assign({ wave: 'sawtooth', lp: 740 }, o));
     } else if (evento === 'ataque') {
-      barridoVelocidad(t, 0.16, 420, 1850, 560, 1.8, 0.28, o);
-      tono(t, variar(185, 0.1), 130, 0.14, 0.18, Object.assign({ wave: 'triangle' }, o));
+      const m = muestra('esfuerzo_hombre_ligero', t, { velocidad: 0.88, vol: 0.52, wet: 0.18, pan: o.pan });
+      barridoVelocidad(t, 0.16, 420, 1850, 560, 1.8, 0.24, o);
+      if (!m) tono(t, variar(185, 0.1), 130, 0.14, 0.18, Object.assign({ wave: 'triangle' }, o));
     } else if (evento === 'golpeado') {
-      tono(t, variar(210, 0.12), 115, 0.12, 0.20, Object.assign({ wave: 'triangle' }, o));
+      const m = muestra('bicho_grunido', t, { velocidad: 1.35, vol: 0.28, durMax: 0.22, wet: 0.16, pan: o.pan });
+      if (!m) tono(t, variar(210, 0.12), 115, 0.12, 0.20, Object.assign({ wave: 'triangle' }, o));
     } else if (evento === 'muerte') {
-      tono(t, 220, 75, 0.34, 0.24, Object.assign({ wave: 'triangle', wet: 0.26 }, o));
-      rafaga(t + 0.12, 0.14, 'lowpass', 620, 140, 1.1, 0.28, o);
+      const m = muestra('bicho_grunido', t, { velocidad: 0.78, vol: 0.46, durMax: 0.65, wet: 0.26, pan: o.pan });
+      if (!m) {
+        tono(t, 220, 75, 0.34, 0.24, Object.assign({ wave: 'triangle', wet: 0.26 }, o));
+        rafaga(t + 0.12, 0.14, 'lowpass', 620, 140, 1.1, 0.28, o);
+      }
     }
+  }
+
+  // Sonidos vocales de esfuerzo del héroe según género ('mujer' | 'hombre') e intensidad
+  function dispararEsfuerzoSfx(t, genero = 'hombre', opts = {}) {
+    const o = opts || {};
+    const pan = typeof o.pan === 'number' ? o.pan : 0;
+    const esMujer = genero === 'mujer';
+    const intenso = !!o.intenso;
+    let played = null;
+    if (esMujer) {
+      played = muestra('esfuerzo_mujer', t, {
+        vol: intenso ? 0.88 : 0.74,
+        velocidad: intenso ? 0.95 : 1.03,
+        tono: 0.04,
+        pan,
+        wet: 0.14
+      });
+    } else {
+      const clave = intenso ? 'esfuerzo_hombre_fuerte' : 'esfuerzo_hombre_ligero';
+      played = muestra(clave, t, {
+        vol: intenso ? 0.86 : 0.76,
+        velocidad: 1.0,
+        tono: 0.04,
+        pan,
+        wet: intenso ? 0.15 : 0.14
+      });
+    }
+    if (played) return;
+    // Respaldo vocal breve si las muestras aún no han terminado de cargarse
+    const dur = esMujer ? 0.16 : (intenso ? 0.24 : 0.15);
+    const f0 = esMujer ? (intenso ? 440 : 410) : (intenso ? 245 : 195);
+    const f1 = esMujer ? 260 : (intenso ? 145 : 118);
+    rafaga(t, dur, 'bandpass', esMujer ? 1600 : 1050, esMujer ? 920 : 620, 2.6, intenso ? 0.22 : 0.17, { buffer: 'rosa', atk: 0.015, pan, wet: 0.14 });
+    tono(t, variar(f0, 0.06), f1, dur, intenso ? 0.18 : 0.14, { wave: 'triangle', atk: 0.012, lp: esMujer ? 1800 : 1200, pan, wet: 0.14 });
   }
 
   // Pasos del héroe según superficie
@@ -1977,6 +2119,16 @@
       const t = puedeSonar('enemigo:' + ev, minT);
       if (t !== null) dispararEnemigoSfx(t, ev, info);
     },
+    esfuerzo(genero = 'hombre', opts = {}) {
+      const o = opts || {};
+      if (typeof o.probabilidad === 'number' && Math.random() > o.probabilidad) return false;
+      const t = puedeSonar('esfuerzo', o.sinCooldown ? 0 : 0.80);
+      if (t === null) return false;
+      dispararEsfuerzoSfx(t, genero === 'mujer' ? 'mujer' : 'hombre', o);
+      return true;
+    },
+    MUESTRAS,
+    registrarMuestra(ruta, buf) { if (ruta && buf) muestrasBuf[ruta] = buf; },
     clasificarEnemigo,
     paso(superficie = 'hierba', corriendo = false) {
       const t = puedeSonar('paso', 0.18);

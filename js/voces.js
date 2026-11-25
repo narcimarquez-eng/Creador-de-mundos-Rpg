@@ -68,7 +68,7 @@
     return promesaCarga;
   }
 
-  function cargarCatalogo(urls = ['dialogos_voces.json', 'voces_skills.json']) {
+  function cargarCatalogo(urls = ['dialogos_voces.json']) {
     if (catalogoCargado) return Promise.resolve(porId.size);
     if (promesaCarga) return promesaCarga;
     if (typeof fetch !== 'function') {
@@ -297,7 +297,8 @@
   let ultimoCompVozMs = 0;
 
   function hablarSkill(skillId, _clase = 'guerrero', opts = {}) {
-    if (!activo || !skillId || skillId === 'attack' || skillId === 'disparo') return Promise.resolve(false);
+    if (!activo || !skillId || !(opts && opts.forzarNombre === true)) return Promise.resolve(false);
+    if (skillId === 'attack' || skillId === 'disparo') return Promise.resolve(false);
     const esUltimate = ULTIMATES_SKILL.has(skillId);
     const now = Date.now();
     const cooldownMs = esUltimate ? 1200 : 2200;

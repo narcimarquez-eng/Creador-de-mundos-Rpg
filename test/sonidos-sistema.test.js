@@ -25,6 +25,7 @@ function crearEntornoAudio({ full = true } = {}) {
     panners: 0,
     periodicWaves: 0,
     stops: 0,
+    playedBuffers: [],
     invalidParams: []
   };
 
@@ -65,7 +66,15 @@ function crearEntornoAudio({ full = true } = {}) {
     }
     createBufferSource() {
       stats.sources++;
-      return { buffer: null, loop: false, connect() {}, start() {}, stop() { stats.stops++; } };
+      const src = {
+        buffer: null,
+        loop: false,
+        playbackRate: makeParam(1),
+        connect() {},
+        start() { if (src.buffer) stats.playedBuffers.push(src.buffer); },
+        stop() { stats.stops++; }
+      };
+      return src;
     }
     createOscillator() {
       stats.oscillators++;
@@ -327,7 +336,8 @@ t('visor-mundo.html integra MusicaRPG, mezclador de 4 canales y enganches comple
     'Sonidos.muerteHeroe', 'Sonidos.victoriaJefe', 'Sonidos.monedas',
     'Sonidos.botinObjeto', 'Sonidos.equipar', 'Sonidos.descanso',
     'Sonidos.mazmorraEntrada', 'Sonidos.zonaNueva', 'Sonidos.companeroSkill',
-    'Sonidos.venenoTick', 'Sonidos.eventoEstudio', 'impactosNormalCombo', 'setSfxHandler'
+    'Sonidos.venenoTick', 'Sonidos.eventoEstudio', 'impactosNormalCombo', 'setSfxHandler',
+    'Sonidos.esfuerzo', 'generoDelHeroe'
   ].forEach(tok => {
     assert.ok(html.includes(tok), `visor-mundo.html debe incluir ${tok}`);
   });
@@ -366,6 +376,86 @@ t('PERFILES_SFX_ESTUDIO, combos normales de 3 golpes por clase y eventoEstudio g
     S.eventoEstudio(ev, { clase: ev.startsWith('bow') ? 'arcos' : 'espadas', pan: -0.2 });
     assert.ok(env.stats.oscillators + env.stats.sources > before, `eventoEstudio(${ev}) debe emitir audio`);
   });
+
+  assert.strictEqual(env.stats.invalidParams.length, 0);
+  env.limpiar();
+});
+
+t('esfuerzo (hombre/mujer), voces de bichos y muestras reales de espadas reemplazan chasquidos', () => {
+  const wavEsperados = [
+    'sfx/voces/esfuerzo_mujer_01.wav',
+    'sfx/voces/esfuerzo_hombre_01.wav',
+    'sfx/voces/esfuerzo_hombre_02.wav',
+    'sfx/enemigos/bicho_grunido_01.wav',
+    'sfx/enemigos/bicho_rugido_01.wav'
+  ];
+  wavEsperados.forEach(rel => {
+    const p = path.join(__dirname, '..', rel);
+    assert.ok(fs.existsSync(p), `Falta WAV ${rel}`);
+    const b = fs.readFileSync(p);
+    assert.ok(b.length > 10000, `WAV vacío o demasiado corto: ${rel}`);
+    assert.strictEqual(b.slice(0, 4).toString('ascii'), 'RIFF');
+    assert.strictEqual(b.slice(8, 12).toString('ascii'), 'WAVE');
+  });
+
+  // 1. Esfuerzo en modo fallback (sin buffers decodificados)
+  const envFb = crearEntornoAudio({ full: true });
+  const SFb = envFb.sb.Sonidos;
+  SFb.desbloquear();
+  ['mujer', 'hombre'].forEach(gen => {
+    envFb.avanzarTiempo(1.0);
+    const antes = envFb.stats.oscillators + envFb.stats.sources;
+    assert.strictEqual(SFb.esfuerzo(gen, { intenso: true }), true);
+    assert.ok(envFb.stats.oscillators + envFb.stats.sources > antes, `esfuerzo(${gen}) fallback debe sonar`);
+  });
+  assert.strictEqual(envFb.stats.invalidParams.length, 0);
+  envFb.limpiar();
+
+  // 2. Con muestras reales registradas: espadas usan OGG grabados (sin makeSteelFM), bichos y esfuerzos usan WAV
+  const env = crearEntornoAudio({ full: true });
+  const S = env.sb.Sonidos;
+  S.desbloquear();
+  Object.keys(S.MUESTRAS).forEach(clave => {
+    S.MUESTRAS[clave].forEach(ruta => {
+      S.registrarMuestra(ruta, { _ruta: ruta, duration: 0.6 });
+    });
+  });
+
+  env.stats.playedBuffers.length = 0;
+  env.avanzarTiempo(0.5);
+  const oscAntesAttack = env.stats.oscillators;
+  S.skill('attack', 'inicio', { clase: 'espadas' });
+  assert.strictEqual(env.stats.oscillators, oscAntesAttack, 'attack de espada con muestras cargadas no dispara osciladores sintéticos');
+  env.avanzarTiempo(0.3);
+  const oscAntesClash = env.stats.oscillators;
+  S.eventoEstudio('sword_clash', { clase: 'espadas', element: 'physical' });
+  assert.strictEqual(env.stats.oscillators, oscAntesClash, 'choque físico de espada con muestras cargadas no dispara osciladores metálicos');
+  env.avanzarTiempo(0.3);
+  S.skill('sw_cross', 'impacto', { clase: 'espadas' });
+  const rutasEsp = env.stats.playedBuffers.map(b => b && b._ruta).filter(Boolean);
+  assert.ok(rutasEsp.some(r => r.includes('sfx/espadas/tajo_aire')), 'attack inicio debe reproducir tajo_aire real');
+  assert.ok(rutasEsp.some(r => r.includes('sfx/espadas/choque_corte')), 'sw_cross/sword_clash debe reproducir choque_corte real');
+
+  env.stats.playedBuffers.length = 0;
+  env.avanzarTiempo(2.5);
+  S.enemigo('aggro', { name: 'Lobo Alfa' });
+  env.avanzarTiempo(0.5);
+  S.enemigo('muerte', { name: 'Señor Osario', boss: true });
+  const rutasBichos = env.stats.playedBuffers.map(b => b && b._ruta).filter(Boolean);
+  assert.ok(rutasBichos.includes('sfx/enemigos/bicho_grunido_01.wav'), 'bestia aggro debe reproducir gruñido');
+  assert.ok(rutasBichos.includes('sfx/enemigos/bicho_rugido_01.wav'), 'jefe muerte debe reproducir rugido');
+
+  env.stats.playedBuffers.length = 0;
+  env.avanzarTiempo(1.2);
+  S.esfuerzo('mujer', { sinCooldown: true });
+  env.avanzarTiempo(1.0);
+  S.esfuerzo('hombre', { intenso: false, sinCooldown: true });
+  env.avanzarTiempo(1.0);
+  S.esfuerzo('hombre', { intenso: true, sinCooldown: true });
+  const rutasVoz = env.stats.playedBuffers.map(b => b && b._ruta).filter(Boolean);
+  assert.ok(rutasVoz.includes('sfx/voces/esfuerzo_mujer_01.wav'));
+  assert.ok(rutasVoz.includes('sfx/voces/esfuerzo_hombre_01.wav'));
+  assert.ok(rutasVoz.includes('sfx/voces/esfuerzo_hombre_02.wav'));
 
   assert.strictEqual(env.stats.invalidParams.length, 0);
   env.limpiar();

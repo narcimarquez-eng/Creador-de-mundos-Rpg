@@ -92,5 +92,24 @@
   "lluvia_flechas": [
     "sfx/arcos/lluvia_flechas_01.ogg",
     "sfx/arcos/lluvia_flechas_02.ogg"
+  ],
+  "esfuerzo_mujer": [
+    "sfx/voces/esfuerzo_mujer_01.wav"
+  ],
+  "esfuerzo_hombre_ligero": [
+    "sfx/voces/esfuerzo_hombre_01.wav"
+  ],
+  "esfuerzo_hombre_fuerte": [
+    "sfx/voces/esfuerzo_hombre_02.wav"
+  ],
+  "esfuerzo_hombre": [
+    "sfx/voces/esfuerzo_hombre_01.wav",
+    "sfx/voces/esfuerzo_hombre_02.wav"
+  ],
+  "bicho_grunido": [
+    "sfx/enemigos/bicho_grunido_01.wav"
+  ],
+  "bicho_rugido": [
+    "sfx/enemigos/bicho_rugido_01.wav"
   ]
 }
