@@ -2589,7 +2589,7 @@
   <script src="js/sonidos.js?v=20261125b"></script>
   <script src="js/voces.js?v=20261125b"></script>
   <script src="js/cinematicas.js?v=20261126a"></script>
-  <script src="js/director-escenas-3d.js?v=20261127a"></script>
+  <script src="js/director-escenas-3d.js?v=20261127b"></script>
   <script src="js/arte-ui.js?v=20261124a"></script>
   <script src="js/pbr-lib.js?v=20261123a"></script>
   <script>
@@ -17996,23 +17996,46 @@
         studioVfx,
         CombatLib,
         AcompananteLib,
-        EnemyLib: typeof EnemyLib !== 'undefined' ? EnemyLib : null,
+        EnemyLib: window.EnemyLib || null,
+        EnemyGlb: window.EnemyGlb || null,
         Sonidos: window.Sonidos,
         Voces: window.Voces,
         CinematicasLib,
         claseArma: claseArmaDelHeroe(),
         generoHeroe: typeof generoDelHeroe === 'function' ? generoDelHeroe() : 'hombre',
         getGroundY: (gx, gz) => (visorWorld && visorWorld.getWalkableHeight ? visorWorld.getWalkableHeight(gx, gz) : 0),
+        precargarEnemigoGlb: (def) => {
+          const eg = window.EnemyGlb;
+          if (eg && def && def.glbKey) eg.pedir(def.glbKey, 'cerca');
+        },
+        instanciarEnemigoGlb: (def) => {
+          const eg = window.EnemyGlb;
+          if (!eg || !def || !def.glbKey) return { falta: true };
+          const entrada = eg.pedir(def.glbKey, 'cerca');
+          if (!entrada || entrada.estado === 'falta') return { falta: true };
+          if (entrada.estado !== 'listo' || !entrada.escena) return null;
+          prototipoGlb(entrada);
+          const raiz = SkeletonUtils.clone(entrada.escena);
+          const escBase = typeof escalaEnemigos === 'function' ? escalaEnemigos() : 1;
+          raiz.scale.setScalar(escBase * (def.escala || 1));
+          apoyarEnSuelo(raiz);
+          const glbRep = eg.crearReproductor(THREE, raiz, entrada.clips);
+          return { rootGroup: raiz, glbRep };
+        },
         crearEnemigoActor: (def) => {
-          if (typeof EnemyLib === 'undefined' || !EnemyLib.ARCHETYPE_PRESETS || !EnemyLib.buildProceduralEnemy) return null;
-          if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(QUALITY[quality].texturas ? renderer.capabilities.getMaxAnisotropy() : 1);
-          const presets = Object.values(EnemyLib.ARCHETYPE_PRESETS);
+          const lib = window.EnemyLib;
+          if (!lib || !lib.ARCHETYPE_PRESETS || !lib.buildProceduralEnemy) {
+            if (typeof cargarModuloEnemigos === 'function') cargarModuloEnemigos();
+            return null;
+          }
+          if (!enemyTextures) enemyTextures = lib.createProceduralTextureSet(QUALITY[quality].texturas ? renderer.capabilities.getMaxAnisotropy() : 1);
+          const presets = Object.values(lib.ARCHETYPE_PRESETS);
           if (!presets.length) return null;
           const arq = String((def && def.arquetipo) || '').toLowerCase();
-          const encontrado = EnemyLib.ARCHETYPE_PRESETS[def.arquetipo] || presets.find(pr => String(pr.id || pr.name || '').toLowerCase().includes(arq)) || presets[0];
+          const encontrado = lib.ARCHETYPE_PRESETS[def.arquetipo] || presets.find(pr => String(pr.id || pr.name || '').toLowerCase().includes(arq)) || presets[0];
           const cfg = JSON.parse(JSON.stringify(encontrado));
           if (def && def.boss) cfg.scale = (cfg.scale || 1) * 1.15;
-          const rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
+          const rig = lib.buildProceduralEnemy(cfg, enemyTextures, false, false);
           if (!rig || !rig.rootGroup) return null;
           if (def && def.escala) rig.rootGroup.scale.setScalar(def.escala * (escalaEnemigos ? escalaEnemigos() * 0.72 : 1));
           aplicarEntorno(rig.rootGroup);
@@ -18054,6 +18077,9 @@
 
   function mostrarCapitulo(r) {
     capModalNumero = r.numero;
+    if (typeof DirectorEscenas3D !== 'undefined' && typeof DirectorEscenas3D.precargarEscena === 'function' && window.EnemyGlb) {
+      DirectorEscenas3D.precargarEscena('c' + r.numero, { EnemyGlb: window.EnemyGlb });
+    }
     if ($('cap-cinematica')) $('cap-cinematica').style.display = '';
     if (window.Sonidos && window.Sonidos.mision) window.Sonidos.mision();
     $('cap-sabio').textContent = r.capitulo.sabio + ' cuenta:';

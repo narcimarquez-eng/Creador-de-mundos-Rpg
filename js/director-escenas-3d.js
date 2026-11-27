@@ -63,8 +63,8 @@
       escenografia: 'forja',
       acentoHex: 0xf97316,
       enemigos: [
-        { arquetipo: 'lobo', nombre: 'Aberración de Hierro', escala: 1.22, posInicio: [-6.5, -7.2], posObjetivo: [-1.4, -1.5], tEntrada: 3.4, tCaida: 9.8 },
-        { arquetipo: 'esqueleto', nombre: 'Acechador Blindado', escala: 1.15, posInicio: [5.8, -7.8], posObjetivo: [1.5, -1.8], tEntrada: 3.9, tCaida: 10.6 }
+        { arquetipo: 'lobo', glbKey: 'phantom_armored_boar', nombre: 'Aberración de Hierro', escala: 1.15, posInicio: [-6.5, -7.2], posObjetivo: [-1.4, -1.5], tEntrada: 3.4, tCaida: 9.8 },
+        { arquetipo: 'esqueleto', glbKey: 'ashen_crown_executioner_skeleton', nombre: 'Acechador Blindado', escala: 1.12, posInicio: [5.8, -7.8], posObjetivo: [1.5, -1.8], tEntrada: 3.9, tCaida: 10.6 }
       ],
       accionesHeroe: [
         { t: 0.2, tipo: 'mirar_npc' },
@@ -94,7 +94,7 @@
       escenografia: 'forja',
       acentoHex: 0xfbbf24,
       enemigos: [
-        { arquetipo: 'lobo', nombre: 'Bestia Alterada', escala: 1.18, posInicio: [-5.5, -6.5], posObjetivo: [-0.8, -2.0], tEntrada: 3.8, tCaida: 9.8 }
+        { arquetipo: 'lobo', glbKey: 'dire_wolf', nombre: 'Bestia Alterada', escala: 1.15, posInicio: [-5.5, -6.5], posObjetivo: [-0.8, -2.0], tEntrada: 3.8, tCaida: 9.8 }
       ],
       accionesHeroe: [
         { t: 0.2, tipo: 'mirar_npc' },
@@ -113,7 +113,7 @@
       escenografia: 'acantilado',
       acentoHex: 0xf87171,
       enemigos: [
-        { arquetipo: 'saqueador', nombre: 'Centinela del Cónclave', escala: 1.12, posInicio: [5.5, -6.8], posObjetivo: [0.6, -2.1], tEntrada: 3.6, tCaida: 9.2 }
+        { arquetipo: 'saqueador', glbKey: 'outlaw_bandit_cutthroat', nombre: 'Centinela del Cónclave', escala: 1.10, posInicio: [5.5, -6.8], posObjetivo: [0.6, -2.1], tEntrada: 3.6, tCaida: 9.2 }
       ],
       eventosVfx: [
         { t: 3.9, tipo: 'ruido_enemigo', evento: 'aggro', info: { name: 'Saqueador' } },
@@ -128,8 +128,8 @@
       escenografia: 'bosque',
       acentoHex: 0x94a3b8,
       enemigos: [
-        { arquetipo: 'jabali', nombre: 'Aberración de Savia', escala: 1.2, posInicio: [-5.4, -6.0], posObjetivo: [-1.1, -1.8], tEntrada: 3.2, tCaida: 8.8 },
-        { arquetipo: 'lobo', nombre: 'Rastreador Gris', escala: 1.1, posInicio: [5.4, -6.0], posObjetivo: [1.3, -1.9], tEntrada: 3.7, tCaida: 9.4 }
+        { arquetipo: 'jabali', glbKey: 'df_14_iron_spined_boar_beast', nombre: 'Aberración de Savia', escala: 1.15, posInicio: [-5.4, -6.0], posObjetivo: [-1.1, -1.8], tEntrada: 3.2, tCaida: 8.8 },
+        { arquetipo: 'lobo', glbKey: 'dire_wolf', nombre: 'Rastreador Gris', escala: 1.05, posInicio: [5.4, -6.0], posObjetivo: [1.3, -1.9], tEntrada: 3.7, tCaida: 9.4 }
       ],
       eventosVfx: [
         { t: 3.5, tipo: 'ruido_enemigo', evento: 'aggro', info: { name: 'Bestia del Claro' } },
@@ -143,7 +143,7 @@
       escenografia: 'laberinto',
       acentoHex: 0xfb923c,
       enemigos: [
-        { arquetipo: 'minotauro', nombre: 'Autómata Acorazado', escala: 1.55, boss: true, posInicio: [0, -7.8], posObjetivo: [0, -2.5], tEntrada: 3.2, tCaida: 10.2 }
+        { arquetipo: 'minotauro', glbKey: 'obsidian_golem', nombre: 'Autómata Acorazado', escala: 1.45, boss: true, posInicio: [0, -7.8], posObjetivo: [0, -2.5], tEntrada: 3.2, tCaida: 10.2 }
       ],
       accionesHeroe: [
         { t: 0.2, tipo: 'mirar_npc' },
@@ -164,7 +164,7 @@
       escenografia: 'marisma',
       acentoHex: 0x60a5fa,
       enemigos: [
-        { arquetipo: 'espectro', nombre: 'Susurro del Óxido', escala: 1.25, posInicio: [-4.2, -7.2], posObjetivo: [0.0, -2.2], tEntrada: 3.5, tCaida: 9.2 }
+        { arquetipo: 'espectro', glbKey: 'wraith_soul_reaper', nombre: 'Susurro del Óxido', escala: 1.20, posInicio: [-4.2, -7.2], posObjetivo: [0.0, -2.2], tEntrada: 3.5, tCaida: 9.2 }
       ],
       eventosVfx: [
         { t: 3.8, tipo: 'ruido_enemigo', evento: 'aggro', info: { name: 'Espectro' } },
@@ -195,7 +195,7 @@
       escenografia: 'canon',
       acentoHex: 0xf97316,
       enemigos: [
-        { arquetipo: 'caballero', nombre: 'Vanguardia del Óxido', escala: 1.25, posInicio: [4.8, -6.8], posObjetivo: [0.3, -2.1], tEntrada: 3.3, tCaida: 9.1 }
+        { arquetipo: 'caballero', glbKey: 'abyssal_knight', nombre: 'Vanguardia del Óxido', escala: 1.20, posInicio: [4.8, -6.8], posObjetivo: [0.3, -2.1], tEntrada: 3.3, tCaida: 9.1 }
       ],
       eventosVfx: [
         { t: 1.4, tipo: 'chispas_forja', color: 0xf97316 },
@@ -210,8 +210,8 @@
       escenografia: 'nova',
       acentoHex: 0xfacc15,
       enemigos: [
-        { arquetipo: 'saqueador', nombre: 'Inquisidor Blindado', escala: 1.15, posInicio: [-4.6, -6.2], posObjetivo: [-1.2, -2.0], tEntrada: 3.0, tCaida: 8.8 },
-        { arquetipo: 'esqueleto', nombre: 'Guardia Rúnico', escala: 1.15, posInicio: [4.6, -6.2], posObjetivo: [1.2, -2.0], tEntrada: 3.3, tCaida: 8.9 }
+        { arquetipo: 'saqueador', glbKey: 'wow_defias_pillager_bandit', nombre: 'Inquisidor Blindado', escala: 1.12, posInicio: [-4.6, -6.2], posObjetivo: [-1.2, -2.0], tEntrada: 3.0, tCaida: 8.8 },
+        { arquetipo: 'esqueleto', glbKey: 'cursed_skeleton_berserker', nombre: 'Guardia Rúnico', escala: 1.12, posInicio: [4.6, -6.2], posObjetivo: [1.2, -2.0], tEntrada: 3.3, tCaida: 8.9 }
       ],
       accionesHeroe: [
         { t: 0.2, tipo: 'mirar_npc' },
@@ -232,7 +232,7 @@
       escenografia: 'cabana',
       acentoHex: 0xf59e0b,
       enemigos: [
-        { arquetipo: 'saqueador', nombre: 'Inquisidor Nocturno', escala: 1.15, posInicio: [-6.0, -7.2], posObjetivo: [-0.8, -2.4], tEntrada: 4.2, tCaida: 9.5 }
+        { arquetipo: 'saqueador', glbKey: 'outlaw_bandit_cutthroat', nombre: 'Inquisidor Nocturno', escala: 1.12, posInicio: [-6.0, -7.2], posObjetivo: [-0.8, -2.4], tEntrada: 4.2, tCaida: 9.5 }
       ],
       eventosVfx: [
         { t: 4.4, tipo: 'ruido_enemigo', evento: 'aggro', info: { name: 'Inquisidor' } },
@@ -246,8 +246,8 @@
       escenografia: 'acantilado',
       acentoHex: 0xfb7185,
       enemigos: [
-        { arquetipo: 'jabali', nombre: 'Bestia de Choque', escala: 1.28, posInicio: [-4.8, -7.0], posObjetivo: [-1.0, -2.0], tEntrada: 3.0, tCaida: 9.0 },
-        { arquetipo: 'jabali', nombre: 'Acorazado del Paso', escala: 1.24, posInicio: [4.8, -7.0], posObjetivo: [1.1, -2.1], tEntrada: 3.4, tCaida: 9.4 }
+        { arquetipo: 'jabali', glbKey: 'iron_boar_juggernaut', nombre: 'Bestia de Choque', escala: 1.22, posInicio: [-4.8, -7.0], posObjetivo: [-1.0, -2.0], tEntrada: 3.0, tCaida: 9.0 },
+        { arquetipo: 'jabali', glbKey: 'elite_ironhorn_rhino_beast', nombre: 'Acorazado del Paso', escala: 1.20, posInicio: [4.8, -7.0], posObjetivo: [1.1, -2.1], tEntrada: 3.4, tCaida: 9.4 }
       ],
       eventosVfx: [
         { t: 3.2, tipo: 'ruido_enemigo', evento: 'aggro', info: { name: 'Bestia' } },
@@ -280,7 +280,7 @@
       escenografia: 'cupula',
       acentoHex: 0xc084fc,
       enemigos: [
-        { arquetipo: 'caballero', nombre: 'Guardián de Resonancia', escala: 1.35, boss: true, posInicio: [0, -6.8], posObjetivo: [0, -2.4], tEntrada: 3.0, tCaida: 9.3 }
+        { arquetipo: 'caballero', glbKey: 'death_knight_colossus', nombre: 'Guardián de Resonancia', escala: 1.32, boss: true, posInicio: [0, -6.8], posObjetivo: [0, -2.4], tEntrada: 3.0, tCaida: 9.3 }
       ],
       eventosVfx: [
         { t: 3.3, tipo: 'ruido_enemigo', evento: 'aggro', info: { name: 'Guardián', boss: true } },
@@ -312,7 +312,7 @@
       escenografia: 'titan',
       acentoHex: 0xef4444,
       enemigos: [
-        { arquetipo: 'titan', nombre: 'Titán del Sol Quebrado', escala: 2.35, boss: true, posInicio: [0, -9.2], posObjetivo: [0, -3.4], tEntrada: 2.8, tCaida: 11.0 }
+        { arquetipo: 'titan', glbKey: 'abyssal_crown_ossuary_titan', nombre: 'Titán del Sol Quebrado', escala: 1.85, boss: true, posInicio: [0, -9.2], posObjetivo: [0, -3.4], tEntrada: 2.8, tCaida: 11.0 }
       ],
       accionesHeroe: [
         { t: 0.2, tipo: 'mirar_npc' },
@@ -432,49 +432,41 @@
   }
 
   // ------------------ Utilerías 3D para escenografía y actores ------------------
+  // Silueta espectral de último recurso (sin cubos) si fallan tanto EnemyGlb como EnemyLib
   function construirActorEnemigoRespaldo(THREE, def) {
     const gMesh = new THREE.Group();
     const esc = def.escala || 1.2;
-    const esTitan = def.arquetipo === 'titan' || def.arquetipo === 'minotauro' || esc >= 1.5;
-    const matCuerpo = new THREE.MeshStandardMaterial({
-      color: esTitan ? 0x292524 : 0x1e293b,
-      roughness: 0.55,
-      metalness: 0.45
+    const matManto = new THREE.MeshStandardMaterial({
+      color: def.boss ? 0x1c1917 : 0x0f172a,
+      roughness: 0.72,
+      metalness: 0.25,
+      transparent: true,
+      opacity: 0.92
     });
-    const matAcero = new THREE.MeshStandardMaterial({
-      color: def.boss ? 0x7c2d12 : 0x475569,
-      roughness: 0.35,
-      metalness: 0.78
+    const matAura = new THREE.MeshBasicMaterial({
+      color: def.boss ? 0xf97316 : 0xef4444,
+      transparent: true,
+      opacity: 0.48
     });
-    const matOjo = new THREE.MeshBasicMaterial({ color: def.boss ? 0xf97316 : 0xef4444 });
+    const matOjo = new THREE.MeshBasicMaterial({ color: def.boss ? 0xfb923c : 0xf87171 });
 
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.95 * esc, 1.15 * esc, 0.65 * esc), matCuerpo);
-    torso.position.y = 1.25 * esc;
-    gMesh.add(torso);
+    const manto = new THREE.Mesh(new THREE.ConeGeometry(0.62 * esc, 2.05 * esc, 16), matManto);
+    manto.position.y = 1.02 * esc;
+    gMesh.add(manto);
 
-    const coraza = new THREE.Mesh(new THREE.BoxGeometry(1.08 * esc, 0.55 * esc, 0.72 * esc), matAcero);
-    coraza.position.y = 1.52 * esc;
-    gMesh.add(coraza);
+    const capucha = new THREE.Mesh(new THREE.SphereGeometry(0.32 * esc, 14, 12), matManto);
+    capucha.position.set(0, 2.04 * esc, 0.04 * esc);
+    gMesh.add(capucha);
 
-    const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.55 * esc, 0.52 * esc, 0.55 * esc), matCuerpo);
-    cabeza.position.set(0, 2.08 * esc, 0.08 * esc);
-    gMesh.add(cabeza);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.55 * esc, 0.045 * esc, 8, 24), matAura);
+    halo.rotation.x = Math.PI / 2;
+    halo.position.y = 0.06;
+    gMesh.add(halo);
 
-    [-0.14, 0.14].forEach(ox => {
-      const ojo = new THREE.Mesh(new THREE.SphereGeometry(0.065 * esc, 6, 6), matOjo);
-      ojo.position.set(ox * esc, 2.12 * esc, 0.35 * esc);
+    [-0.10, 0.10].forEach(ox => {
+      const ojo = new THREE.Mesh(new THREE.SphereGeometry(0.05 * esc, 8, 8), matOjo);
+      ojo.position.set(ox * esc, 2.06 * esc, 0.29 * esc);
       gMesh.add(ojo);
-    });
-
-    [-0.28, 0.28].forEach(px => {
-      const pierna = new THREE.Mesh(new THREE.BoxGeometry(0.28 * esc, 0.72 * esc, 0.3 * esc), matCuerpo);
-      pierna.position.set(px * esc, 0.36 * esc, 0);
-      gMesh.add(pierna);
-    });
-    [-0.68, 0.68].forEach(ax => {
-      const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.26 * esc, 0.85 * esc, 0.28 * esc), matAcero);
-      brazo.position.set(ax * esc, 1.22 * esc, 0.12 * esc);
-      gMesh.add(brazo);
     });
     return gMesh;
   }
@@ -644,17 +636,74 @@
     }
   }
 
-  function disponerGrupo(THREE, grupo) {
+  function disponerNodo(o) {
+    if (!o) return;
+    if (o.userData && o.userData.__compartidoGlb) return;
+    if (o.geometry && typeof o.geometry.dispose === 'function') o.geometry.dispose();
+    if (o.material) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => { if (m && typeof m.dispose === 'function') m.dispose(); });
+    }
+    if (Array.isArray(o.children)) {
+      for (const h of o.children) disponerNodo(h);
+    }
+  }
+
+  function disponerGrupo(_THREE, grupo) {
     if (!grupo) return;
     if (grupo.parent) grupo.parent.remove(grupo);
-    if (typeof grupo.traverse === 'function') {
-      grupo.traverse(o => {
-        if (o.geometry && typeof o.geometry.dispose === 'function') o.geometry.dispose();
-        if (o.material) {
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach(m => { if (m && typeof m.dispose === 'function') m.dispose(); });
+    disponerNodo(grupo);
+  }
+
+  function precargarEscena(clave, ctx = {}) {
+    const guion = obtenerGuion(clave);
+    if (!guion || !Array.isArray(guion.enemigos)) return 0;
+    let pedidos = 0;
+    for (const def of guion.enemigos) {
+      if (typeof ctx.precargarEnemigoGlb === 'function') {
+        try { ctx.precargarEnemigoGlb(def); pedidos++; } catch (_) {}
+      } else if (ctx.EnemyGlb && typeof ctx.EnemyGlb.pedir === 'function' && def && def.glbKey) {
+        try { ctx.EnemyGlb.pedir(def.glbKey, 'cerca'); pedidos++; } catch (_) {}
+      }
+    }
+    return pedidos;
+  }
+
+  function resolverModeloEnemigo(sObj, ea, permitirRespaldo) {
+    if (!sObj || !ea || ea.esGlb) return;
+    const ctx = sObj.ctx;
+    const THREE = ctx.THREE;
+
+    if (!ea.glbFallido && typeof ctx.instanciarEnemigoGlb === 'function') {
+      let res = null;
+      try { res = ctx.instanciarEnemigoGlb(ea.def); } catch (_) { res = null; }
+      if (res && res.rootGroup) {
+        if (ea.modelo && ea.modelo.parent === ea.mesh) {
+          ea.mesh.remove(ea.modelo);
+          disponerNodo(ea.modelo);
         }
-      });
+        res.rootGroup.userData = Object.assign({}, res.rootGroup.userData, { __compartidoGlb: true });
+        ea.mesh.add(res.rootGroup);
+        ea.modelo = res.rootGroup;
+        ea.glbRep = res.glbRep || null;
+        ea.esGlb = true;
+        return;
+      }
+      if (res && res.falta) {
+        ea.glbFallido = true;
+      }
+    } else if (typeof ctx.instanciarEnemigoGlb !== 'function') {
+      ea.glbFallido = true;
+    }
+
+    if (!ea.modelo && (ea.glbFallido || permitirRespaldo)) {
+      let fallback = null;
+      if (typeof ctx.crearEnemigoActor === 'function') {
+        try { fallback = ctx.crearEnemigoActor(ea.def); } catch (_) { fallback = null; }
+      }
+      if (!fallback) fallback = construirActorEnemigoRespaldo(THREE, ea.def);
+      ea.mesh.add(fallback);
+      ea.modelo = fallback;
     }
   }
 
@@ -867,19 +916,32 @@
     const escenaGrupo = esce.grupo;
     const enemigosActores = [];
     for (const def of guion.enemigos) {
-      let mesh = null;
-      if (typeof ctx.crearEnemigoActor === 'function') {
-        try { mesh = ctx.crearEnemigoActor(def); } catch (_) { mesh = null; }
+      if (typeof ctx.precargarEnemigoGlb === 'function') {
+        try { ctx.precargarEnemigoGlb(def); } catch (_) {}
+      } else if (ctx.EnemyGlb && typeof ctx.EnemyGlb.pedir === 'function' && def && def.glbKey) {
+        try { ctx.EnemyGlb.pedir(def.glbKey, 'cerca'); } catch (_) {}
       }
-      if (!mesh) mesh = construirActorEnemigoRespaldo(THREE, def);
+      const mesh = new THREE.Group();
       const sx = ax + (def.posInicio ? def.posInicio[0] : 0);
       const sz = az + (def.posInicio ? def.posInicio[1] : -7);
       const tx = ax + (def.posObjetivo ? def.posObjetivo[0] : 0);
       const tz = az + (def.posObjetivo ? def.posObjetivo[1] : -2);
-      mesh.position.set(sx, getGroundY(sx, sz), sz);
+      const sy = getGroundY(sx, sz);
+      mesh.position.set(sx, sy, sz);
       mesh.visible = false;
       escenaGrupo.add(mesh);
-      enemigosActores.push({ def, mesh, sx, sz, tx, tz, x: sx, y: getGroundY(sx, sz), z: sz, caido: false });
+      const ea = {
+        def,
+        mesh,
+        modelo: null,
+        glbRep: null,
+        esGlb: false,
+        glbFallido: false,
+        sx, sz, tx, tz,
+        x: sx, y: sy, z: sz,
+        caido: false
+      };
+      enemigosActores.push(ea);
     }
     ctx.scene.add(escenaGrupo);
 
@@ -943,6 +1005,10 @@
       onKey: null
     };
     sesion = sObj;
+
+    for (const ea of sObj.enemigosActores) {
+      resolverModeloEnemigo(sObj, ea, false);
+    }
 
     const lanzarVoz = () => {
       if (sObj.silenciado || !ctx.Voces || typeof ctx.Voces.hablar !== 'function') return;
@@ -1157,26 +1223,45 @@
       });
     }
 
-    // Mover y animar enemigos temporales
+    // Mover y animar enemigos temporales (GLB reales con clips esqueletales)
+    const dtAnim = sObj.pausado ? 0 : delta;
     for (const ea of sObj.enemigosActores) {
       const def = ea.def;
+      if (!ea.esGlb && !ea.glbFallido) {
+        resolverModeloEnemigo(sObj, ea, t >= def.tEntrada + 1.0);
+      } else if (!ea.modelo) {
+        resolverModeloEnemigo(sObj, ea, true);
+      }
       if (t < def.tEntrada) {
         ea.mesh.visible = false;
         continue;
       }
-      ea.mesh.visible = true;
+      if (!ea.modelo && t >= def.tEntrada + 1.0) {
+        resolverModeloEnemigo(sObj, ea, true);
+      }
+      ea.mesh.visible = !!ea.modelo;
       if (t < def.tCaida) {
         const uWalk = smoothstep((t - def.tEntrada) / Math.max(0.5, def.tCaida - def.tEntrada - 1.6));
         ea.x = lerp(ea.sx, ea.tx, uWalk);
         ea.z = lerp(ea.sz, ea.tz, uWalk);
         ea.y = getGroundY(ea.x, ea.z);
-        const bob = uWalk < 0.98 ? Math.abs(Math.sin(t * 10)) * 0.14 : 0;
+        const bob = !ea.esGlb && uWalk < 0.98 ? Math.abs(Math.sin(t * 10)) * 0.14 : 0;
         ea.mesh.position.set(ea.x, ea.y + bob, ea.z);
         ea.mesh.lookAt(sObj.heroPos[0], ea.y, sObj.heroPos[2]);
+        if (ea.glbRep && ctx.EnemyGlb && typeof ctx.EnemyGlb.actualizar === 'function') {
+          const estado = uWalk < 0.96 ? 'run' : (t >= def.tCaida - 0.55 ? 'hit' : 'attack');
+          ctx.EnemyGlb.actualizar(ea.glbRep, estado, dtAnim);
+        }
       } else {
-        const uFall = smoothstep((t - def.tCaida) / 0.55);
-        ea.mesh.rotation.x = -uFall * (Math.PI * 0.48);
-        ea.mesh.position.y = ea.y + 0.12 * (1 - uFall);
+        const tieneClipMuerte = !!(ea.glbRep && ea.glbRep.acciones && ea.glbRep.acciones.death);
+        if (ea.glbRep && ctx.EnemyGlb && typeof ctx.EnemyGlb.actualizar === 'function') {
+          ctx.EnemyGlb.actualizar(ea.glbRep, 'death', dtAnim);
+        }
+        if (!tieneClipMuerte) {
+          const uFall = smoothstep((t - def.tCaida) / 0.55);
+          ea.mesh.rotation.x = -uFall * (Math.PI * 0.48);
+          ea.mesh.position.y = ea.y + 0.12 * (1 - uFall);
+        }
       }
     }
 
@@ -1297,6 +1382,16 @@
       ctx.Sonidos.setVolumen('musica', sObj.snaps.musVol);
     }
 
+    for (const ea of sObj.enemigosActores) {
+      if (ea.glbRep && ctx.EnemyGlb && typeof ctx.EnemyGlb.detener === 'function') {
+        try { ctx.EnemyGlb.detener(ea.glbRep); } catch (_) {}
+      }
+      // Desacoplar clones GLB compartidos antes de disponer para no liberar mallas/materiales cacheados del mundo
+      if (ea.esGlb && ea.modelo && ea.modelo.parent) {
+        ea.modelo.parent.remove(ea.modelo);
+      }
+    }
+
     disponerGrupo(ctx.THREE, sObj.escenaGrupo);
 
     if (!opts.sinCallback && typeof ctx.onTerminar === 'function') {
@@ -1325,6 +1420,7 @@
     listarGuiones,
     evaluarPlanoCamara,
     soportaGrabacionWebM,
+    precargarEscena,
     iniciar,
     actualizar,
     detener,

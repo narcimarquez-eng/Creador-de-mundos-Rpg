@@ -3,6 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { pathToFileURL } = require('url');
 const D = require('../js/director-escenas-3d.js');
 const Cinemas = require('../js/cinematicas.js');
@@ -60,8 +61,26 @@ function t(nombre, fn) {
     });
   });
 
+  t('todos los enemigos de GUIONES_3D usan glbKey válido de ENEMY_GLB_INDEX y su archivo existe en disco', () => {
+    const ctxIdx = { window: {} };
+    vm.runInNewContext(fs.readFileSync(path.join(raiz, 'js/enemigos-glb-indice.js'), 'utf8'), ctxIdx);
+    const idx = ctxIdx.window.ENEMY_GLB_INDEX || {};
+    let totalEnemigos = 0;
+    D.listarGuiones().forEach(guion => {
+      guion.enemigos.forEach(def => {
+        totalEnemigos++;
+        assert.ok(def.glbKey, `${guion.id} enemigo "${def.nombre}" requiere glbKey`);
+        const entrada = idx[def.glbKey];
+        assert.ok(entrada, `${guion.id} glbKey "${def.glbKey}" no existe en ENEMY_GLB_INDEX`);
+        const rel = entrada.medium || entrada.low;
+        assert.ok(rel && fs.existsSync(path.join(raiz, rel)), `${guion.id} falta archivo GLB en disco: ${rel}`);
+      });
+    });
+    assert.ok(totalEnemigos >= 15, 'debe verificar todos los enemigos reales mapeados');
+  });
+
   if (THREE) {
-    t('simulación 3D completa (prologo y c14) mueve actores/cámara y restaura todo al detener()', () => {
+    t('simulación 3D completa (prologo y c14) usa GLB asíncronos, anima clips y protege geometrías al detener()', () => {
       ['prologo', 'c14'].forEach(escenaId => {
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 1000);
@@ -87,10 +106,16 @@ function t(nombre, fn) {
 
         const shotsHero = [];
         const sfxCalled = [];
+        const precargados = [];
+        const estadosGlb = new Set();
+        let glbDetenidos = 0;
+        let disposedCompartido = 0;
+        let intentosInstancia = 0;
         let horaActual = 'day';
         let musVol = 0.62;
         let ended = null;
 
+        const sharedMeshes = [];
         const character = {
           root: heroRoot,
           cameraMode: 'follow',
@@ -107,6 +132,28 @@ function t(nombre, fn) {
           acompanante,
           gurus,
           CinematicasLib: Cinemas,
+          EnemyGlb: {
+            actualizar: (_rep, est) => estadosGlb.add(est),
+            detener: () => { glbDetenidos++; }
+          },
+          precargarEnemigoGlb: (def) => precargados.push(def.glbKey),
+          instanciarEnemigoGlb: (def) => {
+            intentosInstancia++;
+            // Simular descarga asíncrona los primeros fotogramas
+            if (intentosInstancia <= 2) return null;
+            const geo = new THREE.BoxGeometry(1, 2, 1);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            geo.dispose = () => { disposedCompartido++; };
+            mat.dispose = () => { disposedCompartido++; };
+            const m = new THREE.Mesh(geo, mat);
+            sharedMeshes.push(m);
+            const rootGroup = new THREE.Group();
+            rootGroup.add(m);
+            return {
+              rootGroup,
+              glbRep: { acciones: { run: {}, attack: {}, hit: {}, death: {} } }
+            };
+          },
           Sonidos: {
             getVolumenes: () => ({ musica: musVol }),
             setVolumen: (c, v) => { if (c === 'musica') musVol = v; },
@@ -130,6 +177,7 @@ function t(nombre, fn) {
         assert.strictEqual(D.estaActiva(), true);
         assert.strictEqual(horaActual, 'night', escenaId + ' debe activar atmósfera nocturna');
         assert.strictEqual(controls.enabled, false);
+        assert.ok(precargados.length >= 1, escenaId + ' debe precargar glbKey reales');
         assert.ok(scene.children.length > 3, 'debe añadir grupo de escenografía y enemigos');
 
         const camPoses = new Set();
@@ -143,6 +191,12 @@ function t(nombre, fn) {
         assert.ok(sfxCalled.some(x => x.startsWith('enemigo:')), escenaId + ' debe disparar voz de enemigo');
         assert.ok(sfxCalled.includes('esfuerzo'), escenaId + ' debe disparar esfuerzo del héroe');
         assert.ok(camPoses.size >= 8, escenaId + ' debe mover la cámara a través de los planos');
+        assert.ok(sharedMeshes.length >= 1, escenaId + ' debe instanciar enemigos GLB tras espera asíncrona');
+        assert.ok(estadosGlb.has('run') && estadosGlb.has('attack') && estadosGlb.has('death'),
+          escenaId + ' debe animar estados GLB run, attack y death');
+        assert.ok(glbDetenidos >= 1, escenaId + ' debe detener mixers GLB al terminar');
+        assert.strictEqual(disposedCompartido, 0,
+          escenaId + ' NO debe llamar dispose() en geometrías/materiales compartidos de clones GLB');
 
         // Restauración íntegra de posiciones, rotaciones, cámara y ambiente
         assert.strictEqual(scene.children.length, 3, 'escenaGrupo debe eliminarse de scene al terminar');
@@ -160,13 +214,15 @@ function t(nombre, fn) {
     console.log('  (three no disponible en tools/node_modules: se omiten pruebas 3D completas)');
   }
 
-  t('visor-mundo.html integra js/director-escenas-3d.js, loop 3D y disparo desde reproducirCinematicaCapitulo', () => {
+  t('visor-mundo.html integra js/director-escenas-3d.js, GLB de enemigos y disparo desde reproducirCinematicaCapitulo', () => {
     const html = fs.readFileSync(path.join(raiz, 'visor-mundo.html'), 'utf8');
     [
       'js/director-escenas-3d.js',
       'DirectorEscenas3D.iniciar(',
       'DirectorEscenas3D.actualizar(',
       'DirectorEscenas3D.estaActiva()',
+      'instanciarEnemigoGlb',
+      'precargarEnemigoGlb',
       'onVerLamina2D'
     ].forEach(tok => {
       assert.ok(html.includes(tok), `visor-mundo.html debe incluir ${tok}`);
