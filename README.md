@@ -26,7 +26,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 | `js/enemigos-combate.js` | Efectos de combate de los enemigos: golpe, magia con proyectil, reacción al golpe. Se superponen a la animación base. |
 | `js/enemigos-glb.js` | Modelos GLB de los enemigos: `glb/medium/…` para la versión «cerca» (a menos de 10 m) y `glb/low/…` para la «lejos». Qué archivo es de cada enemigo lo dice `js/enemigos-glb-indice.js`, generado con `tools/generar-indice-enemigos.mjs` (hay que volver a ejecutarlo al subir archivos). Si un enemigo no está en el índice o falta su archivo, se genera con `js/enemigos.js` como antes. Pruebas en `test/enemigos-glb.test.js`. |
 | `js/village-core.js` | Generador de pueblos compartido por el Creador de Pueblos y el visor (muros, casas, calles, colisiones). Trazado por manzanas con parcelas (por defecto) o clásico. |
-| `js/world-core.js` | Núcleo del mundo sin interfaz (terreno, biomas, generación, niveles, guardado). Pensado para reutilizarlo en el juego. |
+| `js/world-core.js` | Núcleo del mundo sin interfaz (terreno, biomas, generación, niveles, guardado). Pensado para reutilizarlo en el juego. El relieve del mundo (`settings.relieve`: ninguno, suave, normal o abrupto) añade cañones, desfiladeros, mesetas con acantilados, agujas, acantilados de costa y crestas; se aparta de pueblos, caminos y zonas. `RPGWorld.terrenoMundo(world)` da el terreno con el relieve. Pruebas en `test/relieve-mundo.test.js`. |
 | `js/partida.js` | Guardado de partidas (varias por mundo, exportar e importar). Pruebas en `test/partida.test.js`. |
 | `docs/FORMATO-PARTIDA.md` | Descripción del archivo `.partida.json`. |
 | `docs/FORMATO-MUNDO.md` | Descripción del archivo `.mundo.json` que se guarda/exporta. |
@@ -35,7 +35,7 @@ Herramientas para diseñar el mundo de un futuro juego RPG (estilo Lineage 2).
 
 Abre `index.html` en el navegador (doble clic, o mejor servido con GitHub Pages / `npx serve`).
 
-1. Al abrir por primera vez se genera un mundo de ejemplo. **📁 Sesiones → ✨ Nuevo mundo** genera otro con tus parámetros (semilla, nº de pueblos, distancia, caminos extra, zonas por camino, progresión de nivel).
+1. Al abrir por primera vez se genera un mundo de ejemplo. **📁 Sesiones → ✨ Nuevo mundo** genera otro con tus parámetros (semilla, nº de pueblos, distancia, caminos extra, zonas por camino, progresión de nivel y **relieve**: acantilados, cañones, desfiladeros y mesetas). En un mundo ya hecho, el relieve se cambia en la pestaña Mundo («Relieve: acantilados, cañones y mesetas»).
 2. **Herramientas** (barra izquierda):
    - ✋ **Mover**: toca para seleccionar y editar en el panel; arrastra para mover (en móvil: primero toca, luego arrastra). Arrastrar en vacío mueve el mapa; rueda o pellizco = zoom.
    - 🏘 **Pueblo**: toca el mapa para fundar un pueblo (se conecta con caminos y crea zonas de caza si lo dejas activado).

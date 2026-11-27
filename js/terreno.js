@@ -435,7 +435,30 @@
     return [-dx / l, 1 / l, -dz / l];
   }
 
-  const api = { splatFor, splatWithRoad, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, capasDesdeListaImagenes, CAPAS, buildGridGeometry, nodeNormal, smooth };
+  // Paredes de roca del relieve (acantilados, cañones, mesetas): más roca en las pendientes y franjas de
+  // estratos por altura. Devuelve { steep, color, k }: la pendiente efectiva para splatFor y el color de
+  // vértice de la roca (se mezcla con el del bioma en proporción k). Con relieve = 0 no cambia nada.
+  const ESTRATOS = {
+    desierto: [[1.28, 0.9, 0.66], [1.02, 0.7, 0.52], [1.2, 1.04, 0.84]],
+    costa:    [[1.1, 0.98, 0.84], [0.9, 0.82, 0.74], [1.06, 1.02, 0.95]],
+    pradera:  [[1.1, 0.96, 0.82], [0.86, 0.78, 0.7], [1.04, 0.99, 0.92]],
+    montana:  [[0.96, 0.93, 0.9], [0.78, 0.76, 0.76], [1.04, 1.02, 1.0]],
+    nieve:    [[0.96, 0.96, 0.98], [0.8, 0.8, 0.84], [1.04, 1.04, 1.06]],
+    otro:     [[1.0, 0.92, 0.82], [0.8, 0.76, 0.72], [0.98, 0.95, 0.9]]
+  };
+  function paredRelieve(biome, steep, h, relieve) {
+    if (!relieve) return { steep, color: null, k: 0 };
+    const s = Math.min(1, (steep || 0) * 1.55);
+    const k = smooth(0.3, 0.58, s);
+    if (k <= 0) return { steep: s, color: null, k: 0 };
+    const pal = ESTRATOS[biome] || ESTRATOS.otro;
+    // tres franjas que se repiten cada ~13 m, con un leve vaivén para que no sean rayas perfectas
+    const u = ((h || 0) / 13 + 0.35 * Math.sin((h || 0) * 0.21)) % 1;
+    const f = u < 0 ? u + 1 : u;
+    return { steep: s, color: f < 0.42 ? pal[0] : f < 0.7 ? pal[1] : pal[2], k };
+  }
+
+  const api = { splatFor, paredRelieve, splatWithRoad, createTerrainMaterial, capasDelAtlas, capasDesdeImagen, capasDesdeListaImagenes, CAPAS, buildGridGeometry, nodeNormal, smooth };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TerrainLib = api;
 })(typeof window !== 'undefined' ? window : globalThis);

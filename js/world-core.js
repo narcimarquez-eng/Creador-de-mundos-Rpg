@@ -166,19 +166,177 @@
   // ---------------------------------------------------------------------------
   const terrainCache = new Map();
 
-  function getTerrain(seed) {
-    if (terrainCache.has(seed)) return terrainCache.get(seed);
+  // Relieve llamativo (acantilados, cañones, desfiladeros, mesetas, agujas y crestas). Ajuste del mundo
+  // `settings.relieve`; cada nivel multiplica las alturas de las formas. 'ninguno' deja el terreno de siempre.
+  const RELIEVE_NIVELES = { ninguno: 0, suave: 0.6, normal: 1, abrupto: 1.5 };
+  function nivelRelieve(v) {
+    if (typeof v === 'number') return clamp(v, 0, 2);
+    return RELIEVE_NIVELES[v] !== undefined ? RELIEVE_NIVELES[v] : 0;
+  }
+  const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  function hash2i(seed, ix, iy) {
+    let h = (seed ^ Math.imul(ix, 0x27D4EB2D) ^ Math.imul(iy, 0x165667B1)) >>> 0;
+    h = Math.imul(h ^ (h >>> 15), 0x85EBCA6B); h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  }
+
+  // Devuelve relieve(x, y, hBase, humedad) → metros que se suman a la altura base (hBase, en metros).
+  // Todas las formas se describen en metros: los bordes se miden con el gradiente del ruido, así que la
+  // anchura de una pared o de un cañón no depende de la escala del ruido.
+  function crearRelieve(seed, k) {
+    const nMask = makeNoise2D(seed ^ 0x27D4EB2F);
+    const nCan = makeNoise2D(seed ^ 0x165667B1);
+    const nWarp = makeNoise2D(seed ^ 0xD3A2646C);
+    const nMesa = makeNoise2D(seed ^ 0xFD7046C5);
+    const nCrest = makeNoise2D(seed ^ 0xB55A4F09);
+    const nCoast = makeNoise2D(seed ^ 0x6C8E9CF5);
+    const sPil = (seed ^ 0x4F6CDD1D) >>> 0, sStack = (seed ^ 0x7FEB352D) >>> 0;
+    const sesgo = (k - 1) * 0.12;            // más nivel, más superficie con formas
+    const EPS = 6;
+
+    // Campo de cañones: sus ceros son líneas largas y sinuosas (el cauce)
+    function campoCanon(x, y) {
+      const wx = x + 420 * nWarp(x / 1700, y / 1700), wy = y + 420 * nWarp(x / 1700 + 17.3, y / 1700 - 9.1);
+      return fbm(nCan, wx / 2900, wy / 2900, 2);
+    }
+    function campoMesa(x, y) { return fbm(nMesa, x / 1150, y / 1150, 3); }
+    // Distancia aproximada (m) a la curva f = 0 a partir del valor y del gradiente
+    function distCero(f, x, y, v) {
+      const gx = (f(x + EPS, y) - f(x - EPS, y)) / (2 * EPS), gy = (f(x, y + EPS) - f(x, y - EPS)) / (2 * EPS);
+      return v / Math.max(1e-7, Math.hypot(gx, gy));
+    }
+
+    // Cañón de paredes escalonadas (llanuras y desiertos) o desfiladero estrecho y vertical (montaña)
+    function canon(x, y, hB, land) {
+      const mC = smoothstep(0.02 - sesgo, 0.3 - sesgo, fbm(nMask, x / 4300 + 3.3, y / 4300 - 1.7, 2));
+      if (mC <= 0) return 0;
+      const c = campoCanon(x, y);
+      if (Math.abs(c) > 0.16) return 0;
+      const d = Math.abs(distCero(campoCanon, x, y, c));
+      const monte = smoothstep(85, 140, hB);
+      const var1 = 0.5 + 0.5 * nMask(x / 900 + 40.1, y / 900 - 7.7);
+      const hw = (1 - monte) * (55 + 70 * var1) + monte * (18 + 16 * var1);   // media anchura
+      if (d >= hw) return 0;
+      const t = d / hw;
+      // Fondo plano y tres repisas (Gran Cañón) o paredes casi verticales (desfiladero)
+      const escal = 0.3 * smoothstep(0.14, 0.19, t) + 0.35 * smoothstep(0.45, 0.51, t) + 0.35 * smoothstep(0.84, 0.91, t);
+      const vert = 0.8 * smoothstep(0.12, 0.3, t) + 0.2 * smoothstep(0.3, 1, t);
+      const perfil = 1 - ((1 - monte) * escal + monte * vert);
+      const D = ((1 - monte) * 58 + monte * 95) * k * mC * land;
+      const Dmax = Math.max(0, hB - 3);             // el fondo nunca llega al mar
+      return -Math.min(D, Dmax) * perfil;
+    }
+
+    // Mesetas en terrazas con acantilados (zonas secas) y agujas de roca sueltas
+    function mesetas(x, y, hB, hum, land) {
+      const seco = smoothstep(0.62, 0.38, hum);
+      const mM = smoothstep(0.08 - sesgo, 0.36 - sesgo, fbm(nMask, x / 3900 - 8.1, y / 3900 + 5.5, 2)) * seco * land
+        * (1 - smoothstep(95, 140, hB));
+      if (mM <= 0) return 0;
+      let out = 0;
+      const p = campoMesa(x, y);
+      if (p > -0.02) {
+        const gx = (campoMesa(x + EPS, y) - campoMesa(x - EPS, y)) / (2 * EPS);
+        const gy = (campoMesa(x, y + EPS) - campoMesa(x, y - EPS)) / (2 * EPS);
+        const g = Math.max(1e-7, Math.hypot(gx, gy));
+        [[0.06, 30], [0.2, 24], [0.33, 20]].forEach(([u, H]) => {
+          const d = (p - u) / g;                          // metros hacia dentro de la terraza
+          // pared casi vertical y un talud de derrubios al pie
+          out += H * (0.86 * smoothstep(-3, 3, d) + 0.14 * smoothstep(-40, -2, d));
+        });
+        // tapa irregular de las mesas
+        out += 3 * nMesa(x / 60 + 11.1, y / 60 - 3.3) * smoothstep(0, 20, (p - 0.06) / g);
+      }
+      // Agujas / hoodoos: una por celda de 150 m como mucho
+      const C = 150, ix = Math.floor(x / C), iy = Math.floor(y / C);
+      if (hash2i(sPil, ix, iy) < 0.32 * mM) {
+        const r = 9 + 10 * hash2i(sPil + 1, ix, iy);
+        const px = (ix + 0.2 + 0.6 * hash2i(sPil + 2, ix, iy)) * C, py = (iy + 0.2 + 0.6 * hash2i(sPil + 3, ix, iy)) * C;
+        const dd = Math.hypot(x - px, y - py);
+        if (dd < r * 2.2) {
+          const Hp = (26 + 34 * hash2i(sPil + 4, ix, iy)) * k;
+          const cuerpo = 1 - smoothstep(r * 0.8, r, dd);
+          const pie = 1 - smoothstep(r, r * 2.2, dd);
+          out = Math.max(out, Hp * (0.85 * cuerpo + 0.15 * pie));
+        }
+      }
+      return out * mM;
+    }
+
+    // Acantilados de costa: la tierra sube de golpe justo al dejar la orilla; y farallones en el mar
+    function costa(x, y, hB) {
+      const mK = smoothstep(0.0 - sesgo, 0.28 - sesgo, fbm(nCoast, x / 2600, y / 2600, 2));
+      if (mK <= 0 || hB > 80 || hB < -22) return 0;
+      if (hB >= 0) {
+        const Hc = (20 + 22 * (0.5 + 0.5 * nCoast(x / 500 + 5.5, y / 500 + 2.2))) * k;
+        return Hc * mK * smoothstep(0.35, 3.2, hB) * (1 - smoothstep(25, 75, hB));
+      }
+      if (hB < -1.5) {
+        const C = 95, ix = Math.floor(x / C), iy = Math.floor(y / C);
+        if (hash2i(sStack, ix, iy) > 0.3 * mK) return 0;
+        const r = 8 + 8 * hash2i(sStack + 1, ix, iy);
+        const px = (ix + 0.25 + 0.5 * hash2i(sStack + 2, ix, iy)) * C, py = (iy + 0.25 + 0.5 * hash2i(sStack + 3, ix, iy)) * C;
+        const dd = Math.hypot(x - px, y - py);
+        if (dd > r) return 0;
+        const top = (10 + 22 * hash2i(sStack + 4, ix, iy)) * k;
+        return (top - hB) * (1 - smoothstep(r * 0.78, r, dd));
+      }
+      return 0;
+    }
+
+    // Crestas dentadas en las montañas altas
+    function crestas(x, y, hB) {
+      const mR = smoothstep(105, 185, hB);
+      if (mR <= 0) return 0;
+      const r = 1 - Math.abs(fbm(nCrest, x / 720, y / 720, 3)) * 1.6;
+      return r > 0 ? 60 * k * mR * r * r * r : 0;
+    }
+
+    return function relieve(x, y, hB, humedad) {
+      if (k <= 0) return 0;
+      let d = costa(x, y, hB);
+      if (hB <= 2) return d;
+      const land = smoothstep(2, 16, hB);
+      d += canon(x, y, hB, land);
+      d += crestas(x, y, hB);
+      const hum = typeof humedad === 'function' ? humedad() : humedad;
+      d += mesetas(x, y, hB, hum, land);
+      return d;
+    };
+  }
+
+  // Terreno de una semilla. `relieve` (nivel o número) añade las formas llamativas; sin él es el de siempre.
+  function getTerrain(seed, relieve) {
+    const k = nivelRelieve(relieve);
+    const key = k ? seed + '|' + k : seed;
+    if (terrainCache.has(key)) return terrainCache.get(key);
     const nE = makeNoise2D(seed ^ 0x9E3779B1);
     const nM = makeNoise2D(seed ^ 0x85EBCA6B);
     const nT = makeNoise2D(seed ^ 0xC2B2AE35);
     const stretch = v => clamp(0.5 + v * 1.6, 0, 1);
+    const formas = k ? crearRelieve(seed, k) : null;
 
     const t = {
       seed,
-      // Elevación normalizada 0..1 (SEA_LEVEL = nivel del mar)
-      elevation(x, y) {
+      relieve: k,
+      // Elevación sin las formas del relieve (la que decide los biomas)
+      elevationBase(x, y) {
         const e = fbm(nE, x / 3400, y / 3400, 5);
         return clamp(0.5 + e * 1.15, 0, 1);
+      },
+      // Metros que el relieve añade (o quita) en (x, y); `peso` 0..1 lo atenúa (caminos, pueblos…)
+      reliefAt(x, y, eBase, peso) {
+        if (!formas) return 0;
+        const w = peso === undefined ? 1 : peso;
+        if (w <= 0) return 0;
+        const e0 = eBase === undefined ? this.elevationBase(x, y) : eBase;
+        return formas(x, y, (e0 - SEA_LEVEL) * 420, () => this.moisture(x, y)) * w;
+      },
+      // Elevación normalizada 0..1 (SEA_LEVEL = nivel del mar), con el relieve
+      elevation(x, y) {
+        const e0 = this.elevationBase(x, y);
+        if (!formas) return e0;
+        return clamp(e0 + this.reliefAt(x, y, e0, 1) / 420, 0, 1);
       },
       moisture(x, y) { return stretch(fbm(nM, x / 3400 + 31.7, y / 3400 - 12.3, 3)); },
       temperature(x, y, e) {
@@ -186,7 +344,8 @@
         return clamp(base - Math.max(0, e - 0.5) * 0.7, 0, 1);
       },
       biomeAt(x, y, eIn) {
-        const e = eIn === undefined ? this.elevation(x, y) : eIn;
+        // Con relieve, el bioma sale de la elevación base: el fondo de un cañón sigue siendo desierto
+        const e = (formas || eIn === undefined) ? this.elevationBase(x, y) : eIn;
         if (e < SEA_LEVEL - 0.06) return 'oceano';
         if (e < SEA_LEVEL) return 'agua';
         if (e < SEA_LEVEL + 0.018) return 'costa';
@@ -207,7 +366,103 @@
       },
       isWater(x, y) { return this.elevation(x, y) < SEA_LEVEL; }
     };
-    terrainCache.set(seed, t);
+    terrainCache.set(key, t);
+    return t;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4b. Terreno de un mundo: el relieve de settings.relieve, sin tocar pueblos, caminos, zonas ni lugares.
+  // Alrededor de cada uno el relieve se desvanece con una rampa larga, para que no queden paredes
+  // imposibles junto a un camino ni pueblos en un hoyo. Se rehace solo cuando cambia algo de eso.
+  // ---------------------------------------------------------------------------
+  const PROT_CELDA = 256;
+  const terrenosMundo = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+
+  function firmaProteccion(world, k) {
+    let s = k + '|';
+    const n = v => (Math.round(v || 0)).toString(36);
+    (world.towns || []).forEach(t => { s += n(t.x) + ',' + n(t.y) + ',' + n(t.radius) + ';'; });
+    (world.roads || []).forEach(r => {
+      const p = r.points || [];
+      let sx = 0, sy = 0;
+      for (let i = 0; i < p.length; i++) { sx += p[i].x; sy += p[i].y; }
+      s += p.length + ':' + n(sx) + ',' + n(sy) + ';';
+    });
+    (world.zones || []).forEach(z => { s += n(z.x) + ',' + n(z.y) + ',' + n(z.radius) + ';'; });
+    (world.pois || []).forEach(p => { s += n(p.x) + ',' + n(p.y) + ';'; });
+    (world.dungeons || []).forEach(d => { s += n(d.x) + ',' + n(d.y) + ';'; });
+    return s;
+  }
+
+  function crearProteccion(world) {
+    const celdas = new Map();
+    const meter = (it, x0, y0, x1, y1) => {
+      for (let cy = Math.floor((y0 - it.r1) / PROT_CELDA); cy <= Math.floor((y1 + it.r1) / PROT_CELDA); cy++)
+        for (let cx = Math.floor((x0 - it.r1) / PROT_CELDA); cx <= Math.floor((x1 + it.r1) / PROT_CELDA); cx++) {
+          const key = cx + ',' + cy;
+          let a = celdas.get(key);
+          if (!a) { a = []; celdas.set(key, a); }
+          a.push(it);
+        }
+    };
+    const circulo = (x, y, r0, r1) => meter({ x, y, r0, r1 }, x, y, x, y);
+    (world.towns || []).forEach(t => {
+      const half = townTileHalf((t.cfg && t.cfg.size) || 3);
+      circulo(t.x, t.y, half * 1.5 + 20, half * 1.5 + 240);
+    });
+    (world.roads || []).forEach(r => {
+      const p = r.points || [];
+      for (let i = 0; i + 1 < p.length; i++) {
+        const a = p[i], b = p[i + 1];
+        meter({ ax: a.x, ay: a.y, bx: b.x, by: b.y, r0: 24, r1: 190 },
+          Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.x, b.x), Math.max(a.y, b.y));
+      }
+    });
+    (world.zones || []).forEach(z => circulo(z.x, z.y, (z.radius || 200) * 0.45, (z.radius || 200) * 0.45 + 170));
+    (world.pois || []).forEach(p => circulo(p.x, p.y, 30, 170));
+    (world.dungeons || []).forEach(d => circulo(d.x, d.y, 60, 220));
+    (world.secretPlaces || []).forEach(s => {
+      const y = s.y !== undefined && s.z === undefined ? s.y : s.z;
+      if (Number.isFinite(s.x) && Number.isFinite(y)) circulo(s.x, y, 25, 120);
+    });
+    // 0 = relieve completo, 1 = terreno base
+    return function proteccion(x, y) {
+      const a = celdas.get(Math.floor(x / PROT_CELDA) + ',' + Math.floor(y / PROT_CELDA));
+      if (!a) return 0;
+      let w = 0;
+      for (let i = 0; i < a.length; i++) {
+        const it = a[i];
+        let d;
+        if (it.ax !== undefined) {
+          const vx = it.bx - it.ax, vy = it.by - it.ay, L = vx * vx + vy * vy;
+          const u = L > 0 ? clamp(((x - it.ax) * vx + (y - it.ay) * vy) / L, 0, 1) : 0;
+          d = Math.hypot(x - it.ax - vx * u, y - it.ay - vy * u);
+        } else d = Math.hypot(x - it.x, y - it.y);
+        if (d >= it.r1) continue;
+        const v = 1 - smoothstep(it.r0, it.r1, d);
+        if (v > w) { w = v; if (w >= 1) return 1; }
+      }
+      return w;
+    };
+  }
+
+  function terrenoMundo(world) {
+    const k = nivelRelieve(world && world.settings && world.settings.relieve);
+    const base = getTerrain(world ? world.seed : 1, k);
+    if (!k || !terrenosMundo) return base;
+    const firma = firmaProteccion(world, k);
+    const prev = terrenosMundo.get(world);
+    if (prev && prev.firma === firma && prev.base === base) return prev.t;
+    const prot = crearProteccion(world);
+    const t = Object.create(base);
+    t.proteccion = prot;
+    t.elevation = function (x, y) {
+      const e0 = base.elevationBase(x, y);
+      const w = 1 - prot(x, y);
+      if (w <= 0) return e0;
+      return clamp(e0 + base.reliefAt(x, y, e0, w) / 420, 0, 1);
+    };
+    terrenosMundo.set(world, { firma, base, t });
     return t;
   }
 
@@ -1042,7 +1297,8 @@
     poiChance: 0.45,      // probabilidad de punto de interés por zona
     metersPerLevel: 180,  // metros de camino por cada nivel recomendado
     enemyMode: 'niveles', // enemigo de los monstruos sin elegir: 'niveles' (por nivel) o 'aleatorio'
-    enemyScale: 1         // tamaño de los monstruos en el visor (1 = el del editor de enemigos)
+    enemyScale: 1,        // tamaño de los monstruos en el visor (1 = el del editor de enemigos)
+    relieve: 'ninguno'    // acantilados, cañones y mesetas: 'ninguno' | 'suave' | 'normal' | 'abrupto'
   };
 
   function emptyWorld(name, seed, settings) {
@@ -1236,7 +1492,7 @@
 
   const api = {
     FORMAT, VERSION, MONSTRUOS_VERSION, SEA_LEVEL, BIOMES, MONSTERS, MONSTER_DENSITIES, monsterCount, POI_TYPES, ZONE_TYPES, DEFAULT_SETTINGS,
-    PRNG, hashString, makeNoise2D, fbm, getTerrain, calcularRios,
+    PRNG, hashString, makeNoise2D, fbm, getTerrain, terrenoMundo, RELIEVE_NIVELES, calcularRios,
     emptyWorld, generateWorld, addTown, autoConnect, populateRoad,
     createTown, createRoad, createZone, createPoi, createDungeon,
     moveEntity, removeEntity, refreshRoad, setStartTown,

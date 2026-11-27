@@ -2476,7 +2476,7 @@
   <script defer src="js/fusionar-modelo.js?v=20251029"></script>
   <script defer src="js/puestos-datos.js?v=20261103"></script>
   <script type="module" src="js/three-puente.js?v=20251029"></script>
-  <script type="module" src="js/world-core.js?v=20261113b"></script>
+  <script type="module" src="js/world-core.js?v=20261127r"></script>
   <script type="module" src="js/arboles.js?v=20251029"></script>
   <script type="module" src="js/pueblo-edits.js?v=20261113b"></script>
   <script defer src="js/casas-glb.js?v=20261114a"></script>
@@ -2485,7 +2485,7 @@
   <script defer src="js/combat-vfx-estudio.js?v=20261121a"></script>
   <script type="module" src="js/items.js?v=20261119a"></script>
   <script type="module" src="js/partida.js?v=20261122b"></script>
-  <script type="module" src="js/terreno.js?v=20261119b"></script>
+  <script type="module" src="js/terreno.js?v=20261127r"></script>
   <script type="module" src="js/pradera-atlas.js?v=20261121b"></script>
   <script type="module" src="js/riachuelos.js?v=20261119a"></script>
   <script type="module" src="js/decorado.js?v=20261121b"></script>
@@ -4302,7 +4302,8 @@
       const dY = p1 ? (p1.y + 180) : 400;
       world.dungeons.push(MazmorrasLib.generarMazmorraPorDefecto(world, dX, dY));
     }
-    terrain = W.getTerrain(world.seed);
+    // Con settings.relieve el terreno trae acantilados, cañones y mesetas (fuera de pueblos y caminos)
+    terrain = W.terrenoMundo ? W.terrenoMundo(world) : W.getTerrain(world.seed);
     if (typeof PraderaAtlasLib !== 'undefined' && terrainU.uPraderaSeed) {
       const [ox, oz] = PraderaAtlasLib.semillaOffset(world.seed);
       terrainU.uPraderaSeed.value.set(ox, oz);
@@ -4644,12 +4645,15 @@
       }
     }
     const heightAt = (i, j) => pos[(j * N + i) * 3 + 1];
+    const acantilados = new Set();
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const k = j * N + i;
       const x = x0 + i * step, z = z0 + j * step;
       const nv = TerrainLib.nodeNormal(heightAt, i, j, n, step);
       nrm[k * 3] = nv[0]; nrm[k * 3 + 1] = nv[1]; nrm[k * 3 + 2] = nv[2];
-      let w = TerrainLib.splatFor(biomes[k], 1 - nv[1], heightAt(i, j));
+      const pared = TerrainLib.paredRelieve ? TerrainLib.paredRelieve(biomes[k], 1 - nv[1], heightAt(i, j), terrain.relieve) : { steep: 1 - nv[1] };
+      if (pared.color) for (let q = 0; q < 3; q++) col[k * 3 + q] += (pared.color[q] - col[k * 3 + q]) * pared.k;
+      let w = TerrainLib.splatFor(biomes[k], pared.steep, heightAt(i, j));
       w = splatRioEn(x, z, w);
       if (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function' && TerrainLib.splatWithRoad) {
         const dCam = rejillaCaminosMundo.dist(x, z, 13);
@@ -4657,8 +4661,15 @@
       }
       splat.set(w.splat, k * 4);
       snowA[k] = w.snow;
+      // Un desnivel de más de ~9 m entre nodos vecinos con relieve: el trozo lleva malla fina
+      if (terrain.relieve && i < n && j < n) {
+        const h0 = heightAt(i, j);
+        if (Math.abs(heightAt(i + 1, j) - h0) > 9 || Math.abs(heightAt(i, j + 1) - h0) > 9) {
+          acantilados.add(Math.floor(i / CHUNK) + ',' + Math.floor(j / CHUNK));
+        }
+      }
     }
-    terrainGrid = { x0, z0, step, n, N, pos, col, splat, snow: snowA, nrm };
+    terrainGrid = { x0, z0, step, n, N, pos, col, splat, snow: snowA, nrm, acantilados };
     if (!terrainMat) terrainMat = TerrainLib.createTerrainMaterial(THREE, terrainU, { triplanar: true });
   }
 
@@ -4778,6 +4789,12 @@
     return rejillaCaminosMundo.enCaja(xa - 16, za - 16, xa + T + 16, za + T + 16);
   }
 
+  // Trozos con paredes del relieve (acantilados, cañones, mesetas): necesitan la malla fina para que las
+  // paredes queden verticales y no como laderas suaves de 20 m. Se marcan al construir la rejilla.
+  function trozoConAcantilado(cx, cz) {
+    return !!(terrainGrid && terrainGrid.acantilados && terrainGrid.acantilados.has(cx + ',' + cz));
+  }
+
   function trozoConRiachuelo(cx, cz) {
     if (!terrainGrid || !riachuelosMundo || !riachuelosMundo.indice) return false;
     const g0 = terrainGrid, T = CHUNK * g0.step;
@@ -4791,7 +4808,7 @@
     const p = character.root.position, t = controls.target;
     const relieve = Math.hypot(xc - p.x, zc - p.z) < RELIEVE_M || Math.hypot(xc - t.x, zc - t.z) < RELIEVE_M;
     if (trozoConRecinto(cx, cz)) return buildFineNear(cx, cz, relieve, FINO_RECINTO);
-    if (relieve || trozoConRio(cx, cz) || trozoConRiachuelo(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz) || trozoConCamino(cx, cz)) return buildFineNear(cx, cz, relieve);
+    if (relieve || trozoConAcantilado(cx, cz) || trozoConRio(cx, cz) || trozoConRiachuelo(cx, cz) || trozoConZonaCaza(cx, cz) || trozoConCabana(cx, cz) || trozoConCamino(cx, cz)) return buildFineNear(cx, cz, relieve);
     const g = terrainGrid;
     const gi0 = cx * CHUNK, gj0 = cz * CHUNK;
     const cellsI = Math.min(CHUNK, g.n - gi0), cellsJ = Math.min(CHUNK, g.n - gj0);
@@ -5117,7 +5134,9 @@
       pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z;
       col[k * 3] = 1 - 0.55 * (1 - c[0] / 255); col[k * 3 + 1] = 1 - 0.55 * (1 - c[1] / 255); col[k * 3 + 2] = 1 - 0.55 * (1 - c[2] / 255);
       nrm.set(nv, k * 3);
-      let w = TerrainLib.splatFor(b, 1 - nv[1], h);
+      const pared = TerrainLib.paredRelieve ? TerrainLib.paredRelieve(b, 1 - nv[1], h, terrain.relieve) : { steep: 1 - nv[1] };
+      if (pared.color) for (let q = 0; q < 3; q++) col[k * 3 + q] += (pared.color[q] - col[k * 3 + q]) * pared.k;
+      let w = TerrainLib.splatFor(b, pared.steep, h);
       w = splatRioEn(x, z, w);
       if (rejillaCaminosMundo && typeof rejillaCaminosMundo.dist === 'function' && TerrainLib.splatWithRoad) {
         const dCam = rejillaCaminosMundo.dist(x, z, 13);

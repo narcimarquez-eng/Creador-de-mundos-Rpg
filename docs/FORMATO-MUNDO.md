@@ -20,7 +20,8 @@ Unidades en **metros**; `x, y` del mapa = `x, z` en 3D.
     "zonesPerRoad": 2,          // 0, 1 o 2
     "poiChance": 0.45,          // probabilidad de lugar de interés por zona (0–1)
     "metersPerLevel": 180,      // metros de camino por nivel recomendado
-    "enemyMode": "niveles"      // enemigo de los monstruos sin elegir: "niveles" o "aleatorio"
+    "enemyMode": "niveles",     // enemigo de los monstruos sin elegir: "niveles" o "aleatorio"
+    "relieve": "normal"         // acantilados, cañones y mesetas: "ninguno", "suave", "normal" o "abrupto"
   },
   "enemigos": {},               // enemigos propios diseñados en el editor (clave "propio_<id>"); ver abajo
   "startTownId": "t_1",         // pueblo inicial (nivel 1)
@@ -30,6 +31,18 @@ Unidades en **metros**; `x, y` del mapa = `x, z` en 3D.
   "pois":  [ /* Lugar */ ]
 }
 ```
+
+### Relieve (`settings.relieve`)
+
+Formas llamativas que se suman al terreno de la semilla (`RPGWorld.terrenoMundo(world)`): cañones con repisas
+en llanuras y desiertos, desfiladeros estrechos y verticales en la montaña, mesetas en terrazas con
+acantilados y agujas de roca en las zonas secas, acantilados de costa con farallones en el agua y crestas
+dentadas en las cumbres. `ninguno` (o un mundo antiguo sin el campo) deja el terreno de siempre; `suave`,
+`normal` y `abrupto` multiplican las alturas (×0,6, ×1, ×1,5). Es determinista: sale de la semilla.
+
+El relieve se aparta solo de pueblos, caminos, zonas, lugares, mazmorras y lugares secretos (con una rampa
+larga), así que ninguno queda en un hoyo ni junto a una pared; los biomas no cambian (salen de la elevación
+sin relieve) y ninguna tierra pasa a ser agua.
 
 ## Pueblo
 | Campo | Descripción |
