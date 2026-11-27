@@ -2060,6 +2060,8 @@
     </div>
     <div id="ic-grid"></div>
   </div>
+  <div id="cine3d-top" style="position:fixed;top:0;left:0;right:0;height:0;background:#02040a;z-index:4200;pointer-events:none;transition:height 0.45s ease"></div>
+  <div id="cine3d-bot" style="position:fixed;bottom:0;left:0;right:0;height:0;background:#02040a;z-index:4200;pointer-events:none;transition:height 0.45s ease"></div>
   <div id="capitulo"><div class="box">
     <div class="npc-cab">
       <div id="cap-retrato" class="art-retrato"></div>
@@ -2074,6 +2076,7 @@
     <div id="cap-extra" class="muted" style="line-height:1.5;margin:6px 0"></div>
     <div class="btns">
       <button id="cap-ir" class="gold">🧭 Llévame</button>
+      <button id="cap-cinematica" style="background:#312e81;color:#e0e7ff;border:1px solid #818cf8;border-radius:6px;padding:6px 12px" title="Ver presentación cinemática">🎬 Cinemática</button>
       <button id="cap-saltar" style="background:#2563eb;color:#fff;border-radius:6px;padding:6px 14px" title="Avanzar directamente al siguiente capítulo">⏭ Siguiente capítulo</button>
       <button id="cap-cerrar">Cerrar</button>
     </div>
@@ -2304,9 +2307,12 @@
           Antes de que la guardia cierre las empalizadas, debes escapar hacia <b id="prologo-zona">las tierras de caza</b> y recuperar pieles y placas de pierna para forjar tus primeros pantalones reforzados.
         </p>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <button id="btn-prologo-siguiente" class="gold" style="flex:1;padding:10px 20px;font-size:14px;font-weight:bold">
           ⚔️ Elegir Camarada de Armas →
+        </button>
+        <button type="button" id="prologo-ver-cinematica" style="padding:10px 12px;font-size:12.5px;background:#312e81;color:#e0e7ff;border:1px solid #818cf8;border-radius:6px" title="Ver cinemática del Prólogo">
+          🎬 Cinemática
         </button>
         <button id="btn-prologo-saltar" style="padding:10px 14px;font-size:12px;color:#94a3b8" title="Ir directo a la plaza con Rowan">
           Saltar
@@ -2582,6 +2588,8 @@
   <script src="js/musica-rpg.js?v=20261120c"></script>
   <script src="js/sonidos.js?v=20261125b"></script>
   <script src="js/voces.js?v=20261125b"></script>
+  <script src="js/cinematicas.js?v=20261126a"></script>
+  <script src="js/director-escenas-3d.js?v=20261127a"></script>
   <script src="js/arte-ui.js?v=20261124a"></script>
   <script src="js/pbr-lib.js?v=20261123a"></script>
   <script>
@@ -2590,6 +2598,7 @@
       if (window.ArteUI.cargarManifestArmaduras) window.ArteUI.cargarManifestArmaduras('assets/armaduras/manifest.json');
     }
     if (window.PbrLib) window.PbrLib.cargarManifest('assets/pbr/manifest.json');
+    if (window.CinematicasLib) window.CinematicasLib.cargarManifest('assets/cinematicas/manifest.json');
   </script>
   <script type="module">
   import * as NR from "./js/props-newrol.js";
@@ -17890,7 +17899,162 @@
   }
 
   // Ventana del capítulo cumplido: lo que cuenta el sabio, la recompensa y el encargo siguiente
+  let capModalNumero = 1;
+  function cinematicaVistasKey() {
+    const pid = (typeof PartidaLib !== 'undefined' && PartidaLib.getActiveId && store && worldId)
+      ? (PartidaLib.getActiveId(store, worldId) || 'default')
+      : 'default';
+    return 'rpgMundo.cinematicasVistas.' + (worldId || 'valdris') + '.' + pid;
+  }
+  function cinematicaFueVista(id) {
+    try {
+      const raw = store.getItem(cinematicaVistasKey());
+      const map = raw ? JSON.parse(raw) : {};
+      return !!map[id];
+    } catch (_) { return false; }
+  }
+  function marcarCinematicaVista(id) {
+    try {
+      const k = cinematicaVistasKey();
+      const raw = store.getItem(k);
+      const map = raw ? JSON.parse(raw) : {};
+      map[id] = 1;
+      store.setItem(k, JSON.stringify(map));
+    } catch (_) {}
+  }
+  function reproducirCinematicaCapitulo(clave, opts = {}) {
+    if (typeof CinematicasLib === 'undefined') {
+      if (typeof opts.onTerminar === 'function') opts.onTerminar({ id: String(clave), saltada: false, omitida: true });
+      return false;
+    }
+    const escena = CinematicasLib.obtenerEscena(clave);
+    if (!escena) {
+      if (typeof opts.onTerminar === 'function') opts.onTerminar({ id: String(clave), saltada: false, omitida: true });
+      return false;
+    }
+    if (!opts.forzar && cinematicaFueVista(escena.id)) {
+      if (typeof opts.onTerminar === 'function') opts.onTerminar({ id: escena.id, saltada: false, omitida: true, camara3d: escena.camara3d });
+      return false;
+    }
+    let titulo = escena.titulo;
+    let acto = escena.acto;
+    let texto = '';
+    let vozId = escena.vozId;
+    if (escena.id === 'prologo') {
+      const pr = (typeof HistoriaLib !== 'undefined' && typeof HistoriaLib.prologoDe === 'function')
+        ? HistoriaLib.prologoDe(world)
+        : null;
+      titulo = (pr && pr.titulo) || escena.titulo;
+      texto = pr
+        ? [pr.parrafo1, pr.parrafo2].filter(Boolean).join(' ')
+        : 'La noche cae sobre las murallas iniciales. Brann cae herido defendiendo la fragua tras descubrir un sello del cónclave.';
+      vozId = 'prologo_01';
+    } else if (typeof HistoriaLib !== 'undefined' && heroeEst && heroeEst.principal) {
+      const capNum = escena.numero;
+      const caps = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
+      const actos = typeof HistoriaLib.actosDe === 'function' ? HistoriaLib.actosDe(world) : (HistoriaLib.ACTOS || []);
+      const cap = caps[capNum - 1];
+      const actoObj = actos.find(a => (capNum - 1) >= a.desdePaso && (capNum - 1) <= a.hastaPaso);
+      if (actoObj) acto = actoObj.nombre;
+      if (cap) {
+        titulo = 'Capítulo ' + capNum + ' · ' + cap.titulo;
+        const pAct = heroeEst.principal;
+        let encargo = cap.encargo || '';
+        if (world && pAct.paso === capNum - 1 && typeof HistoriaLib.asegurarObjetivo === 'function') {
+          const obj = HistoriaLib.asegurarObjetivo(pAct, world);
+          if (obj && obj.encargo) encargo = obj.encargo;
+        }
+        texto = encargo.replace(/\{lugar\}/g, 'las tierras cercanas').replace(/\{n\}/g, String((cap.mision && cap.mision.cantidad) || 'las'));
+      }
+      vozId = 'cap_' + String(capNum).padStart(2, '0') + '_encargo';
+    }
+    marcarCinematicaVista(escena.id);
+    const enDungeonC = !!(gestorMazmorras && gestorMazmorras.enMazmorra);
+    const enRecintoC = !!(gestorLaberintos && gestorLaberintos.enLaberinto);
+    const textoFinal = opts.texto || texto;
+    const usar3D = !!(
+      !opts.forzar2D &&
+      !enDungeonC &&
+      !enRecintoC &&
+      typeof DirectorEscenas3D !== 'undefined' &&
+      scene &&
+      camera &&
+      character &&
+      character.root
+    );
+    if (usar3D) {
+      const ok3D = DirectorEscenas3D.iniciar(escena.id, {
+        THREE,
+        scene,
+        camera,
+        controls,
+        renderer,
+        character,
+        acompanante,
+        gurus,
+        asegurarVersionCercanaNpc,
+        studioVfx,
+        CombatLib,
+        AcompananteLib,
+        EnemyLib: typeof EnemyLib !== 'undefined' ? EnemyLib : null,
+        Sonidos: window.Sonidos,
+        Voces: window.Voces,
+        CinematicasLib,
+        claseArma: claseArmaDelHeroe(),
+        generoHeroe: typeof generoDelHeroe === 'function' ? generoDelHeroe() : 'hombre',
+        getGroundY: (gx, gz) => (visorWorld && visorWorld.getWalkableHeight ? visorWorld.getWalkableHeight(gx, gz) : 0),
+        crearEnemigoActor: (def) => {
+          if (typeof EnemyLib === 'undefined' || !EnemyLib.ARCHETYPE_PRESETS || !EnemyLib.buildProceduralEnemy) return null;
+          if (!enemyTextures) enemyTextures = EnemyLib.createProceduralTextureSet(QUALITY[quality].texturas ? renderer.capabilities.getMaxAnisotropy() : 1);
+          const presets = Object.values(EnemyLib.ARCHETYPE_PRESETS);
+          if (!presets.length) return null;
+          const arq = String((def && def.arquetipo) || '').toLowerCase();
+          const encontrado = EnemyLib.ARCHETYPE_PRESETS[def.arquetipo] || presets.find(pr => String(pr.id || pr.name || '').toLowerCase().includes(arq)) || presets[0];
+          const cfg = JSON.parse(JSON.stringify(encontrado));
+          if (def && def.boss) cfg.scale = (cfg.scale || 1) * 1.15;
+          const rig = EnemyLib.buildProceduralEnemy(cfg, enemyTextures, false, false);
+          if (!rig || !rig.rootGroup) return null;
+          if (def && def.escala) rig.rootGroup.scale.setScalar(def.escala * (escalaEnemigos ? escalaEnemigos() * 0.72 : 1));
+          aplicarEntorno(rig.rootGroup);
+          return rig.rootGroup;
+        },
+        destelloImpacto,
+        ondaDetonacion,
+        activarSacudida,
+        getTimeOfDay: () => timeOfDay,
+        setTimeOfDay: (h) => { timeOfDay = h; updateAtmosphere(2.0); },
+        titulo,
+        acto,
+        texto: textoFinal,
+        vozId,
+        duracionSeg: opts.duracionSeg || escena.duracionSeg,
+        onVerLamina2D: () => reproducirCinematicaCapitulo(escena.id, Object.assign({}, opts, { forzar: true, forzar2D: true })),
+        onTerminar: info => {
+          setFollow(true);
+          if (typeof opts.onTerminar === 'function') opts.onTerminar(info);
+        }
+      });
+      if (ok3D) return true;
+    }
+    return CinematicasLib.reproducir(escena.id, {
+      titulo,
+      acto,
+      texto: textoFinal,
+      vozId,
+      duracionSeg: opts.duracionSeg || escena.duracionSeg,
+      videoUrl: opts.videoUrl,
+      onTerminar: info => {
+        if (!opts.sinCamara3D && typeof iniciarCamaraCinematica3D === 'function') {
+          iniciarCamaraCinematica3D(info.camara3d || escena.camara3d || 'heroica', 2.4);
+        }
+        if (typeof opts.onTerminar === 'function') opts.onTerminar(info);
+      }
+    });
+  }
+
   function mostrarCapitulo(r) {
+    capModalNumero = r.numero;
+    if ($('cap-cinematica')) $('cap-cinematica').style.display = '';
     if (window.Sonidos && window.Sonidos.mision) window.Sonidos.mision();
     $('cap-sabio').textContent = r.capitulo.sabio + ' cuenta:';
     if (window.ArteUI) window.ArteUI.aplicarRetrato($('cap-retrato'), (r.capitulo && (r.capitulo.npc || r.capitulo.sabio)) || '');
@@ -17959,6 +18123,8 @@
       : HistoriaLib.CAPITULOS;
     const cap = caps[numero - 1];
     if (!dec || !cap) return;
+    capModalNumero = numero;
+    if ($('cap-cinematica')) $('cap-cinematica').style.display = 'none';
     $('cap-sabio').textContent = '⚖️ Encrucijada de la Crónica · ' + cap.sabio;
     $('cap-titulo').textContent = 'Capítulo ' + numero + ' · ' + cap.titulo;
     if ($('cap-hito')) { $('cap-hito').style.display = 'none'; $('cap-hito').innerHTML = ''; }
@@ -17975,6 +18141,8 @@
   function mostrarEncargo() {
     const p = heroeEst.principal, cap = HistoriaLib.capituloActual(p, world);
     if (!cap || !world) return;
+    capModalNumero = p.paso + 1;
+    if ($('cap-cinematica')) $('cap-cinematica').style.display = '';
     const hitoEl = $('cap-hito');
     if (hitoEl) { hitoEl.style.display = 'none'; hitoEl.innerHTML = ''; }
     if ($('cap-decision')) { $('cap-decision').style.display = 'none'; $('cap-decision').innerHTML = ''; }
@@ -18151,8 +18319,8 @@
       ${epilogo && epilogo.id !== 'base' ? `<div style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.12);font-size:11.5px"><b style="color:#facc15">${esc(epilogo.titulo)}</b> · <span class="muted">${esc(epilogo.texto)}</span></div>` : ''}
     </div>`;
     const titCronica = (world && world.historia && world.historia.titulo)
-      ? `<div style="margin-bottom:8px;font-size:14px;font-weight:700;color:#fde047">📖 ${esc(world.historia.titulo)}</div>`
-      : '';
+      ? `<div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:14px;font-weight:700;color:#fde047">📖 ${esc(world.historia.titulo)}</span><button type="button" data-accion="cinematica" data-cap="prologo" style="font-size:11.5px;padding:3px 10px;background:#312e81;border:1px solid #818cf8;color:#e0e7ff;border-radius:4px;cursor:pointer">🎬 Ver cinemática del Prólogo</button></div>`
+      : `<div style="margin-bottom:8px;display:flex;justify-content:flex-end"><button type="button" data-accion="cinematica" data-cap="prologo" style="font-size:11.5px;padding:3px 10px;background:#312e81;border:1px solid #818cf8;color:#e0e7ff;border-radius:4px;cursor:pointer">🎬 Ver cinemática del Prólogo</button></div>`;
     const cabeceraActo = titCronica + panelRep + (acto ? `<div style="padding:10px 12px;margin-bottom:10px;border-radius:6px;background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.35)">
       <div style="font-weight:bold;color:#38bdf8;font-size:13px">${esc(acto.nombre)}</div>
       <div class="muted" style="margin-top:4px;font-size:12px;line-height:1.4">${esc(acto.resumen)}</div>
@@ -18171,7 +18339,10 @@
             : `<div style="margin-top:6px"><button type="button" data-accion="decidir" data-cap="${i + 1}" style="font-size:11px;padding:3px 9px;background:#78350f;border:1px solid #facc15;color:#fef08a;border-radius:4px;cursor:pointer">⚖️ Tomar decisión pendiente</button></div>`;
         }
         return sepActo + `<div class="cap cumplido" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
-          <b>✅ ${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)}</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <span><b>✅ ${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)}</span></span>
+            <button type="button" data-accion="cinematica" data-cap="${i + 1}" style="font-size:11px;padding:2px 9px;background:#312e81;border:1px solid #818cf8;color:#e0e7ff;border-radius:4px;cursor:pointer">🎬 Cinemática</button>
+          </div>
           <p style="margin:4px 0">${esc(HistoriaLib.textoContado(c, world))}</p>
           ${decHtml}
         </div>`;
@@ -18181,8 +18352,9 @@
           <b>▶ ${i + 1}. ${esc(c.titulo)}</b> <span class="muted">· ${esc(c.sabio)} · en curso</span>
           <p style="margin:6px 0">${esc(o.encargo)}</p>
           <p class="muted">📍 ${esc(o.texto)} · ${p.progreso} / ${o.cantidad} · nivel recomendado ${c.nivel}</p>
-          <div style="margin-top:8px;display:flex;gap:8px">
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
             <button class="gold" data-accion="ir" style="font-size:12px;padding:4px 10px">🧭 Ir al objetivo</button>
+            <button type="button" data-accion="cinematica" data-cap="${i + 1}" style="font-size:12px;padding:4px 10px;background:#312e81;border:1px solid #818cf8;color:#e0e7ff;border-radius:4px;cursor:pointer" title="Ver presentación cinemática del capítulo">🎬 Cinemática</button>
             <button data-accion="saltar" style="font-size:12px;padding:4px 10px;background:#2563eb;color:#fff;border-radius:4px" title="Completar objetivo y pasar al siguiente capítulo">⏭ Siguiente capítulo</button>
           </div>
         </div>`;
@@ -18489,8 +18661,21 @@
   $('cap-ir').onclick = () => {
     $('capitulo').classList.remove('show');
     if (window.Voces) window.Voces.detener();
-    irAMision();
+    const pAct = heroeEst && heroeEst.principal;
+    const sigNum = (pAct && typeof HistoriaLib !== 'undefined' && !HistoriaLib.terminada(pAct, world)) ? (pAct.paso + 1) : null;
+    if (sigNum && !cinematicaFueVista('c' + sigNum)) {
+      reproducirCinematicaCapitulo(sigNum, { onTerminar: () => irAMision() });
+    } else {
+      irAMision();
+    }
   };
+  if ($('cap-cinematica')) {
+    $('cap-cinematica').onclick = () => {
+      $('capitulo').classList.remove('show');
+      if (window.Voces) window.Voces.detener();
+      reproducirCinematicaCapitulo(capModalNumero, { forzar: true });
+    };
+  }
   $('cap-saltar').onclick = () => {
     $('capitulo').classList.remove('show');
     const p = heroeEst.principal;
@@ -18757,6 +18942,11 @@
     } else if (accion === 'decidir') {
       const nDec = parseInt(btn.dataset.cap, 10);
       if (!isNaN(nDec)) abrirDecisionDesdeCronica(nDec);
+    } else if (accion === 'cinematica') {
+      $('cronica').classList.remove('show');
+      const rawCap = btn.dataset.cap;
+      const clave = rawCap === 'prologo' ? 'prologo' : parseInt(rawCap, 10);
+      reproducirCinematicaCapitulo(clave, { forzar: true });
     } else if (accion === 'activar') {
       const targetIdx = parseInt(btn.dataset.cap, 10);
       const caps = typeof HistoriaLib.capitulosDe === 'function' ? HistoriaLib.capitulosDe(world) : HistoriaLib.CAPITULOS;
@@ -21408,6 +21598,9 @@
     toast(saltado
       ? `🔥 Acto I · Cap. 1: Reúne materiales para Brann junto a ${nom}.`
       : `🤝 ¡Juramento sellado! ${nom} te acompaña en la plaza de ${nomPueblo}.`);
+    if (!saltado) {
+      reproducirCinematicaCapitulo(1, { forzar: false });
+    }
   }
 
   if ($('btn-portada-continuar')) {
@@ -21468,6 +21661,10 @@
   }
 
   if ($('btn-prologo-siguiente')) $('btn-prologo-siguiente').onclick = () => mostrarPasoPrologo(2);
+  if ($('prologo-ver-cinematica')) $('prologo-ver-cinematica').onclick = () => {
+    if (window.Voces) window.Voces.detener();
+    reproducirCinematicaCapitulo('prologo', { forzar: true, sinCamara3D: true });
+  };
   if ($('btn-prologo-volver')) $('btn-prologo-volver').onclick = () => mostrarPasoPrologo(1);
   if ($('btn-prologo-saltar')) $('btn-prologo-saltar').onclick = () => finalizarPrologo(true);
   if ($('btn-prologo-iniciar')) $('btn-prologo-iniciar').onclick = () => finalizarPrologo(false);
@@ -21519,7 +21716,55 @@
     if (sel) showSelection(sel);
   }
 
+  let camCinematica3D = null;
+  function setBarrasCine3D(mostrar) {
+    const t = $('cine3d-top'), b = $('cine3d-bot');
+    const h = mostrar ? '7vh' : '0';
+    if (t) t.style.height = h;
+    if (b) b.style.height = h;
+  }
+  function detenerCamaraCinematica3D() {
+    if (!camCinematica3D) return;
+    if (camCinematica3D.cancelarListener) {
+      window.removeEventListener('pointerdown', camCinematica3D.cancelarListener, true);
+      window.removeEventListener('keydown', camCinematica3D.cancelarListener, true);
+    }
+    camCinematica3D = null;
+    setBarrasCine3D(false);
+  }
+  function iniciarCamaraCinematica3D(modo = 'heroica', durSeg = 2.4) {
+    if (!character || !character.root || (gestorMazmorras && gestorMazmorras.enMazmorra)) return;
+    detenerCamaraCinematica3D();
+    const PERFILES_3D = {
+      forja:      { dur: 2.4, ang0: -1.1, ang1: 0.15, dist0: 12.5, dist1: 8.8, alt0: 5.8, alt1: 4.5 },
+      ritual:     { dur: 2.5, ang0: 1.4,  ang1: -0.2, dist0: 13.5, dist1: 9.0, alt0: 6.4, alt1: 4.6 },
+      titan:      { dur: 2.6, ang0: -1.5, ang1: 0.10, dist0: 15.0, dist1: 9.5, alt0: 3.4, alt1: 4.8 },
+      plaza:      { dur: 2.8, ang0: -1.8, ang1: 0.30, dist0: 16.0, dist1: 9.2, alt0: 7.2, alt1: 4.6 },
+      panoramica: { dur: 2.5, ang0: 1.2,  ang1: -0.1, dist0: 14.5, dist1: 9.2, alt0: 6.8, alt1: 4.7 },
+      heroica:    { dur: 2.4, ang0: -0.95,ang1: 0.12, dist0: 12.0, dist1: 9.0, alt0: 4.6, alt1: 4.6 }
+    };
+    const cfg = PERFILES_3D[modo] || PERFILES_3D.heroica;
+    const baseYaw = character.root.rotation ? character.root.rotation.y : 0;
+    const cancelar = (e) => {
+      if (e && e.type === 'keydown' && !/^(KeyW|KeyA|KeyS|KeyD|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Escape| )$/.test(e.key || e.code)) return;
+      detenerCamaraCinematica3D();
+    };
+    window.addEventListener('pointerdown', cancelar, true);
+    window.addEventListener('keydown', cancelar, true);
+    setBarrasCine3D(true);
+    camCinematica3D = {
+      inicioMs: performance.now(),
+      durMs: Math.max(800, (durSeg || cfg.dur) * 1000),
+      baseYaw,
+      ang0: cfg.ang0, ang1: cfg.ang1,
+      dist0: cfg.dist0, dist1: cfg.dist1,
+      alt0: cfg.alt0, alt1: cfg.alt1,
+      cancelarListener: cancelar
+    };
+  }
+
   function setFollow(on) {
+    detenerCamaraCinematica3D();
     follow = on;
     character.cameraMode = on ? 'follow' : 'free';
     controls.enablePan = !on;   // siguiendo, el centro es el personaje: girar y acercar sí, desplazar no
@@ -22054,13 +22299,16 @@
         cielo.position.copy(camera.position);
       }
     }
-    if (character.tieneEntradaManual() && (ruta || objetivo || autoZona)) {
+    const enEscena3D = !!(typeof window !== 'undefined' && window.DirectorEscenas3D && window.DirectorEscenas3D.estaActiva());
+    if (!enEscena3D && character.tieneEntradaManual() && (ruta || objetivo || autoZona)) {
       character.destino = null;
       character.cancelado = true;
     }
-    seguirRuta();
-    atacarAuto();
-    atacarObjetivo();
+    if (!enEscena3D) {
+      seguirRuta();
+      atacarAuto();
+      atacarObjetivo();
+    }
     // Actualización de temporizadores de buffs de los NPCs clave (Varek, Cynthia, Kaelen)
     if (hero.bloodFuryTimer > 0) {
       hero.bloodFuryTimer -= dt;
@@ -22074,8 +22322,21 @@
     if (hero.shadowBalmTimer > 0) hero.shadowBalmTimer -= dt;
     if (hero.roadSpeedBuffTimer > 0) hero.roadSpeedBuffTimer -= dt;
 
-    character.update(dt, now / 1000);
-    if (character && character.root && window.Sonidos && window.Sonidos.paso) {
+    if (enEscena3D) {
+      if (character) {
+        character.tiempo = now / 1000;
+        if (character.mixer) {
+          character.mixer.update(dt);
+          if (character._skillAnim && character._aplicarAnimacionHabilidad) character._aplicarAnimacionHabilidad();
+        } else if (character.isFallbackAvatar && character.fallbackAct) {
+          character.applyFallbackAct(character.tiempo);
+          if (character._skillAnim && character._aplicarAnimacionHabilidad) character._aplicarAnimacionHabilidad();
+        }
+      }
+    } else {
+      character.update(dt, now / 1000);
+    }
+    if (!enEscena3D && character && character.root && window.Sonidos && window.Sonidos.paso) {
       const cp = character.root.position;
       if (_pasoPrevX !== null && !hero.dead && !(character.isDodging && character.isDodging()) && hero.lock <= 0) {
         const dp = Math.hypot(cp.x - _pasoPrevX, cp.z - _pasoPrevZ);
@@ -22101,7 +22362,10 @@
     actualizarEfectos(dt);
     if (studioVfx) studioVfx.update(dt, camera, character && character.getActiveOneShotState ? character.getActiveOneShotState() : null);
     if (!enDungeon && !enRecinto) actualizarGurus(dt, now / 1000);
-    if (acompanante && acompanante.activo && typeof AcompananteLib !== 'undefined') {
+    if (enEscena3D && acompanante && acompanante.mixer) {
+      acompanante.mixer.update(dt);
+    }
+    if (!enEscena3D && acompanante && acompanante.activo && typeof AcompananteLib !== 'undefined') {
       AcompananteLib.actualizarAcompanante(
         acompanante,
         dt,
@@ -22222,15 +22486,17 @@
       if (QUALITY[quality].shadows > 0) seguirSombra();
     }
     lastNowSec = now / 1000;
-    updateCombat(dt, now);
-    updateHud(now);
-    actualizarAmbienteSonoro(now, enDungeon);
-    if (!enDungeon) checkRegions(now);
-    if (!enDungeon && !enRecinto) actualizarInteractivosHistoria(dt, now);
-    drawMinimap(now);
-    if ($('mapa-mundo') && $('mapa-mundo').classList.contains('show') && now - lastMapaLiveDraw > 120) {
-      lastMapaLiveDraw = now;
-      requestDrawMapaMundo();
+    if (!enEscena3D) {
+      updateCombat(dt, now);
+      updateHud(now);
+      actualizarAmbienteSonoro(now, enDungeon);
+      if (!enDungeon) checkRegions(now);
+      if (!enDungeon && !enRecinto) actualizarInteractivosHistoria(dt, now);
+      drawMinimap(now);
+      if ($('mapa-mundo') && $('mapa-mundo').classList.contains('show') && now - lastMapaLiveDraw > 120) {
+        lastMapaLiveDraw = now;
+        requestDrawMapaMundo();
+      }
     }
     updateMazmorras(dt, now);
     if (!enDungeon && typeof actualizarDecoracionesCulminacion === 'function') {
@@ -22239,21 +22505,41 @@
 
     // Cerca de un recinto la cámara no sube por encima de sus paredes (así nunca se ve el cambio de interior)
     const pCam = character.root.position;
-    const camRecinto = character.cameraMode === 'follow' && recintosMundo.length && recintoEn(pCam.x, pCam.z, 4);
-    controls.maxDistance = enDungeon ? 14.0 : camRecinto ? 22 : (character.cameraMode === 'follow' ? 280 : 9000);
-    controls.update();
-    // Al seguir, se mantienen la distancia y el giro que dejas con el ratón; el recorte por muros y suelo no se acumula
-    character.encuadrar(() => {
-      if (gestorMazmorras && gestorMazmorras.enMazmorra) {
-        // En mazmorra: asegurar altura mínima sobre el suelo sin aprisionar al personaje
-        camera.position.y = Math.max(1.8, camera.position.y);
-        if (typeof gestorMazmorras.actualizarOclusionCamara === 'function') {
-          gestorMazmorras.actualizarOclusionCamara();
+    if (enEscena3D) {
+      window.DirectorEscenas3D.actualizar(dt, now);
+    } else {
+      if (camCinematica3D && !enDungeon) {
+        const uC = Math.min(1, Math.max(0, (now - camCinematica3D.inicioMs) / camCinematica3D.durMs));
+        const sC = uC * uC * (3 - 2 * uC);
+        const ang = camCinematica3D.baseYaw + camCinematica3D.ang0 + (camCinematica3D.ang1 - camCinematica3D.ang0) * sC;
+        const distC = camCinematica3D.dist0 + (camCinematica3D.dist1 - camCinematica3D.dist0) * sC;
+        const altC = camCinematica3D.alt0 + (camCinematica3D.alt1 - camCinematica3D.alt0) * sC;
+        camera.position.set(
+          pCam.x + Math.sin(ang) * distC,
+          pCam.y + altC,
+          pCam.z + Math.cos(ang) * distC
+        );
+        controls.target.set(pCam.x, pCam.y + 1.35, pCam.z);
+        if (uC >= 1) {
+          setFollow(true);
         }
-        return;
       }
-      CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld);
-    });
+      const camRecinto = character.cameraMode === 'follow' && recintosMundo.length && recintoEn(pCam.x, pCam.z, 4);
+      controls.maxDistance = enDungeon ? 14.0 : camRecinto ? 22 : (character.cameraMode === 'follow' ? 280 : 9000);
+      controls.update();
+      // Al seguir, se mantienen la distancia y el giro que dejas con el ratón; el recorte por muros y suelo no se acumula
+      character.encuadrar(() => {
+        if (gestorMazmorras && gestorMazmorras.enMazmorra) {
+          // En mazmorra: asegurar altura mínima sobre el suelo sin aprisionar al personaje
+          camera.position.y = Math.max(1.8, camera.position.y);
+          if (typeof gestorMazmorras.actualizarOclusionCamara === 'function') {
+            gestorMazmorras.actualizarOclusionCamara();
+          }
+          return;
+        }
+        CharacterLib.clampCameraToWorld(camera, controls.target, visorWorld);
+      });
+    }
     let shakeApplied = false;
     if (shakeTimer > 0) {
       shakeTimer = Math.max(0, shakeTimer - rawDt);
@@ -22588,7 +22874,7 @@
       loadText(serializedValdris, false);
       bootPartida({ sinPortada: false });
       if ($('load')) $('load').classList.remove('show');
-      window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, atajosActivos, useSkill, faltaArma, bloqueada, renderHeroe, renderEntrenador, get studioVfx() { return studioVfx; }, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; }, MODO_JUEGO_VALDRIS, ejecutarViajeRapido, buildAtlasUI };
+      window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, atajosActivos, useSkill, faltaArma, bloqueada, renderHeroe, renderEntrenador, get studioVfx() { return studioVfx; }, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, reproducirCinematicaCapitulo, iniciarCamaraCinematica3D, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; }, MODO_JUEGO_VALDRIS, ejecutarViajeRapido, buildAtlasUI };
       return;
     }
     let id = params.get('s');
@@ -22698,7 +22984,7 @@
       ensureScene();
       $('load').classList.add('show');
     }
-    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, atajosActivos, useSkill, faltaArma, bloqueada, renderHeroe, renderEntrenador, get studioVfx() { return studioVfx; }, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
+    window.__visor = { alternarAuto, pararAuto, loadText, buildWorld, abrirMapaMundo, cerrarMapaMundo, drawMapaMundo, get mapaView() { return mapaView; }, get monstruos() { return monsters; }, get personaje() { return character; },get gestorCargaArchivos() { return typeof GestorCargaArchivos !== 'undefined' ? GestorCargaArchivos : null; }, get scene() { return scene; }, get world() { return world; }, get dungeons() { return world && world.dungeons; }, get gestorMazmorras() { return gestorMazmorras; }, entrarEnMazmorra, get gestorLaberintos() { return gestorLaberintos; }, get recintos() { return recintosMundo; }, llevarABocaRecinto, entrarEnLaberinto, salirDeLaberinto, get heroeEst() { return heroeEst; }, get personajeActual() { return personajeActual; }, set personajeActual(v) { personajeActual = v; }, get inv() { return inv; }, renderInvCard, renderObjetos, abrirServicio, servicioCercano, colocarGurus, colocarAldeanosEstrategicos, aldeanosCustom, crearAldeanoEnMundo, claseArmaDelHeroe, notificarNuevasHabilidadesNivel, atajosActivos, useSkill, faltaArma, bloqueada, renderHeroe, renderEntrenador, get studioVfx() { return studioVfx; }, ESTILOS_NPC, SERVICIOS, personalizarEstiloNpc, renderNpc, renderCabana, abrirModalCompanero, cerrarModalCompanero, renderCompanero, asegurarAcompananteActivo, cerrarCapitulo, actualizarMision, avanzarHistoria, reproducirCinematicaCapitulo, iniciarCamaraCinematica3D, cargarCatalogoPiezas, get character() { return character; }, get heroe() { return hero; }, get gurus() { return gurus; }, get acompanante() { return acompanante; }, get lugaresSecretos() { return lugaresSecretos; }, get monstruos() { return monsters; }, get ruta() { return ruta; }, get objetivo() { return objetivo; }, get autoZona() { return autoZona; }, materialesEntorno, seleccionar: m => showSelection({ kind: 'monster', ref: m }), renderer, camera, controls, towns, scene, overview, setFollow, applyQuality, meshHeight, Hgen, QUALITY, get quality() { return quality; }, get farMesh() { return farMesh; }, get nearChunks() { return nearChunks; }, get monsters() { return monsters; }, get lagos() { return lagosMundo; }, get ladrillos() { return ladrillosTramos; }, get terreno() { return terrainGrid; }, terrainU, caminoU, get ssaoActivo() { return ssaoActivo; }, setSsao, get gtaoPass() { return gtaoPass; }, versionEnemigo: construirVersionEnemigo, VERSION_ENEMIGO, meshopt: MeshoptSimplifier, character, get hero() { return hero; } };
   })();
   </script>
 </body>

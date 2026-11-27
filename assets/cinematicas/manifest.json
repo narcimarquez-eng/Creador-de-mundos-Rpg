@@ -1,0 +1,346 @@
+{
+  "version": 1,
+  "notas": "Para usar vídeo real en cualquier capítulo, coloca <id>.webm o <id>.mp4 en assets/cinematicas/videos/ y cambia videoDisponible a true.",
+  "escenas": {
+    "prologo": {
+      "id": "prologo",
+      "numero": 0,
+      "acto": "Prólogo · La Emboscada",
+      "titulo": "La Emboscada en la Fragua de Brann",
+      "imagen": "assets/cinematicas/prologo.webp",
+      "video": "assets/cinematicas/videos/prologo.webm",
+      "videoMp4": "assets/cinematicas/videos/prologo.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "prologo_01",
+      "atmosfera": "brasas",
+      "acento": "#f97316",
+      "duracionSeg": 15,
+      "camara3d": "forja",
+      "planos": [
+        { "x0": -2.5, "y0": 1.2, "s0": 1.04, "x1": 2.0, "y1": -0.8, "s1": 1.13, "peso": 0.48 },
+        { "x0": 2.0, "y0": -0.8, "s0": 1.14, "x1": -0.6, "y1": 0.4, "s1": 1.07, "peso": 0.52 }
+      ]
+    },
+    "c1": {
+      "id": "c1",
+      "numero": 1,
+      "acto": "Acto I · Emboscada y Forja Clandestina",
+      "titulo": "Pieles de caza y los pantalones reforzados",
+      "imagen": "assets/cinematicas/c1.webp",
+      "video": "assets/cinematicas/videos/c1.webm",
+      "videoMp4": "assets/cinematicas/videos/c1.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_01_encargo",
+      "atmosfera": "brasas",
+      "acento": "#fbbf24",
+      "duracionSeg": 13,
+      "camara3d": "heroica",
+      "planos": [
+        { "x0": -2.2, "y0": 1.0, "s0": 1.04, "x1": 1.6, "y1": -0.6, "s1": 1.12, "peso": 0.5 },
+        { "x0": 1.6, "y0": -0.6, "s0": 1.12, "x1": -0.4, "y1": 0.2, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c2": {
+      "id": "c2",
+      "numero": 2,
+      "acto": "Acto I · Emboscada y Forja Clandestina",
+      "titulo": "El camino agreste y las botas de marcha",
+      "imagen": "assets/cinematicas/c2.webp",
+      "video": "assets/cinematicas/videos/c2.webm",
+      "videoMp4": "assets/cinematicas/videos/c2.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_02_encargo",
+      "atmosfera": "lluvia",
+      "acento": "#f87171",
+      "duracionSeg": 12,
+      "camara3d": "panoramica",
+      "planos": [
+        { "x0": 2.4, "y0": -1.2, "s0": 1.04, "x1": -1.8, "y1": 0.8, "s1": 1.13, "peso": 0.52 },
+        { "x0": -1.8, "y0": 0.8, "s0": 1.13, "x1": 0.2, "y1": 0.0, "s1": 1.06, "peso": 0.48 }
+      ]
+    },
+    "c3": {
+      "id": "c3",
+      "numero": 3,
+      "acto": "Acto I · Emboscada y Forja Clandestina",
+      "titulo": "Garras de bestia y el aldeano leal",
+      "imagen": "assets/cinematicas/c3.webp",
+      "video": "assets/cinematicas/videos/c3.webm",
+      "videoMp4": "assets/cinematicas/videos/c3.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_03_encargo",
+      "atmosfera": "niebla",
+      "acento": "#94a3b8",
+      "duracionSeg": 12,
+      "camara3d": "heroica",
+      "planos": [
+        { "x0": -1.8, "y0": 0.8, "s0": 1.05, "x1": 1.5, "y1": -0.5, "s1": 1.14, "peso": 0.5 },
+        { "x0": 1.5, "y0": -0.5, "s0": 1.14, "x1": 0.0, "y1": 0.0, "s1": 1.07, "peso": 0.5 }
+      ]
+    },
+    "c4": {
+      "id": "c4",
+      "numero": 4,
+      "acto": "Acto I · Emboscada y Forja Clandestina",
+      "titulo": "Planchas de caparazón y el peto de acero",
+      "imagen": "assets/cinematicas/c4.webp",
+      "video": "assets/cinematicas/videos/c4.webm",
+      "videoMp4": "assets/cinematicas/videos/c4.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_04_encargo",
+      "atmosfera": "brasas",
+      "acento": "#fb923c",
+      "duracionSeg": 12,
+      "camara3d": "titan",
+      "planos": [
+        { "x0": 0.0, "y0": 1.6, "s0": 1.04, "x1": -1.6, "y1": -1.0, "s1": 1.13, "peso": 0.55 },
+        { "x0": -1.6, "y0": -1.0, "s0": 1.13, "x1": 1.2, "y1": 0.2, "s1": 1.07, "peso": 0.45 }
+      ]
+    },
+    "c5": {
+      "id": "c5",
+      "numero": 5,
+      "acto": "Acto I · Emboscada y Forja Clandestina",
+      "titulo": "Astas de hueso y el yelmo protector",
+      "imagen": "assets/cinematicas/c5.webp",
+      "video": "assets/cinematicas/videos/c5.webm",
+      "videoMp4": "assets/cinematicas/videos/c5.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_05_encargo",
+      "atmosfera": "niebla",
+      "acento": "#60a5fa",
+      "duracionSeg": 12,
+      "camara3d": "panoramica",
+      "planos": [
+        { "x0": -2.4, "y0": 0.4, "s0": 1.05, "x1": 2.0, "y1": -0.6, "s1": 1.12, "peso": 0.5 },
+        { "x0": 2.0, "y0": -0.6, "s0": 1.12, "x1": 0.0, "y1": 0.2, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c6": {
+      "id": "c6",
+      "numero": 6,
+      "acto": "Acto II · Reliquias y Poder Antiguo",
+      "titulo": "La fuente arcana y el templado del conjunto",
+      "imagen": "assets/cinematicas/c6.webp",
+      "video": "assets/cinematicas/videos/c6.webm",
+      "videoMp4": "assets/cinematicas/videos/c6.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_06_encargo",
+      "atmosfera": "arcano",
+      "acento": "#38bdf8",
+      "duracionSeg": 12,
+      "camara3d": "ritual",
+      "planos": [
+        { "x0": 0.0, "y0": -1.4, "s0": 1.04, "x1": 0.8, "y1": 1.2, "s1": 1.14, "peso": 0.5 },
+        { "x0": 0.8, "y0": 1.2, "s0": 1.14, "x1": -0.6, "y1": 0.0, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c7": {
+      "id": "c7",
+      "numero": 7,
+      "acto": "Acto II · Reliquias y Poder Antiguo",
+      "titulo": "Mineral salvaje y la forja del arma",
+      "imagen": "assets/cinematicas/c7.webp",
+      "video": "assets/cinematicas/videos/c7.webm",
+      "videoMp4": "assets/cinematicas/videos/c7.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_07_encargo",
+      "atmosfera": "brasas",
+      "acento": "#f97316",
+      "duracionSeg": 12,
+      "camara3d": "forja",
+      "planos": [
+        { "x0": -2.0, "y0": 1.2, "s0": 1.05, "x1": 2.2, "y1": -0.8, "s1": 1.13, "peso": 0.5 },
+        { "x0": 2.2, "y0": -0.8, "s0": 1.13, "x1": 0.0, "y1": 0.2, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c8": {
+      "id": "c8",
+      "numero": 8,
+      "acto": "Acto II · Reliquias y Poder Antiguo",
+      "titulo": "El sello de la nova",
+      "imagen": "assets/cinematicas/c8.webp",
+      "video": "assets/cinematicas/videos/c8.webm",
+      "videoMp4": "assets/cinematicas/videos/c8.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_08_encargo",
+      "atmosfera": "rayo",
+      "acento": "#facc15",
+      "duracionSeg": 12,
+      "camara3d": "heroica",
+      "planos": [
+        { "x0": 0.0, "y0": 0.0, "s0": 1.03, "x1": 0.0, "y1": -0.8, "s1": 1.16, "peso": 0.5 },
+        { "x0": 0.0, "y0": -0.8, "s0": 1.16, "x1": 1.4, "y1": 0.4, "s1": 1.07, "peso": 0.5 }
+      ]
+    },
+    "c9": {
+      "id": "c9",
+      "numero": 9,
+      "acto": "Acto II · Reliquias y Poder Antiguo",
+      "titulo": "La cabaña en la espesura",
+      "imagen": "assets/cinematicas/c9.webp",
+      "video": "assets/cinematicas/videos/c9.webm",
+      "videoMp4": "assets/cinematicas/videos/c9.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_09_encargo",
+      "atmosfera": "niebla",
+      "acento": "#f59e0b",
+      "duracionSeg": 12,
+      "camara3d": "panoramica",
+      "planos": [
+        { "x0": 2.4, "y0": 0.6, "s0": 1.04, "x1": -1.8, "y1": -0.4, "s1": 1.12, "peso": 0.5 },
+        { "x0": -1.8, "y0": -0.4, "s0": 1.12, "x1": 0.0, "y1": 0.0, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c10": {
+      "id": "c10",
+      "numero": 10,
+      "acto": "Acto II · Reliquias y Poder Antiguo",
+      "titulo": "Caza en la espesura",
+      "imagen": "assets/cinematicas/c10.webp",
+      "video": "assets/cinematicas/videos/c10.webm",
+      "videoMp4": "assets/cinematicas/videos/c10.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_10_encargo",
+      "atmosfera": "lluvia",
+      "acento": "#fb7185",
+      "duracionSeg": 12,
+      "camara3d": "heroica",
+      "planos": [
+        { "x0": -2.2, "y0": -0.8, "s0": 1.04, "x1": 1.8, "y1": 0.8, "s1": 1.13, "peso": 0.52 },
+        { "x0": 1.8, "y0": 0.8, "s0": 1.13, "x1": -0.2, "y1": 0.0, "s1": 1.06, "peso": 0.48 }
+      ]
+    },
+    "c11": {
+      "id": "c11",
+      "numero": 11,
+      "acto": "Acto III · Ruptura del Monopolio y Asalto al Titán",
+      "titulo": "El altar de las estrellas y el despertar del comercio",
+      "imagen": "assets/cinematicas/c11.webp",
+      "video": "assets/cinematicas/videos/c11.webm",
+      "videoMp4": "assets/cinematicas/videos/c11.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_11_encargo",
+      "atmosfera": "arcano",
+      "acento": "#60a5fa",
+      "duracionSeg": 13,
+      "camara3d": "ritual",
+      "planos": [
+        { "x0": 0.0, "y0": 1.8, "s0": 1.04, "x1": 0.0, "y1": -1.4, "s1": 1.14, "peso": 0.5 },
+        { "x0": 0.0, "y0": -1.4, "s0": 1.14, "x1": 1.2, "y1": 0.2, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c12": {
+      "id": "c12",
+      "numero": 12,
+      "acto": "Acto III · Ruptura del Monopolio y Asalto al Titán",
+      "titulo": "Resonancia ancestral",
+      "imagen": "assets/cinematicas/c12.webp",
+      "video": "assets/cinematicas/videos/c12.webm",
+      "videoMp4": "assets/cinematicas/videos/c12.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_12_encargo",
+      "atmosfera": "rayo",
+      "acento": "#c084fc",
+      "duracionSeg": 12,
+      "camara3d": "panoramica",
+      "planos": [
+        { "x0": -2.0, "y0": 1.0, "s0": 1.04, "x1": 1.8, "y1": -0.8, "s1": 1.14, "peso": 0.5 },
+        { "x0": 1.8, "y0": -0.8, "s0": 1.14, "x1": 0.0, "y1": 0.0, "s1": 1.07, "peso": 0.5 }
+      ]
+    },
+    "c13": {
+      "id": "c13",
+      "numero": 13,
+      "acto": "Acto III · Ruptura del Monopolio y Asalto al Titán",
+      "titulo": "El santuario de la luz",
+      "imagen": "assets/cinematicas/c13.webp",
+      "video": "assets/cinematicas/videos/c13.webm",
+      "videoMp4": "assets/cinematicas/videos/c13.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_13_encargo",
+      "atmosfera": "arcano",
+      "acento": "#fde047",
+      "duracionSeg": 13,
+      "camara3d": "ritual",
+      "planos": [
+        { "x0": -1.4, "y0": 1.2, "s0": 1.04, "x1": 1.4, "y1": -0.8, "s1": 1.13, "peso": 0.5 },
+        { "x0": 1.4, "y0": -0.8, "s0": 1.13, "x1": 0.0, "y1": 0.0, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c14": {
+      "id": "c14",
+      "numero": 14,
+      "acto": "Acto III · Ruptura del Monopolio y Asalto al Titán",
+      "titulo": "Los jefes del bosque y el titán",
+      "imagen": "assets/cinematicas/c14.webp",
+      "video": "assets/cinematicas/videos/c14.webm",
+      "videoMp4": "assets/cinematicas/videos/c14.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_14_encargo",
+      "atmosfera": "brasas",
+      "acento": "#ef4444",
+      "duracionSeg": 14,
+      "camara3d": "titan",
+      "planos": [
+        { "x0": 0.0, "y0": 2.0, "s0": 1.04, "x1": 0.0, "y1": -1.2, "s1": 1.15, "peso": 0.55 },
+        { "x0": 0.0, "y0": -1.2, "s0": 1.15, "x1": -1.0, "y1": 0.2, "s1": 1.07, "peso": 0.45 }
+      ]
+    },
+    "c15": {
+      "id": "c15",
+      "numero": 15,
+      "acto": "Acto IV · Purificación y Liberación de Aden",
+      "titulo": "El juramento en la fuente",
+      "imagen": "assets/cinematicas/c15.webp",
+      "video": "assets/cinematicas/videos/c15.webm",
+      "videoMp4": "assets/cinematicas/videos/c15.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_15_encargo",
+      "atmosfera": "arcano",
+      "acento": "#fcd34d",
+      "duracionSeg": 13,
+      "camara3d": "ritual",
+      "planos": [
+        { "x0": -1.8, "y0": 0.6, "s0": 1.04, "x1": 1.6, "y1": -0.4, "s1": 1.12, "peso": 0.5 },
+        { "x0": 1.6, "y0": -0.4, "s0": 1.12, "x1": 0.0, "y1": 0.2, "s1": 1.06, "peso": 0.5 }
+      ]
+    },
+    "c16": {
+      "id": "c16",
+      "numero": 16,
+      "acto": "Acto IV · Purificación y Liberación de Aden",
+      "titulo": "El héroe de la plaza",
+      "imagen": "assets/cinematicas/c16.webp",
+      "video": "assets/cinematicas/videos/c16.webm",
+      "videoMp4": "assets/cinematicas/videos/c16.mp4",
+      "videoDisponible": false,
+      "videoConAudio": false,
+      "vozId": "cap_16_encargo",
+      "atmosfera": "celebracion",
+      "acento": "#fde047",
+      "duracionSeg": 14,
+      "camara3d": "plaza",
+      "planos": [
+        { "x0": -2.4, "y0": 0.8, "s0": 1.04, "x1": 2.0, "y1": -0.6, "s1": 1.13, "peso": 0.5 },
+        { "x0": 2.0, "y0": -0.6, "s0": 1.13, "x1": 0.0, "y1": 0.0, "s1": 1.05, "peso": 0.5 }
+      ]
+    }
+  }
+}
